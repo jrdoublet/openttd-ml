@@ -43,7 +43,7 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
-ARM = "OpexAI[c52_event_exposure_probe=1]"
+ARM = "OpexAI[probe_events=1]"
 EVENT_RE = re.compile(r"OPEX \d+-\d+-\d+ C52_EVENT_EXPOSURE\s*(.*)")
 FIELDS = (
     "vehicle_crashed", "crashed_train", "crashed_other", "vehicle_waiting_in_depot",

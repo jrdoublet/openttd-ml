@@ -748,7 +748,10 @@ function OpexC60ObserveTownRating(mode, phase, townId)
 {
   if (!AITown.IsValidTown(townId)) return true;
   local rating = AITown.GetRating(townId, AICompany.COMPANY_SELF);
-  local allowed = (rating == AITown.TOWN_RATING_NONE || rating > AITown.TOWN_RATING_VERY_POOR);
+  /* La sonde doit mesurer exactement le predicat comportemental. En particulier,
+   * town_council_tolerance=0 rend la construction permissive quelle que soit la note :
+   * compter alors VERY_POOR/APPALLING comme des refus cree une fausse exposition C60. */
+  local allowed = OpexTownRatingAllowStation(townId);
 
   if (C60_TOWN_RATING_LEDGER != null) {
     C60_TOWN_RATING_LEDGER.checks++;

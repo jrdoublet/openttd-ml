@@ -1,4 +1,5 @@
 from pathlib import Path
+import itertools
 import sys
 import unittest
 
@@ -79,6 +80,142 @@ def capital_price_relaxation(projects, budget):
 
     demand = base_demand
     for slope, delta_capital in sorted(segments, key=lambda row: (-row[0], row[1])):
+        if demand + delta_capital > budget:
+            return slope
+        demand += delta_capital
+    return 0.0
+
+
+def _capital_price_heap_higher(a, b):
+    return a[0] > b[0] or (a[0] == b[0] and a[1] < b[1])
+
+
+def capital_price_heap_order(segments):
+    """Python mirror of the Squirrel max-heap order used by the exact relaxation."""
+    heap = list(segments)
+    size = len(heap)
+
+    for index in range(size // 2 - 1, -1, -1):
+        root = index
+        while True:
+            left = root * 2 + 1
+            if left >= size:
+                break
+            right = left + 1
+            child = left
+            if right < size and _capital_price_heap_higher(heap[right], heap[left]):
+                child = right
+            if not _capital_price_heap_higher(heap[child], heap[root]):
+                break
+            heap[root], heap[child] = heap[child], heap[root]
+            root = child
+
+    ordered = []
+    while size > 0:
+        ordered.append(heap[0])
+        size -= 1
+        if size <= 0:
+            break
+        heap[0] = heap[size]
+        root = 0
+        while True:
+            left = root * 2 + 1
+            if left >= size:
+                break
+            right = left + 1
+            child = left
+            if right < size and _capital_price_heap_higher(heap[right], heap[left]):
+                child = right
+            if not _capital_price_heap_higher(heap[child], heap[root]):
+                break
+            heap[root], heap[child] = heap[child], heap[root]
+            root = child
+    return ordered
+
+
+def capital_price_relaxation_optimized(projects, budget):
+    """Independent mirror of the prepared one-pass Pareto/hull + heap implementation."""
+    if budget <= 0:
+        return 0.0
+
+    groups = {}
+    for project in projects:
+        finance_capital = project.get("finance_capital", project["capital"])
+        shadow_capital = project.get("shadow_capital", project["capital"])
+        if finance_capital > budget or project["profit"] <= 0:
+            continue
+        groups.setdefault(project["group"], []).append(
+            {**project, "capital": shadow_capital}
+        )
+
+    segments = []
+    full_demand = 0
+    base_demand = 0
+    for rows in groups.values():
+        rows = sorted(rows, key=lambda row: row["capital"])
+        points = []
+        zero_inserted = False
+        bucket_capital = None
+        bucket_profit = None
+        for row in rows:
+            capital = row["capital"]
+            profit = row["profit"]
+            if not zero_inserted and capital > 0:
+                if bucket_capital is not None:
+                    points.append((bucket_capital, bucket_profit))
+                    bucket_capital = None
+                    bucket_profit = None
+                points.append((0, 0))
+                zero_inserted = True
+            if bucket_capital is not None and capital != bucket_capital:
+                points.append((bucket_capital, bucket_profit))
+                bucket_capital = None
+                bucket_profit = None
+            if capital == 0 and not zero_inserted:
+                zero_inserted = True
+                bucket_capital = 0
+                bucket_profit = 0
+            if bucket_capital is None:
+                bucket_capital = capital
+                bucket_profit = profit
+            elif profit > bucket_profit:
+                bucket_profit = profit
+        if bucket_capital is not None:
+            points.append((bucket_capital, bucket_profit))
+        if not zero_inserted:
+            points.append((0, 0))
+
+        hull = []
+        best_profit = None
+        for point in points:
+            if best_profit is not None and point[1] <= best_profit:
+                continue
+            best_profit = point[1]
+            while len(hull) >= 2:
+                a, b = hull[-2], hull[-1]
+                slope1 = (b[1] - a[1]) / (b[0] - a[0])
+                slope2 = (point[1] - b[1]) / (point[0] - b[0])
+                if slope1 > slope2:
+                    break
+                hull.pop()
+            hull.append(point)
+
+        if not hull:
+            continue
+        base_demand += hull[0][0]
+        full_demand += hull[-1][0]
+        for previous, following in zip(hull, hull[1:]):
+            delta_capital = following[0] - previous[0]
+            delta_profit = following[1] - previous[1]
+            if delta_capital <= 0 or delta_profit <= 0:
+                continue
+            segments.append((delta_profit / delta_capital, delta_capital))
+
+    if full_demand <= budget:
+        return 0.0
+
+    demand = base_demand
+    for slope, delta_capital in capital_price_heap_order(segments):
         if demand + delta_capital > budget:
             return slope
         demand += delta_capital
@@ -184,7 +321,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertEqual(defaults["air_capital_frontier_probe"], 0)
         self.assertEqual(defaults["air_best_equipment"], 0)
         self.assertEqual(defaults["air_route_plane_selection"], 1)
-        self.assertEqual(defaults["portfolio_max_batch"], 1)
+        self.assertNotIn("portfolio_max_batch", defaults)
+        self.assertIn("PORTFOLIO_MAX_BATCH = 1;", SETTINGS.read_text(encoding="utf-8"))
         self.assertIn("AIR_CAPITAL_FRONTIER <- false", GLOBALS.read_text(encoding="utf-8"))
         self.assertIn("AIR_CAPITAL_FRONTIER_PROBE <- false", GLOBALS.read_text(encoding="utf-8"))
         self.assertIn(
@@ -198,16 +336,183 @@ class TestAirCapitalFrontier(unittest.TestCase):
 
     def test_early_slot_is_neutralized_under_capital_frontier(self):
         src = PROJECTS.read_text(encoding="utf-8")
+        air_project = src[
+            src.index("function OpexProjectFromAir"):
+            src.index("function OpexProjectFromWater")
+        ]
+        physical = src[
+            src.index("function OpexProjectPrepareEarlySlotPhysical"):
+            src.index("function OpexProjectRefreshEarlySlot")
+        ]
+        refresh = src[
+            src.index("function OpexProjectRefreshEarlySlot"):
+            src.index("function OpexProjectSelectAffordable")
+        ]
         select = src[
             src.index("function OpexProjectSelectAffordable"):
             src.index("function OpexProjectSelectionScore")
         ]
+        self.assertIn("OpexProjectPrepareEarlySlotPhysical(project)", air_project)
+        self.assertIn("AITile.GetClosestTown(plan.siteA.anchor)", physical)
+        self.assertIn("AITile.GetClosestTown(plan.siteB.anchor)", physical)
+        self.assertNotIn("AITile.GetClosestTown", refresh)
+        self.assertIn("AITown.GetPopulation(townA)", refresh)
+        self.assertIn("AITown.GetPopulation(townB)", refresh)
         self.assertIn("AIR_EARLY_SLOT && !useCapitalFrontier", select)
         self.assertIn("OpexProjectRefreshEarlySlot(project, earlySlotState)", select)
+        self.assertEqual(select.count('&& ("mode" in project) && project.mode == "air"'), 2)
+        self.assertEqual(select.count('project.rawset("selectionRankScore"'), 2)
+        self.assertEqual(select.count('project.rawset("selectionFreeRetire"'), 2)
+        self.assertIn("OpexProjectSelectionFinanceCapital(project)", select)
+        self.assertIn("OpexProjectSelectionBaseFundScore(project, financeCapital)", select)
         self.assertNotIn(
             "OpexProjectInsert(affordable, project, scoreKey, limit,\n                      AIR_EARLY_SLOT, useCapitalFrontier)",
             select,
         )
+
+    def test_historical_top_k_uses_exact_binary_insertion(self):
+        src = PROJECTS.read_text(encoding="utf-8")
+        insert = src[
+            src.index("function OpexProjectInsert"):
+            src.index("function OpexLogVivier")
+        ]
+        self.assertIn("local low = 0", insert)
+        self.assertIn("local high = best.len()", insert)
+        self.assertIn("while (low < high)", insert)
+        self.assertIn("best.insert(low, project)", insert)
+        self.assertNotIn("while (pos > 0)", insert)
+
+    def test_binary_top_k_preserves_linear_order_ties_stability_and_truncation(self):
+        def comes_before(project, prior, frontier=False):
+            if not frontier and project["free_retire"] != prior["free_retire"]:
+                return project["free_retire"] and not prior["free_retire"]
+            if project["score"] != prior["score"]:
+                return project["score"] > prior["score"]
+            if frontier:
+                if project["capital"] != prior["capital"]:
+                    return project["capital"] < prior["capital"]
+                if project["profit"] != prior["profit"]:
+                    return project["profit"] > prior["profit"]
+                return False
+            if project["revenue"] != prior["revenue"]:
+                return project["revenue"] > prior["revenue"]
+            return False
+
+        def linear_insert(best, project, limit, frontier=False):
+            best = list(best)
+            pos = len(best)
+            while pos > 0 and comes_before(project, best[pos - 1], frontier):
+                pos -= 1
+            best.insert(pos, project)
+            if len(best) > limit:
+                best.pop()
+            return best
+
+        def binary_insert(best, project, limit, frontier=False):
+            best = list(best)
+            low, high = 0, len(best)
+            while low < high:
+                pos = (low + high) // 2
+                if comes_before(project, best[pos], frontier):
+                    high = pos
+                else:
+                    low = pos + 1
+            best.insert(low, project)
+            if len(best) > limit:
+                best.pop()
+            return best
+
+        def row(name, score, revenue=0, free=False, capital=0, profit=0):
+            return {
+                "name": name,
+                "score": score,
+                "revenue": revenue,
+                "free_retire": free,
+                "capital": capital,
+                "profit": profit,
+            }
+
+        historical_cases = [
+            [row("low", 10), row("high", 30), row("mid", 20)],
+            [row("rev_low", 20, 100), row("rev_high", 20, 200), row("score_high", 30, 1)],
+            [row("invest", 100, 1000), row("retire", 0, 0, True), row("invest2", 80, 500)],
+            [row("equal_a", 20, 200), row("equal_b", 20, 200), row("equal_c", 20, 200)],
+        ]
+        for rows in historical_cases:
+            linear, binary = [], []
+            for project in rows:
+                linear = linear_insert(linear, project, 64)
+                binary = binary_insert(binary, project, 64)
+            self.assertEqual([p["name"] for p in binary], [p["name"] for p in linear])
+        self.assertEqual(
+            [p["name"] for p in binary],
+            ["equal_a", "equal_b", "equal_c"],
+        )
+
+        frontier_rows = [
+            row("capital_high", 50, capital=30, profit=100),
+            row("capital_low", 50, capital=20, profit=80),
+            row("profit_high", 50, capital=20, profit=120),
+            row("frontier_equal", 50, capital=20, profit=120),
+        ]
+        linear, binary = [], []
+        for project in frontier_rows:
+            linear = linear_insert(linear, project, 64, True)
+            binary = binary_insert(binary, project, 64, True)
+        self.assertEqual([p["name"] for p in binary], [p["name"] for p in linear])
+        self.assertEqual(
+            [p["name"] for p in binary],
+            ["profit_high", "frontier_equal", "capital_low", "capital_high"],
+        )
+
+        rows = [row("a", 40), row("b", 30), row("c", 20), row("d", 10)]
+        linear, binary = [], []
+        for project in rows:
+            linear = linear_insert(linear, project, 3)
+            binary = binary_insert(binary, project, 3)
+        self.assertEqual([p["name"] for p in binary], ["a", "b", "c"])
+        self.assertEqual([p["name"] for p in binary], [p["name"] for p in linear])
+
+    def test_historical_selection_scalar_cache_is_constructor_scoped(self):
+        src = PROJECTS.read_text(encoding="utf-8")
+        prepare = src[
+            src.index("function OpexProjectPrepareSelectionScalars"):
+            src.index("function OpexProjectSelectionFinanceCapital")
+        ]
+        finance = src[
+            src.index("function OpexProjectSelectionFinanceCapital"):
+            src.index("function OpexProjectShadowCapitalFromFinance")
+        ]
+        candidate = src[
+            src.index("function OpexProjectFromCandidate"):
+            src.index("function OpexProjectFromFleet")
+        ]
+        fleet = src[
+            src.index("function OpexProjectFromFleet"):
+            src.index("function OpexProjectFromAir")
+        ]
+        air_project = src[
+            src.index("function OpexProjectFromAir"):
+            src.index("function OpexAirRefreshProjectGroupAlternatives")
+        ]
+        water = src[
+            src.index("function OpexProjectFromWater"):
+            src.index("function OpexProjectRememberAll")
+        ]
+        self.assertIn("local capital = OpexProjectFinanceCapital(project)", prepare)
+        self.assertIn(
+            'project.rawset("selectionBaseFundScore", OpexProjectScore(project.profitAnnual, capital))',
+            prepare,
+        )
+        self.assertIn('if ("selectionFinanceCapital" in project)', finance)
+        self.assertIn('if ("selectionBaseFundScore" in project)', finance)
+        self.assertNotIn('rawset("selectionFinanceCapital"', finance)
+        self.assertNotIn('rawset("selectionBaseFundScore"', finance)
+        self.assertIn('if (mode == "road") OpexProjectPrepareSelectionScalars(project)', candidate)
+        self.assertNotIn('if (mode == "rail") OpexProjectPrepareSelectionScalars(project)', candidate)
+        self.assertIn("OpexProjectPrepareSelectionScalars(project)", fleet)
+        self.assertIn("OpexProjectPrepareSelectionScalars(project)", air_project)
+        self.assertIn("OpexProjectPrepareSelectionScalars(project)", water)
 
     def test_local_air_frontier_is_pure_capital_profit_dominance(self):
         rows = [
@@ -283,13 +588,24 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertAlmostEqual(capital_price_relaxation(projects, 100), 0.3)
 
         src = PROJECTS.read_text(encoding="utf-8")
-        price = src[src.index("function OpexCapitalPriceRelaxation"):src.index("function OpexCapitalFrontierAssignScores")]
-        self.assertIn("rows.append({ capital = 0, profit = 0 })", price)
-        self.assertIn("local pareto = []", price)
-        self.assertIn("local baseDemand = 0", price)
-        self.assertIn("if (slope1 > slope2) break", price)
-        self.assertIn("segments.append({", price)
+        price = src[
+            src.index("function OpexCapitalPriceRelaxationPrepared"):
+            src.index("function OpexSelectionLedgerRecordCause")
+        ]
+        assign = src[
+            src.index("function OpexCapitalFrontierAssignScores"):
+            src.index("function OpexProjectIsFreeAirRetirement")
+        ]
+        self.assertNotIn("local points = []", assign)
+        self.assertIn("local zeroInserted = false", assign)
+        self.assertNotIn("points.sort(function", assign)
+        self.assertIn("local hull = []", assign)
+        self.assertIn("OpexCapitalFrontierHullAppend(", assign)
+        self.assertIn("local deltaCapital = representative.capital - predecessor.capital", assign)
+        self.assertIn("local deltaProfit = representative.profit - predecessor.profit", assign)
+        self.assertIn("pricePrepared.segments.append({", assign)
         self.assertIn("fullDemand <= capitalBudget", price)
+        self.assertNotIn("function OpexCapitalPriceRelaxation(", src)
 
     def test_frontier_keeps_engine_and_fleet_depth_as_the_decision_unit(self):
         src = AIR.read_text(encoding="utf-8")
@@ -347,7 +663,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertIn("sameBest.frontierScore", concorde)
         self.assertNotIn("frontierPrunedTopK", equipment + concorde)
         self.assertIn("function OpexAirFrontierIncumbentLoss", src)
-        self.assertIn("OpexAirActualFleetEconomics", externality)
+        self.assertIn("OpexAirPlaneFromEngine(engine, line.cargo)", externality)
+        self.assertIn("OpexAirFleetEconomicsContext(catalog, planesList, item.distance)", externality)
         self.assertIn('OpexDecide("AIR_FRONTIER_EXTERNALITY"', externality)
         self.assertIn("OpexLogConcordeFrontierScores(alternatives, affordable[0], capitalBudget)", src)
         self.assertIn("OpexLogAirFrontierIncumbentExternality(alternatives, affordable[0], capitalBudget, catalog, lines)", src)
@@ -372,7 +689,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
             src.index("function OpexCapitalFrontierAssignScores"):
             src.index("function OpexProjectIsFreeAirRetirement")
         ]
-        self.assertIn("OpexAirActualFleetEconomicsContext(catalog, line, distance)", context)
+        self.assertIn("OpexAirPlaneFromEngine(engine, line.cargo)", context)
+        self.assertIn("OpexAirFleetEconomicsContext(catalog, planesList, item.distance)", context)
         self.assertNotIn("OpexAirActualFleetEconomics(", context)
         self.assertIn("OpexAirFleetEconomicsFromContext(state.economicsContext, demand)", state_profit)
         self.assertNotIn("OpexAirActualFleetEconomics(", state_profit)
@@ -392,8 +710,12 @@ class TestAirCapitalFrontier(unittest.TestCase):
             src.index("function OpexProjectIsFreeAirRetirement")
         ]
         self.assertIn("local externalityCache = {}", assign)
-        self.assertIn("local targetStations = OpexAirFrontierExternalityStations(externalityCandidates, capitalBudget)", assign)
-        self.assertIn("OpexAirFrontierExternalityContext(catalog, lines, targetStations)", assign)
+        self.assertIn("local targetStations = prepared.targetStations", assign)
+        self.assertIn("if (row.financeCap > capitalBudget) continue;", assign)
+        self.assertIn("OpexAirFrontierExternalitySnapshot(lines, targetStations, targetState)", assign)
+        self.assertIn("externalityStateKey = externalitySnapshot.key", assign)
+        self.assertIn("OpexAirFrontierExternalityContextFromSnapshot(catalog, externalitySnapshot)", assign)
+        self.assertNotIn("OpexAirFrontierExternalityContext(catalog, lines, targetStations)", assign)
         self.assertEqual(assign.count("OpexCapitalPriceRelaxationPrepared("), 1)
         self.assertIn("local prepared = OpexCapitalFrontierPrepare(", assign)
         self.assertIn('project.rawset("frontierCapitalPrice", price.lambda)', assign)
@@ -420,7 +742,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertEqual(incumbent_loss_station_key(7, 11), incumbent_loss_station_key(11, 7))
         self.assertNotEqual(incumbent_loss_station_key(7), incumbent_loss_station_key(11))
         self.assertIsNone(incumbent_loss_station_key(-1, None))
-        self.assertIn("local key = OpexAirFrontierIncumbentLossKey(project)", incumbent)
+        self.assertIn("context = null, key = null", incumbent)
+        self.assertIn("if (key == null) key = OpexAirFrontierIncumbentLossKey(project)", incumbent)
         self.assertIn("if (key != null && cache != null && (key in cache)) return cache[key]", incumbent)
         self.assertIn("if (before > after) loss += before - after", incumbent)
         self.assertNotIn("project.payload.plane", incumbent)
@@ -443,7 +766,7 @@ class TestAirCapitalFrontier(unittest.TestCase):
         ]
         prepare = src[
             src.index("function OpexCapitalFrontierPrepare"):
-            src.index("function OpexCapitalFrontierEnvelope")
+            src.index("function OpexCapitalPriceRelaxationPrepared")
         ]
         assign = src[
             src.index("function OpexCapitalFrontierAssignScores"):
@@ -451,8 +774,14 @@ class TestAirCapitalFrontier(unittest.TestCase):
         ]
         self.assertIn('project.mode != "air"', loss_key)
         self.assertIn("return OpexAirFrontierIncumbentLossKey(project) != null", zero_loss)
-        self.assertIn("needsLoss = OpexCapitalFrontierNeedsIncumbentLoss(project, catalog, lines)", prepare)
+        self.assertIn("local lossKey = OpexAirFrontierIncumbentLossKey(project)", prepare)
+        self.assertIn("needsLoss = needsLoss", prepare)
+        self.assertIn("lossKey = lossKey", prepare)
         self.assertIn("if (row.needsLoss)", assign)
+        self.assertIn("local lossKey = row.lossKey", assign)
+        self.assertIn("lossKey != null && (lossKey in externalityCache)", assign)
+        self.assertIn("loss = externalityCache[lossKey].loss", assign)
+        self.assertIn("externalityCache, externalityContext, lossKey)", assign)
         self.assertIn("local loss = 0", assign)
 
     def test_ordered_exact_upper_dominance_preserves_lambda_and_winner(self):
@@ -492,6 +821,42 @@ class TestAirCapitalFrontier(unittest.TestCase):
 
         self.assertEqual(winner(rows, lambda_full), winner(kept, lambda_kept))
 
+    def test_upper_dominance_cannot_use_an_unaffordable_witness(self):
+        rows = [
+            {"id": "unaffordable", "group": "g", "capital": 50,
+             "shadow_capital": 50, "finance_capital": 200,
+             "upper_profit": 100, "profit": 100},
+            {"id": "affordable", "group": "g", "capital": 100,
+             "shadow_capital": 100, "finance_capital": 100,
+             "upper_profit": 90, "profit": 90},
+        ]
+        kept, pruned = ordered_exact_upper_prune(rows, 100)
+        self.assertEqual({row["id"] for row in pruned}, set())
+        self.assertIn("affordable", {row["id"] for row in kept})
+
+        src = PROJECTS.read_text(encoding="utf-8")
+        prepare_group = src[
+            src.index("function OpexCapitalFrontierPrepareGroup"):
+            src.index("function OpexCapitalFrontierPrepare(")
+        ]
+        assign = src[
+            src.index("function OpexCapitalFrontierAssignScores"):
+            src.index("function OpexProjectIsFreeAirRetirement")
+        ]
+        self.assertNotIn("OpexCapitalFrontierStrictUpperDominated", prepare_group)
+        finance_filters = []
+        needle = "if (row.financeCap > capitalBudget) continue;"
+        start = 0
+        while True:
+            index = assign.find(needle, start)
+            if index < 0:
+                break
+            finance_filters.append(index)
+            start = index + len(needle)
+        self.assertGreaterEqual(len(finance_filters), 1)
+        dominance = assign.index("OpexCapitalFrontierStrictUpperDominated")
+        self.assertLess(finance_filters[-1], dominance)
+
     def test_source_exact_upper_pruning_is_group_local_sorted_and_selection_safe(self):
         src = PROJECTS.read_text(encoding="utf-8")
         assign = src[
@@ -499,8 +864,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
             src.index("function OpexProjectIsFreeAirRetirement")
         ]
         price = src[
-            src.index("function OpexCapitalPriceRelaxation"):
-            src.index("function OpexCapitalFrontierAssignScores")
+            src.index("function OpexCapitalPriceRelaxationPrepared"):
+            src.index("function OpexSelectionLedgerRecordCause")
         ]
         select = src[
             src.index("function OpexProjectSelectAffordable"):
@@ -508,23 +873,24 @@ class TestAirCapitalFrontier(unittest.TestCase):
         ]
         prepare = src[
             src.index("function OpexCapitalFrontierPrepare"):
-            src.index("function OpexCapitalFrontierEnvelope")
+            src.index("function OpexCapitalPriceRelaxationPrepared")
         ]
         self.assertIn("function OpexCapitalFrontierStrictUpperDominated", src)
         self.assertIn("function OpexCapitalFrontierRememberBestExact", src)
-        self.assertIn("local prepared = { byGroup = {} }", prepare)
+        self.assertNotIn("activeByGroup", prepare)
+        self.assertIn("targetStations = {}", prepare)
         self.assertNotIn("prepared.flat", prepare)
         self.assertIn("if (a.capital < b.capital) return -1", prepare)
         self.assertIn("if (a.upperProfit > b.upperProfit) return -1", prepare)
         self.assertIn("local byGroup = prepared.byGroup", assign)
+        self.assertNotIn("activeByGroup", assign)
         self.assertIn("candidateGroups != null", prepare)
         self.assertIn('project.rawset("frontierExactDominated", false)', assign)
-        self.assertIn("local externalityCandidates = []", assign)
-        self.assertLess(
-            assign.index("local externalityCandidates = []"),
-            assign.index("OpexAirFrontierExternalityContext(catalog, lines, targetStations)"),
-        )
-        self.assertIn("frontierExactDominated", price)
+        self.assertNotIn("local externalityCandidates = []", assign)
+        self.assertIn("local targetStations = prepared.targetStations", assign)
+        self.assertIn("if (row.financeCap > capitalBudget) continue;", assign)
+        self.assertIn("OpexCapitalFrontierPrepareGroup(rows)", prepare)
+        self.assertIn("frontierExactDominated", assign)
         self.assertIn("frontierExactDominated", select)
 
 
@@ -536,7 +902,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
         ]
         select = src[src.index("function OpexProjectSelectAffordable"):src.index("function OpexProjectSelectionScore")]
         self.assertIn("alternatives, capitalBudget, catalog, lines, selectionDiagnostic", select)
-        self.assertIn("function OpexCapitalPriceRelaxation", src)
+        self.assertIn("function OpexCapitalPriceRelaxationPrepared", src)
+        self.assertNotIn("function OpexCapitalPriceRelaxation(", src)
         self.assertIn("OpexCapitalFrontierPrepare(", assign)
         self.assertIn("local price = OpexCapitalPriceRelaxationPrepared(", assign)
         self.assertNotIn("upperPoints", assign)
@@ -556,15 +923,15 @@ class TestAirCapitalFrontier(unittest.TestCase):
         task = TASK_PROJECTS.read_text(encoding="utf-8")
         self.assertIn('this._catalog, this._lines, "execution"', task)
 
-    def test_coarse_lambda_uses_one_group_representative_and_native_ailist_sort(self):
+    def test_exact_lambda_reuses_prepared_group_order_and_selection_cache(self):
         src = PROJECTS.read_text(encoding="utf-8")
         prepare = src[
             src.index("function OpexCapitalFrontierPrepare"):
-            src.index("function OpexCapitalFrontierEnvelope")
+            src.index("function OpexCapitalPriceRelaxationPrepared")
         ]
         relaxation = src[
             src.index("function OpexCapitalPriceRelaxationPrepared"):
-            src.index("/* Prix du capital du portefeuille.")
+            src.index("function OpexSelectionLedgerRecordCause")
         ]
         reselect = src[
             src.index("function OpexReselectProjects"):
@@ -575,28 +942,31 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertIn('("prepared" in selectionCache)', prepare)
         self.assertIn("AIR_SELECTION_LEDGER.preparedHits++", prepare)
         self.assertIn('selectionCache.rawset("prepared", prepared)', prepare)
-        self.assertIn("local ratios = AIList()", relaxation)
-        self.assertIn("local sampleMax = 32", relaxation)
-        self.assertIn("local representative = null", relaxation)
-        self.assertIn("local predecessor = null", relaxation)
-        self.assertIn("local deltaCapital = representative.capital - priorCapital", relaxation)
-        self.assertIn("local deltaProfit = representativeProfit - priorProfit", relaxation)
-        self.assertIn(
-            "(deltaProfit.tofloat() * 100.0) / deltaCapital",
-            relaxation,
-        )
-        self.assertIn("ratios.AddItem(sampleCount, ratioPct)", relaxation)
-        self.assertIn("ratios.Sort(AIList.SORT_BY_VALUE, AIList.SORT_ASCENDING)", relaxation)
-        self.assertIn("local target = (sampleCount - 1) / 8", relaxation)
-        self.assertIn('selectionCache.rawset("coarseLambdaPct", lambdaPct)', relaxation)
-        self.assertIn('selectionCache.rawset("coarseFullDemand", fullDemand)', relaxation)
-        self.assertNotIn("segments.sort(function", relaxation)
         assign = src[
             src.index("function OpexCapitalFrontierAssignScores"):
             src.index("function OpexProjectIsFreeAirRetirement")
         ]
-        self.assertIn('local externalityStateKey = OpexAirFrontierExternalityStateKey(lines, targetStations)', assign)
+        self.assertIn("segments = []", assign)
+        self.assertNotIn("local points = []", assign)
+        self.assertIn("local zeroInserted = false", assign)
+        self.assertNotIn("local pareto = []", assign)
+        self.assertIn("local hull = []", assign)
+        self.assertIn("OpexCapitalFrontierHullAppend(", assign)
+        self.assertIn("local deltaCapital = representative.capital - predecessor.capital", assign)
+        self.assertIn("local deltaProfit = representative.profit - predecessor.profit", assign)
+        self.assertIn("deltaProfit.tofloat() / deltaCapital", assign)
+        self.assertNotIn("segments.sort(function", relaxation)
+        self.assertIn("local heapSize = segments.len()", relaxation)
+        self.assertIn("if (demand + segment.capital > capitalBudget)", relaxation)
+        self.assertNotIn("points.sort(function", assign)
+        self.assertNotIn("sampleMax", relaxation)
+        self.assertNotIn("coarseLambda", relaxation)
+        self.assertIn("OpexCapitalPriceRelaxationPrepared(pricePrepared, capitalBudget)", assign)
+        self.assertIn('OpexAirFrontierExternalitySnapshot(lines, targetStations, targetState)', assign)
+        self.assertIn('externalityStateKey = externalitySnapshot.key + "|"', assign)
+        self.assertIn('OpexAirFrontierExternalityEconomyKey(catalog)', assign)
         self.assertIn('selectionCache.externalityContextStateKey == externalityStateKey', assign)
+        self.assertIn('OpexAirFrontierExternalityContextFromSnapshot(catalog, externalitySnapshot)', assign)
         self.assertIn('row.lossKnown && ("lossStateKey" in row)', assign)
         self.assertIn('row.lossStateKey == externalityStateKey', assign)
         self.assertIn('row.rawset("lossStateKey", externalityStateKey)', assign)
@@ -608,18 +978,63 @@ class TestAirCapitalFrontier(unittest.TestCase):
     def test_externality_cache_key_contains_all_live_profit_inputs(self):
         src = PROJECTS.read_text(encoding="utf-8")
         key = src[
-            src.index("function OpexAirFrontierExternalityStateKey"):
-            src.index("function OpexAirFrontierExternalityContext")
+            src.index("function OpexAirFrontierExternalityTargetState"):
+            src.index("function OpexAirFrontierExternalityContextFromSnapshot")
         ]
-        self.assertIn("targetIds.sort()", key)
-        self.assertIn("routeCounts.rawset", key)
+        self.assertIn("ids.sort()", key)
+        self.assertIn("snapshot.routeCounts.rawset", key)
         self.assertIn("AITown.GetPopulation(townA)", key)
         self.assertIn("AITown.GetPopulation(townB)", key)
         self.assertIn("OpexFlightDistance(line.stationA, line.stationB)", key)
         self.assertIn("AIVehicle.GetEngineType(v)", key)
-        self.assertIn("item.engines.sort()", key)
+        self.assertIn("engines.sort()", key)
         self.assertIn("states.sort()", key)
+        self.assertIn('AIGameSettings.GetValue("economy.inflation")', key)
+        self.assertIn("AIDate.GetYear(date) * 12 + AIDate.GetMonth(date)", key)
+        self.assertIn('("paxCargo" in catalog)', key)
+        self.assertIn('("mailCargo" in catalog)', key)
         self.assertNotIn("hash", key.lower())
+
+    def test_externality_snapshot_is_reused_for_context_without_second_live_scan(self):
+        src = PROJECTS.read_text(encoding="utf-8")
+        snapshot = src[
+            src.index("function OpexAirFrontierExternalitySnapshot"):
+            src.index("function OpexAirFrontierExternalityContextFromSnapshot")
+        ]
+        from_snapshot = src[
+            src.index("function OpexAirFrontierExternalityContextFromSnapshot"):
+            src.index("function OpexAirFrontierExternalityContext(catalog")
+        ]
+        assign = src[
+            src.index("function OpexCapitalFrontierAssignScores"):
+            src.index("function OpexProjectIsFreeAirRetirement")
+        ]
+        self.assertEqual(snapshot.count("foreach (line in lines)"), 1)
+        self.assertNotIn("foreach (line in lines)", from_snapshot)
+        self.assertNotIn("foreach (v in line.vehicles)", from_snapshot)
+        self.assertIn("foreach (engine in item.engines)", from_snapshot)
+        self.assertIn("OpexAirFleetEconomicsContext(catalog, planesList, item.distance)", from_snapshot)
+        self.assertIn("OpexAirFrontierExternalitySnapshot(lines, targetStations, targetState)", assign)
+        self.assertIn("OpexAirFrontierExternalityContextFromSnapshot(catalog, externalitySnapshot)", assign)
+        self.assertNotIn("function OpexFrontierSelectionCoversBudget", src)
+        self.assertNotIn("function OpexFrontierReuseSelectionBudget", src)
+
+    def test_externality_selection_cache_uses_exact_state_key_without_physical_revision(self):
+        globals_src = GLOBALS.read_text(encoding="utf-8")
+        self.assertNotIn("AIR_FRONTIER_EXTERNALITY_REVISION", globals_src)
+        self.assertNotIn("AIR_FRONTIER_EXTERNALITY_MEMO", globals_src)
+        self.assertNotIn("function OpexAirFrontierExternalityMutated()", globals_src)
+
+        src = PROJECTS.read_text(encoding="utf-8")
+        assign = src[
+            src.index("function OpexCapitalFrontierAssignScores"):
+            src.index("function OpexProjectIsFreeAirRetirement")
+        ]
+        self.assertNotIn("AIR_FRONTIER_EXTERNALITY_REVISION", assign)
+        self.assertNotIn("AIR_FRONTIER_EXTERNALITY_MEMO", assign)
+        self.assertIn("externalitySnapshot.key + \"|\" + economyKey", assign)
+        self.assertIn("selectionCache.externalityContextStateKey == externalityStateKey", assign)
+        self.assertIn('row.lossStateKey == externalityStateKey', assign)
 
     def test_lifecycle_deduplicates_concrete_next_actions_before_pareto(self):
         air = AIR.read_text(encoding="utf-8")
@@ -715,13 +1130,20 @@ class TestAirCapitalFrontier(unittest.TestCase):
 
     def test_capital_price_respects_real_finance_budget(self):
         src = PROJECTS.read_text(encoding="utf-8")
-        price = src[src.index("function OpexCapitalPriceRelaxation"):src.index("function OpexCapitalFrontierAssignScores")]
+        price = src[
+            src.index("function OpexCapitalPriceRelaxationPrepared"):
+            src.index("function OpexSelectionLedgerRecordCause")
+        ]
+        prepare = src[
+            src.index("function OpexCapitalFrontierPrepare"):
+            src.index("function OpexCapitalPriceRelaxationPrepared")
+        ]
         assign = src[src.index("function OpexCapitalFrontierAssignScores"):src.index("function OpexProjectIsFreeAirRetirement")]
         select = src[src.index("function OpexProjectSelectAffordable"):src.index("function OpexProjectSelectionScore")]
-        self.assertIn('("frontierFinanceCapital" in project)', price)
-        self.assertIn("project.frontierFinanceCapital : OpexProjectFinanceCapital(project)", price)
-        self.assertIn("local cap = OpexProjectShadowCapital(project)", price)
-        self.assertIn("financeCap > capitalBudget", price)
+        self.assertIn("local financeCap = OpexProjectFinanceCapital(project)", prepare)
+        self.assertIn("financeCap = financeCap", prepare)
+        self.assertIn("if (row.financeCap > capitalBudget) continue;", assign)
+        self.assertIn("if (ownProfit <= 0) continue;", assign)
         self.assertIn("local cap = OpexProjectShadowCapital(project)", assign)
         self.assertIn("local capitalCharge = price.lambda * cap", assign)
         self.assertIn("if (financeCapital > capitalBudget) continue", select)
@@ -757,7 +1179,7 @@ class TestAirCapitalFrontier(unittest.TestCase):
         src = PROJECTS.read_text(encoding="utf-8")
         prepare = src[
             src.index("function OpexCapitalFrontierPrepare"):
-            src.index("function OpexCapitalFrontierEnvelope")
+            src.index("function OpexCapitalPriceRelaxationPrepared")
         ]
         assign = src[
             src.index("function OpexCapitalFrontierAssignScores"):
@@ -772,8 +1194,14 @@ class TestAirCapitalFrontier(unittest.TestCase):
             "local shadowCap = OpexProjectShadowCapitalFromFinance(project, financeCap)",
             prepare,
         )
-        self.assertIn('project.rawset("frontierFinanceCapital", row.financeCap)', assign)
-        self.assertIn('project.rawset("frontierShadowCapital", row.capital)', assign)
+        prepare_group = src[
+            src.index("function OpexCapitalFrontierPrepareGroup"):
+            src.index("function OpexCapitalFrontierPrepare(")
+        ]
+        self.assertIn('project.rawset("frontierFinanceCapital", row.financeCap)', prepare_group)
+        self.assertIn('project.rawset("frontierShadowCapital", row.capital)', prepare_group)
+        self.assertNotIn('project.rawset("frontierFinanceCapital", row.financeCap)', assign)
+        self.assertNotIn('project.rawset("frontierShadowCapital", row.capital)', assign)
         self.assertIn('selectionCache.rawset("prepared", prepared)', prepare)
         self.assertIn('if (project != null && ("frontierShadowCapital" in project))', shadow)
         self.assertIn("return project.frontierShadowCapital", shadow)
@@ -809,12 +1237,24 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertAlmostEqual(capital_price_relaxation(projects, 350), 0.15)
 
         src = PROJECTS.read_text(encoding="utf-8")
-        price = src[src.index("function OpexCapitalPriceRelaxation"):src.index("function OpexCapitalFrontierAssignScores")]
-        self.assertIn("rows.append({ capital = 0, profit = 0 })", price)
-        self.assertIn("local pareto = []", price)
-        self.assertIn("if (slope1 > slope2) break", price)
+        price = src[
+            src.index("function OpexCapitalPriceRelaxationPrepared"):
+            src.index("function OpexSelectionLedgerRecordCause")
+        ]
+        assign = src[
+            src.index("function OpexCapitalFrontierAssignScores"):
+            src.index("function OpexProjectIsFreeAirRetirement")
+        ]
+        self.assertNotIn("local points = []", assign)
+        self.assertIn("local zeroInserted = false", assign)
+        self.assertNotIn("points.sort(function", assign)
+        self.assertIn("local hull = []", assign)
+        self.assertIn("OpexCapitalFrontierHullAppend(", assign)
         self.assertIn("if (fullDemand <= capitalBudget)", price)
-        self.assertIn("lambda = segment.lambda", price)
+        self.assertNotIn("segments.sort(function", price)
+        self.assertIn("local heapSize = segments.len()", price)
+        self.assertIn("local childHigher = segments[child].slope > segments[root].slope", price)
+        self.assertIn("return { lambda = segment.slope", price)
 
     def test_capital_price_uses_zero_capital_choice_as_group_baseline(self):
         projects = [
@@ -825,10 +1265,16 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertAlmostEqual(capital_price_relaxation(projects, 150), 0.10)
 
         src = PROJECTS.read_text(encoding="utf-8")
-        price = src[src.index("function OpexCapitalPriceRelaxation"):src.index("function OpexCapitalFrontierAssignScores")]
-        self.assertIn("if (financeCap > capitalBudget || profit <= 0) continue", price)
-        self.assertIn("rows.append({ capital = 0, profit = 0 })", price)
-        self.assertIn("baseDemand += hull[0].capital", price)
+        price = src[
+            src.index("function OpexCapitalPriceRelaxationPrepared"):
+            src.index("function OpexSelectionLedgerRecordCause")
+        ]
+        assign = src[
+            src.index("function OpexCapitalFrontierAssignScores"):
+            src.index("function OpexProjectIsFreeAirRetirement")
+        ]
+        self.assertIn("OpexCapitalFrontierHullAppend(hull, bestProfit, 0, 0)", assign)
+        self.assertIn("pricePrepared.baseDemand += hull[0].capital", assign)
 
     def test_capital_price_ignores_individually_unaffordable_projects(self):
         projects = [
@@ -847,6 +1293,52 @@ class TestAirCapitalFrontier(unittest.TestCase):
         ]
         self.assertAlmostEqual(capital_price_relaxation(projects, 250), 0.20)
 
+    def test_capital_price_heap_order_matches_reference_sort_with_ties(self):
+        segments = [
+            (1.0, 30),
+            (0.5, 20),
+            (0.5, 10),
+            (0.5, 10),
+            (0.25, 5),
+        ]
+        expected = sorted(segments, key=lambda row: (-row[0], row[1]))
+        for permutation in itertools.permutations(segments):
+            self.assertEqual(capital_price_heap_order(permutation), expected)
+
+    def test_optimized_capital_price_matches_exact_reference_exhaustively(self):
+        templates = [
+            {"group": "a", "capital": -40, "finance_capital": 0, "profit": 5},
+            {"group": "a", "capital": 0, "finance_capital": 0, "profit": 4},
+            {"group": "a", "capital": 60, "finance_capital": 100, "profit": 20},
+            {"group": "a", "capital": 60, "finance_capital": 70, "profit": 18},
+            {"group": "a", "capital": 120, "finance_capital": 140, "profit": 36},
+            {"group": "b", "capital": 40, "finance_capital": 50, "profit": 10},
+            {"group": "b", "capital": 100, "finance_capital": 100, "profit": 20},
+            {"group": "b", "capital": 160, "finance_capital": 180, "profit": 30},
+            # Finance and shadow capital intentionally differ in both directions.
+            {"group": "c", "capital": 90, "shadow_capital": 30,
+             "finance_capital": 90, "profit": 12},
+            {"group": "c", "capital": 30, "shadow_capital": 90,
+             "finance_capital": 30, "profit": 24},
+        ]
+        budgets = (20, 30, 50, 70, 90, 100, 120, 140, 180, 240)
+        # Exhaust every subset of the compact catalogue: zero option, negative
+        # capital, equal-capital alternatives, finance/shadow divergence and
+        # concave/non-concave group frontiers all occur in this space.
+        for mask in range(1 << len(templates)):
+            projects = [
+                row for index, row in enumerate(templates)
+                if mask & (1 << index)
+            ]
+            for budget in budgets:
+                reference = capital_price_relaxation(projects, budget)
+                optimized = capital_price_relaxation_optimized(projects, budget)
+                self.assertAlmostEqual(
+                    optimized,
+                    reference,
+                    msg=f"mask={mask} budget={budget} projects={projects}",
+                )
+
     def test_negative_committed_capital_from_retirement_releases_shadow_budget(self):
         projects = [
             # Retirement is executable with no purchase cash and releases 40 of
@@ -861,13 +1353,15 @@ class TestAirCapitalFrontier(unittest.TestCase):
 
         src = PROJECTS.read_text(encoding="utf-8")
         price = src[
-            src.index("function OpexCapitalPriceRelaxation"):
-            src.index("function OpexCapitalFrontierAssignScores")
+            src.index("function OpexCapitalPriceRelaxationPrepared"):
+            src.index("function OpexSelectionLedgerRecordCause")
         ]
-        self.assertNotIn("cap < 0 ||", price)
-        self.assertIn("local baseDemand = 0", price)
-        self.assertIn("baseDemand += hull[0].capital", price)
-        self.assertIn("local demand = baseDemand", price)
+        assign = src[
+            src.index("function OpexCapitalFrontierAssignScores"):
+            src.index("function OpexProjectIsFreeAirRetirement")
+        ]
+        self.assertNotIn("row.capital < 0", assign)
+        self.assertIn("pricePrepared.baseDemand += hull[0].capital", assign)
 
     def test_air_fleet_contract_separates_cash_resale_transit_and_committed_capital(self):
         air = AIR.read_text(encoding="utf-8")
@@ -967,9 +1461,13 @@ class TestAirCapitalFrontier(unittest.TestCase):
             projects.index("function OpexProjectFromFleet"):
             projects.index("function OpexProjectFromAir")
         ]
-        self.assertIn('local hasProfitDelta = "profitDeltaAnnual" in entry', fleet)
+        self.assertIn(
+            'local frontierTransaction = ("frontierTransaction" in entry) && entry.frontierTransaction',
+            fleet,
+        )
+        self.assertIn('frontierTransaction && ("profitDeltaAnnual" in entry)', fleet)
         self.assertIn("? entry.profitDeltaAnnual", fleet)
-        self.assertIn("if (!hasProfitDelta && profit <= 0)", fleet)
+        self.assertIn("if (!frontierTransaction && profit <= 0)", fleet)
 
         task_projects = TASK_PROJECTS.read_text(encoding="utf-8")
         self.assertIn(
@@ -1003,6 +1501,7 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertIn("cashRequired = cashRequired, safetyMargin = safetyMargin", fleet)
         self.assertIn("capitalCommitted = capitalCommitted", fleet)
         self.assertIn("budgetCapital = cashRequired + safetyMargin", fleet)
+        self.assertIn("OpexProjectPrepareSelectionScalars(project)", fleet)
         self.assertIn("profitDeltaAnnual =", fleet)
         self.assertIn("planningOps = planningOps", fleet)
         self.assertIn("executionOps = expectedOps", fleet)
@@ -1012,6 +1511,7 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertIn("local capitalCommitted = economics.capital + immobilise", air_project)
         self.assertIn("local budgetCapital = cashRequired + safetyMargin", air_project)
         self.assertIn("capitalCommitted = capitalCommitted", air_project)
+        self.assertIn("OpexProjectPrepareSelectionScalars(project)", air_project)
 
     def test_shadow_price_selection_keeps_do_nothing_outside_option(self):
         src = PROJECTS.read_text(encoding="utf-8")
@@ -1070,7 +1570,9 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertIn("AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT", section)
         self.assertIn('local scoreKey = useCapitalFrontier ? "frontierScore"', section)
         self.assertIn("if (!useCapitalFrontier && PORTFOLIO_FLOOR_PCT > 0)", section)
-        self.assertIn("if (AIR_EARLY_SLOT && !useCapitalFrontier) OpexProjectRefreshEarlySlot", section)
+        self.assertIn("AIR_EARLY_SLOT && !useCapitalFrontier", section)
+        self.assertIn('&& ("mode" in project) && project.mode == "air"', section)
+        self.assertIn("OpexProjectRefreshEarlySlot(project, earlySlotState)", section)
         self.assertIn("AIR_EARLY_SLOT && !useCapitalFrontier", section)
     def test_early_slot_is_neutralized_when_capital_frontier_is_active(self):
         src = PROJECTS.read_text(encoding="utf-8")
@@ -1083,7 +1585,9 @@ class TestAirCapitalFrontier(unittest.TestCase):
             src.index("function OpexProjectInsert")
         ]
         self.assertIn('local scoreKey = useCapitalFrontier ? "frontierScore"', selection)
-        self.assertIn("if (AIR_EARLY_SLOT && !useCapitalFrontier) OpexProjectRefreshEarlySlot", selection)
+        self.assertIn("AIR_EARLY_SLOT && !useCapitalFrontier", selection)
+        self.assertIn('&& ("mode" in project) && project.mode == "air"', selection)
+        self.assertIn("OpexProjectRefreshEarlySlot(project, earlySlotState)", selection)
         self.assertIn("AIR_EARLY_SLOT && !useCapitalFrontier, useCapitalFrontier", selection)
         self.assertIn("local score = project[field]", scorer)
         self.assertIn("return score * factor", scorer)
@@ -1195,7 +1699,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
         start = projects.index("function OpexCapitalFrontierAssignScores")
         end = projects.index("function OpexProjectIsFreeAirRetirement", start)
         section = projects[start:end]
-        self.assertIn('project.rawset("frontierSelectionBudget", capitalBudget)', section)
+        self.assertNotIn('project.rawset("frontierSelectionBudget", capitalBudget)', section)
+        self.assertNotIn('project.rawset("frontierSelectionDate"', section)
         self.assertIn('project.rawset("frontierSelectionProfit", ownProfit)', section)
         self.assertIn('project.rawset("frontierSelectionShadowCapital", cap)', section)
         self.assertIn(
@@ -1386,7 +1891,7 @@ class TestAirCapitalFrontier(unittest.TestCase):
             13: {"name": "CF19|5000|4000|3000"},
             14: {"name": "CF20|2|1|1"},
             15: {"name": "CF21|700|1|4|9"},
-            16: {"name": "CF22|6|8|11"},
+            16: {"name": "CF22|11|7"},
             17: {"name": "CF23|100|200|300|400"},
             18: {"name": "CF24|1|2|3|4"},
             19: {"name": "CF25|50|20|30|7"},
@@ -1435,9 +1940,8 @@ class TestAirCapitalFrontier(unittest.TestCase):
         self.assertEqual(stats["air_selection_prepare_days"], 1)
         self.assertEqual(stats["air_selection_prepared_builds"], 4)
         self.assertEqual(stats["air_selection_prepared_hits"], 9)
-        self.assertEqual(stats["air_selection_envelope_builds"], 6)
-        self.assertEqual(stats["air_selection_envelope_hits"], 8)
         self.assertEqual(stats["air_selection_externality_cache_hits"], 11)
+        self.assertEqual(stats["air_selection_externality_cache_misses"], 7)
         self.assertEqual(stats["air_selection_diagnostic_prepare_ops"], 100)
         self.assertEqual(stats["air_selection_diagnostic_externality_ops"], 200)
         self.assertEqual(stats["air_selection_diagnostic_relaxation_ops"], 300)
@@ -1572,68 +2076,79 @@ class TestAirCapitalFrontier(unittest.TestCase):
             equivalent,
         )
         self.assertNotIn("OpexAirPlans(", refresh)
+        self.assertIn("function OpexFrontierPatchPreparedFleetGroup", projects)
+        patch_start = projects.index("function OpexFrontierPatchPreparedFleetGroup")
+        patch_end = projects.index("function OpexFrontierRefreshFleetGroups", patch_start)
+        patch = projects[patch_start:patch_end]
+        self.assertIn('cache.prepared.byGroup.rawset(key, rows)', patch)
+        self.assertIn("needsLoss = false", patch)
+        self.assertIn(
+            "OpexFrontierPatchPreparedFleetGroup(projects, key, freshGroups[key])",
+            refresh,
+        )
+        self.assertIn(
+            'if (changed && !preparedPatched) projects.rawset("frontierSelectionCache", {})',
+            refresh,
+        )
+        self.assertNotIn(
+            'if (changed) projects.rawset("frontierSelectionCache", {})',
+            refresh,
+        )
 
         dispatch_start = scheduler.index("function OpexAI::_dispatchAirFleet")
         dispatch = scheduler[dispatch_start:]
         self.assertIn("OpexFrontierRefreshFleetGroups(this._projects, fleetPlan)", dispatch)
         self.assertIn('this._catalog, this._lines, "lifecycle"', dispatch)
-        self.assertIn("OpexFrontierDropLambdaIfAbundant(this._projects, budgetNow)", dispatch)
-        self.assertIn("OpexFrontierRefilterStoredScores(this._projects, budgetNow)", dispatch)
         budget_start = dispatch.index("} else if (budgetChanged) {")
         budget_end = dispatch.index("        }", budget_start)
         budget_path = dispatch[budget_start:budget_end]
-        self.assertNotIn("OpexReselectProjects", budget_path)
-        self.assertIn("OpexFrontierRefilterStoredScores", budget_path)
+        self.assertIn("OpexReselectProjects", budget_path)
+        self.assertIn('"budget_reselect"', budget_path)
         frontier_start = dispatch.index("if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT")
         frontier_end = dispatch.index("} else if (fleetPlan.len() > 0)", frontier_start)
         frontier = dispatch[frontier_start:frontier_end]
         self.assertNotIn("OpexIncrementalUpdateProjects", frontier)
 
-    def test_frontier_budget_change_keeps_lambda_and_refilters_affordability(self):
+    def test_frontier_budget_change_reuses_preparation_but_reprices_exact_lambda(self):
         projects = PROJECTS.read_text(encoding="utf-8")
         relaxation = projects[
             projects.index("function OpexCapitalPriceRelaxationPrepared"):
-            projects.index("/* Prix du capital du portefeuille.")
+            projects.index("function OpexSelectionLedgerRecordCause")
         ]
-        refilter = projects[
-            projects.index("function OpexFrontierRefilterStoredScores"):
-            projects.index("function OpexFrontierDropLambdaIfAbundant")
-        ]
-        abundant = projects[
-            projects.index("function OpexFrontierDropLambdaIfAbundant"):
+        assign = projects[
+            projects.index("function OpexCapitalFrontierAssignScores"):
             projects.index("function OpexProjectIsFreeAirRetirement")
         ]
-        self.assertIn('selectionCache.rawset("coarseLambdaPct", lambdaPct)', relaxation)
-        self.assertIn('selectionCache.rawset("coarseFullDemand", fullDemand)', relaxation)
-        self.assertIn("OpexCapitalFrontierRank(alternatives, capitalBudget, PROJECT_TOP_K)", refilter)
-        self.assertNotIn("OpexCapitalFrontierAssignScores", refilter)
+        self.assertIn("if (row.financeCap > capitalBudget) continue;", assign)
+        self.assertIn("if (ownProfit <= 0) continue;", assign)
+        self.assertIn("if (demand + segment.capital > capitalBudget)", relaxation)
+        self.assertNotIn("coarseLambda", relaxation)
+        self.assertNotIn("function OpexFrontierRefilterStoredScores", projects)
+        self.assertNotIn("function OpexFrontierDropLambdaIfAbundant", projects)
         rank = projects[
             projects.index("function OpexCapitalFrontierRank"):
-            projects.index("function OpexFrontierRefilterStoredScores")
+            projects.index("function OpexProjectIsFreeAirRetirement")
         ]
-        self.assertIn("OpexProjectFinanceCapital(project) > capitalBudget", rank)
+        self.assertIn('local financeCapital = ("frontierFinanceCapital" in project)', rank)
+        self.assertIn("if (financeCapital > capitalBudget) continue;", rank)
         self.assertIn("local winners = {}", rank)
         self.assertIn("local group = OpexCapitalFrontierProjectGroupKey(project)", rank)
         self.assertIn("winners.rawset(group, project)", rank)
         self.assertIn("foreach (group, project in winners)", rank)
         self.assertIn("candidates.append(project)", rank)
         self.assertLess(rank.index("foreach (group, project in winners)"), rank.index("order.Sort("))
-        self.assertIn("capitalBudget < cache.coarseFullDemand", abundant)
-        self.assertIn('project.rawset("frontierCapitalPrice", 0.0)', abundant)
-        self.assertIn('project.rawset("frontierScoreInt", ownProfit)', abundant)
-        self.assertNotIn("OpexCapitalPriceRelaxationPrepared", abundant)
-
         task_projects = TASK_PROJECTS.read_text(encoding="utf-8")
         fresh_start = task_projects.index("if (PORTFOLIO_FRESH_BUDGET && this._projects != null)")
         fresh_end = task_projects.index("c49Best =", fresh_start)
         fresh = task_projects[fresh_start:fresh_end]
-        self.assertIn("if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)", fresh)
-        self.assertIn("OpexFrontierDropLambdaIfAbundant(this._projects, budgetNow)", fresh)
-        self.assertIn("OpexFrontierRefilterStoredScores(this._projects, budgetNow)", fresh)
-        frontier_start = fresh.index("if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)")
-        legacy_start = fresh.index("} else {", frontier_start)
-        self.assertNotIn("OpexReselectProjects", fresh[frontier_start:legacy_start])
-        self.assertIn("OpexFrontierRefilterStoredScores", fresh[frontier_start:legacy_start])
+        self.assertIn("OpexReselectProjects(this._projects, budgetNow, this._catalog, this._lines)", fresh)
+
+        reselect = projects[
+            projects.index("function OpexReselectProjects"):
+            projects.index("function OpexB6", projects.index("function OpexReselectProjects"))
+        ]
+        self.assertIn("selectionCache = projects.frontierSelectionCache", reselect)
+        self.assertIn("OpexProjectSelectAffordable", reselect)
 
     def test_frontier_generation_materializes_air_independent_of_cash(self):
         projects = PROJECTS.read_text(encoding="utf-8")
@@ -1665,14 +2180,10 @@ class TestAirCapitalFrontier(unittest.TestCase):
             "project.frontierScore < 0\n        && !OpexProjectIsFreeAirRetirement(project)",
             selector,
         )
-        self.assertIn(
-            "local projectFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(project)",
-            insert,
-        )
-        self.assertIn(
-            "local priorFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(prior)",
-            insert,
-        )
+        self.assertIn("local preparedHistorical = !capitalProfitTie", insert)
+        self.assertIn("? project.selectionFreeRetire : OpexProjectIsFreeAirRetirement(project)", insert)
+        self.assertIn("local priorPrepared = !capitalProfitTie", insert)
+        self.assertIn("? prior.selectionFreeRetire : OpexProjectIsFreeAirRetirement(prior)", insert)
 
     def test_incremental_air_cache_is_fresh_only_and_drops_stale_variants(self):
         src = PROJECTS.read_text(encoding="utf-8")

@@ -1,0 +1,4329 @@
+/* Etape 1 : portefeuille de projets multimodaux.
+ *
+ * Le catalogue ne decide rien. Pour chaque couple origine/destination, cette etape compare tous
+ * les modes faisables sur un ROI homogene (profit annuel / capital) et ne garde que le meilleur.
+ * Le portefeuille passe ensuite par deux contraintes, dans cet ordre :
+ *   1. capital : maximiser le revenu annuel par livre immobilisee et remplir le budget disponible ;
+ *   2. calcul : ordonner les projets finances par revenu annuel / opcodes attendus.
+ *
+ * Les projets sont indivisibles : la passe de capital est une approximation gloutonne bornee.
+ * Apres chaque construction reussie, main.nut regenere le portefeuille, car le cash et les
+ * origines disponibles ont change. Il n'existe donc plus de priorite rail/route/air/eau pour
+ * l'ouverture de nouvelles lignes dans l'ordonnanceur.
+ */
+
+/* Cascade pax par distance decroissante. Le fret accompagne la premiere passe. */
+const OPEX_STAGE_AIR_ONLY = 0;
+const OPEX_STAGE_AIR_RAIL = 1;
+const OPEX_STAGE_RAIL_ONLY = 2;
+const OPEX_STAGE_ROUTE_ONLY = 3;
+const OPEX_STAGE_COMPLETE = 4;
+/* C43/E3 (docs/taches.md) : sature a 77,4%/70,1% des appels de selection (VIVIER, 5x6, 2026-09-08)
+ * -- mord fort. Rendu reglable pour le banc factoriel 32 contre 64, jamais retouche depuis 2026-09-02
+ * avant cette mesure. */
+PROJECT_TOP_K <- 64;
+/* Propose par l'utilisateur le 2026-09-08 : caler PROJECT_TOP_K sur villes+industries de la carte
+ * plutot que sur une constante fixe. Defaut 0 : aucun changement de comportement. */
+PROJECT_TOP_K_DYNAMIC <- false;
+
+/* Mesures communes. Le pathfinder rail consomme environ 2 700 opcodes par iteration. Pour les
+ * autres modes, la partie plan est mesuree pendant la generation ; les constantes ci-dessous
+ * couvrent les commandes transactionnelles qui restent apres le plan. */
+/* Calibré sur la médiane réelle mesurée (3 105 opcodes par itération d'A* rail, cf. docs/taches.md §3 octies & C3). */
+const PROJECT_RAIL_OPS_PER_ITERATION = 3105;
+const PROJECT_RAIL_TRANSACTION_OPS = 200000;
+const PROJECT_ROAD_TRANSACTION_OPS = 287000;
+const PROJECT_AIR_TRANSACTION_OPS = 100000;
+const PROJECT_WATER_TRANSACTION_OPS = 100000;
+CLEAN_DENSITY_SCORE <- true;
+
+/* Le schema historique reste lisible : score/cost conservent leur sens legacy. M1 ajoute
+ * rank_score/finance_capital pour publier aussi les quantites qui classent reellement. */
+function OpexLogPortfolioRank(projects)
+{
+  if (!DECISION_LOG) return;
+  if (projects == null || !("best" in projects) || projects.best == null || projects.best.len() == 0) return;
+  local n = projects.best.len();
+  if (n > 5) n = 5;
+  for (local i = 0; i < n; i++) {
+    local p = projects.best[i];
+    if (p == null) continue;
+    local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
+    local legacyScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p))
+        ? p.tensionScore : p.budgetScore;
+    local useCapitalFrontier = AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT;
+    local rankKey = useCapitalFrontier ? "frontierScore"
+        : ((TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore");
+    local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
+    local rankScore = (AIR_EARLY_SLOT && !useCapitalFrontier && (rankKey in p))
+        ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
+    local financeCapital = OpexProjectFinanceCapital(p);
+    local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;
+    local generationRatio = ("generationRatio" in p) ? p.generationRatio : 0;
+    local roadFleet = (p.mode == "road" && ("vehiclesForVolume" in p))
+        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + p.payload.roadBerthCapacity
+           + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
+        : "";
+    local frontierFields = useCapitalFrontier
+        ? (" frontier_network_profit=" + OpexCapitalFrontierProjectProfit(p)
+           + " frontier_capital_price=" + (("frontierCapitalPrice" in p) ? p.frontierCapitalPrice : 0)
+           + " frontier_capital_charge=" + (("frontierCapitalCharge" in p) ? p.frontierCapitalCharge : 0)
+           + " frontier_score=" + (("frontierScore" in p) ? p.frontierScore : 0)) : "";
+    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + frontierFields + roadFleet);
+  }
+}
+
+/* Diagnostic uniquement : pour le projet AIR effectivement classe premier par
+ * la frontiere, publier toutes les variantes equipement du MEME OD encore
+ * financables. Cela permet de mesurer directement le compromis capital/profit
+ * (dont le 218 en vanilla) sans recalculer aucune economie et sans influencer le
+ * classement. Le parcours n'existe que sous DECISION_LOG. */
+function OpexLogAirFrontierEquipmentChoice(alternatives, top, capitalBudget)
+{
+  if (!DECISION_LOG || !AIR_CAPITAL_FRONTIER || !AIR_BEST_EQUIPMENT
+      || alternatives == null || top == null || !("mode" in top) || top.mode != "air"
+      || !("payload" in top) || top.payload == null || !("plane" in top.payload)
+      || top.payload.plane == null) return;
+
+  local group = OpexProjectKeyFor(top);
+  local variants = [];
+  foreach (project in alternatives) {
+    if (project == null || !("mode" in project) || project.mode != "air"
+        || OpexProjectKeyFor(project) != group
+        || (("frontierExactDominated" in project) && project.frontierExactDominated)
+        || !("payload" in project) || project.payload == null
+        || !("plane" in project.payload) || project.payload.plane == null) continue;
+    local financeCapital = OpexProjectFinanceCapital(project);
+    if (financeCapital > capitalBudget) continue;
+    local economics = ("economics" in project.payload) ? project.payload.economics : null;
+    local planes = economics != null && ("planes" in economics) ? economics.planes
+        : (("planes" in project.payload) ? project.payload.planes : 0);
+    local immobilise = economics != null && ("immobilise" in economics) ? economics.immobilise : 0;
+    variants.append({
+      engine = project.payload.plane.id,
+      capital = financeCapital,
+      directProfit = project.profitAnnual,
+      networkProfit = OpexCapitalFrontierProjectProfit(project),
+      roi = project.roi,
+      capitalPrice = ("frontierCapitalPrice" in project) ? project.frontierCapitalPrice : 0,
+      capitalCharge = ("frontierCapitalCharge" in project) ? project.frontierCapitalCharge : 0,
+      score = ("frontierScore" in project) ? project.frontierScore : project.profitAnnual,
+      planes = planes,
+      planePrice = project.payload.plane.price,
+      immobilise = immobilise,
+    });
+  }
+  variants.sort(function(a, b) {
+    if (a.engine < b.engine) return -1;
+    if (a.engine > b.engine) return 1;
+    if (a.capital < b.capital) return -1;
+    if (a.capital > b.capital) return 1;
+    return 0;
+  });
+
+  local encoded = "";
+  foreach (row in variants) {
+    if (encoded != "") encoded += ",";
+    encoded += row.engine + ":" + row.capital + ":" + row.directProfit + ":" + row.networkProfit
+        + ":" + row.roi + ":" + row.capitalPrice + ":" + row.capitalCharge
+        + ":" + row.score + ":" + row.planes
+        + ":" + row.planePrice + ":" + row.immobilise;
+  }
+  OpexDecide("AIR_FRONTIER_EQUIP",
+      "src=" + top.src + " dst=" + top.dst
+      + " selected_engine=" + top.payload.plane.id
+      + " selected_capital=" + OpexProjectFinanceCapital(top)
+      + " selected_direct_profit=" + top.profitAnnual
+      + " selected_network_profit=" + OpexCapitalFrontierProjectProfit(top)
+      + " selected_roi=" + top.roi
+      + " selected_capital_price=" + (("frontierCapitalPrice" in top) ? top.frontierCapitalPrice : 0)
+      + " selected_capital_charge=" + (("frontierCapitalCharge" in top) ? top.frontierCapitalCharge : 0)
+      + " selected_score=" + (("frontierScore" in top) ? top.frontierScore : top.profitAnnual)
+      + " variants=" + variants.len() + " alts=" + encoded);
+}
+
+/* Diagnostic uniquement : suivre EngineID 218 apres le calcul shadow-price de
+ * frontierScore. AIR_FRONTIER_218 explique la Pareto locale de route ; ce second
+ * journal explique si un 218 qui a survecu perd ensuite contre une variante du
+ * meme OD a cause du prix du capital, ou contre un autre projet du portefeuille.
+ * Aucun champ n'est modifie et aucune economie n'est recalculee. */
+function OpexLogConcordeFrontierScores(alternatives, top, capitalBudget)
+{
+  if (!DECISION_LOG || !AIR_CAPITAL_FRONTIER || !AIR_BEST_EQUIPMENT
+      || alternatives == null || top == null) return;
+
+  foreach (project in alternatives) {
+    if (project == null || !("mode" in project) || project.mode != "air"
+        || !("payload" in project) || project.payload == null
+        || !("plane" in project.payload) || project.payload.plane == null
+        || project.payload.plane.id != 218
+        || (("frontierExactDominated" in project) && project.frontierExactDominated)
+        || OpexProjectFinanceCapital(project) > capitalBudget
+        || !("frontierScore" in project)) continue;
+
+    local group = OpexProjectKeyFor(project);
+    local sameBest = project;
+    foreach (candidate in alternatives) {
+      if (candidate == null || !("mode" in candidate) || candidate.mode != "air"
+          || OpexProjectKeyFor(candidate) != group
+          || (("frontierExactDominated" in candidate) && candidate.frontierExactDominated)
+          || OpexProjectFinanceCapital(candidate) > capitalBudget
+          || !("frontierScore" in candidate)) continue;
+      if (candidate.frontierScore > sameBest.frontierScore
+          || (candidate.frontierScore == sameBest.frontierScore
+              && OpexProjectFinanceCapital(candidate) < OpexProjectFinanceCapital(sameBest))
+          || (candidate.frontierScore == sameBest.frontierScore
+              && OpexProjectFinanceCapital(candidate) == OpexProjectFinanceCapital(sameBest)
+              && candidate.profitAnnual > sameBest.profitAnnual)) sameBest = candidate;
+    }
+
+    local sameEngine = (("payload" in sameBest) && sameBest.payload != null
+        && ("plane" in sameBest.payload) && sameBest.payload.plane != null)
+        ? sameBest.payload.plane.id : -1;
+    local topEngine = (("mode" in top) && top.mode == "air" && ("payload" in top)
+        && top.payload != null && ("plane" in top.payload) && top.payload.plane != null)
+        ? top.payload.plane.id : -1;
+    OpexDecide("AIR_FRONTIER_218_SCORE",
+        "src=" + project.src + " dst=" + project.dst + " dist=" + project.distance
+        + " cap218=" + OpexProjectFinanceCapital(project)
+        + " direct_profit218=" + project.profitAnnual
+        + " network_profit218=" + OpexCapitalFrontierProjectProfit(project) + " roi218=" + project.roi
+        + " lambda218=" + project.frontierCapitalPrice
+        + " capital_charge218=" + project.frontierCapitalCharge
+        + " score218=" + project.frontierScore
+        + " same_engine=" + sameEngine
+        + " same_cap=" + OpexProjectFinanceCapital(sameBest)
+        + " same_direct_profit=" + sameBest.profitAnnual
+        + " same_network_profit=" + OpexCapitalFrontierProjectProfit(sameBest)
+        + " same_lambda=" + sameBest.frontierCapitalPrice
+        + " same_capital_charge=" + sameBest.frontierCapitalCharge
+        + " same_score=" + sameBest.frontierScore
+        + " top_mode=" + top.mode + " top_engine=" + topEngine
+        + " top_cap=" + OpexProjectFinanceCapital(top)
+        + " top_direct_profit=" + top.profitAnnual
+        + " top_network_profit=" + OpexCapitalFrontierProjectProfit(top)
+        + " top_lambda=" + (("frontierCapitalPrice" in top) ? top.frontierCapitalPrice : 0)
+        + " top_capital_charge=" + (("frontierCapitalCharge" in top) ? top.frontierCapitalCharge : 0)
+        + " top_score=" + (("frontierScore" in top) ? top.frontierScore : top.profitAnnual));
+  }
+}
+
+function OpexAirFrontierExternalityStations(alternatives, capitalBudget)
+{
+  local stations = {};
+  if (alternatives == null) return stations;
+  foreach (project in alternatives) {
+    if (project == null || !("mode" in project) || project.mode != "air"
+        || (("frontierExactDominated" in project) && project.frontierExactDominated)
+        || !("payload" in project) || project.payload == null) continue;
+    local plan = project.payload;
+    if (("reuseA" in plan) && plan.reuseA && ("siteA" in plan) && plan.siteA != null
+        && ("stationId" in plan.siteA) && plan.siteA.stationId >= 0)
+      stations.rawset(plan.siteA.stationId, true);
+    if (("reuseB" in plan) && plan.reuseB && ("siteB" in plan) && plan.siteB != null
+        && ("stationId" in plan.siteB) && plan.siteB.stationId >= 0)
+      stations.rawset(plan.siteB.stationId, true);
+  }
+  return stations;
+}
+
+/* Cle EXACTE de l'etat vivant dont depend l'externalite des hubs.
+ * Aucun hash : la chaine contient directement le set des stations cibles, les
+ * compteurs de routes, les populations et la composition moteur des flottes
+ * pertinentes. Deux cles egales impliquent donc les memes entrees pour
+ * OpexAirFrontierExternalityContext/OpexAirFrontierStateProfit. */
+function OpexAirFrontierExternalityStateKey(lines, targetStations)
+{
+  if (AIR_DEMAND_PLAN || lines == null) return "externality:none";
+
+  local targetIds = [];
+  if (targetStations != null) foreach (station, value in targetStations) targetIds.append(station);
+  targetIds.sort();
+  local key = "targets";
+  foreach (station in targetIds) key += "|" + station;
+  if (targetStations != null && targetIds.len() == 0) return key + "|empty";
+
+  local entries = [];
+  local relevant = {};
+  local countStations = {};
+  local entryId = 0;
+  foreach (line in lines) {
+    if (line == null || !("mode" in line) || line.mode != "air"
+        || !("vehicles" in line) || line.vehicles == null) continue;
+    local stationA = OpexAirLineStationId(line, 0);
+    local stationB = OpexAirLineStationId(line, 1);
+    if (stationA < 0 || stationB < 0) continue;
+    local id = entryId++;
+    entries.append({ id = id, line = line, stationA = stationA, stationB = stationB });
+    if (targetStations == null || (stationA in targetStations) || (stationB in targetStations)) {
+      relevant.rawset(id, true);
+      countStations.rawset(stationA, true);
+      countStations.rawset(stationB, true);
+    }
+  }
+
+  local routeCounts = {};
+  local live = [];
+  foreach (entry in entries) {
+    if (!(entry.stationA in countStations) && !(entry.stationB in countStations)) continue;
+    local engines = [];
+    foreach (v in entry.line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+      engines.append(AIVehicle.GetEngineType(v));
+    }
+    if (engines.len() == 0) continue;
+    if (entry.stationA in countStations)
+      routeCounts.rawset(entry.stationA,
+          (entry.stationA in routeCounts) ? routeCounts[entry.stationA] + 1 : 1);
+    if (entry.stationB != entry.stationA && (entry.stationB in countStations))
+      routeCounts.rawset(entry.stationB,
+          (entry.stationB in routeCounts) ? routeCounts[entry.stationB] + 1 : 1);
+    if (entry.id in relevant) live.append({ entry = entry, engines = engines });
+  }
+
+  local countIds = [];
+  foreach (station, value in countStations) countIds.append(station);
+  countIds.sort();
+  key += "|routes";
+  foreach (station in countIds)
+    key += "|" + station + ":" + ((station in routeCounts) ? routeCounts[station] : 0);
+
+  local states = [];
+  foreach (item in live) {
+    local entry = item.entry;
+    local line = entry.line;
+    local townA = AITile.GetClosestTown(line.originA);
+    local townB = AITile.GetClosestTown(line.originB);
+    local popA = townA >= 0 ? AITown.GetPopulation(townA) : 0;
+    local popB = townB >= 0 ? AITown.GetPopulation(townB) : 0;
+    local distance = OpexFlightDistance(line.stationA, line.stationB);
+    item.engines.sort();
+    local state = entry.stationA + "," + entry.stationB + "," + line.cargo
+        + "," + popA + "," + popB + "," + distance + ",e";
+    foreach (engine in item.engines) state += "." + engine;
+    states.append(state);
+  }
+  states.sort();
+  key += "|states";
+  foreach (state in states) key += "|" + state;
+  return key;
+}
+
+function OpexAirFrontierExternalityContext(catalog, lines, targetStations = null)
+{
+  local context = { valid = false, byStation = {}, states = [] };
+  if (AIR_DEMAND_PLAN || catalog == null || lines == null) return context;
+  if (targetStations != null && targetStations.len() == 0) {
+    context.valid = true;
+    return context;
+  }
+
+  /* First pass: only resolve station pairs. No vehicle/economics work yet. */
+  local entries = [];
+  local relevant = {};
+  local countStations = {};
+  local entryId = 0;
+  foreach (line in lines) {
+    if (line == null || !("mode" in line) || line.mode != "air"
+        || !("vehicles" in line) || line.vehicles == null) continue;
+    local stationA = OpexAirLineStationId(line, 0);
+    local stationB = OpexAirLineStationId(line, 1);
+    if (stationA < 0 || stationB < 0) continue;
+    local id = entryId++;
+    entries.append({ id = id, line = line, stationA = stationA, stationB = stationB });
+    if (targetStations == null || (stationA in targetStations) || (stationB in targetStations)) {
+      relevant.rawset(id, true);
+      countStations.rawset(stationA, true);
+      countStations.rawset(stationB, true);
+    }
+  }
+
+  local routeCounts = {};
+  local live = [];
+  foreach (entry in entries) {
+    if (!(entry.stationA in countStations) && !(entry.stationB in countStations)) continue;
+    local line = entry.line;
+    local hasLive = false;
+    foreach (v in line.vehicles) {
+      if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
+        hasLive = true;
+        break;
+      }
+    }
+    if (!hasLive) continue;
+    if (entry.stationA in countStations)
+      routeCounts.rawset(entry.stationA,
+          (entry.stationA in routeCounts) ? routeCounts[entry.stationA] + 1 : 1);
+    if (entry.stationB != entry.stationA && (entry.stationB in countStations))
+      routeCounts.rawset(entry.stationB,
+          (entry.stationB in routeCounts) ? routeCounts[entry.stationB] + 1 : 1);
+    if (entry.id in relevant) live.append(entry);
+  }
+
+  local stateId = 0;
+  foreach (entry in live) {
+    local line = entry.line;
+    local townA = AITile.GetClosestTown(line.originA);
+    local townB = AITile.GetClosestTown(line.originB);
+    local popA = townA >= 0 ? AITown.GetPopulation(townA) : 0;
+    local popB = townB >= 0 ? AITown.GetPopulation(townB) : 0;
+    local distance = OpexFlightDistance(line.stationA, line.stationB);
+    local economicsContext = OpexAirActualFleetEconomicsContext(catalog, line, distance);
+    local state = { id = stateId++, line = line, economicsContext = economicsContext,
+      stationA = entry.stationA, stationB = entry.stationB,
+      routesA = (entry.stationA in routeCounts) ? routeCounts[entry.stationA] : 1,
+      routesB = (entry.stationB in routeCounts) ? routeCounts[entry.stationB] : 1,
+      rawA = (popA * TOWN_CATCHMENT_SHARE_PCT) / 100,
+      rawB = (popB * TOWN_CATCHMENT_SHARE_PCT) / 100,
+      distance = distance, profits = {} };
+    context.states.append(state);
+    if (!(state.stationA in context.byStation)) context.byStation.rawset(state.stationA, []);
+    context.byStation[state.stationA].append(state);
+    if (state.stationB != state.stationA) {
+      if (!(state.stationB in context.byStation)) context.byStation.rawset(state.stationB, []);
+      context.byStation[state.stationB].append(state);
+    }
+  }
+  context.valid = true;
+  return context;
+}
+function OpexAirFrontierAffectedStates(plan, context)
+{
+  local affected = {};
+  if (plan == null || context == null || !("valid" in context) || !context.valid) return affected;
+  if (("reuseA" in plan) && plan.reuseA && ("siteA" in plan) && plan.siteA != null
+      && ("stationId" in plan.siteA) && (plan.siteA.stationId in context.byStation)) {
+    foreach (state in context.byStation[plan.siteA.stationId]) affected.rawset(state.id, state);
+  }
+  if (("reuseB" in plan) && plan.reuseB && ("siteB" in plan) && plan.siteB != null
+      && ("stationId" in plan.siteB) && (plan.siteB.stationId in context.byStation)) {
+    foreach (state in context.byStation[plan.siteB.stationId]) affected.rawset(state.id, state);
+  }
+  return affected;
+}
+
+function OpexAirFrontierStateProfit(state, incrementA, incrementB)
+{
+  if (state == null || incrementA < 0 || incrementA > 2 || incrementB < 0 || incrementB > 2) return null;
+  local key = incrementA + "|" + incrementB;
+  if (key in state.profits) return state.profits[key];
+  local demand = state.rawA / (state.routesA + incrementA)
+      + state.rawB / (state.routesB + incrementB);
+  if (demand < 10) demand = 10;
+  local economics = OpexAirFleetEconomicsFromContext(state.economicsContext, demand);
+  local profit = economics != null ? economics.profitAnnual : null;
+  state.profits.rawset(key, profit);
+  return profit;
+}
+
+/* Externalite exacte d'une nouvelle route AIR sur les lignes deja exploitees aux
+ * hubs reutilises. Sous le modele adopte AIR_DEMAND_PLAN=0, elle est soustraite
+ * uniquement dans `frontierOwnProfit`; `profitAnnual` reste l'economie propre de
+ * la route et tous les chemins hors frontier restent inchanges. */
+function OpexCapitalFrontierAirSelectedIncrementAtStation(selectedPlan, stationId)
+{
+  if (selectedPlan == null || stationId < 0) return 0;
+  local reuseA = ("reuseA" in selectedPlan) && selectedPlan.reuseA;
+  local reuseB = ("reuseB" in selectedPlan) && selectedPlan.reuseB;
+  if (reuseA && ("siteA" in selectedPlan) && selectedPlan.siteA != null
+      && ("stationId" in selectedPlan.siteA) && selectedPlan.siteA.stationId == stationId) return 1;
+  if (reuseB && ("siteB" in selectedPlan) && selectedPlan.siteB != null
+      && ("stationId" in selectedPlan.siteB) && selectedPlan.siteB.stationId == stationId) return 1;
+  return 0;
+}
+
+function OpexAirFrontierIncumbentLoss(project, catalog, lines, cache, context = null)
+{
+  local zero = { loss = 0, affected = 0 };
+  if (project == null || catalog == null || lines == null || AIR_DEMAND_PLAN
+      || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null) return zero;
+
+  local key = OpexAirFrontierIncumbentLossKey(project);
+  if (key == null) return zero;
+  if (key != null && cache != null && (key in cache)) return cache[key];
+
+  if (context == null) context = OpexAirFrontierExternalityContext(catalog, lines);
+  local loss = 0;
+  local affected = 0;
+  foreach (id, state in OpexAirFrontierAffectedStates(project.payload, context)) {
+    local incrementA = OpexCapitalFrontierAirSelectedIncrementAtStation(project.payload, state.stationA);
+    local incrementB = OpexCapitalFrontierAirSelectedIncrementAtStation(project.payload, state.stationB);
+    local before = OpexAirFrontierStateProfit(state, 0, 0);
+    local after = OpexAirFrontierStateProfit(state, incrementA, incrementB);
+    if (before == null || after == null) continue;
+    affected++;
+    if (before > after) loss += before - after;
+  }
+  local result = { loss = loss, affected = affected };
+  if (key != null && cache != null) cache.rawset(key, result);
+  return result;
+}
+
+function OpexCapitalFrontierProjectProfit(project)
+{
+  if (project == null) return 0;
+  return ("frontierOwnProfit" in project) ? project.frontierOwnProfit
+      : (("profitAnnual" in project) ? project.profitAnnual : 0);
+}
+
+/* La perte incumbent ne depend que des hubs EXISTANTS auxquels la nouvelle route
+ * ajoute une liaison. A contexte fixe, AffectedStates est l'union byStation de ces
+ * IDs et SelectedIncrementAtStation vaut 1 exactement sur ce set. Les ancres,
+ * l'aeroport, les villes, la distance et l'equipement du nouveau projet n'entrent
+ * donc pas dans la perte. Canoniser le set (tri + dedoublonnage) permet de partager
+ * exactement le meme calcul entre toutes les variantes qui reutilisent les memes hubs. */
+function OpexAirFrontierIncumbentLossKey(project)
+{
+  if (project == null || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null) return null;
+  local plan = project.payload;
+  local first = -1;
+  local second = -1;
+  if (("reuseA" in plan) && plan.reuseA && ("siteA" in plan) && plan.siteA != null
+      && ("stationId" in plan.siteA) && plan.siteA.stationId >= 0) {
+    first = plan.siteA.stationId;
+  }
+  if (("reuseB" in plan) && plan.reuseB && ("siteB" in plan) && plan.siteB != null
+      && ("stationId" in plan.siteB) && plan.siteB.stationId >= 0) {
+    local stationB = plan.siteB.stationId;
+    if (first < 0) first = stationB;
+    else if (stationB != first) second = stationB;
+  }
+  if (first < 0) return null;
+  if (second >= 0 && second < first) {
+    local swap = first;
+    first = second;
+    second = swap;
+  }
+  return second >= 0 ? ("stations|" + first + "|" + second) : ("stations|" + first);
+}
+
+/* Cas dont OpexAirFrontierIncumbentLoss vaut exactement zero sans parcourir les
+ * lignes existantes. Un nouvel aeroport non reutilise ne dilue aucune ligne en place. */
+function OpexCapitalFrontierNeedsIncumbentLoss(project, catalog, lines)
+{
+  if (catalog == null || lines == null || AIR_DEMAND_PLAN) return false;
+  return OpexAirFrontierIncumbentLossKey(project) != null;
+}
+
+/* Certificat exact de dominance avant calcul d'externalite.
+ * `upperProfit` est le profit DIRECT : OpexAirFrontierIncumbentLoss ne peut que
+ * le diminuer. Si un point deja exact du MEME groupe a moins de capital et au
+ * moins ce profit, ou strictement plus de profit au meme capital, le candidat ne
+ * peut maximiser P-lambda*C pour aucun lambda >= 0. L'egalite totale n'est jamais
+ * elaguee afin de conserver le tie-break stable du portefeuille. */
+function OpexCapitalFrontierStrictUpperDominated(best, capital, upperProfit)
+{
+  if (best == null || !("valid" in best) || !best.valid) return false;
+  if (best.profit > upperProfit) return true;
+  return best.profit == upperProfit && best.capital < capital;
+}
+
+function OpexCapitalFrontierRememberBestExact(best, capital, profit)
+{
+  if (best == null) return;
+  if (!best.valid || profit > best.profit
+      || (profit == best.profit && capital < best.capital)) {
+    best.valid = true;
+    best.capital = capital;
+    best.profit = profit;
+  }
+}
+
+function OpexLogAirFrontierIncumbentExternality(alternatives, top, capitalBudget, catalog, lines)
+{
+  if (!DECISION_LOG || !AIR_CAPITAL_FRONTIER || !AIR_BEST_EQUIPMENT
+      || alternatives == null || top == null || !("mode" in top) || top.mode != "air"
+      || catalog == null || lines == null) return;
+  local externality = OpexAirFrontierIncumbentLoss(top, catalog, lines, {});
+  local engine = (("payload" in top) && top.payload != null
+      && ("plane" in top.payload) && top.payload.plane != null) ? top.payload.plane.id : -1;
+  OpexDecide("AIR_FRONTIER_EXTERNALITY",
+      "engine=" + engine + " cap=" + OpexProjectFinanceCapital(top)
+      + " direct_profit=" + top.profitAnnual
+      + " incumbent_loss=" + (("frontierIncumbentLoss" in top) ? top.frontierIncumbentLoss : externality.loss)
+      + " affected=" + externality.affected
+      + " network_profit=" + OpexCapitalFrontierProjectProfit(top)
+      + " capital_price=" + (("frontierCapitalPrice" in top) ? top.frontierCapitalPrice : 0)
+      + " capital_charge=" + (("frontierCapitalCharge" in top) ? top.frontierCapitalCharge : 0)
+      + " score=" + top.frontierScore);
+}
+
+/* Remplace le logger ci-dessus uniquement a l'activation de la sonde. Le meme parcours publie
+ * PORTFOLIO_RANK si demande, puis TENSION ; aucun second parcours du portefeuille n'est cree.
+ * Le contexte -- flotte, plafonds, engagements, foncier -- ne depend PAS du projet : il est
+ * calcule une seule fois, hors de la boucle. Un seul bloc de budget encadre l'ensemble, pour que
+ * probe_ops mesure le cout REEL de la sonde par cycle et non par projet. */
+function OpexLogPortfolioRankWithTension(projects)
+{
+  if (!DECISION_LOG && !TENSION_PROBE) return;
+  if (projects == null || !("best" in projects) || projects.best == null || projects.best.len() == 0) return;
+  local n = projects.best.len();
+  if (n > 5) n = 5;
+
+  TENSION_BUDGET.begin();
+  local ctx = OpexTensionContext(projects);
+  local lines = [];
+  for (local i = 0; i < n; i++) {
+    local p = projects.best[i];
+    if (p == null) continue;
+    local result = OpexTensionVector(p, ctx);
+    local fields = "rank=" + i + " mode=" + p.mode + " dominant=" + result.dominant
+                 + " gap=" + result.gapRelative;
+    foreach (entry in result.vector) {
+      fields += " " + entry.resource + "_tension=" + entry.tension
+              + " " + entry.resource + "_cost=" + entry.cost
+              + " " + entry.resource + "_available=" + entry.available
+              + " " + entry.resource + "_commitments=" + entry.commitments
+              + " " + entry.resource + "_flow=" + entry.flow
+              + " " + entry.resource + "_tau=" + entry.tau;
+    }
+    lines.append(fields);
+  }
+  local spent = TENSION_BUDGET.end("tension");
+
+  /* Journalisation hors du bloc mesure : le cout du journal n'est pas celui du calcul. */
+  for (local i = 0; i < n; i++) {
+    local p = projects.best[i];
+    if (p == null) continue;
+    local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
+    local legacyScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p))
+        ? p.tensionScore : p.budgetScore;
+    local useCapitalFrontier = AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT;
+    local rankKey = useCapitalFrontier ? "frontierScore"
+        : ((TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore");
+    local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
+    local rankScore = (AIR_EARLY_SLOT && !useCapitalFrontier && (rankKey in p))
+        ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
+    local financeCapital = OpexProjectFinanceCapital(p);
+    local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;
+    local generationRatio = ("generationRatio" in p) ? p.generationRatio : 0;
+    local roadFleet = (p.mode == "road" && ("vehiclesForVolume" in p))
+        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + p.payload.roadBerthCapacity
+           + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
+        : "";
+    local frontierFields = useCapitalFrontier
+        ? (" frontier_network_profit=" + OpexCapitalFrontierProjectProfit(p)
+           + " frontier_capital_price=" + (("frontierCapitalPrice" in p) ? p.frontierCapitalPrice : 0)
+           + " frontier_capital_charge=" + (("frontierCapitalCharge" in p) ? p.frontierCapitalCharge : 0)
+           + " frontier_score=" + (("frontierScore" in p) ? p.frontierScore : 0)) : "";
+    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + frontierFields + roadFleet);
+  }
+  foreach (fields in lines) OpexDecide("TENSION", fields);
+  /* Les quatre mesures foncieres cote a cote : le stock d'origines libres (celui qui est
+   * desormais au denominateur), la pression de separation, les paires produites, et l'ancien
+   * proxy de taille de vivier. C'est ce qui permet de comparer les mesures entre elles au lieu
+   * d'en figer une a l'aveugle. */
+  OpexDecide("TENSION_COST", "probe_ops=" + spent + " projects=" + lines.len()
+             + " fleet_rail=" + ctx.fleet.rail + " fleet_road=" + ctx.fleet.road
+             + " fleet_air=" + ctx.fleet.air + " fleet_water=" + ctx.fleet.water
+             + " origins_free=" + ctx.originsFree + " origins_served=" + ctx.originsServed
+             + " pairs_total=" + ctx.pairsTotal + " separation_rejected=" + ctx.separationRejected
+             + " pairs_one_served=" + ctx.pairsOneServed
+             + " pool_rail=" + ctx.pool.rail + " pool_road=" + ctx.pool.road
+             + " pool_air=" + ctx.pool.air + " pool_water=" + ctx.pool.water);
+}
+
+/* Cle stable d'un projet dans candidateGroups. */
+function OpexProjectKeyFor(project)
+{
+  local prefix = "";
+  if (project.mode == "fleet") {
+    /* C34.2 : un achat d'avion n'a pas d'origine-destination -- il appartient a UNE ligne. */
+    local lid = (("payload" in project) && project.payload != null
+                 && ("line" in project.payload) && ("lineId" in project.payload.line))
+                ? project.payload.line.lineId : -1;
+    return "fleet|" + lid;
+  }
+  if (("payload" in project) && project.payload != null
+      && ("isSubsidy" in project.payload) && project.payload.isSubsidy) {
+    return "subsidy|" + project.payload.subsidyId;
+  }
+  if (("payload" in project) && project.payload != null
+      && ("isRoadExtension" in project.payload) && project.payload.isRoadExtension) {
+    return "road_extension|" + project.payload.targetLineId + "|"
+           + project.payload.extensionTown;
+  }
+  return prefix + OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+}
+
+/* Identite STABLE d'une variante AIR de creation de ligne.
+ * Elle decrit uniquement la decision physique : geometrie, equipement,
+ * profondeur de flotte et type d'action. Demande, population, profit, ROI et
+ * capital modele appartiennent a la revision economique et sont exclus. */
+function OpexAirProjectVariantIdentity(project)
+{
+  if (project == null || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null) return null;
+  local plan = project.payload;
+  if (!("siteA" in plan) || !("siteB" in plan) || plan.siteA == null || plan.siteB == null)
+    return null;
+
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local stationA = reuseA && ("stationId" in plan.siteA) ? plan.siteA.stationId : -1;
+  local stationB = reuseB && ("stationId" in plan.siteB) ? plan.siteB.stationId : -1;
+  local anchorA = ("anchor" in plan.siteA) ? plan.siteA.anchor : -1;
+  local anchorB = ("anchor" in plan.siteB) ? plan.siteB.anchor : -1;
+  local siteTypeA = ("airportType" in plan.siteA) ? plan.siteA.airportType : -1;
+  local siteTypeB = ("airportType" in plan.siteB) ? plan.siteB.airportType : -1;
+  local endpointA = (reuseA ? "R" + stationA : "N" + anchorA) + ":" + siteTypeA;
+  local endpointB = (reuseB ? "R" + stationB : "N" + anchorB) + ":" + siteTypeB;
+  if (("src" in project) && ("dst" in project) && project.src > project.dst) {
+    local swap = endpointA;
+    endpointA = endpointB;
+    endpointB = swap;
+  }
+
+  local airportType = (("airport" in plan) && plan.airport != null && ("type" in plan.airport))
+      ? plan.airport.type : -1;
+  local engine = (("plane" in plan) && plan.plane != null && ("id" in plan.plane))
+      ? plan.plane.id : -1;
+  local depth = (("economics" in plan) && plan.economics != null && ("planes" in plan.economics))
+      ? plan.economics.planes : (("planes" in plan) ? plan.planes : 0);
+  return "air_variant|route|" + project.kind + "|" + project.cargo + "|"
+      + endpointA + "|" + endpointB + "|airport=" + airportType
+      + "|engine=" + engine + "|depth=" + depth;
+}
+
+/* Cache local frontier uniquement. OpexProjectKeyFor() est explicitement une cle
+ * stable du projet ; la memoriser evite de reconstruire les memes strings dans les
+ * chemins chauds du look-ahead sans modifier l'identite decisionnelle. */
+function OpexCapitalFrontierProjectGroupKey(project)
+{
+  if (project == null) return null;
+  if ("frontierProjectGroupKey" in project) return project.frontierProjectGroupKey;
+  local key = OpexProjectKeyFor(project);
+  project.rawset("frontierProjectGroupKey", key);
+  return key;
+}
+
+function OpexProjectPairKey(kind, cargo, src, dst)
+{
+  if (kind == "pax" && src > dst) {
+    local swap = src;
+    src = dst;
+    dst = swap;
+  }
+  return kind + "|" + cargo + "|" + src + "|" + dst;
+}
+
+function OpexProjectScore(value, cost)
+{
+  if (value <= 0 || cost <= 0) return 0.0;
+  return (value.tofloat() * 1000.0) / cost;
+}
+
+/* P2 : preparation exacte reutilisable par les seules reelections de budget.
+ * Elle fige l'economie du vivier courant, les cles de groupe et l'ordre local.
+ * Les lignes gardent financeCap explicitement : l'ensemble actif est donc encore
+ * recalcule au budget vivant, sans jamais memoriser un lambda seul. */
+function OpexCapitalFrontierPrepare(alternatives, catalog, lines, selectionCache = null)
+{
+  if (selectionCache != null && ("prepared" in selectionCache)
+      && selectionCache.prepared != null) {
+    AIR_SELECTION_LEDGER.preparedHits++;
+    return selectionCache.prepared;
+  }
+  local prepared = { byGroup = {}, flat = [] };
+  if (alternatives != null) {
+    foreach (project in alternatives) {
+      if (project == null) continue;
+      local financeCap = OpexProjectFinanceCapital(project);
+      local shadowCap = OpexProjectShadowCapitalFromFinance(project, financeCap);
+      local group = OpexCapitalFrontierProjectGroupKey(project);
+      local row = {
+        project = project,
+        group = group,
+        financeCap = financeCap,
+        capital = shadowCap,
+        upperProfit = project.profitAnnual,
+        needsLoss = OpexCapitalFrontierNeedsIncumbentLoss(project, catalog, lines),
+        lossKnown = false,
+        loss = 0,
+      };
+      prepared.flat.append(row);
+      if (group == null) continue;
+      if (!(group in prepared.byGroup)) prepared.byGroup.rawset(group, []);
+      prepared.byGroup[group].append(row);
+    }
+  }
+  foreach (group, rows in prepared.byGroup) {
+    rows.sort(function(a, b) {
+      if (a.capital < b.capital) return -1;
+      if (a.capital > b.capital) return 1;
+      if (a.upperProfit > b.upperProfit) return -1;
+      if (a.upperProfit < b.upperProfit) return 1;
+      return 0;
+    });
+  }
+  if (selectionCache != null) {
+    selectionCache.rawset("prepared", prepared);
+  }
+  AIR_SELECTION_LEDGER.preparedBuilds++;
+  return prepared;
+}
+
+function OpexCapitalFrontierEnvelope(rows)
+{
+  local points = [{ capital = 0, profit = 0 }];
+  foreach (row in rows) {
+    local project = row.project;
+    if (project == null) continue;
+    if (("frontierExactDominated" in project) && project.frontierExactDominated) continue;
+    local profit = OpexCapitalFrontierProjectProfit(project);
+    if (profit <= 0) continue;
+    points.append({ capital = row.capital, profit = profit });
+  }
+  points.sort(function(a, b) {
+    if (a.capital < b.capital) return -1;
+    if (a.capital > b.capital) return 1;
+    if (a.profit > b.profit) return -1;
+    if (a.profit < b.profit) return 1;
+    return 0;
+  });
+  local pareto = [];
+  local bestProfit = null;
+  foreach (point in points) {
+    if (bestProfit != null && point.profit <= bestProfit) continue;
+    pareto.append(point);
+    bestProfit = point.profit;
+  }
+  local hull = [];
+  foreach (point in pareto) {
+    while (hull.len() >= 2) {
+      local aa = hull[hull.len() - 2];
+      local bb = hull[hull.len() - 1];
+      local dx1 = bb.capital - aa.capital;
+      local dx2 = point.capital - bb.capital;
+      if (dx1 <= 0 || dx2 <= 0) {
+        hull.pop();
+        continue;
+      }
+      local slope1 = (bb.profit - aa.profit).tofloat() / dx1;
+      local slope2 = (point.profit - bb.profit).tofloat() / dx2;
+      if (slope1 > slope2) break;
+      hull.pop();
+    }
+    hull.append(point);
+  }
+  local state = { base = 0, full = 0, segments = [] };
+  if (hull.len() <= 0) return state;
+  state.base = hull[0].capital;
+  state.full = hull[hull.len() - 1].capital;
+  for (local i = 1; i < hull.len(); i++) {
+    local prev = hull[i - 1];
+    local next = hull[i];
+    local deltaCapital = next.capital - prev.capital;
+    local deltaProfit = next.profit - prev.profit;
+    if (deltaCapital <= 0 || deltaProfit <= 0) continue;
+    state.segments.append({
+      lambda = deltaProfit.tofloat() / deltaCapital,
+      deltaCapital = deltaCapital,
+    });
+  }
+  return state;
+}
+
+function OpexCapitalPriceRelaxationPrepared(byGroup, activeThresholds, capitalBudget,
+                                            selectionCache = null, externalityStateKey = null)
+{
+  local ratios = AIList();
+  local fullDemand = 0;
+  local groupCount = 0;
+  local sampleCount = 0;
+  local sampleMax = 32;
+  if (byGroup == null || capitalBudget <= 0)
+    return { lambda = 0.0, fullDemand = 0, relaxedDemand = 0,
+             baseDemand = 0, groups = 0, segments = 0, lambdaPct = 0,
+             lambdaBudgetMin = 0, lambdaBudgetMax = null };
+
+  foreach (group, rows in byGroup) {
+    if (rows.len() <= 0) continue;
+    local representative = null;
+    local representativeProfit = 0;
+    local predecessor = null;
+    local predecessorProfit = 0;
+    foreach (row in rows) {
+      local project = row.project;
+      if (project == null
+          || (("frontierExactDominated" in project) && project.frontierExactDominated))
+        continue;
+      local profit = OpexCapitalFrontierProjectProfit(project);
+      if (profit <= 0) continue;
+      if (representative == null) {
+        representative = row;
+        representativeProfit = profit;
+        continue;
+      }
+      if (profit <= representativeProfit) continue;
+      if (row.capital > representative.capital) {
+        predecessor = representative;
+        predecessorProfit = representativeProfit;
+      }
+      representative = row;
+      representativeProfit = profit;
+    }
+    if (representative == null) continue;
+    groupCount++;
+    if (representative.financeCap > 0) fullDemand += representative.financeCap;
+    if (representative.capital > 0 && sampleCount < sampleMax) {
+      local priorCapital = predecessor != null ? predecessor.capital : 0;
+      local priorProfit = predecessor != null ? predecessorProfit : 0;
+      local deltaCapital = representative.capital - priorCapital;
+      local deltaProfit = representativeProfit - priorProfit;
+      if (deltaCapital > 0 && deltaProfit > 0) {
+        local ratioPct = ((deltaProfit.tofloat() * 100.0) / deltaCapital).tointeger();
+        if (ratioPct < 0) ratioPct = 0;
+        ratios.AddItem(sampleCount, ratioPct);
+        sampleCount++;
+      }
+    }
+  }
+
+  if (fullDemand <= capitalBudget || sampleCount <= 0) {
+    if (selectionCache != null) {
+      selectionCache.rawset("coarseLambdaPct", 0);
+      selectionCache.rawset("coarseFullDemand", fullDemand);
+    }
+    return { lambda = 0.0, fullDemand = fullDemand, relaxedDemand = fullDemand,
+             baseDemand = 0, groups = groupCount, segments = sampleCount,
+             lambdaPct = 0, lambdaBudgetMin = 0, lambdaBudgetMax = null };
+  }
+
+  ratios.Sort(AIList.SORT_BY_VALUE, AIList.SORT_ASCENDING);
+  /* Lambda volontairement faible : prendre le bas de distribution, pas le
+   * rendement marginal median du portefeuille. Un huitieme reste assez robuste
+   * pour ignorer un unique outlier tout en laissant passer les projets a capital
+   * eleve dont le profit reseau reste substantiel. */
+  local target = (sampleCount - 1) / 8;
+  local item = ratios.Begin();
+  for (local i = 0; i < target && !ratios.IsEnd(); i++) item = ratios.Next();
+  local lambdaPct = ratios.IsEnd() ? 0 : ratios.GetValue(item);
+  if (selectionCache != null) {
+    selectionCache.rawset("coarseLambdaPct", lambdaPct);
+    selectionCache.rawset("coarseFullDemand", fullDemand);
+  }
+  return { lambda = lambdaPct.tofloat() / 100.0,
+           fullDemand = fullDemand, relaxedDemand = capitalBudget,
+           baseDemand = 0, groups = groupCount, segments = sampleCount,
+           lambdaPct = lambdaPct, lambdaBudgetMin = 0, lambdaBudgetMax = null };
+}
+
+/* Prix du capital du portefeuille.
+ *
+ * Chaque groupe mutuellement exclusif (OD/ligne) conserve d'abord sa frontiere locale
+ * capital -> profit reseau net, avec comme base la meilleure option gratuite du
+ * groupe ou (0, 0) s'il n'y en a aucune. Les points qui ne
+ * peuvent jamais maximiser P - lambda*C sont retires par l'enveloppe concave superieure.
+ * Ses segments sont exactement les rendements marginaux successifs du groupe.
+ *
+ * La relaxation autorise seulement, pour ESTIMER lambda, une fraction du segment qui
+ * traverse le budget. Aucun projet reel n'est fractionne ensuite : la selection finale
+ * garde les projets indivisibles, la contrainte OpexProjectFinanceCapital <= budget et
+ * la reserve d'exploitation deja incluse dans capitalBudget. */
+function OpexCapitalPriceRelaxation(alternatives, capitalBudget)
+{
+  local byGroup = {};
+  local segments = [];
+  local fullDemand = 0;
+  local baseDemand = 0;
+  if (alternatives == null || capitalBudget <= 0)
+    return { lambda = 0.0, fullDemand = 0, relaxedDemand = 0,
+             baseDemand = 0, groups = 0, segments = 0 };
+
+  foreach (project in alternatives) {
+    if (project == null) continue;
+    if (("frontierExactDominated" in project) && project.frontierExactDominated) continue;
+    local financeCap = ("frontierFinanceCapital" in project)
+        ? project.frontierFinanceCapital : OpexProjectFinanceCapital(project);
+    local cap = OpexProjectShadowCapital(project);
+    local profit = OpexCapitalFrontierProjectProfit(project);
+    /* Un projet a capital nul ne consomme pas la ressource, mais s'il est positif il
+     * constitue le point de base gratuit de son groupe : les variantes payantes ne
+     * doivent etre valorisees que sur leur PROFIT INCREMENTAL au-dessus de cette base.
+     * Les projets individuellement non financables ne doivent pas rendre le capital rare. */
+    /* Le capital economique peut etre negatif : une retraite libere un actif et
+     * eventuellement du transit. Seule la contrainte de CASH reste non negative
+     * et decide si l'action est executable. */
+    if (financeCap > capitalBudget || profit <= 0) continue;
+    local group = OpexCapitalFrontierProjectGroupKey(project);
+    if (group == null) continue;
+    if (!(group in byGroup)) byGroup.rawset(group, []);
+    byGroup[group].append({ capital = cap, profit = profit });
+  }
+
+  local groupCount = 0;
+  foreach (group, rows in byGroup) {
+    /* L'option exterieure reste explicite, mais elle peut etre dominee par une
+     * action qui augmente le profit tout en liberant du capital. */
+    rows.append({ capital = 0, profit = 0 });
+    rows.sort(function(a, b) {
+      if (a.capital < b.capital) return -1;
+      if (a.capital > b.capital) return 1;
+      if (a.profit > b.profit) return -1;
+      if (a.profit < b.profit) return 1;
+      return 0;
+    });
+
+    local pareto = [];
+    local bestProfit = null;
+    foreach (row in rows) {
+      if (bestProfit != null && row.profit <= bestProfit) continue;
+      pareto.append(row);
+      bestProfit = row.profit;
+    }
+    if (pareto.len() <= 0) continue;
+
+    /* Enveloppe concave superieure. Si la pente suivante est >= a la precedente,
+     * le point intermediaire ne peut jamais etre optimal pour aucun lambda >= 0. */
+    local hull = [];
+    foreach (row in pareto) {
+      while (hull.len() >= 2) {
+        local a = hull[hull.len() - 2];
+        local b = hull[hull.len() - 1];
+        local dx1 = b.capital - a.capital;
+        local dx2 = row.capital - b.capital;
+        if (dx1 <= 0 || dx2 <= 0) {
+          hull.pop();
+          continue;
+        }
+        local slope1 = (b.profit - a.profit).tofloat() / dx1;
+        local slope2 = (row.profit - b.profit).tofloat() / dx2;
+        if (slope1 > slope2) break;
+        hull.pop();
+      }
+      hull.append(row);
+    }
+
+    groupCount++;
+    baseDemand += hull[0].capital;
+    fullDemand += hull[hull.len() - 1].capital;
+    for (local i = 1; i < hull.len(); i++) {
+      local prev = hull[i - 1];
+      local next = hull[i];
+      local deltaCapital = next.capital - prev.capital;
+      local deltaProfit = next.profit - prev.profit;
+      if (deltaCapital <= 0 || deltaProfit <= 0) continue;
+      segments.append({
+        lambda = deltaProfit.tofloat() / deltaCapital,
+        deltaCapital = deltaCapital,
+      });
+    }
+  }
+
+  if (fullDemand <= capitalBudget)
+    return { lambda = 0.0, fullDemand = fullDemand, relaxedDemand = fullDemand,
+             baseDemand = baseDemand, groups = groupCount, segments = segments.len() };
+
+  segments.sort(function(a, b) {
+    if (a.lambda > b.lambda) return -1;
+    if (a.lambda < b.lambda) return 1;
+    if (a.deltaCapital < b.deltaCapital) return -1;
+    if (a.deltaCapital > b.deltaCapital) return 1;
+    return 0;
+  });
+
+  local demand = baseDemand;
+  foreach (segment in segments) {
+    if (demand + segment.deltaCapital > capitalBudget) {
+      return { lambda = segment.lambda, fullDemand = fullDemand, relaxedDemand = capitalBudget,
+               baseDemand = baseDemand, groups = groupCount, segments = segments.len() };
+    }
+    demand += segment.deltaCapital;
+  }
+  return { lambda = 0.0, fullDemand = fullDemand, relaxedDemand = demand,
+           baseDemand = baseDemand, groups = groupCount, segments = segments.len() };
+}
+
+function OpexSelectionLedgerRecordCause(cause, diagnostic, ops, days)
+{
+  if (!(AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)) return;
+  if (ops < 0) ops = 0;
+  if (days < 0) days = 0;
+  AIR_SELECTION_LEDGER.calls++;
+  if (diagnostic) {
+    AIR_SELECTION_LEDGER.diagnosticCalls++;
+    AIR_SELECTION_LEDGER.diagnosticOps += ops;
+    AIR_SELECTION_LEDGER.diagnosticDays += days;
+    if (cause == "diagnostic_counterfactual") AIR_SELECTION_LEDGER.diagnosticCounterfactualCalls++;
+    return;
+  }
+  AIR_SELECTION_LEDGER.productionCalls++;
+  AIR_SELECTION_LEDGER.productionOps += ops;
+  AIR_SELECTION_LEDGER.productionDays += days;
+  if (cause == "generation") {
+    AIR_SELECTION_LEDGER.generationCalls++; AIR_SELECTION_LEDGER.generationOps += ops; AIR_SELECTION_LEDGER.generationDays += days;
+  } else if (cause == "lifecycle") {
+    AIR_SELECTION_LEDGER.lifecycleCalls++; AIR_SELECTION_LEDGER.lifecycleOps += ops; AIR_SELECTION_LEDGER.lifecycleDays += days;
+  } else if (cause == "budget_reselect") {
+    AIR_SELECTION_LEDGER.budgetReselectCalls++; AIR_SELECTION_LEDGER.budgetReselectOps += ops; AIR_SELECTION_LEDGER.budgetReselectDays += days;
+  } else if (cause == "dynamic_batch") {
+    AIR_SELECTION_LEDGER.dynamicBatchCalls++; AIR_SELECTION_LEDGER.dynamicBatchOps += ops; AIR_SELECTION_LEDGER.dynamicBatchDays += days;
+  } else if (cause == "execution") {
+    AIR_SELECTION_LEDGER.executionCalls++; AIR_SELECTION_LEDGER.executionOps += ops; AIR_SELECTION_LEDGER.executionDays += days;
+  }
+}
+
+function OpexSelectionLedgerRecordPhase(phase, diagnostic, ops, days)
+{
+  if (!(AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)) return;
+  if (ops < 0) ops = 0;
+  if (days < 0) days = 0;
+  if (diagnostic) {
+    if (phase == "prepare") { AIR_SELECTION_LEDGER.diagnosticPrepareOps += ops; AIR_SELECTION_LEDGER.diagnosticPrepareDays += days; }
+    else if (phase == "externality") { AIR_SELECTION_LEDGER.diagnosticExternalityOps += ops; AIR_SELECTION_LEDGER.diagnosticExternalityDays += days; }
+    else if (phase == "relaxation") { AIR_SELECTION_LEDGER.diagnosticRelaxationOps += ops; AIR_SELECTION_LEDGER.diagnosticRelaxationDays += days; }
+    else if (phase == "ranking") { AIR_SELECTION_LEDGER.diagnosticRankingOps += ops; AIR_SELECTION_LEDGER.diagnosticRankingDays += days; }
+    return;
+  }
+  if (phase == "prepare") { AIR_SELECTION_LEDGER.prepareOps += ops; AIR_SELECTION_LEDGER.prepareDays += days; }
+  else if (phase == "externality") { AIR_SELECTION_LEDGER.externalityOps += ops; AIR_SELECTION_LEDGER.externalityDays += days; }
+  else if (phase == "relaxation") { AIR_SELECTION_LEDGER.relaxationOps += ops; AIR_SELECTION_LEDGER.relaxationDays += days; }
+  else if (phase == "ranking") { AIR_SELECTION_LEDGER.rankingOps += ops; AIR_SELECTION_LEDGER.rankingDays += days; }
+}
+
+function OpexCapitalFrontierAssignScores(alternatives, capitalBudget, catalog = null, lines = null,
+                                         selectionDiagnostic = false, selectionCache = null)
+{
+  local measurePhases = AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT;
+  local phaseMark = measurePhases ? OpexOpsMeasureBegin() : null;
+  local phaseDate = measurePhases ? AIDate.GetCurrentDate() : 0;
+  local selectionDate = AIDate.GetCurrentDate();
+  local externalityCache = {};
+  local prepared = OpexCapitalFrontierPrepare(
+      alternatives, catalog, lines, selectionCache);
+  local byGroup = {};
+
+  /* 1) Le vivier est evalue independamment de la caisse courante. Lambda est
+   * attache a la revision economique, pas a chaque mouvement de tresorerie. */
+  foreach (row in prepared.flat) {
+    local project = row.project;
+    project.rawset("frontierFinanceCapital", row.financeCap);
+    project.rawset("frontierShadowCapital", row.capital);
+    project.rawset("frontierExactDominated", false);
+    project.rawset("frontierIncumbentLoss", 0);
+    project.rawset("frontierOwnProfit", project.profitAnnual);
+  }
+  foreach (group, rows in prepared.byGroup) {
+    foreach (row in rows) {
+      if (!(group in byGroup)) byGroup.rawset(group, []);
+      byGroup[group].append(row);
+    }
+  }
+  local prepareOps = 0;
+  if (measurePhases) {
+    prepareOps = OpexOpsMeasureEnd(phaseMark);
+    OpexSelectionLedgerRecordPhase("prepare", selectionDiagnostic, prepareOps,
+        AIDate.GetCurrentDate() - phaseDate);
+    phaseMark = OpexOpsMeasureBegin();
+    phaseDate = AIDate.GetCurrentDate();
+  }
+
+  /* 2) Pre-certificat gratuit : les projets dont la perte incumbent vaut
+   * EXACTEMENT zero (non-AIR/fleet, AIR sans hub reutilise, etc.) peuvent deja
+   * dominer des variantes AIR avant meme de construire le contexte d'externalite.
+   * Cela retire aussi leurs hubs du contexte couteux. */
+  foreach (group, rows in byGroup) {
+    local best = { valid = false, capital = 0, profit = 0 };
+    foreach (row in rows) {
+      if (row.needsLoss) {
+        if (OpexCapitalFrontierStrictUpperDominated(best, row.capital, row.upperProfit))
+          row.project.frontierExactDominated = true;
+        continue;
+      }
+      if (OpexCapitalFrontierStrictUpperDominated(best, row.capital, row.upperProfit)) {
+        row.project.frontierExactDominated = true;
+        continue;
+      }
+      OpexCapitalFrontierRememberBestExact(best, row.capital, row.upperProfit);
+    }
+  }
+
+  local externalityCandidates = [];
+  foreach (group, rows in byGroup) foreach (row in rows) {
+    if (row.needsLoss && !row.project.frontierExactDominated)
+      externalityCandidates.append(row.project);
+  }
+
+  /* Le prix du capital porte sur le profit RESEAU net. Le contexte ne contient
+   * plus les hubs de candidats deja prouves domines. */
+  local targetStations = OpexAirFrontierExternalityStations(externalityCandidates, capitalBudget);
+  local externalityStateKey = OpexAirFrontierExternalityStateKey(lines, targetStations);
+  local externalityContext = null;
+  if (selectionCache != null && ("externalityContextStateKey" in selectionCache)
+      && selectionCache.externalityContextStateKey == externalityStateKey
+      && ("externalityContext" in selectionCache) && selectionCache.externalityContext != null) {
+    externalityContext = selectionCache.externalityContext;
+  } else {
+    externalityContext = OpexAirFrontierExternalityContext(catalog, lines, targetStations);
+    if (selectionCache != null) {
+      selectionCache.rawset("externalityContextStateKey", externalityStateKey);
+      selectionCache.rawset("externalityContext", externalityContext);
+    }
+  }
+
+  /* 3) Passe exacte groupe-locale. Apres chaque evaluation, le meilleur point
+   * exact peut certifier les upper bounds suivants. Aucun point elague ne peut
+   * appartenir au Pareto local, modifier lambda ou gagner la selection finale. */
+  local selectionExternalityLosses = {};
+  local selectionExternalityWitnesses = {};
+  foreach (group, rows in byGroup) {
+    local best = { valid = false, capital = 0, profit = 0 };
+    foreach (row in rows) {
+      local project = row.project;
+      if (project.frontierExactDominated) continue;
+      if (OpexCapitalFrontierStrictUpperDominated(best, row.capital, row.upperProfit)) {
+        project.frontierExactDominated = true;
+        continue;
+      }
+
+      local loss = 0;
+      if (row.needsLoss) {
+        if (row.lossKnown && ("lossStateKey" in row)
+            && row.lossStateKey == externalityStateKey) {
+          loss = row.loss;
+          AIR_SELECTION_LEDGER.externalityCacheHits++;
+        } else {
+          local externality = OpexAirFrontierIncumbentLoss(project, catalog, lines,
+              externalityCache, externalityContext);
+          loss = externality.loss < 0 ? 0 : externality.loss;
+          row.loss = loss;
+          row.lossKnown = true;
+          row.rawset("lossStateKey", externalityStateKey);
+        }
+        if (selectionCache != null) {
+          local lossKey = OpexAirFrontierIncumbentLossKey(project);
+          if (lossKey != null) {
+            selectionExternalityLosses.rawset(lossKey, loss);
+            if (!(lossKey in selectionExternalityWitnesses))
+              selectionExternalityWitnesses.rawset(lossKey, project);
+          }
+        }
+      }
+      local ownProfit = project.profitAnnual - loss;
+      project.frontierIncumbentLoss = loss;
+      project.frontierOwnProfit = ownProfit;
+      OpexCapitalFrontierRememberBestExact(best, row.capital, ownProfit);
+    }
+  }
+  local externalityOps = 0;
+  if (measurePhases) {
+    externalityOps = OpexOpsMeasureEnd(phaseMark);
+    OpexSelectionLedgerRecordPhase("externality", selectionDiagnostic, externalityOps,
+        AIDate.GetCurrentDate() - phaseDate);
+    phaseMark = OpexOpsMeasureBegin();
+    phaseDate = AIDate.GetCurrentDate();
+  }
+  if (AIR_CAPITAL_FRONTIER_PROBE)
+    AIR_CAPITAL_FRONTIER_LEDGER.assignExternalityOps += prepareOps + externalityOps;
+
+  local price = OpexCapitalPriceRelaxationPrepared(
+      byGroup, null, capitalBudget, selectionCache, externalityStateKey);
+  if (selectionCache != null) {
+    selectionCache.rawset("selectionExternalityLosses", selectionExternalityLosses);
+    selectionCache.rawset("selectionExternalityWitnesses", selectionExternalityWitnesses);
+  }
+  local relaxationOps = 0;
+  if (measurePhases) {
+    relaxationOps = OpexOpsMeasureEnd(phaseMark);
+    OpexSelectionLedgerRecordPhase("relaxation", selectionDiagnostic, relaxationOps,
+        AIDate.GetCurrentDate() - phaseDate);
+    phaseMark = OpexOpsMeasureBegin();
+    phaseDate = AIDate.GetCurrentDate();
+  }
+  if (AIR_CAPITAL_FRONTIER_PROBE) {
+    AIR_CAPITAL_FRONTIER_LEDGER.assignBuildOps += relaxationOps;
+    local lambdaBps = (price.lambda * 10000.0).tointeger();
+    AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceSamples++;
+    if (lambdaBps > 0) AIR_CAPITAL_FRONTIER_LEDGER.capitalPricePositiveSamples++;
+    AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceBpsSum += lambdaBps;
+    if (lambdaBps > AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceBpsMax)
+      AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceBpsMax = lambdaBps;
+    AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceFullDemandK += price.fullDemand / 1000;
+    AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceBudgetK += capitalBudget / 1000;
+  }
+
+  foreach (project in alternatives) {
+    if (project == null) continue;
+    if (("frontierExactDominated" in project) && project.frontierExactDominated) continue;
+    local cap = OpexProjectShadowCapital(project);
+    local ownProfit = OpexCapitalFrontierProjectProfit(project);
+    local financeCap = ("frontierFinanceCapital" in project)
+        ? project.frontierFinanceCapital : OpexProjectFinanceCapital(project);
+    local capitalCharge = price.lambda * cap;
+    local score = ownProfit.tofloat() - capitalCharge;
+    project.rawset("frontierCapitalPrice", price.lambda);
+    project.rawset("frontierCapitalCharge", capitalCharge);
+    project.rawset("frontierScore", score);
+    project.rawset("frontierScoreInt", score.tointeger());
+    /* Figer l'economie arbitree. Le budget reste diagnostic seulement : une
+     * variation de caisse seule ne redefinit plus lambda. */
+    project.rawset("frontierSelectionDate", selectionDate);
+    project.rawset("frontierSelectionBudget", capitalBudget);
+    project.rawset("frontierSelectionProfit", ownProfit);
+    project.rawset("frontierSelectionShadowCapital", cap);
+    project.rawset("frontierSelectionFinanceCapital", financeCap);
+  }
+
+  local rankingOps = 0;
+  if (measurePhases) {
+    rankingOps = OpexOpsMeasureEnd(phaseMark);
+    OpexSelectionLedgerRecordPhase("ranking", selectionDiagnostic, rankingOps,
+        AIDate.GetCurrentDate() - phaseDate);
+  }
+  if (AIR_CAPITAL_FRONTIER_PROBE) {
+    AIR_CAPITAL_FRONTIER_LEDGER.assignScoreOps += rankingOps;
+    AIR_CAPITAL_FRONTIER_LEDGER.assignCalls++;
+  }
+  if (DECISION_LOG && AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) {
+    OpexDecide("AIR_CAPITAL_PRICE",
+        "lambda=" + price.lambda + " budget=" + capitalBudget
+        + " full_demand=" + price.fullDemand + " relaxed_demand=" + price.relaxedDemand
+        + " groups=" + price.groups + " segments=" + price.segments);
+  }
+  return price;
+}
+
+/* Classement frontier natif. Les variantes d'un meme groupe OD/ligne sont
+ * mutuellement exclusives : une seule, celle qui maximise directement
+ * P_net - lambda*C, peut entrer dans le top-K global. Faire cette reduction en
+ * O(n) AVANT AIList evite que plusieurs variantes d'une meme liaison occupent
+ * plusieurs slots du portefeuille. La caisse reste une contrainte d'execution. */
+function OpexCapitalFrontierRank(alternatives, capitalBudget, limit)
+{
+  local order = AIList();
+  local candidates = [];
+  local winners = {};
+  if (alternatives == null) return { best = [], financeable = 0 };
+
+  foreach (project in alternatives) {
+    if (project == null) continue;
+    local probeGrow = AIR_CAPITAL_FRONTIER_PROBE && project.mode == "fleet"
+        && ("payload" in project) && project.payload != null
+        && ("frontierStepKind" in project.payload)
+        && project.payload.frontierStepKind == "grow";
+    if (probeGrow) AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowRankSeen++;
+    if (("frontierExactDominated" in project) && project.frontierExactDominated) continue;
+    if (probeGrow) AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowUndominated++;
+    if (!("frontierScoreInt" in project)) continue;
+    if (project.frontierScoreInt < 0) continue;
+    if (probeGrow) AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowNonNegative++;
+    /* Lambda reste fige, mais la contrainte de caisse est vivante et bon marche :
+     * elle choisit la meilleure variante FINANCABLE du groupe sans repricer le
+     * capital ni recalculer les externalites. */
+    if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
+    if (probeGrow) AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowFinanceable++;
+    local group = OpexCapitalFrontierProjectGroupKey(project);
+    if (group == null) {
+      candidates.append(project);
+      continue;
+    }
+    if (!(group in winners)) {
+      winners.rawset(group, project);
+      continue;
+    }
+    local incumbent = winners[group];
+    local score = ("frontierScore" in project) ? project.frontierScore : project.frontierScoreInt;
+    local incumbentScore = ("frontierScore" in incumbent)
+        ? incumbent.frontierScore : incumbent.frontierScoreInt;
+    if (score > incumbentScore) {
+      winners[group] = project;
+      continue;
+    }
+    if (score < incumbentScore) continue;
+    local capital = OpexProjectShadowCapital(project);
+    local incumbentCapital = OpexProjectShadowCapital(incumbent);
+    if (capital < incumbentCapital
+        || (capital == incumbentCapital
+            && OpexCapitalFrontierProjectProfit(project)
+               > OpexCapitalFrontierProjectProfit(incumbent)))
+      winners[group] = project;
+  }
+  foreach (group, project in winners) {
+    if (AIR_CAPITAL_FRONTIER_PROBE && project.mode == "fleet"
+        && ("payload" in project) && project.payload != null
+        && ("frontierStepKind" in project.payload)
+        && project.payload.frontierStepKind == "grow")
+      AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowGroupWinner++;
+    candidates.append(project);
+  }
+  for (local i = 0; i < candidates.len(); i++)
+    order.AddItem(i, candidates[i].frontierScoreInt);
+  order.Sort(AIList.SORT_BY_VALUE, false);
+
+  /* TEMP_GROW_COMPARE_BEGIN: passive diagnostic only. */
+  if (AIR_CAPITAL_FRONTIER_PROBE && candidates.len() > 0) {
+    local compareGrow = null;
+    foreach (candidate in candidates) {
+      if (candidate == null || !("mode" in candidate) || candidate.mode != "fleet"
+          || !("payload" in candidate) || candidate.payload == null
+          || !("frontierStepKind" in candidate.payload)
+          || candidate.payload.frontierStepKind != "grow") continue;
+      if (compareGrow == null || candidate.frontierScoreInt > compareGrow.frontierScoreInt)
+        compareGrow = candidate;
+    }
+    if (compareGrow != null) {
+      local compareTopId = order.Begin();
+      if (!order.IsEnd()) {
+        local compareTop = candidates[compareTopId];
+        if (compareTop != null && compareTop != compareGrow) {
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareSamples++;
+          if (("mode" in compareTop) && compareTop.mode == "air")
+            AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopAir++;
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowProfit += OpexCapitalFrontierProjectProfit(compareGrow);
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowCapital += OpexProjectShadowCapital(compareGrow);
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowScore += compareGrow.frontierScoreInt;
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopProfit += OpexCapitalFrontierProjectProfit(compareTop);
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopCapital += OpexProjectShadowCapital(compareTop);
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopScore += compareTop.frontierScoreInt;
+        }
+      }
+    }
+  }
+  /* TEMP_GROW_COMPARE_END */
+
+  local best = [];
+  for (local id = order.Begin(); !order.IsEnd(); id = order.Next()) {
+    best.append(candidates[id]);
+    if (best.len() >= limit) break;
+  }
+  if (AIR_CAPITAL_FRONTIER_PROBE && best.len() > 0 && best[0].mode == "fleet"
+      && ("payload" in best[0]) && best[0].payload != null
+      && ("frontierStepKind" in best[0].payload)
+      && best[0].payload.frontierStepKind == "grow")
+    AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowTop++;
+  return { best = best, financeable = candidates.len() };
+}
+
+/* Variation de caisse seulement : ne jamais recalculer lambda ni l'externalite.
+ * Le classement est independant de la caisse ; seule l'execution relit la
+ * tresorerie vivante. */
+function OpexFrontierRefilterStoredScores(projects, capitalBudget)
+{
+  if (projects == null || !("candidateGroups" in projects)
+      || projects.candidateGroups == null) return projects;
+  local alternatives = [];
+  foreach (key, list in projects.candidateGroups)
+    foreach (project in list) alternatives.append(project);
+  local ranked = OpexCapitalFrontierRank(alternatives, capitalBudget, PROJECT_TOP_K);
+  projects.best = ranked.best;
+  projects.capitalBudget = capitalBudget;
+
+  local selectedRev = 0;
+  local selectedCap = 0;
+  foreach (project in projects.best) {
+    selectedRev += project.revenueAnnual;
+    selectedCap += OpexProjectFinanceCapital(project);
+  }
+  projects.capitalRemaining = capitalBudget - selectedCap;
+  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
+  if (("stats" in projects) && projects.stats != null) {
+    projects.stats.budgetConsidered = alternatives.len();
+    projects.stats.budgetSelected = projects.best.len();
+    projects.stats.budgetRejected = alternatives.len() - projects.best.len();
+    projects.stats.selectedRevenue = selectedRev;
+    projects.stats.selectedCapital = selectedCap;
+    projects.stats.selectionPoolCapital = selectedCap;
+    projects.stats.nextProjectCapital = projects.best.len() > 0
+        ? OpexProjectFinanceCapital(projects.best[0]) : 0;
+  }
+  return projects;
+}
+
+/* Test richesse O(1) sur le vivier deja cote. Si la caisse couvre la demande
+ * grossiere mesuree lors de la derniere revision economique, la rarete disparait :
+ * re-score a lambda=0 sans reconstruire catalogue, externalites ou possibilites. */
+function OpexFrontierDropLambdaIfAbundant(projects, capitalBudget)
+{
+  if (projects == null || !("frontierSelectionCache" in projects)
+      || projects.frontierSelectionCache == null) return false;
+  local cache = projects.frontierSelectionCache;
+  if (!("coarseLambdaPct" in cache) || !("coarseFullDemand" in cache)
+      || cache.coarseLambdaPct <= 0 || capitalBudget < cache.coarseFullDemand)
+    return false;
+
+  foreach (key, list in projects.candidateGroups) {
+    foreach (project in list) {
+      if (project == null
+          || (("frontierExactDominated" in project) && project.frontierExactDominated))
+        continue;
+      local ownProfit = OpexCapitalFrontierProjectProfit(project);
+      project.rawset("frontierCapitalPrice", 0.0);
+      project.rawset("frontierCapitalCharge", 0.0);
+      project.rawset("frontierScore", ownProfit.tofloat());
+      project.rawset("frontierScoreInt", ownProfit);
+    }
+  }
+  cache.coarseLambdaPct = 0;
+  OpexFrontierRefilterStoredScores(projects, capitalBudget);
+  return true;
+}
+
+/* Une retraite retireOnly est une etape de maintenance deja decidee par le moteur AIR commun :
+ * elle ne consomme aucun capital et ne doit pas etre affamee derriere les projets d'investissement
+ * parce que le ratio profit/capital n'a pas de denominateur a zero. Ce helper ne choisit jamais
+ * une cible avion/flotte ; il ne fait qu'identifier l'execution gratuite d'une cible deja persistee. */
+function OpexProjectIsFreeAirRetirement(project)
+{
+  return project != null && ("mode" in project) && project.mode == "fleet"
+      && ("payload" in project) && project.payload != null
+      && ("kind" in project.payload) && project.payload.kind == "upgrade"
+      && ("retireOnly" in project.payload) && project.payload.retireOnly;
+}
+
+/* C49 etape 2 : score unifie selon le regime de rarete endogene actif. */
+function OpexC49ProjectScore(project, regime)
+{
+  if (project == null) return 0.0;
+  local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
+  if (profit <= 0) return 0.0;
+  local cap = OpexProjectFinanceCapital(project);
+  if (cap <= 0) return 0.0;
+
+  if (regime == "cash") {
+    return (profit.tofloat() * 1000.0) / cap;
+  }
+  if (regime == "decision") {
+    local sqrtCap = sqrt(cap.tofloat());
+    if (sqrtCap <= 0.0) return 0.0;
+    return (profit.tofloat() * 1000.0) / sqrtCap;
+  }
+  if (regime == "vehicles") {
+    local vehs = OpexTensionProjectVehicleCount(project);
+    if (vehs < 1) vehs = 1;
+    return (profit.tofloat() * 1000.0) / vehs;
+  }
+  if (regime == "site") {
+    local orig = OpexTensionProjectOriginCount(project);
+    if (orig < 1) orig = 1;
+    return (profit.tofloat() * 1000.0) / orig;
+  }
+  return (profit.tofloat() * 1000.0) / cap;
+}
+
+/* P1 : cout a comparer a la tresorerie mobilisable. budgetCapital reste le
+ * repli historique. Les projets au contrat explicite utilisent
+ * cashRequired + safetyMargin, independamment de capitalCommitted. Repli
+ * temporaire par mode pour les anciens projets, mesure au
+ * sondage AIAccounting-isole (jamais un devis physique) : rail 1,7x
+ * (docs/opexai_prix_rail_terrain.md), route 1,21x (docs/taches.md, mesure du
+ * 2026-09-08 sur road_cost_probe, 5 graines x 6 ans, 4 812 tentatives). P1.1
+ * doit remplacer le rail par un devis physique avant l'election ; la route
+ * n'a pas d'equivalent. Si le trace a deja fourni un devis reel, le candidat
+ * porte capitalIsActual et ce montant remplace le facteur. */
+function OpexProjectFinanceCapital(project)
+{
+  if (project == null || !("budgetCapital" in project)) return 0;
+  /* Contrat P1 explicite. La revente future n'entre JAMAIS ici : elle peut
+   * reduire capitalCommitted, mais elle ne finance pas le pic de caisse qui
+   * precede physiquement la vente de l'ancien actif. */
+  if (("cashRequired" in project)) {
+    local cashRequired = project.cashRequired;
+    local safetyMargin = ("safetyMargin" in project) ? project.safetyMargin : 0;
+    local explicitFinance = cashRequired + safetyMargin;
+    return explicitFinance > 0 ? explicitFinance : 0;
+  }
+  local financeCapital = project.budgetCapital;
+  if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;
+
+  local biasPct = 0;
+  if (project.mode == "rail") biasPct = 170;
+  else if (project.mode == "road") biasPct = 121;
+  else return financeCapital;
+
+  local capital = ("capital" in project) ? project.capital : 0;
+  local modelCapital = capital;
+  if (capital <= 0) return financeCapital;
+  local capitalIsActual = ("capitalIsActual" in project) && project.capitalIsActual;
+  if (!capitalIsActual && ("payload" in project) && project.payload != null
+      && ("capitalIsActual" in project.payload)) {
+    capitalIsActual = project.payload.capitalIsActual;
+    if (capitalIsActual && ("capital" in project.payload)
+        && project.payload.capital > 0) {
+      capital = project.payload.capital;
+    }
+  }
+  local nonConstructionCapital = financeCapital - modelCapital;
+  if (nonConstructionCapital < 0) nonConstructionCapital = 0;
+  if (capitalIsActual) return capital + nonConstructionCapital;
+
+  return ((capital * biasPct) / 100) + nonConstructionCapital;
+}
+
+/* Capital effectivement immobilise pour le score P - lambda*C.
+ * Quand capitalCommitted est explicite, il est autoritaire et peut etre signe :
+ * marge de securite exclue, revente future incluse economiquement, variation de
+ * transit incluse. Les anciens modes sans contrat continuent a etre derives du
+ * capital de financement en retirant leurs seules marges connues. */
+function OpexProjectShadowCapitalFromFinance(project, financeCapital)
+{
+  /* Les nouveaux projets AIR/flotte portent directement la variation de capital
+   * economique. Elle peut etre negative pour une retraite qui libere un actif et
+   * du capital en transit ; ne jamais la plancher ici. */
+  if (project != null && ("capitalCommitted" in project))
+    return project.capitalCommitted;
+  local cap = financeCapital;
+  if (project == null) return cap;
+  local margin = 0;
+  if (("mode" in project) && project.mode == "road") {
+    margin = ROAD_CAPITAL_MARGIN;
+  } else if (("mode" in project) && project.mode == "water") {
+    margin = WATER_CAPITAL_MARGIN;
+  } else if (("mode" in project) && project.mode == "air"
+      && ("payload" in project) && project.payload != null) {
+    local plan = project.payload;
+    local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
+        + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+    margin = AIR_MARGIN_V2
+        ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+        : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
+  }
+  if (margin > 0) cap -= margin;
+  if (cap < 0) cap = 0;
+  return cap;
+}
+
+function OpexProjectShadowCapital(project)
+{
+  if (project != null && ("frontierShadowCapital" in project))
+    return project.frontierShadowCapital;
+  return OpexProjectShadowCapitalFromFinance(project, OpexProjectFinanceCapital(project));
+}
+
+/* P1.1 : le ×1,7 n'est qu'un repli. Pour les quelques meilleurs rails du
+ * préfiltre, on peut payer un A* borné et le même devis AITestMode que le
+ * constructeur AVANT l'élection. Le plan n'est volontairement pas conservé :
+ * il peut devenir périmé entre le rafraîchissement et le chantier. */
+function OpexPrequoteRailCandidates(catalog, budget, rail)
+{
+  local result = { attempted = 0, quoted = 0, failed = 0, skippedJoin = 0, opcodes = 0 };
+  if (!RAIL_PREQUOTE || rail == null || !("best" in rail) || rail.best == null) return result;
+
+  foreach (candidate in rail.best) {
+    if (result.attempted >= RAIL_PREQUOTE_MAX_CANDIDATES) break;
+    /* Le rattachement à une gare existante dépend de l'état vivant de
+     * OpexAI::_tooClose. Le devis sans ce join serait faux : garder ×1,7. */
+    if (("placeJoin" in candidate) && candidate.placeJoin != null) {
+      result.skippedJoin++;
+      continue;
+    }
+    result.attempted++;
+    if (RAIL_TERRAIN_PROBE && DECISION_LOG) {
+      budget.begin();
+      local scan = OpexRailTerrainScanProbe(candidate.src, candidate.dst);
+      local scanOpcodes = budget.end("p1_2_terrain_scan");
+      OpexDecide("P1_2_TERRAIN", "src=" + candidate.src + " dst=" + candidate.dst
+                 + " distance=" + candidate.distance + " tiles=" + scan.tilesScanned
+                 + " complex_tiles=" + scan.complexTiles + " complex_segments="
+                 + scan.complexSegments + " water_tiles=" + scan.waterTiles
+                 + " slope_tiles=" + scan.slopeTiles + " ops=" + scanOpcodes);
+    }
+    budget.begin();
+    local plan = OpexPlanRailRoute(catalog, budget, candidate, MIN_RATIO, null,
+                                   RAIL_PREQUOTE_HARD_CAP);
+    result.opcodes += budget.end("p1_1_prequote_plan");
+    if (!plan.ok) {
+      result.failed++;
+      continue;
+    }
+
+    budget.begin();
+    local actualCapital = OpexQuoteRailCapital(catalog, candidate, plan, null);
+    result.opcodes += budget.end("p1_1_prequote_devis");
+    if (actualCapital <= 0) {
+      result.failed++;
+      continue;
+    }
+    OpexApplyRailActualCapital(candidate, actualCapital);
+    candidate.quotedCapital <- actualCapital;
+    candidate.quotedAtDate <- AIDate.GetCurrentDate();
+    if (RAIL_PREQUOTE_KEEP_PLAN) candidate.quotedPlan <- plan;
+    result.quoted++;
+    if (DECISION_LOG) {
+      OpexDecide("P1_1_QUOTE", "src=" + candidate.src + " dst=" + candidate.dst
+                 + " model=" + plan.capital + " quoted=" + actualCapital
+                 + " ops=" + result.opcodes);
+    }
+  }
+  if (DECISION_LOG && result.attempted > 0) {
+    OpexDecide("P1_1_QUOTE_SUMMARY", "attempted=" + result.attempted
+               + " quoted=" + result.quoted + " failed=" + result.failed
+               + " join_skipped=" + result.skippedJoin + " ops=" + result.opcodes);
+  }
+  return result;
+}
+
+function OpexProjectFromCandidate(candidate, tensionCtx = null)
+{
+  if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||
+      candidate.capital <= 0) return null;
+  local mode = candidate.mode;
+  local margin = 0;
+  local expectedOps = 0;
+  if (mode == "rail") {
+    /* C21 : candidate.iterations peut prédire 36k à 75k itérations sur les longues distances,
+     * mais le pathfinder réel est plafonné à HARD_ITERATION_CAP (10 000). Ne pas borner ici
+     * surestime expectedOps d'un facteur 4 à 7 et pénalise le rail dans opcodeScore. */
+    local iters = candidate.iterations;
+    if (iters > HARD_ITERATION_CAP) iters = HARD_ITERATION_CAP;
+    expectedOps = iters * PROJECT_RAIL_OPS_PER_ITERATION
+                + PROJECT_RAIL_TRANSACTION_OPS;
+  } else if (mode == "road") {
+    margin = ROAD_CAPITAL_MARGIN;
+    /* pricing_fix : ERREUR DE DIMENSION. `candidate.iterations` d'un candidat ROUTE vient
+     * d'OpexRoadIterations(distance) -- ce n'est PAS un compte d'iterations d'A* rail, et le
+     * multiplier par PROJECT_RAIL_OPS_PER_ITERATION (2 700 opcodes par iteration du pathfinder
+     * RAIL) n'a aucun sens dimensionnel. Le commentaire d'en-tete de ce fichier dit d'ailleurs que
+     * la partie plan est deja mesuree pendant la generation et que les constantes ne couvrent que
+     * les commandes transactionnelles restantes : ce terme double-comptait donc une planification
+     * deja payee, en la facturant au tarif d'un autre mode (docs/taches.md S0 septies).
+     * Consequence : opcodeScore route sous-estime, donc la route defavorisee au second tri. */
+    expectedOps = PRICING_ROAD_OPS
+        ? PROJECT_ROAD_TRANSACTION_OPS
+        : candidate.iterations * PROJECT_RAIL_OPS_PER_ITERATION + PROJECT_ROAD_TRANSACTION_OPS;
+  } else {
+    return null;
+  }
+  local budgetCapital = candidate.capital + margin;
+  if (("immobilise" in candidate) && candidate.immobilise > 0) {
+    budgetCapital += candidate.immobilise;
+  }
+  local scoreRevenue = candidate.revenueAnnual;
+  if (!CLEAN_DENSITY_SCORE) {
+    if (candidate.kind == "freight" && ("freightBonus" in candidate) && candidate.freightBonus > 100) {
+      scoreRevenue = (scoreRevenue * candidate.freightBonus) / 100;
+    }
+  }
+  local project = {
+    mode = mode, kind = candidate.kind, cargo = candidate.cargo,
+    src = candidate.src, dst = candidate.dst, payload = candidate,
+    distance = candidate.distance, capital = candidate.capital,
+    budgetCapital = budgetCapital, profitAnnual = candidate.profitAnnual,
+    revenueAnnual = candidate.revenueAnnual, roi = candidate.roi,
+    expectedOpcodes = expectedOps,
+    budgetScore = OpexProjectScore(scoreRevenue, budgetCapital),
+    opcodeScore = OpexProjectScore(scoreRevenue, expectedOps),
+    planningOpcodes = 0,
+    economicsDate = AIDate.GetCurrentDate(),
+  };
+  /* B3 diagnostic-only : distinguer la demande brute, la borne appliquee au classement et la
+   * cible retenue. Aucun de ces champs nouveaux n'entre dans un score ou un tri. */
+  if (mode == "road") {
+    project.vehiclesForVolume <- ("vehiclesForVolume" in candidate) ? candidate.vehiclesForVolume : candidate.trains;
+    project.roadVehicleCap <- ("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains;
+    project.selectedRoadVehicles <- candidate.trains;
+  }
+  /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
+  project.turnoverBonus <- ("turnoverBonus" in candidate) ? candidate.turnoverBonus : 100;
+  project.generationRatio <- ("ratio" in candidate) ? candidate.ratio : 0;
+  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
+      ? OpexTensionScore(project, tensionCtx)
+      : project.budgetScore;
+  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
+  return project;
+}
+
+/* C34.2 : un ACHAT D'AVION devient un projet, pour etre arbitre contre les lignes neuves au lieu
+ * d'etre servi d'office avant elles (la tache air_fleet passait avant `projects` dans l'ordre de
+ * service, main.nut:626-630, donc elle avait un droit de tirage sur la tresorerie).
+ *
+ * L'entree vient du MODE A BLANC de _resizeAirFleets : toutes les gardes de refus ont deja ete
+ * franchies, y compris la regle de tampon C14 qui garantit qu'une pleine capacite d'avion attend
+ * reellement au sol. Il ne reste ici qu'a pricer la marge.
+ *
+ * Profit marginal : on prefere le profit REALISE par appareil quand la ligne en a un ; sinon on
+ * retombe sur sa prediction (predRevenue - predRunning) par appareil. Sans ce repli, aucune ligne
+ * de moins d'un an ne produirait de projet de flotte -- or l'annee 1 est precisement la cible. */
+function OpexProjectFromFleet(entry, tensionCtx = null)
+{
+  if (entry == null || entry.want <= 0) return null;
+  local retireOnly = ("retireOnly" in entry) && entry.retireOnly;
+  local frontierTransaction = ("frontierTransaction" in entry) && entry.frontierTransaction;
+  if (!retireOnly && entry.planePrice <= 0) return null;
+  local line = entry.line;
+  local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
+             : (("vehicles" in line) ? line.vehicles.len() : 0);
+  if (have < 1) return null;
+
+  /* Une transaction frontier publie un DELTA de profit signe. Ne jamais le
+   * remplacer par le profit historique par avion : une retraite peut perdre un
+   * peu de profit tout en liberant assez de capital pour gagner P-lambda*C. */
+  local profit = frontierTransaction && ("profitDeltaAnnual" in entry)
+      ? entry.profitDeltaAnnual
+      : (("profitAnnual" in entry && entry.profitAnnual > 0) ? entry.profitAnnual : 0);
+  if (!frontierTransaction && profit <= 0) {
+    local perPlaneProfit = 0;
+    if (("lastProfit" in line) && line.lastProfit > 0) {
+      perPlaneProfit = line.lastProfit / have;
+    } else if (("predRevenue" in line) && line.predRevenue > 0) {
+      local running = ("predRunning" in line) ? line.predRunning : 0;
+      local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
+      perPlaneProfit = (line.predRevenue - running) / planes;
+    }
+    if (perPlaneProfit <= 0) return null;
+    profit = perPlaneProfit * entry.want;
+  }
+  /* Contrat P1 : le budget porte sur le pic de caisse, lambda sur la variation
+   * economique nette. Une revente future ne diminue donc jamais cashRequired,
+   * mais elle diminue bien capitalCommitted. */
+  local cashRequired = ("cashRequired" in entry)
+      ? entry.cashRequired : (retireOnly ? 0 : (entry.planePrice * entry.want));
+  local safetyMargin = ("safetyMargin" in entry) ? entry.safetyMargin : 0;
+  local capitalCommitted = ("capitalCommitted" in entry)
+      ? entry.capitalCommitted
+      : (("netCapital" in entry) ? entry.netCapital : cashRequired);
+  local capital = cashRequired;
+  local roiCapital = capitalCommitted > 0 ? capitalCommitted : 0;
+  local revenue = profit;
+  if (("predRevenue" in line) && line.predRevenue > 0) {
+    local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
+    revenue = (line.predRevenue / planes) * entry.want;
+  }
+  /* Un achat d'avion ne coute aucune planification : ni pathfinder, ni sondage de site. Seules
+   * les commandes transactionnelles restent, d'ou un opcodeScore structurellement tres favorable
+   * -- c'est exact, et c'est precisement ce que l'arbitrage doit pouvoir voir. */
+  local planningOps = ("planningOps" in entry) ? entry.planningOps : 0;
+  local expectedOps = ("executionOps" in entry) ? entry.executionOps : PROJECT_ROAD_TRANSACTION_OPS;
+  local project = {
+    mode = "fleet", kind = ("kind" in entry ? entry.kind : "fleet"), cargo = line.cargo,
+    src = line.stationA, dst = ("stationB" in line) ? line.stationB : line.stationA,
+    payload = entry, distance = 0, capital = capital,
+    cashRequired = cashRequired, safetyMargin = safetyMargin,
+    capitalCommitted = capitalCommitted,
+    profitDeltaAnnual = ("profitDeltaAnnual" in entry) ? entry.profitDeltaAnnual : profit,
+    budgetCapital = cashRequired + safetyMargin, profitAnnual = profit, revenueAnnual = revenue,
+    roi = roiCapital > 0 ? (profit * 1000) / roiCapital : 0,
+    expectedOpcodes = expectedOps, executionOps = expectedOps,
+    planningOps = planningOps,
+    budgetScore = OpexProjectScore(revenue, cashRequired + safetyMargin),
+    opcodeScore = OpexProjectScore(revenue, expectedOps),
+    planningOpcodes = planningOps,
+    /* B6/06.11 diagnostic-only: horodate l'economie mise en cache. */
+    economicsDate = AIDate.GetCurrentDate(),
+  };
+  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
+      ? OpexTensionScore(project, tensionCtx)
+      : project.budgetScore;
+  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
+  return project;
+}
+
+function OpexProjectFromAir(catalog, plan, planningOps, tensionCtx = null)
+{
+  if (plan == null || !("economics" in plan)) return null;
+  local economics = plan.economics;
+  if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
+      economics.capital <= 0) return null;
+  local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+  local margin = OpexAirProjectSafetyMargin(newAirports);
+  local cashRequired = economics.capital;
+  local safetyMargin = margin;
+  local immobilise = ("immobilise" in economics) ? economics.immobilise : 0;
+  local capitalCommitted = economics.capital + immobilise;
+  local budgetCapital = cashRequired + safetyMargin;
+  /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
+   * que sur les opcodes encore necessaires pour construire le projet. */
+  local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
+  local project = {
+    mode = "air", kind = "pax", cargo = catalog.paxCargo,
+    src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
+    distance = plan.distance, capital = economics.capital,
+    cashRequired = cashRequired, safetyMargin = safetyMargin,
+    capitalCommitted = capitalCommitted, profitDeltaAnnual = economics.profitAnnual,
+    budgetCapital = budgetCapital, profitAnnual = economics.profitAnnual,
+    revenueAnnual = economics.revenueAnnual, roi = economics.roi,
+    expectedOpcodes = expectedOps, executionOps = expectedOps, planningOps = planningOps,
+    budgetScore = OpexProjectScore(economics.revenueAnnual, budgetCapital),
+    opcodeScore = OpexProjectScore(economics.revenueAnnual, expectedOps),
+    planningOpcodes = planningOps,
+    economicsDate = AIDate.GetCurrentDate(),
+  };
+  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
+      ? OpexTensionScore(project, tensionCtx)
+      : project.budgetScore;
+  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
+  return project;
+}
+
+/* P1 execution revalidation : reconstruit UNIQUEMENT le groupe economique de la
+ * geometrie AIR deja exploree. On ne relance ni la recherche de villes/sites, ni
+ * un OpexAirPlans global. Le moteur commun re-evalue cependant toutes les
+ * variantes (avion, profondeur optimale) de cette possibilite avec la population,
+ * la demande et le contexte de lignes vivants.
+ *
+ * C'est volontairement un refresh de groupe, pas un simple refresh du projet
+ * selectionne : si la profondeur optimale ou l'appareil change, la nouvelle
+ * variante doit rentrer dans l'arbitrage avant toute depense. */
+function OpexAirRefreshProjectGroupAlternatives(seedProject, catalog, lines)
+{
+  local fresh = [];
+  if (seedProject == null || catalog == null
+      || !("mode" in seedProject) || seedProject.mode != "air"
+      || !("payload" in seedProject) || seedProject.payload == null) return fresh;
+  local plan = seedProject.payload;
+  if (!("siteA" in plan) || !("siteB" in plan) || plan.siteA == null || plan.siteB == null
+      || !("airport" in plan) || plan.airport == null
+      || !("plane" in plan) || plan.plane == null
+      || !("distance" in plan) || plan.distance <= 0) return fresh;
+
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local liveDemand = OpexAirLiveCandidateDemand(plan.siteA, plan.siteB, reuseA, reuseB, lines);
+  local baseMonthlyPax = liveDemand.monthly;
+  local demandContext = OpexAirDemandContext(plan.siteA, plan.siteB, plan.plane,
+      catalog, lines, baseMonthlyPax);
+  local monthlyPax = demandContext.monthlyDemand;
+  local demandCap = demandContext.demandCap;
+  local infrastructureMaintenance =
+      AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+  local newAirports = (reuseA ? 0 : 1) + (reuseB ? 0 : 1);
+  local routeChoices = OpexAirRouteChoices(catalog, plan.airport, plan.siteA, plan.siteB,
+      plan.distance, lines, demandContext, plan.plane, monthlyPax, demandCap,
+      infrastructureMaintenance, 0, newAirports);
+  local planningOps = ("planningOps" in seedProject) ? seedProject.planningOps : 0;
+
+  foreach (routeChoice in routeChoices) {
+    if (routeChoice == null || routeChoice.plane == null || routeChoice.economics == null
+        || routeChoice.economics.profitAnnual <= 0) continue;
+    local freshPlan = clone plan;
+    freshPlan.plane = routeChoice.plane;
+    freshPlan.economics = routeChoice.economics;
+    freshPlan.monthlyPax = AIR_BEST_EQUIPMENT ? routeChoice.monthlyDemand : monthlyPax;
+    freshPlan.planes = routeChoice.economics.planes;
+    freshPlan.capital = routeChoice.economics.capital;
+    if ("compatibleChoices" in routeChoice)
+      freshPlan.rawset("compatibleChoices", routeChoice.compatibleChoices);
+    OpexAirReserveJoinedStops(catalog, freshPlan);
+    local project = OpexProjectFromAir(catalog, freshPlan, planningOps, null);
+    if (project != null) fresh.append(project);
+  }
+  return fresh;
+}
+
+/* P1 execution revalidation for a NEW AIR route. Reprice only the physical
+ * variant that is about to spend cash: same sites, airport, plane and fleet depth.
+ * If this exact point changed, the caller will refresh the whole local group and
+ * put it back through lambda arbitration before any build. */
+function OpexAirFreshSelectedProjectEconomics(project, catalog, lines)
+{
+  local invalid = { ok = false, project = null, networkProfit = 0,
+                    shadowCapital = 0, financeCapital = 0 };
+  if (project == null || catalog == null
+      || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null) return invalid;
+  local plan = project.payload;
+  if (!("siteA" in plan) || !("siteB" in plan) || plan.siteA == null || plan.siteB == null
+      || !("airport" in plan) || plan.airport == null
+      || !("plane" in plan) || plan.plane == null
+      || !("distance" in plan) || plan.distance <= 0) return invalid;
+  local fixedPlanes = ("planes" in plan) ? plan.planes
+      : (("economics" in plan) && plan.economics != null && ("planes" in plan.economics)
+          ? plan.economics.planes : 0);
+  if (fixedPlanes <= 0) return invalid;
+
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local liveDemand = OpexAirLiveCandidateDemand(plan.siteA, plan.siteB, reuseA, reuseB, lines);
+  local baseMonthlyPax = liveDemand.monthly;
+  local demandContext = OpexAirDemandContext(
+      plan.siteA, plan.siteB, plan.plane, catalog, lines, baseMonthlyPax);
+  local monthlyPax = demandContext.monthlyDemand;
+  local demandCap = demandContext.demandCap;
+  if (demandContext.perPlane) {
+    local freshDemand = OpexAirPlanDemand(plan.siteA, plan.siteB, plan.plane, catalog, lines);
+    monthlyPax = freshDemand.monthlyDemand;
+    demandCap = freshDemand.cap;
+  }
+  local newAirports = (reuseA ? 0 : 1) + (reuseB ? 0 : 1);
+  local infrastructureMaintenance =
+      AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+  local economics = OpexAirEconomics(catalog, plan.airport, plan.plane, plan.distance,
+      monthlyPax, infrastructureMaintenance, 0, newAirports, demandCap, fixedPlanes);
+  if (economics == null || economics.profitAnnual <= 0) return invalid;
+
+  local freshPlan = clone plan;
+  freshPlan.economics = economics;
+  freshPlan.monthlyPax = monthlyPax;
+  freshPlan.planes = fixedPlanes;
+  freshPlan.capital = economics.capital;
+  local planningOps = ("planningOps" in project) ? project.planningOps : 0;
+  local freshProject = OpexProjectFromAir(catalog, freshPlan, planningOps, null);
+  if (freshProject == null) return invalid;
+
+  local loss = 0;
+  if (OpexCapitalFrontierNeedsIncumbentLoss(freshProject, catalog, lines)) {
+    local externality = OpexAirFrontierIncumbentLoss(freshProject, catalog, lines, {});
+    loss = externality.loss < 0 ? 0 : externality.loss;
+  }
+  local networkProfit = freshProject.profitAnnual - loss;
+  return {
+    ok = true,
+    project = freshProject,
+    networkProfit = networkProfit,
+    shadowCapital = OpexProjectShadowCapital(freshProject),
+    financeCapital = OpexProjectFinanceCapital(freshProject),
+  };
+}
+
+function OpexProjectFromWater(catalog, plan, planningOps, tensionCtx = null)
+{
+  if (plan == null || !("economics" in plan)) return null;
+  local economics = plan.economics;
+  if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
+      economics.capital <= 0) return null;
+  local budgetCapital = economics.capital + WATER_CAPITAL_MARGIN;
+  if (("immobilise" in economics) && economics.immobilise > 0) {
+    budgetCapital += economics.immobilise;
+  }
+  local expectedOps = PROJECT_WATER_TRANSACTION_OPS;
+  local project = {
+    mode = "water", kind = "pax", cargo = catalog.paxCargo,
+    src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
+    distance = plan.distance, capital = economics.capital,
+    budgetCapital = budgetCapital, profitAnnual = economics.profitAnnual,
+    revenueAnnual = economics.revenueAnnual, roi = economics.roi,
+    expectedOpcodes = expectedOps,
+    budgetScore = OpexProjectScore(economics.revenueAnnual, budgetCapital),
+    opcodeScore = OpexProjectScore(economics.revenueAnnual, expectedOps),
+    planningOpcodes = planningOps,
+    /* L'eau est recyclee par OpexIncrementalUpdateProjects : dater son economie
+     * permet de mesurer 06.11 au meme titre que rail/route. */
+    economicsDate = AIDate.GetCurrentDate(),
+  };
+  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
+      ? OpexTensionScore(project, tensionCtx)
+      : project.budgetScore;
+  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
+  return project;
+}
+
+
+/* portfolio_v2 : garde TOUTES les alternatives modales d'un couple origine/destination au lieu
+ * d'en elire une avant le test de capital. Motif (docs/taches.md S0 septies, soupcon 1 confirme) :
+ * OpexProjectModeBetter classe sur `roi`, un RATIO -- une ligne rail a 900 k£ (roi 180) bat une
+ * route a 45 k£ (roi 170) sur le meme couple, puis echoue au test de capital, et le couple ne
+ * rapporte alors RIEN alors qu'une alternative finançable existait. */
+function OpexProjectRememberAll(winners, project, stats)
+{
+  if (project == null) return;
+  stats.modeCandidates++;
+  local key = OpexProjectKeyFor(project);
+  if (!(key in winners)) {
+    winners.rawset(key, [project]);
+    return;
+  }
+
+  /* AIR incremental : une meme variante physique ne doit exister qu'une seule
+   * fois dans son groupe. La revision economique la plus recente remplace l'objet
+   * precedent ; un objet plus ancien ne peut jamais ecraser un refresh frais. */
+  local variantIdentity = OpexAirProjectVariantIdentity(project);
+  if (variantIdentity != null) {
+    local incomingRevision = ("economicsDate" in project) ? project.economicsDate : -1;
+    local list = winners[key];
+    for (local i = 0; i < list.len(); i++) {
+      local existing = list[i];
+      if (existing == null || OpexAirProjectVariantIdentity(existing) != variantIdentity) continue;
+      local existingRevision = ("economicsDate" in existing) ? existing.economicsDate : -1;
+      if (incomingRevision >= existingRevision) {
+        list[i] = project;
+        stats.modeReplaced++;
+      }
+      return;
+    }
+  }
+  stats.modeAlternatives++;
+  winners[key].push(project);
+}
+
+/* Early-slot doit observer l'etat VIVANT au moment du choix final, pas au moment
+ * ou OpexAirPlans a genere le candidat. Un vivier peut etre reutilise/reselecte
+ * apres un chantier : une annotation faite plus tot deviendrait alors perimee et
+ * pourrait continuer a bonifier une ville deja securisee. On scanne donc les
+ * aeroports physiques Opex une seule fois par passe de selection. */
+function OpexEarlySlotSelectionState()
+{
+  local state = { servedTowns = {}, servedCount = 0 };
+  if (!AIR_EARLY_SLOT) return state;
+
+  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+    local townId = AIStation.GetNearestTown(st);
+    if (townId < 0 || !AITown.IsValidTown(townId)) continue;
+    if (AITown.GetPopulation(townId) < AIR_EARLY_SLOT_MIN_POP) continue;
+    if (townId in state.servedTowns) continue;
+    state.servedTowns.rawset(townId, true);
+    state.servedCount++;
+  }
+  return state;
+}
+
+function OpexProjectSetEarlySlotField(project, field, value)
+{
+  if (field in project) project[field] = value;
+  else project[field] <- value;
+}
+
+/* Classe uniquement les projets air DEJA rentables. Le town associe au slot est
+ * derive du site physique (meme convention que le diagnostic 771), ce qui evite
+ * de confondre la ville cible commerciale avec la ville qui porte réellement la
+ * limite des deux aeroports. Aucun champ economique n'est modifie. */
+function OpexProjectRefreshEarlySlot(project, state)
+{
+  if (project == null || state == null) return;
+
+  local physicalClaims = 0;
+  local bonusClaims = 0;
+  local claimPopulation = 0;
+  local townA = -1;
+  local townB = -1;
+  local popA = -1;
+  local popB = -1;
+
+  if (AIR_EARLY_SLOT && ("mode" in project) && project.mode == "air"
+      && ("payload" in project) && project.payload != null
+      && state.servedCount < AIR_EARLY_SLOT_TARGET_TOWNS) {
+    local plan = project.payload;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local claimedTowns = {};
+
+    if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
+      townA = AITile.GetClosestTown(plan.siteA.anchor);
+      if (townA < 0) townA = plan.siteA.town.id;
+      if (townA >= 0 && AITown.IsValidTown(townA)) popA = AITown.GetPopulation(townA);
+      if (!reuseA && popA >= AIR_EARLY_SLOT_MIN_POP
+          && !(townA in state.servedTowns) && !(townA in claimedTowns)) {
+        claimedTowns.rawset(townA, true);
+        physicalClaims++;
+        claimPopulation += popA;
+      }
+    }
+
+    if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
+      townB = AITile.GetClosestTown(plan.siteB.anchor);
+      if (townB < 0) townB = plan.siteB.town.id;
+      if (townB >= 0 && AITown.IsValidTown(townB)) popB = AITown.GetPopulation(townB);
+      if (!reuseB && popB >= AIR_EARLY_SLOT_MIN_POP
+          && !(townB in state.servedTowns) && !(townB in claimedTowns)) {
+        claimedTowns.rawset(townB, true);
+        physicalClaims++;
+        claimPopulation += popB;
+      }
+    }
+
+    local remaining = AIR_EARLY_SLOT_TARGET_TOWNS - state.servedCount;
+    bonusClaims = physicalClaims;
+    if (bonusClaims > remaining) bonusClaims = remaining;
+  }
+
+  /* Les claims physiques decrivent ce que le chantier securisera reellement.
+   * Les bonus claims sont bornes par la cible et seuls eux pilotent la prime. */
+  OpexProjectSetEarlySlotField(project, "earlySlotClaims", physicalClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotBonusClaims", bonusClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotClaimPopulation", claimPopulation);
+  OpexProjectSetEarlySlotField(project, "earlySlotServedBefore", state.servedCount);
+  OpexProjectSetEarlySlotField(project, "earlySlotBonusPct", AIR_EARLY_SLOT_BONUS_PCT * bonusClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotTownA", townA);
+  OpexProjectSetEarlySlotField(project, "earlySlotTownB", townB);
+  OpexProjectSetEarlySlotField(project, "earlySlotPopA", popA);
+  OpexProjectSetEarlySlotField(project, "earlySlotPopB", popB);
+}
+
+/* portfolio_v2 : la selection finale.
+ *
+ * Remplace le sac a dos 0/1 par « le meilleur projet finançable ». Motif (S0 septies, trouvaille
+ * B) : `maxBatch = 1` dans main.nut -- UN SEUL projet est construit, puis tout le portefeuille est
+ * regenere. Tout le sac a dos etait donc jete sauf un item, et cet item avait ete admis par un
+ * empaquetage dont l'objectif etait le REVENU total. A 300 k£ de budget, le solveur preferait
+ * {3 x 100 k£ / rev 20k} = 60k a {1 x 280 k£ / rev 55k} = 55k : le meilleur projet etait
+ * finançable et n'etait jamais construit.
+ *
+ * Trois defauts tombent d'un coup :
+ *   - l'objectif passe du revenu au PROFIT (soupcons 2 et 3) ;
+ *   - la contrainte « deux projets ne partagent aucune extremite » disparait (soupcon 4) : elle
+ *     interdisait la topologie en etoile que builder_air produit, sans rien apporter puisqu'un
+ *     seul projet est bati ;
+ *   - le couple garde son alternative finançable (soupcon 1), l'election modale se faisant
+ *     desormais APRES le test de capital.
+ *
+ * Le classement est le profit par livre de capital reellement mobilisable. */
+function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, catalog = null, lines = null,
+                                    selectionCause = "unknown", selectionDiagnostic = false,
+                                    selectionCache = null)
+{
+  local useCapitalFrontier = AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT;
+  local selectionMark = useCapitalFrontier ? OpexOpsMeasureBegin() : null;
+  local selectionDate = useCapitalFrontier ? AIDate.GetCurrentDate() : 0;
+  if (useCapitalFrontier && AIR_CAPITAL_FRONTIER_PROBE) {
+    AIR_CAPITAL_FRONTIER_LEDGER.portfolioRaw += alternatives != null ? alternatives.len() : 0;
+  }
+  /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,
+   * results/bench_isolation_3y_20seeds.json). Le tri au seul RATIO profit/capital a ete mesure isole :
+   * il fait bien ce qu'on lui demandait sur le volume -- 21,4 -> 27,2 gares, +27 %, le SEUL des
+   * quatre reglages a le bouger -- mais il coute -24,4 % de valeur et -30,7 % de profit annuel.
+   *
+   * Mecanisme : un ratio favorise les tout petits projets bon marche, dont le profit absolu est
+   * negligeable. Comme main.nut n'en batit qu'UN par cycle (maxBatch = 1), chaque cycle est alors
+   * consomme par une ligne mediocre, et les gros projets rentables ne sont jamais atteints. C'est
+   * exactement le risque « cheap-first » que l'analyse avait nomme d'avance.
+   *
+   * Le correctif garde le ratio -- c'est lui qui apporte le volume -- mais n'admet au classement
+   * que les projets dont le profit annuel atteint une fraction du MEILLEUR profit finançable du
+   * moment. Le plancher est relatif, donc il ne depend ni de l'epoque, ni de la taille de la carte,
+   * ni de l'inflation : a 0 il reproduit exactement le comportement mesure ci-dessus. */
+  local floorProfit = 0;
+  if (!useCapitalFrontier && PORTFOLIO_FLOOR_PCT > 0) {
+    local bestProfit = 0;
+    foreach (project in alternatives) {
+      local financeCapital = OpexProjectFinanceCapital(project);
+      if (financeCapital > capitalBudget) continue;
+      if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
+    }
+    if (bestProfit > 0) floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
+  }
+
+  /* La frontiere remplace le ratio/floor par un prix unique de rarete du capital :
+   * score(x) = profit_reseau_net(x) - lambda * financeCapital(x).
+   * Lambda est estime une fois par passe sur les frontieres locales des groupes,
+   * avec une relaxation fractionnaire du seul segment marginal. Cela ne remplace
+   * jamais le filtre de financement reel ci-dessous, et aucune continuation
+   * candidat-par-candidat n'est reconstruite. */
+  if (useCapitalFrontier) {
+    OpexCapitalFrontierAssignScores(
+        alternatives, capitalBudget, catalog, lines, selectionDiagnostic, selectionCache);
+    local rankedFrontier = OpexCapitalFrontierRank(alternatives, capitalBudget, limit);
+    local frontierBest = rankedFrontier.best;
+    if (AIR_CAPITAL_FRONTIER_PROBE) {
+      AIR_CAPITAL_FRONTIER_LEDGER.portfolioAffordable += rankedFrontier.financeable;
+      if (frontierBest.len() > 0) {
+        local top = frontierBest[0];
+        AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopSelections++;
+        if (("mode" in top) && top.mode == "air")
+          AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopAirSelections++;
+        AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopCapital += OpexProjectFinanceCapital(top);
+        AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopProfit += top.profitAnnual;
+      }
+    }
+    if (frontierBest.len() > 0) {
+      OpexLogAirFrontierIncumbentExternality(alternatives, frontierBest[0], capitalBudget, catalog, lines);
+      OpexLogConcordeFrontierScores(alternatives, frontierBest[0], capitalBudget);
+      OpexLogAirFrontierEquipmentChoice(alternatives, frontierBest[0], capitalBudget);
+    }
+    OpexSelectionLedgerRecordCause(selectionCause, selectionDiagnostic,
+        OpexOpsMeasureEnd(selectionMark), AIDate.GetCurrentDate() - selectionDate);
+    return frontierBest;
+  }
+
+  local affordable = [];
+  local affordableCount = 0;
+  local earlySlotState = (AIR_EARLY_SLOT && !useCapitalFrontier)
+      ? OpexEarlySlotSelectionState() : null;
+  local scoreKey = useCapitalFrontier ? "frontierScore"
+      : ((TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore");
+  foreach (project in alternatives) {
+    local financeCapital = OpexProjectFinanceCapital(project);
+    if (financeCapital > capitalBudget) continue;
+    if (useCapitalFrontier && ("frontierExactDominated" in project)
+        && project.frontierExactDominated) continue;
+    /* La relaxation contient explicitement l'option « ne rien faire » de valeur 0.
+     * La selection reelle doit conserver le meme outside option : un projet dont le
+     * surplus shadow-price est negatif ne doit pas etre construit simplement parce
+     * qu'il est le moins mauvais du vivier. La retraite AIR gratuite reste une etape
+     * de maintenance deja decidee et conserve sa priorite historique. */
+    if (useCapitalFrontier && project.frontierScore < 0) continue;
+    if (useCapitalFrontier) affordableCount++;
+    if (project.profitAnnual < floorProfit && !OpexProjectIsFreeAirRetirement(project)) continue;
+    if (AIR_EARLY_SLOT && !useCapitalFrontier) OpexProjectRefreshEarlySlot(project, earlySlotState);
+    if (!useCapitalFrontier && !TENSION_SCORING && !SHADOW_PRICING) {
+      if (C49_VARIABLE_DENOMINATOR) {
+        project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
+      } else {
+        project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+      }
+    }
+    OpexProjectInsert(affordable, project, scoreKey, limit,
+                      AIR_EARLY_SLOT && !useCapitalFrontier, useCapitalFrontier);
+  }
+  /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
+   * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
+   * et le plancher inoperant -- on retombe sur l'ensemble finançable brut plutot que de ne rien
+   * batir du tout. */
+  if (affordable.len() == 0 && floorProfit > 0) {
+    foreach (project in alternatives) {
+      local financeCapital = OpexProjectFinanceCapital(project);
+      if (financeCapital > capitalBudget) continue;
+      if (AIR_EARLY_SLOT && !useCapitalFrontier) OpexProjectRefreshEarlySlot(project, earlySlotState);
+      if (!useCapitalFrontier && !TENSION_SCORING && !SHADOW_PRICING) {
+        if (C49_VARIABLE_DENOMINATOR) {
+          project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
+        } else {
+          project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+        }
+      }
+      OpexProjectInsert(affordable, project, scoreKey, limit,
+                        AIR_EARLY_SLOT && !useCapitalFrontier, useCapitalFrontier);
+    }
+  }
+  if (useCapitalFrontier && AIR_CAPITAL_FRONTIER_PROBE) {
+    AIR_CAPITAL_FRONTIER_LEDGER.portfolioAffordable += affordableCount;
+    if (affordable.len() > 0) {
+      local top = affordable[0];
+      AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopSelections++;
+      if (("mode" in top) && top.mode == "air") AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopAirSelections++;
+      AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopCapital += OpexProjectFinanceCapital(top);
+      AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopProfit += top.profitAnnual;
+    }
+  }
+  if (useCapitalFrontier && affordable.len() > 0) {
+    OpexLogAirFrontierIncumbentExternality(alternatives, affordable[0], capitalBudget, catalog, lines);
+    OpexLogConcordeFrontierScores(alternatives, affordable[0], capitalBudget);
+    OpexLogAirFrontierEquipmentChoice(alternatives, affordable[0], capitalBudget);
+  }
+  if (useCapitalFrontier) {
+    OpexSelectionLedgerRecordCause(selectionCause, selectionDiagnostic,
+        OpexOpsMeasureEnd(selectionMark), AIDate.GetCurrentDate() - selectionDate);
+  }
+  return affordable;
+}
+
+/* Early-slot ne falsifie ni profitAnnual, ni revenueAnnual, ni frontierScore.
+ * Sous la frontiere capital->profit il est neutralise : la valeur territoriale
+ * reste mesuree separement et ne peut pas devenir un bonus de selection. */
+function OpexProjectSelectionScore(project, field)
+{
+  if (project == null) return 0.0;
+  local score = project[field];
+  if (!AIR_EARLY_SLOT || !("mode" in project) || project.mode != "air") return score;
+  if (!("earlySlotBonusPct" in project)) return score;
+  local bonusPct = project.earlySlotBonusPct;
+  if (bonusPct <= 0) return score;
+  local factor = (100.0 + bonusPct.tofloat()) / 100.0;
+  /* Un score plus grand est toujours meilleur. En shadow pricing, tensionScore
+   * peut etre negatif : le multiplier le rendrait plus negatif et inverserait
+   * la prime. Le rapprocher de zero preserve le sens du bonus. */
+  if (score < 0) return score / factor;
+  return score * factor;
+}
+
+/* Insertion bornee et stable. Early-slot est volontairement opt-in : les tris
+ * intermediaires gardent leur semantique historique, et seule la selection
+ * finançable finale demande la prime strategique. */
+function OpexProjectInsert(best, project, field, limit, applyEarlySlot = false,
+                           capitalProfitTie = false)
+{
+  local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
+  local projectFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(project);
+  local pos = best.len();
+  while (pos > 0) {
+    local prior = best[pos - 1];
+    local priorFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(prior);
+    /* Capital nul => maintenance avant investissement, independamment du regime de score.
+     * Entre deux maintenances gratuites, conserver l'ordre normal du portefeuille. */
+    if (priorFreeRetire != projectFreeRetire) {
+      if (priorFreeRetire) break;
+      pos--;
+      continue;
+    }
+    local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
+    if (priorScore > projectScore) break;
+    if (priorScore == projectScore) {
+      if (capitalProfitTie) {
+        /* Sous la frontiere, ne jamais reintroduire le revenu (ou un ROI) comme
+         * troisieme objectif cache. A score shadow-price identique, le projet
+         * Pareto-preferable est celui qui immobilise le moins de capital ; a
+         * capital identique, garder le plus grand profit propre. */
+        local priorCapital = OpexProjectShadowCapital(prior);
+        local projectCapital = OpexProjectShadowCapital(project);
+        if (priorCapital < projectCapital) break;
+        if (priorCapital > projectCapital) {
+          pos--;
+          continue;
+        }
+        if (OpexCapitalFrontierProjectProfit(prior)
+            >= OpexCapitalFrontierProjectProfit(project)) break;
+      } else if (prior.revenueAnnual >= project.revenueAnnual) {
+        break;
+      }
+    }
+    pos--;
+  }
+  best.insert(pos, project);
+  if (best.len() > limit) best.pop();
+}
+
+
+function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
+{
+  if (!DECISION_LOG) return;
+  if (DECISION_LOG) {
+    local poolCapital = ("selectionPoolCapital" in stats) ? stats.selectionPoolCapital
+        : (("selectedCapital" in stats) ? stats.selectedCapital : 0);
+    local nextCapital = ("nextProjectCapital" in stats) ? stats.nextProjectCapital : 0;
+    OpexDecide("VIVIER", "path=" + path + " considered=" + stats.budgetConsidered
+               + " selected=" + stats.budgetSelected + " pool_selected=" + stats.budgetSelected
+               + " rejected=" + stats.budgetRejected + " not_selected=" + stats.budgetRejected
+               + " budget=" + capitalBudget + " selection_pool_capital=" + poolCapital
+               + " next_capital=" + nextCapital + " remaining=" + capitalRemaining
+               + " pool_headroom=" + capitalRemaining
+               + " sel_ops=" + (("selectionOpcodes" in stats) ? stats.selectionOpcodes : -1));
+  }
+  if (candidates == null) return;
+  if (DECISION_LOG) {
+    local rail = 0;
+    local road = 0;
+    local air = 0;
+    local water = 0;
+    local seenSrcs = {};
+    local seenDsts = {};
+    local seenPairs = {};
+    local nSrcs = 0;
+    local nDsts = 0;
+    local nPairs = 0;
+    foreach (p in candidates) {
+      if (p == null) continue;
+      local m = ("mode" in p) ? p.mode : null;
+      if (m == "rail") rail++;
+      else if (m == "road") road++;
+      else if (m == "air") air++;
+      else if (m == "water") water++;
+
+      if (("src" in p) && ("dst" in p) && p.src != null && p.dst != null) {
+        local s = p.src;
+        local d = p.dst;
+        local sk = "" + s;
+        if (!(sk in seenSrcs)) { seenSrcs[sk] <- true; nSrcs++; }
+        local dk = "" + d;
+        if (!(dk in seenDsts)) { seenDsts[dk] <- true; nDsts++; }
+        local pk = "" + s + ":" + d;
+        if (!(pk in seenPairs)) { seenPairs[pk] <- true; nPairs++; }
+      }
+    }
+    local total = candidates.len();
+    OpexDecide("VIVIER_MIX", "rail=" + rail + " road=" + road + " air=" + air
+               + " water=" + water + " total=" + total);
+    OpexDecide("VIVIER_DIV", "srcs=" + nSrcs + " dsts=" + nDsts + " pairs=" + nPairs
+               + " total=" + total);
+  }
+}
+
+function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, extras)
+{
+  local minCap = -1;
+  /* minCapital ne sert qu'a expliquer une selection vide. Eviter de
+   * rescanner tout le vivier quand un projet financable existe deja. */
+  if (funded.len() == 0) {
+    foreach (p in alternatives) {
+      local cap = OpexProjectFinanceCapital(p);
+      if (minCap < 0 || cap < minCap) minCap = cap;
+    }
+  }
+  stats.minCapital <- minCap;
+  stats.railCandidates <- (("rail" in projects) && projects.rail != null && ("candidates" in projects.rail) && projects.rail.candidates != null) ? projects.rail.candidates.len() : 0;
+  stats.roadCandidates <- (("road" in projects) && projects.road != null && ("candidates" in projects.road) && projects.road.candidates != null) ? projects.road.candidates.len() : 0;
+  stats.airPlansCount <- (("airPlans" in projects) && projects.airPlans != null) ? projects.airPlans.len() : 0;
+  stats.waterPlansCount <- (("waterPlans" in projects) && projects.waterPlans != null) ? projects.waterPlans.len() : 0;
+  if (extras != null) {
+    stats.abandonFiltered <- ("abandonFiltered" in extras) ? extras.abandonFiltered : 0;
+    stats.abandonedPairsCount <- ("abandonedPairsCount" in extras) ? extras.abandonedPairsCount : 0;
+    stats.cacheScanned <- ("cacheScanned" in extras) ? extras.cacheScanned : 0;
+    stats.cacheRetained <- ("cacheRetained" in extras) ? extras.cacheRetained : 0;
+  } else {
+    if (!("abandonFiltered" in stats)) stats.abandonFiltered <- 0;
+    if (!("abandonedPairsCount" in stats)) stats.abandonedPairsCount <- 0;
+    if (!("cacheScanned" in stats)) stats.cacheScanned <- 0;
+    if (!("cacheRetained" in stats)) stats.cacheRetained <- 0;
+  }
+  local emptyCause = "";
+  if (funded.len() == 0) {
+    if (alternatives.len() == 0) {
+      local cacheScanned = stats.cacheScanned;
+      local cacheRetained = stats.cacheRetained;
+      local abandonFiltered = stats.abandonFiltered;
+      local modeC = ("modeCandidates" in stats) ? stats.modeCandidates : 0;
+      if (cacheScanned > 0 && cacheRetained == 0) {
+        emptyCause = (abandonFiltered > 0) ? "abandon_filtered" : "cache_exhausted";
+      } else if (abandonFiltered > 0 && modeC == 0) {
+        emptyCause = "abandon_filtered";
+      } else if (modeC == 0) {
+        emptyCause = "stage_empty";
+      } else {
+        emptyCause = "empty_pool";
+      }
+    } else if (minCap > capitalBudget) {
+      emptyCause = "all_unaffordable";
+    } else {
+      emptyCause = "selection_empty";
+    }
+  }
+  stats.emptyCause <- emptyCause;
+}
+
+/* Certificat de reutilisation d'une selection. Ce n'est PAS une tolerance de
+ * budget : on exige simultanement le meme intervalle finance/lambda et l'egalite
+ * textuelle de toutes les entrees vivantes de l'externalite AIR. */
+function OpexFrontierSelectionCoversBudget(projects, capitalBudget, catalog, lines)
+{
+  AIR_SELECTION_LEDGER.coverChecks++;
+  if (!(AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) || projects == null
+      || !("frontierSelectionCache" in projects) || projects.frontierSelectionCache == null)
+  {
+    AIR_SELECTION_LEDGER.coverMissing++;
+    return false;
+  }
+  local cache = projects.frontierSelectionCache;
+  if (!("selectionBudgetMin" in cache) || !("selectionExternalityStateKey" in cache)
+      || !("selectionExternalityStations" in cache)) {
+    AIR_SELECTION_LEDGER.coverMissing++;
+    return false;
+  }
+  if (capitalBudget < cache.selectionBudgetMin) {
+    AIR_SELECTION_LEDGER.coverBudgetBelow++;
+    return false;
+  }
+  if (("selectionBudgetMax" in cache) && cache.selectionBudgetMax != null
+      && capitalBudget > cache.selectionBudgetMax) {
+    AIR_SELECTION_LEDGER.coverBudgetAbove++;
+    return false;
+  }
+  local liveStateKey = OpexAirFrontierExternalityStateKey(
+      lines, cache.selectionExternalityStations);
+  if (liveStateKey != cache.selectionExternalityStateKey) {
+    AIR_SELECTION_LEDGER.coverRawStateMismatch++;
+    if (catalog == null || !("selectionExternalityLosses" in cache)
+        || !("selectionExternalityWitnesses" in cache)) {
+      AIR_SELECTION_LEDGER.coverStateMismatch++;
+      return false;
+    }
+    local liveContext = OpexAirFrontierExternalityContext(
+        catalog, lines, cache.selectionExternalityStations);
+    local liveLossCache = {};
+    foreach (lossKey, selectedLoss in cache.selectionExternalityLosses) {
+      if (!(lossKey in cache.selectionExternalityWitnesses)) {
+        AIR_SELECTION_LEDGER.coverStateMismatch++;
+        return false;
+      }
+      local witness = cache.selectionExternalityWitnesses[lossKey];
+      local externality = OpexAirFrontierIncumbentLoss(
+          witness, catalog, lines, liveLossCache, liveContext);
+      local liveLoss = externality.loss < 0 ? 0 : externality.loss;
+      if (liveLoss != selectedLoss) {
+        AIR_SELECTION_LEDGER.coverStateMismatch++;
+        return false;
+      }
+    }
+    AIR_SELECTION_LEDGER.coverSemanticHits++;
+  }
+  AIR_SELECTION_LEDGER.coverHits++;
+  return true;
+}
+
+function OpexFrontierReuseSelectionBudget(projects, capitalBudget)
+{
+  if (projects == null) return projects;
+  projects.capitalBudget = capitalBudget;
+  local selectedCap = ("stats" in projects) && projects.stats != null
+      && ("selectedCapital" in projects.stats) ? projects.stats.selectedCapital : 0;
+  projects.capitalRemaining = capitalBudget - selectedCap;
+  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
+  return projects;
+}
+
+/* P2 frontier : un refresh de flotte ne modifie ni la geometrie des routes
+ * candidates, ni le reseau incumbent tant qu'aucun achat/retrait n'a ete
+ * execute. Ne pas repasser par OpexIncrementalUpdateProjects dans ce cas :
+ * cette fonction regenere volontairement TOUT AIR et detruit le cache lambda.
+ *
+ * La revision durable d'une ligne est incrementee a chaque reevaluation, meme si
+ * l'action et ses scalaires sont identiques. La revision est donc un garde de
+ * fraicheur d'execution, pas une entree economique : elle est synchronisee en
+ * place quand rien d'autre n'a change, afin de conserver le cache global. */
+function OpexFrontierFleetProjectEquivalent(a, b)
+{
+  if (a == null || b == null || !("payload" in a) || !("payload" in b)
+      || a.payload == null || b.payload == null) return false;
+  local aa = a.payload;
+  local bb = b.payload;
+  local lineA = ("line" in aa) && aa.line != null && ("lineId" in aa.line)
+      ? aa.line.lineId : -1;
+  local lineB = ("line" in bb) && bb.line != null && ("lineId" in bb.line)
+      ? bb.line.lineId : -1;
+  return lineA == lineB
+      && (("frontierStepKind" in aa) ? aa.frontierStepKind : "")
+          == (("frontierStepKind" in bb) ? bb.frontierStepKind : "")
+      && (("targetEngine" in aa) ? aa.targetEngine : -1)
+          == (("targetEngine" in bb) ? bb.targetEngine : -1)
+      && (("targetFleetSize" in aa) ? aa.targetFleetSize : 0)
+          == (("targetFleetSize" in bb) ? bb.targetFleetSize : 0)
+      && (("retireOnly" in aa) ? aa.retireOnly : false)
+          == (("retireOnly" in bb) ? bb.retireOnly : false)
+      && a.profitAnnual == b.profitAnnual
+      && a.capitalCommitted == b.capitalCommitted
+      && OpexProjectFinanceCapital(a) == OpexProjectFinanceCapital(b);
+}
+
+function OpexFrontierFleetGroupEquivalent(current, fresh, syncRevision = false)
+{
+  if (current == null || fresh == null || current.len() != fresh.len()) return false;
+  local used = {};
+  foreach (candidate in fresh) {
+    local found = false;
+    for (local i = 0; i < current.len(); i++) {
+      if (i in used) continue;
+      if (!OpexFrontierFleetProjectEquivalent(current[i], candidate)) continue;
+      if (syncRevision && ("frontierRevision" in candidate.payload)) {
+        current[i].payload.frontierRevision = candidate.payload.frontierRevision;
+        if ("economicsDate" in candidate) current[i].economicsDate = candidate.economicsDate;
+      }
+      used.rawset(i, true);
+      found = true;
+      break;
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
+/* Reconcilie uniquement les groupes fleet du vivier courant.
+ * Retourne true ssi leur contenu decisionnel a change. Un changement invalide
+ * le cache global car lambda depend de toutes les frontieres ; une economie
+ * identique ne fait que synchroniser la revision d'execution et garde le cache. */
+function OpexFrontierRefreshFleetGroups(projects, fleetPlan)
+{
+  if (!(AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)
+      || projects == null || !("candidateGroups" in projects)
+      || projects.candidateGroups == null) return false;
+
+  local freshGroups = {};
+  if (fleetPlan != null) {
+    foreach (entry in fleetPlan) {
+      local project = OpexProjectFromFleet(entry, null);
+      if (project == null) continue;
+      local key = OpexProjectKeyFor(project);
+      if (!(key in freshGroups)) freshGroups.rawset(key, []);
+      freshGroups[key].append(project);
+    }
+  }
+
+  local oldFleetKeys = [];
+  foreach (key, list in projects.candidateGroups) {
+    if (key.len() >= 6 && key.slice(0, 6) == "fleet|") oldFleetKeys.append(key);
+  }
+
+  local changed = false;
+  foreach (key in oldFleetKeys) {
+    if (!(key in freshGroups)) {
+      delete projects.candidateGroups[key];
+      changed = true;
+      continue;
+    }
+    if (!OpexFrontierFleetGroupEquivalent(projects.candidateGroups[key], freshGroups[key], true)) {
+      projects.candidateGroups.rawset(key, freshGroups[key]);
+      changed = true;
+    }
+    delete freshGroups[key];
+  }
+  foreach (key, list in freshGroups) {
+    projects.candidateGroups.rawset(key, list);
+    changed = true;
+  }
+
+  if (changed) projects.rawset("frontierSelectionCache", {});
+  return changed;
+}
+
+/* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
+ * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
+ * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
+ * route ne repasse ici. Les statistiques sont remplacees ensemble car IG| et IB| doivent decrire
+ * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
+function OpexReselectProjects(projects, capitalBudget, catalog = null, lines = null,
+                              selectionCause = "budget_reselect")
+{
+  local b6BudgetDate = AIDate.GetCurrentDate();
+  local funded = null;
+  local considered = 0;
+  local opsMark = OpexOpsMeasureBegin();
+  local alternatives = [];
+  foreach (key, list in projects.candidateGroups) {
+    foreach (project in list) alternatives.push(project);
+  }
+  local selectionCache = null;
+  if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) {
+    if (!("frontierSelectionCache" in projects) || projects.frontierSelectionCache == null)
+      projects.rawset("frontierSelectionCache", {});
+    selectionCache = projects.frontierSelectionCache;
+  }
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K,
+      catalog, lines, selectionCause, false, selectionCache);
+  considered = alternatives.len();
+  projects.stats.knapsackNodes = 0;
+  projects.stats.knapsackExact = false;
+  projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate,
+                             catalog, lines);
+
+  projects.stats.budgetConsidered = considered;
+  projects.stats.budgetSelected = funded.len();
+  projects.stats.budgetRejected = considered - funded.len();
+
+  local selectedRev = 0;
+  local selectedCap = 0;
+  foreach (project in funded) {
+    selectedRev += project.revenueAnnual;
+    selectedCap += OpexProjectFinanceCapital(project);
+  }
+  projects.stats.selectedRevenue = selectedRev;
+  projects.stats.selectedCapital = selectedCap;
+  if ("selectionPoolCapital" in projects.stats) projects.stats.selectionPoolCapital = selectedCap;
+  else projects.stats.selectionPoolCapital <- selectedCap;
+  local nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;
+  if ("nextProjectCapital" in projects.stats) projects.stats.nextProjectCapital = nextProjectCapital;
+  else projects.stats.nextProjectCapital <- nextProjectCapital;
+
+  projects.capitalBudget = capitalBudget;
+  projects.capitalRemaining = capitalBudget - selectedCap;
+  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
+  OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
+
+  projects.best = funded;
+
+  if (DECISION_LOG) {
+    local vivierPool = [];
+    if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+      foreach (key, list in projects.candidateGroups) {
+        foreach (project in list) vivierPool.push(project);
+      }
+    }
+    OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
+  }
+
+  return projects;
+}
+
+function OpexCandidateIsAbandoned(p, abandonedPairs)
+{
+  if (p == null || abandonedPairs == null) return false;
+  local mode = ("mode" in p) ? p.mode : "";
+  if (mode == "air") {
+    local plan = ("payload" in p) ? p.payload : null;
+    if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
+      local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
+      local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
+      local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
+      local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
+      local townAKey = OpexAirTownLimitAbandonKey(plan.siteA);
+      local townBKey = OpexAirTownLimitAbandonKey(plan.siteB);
+      if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
+          || (AIR_TOWN_LIMIT_MEMORY && ((!(("reuseA" in plan) && plan.reuseA) && (townAKey in abandonedPairs))
+              || (!(("reuseB" in plan) && plan.reuseB) && (townBKey in abandonedPairs))))
+          || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return true;
+    }
+  } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
+    if (("payload" in p) && p.payload != null) {
+      local aKey = OpexAbandonedPairKey(p.payload);
+      if (aKey in abandonedPairs) return true;
+    }
+  }
+  return false;
+}
+
+/* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines.
+ * Verifie qu'aucune extremite n'est devenue invalide, qu'aucune ligne identique n'a ete batie,
+ * et que les contraintes physiques du mode tiennent toujours. */
+/* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines (version historique). */
+function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
+{
+  if (p == null) return false;
+  local mode = p.mode;
+
+  /* 0. Candidat abandonne (echec de trace ou depot) */
+  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
+
+  if (mode == "road" && ("payload" in p) && p.payload != null &&
+      ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return OpexRoadExtensionCandidateStillValid(p.payload, lines);
+  }
+
+  /* 1. Doublon exact avec une ligne deja batie */
+  foreach (line in lines) {
+    if (("cargo" in line) && line.cargo == p.cargo &&
+        ("originA" in line) && ("originB" in line) &&
+        ((line.originA == p.src && line.originB == p.dst) ||
+         (line.originA == p.dst && line.originB == p.src))) {
+      return false;
+    }
+  }
+
+  /* 2. Mode route */
+  if (mode == "road") {
+    local isSubsidy = (("payload" in p) && p.payload != null &&
+                       ("isSubsidy" in p.payload) && p.payload.isSubsidy);
+    if (isSubsidy) {
+      local subId = p.payload.subsidyId;
+      if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
+      local today = AIDate.GetCurrentDate();
+      local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
+      local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
+      if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
+      return true;
+    }
+    if (p.kind == "pax") {
+      local endpoints = OpexGetCandidateTownEndpoints(p.payload);
+      if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lines, endpoints.srcTown)) ||
+          (endpoints.dstTown >= 0 && OpexTownBusPaxServed(lines, endpoints.dstTown))) return false;
+    }
+      if (p.kind == "pax") {
+        local srcServed = OpexOriginServed(lines, p.src, true);
+        local dstServed = OpexOriginServed(lines, p.dst, true);
+        local isOriginBlocked = srcServed || dstServed;
+
+        if (C55_PAX_TRACE_PROBE) {
+          OpexC55PaxTraceObserveRevalidated(isOriginBlocked);
+        }
+
+        if (C55_ROAD_PAX_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+          if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
+          if (OpexTownRoadLineCount(lines, p.src) >= 4) return false;
+          if (OpexTownRoadLineCount(lines, p.dst) >= 4) return false;
+          if (isOriginBlocked) {
+            if (!("_c55_pax_spared" in p) || !p._c55_pax_spared) {
+              p._c55_pax_spared <- true;
+              if (p.payload != null) p.payload._c55_pax_spared <- true;
+              if (C55_PAX_TRACE_PROBE) {
+                OpexC55PaxTraceObserveSpared();
+              }
+            }
+          }
+        } else {
+          if (C55_ORIGIN_RELAX_PROBE) {
+            OpexC55OriginRelaxObserve("pax", lines, p.src, p.dst, srcServed, dstServed);
+          }
+          if (isOriginBlocked) return false;
+          if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
+        }
+      } else {
+        /* Fret routier */
+        if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+          local srcServed = OpexOriginServed(lines, p.src, true);
+          local dstServed = OpexOriginServed(lines, p.dst, true);
+          if (srcServed && dstServed) return false;
+          /* Une seule paire est revalidee : une boucle directe evite de construire un index. */
+          if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
+              OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
+        } else if (C55_ORIGIN_RELAX_PROBE) {
+          local srcServed = OpexOriginServed(lines, p.src, true);
+          local dstServed = OpexOriginServed(lines, p.dst, true);
+          OpexC55OriginRelaxObserve("freight", lines, p.src, p.dst, srcServed, dstServed);
+          if (srcServed || dstServed) return false;
+        } else {
+          if (OpexOriginServed(lines, p.src, true)) return false;
+          if (OpexOriginServed(lines, p.dst, true)) return false;
+        }
+      local towns = OpexGetCandidateTownEndpoints(p);
+      if (C60_TOWN_RATING_PROBE) {
+        if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
+        if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+      }
+    }
+    return true;
+  }
+
+  /* 3. Mode rail : les deux extremites servies excluent la ligne */
+  if (mode == "rail") {
+    local towns = OpexGetCandidateTownEndpoints(p);
+    if (C60_TOWN_RATING_PROBE) {
+      if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
+      if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+          (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+    }
+    if (OpexOriginServed(lines, p.src, false) && OpexOriginServed(lines, p.dst, false)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 4. Mode aerien : validite du plan de lot et constructibilite des sites */
+  if (mode == "air") {
+    local plan = p.payload;
+    if (plan == null) return false;
+    if (C60_TOWN_RATING_PROBE) {
+      if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
+      if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((("siteA" in plan) && ("town" in plan.siteA) && OpexTownRatingHopeless(plan.siteA.town.id)) ||
+          (("siteB" in plan) && ("town" in plan.siteB) && OpexTownRatingHopeless(plan.siteB.town.id))) {
+        return false;
+      }
+    }
+    if (!OpexAirBatchPlanStillLive(plan, lines)) return false;
+    if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
+                                         ("reuseA" in plan) && plan.reuseA)) {
+      return false;
+    }
+    if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
+                                         ("reuseB" in plan) && plan.reuseB)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 5. Mode maritime : dock constructible */
+  if (mode == "water") {
+    local plan = p.payload;
+    if (plan == null || !("siteA" in plan) || !("siteB" in plan)) return false;
+    if (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
+        !OpexWaterBatchSiteStillBuildable(plan.siteB)) {
+      return false;
+    }
+    return true;
+  }
+
+  return true;
+}
+
+/* C48 : Revalidation exacte en O(1) via OpexBuildLineIndex. */
+function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, updateProbes = true)
+{
+  if (p == null) return false;
+  local mode = p.mode;
+
+  /* 0. Candidat abandonne (echec de trace ou depot) */
+  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
+
+  if (mode == "road" && ("payload" in p) && p.payload != null &&
+      ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return OpexRoadExtensionCandidateStillValid(p.payload, lineIndex.lines);
+  }
+
+  /* 1. Doublon exact avec une ligne deja batie */
+  local a = p.src;
+  local b = p.dst;
+  local pKey = (a < b) ? (p.cargo + "|" + a + "|" + b) : (p.cargo + "|" + b + "|" + a);
+  if (pKey in lineIndex.exactLines) return false;
+
+  /* 2. Mode route */
+  if (mode == "road") {
+    local isSubsidy = (("payload" in p) && p.payload != null &&
+                       ("isSubsidy" in p.payload) && p.payload.isSubsidy);
+    if (isSubsidy) {
+      local subId = p.payload.subsidyId;
+      if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
+      local today = AIDate.GetCurrentDate();
+      local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
+      local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
+      if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
+      return true;
+    }
+    if (p.kind == "pax") {
+      local endpoints = OpexGetCandidateTownEndpoints(p.payload);
+      if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.srcTown)) ||
+          (endpoints.dstTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.dstTown))) return false;
+    }
+      if (p.kind == "pax") {
+        local srcServed = (p.src in lineIndex.servedAny);
+        local dstServed = (p.dst in lineIndex.servedAny);
+        local isOriginBlocked = srcServed || dstServed;
+
+        if (updateProbes && C55_PAX_TRACE_PROBE) {
+          OpexC55PaxTraceObserveRevalidated(isOriginBlocked);
+        }
+
+        if (C55_ROAD_PAX_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+          if (OpexRoadPairServedIndexed(lineIndex, p.src, p.dst)) return false;
+          local tA = AITile.GetClosestTown(p.src);
+          local cntA = (tA in lineIndex.townRoadCounts) ? lineIndex.townRoadCounts[tA] : 0;
+          if (cntA >= 4) return false;
+          local tB = AITile.GetClosestTown(p.dst);
+          local cntB = (tB in lineIndex.townRoadCounts) ? lineIndex.townRoadCounts[tB] : 0;
+          if (cntB >= 4) return false;
+          if (isOriginBlocked) {
+            if (!("_c55_pax_spared" in p) || !p._c55_pax_spared) {
+              p._c55_pax_spared <- true;
+              if (p.payload != null) p.payload._c55_pax_spared <- true;
+              if (updateProbes && C55_PAX_TRACE_PROBE) {
+                OpexC55PaxTraceObserveSpared();
+              }
+            }
+          }
+        } else {
+          if (updateProbes && C55_ORIGIN_RELAX_PROBE) {
+            OpexC55OriginRelaxObserve("pax", lineIndex.lines, p.src, p.dst, srcServed, dstServed);
+          }
+          if (isOriginBlocked) return false;
+          if (OpexRoadPairServedIndexed(lineIndex, p.src, p.dst)) return false;
+        }
+      } else {
+        /* Fret routier */
+        if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+          local srcServed = (p.src in lineIndex.servedAny);
+          local dstServed = (p.dst in lineIndex.servedAny);
+          if (srcServed && dstServed) return false;
+          if (((p.cargo + "|" + p.src) in lineIndex.roadFreightBusy) ||
+              ((p.cargo + "|" + p.dst) in lineIndex.roadFreightBusy)) return false;
+        } else if (updateProbes && C55_ORIGIN_RELAX_PROBE) {
+          local srcServed = (p.src in lineIndex.servedAny);
+          local dstServed = (p.dst in lineIndex.servedAny);
+          OpexC55OriginRelaxObserve("freight", lineIndex.lines, p.src, p.dst, srcServed, dstServed);
+          if (srcServed || dstServed) return false;
+        } else {
+          if (p.src in lineIndex.servedAny) return false;
+          if (p.dst in lineIndex.servedAny) return false;
+        }
+      local towns = OpexGetCandidateTownEndpoints(p);
+      if (updateProbes && C60_TOWN_RATING_PROBE) {
+        if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
+        if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+      }
+    }
+    return true;
+  }
+
+  /* 3. Mode rail : les deux extremites servies excluent la ligne */
+  if (mode == "rail") {
+    local towns = OpexGetCandidateTownEndpoints(p);
+    if (updateProbes && C60_TOWN_RATING_PROBE) {
+      if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
+      if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+          (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+    }
+    if ((p.src in lineIndex.servedRail) && (p.dst in lineIndex.servedRail)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 4. Mode aerien : validite du plan de lot et constructibilite des sites */
+  if (mode == "air") {
+    local plan = p.payload;
+    if (plan == null) return false;
+    if (updateProbes && C60_TOWN_RATING_PROBE) {
+      if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
+      if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((("siteA" in plan) && ("town" in plan.siteA) && OpexTownRatingHopeless(plan.siteA.town.id)) ||
+          (("siteB" in plan) && ("town" in plan.siteB) && OpexTownRatingHopeless(plan.siteB.town.id))) {
+        return false;
+      }
+    }
+    if (C48_INDEX_SHADOW) {
+      local liveLegacy = OpexAirBatchPlanStillLive(plan, lineIndex.lines);
+      local liveIndexed = OpexAirBatchPlanStillLiveIndexed(plan, lineIndex);
+      assert(liveLegacy == liveIndexed);
+    }
+    if (!OpexAirBatchPlanStillLiveIndexed(plan, lineIndex)) return false;
+    if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
+                                         ("reuseA" in plan) && plan.reuseA)) {
+      return false;
+    }
+    if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
+                                         ("reuseB" in plan) && plan.reuseB)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 5. Mode maritime : dock constructible */
+  if (mode == "water") {
+    local plan = p.payload;
+    if (plan == null || !("siteA" in plan) || !("siteB" in plan)) return false;
+    if (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
+        !OpexWaterBatchSiteStillBuildable(plan.siteB)) {
+      return false;
+    }
+    return true;
+  }
+
+  return true;
+}
+
+/* C36.1 & C48 : Point d'entree unifie de revalidation incrémentale.
+ * Supporte le mode historique, le mode indexé O(1), et le mode miroir (shadow) d'assertion stricte. */
+function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null, lineIndex = null)
+{
+  if (C48_INDEX_SHADOW) {
+    local legVal = OpexLegacyCandidateStillValid(p, lines, abandonedPairs);
+    local testIdx = (lineIndex != null) ? lineIndex : OpexBuildLineIndex(lines);
+    local idxVal = OpexIndexedCandidateStillValid(p, testIdx, abandonedPairs, false);
+    if (legVal != idxVal) {
+      AILog.Error("C48 SHADOW MISMATCH! mode=" + p.mode + " cargo=" + p.cargo + " src=" + p.src + " dst=" + p.dst + " legacy=" + legVal + " indexed=" + idxVal);
+      throw "C48 Equivalence violation";
+    }
+    return legVal;
+  }
+
+  if (C48_INDEXED_REGENERATION) {
+    local useIdx = (lineIndex != null) ? lineIndex : OpexBuildLineIndex(lines);
+    return OpexIndexedCandidateStillValid(p, useIdx, abandonedPairs, true);
+  }
+
+  return OpexLegacyCandidateStillValid(p, lines, abandonedPairs);
+}
+
+/* C38 : cle stable d'une tentative au sein d'un batch. Les plans air/eau sont des objets
+ * regenerables ; l'identite doit donc reposer sur le mode, les extremites, le cargo et le type,
+ * jamais sur l'adresse du payload. La flotte cible une ligne existante. */
+function OpexProjectAttemptKey(p)
+{
+  if (p == null) return "none";
+  local mode = ("mode" in p) ? p.mode : "unknown";
+  if (mode == "fleet" && ("payload" in p) && p.payload != null &&
+      ("line" in p.payload) && p.payload.line != null && ("lineId" in p.payload.line)) {
+    return "fleet|" + p.payload.line.lineId;
+  }
+  if (("payload" in p) && p.payload != null
+      && ("isSubsidy" in p.payload) && p.payload.isSubsidy) {
+    return "subsidy|" + p.payload.subsidyId;
+  }
+  if (("payload" in p) && p.payload != null
+      && ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return "road_extension|" + p.payload.targetLineId + "|"
+           + p.payload.extensionTown + "|" + p.payload.extensionSite.tile;
+  }
+  local src = ("src" in p) ? p.src : -1;
+  local dst = ("dst" in p) ? p.dst : -1;
+  local cargo = ("cargo" in p) ? p.cargo : -1;
+  local kind = ("kind" in p) ? p.kind : "";
+  return mode + "|" + src + "|" + dst + "|" + cargo + "|" + kind;
+}
+
+/* B6 passive portfolio causality probe. It never changes sorting or admission. */
+function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget, snapshotDate,
+                                    catalog = null, lines = null, recycledKeys = null)
+{
+  if (!DECISION_LOG) return;
+  local now = AIDate.GetCurrentDate();
+  local liveBudget = OpexAvailableCapital();
+  /* 06.5 : rejouer le selecteur courant sur des copies rend le contre-factuel live exact sans
+   * modifier les objets projet conserves par le portefeuille (fundScore / early-slot compris). */
+  local liveAlternatives = [];
+  foreach (p in alternatives) {
+    if (p == null) continue;
+    local copied = clone p;
+    liveAlternatives.push(copied);
+  }
+  local liveFunded = OpexProjectSelectAffordable(
+      liveAlternatives, liveBudget, PORTFOLIO_MAX_BATCH, catalog, lines,
+      "diagnostic_counterfactual", true);
+  local flips = 0;
+  local affordable = 0;
+  local bestProfit = null;
+  foreach (p in alternatives) {
+    if (p == null) continue;
+    local cap = OpexProjectFinanceCapital(p);
+    local snapAffordable = cap <= snapshotBudget;
+    local liveAffordable = cap <= liveBudget;
+    if (snapAffordable != liveAffordable) flips++;
+    if (!snapAffordable) continue;
+    affordable++;
+    if (bestProfit == null || p.profitAnnual > bestProfit.profitAnnual) bestProfit = p;
+  }
+  local actual = funded.len() > 0 ? funded[0] : null;
+  local liveActual = liveFunded.len() > 0 ? liveFunded[0] : null;
+  local actualProfit = actual != null ? actual.profitAnnual : 0;
+  local actualCap = actual != null ? OpexProjectFinanceCapital(actual) : 0;
+  local actualMode = actual != null ? actual.mode : "none";
+  local actualScore = (actual != null && ("fundScore" in actual)) ? actual.fundScore : 0;
+  local actualRoi = actual != null ? actual.roi : 0;
+  local actualTurnover = (actual != null && ("turnoverBonus" in actual)) ? actual.turnoverBonus : 100;
+  local actualGenerationRatio = (actual != null && ("generationRatio" in actual)) ? actual.generationRatio : 0;
+  local cfProfit = bestProfit != null ? bestProfit.profitAnnual : 0;
+  local cfCap = bestProfit != null ? OpexProjectFinanceCapital(bestProfit) : 0;
+  local cfMode = bestProfit != null ? bestProfit.mode : "none";
+  local cfScore = (bestProfit != null && ("fundScore" in bestProfit)) ? bestProfit.fundScore : 0;
+  local cfRoi = bestProfit != null ? bestProfit.roi : 0;
+  local cfTurnover = (bestProfit != null && ("turnoverBonus" in bestProfit)) ? bestProfit.turnoverBonus : 100;
+  local cfGenerationRatio = (bestProfit != null && ("generationRatio" in bestProfit)) ? bestProfit.generationRatio : 0;
+  local same = (actual != null && bestProfit != null && actual == bestProfit) ? 1 : 0;
+  local liveProfit = liveActual != null ? liveActual.profitAnnual : 0;
+  local liveCap = liveActual != null ? OpexProjectFinanceCapital(liveActual) : 0;
+  local liveMode = liveActual != null ? liveActual.mode : "none";
+  local sameLive = 0;
+  if (actual == null && liveActual == null) {
+    sameLive = 1;
+  } else if (actual != null && liveActual != null
+      && OpexProjectAttemptKey(actual) == OpexProjectAttemptKey(liveActual)) {
+    sameLive = 1;
+  }
+  local actualLiveAffordable = (actual != null && actualCap <= liveBudget) ? 1 : 0;
+  local actualAge = -1;
+  if (actual != null && ("economicsDate" in actual)) actualAge = now - actual.economicsDate;
+  local actualRecycled = 0;
+  local poolRecycled = 0;
+  if (recycledKeys != null) {
+    if (actual != null && (OpexProjectAttemptKey(actual) in recycledKeys)) actualRecycled = 1;
+    foreach (p in funded) {
+      if (p != null && (OpexProjectAttemptKey(p) in recycledKeys)) poolRecycled++;
+    }
+  }
+  OpexDecide("B6_PORTFOLIO",
+      "path=" + path + " snapshot_budget=" + snapshotBudget + " live_budget=" + liveBudget
+      + " budget_delta=" + (liveBudget - snapshotBudget) + " snapshot_age_days=" + (now - snapshotDate)
+      + " affordability_flips=" + flips + " alternatives=" + alternatives.len()
+      + " affordable_snapshot=" + affordable + " pool_selected=" + funded.len()
+      + " max_batch=" + PORTFOLIO_MAX_BATCH + " floor_pct=" + PORTFOLIO_FLOOR_PCT
+      + " actual_mode=" + actualMode + " actual_profit=" + actualProfit + " actual_cap=" + actualCap
+      + " actual_rank_score=" + actualScore + " actual_roi=" + actualRoi
+      + " actual_turnover_bonus=" + actualTurnover + " actual_generation_ratio=" + actualGenerationRatio
+      + " cf_mode=" + cfMode + " cf_profit=" + cfProfit + " cf_cap=" + cfCap
+      + " cf_rank_score=" + cfScore + " cf_roi=" + cfRoi
+      + " cf_turnover_bonus=" + cfTurnover + " cf_generation_ratio=" + cfGenerationRatio
+      + " same_profit_choice=" + same + " delta_profit=" + (cfProfit - actualProfit)
+      + " live_selected=" + (liveActual != null ? 1 : 0)
+      + " live_mode=" + liveMode + " live_profit=" + liveProfit + " live_cap=" + liveCap
+      + " same_live_choice=" + sameLive + " live_profit_delta=" + (liveProfit - actualProfit)
+      + " actual_live_affordable=" + actualLiveAffordable
+      + " actual_age_days=" + actualAge + " actual_recycled=" + actualRecycled
+      + " pool_recycled=" + poolRecycled);
+}
+
+/* B6/06.11 -- oracle passif "cache vs generation fraiche".
+ *
+ * Ne jamais recalculer ici une economie a la main : les familles speciales
+ * (subvention, extension, joins) ont des constructeurs differents et le
+ * precedent essai de refresh en perdait certaines. A la place, _rebuildProjects
+ * conserve le vivier cache juste avant la regeneration complete normale puis
+ * appelle ce helper avec le vivier fraichement produit. Les deux cotes passent
+ * donc par les generateurs reels du jeu. Une cle absente ou non unique est
+ * mesuree mais jamais forcee ni interpretee comme equivalente. */
+function OpexB6FreshClass(p)
+{
+  if (p == null) return "unknown";
+  if (("payload" in p) && p.payload != null) {
+    if (("isSubsidy" in p.payload) && p.payload.isSubsidy) return "subsidy";
+    if (("isRoadExtension" in p.payload) && p.payload.isRoadExtension) return "road_extension";
+  }
+  local mode = ("mode" in p) ? p.mode : "unknown";
+  local kind = ("kind" in p) ? p.kind : "";
+  if ((mode == "rail" || mode == "road" || mode == "water" || mode == "air") && kind != "") {
+    return mode + "_" + kind;
+  }
+  return mode;
+}
+
+function OpexB6FreshBucket(groups, recycledOnly = false)
+{
+  local buckets = {};
+  if (groups == null) return buckets;
+  foreach (groupKey, entry in groups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    foreach (p in list) {
+      if (p == null) continue;
+      if (recycledOnly && (!("b6RecycledSinceFresh" in p) || !p.b6RecycledSinceFresh)) continue;
+      local key = OpexProjectAttemptKey(p);
+      if (!(key in buckets)) buckets.rawset(key, []);
+      buckets[key].append(p);
+    }
+  }
+  return buckets;
+}
+
+function OpexB6FreshStats(stats, scope)
+{
+  if (!(scope in stats)) {
+    stats.rawset(scope, {
+      stale = 0, matched = 0, missing = 0, ambiguous = 0,
+      aged = 0, ageSum = 0, ageMax = 0,
+      profitChanged = 0, profitDeltaSum = 0, profitAbsSum = 0, profitAbsMax = 0,
+      capitalDeltaSum = 0, capitalAbsSum = 0, capitalAbsMax = 0,
+      financeDeltaSum = 0, financeAbsSum = 0, financeAbsMax = 0,
+      roiDeltaSum = 0, roiAbsSum = 0, roiAbsMax = 0,
+    });
+  }
+  return stats[scope];
+}
+
+function OpexB6FreshAbs(v)
+{
+  return v < 0 ? -v : v;
+}
+
+function OpexB6FreshObserve(stats, scope, stale, fresh, now)
+{
+  local s = OpexB6FreshStats(stats, scope);
+  s.matched++;
+  local age = ("economicsDate" in stale) ? now - stale.economicsDate : -1;
+  if (age >= 0) {
+    s.aged++;
+    s.ageSum += age;
+    if (age > s.ageMax) s.ageMax = age;
+  }
+  local dp = fresh.profitAnnual - stale.profitAnnual;
+  local dc = fresh.capital - stale.capital;
+  local df = OpexProjectFinanceCapital(fresh) - OpexProjectFinanceCapital(stale);
+  local dr = fresh.roi - stale.roi;
+  local ap = OpexB6FreshAbs(dp);
+  local ac = OpexB6FreshAbs(dc);
+  local af = OpexB6FreshAbs(df);
+  local ar = OpexB6FreshAbs(dr);
+  if (dp != 0) s.profitChanged++;
+  s.profitDeltaSum += dp; s.profitAbsSum += ap; if (ap > s.profitAbsMax) s.profitAbsMax = ap;
+  s.capitalDeltaSum += dc; s.capitalAbsSum += ac; if (ac > s.capitalAbsMax) s.capitalAbsMax = ac;
+  s.financeDeltaSum += df; s.financeAbsSum += af; if (af > s.financeAbsMax) s.financeAbsMax = af;
+  s.roiDeltaSum += dr; s.roiAbsSum += ar; if (ar > s.roiAbsMax) s.roiAbsMax = ar;
+}
+
+function OpexB6LogFreshEquivalence(staleProjects, freshProjects, snapshotDate)
+{
+  if (!DECISION_LOG || staleProjects == null || freshProjects == null) return;
+  if (!("candidateGroups" in staleProjects) || staleProjects.candidateGroups == null) return;
+  if (!("candidateGroups" in freshProjects) || freshProjects.candidateGroups == null) return;
+
+  /* 06.11 porte sur le replay incremental : ignorer les projets simplement
+   * presents avant le rebuild mais jamais recycles depuis leur generation. */
+  local staleBuckets = OpexB6FreshBucket(staleProjects.candidateGroups, true);
+  local freshBuckets = OpexB6FreshBucket(freshProjects.candidateGroups, false);
+  local stats = {};
+  local now = AIDate.GetCurrentDate();
+  local topKey = null;
+  if (("best" in staleProjects) && staleProjects.best != null && staleProjects.best.len() > 0
+      && staleProjects.best[0] != null) {
+    topKey = OpexProjectAttemptKey(staleProjects.best[0]);
+  }
+
+  foreach (key, oldList in staleBuckets) {
+    local oldProject = oldList.len() > 0 ? oldList[0] : null;
+    local scope = OpexB6FreshClass(oldProject);
+    foreach (label in ["all", scope]) OpexB6FreshStats(stats, label).stale++;
+    if (oldList.len() != 1) {
+      foreach (label in ["all", scope]) OpexB6FreshStats(stats, label).ambiguous++;
+      continue;
+    }
+    if (!(key in freshBuckets)) {
+      foreach (label in ["all", scope]) OpexB6FreshStats(stats, label).missing++;
+      if (topKey != null && key == topKey) {
+        OpexDecide("B6_FRESH_TOP", "status=missing scope=" + scope
+                   + " age_days=" + (("economicsDate" in oldProject) ? now - oldProject.economicsDate : -1));
+      }
+      continue;
+    }
+    local freshList = freshBuckets[key];
+    if (freshList.len() != 1) {
+      foreach (label in ["all", scope]) OpexB6FreshStats(stats, label).ambiguous++;
+      if (topKey != null && key == topKey) {
+        OpexDecide("B6_FRESH_TOP", "status=ambiguous scope=" + scope
+                   + " old_n=1 fresh_n=" + freshList.len());
+      }
+      continue;
+    }
+    local freshProject = freshList[0];
+    foreach (label in ["all", scope]) OpexB6FreshObserve(stats, label, oldProject, freshProject, now);
+    if (topKey != null && key == topKey) {
+      local age = ("economicsDate" in oldProject) ? now - oldProject.economicsDate : -1;
+      OpexDecide("B6_FRESH_TOP", "status=matched scope=" + scope + " age_days=" + age
+                 + " stale_profit=" + oldProject.profitAnnual + " fresh_profit=" + freshProject.profitAnnual
+                 + " delta_profit=" + (freshProject.profitAnnual - oldProject.profitAnnual)
+                 + " stale_capital=" + oldProject.capital + " fresh_capital=" + freshProject.capital
+                 + " delta_capital=" + (freshProject.capital - oldProject.capital)
+                 + " stale_finance=" + OpexProjectFinanceCapital(oldProject)
+                 + " fresh_finance=" + OpexProjectFinanceCapital(freshProject)
+                 + " stale_roi=" + oldProject.roi + " fresh_roi=" + freshProject.roi
+                 + " rebuild_days=" + (now - snapshotDate));
+    }
+  }
+
+  foreach (scope, s in stats) {
+    OpexDecide("B6_FRESH_EQ", "scope=" + scope + " stale=" + s.stale
+               + " matched=" + s.matched + " missing=" + s.missing + " ambiguous=" + s.ambiguous
+               + " aged=" + s.aged + " age_sum=" + s.ageSum + " age_max=" + s.ageMax
+               + " profit_changed=" + s.profitChanged + " profit_delta_sum=" + s.profitDeltaSum
+               + " profit_abs_sum=" + s.profitAbsSum + " profit_abs_max=" + s.profitAbsMax
+               + " capital_delta_sum=" + s.capitalDeltaSum + " capital_abs_sum=" + s.capitalAbsSum
+               + " capital_abs_max=" + s.capitalAbsMax
+               + " finance_delta_sum=" + s.financeDeltaSum + " finance_abs_sum=" + s.financeAbsSum
+               + " finance_abs_max=" + s.financeAbsMax
+               + " roi_delta_sum=" + s.roiDeltaSum + " roi_abs_sum=" + s.roiAbsSum
+               + " roi_abs_max=" + s.roiAbsMax + " rebuild_days=" + (now - snapshotDate));
+  }
+}
+
+function OpexB6RepriceFreightTop(catalog, lines, project)
+{
+  if (project == null || !("payload" in project) || project.payload == null) return { status = "unsupported", monthly = 0 };
+  if (!("kind" in project) || project.kind != "freight"
+      || !("mode" in project) || (project.mode != "rail" && project.mode != "road")) {
+    return { status = "unsupported", monthly = 0 };
+  }
+  local cand = project.payload;
+  local srcIndustry = AIIndustry.GetIndustryID(cand.src);
+  /* placeJoin candidateEnd=A reutilise l'origine d'une ligne existante : cand.src
+   * n'est alors pas la tuile brute de l'industrie. Retrouver la source via la
+   * ligne jointe, sans rien modifier au candidat reel. */
+  if (!AIIndustry.IsValidIndustry(srcIndustry)
+      && ("placeJoin" in cand) && cand.placeJoin != null
+      && ("candidateEnd" in cand.placeJoin) && cand.placeJoin.candidateEnd == "A") {
+    local service = OpexOriginService(lines, cand.src);
+    if (service != null && !("blocked" in service && service.blocked)
+        && ("line" in service) && service.line != null
+        && ("srcIndustry" in service.line)) {
+      srcIndustry = service.line.srcIndustry;
+    }
+  }
+  if (!AIIndustry.IsValidIndustry(srcIndustry)) return { status = "no_source_industry", monthly = 0 };
+  local monthly = AIIndustry.GetLastMonthProduction(srcIndustry, cand.cargo);
+  if (project.mode == "rail") {
+    local srcService = OpexOriginService(lines, cand.src);
+    if (BASIN_SHARE && srcService != null) monthly = OpexShareBasin(monthly, lines, srcService.stationId, cand.cargo);
+    if (monthly <= 0 && srcService != null && ("dstTown" in cand) && cand.dstTown >= 0) monthly = 45;
+  }
+  if (monthly <= 0) return { status = "not_generated_monthly", monthly = monthly };
+  local economics = null;
+  if (project.mode == "rail") {
+    economics = OpexLineEconomics(catalog, cand.cargo, cand.distance, monthly, cand.kind);
+  } else {
+    local engine = (cand.cargo in catalog.roadEngineByCargo) ? catalog.roadEngineByCargo[cand.cargo] : null;
+    if (engine == null) return { status = "not_generated_engine", monthly = monthly };
+    economics = OpexRoadLineEconomics(catalog, cand.cargo, cand.distance, monthly, engine, cand.kind);
+  }
+  if (economics == null) return { status = "not_generated_economics", monthly = monthly };
+  if (economics.profitAnnual <= 0) return { status = "not_generated_profit", monthly = monthly, freshProfit = economics.profitAnnual };
+  if (project.mode == "rail") {
+    local iterations = OpexRailIterations(cand.distance);
+    local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
+    if (VIVIER_RATIO_FILTER && opcodeRatio < 200) return { status = "not_generated_ratio", monthly = monthly, freshProfit = economics.profitAnnual };
+  }
+  local freightBonus = FLAT_BONUS ? 140 : 100;
+  if (FLAT_BONUS && ("isTransformer" in cand) && cand.isTransformer) {
+    freightBonus = (freightBonus * 135) / 100;
+  }
+  local freshRoi = (economics.roi * freightBonus) / 100;
+  local margin = project.mode == "road" ? ROAD_CAPITAL_MARGIN : 0;
+  local immobilise = ("immobilise" in economics) ? economics.immobilise : 0;
+  local freshProject = { mode = project.mode, capital = economics.capital,
+    budgetCapital = economics.capital + margin + immobilise, payload = null };
+  return { status = "ok", monthly = monthly, freshProfit = economics.profitAnnual,
+    freshRevenue = economics.revenueAnnual, freshCapital = economics.capital,
+    freshFinance = OpexProjectFinanceCapital(freshProject), freshRoi = freshRoi };
+}
+
+function OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capitalBudget)
+{
+  if (!DECISION_LOG || funded == null || funded.len() == 0 || recycledKeys == null) return;
+  local project = funded[0];
+  if (project == null) return;
+  local key = OpexProjectAttemptKey(project);
+  if (!(key in recycledKeys)) return;
+  if (!("kind" in project) || project.kind != "freight") return;
+  if (!("mode" in project) || (project.mode != "rail" && project.mode != "road")) return;
+  local fresh = OpexB6RepriceFreightTop(catalog, lines, project);
+  local age = ("economicsDate" in project) ? AIDate.GetCurrentDate() - project.economicsDate : -1;
+  local staleFinance = OpexProjectFinanceCapital(project);
+  local freshProfit = ("freshProfit" in fresh) ? fresh.freshProfit : 0;
+  local freshRevenue = ("freshRevenue" in fresh) ? fresh.freshRevenue : 0;
+  local freshCapital = ("freshCapital" in fresh) ? fresh.freshCapital : 0;
+  local freshFinance = ("freshFinance" in fresh) ? fresh.freshFinance : 0;
+  local freshRoi = ("freshRoi" in fresh) ? fresh.freshRoi : 0;
+  local freshScore = (fresh.status == "ok" && freshFinance > 0)
+      ? OpexProjectScore(freshProfit, freshFinance) : 0.0;
+  local runner = funded.len() > 1 ? funded[1] : null;
+  local runnerScore = (runner != null && ("fundScore" in runner))
+      ? OpexProjectSelectionScore(runner, "fundScore") : 0.0;
+  local runnerRevenue = runner != null ? runner.revenueAnnual : 0;
+  local decision = "unsupported";
+  if (TENSION_SCORING || SHADOW_PRICING || C49_VARIABLE_DENOMINATOR) {
+    decision = "unsupported_scoring";
+  } else if (fresh.status == "ok") {
+    if (freshFinance > capitalBudget) decision = "change_unaffordable";
+    else if (runner == null) decision = "keep";
+    else if (freshScore > runnerScore) decision = "keep";
+    else if (freshScore < runnerScore) decision = "change_rank";
+    else if (freshRevenue > runnerRevenue) decision = "keep";
+    else if (freshRevenue < runnerRevenue) decision = "change_tie_revenue";
+    else decision = "ambiguous_exact_tie";
+  } else if (fresh.status == "not_generated_monthly"
+      || fresh.status == "not_generated_engine"
+      || fresh.status == "not_generated_economics"
+      || fresh.status == "not_generated_profit"
+      || fresh.status == "not_generated_ratio") {
+    decision = "change_not_generated";
+  }
+  OpexDecide("B6_RECYCLE_TOP_PRICE", "status=" + fresh.status + " mode=" + project.mode
+             + " decision=" + decision
+             + " age_days=" + age + " monthly=" + fresh.monthly
+             + " stale_profit=" + project.profitAnnual + " fresh_profit=" + freshProfit
+             + " fresh_revenue=" + freshRevenue
+             + " delta_profit=" + (freshProfit - project.profitAnnual)
+             + " stale_capital=" + project.capital + " fresh_capital=" + freshCapital
+             + " delta_capital=" + (freshCapital - project.capital)
+             + " stale_finance=" + staleFinance + " fresh_finance=" + freshFinance
+             + " stale_roi=" + project.roi + " fresh_roi=" + freshRoi
+             + " fresh_score=" + freshScore + " runner_score=" + runnerScore
+             + " runner_mode=" + (runner != null ? runner.mode : "none")
+             + " budget=" + capitalBudget);
+}
+
+/* Retire du vivier incremental les projets deja essayes dans le batch courant, puis rejoue la
+ * seule contrainte de capital. */
+function OpexDynamicBatchReselect(projects, catalog, lines, attempted, capitalBudget, abandonedPairs = null)
+{
+  if (projects == null) return null;
+  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
+  if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+    local filteredGroups = {};
+    foreach (groupKey, entry in projects.candidateGroups) {
+      local source = (typeof(entry) == "array") ? entry : [entry];
+      local kept = [];
+      foreach (p in source) {
+        if (p == null) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
+        local key = OpexProjectAttemptKey(p);
+        if (!(key in attempted)) kept.push(p);
+      }
+      if (kept.len() > 0) filteredGroups[groupKey] <- kept;
+    }
+    projects.candidateGroups = filteredGroups;
+    if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)
+      projects.rawset("frontierSelectionCache", {});
+  }
+  return OpexReselectProjects(projects, capitalBudget, catalog, lines, "dynamic_batch");
+}
+
+/* C36.1 : Caching incremental du vivier post-chantier.
+ * Au lieu de reconstruire tout le portefeuille ex nihilo apres chaque ligne achevee (15 jours
+ * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
+ * nouvelles opportunites de flotte, et réélit le portefeuille sur le capital restant.
+ * Execution : < 1 tick (< 500 opcodes, 0 jour). */
+function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null)
+{
+  local b6BudgetDate = AIDate.GetCurrentDate();
+  local c48TotalMark = null;
+  local c48TotalDate = 0;
+  local c48Lines = 0;
+  if (C48_INCREMENTAL_PROFILE) {
+    c48TotalDate = AIDate.GetCurrentDate();
+    c48TotalMark = OpexOpsMeasureBegin();
+    c48Lines = lines.len();
+  }
+  local stats = {
+    odProjects = 0,
+    modeCandidates = 0,
+    modeAlternatives = 0,
+    modeReplaced = 0,
+    poolInfundable = 0,
+    budgetConsidered = 0,
+    budgetSelected = 0,
+    budgetRejected = 0,
+    selectedRevenue = 0,
+    selectedCapital = 0,
+    selectionPoolCapital = 0,
+    nextProjectCapital = 0,
+    knapsackNodes = 0,
+    knapsackExact = false,
+  };
+
+  local tensionCtx = null;
+  if (TENSION_SCORING || SHADOW_PRICING) {
+    local c48Mark = null;
+    local c48Date = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
+    tensionCtx = OpexTensionContext(projects);
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("tension_ctx", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, 0, 0, 0, 0, 0, 0, 0);
+    }
+  }
+
+  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
+  local newWinners = {};
+  local recycledKeys = {};
+  local cacheScanned = 0;
+  local cacheRetained = 0;
+  local abandonFiltered = 0;
+
+  /* 1. Filtrer les candidats existants du vivier */
+  if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+    local c48Mark = null;
+    local c48Date = 0;
+    local c48Groups = 0;
+    local c48Scanned = 0;
+    local c48Retained = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
+    foreach (key, entry in projects.candidateGroups) {
+      if (C48_INCREMENTAL_PROFILE) c48Groups++;
+      local list = (typeof entry == "array") ? entry : [entry];
+      foreach (p in list) {
+        if (C48_INCREMENTAL_PROFILE) c48Scanned++;
+        cacheScanned++;
+        if (p == null) continue;
+        /* La flotte est regeneree fraiche ci-dessous. */
+        if (p.mode == "fleet" && FLEET_PORTFOLIO && fleetPlan != null) continue;
+        /* AIR est regenere integralement un peu plus bas dans CETTE meme passe.
+         * Ne jamais rejouer une ancienne revision economique : une variante qui
+         * n'est plus emise par le refresh doit disparaitre, pas survivre parce que
+         * sa geometrie reste physiquement valide. */
+        if (p.mode == "air" && AIR_PORTFOLIO) continue;
+        /* Early-slot est une priorite transitoire. Apres chaque chantier, le
+         * nombre de villes deja securisees peut changer ; un ancien plan air ne
+         * doit donc jamais conserver un bonus devenu perime. Les plans air sont
+         * regeneres frais un peu plus bas dans cette meme passe. */
+        if (AIR_EARLY_SLOT && p.mode == "air") continue;
+        if (OpexCandidateIsAbandoned(p, abandonedPairs)) {
+          abandonFiltered++;
+          continue;
+        }
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
+        local recycledKey = OpexProjectAttemptKey(p);
+        if (!(recycledKey in recycledKeys)) recycledKeys[recycledKey] <- true;
+        /* B6/06.11 mesure seulement : marquer les objets qui traversent REELLEMENT
+         * le replay incremental. Le champ n'est jamais lu hors du diagnostic. */
+        if (DECISION_LOG) p.b6RecycledSinceFresh <- true;
+        OpexProjectRememberAll(newWinners, p, stats);
+        if (C48_INCREMENTAL_PROFILE) c48Retained++;
+        cacheRetained++;
+      }
+    }
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("groups_replay", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, c48Groups, c48Scanned, c48Retained, 0, 0, 0, 0);
+    }
+  }
+
+  /* 2. Injection des projets de croissance de flotte (refleet) frais */
+  if (FLEET_PORTFOLIO && fleetPlan != null) {
+    local c48Mark = null;
+    local c48Date = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
+    foreach (entry in fleetPlan) {
+      local p = OpexProjectFromFleet(entry, tensionCtx);
+      if (p != null) {
+        OpexProjectRememberAll(newWinners, p, stats);
+      }
+    }
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("fleet", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, 0, 0, 0, fleetPlan.len(), 0, 0, 0);
+    }
+  }
+
+  /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
+  local airPossibilities = [];
+  local priorAirPossibilities = ("airPossibilities" in projects) ? projects.airPossibilities : null;
+  if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
+    local c48Mark = null;
+    local c48Date = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
+    local freshAirPlans = [];
+    OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs, PAX_BAND_ALL,
+        airPossibilities, priorAirPossibilities);
+    local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
+    foreach (plan in freshAirPlans) {
+      local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx);
+      if (p != null) {
+        OpexProjectRememberAll(newWinners, p, stats);
+      }
+    }
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("air", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, 0, 0, 0, 0, freshAirPlans.len(), 0, 0);
+    }
+  }
+
+  /* 5. Selection du portefeuille sur le capital restant */
+  local funded = null;
+  local c48SelectionMark = null;
+  local c48SelectionDate = 0;
+  local c48Alternatives = 0;
+  if (C48_INCREMENTAL_PROFILE) {
+    c48SelectionDate = AIDate.GetCurrentDate();
+    c48SelectionMark = OpexOpsMeasureBegin();
+  }
+  local opsMark = OpexOpsMeasureBegin();
+  local alternatives = [];
+  foreach (key, list in newWinners) {
+    stats.odProjects++;
+    foreach (project in list) alternatives.push(project);
+  }
+  local selectionCache = (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) ? {} : null;
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K,
+      catalog, lines, "lifecycle", false, selectionCache);
+  if (C48_INCREMENTAL_PROFILE) c48Alternatives = alternatives.len();
+  stats.budgetConsidered = alternatives.len();
+  stats.budgetSelected = funded.len();
+  stats.budgetRejected = alternatives.len() - funded.len();
+  stats.knapsackNodes = 0;
+  stats.knapsackExact = false;
+  stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  OpexB6LogSelectionCausality("incremental", alternatives, funded, capitalBudget, b6BudgetDate,
+                             catalog, lines, recycledKeys);
+  OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capitalBudget);
+  if (C48_INCREMENTAL_PROFILE) {
+    local c48Days = AIDate.GetCurrentDate() - c48SelectionDate;
+    OpexC48IncrementalRecord("selection", OpexOpsMeasureEnd(c48SelectionMark), c48Days,
+        0, 0, 0, 0, 0, 0, c48Alternatives, funded.len());
+  }
+
+  /* 6. Cloture des statistiques et du capital restant */
+  local selectedRev = 0;
+  local selectedCap = 0;
+  foreach (p in funded) {
+    selectedRev += p.revenueAnnual;
+    selectedCap += OpexProjectFinanceCapital(p);
+  }
+  stats.selectedRevenue = selectedRev;
+  stats.selectedCapital = selectedCap;
+  stats.selectionPoolCapital = selectedCap;
+  stats.nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;
+  local remaining = capitalBudget - selectedCap;
+  if (remaining < 0) remaining = 0;
+
+  local stampExtras = {
+    abandonFiltered = abandonFiltered,
+    abandonedPairsCount = (abandonedPairs != null) ? abandonedPairs.len() : 0,
+    cacheScanned = cacheScanned,
+    cacheRetained = cacheRetained
+  };
+  OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, stampExtras);
+
+  if (DECISION_LOG) {
+    local vivierPool = [];
+    foreach (key, list in newWinners) {
+      foreach (project in list) vivierPool.push(project);
+    }
+    OpexLogVivier("incremental", vivierPool, stats, capitalBudget, remaining);
+  }
+
+  AILog.Info("[PORTFOLIO_CACHE] incremental: candidates=" + stats.modeCandidates + " od=" + stats.odProjects + " selected=" + stats.budgetSelected + " remaining=" + remaining);
+
+  projects.all = stats.odProjects;
+  projects.best = funded;
+  projects.stats = stats;
+  projects.capitalBudget = capitalBudget;
+  projects.capitalRemaining = remaining;
+  projects.candidateGroups = newWinners;
+  projects.rawset("airPossibilities", airPossibilities);
+  if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)
+    projects.rawset("frontierSelectionCache", selectionCache);
+  /* Les six mesures de phase sont imbriquees dans total (OpexOpsMeasureBegin/End ne partage
+   * aucun etat) : total - somme(phases) est le reste de la fonction, PAS un double comptage. */
+  if (C48_INCREMENTAL_PROFILE) {
+    local c48Days = AIDate.GetCurrentDate() - c48TotalDate;
+    OpexC48IncrementalRecord("total", OpexOpsMeasureEnd(c48TotalMark), c48Days,
+        c48Lines, 0, 0, 0, 0, 0, 0, 0);
+  }
+  return projects;
+}
+
+function OpexProjectEmptyRoad()
+{
+  return {
+    all = 0, candidates = [], best = [],
+    stats = { pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
+              economicsUnavailable = 0, profitTooLow = 0, profitNonPositive = 0,
+              profitBelowFloorKept = 0, accepted = 0,
+              roadDistanceShort = 0, roadDistanceLong = 0 },
+    opcodes = 0,
+  };
+}
+
+function OpexEmptyRailCandidates()
+{
+  return {
+    all = 0, candidates = [], best = [], bands = [0, 0, 0, 0],
+    stats = {
+      townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
+      pairsTotal = 0, pairsOriginServed = 0, pairsJoinImpossible = 0, pairsOneServed = 0,
+      noMonthly = 0, unsitable = 0,
+      distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
+      profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
+    },
+    opcodes = 0, profile = null,
+  };
+}
+
+function OpexCloneCandidateGroups(source)
+{
+  local winners = {};
+  if (source == null) return winners;
+  foreach (key, list in source) {
+    local copy = [];
+    foreach (project in list) copy.append(project);
+    winners.rawset(key, copy);
+  }
+  return winners;
+}
+
+/* Les etapes du bootstrap conservent les familles deja generees, mais une
+ * construction peut avoir rendu une paire desservie entre deux etapes. Passer
+ * les objets bruts par la meme validation que le cache incremental avant de les
+ * reinjecter empeche le projet qui vient d'etre construit de revenir en tete. */
+function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null, lineIndex = null)
+{
+  if (candidate == null) return false;
+  local project = OpexProjectFromCandidate(candidate, null);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
+}
+
+function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null, lineIndex = null)
+{
+  if (plan == null) return false;
+  local project = OpexProjectFromAir(catalog, plan, 0, null);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
+}
+
+function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = null, lineIndex = null)
+{
+  if (plan == null) return false;
+  local project = OpexProjectFromWater(catalog, plan, 0, null);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
+}
+
+function OpexMergeRailCandidateSet(base, extra)
+{
+  if (base == null) return extra;
+  if (extra == null) return base;
+  foreach (candidate in extra.candidates) base.candidates.append(candidate);
+  base.all = base.candidates.len();
+  base.best = OpexTopK(base.candidates, TOP_K);
+  base.bands = OpexBands(base.candidates);
+  base.opcodes += extra.opcodes;
+  if (("stats" in base) && base.stats != null && ("stats" in extra) && extra.stats != null) {
+    foreach (key, value in extra.stats) {
+      local valueType = typeof value;
+      if ((valueType == "integer" || valueType == "float") && (key in base.stats)) {
+        base.stats[key] += value;
+      }
+    }
+  }
+  return base;
+}
+
+function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, waterSiteCatalog = null, activeSubsidies = null)
+{
+  if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
+  local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local doPaxRail = (generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_RAIL_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local doRoad = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local doAir = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_COMPLETE);
+  local doWater = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL
+      : (generationStage == OPEX_STAGE_RAIL_ONLY ? PAX_BAND_RAIL_ONLY : PAX_BAND_ALL);
+  local airBand = generationStage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
+      : (generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL : PAX_BAND_ALL);
+  if (DECISION_LOG) {
+    OpexDecide("BOOTSTRAP_STAGE", "stage=" + generationStage
+               + " freight=" + (doFreight ? 1 : 0) + " pax_rail=" + (doPaxRail ? 1 : 0)
+               + " road=" + (doRoad ? 1 : 0) + " air=" + (doAir ? 1 : 0)
+               + " freight_cargo=" + (freightCargo != null ? freightCargo : -1)
+               + " freight_label=" + (freightCargo != null ? AICargo.GetCargoLabel(freightCargo) : "none")
+               + " freight_price=" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));
+  }
+  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_rail", "-");
+  /* C41.22 : intervalles disjoints du chemin rail historique. Le pre-devis peut etre inactif
+   * par reglage : publier alors son zero est justement necessaire pour ne pas attribuer son cout
+   * hypothetique au comportement par defaut. */
+  local railProfile = C41_RAIL_PORTFOLIO_PROFILE
+      ? { generationOps = 0, generationCandidates = 0, topKCandidates = 0,
+          prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
+          insertOps = 0, insertedProjects = 0 } : null;
+  local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
+  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE || C41_RAIL_FREIGHT_CRUISE_PROFILE || C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE || C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE || C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE)
+      ? { paxOps = 0, freightOps = 0, topKOps = 0,
+          paxPreparationOps = 0, paxPairTotalOps = 0, paxCandidateOps = 0,
+          paxPairsScanned = 0, paxCandidateCalls = 0,
+          paxSitableOps = 0, paxSitableCalls = 0, paxEconomicsOps = 0, paxEconomicsCalls = 0,
+          paxEconomicsSetupOps = 0, paxEconomicsLoopOps = 0, paxEconomicsLoopCalls = 0,
+          paxEconomicsPostOps = 0, paxSpeedOps = 0, paxSpeedCalls = 0,
+          paxCorrectedSpeedCalls = 0, paxCruiseOps = 0, paxAccelerationOps = 0,
+          paxIntegrationOps = 0, paxSpeedKeys = {}, paxSpeedUniqueKeys = 0,
+          paxSpeedCacheableHits = 0, paxCruiseKeys = {}, paxCruiseCalls = 0,
+          paxCruiseUniqueKeys = 0, paxCruiseCacheableHits = 0,
+          freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0, freightTownGuardsOps = 0, freightTownGuardsCalls = 0, freightTownServiceOps = 0, freightTownServiceCalls = 0,
+          freightIndustryCandidateOps = 0, freightIndustryCandidateCalls = 0,
+          freightTownCandidateOps = 0, freightTownCandidateCalls = 0,
+          freightEconomicsOps = 0, freightEconomicsCalls = 0,
+          /* C41.34 : les trois phases de OpexLineEconomics, mais uniquement pour fret.
+           * Ne pas reutiliser les compteurs pax : le meme helper sert aux deux familles. */
+          freightEconomicsSetupOps = 0, freightEconomicsSetupCalls = 0,
+          freightEconomicsLoopOps = 0, freightEconomicsLoopCalls = 0,
+          freightEconomicsPostOps = 0, freightEconomicsPostCalls = 0,
+          freightEconomicsReferenceOps = 0, freightEconomicsReferenceCalls = 0,
+          freightEconomicsConsistOps = 0, freightEconomicsConsistCalls = 0,
+          freightEconomicsCapitalOps = 0, freightEconomicsCapitalCalls = 0,
+          freightEconomicsConsistInitialSpeedOps = 0, freightEconomicsConsistInitialSpeedCalls = 0,
+          freightEconomicsConsistCorrectedSpeedOps = 0, freightEconomicsConsistCorrectedSpeedCalls = 0,
+          freightCruiseKeys = {}, freightCruiseCalls = 0, freightCruiseUniqueKeys = 0,
+          freightCruiseCacheableHits = 0,
+          freightAccelerationOps = 0, freightAccelerationCalls = 0,
+          freightIntegrationOps = 0, freightIntegrationCalls = 0,
+          freightSpeedKeys = {}, freightSpeedCalls = 0, freightSpeedUniqueKeys = 0,
+          freightSpeedCacheableHits = 0 } : null;
+  local railPaxProfile = C41_RAIL_PAX_PROFILE ? railCandidateProfile : null;
+  local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)
+      ? railCandidateProfile : null;
+  /* C41.30/C41.38 : caches epuises apres cette generation ; aucun moteur/cargo/terrain d'une
+   * passe suivante ne peut reutiliser une valeur ancienne. Les tables pax/fret sont separees :
+   * l'AB fret ne change donc pas la cadence pax. */
+  local railPaxCruiseCache = C41_RAIL_PAX_CRUISE_CACHE ? {} : null;
+  local railFreightCruiseCache = C41_RAIL_FREIGHT_CRUISE_CACHE ? {} : null;
+  local rail;
+  if (doPaxRail || doFreight) {
+    rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache, doPaxRail, doFreight, paxBand, freightCargo);
+    if (priorProjects != null && ("rail" in priorProjects)
+        && priorProjects.rail != null && ("candidates" in priorProjects.rail)) {
+      local merged = [];
+      foreach (c in priorProjects.rail.candidates) {
+        /* Une passe pax de repli a pu avoir lieu a l'etape 0. L'etape pax
+         * normale vient de la regenerer avec l'etat courant : ne conserver
+         * ici que le fret herite pour ne pas dupliquer chaque paire pax. */
+        local replaced = generationStage == OPEX_STAGE_AIR_RAIL && c.kind == "pax";
+        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) {
+          merged.append(c);
+        }
+      }
+      foreach (c in rail.candidates) merged.append(c);
+      rail.candidates = merged;
+      rail.best = OpexTopK(merged, TOP_K);
+      rail.all = merged.len();
+    }
+  } else if (priorProjects != null && ("rail" in priorProjects) && priorProjects.rail != null) {
+    rail = priorProjects.rail;
+    local liveRail = [];
+    foreach (c in rail.candidates) {
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) liveRail.append(c);
+    }
+    rail.candidates = liveRail;
+    rail.best = OpexTopK(liveRail, TOP_K);
+    rail.all = liveRail.len();
+  } else {
+    rail = OpexEmptyRailCandidates();
+  }
+  /* Un cargo actif peut encore ne produire aucun candidat admissible (aucun
+   * puits, distance, economie ou site). Comme pour le repli pax air->air+rail,
+   * essayer immediatement les cargos suivants par prix, sans regenerer le pax
+   * ni l'air deja calcules. Le premier lot fret non vide devient le lot reel
+   * de ce portefeuille. */
+  if (doFreight && freightCargo != null && freightCargoOrder != null
+      && freightCargoOrder.len() > 1) {
+    local hasFreight = false;
+    foreach (candidate in rail.candidates) {
+      if (candidate.kind == "freight") { hasFreight = true; break; }
+    }
+    if (!hasFreight) {
+      local start = -1;
+      for (local i = 0; i < freightCargoOrder.len(); i++) {
+        if (freightCargoOrder[i] == freightCargo) { start = i; break; }
+      }
+      local tried = 1;
+      for (local offset = 1; offset < freightCargoOrder.len(); offset++) {
+        local idx = start >= 0 ? (start + offset) % freightCargoOrder.len() : offset - 1;
+        local nextCargo = freightCargoOrder[idx];
+        local extraFreight = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
+            railCandidateProfile, null, null, null, railFreightCruiseCache,
+            false, true, PAX_BAND_ALL, nextCargo);
+        tried++;
+        if (extraFreight.candidates.len() == 0) continue;
+        local previousCargo = freightCargo;
+        rail = OpexMergeRailCandidateSet(rail, extraFreight);
+        freightCargo = nextCargo;
+        hasFreight = true;
+        if (DECISION_LOG) {
+          OpexDecide("FREIGHT_CARGO_FALLBACK", "from=" + previousCargo
+                     + " to=" + freightCargo + " label=" + AICargo.GetCargoLabel(freightCargo)
+                     + " tried=" + tried + " candidates=" + extraFreight.candidates.len());
+        }
+        break;
+      }
+      if (!hasFreight && DECISION_LOG) {
+        OpexDecide("FREIGHT_CARGO_FALLBACK", "from=" + freightCargo
+                   + " to=none tried=" + tried + " candidates=0");
+      }
+    }
+  }
+  if (railProfile != null) {
+    railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);
+    railProfile.generationCandidates = rail.candidates.len();
+    railProfile.topKCandidates = rail.best.len();
+  }
+  local railPrequoteMark = railProfile != null ? OpexOpsMeasureBegin() : null;
+  local railPrequote = (doPaxRail || doFreight)
+      ? OpexPrequoteRailCandidates(catalog, budget, rail)
+      : { attempted = 0, quoted = 0, failed = 0, opcodes = 0, skippedJoin = 0 };
+  if (railProfile != null) {
+    railProfile.prequoteOps = OpexOpsMeasureEnd(railPrequoteMark);
+    railProfile.prequoteAttempted = railPrequote.attempted;
+    railProfile.prequoteQuoted = railPrequote.quoted;
+    railProfile.prequoteFailed = railPrequote.failed;
+  }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_rail", "-");
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_road", "-");
+  /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
+  local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE)
+      ? { paxOps = 0, freightOps = 0, topKOps = 0,
+          freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0,
+          freightTownScanned = 0, freightTownAcceptanceHits = 0, freightTownAcceptanceMisses = 0,
+          freightTownAcceptanceOps = 0, freightTownAcceptedPairs = 0, freightTownCandidateOps = 0 } : null;
+  local road;
+  if (doRoad && ROAD_BUILD_ENABLED) {
+    road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile, freightCargo);
+  } else if (priorProjects != null && ("road" in priorProjects) && priorProjects.road != null) {
+    road = priorProjects.road;
+    local liveRoad = [];
+    foreach (c in road.candidates) {
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) liveRoad.append(c);
+    }
+    road.candidates = liveRoad;
+    road.best = OpexTopK(liveRoad, ROAD_TOP_K);
+    road.all = liveRoad.len();
+  } else {
+    road = OpexProjectEmptyRoad();
+  }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_road", "-");
+
+  local capitalBudget = OpexAvailableCapital();
+  local capitalBudgetDate = AIDate.GetCurrentDate();
+
+  local airPlan = null;
+  local airPlans = [];
+  local airPossibilities = [];
+  local priorAirPossibilities = priorProjects != null && ("airPossibilities" in priorProjects)
+      ? priorProjects.airPossibilities : null;
+  if (!doAir && priorProjects != null && ("airPossibilities" in priorProjects)
+      && priorProjects.airPossibilities != null) {
+    foreach (possibility in priorProjects.airPossibilities) airPossibilities.append(possibility);
+  }
+  local airOps = 0;
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_air", "-");
+  if (doAir && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
+    budget.begin();
+    airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, airBand,
+        airPossibilities, priorAirPossibilities);
+    airOps = budget.end("project_air");
+    if (generationStage == OPEX_STAGE_AIR_RAIL && priorProjects != null
+        && ("airPlans" in priorProjects) && priorProjects.airPlans != null) {
+      foreach (plan in priorProjects.airPlans) {
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) airPlans.append(plan);
+      }
+      if (airPlans.len() > 0) airPlan = airPlans[0];
+    }
+  } else if (!doAir && priorProjects != null) {
+    airPlan = ("airPlan" in priorProjects) ? priorProjects.airPlan : null;
+    if (("airPlans" in priorProjects) && priorProjects.airPlans != null) {
+      foreach (plan in priorProjects.airPlans) {
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) airPlans.append(plan);
+      }
+    }
+    airPlan = airPlans.len() > 0 ? airPlans[0] : null;
+    airOps = ("airPlanningOpcodes" in priorProjects) ? priorProjects.airPlanningOpcodes : 0;
+  }
+
+  /* L'air reste le pax prioritaire de l'etape initiale. Une liste vide signifie
+   * qu'aucun plan pax aerien n'a franchi ses filtres ; dans ce seul cas, ouvrir
+   * le rail pax maintenant plutot que laisser un premier vivier 100 % fret. */
+  if (generationStage == OPEX_STAGE_AIR_ONLY && airPlans.len() == 0) {
+    budget.begin();
+    airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, PAX_BAND_AIR_RAIL,
+        airPossibilities, priorAirPossibilities);
+    airOps += budget.end("project_air_overlap_fallback");
+    local paxFallback = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
+        railCandidateProfile, railPaxProfile, railPaxCandidateProfile,
+        railPaxCruiseCache, railFreightCruiseCache, true, false, PAX_BAND_AIR_RAIL);
+    rail = OpexMergeRailCandidateSet(rail, paxFallback);
+    local fallbackPrequote = OpexPrequoteRailCandidates(catalog, budget, paxFallback);
+    railPrequote.attempted += fallbackPrequote.attempted;
+    railPrequote.quoted += fallbackPrequote.quoted;
+    railPrequote.failed += fallbackPrequote.failed;
+    railPrequote.skippedJoin += fallbackPrequote.skippedJoin;
+    railPrequote.opcodes += fallbackPrequote.opcodes;
+    if (railProfile != null) {
+      railProfile.generationCandidates = rail.candidates.len();
+      railProfile.topKCandidates = rail.best.len();
+      railProfile.prequoteAttempted = railPrequote.attempted;
+      railProfile.prequoteQuoted = railPrequote.quoted;
+      railProfile.prequoteFailed = railPrequote.failed;
+    }
+    if (DECISION_LOG) {
+      OpexDecide("BOOTSTRAP_PAX_FALLBACK", "air=0 rail_pax=" + paxFallback.candidates.len());
+    }
+  }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_air", "-");
+
+  local waterPlan = null;
+  local waterPlans = [];
+  local waterOps = 0;
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_water", "-");
+  if (doWater && catalog.ships.len() > 0 && catalog.paxCargo >= 0) {
+    budget.begin();
+    waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null,
+                               WATER_SITE_CATALOG ? waterSiteCatalog : null);
+    waterOps = budget.end("project_water");
+  } else if (!doWater && priorProjects != null) {
+    waterPlan = ("waterPlan" in priorProjects) ? priorProjects.waterPlan : null;
+    if (("waterPlans" in priorProjects) && priorProjects.waterPlans != null) {
+      foreach (plan in priorProjects.waterPlans) {
+        if (OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) waterPlans.append(plan);
+      }
+    }
+    waterPlan = waterPlans.len() > 0 ? waterPlans[0] : null;
+    waterOps = ("waterPlanningOpcodes" in priorProjects) ? priorProjects.waterPlanningOpcodes : 0;
+  }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_water", "-");
+
+  local stats = {
+    modeCandidates = 0, modeAlternatives = 0, modeReplaced = 0,
+    odProjects = 0, budgetConsidered = 0, budgetSelected = 0,
+    budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
+    selectionPoolCapital = 0, nextProjectCapital = 0,
+    knapsackNodes = 0, knapsackExact = false, poolInfundable = 0,
+    railPrequoteAttempted = railPrequote.attempted, railPrequoteQuoted = railPrequote.quoted,
+    railPrequoteFailed = railPrequote.failed, railPrequoteOpcodes = railPrequote.opcodes,
+  };
+  if (railProfile != null) stats.railProfile <- railProfile;
+  /* Branchement explicite plutot qu'une fonction passee dans un local : ce depot a deja paye
+   * plusieurs echecs Squirrel silencieux, et ici une IA morte ressemblerait exactement a une IA
+   * nulle au banc. */
+  /* Le cout de decouverte mesure couvre TOUT le balayage (OpexAirPlans / OpexWaterPlans), pas un
+   * plan en particulier. Le passer tel quel a chaque plan faisait rapporter N fois le meme cout
+   * dans planningOpcodes, donc dans les panneaux OA| et eau : surestimation d'un facteur N, et
+   * corruption de la mesure meme qui servirait a pricer la decouverte aerienne
+   * (docs/taches.md S0 septies). On repartit desormais la depense entre les plans qu'elle a
+   * produits. */
+  local airOpsPerPlan = (airPlans.len() > 0) ? airOps / airPlans.len() : airOps;
+  local waterOpsPerPlan = (waterPlans.len() > 0) ? waterOps / waterPlans.len() : waterOps;
+
+  local subCandidates = [];
+  if (C42_SUBSIDIES && activeSubsidies != null) {
+    subCandidates = OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs);
+  }
+
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_assembly", "-");
+  local winners = {};
+  local tensionCtx = null;
+  if (TENSION_SCORING || SHADOW_PRICING) {
+    local projMap = { rail = rail, road = road, airPlans = airPlans, waterPlans = waterPlans, fleetPlan = fleetPlan };
+    tensionCtx = OpexTensionContext(projMap);
+    if (SHADOW_PRICING) {
+      local allProjects = [];
+      if (rail != null && ("candidates" in rail)) {
+        foreach (candidate in rail.candidates) {
+          local p = OpexProjectFromCandidate(candidate, null);
+          if (p != null) allProjects.append(p);
+        }
+      }
+      if (road != null && ("candidates" in road)) {
+        foreach (candidate in road.candidates) {
+          local p = OpexProjectFromCandidate(candidate, null);
+          if (p != null) allProjects.append(p);
+        }
+      }
+      if (airPlans != null) {
+        foreach (plan in airPlans) {
+          local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan, null);
+          if (p != null) allProjects.append(p);
+        }
+      }
+      if (waterPlans != null) {
+        foreach (plan in waterPlans) {
+          local p = OpexProjectFromWater(catalog, plan, waterOpsPerPlan, null);
+          if (p != null) allProjects.append(p);
+        }
+      }
+      if (fleetPlan != null) {
+        foreach (entry in fleetPlan) {
+          local p = OpexProjectFromFleet(entry, null);
+          if (p != null) allProjects.append(p);
+        }
+      }
+      foreach (candidate in subCandidates) {
+        local p = OpexProjectFromCandidate(candidate, null);
+        if (p != null) allProjects.append(p);
+      }
+      local shadowPrices = OpexTensionComputeShadowPrices(tensionCtx, allProjects, capitalBudget);
+      tensionCtx.shadowPrices <- shadowPrices;
+      tensionCtx.regime <- "shadow";
+      tensionCtx.dominant <- "shadow";
+      if (DECISION_LOG) {
+        OpexDecide("SHADOW_PRICES", "lambda_argent=" + shadowPrices.argent
+                   + " lambda_ops=" + shadowPrices.opcodes
+                   + " lambda_foncier=" + shadowPrices.foncier
+                   + " lambda_slots_road=" + shadowPrices.slots.road
+                   + " lambda_slots_air=" + shadowPrices.slots.air
+                   + " lambda_slots_rail=" + shadowPrices.slots.rail
+                   + " b_argent=" + shadowPrices.budgetArgent
+                   + " b_ops=" + shadowPrices.budgetOps
+                   + " b_foncier=" + shadowPrices.budgetFoncier);
+      }
+      foreach (p in allProjects) {
+        local score = OpexReducedCostScore(p, shadowPrices);
+        p.tensionScore = score;
+        p.shadowScore <- score;
+        p.tensionRegime = "shadow";
+        OpexProjectRememberAll(winners, p, stats);
+      }
+    } else {
+      /* C35.2 : le score continu lit le vecteur propre a chaque projet. Ne pas
+       * choisir ici une formule unique a partir d'un argmax macro : foncier >= 1
+       * rendait cette bascule presque toujours egale au profit brut et perdait
+       * l'information des trois autres tensions. */
+      tensionCtx.regime <- "continuous";
+      tensionCtx.dominant <- "project";
+      if (DECISION_LOG) {
+        OpexDecide("TENSION_REGIME", "regime=continuous dominant=project");
+      }
+    }
+  }
+
+  local abandonFiltered = 0;
+  if (!SHADOW_PRICING) {
+    local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
+    local railProjectsBefore = stats.modeCandidates;
+    foreach (candidate in rail.candidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        abandonFiltered++;
+        continue;
+      }
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+    }
+    if (railProfile != null) {
+      railProfile.insertOps = OpexOpsMeasureEnd(railInsertMark);
+      railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
+    }
+    foreach (candidate in road.candidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        abandonFiltered++;
+        continue;
+      }
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+    }
+    foreach (plan in airPlans) {
+      OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx), stats);
+    }
+    foreach (plan in waterPlans) {
+      OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan, tensionCtx), stats);
+    }
+    if (fleetPlan != null) {
+      foreach (entry in fleetPlan) {
+        OpexProjectRememberAll(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
+      }
+    }
+    foreach (candidate in subCandidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        abandonFiltered++;
+        continue;
+      }
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+    }
+  }
+
+  local funded = null;
+  local opsMark = OpexOpsMeasureBegin();
+  /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
+   * tranchera, pas une election modale prealable au ratio. */
+  local alternatives = [];
+  foreach (key, list in winners) {
+    stats.odProjects++;
+    foreach (project in list) alternatives.push(project);
+  }
+  local selectionCache = (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) ? {} : null;
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K,
+      catalog, lines, "generation", false, selectionCache);
+  stats.budgetConsidered = alternatives.len();
+  stats.budgetSelected = funded.len();
+  stats.budgetRejected = alternatives.len() - funded.len();
+  stats.knapsackNodes = 0;
+  stats.knapsackExact = false;
+  stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  OpexB6LogSelectionCausality("build", alternatives, funded, capitalBudget, capitalBudgetDate,
+                             catalog, lines);
+
+  local selectedRev = 0;
+  local selectedCap = 0;
+  foreach (p in funded) {
+    selectedRev += p.revenueAnnual;
+    selectedCap += OpexProjectFinanceCapital(p);
+  }
+  stats.selectedRevenue = selectedRev;
+  stats.selectedCapital = selectedCap;
+  stats.selectionPoolCapital = selectedCap;
+  stats.nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;
+  local remaining = capitalBudget - selectedCap;
+  if (remaining < 0) remaining = 0;
+
+  local stampProjects = {
+    rail = rail, road = road, airPlans = airPlans, waterPlans = waterPlans
+  };
+  local stampExtras = {
+    abandonFiltered = abandonFiltered,
+    abandonedPairsCount = (abandonedPairs != null) ? abandonedPairs.len() : 0,
+    cacheScanned = 0,
+    cacheRetained = 0
+  };
+  OpexProjectsStampSelectionStats(stats, stampProjects, alternatives, funded, capitalBudget, stampExtras);
+
+  if (DECISION_LOG) {
+    local vivierPool = [];
+    foreach (key, list in winners) {
+      foreach (project in list) vivierPool.push(project);
+    }
+    OpexLogVivier("build", vivierPool, stats, capitalBudget, remaining);
+  }
+
+  /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
+   * cela evite meme de changer la forme de this._projects dans le controle. */
+  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE
+      || (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)) {
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
+    local result = {
+      all = stats.odProjects, best = funded, stats = stats,
+      capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
+      capitalRemaining = remaining, candidateGroups = winners,
+      rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
+      airPlans = airPlans, waterPlans = waterPlans,
+      airPossibilities = airPossibilities,
+      airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,
+      generationStage = generationStage,
+      freightCargo = freightCargo,
+    };
+    if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)
+      result.rawset("frontierSelectionCache", selectionCache);
+    return result;
+  }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
+  return {
+    all = stats.odProjects, best = funded, stats = stats,
+    capitalBudget = capitalBudget,
+    capitalRemaining = remaining,
+    rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
+    airPlans = airPlans, waterPlans = waterPlans,
+    airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,
+    generationStage = generationStage,
+    freightCargo = freightCargo,
+  };
+}

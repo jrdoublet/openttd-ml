@@ -113,9 +113,12 @@ AIR_CAPITAL_FRONTIER_LEDGER <- {
   lifecycleGrowGroupWinner = 0, lifecycleGrowTop = 0,
   lifecycleGrowAttempted = 0,
   /* TEMP_GROW_COMPARE_BEGIN */
-  growCompareSamples = 0, growCompareTopAir = 0,
+  growCompareSamples = 0, growCompareTopAir = 0, growCompareTopFleet = 0,
+  growCompareTopRoad = 0, growCompareTopRail = 0, growCompareTopWater = 0,
+  growCompareTopOther = 0,
   growCompareGrowProfit = 0, growCompareGrowCapital = 0, growCompareGrowScore = 0,
   growCompareTopProfit = 0, growCompareTopCapital = 0, growCompareTopScore = 0,
+  growCompareGrowCharge = 0.0, growCompareTopCharge = 0.0, growCompareLambdaSum = 0.0,
   /* TEMP_GROW_COMPARE_END */
   portfolioRaw = 0, portfolioAffordable = 0,
   portfolioTopSelections = 0, portfolioTopAirSelections = 0,
@@ -151,10 +154,13 @@ AIR_SELECTION_LEDGER <- {
   diagnosticRelaxationOps = 0, diagnosticRelaxationDays = 0,
   diagnosticRankingOps = 0, diagnosticRankingDays = 0,
   preparedBuilds = 0, preparedHits = 0,
-  envelopeBuilds = 0, envelopeHits = 0, externalityCacheHits = 0,
-  coverChecks = 0, coverHits = 0, coverMissing = 0,
-  coverBudgetBelow = 0, coverBudgetAbove = 0,
-  coverRawStateMismatch = 0, coverSemanticHits = 0, coverStateMismatch = 0,
+  externalityCacheHits = 0, externalityCacheMisses = 0,
+  /* TEMP_EXACT_VERIFY_BEGIN: passive counters, removed after the diagnostic run. */
+  exactReferenceChecks = 0, exactReferenceLambdaMismatch = 0,
+  exactReferenceTopMismatch = 0, exactReferenceSetMismatch = 0,
+  budgetReselectChecks = 0, budgetReselectLambdaChanged = 0,
+  budgetReselectTopChanged = 0, budgetReselectSetChanged = 0,
+  /* TEMP_EXACT_VERIFY_END */
 };
 /* Nombre maximal d'arrets bus annexes partageant directement le StationID de l'aeroport. */
 AIR_JOINED_STOP_LIMIT <- 2;

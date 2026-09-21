@@ -1,0 +1,152 @@
+Tu peux repartir avec ce prompt :
+
+Continue le chantier AIR capital frontier dans `/openttd-ml` depuis l’état courant du workspace, sans repartir d’une hypothèse ancienne et sans nettoyer/reset le repo.
+
+Contexte immédiat : on cherche à expliquer précisément pourquoi les `grow` AIR d’une ligne existante survivent jusqu’au statut de gagnant de leur groupe `fleet|lineId`, mais se font ensuite dépasser au classement global par d’autres projets, principalement de nouvelles lignes AIR.
+
+La vérification `early_slot` est terminée et négative :
+
+* sous `AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT`, `early_slot` est bien neutralisé ;
+* le chemin frontier retourne via `OpexCapitalFrontierRank()` avant l’application du bonus ;
+* aucune fuite `early_slot -> profitAnnual`, `revenueAnnual` ou `frontierScore` n’a été trouvée ;
+* les deux tests dédiés passent ;
+* dans `results/smoke_air_frontier_simplified_2x3.json`, `air_early_slot=0`.
+  Donc ne perds pas de temps sur early-slot.
+
+Résultat grow déjà établi :
+
+* seed 42b : `growRaw=4`, `growKept=3`, `growRankSeen=56`, `growUndominated=56`, `growNonNegative=56`, `growFinanceable=17`, `growGroupWinner=17`, `growTop=0`, `growAttempted=0`.
+* seed 100b : `growRaw=3`, `growKept=3`, `growRankSeen=31`, `growUndominated=31`, `growNonNegative=10`, `growFinanceable=10`, `growGroupWinner=10`, `growTop=0`, `growAttempted=1`, `growSelected=1`, `growthExecuted=1`.
+  Conclusion : le chemin grow n’est pas structurellement cassé. Le goulet principal est le classement global après les group winners.
+
+La vérification à terminer est maintenant strictement :
+**prendre, sur les mêmes appels où un grow est gagnant de son groupe mais perd globalement, ce grow et le top global qui le bat, puis comparer exactement :**
+
+* `P_network`
+* capital utilisé par la frontier
+* `lambda`
+* `lambda * C`
+* `frontierScore = P_network - lambda*C`
+* mode du top global (`air`, `fleet`, `road`, etc.)
+
+Une instrumentation temporaire a déjà été ajoutée dans le workspace pour faire cette mesure. Avant toute chose, vérifie ce qui est réellement présent dans les fichiers, car plusieurs sessions concurrentes peuvent avoir modifié le workspace.
+
+Fichiers concernés :
+
+* `ai/OpexAI/globals_pre.nut`
+* `ai/OpexAI/projects.nut`
+* `ai/OpexAI/task_air.nut`
+
+Une sauvegarde des trois fichiers avant instrumentation a été créée dans :
+`.tmp_grow_vs_top_verify/`
+
+Il y a aussi :
+`.tmp_grow_vs_top_verify/hashes.txt`
+
+Les SHA256 avant instrumentation enregistrés sont :
+
+* `globals_pre.nut` : `4D3DFB07D11D73936A951C4ED8828008CB94FC1B8C9B2728515A3A1DA00887F2`
+* `projects.nut` : `C665664607C48DB97C00AF31D23522123B831388B4213B58F6D1EBCA3BBC42C8`
+* `task_air.nut` : `13A2D190A80748FB3B43A031E160544C1C6C6453EECAD0C93572435074887D03`
+
+État vérifié juste avant handoff :
+
+* l’instrumentation temporaire est présente ;
+* `globals_pre.nut` contient des champs `growCompare...`;
+* `projects.nut` cumule notamment `growCompareGrowProfit` et `growCompareTopProfit`;
+* `task_air.nut` réutilise temporairement les panneaux CF25–CF27 pour publier la comparaison ;
+* le fichier de résultat prévu `results/diag_air_grow_vs_top_compare_seed42_1x3.json` n’existe pas encore ;
+* donc le benchmark instrumenté n’a pas encore été exécuté.
+
+Important : ne restaure pas immédiatement les backups. D’abord inspecte précisément l’instrumentation actuelle pour t’assurer qu’elle est complète et passive. Plusieurs sessions concurrentes peuvent avoir ajouté des changements légitimes après la sauvegarde ; ne fais jamais un `Copy-Item` aveugle qui écraserait des modifications concurrentes.
+
+La sonde doit rester passive :
+
+* uniquement derrière `AIR_CAPITAL_FRONTIER_PROBE`;
+* ne changer aucun score ni aucune décision ;
+* ne recalculer aucune économie ;
+* utiliser les quantités déjà présentes dans les projets ;
+* ne pas changer lambda ;
+* ne pas changer la politique économique.
+
+La logique voulue est :
+
+* dans `OpexCapitalFrontierRank`, après construction des group winners et du classement global ;
+* identifier le meilleur grow parmi les candidats group winners financeables ;
+* seulement si ce grow existe et n’est pas le top global, enregistrer la comparaison ;
+* utiliser exactement les fonctions/valeurs réellement utilisées par la frontier :
+
+  * `OpexCapitalFrontierProjectProfit(project)` pour `P_network`,
+  * le capital de shadow/frontier réellement utilisé par le score (`OpexProjectShadowCapital` si c’est bien la fonction actuelle),
+  * `frontierCapitalPrice`,
+  * `frontierCapitalCharge`,
+  * `frontierScoreInt` ou `frontierScore` selon la représentation réellement utilisée.
+    Ne remplace pas ces valeurs par des approximations.
+
+Lance ensuite un seul diagnostic seed 42 × 3 ans, avec :
+
+* `air_route_plane_selection=1`
+* `air_best_equipment=1`
+* `air_capital_frontier=1`
+* `air_capital_frontier_probe=1`
+* pas besoin de `decision_log=1` si les panneaux CF suffisent
+* `--cpus=3 --memory=2g --memory-swap=2g`
+* volume `openttd-lab-home:/home/lab`
+* repo monté en `/work`
+* image `openttd-lab`
+* un seul worker
+
+Forme canonique :
+`docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "${PWD}:/work" -w /work openttd-lab python3 sweeps/bench_v2.py ...`
+
+Nom de sortie recommandé :
+`results/diag_air_grow_vs_top_compare_seed42_1x3.json`
+
+Après le run, extrais les compteurs correspondant aux panneaux temporaires CF25–CF27 et reconstruis, au minimum :
+
+* nombre d’appels comparés ;
+* somme et moyenne `P_network` grow ;
+* somme et moyenne capital grow ;
+* somme et moyenne `lambda*C` grow ;
+* somme et moyenne score grow ;
+* somme et moyenne `P_network` top ;
+* somme et moyenne capital top ;
+* somme et moyenne `lambda*C` top ;
+* somme et moyenne score top ;
+* lambda moyen ;
+* répartition des modes du top qui bat le grow.
+
+Si la sonde actuelle ne publie pas directement `lambda*C`, tu peux le reconstruire par `P_network - score`, mais vérifie d’abord les unités et la représentation entière/float. Si `frontierCapitalCharge` est déjà publié, préfère sa valeur exacte.
+
+Interprétation attendue :
+
+* dire si les nouvelles lignes battent les grows parce qu’elles ont simplement beaucoup plus de `P_network`,
+* ou parce que leur capital est sous-évalué,
+* ou parce que `lambda*C` pénalise davantage les grows,
+* ou parce que le calcul `P_network` de nouvelle route semble non comparable au `profitDeltaAnnual` d’un grow.
+  Ne conclus pas qu’il faut favoriser les grows par bonus/quota. La politique utilisateur reste strictement `P_network - lambda*C`.
+
+Une hypothèse architecturale importante à tester si les nouvelles lignes AIR gagnent très largement :
+la première nouvelle route AIR pourrait être surévaluée si son `P_network` inclut son propre profit mais ne soustrait pas complètement la cannibalisation/perte de profit imposée aux lignes existantes partageant un hub. On sait que certaines continuations post-premier-projet recalculent la demande partagée ; il faut vérifier ensuite si le premier projet lui-même incorpore bien cette externalité. Mais ne pars sur cette piste qu’après avoir obtenu la comparaison grow vs top chiffrée.
+
+Après avoir collecté les résultats :
+
+* restaure uniquement l’instrumentation temporaire que tu as toi-même identifiée ;
+* ne restaure pas aveuglément les fichiers complets si le workspace a changé depuis la sauvegarde ;
+* idéalement retire seulement les champs `growCompare...`, le bloc de comparaison ajouté dans `projects.nut`, et le détournement temporaire CF25–CF27 ;
+* vérifie ensuite que les fichiers reviennent à leur état fonctionnel normal ;
+* lance au minimum les tests AIR capital frontier pertinents si la restauration a touché ces fichiers.
+
+Ne fais aucune correction économique à ce stade. La tâche est uniquement de terminer la mesure et de rendre un diagnostic causal clair.
+
+À la fin, donne :
+
+1. les chiffres exacts grow vs top ;
+2. quel type de projet bat les grows ;
+3. pourquoi il les bat mathématiquement ;
+4. si cela ressemble à un résultat cohérent de la politique ou à une non-comparabilité de `P_network` ;
+5. la prochaine vérification minimale à faire ;
+6. confirmation que l’instrumentation temporaire a été retirée proprement.
+
+Tu peux le coller tel quel dans une nouvelle session.
+

@@ -42,7 +42,7 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
-ARM = "OpexAI[c52_autoreplace_log=1]"
+ARM = "OpexAI[probe_events=1]"
 EVENT_RE = re.compile(r"OPEX \d+-\d+-\d+ C52_AUTOREPLACE\s*(.*)")
 # rail/road/air/water/unknown : type du VEHICULE renouvele (AIVehicle.GetVehicleType du nouvel ID).
 # line_* : mode de la LIGNE ou l'ancien ID a ete retrouve -- nul quand l'evenement est untracked.

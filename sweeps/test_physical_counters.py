@@ -420,6 +420,59 @@ class TestPhysicalCounters(unittest.TestCase):
         self.assertEqual(dec["fleet_status"]["crashed"], 1)
         self.assertEqual(dec["fleet_status"]["stopped"] + dec["fleet_status"]["not_stopped"], 5)
 
+    def test_helicopter_head_shadow_and_rotor_subtypes(self):
+        """Fige AircraftSubType: HELICOPTER=0, SHADOW=4, ROTOR=6."""
+        test_vehs = {
+            "0": {
+                "type": 3,
+                "aircraft": [{
+                    "common": [{
+                        "owner": 0,
+                        "unitnumber": 1,
+                        "subtype": 0,
+                        "vehstatus": 0,
+                        "cur_speed": 0,
+                        "next": 0,
+                    }]
+                }],
+            },
+            "1": {
+                "type": 3,
+                "aircraft": [{
+                    "common": [{
+                        "owner": 0,
+                        "unitnumber": 0,
+                        "subtype": 4,
+                        "vehstatus": 0,
+                        "cur_speed": 0,
+                        "next": 0,
+                    }]
+                }],
+            },
+            "2": {
+                "type": 3,
+                "aircraft": [{
+                    "common": [{
+                        "owner": 0,
+                        "unitnumber": 0,
+                        "subtype": 6,
+                        "vehstatus": 0,
+                        "cur_speed": 0,
+                        "next": 0,
+                    }]
+                }],
+            },
+        }
+
+        dec = decode_vehicles(test_vehs, target_owner=0)
+
+        self.assertTrue(dec["chunk_valid"], dec["chunk_error"])
+        self.assertEqual(dec["primary_vehicles_count"], 1)
+        self.assertEqual(dec["primary_vehicles_by_mode"]["air"], 1)
+        self.assertEqual(dec["components_breakdown"]["aircraft_shadows_rotors"], 2)
+        self.assertEqual(dec["unclassified_entries"], [])
+        self.assertEqual(dec["primary_vehicles_detail"][0]["subtype"], 0)
+
     def test_c53_fixture_regression(self):
         """Vérifie la non-régression sur la fixture historique C53 (2 trains dont 1 pax)."""
         chunks = self.c53_data.get("chunks", self.c53_data)

@@ -226,7 +226,7 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
         # Qualification tête vs composant selon les règles OpenTTD 15.3 :
         # - Rail : (subtype & 1) != 0 -> Front Engine. Wagons ont unitnumber == 0 et subtype == 4.
         # - Road : (subtype & 1) != 0 -> Front Engine. Remorques/parties articulées ont unitnumber == 0.
-        # - Air  : subtype in (0, 2) -> Aéronef/Hélicoptère. Ombres (4) et rotors (3) ont unitnumber == 0.
+        # - Air  : subtype in (0, 2) -> Hélicoptère/Aéronef. Ombres (4) et rotors (6) ont unitnumber == 0.
         # - Water: subtype == 0 et unitnumber > 0.
         is_primary = False
         is_component = False
@@ -246,7 +246,7 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
         elif mode == "air":
             if subtype in (0, 2) and unitnumber > 0:
                 is_primary = True
-            elif unitnumber == 0 or subtype in (3, 4):
+            elif unitnumber == 0 or subtype in (4, 6):
                 is_component = True
                 components["aircraft_shadows_rotors"] += 1
         elif mode == "water":

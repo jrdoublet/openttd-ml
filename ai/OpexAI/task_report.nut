@@ -631,7 +631,9 @@ function OpexAI::_scrapRetiredVehicles(year)
           foreach (existing in line.vehicles) {
             if (existing == vehicle) { known = true; break; }
           }
-          if (!known) line.vehicles.append(vehicle);
+          if (!known) {
+            line.vehicles.append(vehicle);
+          }
           if (!("vehicle" in line) || !AIVehicle.IsValidVehicle(line.vehicle)) {
             if ("vehicle" in line) line.vehicle = vehicle;
             else line.vehicle <- vehicle;

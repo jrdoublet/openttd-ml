@@ -663,12 +663,7 @@ function OpexAI::_tryBuildProjects(year)
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
     local initialBudget = this._projects.generationCapitalBudget;
     local budgetNow = OpexAvailableCapital();
-    if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) {
-      if (!OpexFrontierDropLambdaIfAbundant(this._projects, budgetNow))
-        OpexFrontierRefilterStoredScores(this._projects, budgetNow);
-    } else {
-      this._projects = OpexReselectProjects(this._projects, budgetNow, this._catalog, this._lines);
-    }
+    this._projects = OpexReselectProjects(this._projects, budgetNow, this._catalog, this._lines);
     /* 30 caracteres au pire : FB|99|2147483647|2147483647|64. */
     OpexSign(AIMap.GetTileIndex(1, 1), "FB|" + (year % 100) + "|" + initialBudget
              + "|" + budgetNow + "|" + this._projects.stats.budgetSelected);

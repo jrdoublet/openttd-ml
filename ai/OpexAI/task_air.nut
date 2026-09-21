@@ -798,7 +798,10 @@ function OpexAI::_queueAirRetirement(line, vehicle, reason, replacementVehicle =
   });
   if (("vehicles" in line) && line.vehicles != null) {
     for (local i = 0; i < line.vehicles.len(); i++) {
-      if (line.vehicles[i] == vehicle) { line.vehicles.remove(i); break; }
+      if (line.vehicles[i] == vehicle) {
+        line.vehicles.remove(i);
+        break;
+      }
     }
   }
   if (("vehicle" in line) && line.vehicle == vehicle) {
@@ -1631,8 +1634,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
                + AIR_SELECTION_LEDGER.prepareOps + "|" + AIR_SELECTION_LEDGER.prepareDays + "|"
                + AIR_SELECTION_LEDGER.preparedBuilds + "|" + AIR_SELECTION_LEDGER.preparedHits);
       OpexSign(AIMap.GetTileIndex(34, 8), "CF22|"
-               + AIR_SELECTION_LEDGER.envelopeBuilds + "|" + AIR_SELECTION_LEDGER.envelopeHits + "|"
-               + AIR_SELECTION_LEDGER.externalityCacheHits);
+               + AIR_SELECTION_LEDGER.externalityCacheHits + "|"
+               + AIR_SELECTION_LEDGER.externalityCacheMisses);
       OpexSign(AIMap.GetTileIndex(35, 8), "CF23|"
                + AIR_SELECTION_LEDGER.diagnosticPrepareOps + "|"
                + AIR_SELECTION_LEDGER.diagnosticExternalityOps + "|"
@@ -1643,23 +1646,44 @@ function OpexAI::_resizeAirFleets(year, plan = null)
                + AIR_SELECTION_LEDGER.diagnosticExternalityDays + "|"
                + AIR_SELECTION_LEDGER.diagnosticRelaxationDays + "|"
                + AIR_SELECTION_LEDGER.diagnosticRankingDays);
+      /* TEMP_EXACT_VERIFY_BEGIN */
+      if (AIR_CAPITAL_FRONTIER_PROBE) {
+        OpexSign(AIMap.GetTileIndex(41, 8), "CF29|"
+                 + AIR_SELECTION_LEDGER.exactReferenceChecks + "|"
+                 + AIR_SELECTION_LEDGER.exactReferenceLambdaMismatch + "|"
+                 + AIR_SELECTION_LEDGER.exactReferenceTopMismatch + "|"
+                 + AIR_SELECTION_LEDGER.exactReferenceSetMismatch);
+        OpexSign(AIMap.GetTileIndex(42, 8), "CF30|"
+                 + AIR_SELECTION_LEDGER.budgetReselectChecks + "|"
+                 + AIR_SELECTION_LEDGER.budgetReselectLambdaChanged + "|"
+                 + AIR_SELECTION_LEDGER.budgetReselectTopChanged + "|"
+                 + AIR_SELECTION_LEDGER.budgetReselectSetChanged);
+      }
+      /* TEMP_EXACT_VERIFY_END */
       /* TEMP_GROW_COMPARE_BEGIN: repurpose CF25..27 for one diagnostic run. */
       OpexSign(AIMap.GetTileIndex(37, 8), "CF25|"
                + AIR_CAPITAL_FRONTIER_LEDGER.growCompareSamples + "|"
                + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopAir + "|"
-               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowProfit / 1000) + "|"
-               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowCapital / 1000));
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopFleet + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopRoad + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopRail + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopWater + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopOther);
       OpexSign(AIMap.GetTileIndex(38, 8), "CF26|"
-               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowScore / 1000) + "|"
-               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopProfit / 1000) + "|"
-               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopCapital / 1000));
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowProfit + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowCapital);
       OpexSign(AIMap.GetTileIndex(39, 8), "CF27|"
-               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopScore / 1000) + "|0|"
-               + AIR_SELECTION_LEDGER.coverMissing + "|" + AIR_SELECTION_LEDGER.coverBudgetBelow + "|"
-               + AIR_SELECTION_LEDGER.coverBudgetAbove + "|"
-               + AIR_SELECTION_LEDGER.coverRawStateMismatch + "|"
-               + AIR_SELECTION_LEDGER.coverSemanticHits + "|"
-               + AIR_SELECTION_LEDGER.coverStateMismatch);
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowScore + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopProfit);
+      OpexSign(AIMap.GetTileIndex(40, 8), "CF28|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopCapital + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopScore);
+      OpexSign(AIMap.GetTileIndex(43, 8), "CF31|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowCharge);
+      OpexSign(AIMap.GetTileIndex(44, 8), "CF32|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopCharge);
+      OpexSign(AIMap.GetTileIndex(45, 8), "CF33|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareLambdaSum);
       /* TEMP_GROW_COMPARE_END */
     }
   }

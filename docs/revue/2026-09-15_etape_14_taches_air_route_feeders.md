@@ -1,5 +1,10 @@
 # Étape 14 — Tâches air, route et rabattement
 
+> **Statut au 2026-09-20 : REVUE HISTORIQUE.** Les constats de cette étape ont été réconciliés
+> dans `docs/revue_code_2026-09-15_correctifs.md` et `docs/taches.md`. Ne pas interpréter les
+> formulations « à faire » de cette fiche comme des tâches encore ouvertes sans vérifier la
+> matrice et l'état courant de `docs/taches.md`.
+
 - **SHA revu** : `7304613`
 - **Modèle / effort prévus** : Sonnet 5 / high
 - **Périmètre** : `ai/OpexAI/task_air.nut`, `task_road.nut`, `task_feeders.nut` — 1 754 l.

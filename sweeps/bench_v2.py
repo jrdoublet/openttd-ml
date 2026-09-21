@@ -622,9 +622,8 @@ def air_equipment_diagnostic_stats(chunks):
         "air_selection_prepare_days": 0,
         "air_selection_prepared_builds": 0,
         "air_selection_prepared_hits": 0,
-        "air_selection_envelope_builds": 0,
-        "air_selection_envelope_hits": 0,
         "air_selection_externality_cache_hits": 0,
+        "air_selection_externality_cache_misses": 0,
         "air_selection_externality_ops": 0,
         "air_selection_relaxation_ops": 0,
         "air_selection_ranking_ops": 0,
@@ -639,14 +638,6 @@ def air_equipment_diagnostic_stats(chunks):
         "air_selection_diagnostic_externality_days": 0,
         "air_selection_diagnostic_relaxation_days": 0,
         "air_selection_diagnostic_ranking_days": 0,
-        "air_selection_cover_checks": 0,
-        "air_selection_cover_hits": 0,
-        "air_selection_cover_missing": 0,
-        "air_selection_cover_budget_below": 0,
-        "air_selection_cover_budget_above": 0,
-        "air_selection_cover_raw_state_mismatch": 0,
-        "air_selection_cover_semantic_hits": 0,
-        "air_selection_cover_state_mismatch": 0,
         "air_frontier_continuation_plan_ops": 0,
         "air_frontier_continuation_static_ops": 0,
         "air_frontier_continuation_interactive_ops": 0,
@@ -1033,11 +1024,11 @@ def air_equipment_diagnostic_stats(chunks):
                         "air_selection_prepared_builds", "air_selection_prepared_hits")
                 for key, value in zip(keys, values):
                     totals[key] = max(totals[key], value)
-        elif parts[0] == "CF22" and len(parts) >= 4:
-            values = ints(parts[1:4])
+        elif parts[0] == "CF22" and len(parts) >= 3:
+            values = ints(parts[1:3])
             if values is not None:
-                keys = ("air_selection_envelope_builds", "air_selection_envelope_hits",
-                        "air_selection_externality_cache_hits")
+                keys = ("air_selection_externality_cache_hits",
+                        "air_selection_externality_cache_misses")
                 for key, value in zip(keys, values):
                     totals[key] = max(totals[key], value)
         elif parts[0] == "CF23" and len(parts) >= 5:
@@ -1058,6 +1049,24 @@ def air_equipment_diagnostic_stats(chunks):
                         "air_selection_diagnostic_ranking_days")
                 for key, value in zip(keys, values):
                     totals[key] = max(totals[key], value)
+        elif parts[0] == "CF29" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_selection_exact_reference_checks",
+                        "air_selection_exact_reference_lambda_mismatch",
+                        "air_selection_exact_reference_top_mismatch",
+                        "air_selection_exact_reference_set_mismatch")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals.get(key, 0), value)
+        elif parts[0] == "CF30" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_selection_budget_probe_checks",
+                        "air_selection_budget_probe_lambda_changed",
+                        "air_selection_budget_probe_top_changed",
+                        "air_selection_budget_probe_set_changed")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals.get(key, 0), value)
         elif parts[0] == "CF25" and len(parts) >= 5:
             values = ints(parts[1:5])
             if values is not None:
@@ -1073,17 +1082,6 @@ def air_equipment_diagnostic_stats(chunks):
                 keys = ("air_frontier_possibility_technical_rejected",
                         "air_frontier_exploration_town_pool",
                         "air_frontier_exploration_site_probe_budget")
-                for key, value in zip(keys, values):
-                    totals[key] = max(totals[key], value)
-        elif parts[0] == "CF27" and len(parts) >= 9:
-            values = ints(parts[1:9])
-            if values is not None:
-                keys = ("air_selection_cover_checks", "air_selection_cover_hits",
-                        "air_selection_cover_missing", "air_selection_cover_budget_below",
-                        "air_selection_cover_budget_above",
-                        "air_selection_cover_raw_state_mismatch",
-                        "air_selection_cover_semantic_hits",
-                        "air_selection_cover_state_mismatch")
                 for key, value in zip(keys, values):
                     totals[key] = max(totals[key], value)
         elif parts[0] == "AP":
@@ -1105,6 +1103,13 @@ def air_equipment_diagnostic_stats(chunks):
 def keep(row):
     """Une ligne par sauvegarde mensuelle, persistee immediatement pour survivre a un crash."""
     chunks = row["chunks"]
+    # TEMP_GROW_COMPARE_BEGIN: preserve only the passive grow-vs-top signs for one rerun.
+    grow_vs_top_signs = [
+        sign.get("name", "") for sign in chunks.get("SIGN", {}).values()
+        if sign.get("name", "").startswith(("CF25|", "CF26|", "CF27|", "CF28|",
+                                              "CF31|", "CF32|", "CF33|"))
+    ]
+    # TEMP_GROW_COMPARE_END
     player = chunks.get("PLYR", {}).get(0) or chunks.get("PLYR", {}).get("0")
     closed = (player or {}).get("old_economy") or []
     last_closed = closed[0] if closed else {}
@@ -1190,6 +1195,7 @@ def keep(row):
         **selection_ops,
         **observed_ops,
         **air_equipment_diag,
+        "air_grow_vs_top_signs": grow_vs_top_signs,
         # L'echec de chargement d'une IA est silencieux dans PLYR ; ce log reste donc disponible
         # dans le resume final pour le controle explicite de row["output"].
         "openttd_output": row.get("output"),

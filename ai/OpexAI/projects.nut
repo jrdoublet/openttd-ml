@@ -110,6 +110,15 @@ function OpexLogAirFrontierEquipmentChoice(alternatives, top, capitalBudget)
       planes = planes,
       planePrice = project.payload.plane.price,
       immobilise = immobilise,
+      speed = project.payload.plane.speed,
+      capacity = project.payload.plane.capacity,
+      runningCost = project.payload.plane.runningCost,
+      revenue = economics != null && ("revenueAnnual" in economics) ? economics.revenueAnnual : -1,
+      running = economics != null && ("runningAnnual" in economics) ? economics.runningAnnual : -1,
+      amort = economics != null && ("amortAnnual" in economics) ? economics.amortAnnual : -1,
+      oneWayDays = economics != null && ("oneWayDays" in economics) ? economics.oneWayDays : -1,
+      stationRating = economics != null && ("stationRating" in economics) ? economics.stationRating : -1,
+      carried = economics != null && ("carried" in economics) ? economics.carried : -1,
     });
   }
   variants.sort(function(a, b) {
@@ -126,7 +135,10 @@ function OpexLogAirFrontierEquipmentChoice(alternatives, top, capitalBudget)
     encoded += row.engine + ":" + row.capital + ":" + row.directProfit + ":" + row.networkProfit
         + ":" + row.roi + ":" + row.capitalPrice + ":" + row.capitalCharge
         + ":" + row.score + ":" + row.planes
-        + ":" + row.planePrice + ":" + row.immobilise;
+        + ":" + row.planePrice + ":" + row.immobilise
+        + ":" + row.speed + ":" + row.capacity + ":" + row.runningCost
+        + ":" + row.revenue + ":" + row.running + ":" + row.amort
+        + ":" + row.oneWayDays + ":" + row.stationRating + ":" + row.carried;
   }
   OpexDecide("AIR_FRONTIER_EQUIP",
       "src=" + top.src + " dst=" + top.dst
@@ -245,25 +257,51 @@ function OpexAirFrontierExternalityStations(alternatives, capitalBudget)
   return stations;
 }
 
-/* Cle EXACTE de l'etat vivant dont depend l'externalite des hubs.
- * Aucun hash : la chaine contient directement le set des stations cibles, les
- * compteurs de routes, les populations et la composition moteur des flottes
- * pertinentes. Deux cles egales impliquent donc les memes entrees pour
- * OpexAirFrontierExternalityContext/OpexAirFrontierStateProfit. */
-function OpexAirFrontierExternalityStateKey(lines, targetStations)
+function OpexAirFrontierExternalityTargetState(targetStations)
 {
-  if (AIR_DEMAND_PLAN || lines == null) return "externality:none";
-
-  local targetIds = [];
-  if (targetStations != null) foreach (station, value in targetStations) targetIds.append(station);
-  targetIds.sort();
+  local ids = [];
+  if (targetStations != null) foreach (station, value in targetStations) ids.append(station);
+  ids.sort();
   local key = "targets";
-  foreach (station in targetIds) key += "|" + station;
-  if (targetStations != null && targetIds.len() == 0) return key + "|empty";
+  foreach (station in ids) key += "|" + station;
+  if (targetStations != null && ids.len() == 0) key += "|empty";
+  return { ids = ids, key = key };
+}
+
+function OpexAirFrontierExternalityPopulationKey(towns)
+{
+  local key = "population";
+  if (towns == null) return key;
+  foreach (town in towns) {
+    local pop = town >= 0 ? AITown.GetPopulation(town) : 0;
+    key += "|" + town + ":" + pop;
+  }
+  return key;
+}
+
+/* Snapshot EXACT de l'etat vivant dont depend l'externalite des hubs.
+ * Un seul parcours resout stations, vehicules, moteurs, populations, distances
+ * et compteurs de routes. La meme photographie sert ensuite a la cle exacte et,
+ * seulement en cas de cache miss, a construire le contexte economique. */
+function OpexAirFrontierExternalitySnapshot(lines, targetStations, targetState = null)
+{
+  local snapshot = { key = "externality:none", valid = false, live = [], routeCounts = {},
+                     populationTowns = [], populationKey = "population" };
+  if (AIR_DEMAND_PLAN || lines == null) return snapshot;
+
+  local targets = targetState != null ? targetState : OpexAirFrontierExternalityTargetState(targetStations);
+  local targetIds = targets.ids;
+  local key = targets.key;
+  if (targetStations != null && targetIds.len() == 0) {
+    snapshot.key = key;
+    snapshot.valid = true;
+    return snapshot;
+  }
 
   local entries = [];
   local relevant = {};
   local countStations = {};
+  local populationValues = {};
   local entryId = 0;
   foreach (line in lines) {
     if (line == null || !("mode" in line) || line.mode != "air"
@@ -280,8 +318,6 @@ function OpexAirFrontierExternalityStateKey(lines, targetStations)
     }
   }
 
-  local routeCounts = {};
-  local live = [];
   foreach (entry in entries) {
     if (!(entry.stationA in countStations) && !(entry.stationB in countStations)) continue;
     local engines = [];
@@ -291,12 +327,24 @@ function OpexAirFrontierExternalityStateKey(lines, targetStations)
     }
     if (engines.len() == 0) continue;
     if (entry.stationA in countStations)
-      routeCounts.rawset(entry.stationA,
-          (entry.stationA in routeCounts) ? routeCounts[entry.stationA] + 1 : 1);
+      snapshot.routeCounts.rawset(entry.stationA,
+          (entry.stationA in snapshot.routeCounts) ? snapshot.routeCounts[entry.stationA] + 1 : 1);
     if (entry.stationB != entry.stationA && (entry.stationB in countStations))
-      routeCounts.rawset(entry.stationB,
-          (entry.stationB in routeCounts) ? routeCounts[entry.stationB] + 1 : 1);
-    if (entry.id in relevant) live.append({ entry = entry, engines = engines });
+      snapshot.routeCounts.rawset(entry.stationB,
+          (entry.stationB in snapshot.routeCounts) ? snapshot.routeCounts[entry.stationB] + 1 : 1);
+    if (!(entry.id in relevant)) continue;
+
+    local line = entry.line;
+    local townA = AITile.GetClosestTown(line.originA);
+    local townB = AITile.GetClosestTown(line.originB);
+    local popA = townA >= 0 ? AITown.GetPopulation(townA) : 0;
+    local popB = townB >= 0 ? AITown.GetPopulation(townB) : 0;
+    if (townA >= 0) populationValues.rawset(townA, popA);
+    if (townB >= 0) populationValues.rawset(townB, popB);
+    local distance = OpexFlightDistance(line.stationA, line.stationB);
+    engines.sort();
+    snapshot.live.append({ entry = entry, engines = engines,
+      popA = popA, popB = popB, distance = distance });
   }
 
   local countIds = [];
@@ -304,96 +352,78 @@ function OpexAirFrontierExternalityStateKey(lines, targetStations)
   countIds.sort();
   key += "|routes";
   foreach (station in countIds)
-    key += "|" + station + ":" + ((station in routeCounts) ? routeCounts[station] : 0);
+    key += "|" + station + ":"
+        + ((station in snapshot.routeCounts) ? snapshot.routeCounts[station] : 0);
 
   local states = [];
-  foreach (item in live) {
+  foreach (item in snapshot.live) {
     local entry = item.entry;
     local line = entry.line;
-    local townA = AITile.GetClosestTown(line.originA);
-    local townB = AITile.GetClosestTown(line.originB);
-    local popA = townA >= 0 ? AITown.GetPopulation(townA) : 0;
-    local popB = townB >= 0 ? AITown.GetPopulation(townB) : 0;
-    local distance = OpexFlightDistance(line.stationA, line.stationB);
-    item.engines.sort();
     local state = entry.stationA + "," + entry.stationB + "," + line.cargo
-        + "," + popA + "," + popB + "," + distance + ",e";
+        + "," + item.popA + "," + item.popB + "," + item.distance + ",e";
     foreach (engine in item.engines) state += "." + engine;
     states.append(state);
   }
   states.sort();
   key += "|states";
   foreach (state in states) key += "|" + state;
-  return key;
+  foreach (town, pop in populationValues) snapshot.populationTowns.append(town);
+  snapshot.populationTowns.sort();
+  local populationKey = "population";
+  foreach (town in snapshot.populationTowns)
+    populationKey += "|" + town + ":" + populationValues[town];
+  snapshot.populationKey = populationKey;
+  snapshot.key = key;
+  snapshot.valid = true;
+  return snapshot;
 }
 
-function OpexAirFrontierExternalityContext(catalog, lines, targetStations = null)
+/* Les couts moteur et revenus cargo sont stables quand l'inflation est coupee
+ * (configuration canonique des bancs). Quand elle est active, les caches AIR
+ * existants invalident deja leurs prix au mois ; reprendre exactement le meme
+ * epoch empeche de reutiliser un contexte monetaire d'un mois precedent. */
+function OpexAirFrontierExternalityEconomyKey(catalog)
+{
+  if (catalog == null) return "economy:none";
+  local priceEpoch = 0;
+  if (AIGameSettings.GetValue("economy.inflation") != 0) {
+    local date = AIDate.GetCurrentDate();
+    priceEpoch = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+  }
+  local paxCargo = ("paxCargo" in catalog) ? catalog.paxCargo : -1;
+  local mailCargo = ("mailCargo" in catalog) ? catalog.mailCargo : -1;
+  return "economy|" + priceEpoch + "|pax=" + paxCargo + "|mail=" + mailCargo;
+}
+
+function OpexAirFrontierExternalityContextFromSnapshot(catalog, snapshot)
 {
   local context = { valid = false, byStation = {}, states = [] };
-  if (AIR_DEMAND_PLAN || catalog == null || lines == null) return context;
-  if (targetStations != null && targetStations.len() == 0) {
-    context.valid = true;
-    return context;
-  }
-
-  /* First pass: only resolve station pairs. No vehicle/economics work yet. */
-  local entries = [];
-  local relevant = {};
-  local countStations = {};
-  local entryId = 0;
-  foreach (line in lines) {
-    if (line == null || !("mode" in line) || line.mode != "air"
-        || !("vehicles" in line) || line.vehicles == null) continue;
-    local stationA = OpexAirLineStationId(line, 0);
-    local stationB = OpexAirLineStationId(line, 1);
-    if (stationA < 0 || stationB < 0) continue;
-    local id = entryId++;
-    entries.append({ id = id, line = line, stationA = stationA, stationB = stationB });
-    if (targetStations == null || (stationA in targetStations) || (stationB in targetStations)) {
-      relevant.rawset(id, true);
-      countStations.rawset(stationA, true);
-      countStations.rawset(stationB, true);
-    }
-  }
-
-  local routeCounts = {};
-  local live = [];
-  foreach (entry in entries) {
-    if (!(entry.stationA in countStations) && !(entry.stationB in countStations)) continue;
-    local line = entry.line;
-    local hasLive = false;
-    foreach (v in line.vehicles) {
-      if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
-        hasLive = true;
-        break;
-      }
-    }
-    if (!hasLive) continue;
-    if (entry.stationA in countStations)
-      routeCounts.rawset(entry.stationA,
-          (entry.stationA in routeCounts) ? routeCounts[entry.stationA] + 1 : 1);
-    if (entry.stationB != entry.stationA && (entry.stationB in countStations))
-      routeCounts.rawset(entry.stationB,
-          (entry.stationB in routeCounts) ? routeCounts[entry.stationB] + 1 : 1);
-    if (entry.id in relevant) live.append(entry);
-  }
+  if (AIR_DEMAND_PLAN || catalog == null || snapshot == null
+      || !("valid" in snapshot) || !snapshot.valid) return context;
 
   local stateId = 0;
-  foreach (entry in live) {
+  foreach (item in snapshot.live) {
+    local entry = item.entry;
     local line = entry.line;
-    local townA = AITile.GetClosestTown(line.originA);
-    local townB = AITile.GetClosestTown(line.originB);
-    local popA = townA >= 0 ? AITown.GetPopulation(townA) : 0;
-    local popB = townB >= 0 ? AITown.GetPopulation(townB) : 0;
-    local distance = OpexFlightDistance(line.stationA, line.stationB);
-    local economicsContext = OpexAirActualFleetEconomicsContext(catalog, line, distance);
+    local planesList = [];
+    local planesValid = true;
+    foreach (engine in item.engines) {
+      local plane = OpexAirPlaneFromEngine(engine, line.cargo);
+      if (plane == null) {
+        planesValid = false;
+        break;
+      }
+      planesList.append(plane);
+    }
+    local economicsContext = planesValid
+        ? OpexAirFleetEconomicsContext(catalog, planesList, item.distance) : null;
     local state = { id = stateId++, line = line, economicsContext = economicsContext,
       stationA = entry.stationA, stationB = entry.stationB,
-      routesA = (entry.stationA in routeCounts) ? routeCounts[entry.stationA] : 1,
-      routesB = (entry.stationB in routeCounts) ? routeCounts[entry.stationB] : 1,
-      rawA = (popA * TOWN_CATCHMENT_SHARE_PCT) / 100,
-      rawB = (popB * TOWN_CATCHMENT_SHARE_PCT) / 100,
-      distance = distance, profits = {} };
+      routesA = (entry.stationA in snapshot.routeCounts) ? snapshot.routeCounts[entry.stationA] : 1,
+      routesB = (entry.stationB in snapshot.routeCounts) ? snapshot.routeCounts[entry.stationB] : 1,
+      rawA = (item.popA * TOWN_CATCHMENT_SHARE_PCT) / 100,
+      rawB = (item.popB * TOWN_CATCHMENT_SHARE_PCT) / 100,
+      distance = item.distance, profits = {} };
     context.states.append(state);
     if (!(state.stationA in context.byStation)) context.byStation.rawset(state.stationA, []);
     context.byStation[state.stationA].append(state);
@@ -404,6 +434,12 @@ function OpexAirFrontierExternalityContext(catalog, lines, targetStations = null
   }
   context.valid = true;
   return context;
+}
+
+function OpexAirFrontierExternalityContext(catalog, lines, targetStations = null)
+{
+  local snapshot = OpexAirFrontierExternalitySnapshot(lines, targetStations);
+  return OpexAirFrontierExternalityContextFromSnapshot(catalog, snapshot);
 }
 function OpexAirFrontierAffectedStates(plan, context)
 {
@@ -450,14 +486,14 @@ function OpexCapitalFrontierAirSelectedIncrementAtStation(selectedPlan, stationI
   return 0;
 }
 
-function OpexAirFrontierIncumbentLoss(project, catalog, lines, cache, context = null)
+function OpexAirFrontierIncumbentLoss(project, catalog, lines, cache, context = null, key = null)
 {
   local zero = { loss = 0, affected = 0 };
   if (project == null || catalog == null || lines == null || AIR_DEMAND_PLAN
       || !("mode" in project) || project.mode != "air"
       || !("payload" in project) || project.payload == null) return zero;
 
-  local key = OpexAirFrontierIncumbentLossKey(project);
+  if (key == null) key = OpexAirFrontierIncumbentLossKey(project);
   if (key == null) return zero;
   if (key != null && cache != null && (key in cache)) return cache[key];
 
@@ -547,6 +583,21 @@ function OpexCapitalFrontierRememberBestExact(best, capital, profit)
     best.capital = capital;
     best.profit = profit;
   }
+}
+
+function OpexCapitalFrontierHullAppend(hull, bestProfit, capital, profit)
+{
+  if (bestProfit != null && profit <= bestProfit) return bestProfit;
+  while (hull.len() >= 2) {
+    local a = hull[hull.len() - 2];
+    local b = hull[hull.len() - 1];
+    local slope1 = (b.profit - a.profit).tofloat() / (b.capital - a.capital);
+    local slope2 = (profit - b.profit).tofloat() / (capital - b.capital);
+    if (slope1 > slope2) break;
+    hull.pop();
+  }
+  hull.append({ capital = capital, profit = profit });
+  return profit;
 }
 
 function OpexLogAirFrontierIncumbentExternality(alternatives, top, capitalBudget, catalog, lines)
@@ -658,7 +709,24 @@ function OpexProjectScore(value, cost)
   return (value.tofloat() * 1000.0) / cost;
 }
 
-/* P2 : preparation exacte reutilisable par les seules reelections de budget.
+function OpexCapitalFrontierPrepareGroup(rows)
+{
+  rows.sort(function(a, b) {
+    if (a.capital < b.capital) return -1;
+    if (a.capital > b.capital) return 1;
+    if (a.upperProfit > b.upperProfit) return -1;
+    if (a.upperProfit < b.upperProfit) return 1;
+    return 0;
+  });
+  foreach (row in rows) {
+    local project = row.project;
+    project.rawset("frontierFinanceCapital", row.financeCap);
+    project.rawset("frontierShadowCapital", row.capital);
+  }
+  return rows;
+}
+
+/* P2 : preparation exacte reutilisable par les reelections de budget et les refresh fleet locaux.
  * Elle fige l'economie du vivier courant, les cles de groupe et l'ordre local.
  * Les lignes gardent financeCap explicitement : l'ensemble actif est donc encore
  * recalcule au budget vivant, sans jamais memoriser un lambda seul. */
@@ -670,7 +738,7 @@ function OpexCapitalFrontierPrepare(alternatives, catalog, lines, selectionCache
     AIR_SELECTION_LEDGER.preparedHits++;
     return selectionCache.prepared;
   }
-  local prepared = { byGroup = {} };
+  local prepared = { byGroup = {}, targetStations = {} };
   if (candidateGroups != null) {
     foreach (group, projects in candidateGroups) {
       local rows = [];
@@ -678,13 +746,15 @@ function OpexCapitalFrontierPrepare(alternatives, catalog, lines, selectionCache
         if (project == null) continue;
         local financeCap = OpexProjectFinanceCapital(project);
         local shadowCap = OpexProjectShadowCapitalFromFinance(project, financeCap);
+        local lossKey = OpexAirFrontierIncumbentLossKey(project);
+        local needsLoss = catalog != null && lines != null && !AIR_DEMAND_PLAN && lossKey != null;
         local row = {
           project = project,
-          group = group,
           financeCap = financeCap,
           capital = shadowCap,
           upperProfit = project.profitAnnual,
-          needsLoss = OpexCapitalFrontierNeedsIncumbentLoss(project, catalog, lines),
+          needsLoss = needsLoss,
+          lossKey = lossKey,
           lossKnown = false,
           loss = 0,
         };
@@ -698,13 +768,15 @@ function OpexCapitalFrontierPrepare(alternatives, catalog, lines, selectionCache
       local financeCap = OpexProjectFinanceCapital(project);
       local shadowCap = OpexProjectShadowCapitalFromFinance(project, financeCap);
       local group = OpexCapitalFrontierProjectGroupKey(project);
+      local lossKey = OpexAirFrontierIncumbentLossKey(project);
+      local needsLoss = catalog != null && lines != null && !AIR_DEMAND_PLAN && lossKey != null;
       local row = {
         project = project,
-        group = group,
         financeCap = financeCap,
         capital = shadowCap,
         upperProfit = project.profitAnnual,
-        needsLoss = OpexCapitalFrontierNeedsIncumbentLoss(project, catalog, lines),
+        needsLoss = needsLoss,
+        lossKey = lossKey,
         lossKnown = false,
         loss = 0,
       };
@@ -714,13 +786,17 @@ function OpexCapitalFrontierPrepare(alternatives, catalog, lines, selectionCache
     }
   }
   foreach (group, rows in prepared.byGroup) {
-    rows.sort(function(a, b) {
-      if (a.capital < b.capital) return -1;
-      if (a.capital > b.capital) return 1;
-      if (a.upperProfit > b.upperProfit) return -1;
-      if (a.upperProfit < b.upperProfit) return 1;
-      return 0;
-    });
+    OpexCapitalFrontierPrepareGroup(rows);
+    foreach (row in rows) {
+      if (!row.needsLoss || row.lossKey == null) continue;
+      local plan = row.project.payload;
+      if (("reuseA" in plan) && plan.reuseA && ("siteA" in plan) && plan.siteA != null
+          && ("stationId" in plan.siteA) && plan.siteA.stationId >= 0)
+        prepared.targetStations.rawset(plan.siteA.stationId, true);
+      if (("reuseB" in plan) && plan.reuseB && ("siteB" in plan) && plan.siteB != null
+          && ("stationId" in plan.siteB) && plan.siteB.stationId >= 0)
+        prepared.targetStations.rawset(plan.siteB.stationId, true);
+    }
   }
   if (selectionCache != null) {
     selectionCache.rawset("prepared", prepared);
@@ -729,277 +805,85 @@ function OpexCapitalFrontierPrepare(alternatives, catalog, lines, selectionCache
   return prepared;
 }
 
-function OpexCapitalFrontierEnvelope(rows)
+function OpexCapitalPriceRelaxationPrepared(pricePrepared, capitalBudget)
 {
-  local points = [{ capital = 0, profit = 0 }];
-  foreach (row in rows) {
-    local project = row.project;
-    if (project == null) continue;
-    if (("frontierExactDominated" in project) && project.frontierExactDominated) continue;
-    local profit = OpexCapitalFrontierProjectProfit(project);
-    if (profit <= 0) continue;
-    points.append({ capital = row.capital, profit = profit });
-  }
-  points.sort(function(a, b) {
-    if (a.capital < b.capital) return -1;
-    if (a.capital > b.capital) return 1;
-    if (a.profit > b.profit) return -1;
-    if (a.profit < b.profit) return 1;
-    return 0;
-  });
-  local pareto = [];
-  local bestProfit = null;
-  foreach (point in points) {
-    if (bestProfit != null && point.profit <= bestProfit) continue;
-    pareto.append(point);
-    bestProfit = point.profit;
-  }
-  local hull = [];
-  foreach (point in pareto) {
-    while (hull.len() >= 2) {
-      local aa = hull[hull.len() - 2];
-      local bb = hull[hull.len() - 1];
-      local dx1 = bb.capital - aa.capital;
-      local dx2 = point.capital - bb.capital;
-      if (dx1 <= 0 || dx2 <= 0) {
-        hull.pop();
-        continue;
-      }
-      local slope1 = (bb.profit - aa.profit).tofloat() / dx1;
-      local slope2 = (point.profit - bb.profit).tofloat() / dx2;
-      if (slope1 > slope2) break;
-      hull.pop();
-    }
-    hull.append(point);
-  }
-  local state = { base = 0, full = 0, segments = [] };
-  if (hull.len() <= 0) return state;
-  state.base = hull[0].capital;
-  state.full = hull[hull.len() - 1].capital;
-  for (local i = 1; i < hull.len(); i++) {
-    local prev = hull[i - 1];
-    local next = hull[i];
-    local deltaCapital = next.capital - prev.capital;
-    local deltaProfit = next.profit - prev.profit;
-    if (deltaCapital <= 0 || deltaProfit <= 0) continue;
-    state.segments.append({
-      lambda = deltaProfit.tofloat() / deltaCapital,
-      deltaCapital = deltaCapital,
-    });
-  }
-  return state;
-}
-
-function OpexCapitalPriceRelaxationPrepared(byGroup, activeThresholds, capitalBudget,
-                                            selectionCache = null, externalityStateKey = null)
-{
-  local ratios = AIList();
-  local fullDemand = 0;
-  local groupCount = 0;
-  local sampleCount = 0;
-  local sampleMax = 32;
-  if (byGroup == null || capitalBudget <= 0)
+  if (pricePrepared == null || capitalBudget <= 0)
     return { lambda = 0.0, fullDemand = 0, relaxedDemand = 0,
-             baseDemand = 0, groups = 0, segments = 0, lambdaPct = 0,
-             lambdaBudgetMin = 0, lambdaBudgetMax = null };
+             groups = 0, segments = 0 };
+  local fullDemand = pricePrepared.fullDemand;
+  local baseDemand = pricePrepared.baseDemand;
+  local groupCount = pricePrepared.groups;
+  local segments = pricePrepared.segments;
 
-  foreach (group, rows in byGroup) {
-    if (rows.len() <= 0) continue;
-    local representative = null;
-    local representativeProfit = 0;
-    local predecessor = null;
-    local predecessorProfit = 0;
-    foreach (row in rows) {
-      local project = row.project;
-      if (project == null
-          || (("frontierExactDominated" in project) && project.frontierExactDominated))
-        continue;
-      local profit = OpexCapitalFrontierProjectProfit(project);
-      if (profit <= 0) continue;
-      if (representative == null) {
-        representative = row;
-        representativeProfit = profit;
-        continue;
-      }
-      if (profit <= representativeProfit) continue;
-      if (row.capital > representative.capital) {
-        predecessor = representative;
-        predecessorProfit = representativeProfit;
-      }
-      representative = row;
-      representativeProfit = profit;
-    }
-    if (representative == null) continue;
-    groupCount++;
-    if (representative.financeCap > 0) fullDemand += representative.financeCap;
-    if (representative.capital > 0 && sampleCount < sampleMax) {
-      local priorCapital = predecessor != null ? predecessor.capital : 0;
-      local priorProfit = predecessor != null ? predecessorProfit : 0;
-      local deltaCapital = representative.capital - priorCapital;
-      local deltaProfit = representativeProfit - priorProfit;
-      if (deltaCapital > 0 && deltaProfit > 0) {
-        local ratioPct = ((deltaProfit.tofloat() * 100.0) / deltaCapital).tointeger();
-        if (ratioPct < 0) ratioPct = 0;
-        ratios.AddItem(sampleCount, ratioPct);
-        sampleCount++;
-      }
-    }
-  }
-
-  if (fullDemand <= capitalBudget || sampleCount <= 0) {
-    if (selectionCache != null) {
-      selectionCache.rawset("coarseLambdaPct", 0);
-      selectionCache.rawset("coarseFullDemand", fullDemand);
-    }
+  if (fullDemand <= capitalBudget) {
     return { lambda = 0.0, fullDemand = fullDemand, relaxedDemand = fullDemand,
-             baseDemand = 0, groups = groupCount, segments = sampleCount,
-             lambdaPct = 0, lambdaBudgetMin = 0, lambdaBudgetMax = null };
+             groups = groupCount, segments = segments.len() };
   }
 
-  ratios.Sort(AIList.SORT_BY_VALUE, AIList.SORT_ASCENDING);
-  /* Lambda volontairement faible : prendre le bas de distribution, pas le
-   * rendement marginal median du portefeuille. Un huitieme reste assez robuste
-   * pour ignorer un unique outlier tout en laissant passer les projets a capital
-   * eleve dont le profit reseau reste substantiel. */
-  local target = (sampleCount - 1) / 8;
-  local item = ratios.Begin();
-  for (local i = 0; i < target && !ratios.IsEnd(); i++) item = ratios.Next();
-  local lambdaPct = ratios.IsEnd() ? 0 : ratios.GetValue(item);
-  if (selectionCache != null) {
-    selectionCache.rawset("coarseLambdaPct", lambdaPct);
-    selectionCache.rawset("coarseFullDemand", fullDemand);
-  }
-  return { lambda = lambdaPct.tofloat() / 100.0,
-           fullDemand = fullDemand, relaxedDemand = capitalBudget,
-           baseDemand = 0, groups = groupCount, segments = sampleCount,
-           lambdaPct = lambdaPct, lambdaBudgetMin = 0, lambdaBudgetMax = null };
-}
-
-/* Prix du capital du portefeuille.
- *
- * Chaque groupe mutuellement exclusif (OD/ligne) conserve d'abord sa frontiere locale
- * capital -> profit reseau net, avec comme base la meilleure option gratuite du
- * groupe ou (0, 0) s'il n'y en a aucune. Les points qui ne
- * peuvent jamais maximiser P - lambda*C sont retires par l'enveloppe concave superieure.
- * Ses segments sont exactement les rendements marginaux successifs du groupe.
- *
- * La relaxation autorise seulement, pour ESTIMER lambda, une fraction du segment qui
- * traverse le budget. Aucun projet reel n'est fractionne ensuite : la selection finale
- * garde les projets indivisibles, la contrainte OpexProjectFinanceCapital <= budget et
- * la reserve d'exploitation deja incluse dans capitalBudget. */
-function OpexCapitalPriceRelaxation(alternatives, capitalBudget)
-{
-  local byGroup = {};
-  local segments = [];
-  local fullDemand = 0;
-  local baseDemand = 0;
-  if (alternatives == null || capitalBudget <= 0)
-    return { lambda = 0.0, fullDemand = 0, relaxedDemand = 0,
-             baseDemand = 0, groups = 0, segments = 0 };
-
-  foreach (project in alternatives) {
-    if (project == null) continue;
-    if (("frontierExactDominated" in project) && project.frontierExactDominated) continue;
-    local financeCap = ("frontierFinanceCapital" in project)
-        ? project.frontierFinanceCapital : OpexProjectFinanceCapital(project);
-    local cap = OpexProjectShadowCapital(project);
-    local profit = OpexCapitalFrontierProjectProfit(project);
-    /* Un projet a capital nul ne consomme pas la ressource, mais s'il est positif il
-     * constitue le point de base gratuit de son groupe : les variantes payantes ne
-     * doivent etre valorisees que sur leur PROFIT INCREMENTAL au-dessus de cette base.
-     * Les projets individuellement non financables ne doivent pas rendre le capital rare. */
-    /* Le capital economique peut etre negatif : une retraite libere un actif et
-     * eventuellement du transit. Seule la contrainte de CASH reste non negative
-     * et decide si l'action est executable. */
-    if (financeCap > capitalBudget || profit <= 0) continue;
-    local group = OpexCapitalFrontierProjectGroupKey(project);
-    if (group == null) continue;
-    if (!(group in byGroup)) byGroup.rawset(group, []);
-    byGroup[group].append({ capital = cap, profit = profit });
-  }
-
-  local groupCount = 0;
-  foreach (group, rows in byGroup) {
-    /* L'option exterieure reste explicite, mais elle peut etre dominee par une
-     * action qui augmente le profit tout en liberant du capital. */
-    rows.append({ capital = 0, profit = 0 });
-    rows.sort(function(a, b) {
-      if (a.capital < b.capital) return -1;
-      if (a.capital > b.capital) return 1;
-      if (a.profit > b.profit) return -1;
-      if (a.profit < b.profit) return 1;
-      return 0;
-    });
-
-    local pareto = [];
-    local bestProfit = null;
-    foreach (row in rows) {
-      if (bestProfit != null && row.profit <= bestProfit) continue;
-      pareto.append(row);
-      bestProfit = row.profit;
-    }
-    if (pareto.len() <= 0) continue;
-
-    /* Enveloppe concave superieure. Si la pente suivante est >= a la precedente,
-     * le point intermediaire ne peut jamais etre optimal pour aucun lambda >= 0. */
-    local hull = [];
-    foreach (row in pareto) {
-      while (hull.len() >= 2) {
-        local a = hull[hull.len() - 2];
-        local b = hull[hull.len() - 1];
-        local dx1 = b.capital - a.capital;
-        local dx2 = row.capital - b.capital;
-        if (dx1 <= 0 || dx2 <= 0) {
-          hull.pop();
-          continue;
-        }
-        local slope1 = (b.profit - a.profit).tofloat() / dx1;
-        local slope2 = (row.profit - b.profit).tofloat() / dx2;
-        if (slope1 > slope2) break;
-        hull.pop();
-      }
-      hull.append(row);
-    }
-
-    groupCount++;
-    baseDemand += hull[0].capital;
-    fullDemand += hull[hull.len() - 1].capital;
-    for (local i = 1; i < hull.len(); i++) {
-      local prev = hull[i - 1];
-      local next = hull[i];
-      local deltaCapital = next.capital - prev.capital;
-      local deltaProfit = next.profit - prev.profit;
-      if (deltaCapital <= 0 || deltaProfit <= 0) continue;
-      segments.append({
-        lambda = deltaProfit.tofloat() / deltaCapital,
-        deltaCapital = deltaCapital,
-      });
+  /* Le tri Array.sort appelle un comparateur Squirrel O(S log S), tres couteux.
+   * Un max-heap construit en O(S) donne exactement le meme ordre utile ici.
+   * Le tie-break capital est conserve meme si, a pente egale, lambda serait
+   * identique quel que soit le segment qui traverse le budget. */
+  local heapSize = segments.len();
+  for (local i = (heapSize / 2) - 1; i >= 0; i--) {
+    local root = i;
+    while (true) {
+      local left = root * 2 + 1;
+      if (left >= heapSize) break;
+      local right = left + 1;
+      local child = left;
+      if (right < heapSize
+          && (segments[right].slope > segments[left].slope
+              || (segments[right].slope == segments[left].slope
+                  && segments[right].capital < segments[left].capital)))
+        child = right;
+      local childHigher = segments[child].slope > segments[root].slope
+          || (segments[child].slope == segments[root].slope
+              && segments[child].capital < segments[root].capital);
+      if (!childHigher) break;
+      local swap = segments[root];
+      segments[root] = segments[child];
+      segments[child] = swap;
+      root = child;
     }
   }
-
-  if (fullDemand <= capitalBudget)
-    return { lambda = 0.0, fullDemand = fullDemand, relaxedDemand = fullDemand,
-             baseDemand = baseDemand, groups = groupCount, segments = segments.len() };
-
-  segments.sort(function(a, b) {
-    if (a.lambda > b.lambda) return -1;
-    if (a.lambda < b.lambda) return 1;
-    if (a.deltaCapital < b.deltaCapital) return -1;
-    if (a.deltaCapital > b.deltaCapital) return 1;
-    return 0;
-  });
-
   local demand = baseDemand;
-  foreach (segment in segments) {
-    if (demand + segment.deltaCapital > capitalBudget) {
-      return { lambda = segment.lambda, fullDemand = fullDemand, relaxedDemand = capitalBudget,
-               baseDemand = baseDemand, groups = groupCount, segments = segments.len() };
+  while (heapSize > 0) {
+    local segment = segments[0];
+    if (demand + segment.capital > capitalBudget) {
+      return { lambda = segment.slope, fullDemand = fullDemand, relaxedDemand = capitalBudget,
+               groups = groupCount, segments = segments.len() };
     }
-    demand += segment.deltaCapital;
+    demand += segment.capital;
+    heapSize--;
+    if (heapSize <= 0) break;
+    segments[0] = segments[heapSize];
+    local root = 0;
+    while (true) {
+      local left = root * 2 + 1;
+      if (left >= heapSize) break;
+      local right = left + 1;
+      local child = left;
+      if (right < heapSize
+          && (segments[right].slope > segments[left].slope
+              || (segments[right].slope == segments[left].slope
+                  && segments[right].capital < segments[left].capital)))
+        child = right;
+      local childHigher = segments[child].slope > segments[root].slope
+          || (segments[child].slope == segments[root].slope
+              && segments[child].capital < segments[root].capital);
+      if (!childHigher) break;
+      local swap = segments[root];
+      segments[root] = segments[child];
+      segments[child] = swap;
+      root = child;
+    }
   }
   return { lambda = 0.0, fullDemand = fullDemand, relaxedDemand = demand,
-           baseDemand = baseDemand, groups = groupCount, segments = segments.len() };
+           groups = groupCount, segments = segments.len() };
 }
+
+
 
 function OpexSelectionLedgerRecordCause(cause, diagnostic, ops, days)
 {
@@ -1048,6 +932,148 @@ function OpexSelectionLedgerRecordPhase(phase, diagnostic, ops, days)
   else if (phase == "ranking") { AIR_SELECTION_LEDGER.rankingOps += ops; AIR_SELECTION_LEDGER.rankingDays += days; }
 }
 
+/* TEMP_EXACT_VERIFY_BEGIN
+ * Reconstruction volontairement non optimisee du prix de reference :
+ * points -> Pareto -> enveloppe concave -> tri complet des segments.
+ * Elle ne tourne que sous AIR_CAPITAL_FRONTIER_PROBE et ne participe jamais
+ * a la decision de production. */
+function OpexCapitalPriceReferencePrepared(byGroup, capitalBudget)
+{
+  if (byGroup == null || capitalBudget <= 0) return 0.0;
+  local fullDemand = 0;
+  local baseDemand = 0;
+  local segments = [];
+  foreach (group, rows in byGroup) {
+    local points = [{ capital = 0, profit = 0 }];
+    foreach (row in rows) {
+      if (row.financeCap > capitalBudget) continue;
+      local project = row.project;
+      if (project == null
+          || (("frontierExactDominated" in project) && project.frontierExactDominated))
+        continue;
+      local profit = OpexCapitalFrontierProjectProfit(project);
+      if (profit <= 0) continue;
+      points.append({ capital = row.capital, profit = profit });
+    }
+    points.sort(function(a, b) {
+      if (a.capital < b.capital) return -1;
+      if (a.capital > b.capital) return 1;
+      if (a.profit > b.profit) return -1;
+      if (a.profit < b.profit) return 1;
+      return 0;
+    });
+    local pareto = [];
+    local bestProfit = null;
+    foreach (point in points) {
+      if (bestProfit != null && point.profit <= bestProfit) continue;
+      pareto.append(point);
+      bestProfit = point.profit;
+    }
+    if (pareto.len() <= 0) continue;
+    local hull = [];
+    foreach (point in pareto) {
+      while (hull.len() >= 2) {
+        local a = hull[hull.len() - 2];
+        local b = hull[hull.len() - 1];
+        local slope1 = (b.profit - a.profit).tofloat() / (b.capital - a.capital);
+        local slope2 = (point.profit - b.profit).tofloat() / (point.capital - b.capital);
+        if (slope1 > slope2) break;
+        hull.pop();
+      }
+      hull.append(point);
+    }
+    baseDemand += hull[0].capital;
+    fullDemand += hull[hull.len() - 1].capital;
+    for (local i = 1; i < hull.len(); i++) {
+      local previous = hull[i - 1];
+      local following = hull[i];
+      local deltaCapital = following.capital - previous.capital;
+      local deltaProfit = following.profit - previous.profit;
+      if (deltaCapital <= 0 || deltaProfit <= 0) continue;
+      segments.append({
+        slope = deltaProfit.tofloat() / deltaCapital,
+        capital = deltaCapital,
+      });
+    }
+  }
+  if (fullDemand <= capitalBudget) return 0.0;
+  segments.sort(function(a, b) {
+    if (a.slope > b.slope) return -1;
+    if (a.slope < b.slope) return 1;
+    if (a.capital < b.capital) return -1;
+    if (a.capital > b.capital) return 1;
+    return 0;
+  });
+  local demand = baseDemand;
+  foreach (segment in segments) {
+    if (demand + segment.capital > capitalBudget) return segment.slope;
+    demand += segment.capital;
+  }
+  return 0.0;
+}
+
+function OpexCapitalFrontierReferenceRank(alternatives, capitalBudget, limit, lambda)
+{
+  local candidates = [];
+  local scores = [];
+  local winners = {};
+  local winnerScores = {};
+  if (alternatives == null) return [];
+  foreach (project in alternatives) {
+    if (project == null
+        || (("frontierExactDominated" in project) && project.frontierExactDominated))
+      continue;
+    local financeCapital = ("frontierFinanceCapital" in project)
+        ? project.frontierFinanceCapital : OpexProjectFinanceCapital(project);
+    if (financeCapital > capitalBudget) continue;
+    local capital = OpexProjectShadowCapital(project);
+    local profit = OpexCapitalFrontierProjectProfit(project);
+    local score = profit.tofloat() - lambda * capital;
+    local scoreInt = score.tointeger();
+    if (scoreInt < 0) continue;
+    local group = OpexCapitalFrontierProjectGroupKey(project);
+    if (group == null) {
+      candidates.append(project);
+      scores.append(scoreInt);
+      continue;
+    }
+    if (!(group in winners)) {
+      winners.rawset(group, project);
+      winnerScores.rawset(group, score);
+      continue;
+    }
+    local incumbent = winners[group];
+    local incumbentScore = winnerScores[group];
+    if (score > incumbentScore) {
+      winners[group] = project;
+      winnerScores[group] = score;
+      continue;
+    }
+    if (score < incumbentScore) continue;
+    local incumbentCapital = OpexProjectShadowCapital(incumbent);
+    if (capital < incumbentCapital
+        || (capital == incumbentCapital
+            && profit > OpexCapitalFrontierProjectProfit(incumbent))) {
+      winners[group] = project;
+      winnerScores[group] = score;
+    }
+  }
+  foreach (group, project in winners) {
+    candidates.append(project);
+    scores.append(winnerScores[group].tointeger());
+  }
+  local order = AIList();
+  for (local i = 0; i < candidates.len(); i++) order.AddItem(i, scores[i]);
+  order.Sort(AIList.SORT_BY_VALUE, false);
+  local best = [];
+  for (local id = order.Begin(); !order.IsEnd(); id = order.Next()) {
+    best.append(candidates[id]);
+    if (best.len() >= limit) break;
+  }
+  return best;
+}
+/* TEMP_EXACT_VERIFY_END */
+
 function OpexCapitalFrontierAssignScores(alternatives, capitalBudget, catalog = null, lines = null,
                                          selectionDiagnostic = false, selectionCache = null,
                                          candidateGroups = null)
@@ -1055,24 +1081,14 @@ function OpexCapitalFrontierAssignScores(alternatives, capitalBudget, catalog = 
   local measurePhases = AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT;
   local phaseMark = measurePhases ? OpexOpsMeasureBegin() : null;
   local phaseDate = measurePhases ? AIDate.GetCurrentDate() : 0;
-  local selectionDate = AIDate.GetCurrentDate();
   local externalityCache = {};
   local prepared = OpexCapitalFrontierPrepare(
       alternatives, catalog, lines, selectionCache, candidateGroups);
   local byGroup = prepared.byGroup;
 
-  /* 1) Le vivier est evalue independamment de la caisse courante. Lambda est
-   * attache a la revision economique, pas a chaque mouvement de tresorerie. */
-  foreach (group, rows in byGroup) {
-    foreach (row in rows) {
-      local project = row.project;
-      project.rawset("frontierFinanceCapital", row.financeCap);
-      project.rawset("frontierShadowCapital", row.capital);
-      project.rawset("frontierExactDominated", false);
-      project.rawset("frontierIncumbentLoss", 0);
-      project.rawset("frontierOwnProfit", project.profitAnnual);
-    }
-  }
+  /* 1) La preparation structurelle est reutilisable. Les champs derives sont
+   * reinitialises uniquement pour les lignes finançables quand elles sont
+   * effectivement visitees plus bas. */
   local prepareOps = 0;
   if (measurePhases) {
     prepareOps = OpexOpsMeasureEnd(phaseMark);
@@ -1082,59 +1098,47 @@ function OpexCapitalFrontierAssignScores(alternatives, capitalBudget, catalog = 
     phaseDate = AIDate.GetCurrentDate();
   }
 
-  /* 2) Pre-certificat gratuit : les projets dont la perte incumbent vaut
-   * EXACTEMENT zero (non-AIR/fleet, AIR sans hub reutilise, etc.) peuvent deja
-   * dominer des variantes AIR avant meme de construire le contexte d'externalite.
-   * Cela retire aussi leurs hubs du contexte couteux. */
-  foreach (group, rows in byGroup) {
-    local best = { valid = false, capital = 0, profit = 0 };
-    foreach (row in rows) {
-      if (row.needsLoss) {
-        if (OpexCapitalFrontierStrictUpperDominated(best, row.capital, row.upperProfit))
-          row.project.frontierExactDominated = true;
-        continue;
-      }
-      if (OpexCapitalFrontierStrictUpperDominated(best, row.capital, row.upperProfit)) {
-        row.project.frontierExactDominated = true;
-        continue;
-      }
-      OpexCapitalFrontierRememberBestExact(best, row.capital, row.upperProfit);
-    }
-  }
-
-  local externalityCandidates = [];
-  foreach (group, rows in byGroup) foreach (row in rows) {
-    if (row.needsLoss && !row.project.frontierExactDominated)
-      externalityCandidates.append(row.project);
-  }
+  /* 2) Le set de hubs est un superset structurel prepare une fois par revision du
+   * vivier. Inclure les hubs de variantes non finançables ou ensuite dominees est
+   * sans effet economique et evite un scan complet a chaque mouvement de budget. */
+  local targetStations = prepared.targetStations;
 
   /* Le prix du capital porte sur le profit RESEAU net. Le contexte ne contient
    * plus les hubs de candidats deja prouves domines. */
-  local targetStations = OpexAirFrontierExternalityStations(externalityCandidates, capitalBudget);
-  local externalityStateKey = OpexAirFrontierExternalityStateKey(lines, targetStations);
+  local targetState = OpexAirFrontierExternalityTargetState(targetStations);
+  local economyKey = OpexAirFrontierExternalityEconomyKey(catalog);
+  local externalitySnapshot = OpexAirFrontierExternalitySnapshot(lines, targetStations, targetState);
+  local externalityStateKey = externalitySnapshot.key + "|" + economyKey;
   local externalityContext = null;
   if (selectionCache != null && ("externalityContextStateKey" in selectionCache)
       && selectionCache.externalityContextStateKey == externalityStateKey
       && ("externalityContext" in selectionCache) && selectionCache.externalityContext != null) {
     externalityContext = selectionCache.externalityContext;
   } else {
-    externalityContext = OpexAirFrontierExternalityContext(catalog, lines, targetStations);
-    if (selectionCache != null) {
-      selectionCache.rawset("externalityContextStateKey", externalityStateKey);
-      selectionCache.rawset("externalityContext", externalityContext);
-    }
+    externalityContext = OpexAirFrontierExternalityContextFromSnapshot(catalog, externalitySnapshot);
+  }
+  if (selectionCache != null) {
+    selectionCache.rawset("externalityContextStateKey", externalityStateKey);
+    selectionCache.rawset("externalityContext", externalityContext);
   }
 
-  /* 3) Passe exacte groupe-locale. Apres chaque evaluation, le meilleur point
-   * exact peut certifier les upper bounds suivants. Aucun point elague ne peut
-   * appartenir au Pareto local, modifier lambda ou gagner la selection finale. */
-  local selectionExternalityLosses = {};
-  local selectionExternalityWitnesses = {};
+  /* 3) Passe exacte groupe-locale. Elle calcule une seule fois le profit reseau
+   * et construit en meme temps l'enveloppe locale utile au prix du capital.
+   * La relaxation globale ne reparcourt donc plus les projets. */
+  local pricePrepared = { baseDemand = 0, fullDemand = 0, groups = 0, segments = [] };
   foreach (group, rows in byGroup) {
     local best = { valid = false, capital = 0, profit = 0 };
+    local hull = [];
+    local bestProfit = null;
+    local zeroInserted = false;
+    local bucketCapital = null;
+    local bucketProfit = null;
     foreach (row in rows) {
+      if (row.financeCap > capitalBudget) continue;
       local project = row.project;
-      if (project.frontierExactDominated) continue;
+      project.rawset("frontierExactDominated", false);
+      project.rawset("frontierIncumbentLoss", 0);
+      project.rawset("frontierOwnProfit", project.profitAnnual);
       if (OpexCapitalFrontierStrictUpperDominated(best, row.capital, row.upperProfit)) {
         project.frontierExactDominated = true;
         continue;
@@ -1142,31 +1146,81 @@ function OpexCapitalFrontierAssignScores(alternatives, capitalBudget, catalog = 
 
       local loss = 0;
       if (row.needsLoss) {
+        local lossKey = row.lossKey;
         if (row.lossKnown && ("lossStateKey" in row)
             && row.lossStateKey == externalityStateKey) {
           loss = row.loss;
           AIR_SELECTION_LEDGER.externalityCacheHits++;
+        } else if (lossKey != null && (lossKey in externalityCache)) {
+          loss = externalityCache[lossKey].loss;
+          row.loss = loss;
+          row.lossKnown = true;
+          row.rawset("lossStateKey", externalityStateKey);
+          AIR_SELECTION_LEDGER.externalityCacheHits++;
         } else {
+          AIR_SELECTION_LEDGER.externalityCacheMisses++;
           local externality = OpexAirFrontierIncumbentLoss(project, catalog, lines,
-              externalityCache, externalityContext);
+              externalityCache, externalityContext, lossKey);
           loss = externality.loss < 0 ? 0 : externality.loss;
           row.loss = loss;
           row.lossKnown = true;
           row.rawset("lossStateKey", externalityStateKey);
-        }
-        if (selectionCache != null) {
-          local lossKey = OpexAirFrontierIncumbentLossKey(project);
-          if (lossKey != null) {
-            selectionExternalityLosses.rawset(lossKey, loss);
-            if (!(lossKey in selectionExternalityWitnesses))
-              selectionExternalityWitnesses.rawset(lossKey, project);
-          }
         }
       }
       local ownProfit = project.profitAnnual - loss;
       project.frontierIncumbentLoss = loss;
       project.frontierOwnProfit = ownProfit;
       OpexCapitalFrontierRememberBestExact(best, row.capital, ownProfit);
+      if (ownProfit <= 0) continue;
+
+      local capital = row.capital;
+      if (!zeroInserted && capital > 0) {
+        if (bucketCapital != null) {
+          bestProfit = OpexCapitalFrontierHullAppend(
+              hull, bestProfit, bucketCapital, bucketProfit);
+          bucketCapital = null;
+          bucketProfit = null;
+        }
+        bestProfit = OpexCapitalFrontierHullAppend(hull, bestProfit, 0, 0);
+        zeroInserted = true;
+      }
+      if (bucketCapital != null && capital != bucketCapital) {
+        bestProfit = OpexCapitalFrontierHullAppend(
+            hull, bestProfit, bucketCapital, bucketProfit);
+        bucketCapital = null;
+        bucketProfit = null;
+      }
+      if (capital == 0 && !zeroInserted) {
+        zeroInserted = true;
+        bucketCapital = 0;
+        bucketProfit = 0;
+      }
+      if (bucketCapital == null) {
+        bucketCapital = capital;
+        bucketProfit = ownProfit;
+      } else if (ownProfit > bucketProfit) {
+        bucketProfit = ownProfit;
+      }
+    }
+    if (bucketCapital != null)
+      bestProfit = OpexCapitalFrontierHullAppend(
+          hull, bestProfit, bucketCapital, bucketProfit);
+    if (!zeroInserted)
+      bestProfit = OpexCapitalFrontierHullAppend(hull, bestProfit, 0, 0);
+    if (hull.len() <= 0) continue;
+    pricePrepared.groups++;
+    pricePrepared.baseDemand += hull[0].capital;
+    pricePrepared.fullDemand += hull[hull.len() - 1].capital;
+    for (local i = 1; i < hull.len(); i++) {
+      local predecessor = hull[i - 1];
+      local representative = hull[i];
+      local deltaCapital = representative.capital - predecessor.capital;
+      local deltaProfit = representative.profit - predecessor.profit;
+      if (deltaCapital <= 0 || deltaProfit <= 0) continue;
+      pricePrepared.segments.append({
+        slope = deltaProfit.tofloat() / deltaCapital,
+        capital = deltaCapital,
+      });
     }
   }
   local externalityOps = 0;
@@ -1180,11 +1234,16 @@ function OpexCapitalFrontierAssignScores(alternatives, capitalBudget, catalog = 
   if (AIR_CAPITAL_FRONTIER_PROBE)
     AIR_CAPITAL_FRONTIER_LEDGER.assignExternalityOps += prepareOps + externalityOps;
 
-  local price = OpexCapitalPriceRelaxationPrepared(
-      byGroup, null, capitalBudget, selectionCache, externalityStateKey);
-  if (selectionCache != null) {
-    selectionCache.rawset("selectionExternalityLosses", selectionExternalityLosses);
-    selectionCache.rawset("selectionExternalityWitnesses", selectionExternalityWitnesses);
+  local referenceLambda = null;
+  if (AIR_CAPITAL_FRONTIER_PROBE)
+    referenceLambda = OpexCapitalPriceReferencePrepared(byGroup, capitalBudget);
+  local price = OpexCapitalPriceRelaxationPrepared(pricePrepared, capitalBudget);
+  if (AIR_CAPITAL_FRONTIER_PROBE) {
+    AIR_SELECTION_LEDGER.exactReferenceChecks++;
+    if (referenceLambda != price.lambda)
+      AIR_SELECTION_LEDGER.exactReferenceLambdaMismatch++;
+    if (selectionCache != null)
+      selectionCache.rawset("probeReferenceLambda", referenceLambda);
   }
   local relaxationOps = 0;
   if (measurePhases) {
@@ -1208,21 +1267,19 @@ function OpexCapitalFrontierAssignScores(alternatives, capitalBudget, catalog = 
 
   foreach (project in alternatives) {
     if (project == null) continue;
+    local financeCap = ("frontierFinanceCapital" in project)
+        ? project.frontierFinanceCapital : OpexProjectFinanceCapital(project);
+    if (financeCap > capitalBudget) continue;
     if (("frontierExactDominated" in project) && project.frontierExactDominated) continue;
     local cap = OpexProjectShadowCapital(project);
     local ownProfit = OpexCapitalFrontierProjectProfit(project);
-    local financeCap = ("frontierFinanceCapital" in project)
-        ? project.frontierFinanceCapital : OpexProjectFinanceCapital(project);
     local capitalCharge = price.lambda * cap;
     local score = ownProfit.tofloat() - capitalCharge;
     project.rawset("frontierCapitalPrice", price.lambda);
     project.rawset("frontierCapitalCharge", capitalCharge);
     project.rawset("frontierScore", score);
     project.rawset("frontierScoreInt", score.tointeger());
-    /* Figer l'economie arbitree. Le budget reste diagnostic seulement : une
-     * variation de caisse seule ne redefinit plus lambda. */
-    project.rawset("frontierSelectionDate", selectionDate);
-    project.rawset("frontierSelectionBudget", capitalBudget);
+    /* Figer l'economie arbitree utilisee par la revalidation d'execution. */
     project.rawset("frontierSelectionProfit", ownProfit);
     project.rawset("frontierSelectionShadowCapital", cap);
     project.rawset("frontierSelectionFinanceCapital", financeCap);
@@ -1274,7 +1331,9 @@ function OpexCapitalFrontierRank(alternatives, capitalBudget, limit)
     /* Lambda reste fige, mais la contrainte de caisse est vivante et bon marche :
      * elle choisit la meilleure variante FINANCABLE du groupe sans repricer le
      * capital ni recalculer les externalites. */
-    if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
+    local financeCapital = ("frontierFinanceCapital" in project)
+        ? project.frontierFinanceCapital : OpexProjectFinanceCapital(project);
+    if (financeCapital > capitalBudget) continue;
     if (probeGrow) AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowFinanceable++;
     local group = OpexCapitalFrontierProjectGroupKey(project);
     if (group == null) {
@@ -1317,13 +1376,14 @@ function OpexCapitalFrontierRank(alternatives, capitalBudget, limit)
   /* TEMP_GROW_COMPARE_BEGIN: passive diagnostic only. */
   if (AIR_CAPITAL_FRONTIER_PROBE && candidates.len() > 0) {
     local compareGrow = null;
-    foreach (candidate in candidates) {
+    for (local growId = order.Begin(); !order.IsEnd(); growId = order.Next()) {
+      local candidate = candidates[growId];
       if (candidate == null || !("mode" in candidate) || candidate.mode != "fleet"
           || !("payload" in candidate) || candidate.payload == null
           || !("frontierStepKind" in candidate.payload)
           || candidate.payload.frontierStepKind != "grow") continue;
-      if (compareGrow == null || candidate.frontierScoreInt > compareGrow.frontierScoreInt)
-        compareGrow = candidate;
+      compareGrow = candidate;
+      break;
     }
     if (compareGrow != null) {
       local compareTopId = order.Begin();
@@ -1331,14 +1391,22 @@ function OpexCapitalFrontierRank(alternatives, capitalBudget, limit)
         local compareTop = candidates[compareTopId];
         if (compareTop != null && compareTop != compareGrow) {
           AIR_CAPITAL_FRONTIER_LEDGER.growCompareSamples++;
-          if (("mode" in compareTop) && compareTop.mode == "air")
-            AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopAir++;
+          local compareTopMode = ("mode" in compareTop) ? compareTop.mode : "";
+          if (compareTopMode == "air") AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopAir++;
+          else if (compareTopMode == "fleet") AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopFleet++;
+          else if (compareTopMode == "road") AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopRoad++;
+          else if (compareTopMode == "rail") AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopRail++;
+          else if (compareTopMode == "water") AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopWater++;
+          else AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopOther++;
           AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowProfit += OpexCapitalFrontierProjectProfit(compareGrow);
           AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowCapital += OpexProjectShadowCapital(compareGrow);
           AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowScore += compareGrow.frontierScoreInt;
           AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopProfit += OpexCapitalFrontierProjectProfit(compareTop);
           AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopCapital += OpexProjectShadowCapital(compareTop);
           AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopScore += compareTop.frontierScoreInt;
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowCharge += compareGrow.frontierCapitalCharge;
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopCharge += compareTop.frontierCapitalCharge;
+          AIR_CAPITAL_FRONTIER_LEDGER.growCompareLambdaSum += compareGrow.frontierCapitalPrice;
         }
       }
     }
@@ -1361,67 +1429,6 @@ function OpexCapitalFrontierRank(alternatives, capitalBudget, limit)
 /* Variation de caisse seulement : ne jamais recalculer lambda ni l'externalite.
  * Le classement est independant de la caisse ; seule l'execution relit la
  * tresorerie vivante. */
-function OpexFrontierRefilterStoredScores(projects, capitalBudget)
-{
-  if (projects == null || !("candidateGroups" in projects)
-      || projects.candidateGroups == null) return projects;
-  local alternatives = [];
-  foreach (key, list in projects.candidateGroups)
-    foreach (project in list) alternatives.append(project);
-  local ranked = OpexCapitalFrontierRank(alternatives, capitalBudget, PROJECT_TOP_K);
-  projects.best = ranked.best;
-  projects.capitalBudget = capitalBudget;
-
-  local selectedRev = 0;
-  local selectedCap = 0;
-  foreach (project in projects.best) {
-    selectedRev += project.revenueAnnual;
-    selectedCap += OpexProjectFinanceCapital(project);
-  }
-  projects.capitalRemaining = capitalBudget - selectedCap;
-  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
-  if (("stats" in projects) && projects.stats != null) {
-    projects.stats.budgetConsidered = alternatives.len();
-    projects.stats.budgetSelected = projects.best.len();
-    projects.stats.budgetRejected = alternatives.len() - projects.best.len();
-    projects.stats.selectedRevenue = selectedRev;
-    projects.stats.selectedCapital = selectedCap;
-    projects.stats.selectionPoolCapital = selectedCap;
-    projects.stats.nextProjectCapital = projects.best.len() > 0
-        ? OpexProjectFinanceCapital(projects.best[0]) : 0;
-  }
-  return projects;
-}
-
-/* Test richesse O(1) sur le vivier deja cote. Si la caisse couvre la demande
- * grossiere mesuree lors de la derniere revision economique, la rarete disparait :
- * re-score a lambda=0 sans reconstruire catalogue, externalites ou possibilites. */
-function OpexFrontierDropLambdaIfAbundant(projects, capitalBudget)
-{
-  if (projects == null || !("frontierSelectionCache" in projects)
-      || projects.frontierSelectionCache == null) return false;
-  local cache = projects.frontierSelectionCache;
-  if (!("coarseLambdaPct" in cache) || !("coarseFullDemand" in cache)
-      || cache.coarseLambdaPct <= 0 || capitalBudget < cache.coarseFullDemand)
-    return false;
-
-  foreach (key, list in projects.candidateGroups) {
-    foreach (project in list) {
-      if (project == null
-          || (("frontierExactDominated" in project) && project.frontierExactDominated))
-        continue;
-      local ownProfit = OpexCapitalFrontierProjectProfit(project);
-      project.rawset("frontierCapitalPrice", 0.0);
-      project.rawset("frontierCapitalCharge", 0.0);
-      project.rawset("frontierScore", ownProfit.tofloat());
-      project.rawset("frontierScoreInt", ownProfit);
-    }
-  }
-  cache.coarseLambdaPct = 0;
-  OpexFrontierRefilterStoredScores(projects, capitalBudget);
-  return true;
-}
-
 /* Une retraite retireOnly est une etape de maintenance deja decidee par le moteur AIR commun :
  * elle ne consomme aucun capital et ne doit pas etre affamee derriere les projets d'investissement
  * parce que le ratio profit/capital n'a pas de denominateur a zero. Ce helper ne choisit jamais
@@ -1555,6 +1562,34 @@ function OpexProjectFinanceCapital(project)
   if (capitalIsActual) return capital + nonConstructionCapital;
 
   return ((capital * biasPct) / 100) + nonConstructionCapital;
+}
+
+/* Prepare une fois les deux scalaires historiques quand leur contrat est
+ * immuable pendant la vie de l'objet projet. Ne pas appeler ce helper sur les
+ * projets rail : un devis physique peut muter payload.capitalIsActual/capital
+ * entre deux reselections, et OpexProjectFinanceCapital doit alors rester vivant. */
+function OpexProjectPrepareSelectionScalars(project)
+{
+  if (project == null) return;
+  local capital = OpexProjectFinanceCapital(project);
+  project.rawset("selectionFinanceCapital", capital);
+  project.rawset("selectionBaseFundScore", OpexProjectScore(project.profitAnnual, capital));
+}
+
+function OpexProjectSelectionFinanceCapital(project)
+{
+  if (project == null) return 0;
+  if ("selectionFinanceCapital" in project) return project.selectionFinanceCapital;
+  return OpexProjectFinanceCapital(project);
+}
+
+function OpexProjectSelectionBaseFundScore(project, financeCapital = null)
+{
+  if (project == null) return 0.0;
+  if ("selectionBaseFundScore" in project) return project.selectionBaseFundScore;
+  local capital = financeCapital == null
+      ? OpexProjectSelectionFinanceCapital(project) : financeCapital;
+  return OpexProjectScore(project.profitAnnual, capital);
 }
 
 /* Capital effectivement immobilise pour le score P - lambda*C.
@@ -1723,6 +1758,10 @@ function OpexProjectFromCandidate(candidate)
   /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
   project.turnoverBonus <- ("turnoverBonus" in candidate) ? candidate.turnoverBonus : 100;
   project.generationRatio <- ("ratio" in candidate) ? candidate.ratio : 0;
+  /* Le road ne publie jamais capitalIsActual : son capital de selection et son
+   * profit project sont donc figes. Le rail garde le recalcul vivant car son
+   * payload peut etre reprixe par OpexApplyRailActualCapital apres un devis. */
+  if (mode == "road") OpexProjectPrepareSelectionScalars(project);
   return project;
 }
 
@@ -1804,6 +1843,7 @@ function OpexProjectFromFleet(entry)
     /* B6/06.11 diagnostic-only: horodate l'economie mise en cache. */
     economicsDate = AIDate.GetCurrentDate(),
   };
+  OpexProjectPrepareSelectionScalars(project);
   return project;
 }
 
@@ -1837,6 +1877,8 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
+  OpexProjectPrepareSelectionScalars(project);
+  if (AIR_EARLY_SLOT) OpexProjectPrepareEarlySlotPhysical(project);
   return project;
 }
 
@@ -1985,6 +2027,7 @@ function OpexProjectFromWater(catalog, plan, planningOps)
      * permet de mesurer 06.11 au meme titre que rail/route. */
     economicsDate = AIDate.GetCurrentDate(),
   };
+  OpexProjectPrepareSelectionScalars(project);
   return project;
 }
 
@@ -2054,6 +2097,32 @@ function OpexProjectSetEarlySlotField(project, field, value)
   else project[field] <- value;
 }
 
+/* Partie physique stable d'early-slot. Le site d'un objet projet ne change pas
+ * pendant sa duree de vie, donc le nearest-town peut etre resolu une seule fois
+ * a la creation. La population et servedTowns restent volontairement vivants
+ * dans OpexProjectRefreshEarlySlot. Les champs publics earlySlotTownA/B restent
+ * des champs de diagnostic de la derniere selection et ne servent pas de cache. */
+function OpexProjectPrepareEarlySlotPhysical(project)
+{
+  if (project == null || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null) return;
+  if (("earlySlotPhysicalTownA" in project) && ("earlySlotPhysicalTownB" in project)) return;
+
+  local plan = project.payload;
+  local townA = -1;
+  local townB = -1;
+  if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
+    townA = AITile.GetClosestTown(plan.siteA.anchor);
+    if (townA < 0) townA = plan.siteA.town.id;
+  }
+  if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
+    townB = AITile.GetClosestTown(plan.siteB.anchor);
+    if (townB < 0) townB = plan.siteB.town.id;
+  }
+  project.rawset("earlySlotPhysicalTownA", townA);
+  project.rawset("earlySlotPhysicalTownB", townB);
+}
+
 /* Classe uniquement les projets air DEJA rentables. Le town associe au slot est
  * derive du site physique (meme convention que le diagnostic 771), ce qui evite
  * de confondre la ville cible commerciale avec la ville qui porte réellement la
@@ -2077,10 +2146,10 @@ function OpexProjectRefreshEarlySlot(project, state)
     local reuseA = ("reuseA" in plan) && plan.reuseA;
     local reuseB = ("reuseB" in plan) && plan.reuseB;
     local claimedTowns = {};
+    OpexProjectPrepareEarlySlotPhysical(project);
 
     if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
-      townA = AITile.GetClosestTown(plan.siteA.anchor);
-      if (townA < 0) townA = plan.siteA.town.id;
+      townA = project.earlySlotPhysicalTownA;
       if (townA >= 0 && AITown.IsValidTown(townA)) popA = AITown.GetPopulation(townA);
       if (!reuseA && popA >= AIR_EARLY_SLOT_MIN_POP
           && !(townA in state.servedTowns) && !(townA in claimedTowns)) {
@@ -2091,8 +2160,7 @@ function OpexProjectRefreshEarlySlot(project, state)
     }
 
     if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
-      townB = AITile.GetClosestTown(plan.siteB.anchor);
-      if (townB < 0) townB = plan.siteB.town.id;
+      townB = project.earlySlotPhysicalTownB;
       if (townB >= 0 && AITown.IsValidTown(townB)) popB = AITown.GetPopulation(townB);
       if (!reuseB && popB >= AIR_EARLY_SLOT_MIN_POP
           && !(townB in state.servedTowns) && !(townB in claimedTowns)) {
@@ -2166,7 +2234,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, catalog
   if (!useCapitalFrontier && PORTFOLIO_FLOOR_PCT > 0) {
     local bestProfit = 0;
     foreach (project in alternatives) {
-      local financeCapital = OpexProjectFinanceCapital(project);
+      local financeCapital = OpexProjectSelectionFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
       if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
     }
@@ -2180,12 +2248,34 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, catalog
    * jamais le filtre de financement reel ci-dessous, et aucune continuation
    * candidat-par-candidat n'est reconstruite. */
   if (useCapitalFrontier) {
-    OpexCapitalFrontierAssignScores(
+    local frontierPrice = OpexCapitalFrontierAssignScores(
         alternatives, capitalBudget, catalog, lines, selectionDiagnostic, selectionCache,
         candidateGroups);
     local rankedFrontier = OpexCapitalFrontierRank(alternatives, capitalBudget, limit);
     local frontierBest = rankedFrontier.best;
     if (AIR_CAPITAL_FRONTIER_PROBE) {
+      local referenceLambda = frontierPrice.lambda;
+      if (selectionCache != null && ("probeReferenceLambda" in selectionCache))
+        referenceLambda = selectionCache.probeReferenceLambda;
+      local referenceBest = OpexCapitalFrontierReferenceRank(
+          alternatives, capitalBudget, limit, referenceLambda);
+      local topMismatch = frontierBest.len() != referenceBest.len();
+      if (!topMismatch && frontierBest.len() > 0)
+        topMismatch = frontierBest[0] != referenceBest[0];
+      if (topMismatch) AIR_SELECTION_LEDGER.exactReferenceTopMismatch++;
+      local setMismatch = frontierBest.len() != referenceBest.len();
+      if (!setMismatch) {
+        foreach (project in frontierBest) {
+          local found = false;
+          foreach (candidate in referenceBest) {
+            if (candidate == project) { found = true; break; }
+          }
+          if (!found) { setMismatch = true; break; }
+        }
+      }
+      if (setMismatch) AIR_SELECTION_LEDGER.exactReferenceSetMismatch++;
+      if (selectionCache != null)
+        selectionCache.rawset("probeLastLambda", frontierPrice.lambda);
       AIR_CAPITAL_FRONTIER_LEDGER.portfolioAffordable += rankedFrontier.financeable;
       if (frontierBest.len() > 0) {
         local top = frontierBest[0];
@@ -2212,7 +2302,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, catalog
       ? OpexEarlySlotSelectionState() : null;
   local scoreKey = useCapitalFrontier ? "frontierScore" : "fundScore";
   foreach (project in alternatives) {
-    local financeCapital = OpexProjectFinanceCapital(project);
+    local financeCapital = OpexProjectSelectionFinanceCapital(project);
     if (financeCapital > capitalBudget) continue;
     if (useCapitalFrontier && ("frontierExactDominated" in project)
         && project.frontierExactDominated) continue;
@@ -2224,13 +2314,21 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, catalog
     if (useCapitalFrontier && project.frontierScore < 0) continue;
     if (useCapitalFrontier) affordableCount++;
     if (project.profitAnnual < floorProfit && !OpexProjectIsFreeAirRetirement(project)) continue;
-    if (AIR_EARLY_SLOT && !useCapitalFrontier) OpexProjectRefreshEarlySlot(project, earlySlotState);
+    if (AIR_EARLY_SLOT && !useCapitalFrontier
+        && ("mode" in project) && project.mode == "air")
+      OpexProjectRefreshEarlySlot(project, earlySlotState);
     if (!useCapitalFrontier) {
       if (C49_VARIABLE_DENOMINATOR) {
         project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
       } else {
-        project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+        project.fundScore <- OpexProjectSelectionBaseFundScore(project, financeCapital);
       }
+      /* OpexProjectInsert peut remonter plusieurs dizaines de positions dans le
+       * top-K. Figer une fois les deux cles historiques evite de rappeler les
+       * helpers a chaque comparaison, sans changer aucun tie-break. */
+      project.rawset("selectionRankScore",
+          AIR_EARLY_SLOT ? OpexProjectSelectionScore(project, "fundScore") : project.fundScore);
+      project.rawset("selectionFreeRetire", OpexProjectIsFreeAirRetirement(project));
     }
     OpexProjectInsert(affordable, project, scoreKey, limit,
                       AIR_EARLY_SLOT && !useCapitalFrontier, useCapitalFrontier);
@@ -2241,15 +2339,20 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, catalog
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
     foreach (project in alternatives) {
-      local financeCapital = OpexProjectFinanceCapital(project);
+      local financeCapital = OpexProjectSelectionFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
-      if (AIR_EARLY_SLOT && !useCapitalFrontier) OpexProjectRefreshEarlySlot(project, earlySlotState);
+      if (AIR_EARLY_SLOT && !useCapitalFrontier
+          && ("mode" in project) && project.mode == "air")
+        OpexProjectRefreshEarlySlot(project, earlySlotState);
       if (!useCapitalFrontier) {
         if (C49_VARIABLE_DENOMINATOR) {
           project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
         } else {
-          project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+          project.fundScore <- OpexProjectSelectionBaseFundScore(project, financeCapital);
         }
+        project.rawset("selectionRankScore",
+            AIR_EARLY_SLOT ? OpexProjectSelectionScore(project, "fundScore") : project.fundScore);
+        project.rawset("selectionFreeRetire", OpexProjectIsFreeAirRetirement(project));
       }
       OpexProjectInsert(affordable, project, scoreKey, limit,
                         AIR_EARLY_SLOT && !useCapitalFrontier, useCapitalFrontier);
@@ -2301,22 +2404,30 @@ function OpexProjectSelectionScore(project, field)
 function OpexProjectInsert(best, project, field, limit, applyEarlySlot = false,
                            capitalProfitTie = false)
 {
-  local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
-  local projectFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(project);
-  local pos = best.len();
-  while (pos > 0) {
-    local prior = best[pos - 1];
-    local priorFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(prior);
-    /* Capital nul => maintenance avant investissement, independamment du regime de score.
-     * Entre deux maintenances gratuites, conserver l'ordre normal du portefeuille. */
+  local preparedHistorical = !capitalProfitTie
+      && ("selectionRankScore" in project) && ("selectionFreeRetire" in project);
+  local projectScore = preparedHistorical ? project.selectionRankScore
+      : (applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field]);
+  local projectFreeRetire = !capitalProfitTie && (preparedHistorical
+      ? project.selectionFreeRetire : OpexProjectIsFreeAirRetirement(project));
+  local low = 0;
+  local high = best.len();
+  while (low < high) {
+    local pos = (low + high) / 2;
+    local prior = best[pos];
+    local priorPrepared = !capitalProfitTie
+        && ("selectionRankScore" in prior) && ("selectionFreeRetire" in prior);
+    local priorFreeRetire = !capitalProfitTie && (priorPrepared
+        ? prior.selectionFreeRetire : OpexProjectIsFreeAirRetirement(prior));
+    local projectBefore = false;
     if (priorFreeRetire != projectFreeRetire) {
-      if (priorFreeRetire) break;
-      pos--;
-      continue;
-    }
-    local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
-    if (priorScore > projectScore) break;
-    if (priorScore == projectScore) {
+      projectBefore = projectFreeRetire && !priorFreeRetire;
+    } else {
+      local priorScore = priorPrepared ? prior.selectionRankScore
+          : (applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field]);
+      if (projectScore > priorScore) {
+        projectBefore = true;
+      } else if (projectScore == priorScore) {
       if (capitalProfitTie) {
         /* Sous la frontiere, ne jamais reintroduire le revenu (ou un ROI) comme
          * troisieme objectif cache. A score capital-price identique, le projet
@@ -2324,20 +2435,22 @@ function OpexProjectInsert(best, project, field, limit, applyEarlySlot = false,
          * capital identique, garder le plus grand profit propre. */
         local priorCapital = OpexProjectShadowCapital(prior);
         local projectCapital = OpexProjectShadowCapital(project);
-        if (priorCapital < projectCapital) break;
-        if (priorCapital > projectCapital) {
-          pos--;
-          continue;
+          if (projectCapital < priorCapital) {
+            projectBefore = true;
+          } else if (projectCapital == priorCapital
+              && OpexCapitalFrontierProjectProfit(project)
+                 > OpexCapitalFrontierProjectProfit(prior)) {
+            projectBefore = true;
+          }
+        } else if (project.revenueAnnual > prior.revenueAnnual) {
+          projectBefore = true;
         }
-        if (OpexCapitalFrontierProjectProfit(prior)
-            >= OpexCapitalFrontierProjectProfit(project)) break;
-      } else if (prior.revenueAnnual >= project.revenueAnnual) {
-        break;
       }
     }
-    pos--;
+    if (projectBefore) high = pos;
+    else low = pos + 1;
   }
-  best.insert(pos, project);
+  best.insert(low, project);
   if (best.len() > limit) best.pop();
 }
 
@@ -2448,76 +2561,6 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
   stats.emptyCause <- emptyCause;
 }
 
-/* Certificat de reutilisation d'une selection. Ce n'est PAS une tolerance de
- * budget : on exige simultanement le meme intervalle finance/lambda et l'egalite
- * textuelle de toutes les entrees vivantes de l'externalite AIR. */
-function OpexFrontierSelectionCoversBudget(projects, capitalBudget, catalog, lines)
-{
-  AIR_SELECTION_LEDGER.coverChecks++;
-  if (!(AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) || projects == null
-      || !("frontierSelectionCache" in projects) || projects.frontierSelectionCache == null)
-  {
-    AIR_SELECTION_LEDGER.coverMissing++;
-    return false;
-  }
-  local cache = projects.frontierSelectionCache;
-  if (!("selectionBudgetMin" in cache) || !("selectionExternalityStateKey" in cache)
-      || !("selectionExternalityStations" in cache)) {
-    AIR_SELECTION_LEDGER.coverMissing++;
-    return false;
-  }
-  if (capitalBudget < cache.selectionBudgetMin) {
-    AIR_SELECTION_LEDGER.coverBudgetBelow++;
-    return false;
-  }
-  if (("selectionBudgetMax" in cache) && cache.selectionBudgetMax != null
-      && capitalBudget > cache.selectionBudgetMax) {
-    AIR_SELECTION_LEDGER.coverBudgetAbove++;
-    return false;
-  }
-  local liveStateKey = OpexAirFrontierExternalityStateKey(
-      lines, cache.selectionExternalityStations);
-  if (liveStateKey != cache.selectionExternalityStateKey) {
-    AIR_SELECTION_LEDGER.coverRawStateMismatch++;
-    if (catalog == null || !("selectionExternalityLosses" in cache)
-        || !("selectionExternalityWitnesses" in cache)) {
-      AIR_SELECTION_LEDGER.coverStateMismatch++;
-      return false;
-    }
-    local liveContext = OpexAirFrontierExternalityContext(
-        catalog, lines, cache.selectionExternalityStations);
-    local liveLossCache = {};
-    foreach (lossKey, selectedLoss in cache.selectionExternalityLosses) {
-      if (!(lossKey in cache.selectionExternalityWitnesses)) {
-        AIR_SELECTION_LEDGER.coverStateMismatch++;
-        return false;
-      }
-      local witness = cache.selectionExternalityWitnesses[lossKey];
-      local externality = OpexAirFrontierIncumbentLoss(
-          witness, catalog, lines, liveLossCache, liveContext);
-      local liveLoss = externality.loss < 0 ? 0 : externality.loss;
-      if (liveLoss != selectedLoss) {
-        AIR_SELECTION_LEDGER.coverStateMismatch++;
-        return false;
-      }
-    }
-    AIR_SELECTION_LEDGER.coverSemanticHits++;
-  }
-  AIR_SELECTION_LEDGER.coverHits++;
-  return true;
-}
-
-function OpexFrontierReuseSelectionBudget(projects, capitalBudget)
-{
-  if (projects == null) return projects;
-  projects.capitalBudget = capitalBudget;
-  local selectedCap = ("stats" in projects) && projects.stats != null
-      && ("selectedCapital" in projects.stats) ? projects.stats.selectedCapital : 0;
-  projects.capitalRemaining = capitalBudget - selectedCap;
-  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
-  return projects;
-}
-
 /* P2 frontier : un refresh de flotte ne modifie ni la geometrie des routes
  * candidates, ni le reseau incumbent tant qu'aucun achat/retrait n'a ete
  * execute. Ne pas repasser par OpexIncrementalUpdateProjects dans ce cas :
@@ -2573,15 +2616,65 @@ function OpexFrontierFleetGroupEquivalent(current, fresh, syncRevision = false)
   return true;
 }
 
+/* Met a jour seulement la representation preparee d'un groupe fleet.
+ * Les autres groupes gardent leurs lignes et leurs pertes incumbent deja calculees ;
+ * lambda reste recalcule sur l'ensemble complet lors de la reelection qui suit. */
+function OpexFrontierPatchPreparedFleetGroup(projects, key, list)
+{
+  if (projects == null || !("frontierSelectionCache" in projects)
+      || projects.frontierSelectionCache == null)
+    return false;
+  local cache = projects.frontierSelectionCache;
+  if (!("prepared" in cache) || cache.prepared == null
+      || !("byGroup" in cache.prepared) || cache.prepared.byGroup == null)
+    return false;
+
+  if (list == null || list.len() <= 0) {
+    if (key in cache.prepared.byGroup) delete cache.prepared.byGroup[key];
+    return true;
+  }
+
+  local rows = [];
+  foreach (project in list) {
+    if (project == null) continue;
+    local financeCap = OpexProjectFinanceCapital(project);
+    local shadowCap = OpexProjectShadowCapitalFromFinance(project, financeCap);
+    rows.append({
+      project = project,
+      group = key,
+      financeCap = financeCap,
+      capital = shadowCap,
+      upperProfit = project.profitAnnual,
+      /* Les groupes fleet n'ouvrent aucune nouvelle liaison AIR et ne peuvent
+       * donc jamais porter une perte incumbent de hub. */
+      needsLoss = false,
+      lossKnown = false,
+      loss = 0,
+    });
+  }
+  OpexCapitalFrontierPrepareGroup(rows);
+  if (rows.len() > 0) cache.prepared.byGroup.rawset(key, rows);
+  else if (key in cache.prepared.byGroup) delete cache.prepared.byGroup[key];
+  return true;
+}
+
 /* Reconcilie uniquement les groupes fleet du vivier courant.
- * Retourne true ssi leur contenu decisionnel a change. Un changement invalide
- * le cache global car lambda depend de toutes les frontieres ; une economie
- * identique ne fait que synchroniser la revision d'execution et garde le cache. */
+ * Retourne true ssi leur contenu decisionnel a change. Un changement de flotte
+ * ne modifie pas les externalites des projets AIR tant que l'action n'est pas
+ * executee : si le cache prepare existe, seul le groupe fleet touche est
+ * remplace et les lignes preparees des autres groupes restent reutilisables. */
 function OpexFrontierRefreshFleetGroups(projects, fleetPlan)
 {
   if (!(AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)
       || projects == null || !("candidateGroups" in projects)
       || projects.candidateGroups == null) return false;
+
+  local preparedPatched = ("frontierSelectionCache" in projects)
+      && projects.frontierSelectionCache != null
+      && ("prepared" in projects.frontierSelectionCache)
+      && projects.frontierSelectionCache.prepared != null
+      && ("byGroup" in projects.frontierSelectionCache.prepared)
+      && projects.frontierSelectionCache.prepared.byGroup != null;
 
   local freshGroups = {};
   if (fleetPlan != null) {
@@ -2603,21 +2696,29 @@ function OpexFrontierRefreshFleetGroups(projects, fleetPlan)
   foreach (key in oldFleetKeys) {
     if (!(key in freshGroups)) {
       delete projects.candidateGroups[key];
+      if (preparedPatched)
+        preparedPatched = OpexFrontierPatchPreparedFleetGroup(projects, key, null);
       changed = true;
       continue;
     }
     if (!OpexFrontierFleetGroupEquivalent(projects.candidateGroups[key], freshGroups[key], true)) {
       projects.candidateGroups.rawset(key, freshGroups[key]);
+      if (preparedPatched)
+        preparedPatched = OpexFrontierPatchPreparedFleetGroup(projects, key, freshGroups[key]);
       changed = true;
     }
     delete freshGroups[key];
   }
   foreach (key, list in freshGroups) {
     projects.candidateGroups.rawset(key, list);
+    if (preparedPatched)
+      preparedPatched = OpexFrontierPatchPreparedFleetGroup(projects, key, list);
     changed = true;
   }
 
-  if (changed) projects.rawset("frontierSelectionCache", {});
+  /* Repli conservateur si l'ancien cache n'etait pas patchable. Le chemin
+   * normal garde l'objet cache et OpexCapitalFrontierPrepare comptera un hit. */
+  if (changed && !preparedPatched) projects.rawset("frontierSelectionCache", {});
   return changed;
 }
 
@@ -2643,8 +2744,36 @@ function OpexReselectProjects(projects, capitalBudget, catalog = null, lines = n
       projects.rawset("frontierSelectionCache", {});
     selectionCache = projects.frontierSelectionCache;
   }
+  local probeBudgetReselect = AIR_CAPITAL_FRONTIER_PROBE && selectionCause == "budget_reselect";
+  local beforeLambda = probeBudgetReselect && selectionCache != null
+      && ("probeLastLambda" in selectionCache) ? selectionCache.probeLastLambda : null;
+  local beforeBest = probeBudgetReselect && ("best" in projects) && projects.best != null
+      ? clone projects.best : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K,
       catalog, lines, selectionCause, false, selectionCache, projects.candidateGroups);
+  if (probeBudgetReselect) {
+    AIR_SELECTION_LEDGER.budgetReselectChecks++;
+    local afterLambda = selectionCache != null && ("probeLastLambda" in selectionCache)
+        ? selectionCache.probeLastLambda : null;
+    if (beforeLambda == null || afterLambda == null || beforeLambda != afterLambda)
+      AIR_SELECTION_LEDGER.budgetReselectLambdaChanged++;
+
+    local topChanged = beforeBest == null || beforeBest.len() != funded.len();
+    if (!topChanged && funded.len() > 0) topChanged = beforeBest[0] != funded[0];
+    if (topChanged) AIR_SELECTION_LEDGER.budgetReselectTopChanged++;
+
+    local setChanged = beforeBest == null || beforeBest.len() != funded.len();
+    if (!setChanged) {
+      foreach (project in beforeBest) {
+        local found = false;
+        foreach (candidate in funded) {
+          if (candidate == project) { found = true; break; }
+        }
+        if (!found) { setChanged = true; break; }
+      }
+    }
+    if (setChanged) AIR_SELECTION_LEDGER.budgetReselectSetChanged++;
+  }
   considered = alternatives.len();
   projects.stats.knapsackNodes = 0;
   projects.stats.knapsackExact = false;

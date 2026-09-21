@@ -1,9 +1,11 @@
-"""Diagnostic C52 : validation des evenements manquants (ET_VEHICLE_UNPROFITABLE et ET_VEHICLE_CRASHED).
+"""Diagnostic C52 : revalidation crash + vehicules non rentables.
 
-Compare OpexAI baseline avec :
-- OpexAI[event_vehicle_unprofitable=1] : mise au rebut des vehicules chroniquement deficitaires
-- OpexAI[event_vehicle_crashed=1] : nettoyage d'inventaire et reconstitution sur tout crash
-- OpexAI[event_vehicle_unprofitable=1,event_vehicle_crashed=1] : les deux combines
+Depuis le regroupement des reglages, les deux reactions sont pilotees ensemble par
+`policy_vehicle_events`. Le diagnostic compare donc deux bras instrumentes de la meme facon :
+- OpexAI[probe_events=1] : comportement livre, politique C52 desarmee ;
+- OpexAI[policy_vehicle_events=1,probe_events=1] : crash recovery + retraite non rentable.
+
+`probe_events=1` est present dans les deux bras pour que le cout des sondes soit symetrique.
 
 Respecte strictement le canevas AGENTS.md :
 - keep(row) retourne un tuple (dict,)
@@ -179,10 +181,8 @@ def main():
     parser.add_argument("--starting-year", type=int, default=1970)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 7, 999, 2026])
     parser.add_argument("--arms", nargs="+", default=[
-        "OpexAI",
-        "OpexAI[event_vehicle_unprofitable=1,c52_unprofitable_log=1]",
-        "OpexAI[event_vehicle_crashed=1,c52_crash_log=1]",
-        "OpexAI[event_vehicle_unprofitable=1,event_vehicle_crashed=1,c52_unprofitable_log=1,c52_crash_log=1]",
+        "OpexAI[probe_events=1]",
+        "OpexAI[policy_vehicle_events=1,probe_events=1]",
     ])
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--out", type=Path, default=Path("results/diag_c52_events_6y_5seeds.json"))

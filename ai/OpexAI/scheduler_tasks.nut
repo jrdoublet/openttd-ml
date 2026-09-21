@@ -589,8 +589,8 @@ function OpexAI::_dispatchAirFleet(task, year)
               this._catalog, this._lines, "lifecycle");
           this._ranked = this._projects.rail;
         } else if (budgetChanged) {
-          if (!OpexFrontierDropLambdaIfAbundant(this._projects, budgetNow))
-            OpexFrontierRefilterStoredScores(this._projects, budgetNow);
+          this._projects = OpexReselectProjects(this._projects, budgetNow,
+              this._catalog, this._lines, "budget_reselect");
           this._ranked = this._projects.rail;
         }
       } else if (fleetPlan.len() > 0) {

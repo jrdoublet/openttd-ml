@@ -431,6 +431,39 @@ function OpexAirportStationDateSpan(airportType)
 /* C16 : Plafond physique de flotte aerienne derive de la CADENCE et non de la demande (docs/taches.md C16).
  * Calcule le nombre maximal d'avions qui peuvent tourner sur la ligne sans creer d'embouteillage
  * dans le ciel (holding pattern), compte tenu de la rotation aller-retour et du partage de piste. */
+function OpexAirCadenceContext(line, lines)
+{
+  if (line == null || !("stationA" in line) || !("stationB" in line)) return null;
+  local distance = OpexFlightDistance(line.stationA, line.stationB);
+  local typeA = (line.stationA != null && AIAirport.IsAirportTile(line.stationA))
+      ? AIAirport.GetAirportType(line.stationA) : AIAirport.AT_SMALL;
+  local typeB = (line.stationB != null && AIAirport.IsAirportTile(line.stationB))
+      ? AIAirport.GetAirportType(line.stationB) : AIAirport.AT_SMALL;
+  local routesA = OpexAirLiveRoutesAtAirport(line.stationA, lines);
+  local routesB = OpexAirLiveRoutesAtAirport(line.stationB, lines);
+  if (routesA < 1) routesA = 1;
+  if (routesB < 1) routesB = 1;
+  local spanA = OpexAirportStationDateSpan(typeA) * routesA;
+  local spanB = OpexAirportStationDateSpan(typeB) * routesB;
+  local effectiveSpan = (spanA > spanB) ? spanA : spanB;
+  if (effectiveSpan < 1) effectiveSpan = 1;
+  return {
+    distance = distance, typeA = typeA, typeB = typeB,
+    effectiveSpan = effectiveSpan,
+  };
+}
+
+function OpexAirCadenceLimitFromContext(context, engineId, speed, capacity)
+{
+  if (context == null) return 1;
+  local trip = OpexAirTripModel(engineId, speed, capacity, context.distance,
+      context.typeA, context.typeB);
+  local cap = (trip.roundTripDays / context.effectiveSpan.tofloat()).tointeger() + 1;
+  if (cap < 1) cap = 1;
+  if (cap > AIR_MAX_PLANES_PER_ROUTE) cap = AIR_MAX_PLANES_PER_ROUTE;
+  return cap;
+}
+
 function OpexAirCadenceCap(line, catalog, lines)
 {
   local speed = (("planeSpeed" in line) && line.planeSpeed > 0) ? line.planeSpeed : 1;
@@ -456,41 +489,18 @@ function OpexAirCadenceCap(line, catalog, lines)
   if (!AIR_BEST_EQUIPMENT && capacity <= 0 && ("plane" in catalog) && catalog.plane != null) {
     capacity = catalog.plane.capacity;
   }
-  local distance = OpexFlightDistance(line.stationA, line.stationB);
-  local typeA = (line.stationA != null && AIAirport.IsAirportTile(line.stationA))
-      ? AIAirport.GetAirportType(line.stationA) : AIAirport.AT_SMALL;
-  local typeB = (line.stationB != null && AIAirport.IsAirportTile(line.stationB))
-      ? AIAirport.GetAirportType(line.stationB) : AIAirport.AT_SMALL;
-  local trip = OpexAirTripModel(engineId, speed, capacity, distance, typeA, typeB);
-  local roundTripDays = trip.roundTripDays;
-
-  local routesA = OpexAirLiveRoutesAtAirport(line.stationA, lines);
-  local routesB = OpexAirLiveRoutesAtAirport(line.stationB, lines);
-  if (routesA < 1) routesA = 1;
-  if (routesB < 1) routesB = 1;
-  local spanA = OpexAirportStationDateSpan(typeA) * routesA;
-  local spanB = OpexAirportStationDateSpan(typeB) * routesB;
-  local effectiveSpan = (spanA > spanB) ? spanA : spanB;
-  if (effectiveSpan < 1) effectiveSpan = 1;
-
-  local cap = (roundTripDays / effectiveSpan.tofloat()).tointeger() + 1;
-  if (cap < 1) cap = 1;
-  if (cap > AIR_MAX_PLANES_PER_ROUTE) cap = AIR_MAX_PLANES_PER_ROUTE;
-  return cap;
+  return OpexAirCadenceLimitFromContext(
+      OpexAirCadenceContext(line, lines), engineId, speed, capacity);
 }
 
 /* Lifecycle : la cadence d'une cible doit etre calculee avec L'AVION CANDIDAT,
  * pas avec le moteur actuellement majoritaire sur la ligne. */
-function OpexAirCadenceCapForPlane(line, plane, lines)
+function OpexAirCadenceCapForPlane(line, plane, lines, cadenceContext = null)
 {
   if (line == null || plane == null || !("stationA" in line) || !("stationB" in line)) return 1;
-  local probe = {
-    stationA = line.stationA, stationB = line.stationB,
-    cargo = ("cargo" in line) ? line.cargo : -1,
-    planeSpeed = plane.speed, planeCapacity = plane.capacity,
-    vehicles = [],
-  };
-  return OpexAirCadenceCap(probe, { plane = plane }, lines);
+  if (cadenceContext == null) cadenceContext = OpexAirCadenceContext(line, lines);
+  return OpexAirCadenceLimitFromContext(
+      cadenceContext, -1, plane.speed, plane.capacity);
 }
 
 function OpexAirAirportAcceptsPlane(airportType, planeType)
@@ -1344,6 +1354,8 @@ function OpexAirBestEquipment(catalog, airport, siteA, siteB, distance, lines, d
   local bestDemandCap = 0;
   local compatibleChoices = 0;
   local context = OpexAirEquipmentContext(catalog, airport, siteA, siteB);
+  local cadenceContext = (cadenceLine != null && AIR_CADENCE_CAP)
+      ? OpexAirCadenceContext(cadenceLine, lines) : null;
   foreach (plane in context.pool) {
     if (!OpexAirAirportAcceptsPlane(context.typeA, plane.planeType)
         || !OpexAirAirportAcceptsPlane(context.typeB, plane.planeType)) continue;
@@ -1360,7 +1372,7 @@ function OpexAirBestEquipment(catalog, airport, siteA, siteB, distance, lines, d
     if (monthlyDemand < 10) monthlyDemand = 10;
     local candidateMaxPlanes = maxPlanesOverride;
     if (cadenceLine != null && AIR_CADENCE_CAP) {
-      local cadenceCap = OpexAirCadenceCapForPlane(cadenceLine, plane, lines);
+      local cadenceCap = OpexAirCadenceCapForPlane(cadenceLine, plane, lines, cadenceContext);
       if (candidateMaxPlanes <= 0 || cadenceCap < candidateMaxPlanes) candidateMaxPlanes = cadenceCap;
     }
     local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyDemand,
@@ -1400,6 +1412,8 @@ function OpexAirEquipmentChoices(catalog, airport, siteA, siteB, distance, lines
   local choices = [];
   local compatibleChoices = 0;
   local context = OpexAirEquipmentContext(catalog, airport, siteA, siteB);
+  local cadenceContext = (cadenceLine != null && AIR_CADENCE_CAP)
+      ? OpexAirCadenceContext(cadenceLine, lines) : null;
   foreach (plane in context.pool) {
     if (!OpexAirAirportAcceptsPlane(context.typeA, plane.planeType)
         || !OpexAirAirportAcceptsPlane(context.typeB, plane.planeType)) continue;
@@ -1416,7 +1430,7 @@ function OpexAirEquipmentChoices(catalog, airport, siteA, siteB, distance, lines
     if (monthlyDemand < 10) monthlyDemand = 10;
     local candidateMaxPlanes = maxPlanesOverride;
     if (cadenceLine != null && AIR_CADENCE_CAP) {
-      local cadenceCap = OpexAirCadenceCapForPlane(cadenceLine, plane, lines);
+      local cadenceCap = OpexAirCadenceCapForPlane(cadenceLine, plane, lines, cadenceContext);
       if (candidateMaxPlanes <= 0 || cadenceCap < candidateMaxPlanes) candidateMaxPlanes = cadenceCap;
     }
     local economicsChoices = OpexAirEconomicsChoices(catalog, airport, plane, distance, monthlyDemand,
@@ -1625,23 +1639,38 @@ function OpexAirFleetEconomicsContext(catalog, planesList, distance)
   local amortAnnual = 0;
   local capital = 0;
   local planes = 0;
+  /* Une flotte reelle est le plus souvent homogene. TripModel et CargoIncome
+   * ne dependent ici que du moteur et de la distance : ne pas refaire ces
+   * appels NoAI pour chaque exemplaire du meme EngineID. Cache local seulement,
+   * donc aucune hypothese de stabilite entre deux dates de jeu. */
+  local staticByEngine = {};
   foreach (plane in planesList) {
     if (plane == null) return null;
-    local trip = OpexAirTripModel(plane.id, plane.speed, plane.capacity, distance);
-    if (trip.capacityPerPlane <= 0 || trip.roundTripDays <= 0) return null;
-    local incomeDays = OpexCeilDiv(trip.oneWayDays, 1);
-    local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
-    local totalIncomePerUnit = paxIncome;
-    if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
-      local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
-      totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+    local key = "" + plane.id;
+    local row = (key in staticByEngine) ? staticByEngine[key] : null;
+    if (row == null) {
+      local trip = OpexAirTripModel(plane.id, plane.speed, plane.capacity, distance);
+      if (trip.capacityPerPlane <= 0 || trip.roundTripDays <= 0) return null;
+      local incomeDays = OpexCeilDiv(trip.oneWayDays, 1);
+      local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
+      local totalIncomePerUnit = paxIncome;
+      if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+        local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
+        totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+      }
+      row = {
+        capacityPerPlane = trip.capacityPerPlane,
+        roundTripDays = trip.roundTripDays,
+        tripsPerMonth = trip.tripsPerMonth,
+        incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0,
+      };
+      staticByEngine.rawset(key, row);
     }
-    local incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
-    monthlyCapacity += trip.capacityPerPlane;
-    departureRate += 1.0 / trip.roundTripDays;
-    weightedIncome += trip.capacityPerPlane * incomePerUnit;
-    weightedRoundTrip += trip.capacityPerPlane * trip.roundTripDays;
-    tripsPerMonth += trip.tripsPerMonth;
+    monthlyCapacity += row.capacityPerPlane;
+    departureRate += 1.0 / row.roundTripDays;
+    weightedIncome += row.capacityPerPlane * row.incomePerUnit;
+    weightedRoundTrip += row.capacityPerPlane * row.roundTripDays;
+    tripsPerMonth += row.tripsPerMonth;
     runningAnnual += plane.runningCost;
     amortAnnual += plane.price / 20;
     capital += plane.price;
@@ -1723,22 +1752,38 @@ function OpexAirNextStepPrepare(catalog, line)
     planes = [],
     vehicles = [],
     engineCounts = {},
+    primaryEngine = -1,
+    primaryEngineCount = 0,
     currentEconomicsByDemand = {},
     stepCache = {},
   };
   if (catalog == null || line == null || !("vehicles" in line) || line.vehicles == null)
     return state;
 
+  local planeByEngine = {};
   foreach (v in line.vehicles) {
     if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
-    local plane = OpexAirPlaneFromEngine(AIVehicle.GetEngineType(v), line.cargo);
+    local engine = AIVehicle.GetEngineType(v);
+    local key = "" + engine;
+    local plane = (key in planeByEngine) ? planeByEngine[key] : null;
+    if (plane == null) {
+      plane = OpexAirPlaneFromEngine(engine, line.cargo);
+      if (plane != null) planeByEngine.rawset(key, plane);
+    }
     if (plane == null) return state;
     state.planes.append(plane);
     state.vehicles.append(v);
-    local key = "" + plane.id;
     if (!(key in state.engineCounts)) state.engineCounts.rawset(key, 0);
     state.engineCounts[key]++;
+    if (state.engineCounts[key] > state.primaryEngineCount) {
+      state.primaryEngineCount = state.engineCounts[key];
+      state.primaryEngine = plane.id;
+    }
   }
+  if (state.primaryEngine < 0 && AIR_BEST_EQUIPMENT && ("currentPrimaryEngine" in line)
+      && line.currentPrimaryEngine >= 0) state.primaryEngine = line.currentPrimaryEngine;
+  if (state.primaryEngine < 0 && !AIR_BEST_EQUIPMENT && ("refleetEngine" in line))
+    state.primaryEngine = line.refleetEngine;
   state.ok = state.planes.len() > 0;
   return state;
 }
@@ -1947,18 +1992,16 @@ function OpexAirExistingLineFrontier(catalog, lines, line, reason = "periodic")
   if (catalog == null || line == null || !("mode" in line) || line.mode != "air"
       || !("vehicles" in line) || line.vehicles == null) return options;
 
-  local have = 0;
-  foreach (v in line.vehicles) {
-    if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) have++;
-  }
-  if (have <= 0) return options;
+  local stepState = OpexAirNextStepPrepare(catalog, line);
+  if (!stepState.ok) return options;
+  local have = stepState.planes.len();
 
   local siteA = OpexAirLineSite(line, 0);
   local siteB = OpexAirLineSite(line, 1);
   if (siteA == null || siteB == null) return options;
   local airport = OpexAirAirportProfileForType(catalog, siteA.airportType);
   if (airport == null) return options;
-  local currentEngine = OpexAirCurrentPrimaryEngine(line);
+  local currentEngine = stepState.primaryEngine;
   local currentPlane = OpexAirPlaneFromEngine(currentEngine, line.cargo);
   if (currentPlane == null) return options;
 
@@ -1968,8 +2011,7 @@ function OpexAirExistingLineFrontier(catalog, lines, line, reason = "periodic")
   local infraMaintenance = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
   local fleetCap = OpexAirLinePhysicalFleetCap(line);
   local context = OpexAirEquipmentContext(catalog, airport, siteA, siteB);
-  local stepState = OpexAirNextStepPrepare(catalog, line);
-  if (!stepState.ok) return options;
+  local cadenceContext = AIR_CADENCE_CAP ? OpexAirCadenceContext(line, lines) : null;
   local byAction = {};
   local rawOptions = 0;
   foreach (plane in context.pool) {
@@ -1988,7 +2030,7 @@ function OpexAirExistingLineFrontier(catalog, lines, line, reason = "periodic")
 
     local maxPlanes = fleetCap;
     if (AIR_CADENCE_CAP) {
-      local cadenceCap = OpexAirCadenceCapForPlane(line, plane, lines);
+      local cadenceCap = OpexAirCadenceCapForPlane(line, plane, lines, cadenceContext);
       if (maxPlanes <= 0 || cadenceCap < maxPlanes) maxPlanes = cadenceCap;
     }
     if (maxPlanes <= 0) continue;
@@ -2140,10 +2182,12 @@ function OpexAirAssessExistingLine(catalog, lines, line, reason = "periodic")
   if (siteA == null || siteB == null) { result.reason = "airport"; return result; }
   local airport = OpexAirAirportProfileForType(catalog, siteA.airportType);
   if (airport == null) { result.reason = "airport_profile"; return result; }
-  local currentEngine = OpexAirCurrentPrimaryEngine(line);
+  local stepState = OpexAirNextStepPrepare(catalog, line);
+  local preparedLiveFleet = stepState.ok;
+  local currentEngine = preparedLiveFleet ? stepState.primaryEngine : OpexAirCurrentPrimaryEngine(line);
   local currentPlane = OpexAirPlaneFromEngine(currentEngine, line.cargo);
-  local have = 0;
-  if (("vehicles" in line) && line.vehicles != null) {
+  local have = preparedLiveFleet ? stepState.planes.len() : 0;
+  if (!preparedLiveFleet && ("vehicles" in line) && line.vehicles != null) {
     foreach (v in line.vehicles) {
       if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) have++;
     }
@@ -2159,7 +2203,9 @@ function OpexAirAssessExistingLine(catalog, lines, line, reason = "periodic")
     currentCap = currentPlanDemand.cap;
   }
   local infraMaintenance = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
-  local currentEconomics = have > 0 ? OpexAirActualFleetEconomics(catalog, line, distance, currentDemand) : {
+  local currentEconomics = have > 0 ? (preparedLiveFleet
+      ? OpexAirFleetEconomicsFromPlanes(catalog, stepState.planes, distance, currentDemand)
+      : OpexAirActualFleetEconomics(catalog, line, distance, currentDemand)) : {
     planes = 0, profitAnnual = 0, revenueAnnual = 0, runningAnnual = 0, amortAnnual = 0,
     capital = 0, immobilise = 0, roi = 0, oneWayDays = 0, roundTripDays = 0,
     headwayDays = 0, stationRating = 0, tripsPerMonth = 0, monthlyCapacity = 0, carried = 0,
@@ -2232,7 +2278,20 @@ function OpexAirAssessExistingLine(catalog, lines, line, reason = "periodic")
     paybackMonths = 0;
   }
   local remaining = 0;
-  if (upgradePending && ("vehicles" in line) && line.vehicles != null) {
+  if (upgradePending && preparedLiveFleet) {
+    /* stepState a deja filtre exactement les vehicules AIR vivants et compte
+     * leurs moteurs. Reutiliser ce snapshot evite un second parcours NoAI de
+     * line.vehicles dans le chemin lifecycle normal. */
+    local preferredKey = "" + preferredEngine;
+    local preferredCount = (preferredKey in stepState.engineCounts)
+        ? stepState.engineCounts[preferredKey] : 0;
+    remaining = have - preferredCount;
+    local excess = have > targetFleet ? have - targetFleet : 0;
+    if (excess > remaining) remaining = excess;
+  } else if (upgradePending && ("vehicles" in line) && line.vehicles != null) {
+    /* Repli conservateur : si OpexAirNextStepPrepare n'a pas pu produire un
+     * snapshot complet, garder le scan historique plutot que consommer des
+     * engineCounts potentiellement partiels. */
     foreach (v in line.vehicles) {
       if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR
           && AIVehicle.GetEngineType(v) != preferredEngine) remaining++;

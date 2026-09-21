@@ -18,6 +18,7 @@ INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 MAIN = ROOT / "ai" / "OpexAI" / "main.nut"
 PERSIST = ROOT / "ai" / "OpexAI" / "persist.nut"
 PROJECTS = ROOT / "ai" / "OpexAI" / "projects.nut"
+SETTINGS = ROOT / "ai" / "OpexAI" / "settings.nut"
 TASK = ROOT / "ai" / "OpexAI" / "task_air.nut"
 TASK_PROJECTS = ROOT / "ai" / "OpexAI" / "task_projects.nut"
 TASK_REPORT = ROOT / "ai" / "OpexAI" / "task_report.nut"
@@ -73,6 +74,26 @@ def _synthetic_best(pool, distance):
 
 
 class TestAirLifecycle(unittest.TestCase):
+    def test_next_step_snapshot_reuses_plane_metadata_per_engine(self):
+        src = AIR.read_text(encoding="utf-8")
+        prepare = _section(
+            src, "function OpexAirNextStepPrepare", "function OpexAirNextStepEconomics"
+        )
+        self.assertIn("local planeByEngine = {}", prepare)
+        self.assertIn('local key = "" + engine', prepare)
+        self.assertIn("(key in planeByEngine) ? planeByEngine[key] : null", prepare)
+        self.assertIn("planeByEngine.rawset(key, plane)", prepare)
+
+    def test_fleet_economics_reuses_trip_and_income_per_engine_within_evaluation(self):
+        src = AIR.read_text(encoding="utf-8")
+        context = _section(
+            src, "function OpexAirFleetEconomicsContext", "function OpexAirFleetEconomicsFromContext"
+        )
+        self.assertIn("local staticByEngine = {}", context)
+        self.assertIn('(key in staticByEngine) ? staticByEngine[key] : null', context)
+        self.assertIn("staticByEngine.rawset(key, row)", context)
+        self.assertIn("monthlyCapacity += row.capacityPerPlane", context)
+
     def test_c68_remains_adopted_default(self):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["air_route_plane_selection"], 1)
@@ -331,6 +352,44 @@ class TestAirLifecycle(unittest.TestCase):
         self.assertEqual(purchases, 0)
         self.assertEqual(live, target_fleet)
 
+    def test_assessment_reuses_prepared_engine_counts_for_upgrade_remaining(self):
+        air = AIR.read_text(encoding="utf-8")
+        assessment = _section(
+            air, "function OpexAirAssessExistingLine", "function OpexAirEngineRelevantToLine"
+        )
+        self.assertIn("if (upgradePending && preparedLiveFleet)", assessment)
+        self.assertIn('local preferredKey = "" + preferredEngine', assessment)
+        self.assertIn("preferredKey in stepState.engineCounts", assessment)
+        self.assertIn("remaining = have - preferredCount", assessment)
+        self.assertIn(
+            'else if (upgradePending && ("vehicles" in line) && line.vehicles != null)',
+            assessment,
+        )
+        self.assertIn("AIVehicle.GetEngineType(v) != preferredEngine", assessment)
+        self.assertGreaterEqual(
+            assessment.count("local excess = have > targetFleet ? have - targetFleet : 0"),
+            2,
+        )
+
+        vehicles = [
+            {"valid": True, "air": True, "engine": 7},
+            {"valid": True, "air": True, "engine": 9},
+            {"valid": True, "air": True, "engine": 9},
+            {"valid": False, "air": True, "engine": 7},
+            {"valid": True, "air": False, "engine": 7},
+        ]
+        live = [v for v in vehicles if v["valid"] and v["air"]]
+        preferred = 9
+        legacy_remaining = sum(v["engine"] != preferred for v in live)
+        engine_counts = {}
+        for vehicle in live:
+            engine_counts[vehicle["engine"]] = engine_counts.get(vehicle["engine"], 0) + 1
+        prepared_remaining = len(live) - engine_counts.get(preferred, 0)
+        self.assertEqual(prepared_remaining, legacy_remaining)
+        target_fleet = 1
+        excess = max(len(live) - target_fleet, 0)
+        self.assertEqual(max(prepared_remaining, excess), 2)
+
     def test_retire_only_has_no_purchase_cash_guard_or_fake_portfolio_capital(self):
         task = TASK.read_text(encoding="utf-8")
         task_projects = TASK_PROJECTS.read_text(encoding="utf-8")
@@ -517,14 +576,12 @@ class TestAirLifecycle(unittest.TestCase):
             "project.profitAnnual < floorProfit && !OpexProjectIsFreeAirRetirement(project)",
             selector,
         )
-        self.assertIn(
-            "local projectFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(project)",
-            insert,
-        )
+        self.assertIn("local preparedHistorical = !capitalProfitTie", insert)
+        self.assertIn("? project.selectionFreeRetire : OpexProjectIsFreeAirRetirement(project)", insert)
         self.assertIn("if (priorFreeRetire != projectFreeRetire)", insert)
         self.assertLess(
             insert.index("if (priorFreeRetire != projectFreeRetire)"),
-            insert.index("if (priorScore > projectScore)"),
+            insert.index("if (projectScore > priorScore)"),
         )
 
         # Hors frontier, la priorité historique de maintenance est conservée.
@@ -554,7 +611,8 @@ class TestAirLifecycle(unittest.TestCase):
 
     def test_retire_only_zero_capital_executes_with_fleet_portfolio_when_bounded_pool_is_full(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["fleet_portfolio"], 1)
+        self.assertEqual(defaults["policy_air"], 1)
+        self.assertIn("FLEET_PORTFOLIO = polAir;", SETTINGS.read_text(encoding="utf-8"))
 
         projects = PROJECTS.read_text(encoding="utf-8")
         task_projects = TASK_PROJECTS.read_text(encoding="utf-8")
@@ -595,13 +653,11 @@ class TestAirLifecycle(unittest.TestCase):
             "project.profitAnnual < floorProfit && !OpexProjectIsFreeAirRetirement(project)",
             selector,
         )
-        self.assertIn(
-            "local projectFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(project)",
-            insert,
-        )
+        self.assertIn("local preparedHistorical = !capitalProfitTie", insert)
+        self.assertIn("? project.selectionFreeRetire : OpexProjectIsFreeAirRetirement(project)", insert)
         self.assertLess(
             insert.index("if (priorFreeRetire != projectFreeRetire)"),
-            insert.index("if (priorScore > projectScore)"),
+            insert.index("if (projectScore > priorScore)"),
         )
 
         # Exécution : la cible vient de l'état lifecycle commun, jamais d'une
@@ -868,9 +924,12 @@ class TestAirLifecycle(unittest.TestCase):
             "function OpexAirCadenceCap",
             "function OpexAirAirportAcceptsPlane",
         )
-        self.assertIn('(\"planeSpeed\" in line)', cadence)
+        self.assertIn("function OpexAirCadenceContext", air)
+        self.assertIn("function OpexAirCadenceLimitFromContext", air)
         self.assertIn("function OpexAirCadenceCapForPlane", cadence)
-        self.assertIn("planeSpeed = plane.speed", cadence)
+        self.assertIn("cadenceContext = null", cadence)
+        self.assertIn("OpexAirCadenceLimitFromContext(", cadence)
+        self.assertIn("cadenceContext, -1, plane.speed, plane.capacity", cadence)
 
         best = _section(
             air,
@@ -878,7 +937,8 @@ class TestAirLifecycle(unittest.TestCase):
             "function OpexAirEquipmentChoices",
         )
         self.assertIn("cadenceLine = null", best)
-        self.assertIn("OpexAirCadenceCapForPlane(cadenceLine, plane, lines)", best)
+        self.assertIn("OpexAirCadenceContext(cadenceLine, lines)", best)
+        self.assertIn("OpexAirCadenceCapForPlane(cadenceLine, plane, lines, cadenceContext)", best)
         self.assertIn("candidateMaxPlanes", best)
 
         choices = _section(
@@ -887,7 +947,8 @@ class TestAirLifecycle(unittest.TestCase):
             "function OpexAirEquipmentFrontier",
         )
         self.assertIn("cadenceLine = null", choices)
-        self.assertIn("OpexAirCadenceCapForPlane(cadenceLine, plane, lines)", choices)
+        self.assertIn("OpexAirCadenceContext(cadenceLine, lines)", choices)
+        self.assertIn("OpexAirCadenceCapForPlane(cadenceLine, plane, lines, cadenceContext)", choices)
 
         frontier = _section(
             air,
@@ -895,7 +956,8 @@ class TestAirLifecycle(unittest.TestCase):
             "function OpexAirAssessExistingLine",
         )
         self.assertIn("local maxPlanes = fleetCap", frontier)
-        self.assertIn("OpexAirCadenceCapForPlane(line, plane, lines)", frontier)
+        self.assertIn("OpexAirCadenceContext(line, lines)", frontier)
+        self.assertIn("OpexAirCadenceCapForPlane(line, plane, lines, cadenceContext)", frontier)
 
         assessment = _section(
             air,

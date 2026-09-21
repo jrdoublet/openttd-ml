@@ -30,7 +30,7 @@ from bench_v2 import (
     year_profit,
 )
 
-ARM = "OpexAI[c52_station_first_vehicle_log=1]"
+ARM = "OpexAI[probe_events=1]"
 EVENT_RE = re.compile(r"OPEX (\d+)-(\d+)-(\d+) STATION_FIRST_VEHICLE\s*(.*)$")
 
 
