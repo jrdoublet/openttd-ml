@@ -637,3 +637,62 @@ meilleure tentative de changement de régime ROI → profit à ce jour (C35.4 4/
    plafond de cadence (`room`) ; les deux causes testées (plafond de lot, exemption de flotte)
    sont écartées ;
 2. si C72 est adopté, rebancer C69 bis par-dessus C72, contre C72 seul.
+
+---
+
+## 20. Graines extrêmes de C69, C69 bis et C72 (2026-09-21)
+
+Les bancs C69 et C69 bis ont la même référence (`c70`), les deux bancs C72 aussi (`default`) :
+chaque paire contient **deux parties indépendantes de la même politique**. Leur écart mesure le
+bruit du duel graine par graine.
+
+### 20.1 Le bruit
+
+| même politique jouée deux fois | parties identiques | écart médian | écart max | écart-type |
+|---|---|---|---|---|
+| `c70` (C69 et C69 bis) | 0 / 20 | 157 k£ (10,3 %) | 354 k£ (27,6 %) | 189 k£ |
+| `default` (deux bancs C72) | 2 / 20 | 117 k£ (7,5 %) | 466 k£ (42,9 %) | 203 k£ |
+
+Écart-type des écarts variante − référence : C69 296 k£, C69 bis 314 k£, C72 ROI 257 k£, C72 C69
+330 k£. Pour C72, c'est à peine plus que le bruit ; pour C69, il y a une part propre.
+
+### 20.2 C69 : un effet réel, qui dépend de la carte
+
+Écarts par graine de C69 et de C69 bis : **corrélation +0,53** sur 20 graines (C72 contre C69 :
+±0,1). Les mêmes cartes gagnent et perdent :
+
+| graine | C69 | C69 bis | bruit `c70` | Δ avions | Δ aéroports | Δ gares de bus |
+|---|---:|---:|---:|---|---|---|
+| 424242 | **+728** | **+943** | −221 | −20 / −13 | +11 / +9 | +20 / +7 |
+| 73 | +403 | +378 | +41 | −13 / −16 | +6 / +8 | +14 / +8 |
+| 314 | +278 | +514 | −236 | −5 / −7 | +3 / +6 | +8 / +3 |
+| 8675309 | +306 | +173 | −29 | −5 / −11 | +6 / +7 | +6 / +9 |
+| 100 | **−224** | **−181** | +12 | +2 / +1 | +2 / −1 | **−13 / −8** |
+| 65537 | −347 | −37 | −189 | +4 / +8 | +4 / 0 | −6 / −1 |
+| 4096 | −278 | −418 | **+354** | −19 / −14 | +9 / +7 | +8 / +2 |
+| 999 | −109 | −276 | −245 | −11 / −6 | +4 / 0 | 0 / −10 |
+
+(k£/an, puis deltas C69 / C69 bis en fin de partie.)
+
+- 🔴 **« Plus d'aéroports, moins d'avions » n'est PAS le mécanisme de la perte.** Les plus grands
+  gagnants le font davantage que les perdants : graine 424242, −20 avions et +11 aéroports pour
+  +728 k£. La reprise n° 1 du §19 (chercher pourquoi la flotte ne suit pas) visait donc un faux
+  coupable.
+- **Ce qui sépare les deux groupes, c'est la route.** Les gagnantes gagnent des gares de bus (+3 à
+  +20) ; les perdantes au bruit faible (100, 65537) en perdent (−13, −6) avec leurs bus (−15, −10).
+  Corrélation constatée sur 8 graines, cause non établie.
+- La graine 4096 perd dans les deux bancs, mais son bruit (354 k£) est aussi grand que sa perte.
+
+### 20.3 C72 : dans le bruit, sauf deux graines
+
+- Écarts du même ordre que le bruit ; les deux bras C72 se corrèlent à +0,37 (deux politiques
+  différentes, donc pas un test de reproductibilité).
+- **512 perd dans les deux bras** (−754 et −500 k£, bruit −192) sans changement visible de flotte
+  ou de gares ; **8191 gagne dans les deux** (+446 et +311 k£) avec +8 à +15 avions et −13 à −17
+  bus.
+
+### 20.4 Suite proposée
+
+Rejouer en duel, avec la télémétrie de lignes du harnais C66 (`--line-telemetry`), la graine
+gagnante 424242 et la perdante 100 (bruit faible), bras `c70` contre `c70_c69_bis`, pour voir
+quelles lignes, bus et avions changent. Le duel n'étant pas déterministe, deux répétitions.
