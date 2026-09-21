@@ -204,3 +204,26 @@ Sans le levier (§6) : 26 chantiers en 1972 et ~25 en 1975 pour les 3 graines.
 **Lecture** : construire plus par passe déplace le goulot vers **la durée du tour** (régénération
 complète à chaque passe, §7) et vers **la profondeur du vivier**. C'est un argument direct pour C76
 (régénération pilotée par les événements) avant ou avec C75.
+
+## 9. C75 au banc d'autorité 20×10 en duel (2026-09-21)
+
+`results/c75_multibuild_vs_default_10y_20seeds.json` (PC de l'utilisateur), 20/20 paires.
+
+| `c75` − défaut | moyenne | V / D | lecture |
+|---|---:|---|---|
+| **véhicules** | **+42 (+45 %)** | **19 / 0** (p = 4·10⁻⁶) | le volume monte massivement |
+| note de gare médiane | +6 | 14 / 4 (p = 0,03) | le service s'améliore |
+| aéroports | +2,45 | 13 / 4 | |
+| **`profit_year`** | **+23 k£/an (+1,5 %)** | **10 / 10** (p = 1) | aucun gain |
+| `company_value` | +1,8 % | 9 / 11 | aucun gain |
+| rapport au profit d'AAAHogEx | +0,7 pt | 9 / 11 | dans le bruit (~3 pt) |
+
+**Verdict : `fail_primary`.** `c75_multi_build` reste à 0.
+
+🔑 **Le résultat le plus instructif de la journée : combler une partie de l'écart de volume ne
+rapporte rien.** 42 véhicules de plus (19/0) pour +23 k£/an, soit ~550 £ par véhicule ajouté et par
+an, contre ~16 k£ en moyenne. Les projets supplémentaires (ceux qui coûtent moins que K_pass, plus
+bas dans la liste) ont une valeur marginale quasi nulle. `taches.md` l'avait écrit : « un réseau
+plus gros n'est pas encore un rattrapage ». Le goulot n'est donc pas seulement le nombre de
+décisions, mais **la valeur de ce qui est proposé au vivier** : la liste classée, sous le premier
+rang, ne contient presque rien qui paie.
