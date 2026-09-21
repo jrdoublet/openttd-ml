@@ -405,6 +405,7 @@ function OpexAI::_reportLines(year)
     if (c73Year >= 1970) {
       OpexC73FlushLedger(c73Year);
       OpexC75FlushYear(c73Year);
+      if (C39_INVALIDATION_PROBE) OpexC76FlushYear(c73Year);
     }
   }
 }
@@ -798,4 +799,274 @@ function OpexAI::_reportYear(year, ranked)
       OpexDecide("SUBSIDY_REPORT", "year=" + year + " offers=" + this._subsidyStats.offers + " matched=" + this._subsidyStats.matchedPool + " awarded_self=" + this._subsidyStats.awardedSelf + " awarded_other=" + this._subsidyStats.awardedOther + " expired=" + this._subsidyStats.expiredWithoutAward);
     }
   }
+}
+
+function OpexAI::_c76RecordRegen(kind, ops, days, year)
+{
+  if (!C39_INVALIDATION_PROBE) return;
+
+  local dateNow = AIDate.GetCurrentDate();
+  local prev = C76_PREV_STATE;
+  local daysSincePrev = (prev != null && ("date" in prev)) ? (dateNow - prev.date) : 0;
+
+  local townPopSum = 0;
+  local townsN = 0;
+  local townsCurr = {};
+  if (this._catalog != null && ("towns" in this._catalog) && this._catalog.towns != null) {
+    townsN = this._catalog.towns.len();
+    foreach (t in this._catalog.towns) {
+      if (t != null) {
+        if ("pop" in t) townPopSum += t.pop;
+        if ("id" in t) townsCurr.rawset(t.id, true);
+      }
+    }
+  }
+  local townsDelta = 0;
+  if (prev != null && ("towns" in prev) && prev.towns != null) {
+    foreach (id, _ in townsCurr) {
+      if (!(id in prev.towns)) townsDelta++;
+    }
+    foreach (id, _ in prev.towns) {
+      if (!(id in townsCurr)) townsDelta++;
+    }
+  }
+  local townPopDeltaPct = OpexC76FormatPct(townPopSum, (prev != null && ("towns_pop" in prev)) ? prev.towns_pop : null);
+
+  local indCurr = {};
+  local indProdSum = 0;
+  if (this._catalog != null && ("industries" in this._catalog) && this._catalog.industries != null) {
+    foreach (ind in this._catalog.industries) {
+      if (ind != null && ("id" in ind) && AIIndustry.IsValidIndustry(ind.id)) {
+        indCurr.rawset(ind.id, true);
+      }
+    }
+  }
+  if (this._catalog != null && ("producers" in this._catalog) && this._catalog.producers != null
+      && ("industries" in this._catalog) && this._catalog.industries != null) {
+    foreach (cargo, indIdxs in this._catalog.producers) {
+      foreach (idx in indIdxs) {
+        if (idx >= 0 && idx < this._catalog.industries.len()) {
+          local ind = this._catalog.industries[idx];
+          if (ind != null && ("id" in ind) && AIIndustry.IsValidIndustry(ind.id)) {
+            indProdSum += AIIndustry.GetLastMonthProduction(ind.id, cargo);
+          }
+        }
+      }
+    }
+  }
+  local indChanged = 0;
+  if (prev != null && ("industries" in prev) && prev.industries != null) {
+    foreach (id, _ in indCurr) {
+      if (!(id in prev.industries)) indChanged++;
+    }
+    foreach (id, _ in prev.industries) {
+      if (!(id in indCurr)) indChanged++;
+    }
+  }
+  local indProdDeltaPct = OpexC76FormatPct(indProdSum, (prev != null && ("ind_prod" in prev)) ? prev.ind_prod : null);
+
+  local enginesRail = OpexC76GetBuildableEngines(AIVehicle.VT_RAIL);
+  local enginesRoad = OpexC76GetBuildableEngines(AIVehicle.VT_ROAD);
+  local enginesAir = OpexC76GetBuildableEngines(AIVehicle.VT_AIR);
+  local enginesWater = OpexC76GetBuildableEngines(AIVehicle.VT_WATER);
+
+  local chgRail = OpexC76CountEngineChanges(enginesRail, (prev != null && ("engines" in prev) && ("rail" in prev.engines)) ? prev.engines.rail : null);
+  local chgRoad = OpexC76CountEngineChanges(enginesRoad, (prev != null && ("engines" in prev) && ("road" in prev.engines)) ? prev.engines.road : null);
+  local chgAir = OpexC76CountEngineChanges(enginesAir, (prev != null && ("engines" in prev) && ("air" in prev.engines)) ? prev.engines.air : null);
+  local chgWater = OpexC76CountEngineChanges(enginesWater, (prev != null && ("engines" in prev) && ("water" in prev.engines)) ? prev.engines.water : null);
+
+  local linesN = (this._lines != null) ? this._lines.len() : 0;
+  local linesDelta = (prev != null && ("lines_n" in prev)) ? (linesN - prev.lines_n) : 0;
+
+  local budgetNow = OpexAvailableCapital();
+  local cashBudgetDeltaPct = OpexC76FormatPct(budgetNow, (prev != null && ("budget" in prev)) ? prev.budget : null);
+
+  local evStr = "0";
+  if (C76_EVENTS_SINCE_PREV != null) {
+    evStr = "" + C76_EVENTS_SINCE_PREV.total;
+    if (C76_EVENTS_SINCE_PREV.total > 0 && C76_EVENTS_SINCE_PREV.by_type.len() > 0) {
+      local parts = [];
+      foreach (k, v in C76_EVENTS_SINCE_PREV.by_type) {
+        parts.append(k + ":" + v);
+      }
+      evStr += "(" + parts[0];
+      for (local i = 1; i < parts.len(); i++) {
+        evStr += "," + parts[i];
+      }
+      evStr += ")";
+    }
+  }
+
+  local candByMode = {
+    rail = {},
+    road = {},
+    air = {},
+    water = {},
+    fleet = {}
+  };
+  if (this._projects != null && ("candidateGroups" in this._projects) && this._projects.candidateGroups != null) {
+    foreach (groupKey, list in this._projects.candidateGroups) {
+      local arr = (typeof list == "array") ? list : [list];
+      foreach (p in arr) {
+        if (p == null) continue;
+        local m = ("mode" in p) ? p.mode : "unknown";
+        if (!(m in candByMode)) candByMode.rawset(m, {});
+        local key = OpexProjectAttemptKey(p);
+        local profit = ("profitAnnual" in p) ? p.profitAnnual : 0;
+        candByMode[m].rawset(key, profit);
+      }
+    }
+  }
+
+  local candN = {};
+  local candSameKeys = {};
+  local candSameEcon = {};
+  local modeOrder = ["rail", "road", "air", "water", "fleet"];
+  foreach (m in modeOrder) {
+    local currKeys = candByMode[m];
+    local prevKeys = (prev != null && ("cand_keys" in prev) && (m in prev.cand_keys)) ? prev.cand_keys[m] : null;
+    candN.rawset(m, currKeys.len());
+    if (prevKeys == null) {
+      candSameKeys.rawset(m, "100.00");
+      candSameEcon.rawset(m, "100.00");
+    } else {
+      local maxN = (currKeys.len() > prevKeys.len()) ? currKeys.len() : prevKeys.len();
+      if (maxN == 0) {
+        candSameKeys.rawset(m, "100.00");
+        candSameEcon.rawset(m, "100.00");
+      } else {
+        local commonCount = 0;
+        local sameEconCount = 0;
+        foreach (k, currProfit in currKeys) {
+          if (k in prevKeys) {
+            commonCount++;
+            local prevProfit = prevKeys[k];
+            local diff = currProfit - prevProfit;
+            if (diff < 0) diff = -diff;
+            local baseP = prevProfit >= 0 ? prevProfit : -prevProfit;
+            local tol = baseP / 100;
+            if (diff <= tol) sameEconCount++;
+          }
+        }
+        candSameKeys.rawset(m, OpexC76FormatRatioPct(commonCount, maxN));
+        candSameEcon.rawset(m, (commonCount > 0) ? OpexC76FormatRatioPct(sameEconCount, commonCount) : "0.00");
+      }
+    }
+  }
+
+  local bestKeys = [];
+  local bestTop1 = null;
+  if (this._projects != null && ("best" in this._projects) && this._projects.best != null) {
+    foreach (p in this._projects.best) {
+      if (p != null) {
+        local k = OpexProjectAttemptKey(p);
+        bestKeys.append(k);
+      }
+    }
+    if (bestKeys.len() > 0) bestTop1 = bestKeys[0];
+  }
+
+  local bestSameTop1 = 1;
+  local bestSameKeysPct = "100.00";
+  if (prev != null && ("best_keys" in prev)) {
+    if (bestTop1 == null && prev.best_top1 == null) {
+      bestSameTop1 = 1;
+    } else if (bestTop1 != null && prev.best_top1 != null && bestTop1 == prev.best_top1) {
+      bestSameTop1 = 1;
+    } else {
+      bestSameTop1 = 0;
+    }
+
+    local prevBestTable = {};
+    if (prev.best_keys != null) {
+      foreach (k in prev.best_keys) prevBestTable.rawset(k, true);
+    }
+    local maxBest = (bestKeys.len() > prev.best_keys.len()) ? bestKeys.len() : prev.best_keys.len();
+    if (maxBest == 0) {
+      bestSameKeysPct = "100.00";
+    } else {
+      local commonBest = 0;
+      foreach (k in bestKeys) {
+        if (k in prevBestTable) commonBest++;
+      }
+      bestSameKeysPct = OpexC76FormatRatioPct(commonBest, maxBest);
+    }
+  }
+
+  local unchangedDeps = (prev != null
+    && indChanged == 0
+    && chgRail == 0 && chgRoad == 0 && chgAir == 0 && chgWater == 0
+    && linesDelta == 0
+    && townsDelta == 0) ? 1 : 0;
+
+  local line = "phase=regen kind=" + kind + " year=" + year
+    + " days_since_prev=" + daysSincePrev
+    + " ops=" + ops
+    + " towns_n=" + townsN
+    + " towns_pop_delta_pct=" + townPopDeltaPct
+    + " industries_n=" + indCurr.len()
+    + " industries_changed=" + indChanged
+    + " ind_prod_delta_pct=" + indProdDeltaPct
+    + " engines_changed_rail=" + chgRail
+    + " engines_changed_road=" + chgRoad
+    + " engines_changed_air=" + chgAir
+    + " engines_changed_water=" + chgWater
+    + " lines_n=" + linesN
+    + " lines_delta=" + linesDelta
+    + " cash_budget_delta_pct=" + cashBudgetDeltaPct
+    + " events_since_prev=" + evStr;
+
+  foreach (m in modeOrder) {
+    line += " cand_" + m + "_n=" + candN[m]
+         + " cand_" + m + "_same_keys_pct=" + candSameKeys[m]
+         + " cand_" + m + "_same_econ_pct=" + candSameEcon[m];
+  }
+
+  line += " best_same_top1=" + bestSameTop1
+        + " best_same_keys_pct=" + bestSameKeysPct;
+
+  OpexC76Log(line);
+
+  if (C76_YEAR_LEDGER != null) {
+    if (!(year in C76_YEAR_LEDGER)) {
+      C76_YEAR_LEDGER.rawset(year, {
+        full = 0,
+        incremental = 0,
+        ops_total = 0,
+        days_total = 0,
+        unchanged_deps = 0,
+        top1_unchanged = 0
+      });
+    }
+    local rec = C76_YEAR_LEDGER[year];
+    if (kind == "full") rec.full++;
+    else if (kind == "incremental") rec.incremental++;
+    rec.ops_total += ops;
+    rec.days_total += days;
+    if (unchangedDeps == 1) rec.unchanged_deps++;
+    if (bestSameTop1 == 1) rec.top1_unchanged++;
+  }
+
+  C76_PREV_STATE = {
+    date = dateNow,
+    towns = townsCurr,
+    towns_n = townsN,
+    towns_pop = townPopSum,
+    industries = indCurr,
+    industries_n = indCurr.len(),
+    ind_prod = indProdSum,
+    engines = {
+      rail = enginesRail,
+      road = enginesRoad,
+      air = enginesAir,
+      water = enginesWater
+    },
+    lines_n = linesN,
+    budget = budgetNow,
+    cand_keys = candByMode,
+    best_keys = bestKeys,
+    best_top1 = bestTop1
+  };
+
+  C76_EVENTS_SINCE_PREV = { total = 0, by_type = {} };
 }

@@ -408,6 +408,7 @@ class OpexAI extends AIController {
   function _dispatchRefleet(task, year);
   function _dispatchTownGrowth(task, year);
   function _dispatchRepay(task, year);
+  function _c76RecordRegen(kind, ops, days, year);
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */

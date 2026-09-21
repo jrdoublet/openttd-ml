@@ -293,6 +293,10 @@ C75_MULTI_BUILD <- false;
 C75_TRACK_PASSES <- false;
 C75_PASS_DATES <- null;
 C75_YEAR_LEDGER <- null;
+/* C76 : sonde passive de la regeneration du vivier sous C39_INVALIDATION_PROBE */
+C76_PREV_STATE <- null;
+C76_YEAR_LEDGER <- null;
+C76_EVENTS_SINCE_PREV <- null;
 
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */

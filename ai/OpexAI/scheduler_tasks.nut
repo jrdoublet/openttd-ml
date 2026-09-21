@@ -63,7 +63,14 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexRefreshEpochBounds(this._catalog);
     this._recomputeEpochBounds = false;
   }
+  local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+  local c76StartDay = C39_INVALIDATION_PROBE ? AIDate.GetCurrentDate() : 0;
   this._rebuildProjects(fleetPlan);
+  if (C39_INVALIDATION_PROBE) {
+    local c76Ops = OpexOpsMeasureEnd(c76Mark);
+    local c76Days = AIDate.GetCurrentDate() - c76StartDay;
+    this._c76RecordRegen("full", c76Ops, c76Days, year);
+  }
   /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
    * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */
   if (C39_PROJECTS_CADENCE_PROBE) this._c39StampFinanceable();

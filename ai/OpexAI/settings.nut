@@ -189,6 +189,9 @@ function OpexLoadSettings()
   C41_WATER_CANDIDATE_PROBE = false;
   C41_WATER_PLANS_PROFILE = false;
   C41_WATER_SITE_PROFILE = false;
+  if (C39_INVALIDATION_PROBE) {
+    OpexC76Reset();
+  }
 
   // 6. probe_rail_search : domination, fallthrough, projects cadence
   local probeRailSearch = AIController.GetSetting("probe_rail_search") != 0;

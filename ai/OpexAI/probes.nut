@@ -1269,4 +1269,120 @@ function OpexC73FlushLedger(year)
   C73_VIVIER_LEDGER.flushedYear = year;
 }
 
+/* C76 : sonde passive sous C39_INVALIDATION_PROBE (probe_catalogue). */
+function OpexC76Log(fields)
+{
+  if (!C39_INVALIDATION_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C76_REGEN " + fields);
+}
+
+function OpexC76Reset()
+{
+  C76_PREV_STATE = null;
+  C76_YEAR_LEDGER = {};
+  C76_EVENTS_SINCE_PREV = { total = 0, by_type = {} };
+}
+
+function OpexC76ObserveEvent(eventType)
+{
+  if (!C39_INVALIDATION_PROBE || C76_EVENTS_SINCE_PREV == null) return;
+  C76_EVENTS_SINCE_PREV.total++;
+  local typeName = "other";
+  if (eventType == AIEvent.ET_ENGINE_AVAILABLE || eventType == AIEvent.ET_ENGINE_PREVIEW) typeName = "engine";
+  else if (eventType == AIEvent.ET_INDUSTRY_OPEN) typeName = "ind_open";
+  else if (eventType == AIEvent.ET_INDUSTRY_CLOSE) typeName = "ind_close";
+  else if (eventType == AIEvent.ET_TOWN_FOUNDED) typeName = "town_founded";
+  else if (eventType == AIEvent.ET_SUBSIDY_OFFER || eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED
+           || eventType == AIEvent.ET_SUBSIDY_AWARDED || eventType == AIEvent.ET_SUBSIDY_EXPIRED) typeName = "subsidy";
+  else if (eventType == AIEvent.ET_VEHICLE_CRASHED || eventType == AIEvent.ET_VEHICLE_LOST
+           || eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT || eventType == AIEvent.ET_VEHICLE_UNPROFITABLE
+           || eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) typeName = "vehicle";
+  else if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) typeName = "station";
+
+  if (typeName in C76_EVENTS_SINCE_PREV.by_type) {
+    C76_EVENTS_SINCE_PREV.by_type[typeName]++;
+  } else {
+    C76_EVENTS_SINCE_PREV.by_type.rawset(typeName, 1);
+  }
+}
+
+function OpexC76FormatPct(curr, prev)
+{
+  if (prev == null || prev == 0) return "0.00";
+  local delta = (curr.tofloat() - prev.tofloat()) * 100.0 / prev.tofloat();
+  local sign = "";
+  if (delta < 0.0) {
+    sign = "-";
+    delta = -delta;
+  }
+  local whole = delta.tointeger();
+  local frac = ((delta - whole) * 100.0 + 0.5).tointeger();
+  if (frac >= 100) {
+    whole += 1;
+    frac -= 100;
+  }
+  local fracStr = frac < 10 ? "0" + frac : "" + frac;
+  return sign + whole + "." + fracStr;
+}
+
+function OpexC76FormatRatioPct(num, den)
+{
+  if (den == null || den <= 0) return (num == 0) ? "100.00" : "0.00";
+  local pct = (num.tofloat() * 100.0) / den.tofloat();
+  if (pct > 100.0) pct = 100.0;
+  if (pct < 0.0) pct = 0.0;
+  local whole = pct.tointeger();
+  local frac = ((pct - whole) * 100.0 + 0.5).tointeger();
+  if (frac >= 100) {
+    whole += 1;
+    frac -= 100;
+  }
+  local fracStr = frac < 10 ? "0" + frac : "" + frac;
+  return "" + whole + "." + fracStr;
+}
+
+function OpexC76GetBuildableEngines(vehicleType)
+{
+  local res = {};
+  local list = AIEngineList(vehicleType);
+  for (local e = list.Begin(); !list.IsEnd(); e = list.Next()) {
+    if (AIEngine.IsBuildable(e)) {
+      res.rawset(e, true);
+    }
+  }
+  return res;
+}
+
+function OpexC76CountEngineChanges(curr, prev)
+{
+  if (prev == null) return 0;
+  local count = 0;
+  foreach (e, _ in curr) {
+    if (!(e in prev)) count++;
+  }
+  foreach (e, _ in prev) {
+    if (!(e in curr)) count++;
+  }
+  return count;
+}
+
+function OpexC76FlushYear(year)
+{
+  if (!C39_INVALIDATION_PROBE || C76_YEAR_LEDGER == null) return;
+  if (year < 1970) return;
+  local rec = (year in C76_YEAR_LEDGER) ? C76_YEAR_LEDGER[year] : {
+    full = 0, incremental = 0, ops_total = 0, days_total = 0,
+    unchanged_deps = 0, top1_unchanged = 0
+  };
+  OpexC76Log("phase=regen_year year=" + year
+             + " full=" + rec.full
+             + " incremental=" + rec.incremental
+             + " ops_total=" + rec.ops_total
+             + " days_total=" + rec.days_total
+             + " unchanged_deps=" + rec.unchanged_deps
+             + " top1_unchanged=" + rec.top1_unchanged);
+}
+
 
