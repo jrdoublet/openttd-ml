@@ -320,8 +320,6 @@ function OpexLoadSettings()
   PAX_NEAR = false;
   PROBE_NEGATIVE = false;
   RESERVE_MAINT_CAP = false;
-  AIR_ABANDON_SITE = false;
-  AIR_TOWN_LIMIT_MEMORY = false;
   WATER_SITE_CATALOG = false;
   WATER_DISCOVERY_REAL_FRONTS = false;
   WATER_LAKES_CONNECTIVITY = false;

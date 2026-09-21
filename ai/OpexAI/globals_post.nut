@@ -176,12 +176,6 @@ AIR_MARGIN <- true;
  * detection a ~15 % vaut pour la comparaison de MOYENNES, pas pour le test des signes.
  * Repli VRAI jusqu'a la lecture unique dans Start(). */
 AIR_ABANDON <- true;
-/* C56 follow-up: an airport failure belongs to a physical anchor, not only to
- * the pair which happened to propose it. Experimental until its paired bench. */
-AIR_ABANDON_SITE <- false;
-/* C63/C58 : memoire experimentale d'une ville qui refuse un nouvel aeroport parce que sa
- * limite de stations est atteinte. Defaut 0 jusqu'au banc causal C66.4. */
-AIR_TOWN_LIMIT_MEMORY <- false;
 /* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
  * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
  * Sous 1, deux defauts du rendement unitaire tombent --

@@ -1058,21 +1058,8 @@ function OpexM3ProbeAirPreAdmission(catalog, airport, selectedPlane, distance, m
       + ((!selectedPositive && bestNativeProfit != null && bestNativeProfit.profitAnnual > 0) ? 1 : 0));
 }
 
-/* An anchor only describes the north-west corner. Its buildability depends on
- * the airport footprint, so the airport type is part of the durable-site key. */
-function OpexAirSiteAbandonKey(site, airportType)
-{
-  return "air_site|" + airportType + "|" + site.anchor;
-}
-
-function OpexAirTownLimitAbandonKey(site)
-{
-  return "air_town_limit|" + site.town.tile;
-}
-
-/* `abandoned` : table des paires dont une construction a deja echoue (cle
- * "air|tileA|tileB", identique a celle de main.nut), et optionnellement des
- * sites exacts et types ("air_site|airportType|anchor"). null = filtre desactive.
+/* Table des paires dont une construction a deja echoue (cle
+ * "air|tileA|tileB", identique a celle de main.nut). null = filtre desactive.
  * Le filtre est place APRES les tests de distance et AVANT OpexAirEconomics : les paires
  * ecartees pour distance ne paient pas la concatenation, et celles qui restent evitent le
  * calcul cher. */
@@ -1181,11 +1168,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
 
         if (abandoned != null) {
           local pairKey = "air|" + sites[a].town.tile + "|" + sites[b].town.tile;
-          if ((pairKey in abandoned)
-              || (AIR_TOWN_LIMIT_MEMORY && ((OpexAirTownLimitAbandonKey(sites[a]) in abandoned)
-                  || (OpexAirTownLimitAbandonKey(sites[b]) in abandoned)))
-              || (AIR_ABANDON_SITE && ((OpexAirSiteAbandonKey(sites[a], airport.type) in abandoned)
-                  || (OpexAirSiteAbandonKey(sites[b], airport.type) in abandoned)))) continue;
+          if (pairKey in abandoned) continue;
         }
 
         local popA = sites[a].town.pop;
@@ -1361,9 +1344,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         if (abandoned != null) {
           local pairKey = "air|" + hub.town.tile + "|" + site.town.tile;
-          if ((pairKey in abandoned)
-              || (AIR_TOWN_LIMIT_MEMORY && (OpexAirTownLimitAbandonKey(site) in abandoned))
-              || (AIR_ABANDON_SITE && (OpexAirSiteAbandonKey(site, airport.type) in abandoned))) continue;
+          if (pairKey in abandoned) continue;
         }
         local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;

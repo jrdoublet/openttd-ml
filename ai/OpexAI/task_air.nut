@@ -1,32 +1,3 @@
-/* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
-/* C56 follow-up: only airport placement failures identify a bad physical site.
- * A plane/order/cash failure must not poison either endpoint. */
-function OpexAI::_markAirFailedSites(plan, result)
-{
-  if ((!AIR_ABANDON_SITE && !AIR_TOWN_LIMIT_MEMORY) || plan == null || result == null || !("reason" in result)) return;
-  if (!("airport" in plan) || plan.airport == null || !("error" in result)) return;
-  local reason = result.reason;
-  if (AIR_TOWN_LIMIT_MEMORY && result.error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) {
-    if ((reason == "PREA" || reason == "AFAIL") && ("siteA" in plan) && plan.siteA != null) {
-      this._markPairAbandoned(OpexAirTownLimitAbandonKey(plan.siteA));
-    }
-    if ((reason == "PREB" || reason == "BFAIL") && ("siteB" in plan) && plan.siteB != null) {
-      this._markPairAbandoned(OpexAirTownLimitAbandonKey(plan.siteB));
-    }
-  }
-  if (!AIR_ABANDON_SITE) return;
-  /* Only terrain failures survive a different route, date or town rating. */
-  if (result.error != AIError.ERR_FLAT_LAND_REQUIRED
-      && result.error != AIError.ERR_LAND_SLOPED_WRONG
-      && result.error != AIError.ERR_AREA_NOT_CLEAR
-      && result.error != AIError.ERR_SITE_UNSUITABLE) return;
-  if ((reason == "PREA" || reason == "AFAIL") && ("siteA" in plan) && plan.siteA != null) {
-    this._markPairAbandoned(OpexAirSiteAbandonKey(plan.siteA, plan.airport.type));
-  }
-  if ((reason == "PREB" || reason == "BFAIL") && ("siteB" in plan) && plan.siteB != null) {
-    this._markPairAbandoned(OpexAirSiteAbandonKey(plan.siteB, plan.airport.type));
-  }
-}
 /* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
 function OpexAI::_tryBuildAir(year)
 {
@@ -162,7 +133,6 @@ function OpexAI::_tryBuildAir(year)
        * portefeuille memorise deja ses echecs (voir plus bas) ; ce chemin-ci ne le faisait pas. */
       if (AIR_ABANDON && ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) {
         this._markPairAbandoned("air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile);
-        this._markAirFailedSites(plan, result);
       }
       break;
     }
@@ -326,15 +296,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         return { outcome = "rejected", discards = passDiscards };
       }
       local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
-      local abandonedSiteA = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
-      local abandonedSiteB = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
-      local abandonedTownA = OpexAirTownLimitAbandonKey(plan.siteA);
-      local abandonedTownB = OpexAirTownLimitAbandonKey(plan.siteB);
-      if (ABANDON_MEMORY && ((abandonedKey in this._abandonedPairs)
-          || (AIR_TOWN_LIMIT_MEMORY && ((!(("reuseA" in plan) && plan.reuseA) && (abandonedTownA in this._abandonedPairs))
-              || (!(("reuseB" in plan) && plan.reuseB) && (abandonedTownB in this._abandonedPairs))))
-          || (AIR_ABANDON_SITE && ((abandonedSiteA in this._abandonedPairs)
-              || (abandonedSiteB in this._abandonedPairs))))) {
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -389,9 +351,9 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
       if (!result.ok) {
         local errorAnchor = null;
-        if ((result.reason == "PREA" || result.reason == "AFAIL") && plan.siteA != null) {
+        if (result.reason == "AFAIL" && plan.siteA != null) {
           errorAnchor = plan.siteA.anchor;
-        } else if ((result.reason == "PREB" || result.reason == "BFAIL") && plan.siteB != null) {
+        } else if (result.reason == "BFAIL" && plan.siteB != null) {
           errorAnchor = plan.siteB.anchor;
         }
         local errorTown = (errorAnchor != null && AIMap.IsValidTile(errorAnchor))
@@ -415,7 +377,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         }
         if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) {
           this._markPairAbandoned(abandonedKey);
-          this._markAirFailedSites(plan, result);
         }
         return { outcome = "rejected", discards = passDiscards };
       }
