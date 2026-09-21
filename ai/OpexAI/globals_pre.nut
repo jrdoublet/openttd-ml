@@ -297,6 +297,12 @@ C75_YEAR_LEDGER <- null;
 C76_PREV_STATE <- null;
 C76_YEAR_LEDGER <- null;
 C76_EVENTS_SINCE_PREV <- null;
+/* C76 etape 2 : regeneration ciblee par mode, premier client reel du double registre C80. */
+C76_REGEN_TARGETED <- false;
+/* C77 : injection immediate de candidats lies a une entite touchee par un evenement. */
+C77_OPPORTUNISTIC_CANDIDATES <- false;
+/* Filet de reconciliation pour les derivees sans evenement NoAI. */
+C76_RECONCILE_MONTHS <- 6;
 
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */

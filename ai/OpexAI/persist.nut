@@ -467,6 +467,11 @@ function OpexAI::Save()
   if (C80_DOUBLE_REGISTER) {
     saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
     saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
+    if ((C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) && this._staleness != null) {
+      saveObj.c76Revisions <- this._staleness.revisions;
+      saveObj.c76Acknowledged <- this._staleness.acknowledged;
+      saveObj.c76LastReconcileMonth <- this._c76LastReconcileMonth;
+    }
   }
   return saveObj;
 }
@@ -519,13 +524,42 @@ function OpexAI::Load(version, data)
       if (task.name in data.taskDue) task.dueCycle = data.taskDue[task.name];
     }
   }
-  if (C80_DOUBLE_REGISTER) {
-    if ("c80ReactiveQueue" in data && data.c80ReactiveQueue != null) {
-      this._reactiveQueue = OpexLoadReactiveQueue(data.c80ReactiveQueue);
+  /* Load() precede OpexLoadSettings() : ne jamais conditionner la restauration
+   * C80/C76 aux drapeaux runtime, encore a leurs valeurs globales false ici. */
+  if ("c80ReactiveQueue" in data && data.c80ReactiveQueue != null) {
+    this._reactiveQueue = OpexLoadReactiveQueue(data.c80ReactiveQueue);
+  }
+  if ("c80ActiveWorker" in data && data.c80ActiveWorker != null) {
+    this._activeWorker = OpexLoadActiveWorker(data.c80ActiveWorker);
+  }
+  if (this._staleness != null) {
+    if ("c76Revisions" in data && data.c76Revisions != null) {
+      this._staleness.revisions = data.c76Revisions;
     }
-    if ("c80ActiveWorker" in data && data.c80ActiveWorker != null) {
-      this._activeWorker = OpexLoadActiveWorker(data.c80ActiveWorker);
+    if ("c76Acknowledged" in data && data.c76Acknowledged != null) {
+      this._staleness.acknowledged = data.c76Acknowledged;
     }
+    if ("c76LastReconcileMonth" in data) {
+      this._c76LastReconcileMonth = data.c76LastReconcileMonth;
+    }
+    foreach (layer in ["cargos", "towns", "industries", "rail", "road", "air", "water"]) {
+      if ((layer in this._staleness.revisions.catalog)
+          && (layer in this._staleness.acknowledged.catalog)) {
+        this._staleness.catalog[layer] =
+            this._staleness.revisions.catalog[layer] > this._staleness.acknowledged.catalog[layer];
+      }
+    }
+    foreach (mode in ["rail", "road", "air", "water"]) {
+      if ((mode in this._staleness.revisions.candidates)
+          && (mode in this._staleness.acknowledged.candidates)) {
+        this._staleness.candidates[mode] =
+            this._staleness.revisions.candidates[mode] > this._staleness.acknowledged.candidates[mode];
+      }
+    }
+    this._staleness.portfolio =
+        this._staleness.revisions.portfolio > this._staleness.acknowledged.portfolio;
+    this._staleness.selection =
+        this._staleness.revisions.selection > this._staleness.acknowledged.selection;
   }
 }
 /* Load tourne trop tot et sous DisableDoCommandScope : la verification du monde est donc faite

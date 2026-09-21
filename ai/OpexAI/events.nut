@@ -41,7 +41,9 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
                             portfolio = false, selection = false, affectedKind = null,
                             affectedId = -1, affectedMode = null, targetedRelevant = true)
 {
-  if (!C39_INVALIDATION_PROBE || this._staleness == null) return;
+  local functional = C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES);
+  if ((!C39_INVALIDATION_PROBE && !functional) || this._staleness == null) return;
+  local revisionTracking = C41_REVISION_PROBE || functional;
   local revisionBumped = false;
   if (C39_DECISION_DELTA_PROBE && !this._staleness.topBeforeCaptured) {
     this._staleness.topBefore = OpexC39ProjectSignature(this._projects);
@@ -50,7 +52,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (catalogLayers != null) {
     foreach (layer in catalogLayers) {
       if (layer in this._staleness.catalog) {
-        if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.catalog[layer]) {
+        if (revisionTracking && targetedRelevant && !this._staleness.catalog[layer]) {
           this._staleness.revisions.catalog[layer]++;
           this._staleness.dirtySince.catalog[layer] = AIDate.GetCurrentDate();
           if (layer == "water") {
@@ -66,7 +68,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (candidateLayers != null) {
     foreach (layer in candidateLayers) {
       if (layer in this._staleness.candidates) {
-        if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.candidates[layer]) {
+        if (revisionTracking && targetedRelevant && !this._staleness.candidates[layer]) {
           this._staleness.revisions.candidates[layer]++;
           this._staleness.dirtySince.candidates[layer] = AIDate.GetCurrentDate();
           revisionBumped = true;
@@ -76,7 +78,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
     }
   }
   if (portfolio) {
-    if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.portfolio) {
+    if (revisionTracking && targetedRelevant && !this._staleness.portfolio) {
       this._staleness.revisions.portfolio++;
       this._staleness.dirtySince.portfolio = AIDate.GetCurrentDate();
       revisionBumped = true;
@@ -84,7 +86,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
     this._staleness.portfolio = true;
   }
   if (selection) {
-    if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.selection) {
+    if (revisionTracking && targetedRelevant && !this._staleness.selection) {
       this._staleness.revisions.selection++;
       this._staleness.dirtySince.selection = AIDate.GetCurrentDate();
       revisionBumped = true;
@@ -108,6 +110,22 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
              + " id=" + affectedId);
   if (C41_REVISION_PROBE && revisionBumped) {
     OpexC39Log("C41_REVISION", OpexC41RevisionSnapshot(this._staleness.revisions));
+  }
+  if (functional && targetedRelevant && candidateLayers != null) {
+    local targeted = C77_OPPORTUNISTIC_CANDIDATES
+        && affectedId >= 0 && (affectedKind == "town" || affectedKind == "industry")
+        && reason != "industry_close";
+    local shouldRoute = C76_REGEN_TARGETED
+        || (C77_OPPORTUNISTIC_CANDIDATES && (targeted || reason == "engine_available"));
+    local modes = [];
+    foreach (layer in candidateLayers) {
+      if (targeted && affectedKind == "town" && layer == "water") continue;
+      modes.append(layer);
+    }
+    if (shouldRoute && modes.len() > 0) {
+      this._c76EnqueueRegen(modes, targeted ? affectedKind : null,
+                            targeted ? affectedId : -1, targeted, targeted, reason);
+    }
   }
   /* C41.1 : le routeur ne fait aucun rafraichissement. Il arme seulement la micro-tache eau ;
    * `catalog.water` reste son unique dependance et son unique acquittement futur. */

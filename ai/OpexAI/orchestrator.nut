@@ -143,7 +143,7 @@ function OpexRegisterWorker(kind, stepFn, cancelFn)
   });
 }
 
-function OpexWorkerStep(worker, opsBudget, deadlineTick)
+function OpexWorkerStep(owner, worker, opsBudget, deadlineTick)
 {
   if (worker == null || typeof worker != "table" || !("kind" in worker)) return "cancelled";
   local kind = worker.kind;
@@ -151,7 +151,7 @@ function OpexWorkerStep(worker, opsBudget, deadlineTick)
     AILog.Warning("C80: unknown worker kind: " + kind);
     return "cancelled";
   }
-  return OPEX_WORKER_REGISTRY[kind].step(worker, opsBudget, deadlineTick);
+  return OPEX_WORKER_REGISTRY[kind].step(owner, worker, opsBudget, deadlineTick);
 }
 
 function OpexWorkerCancel(worker)
@@ -169,7 +169,7 @@ function OpexWorkerCancel(worker)
  * - appel 2 -> "running"
  * - appel 3 -> "done"
  */
-function OpexWorkerNoopStep(worker, opsBudget, deadlineTick)
+function OpexWorkerNoopStep(owner, worker, opsBudget, deadlineTick)
 {
   if (worker == null || !("state" in worker) || worker.state == null || typeof worker.state != "table") {
     return "cancelled";
@@ -193,6 +193,47 @@ function OpexWorkerNoopCancel(worker)
 
 // Enregistrement du travailleur test noop
 OpexRegisterWorker("noop", OpexWorkerNoopStep, OpexWorkerNoopCancel);
+
+function OpexWorkerRegenCandidatesStep(owner, worker, opsBudget, deadlineTick)
+{
+  if (owner == null || worker == null || !("state" in worker)
+      || worker.state == null || typeof worker.state != "table") return "cancelled";
+  local s = worker.state;
+  if (!("modes" in s) || s.modes == null || typeof s.modes != "array") return "cancelled";
+  if (!("cursor" in s)) s.cursor <- 0;
+  if (s.cursor >= s.modes.len()) return "done";
+  local mode = s.modes[s.cursor];
+  owner._c76RefreshModeCatalog(mode);
+  if (owner._projects == null) {
+    owner._catalog.refresh(owner._budget, AIDate.GetYear(AIDate.GetCurrentDate()));
+    owner._rebuildProjects(null);
+  } else {
+    local targeted = ("targeted" in s) && s.targeted;
+    local entityKind = targeted && ("entityKind" in s) ? s.entityKind : null;
+    local entityId = targeted && ("entityId" in s) ? s.entityId : -1;
+    owner._projects = OpexRegenerateModeProjects(owner._projects, owner._catalog, owner._budget,
+        owner._lines, owner._abandonedPairs, mode, owner._waterSiteCatalog, entityKind, entityId);
+  }
+  if (owner._projects != null) owner._ranked = owner._projects.rail;
+  if (!(("targeted" in s) && s.targeted)) owner._c76AcknowledgeMode(mode);
+  s.cursor++;
+  if (s.cursor >= s.modes.len()) {
+    if (("buildAfter" in s) && s.buildAfter) {
+      local reason = ("reason" in s) ? s.reason : "event";
+      owner._enqueueReactive("c77|build|" + reason, "c77_build", { reason = reason });
+    }
+    return "done";
+  }
+  return "running";
+}
+
+function OpexWorkerRegenCandidatesCancel(worker)
+{
+  if (worker != null && ("state" in worker) && worker.state != null
+      && typeof worker.state == "table") worker.state.cancelled <- true;
+}
+
+OpexRegisterWorker("regen_candidates", OpexWorkerRegenCandidatesStep, OpexWorkerRegenCandidatesCancel);
 
 /* ============================================================================
  * 3. Intégration dans OpexAI (File de fond, boucle ordonnancée, selftest)
@@ -240,7 +281,157 @@ function OpexAI::pop()
 function OpexAI::_dispatchReactiveIntention(intention)
 {
   if (intention == null) return false;
-  // En tranche 0, aucun producteur réel. C76 étape 2 et C77 viendront alimenter les handlers.
+  /* Toutes les intentions C76/C77 mutent le catalogue, le vivier ou construisent.
+   * Un travailleur de regeneration actif detient donc le droit d'ecriture jusqu'a
+   * la fin de sa tranche. Replacer l'intention en queue permet de l'intercaler
+   * entre les tranches sans modifier le vivier concurremment. */
+  if (this._activeWorker != null) {
+    this._enqueueReactive(intention.key, intention.kind, intention.payload);
+    return false;
+  }
+  if (intention.kind == "c76_regen" || intention.kind == "c77_entity") {
+    this._activeWorker = { kind = "regen_candidates", state = intention.payload };
+    return true;
+  }
+  if (intention.kind == "c77_subsidy") {
+    if (intention.payload != null && ("subsidyId" in intention.payload)) {
+      this._c77InjectSubsidy(intention.payload.subsidyId);
+    }
+    return true;
+  }
+  if (intention.kind == "c77_build") {
+    if (this._projects != null && !this._portfolioInvalidated) {
+      this._tryBuildProjects(AIDate.GetYear(AIDate.GetCurrentDate()));
+    }
+    return true;
+  }
+  return true;
+}
+
+function OpexAI::_c76EnqueueRegen(modes, entityKind = null, entityId = -1, targeted = false,
+                                  buildAfter = false, reason = "event")
+{
+  if (!C80_DOUBLE_REGISTER || modes == null) return false;
+  local validModes = [];
+  local key = targeted ? ("c77|" + entityKind + "|" + entityId) : ("c76|" + reason);
+  foreach (mode in modes) {
+    if (mode != "rail" && mode != "road" && mode != "air" && mode != "water") continue;
+    validModes.append(mode);
+    key += "|" + mode;
+  }
+  if (validModes.len() == 0) return false;
+  local payload = {
+    modes = validModes, cursor = 0, targeted = targeted,
+    entityKind = entityKind, entityId = entityId,
+    buildAfter = buildAfter,
+    reason = reason,
+  };
+  this._enqueueReactive(key, targeted ? "c77_entity" : "c76_regen", payload);
+  return true;
+}
+
+function OpexAI::_c76RefreshModeCatalog(mode)
+{
+  if (this._catalog == null) return;
+  this._catalog.year = AIDate.GetYear(AIDate.GetCurrentDate());
+  this._catalog._refreshCargos();
+  if (mode == "air") {
+    this._catalog._refreshTowns();
+    this._catalog._refreshAir();
+  } else if (mode == "rail") {
+    this._catalog._refreshTowns();
+    this._catalog._refreshIndustries();
+    this._catalog._refreshRail();
+  } else if (mode == "road") {
+    this._catalog._refreshTowns();
+    this._catalog._refreshIndustries();
+    if (ROAD_BUILD_ENABLED) this._catalog._refreshRoad();
+  } else if (mode == "water") {
+    this._catalog._refreshTowns();
+    this._catalog._refreshWater();
+  }
+  if (this._recomputeEpochBounds) {
+    OpexRefreshEpochBounds(this._catalog);
+    this._recomputeEpochBounds = false;
+  }
+}
+
+function OpexAI::_c76AcknowledgeMode(mode)
+{
+  if (this._staleness == null) return;
+  local layers = ["cargos"];
+  if (mode == "air") {
+    layers.append("towns"); layers.append("air");
+  } else if (mode == "rail") {
+    layers.append("towns"); layers.append("industries"); layers.append("rail");
+  } else if (mode == "road") {
+    layers.append("towns"); layers.append("industries"); layers.append("road");
+  } else if (mode == "water") {
+    layers.append("towns"); layers.append("water");
+  }
+  foreach (layer in layers) {
+    if (layer in this._staleness.revisions.catalog) {
+      this._staleness.acknowledged.catalog[layer] = this._staleness.revisions.catalog[layer];
+      this._staleness.catalog[layer] = false;
+      this._staleness.dirtySince.catalog[layer] = -1;
+    }
+  }
+  if (mode in this._staleness.revisions.candidates) {
+    this._staleness.acknowledged.candidates[mode] = this._staleness.revisions.candidates[mode];
+    this._staleness.candidates[mode] = false;
+    this._staleness.dirtySince.candidates[mode] = -1;
+  }
+  this._staleness.acknowledged.portfolio = this._staleness.revisions.portfolio;
+  this._staleness.acknowledged.selection = this._staleness.revisions.selection;
+  this._staleness.portfolio = false;
+  this._staleness.selection = false;
+}
+
+function OpexAI::_c76PeriodicReconcile(yearMonth)
+{
+  if (!C76_REGEN_TARGETED || !C80_DOUBLE_REGISTER || this._projects == null) return false;
+  if (this._c76LastReconcileMonth < 0) {
+    this._c76LastReconcileMonth = yearMonth;
+    return false;
+  }
+  if (yearMonth - this._c76LastReconcileMonth < C76_RECONCILE_MONTHS) return false;
+  this._c76LastReconcileMonth = yearMonth;
+  /* Filet de fond : volume uniquement, aucune découverte de paire/site. */
+  this._catalog._refreshTowns();
+  this._catalog._refreshIndustries();
+  this._projects = OpexC76RepriceProjects(this._projects, this._catalog, this._lines,
+                                          this._abandonedPairs);
+  this._ranked = this._projects.rail;
+  return true;
+}
+
+function OpexAI::_c77InjectSubsidy(subId)
+{
+  if (!C77_OPPORTUNISTIC_CANDIDATES || this._projects == null
+      || !(("candidateGroups" in this._projects)) || this._projects.candidateGroups == null) return false;
+  local winners = {};
+  local scratch = { modeCandidates = 0, modeAlternatives = 0 };
+  foreach (key, entry in this._projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    foreach (project in list) {
+      if (!OpexProjectTouchesEntity(project, "subsidy", subId)) {
+        OpexProjectRememberAll(winners, project, scratch);
+      }
+    }
+  }
+  local candidates = OpexGenerateSubsidyCandidates(this._catalog, this._lines,
+      this._activeSubsidies, {}, this._abandonedPairs);
+  foreach (candidate in candidates) {
+    if (!(("subsidyId" in candidate)) || candidate.subsidyId != subId) continue;
+    local project = OpexProjectFromCandidate(candidate, null);
+    if (project != null) OpexProjectRememberAll(winners, project, scratch);
+  }
+  this._projects.candidateGroups = winners;
+  OpexProjectsRecountGroups(this._projects);
+  this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+  this._ranked = this._projects.rail;
+  this._enqueueReactive("c77|build|subsidy|" + subId, "c77_build",
+                        { reason = "subsidy_offer" });
   return true;
 }
 
@@ -264,8 +455,7 @@ function OpexAI::_runOrchestratorTick()
   if (this._hasReactiveIntentions()) {
     local intention = this._popReactive();
     if (intention != null) {
-      this._dispatchReactiveIntention(intention);
-      return true;
+      if (this._dispatchReactiveIntention(intention)) return true;
     }
   }
 
@@ -273,7 +463,7 @@ function OpexAI::_runOrchestratorTick()
   if (this._activeWorker != null) {
     local opsBudget = AIController.GetOpsTillSuspend();
     local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
-    local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+    local outcome = OpexWorkerStep(this, this._activeWorker, opsBudget, deadlineTick);
     if (outcome == "done" || outcome == "cancelled") {
       this._activeWorker = null;
     }
@@ -332,7 +522,7 @@ function OpexAI::_c80RunSelfTest()
   local budgetOps = 10000;
   local deadlineTick = AIController.GetTick() + 100;
 
-  local r1 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
+  local r1 = OpexWorkerStep(this, this._activeWorker, budgetOps, deadlineTick);
   if (r1 != "running") {
     AILog.Info("C80 selftest FAIL step 1 expected running, got " + r1);
     this._clearReactiveQueue();
@@ -340,7 +530,7 @@ function OpexAI::_c80RunSelfTest()
     return false;
   }
 
-  local r2 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
+  local r2 = OpexWorkerStep(this, this._activeWorker, budgetOps, deadlineTick);
   if (r2 != "running") {
     AILog.Info("C80 selftest FAIL step 2 expected running, got " + r2);
     this._clearReactiveQueue();
@@ -348,7 +538,7 @@ function OpexAI::_c80RunSelfTest()
     return false;
   }
 
-  local r3 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
+  local r3 = OpexWorkerStep(this, this._activeWorker, budgetOps, deadlineTick);
   if (r3 != "done") {
     AILog.Info("C80 selftest FAIL step 3 expected done, got " + r3);
     this._clearReactiveQueue();

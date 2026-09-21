@@ -45,6 +45,22 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   this._lastCatalogMonth = ym;
   this._pruneAbandonedPairs(date);
+  /* C76 : une fois le vivier initialise, la cadence mensuelle historique ne
+   * justifie plus une regeneration spatiale complete. Le capital se reselecte
+   * sur le vivier vivant ; les derivees silencieuses passent par le filet
+   * periodique, et les evenements par la file reactive C80. */
+  if (C76_REGEN_TARGETED && C80_DOUBLE_REGISTER && this._projects != null
+      && !this._portfolioInvalidated) {
+    local didWork = false;
+    if (stale) {
+      this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+      this._ranked = this._projects.rail;
+      didWork = true;
+    }
+    if (this._c76PeriodicReconcile(ym)) didWork = true;
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+    return didWork;
+  }
   if (PORTFOLIO_REFRESH_PROBE) {
     local refreshMark = OpexOpsMeasureBegin();
     this._catalog.refresh(this._budget, year);

@@ -332,7 +332,8 @@ function OpexAI::_onVehicleUnprofitable(event)
 function OpexAI::_onIndustryClose(event)
 {
 
-  if (C39_INVALIDATION_PROBE) {
+  if (C39_INVALIDATION_PROBE
+      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
     local probeEvt = AIEventIndustryClose.Convert(event);
     if (probeEvt != null) {
       this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
@@ -363,7 +364,8 @@ function OpexAI::_onIndustryClose(event)
 function OpexAI::_onSubsidyOffer(event)
 {
 
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
+  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES
+      || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) {
     local subEvt = AIEventSubsidyOffer.Convert(event);
     if (subEvt != null) {
       local subId = subEvt.GetSubsidyID();
@@ -391,11 +393,16 @@ function OpexAI::_onSubsidyOffer(event)
           this._activeSubsidies.rawset(subId, subData);
         }
 
-        if (C42_SUBSIDIES) {
-          this._portfolioInvalidated = true;
-          if (this._taskQueue != null) {
-            foreach (t in this._taskQueue) {
-              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+        if (C42_SUBSIDIES || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) {
+          if (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES) {
+            this._enqueueReactive("c77|subsidy|" + subId, "c77_subsidy",
+                                  { subsidyId = subId });
+          } else {
+            this._portfolioInvalidated = true;
+            if (this._taskQueue != null) {
+              foreach (t in this._taskQueue) {
+                if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+              }
             }
           }
         }
@@ -414,7 +421,8 @@ function OpexAI::_onSubsidyOffer(event)
 function OpexAI::_onSubsidyOfferExpired(event)
 {
 
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
+  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES
+      || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) {
     local subEvt = AIEventSubsidyOfferExpired.Convert(event);
     if (subEvt != null) {
       local subId = subEvt.GetSubsidyID();
@@ -424,12 +432,17 @@ function OpexAI::_onSubsidyOfferExpired(event)
       if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
         delete this._activeSubsidies[subId];
       }
-      if (C42_SUBSIDIES) {
+      if (C42_SUBSIDIES || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) {
         this._purgeSubsidyFromProjects(subId);
-        this._portfolioInvalidated = true;
-        if (this._taskQueue != null) {
-          foreach (t in this._taskQueue) {
-            if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+        if (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES && this._projects != null) {
+          this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+          this._ranked = this._projects.rail;
+        } else {
+          this._portfolioInvalidated = true;
+          if (this._taskQueue != null) {
+            foreach (t in this._taskQueue) {
+              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+            }
           }
         }
       }
@@ -445,7 +458,8 @@ function OpexAI::_onSubsidyOfferExpired(event)
 function OpexAI::_onSubsidyAwarded(event)
 {
 
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
+  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES
+      || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) {
     local subEvt = AIEventSubsidyAwarded.Convert(event);
     if (subEvt != null) {
       local subId = subEvt.GetSubsidyID();
@@ -458,12 +472,17 @@ function OpexAI::_onSubsidyAwarded(event)
       if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
         delete this._activeSubsidies[subId];
       }
-      if (C42_SUBSIDIES && !isSelf) {
+      if ((C42_SUBSIDIES || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) && !isSelf) {
         this._purgeSubsidyFromProjects(subId);
-        this._portfolioInvalidated = true;
-        if (this._taskQueue != null) {
-          foreach (t in this._taskQueue) {
-            if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+        if (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES && this._projects != null) {
+          this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+          this._ranked = this._projects.rail;
+        } else {
+          this._portfolioInvalidated = true;
+          if (this._taskQueue != null) {
+            foreach (t in this._taskQueue) {
+              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+            }
           }
         }
       }
@@ -491,15 +510,20 @@ function OpexAI::_onSubsidyAwarded(event)
 function OpexAI::_onSubsidyExpired(event)
 {
 
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
+  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES
+      || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) {
     local subEvt = AIEventSubsidyExpired.Convert(event);
     if (subEvt != null) {
       local subId = subEvt.GetSubsidyID();
       if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
         delete this._activeSubsidies[subId];
       }
-      if (C42_SUBSIDIES) {
+      if (C42_SUBSIDIES || (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES)) {
         this._purgeSubsidyFromProjects(subId);
+        if (C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES && this._projects != null) {
+          this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+          this._ranked = this._projects.rail;
+        }
       }
       if (C42_SUBSIDY_LOG || DECISION_LOG) {
         OpexDecide("SUBSIDY_EXPIRED", "sub=" + subId);
@@ -678,7 +702,8 @@ function OpexAI::_onVehicleLost(event)
 function OpexAI::_onIndustryOpen(event)
 {
 
-  if (C39_INVALIDATION_PROBE) {
+  if (C39_INVALIDATION_PROBE
+      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
     local probeEvt = AIEventIndustryOpen.Convert(event);
     if (probeEvt != null) {
       this._markDirty("industry_open", ["industries"], ["rail", "road"], true, true,
@@ -699,10 +724,12 @@ function OpexAI::_onIndustryOpen(event)
         if (this._catalog != null) {
           this._catalog._refreshIndustries();
         }
-        this._portfolioInvalidated = true;
-        if (this._taskQueue != null) {
-          foreach (t in this._taskQueue) {
-            if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+        if (!(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
+          this._portfolioInvalidated = true;
+          if (this._taskQueue != null) {
+            foreach (t in this._taskQueue) {
+              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+            }
           }
         }
       }
@@ -713,7 +740,8 @@ function OpexAI::_onIndustryOpen(event)
 function OpexAI::_onTownFounded(event)
 {
 
-  if (C39_INVALIDATION_PROBE) {
+  if (C39_INVALIDATION_PROBE
+      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
     local probeEvt = AIEventTownFounded.Convert(event);
     if (probeEvt != null) {
       this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
@@ -734,10 +762,12 @@ function OpexAI::_onTownFounded(event)
         if (this._catalog != null) {
           this._catalog._refreshTowns();
         }
-        this._portfolioInvalidated = true;
-        if (this._taskQueue != null) {
-          foreach (t in this._taskQueue) {
-            if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+        if (!(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
+          this._portfolioInvalidated = true;
+          if (this._taskQueue != null) {
+            foreach (t in this._taskQueue) {
+              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+            }
           }
         }
       }
@@ -750,7 +780,8 @@ function OpexAI::_onEngineAvailable(event)
 
   this._recomputeEpochBounds = true;
   if (this._catalog != null) OpexRefreshEpochBounds(this._catalog);
-  if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH) {
+  if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH
+      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
     local engineEvt = AIEventEngineAvailable.Convert(event);
     if (engineEvt != null) {
       local engine = engineEvt.GetEngineID();
@@ -763,7 +794,8 @@ function OpexAI::_onEngineAvailable(event)
       if (mode != null) {
         /* La sonde reste la seule à conserver l'état/les IDs. C39.2 consomme le chemin
          * historique sans changer les cas industrie déjà couverts par P3. */
-        if (C39_INVALIDATION_PROBE) {
+        if (C39_INVALIDATION_PROBE
+            || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
           /* C41.2 ne consulte le predicat que pour son bras actif ; C39 conserve toujours
            * la trace exhaustive de l'evenement, y compris un moteur ensuite filtre. */
           local targetedRelevant = !(C41_WATER_REFRESH && C41_WATER_PRECHECK && mode == "water")
@@ -771,7 +803,8 @@ function OpexAI::_onEngineAvailable(event)
           this._markDirty("engine_available", [mode], [mode], true, true, "engine", engine,
                           mode, targetedRelevant);
         }
-        if (C39_ENGINE_REFRESH) {
+        if (C39_ENGINE_REFRESH
+            && !(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
           this._portfolioInvalidated = true;
           if (this._taskQueue != null) {
             foreach (t in this._taskQueue) {

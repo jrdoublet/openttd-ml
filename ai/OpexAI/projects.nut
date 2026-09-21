@@ -973,6 +973,437 @@ function OpexReselectProjects(projects, capitalBudget)
   return projects;
 }
 
+/* C76/C77 : reconstruit une seule famille modale et la reinjecte dans le vivier
+ * existant. Le classement final reste OpexProjectSelectAffordable via
+ * OpexReselectProjects ; aucun score n'est redefini ici. */
+function OpexProjectTouchesEntity(project, entityKind, entityId)
+{
+  if (project == null || entityKind == null || entityId < 0) return false;
+  local payload = (("payload" in project) && project.payload != null) ? project.payload : null;
+  if (entityKind == "town") {
+    if (payload != null) {
+      if (("srcTown" in payload) && payload.srcTown == entityId) return true;
+      if (("dstTown" in payload) && payload.dstTown == entityId) return true;
+      if (("siteA" in payload) && payload.siteA != null && ("town" in payload.siteA)
+          && payload.siteA.town != null && ("id" in payload.siteA.town)
+          && payload.siteA.town.id == entityId) return true;
+      if (("siteB" in payload) && payload.siteB != null && ("town" in payload.siteB)
+          && payload.siteB.town != null && ("id" in payload.siteB.town)
+          && payload.siteB.town.id == entityId) return true;
+    }
+    return false;
+  }
+  if (entityKind == "industry") {
+    if (payload != null) {
+      if (("srcIndustry" in payload) && payload.srcIndustry == entityId) return true;
+      if (("dstIndustry" in payload) && payload.dstIndustry == entityId) return true;
+    }
+    if (("src" in project) && AIMap.IsValidTile(project.src)
+        && AIIndustry.GetIndustryID(project.src) == entityId) return true;
+    if (("dst" in project) && AIMap.IsValidTile(project.dst)
+        && AIIndustry.GetIndustryID(project.dst) == entityId) return true;
+    return false;
+  }
+  if (entityKind == "subsidy" && payload != null
+      && ("isSubsidy" in payload) && payload.isSubsidy
+      && ("subsidyId" in payload)) {
+    return payload.subsidyId == entityId;
+  }
+  return false;
+}
+
+function OpexProjectIsPersistentSpecial(project)
+{
+  if (project == null || !(("payload" in project)) || project.payload == null) return false;
+  if (("isSubsidy" in project.payload) && project.payload.isSubsidy) return true;
+  if (("isRoadExtension" in project.payload) && project.payload.isRoadExtension) return true;
+  return false;
+}
+
+function OpexProjectsRecountGroups(projects)
+{
+  if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) return;
+  local od = 0;
+  local n = 0;
+  local alternatives = 0;
+  foreach (key, list in projects.candidateGroups) {
+    if (list == null || list.len() == 0) continue;
+    od++;
+    n += list.len();
+    if (list.len() > 1) alternatives += list.len() - 1;
+  }
+  projects.all = od;
+  if (projects.stats != null) {
+    projects.stats.odProjects = od;
+    projects.stats.modeCandidates = n;
+    projects.stats.modeAlternatives = alternatives;
+  }
+}
+
+function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
+                                  waterSiteCatalog = null, entityKind = null, entityId = -1)
+{
+  local generated = {
+    projects = [],
+    rail = null, road = null,
+    airPlan = null, waterPlan = null,
+    airPlans = [], waterPlans = [],
+    freightCargo = null,
+  };
+  local freightCargo = (projects != null && ("freightCargo" in projects))
+      ? projects.freightCargo : null;
+  if (freightCargo == null) {
+    local freightOrder = OpexFreightCargoOrder(catalog);
+    if (freightOrder.len() > 0) freightCargo = freightOrder[0];
+  }
+  generated.freightCargo = freightCargo;
+  local targeted = entityKind != null && entityId >= 0;
+
+  if (mode == "rail") {
+    local generatePax = !targeted || entityKind == "town";
+    local generateFreight = !targeted || entityKind == "industry";
+    local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
+        null, null, null, null, null, generatePax, generateFreight, PAX_BAND_ALL,
+        freightCargo, entityKind, entityId);
+    local freightOrder = OpexFreightCargoOrder(catalog);
+    local hasFreight = false;
+    foreach (candidate in rail.candidates) {
+      if (candidate.kind == "freight") { hasFreight = true; break; }
+    }
+    if (!hasFreight && freightCargo != null && freightOrder.len() > 1) {
+      local start = -1;
+      for (local i = 0; i < freightOrder.len(); i++) {
+        if (freightOrder[i] == freightCargo) { start = i; break; }
+      }
+      for (local offset = 1; offset < freightOrder.len(); offset++) {
+        local idx = start >= 0 ? (start + offset) % freightOrder.len() : offset - 1;
+        local extra = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
+            null, null, null, null, null, false, true, PAX_BAND_ALL, freightOrder[idx],
+            entityKind, entityId);
+        if (extra.candidates.len() == 0) continue;
+        rail = OpexMergeRailCandidateSet(rail, extra);
+        freightCargo = freightOrder[idx];
+        generated.freightCargo = freightCargo;
+        break;
+      }
+    }
+    OpexPrequoteRailCandidates(catalog, budget, rail);
+    generated.rail = rail;
+    foreach (candidate in rail.candidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null
+          && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      local p = OpexProjectFromCandidate(candidate, null);
+      if (p != null) generated.projects.append(p);
+    }
+  } else if (mode == "road") {
+    local road = ROAD_BUILD_ENABLED
+        ? OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, null, freightCargo,
+                                  entityKind, entityId)
+        : OpexProjectEmptyRoad();
+    generated.road = road;
+    foreach (candidate in road.candidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null
+          && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      local p = OpexProjectFromCandidate(candidate, null);
+      if (p != null) generated.projects.append(p);
+    }
+  } else if (mode == "air") {
+    local mark = OpexOpsMeasureBegin();
+    local plans = [];
+    local best = OpexAirPlans(catalog, lines, 0, plans, abandonedPairs, PAX_BAND_ALL,
+                              entityKind == "town" ? entityId : -1);
+    local ops = OpexOpsMeasureEnd(mark);
+    local perPlan = plans.len() > 0 ? ops / plans.len() : ops;
+    generated.airPlan = best;
+    generated.airPlans = plans;
+    foreach (plan in plans) {
+      local p = OpexProjectFromAir(catalog, plan, perPlan, null);
+      if (p != null) generated.projects.append(p);
+    }
+  } else if (mode == "water") {
+    local mark = OpexOpsMeasureBegin();
+    local plans = [];
+    local best = OpexWaterPlans(catalog, lines, plans, null,
+        WATER_SITE_CATALOG ? waterSiteCatalog : null);
+    local ops = OpexOpsMeasureEnd(mark);
+    local perPlan = plans.len() > 0 ? ops / plans.len() : ops;
+    generated.waterPlan = best;
+    generated.waterPlans = plans;
+    foreach (plan in plans) {
+      local p = OpexProjectFromWater(catalog, plan, perPlan, null);
+      if (p != null) generated.projects.append(p);
+    }
+  }
+  return generated;
+}
+
+function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
+                                    waterSiteCatalog = null, entityKind = null, entityId = -1)
+{
+  if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
+    return projects;
+  }
+  local targeted = entityKind != null && entityId >= 0;
+  local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
+                                             mode, waterSiteCatalog, entityKind, entityId);
+  local winners = {};
+  local scratch = { modeCandidates = 0, modeAlternatives = 0 };
+
+  foreach (groupKey, entry in projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    foreach (project in list) {
+      if (project == null) continue;
+      local remove = project.mode == mode && !OpexProjectIsPersistentSpecial(project);
+      if (remove && targeted) remove = OpexProjectTouchesEntity(project, entityKind, entityId);
+      if (!remove) OpexProjectRememberAll(winners, project, scratch);
+    }
+  }
+
+  foreach (project in generated.projects) {
+    if (targeted && !OpexProjectTouchesEntity(project, entityKind, entityId)) continue;
+    OpexProjectRememberAll(winners, project, scratch);
+  }
+
+  projects.candidateGroups = winners;
+  if (!targeted) {
+    if (mode == "rail") {
+      projects.rail = generated.rail;
+      projects.freightCargo = generated.freightCargo;
+    } else if (mode == "road") {
+      projects.road = generated.road;
+      projects.freightCargo = generated.freightCargo;
+    } else if (mode == "air") {
+      projects.airPlan = generated.airPlan;
+      projects.airPlans = generated.airPlans;
+    } else if (mode == "water") {
+      projects.waterPlan = generated.waterPlan;
+      projects.waterPlans = generated.waterPlans;
+    }
+  }
+  OpexProjectsRecountGroups(projects);
+  return OpexReselectProjects(projects, OpexAvailableCapital());
+}
+
+/* C76 : filet périodique sans recherche spatiale. On garde les couples déjà
+ * découverts, on remet seulement à jour leur demande et leur économie. */
+function OpexC76CatalogTown(catalog, townId)
+{
+  if (catalog == null || townId < 0) return null;
+  foreach (town in catalog.towns) if (town.id == townId) return town;
+  return null;
+}
+
+function OpexC76GroundMonthly(project, catalog, lines)
+{
+  if (project == null || !(("payload" in project)) || project.payload == null) return 0;
+  local cand = project.payload;
+  if (project.kind == "pax") {
+    if (!(("srcTown" in cand)) || !(("dstTown" in cand))
+        || cand.srcTown < 0 || cand.dstTown < 0
+        || !AITown.IsValidTown(cand.srcTown) || !AITown.IsValidTown(cand.dstTown)) {
+      return ("monthly" in cand) ? cand.monthly : 0;
+    }
+    if (project.mode == "rail") {
+      local prodA = AITown.GetLastMonthProduction(cand.srcTown, cand.cargo);
+      local prodB = AITown.GetLastMonthProduction(cand.dstTown, cand.cargo);
+      if (prodA <= 0) prodA = (AITown.GetPopulation(cand.srcTown) * 22) / 100;
+      if (prodB <= 0) prodB = (AITown.GetPopulation(cand.dstTown) * 22) / 100;
+      local sa = OpexOriginService(lines, cand.src);
+      local sb = OpexOriginService(lines, cand.dst);
+      if (BASIN_SHARE && sa != null) prodA = OpexShareBasin(prodA, lines, sa.stationId, cand.cargo);
+      if (BASIN_SHARE && sb != null) prodB = OpexShareBasin(prodB, lines, sb.stationId, cand.cargo);
+      return ((prodA + prodB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+    }
+    if (project.mode == "road") {
+      local townA = OpexC76CatalogTown(catalog, cand.srcTown);
+      local townB = OpexC76CatalogTown(catalog, cand.dstTown);
+      if (townA == null || townB == null) return ("monthly" in cand) ? cand.monthly : 0;
+      local prodA = AITown.GetLastMonthProduction(cand.srcTown, cand.cargo);
+      local prodB = AITown.GetLastMonthProduction(cand.dstTown, cand.cargo);
+      if (prodA <= 0) prodA = (AITown.GetPopulation(cand.srcTown) * 15) / 100;
+      if (prodB <= 0) prodB = (AITown.GetPopulation(cand.dstTown) * 15) / 100;
+      local marginalA = prodA - (OpexTownRoadLineCount(lines, townA.tile) * 40);
+      local marginalB = prodB - (OpexTownRoadLineCount(lines, townB.tile) * 40);
+      if (marginalA < 25) marginalA = 25;
+      if (marginalB < 25) marginalB = 25;
+      local capturedA = OpexTownBusCatchment(townA, marginalA);
+      local capturedB = OpexTownBusCatchment(townB, marginalB);
+      return ROAD_PAX_OVERLAP
+          ? OpexRoadPaxUniqueMonthly(capturedA, capturedB, cand.distance)
+          : capturedA + capturedB;
+    }
+  }
+
+  if (project.kind == "freight") {
+    local srcIndustry = AIIndustry.GetIndustryID(cand.src);
+    if (!AIIndustry.IsValidIndustry(srcIndustry)
+        && ("placeJoin" in cand) && cand.placeJoin != null
+        && ("candidateEnd" in cand.placeJoin) && cand.placeJoin.candidateEnd == "A") {
+      local service = OpexOriginService(lines, cand.src);
+      if (service != null && !(("blocked" in service) && service.blocked)
+          && ("line" in service) && service.line != null
+          && ("srcIndustry" in service.line)) {
+        srcIndustry = service.line.srcIndustry;
+      }
+    }
+    if (!AIIndustry.IsValidIndustry(srcIndustry)) return ("monthly" in cand) ? cand.monthly : 0;
+    local monthly = AIIndustry.GetLastMonthProduction(srcIndustry, cand.cargo);
+    if (project.mode == "rail") {
+      local srcService = OpexOriginService(lines, cand.src);
+      if (BASIN_SHARE && srcService != null) {
+        monthly = OpexShareBasin(monthly, lines, srcService.stationId, cand.cargo);
+      }
+      if (monthly <= 0 && srcService != null && ("dstTown" in cand) && cand.dstTown >= 0) {
+        monthly = 45;
+      }
+    }
+    return monthly;
+  }
+  return ("monthly" in cand) ? cand.monthly : 0;
+}
+
+function OpexC76MarkProjectDormant(project)
+{
+  if (project == null) return null;
+  project.profitAnnual = -1;
+  project.revenueAnnual = 0;
+  project.roi = 0;
+  project.economicsDate = AIDate.GetCurrentDate();
+  return project;
+}
+
+function OpexC76RepriceProject(project, catalog, lines)
+{
+  if (project == null || !(("mode" in project))) return project;
+  if (project.mode == "fleet") return project;
+  if (OpexProjectIsPersistentSpecial(project)) return project;
+
+  if ((project.mode == "rail" || project.mode == "road")
+      && ("payload" in project) && project.payload != null) {
+    local cand = project.payload;
+    local monthly = OpexC76GroundMonthly(project, catalog, lines);
+    cand.monthly = monthly;
+    if (monthly <= 0) return OpexC76MarkProjectDormant(project);
+    local economics = null;
+    if (project.mode == "rail") {
+      economics = OpexLineEconomics(catalog, cand.cargo, cand.distance, monthly, cand.kind);
+      if (economics != null) OpexApplyRailEconomics(cand, economics);
+    } else {
+      local engine = (cand.cargo in catalog.roadEngineByCargo)
+          ? catalog.roadEngineByCargo[cand.cargo]
+          : (("engine" in cand) ? cand.engine : null);
+      if (engine != null) {
+        cand.engine = engine;
+        economics = OpexRoadLineEconomics(catalog, cand.cargo, cand.distance, monthly, engine, cand.kind);
+      }
+      if (economics != null) OpexApplyRoadEconomics(cand, economics);
+    }
+    if (economics == null) return OpexC76MarkProjectDormant(project);
+    local fresh = OpexProjectFromCandidate(cand, null);
+    if (fresh != null) return fresh;
+    project.profitAnnual = cand.profitAnnual;
+    project.revenueAnnual = cand.revenueAnnual;
+    project.roi = cand.roi;
+    project.economicsDate = AIDate.GetCurrentDate();
+    return project;
+  }
+
+  if (project.mode == "air" && ("payload" in project) && project.payload != null) {
+    local plan = project.payload;
+    if (!(("siteA" in plan)) || !(("siteB" in plan)) || !(("plane" in plan))
+        || plan.siteA == null || plan.siteB == null || plan.plane == null) {
+      return OpexC76MarkProjectDormant(project);
+    }
+    local townA = plan.siteA.town.id;
+    local townB = plan.siteB.town.id;
+    if (!AITown.IsValidTown(townA) || !AITown.IsValidTown(townB)) {
+      return OpexC76MarkProjectDormant(project);
+    }
+    local popA = AITown.GetPopulation(townA);
+    local popB = AITown.GetPopulation(townB);
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local monthlyA = (popA * TOWN_CATCHMENT_SHARE_PCT) / 100;
+    local monthlyB = (popB * TOWN_CATCHMENT_SHARE_PCT) / 100;
+    if (reuseA) {
+      local routesA = ("routes" in plan.siteA) ? plan.siteA.routes : 0;
+      monthlyA /= routesA + 1;
+    }
+    if (reuseB) {
+      local routesB = ("routes" in plan.siteB) ? plan.siteB.routes : 0;
+      monthlyB /= routesB + 1;
+    }
+    local monthlyPax = monthlyA + monthlyB;
+    local demandCap = 0;
+    if (AIR_DEMAND_PLAN) {
+      local demand = OpexAirPlanDemand(plan.siteA, plan.siteB, plan.plane, catalog, lines);
+      monthlyPax = demand.monthlyDemand;
+      demandCap = demand.cap;
+    }
+    if (monthlyPax < 10) monthlyPax = 10;
+    local newAirports = (reuseA ? 0 : 1) + (reuseB ? 0 : 1);
+    local infrastructureMaintenance =
+        AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+    local choice = OpexAirChooseRoutePlane(catalog, plan.airport, plan.plane, plan.distance,
+        monthlyPax, infrastructureMaintenance, 0, newAirports, demandCap);
+    if (choice == null || choice.economics == null) return OpexC76MarkProjectDormant(project);
+    plan.plane = choice.plane;
+    plan.monthlyPax = monthlyPax;
+    plan.planes = choice.economics.planes;
+    plan.capital = choice.economics.capital;
+    plan.economics = choice.economics;
+    local fresh = OpexProjectFromAir(catalog, plan,
+        ("planningOpcodes" in project) ? project.planningOpcodes : 0, null);
+    return fresh != null ? fresh : OpexC76MarkProjectDormant(project);
+  }
+
+  if (project.mode == "water" && ("payload" in project) && project.payload != null) {
+    local plan = project.payload;
+    if (!(("siteA" in plan)) || !(("siteB" in plan))
+        || plan.siteA == null || plan.siteB == null) return OpexC76MarkProjectDormant(project);
+    local townA = plan.siteA.town.id;
+    local townB = plan.siteB.town.id;
+    if (!AITown.IsValidTown(townA) || !AITown.IsValidTown(townB)) {
+      return OpexC76MarkProjectDormant(project);
+    }
+    local monthlyPax = ((AITown.GetPopulation(townA) + AITown.GetPopulation(townB)) * 22) / 100;
+    local economics = OpexWaterEconomics(catalog, plan.distance, plan.tariffDistance,
+                                         plan.orderDistance, monthlyPax);
+    if (economics == null) return OpexC76MarkProjectDormant(project);
+    plan.economics = economics;
+    local fresh = OpexProjectFromWater(catalog, plan,
+        ("planningOpcodes" in project) ? project.planningOpcodes : 0, null);
+    return fresh != null ? fresh : OpexC76MarkProjectDormant(project);
+  }
+  return project;
+}
+
+function OpexC76RepriceProjects(projects, catalog, lines, abandonedPairs = null)
+{
+  if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
+    return projects;
+  }
+  local winners = {};
+  local scratch = { modeCandidates = 0, modeAlternatives = 0 };
+  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW)
+      ? OpexBuildLineIndex(lines) : null;
+  foreach (groupKey, entry in projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    foreach (project in list) {
+      if (project == null) continue;
+      if (project.mode != "fleet"
+          && !OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex)) {
+        continue;
+      }
+      local refreshed = OpexC76RepriceProject(project, catalog, lines);
+      if (refreshed != null) OpexProjectRememberAll(winners, refreshed, scratch);
+    }
+  }
+  projects.candidateGroups = winners;
+  OpexProjectsRecountGroups(projects);
+  return OpexReselectProjects(projects, OpexAvailableCapital());
+}
+
 function OpexCandidateIsAbandoned(p, abandonedPairs)
 {
   if (p == null || abandonedPairs == null) return false;
@@ -2552,7 +2983,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
 
   /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
    * cela evite meme de changer la forme de this._projects dans le controle. */
-  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE || C39_INVALIDATION_PROBE) {
+  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE || C39_INVALIDATION_PROBE
+      || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
     local ret = {
       all = stats.odProjects, best = funded, stats = stats,

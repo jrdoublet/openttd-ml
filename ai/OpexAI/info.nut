@@ -454,6 +454,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c76_regen_targeted",
+      description = "C76 step 2: regenerate only invalidated candidate modes with a periodic safety net: 1 = test arm, 0 = full historical regeneration (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c77_opportunistic_candidates",
+      description = "C77: inject candidates for event-touched towns/industries/subsidies immediately: 1 = test arm, 0 = historical event path (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
 AddSetting({
       name = "unprofitable_streak_threshold",
       description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line (default 3)",
