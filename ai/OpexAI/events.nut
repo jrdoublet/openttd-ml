@@ -124,21 +124,6 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
       }
     }
   }
-  /* C41.15 : `catalog.road` n'est sali par C39 que pour EngineAvailable route. Le routeur reste
-   * generique, mais cette garde rend la tache inerte pour toute future invalidation plus large. */
-  if (C41_ROAD_REFRESH && targetedRelevant && catalogLayers != null) {
-    local roadDirty = false;
-    foreach (layer in catalogLayers) if (layer == "road") roadDirty = true;
-    if (roadDirty && this._taskQueue != null) {
-      foreach (task in this._taskQueue) {
-        if (task.name == "c41_road") {
-          task.enabled = true;
-          task.dueCycle = this._taskCycle;
-          break;
-        }
-      }
-    }
-  }
 }
 /* C39.0 : photographie coalescée juste avant de jeter l'etat, apres la regeneration mensuelle
  * historique. La signature du premier projet ne sert pas encore a DECIDER : elle donne au

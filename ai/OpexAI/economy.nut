@@ -529,9 +529,7 @@ function OpexApplyRoadEconomics(candidate, economics, actualDistance = null)
  *     DEUX bus a la fois", idem pour une aire de chargement camion. Au-dela les vehicules font la
  *     queue SUR LA ROUTE et se bloquent. Le modele rail a son propre plafond MAX_RAIL_TRAINS et
  *     prescrirait donc une flotte auto-congestionnee. MAX_ROAD_VEHICLES = 2 est la traduction
- *     directe de la regle du jeu, pas une precaution. Le levier de volume est le multistop
- *     (reglage road_multistop, defaut 0) : un arret extra joint par bout, clones seulement
- *     si les deux bouts ont double. Le classement ici reste borne a 2.
+ *     directe de la regle du jeu, pas une precaution. Le classement ici reste borne a 2.
  *  2. Le rendement de vitesse. Un vehicule routier traverse des villes, s'arrete a chaque
  *     extremite et suit un trace en L (deux angles droits par sens) sur des distances ou
  *     l'acceleration compte proportionnellement bien plus que sur une ligne rail de 50 tuiles.
@@ -590,7 +588,7 @@ function OpexRoadPaxUniqueMonthly(capturedA, capturedB, distance)
  * et partout ou elle est lue. Sous 1, cette fonction et _refleetRoadLines (main.nut) retombent sur
  * la borne PHYSIQUE reellement justifiee : 2 vehicules par quai simultanement joint a chaque bout,
  * cf. docs/mecanique_jeu.md S11. Au classement, les quais ne sont pas encore construits -- on
- * suppose donc le cas de base (1 quai par bout, comme road_multistop = 0), soit un plafond de 2 ;
+ * suppose donc le cas de base (1 quai par bout), soit un plafond de 2 ;
  * OpexRoadPhysicalVehicleCap est reappelee en aval (builder_road.nut, main.nut) avec les VRAIS
  * comptes de quais une fois la ligne construite. */
 function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
@@ -661,25 +659,8 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind);
   }
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
-  /* pricing_fix : la route n'appliquait JAMAIS OpexStationRatingForHeadway, que le rail
-   * (OpexLineEconomics) et l'air (builder_air.nut) utilisent tous deux -- elle restait figee a
-   * STATION_RATING_PCT = 50 % a plat. Le meme mecanisme physique -- la frequence de passage fixe la
-   * note de ramassage, donc la part de la demande captee -- etait donc price differemment selon le
-   * mode, alors que le portefeuille multimodal arbitre precisement rail contre route sur ce
-   * nombre. Une ligne de bus courte et frequente, exactement ce que le mode route construit,
-   * vaut 65,7 % sous la courbe et non 50 % (docs/taches.md S0 octies).
-   *
-   * On recalcule donc la demande sur la frequence REELLE une fois la flotte connue, exactement
-   * comme le rail le fait dans sa boucle sur `trains`. */
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
-  local effectiveOffered = offered;
-  local stationRating = STATION_RATING_PCT.tofloat();
-  if (PRICING_ROAD_RATING) {
-    local headwayDays = roundTripDays.tofloat() / vehicles;
-    stationRating = OpexStationRatingForHeadway(headwayDays);
-    effectiveOffered = monthlyUnits * stationRating / 100.0;
-  }
-  local carried = effectiveOffered < monthlyCapacity ? effectiveOffered : monthlyCapacity;
+  local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
   if (kind == "pax" && ROAD_PAX_OVERLAP && vehicles > 0 && roundTripDays > 0) {
     /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,
      * plafonne a la capacite. Deux bus ne doublent pas la demande, ils se partagent le quai. */

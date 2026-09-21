@@ -77,10 +77,6 @@ BASIN_SHARE <- false;
  * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
  * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */
 ROAD_REFLEET <- true;
-/* Multistop routier : repli FAUX jusqu'a la lecture unique de road_multistop dans Start().
- * Defaut 0 : un arret par bout, deux vehicules. 1 tente un arret extra joint (meme facade)
- * a chaque extremite, et n'ajoute de vehicules que si les deux bouts ont double. */
-ROAD_MULTISTOP <- false;
 /* Drainage du budget d'opcodes du tick (revue du controleur, docs/taches.md S0 sexies point 1) :
  * repli FAUX jusqu'a la lecture unique de loop_budget dans Start(). Defaut 0 : la boucle
  * principale execute exactement UNE tache par tick puis Sleep(1), donc tout ce qui reste des
@@ -201,18 +197,13 @@ AIR_TOWN_LIMIT_MEMORY <- false;
 ECONOMY_FIX <- true;
 /* Correctifs de PRICING (revue de economy.nut, docs/taches.md S0 octies et S0 septies) : repli
  * FAUX jusqu'a la lecture unique de pricing_fix dans Start(). Defaut 0 : chemin historique
- * inchange. Sous 1, trois incoherences de modele tombent, toutes dans l'arbitrage MULTIMODAL --
+ * inchange. Sous les switches restants, deux incoherences de modele tombent, toutes dans l'arbitrage MULTIMODAL --
  * c'est-a-dire la ou le portefeuille compare rail et route sur des nombres qui n'etaient pas
  * calcules de la meme facon :
- *   1. la route applique enfin OpexStationRatingForHeadway, que le rail et l'air utilisent deja.
- *      Elle etait figee a STATION_RATING_PCT = 50 % a plat, donc le meme mecanisme physique --
- *      la frequence fixe la note, donc la part de demande captee -- etait price differemment selon
- *      le mode. Une ligne de bus courte et frequente vaut 65,7 % sous la courbe, pas 50 % ;
- *   2. le capital rail inclut enfin le DEPOT, que builder_rail.nut paie a chaque ligne et que la
+ *   1. le capital rail inclut enfin le DEPOT, que builder_rail.nut paie a chaque ligne et que la
  *      route comme l'eau comptent deja. L'omission gonflait le ROI rail face a la route ;
- *   3. l'estimation d'opcodes d'un projet routier ne facture plus ses iterations au tarif du
+ *   2. l'estimation d'opcodes d'un projet routier ne facture plus ses iterations au tarif du
  *      pathfinder RAIL -- une erreur de dimension qui sous-estimait opcodeScore cote route. */
-PRICING_ROAD_RATING <- false;
 PRICING_RAIL_DEPOT <- false;
 PRICING_ROAD_OPS <- true;
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX

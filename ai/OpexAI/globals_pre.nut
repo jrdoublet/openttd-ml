@@ -13,8 +13,6 @@ STAGED_BOOTSTRAP <- true;
  * profit des aeroports ; le banc peut reconstituer le bras bus avec
  * road_pax_build = 1. */
 ROAD_PAX_BUILD_ENABLED <- false;
-/* Ajout d'arrets espaces aux lignes passagers existantes. */
-ROAD_PAX_EXTENSIONS <- false;
 /* Part du bassin de ville propre aux bus. 86 est le calibrage route adopte au banc.
  * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
  * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */
@@ -119,8 +117,6 @@ C41_OPPORTUNITY_LEDGER <- false;
 /* C41.14 : contrat passif d'admission d'une micro-tache. Le seul pilote declare est le petit
  * refresh water ; ajouter route/rail/air exige d'abord leur point d'entree cible et son cout. */
 C41_ADMISSION_LEDGER <- false;
-/* C41.15 : rafraichissement cible du materiel route apres EngineAvailable route. */
-C41_ROAD_REFRESH <- false;
 /* C41.16 : ventilation passive de la generation de candidats route historique. */
 C41_ROAD_CANDIDATE_PROFILE <- false;
 /* C41.17 : sous-ventilation passive du fret producteur->accepteur. */
@@ -223,11 +219,7 @@ C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;
 /* C55 etape 2 : relache seulement le verrou d'origine du fret route. */
 C55_FREIGHT_ORIGIN_RELAX <- false;
-/* C55 etape 5 : relache le verrou d'origine de toute la route. */
-C55_ROAD_ORIGIN_RELAX <- false;
-/* C55 : exemption pure du mode PAX routier de OpexOriginServed dans la revalidation. */
-C55_ROAD_PAX_ORIGIN_RELAX <- false;
-/* C55 : sonde de tracabilite causale des passagers routiers (sauves, elus, construits). */
+/* C55 : sonde de tracabilite des revalidations PAX routieres bloquees par une origine deja servie. */
 C55_PAX_TRACE_PROBE <- false;
 C55_PAX_TRACE_LEDGER <- null;
 /* C60 : Sonde d'exposition aux notes municipales. */
@@ -248,9 +240,6 @@ C63_INVEST_LEDGER <- null;
 MONTHLY_FUNNEL <- false;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
-/* C50b : bras comportemental isole. Le classement et la flotte initiale restent bornes a 2 ;
- * seule la croissance des lignes existantes peut monter jusqu'au garde-fou historique de 8. */
-C50B_ROAD_CAP_RELAX <- false;
 /* B3 : test du plafond routier remis à l'échelle par le temps passé à quai. Défaut 0 tant que
  * le banc apparié n'a pas justifié une adoption. Le fret reste sur la borne historique. */
 ROAD_TIME_SCALED_CAP <- false;

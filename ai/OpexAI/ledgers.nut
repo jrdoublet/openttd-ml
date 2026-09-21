@@ -433,53 +433,19 @@ function OpexAI::_logC55PaxTraceLedger(year)
   local entry = C55_PAX_TRACE_LEDGER;
   entry.total_revalidated += entry.revalidated;
   entry.total_origin_blocked += entry.origin_blocked;
-  entry.total_spared += entry.spared;
-  entry.total_attempted += entry.attempted;
-  entry.total_precheck_ok += entry.precheck_ok;
-  entry.total_financeable += entry.financeable;
-  entry.total_planned += entry.planned;
-  entry.total_viable += entry.viable;
-  entry.total_built += entry.built;
-  entry.total_built_profit += entry.built_profit;
 
   OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=annual year=" + year
       + " revalidated=" + entry.revalidated
-      + " origin_blocked=" + entry.origin_blocked
-      + " spared=" + entry.spared
-      + " attempted=" + entry.attempted
-      + " precheck_ok=" + entry.precheck_ok
-      + " financeable=" + entry.financeable
-      + " planned=" + entry.planned
-      + " viable=" + entry.viable
-      + " built=" + entry.built
-      + " built_profit=" + entry.built_profit);
+      + " origin_blocked=" + entry.origin_blocked);
 
   OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=summary year=" + year
       + " revalidated=" + entry.total_revalidated
-      + " origin_blocked=" + entry.total_origin_blocked
-      + " spared=" + entry.total_spared
-      + " attempted=" + entry.total_attempted
-      + " precheck_ok=" + entry.total_precheck_ok
-      + " financeable=" + entry.total_financeable
-      + " planned=" + entry.total_planned
-      + " viable=" + entry.total_viable
-      + " built=" + entry.total_built
-      + " built_profit=" + entry.total_built_profit);
+      + " origin_blocked=" + entry.total_origin_blocked);
 
   C55_PAX_TRACE_LEDGER = {
-    revalidated = 0, origin_blocked = 0, spared = 0,
-    attempted = 0, precheck_ok = 0, financeable = 0,
-    planned = 0, viable = 0, built = 0, built_profit = 0,
+    revalidated = 0, origin_blocked = 0,
     total_revalidated = entry.total_revalidated,
     total_origin_blocked = entry.total_origin_blocked,
-    total_spared = entry.total_spared,
-    total_attempted = entry.total_attempted,
-    total_precheck_ok = entry.total_precheck_ok,
-    total_financeable = entry.total_financeable,
-    total_planned = entry.total_planned,
-    total_viable = entry.total_viable,
-    total_built = entry.total_built,
-    total_built_profit = entry.total_built_profit,
   };
 }
 /* C60 : Le rapport annuel publie le bilan d'exposition aux notes municipales. */

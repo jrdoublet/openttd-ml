@@ -48,8 +48,7 @@ function OpexGetServedTowns(lines)
   return result;
 }
 /* Tache basse priorite de croissance urbaine : construit au plus une ligne bus de base dans une
- * ville deja desservie. Les quartiers suivants sont proposes au portefeuille comme extensions
- * espacees de cette meme ligne, jusqu'au plafond de croissance maximale OpenTTD. */
+ * ville deja desservie. */
 function OpexAI::_tryTownGrowth(year)
 {
   if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return false;
@@ -67,8 +66,7 @@ function OpexAI::_tryTownGrowth(year)
 
   foreach (townId in servedTowns) {
     if (!AITown.IsValidTown(townId)) continue;
-    /* Une seule ligne bus de base par commune. Le plafond de croissance n'autorise pas cinq
-     * lignes superposees : les quartiers suivants deviennent des bus_pax_extension de la ligne. */
+    /* Une seule ligne bus de base par commune. */
     if (OpexTownBusPaxServed(this._lines, townId)) continue;
     local currentCount = OpexCountTownStations(townId);
     if (currentCount >= 5) continue;
@@ -205,7 +203,7 @@ function OpexAI::_tryTownGrowth(year)
       purpose = "town_growth",
       effectiveSpeed = engine.speed, catalogSpeed = engine.speed,
       mode = "road", kind = "pax", depot = result.depot,
-      srcTown = townId, dstTown = townId, extraStops = [],
+      srcTown = townId, dstTown = townId,
       nStopsA = result.nStopsA, nStopsB = result.nStopsB,
       srcIndustry = -1, dstIndustry = -1,
       deadStreak = 0, scrapping = false, scrapVehicles = [],

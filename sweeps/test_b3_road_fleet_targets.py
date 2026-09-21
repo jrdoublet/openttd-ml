@@ -122,9 +122,10 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.assertIn("predRoadVehicleCap =", body)
         self.assertIn("predTrains = candidate.trains", body)
 
-    def test_refleet_uses_temporal_cap_but_preserves_c50b_override(self):
+    def test_refleet_uses_temporal_cap_without_retired_c50b_override(self):
         body = function_body(self.road, "function OpexAI::_refleetRoadLines(")
-        self.assertIn("local physicalCap = C50B_ROAD_CAP_RELAX ? MAX_ROAD_VEHICLES", body)
+        self.assertIn("local physicalCap = OpexRoadPhysicalVehicleCap(", body)
+        self.assertNotIn("C50B_ROAD_CAP_RELAX", body)
         self.assertIn("ROAD_TIME_SCALED_CAP", body)
         self.assertIn("OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, line.kind)", body)
         self.assertIn("if (target > physicalCap) target = physicalCap", body)
@@ -140,7 +141,6 @@ class TestB3RoadFleetTargets(unittest.TestCase):
             '" pred_vehs="',
             '" n_stops_a="',
             '" n_stops_b="',
-            '" extra_stops="',
             '" vehs="',
         ):
             self.assertIn(field, body)

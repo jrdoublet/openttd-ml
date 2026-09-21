@@ -297,7 +297,8 @@ class OpexAI extends AIController {
       { name = "catalog", dueCycle = 0, enabled = true },
       /* C41.1 est arme par un EngineAvailable eau ; hors evenement, aucun scan periodique. */
       { name = "c41_water", dueCycle = 2147483647, enabled = false },
-      /* C41.15 : meme contrat etroit que l'eau, sans reconstruire les candidats route. */
+      /* Slot historique conserve pour la compatibilite du taskCursor numerique des sauvegardes.
+       * Il reste toujours desactive et n'a plus de dispatcher. */
       { name = "c41_road", dueCycle = 2147483647, enabled = false },
       /* C41.8 : ne travaille qu'une ligne rail explicitement signalée par VehicleLost. */
       { name = "c41_rail_signals", dueCycle = 2147483647, enabled = false },
@@ -393,7 +394,6 @@ class OpexAI extends AIController {
   function _onStationFirstVehicle(event);
   function _dispatchCatalog(task, year);
   function _dispatchC41Water(task, year);
-  function _dispatchC41Road(task, year);
   function _dispatchC41RailSignals(task, year);
   function _dispatchC41RailJunction(task, year);
   function _dispatchReport(task, year);
@@ -462,16 +462,9 @@ function OpexAI::Start()
       if (task.name == "c41_water") { task.enabled = true; break; }
     }
   }
-  if (C41_ROAD_REFRESH && this._taskQueue != null) {
-    foreach (task in this._taskQueue) {
-      if (task.name == "c41_road") { task.enabled = true; break; }
-    }
-  }
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {
-    OpexDecide("SETTINGS", "road_cheap_trace=" + ROAD_CHEAP_TRACE
-               + " raw=" + (ROAD_CHEAP_TRACE ? 1 : 0)
-               + " road_pax_build=" + ROAD_PAX_BUILD_ENABLED
+    OpexDecide("SETTINGS", "road_pax_build=" + ROAD_PAX_BUILD_ENABLED
                + " road_pax_voirie=" + ROAD_PAX_VOIRIE
                + " road_pax_overlap=" + ROAD_PAX_OVERLAP);
   }

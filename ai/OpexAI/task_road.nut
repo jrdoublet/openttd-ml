@@ -9,53 +9,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       local candidate = project.payload;
-      if (candidate != null && ("isRoadExtension" in candidate) && candidate.isRoadExtension) {
-        local line = OpexRoadFindLineById(this._lines, candidate.targetLineId);
-        if (line == null || !OpexRoadExtensionCandidateStillValid(candidate, this._lines)) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
-            passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst,
-                                  reason = "extension_stale", extra = "" });
-          }
-          return { outcome = "rejected", discards = passDiscards };
-        }
-        local need = OpexProjectFinanceCapital(project) + OpexCashReserve();
-        local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-        if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-        if (money < need) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
-            passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst,
-                                  reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-          }
-          return { outcome = "rejected", discards = passDiscards };
-        }
-        local extension = OpexBuildRoadExtension(this._catalog, this._budget, line, candidate);
-        if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", extension, candidate.capital);
-        if (!extension.ok) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
-            passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst,
-                                  reason = "extension_failed", extra = "detail=" + extension.reason });
-          }
-          return { outcome = "rejected", discards = passDiscards };
-        }
-        if (!("extraStops" in line) || line.extraStops == null) line.extraStops <- [];
-        line.extraStops.append({ tile = extension.stop, town = candidate.extensionTown,
-                                 type = candidate.extensionType });
-        line.lastExtensionYear <- year;
-        if ("predRevenue" in line) line.predRevenue += candidate.revenueAnnual;
-        if ("predicted" in line) line.predicted += candidate.profitAnnual;
-        if ("predCarried" in line) line.predCarried += candidate.carried;
-        OpexSign(anchor, "RE|" + yy + "|" + line.lineId + "|" + line.extraStops.len() + "|P");
-        if (DECISION_LOG) {
-          OpexDecide("ROAD_EXTENSION", "line=" + line.lineId + " type=" + candidate.extensionType
-                     + " town=" + candidate.extensionTown + " stop=" + extension.stop
-                     + " marginal_profit=" + candidate.profitAnnual + " cost=" + extension.cost);
-        }
-        return { outcome = "built", discards = passDiscards };
-      }
-      local wasPaxSpared = (candidate != null && ("kind" in candidate) && candidate.kind == "pax") &&
-                           (("_c55_pax_spared" in project && project._c55_pax_spared) ||
-                            ("_c55_pax_spared" in candidate && candidate._c55_pax_spared));
-      if (wasPaxSpared) OpexC55PaxTraceObserveAttempted();
       local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
       if (isSubsidy) {
         local subId = candidate.subsidyId;
@@ -118,7 +71,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if ((C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) && candidate.kind == "freight") {
+        if (C55_FREIGHT_ORIGIN_RELAX && candidate.kind == "freight") {
           local srcServed = OpexOriginServed(this._lines, candidate.src, true);
           local dstServed = OpexOriginServed(this._lines, candidate.dst, true);
           if (srcServed && dstServed) {
@@ -148,7 +101,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObservePrecheckOk();
 
       local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -158,7 +110,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObserveFinanceable();
 
       OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
 
@@ -180,7 +131,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObservePlanned();
       local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
       if (actualDist < 1) actualDist = 1;
       local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
@@ -199,7 +149,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObserveViable();
       OpexApplyRoadEconomics(candidate, economics, actualDist);
       if (isSubsidy) {
         candidate.baseRevenueAnnual = economics.revenueAnnual;
@@ -257,9 +206,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) {
-        OpexC55PaxTraceObserveBuilt(candidate.profitAnnual);
-      }
 
       if (DECISION_LOG) {
         foreach (d in passDiscards) {
@@ -296,11 +242,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                + AICargo.GetCargoLabel(candidate.cargo));
       OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
                                + "|" + result.vehicles.len());
-      if (ROAD_MULTISTOP) {
-        OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
-                                 + result.nStopsA + "|" + result.nStopsB + "|"
-                                 + result.vehicles.len());
-      }
       this._lines.append({
         stationA = result.stopA, stationB = result.stopB,
         originA = candidate.src, originB = candidate.dst,
@@ -329,7 +270,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
         opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
         purpose = "profit",
-        extraStops = [],
         isSubsidy = (("isSubsidy" in candidate) && candidate.isSubsidy),
         subsidyId = (("subsidyId" in candidate) ? candidate.subsidyId : -1),
         baseProfit = (isSubsidy && ("baseProfitAnnual" in candidate)) ? candidate.baseProfitAnnual : candidate.profitAnnual,
@@ -447,9 +387,9 @@ function OpexAI::_refleetRoadLines(year)
     local extraNeeded = 0;
 
     /* Chemin historique conservé littéralement sous switch 0. */
-    local physicalCap = C50B_ROAD_CAP_RELAX ? MAX_ROAD_VEHICLES : OpexRoadPhysicalVehicleCap(
+    local physicalCap = OpexRoadPhysicalVehicleCap(
         ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
-    if (!C50B_ROAD_CAP_RELAX && ROAD_TIME_SCALED_CAP &&
+    if (ROAD_TIME_SCALED_CAP &&
         ("kind" in line) && line.kind == "pax") {
       local nStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
       local nStopsB = ("nStopsB" in line) ? line.nStopsB : 1;

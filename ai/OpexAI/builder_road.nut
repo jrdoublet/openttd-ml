@@ -29,10 +29,7 @@ ROAD_MAX_SITES_PER_END <- 4;
 ROAD_MAX_TRACE_TRIALS <- 48;
 ROAD_CAPITAL_MARGIN <- 1000;
 ROAD_DEPOT_MIN_STOP_DISTANCE <- 3;
-/* C37 : sonde L a 2 essais avant OpexRoadPlanFor. Defaut 0. Uniquement pax interurbain
- * distance <= 12 (le bus 5 tuiles de la graine 7). Ne pas bannir sur CHEAPX. */
-ROAD_CHEAP_TRACE <- false;
-ROAD_CHEAP_TRACE_MAX_DIST <- 12;
+ROAD_PAX_VOIRIE_SAME_TOWN_MAX_DIST <- 12;
 /* Pax : arrets traversants SUR la voirie existante (AAAHogEx). Le depot reste hors route.
  * Defaut 0. Ce n'est PAS le jet DT de 2026-08-28 (912 k ops en remplacement du L) : ici on
  * n'echantillonne que des IsRoadTile et on relie par BFS sur la voirie, sans scier les maisons.
@@ -402,46 +399,6 @@ function OpexRoadTraceMulti(from, to, variant)
   return [];
 }
 
-/* C37 : mini-chasse (2 sites, 16 sondes) + 2 L + depot. Pas de retombee sur le plan
- * 64 sondes / 144 essais : si le L court echoue, c'est CHEAPX (le bus 5 tuiles de la
- * graine 7 est TRACEX meme avec les Z). Si le L reussit, on GARDE ce plan -- retomber
- * sur les 4 sites les plus cargo reproduisait le TRACEX. */
-function OpexRoadCheapPlan(candidate)
-{
-  local stop = OpexRoadStopKind(candidate.cargo);
-  local coverage = AIStation.GetCoverageRadius(stop.stationType);
-  local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  local oldProbes = ROAD_MAX_SITE_PROBES;
-  local oldSites = ROAD_MAX_SITES_PER_END;
-  ROAD_MAX_SITE_PROBES = 16;
-  ROAD_MAX_SITES_PER_END = 2;
-  local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
-                              coverage, true, radiusA, candidate.dst, true, null);
-  local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, true, radiusB, candidate.src, true);
-  ROAD_MAX_SITE_PROBES = oldProbes;
-  ROAD_MAX_SITES_PER_END = oldSites;
-  if (huntA.sites.len() == 0 || huntB.sites.len() == 0) return null;
-  local trials = 0;
-  foreach (siteA in huntA.sites) {
-    foreach (siteB in huntB.sites) {
-      for (local shape = 0; shape < 2; shape++) {
-        trials++;
-        local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
-        if (trace.len() == 0) continue;
-        if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) continue;
-        if (!OpexRoadTraceBuildable(trace)) continue;
-        local depot = OpexRoadFindDepot(trace, siteA, siteB);
-        if (depot == null) continue;
-        return { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
-                 stationType = stop.stationType, vehType = stop.vehType,
-                 routeDistance = trace.len(), shape = shape, trials = trials };
-      }
-    }
-  }
-  return null;
-}
 
 /* Un arret traversant n'a qu'un axe : le bus ne peut entrer/sortir que par front ou son oppose. */
 function OpexRoadOnDtAxis(tile, front, other)
@@ -530,7 +487,7 @@ function OpexRoadPaxVoirieSites(center, townId, cargo, vehType, coverage, otherC
   local probes = 0;
   local radius = ROAD_TOWN_SEARCH_RADIUS;
   local sameTown = otherCenter != null &&
-                   AIMap.DistanceManhattan(center, otherCenter) < ROAD_CHEAP_TRACE_MAX_DIST;
+                   AIMap.DistanceManhattan(center, otherCenter) < ROAD_PAX_VOIRIE_SAME_TOWN_MAX_DIST;
   local minPair = ROAD_PAX_VOIRIE_MIN_PAIR;
   for (local r = 0; r <= radius; r++) {
     for (local dx = -r; dx <= r; dx++) {
@@ -575,43 +532,6 @@ function OpexRoadPaxVoirieSites(center, townId, cargo, vehType, coverage, otherC
     }
   }
   return out;
-}
-
-/* Cherche un quartier non couvert sur la voirie deja connectee a une ligne. Une extension ne
- * construit pas une seconde route ni une seconde ligne : elle transforme une tuile de route
- * existante en arret traversant, puis l'ajoute aux ordres des bus. */
-function OpexRoadExtensionSite(line, townId, cargo, anchor)
-{
-  if (!AITown.IsValidTown(townId) || !AIRoad.IsRoadStationTile(anchor)) return null;
-  local center = AITown.GetLocation(townId);
-  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
-  local exclude = OpexRoadOurBusTiles();
-  local sites = OpexRoadPaxVoirieSites(center, townId, cargo, AIRoad.ROADVEHTYPE_BUS,
-                                        coverage, null, true, exclude);
-  foreach (site in sites) {
-    /* Le dernier pas doit suivre l'axe de l'arret traversant projete. Le graphe est borne mais
-     * largement au-dessus des 48 tuiles maximales d'une ligne routiere de base. */
-    local path = OpexRoadBfsPath(anchor, site.tile, 1024, null, site.front);
-    if (path == null || path.len() == 0) continue;
-    return { tile = site.tile, front = site.front, value = site.value,
-             routeDistance = path.len(), driveThrough = true, trace = [] };
-  }
-
-  /* Une petite ville n'a souvent aucune voirie municipale hors du bassin des deux premiers
-   * arrets. Chercher alors un terrain producteur et planifier la courte antenne qui le relie a
-   * la ligne. Sans ce repli, bus_pax_extension existe en theorie mais n'a aucun site reel. */
-  local hunt = OpexRoadSites(center, townId, cargo, AIRoad.ROADVEHTYPE_BUS, coverage,
-                             true, ROAD_TOWN_SEARCH_RADIUS, anchor, true, exclude);
-  foreach (site in hunt.sites) {
-    for (local shape = 0; shape < 2; shape++) {
-      local trace = OpexRoadTrace(anchor, site.front, shape == 0);
-      if (trace.len() == 0 || OpexRoadTraceHitsStop(trace, site.tile)) continue;
-      if (!OpexRoadTraceBuildable(trace)) continue;
-      return { tile = site.tile, front = site.front, value = site.value,
-               routeDistance = trace.len(), driveThrough = false, trace = trace };
-    }
-  }
-  return null;
 }
 
 function OpexRoadPlanPaxVoirie(candidate)
@@ -732,16 +652,6 @@ function OpexRoadPlanFor(catalog, candidate)
       }
     }
   }
-  local cheapOn = ROAD_CHEAP_TRACE;
-  if (cheapOn && candidate.distance <= ROAD_CHEAP_TRACE_MAX_DIST) {
-    if (DECISION_LOG) {
-      OpexDecide("CHEAP_TRACE", "dist=" + candidate.distance + " kind=" + candidate.kind
-                 + " flag=" + ROAD_CHEAP_TRACE);
-    }
-    local cheap = OpexRoadCheapPlan(candidate);
-    if (cheap != null) return { plan = cheap, reason = "OK" };
-    return { plan = null, reason = "CHEAPX" };
-  }
   local stop = OpexRoadStopKind(candidate.cargo);
   local coverage = AIStation.GetCoverageRadius(stop.stationType);
   local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
@@ -835,18 +745,12 @@ function OpexRoadPlanFor(catalog, candidate)
 
 /* La liste added ne contient que les aretes dont la connexion n'existait pas avant notre appel.
  * Le rollback ne supprime donc jamais une route de ville preexistante. */
-function OpexRoadRollback(stopA, stopB, depot, vehicles, added, extras)
+function OpexRoadRollback(stopA, stopB, depot, vehicles, added)
 {
   foreach (v in vehicles) {
     if (AIVehicle.IsValidVehicle(v)) AIVehicle.SellVehicle(v);
   }
   if (depot != null && AIRoad.IsRoadDepotTile(depot)) AIRoad.RemoveRoadDepot(depot);
-  /* Extras d'abord : ils partagent le StationID du primaire ; le retirer en dernier. */
-  if (extras != null) {
-    for (local i = extras.len() - 1; i >= 0; i--) {
-      if (extras[i] != null && AIRoad.IsRoadStationTile(extras[i])) AIRoad.RemoveRoadStation(extras[i]);
-    }
-  }
   if (stopB != null && AIRoad.IsRoadStationTile(stopB)) AIRoad.RemoveRoadStation(stopB);
   if (stopA != null && AIRoad.IsRoadStationTile(stopA)) AIRoad.RemoveRoadStation(stopA);
   for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
@@ -1061,7 +965,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * Aucun AITestMode n'est appele depuis cette fonction (verifie : OpexRoadBuildTrace et le reste
    * du corps n'exécutent que de vraies commandes) -- pas de bouclier imbrique necessaire. */
   local costs = AIAccounting();
-  local extras = [];
   AIRoad.SetCurrentRoadType(catalog.roadType);
   local balanceBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local cargo = candidate.cargo;
@@ -1088,7 +991,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     result.error = AIError.GetLastError();
     result.opcodes = budget.end("build_roads");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(null, null, null, built, added, extras); result.reason = "ROAD"; return result;
+    OpexRoadRollback(null, null, null, built, added); result.reason = "ROAD"; return result;
   }
   result.opcodes = budget.end("build_roads");
 
@@ -1121,7 +1024,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (stopA == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(null, null, null, built, added, extras); result.reason = "ASTOP"; return result;
+    OpexRoadRollback(null, null, null, built, added); result.reason = "ASTOP"; return result;
   }
   local okB = false;
   if (driveThrough) {
@@ -1139,7 +1042,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       AIRoad.AreRoadTilesConnected(plan.stopB.tile, plan.stopB.front)) stopB = plan.stopB.tile;
   if (stopB == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
-    OpexRoadRollback(stopA, null, null, built, added, extras);
+    OpexRoadRollback(stopA, null, null, built, added);
     result.actualCost = costs.GetCosts();
     result.reason = "BSTOP"; return result;
   }
@@ -1148,39 +1051,9 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB) {
     result.opcodes += budget.end("build_road_stops");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, null, built, added, extras); result.reason = "STATION"; return result;
+    OpexRoadRollback(stopA, stopB, null, built, added); result.reason = "STATION"; return result;
   }
 
-  /* Multistop (road_multistop, defaut 0) : un arret extra par bout, meme facade, joint au
-   * primaire. Le classement reste a MAX_ROAD_VEHICLES = 2 ; les berths supplementaires et les
-   * clones ne viennent que si les deux bouts ont double. Un echec d'extra n'annule pas la ligne. */
-  /* Un deuxieme quai adjacent est utile au fret, mais constitue precisement un second arret bus
-   * au bassin superpose. Les passagers grandissent desormais par extensions espacees. */
-  if (ROAD_MULTISTOP && !driveThrough && plan.vehType != AIRoad.ROADVEHTYPE_BUS) {
-    local noTile = {};
-    noTile.rawset(plan.stopA.tile, true);
-    noTile.rawset(plan.stopA.front, true);
-    noTile.rawset(plan.stopB.tile, true);
-    noTile.rawset(plan.stopB.front, true);
-    noTile.rawset(plan.depot.tile, true);
-    noTile.rawset(plan.depot.front, true);
-    foreach (edge in plan.trace) {
-      noTile.rawset(edge.from, true);
-      noTile.rawset(edge.to, true);
-    }
-    local joinA = OpexRoadTryJoinStop(plan.stopA, stationA, plan.vehType, noTile, added);
-    if (joinA != null) {
-      extras.append(joinA.tile);
-      noTile.rawset(joinA.tile, true);
-      noTile.rawset(joinA.front, true);
-      result.nStopsA = 2;
-    }
-    local joinB = OpexRoadTryJoinStop(plan.stopB, stationB, plan.vehType, noTile, added);
-    if (joinB != null) {
-      extras.append(joinB.tile);
-      result.nStopsB = 2;
-    }
-  }
   result.opcodes += budget.end("build_road_stops");
 
   budget.begin();
@@ -1208,7 +1081,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       AIRoad.AreRoadTilesConnected(plan.depot.tile, plan.depot.front)) depot = plan.depot.tile;
   result.opcodes += budget.end("build_road_depot");
   if (depot == null) {
-    result.error = AIError.GetLastError(); OpexRoadRollback(stopA, stopB, null, built, added, extras);
+    result.error = AIError.GetLastError(); OpexRoadRollback(stopA, stopB, null, built, added);
     result.actualCost = costs.GetCosts();
     result.reason = "DEPOT"; return result;
   }
@@ -1217,7 +1090,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local capacity = OpexRoadRefitCapacity(depot, candidate.engine, cargo);
   if (capacity <= 0) {
     result.opcodes += budget.end("build_road_vehicles");
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras);
+    OpexRoadRollback(stopA, stopB, depot, built, added);
     result.actualCost = costs.GetCosts();
     result.reason = "REFIT"; return result;
   }
@@ -1225,14 +1098,14 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!AIVehicle.IsValidVehicle(first)) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "VEH"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "VEH"; return result;
   }
   built.append(first);
   if (AIVehicle.GetCapacity(first, cargo) <= 0 ||
       !AIRoad.RoadVehHasPowerOnRoad(AIVehicle.GetRoadType(first), catalog.roadType)) {
     result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "POWER"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "POWER"; return result;
   }
 
   /* Ordres. La regle du fret vient directement de l'effondrement rail du 2026-08-28 : une ligne de
@@ -1255,7 +1128,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
     result.error = !orderA ? errorA : errorB; result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "ORDERS"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "ORDERS"; return result;
   }
 
   /* Les vehicules suivants sont CLONES du premier avec partage d'ordres : le clone reprend le
@@ -1264,23 +1137,16 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * ce qui vaut mieux qu'un rollback complet pour un vehicule d'appoint.
    * ⚠️ Le plafond vient du jeu, pas de nous : un arret n'accueille que DEUX vehicules a la fois,
    * au-dela ils font la queue sur la route et se bloquent (docs/mecanique_jeu.md S11). C'est
-   * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. Le multistop relache ce
-   * plafond seulement si les DEUX bouts ont un arret extra (2 berths x min(nA,nB)). */
+   * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. */
   /* marginal_fleet = 1 (2026-09-01) : demarrage MINIMAL. On ne clone plus tout de suite jusqu'a
    * candidate.trains (le plein du modele predictif) -- on part a 1 seul vehicule, et
    * _refleetRoadLines (main.nut) fait grandir la ligne APRES avoir mesure un profit reel, borne
-   * par OpexRoadPhysicalVehicleCap. Le repli berths (road_multistop) est donc lui aussi saute ici :
+   * par OpexRoadPhysicalVehicleCap. Le demarrage minimal garde donc un seul vehicule ici :
    * il n'a plus de sens d'elargir tout de suite une ligne qu'on vient de retrecir a 1 par principe.
    * Sous 0 (defaut), ce bloc est un no-op et le chemin d'avant est rigoureusement identique. */
   local want = candidate.trains;
   if (MARGINAL_FLEET) {
     want = 1;
-  } else {
-    /* Gardé inline volontairement : sous B3=0 ce chemin doit conserver son coût/opcode historique. */
-    local nMin = result.nStopsA < result.nStopsB ? result.nStopsA : result.nStopsB;
-    if (nMin < 1) nMin = 1;
-    local berths = 2 * nMin;
-    if (ROAD_MULTISTOP && berths > want) want = berths;
   }
   for (local i = 1; i < want; i++) {
     /* `clone` est un MOT RESERVE de Squirrel (l'operateur de copie) : le nommer ainsi fait echouer
@@ -1301,7 +1167,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       result.error = AIError.GetLastError();
       result.opcodes += budget.end("build_road_vehicles");
       result.actualCost = costs.GetCosts();
-      OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "START"; return result;
+      OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "START"; return result;
     }
   }
   result.opcodes += budget.end("build_road_vehicles");
@@ -1319,142 +1185,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   }
   result.cost = balanceBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   result.actualCost = costs.GetCosts();
-  return result;
-}
-
-function OpexRoadOrderPositionForStation(vehicle, stationId)
-{
-  if (!AIVehicle.IsValidVehicle(vehicle) || !AIStation.IsValidStation(stationId)) return -1;
-  local count = AIOrder.GetOrderCount(vehicle);
-  for (local i = 0; i < count; i++) {
-    if (!AIOrder.IsValidVehicleOrder(vehicle, i) || !AIOrder.IsGotoStationOrder(vehicle, i)) continue;
-    local destination = AIOrder.GetOrderDestination(vehicle, i);
-    if (AIStation.GetStationID(destination) == stationId) return i;
-  }
-  return -1;
-}
-
-/* Transaction d'extension d'une ligne bus existante. InsertOrder modifie automatiquement tout
- * le groupe lorsque les ordres sont partages ; les vehicules non partages sont traites un par un.
- * En cas d'echec, chaque insertion effectivement faite est retiree avant de demonter l'arret. */
-function OpexBuildRoadExtension(catalog, budget, line, candidate)
-{
-  local result = { ok = false, reason = "", error = 0, stop = null, cost = 0,
-                   actualCost = 0, opcodes = 0 };
-  if (line == null || candidate == null || !("extensionSite" in candidate)) {
-    result.reason = "INVALID"; return result;
-  }
-  local site = candidate.extensionSite;
-  local driveThrough = !("driveThrough" in site) || site.driveThrough;
-  if (!AIMap.IsValidTile(site.tile) ||
-      (driveThrough && !AIRoad.IsRoadTile(site.tile)) ||
-      (!driveThrough && !AITile.IsBuildable(site.tile)) ||
-      AIRoad.IsRoadStationTile(site.tile) || AIRoad.IsRoadDepotTile(site.tile)) {
-    result.reason = "STALE"; return result;
-  }
-  local liveStops = OpexRoadOurBusTiles();
-  if (OpexRoadTileTooClose(site.tile, liveStops, ROAD_BUS_STOP_MIN_DISTANCE)) {
-    result.reason = "SPACING"; return result;
-  }
-  if (!("extensionTown" in candidate) || AITile.GetClosestTown(site.tile) != candidate.extensionTown) {
-    result.reason = "TOWN"; return result;
-  }
-
-  local stationA = AIStation.GetStationID(line.stationA);
-  local stationB = AIStation.GetStationID(line.stationB);
-  if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) {
-    result.reason = "STATION"; return result;
-  }
-  local vehicles = OpexLineVehicleIds(line, stationA);
-  if (vehicles.len() == 0) { result.reason = "NOVEH"; return result; }
-
-  AIRoad.SetCurrentRoadType(catalog.roadType);
-  local costs = AIAccounting();
-  local added = [];
-  budget.begin();
-  if (("trace" in site) && site.trace.len() > 0 && !OpexRoadBuildTrace(site.trace, added)) {
-    result.error = AIError.GetLastError();
-    result.opcodes = budget.end("build_road_extension");
-    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-    result.cost = costs.GetCosts(); result.actualCost = result.cost;
-    result.reason = "ROAD"; return result;
-  }
-  local stopBuilt = false;
-  if (driveThrough) {
-    stopBuilt = AIRoad.BuildDriveThroughRoadStation(site.tile, site.front,
-                                                    AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
-  } else {
-    local hadStub = AIRoad.AreRoadTilesConnected(site.front, site.tile);
-    local stubBuilt = hadStub || AIRoad.BuildRoad(site.front, site.tile);
-    if (!hadStub && stubBuilt && AIRoad.AreRoadTilesConnected(site.front, site.tile)) {
-      added.append({ from = site.front, to = site.tile });
-    }
-    stopBuilt = stubBuilt && AIRoad.AreRoadTilesConnected(site.front, site.tile) &&
-                AIRoad.BuildRoadStation(site.tile, site.front,
-                                        AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
-  }
-  if (!stopBuilt) {
-    result.error = AIError.GetLastError();
-    result.opcodes = budget.end("build_road_extension");
-    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-    result.cost = costs.GetCosts(); result.actualCost = result.cost;
-    result.reason = "STOP"; return result;
-  }
-  local newStation = AIStation.GetStationID(site.tile);
-  if (!AIStation.IsValidStation(newStation) ||
-      !AIRoad.AreRoadTilesConnected(site.tile, site.front)) {
-    result.opcodes = budget.end("build_road_extension");
-    if (AIRoad.IsRoadStationTile(site.tile)) AIRoad.RemoveRoadStation(site.tile);
-    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-    result.cost = costs.GetCosts(); result.actualCost = result.cost;
-    result.reason = "CONNECT"; return result;
-  }
-
-  local changed = [];
-  local flags = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : AIOrder.OF_NONE;
-  local targetStation = (("extensionEnd" in candidate) && candidate.extensionEnd == "B")
-      ? stationB : stationA;
-  local failed = false;
-  foreach (vehicle in vehicles) {
-    if (!AIVehicle.IsValidVehicle(vehicle) ||
-        AIVehicle.GetVehicleType(vehicle) != AIVehicle.VT_ROAD) continue;
-    /* Une insertion sur le premier vehicule a deja modifie tous ses pairs si les ordres sont
-     * partages. Ne surtout pas inserer une seconde fois dans ce cas. */
-    if (OpexVehicleServesStation(vehicle, newStation)) continue;
-    local targetPos = OpexRoadOrderPositionForStation(vehicle, targetStation);
-    if (targetPos < 0) { failed = true; break; }
-    local insertPos = targetPos + 1;
-    if (!AIOrder.InsertOrder(vehicle, insertPos, site.tile, flags)) {
-      result.error = AIError.GetLastError(); failed = true; break;
-    }
-    changed.append({ vehicle = vehicle, position = insertPos });
-  }
-  if (!failed) {
-    foreach (vehicle in vehicles) {
-      if (AIVehicle.IsValidVehicle(vehicle) &&
-          AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_ROAD &&
-          !OpexVehicleServesStation(vehicle, newStation)) { failed = true; break; }
-    }
-  }
-  if (failed) {
-    for (local i = changed.len() - 1; i >= 0; i--) {
-      local edit = changed[i];
-      if (AIVehicle.IsValidVehicle(edit.vehicle) &&
-          edit.position < AIOrder.GetOrderCount(edit.vehicle)) {
-        AIOrder.RemoveOrder(edit.vehicle, edit.position);
-      }
-    }
-    if (AIRoad.IsRoadStationTile(site.tile)) AIRoad.RemoveRoadStation(site.tile);
-    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-    result.opcodes = budget.end("build_road_extension");
-    result.cost = costs.GetCosts(); result.actualCost = result.cost;
-    result.reason = "ORDERS"; return result;
-  }
-
-  result.opcodes = budget.end("build_road_extension");
-  result.ok = true; result.reason = "OK"; result.stop = site.tile;
-  result.cost = costs.GetCosts();
-  result.actualCost = result.cost;
   return result;
 }
 

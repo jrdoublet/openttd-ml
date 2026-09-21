@@ -232,12 +232,8 @@ function OpexLoadSettings()
   C55_PAX_TRACE_PROBE = probePort;
   if (C55_PAX_TRACE_PROBE) {
     C55_PAX_TRACE_LEDGER = {
-      revalidated = 0, origin_blocked = 0, spared = 0,
-      attempted = 0, precheck_ok = 0, financeable = 0,
-      planned = 0, viable = 0, built = 0, built_profit = 0,
-      total_revalidated = 0, total_origin_blocked = 0, total_spared = 0,
-      total_attempted = 0, total_precheck_ok = 0, total_financeable = 0,
-      total_planned = 0, total_viable = 0, total_built = 0, total_built_profit = 0,
+      revalidated = 0, origin_blocked = 0,
+      total_revalidated = 0, total_origin_blocked = 0,
     };
   }
   C60_TOWN_RATING_PROBE = probePort;
@@ -308,16 +304,10 @@ function OpexLoadSettings()
   DYNAMIC_BATCH_OPS_BUDGET_PCT = 50;
   PORTFOLIO_FLOOR_PCT = 0;
   FLAT_BONUS = false;
-  ROAD_CHEAP_TRACE = false;
-  ROAD_MULTISTOP = false;
   MARGINAL_FLEET = false;
-  ROAD_PAX_EXTENSIONS = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
-  C50B_ROAD_CAP_RELAX = false;
   C50B_RAIL_BACKLOG_RELAX = false;
   C55_FREIGHT_ORIGIN_RELAX = false;
-  C55_ROAD_ORIGIN_RELAX = false;
-  C55_ROAD_PAX_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
   STATION_JOIN = false;
@@ -343,10 +333,8 @@ function OpexLoadSettings()
   C39_ENGINE_REFRESH = false;
   C41_WATER_REFRESH = false;
   C41_WATER_PRECHECK = false;
-  C41_ROAD_REFRESH = false;
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
-  PRICING_ROAD_RATING = false;
   PRICING_RAIL_DEPOT = false;
   FLEET_FIX = false;
   EVENT_DEPOT_SELL = false;

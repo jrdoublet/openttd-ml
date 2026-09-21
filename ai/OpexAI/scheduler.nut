@@ -213,7 +213,6 @@ function OpexAI::_runNextTask()
 
   if (task.name == "catalog") return this._dispatchCatalog(task, year);
   if (task.name == "c41_water") return this._dispatchC41Water(task, year);
-  if (task.name == "c41_road") return this._dispatchC41Road(task, year);
   if (this._projects == null) {
     /* `_taskCycle` (et non `+ 1`) laissait la tache due au cycle COURANT. Or le cycle n'avance que
      * lorsque le balayage depuis _taskCursor ne trouve plus rien de du : une tache qui reste
