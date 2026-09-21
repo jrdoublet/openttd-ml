@@ -292,7 +292,7 @@ function OpexWaterCatalogSites(town, siteCatalog, probes, profile = null)
   local slots = WATER_MAX_SITES_PER_TOWN - saved.sites.len();
   if (slots <= 0) { saved.complete = true; return []; }
   local found = OpexWaterFindSiteSlice(town, probes, saved.scan, slots,
-                                        C41_WATER_SITE_PROFILE ? profile : null);
+                                        null);
   saved.scan = found.scan;
   local sites = [];
   foreach (site in found.sites) {
@@ -496,7 +496,7 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
     local wasKnownComplete = !historical && (towns[i].id in siteCatalog.towns)
         && siteCatalog.towns[towns[i].id].complete;
     local townSites = OpexWaterCatalogSites(towns[i], siteCatalog, probes,
-                                             C41_WATER_SITE_PROFILE ? profile : null);
+                                             null);
     /* Une entree deja connue est deja dans `sites`; ne pas la dupliquer. */
     if (historical || !wasKnownComplete) foreach (site in townSites) sites.append(site);
   }

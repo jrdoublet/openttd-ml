@@ -185,9 +185,6 @@ function OpexLoadSettings()
   C39_DECISION_DELTA_PROBE = probeCat;
   C39_AIR_REASON_PROBE = probeCat;
   C41_REVISION_PROBE = probeCat;
-  C41_WATER_CANDIDATE_PROBE = false;
-  C41_WATER_PLANS_PROFILE = false;
-  C41_WATER_SITE_PROFILE = false;
 
   // 6. probe_rail_search : domination, fallthrough, projects cadence
   local probeRailSearch = AIController.GetSetting("probe_rail_search") != 0;
@@ -331,8 +328,6 @@ function OpexLoadSettings()
   WATER_LAKES_CONNECTIVITY = false;
   WATER_LAKES_OPS_BUDGET = false;
   C39_ENGINE_REFRESH = false;
-  C41_WATER_REFRESH = false;
-  C41_WATER_PRECHECK = false;
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
   PRICING_RAIL_DEPOT = false;

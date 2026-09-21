@@ -82,16 +82,6 @@ C39_AIR_REASON_PROBE <- false;
 C39_ENGINE_REFRESH <- false;
 /* C41.0 : registre passif revision/acquittement pour les futures micro-taches ciblees. */
 C41_REVISION_PROBE <- false;
-/* C41.1 : consomme seulement catalog.water ; candidat/portefeuille restent au flux historique. */
-C41_WATER_REFRESH <- false;
-/* C41.2 : prefiltre local un moteur eau avant d'armer C41.1 ; experimental et eteint. */
-C41_WATER_PRECHECK <- false;
-/* C41.3 : sonde passive du cout de OpexWaterPlans apres C41.1/C41.2. */
-C41_WATER_CANDIDATE_PROBE <- false;
-/* C41.3a : ventile la sonde eau en sites, paires, BFS et economie ; aucun candidat persistant. */
-C41_WATER_PLANS_PROFILE <- false;
-/* C41.3b : sous-ventilation de la phase dominante sites : filtre carte vs AITestMode dock. */
-C41_WATER_SITE_PROFILE <- false;
 /* BFS maritime reconstruit sur MinchinWeb.Lakes (2026-09-09) -- voir docs/taches.md et
  * ai/OpexAI/lib_water.nut. Defaut aligne sur info.nut (custom_value = 1). */
 WATER_LAKES_CONNECTIVITY <- true;
