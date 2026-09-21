@@ -284,6 +284,8 @@ C69_CACHED_KDEC_VALUE <- 0;
 C69_PLANE_CHOICE_CALLS <- 0;
 C69_PLANE_CHOICE_DIFFER_ROI <- 0;
 C69_PLANE_CHOICE_DIFFER_C69 <- 0;
+/* C72 etape 2 : levier du choix d'avion (0 = profit max, 1 = ROI max, 2 = P/max(C, K_dec)) */
+C72_PLANE_CHOICE <- 0;
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */
 MONTHLY_FUNNEL <- false;

@@ -85,3 +85,31 @@ en duel si, face au bras 0 :
 
 Si les deux bras passent, on garde **2 (C69)**, qui a le moins de désaccords avec C68 et ne dépend
 d'aucune constante. Si aucun ne passe, la fiche se ferme sur cette étape.
+
+## 4. Résultat de l'étape 2 (2026-09-21)
+
+Réglage `c72_plane_choice` (0 = profit, défaut ; 1 = ROI ; 2 = score C69), implémenté par agy et
+relu. `sweeps/diag_c72_plane_choice_solo_5x6.py`, solo, 5 graines × 6 ans, 0 échec :
+`results/diag_c72_plane_choice_solo_5x6.json`.
+
+| paire | profit annuel | valeur | véhicules |
+|---|---|---|---|
+| **ROI (1) − profit (0)** | **+292 k£, 4 V / 1 D** | **+1,26 M£, 5 V / 0 D** | −3,8 |
+| **C69 (2) − profit (0)** | **+145 k£, 4 V / 1 D** | +0,75 M£, 4 V / 1 D | −3,6 |
+| C69 (2) − ROI (1) | −147 k£, 2 V / 3 D | −0,51 M£, 1 V / 4 D | +0,2 |
+
+Avions réellement construits (5 graines) : sous le ROI apparaissent les moteurs 220 (18) et 226
+(24), absents au profit ; le Darwin 300 (228) passe de 18 à 6. Sous C69, les changements sont plus
+faibles : moteur 221 de 8 à 18, 220 et 226 marginaux.
+
+**Critères du §3** : les deux bras passent (4/5 en profit, valeur en hausse, autres avions
+construits). **La règle écrite d'avance retient le bras 2 (C69).** ⚠️ Mais le bras 1 (ROI) fait
+mieux que le bras 2 sur ce 5×6 : +147 k£ de profit (3/5) et +0,51 M£ de valeur (4/5). La règle
+avait choisi C69 parce qu'il s'écarte moins de C68 et ne dépend d'aucune constante, pas pour sa
+performance. Choisir entre les deux relève de l'utilisateur.
+
+Le bras 0 de ce diagnostic ne reproduit pas le défaut des diagnostics précédents (graine 100 :
+1,245 M£ contre 1,493 M£) : le code de la sonde et du levier décale les opcodes (§13.4 de la
+fiche 11). Les trois bras exécutent le même code, donc la comparaison reste appariée.
+
+Commandes du 20×10 : `13_banc_c69_20x10_pc.md` §6.

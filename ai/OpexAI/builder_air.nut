@@ -997,8 +997,18 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
 
   local bestPlane = selectedPlane;
   local bestEconomics = selectedEconomics;
+  local bestScore = 0.0;
 
   local kDec = 0;
+  if (C69_BOTTLENECK_PROBE || C72_PLANE_CHOICE == 2) {
+    kDec = OpexC69CachedKDec();
+  }
+
+  if (C72_PLANE_CHOICE == 2 && selectedEconomics != null) {
+    local denom = selectedEconomics.capital > kDec ? selectedEconomics.capital : kDec;
+    bestScore = denom > 0 ? (selectedEconomics.profitAnnual.tofloat() * 1000.0) / denom : 0.0;
+  }
+
   local r_plane = null;
   local r_econ = null;
   local c_plane = null;
@@ -1007,7 +1017,6 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
   local evalCount = 0;
 
   if (C69_BOTTLENECK_PROBE) {
-    kDec = OpexC69CachedKDec();
     if (selectedEconomics != null) {
       evalCount = 1;
       r_plane = selectedPlane;
@@ -1025,10 +1034,27 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
     local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
         infrastructureMaintenance, maxCapital, newAirportCount, demandCap);
     if (economics == null) continue;
-    if (bestEconomics == null || economics.profitAnnual > bestEconomics.profitAnnual ||
-        (economics.profitAnnual == bestEconomics.profitAnnual && economics.roi > bestEconomics.roi)) {
-      bestPlane = plane;
-      bestEconomics = economics;
+    if (C72_PLANE_CHOICE == 1) {
+      if (bestEconomics == null || economics.roi > bestEconomics.roi ||
+          (economics.roi == bestEconomics.roi && economics.profitAnnual > bestEconomics.profitAnnual)) {
+        bestPlane = plane;
+        bestEconomics = economics;
+      }
+    } else if (C72_PLANE_CHOICE == 2) {
+      local curDenom = economics.capital > kDec ? economics.capital : kDec;
+      local curScore = curDenom > 0 ? (economics.profitAnnual.tofloat() * 1000.0) / curDenom : 0.0;
+      if (bestEconomics == null || curScore > bestScore ||
+          (curScore == bestScore && economics.profitAnnual > bestEconomics.profitAnnual)) {
+        bestPlane = plane;
+        bestEconomics = economics;
+        bestScore = curScore;
+      }
+    } else {
+      if (bestEconomics == null || economics.profitAnnual > bestEconomics.profitAnnual ||
+          (economics.profitAnnual == bestEconomics.profitAnnual && economics.roi > bestEconomics.roi)) {
+        bestPlane = plane;
+        bestEconomics = economics;
+      }
     }
     if (C69_BOTTLENECK_PROBE) {
       evalCount++;

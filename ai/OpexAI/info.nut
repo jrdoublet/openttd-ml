@@ -148,6 +148,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c72_plane_choice",
+      description = "C72: air plane choice per route; 0 = max profit (C68, default), 1 = max ROI, 2 = max P/max(C, K_dec)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "probe_events",
       description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
