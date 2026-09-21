@@ -23,7 +23,7 @@ comme une file active.
 | Statut courant | Chantier | Travail restant / règle de reprise |
 |---|---|---|
 | **EN PAUSE — 2026-09-21** | **C69 goulot de décision (+ bis) et C70 calibration** | Non adopté : deux 20×10 duel à 12/20 (`fail_primary`), gain moyen +87,6 et +111 k£/an. Plus d'aéroports, moins de véhicules. Reprise : cause de la flotte manquante (`W` contre cadence), puis C69 bis par-dessus C72 si C72 est adopté. `docs/11_goulot_decision.md` §17-§19. |
-| **EN COURS — 2026-09-21** | **C72 choix de l'avion par route** | 5×6 solo : ROI +292 k£ (4/5), score C69 +145 k£ (4/5) face au profit. 20×10 duel à lancer (`docs/13_banc_c69_20x10_pc.md` §6). `docs/15_choix_avion.md`. |
+| **NON ADOPTÉ — 2026-09-21** | **C72 choix de l'avion par route** | 20×10 duel contre le défaut : ROI −1,9 k£/an, score C69 −4,5 k£/an, 11/9 tous deux (`fail_primary`) ; valeur +6,8 % et +3,2 %, non significative. Le 5×6 solo (+292 et +145 k£) ne s'est pas confirmé. `docs/15_choix_avion.md` §5. |
 | **ABANDONNÉ — 2026-09-21** | **AIR post-C68 — frontière capital→profit réseau** | Retour à `b68fafb`. Ne pas reprendre le λ global sans nouvelle formulation et nouvelle preuve indépendante. |
 | **CLOS / RETIRÉ** | **Opcodes AIR / sélecteur de projets** | Les caches, heaps, enveloppes et snapshots ajoutés pour la frontière/lifecycle sont abandonnés avec ces politiques. |
 | **COMMENCÉ — EN PAUSE** | **C61 AIR : délai/capacité aéroport** | Mesurer rotations, attente, demande et occupation avant de toucher `airportDelayDays` ou la cadence. |

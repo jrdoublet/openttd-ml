@@ -113,3 +113,26 @@ Le bras 0 de ce diagnostic ne reproduit pas le défaut des diagnostics précéde
 fiche 11). Les trois bras exécutent le même code, donc la comparaison reste appariée.
 
 Commandes du 20×10 : `13_banc_c69_20x10_pc.md` §6.
+
+## 5. Bancs d'autorité 20×10 en duel (2026-09-21)
+
+Deux campagnes sur le PC de l'utilisateur, chacune contre le défaut, 20/20 paires complètes :
+`results/c72_choice1_vs_default_10y_20seeds.json` (ROI) et
+`results/c72_choice2_vs_default_10y_20seeds.json` (score C69), journaux `results/c72_choice*.log`.
+
+| bras − défaut | `profit_year` moyen | médiane | V / D | `company_value` | véhicules |
+|---|---:|---:|---|---|---|
+| ROI (1) | −1,9 k£/an | +33,6 k£ | 11 / 9 (p = 0,82) | +6,8 %, 13 / 7 | −0,1, 8 / 12 |
+| score C69 (2) | −4,5 k£/an | +48,9 k£ | 11 / 9 (p = 0,82) | +3,2 %, 11 / 9 | +0,1, 12 / 7 |
+
+**Verdict : `fail_primary` pour les deux.** Le profit est neutre, et l'écart moyen n'atteint pas
+les +50 k£. La valeur d'entreprise monte (+6,8 % pour le ROI), sans significativité (13/7,
+p = 0,26). `c72_plane_choice` reste à 0.
+
+**Le 5×6 solo ne se confirme pas** : +292 k£ (ROI) et +145 k£ (C69), à 4/5, deviennent
+−2 à −4 k£ au 20×10 en duel. C'est la troisième fois ce jour (C69, C69 bis, C72) qu'un 5×6 solo
+positif ne tient pas au 20×10 duel.
+
+**Conséquence pour C69** : la reprise n° 2 du §19 de la fiche 11 (« rebancer C69 bis par-dessus
+C72 si C72 est adopté ») n'a plus d'objet. La reprise n° 1 (cause de la flotte manquante) reste
+ouverte.
