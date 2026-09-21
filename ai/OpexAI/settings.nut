@@ -185,6 +185,9 @@ function OpexLoadSettings()
   C39_DECISION_DELTA_PROBE = probeCat;
   C39_AIR_REASON_PROBE = probeCat;
   C41_REVISION_PROBE = probeCat;
+  WATER_OPCODE_COMPAT_FALSE = false;
+  WATER_OPCODE_COMPAT_FALSE = false;
+  WATER_OPCODE_COMPAT_FALSE = false;
 
   // 6. probe_rail_search : domination, fallthrough, projects cadence
   local probeRailSearch = AIController.GetSetting("probe_rail_search") != 0;
@@ -324,6 +327,8 @@ function OpexLoadSettings()
   AIR_ABANDON_SITE = false;
   AIR_TOWN_LIMIT_MEMORY = false;
   C39_ENGINE_REFRESH = false;
+  WATER_OPCODE_COMPAT_FALSE = false;
+  WATER_OPCODE_COMPAT_FALSE = false;
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
   PRICING_RAIL_DEPOT = false;

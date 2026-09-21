@@ -451,6 +451,9 @@ function OpexAI::Start()
     this._c50RefuseCache = {};
     this._c50LastTreasuryMonth = -1;
   }
+  if (WATER_OPCODE_COMPAT_FALSE && this._taskQueue != null) {
+    /* Branche de compatibilite volontairement vide : l'ancien flag etait force false. */
+  }
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {
     OpexDecide("SETTINGS", "road_pax_build=" + ROAD_PAX_BUILD_ENABLED

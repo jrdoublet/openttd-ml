@@ -764,8 +764,10 @@ function OpexAI::_onEngineAvailable(event)
         /* La sonde reste la seule à conserver l'état/les IDs. C39.2 consomme le chemin
          * historique sans changer les cas industrie déjà couverts par P3. */
         if (C39_INVALIDATION_PROBE) {
+          local targetedRelevant = !(WATER_OPCODE_COMPAT_FALSE && WATER_OPCODE_COMPAT_FALSE
+              && mode == "water");
           this._markDirty("engine_available", [mode], [mode], true, true, "engine", engine,
-                          mode, true);
+                          mode, targetedRelevant);
         }
         if (C39_ENGINE_REFRESH) {
           this._portfolioInvalidated = true;

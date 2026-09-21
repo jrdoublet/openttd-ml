@@ -109,6 +109,9 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (C41_REVISION_PROBE && revisionBumped) {
     OpexC39Log("C41_REVISION", OpexC41RevisionSnapshot(this._staleness.revisions));
   }
+  if (WATER_OPCODE_COMPAT_FALSE && targetedRelevant && catalogLayers != null) {
+    /* Ancien armement C41 WATER : branche impossible, conserve seulement le cout du test. */
+  }
 }
 /* C39.0 : photographie coalescée juste avant de jeter l'etat, apres la regeneration mensuelle
  * historique. La signature du premier projet ne sert pas encore a DECIDER : elle donne au

@@ -82,6 +82,9 @@ C39_AIR_REASON_PROBE <- false;
 C39_ENGINE_REFRESH <- false;
 /* C41.0 : registre passif revision/acquittement pour les futures micro-taches ciblees. */
 C41_REVISION_PROBE <- false;
+/* Compatibilite d'opcodes des anciens flags WATER tous forces false. Ce slot ne pilote
+ * aucune fonctionnalite et ne possede aucun reglage utilisateur. */
+WATER_OPCODE_COMPAT_FALSE <- false;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
 /* C41 : attribution mensuelle du temps du controleur, uniquement pour diagnostic. */
