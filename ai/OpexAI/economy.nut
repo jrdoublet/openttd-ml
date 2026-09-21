@@ -661,24 +661,9 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind);
   }
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
-  /* pricing_fix : la route n'appliquait JAMAIS OpexStationRatingForHeadway, que le rail
-   * (OpexLineEconomics) et l'air (builder_air.nut) utilisent tous deux -- elle restait figee a
-   * STATION_RATING_PCT = 50 % a plat. Le meme mecanisme physique -- la frequence de passage fixe la
-   * note de ramassage, donc la part de la demande captee -- etait donc price differemment selon le
-   * mode, alors que le portefeuille multimodal arbitre precisement rail contre route sur ce
-   * nombre. Une ligne de bus courte et frequente, exactement ce que le mode route construit,
-   * vaut 65,7 % sous la courbe et non 50 % (docs/taches.md S0 octies).
-   *
-   * On recalcule donc la demande sur la frequence REELLE une fois la flotte connue, exactement
-   * comme le rail le fait dans sa boucle sur `trains`. */
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
   local effectiveOffered = offered;
   local stationRating = STATION_RATING_PCT.tofloat();
-  if (PRICING_ROAD_RATING) {
-    local headwayDays = roundTripDays.tofloat() / vehicles;
-    stationRating = OpexStationRatingForHeadway(headwayDays);
-    effectiveOffered = monthlyUnits * stationRating / 100.0;
-  }
   local carried = effectiveOffered < monthlyCapacity ? effectiveOffered : monthlyCapacity;
   if (kind == "pax" && ROAD_PAX_OVERLAP && vehicles > 0 && roundTripDays > 0) {
     /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,

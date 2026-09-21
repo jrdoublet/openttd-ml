@@ -346,7 +346,6 @@ function OpexLoadSettings()
   C41_ROAD_REFRESH = false;
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
-  PRICING_ROAD_RATING = false;
   PRICING_RAIL_DEPOT = false;
   FLEET_FIX = false;
   EVENT_DEPOT_SELL = false;
