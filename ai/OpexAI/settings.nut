@@ -343,7 +343,6 @@ function OpexLoadSettings()
   C42_SUBSIDIES = false;
   EVENT_VEHICLE_LOST = false;
   C60_TOWN_RATING_FILTER = false;
-  AIR_CADENCE_CAP_ADAPTIVE = false;
   AIR_MAX_DISTANCE = 0;
   AIR_FULL_LOAD = false;
   C53_ORDER_NOLOAD = false;

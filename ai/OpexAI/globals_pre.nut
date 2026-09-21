@@ -339,8 +339,6 @@ ROAD_FLEET_FIX <- true;
 AIR_FLEET_LINE_PRICE <- true;
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
 AIR_CADENCE_CAP <- true;
-/* C50 / C16 : Adaptation de air_cadence_cap selon la richesse de la carte en industries (< 50) */
-AIR_CADENCE_CAP_ADAPTIVE <- false;
 /* C26b : Correctif du faux embouteillage lorsque le vehicule est a l'arret a quai en chargement
  * Mesure a 10 ans et 3 ans : DEGRADE le profit de -17,6 % s'il n'est pas couple a MARGINAL_FLEET,
  * car il empile jusqu'a 16 camions sur des arrets a 1 seul quai. Defaut a false. */
