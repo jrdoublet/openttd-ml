@@ -751,7 +751,8 @@ function OpexAI::_c76DoFullRegen(reason, year)
 {
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
-  local curQuarter = year * 4 + (AIDate.GetMonth(date) - 1) / 3;
+  /* Meme unite que _dispatchCatalog : filet annuel, la variable porte l'annee. */
+  local curQuarter = year;
 
   this._lastCatalogMonth = ym;
   this._pruneAbandonedPairs(date);

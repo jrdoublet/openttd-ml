@@ -36,7 +36,9 @@ function OpexAI::_dispatchCatalog(task, year)
   local c76CurQuarter = 0;
   if (C76_REGEN_TARGETED) {
     c76LayerChanged = this._c76AnyLayerChanged();
-    c76CurQuarter = year * 4 + (AIDate.GetMonth(date) - 1) / 3;
+    /* Filet periodique ANNUEL (decision utilisateur du 2026-09-21) : une regeneration complete au
+     * moins une fois par annee de jeu. La variable garde son nom historique ; elle porte l'annee. */
+    c76CurQuarter = year;
     c76PeriodicDue = (this._c76LastRegenQuarter < 0 || c76CurQuarter > this._c76LastRegenQuarter);
     c76ReloadDue = this._c76ForceReloadRegen;
     if (this._lastCatalogMonth == ym && this._projects != null && !stale &&

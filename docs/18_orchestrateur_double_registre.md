@@ -651,3 +651,10 @@ Mesure 3 graines × 6 ans, solo, `probe_catalogue` (`results/c80t3.json`, `resul
 tour de ~45 jours, il force une régénération complète à peu près un tour sur deux. Le contrat
 (§5.3) prévoyait une cadence **semestrielle ou annuelle** ; la consigne de la tranche disait
 trimestrielle. Décision utilisateur requise sur la période du filet.
+
+**Décision utilisateur du 2026-09-21 : filet périodique ANNUEL.** Mesure (3 × 6 ans,
+`results/c80t3c.json`) : **68 complètes, 79 évitées, 54 %** ; raisons des complètes : couches 45,
+annuel 9, budget 8, démarrage 6. **Critère C80-5 atteint.** Correctif associé : l'orchestrateur
+enregistrait la dernière régénération réactive en numéro de trimestre (~7 900) alors que la tâche
+catalogue compare des années (~1 975) : sous C80, le filet aurait été désactivé pour toujours
+après la première régénération sur événement. Les deux utilisent désormais l'année.
