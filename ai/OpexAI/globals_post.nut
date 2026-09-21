@@ -63,15 +63,6 @@ BASIN_SHARE <- false;
  * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
  * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */
 ROAD_REFLEET <- true;
-/* Drainage du budget d'opcodes du tick (revue du controleur, docs/taches.md S0 sexies point 1) :
- * repli FAUX jusqu'a la lecture unique de loop_budget dans Start(). Defaut 0 : la boucle
- * principale execute exactement UNE tache par tick puis Sleep(1), donc tout ce qui reste des
- * 10 000 opcodes du tick est PERDU -- le budget n'est pas reportable. Sur une partie de 3 ans
- * (~81 000 ticks, ~810 M d'opcodes) c'est le gisement dont AAAHogEx tire ~150 gares quand nous
- * en tirons ~18. Sous 1 : on enchaine les taches tant qu'il reste de quoi travailler.
- * Coherent avec docs/philosophie_armes_egales : Sleep sert aux parties avec des humains, pas
- * face a une IA qui, elle, ne dort pas entre ses chunks. */
-LOOP_BUDGET <- false;
 /* Taille du batch du portefeuille. Repli 1 jusqu'a la lecture unique de
  * portfolio_max_batch dans Start() : 1 garde le break apres le premier succes, donc le chemin
  * livre reste strictement le meme. */
@@ -122,7 +113,7 @@ GROWTH_YIELDS <- false;
  * ADOPTE le 2026-09-02, defaut 1 (results/bench_air_margin_3y.json, 20 graines x 3 ans, apparie) :
  * company_value +1,3 % (t = 0,26), profit_year -1,6 % (t = -0,28), toutes metriques sous t = 1,2.
  * NEUTRE, donc adopte pour la JUSTESSE, pas pour la performance -- ne revendiquer aucun gain. Le
- * defaut vise est reel mais son cout est nul, ce qui est coherent avec loop_budget nul : le gachis
+ * defaut vise est reel mais son cout est nul : le gachis
  * d'un cycle d'opcodes ne se paie pas. Repli VRAI jusqu'a la lecture unique dans Start(). */
 AIR_MARGIN <- true;
 /* _tryBuildAir memorise ses echecs de construction dans _abandonedPairs et OpexAirPlans les

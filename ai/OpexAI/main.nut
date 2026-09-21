@@ -77,12 +77,6 @@ const ORIGIN_SEPARATION = 3;
  * par tick, N iterations demandent ~N/3,7 ticks ; la marge couvre la pose elle-meme. */
 const BUILD_TICK_MARGIN = 3000;
 
-/* Marge laissee au moteur pour ne pas suspendre au milieu d'une transaction, et plafond de taches
- * par tick pour qu'un tour de file entierement compose de taches hors periode ne brule pas le
- * budget en pur ordonnancement. */
-const LOOP_BUDGET_FLOOR = 2000;
-const LOOP_BUDGET_MAX_TASKS = 8;
-
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
@@ -455,30 +449,7 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
-    if (LOOP_BUDGET) {
-      /* Le budget d'un tick n'est PAS reportable : ce qui n'est pas depense est perdu. L'ancienne
-       * boucle executait exactement UNE tache puis rendait la main, donc un tick qui tirait une
-       * tache hors de sa periode (catalog hors de son mois, report hors de son annee, repay hors
-       * du sien) depensait quelques centaines d'opcodes et jetait les ~9 700 restants.
-       * On draine desormais le tick tant qu'il reste de quoi travailler. */
-      local drained = 0;
-      while (AIController.GetOpsTillSuspend() > LOOP_BUDGET_FLOOR && drained < LOOP_BUDGET_MAX_TASKS) {
-        if (!this._runNextTaskWithSlackLedger()) break;
-        drained++;
-      }
-      /* Le plancher garde de la marge pour ne pas etre suspendu au milieu d'une transaction, et
-       * le plafond de taches empeche un tour de file entierement compose de taches inutiles de
-       * bruler le budget en pur ordonnancement. */
-      if (drained == 0) this._runNextTaskWithSlackLedger();
-      /* AUCUN Sleep ici, et c'est deliberé. Le Sleep de fin de tour rendait la main alors qu'il
-       * restait du budget, ce qui est un auto-handicap face a une IA qui ne dort pas entre ses
-       * chunks (docs/philosophie_armes_egales : les bridages servent aux parties avec des HUMAINS,
-       * jamais entre IA). Le moteur nous suspend de lui-meme quand le budget du tick est epuise et
-       * nous reprend au tick suivant exactement ou il nous avait laisses : la boucle reste donc
-       * bornee, et la partie avance normalement. */
-    } else {
-      this._runNextTaskWithSlackLedger();
-      AIController.Sleep(1);
-    }
+    this._runNextTaskWithSlackLedger();
+    AIController.Sleep(1);
   }
 }

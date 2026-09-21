@@ -310,7 +310,6 @@ function OpexLoadSettings()
   C39_ENGINE_REFRESH = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
-  LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
   C60_TOWN_RATING_FILTER = false;
   AIR_MAX_DISTANCE = 0;
