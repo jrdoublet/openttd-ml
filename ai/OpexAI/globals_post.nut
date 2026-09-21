@@ -170,11 +170,6 @@ PRICING_ROAD_OPS <- true;
  * 1 (defaut) sert d'abord la ligne au meilleur profit PAR APPAREIL, donc celle qui rembourse
  * l'avion suivant le plus vite ; 0 rend l'ordre historique pour que le banc puisse trancher. */
 AIR_ROI_ORDER <- true;
-/* Item 7 : forcer la construction d'un echantillon de paires rejetees pour profit
- * predit <= 0. Repli FAUX jusqu'a la lecture unique de probe_negative dans Start().
- * Defaut 0 : ce n'est PAS un changement de classement. 1 ne batit qu'apres _tryBuild,
- * au plus une tentative rail par an, sur le cash que le TOP_K n'a pas pris. */
-PROBE_NEGATIVE <- false;
 /* Retuning pax borne : repli FAUX jusqu'a la lecture unique de pax_near dans Start().
  * Defaut 0. 1 admet au classement les pax <=100 tuiles a predit > -200, une
  * tentative/an au plafond dur. Le long et le fret restent filtres. */

@@ -1,4 +1,4 @@
-/* Etages 1 et 2 : ce que rapporte un candidat, et ce qu'il coute en opcodes.
+﻿/* Etages 1 et 2 : ce que rapporte un candidat, et ce qu'il coute en opcodes.
  *
  * Etage 1 -- le profit attendu. Changement de fond par rapport a TrainLineAI : la variable n'est
  * plus population_a * population_b / distance (un proxy) mais la PRODUCTION reelle multipliee par
@@ -71,11 +71,6 @@ function OpexFreightCargoOrder(catalog)
 }
 VIVIER_RATIO_FILTER <- true;
 CLEAN_DENSITY_SCORE <- true;
-PROBE_STASH_K <- 12;
-/* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
- * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
- * ordre qu'une ligne mediocre, pas un gouffre d'amortissement. */
-const PROBE_NEAR_ZERO = -1000;
 
 /* Retuning pax borne (suite item 7). Les 11/11 paires pax <=100 tuiles force-construites
  * avec predit -146..-9 etaient rentables en derniere annee ; au-dela de 100 la mediane
@@ -695,7 +690,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * Cle entiere plutot que chaine : NUM_CARGO <= 64 dans OpenTTD, donc srcTile * 64 + cargo est
    * injectif, et evite de construire une chaine a chaque paire (ce qui aurait coute presque
    * aussi cher que le cas ou le predicat repond des le premier anneau).
-   * ⚠️ profile.paxSitableCalls compte desormais les CALCULS reels, pas les invocations : c'est
+   * âš ï¸ profile.paxSitableCalls compte desormais les CALCULS reels, pas les invocations : c'est
    * ce qu'on veut mesurer, mais ce n'est plus comparable aux releves anterieurs au memo.
    *
    * MESURE (2026-09-09, 3 graines x 2 ans, 256x256, c41_rail_pax_candidate_profile=1) :
@@ -726,7 +721,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
 
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
   /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
-   * précoces de OpexLineEconomics restent visibles comme reliquat de préparation. */
+   * prÃ©coces de OpexLineEconomics restent visibles comme reliquat de prÃ©paration. */
   local freightEconomicsMark = (kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache);
   if (profile != null) {
@@ -747,8 +742,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   /* Un candidat dont le profit annuel attendu est negatif ne merite AUCUN opcode,
    * SAUF la famille pax_near (pax, <=100 tuiles, predit > -200) : le sondage a
-   * 40 000 iterations a trouve 11/11 rentables en derniere annee, et le long non.
-   * Derriere probe_negative=1, les AUTRES rejets sont ranges pour le force-build. */
+   * 40 000 iterations a trouve 11/11 rentables en derniere annee, et le long non. */
   if (economics.profitAnnual <= 0) {
     if (PAX_NEAR && kind == "pax" && distance <= PAX_NEAR_MAX_DISTANCE
         && economics.profitAnnual > PAX_NEAR_MIN_PROFIT) {
@@ -756,8 +750,6 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
                                       distance, economics, stats);
     }
     stats.profitNonPositive++;
-    if (PROBE_NEGATIVE) OpexStashNegative(stats, kind, cargo, srcTile, dstTile, monthly,
-                                          originServed, distance, economics);
     return null;
   }
 
@@ -860,67 +852,6 @@ function OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, origin
   };
   candidate.paxNear <- true;
   return candidate;
-}
-
-/* Histogramme de TOUTES les paires a profit <= 0, plus les PROBE_STASH_K moins negatives.
- * Appele seulement si probe_negative = 1 : a 0, OpexMakeCandidate rend null comme avant
- * et le classement ne paie aucune de ces recopies. */
-function OpexStashNegative(stats, kind, cargo, srcTile, dstTile, monthly, originServed,
-                           distance, economics)
-{
-  if (kind == "pax") stats.negPax++; else stats.negFreight++;
-  if (distance < 50) stats.negBand50++;
-  else if (distance < 75) stats.negBand75++;
-  else if (distance < 100) stats.negBand100++;
-  else stats.negBand200++;
-  if (economics.profitAnnual > PROBE_NEAR_ZERO) stats.negNear++;
-  stats.negSum += economics.profitAnnual;
-  if (stats.profitNonPositive == 1 || economics.profitAnnual < stats.negMin) {
-    stats.negMin = economics.profitAnnual;
-  }
-
-  local profit = economics.profitAnnual;
-  local stash = stats.negativeStash;
-  if (stash.len() >= PROBE_STASH_K && profit <= stash[stash.len() - 1].profitAnnual) return;
-  local candidate = {
-    kind = kind,
-    cargo = cargo,
-    originServed = originServed,
-    src = srcTile,
-    dst = dstTile,
-    distance = distance,
-    monthly = monthly,
-    trains = economics.trains,
-    wagons = economics.wagons,
-    perTrain = economics.perTrain,
-    platformLength = economics.platformLength,
-    loco = economics.loco,
-    effectiveSpeed = economics.effectiveSpeed,
-    tripsPerMonth = economics.tripsPerMonth,
-    headwayDays = economics.headwayDays,
-    stationRating = economics.stationRating,
-    offered = economics.offered,
-    monthlyCapacity = economics.monthlyCapacity,
-    trainsForHeadway = economics.trainsForHeadway,
-    trainsForVolume = economics.trainsForVolume,
-    carried = economics.carried,
-    capital = economics.capital,
-    profitAnnual = profit,
-    revenueAnnual = economics.revenueAnnual,
-    runningAnnual = economics.runningAnnual,
-    amortAnnual = economics.amortAnnual,
-    oneWayDays = economics.oneWayDays,
-    /* Inutilise pour le budget : _tryProbeNegative passe alternativeRatio 0
-     * (chemin Z, HARD_ITERATION_CAP). ratio = 0 pour qu'un probe ne puisse jamais
-     * gagner un TOP_K s'il fuyait dans `all`. */
-    iterations = 0,
-    ratio = 0,
-    probe = true,
-  };
-  local pos = stash.len();
-  while (pos > 0 && stash[pos - 1].profitAnnual < profit) pos--;
-  stash.insert(pos, candidate);
-  if (stash.len() > PROBE_STASH_K) stash.pop();
 }
 
 /* Ne garder que les K meilleurs, sans trier les autres.
@@ -1256,7 +1187,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           local town = townSinks[k];
           local townGuardMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
-            /* G9§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
+            /* G9Â§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
              * pour une ville), en coherence avec OpexAbandonedPairKey. */
             local pairKey = "freight|" + cargo + "|" + source.id + "|t" + town.id;
             if (pairKey in abandonedPairs) {
@@ -1331,20 +1262,6 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
     profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
   };
-  /* Slots de l'item 7 : `<-` seulement a probe_negative=1. A 0, la table de stats
-   * est bit a bit celle d'avant ce commit, et OpexMakeCandidate ne les touche pas. */
-  if (PROBE_NEGATIVE) {
-    stats.negativeStash <- [];
-    stats.negBand50 <- 0;
-    stats.negBand75 <- 0;
-    stats.negBand100 <- 0;
-    stats.negBand200 <- 0;
-    stats.negPax <- 0;
-    stats.negFreight <- 0;
-    stats.negNear <- 0;
-    stats.negSum <- 0;
-    stats.negMin <- 0;
-  }
   if (PAX_NEAR) stats.paxNearAdmitted <- 0;
 
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1604,12 +1521,12 @@ function OpexTownBusPaxServed(lines, townId)
   return false;
 }
 
-/* C23 : Modélisation physique du bassin de captage d'un arrêt de bus (rayon 3 tuiles).
+/* C23 : ModÃ©lisation physique du bassin de captage d'un arrÃªt de bus (rayon 3 tuiles).
  *
- * Un arrêt de bus OpenTTD possède un rayon de couverture de 3 tuiles, soit une empreinte
- * de 7x7 = 49 tuiles. Compte tenu du réseau viaire et des espaces publics, un arrêt couvre
+ * Un arrÃªt de bus OpenTTD possÃ¨de un rayon de couverture de 3 tuiles, soit une empreinte
+ * de 7x7 = 49 tuiles. Compte tenu du rÃ©seau viaire et des espaces publics, un arrÃªt couvre
  * physiquement au maximum ~20 maisons (ROAD_STOP_CATCHMENT_HOUSES = 20).
- * La part de captage d'une ville ayant H maisons est donc bornée par :
+ * La part de captage d'une ville ayant H maisons est donc bornÃ©e par :
  *   pct = min(ROAD_PAX_CATCHMENT_SHARE_PCT, (ROAD_STOP_CATCHMENT_HOUSES * 100) / H)
  * Si H <= 0 ou non disponible, repli physique sur pop / 25.
  */
@@ -1828,7 +1745,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
         if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
-          /* G9§1 : "t" + towns[t].id, en coherence avec OpexAbandonedPairKey. */
+          /* G9Â§1 : "t" + towns[t].id, en coherence avec OpexAbandonedPairKey. */
           local pairKey = "freight|" + cargo + "|" + source.id + "|t" + towns[t].id;
           if (pairKey in abandonedPairs) continue;
         }
@@ -1957,12 +1874,12 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
 }
 
 /* Rehausse la reputation municipale aupres de l'autorite locale en plantant des arbres.
- * Cout : ~40 £ par arbre, gain : +7 points de note par arbre plante (plafond standard +220).
+ * Cout : ~40 Â£ par arbre, gain : +7 points de note par arbre plante (plafond standard +220).
  * Empeche le blocage ERR_LOCAL_AUTHORITY_REFUSES lors des constructions urbaines. */
 function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)
 {
   if (!AITown.IsValidTown(townId)) return;
-  /* ⚠️ AITown.GetRating rend un ENUM de 0 a 8 (script_town.hpp:83 : NONE, APPALLING, VERY_POOR,
+  /* âš ï¸ AITown.GetRating rend un ENUM de 0 a 8 (script_town.hpp:83 : NONE, APPALLING, VERY_POOR,
    * POOR, MEDIOCRE, GOOD, VERY_GOOD, EXCELLENT, OUTSTANDING), PAS la note brute -1000..1000.
    * Le garde historique comparait cet enum aux `targetRating` 100/700/800 passes par les
    * appelants : la condition etait donc TOUJOURS fausse et la fonction plantait `maxTrees`

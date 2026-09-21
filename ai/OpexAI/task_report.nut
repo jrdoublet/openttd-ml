@@ -1,19 +1,4 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
-/* Item 7 : au plus UNE tentative rail par an sur une paire que le modele a rejetee
- * (profit predit <= 0). Le classement n'en a jamais vu : stash des moins negatives,
- * hors TOP_K. On ne joint pas, on n'emprunte pas.
- *
- * Budget : alternativeRatio 0, chemin Z, HARD_ITERATION_CAP (40 000). Le premier
- * sondage (results/opex_probe_negative_20y_5seeds.json) passait MIN_RATIO et tombait
- * au plancher 2000 : 48/52 ABND, mediane 123 tuiles. Le volume des rejets est le
- * long ; 2000 ne le mesure pas. 0 n'ajoute aucun parametre a OpexBuildLine, donc
- * le chemin d'opcodes du classement reste intact.
- *
- * Panneaux, tous gates par probe_negative donc absents du defaut :
- *  PQ|aa|stash|close|cash|tried  -- entonnoir annuel
- *  PN|aa|id|profit|dist|R|iter   -- la tentative, profit AU CLASSEMENT (celui du rejet)
- *  PX|id                         -- la ligne batie est un probe, pas un candidat classe
- * Pire PN|99|999|-999999|200|A|40000 : 29 caracteres. */
 /* Le releve qui permet de calibrer l'etage 1 : pour chaque ligne, la note de gare REELLE (on
  * suppose STATION_RATING_PCT = 75) et le profit REEL des vehicules (on a predit profitAnnual).
  * C'est exactement la mesure qui manquait a la campagne v3. */
@@ -619,17 +604,6 @@ function OpexAI::_reportYear(year, ranked)
   OpexSign(anchor, "CE|" + year + "|" + stats.economicsUnavailable + "|"
                            + stats.profitNonPositive + "|" + stats.ratioTooLow);
   OpexSign(anchor, "CK|" + year + "|" + stats.accepted + "|" + stats.topKOmitted);
-  /* Item 7 : population des rejets profit<=0, pas seulement le compte CE.
-   * NH|aa|n50|n75|n100|n200  bandes de distance ; NM|aa|pax|frt|near|mean.
-   * Pire NM|99|9999|9999|9999|-999999 : 28 caracteres. Gate : a 0, zero panneau. */
-  if (PROBE_NEGATIVE) {
-    local mean = 0;
-    if (stats.profitNonPositive > 0) mean = stats.negSum / stats.profitNonPositive;
-    OpexSign(anchor, "NH|" + (year % 100) + "|" + stats.negBand50 + "|" + stats.negBand75
-                             + "|" + stats.negBand100 + "|" + stats.negBand200);
-    OpexSign(anchor, "NM|" + (year % 100) + "|" + stats.negPax + "|" + stats.negFreight
-                             + "|" + stats.negNear + "|" + mean);
-  }
 
   if (best != null) {
     OpexSign(anchor, "OB|" + year + "|" + best.distance

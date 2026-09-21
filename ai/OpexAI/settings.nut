@@ -303,7 +303,6 @@ function OpexLoadSettings()
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   PAX_NEAR = false;
-  PROBE_NEGATIVE = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;
   OPEX_AIR_SITE_PAD = false;
