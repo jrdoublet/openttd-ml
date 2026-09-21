@@ -490,8 +490,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
  * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
 /* Cause du refus de croissance d'une flotte aerienne, une seule fois par ligne et par an.
  * Codes : Y deja grandie cette annee, V aucun avion vivant, D ligne morte, L profit negatif,
- * C plafond physique de l'aeroport atteint, Q plafond de demande atteint,
- * S un an de mauvaise sante, K ligne en cours de rebut, M tresorerie, X l'achat a echoue. */
+ * C plafond physique de l'aeroport atteint, S un an de mauvaise sante,
+ * K ligne en cours de rebut, M tresorerie, X l'achat a echoue. */
 function OpexAirFleetRefusal(line, year, code)
 {
   if (C50_CHRONOLOGY_PROBE) {
@@ -534,7 +534,6 @@ function OpexAirFleetRefusal(line, year, code)
     else if (code == "D") reasonStr = "dead_line";
     else if (code == "L") reasonStr = "negative_profit";
     else if (code == "C") reasonStr = "airport_capacity_reached";
-    else if (code == "Q") reasonStr = "demand_cap_reached";
     else if (code == "S") reasonStr = "poor_health_streak";
     else if (code == "K") reasonStr = "scrapping";
     else if (code == "M") reasonStr = "insufficient_cash";
@@ -667,21 +666,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (AIR_CADENCE_CAP) {
       physicalMaxPlanes = OpexAirCadenceCap(line, this._catalog, this._lines);
     }
-    local maxPlanesForAirport = physicalMaxPlanes;
     if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); continue; }
-    if (AIR_DEMAND_CAP) {
-      local demand = OpexAirDemandCap(line, this._catalog, this._lines);
-      if (demand.cap < maxPlanesForAirport) maxPlanesForAirport = demand.cap;
-      if (DECISION_LOG) {
-        OpexDecide("AIR_DEMAND_CAP", "line=" + line.lineId + " cap=" + demand.cap
-                   + " monthly_demand=" + demand.monthlyDemand
-                   + " capacity_per_plane=" + demand.capacityPerPlane
-                   + " routes_a=" + demand.routesA + " routes_b=" + demand.routesB
-                   + " planes=" + have + " physical_cap=" + physicalMaxPlanes
-                   + " applied_cap=" + maxPlanesForAirport);
-      }
-      if (have >= maxPlanesForAirport) { OpexAirFleetRefusal(line, year, "Q"); continue; }
-    }
     if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); continue; }
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 

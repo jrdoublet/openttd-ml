@@ -304,9 +304,6 @@ ABANDON_MEMORY_TRANSIENT_GUARD <- true;
  * `/(routes+1)` toujours divisee par 1. 1 = resolution correcte tuile -> StationID ;
  * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
 AIR_HUB_FIX <- true;
-/* Plafonds de demande separes pour garder un banc factoriel : croissance et plan. */
-AIR_DEMAND_CAP <- false;
-AIR_DEMAND_PLAN <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */

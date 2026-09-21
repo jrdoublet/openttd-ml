@@ -319,8 +319,6 @@ function OpexLoadSettings()
   REBORROW = false;
   PAX_NEAR = false;
   PROBE_NEGATIVE = false;
-  AIR_DEMAND_CAP = false;
-  AIR_DEMAND_PLAN = false;
   RESERVE_MAINT_CAP = false;
   AIR_ABANDON_SITE = false;
   AIR_TOWN_LIMIT_MEMORY = false;
