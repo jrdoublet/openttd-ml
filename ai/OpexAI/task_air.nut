@@ -749,7 +749,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
      * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
      * Si buildNum < 1 : refus W (pas assez de cargo au sol).
-     * Sinon : autorise jusqu'a min(buildNum, 4) avions dans ce passage. */
+     * Sinon : autorise jusqu'a buildNum (c69_fleet_demand_batch) ou min(buildNum, 4) par defaut. */
     if (AIR_FLEET_BUFFER >= 0) {
       local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
       if (planeCap <= 0 && ("vehicles" in line)) {
@@ -776,7 +776,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         OpexAirFleetRefusal(line, year, "W");
         continue;
       }
-      maxAddedPerPass = (buildNum < 4) ? buildNum : 4;
+      maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
     }
     if (plan != null) {
       /* Mode a blanc : on ne touche ni a la tresorerie ni a la ligne. Le test de capital est celui

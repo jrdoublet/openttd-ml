@@ -116,6 +116,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c69_fleet_demand_batch",
+      description = "C69: allow air fleet expansion batch size to match measured waiting demand without the 4-plane cap; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c69_decision_bottleneck",
       description = "C69: rank projects by P/max(C, F*tau), F = operating cash flow, tau = days per build; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

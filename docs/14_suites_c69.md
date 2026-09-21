@@ -816,3 +816,28 @@ Unité de référence : **186 000 opcodes ≈ 1 jour de jeu** (mesure C39.6).
   2. **Gain économique moyen** : écart moyen de `profit_year` > +50 k£/an ;
   3. **Garde de valeur** : `company_value` moyenne pas plus de 5 % sous la référence.
 - Si et seulement si ces 3 critères sont satisfaits, `c71_upstream_bottleneck` pourra être proposé pour basculer à 1 par défaut dans `info.nut`.
+
+---
+
+# Résultat — cas B, contrat 2 (lots de flotte au besoin mesuré), 2026-09-21
+
+Réglage `c69_fleet_demand_batch` (défaut 0), implémenté par agy et relu : sous le réglage, le lot
+d'un renfort aérien vaut `buildNum` au lieu de `min(buildNum, 4)` (task_air.nut, bloc C14).
+Diagnostic `sweeps/diag_c69_fleet_batch_solo_5x6.py`, **solo** (déterministe), 5 graines × 6 ans,
+4 bras, 0 échec : `results/diag_c69_fleet_batch_solo_5x6.json`.
+
+| paire | profit annuel | valeur | véhicules |
+|---|---|---|---|
+| `fleet` − `default` | **identiques au bit près, 5/5** | identiques | identiques |
+| `c70_c69_fleet` − `c70_c69` | **identiques au bit près, 5/5** | identiques | identiques |
+| `c70_c69` − `default` (rappel) | +349 k£, 4 V / 1 D | +1,28 M£, 5 V / 0 D | −4,2, 2 V / 3 D |
+
+**Verdict, critère écrit d'avance : fermé.** Aucun lot de plus de 4 avions n'a changé une seule
+partie : le plafond de 4 ne lie jamais. Le lot est déjà borné plus bas, soit par `buildNum` (les
+passagers en attente dépassent rarement 4 avions de capacité au-dessus de la réserve), soit par
+`room` (plafond de cadence de l'aéroport). Le code ne dit pas lequel. Le réglage reste à 0.
+
+**Conséquence pour la lecture du §17 de la fiche 11.** Si C69 a moins de véhicules et une note de
+gare plus basse, ce n'est pas la faute du plafond de lot. Les deux causes restantes sont le
+classement lui-même (un renfort d'un avion pèse peu de profit face à une ligne neuve quand on divise
+par K_dec) et les bornes `W` et cadence, que le lot ne franchit pas. Elles ne sont pas mesurées.

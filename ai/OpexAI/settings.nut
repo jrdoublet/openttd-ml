@@ -219,6 +219,7 @@ function OpexLoadSettings()
   C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
   C69_BOTTLENECK_PROBE = probePort;
   C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
+  C69_FLEET_DEMAND_BATCH = AIController.GetSetting("c69_fleet_demand_batch") != 0;
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK;
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
