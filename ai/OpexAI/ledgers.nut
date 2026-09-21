@@ -149,20 +149,41 @@ function OpexAI::_recordC39PassClockLedger(key, days, ticks, ops, sliceDays, sli
   entry.sliceOps += sliceOps;
   this._c39PassClockLedger.rawset(key, entry);
 }
+function OpexAI::_recordTownWorkerSlice(sliceOps, builtCount)
+{
+  if (this._townWorkerStats == null) {
+    this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
+  }
+  this._townWorkerStats.slices++;
+  this._townWorkerStats.opsTotal += sliceOps;
+  if (sliceOps > this._townWorkerStats.opsMax) this._townWorkerStats.opsMax = sliceOps;
+  this._townWorkerStats.built += builtCount;
+}
+
 /* Publication annuelle, comme les autres ledgers C39/C41 : une ligne par cle, reset apres
  * publication pour que chaque ligne decrive une fenetre comparable (meme motif que
  * _logC41SlackLedger / _logC41RailSliceLedger). */
 function OpexAI::_logC39PassClockLedger(year)
 {
-  if (!C39_PASS_CLOCK_LEDGER || this._c39PassClockLedger == null) return;
-  foreach (key, entry in this._c39PassClockLedger) {
-    OpexC39PassClockLog("phase=annual year=" + year + " key=" + key
-                        + " passes=" + entry.passes + " days=" + entry.days
-                        + " ticks=" + entry.ticks + " ops=" + entry.ops
-                        + " slice_days=" + entry.sliceDays + " slice_ticks=" + entry.sliceTicks
-                        + " slice_ops=" + entry.sliceOps);
+  if (!C39_PASS_CLOCK_LEDGER) return;
+  if (this._c39PassClockLedger != null) {
+    foreach (key, entry in this._c39PassClockLedger) {
+      OpexC39PassClockLog("phase=annual year=" + year + " key=" + key
+                          + " passes=" + entry.passes + " days=" + entry.days
+                          + " ticks=" + entry.ticks + " ops=" + entry.ops
+                          + " slice_days=" + entry.sliceDays + " slice_ticks=" + entry.sliceTicks
+                          + " slice_ops=" + entry.sliceOps);
+    }
+    this._c39PassClockLedger = {};
   }
-  this._c39PassClockLedger = {};
+  if (this._townWorkerStats != null && (this._townWorkerStats.slices > 0 || (C80_DOUBLE_REGISTER && C80_WORKER_TOWN))) {
+    OpexC39PassClockLog("phase=town_worker_year year=" + year
+                        + " slices=" + this._townWorkerStats.slices
+                        + " ops_max=" + this._townWorkerStats.opsMax
+                        + " ops_total=" + this._townWorkerStats.opsTotal
+                        + " built=" + this._townWorkerStats.built);
+    this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
+  }
 }
 /* C48 : les ops par tentative sont volontairement imbriques dans ops_total de la passe. La
  * soustraction faite au depouillement mesure le cout hors tentative (balayage, A*, logs) ; ce

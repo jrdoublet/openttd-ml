@@ -122,6 +122,22 @@ function OpexSaveActiveWorker(worker)
       state = {}
     };
   }
+  if (worker.kind == "town_growth") {
+    /* C80 tranche 2 : le state de town_growth ne contient que des entiers et tableaux d'entiers. */
+    local s = worker.state;
+    local townsCopy = [];
+    if ("servedTownsList" in s && s.servedTownsList != null) {
+      foreach (t in s.servedTownsList) townsCopy.append(t);
+    }
+    return {
+      kind = worker.kind,
+      state = {
+        cursorTownIndex = ("cursorTownIndex" in s) ? s.cursorTownIndex : 0,
+        servedTownsList = townsCopy,
+        year = ("year" in s) ? s.year : 0
+      }
+    };
+  }
   return {
     kind = worker.kind,
     state = worker.state
@@ -625,6 +641,28 @@ function OpexAI::_reconcileAfterLoad()
   if (this._activeWorker != null && this._activeWorker.kind == "rail_search" && this._railSearch == null) {
     OpexWorkerCancel(this._activeWorker);
     this._activeWorker = null;
+  }
+
+  /* C80 tranche 2 : au rechargement, un travailleur "town_growth" reprend à la ville suivante
+   * en sautant les villes devenues invalides. */
+  if (this._activeWorker != null && this._activeWorker.kind == "town_growth") {
+    this._activeWorker.ai <- this;
+    if ("state" in this._activeWorker && this._activeWorker.state != null) {
+      local s = this._activeWorker.state;
+      if (!("cursorTownIndex" in s)) s.cursorTownIndex <- 0;
+      if (!("servedTownsList" in s) || s.servedTownsList == null) {
+        this._activeWorker = null;
+      } else {
+        while (s.cursorTownIndex < s.servedTownsList.len() && !AITown.IsValidTown(s.servedTownsList[s.cursorTownIndex])) {
+          s.cursorTownIndex++;
+        }
+        if (s.cursorTownIndex >= s.servedTownsList.len()) {
+          this._activeWorker = null;
+        }
+      }
+    } else {
+      this._activeWorker = null;
+    }
   }
 
   this._c41RailSignalLines = this._filterPersistedRailRepairQueue(this._c41RailSignalLines);

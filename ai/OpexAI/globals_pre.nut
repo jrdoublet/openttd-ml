@@ -462,3 +462,7 @@ C80_DOUBLE_REGISTER <- false;
 /* C80 tranche 1 : migration de la recherche A* rail (_railSearch) dans le registre d'exécution.
  * 0 = désactivé (défaut), 1 = travailleur "rail_search" actif sous c80_double_register=1. */
 C80_WORKER_RAIL <- false;
+
+/* C80 tranche 2 : découpage de la croissance urbaine (_tryTownGrowth) en travailleur "town_growth".
+ * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif sous c80_double_register=1. */
+C80_WORKER_TOWN <- false;

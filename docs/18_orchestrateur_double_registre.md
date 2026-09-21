@@ -590,3 +590,39 @@ tranche 0 (chemin historique intact). Avec le travailleur : graine 100 1,78 cont
 graine 42 2,84 contre 2,74 M£. **Identité non démontrée** : le travailleur ajoute quelques
 centaines d'opcodes par tick pendant une recherche et décale la trajectoire (même effet qu'au §13.4
 de la fiche 11) ; aucune différence de logique n'a été trouvée à la relecture.
+
+## 12. Tranche 2 livrée : découpage de la croissance urbaine (2026-09-21)
+
+Implémentée par agy. Réglage `c80_worker_town` (défaut 0, effectif seulement sous `c80_double_register=1`).
+Découpage de `_tryTownGrowth` en deux morceaux partagés : préparation (`_prepareTownGrowth`) et traitement unitaire (`_tryTownGrowthCity`), préservant strictement le chemin monolithique historique au défaut.
+Le travailleur `town_growth` parcourt les mêmes villes dans le même ordre, 1 ville par tranche (`cursorTownIndex`, liste de villes `servedTownsList` figée à l'initialisation).
+Arrêt immédiat ("done") dès qu'une ligne est construite, ou quand toutes les villes sont parcourues sans construction.
+Enchaînement tick : comme `rail_search`, sa tranche est jouée puis la file de fond enchaîne dans le même tick.
+Quand la file de fond arrive sur la tâche `town_growth` alors qu'un travailleur `town_growth` tourne déjà, la tâche laisse avancer la file (mécanique noop).
+Registre à emplacement unique : si le registre est occupé par un autre travailleur (ex. `rail_search`), la tâche `town_growth` retombe sur le chemin monolithique historique pour ce passage.
+Persistance : `cursorTownIndex`, `servedTownsList`, `year` (entiers et tableaux d'entiers uniquement) ; au rechargement, les villes devenues invalides sont sautées et `ai` est réattaché.
+Sonde C80-4 : mesure des opcodes par tranche sous `probe_scheduler` (`C39_PASS_CLOCK_LEDGER`), publication annuelle via `OpexC39PassClockLog(phase=town_worker_year year=.. slices=.. ops_max=.. ops_total=.. built=..)`.
+Selftest : cas 5 ajouté (simulation de 3 villes avec arrêt après la première construction), `C80 selftest ok` reste l'unique ligne journalisée.
+Au défaut : code exécuté inchangé à des tests de drapeaux près.
+
+## 12. Tranche 2 : `town_growth` en travailleur, mesure (2026-09-21)
+
+Implémentée par agy, relue (§ revue à venir, étape 3). Réglage `c80_worker_town` (défaut 0).
+Mesure 3 graines × 10 ans en solo, sur le **nouveau défaut** (C75 + C69 bis + C70), horloge C39.6,
+avec et sans travailleur (`results/c80t2_on.json`, `results/c80t2_off.json`, 0 échec, selftest ok
+sur les 3 graines).
+
+| par partie | 1972 sans → avec | 1975 | 1978 |
+|---|---|---|---|
+| passes `projects` par an | 15,7 → **23,7** | 4,3 → 4,7 | 2,7 → 3,7 |
+| jours de file imputés à `town_growth` | 97 → 3 | 90 → 4 | 69 → 3 |
+
+- **Le tour raccourcit surtout en début de partie** (+50 % de passes en 1972), peu ensuite : sous
+  C75, les passes sont déjà rares (4 par an en 1975) et c'est la régénération qui domine.
+- ⚠️ Les jours imputés à `town_growth` chutent parce que le travail est passé dans les tranches du
+  travailleur, que l'horloge C39.6 n'impute à aucune tâche ; la baisse n'est pas un gain net.
+- ❌ **Critère C80-4 non tenu** : une tranche (une ville) coûte jusqu'à **0,24 à 1,39 M opcodes**,
+  pas ≤ 150 k : planifier et bâtir une ligne de bus dans une ville est déjà lourd.
+- **Identité au défaut non tenue** : graine 42 identique à l'état d'avant la tranche (3 153 311 £),
+  graine 100 différente (2 144 974 contre 2 078 509 £). Le refactor de `_tryTownGrowth` est exécuté
+  au défaut : à examiner en priorité à l'étape 3 de la revue (`revue_code_2026-09-21_plan.md`).

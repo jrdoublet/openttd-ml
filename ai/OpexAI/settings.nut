@@ -354,6 +354,7 @@ function OpexLoadSettings()
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0;
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
+  C80_WORKER_TOWN = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_town") != 0);
   C50B_ROAD_CAP_RELAX = false;
   C50B_RAIL_BACKLOG_RELAX = false;
   C46_FREIGHT_GRID = false;

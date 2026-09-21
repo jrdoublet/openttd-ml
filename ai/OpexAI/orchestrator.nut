@@ -235,6 +235,71 @@ function OpexWorkerRailSearchCancel(worker)
 // Enregistrement du travailleur rail_search
 OpexRegisterWorker("rail_search", OpexWorkerRailSearchStep, OpexWorkerRailSearchCancel);
 
+/* Travailleur "town_growth" (Tranche 2 de C80) :
+ * Découpe la croissance urbaine en 1 ville par tranche.
+ * Son state contient uniquement des entiers et tableaux d'entiers :
+ *   { cursorTownIndex, servedTownsList, year }
+ * Step : traite 1 seule ville éligible.
+ *        "done" si une ligne a été construite ou si toutes les villes ont été examinées.
+ *        "running" s'il reste des villes à examiner.
+ * Cancel : annulation propre.
+ */
+function OpexWorkerTownGrowthStep(worker, opsBudget, deadlineTick)
+{
+  if (worker == null || !("state" in worker) || worker.state == null || typeof worker.state != "table") {
+    return "cancelled";
+  }
+  local s = worker.state;
+  if (!("cursorTownIndex" in s)) s.cursorTownIndex <- 0;
+  if (!("servedTownsList" in s) || s.servedTownsList == null) return "done";
+  local towns = s.servedTownsList;
+
+  local isMock = ("mockResults" in s && s.mockResults != null);
+  if (!isMock) {
+    while (s.cursorTownIndex < towns.len() && !AITown.IsValidTown(towns[s.cursorTownIndex])) {
+      s.cursorTownIndex++;
+    }
+  }
+  if (s.cursorTownIndex >= towns.len()) return "done";
+
+  local townId = towns[s.cursorTownIndex];
+  s.cursorTownIndex++;
+
+  local built = false;
+  if (isMock && (townId in s.mockResults)) {
+    built = s.mockResults[townId];
+  } else {
+    local ai = ("ai" in worker) ? worker.ai : (("ai" in s) ? s.ai : null);
+    if (ai == null) return "cancelled";
+    local measureMark = C39_PASS_CLOCK_LEDGER ? OpexOpsMeasureBegin() : null;
+    local year = ("year" in s) ? s.year : AIDate.GetYear(AIDate.GetCurrentDate());
+    built = ai._tryTownGrowthCity(townId, year);
+    if (measureMark != null) {
+      local sliceOps = OpexOpsMeasureEnd(measureMark);
+      ai._recordTownWorkerSlice(sliceOps, built ? 1 : 0);
+    }
+  }
+
+  if (built) return "done";
+  if (!isMock) {
+    while (s.cursorTownIndex < towns.len() && !AITown.IsValidTown(towns[s.cursorTownIndex])) {
+      s.cursorTownIndex++;
+    }
+  }
+  if (s.cursorTownIndex >= towns.len()) return "done";
+  return "running";
+}
+
+function OpexWorkerTownGrowthCancel(worker)
+{
+  if (worker != null && ("state" in worker) && worker.state != null && typeof worker.state == "table") {
+    worker.state.cancelled <- true;
+  }
+}
+
+// Enregistrement du travailleur town_growth
+OpexRegisterWorker("town_growth", OpexWorkerTownGrowthStep, OpexWorkerTownGrowthCancel);
+
 /* ============================================================================
  * 3. Intégration dans OpexAI (File de fond, boucle ordonnancée, selftest)
  * ============================================================================ */
@@ -327,6 +392,16 @@ function OpexAI::_runOrchestratorTick()
       // ORDRE PRÉSERVÉ (Contrat C80 tranche 1 §3) :
       // Après la tranche du travailleur rail, on enchaîne avec la file de fond
       // dans le MÊME tick (pas de return true ici).
+    } else if (this._activeWorker.kind == "town_growth") {
+      local opsBudget = AIController.GetOpsTillSuspend();
+      local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
+      local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      if (outcome == "done" || outcome == "cancelled") {
+        this._activeWorker = null;
+      }
+      // ORDRE PRÉSERVÉ (Contrat C80 tranche 2 §3) :
+      // Comme rail_search, la tranche town_growth est jouée puis la file de fond
+      // enchaîne dans le MÊME tick (pas de return true ici).
     } else {
       local opsBudget = AIController.GetOpsTillSuspend();
       local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
@@ -492,6 +567,55 @@ function OpexAI::_c80RunSelfTest()
 
   if (this._reactiveQueue.len() != 0 || this._activeWorker != null) {
     AILog.Info("C80 selftest FAIL state not clean after intercalation test");
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+
+  // 5. Test du travailleur town_growth (Tranche 2) :
+  // Travailleur de test qui simule 3 villes, vérifie qu'il s'arrête après la première "construction" et qu'il est "done".
+  local townWorker = {
+    kind = "town_growth",
+    state = {
+      cursorTownIndex = 0,
+      servedTownsList = [101, 102, 103],
+      year = 1970,
+      mockResults = {}
+    }
+  };
+  townWorker.state.mockResults.rawset(101, false);
+  townWorker.state.mockResults.rawset(102, true);
+  townWorker.state.mockResults.rawset(103, false);
+  this._activeWorker = townWorker;
+
+  local tr1 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
+  if (tr1 != "running" || townWorker.state.cursorTownIndex != 1) {
+    AILog.Info("C80 selftest FAIL town worker step 1 expected running with cursor 1, got " + tr1);
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+
+  local tr2 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
+  if (tr2 != "done") {
+    AILog.Info("C80 selftest FAIL town worker step 2 expected done, got " + tr2);
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+
+  if (townWorker.state.cursorTownIndex != 2) {
+    AILog.Info("C80 selftest FAIL town worker did not stop after first build, cursor=" + townWorker.state.cursorTownIndex);
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+
+  this._activeWorker = null;
+  this._clearReactiveQueue();
+
+  if (this._reactiveQueue.len() != 0 || this._activeWorker != null) {
+    AILog.Info("C80 selftest FAIL state not clean after town worker test");
     this._clearReactiveQueue();
     this._activeWorker = null;
     return false;

@@ -207,6 +207,7 @@ class OpexAI extends AIController {
   _c39PassClockSliceOps = -1;
   /* C39.6 : accumulateur annuel, cle = "<nom de tache>|slice" ou "<nom de tache>|noslice". */
   _c39PassClockLedger = null;
+  _townWorkerStats = null;
   /* C48 : deux accumulateurs annuels distincts : une ligne par tentative et la vue par passe. */
   _c48AttemptLedger = null;
   _c48PassLedger = null;
@@ -287,6 +288,7 @@ class OpexAI extends AIController {
     this._c41OpportunityLedger = {};
     this._c41AdmissionLedger = {};
     this._c39PassClockLedger = {};
+    this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
     this._c39CadenceLastDate = -1;
     this._c39CadenceLastTick = -1;
     this._c39CadenceLastCycle = -1;
@@ -344,6 +346,9 @@ class OpexAI extends AIController {
   function _tryBuildProjects(year);
   function _c39StampFinanceable(capital = null, isProjectsTurn = false);
   function _tryTownGrowth(year);
+  function _prepareTownGrowth();
+  function _tryTownGrowthCity(townId, year, anchor = null);
+  function _recordTownWorkerSlice(sliceOps, builtCount);
   function _runNextTask();
   function _runNextTaskWithSlackLedger();
   function _logC41SlackLedger(year);

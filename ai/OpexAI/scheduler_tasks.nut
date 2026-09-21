@@ -659,8 +659,58 @@ function OpexAI::_dispatchRefleet(task, year)
 }
 function OpexAI::_dispatchTownGrowth(task, year)
 {
-
   if (!TOWN_GROWTH_ENABLED) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+
+  /* C80 tranche 2 : travailleur résumable town_growth */
+  if (C80_DOUBLE_REGISTER && C80_WORKER_TOWN) {
+    if (this._activeWorker != null && this._activeWorker.kind == "town_growth") {
+      /* Le travailleur town_growth est déjà en cours : ne rien refaire et laisser la file avancer */
+      if (TOWN_GROWTH_SKIP_NOOP) {
+        if (C56_TASK_TRACE) {
+          local nextTask = this._runNextTask();
+          OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+          return nextTask;
+        }
+        return this._runNextTask();
+      }
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return true;
+    }
+
+    if (this._activeWorker == null) {
+      /* Pas de travailleur en cours : évaluer les gardes et créer le travailleur */
+      local servedTowns = this._prepareTownGrowth();
+      if (servedTowns != null && servedTowns.len() > 0) {
+        this._activeWorker = {
+          kind = "town_growth",
+          ai = this,
+          state = {
+            cursorTownIndex = 0,
+            servedTownsList = servedTowns,
+            year = year
+          }
+        };
+        if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+        return true;
+      }
+      /* Gardes échouées : même effet qu'un tryTownGrowth infructueux */
+      if (TOWN_GROWTH_SKIP_NOOP) {
+        if (C56_TASK_TRACE) {
+          local nextTask = this._runNextTask();
+          OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+          return nextTask;
+        }
+        return this._runNextTask();
+      }
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return true;
+    }
+
+    /* this._activeWorker != null && this._activeWorker.kind != "town_growth" :
+     * Registre à emplacement unique occupé par un autre travailleur (ex. rail_search).
+     * Limite : repli sur le chemin monolithique historique pour ce passage. */
+  }
+
   if (TOWN_GROWTH_SKIP_NOOP && !this._tryTownGrowth(year)) {
     if (C56_TASK_TRACE) {
       local nextTask = this._runNextTask();
