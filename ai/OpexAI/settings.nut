@@ -131,6 +131,7 @@ function OpexLoadSettings()
 
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
+  TOWN_GROWTH_PLAN_MEMO = AIController.GetSetting("town_growth_plan_memo") != 0;
 
   UNPROFITABLE_STREAK_THRESHOLD = AIController.GetSetting("unprofitable_streak_threshold");
 

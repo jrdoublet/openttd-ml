@@ -73,6 +73,11 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
   /* Une seule ligne bus de base par commune. Le plafond de croissance n'autorise pas cinq
    * lignes superposees : les quartiers suivants deviennent des bus_pax_extension de la ligne. */
   if (OpexTownBusPaxServed(this._lines, townId)) return false;
+  if (TOWN_GROWTH_PLAN_MEMO && this._townPlanFailures != null && (townId in this._townPlanFailures)
+      && this._townPlanFailures[townId] == AITown.GetHouseCount(townId)) {
+    if (DECISION_LOG) OpexDecide("TOWN_GROWTH_MEMO", "action=skip town=" + townId);
+    return false;
+  }
   local currentCount = OpexCountTownStations(townId);
   if (currentCount >= 5) return false;
 
@@ -134,6 +139,11 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
   local planOps = this._budget.end("build_road_plans");
   local plan = planning.plan;
   if (plan == null) {
+    if (TOWN_GROWTH_PLAN_MEMO) {
+      if (this._townPlanFailures == null) this._townPlanFailures = {};
+      this._townPlanFailures.rawset(townId, AITown.GetHouseCount(townId));
+      if (DECISION_LOG) OpexDecide("TOWN_GROWTH_MEMO", "action=store town=" + townId + " houses=" + AITown.GetHouseCount(townId));
+    }
     if (DECISION_LOG) {
       OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
                  + " reason=plan detail=" + planning.reason);

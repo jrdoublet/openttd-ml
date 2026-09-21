@@ -294,7 +294,16 @@ def build_arms(names):
             raise ValueError(f"arm duplique: {name}")
         opex_settings = resolve_opex_arm_settings(name)
         if opex_settings is not None:
-            params = tuple(opex_settings["effective"].items())
+            # OpenTTD lit la ligne [ai_players] d'openttd.cfg dans un tampon de ~1 024 caracteres :
+            # passer TOUTES les valeurs effectives (55 reglages, 1 168 caracteres le 2026-09-21)
+            # faisait ignorer en silence les reglages de fin d'ordre alphabetique (mesure :
+            # town_growth=0 lu 1). On ne passe que les ecarts au defaut, comme le harnais C66 ;
+            # l'instantane complet reste dans les metadonnees (effective).
+            defaults = opex_settings["defaults"]
+            params = tuple(
+                (key, value) for key, value in opex_settings["effective"].items()
+                if defaults.get(key) != value
+            )
             arms[name] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", params)
         elif name == "trAIns":
             arms[name] = bananas_ai("54524149", "trAIns", ai_params=(), md5=TRAINS_MD5)

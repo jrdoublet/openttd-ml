@@ -423,6 +423,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "town_growth_plan_memo",
+      description = "Town growth: remember a town whose bus-line planning failed (TRACEX/DEPOTX/SITE) and retry only when its house count changed; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "town_growth_skip_noop",
       description = "After an empty town-growth attempt, run the next task immediately: 1 = skip slot, 0 = historical (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

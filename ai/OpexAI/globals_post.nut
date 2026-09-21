@@ -259,3 +259,7 @@ PAX_NEAR <- false;
  * Complete avec 5-n stations de bus pour chaque ville desservie comptant n gares/aeroports. */
 TOWN_GROWTH_ENABLED <- true;
 TOWN_GROWTH_SKIP_NOOP <- false;
+/* Memoire des echecs de planification town_growth : une ville n'est replanifiee que si son nombre
+ * de maisons a change depuis l'echec (mesure : 20 villes replanifiees jusqu'a 41 fois en 6 ans pour
+ * TRACEX/DEPOTX, 97 % d'echecs). */
+TOWN_GROWTH_PLAN_MEMO <- false;

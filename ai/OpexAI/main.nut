@@ -221,6 +221,9 @@ class OpexAI extends AIController {
   _c39CadenceLastCycle = null;
   _c39FinanceableSince = null;
   _startYear = -1;
+  /* town_growth_plan_memo : townId -> nombre de maisons au moment du dernier echec de planification.
+   * Non sauvegarde : apres chargement, chaque ville est simplement replanifiee une fois. */
+  _townPlanFailures = null;
   /* Dates C69/C75 lues dans la sauvegarde, restaurees par _reconcileAfterLoad(). */
   _reloadC69BuildDates = null;
   _reloadC75PassDates = null;
