@@ -1,0 +1,462 @@
+{
+  "openttd_version": "15.3",
+  "starting_year": 1970,
+  "years": 6,
+  "seeds": [
+    100,
+    12345,
+    42,
+    7,
+    999
+  ],
+  "arms": {
+    "default": {},
+    "c70": {
+      "c70_mode_calibration": 1
+    },
+    "c70_c69": {
+      "c70_mode_calibration": 1,
+      "c69_decision_bottleneck": 1
+    }
+  },
+  "summary": {
+    "per_arm": {
+      "solo:default": {
+        "mean": 2116856.8,
+        "median": 2208352,
+        "per_seed": {
+          "100": 1493115,
+          "12345": 2048067,
+          "42": 2310465,
+          "7": 2524285,
+          "999": 2208352
+        }
+      },
+      "solo:c70": {
+        "mean": 2071940,
+        "median": 2241055,
+        "per_seed": {
+          "100": 1520184,
+          "12345": 1730076,
+          "42": 2437635,
+          "7": 2430750,
+          "999": 2241055
+        }
+      },
+      "solo:c70_c69": {
+        "mean": 2466324.6,
+        "median": 2509798,
+        "per_seed": {
+          "100": 1613842,
+          "12345": 2509798,
+          "42": 2032648,
+          "7": 3390326,
+          "999": 2785009
+        }
+      },
+      "duel:default": {
+        "mean": 0.22162535045299764,
+        "median": 0.2226545196712133,
+        "per_seed": {
+          "100": 0.2299399034084903,
+          "12345": 0.28296627992918794,
+          "42": 0.18675537746400747,
+          "7": 0.2226545196712133,
+          "999": 0.18581067179208918
+        }
+      },
+      "duel:c70": {
+        "mean": 0.23121682633734295,
+        "median": 0.20645172594181532,
+        "per_seed": {
+          "100": 0.18402250359977354,
+          "12345": 0.3422462178029207,
+          "42": 0.20496816291599274,
+          "7": 0.2183955214262124,
+          "999": 0.20645172594181532
+        }
+      },
+      "duel:c70_c69": {
+        "mean": 0.22994098959996592,
+        "median": 0.20371231423821068,
+        "per_seed": {
+          "100": 0.20371231423821068,
+          "12345": 0.3051738705767443,
+          "42": 0.2514615442720054,
+          "7": 0.18981298907291963,
+          "999": 0.19954422983994963
+        }
+      }
+    },
+    "pairs": {
+      "solo:c70-default": {
+        "deltas": {
+          "100": 27069,
+          "12345": -317991,
+          "42": 127170,
+          "7": -93535,
+          "999": 32703
+        },
+        "delta_mean": -44916.8,
+        "delta_median": 27069,
+        "paired_outcome": {
+          "wins": 3,
+          "ties": 0,
+          "losses": 2
+        }
+      },
+      "solo:c70_c69-c70": {
+        "deltas": {
+          "100": 93658,
+          "12345": 779722,
+          "42": -404987,
+          "7": 959576,
+          "999": 543954
+        },
+        "delta_mean": 394384.6,
+        "delta_median": 543954,
+        "paired_outcome": {
+          "wins": 4,
+          "ties": 0,
+          "losses": 1
+        }
+      },
+      "solo:c70_c69-default": {
+        "deltas": {
+          "100": 120727,
+          "12345": 461731,
+          "42": -277817,
+          "7": 866041,
+          "999": 576657
+        },
+        "delta_mean": 349467.8,
+        "delta_median": 461731,
+        "paired_outcome": {
+          "wins": 4,
+          "ties": 0,
+          "losses": 1
+        }
+      },
+      "duel:c70-default": {
+        "deltas": {
+          "100": -0.04591739980871676,
+          "12345": 0.05927993787373276,
+          "42": 0.018212785451985264,
+          "7": -0.0042589982450008945,
+          "999": 0.02064105414972614
+        },
+        "delta_mean": 0.009591475884345302,
+        "delta_median": 0.018212785451985264,
+        "paired_outcome": {
+          "wins": 3,
+          "ties": 0,
+          "losses": 2
+        }
+      },
+      "duel:c70_c69-c70": {
+        "deltas": {
+          "100": 0.01968981063843714,
+          "12345": -0.037072347226176416,
+          "42": 0.046493381356012664,
+          "7": -0.028582532353292778,
+          "999": -0.0069074961018656955
+        },
+        "delta_mean": -0.0012758367373770173,
+        "delta_median": -0.0069074961018656955,
+        "paired_outcome": {
+          "wins": 2,
+          "ties": 0,
+          "losses": 3
+        }
+      },
+      "duel:c70_c69-default": {
+        "deltas": {
+          "100": -0.02622758917027962,
+          "12345": 0.02220759064755634,
+          "42": 0.06470616680799793,
+          "7": -0.03284153059829367,
+          "999": 0.013733558047860445
+        },
+        "delta_mean": 0.008315639146968284,
+        "delta_median": 0.013733558047860445,
+        "paired_outcome": {
+          "wins": 3,
+          "ties": 0,
+          "losses": 2
+        }
+      }
+    }
+  },
+  "final_runs": [
+    {
+      "context": "duel",
+      "arm": "c70",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 1262377,
+      "aaahogex_profit_year": 5780233,
+      "opex_to_aaahogex_profit_ratio": 0.2183955214262124
+    },
+    {
+      "context": "duel",
+      "arm": "c70",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 992487,
+      "aaahogex_profit_year": 4842152,
+      "opex_to_aaahogex_profit_ratio": 0.20496816291599274
+    },
+    {
+      "context": "duel",
+      "arm": "c70",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 619198,
+      "aaahogex_profit_year": 3364795,
+      "opex_to_aaahogex_profit_ratio": 0.18402250359977354
+    },
+    {
+      "context": "duel",
+      "arm": "c70",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 1237227,
+      "aaahogex_profit_year": 5992815,
+      "opex_to_aaahogex_profit_ratio": 0.20645172594181532
+    },
+    {
+      "context": "duel",
+      "arm": "c70",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 1153392,
+      "aaahogex_profit_year": 3370065,
+      "opex_to_aaahogex_profit_ratio": 0.3422462178029207
+    },
+    {
+      "context": "duel",
+      "arm": "c70_c69",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 1046387,
+      "aaahogex_profit_year": 5512726,
+      "opex_to_aaahogex_profit_ratio": 0.18981298907291963
+    },
+    {
+      "context": "duel",
+      "arm": "c70_c69",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 1278346,
+      "aaahogex_profit_year": 5083664,
+      "opex_to_aaahogex_profit_ratio": 0.2514615442720054
+    },
+    {
+      "context": "duel",
+      "arm": "c70_c69",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 575252,
+      "aaahogex_profit_year": 2823845,
+      "opex_to_aaahogex_profit_ratio": 0.20371231423821068
+    },
+    {
+      "context": "duel",
+      "arm": "c70_c69",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 1090166,
+      "aaahogex_profit_year": 5463280,
+      "opex_to_aaahogex_profit_ratio": 0.19954422983994963
+    },
+    {
+      "context": "duel",
+      "arm": "c70_c69",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 1296638,
+      "aaahogex_profit_year": 4248850,
+      "opex_to_aaahogex_profit_ratio": 0.3051738705767443
+    },
+    {
+      "context": "duel",
+      "arm": "default",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 1340559,
+      "aaahogex_profit_year": 6020803,
+      "opex_to_aaahogex_profit_ratio": 0.2226545196712133
+    },
+    {
+      "context": "duel",
+      "arm": "default",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 944063,
+      "aaahogex_profit_year": 5055078,
+      "opex_to_aaahogex_profit_ratio": 0.18675537746400747
+    },
+    {
+      "context": "duel",
+      "arm": "default",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 650411,
+      "aaahogex_profit_year": 2828613,
+      "opex_to_aaahogex_profit_ratio": 0.2299399034084903
+    },
+    {
+      "context": "duel",
+      "arm": "default",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 1115328,
+      "aaahogex_profit_year": 6002497,
+      "opex_to_aaahogex_profit_ratio": 0.18581067179208918
+    },
+    {
+      "context": "duel",
+      "arm": "default",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 1006517,
+      "aaahogex_profit_year": 3557021,
+      "opex_to_aaahogex_profit_ratio": 0.28296627992918794
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 2430750,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2437635,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1520184,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 2241055,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 1730076,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 3390326,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2032648,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1613842,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 2785009,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2509798,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 2524285,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2310465,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1493115,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 2208352,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2048067,
+      "aaahogex_profit_year": null,
+      "opex_to_aaahogex_profit_ratio": null
+    }
+  ]
+}

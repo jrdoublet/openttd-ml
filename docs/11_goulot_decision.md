@@ -450,3 +450,40 @@ testées.
   premier rang.
 
 **Étape 3 non lancée.**
+
+---
+
+## 15. Étape 3 — diagnostic 5×6 apparié, solo et duel (2026-09-21)
+
+`sweeps/diag_c69_paired_solo_duel_5x6.py`, graines de C49 (`100 12345 42 7 999`), trois bras :
+`default`, `c70` (calibration seule), `c70_c69` (calibration + levier). Aucune sonde. **30 parties,
+0 échec.** Résultats : `results/diag_c69_paired_solo_duel_5x6.json`.
+
+**Profit annuel OpexAI en 1975 :**
+
+| comparaison | solo | duel (profit OpexAI) | duel (OpexAI / AAAHogEx) |
+|---|---|---|---|
+| `c70_c69` − `c70` (**C69 isolé**) | **+394 k£**, 4 V / 1 D | 2 V / 3 D | −0,001, 2 V / 3 D |
+| `c70` − `default` (C70 seul) | −45 k£, 3 V / 2 D | — | +0,010, 3 V / 2 D |
+| `c70_c69` − `default` | +349 k£, 4 V / 1 D | — | +0,008, 3 V / 2 D |
+
+**Chronologie, C69 isolé** (graines où `c70_c69` dépasse `c70`, au mois de décembre) :
+
+| | 1970 | 1971 | 1972 | 1973 | 1975 |
+|---|---|---|---|---|---|
+| solo | 2 V, 2 égalités | 4 | 4 | 5 | 4 |
+| duel | 1 V, 3 égalités | 4 | 4 | 3 | **2** |
+
+- **Prédiction 2 du §7 : tenue.** Les parties sont presque identiques en 1970, et l'écart naît en
+  1971, l'année de la bascule.
+- **En solo, le levier gagne nettement** : +18 % de profit moyen, et devant sur 4 ou 5 graines
+  chaque année à partir de 1971.
+- **En duel, l'avance de 1971-1972 s'érode**, de 4/5 à 2/5 en 1975. Hypothèse, non vérifiée :
+  C69 préfère ouvrir de nouvelles lignes aériennes (§13.3), et c'est justement sur les villes que
+  AAAHogEx dispute.
+
+**Verdict selon le critère écrit d'avance** (« ≥ 3 graines sur 5 gagnent sur `profit_year` », en
+duel) : **2/5, échec. L'étape 4 n'est pas lancée.** Un 5×6 ne conclut rien en valeur (C41.47) ;
+c'est la règle de passage qui tranche.
+
+⚠️ **Décision utilisateur requise**, entre la lettre du critère (duel) et le signal solo.
