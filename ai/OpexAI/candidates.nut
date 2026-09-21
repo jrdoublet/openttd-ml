@@ -100,29 +100,13 @@ const PAX_NEAR_RATIO = 1;
  *   distance :    23     33     48     63     81    105     150
  *   iterations:  371    673   2188   4066   7745  15308   53951
  *
- * Deux tables, memes abcisses. astar_cost=0 : noeuds 13.4 (TrainLineAI). astar_cost=1 :
- * iterations AMORTIES par succes, fenetre +/-12 tuiles autour de chaque noeud, 227 tentatives
- * (results/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 : p95(iter OK) /
- * amort <= 2,7 sur toutes les bandes, donc 4x couvre la queue d'une tentative isolee. Le
- * plancher 2000 absorbe le court (4*310=1240 < 2000). Recalibrer les noeuds SANS ce M
- * reproduirait "budgets 50-400, zero ligne".
- *
- *   distance :                 23    33    48    63    81     105     150
- *   v1 (13.4) :               371   673  2188  4066  7745   15308   53951
- *   v2 (amorti 15.3) :        310   690  2500  5400  8200   26000   52000
- *
- * v2 est plus cher a 63 (ABND dans 50-70) et surtout a 105 (8 des 12 ABND au-dela).
- * Le court reste du meme ordre. Le classement a v2 prefere le court, et MIN_RATIO coupe
- * le long. Banc 20 graines : gares -7,9 % (t = -3,23), valeur sous le plancher. Defaut 0.
  */
 KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];
 KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];
-KNOT_ITERATIONS_V2 <- [310, 690, 2500, 5400, 8200, 26000, 52000];
-ASTAR_COST_V2 <- false;
 
 function OpexRailIterations(distance)
 {
-  local knots = ASTAR_COST_V2 ? KNOT_ITERATIONS_V2 : KNOT_ITERATIONS_V1;
+  local knots = KNOT_ITERATIONS_V1;
   local n = KNOT_DISTANCE.len();
   if (distance <= KNOT_DISTANCE[0]) return knots[0];
   for (local i = 1; i < n; i++) {
@@ -146,7 +130,7 @@ function OpexRailIterations(distance)
 function OpexRailDistanceForIterations(maxIter)
 {
   if (maxIter <= 0) return KNOT_DISTANCE[0];
-  local knots = ASTAR_COST_V2 ? KNOT_ITERATIONS_V2 : KNOT_ITERATIONS_V1;
+  local knots = KNOT_ITERATIONS_V1;
   local n = KNOT_DISTANCE.len();
   if (maxIter <= knots[0]) return KNOT_DISTANCE[0];
   for (local i = 1; i < n; i++) {

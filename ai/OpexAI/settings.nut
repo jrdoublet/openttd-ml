@@ -321,7 +321,6 @@ function OpexLoadSettings()
   JOIN_PLACE = false;
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
-  ASTAR_COST_V2 = false;
   REBORROW = false;
   PAX_NEAR = false;
   PROBE_NEGATIVE = false;
