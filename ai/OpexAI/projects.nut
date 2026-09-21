@@ -147,6 +147,14 @@ function OpexProjectKeyFor(project)
       && ("isSubsidy" in project.payload) && project.payload.isSubsidy) {
     return "subsidy|" + project.payload.subsidyId;
   }
+  /* Garde de forme conservee pour le cout d'opcodes historique. La generation d'extensions
+   * route a disparu, mais retirer ces tests de table deplace les frontieres de suspension NoAI
+   * et change les resultats deterministes du smoke. */
+  if (("payload" in project) && project.payload != null
+      && ("isRoadExtension" in project.payload) && project.payload.isRoadExtension) {
+    return "road_extension|" + project.payload.targetLineId + "|"
+           + project.payload.extensionTown;
+  }
   return prefix + OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
 }
 
@@ -876,6 +884,11 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
   /* 0. Candidat abandonne (echec de trace ou depot) */
   if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
 
+  if (mode == "road" && ("payload" in p) && p.payload != null &&
+      ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return false;
+  }
+
   /* 1. Doublon exact avec une ligne deja batie */
   foreach (line in lines) {
     if (("cargo" in line) && line.cargo == p.cargo &&
@@ -1027,6 +1040,11 @@ function OpexProjectAttemptKey(p)
       && ("isSubsidy" in p.payload) && p.payload.isSubsidy) {
     return "subsidy|" + p.payload.subsidyId;
   }
+  if (("payload" in p) && p.payload != null
+      && ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return "road_extension|" + p.payload.targetLineId + "|"
+           + p.payload.extensionTown + "|" + p.payload.extensionSite.tile;
+  }
   local src = ("src" in p) ? p.src : -1;
   local dst = ("dst" in p) ? p.dst : -1;
   local cargo = ("cargo" in p) ? p.cargo : -1;
@@ -1137,6 +1155,7 @@ function OpexB6FreshClass(p)
   if (p == null) return "unknown";
   if (("payload" in p) && p.payload != null) {
     if (("isSubsidy" in p.payload) && p.payload.isSubsidy) return "subsidy";
+    if (("isRoadExtension" in p.payload) && p.payload.isRoadExtension) return "road_extension";
   }
   local mode = ("mode" in p) ? p.mode : "unknown";
   local kind = ("kind" in p) ? p.kind : "";
