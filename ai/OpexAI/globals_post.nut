@@ -92,20 +92,6 @@ PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT <- 0;
  * moment. Repli 0 (= tri au seul ratio) jusqu'a la lecture de portfolio_floor_pct dans Start().
  * Voir projects.nut::OpexProjectSelectAffordable pour le mecanisme et la mesure qui l'impose. */
 PORTFOLIO_FLOOR_PCT <- 0;
-/* La croissance urbaine cede le pas au portefeuille (docs/taches.md S0 septies et S0 decies) :
- * repli FAUX jusqu'a la lecture unique de growth_yields dans Start(). Defaut 0 : chemin
- * historique inchange -- _tryTownGrowth depense des qu'il a de quoi payer, sur des candidats a
- * profit predit NUL. Sous 1, il exige en plus un surplus couvrant le capital que le portefeuille
- * s'est deja engage a depenser.
- *
- * MESURE le 2026-09-02 (results/bench_growth_yields_3y.json, 20 graines x 3 ans, apparie) : REJETE.
- * company_value +4,8 % pour le controle (t = 1,33, 9/20 : nul), profit_year −0,3 % (nul), mais
- * median_station_rating +10,4 % pour le controle (t = 2,97, 15/20 : REEL et defavorable a la
- * variante), et la graine 2026 s'effondre a company_value = 1. Lecture : le `profitAnnual = 0`
- * porte par les candidats de croissance est un compteur faux, pas une depense gachee -- la ville
- * qui grandit alimente les gares deja construites, et ca se lit sur la note. Ne pas remettre a 1
- * sans corriger d'abord le profit predit de ces candidats. */
-GROWTH_YIELDS <- false;
 /* Marge d'autorite aerienne appliquee PAR PLAN dans OpexAirEconomics (builder_air.nut) plutot
  * qu'en rabotant maxCapital chez l'appelant. Voir le commentaire de la boucle de dimensionnement
  * (builder_air.nut) pour le raisonnement complet et le banc a -11,5 % qu'il corrige.
