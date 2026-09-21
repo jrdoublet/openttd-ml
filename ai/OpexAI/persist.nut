@@ -430,6 +430,11 @@ function OpexAI::Load(version, data)
    * stateVersion=1 n'ont simplement pas ces champs et gardent les valeurs constructeur. */
   if ("railExpansion" in data) this._railExpansion = OpexLoadRailExpansion(data.railExpansion);
   this._reloadDroppedRailSearch = ("railSearchPending" in data) && data.railSearchPending;
+  if (("dynamicBatchPending" in data) && data.dynamicBatchPending) {
+    this._projects = null;
+    this._ranked = null;
+    this._portfolioInvalidated = true;
+  }
   if ("c41RailSignalLines" in data && data.c41RailSignalLines != null) {
     this._c41RailSignalLines = OpexCopyBoolTable(data.c41RailSignalLines);
   }
@@ -547,7 +552,6 @@ function OpexAI::_reconcileAfterLoad()
              + " rail_expansion_pending_recovered=" + railExpansion.pending_recovered
              + " rail_expansion_ambiguous_aborted=" + railExpansion.ambiguous_aborted
              + " rail_search_dropped=" + droppedRailSearch
-             + " dynamic_batch_dropped=" + droppedDynamicBatch
              + " rail_signal_queue=" + this._c41RailSignalLines.len()
              + " rail_junction_queue=" + this._c41RailJunctionLines.len());
 }

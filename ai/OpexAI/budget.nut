@@ -14,8 +14,8 @@
 OPS_PER_TICK <- 10000;
 
 /* Mesure d'opcodes sans passer par l'instance partagee OpexBudget : chaque appel cree son propre
- * "mark" local, donc aucun risque de reentrance meme dans une fonction qui ne recoit pas `budget`
- * (OpexReselectProjects). Meme formule que OpexBudget.end(). */
+ * "mark" local, donc aucun risque de reentrance meme dans une fonction qui ne recoit pas `budget`.
+ * Meme formule que OpexBudget.end(). */
 function OpexOpsMeasureBegin()
 {
   return { tick = AIController.GetTick(), left = AIController.GetOpsTillSuspend() };

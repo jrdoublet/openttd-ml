@@ -713,67 +713,6 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
   stats.emptyCause <- emptyCause;
 }
 
-/* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
- * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
- * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
- * route ne repasse ici. Les statistiques sont remplacees ensemble car IG| et IB| doivent decrire
- * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
-function OpexReselectProjects(projects, capitalBudget)
-{
-  local b6BudgetDate = AIDate.GetCurrentDate();
-  local funded = null;
-  local considered = 0;
-  local opsMark = OpexOpsMeasureBegin();
-  local alternatives = [];
-  foreach (key, list in projects.candidateGroups) {
-    foreach (project in list) alternatives.push(project);
-  }
-  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
-  considered = alternatives.len();
-  projects.stats.knapsackNodes = 0;
-  projects.stats.knapsackExact = false;
-  projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
-  OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate);
-
-  projects.stats.budgetConsidered = considered;
-  projects.stats.budgetSelected = funded.len();
-  projects.stats.budgetRejected = considered - funded.len();
-
-  local selectedRev = 0;
-  local selectedCap = 0;
-  foreach (project in funded) {
-    selectedRev += project.revenueAnnual;
-    selectedCap += OpexProjectFinanceCapital(project);
-  }
-  projects.stats.selectedRevenue = selectedRev;
-  projects.stats.selectedCapital = selectedCap;
-  if ("selectionPoolCapital" in projects.stats) projects.stats.selectionPoolCapital = selectedCap;
-  else projects.stats.selectionPoolCapital <- selectedCap;
-  local nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;
-  if ("nextProjectCapital" in projects.stats) projects.stats.nextProjectCapital = nextProjectCapital;
-  else projects.stats.nextProjectCapital <- nextProjectCapital;
-
-  projects.capitalBudget = capitalBudget;
-  projects.capitalRemaining = capitalBudget - selectedCap;
-  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
-
-  OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
-
-  projects.best = funded;
-
-  if (DECISION_LOG) {
-    local vivierPool = [];
-    if (("candidateGroups" in projects) && projects.candidateGroups != null) {
-      foreach (key, list in projects.candidateGroups) {
-        foreach (project in list) vivierPool.push(project);
-      }
-    }
-    OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
-  }
-
-  return projects;
-}
-
 function OpexCandidateIsAbandoned(p, abandonedPairs)
 {
   if (p == null || abandonedPairs == null) return false;
