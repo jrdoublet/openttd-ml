@@ -1,0 +1,94 @@
+{
+ "years": 10,
+ "seeds": [
+  42,
+  100,
+  7
+ ],
+ "arm": "OpexAI[probe_scheduler=1]",
+ "per_seed": [
+  {
+   "seed": 100,
+   "run_ok": true,
+   "n_events": 0,
+   "metrics": {
+    "build_passes": 0,
+    "window_build_passes": 0,
+    "diff_passes": 0,
+    "c2_exposure": null,
+    "c3_checked": 0,
+    "c3_built_anyway_share": null,
+    "c4_median_p_ratio": null,
+    "first_diff_year": null,
+    "f_median_by_year": {},
+    "kdec_median_by_year": {},
+    "c5_median_real_pred_prof_by_mode": {},
+    "c5_spread_max_over_min": null
+   },
+   "c1": {
+    "air_capital_median": null,
+    "kdec_crosses_air_year": null,
+    "c49_cash_below_decision_year": null,
+    "c1_gap_years": null
+   },
+   "company_value": 11104285,
+   "profit_year": 1536396
+  },
+  {
+   "seed": 42,
+   "run_ok": true,
+   "n_events": 0,
+   "metrics": {
+    "build_passes": 0,
+    "window_build_passes": 0,
+    "diff_passes": 0,
+    "c2_exposure": null,
+    "c3_checked": 0,
+    "c3_built_anyway_share": null,
+    "c4_median_p_ratio": null,
+    "first_diff_year": null,
+    "f_median_by_year": {},
+    "kdec_median_by_year": {},
+    "c5_median_real_pred_prof_by_mode": {},
+    "c5_spread_max_over_min": null
+   },
+   "c1": {
+    "air_capital_median": null,
+    "kdec_crosses_air_year": null,
+    "c49_cash_below_decision_year": null,
+    "c1_gap_years": null
+   },
+   "company_value": 14989089,
+   "profit_year": 2102295
+  },
+  {
+   "seed": 7,
+   "run_ok": true,
+   "n_events": 0,
+   "metrics": {
+    "build_passes": 0,
+    "window_build_passes": 0,
+    "diff_passes": 0,
+    "c2_exposure": null,
+    "c3_checked": 0,
+    "c3_built_anyway_share": null,
+    "c4_median_p_ratio": null,
+    "first_diff_year": null,
+    "f_median_by_year": {},
+    "kdec_median_by_year": {},
+    "c5_median_real_pred_prof_by_mode": {},
+    "c5_spread_max_over_min": null
+   },
+   "c1": {
+    "air_capital_median": null,
+    "kdec_crosses_air_year": null,
+    "c49_cash_below_decision_year": null,
+    "c1_gap_years": null
+   },
+   "company_value": 19126973,
+   "profit_year": 2911351
+  }
+ ],
+ "failed_runs": [],
+ "failed_run_count": 0
+}

@@ -178,6 +178,8 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--arm", default=ARM, help="bras OpexAI[...] ; doit activer probe_portfolio")
+    parser.add_argument("--extra-tags", nargs="*", default=[],
+                        help="autres canaux OPEX a recopier dans --raw (ex. C39_PASS_CLOCK)")
     parser.add_argument("--raw", type=Path, default=None, help="Ecrit les lignes C69_BOTTLENECK brutes (jsonl)")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
@@ -211,6 +213,12 @@ def main():
             with open(args.raw, "a") as fh:
                 for event in events:
                     fh.write(json.dumps({"seed": record["seed"], **event}) + "\n")
+                for tag in args.extra_tags:
+                    tag_re = re.compile(r"OPEX (\d+)-\d+-\d+ " + re.escape(tag) + r"\s*(.*)")
+                    for year, fields in tag_re.findall(record.get("openttd_output", "")):
+                        extra = parse_fields(fields)
+                        fh.write(json.dumps({"seed": record["seed"], "tag": tag,
+                                             "_log_year": int(year), **extra}) + "\n")
         per_seed.append({"seed": record["seed"], "run_ok": record["run_ok"],
                          "n_events": len(events), "metrics": build_metrics(events),
                          "c1": c1_years(events, c49_events),

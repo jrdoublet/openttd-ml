@@ -138,3 +138,38 @@ la passe de régénération coûte de plus en plus cher (~38 k opcodes par ligne
 Cela relie plusieurs constats : 1,02 avion par marché (un avion de plus coûte une des ~8 décisions
 de l'année) ; `portfolio_max_batch` rejeté en 3 ans, pendant la phase où la caisse bloque ; C69,
 qui ne change que l'ordre, pas le nombre, de ces ~8 décisions.
+
+## 7. Mesure : où passe le temps entre deux chantiers (C74, 2026-09-21)
+
+Horloge de passe C39.6 (`probe_scheduler=1`, sonde existante), 3 graines × 10 ans, solo :
+`results/diag_c74_passclock_10y_3seeds.json` (lignes brutes non versionnées, 328 lignes
+`C39_PASS_CLOCK`). Jours de jeu par tâche de la file, moyenne par partie :
+
+| tâche | 1971 | 1975 | 1979 | Mops par passe (1979) |
+|---|---:|---:|---:|---:|
+| tours de file par an | **31** | **8** | **7** | |
+| `catalog` (catalogue + régénération complète du vivier + plan de flotte) | 111 j (32 %) | 108 j (31 %) | 110 j (30 %) | 2,76 |
+| `town_growth` | 60 j (17 %) | 93 j (27 %) | 103 j (28 %) | 2,73 |
+| `projects` (mise à jour incrémentale + sélection + **1 chantier**) | 95 j (27 %) | 81 j (23 %) | 83 j (23 %) | 2,21 |
+| `air_fleet` | 45 j (13 %) | 46 j (13 %) | 45 j (12 %) | 1,18 |
+| autres (report, expand, refleet, scrap, repay) | 39 j | 22 j | 22 j | |
+
+**Lecture.** Un tour complet de la file prend **~45 à 52 jours de jeu** à partir de 1975, et
+`projects` n'y construit qu'**un** projet. D'où ~7 à 8 chantiers par an (§6). Trois tâches de 2,2 à
+2,8 M opcodes chacune remplissent le tour : `catalog`, `town_growth` et `projects`. Le vivier est
+régénéré deux fois par tour (complètement dans `catalog`, incrémentalement dans `projects`).
+
+⚠️ **Contradiction avec une clôture antérieure.** C39.5 (journal du 2026-09-13, mesure du
+2026-09-10) a fermé les leviers de cadence parce que le vivier était **vide dans 58,6 % des tours** :
+accélérer `projects` ne pouvait alors rien construire de plus. La sonde C73 (§6) mesure au contraire
+un vivier **jamais vide après 1970** et un chantier à **chaque** passe. Le code a changé depuis
+(C68, `early_slot`, retrait des feeders…) et les définitions de « vide » diffèrent peut-être ; la
+prémisse de cette clôture ne tient plus sur le code courant.
+
+**Leviers qui en découlent** (non testés sur le code courant) :
+
+1. **plusieurs chantiers par passe en phase riche**, en construisant dans la liste déjà classée sans
+   régénérer entre deux chantiers (c'est la régénération après succès qui avait fait échouer
+   `portfolio_max_batch` en 2026-09-02, en plus de la caisse vide) ;
+2. **raccourcir le tour** : `town_growth` prend 28 % du temps pour des lignes à profit nul par
+   construction ; `catalog` et `projects` régénèrent chacun le vivier.
