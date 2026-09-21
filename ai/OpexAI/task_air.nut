@@ -689,7 +689,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (plan != null) {
       /* Mode a blanc : on ne touche ni a la tresorerie ni a la ligne. Le test de capital est celui
        * du portefeuille, pas celui d'ici -- c'est tout l'objet de l'arbitrage. */
-      local room = maxPlanesForAirport - have;
+      local room = physicalMaxPlanes - have;
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
         plan.append({ line = line, want = want, planePrice = planePrice });
@@ -703,7 +703,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       }
       continue;
     }
-    while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
+    while (have < physicalMaxPlanes && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
