@@ -176,6 +176,8 @@ AIR_MARGIN <- true;
  * detection a ~15 % vaut pour la comparaison de MOYENNES, pas pour le test des signes.
  * Repli VRAI jusqu'a la lecture unique dans Start(). */
 AIR_ABANDON <- true;
+OPEX_AIR_SITE_PAD <- false;
+OPEX_AIR_TOWN_PAD <- false;
 /* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
  * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
  * Sous 1, deux defauts du rendement unitaire tombent --

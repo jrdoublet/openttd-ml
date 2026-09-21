@@ -665,7 +665,7 @@ function OpexAirFindSite(town, airport, probes)
 /* Economie et dimensionnement optimal de flotte selon les caracteristiques du vehicule. */
 function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
                           infrastructureMaintenance, maxCapital, newAirportCount = 2,
-                          fixedPlanes = 0)
+                          opcodePadding = 0, fixedPlanes = 0)
 {
   local trip = OpexAirTripModel(plane.speed, plane.capacity, distance);
   local oneWayDays = trip.oneWayDays;
@@ -695,6 +695,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
    * marginal_fleet = 1 : demarrage minimal, 1 seul avion ; la croissance vient ensuite. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
   local maxAllowed = (MARGINAL_FLEET || FLEET_PORTFOLIO) ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
+  if (!MARGINAL_FLEET && !FLEET_PORTFOLIO && OPEX_AIR_PLAN_PAD && opcodePadding > 0) maxAllowed = opcodePadding;
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -758,13 +759,15 @@ function OpexAirReconcileActualBuild(catalog, plan, result)
   local actualPlanes = ("vehicles" in result && result.vehicles != null) ? result.vehicles.len() : 0;
   if (actualPlanes <= 0) return;
   local baseMonthly = ("monthlyPax" in plan) ? plan.monthlyPax : 0;
-  local monthlyPax = baseMonthly;
+  local joinedMonthly = OPEX_AIR_PLAN_PAD && ("joinedMonthlyPax" in result)
+      ? result.joinedMonthlyPax : 0;
+  local monthlyPax = baseMonthly + joinedMonthly;
   if (monthlyPax < 10) monthlyPax = 10;
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
       + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
   local economics = OpexAirEconomics(catalog, plan.airport, plan.plane, plan.distance, monthlyPax,
                                       AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0,
-                                      0, newAirports, actualPlanes);
+                                      0, newAirports, 0, actualPlanes);
   if (economics == null) return;
 
   if (("actualCost" in result) && result.actualCost > 0) {
@@ -918,10 +921,11 @@ function OpexAirPlanBetter(plan, bestPlan)
  * on ne change donc que l'appareil et l'economie de cette route, avec exactement le meme modele
  * OpexAirEconomics que M3. Sous 0, le resultat est strictement le couple historique. */
 function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, monthlyPax,
-                                 infrastructureMaintenance, maxCapital, newAirportCount)
+                                 infrastructureMaintenance, maxCapital, newAirportCount,
+                                 opcodePadding)
 {
   local selectedEconomics = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount);
+      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport)) {
     return { plane = selectedPlane, economics = selectedEconomics };
   }
@@ -932,7 +936,7 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
     if (plane.id == selectedPlane.id) continue;
     if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
     local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount);
+        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
     if (economics == null) continue;
     if (bestEconomics == null || economics.profitAnnual > bestEconomics.profitAnnual ||
         (economics.profitAnnual == bestEconomics.profitAnnual && economics.roi > bestEconomics.roi)) {
@@ -965,7 +969,7 @@ function OpexM3ProbeAirEquipment(catalog, plan, phase)
     local native = plane.defaultCargo == catalog.paxCargo;
     if (native) nativeChoices++; else refitProxyChoices++;
     local economics = OpexAirEconomics(catalog, plan.airport, plane, plan.distance, plan.monthlyPax,
-        infrastructureMaintenance, 0, newAirports, fixedPlanes);
+        infrastructureMaintenance, 0, newAirports, 0, fixedPlanes);
     if (economics == null) continue;
     viable++;
     if (bestProfit == null || economics.profitAnnual > bestProfit.profitAnnual ||
@@ -1001,7 +1005,7 @@ function OpexM3ProbeAirEquipment(catalog, plan, phase)
 
 function OpexM3ProbeAirPreAdmission(catalog, airport, selectedPlane, distance, monthlyPax,
                                     infrastructureMaintenance, maxCapital, newAirportCount,
-                                    selectedEconomics, phase)
+                                    opcodePadding, selectedEconomics, phase)
 {
   if (!EQUIPMENT_ROI_PROBE || airport == null || selectedPlane == null ||
       !(airport.type in catalog.airPlaneChoicesByAirport)) return;
@@ -1017,7 +1021,7 @@ function OpexM3ProbeAirPreAdmission(catalog, airport, selectedPlane, distance, m
     local native = plane.defaultCargo == catalog.paxCargo;
     if (native) nativeChoices++; else refitProxyChoices++;
     local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount);
+        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
     if (economics == null) continue;
     viable++;
     if (bestProfit == null || economics.profitAnnual > bestProfit.profitAnnual ||
@@ -1058,8 +1062,21 @@ function OpexM3ProbeAirPreAdmission(catalog, airport, selectedPlane, distance, m
       + ((!selectedPositive && bestNativeProfit != null && bestNativeProfit.profitAnnual > 0) ? 1 : 0));
 }
 
-/* Table des paires dont une construction a deja echoue (cle
- * "air|tileA|tileB", identique a celle de main.nut). null = filtre desactive.
+/* An anchor only describes the north-west corner. Its buildability depends on
+ * the airport footprint, so the airport type is part of the durable-site key. */
+function OpexAirSitePaddingKey(site, airportType)
+{
+  return "air_site|" + airportType + "|" + site.anchor;
+}
+
+function OpexAirTownPaddingKey(site)
+{
+  return "air_town_limit|" + site.town.tile;
+}
+
+/* `abandoned` : table des paires dont une construction a deja echoue (cle
+ * "air|tileA|tileB", identique a celle de main.nut), et optionnellement des
+ * sites exacts et types ("air_site|airportType|anchor"). null = filtre desactive.
  * Le filtre est place APRES les tests de distance et AVANT OpexAirEconomics : les paires
  * ecartees pour distance ne paient pas la concatenation, et celles qui restent evitent le
  * calcul cher. */
@@ -1168,24 +1185,30 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
 
         if (abandoned != null) {
           local pairKey = "air|" + sites[a].town.tile + "|" + sites[b].town.tile;
-          if (pairKey in abandoned) continue;
+          if ((pairKey in abandoned)
+              || (OPEX_AIR_TOWN_PAD && ((OpexAirTownPaddingKey(sites[a]) in abandoned)
+                  || (OpexAirTownPaddingKey(sites[b]) in abandoned)))
+              || (OPEX_AIR_SITE_PAD && ((OpexAirSitePaddingKey(sites[a], airport.type) in abandoned)
+                  || (OpexAirSitePaddingKey(sites[b], airport.type) in abandoned)))) continue;
         }
 
         local popA = sites[a].town.pop;
         local popB = sites[b].town.pop;
         local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+        local opcodePadding = 0;
+        if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
         if (monthlyPax < 10) monthlyPax = 10;
         if (a == 0 && b == 1) {
           OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
         }
 
         local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 2);
+                                                    infrastructureMaintenance, maxCapital, 2, opcodePadding);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
-              infrastructureMaintenance, maxCapital, 2, economics, "pre_admission_newpair");
+              infrastructureMaintenance, maxCapital, 2, opcodePadding, economics, "pre_admission_newpair");
         }
         if (economics == null) continue;
 
@@ -1344,19 +1367,23 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         if (abandoned != null) {
           local pairKey = "air|" + hub.town.tile + "|" + site.town.tile;
-          if (pairKey in abandoned) continue;
+          if ((pairKey in abandoned)
+              || (OPEX_AIR_TOWN_PAD && (OpexAirTownPaddingKey(site) in abandoned))
+              || (OPEX_AIR_SITE_PAD && (OpexAirSitePaddingKey(site, airport.type) in abandoned))) continue;
         }
         local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
         local monthlyPax = hubMonthly + newMonthly;
+        local opcodePadding = 0;
+        if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
         if (monthlyPax < 10) monthlyPax = 10;
         local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 1);
+                                                    infrastructureMaintenance, maxCapital, 1, opcodePadding);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
-              infrastructureMaintenance, maxCapital, 1, economics, "pre_admission_hubsite");
+              infrastructureMaintenance, maxCapital, 1, opcodePadding, economics, "pre_admission_hubsite");
         }
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
@@ -1406,14 +1433,16 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local monthly1 = ((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1);
         local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;
+        local opcodePadding = 0;
+        if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
         if (monthlyPax < 10) monthlyPax = 10;
         local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 0);
+                                                    infrastructureMaintenance, maxCapital, 0, opcodePadding);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
-              infrastructureMaintenance, maxCapital, 0, economics, "pre_admission_hubhub");
+              infrastructureMaintenance, maxCapital, 0, opcodePadding, economics, "pre_admission_hubhub");
         }
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
@@ -1845,6 +1874,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
                                              result.joinedMonthlyPaxB, reuseB, "B");
     OpexAirCatchmentLog("AIR_CATCHMENT_BUILD",
         "arm=" + (("arm" in plan) ? plan.arm : "unknown")
+        + " base_source=" + (OPEX_AIR_PLAN_PAD ? "demand_plan" : "town_population_proxy")
         + " base_monthly=" + plan.monthlyPax
         + " reserve_stop_cost=" + (("joinedStopReserve" in plan) ? plan.joinedStopReserve : 0)
         + " actual_stop_cost=" + result.joinedStopCost + " stop_limit=" + AIR_JOINED_STOP_LIMIT

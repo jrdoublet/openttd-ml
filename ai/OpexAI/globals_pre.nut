@@ -304,6 +304,9 @@ ABANDON_MEMORY_TRANSIENT_GUARD <- true;
  * `/(routes+1)` toujours divisee par 1. 1 = resolution correcte tuile -> StationID ;
  * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
 AIR_HUB_FIX <- true;
+/* Preserve NoAI suspend cadence after pruning false-only AIR branches. */
+OPEX_AIR_CAP_PAD <- false;
+OPEX_AIR_PLAN_PAD <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */

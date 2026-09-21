@@ -855,7 +855,14 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
     if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
       local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
       local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
-      if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)) return true;
+      local siteAKey = OpexAirSitePaddingKey(plan.siteA, plan.airport.type);
+      local siteBKey = OpexAirSitePaddingKey(plan.siteB, plan.airport.type);
+      local townAKey = OpexAirTownPaddingKey(plan.siteA);
+      local townBKey = OpexAirTownPaddingKey(plan.siteB);
+      if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
+          || (OPEX_AIR_TOWN_PAD && ((!(("reuseA" in plan) && plan.reuseA) && (townAKey in abandonedPairs))
+              || (!(("reuseB" in plan) && plan.reuseB) && (townBKey in abandonedPairs))))
+          || (OPEX_AIR_SITE_PAD && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return true;
     }
   } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
     if (("payload" in p) && p.payload != null) {

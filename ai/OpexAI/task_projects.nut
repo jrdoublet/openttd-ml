@@ -77,9 +77,9 @@ function OpexAI::_recordMonthlyFunnelPass(builtCount, best, passDiscards, attemp
             else rejectDetails[ownKey] <- 1;
           }
           local townTile = null;
-          if (passDiscards[k].detail == "AFAIL") {
+          if (passDiscards[k].detail == "AFAIL" || passDiscards[k].detail == "PREA") {
             townTile = passDiscards[k].src;
-          } else if (passDiscards[k].detail == "BFAIL") {
+          } else if (passDiscards[k].detail == "BFAIL" || passDiscards[k].detail == "PREB") {
             townTile = passDiscards[k].dst;
           }
           if (townTile != null) {

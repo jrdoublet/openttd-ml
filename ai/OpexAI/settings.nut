@@ -319,7 +319,11 @@ function OpexLoadSettings()
   REBORROW = false;
   PAX_NEAR = false;
   PROBE_NEGATIVE = false;
+  OPEX_AIR_CAP_PAD = false;
+  OPEX_AIR_PLAN_PAD = false;
   RESERVE_MAINT_CAP = false;
+  OPEX_AIR_SITE_PAD = false;
+  OPEX_AIR_TOWN_PAD = false;
   WATER_SITE_CATALOG = false;
   WATER_DISCOVERY_REAL_FRONTS = false;
   WATER_LAKES_CONNECTIVITY = false;
