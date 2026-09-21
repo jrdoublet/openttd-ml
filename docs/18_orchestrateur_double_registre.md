@@ -3,8 +3,8 @@
 > **Relecture du 2026-09-21 (Claude).** Contrat rédigé par agy ; références au code vérifiées par
 > échantillon (`task_rail.nut:814-826`, `main.nut:297`, `main.nut:541`, `task_town.nut:63-75`,
 > `persist.nut:8-17` : justes). Corrigés en place : rythme des événements (source erronée),
-> description de l'échec de `portfolio_max_batch`, critère C80-6 ramené au profit annuel. Point
-> ouvert : la constante $N_{\max}$ de l'anti-famine (§3.1.3). Les objectifs chiffrés (tour ≤ 20 j,
+> description de l'échec de `portfolio_max_batch`, critère C80-6 ramené au profit annuel. N_max :
+> tranché le 2026-09-21 (§3.1.3, option 3 : pas de constante, sonde à la place). Les objectifs chiffrés (tour ≤ 20 j,
 > tranche `town_growth` ≤ 150 k opcodes) sont des **cibles**, pas des mesures.
 
 
@@ -208,8 +208,8 @@ Pour éviter qu'une tempête d'événements n'affame la file de fond sans introd
 3. **Règle structurelle de vidage** :
    - Une micro-action réactive ne consomme qu'**un seul tick**.
    - Une intention réactive lourde instancie un travailleur résumable qui s'exécute par tranches d'opcodes bornées.
-   - Si la file réactive reste non vide pendant plus de $N_{\text{max}}$ ticks consécutifs (situation anormale de saturation), l'ordonnanceur accorde obligatoirement le tick suivant à la file de fond.
-   - ⚠️ **Point ouvert (relecture)** : $N_{\text{max}}$ est une constante, contraire au titre de cette section. À remplacer par une règle mesurée (par exemple : la file de fond reçoit la main dès que la file réactive a consommé autant de ticks que sa part mesurée d'occupation), ou à assumer explicitement comme garde-fou.
+   - **Pas de règle de saturation (décision utilisateur du 2026-09-21, option 3).** Aucune constante $N_{\max}$ n'est introduite : avec 12 à 20 événements par an et par partie (sonde C76), la file réactive ne devrait jamais rester pleine plusieurs ticks d'affilée, et une règle qui ne se déclenche pas n'est que du code à maintenir.
+   - **Sonde à la place** : dès qu'un producteur alimente la file réactive (C76 étape 2, C77), l'orchestrateur compte, sous sonde, le plus long enchaînement de ticks consécutifs servis à la file réactive et le nombre de ticks où la file de fond a attendu. Une règle anti-famine ne sera écrite que si cette sonde mesure une saturation.
 
 ---
 
