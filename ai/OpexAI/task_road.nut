@@ -447,9 +447,9 @@ function OpexAI::_refleetRoadLines(year)
     local extraNeeded = 0;
 
     /* Chemin historique conservé littéralement sous switch 0. */
-    local physicalCap = C50B_ROAD_CAP_RELAX ? MAX_ROAD_VEHICLES : OpexRoadPhysicalVehicleCap(
+    local physicalCap = OpexRoadPhysicalVehicleCap(
         ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
-    if (!C50B_ROAD_CAP_RELAX && ROAD_TIME_SCALED_CAP &&
+    if (ROAD_TIME_SCALED_CAP &&
         ("kind" in line) && line.kind == "pax") {
       local nStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
       local nStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
