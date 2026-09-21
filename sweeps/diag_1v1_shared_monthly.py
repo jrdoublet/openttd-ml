@@ -30,6 +30,7 @@ import sys
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from physical_counters import decode_vehicles, decode_stations, VEHICLE_MODES, FACILITY_BITS
+from harness import parse_fields
 
 try:
     from bench_v2 import (
@@ -333,15 +334,6 @@ def player_of(chunks, owner):
     if player is None:
         player = players.get(str(owner))
     return player if isinstance(player, dict) and player else None
-
-
-def parse_fields(rest):
-    fields = {}
-    for token in (rest or "").split():
-        if "=" in token:
-            key, _, value = token.partition("=")
-            fields[key] = value
-    return fields
 
 
 def extract_company(chunks, owner, arm, seed, date):

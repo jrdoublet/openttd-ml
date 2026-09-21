@@ -9,7 +9,7 @@ import types
 import unittest
 
 
-SCRIPT = Path(__file__).parents[1] / "sweeps" / "phase2_hurdle_dataset_v3.py"
+SCRIPT = Path(__file__).parents[1] / "sweeps" / "archive" / "phase2_hurdle_dataset_v3.py"
 MODULE_NAME = "phase2_hurdle_dataset_v3_cleanup_test_subject"
 MISSING = object()
 
