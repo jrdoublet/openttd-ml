@@ -1122,7 +1122,7 @@ function OpexShareBasin(amount, lines, stationId, cargo)
 const TOWN_CATCHMENT_SHARE_PCT = 22;
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -1149,6 +1149,8 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
   for (local a = 0; a < n; a++) {
     local neighbors = grid.GetCandidatesFor(a);
     foreach (b in neighbors) {
+      if (targetKind == "town" && targetId >= 0
+          && towns[a].id != targetId && towns[b].id != targetId) continue;
       local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (!OpexRailPaxPairInBand(bounds, pairDistance, paxBand)) continue;
       if (C60_TOWN_RATING_PROBE) {
@@ -1199,7 +1201,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
 {
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
@@ -1232,6 +1234,9 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
         if (di == si) continue;
+        if (targetKind == "town") continue;
+        if (targetKind == "industry" && targetId >= 0
+            && source.id != targetId && industries[di].id != targetId) continue;
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
           local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
           if (pairKey in abandonedPairs) continue;
@@ -1260,6 +1265,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         local townSinks = catalog.townAcceptors[cargo];
         for (local k = 0; k < townSinks.len(); k++) {
           local town = townSinks[k];
+          if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
+          if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
           local townGuardMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
             /* G9§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
@@ -1318,7 +1325,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1)
 {
   /* Memo origin_sitable vide a chaque passe de generation : une gare ou un rail bati depuis la
    * derniere passe change le predicat, donc rien n'est reporte d'une passe a l'autre. Portee
@@ -1356,7 +1363,8 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generatePax) {
-    OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile, paxCruiseCache, paxBand);
+    OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile,
+                      paxCruiseCache, paxBand, targetKind, targetId);
   }
   local opsPax = budget.end("cand_pax");
   if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
@@ -1364,10 +1372,32 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   local freightMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generateFreight) {
-    OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache, freightCargo);
+    OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
+                          freightCargo, targetKind, targetId);
   }
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
+
+  if (targetKind != null && targetId >= 0) {
+    local targeted = [];
+    foreach (candidate in all) {
+      local touches = false;
+      if (targetKind == "town") {
+        touches = (("srcTown" in candidate) && candidate.srcTown == targetId)
+            || (("dstTown" in candidate) && candidate.dstTown == targetId)
+            || (("extensionTown" in candidate) && candidate.extensionTown == targetId);
+      } else if (targetKind == "industry") {
+        touches = (("srcIndustry" in candidate) && candidate.srcIndustry == targetId)
+            || (("dstIndustry" in candidate) && candidate.dstIndustry == targetId)
+            || (("src" in candidate) && AIMap.IsValidTile(candidate.src)
+                && AIIndustry.GetIndustryID(candidate.src) == targetId)
+            || (("dst" in candidate) && AIMap.IsValidTile(candidate.dst)
+                && AIIndustry.GetIndustryID(candidate.dst) == targetId);
+      }
+      if (touches) targeted.append(candidate);
+    }
+    all = targeted;
+  }
 
   local topKMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
@@ -1651,8 +1681,9 @@ function OpexTownBusCatchment(town, marginalProd)
 }
 
 /* Famille 1 : ville <-> ville, passagers. */
-function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
+function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, targetKind = null, targetId = -1)
 {
+  if (targetKind == "industry" && targetId >= 0) return;
   local cargo = catalog.paxCargo;
   if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
   local towns = catalog.towns;
@@ -1679,6 +1710,8 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
     if (roadLinesPerTown[a] >= maxLinesA) continue;
     local neighbors = roadGrid.GetCandidatesFor(a);
     foreach (b in neighbors) {
+      if (targetKind == "town" && targetId >= 0
+          && towns[a].id != targetId && towns[b].id != targetId) continue;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
       if (busServed[b]) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
@@ -1742,7 +1775,7 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
  * tuile, elle n'a pas la dilution geometrique d'une ville (cf. TOWN_CATCHMENT_SHARE_PCT). */
 /* C41.17 : `profile` ne sert qu'a separer le cout du fret en checkpoints candidats. Les trois
  * tranches restent synchrones : aucune ne modifie le vivier ni n'est reprise entre deux tours. */
-function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, freightCargo = null)
+function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, freightCargo = null, targetKind = null, targetId = -1)
 {
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
@@ -1813,6 +1846,9 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
         if (di == si) continue;
+        if (targetKind == "town") continue;
+        if (targetKind == "industry" && targetId >= 0
+            && source.id != targetId && industries[di].id != targetId) continue;
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
             source.tile, industries[di].tile, sourceBusy, servedIndustry[di]);
@@ -1853,6 +1889,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       for (local k = 0; k < townPool.len(); k++) {
         local ti = k;
         local t = (townTargets != null) ? townTargets[ti] : ti;
+        if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
+        if (targetKind == "town" && targetId >= 0 && towns[t].id != targetId) continue;
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
@@ -1925,7 +1963,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
 /* C41.16 : `profile` est fourni seulement par la sonde du scheduler. Il n'influence jamais les
  * filtres, l'ordre ni le vivier ; les compteurs mesurent les trois familles et le TopK qui suit
  * le budget historique. */
-function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, freightCargo = null)
+function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, freightCargo = null, targetKind = null, targetId = -1)
 {
   local all = [];
   local stats = {
@@ -1942,7 +1980,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
    * dans le portefeuille. */
   if (ROAD_PAX_BUILD_ENABLED) {
     local mark = profile != null ? OpexOpsMeasureBegin() : null;
-    OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
+    OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs, targetKind, targetId);
     if (profile != null) profile.paxOps += OpexOpsMeasureEnd(mark);
   }
   /* Les marques C41.17 internes ne doivent jamais etre imbriquees dans une mesure globale :
@@ -1950,11 +1988,33 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
    * fret de reference ; C41.17 ne publie que ses intervalles disjoints. */
   local freightMark = (profile != null && !C41_ROAD_FREIGHT_PROFILE && !C41_ROAD_FREIGHT_TOWN_PROFILE)
       ? OpexOpsMeasureBegin() : null;
-  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo);
+  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo,
+                            targetKind, targetId);
   if (freightMark != null) {
     profile.freightOps += OpexOpsMeasureEnd(freightMark);
   }
   local ops = budget.end("cand_road");
+
+  if (targetKind != null && targetId >= 0) {
+    local targeted = [];
+    foreach (candidate in all) {
+      local touches = false;
+      if (targetKind == "town") {
+        touches = (("srcTown" in candidate) && candidate.srcTown == targetId)
+            || (("dstTown" in candidate) && candidate.dstTown == targetId)
+            || (("extensionTown" in candidate) && candidate.extensionTown == targetId);
+      } else if (targetKind == "industry") {
+        touches = (("srcIndustry" in candidate) && candidate.srcIndustry == targetId)
+            || (("dstIndustry" in candidate) && candidate.dstIndustry == targetId)
+            || (("src" in candidate) && AIMap.IsValidTile(candidate.src)
+                && AIIndustry.GetIndustryID(candidate.src) == targetId)
+            || (("dst" in candidate) && AIMap.IsValidTile(candidate.dst)
+                && AIIndustry.GetIndustryID(candidate.dst) == targetId);
+      }
+      if (touches) targeted.append(candidate);
+    }
+    all = targeted;
+  }
 
   local topKMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = OpexTopK(all, ROAD_TOP_K);

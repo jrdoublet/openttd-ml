@@ -140,6 +140,7 @@ class OpexAI extends AIController {
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
   _reactiveQueue = null;
   _activeWorker = null;
+  _c76LastReconcileMonth = -1;
   /* 11.6 : _railSearch contient un pathfinder vivant et _dynamicBatch reference _projects.
    * Ils ne sont pas serialises ; Save/Load ne conserve que leur presence pour forcer une
    * reconstruction propre du portefeuille apres reload. */
@@ -285,6 +286,7 @@ class OpexAI extends AIController {
     this._recomputeEpochBounds = false;
     this._reactiveQueue = OpexReactiveQueue();
     this._activeWorker = null;
+    this._c76LastReconcileMonth = -1;
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
@@ -401,6 +403,11 @@ class OpexAI extends AIController {
   function _clearReactiveQueue();
   function _dispatchReactiveIntention(intention);
   function _c80RunSelfTest();
+  function _c76EnqueueRegen(modes, entityKind = null, entityId = -1, targeted = false,
+                             buildAfter = false, reason = "event");
+  function _c76RefreshModeCatalog(mode);
+  function _c76AcknowledgeMode(mode);
+  function _c76PeriodicReconcile(yearMonth);
   function enqueue(key, kind, payload);
   function pop();
 }

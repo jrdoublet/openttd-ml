@@ -1,6 +1,6 @@
 # Tâches — réduire l'écart avec AAAHogEx
 
-État courant actualisé le **2026-09-21**. Ce fichier est la **seule liste autoritaire du
+État courant actualisé le **2026-09-22**. Ce fichier est la **seule liste autoritaire du
 travail restant**. Les sections datées du 13 au 18 septembre sont conservées pour la traçabilité,
 mais leur ordre de priorité et leurs mentions « à faire » ne prévalent pas sur l'état courant
 ci-dessous.
@@ -11,7 +11,31 @@ Avant de rouvrir une piste, rechercher son nom et ses réglages dans
 implémentations et les raisons des décisions ; **aucun résultat antérieur au 09/09 ne prouve
 la performance actuelle**. Les journaux quotidiens conservent le détail des expériences.
 
-## État courant — 2026-09-21
+## État courant — 2026-09-22
+
+Fusion de `c69-goulot-decision` (`5dfcf7f`) et de `feat/c76-c77-reactive-events`
+(`23a4bcb`) : défaut adopté C69 bis/C70/C75 importé avec les correctifs de dates,
+calibration après rechargement et coût de Save. C76/C77 sont maintenant implémentés
+sous leurs réglages à 0 ; l'étape 2 n'est plus à coder depuis zéro. Les mentions
+antérieures « à faire » ci-dessous décrivent le contexte du contrat, pas l'état livré.
+Les simplifications sont conservées : adaptation des appels aux signatures actuelles,
+sans restaurer C41 eau, les index C48, les prédevis rail ni la politique de demande AIR.
+Le chemin subventions C77 dépendait entièrement du pipeline C42 supprimé : il reste
+exclu de cette fusion pour conserver `dead-flags-events`. C77 couvre villes,
+industries et moteurs ; les résultats amont avec subventions ne prouvent pas son effet ici.
+
+Validation d'intégration : smoke 1×1 sur défaut et C76/C77 activés ; diagnostic solo
+5×6, dix parties attendues et obtenues, toutes saines. Le bras réactif active aussi
+`probe_portfolio` : ce contrôle n'est pas une preuve causale ni un banc d'adoption.
+121 tests Python : seuls les deux échecs préexistants feeder scrap et index de preuves.
+Résultats dans `results/merge_c69_c76_20260922/results/` du dossier principal.
+L'API BaNaNaS étant en erreur 502, le 5×6 utilise les bibliothèques du cache avec le
+descripteur figé du dépôt ; empreintes conservées dans `offline_libraries.json`.
+Rechargement : départ 2000, six ans de préparation, reprise du 2005-05-01 puis
+un an supplémentaire, sans erreur NoAI et avec `LOAD_RECONCILE` ; activité poursuivie.
+Rapport `reload_2000.json`, avec la réserve connue de compagnie fantôme du harnais.
+
+### Historique des intégrations du 21 septembre
 
 Rapatriement de `c69-goulot-decision` (`ff7cbf5`) sur master après `228c382` :
 C69–C76 et socle C80 intégrés, simplifications conservées. Audit : aucune des 59

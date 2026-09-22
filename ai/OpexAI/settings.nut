@@ -331,7 +331,11 @@ function OpexLoadSettings()
   FLAT_BONUS = false;
   MARGINAL_FLEET = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
-  C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0;
+  C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
+  C77_OPPORTUNISTIC_CANDIDATES = AIController.GetSetting("c77_opportunistic_candidates") != 0;
+  /* C76/C77 sont des clients du double registre : les armer implique le socle C80. */
+  C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0
+      || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;

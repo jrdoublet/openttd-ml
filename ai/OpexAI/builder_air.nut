@@ -1166,7 +1166,7 @@ function OpexAirTownPaddingKey(site)
  * Le filtre est place APRES les tests de distance et AVANT OpexAirEconomics : les paires
  * ecartees pour distance ne paient pas la concatenation, et celles qui restent evitent le
  * calcul cher. */
-function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, abandoned = null, paxBand = PAX_BAND_ALL)
+function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, abandoned = null, paxBand = PAX_BAND_ALL, targetTownId = -1)
 {
   local t0_all = AIController.GetTick();
   local l0_all = AIController.GetOpsTillSuspend();
@@ -1218,6 +1218,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   }
 
   local towns = OpexAirSortedTowns(catalog.towns);
+  if (targetTownId >= 0) {
+    local targetedTowns = [];
+    foreach (town in towns) if (town.id == targetTownId) targetedTowns.append(town);
+    foreach (town in towns) if (town.id != targetTownId) targetedTowns.append(town);
+    towns = targetedTowns;
+  }
   local limit = towns.len() < AIR_TOWN_POOL ? towns.len() : AIR_TOWN_POOL;
   local bestPlan = null;
   /* GetMonthlyMaintenanceCost expose le tarif potentiel, pas une depense toujours active.
@@ -1267,6 +1273,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local lEval0 = AIController.GetOpsTillSuspend();
     for (local a = 0; a < sites.len(); a++) {
       for (local b = a + 1; b < sites.len(); b++) {
+        if (targetTownId >= 0
+            && sites[a].town.id != targetTownId && sites[b].town.id != targetTownId) continue;
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
         local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,

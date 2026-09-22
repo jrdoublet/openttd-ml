@@ -386,52 +386,36 @@ function OpexAI::Save()
   if (this._taskQueue != null) {
     foreach (task in this._taskQueue) taskDue[task.name] <- task.dueCycle;
   }
-  /* Les lignes sont normalement donnees telles quelles au serialiseur. Certains modeles
-   * economiques (surtout air) laissent toutefois des flottants dans des metriques predites,
-   * type que le format de sauvegarde OpenTTD refuse. Une projection superficielle n'est faite
-   * que dans ce cas : les champs scalarises restants sont tous serialisables; les tableaux
-   * (VehicleID) et tables des lignes actuelles ne contiennent que des entiers/booleens/null. */
+  /* Certains modeles economiques (surtout air) laissent des flottants dans des metriques
+   * predites, type que le format de sauvegarde OpenTTD refuse. Toujours projeter chaque ligne
+   * en UN SEUL passage : l'ancien probe "faut-il projeter ?" reparcourait ensuite presque toutes
+   * les lignes et finissait par epuiser le budget de 100k opcodes de Save() sur les grosses
+   * flottes. Les champs scalarises restants sont serialisables; les tableaux (VehicleID) et
+   * tables des lignes actuelles ne contiennent que des entiers/booleens/null. */
   local saveLines = this._lines;
-  local projectedLines = null;
   if (this._lines != null) {
-    for (local i = 0; i < this._lines.len(); i++) {
-      local line = this._lines[i];
-      local needsProjection = line != null && typeof line == "table";
-      if (needsProjection) {
-        needsProjection = false;
-        foreach (key, val in line) {
-          local valType = typeof val;
-          if (valType != "integer" && valType != "string" && valType != "bool" &&
-              valType != "null" && valType != "array" && valType != "table") {
-            needsProjection = true;
-            break;
-          }
-        }
-      }
-      if (needsProjection) {
-        if (projectedLines == null) {
-          projectedLines = [];
-          for (local prior = 0; prior < i; prior++) projectedLines.append(this._lines[prior]);
-        }
-        local serializableLine = {};
-        foreach (key, val in line) {
-          local valType = typeof val;
-          if (valType == "integer" || valType == "string" || valType == "bool" ||
-              valType == "null" || valType == "array" || valType == "table") {
-            serializableLine[key] <- val;
-          } else if (valType == "float") {
-            /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
-             * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
-            serializableLine[key] <- val.tointeger();
-          }
-        }
-        projectedLines.append(serializableLine);
-      } else if (projectedLines != null) {
+    local projectedLines = [];
+    foreach (line in this._lines) {
+      if (line == null || typeof line != "table") {
         projectedLines.append(line);
+        continue;
       }
+      local serializableLine = {};
+      foreach (key, val in line) {
+        local valType = typeof val;
+        if (valType == "integer" || valType == "string" || valType == "bool" ||
+            valType == "null" || valType == "array" || valType == "table") {
+          serializableLine[key] <- val;
+        } else if (valType == "float") {
+          /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
+           * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
+          serializableLine[key] <- val.tointeger();
+        }
+      }
+      projectedLines.append(serializableLine);
     }
+    saveLines = projectedLines;
   }
-  if (projectedLines != null) saveLines = projectedLines;
   local saveObj = {
     version = 1,
     /* C69/C75 : sans ces dates, tau repart de 0 chantier sur une fenetre de 365 jours et K_dec /
@@ -467,15 +451,20 @@ function OpexAI::Save()
   if (C80_DOUBLE_REGISTER) {
     saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
     saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
+    if ((C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) && this._staleness != null) {
+      saveObj.c76Revisions <- this._staleness.revisions;
+      saveObj.c76Acknowledged <- this._staleness.acknowledged;
+      saveObj.c76LastReconcileMonth <- this._c76LastReconcileMonth;
+    }
   }
   return saveObj;
 }
 function OpexAI::Load(version, data)
 {
   this._loadedFromSave = true;
+  if (data == null) return;
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;
   this._reloadC75PassDates = ("c75PassDates" in data) ? data.c75PassDates : null;
-  if (data == null) return;
   if ("generationStage" in data) this._generationStage = data.generationStage;
   if ("generationStageMonth" in data) this._generationStageMonth = data.generationStageMonth;
   if ("lastFreightCargo" in data) this._lastFreightCargo = data.lastFreightCargo;
@@ -515,13 +504,42 @@ function OpexAI::Load(version, data)
       if (task.name in data.taskDue) task.dueCycle = data.taskDue[task.name];
     }
   }
-  if (C80_DOUBLE_REGISTER) {
-    if ("c80ReactiveQueue" in data && data.c80ReactiveQueue != null) {
-      this._reactiveQueue = OpexLoadReactiveQueue(data.c80ReactiveQueue);
+  /* Load() precede OpexLoadSettings() : ne jamais conditionner la restauration
+   * C80/C76 aux drapeaux runtime, encore a leurs valeurs globales false ici. */
+  if ("c80ReactiveQueue" in data && data.c80ReactiveQueue != null) {
+    this._reactiveQueue = OpexLoadReactiveQueue(data.c80ReactiveQueue);
+  }
+  if ("c80ActiveWorker" in data && data.c80ActiveWorker != null) {
+    this._activeWorker = OpexLoadActiveWorker(data.c80ActiveWorker);
+  }
+  if (this._staleness != null) {
+    if ("c76Revisions" in data && data.c76Revisions != null) {
+      this._staleness.revisions = data.c76Revisions;
     }
-    if ("c80ActiveWorker" in data && data.c80ActiveWorker != null) {
-      this._activeWorker = OpexLoadActiveWorker(data.c80ActiveWorker);
+    if ("c76Acknowledged" in data && data.c76Acknowledged != null) {
+      this._staleness.acknowledged = data.c76Acknowledged;
     }
+    if ("c76LastReconcileMonth" in data) {
+      this._c76LastReconcileMonth = data.c76LastReconcileMonth;
+    }
+    foreach (layer in ["cargos", "towns", "industries", "rail", "road", "air", "water"]) {
+      if ((layer in this._staleness.revisions.catalog)
+          && (layer in this._staleness.acknowledged.catalog)) {
+        this._staleness.catalog[layer] =
+            this._staleness.revisions.catalog[layer] > this._staleness.acknowledged.catalog[layer];
+      }
+    }
+    foreach (mode in ["rail", "road", "air", "water"]) {
+      if ((mode in this._staleness.revisions.candidates)
+          && (mode in this._staleness.acknowledged.candidates)) {
+        this._staleness.candidates[mode] =
+            this._staleness.revisions.candidates[mode] > this._staleness.acknowledged.candidates[mode];
+      }
+    }
+    this._staleness.portfolio =
+        this._staleness.revisions.portfolio > this._staleness.acknowledged.portfolio;
+    this._staleness.selection =
+        this._staleness.revisions.selection > this._staleness.acknowledged.selection;
   }
 }
 /* Load tourne trop tot et sous DisableDoCommandScope : la verification du monde est donc faite

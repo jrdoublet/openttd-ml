@@ -1,0 +1,332 @@
+{
+  "status": "complete_post_savefix",
+  "branch": "feat/c76-c77-reactive-events",
+  "savefix_commit": "c9201e31148eda861b55f65acade3a000d3e3ae6",
+  "sources": {
+    "original_4arm": "c76_c77_x_c69c70c75_10y_20seeds_4arms.json",
+    "savefix_rerun_7seeds": "verify_savefix_7seeds.json",
+    "save_load_roundtrip": "save_load_roundtrip_savefix_seed42.json"
+  },
+  "seeds": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    12345,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309
+  ],
+  "years": 10,
+  "arms": [
+    {
+      "label": "baseline",
+      "arm": "OpexAI"
+    },
+    {
+      "label": "c76_c77",
+      "arm": "OpexAI[c76_regen_targeted=1,c77_opportunistic_candidates=1]"
+    },
+    {
+      "label": "c69_c70_c75",
+      "arm": "OpexAI[c70_mode_calibration=1,c69_fleet_exempt=1,c69_decision_bottleneck=1,c75_multi_build=1]"
+    },
+    {
+      "label": "c76_c77_c69_c70_c75",
+      "arm": "OpexAI[c76_regen_targeted=1,c77_opportunistic_candidates=1,c70_mode_calibration=1,c69_fleet_exempt=1,c69_decision_bottleneck=1,c75_multi_build=1]"
+    }
+  ],
+  "arm_summaries": {
+    "baseline": {
+      "n": 20,
+      "profit_year": {
+        "mean": 2576699.85,
+        "median": 2645441.0
+      },
+      "company_value": {
+        "mean": 16893726.55,
+        "median": 17079406.0
+      },
+      "performance_history": {
+        "mean": 821.6,
+        "median": 829.5
+      },
+      "primary_vehicles": {
+        "mean": 106.0,
+        "median": 107.0
+      },
+      "n_stations": {
+        "mean": 50.1,
+        "median": 50.0
+      },
+      "median_station_rating": {
+        "mean": 164.0,
+        "median": 165.5
+      }
+    },
+    "c76_c77": {
+      "n": 20,
+      "profit_year": {
+        "mean": 2784863.85,
+        "median": 2798198.0
+      },
+      "company_value": {
+        "mean": 18365777.05,
+        "median": 18644808.0
+      },
+      "performance_history": {
+        "mean": 855.5,
+        "median": 858.0
+      },
+      "primary_vehicles": {
+        "mean": 134.05,
+        "median": 134.0
+      },
+      "n_stations": {
+        "mean": 61.0,
+        "median": 60.5
+      },
+      "median_station_rating": {
+        "mean": 159.375,
+        "median": 162.75
+      }
+    },
+    "c69_c70_c75": {
+      "n": 20,
+      "profit_year": {
+        "mean": 2883315.2,
+        "median": 2911303.5
+      },
+      "company_value": {
+        "mean": 18639612.6,
+        "median": 19049533.5
+      },
+      "performance_history": {
+        "mean": 875.8,
+        "median": 875.0
+      },
+      "primary_vehicles": {
+        "mean": 183.1,
+        "median": 180.0
+      },
+      "n_stations": {
+        "mean": 70.3,
+        "median": 70.0
+      },
+      "median_station_rating": {
+        "mean": 166.325,
+        "median": 166.5
+      }
+    },
+    "c76_c77_c69_c70_c75": {
+      "n": 20,
+      "profit_year": {
+        "mean": 2752131.05,
+        "median": 2730897.0
+      },
+      "company_value": {
+        "mean": 18293721.85,
+        "median": 18385880.0
+      },
+      "performance_history": {
+        "mean": 864.7,
+        "median": 868.0
+      },
+      "primary_vehicles": {
+        "mean": 220.9,
+        "median": 225.0
+      },
+      "n_stations": {
+        "mean": 64.85,
+        "median": 66.5
+      },
+      "median_station_rating": {
+        "mean": 166.05,
+        "median": 166.0
+      }
+    }
+  },
+  "paired_vs_baseline": {
+    "c76_c77": {
+      "n": 20,
+      "profit_year": {
+        "mean_delta": 208164.0,
+        "wins": 17,
+        "losses": 3,
+        "ties": 0,
+        "sign_test_p": 0.0025768280029296875
+      },
+      "company_value": {
+        "mean_delta": 1472050.5,
+        "wins": 17,
+        "losses": 3,
+        "ties": 0,
+        "sign_test_p": 0.0025768280029296875
+      },
+      "primary_vehicles": {
+        "mean_delta": 28.05,
+        "wins": 20,
+        "losses": 0,
+        "ties": 0,
+        "sign_test_p": 1.9073486328125e-06
+      },
+      "n_stations": {
+        "mean_delta": 10.9,
+        "wins": 19,
+        "losses": 1,
+        "ties": 0,
+        "sign_test_p": 4.00543212890625e-05
+      }
+    },
+    "c69_c70_c75": {
+      "n": 20,
+      "profit_year": {
+        "mean_delta": 306615.35,
+        "wins": 15,
+        "losses": 5,
+        "ties": 0,
+        "sign_test_p": 0.04138946533203125
+      },
+      "company_value": {
+        "mean_delta": 1745886.05,
+        "wins": 14,
+        "losses": 6,
+        "ties": 0,
+        "sign_test_p": 0.11531829833984375
+      },
+      "primary_vehicles": {
+        "mean_delta": 77.1,
+        "wins": 20,
+        "losses": 0,
+        "ties": 0,
+        "sign_test_p": 1.9073486328125e-06
+      },
+      "n_stations": {
+        "mean_delta": 20.2,
+        "wins": 18,
+        "losses": 2,
+        "ties": 0,
+        "sign_test_p": 0.0004024505615234375
+      }
+    },
+    "c76_c77_c69_c70_c75": {
+      "n": 20,
+      "profit_year": {
+        "mean_delta": 175431.2,
+        "wins": 12,
+        "losses": 8,
+        "ties": 0,
+        "sign_test_p": 0.5034446716308594
+      },
+      "company_value": {
+        "mean_delta": 1399995.3,
+        "wins": 15,
+        "losses": 5,
+        "ties": 0,
+        "sign_test_p": 0.04138946533203125
+      },
+      "primary_vehicles": {
+        "mean_delta": 114.9,
+        "wins": 20,
+        "losses": 0,
+        "ties": 0,
+        "sign_test_p": 1.9073486328125e-06
+      },
+      "n_stations": {
+        "mean_delta": 14.75,
+        "wins": 18,
+        "losses": 2,
+        "ties": 0,
+        "sign_test_p": 0.0004024505615234375
+      }
+    }
+  },
+  "combined_vs_c69_c70_c75": {
+    "n": 20,
+    "profit_year": {
+      "mean_delta": -131184.15,
+      "wins": 6,
+      "losses": 14,
+      "ties": 0,
+      "sign_test_p": 0.11531829833984375
+    },
+    "company_value": {
+      "mean_delta": -345890.75,
+      "wins": 9,
+      "losses": 11,
+      "ties": 0,
+      "sign_test_p": 0.8238029479980469
+    },
+    "primary_vehicles": {
+      "mean_delta": 37.8,
+      "wins": 20,
+      "losses": 0,
+      "ties": 0,
+      "sign_test_p": 1.9073486328125e-06
+    },
+    "n_stations": {
+      "mean_delta": -5.45,
+      "wins": 3,
+      "losses": 17,
+      "ties": 0,
+      "sign_test_p": 0.0025768280029296875
+    }
+  },
+  "combined_vs_c76_c77": {
+    "n": 20,
+    "profit_year": {
+      "mean_delta": -32732.8,
+      "wins": 10,
+      "losses": 10,
+      "ties": 0,
+      "sign_test_p": 1.0
+    },
+    "company_value": {
+      "mean_delta": -72055.2,
+      "wins": 10,
+      "losses": 10,
+      "ties": 0,
+      "sign_test_p": 1.0
+    },
+    "primary_vehicles": {
+      "mean_delta": 86.85,
+      "wins": 20,
+      "losses": 0,
+      "ties": 0,
+      "sign_test_p": 1.9073486328125e-06
+    },
+    "n_stations": {
+      "mean_delta": 3.85,
+      "wins": 14,
+      "losses": 6,
+      "ties": 0,
+      "sign_test_p": 0.11531829833984375
+    }
+  },
+  "savefix_validation": {
+    "rerun_failed_runs": [],
+    "rerun_completeness": {
+      "ok": true,
+      "expected_runs": 7,
+      "observed_runs": 7,
+      "missing_runs": [],
+      "unexpected_runs": []
+    },
+    "rerun_jsonl_lines": 840,
+    "rerun_all_120_savegames": true,
+    "rerun_all_run_ok": true
+  },
+  "note": "The original 4-arm run had 7 deterministic Save() failures only in the combined arm. After c9201e3, exactly those 7 seeds were rerun with the identical economic arm and all completed successfully. The consolidated 20/20 economic reading replaces only those failed combined-arm rows; c9201e3 changes persistence work in Save() and not economic policy."
+}
