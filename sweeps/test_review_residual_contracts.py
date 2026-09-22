@@ -16,6 +16,30 @@ def _read(rel: str) -> str:
 
 
 class ReviewResidualContractsTest(unittest.TestCase):
+    def test_air_share_orders_failure_never_starts_unordered_plane(self):
+        src = _read("ai/OpexAI/builder_air.nut")
+
+        add_start = src.index("function OpexAirAddPlane(")
+        add_end = src.index("function OpexAirRefleetCrashedPlane(", add_start)
+        add = src[add_start:add_end]
+        add_fail = add.index("if (!AIOrder.ShareOrders(extra, template)) {")
+        add_start_vehicle = add.index("AIVehicle.StartStopVehicle(extra)")
+        self.assertLess(add_fail, add_start_vehicle)
+        self.assertIn("AIVehicle.SellVehicle(extra)", add[add_fail:add_start_vehicle])
+        self.assertIn('result.reason = "ORDER"; return result;', add[add_fail:add_start_vehicle])
+
+        route_start = src.index("function OpexBuildAirRoute(")
+        route = src[route_start:]
+        fleet_start = route.index("local built = [plane];")
+        start_loop = route.index("foreach (aircraft in built)", fleet_start)
+        fleet = route[fleet_start:start_loop]
+        share_fail = fleet.index("if (AIVehicle.IsValidVehicle(extra) && !AIOrder.ShareOrders(extra, plane)) {")
+        failure = fleet[share_fail:]
+        self.assertIn("built.append(extra);", failure)
+        self.assertIn("OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built);", failure)
+        self.assertIn('result.reason = "ORDFAIL";', failure)
+        self.assertIn("return result;", failure)
+
     def test_rail_vehicle_limit_fails_before_path_search_and_spend(self):
         builder = _read("ai/OpexAI/builder_rail.nut")
         task = _read("ai/OpexAI/task_rail.nut")

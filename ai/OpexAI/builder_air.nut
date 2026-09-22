@@ -842,7 +842,10 @@ function OpexAirAddPlane(line)
     local cargo = ("cargo" in line) ? line.cargo : 0;
     extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, cargo);
     if (AIVehicle.IsValidVehicle(extra)) {
-      AIOrder.ShareOrders(extra, template);
+      if (!AIOrder.ShareOrders(extra, template)) {
+        if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
+        result.reason = "ORDER"; return result;
+      }
     }
   }
   if (!AIVehicle.IsValidVehicle(extra)) {
@@ -2099,7 +2102,16 @@ function OpexBuildAirRoute(catalog, budget, plan)
     if (!AIVehicle.IsValidVehicle(extra)) {
       local engine = AIVehicle.GetEngineType(plane);
       extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, catalog.paxCargo);
-      if (AIVehicle.IsValidVehicle(extra)) AIOrder.ShareOrders(extra, plane);
+      if (AIVehicle.IsValidVehicle(extra) && !AIOrder.ShareOrders(extra, plane)) {
+        result.error = AIError.GetLastError();
+        result.errorText = AIError.GetLastErrorString();
+        built.append(extra);
+        result.opcodes += budget.end("build_aircraft");
+        OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built);
+        result.actualCost = costs != null ? costs.GetCosts() : 0;
+        result.reason = "ORDFAIL";
+        return result;
+      }
     }
     if (!AIVehicle.IsValidVehicle(extra)) break;
     built.append(extra);
