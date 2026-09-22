@@ -115,6 +115,15 @@ function OpexC69Log(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C69_BOTTLENECK " + fields);
 }
+/* C78 : logger dedie pour le vivier annuel sous probe_portfolio */
+function OpexC78CandidateLog(fields)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C78_CAND " + fields);
+}
+
 /* Tunnel mensuel : gate dedie, independant de C63/C48/decision_log. Un AILog par passe
  * pour ne pas perdre le mois courant (le jeu s'arrete souvent au 1er decembre). */
 function OpexMonthlyFunnelLog(fields)

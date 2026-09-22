@@ -2571,7 +2571,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
 
   /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
    * cela evite meme de changer la forme de this._projects dans le controle. */
-  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE || C39_INVALIDATION_PROBE) {
+  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE || C39_INVALIDATION_PROBE || C69_BOTTLENECK_PROBE) {
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
     local ret = {
       all = stats.odProjects, best = funded, stats = stats,

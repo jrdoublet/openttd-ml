@@ -804,7 +804,160 @@ function OpexAI::_reportYear(year, ranked)
       OpexDecide("SUBSIDY_REPORT", "year=" + year + " offers=" + this._subsidyStats.offers + " matched=" + this._subsidyStats.matchedPool + " awarded_self=" + this._subsidyStats.awardedSelf + " awarded_other=" + this._subsidyStats.awardedOther + " expired=" + this._subsidyStats.expiredWithoutAward);
     }
   }
+
+  if (C69_BOTTLENECK_PROBE) {
+    this._reportC78Candidates(year);
+  }
 }
+
+/* C78 : publication annuelle passive du vivier de candidats OpexAI */
+function OpexAI::_reportC78Candidates(year)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  if (this._projects == null) return;
+
+  local bestRank = {};
+  if (("best" in this._projects) && this._projects.best != null) {
+    for (local i = 0; i < this._projects.best.len(); i++) {
+      local bp = this._projects.best[i];
+      if (bp != null) {
+        local k = OpexProjectAttemptKey(bp);
+        if (!(k in bestRank)) bestRank[k] <- i;
+      }
+    }
+  }
+
+  local allCandidates = [];
+  if (("candidateGroups" in this._projects) && this._projects.candidateGroups != null) {
+    foreach (groupKey, list in this._projects.candidateGroups) {
+      local arr = (typeof list == "array") ? list : [list];
+      foreach (p in arr) {
+        if (p != null) allCandidates.append(p);
+      }
+    }
+  } else if (("best" in this._projects) && this._projects.best != null) {
+    foreach (p in this._projects.best) {
+      if (p != null) allCandidates.append(p);
+    }
+  }
+
+  if (allCandidates.len() > 400) {
+    allCandidates.sort(function(a, b) {
+      local pa = ("profitAnnual" in a) ? a.profitAnnual : 0;
+      local pb = ("profitAnnual" in b) ? b.profitAnnual : 0;
+      if (pa != pb) return (pa > pb) ? -1 : 1;
+      return 0;
+    });
+    allCandidates.resize(400);
+  }
+
+  local availableCapital = OpexAvailableCapital();
+
+  foreach (p in allCandidates) {
+    local mode = ("mode" in p) ? p.mode : "unknown";
+    local townA = -1;
+    local townB = -1;
+    local indA = -1;
+    local indB = -1;
+
+    local cand = ("payload" in p && p.payload != null) ? p.payload : p;
+
+    if (mode == "air") {
+      local plan = cand;
+      if (typeof plan == "table") {
+        if (("siteA" in plan) && plan.siteA != null && typeof plan.siteA == "table") {
+          if (("town" in plan.siteA) && plan.siteA.town != null) {
+            if (typeof plan.siteA.town == "table" && ("id" in plan.siteA.town)) {
+              townA = plan.siteA.town.id;
+            } else if (typeof plan.siteA.town == "integer") {
+              townA = plan.siteA.town;
+            }
+          }
+          if (townA < 0 && ("anchor" in plan.siteA) && AIMap.IsValidTile(plan.siteA.anchor)) {
+            townA = AITile.GetClosestTown(plan.siteA.anchor);
+          }
+        }
+        if (("siteB" in plan) && plan.siteB != null && typeof plan.siteB == "table") {
+          if (("town" in plan.siteB) && plan.siteB.town != null) {
+            if (typeof plan.siteB.town == "table" && ("id" in plan.siteB.town)) {
+              townB = plan.siteB.town.id;
+            } else if (typeof plan.siteB.town == "integer") {
+              townB = plan.siteB.town;
+            }
+          }
+          if (townB < 0 && ("anchor" in plan.siteB) && AIMap.IsValidTile(plan.siteB.anchor)) {
+            townB = AITile.GetClosestTown(plan.siteB.anchor);
+          }
+        }
+      }
+      if (townA < 0 && ("src" in p) && AIMap.IsValidTile(p.src)) townA = AITile.GetClosestTown(p.src);
+      if (townB < 0 && ("dst" in p) && AIMap.IsValidTile(p.dst)) townB = AITile.GetClosestTown(p.dst);
+    } else if (mode == "fleet") {
+      if (typeof cand == "table" && ("line" in cand) && cand.line != null && typeof cand.line == "table") {
+        local l = cand.line;
+        if (("stationA" in l) && AIMap.IsValidTile(l.stationA)) townA = AITile.GetClosestTown(l.stationA);
+        if (("stationB" in l) && AIMap.IsValidTile(l.stationB)) townB = AITile.GetClosestTown(l.stationB);
+      }
+    } else {
+      if (typeof cand == "table") {
+        if (("srcTown" in cand) && cand.srcTown >= 0) townA = cand.srcTown;
+        if (("dstTown" in cand) && cand.dstTown >= 0) townB = cand.dstTown;
+        if (("srcIndustry" in cand) && cand.srcIndustry >= 0) indA = cand.srcIndustry;
+        if (("dstIndustry" in cand) && cand.dstIndustry >= 0) indB = cand.dstIndustry;
+      }
+      if (townA < 0 && ("srcTown" in p) && p.srcTown >= 0) townA = p.srcTown;
+      if (townB < 0 && ("dstTown" in p) && p.dstTown >= 0) townB = p.dstTown;
+      if (indA < 0 && ("srcIndustry" in p) && p.srcIndustry >= 0) indA = p.srcIndustry;
+      if (indB < 0 && ("dstIndustry" in p) && p.dstIndustry >= 0) indB = p.dstIndustry;
+
+      local isFreight = (("kind" in p) && p.kind == "freight") || (typeof cand == "table" && ("kind" in cand) && cand.kind == "freight");
+      if (isFreight) {
+        if (indA < 0) {
+          local sTile = (typeof cand == "table" && ("src" in cand)) ? cand.src : (("src" in p) ? p.src : -1);
+          if (AIMap.IsValidTile(sTile)) {
+            local id = AIIndustry.GetIndustryID(sTile);
+            if (AIIndustry.IsValidIndustry(id)) indA = id;
+          }
+        }
+        if (indB < 0) {
+          local dTile = (typeof cand == "table" && ("dst" in cand)) ? cand.dst : (("dst" in p) ? p.dst : -1);
+          if (AIMap.IsValidTile(dTile)) {
+            local id = AIIndustry.GetIndustryID(dTile);
+            if (AIIndustry.IsValidIndustry(id)) indB = id;
+          }
+        }
+      }
+
+      /* Ville la plus proche meme pour le fret : les lignes relevees dans la sauvegarde sont
+       * identifiees par la ville de leurs gares, l'appariement se fait donc par paire de villes. */
+      if (townA < 0) {
+        local sTile = (typeof cand == "table" && ("src" in cand)) ? cand.src : (("src" in p) ? p.src : -1);
+        if (AIMap.IsValidTile(sTile)) townA = AITile.GetClosestTown(sTile);
+      }
+      if (townB < 0) {
+        local dTile = (typeof cand == "table" && ("dst" in cand)) ? cand.dst : (("dst" in p) ? p.dst : -1);
+        if (AIMap.IsValidTile(dTile)) townB = AITile.GetClosestTown(dTile);
+      }
+    }
+
+    if (townA >= 0 && !AITown.IsValidTown(townA)) townA = -1;
+    if (townB >= 0 && !AITown.IsValidTown(townB)) townB = -1;
+    if (indA >= 0 && !AIIndustry.IsValidIndustry(indA)) indA = -1;
+    if (indB >= 0 && !AIIndustry.IsValidIndustry(indB)) indB = -1;
+
+    local pP = ("profitAnnual" in p) ? p.profitAnnual : 0;
+    local pC = OpexProjectFinanceCapital(p);
+    local key = OpexProjectAttemptKey(p);
+    local rank = (key in bestRank) ? bestRank[key] : -1;
+    local affordable = (pC <= availableCapital) ? 1 : 0;
+
+    local fields = "year=" + year + " mode=" + mode + " townA=" + townA + " townB=" + townB
+                 + " indA=" + indA + " indB=" + indB + " P=" + pP + " C=" + pC
+                 + " rank=" + rank + " affordable=" + affordable;
+    OpexC78CandidateLog(fields);
+  }
+}
+
 
 function OpexAI::_c76RecordRegen(kind, ops, days, year, reason = "unknown")
 {
