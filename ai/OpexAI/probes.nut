@@ -114,6 +114,107 @@ function OpexC78CandidateLog(fields)
              + AIDate.GetDayOfMonth(date) + " C78_CAND " + fields);
 }
 
+/* C78 : sonde dediee a la course aux deux slots aeroportuaires d'une ville.
+ * AIStation ne permet pas d'inventorier directement les stations adverses. Le chemin fonctionnel
+ * C77 utilise AITown.GetAllowedNoise()==1 sous station_noise_level=0 pour savoir qu'un des deux
+ * slots est deja occupe ; le harnais shared garde l'inventaire/build_date AAA pour la chronologie.
+ * Cette sonde publie l'etat du vivier AIR sans modifier decision ni cadence. */
+function OpexC78SlotLog(fields)
+{
+  if (!C78_SLOT_INTERCEPT_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C78_SLOT " + fields);
+}
+
+function OpexC78AirPhysicalTown(site)
+{
+  if (site == null) return -1;
+  if (("anchor" in site) && AIMap.IsValidTile(site.anchor)) {
+    local townId = AITile.GetClosestTown(site.anchor);
+    if (townId >= 0) return townId;
+  }
+  if (("town" in site) && site.town != null) {
+    if (typeof site.town == "table" && ("id" in site.town)) return site.town.id;
+    if (typeof site.town == "integer") return site.town;
+  }
+  return -1;
+}
+
+function OpexC78FundedRank(projects, project)
+{
+  if (projects == null || !("best" in projects) || projects.best == null) return -1;
+  local key = OpexProjectAttemptKey(project);
+  for (local i = 0; i < projects.best.len(); i++) {
+    local fundedProject = projects.best[i];
+    if (fundedProject != null && OpexProjectAttemptKey(fundedProject) == key) return i;
+  }
+  return -1;
+}
+
+function OpexAI::_c78SlotOnProjectsPass()
+{
+  if (!C78_SLOT_INTERCEPT_PROBE) return;
+  C78_SLOT_PASS_COUNTER++;
+  local passId = C78_SLOT_PASS_COUNTER;
+  local cycle = this._taskCycle;
+  local tick = AIController.GetTick();
+  local available = OpexAvailableCapital();
+  local airCandidates = 0;
+  local affordable = 0;
+  local funded = 0;
+
+  if (this._projects == null || !("candidateGroups" in this._projects)
+      || this._projects.candidateGroups == null) {
+    OpexC78SlotLog("phase=projects_pass pass=" + passId
+        + " cycle=" + cycle + " tick=" + tick
+        + " state=no_projects air_candidates=0 affordable=0 funded=0"
+        + " available=" + available);
+    return;
+  }
+
+  foreach (groupKey, entry in this._projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    foreach (project in list) {
+      if (project == null || !("mode" in project) || project.mode != "air"
+          || !("payload" in project) || project.payload == null) continue;
+      local plan = project.payload;
+      if (!("siteA" in plan) || !("siteB" in plan)) continue;
+
+      local townA = OpexC78AirPhysicalTown(plan.siteA);
+      local townB = OpexC78AirPhysicalTown(plan.siteB);
+      local capital = ("budgetCapital" in project) ? project.budgetCapital : 0;
+      local finance = OpexProjectFinanceCapital(project);
+      local isAffordable = finance <= available;
+      local rank = OpexC78FundedRank(this._projects, project);
+      local score = ("fundScore" in project)
+          ? OpexProjectSelectionScore(project, "fundScore") : -1;
+      local defensiveClaims = ("defensiveSlotClaims" in project)
+          ? project.defensiveSlotClaims : -1;
+      local age = ("economicsDate" in project)
+          ? AIDate.GetCurrentDate() - project.economicsDate : -1;
+
+      airCandidates++;
+      if (isAffordable) affordable++;
+      if (rank >= 0) funded++;
+
+      OpexC78SlotLog("phase=project_candidate pass=" + passId
+          + " cycle=" + cycle + " tick=" + tick
+          + " townA=" + townA + " townB=" + townB
+          + " rank=" + rank + " affordable=" + (isAffordable ? 1 : 0)
+          + " profit=" + project.profitAnnual + " capital=" + capital + " finance=" + finance
+          + " roi=" + project.roi + " score=" + score + " defensive_claims=" + defensiveClaims
+          + " age_days=" + age
+          + " src=" + project.src + " dst=" + project.dst);
+    }
+  }
+
+  OpexC78SlotLog("phase=projects_pass pass=" + passId
+      + " cycle=" + cycle + " tick=" + tick
+      + " state=ok air_candidates=" + airCandidates
+      + " affordable=" + affordable + " funded=" + funded + " available=" + available);
+}
+
 /* Tunnel mensuel : gate dedie, independant de C63/C48/decision_log. Un AILog par passe
  * pour ne pas perdre le mois courant (le jeu s'arrete souvent au 1er decembre). */
 function OpexMonthlyFunnelLog(fields)

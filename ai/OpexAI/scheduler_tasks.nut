@@ -1,8 +1,160 @@
 /* C65 passe 3 : un dispatch par tache de file, corps deplace depuis
  * _runNextTask. */
+function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason,
+                                       c76Full = false, c76Quarter = 0, c76Reason = null)
+{
+  local stage = OPEX_STAGE_COMPLETE;
+  if (STAGED_BOOTSTRAP && owner._generationStage < OPEX_STAGE_COMPLETE) {
+    stage = owner._generationStage;
+  }
+  local doAir = stage == OPEX_STAGE_AIR_ONLY || stage == OPEX_STAGE_AIR_RAIL
+      || stage == OPEX_STAGE_COMPLETE;
+  local hasAir = owner._catalog != null
+      && ((("airCombos" in owner._catalog) && owner._catalog.airCombos != null
+           && owner._catalog.airCombos.len() > 0)
+          || owner._catalog.airport != null);
+  if (!doAir || !hasAir) return false;
+  /* C78.4 vise le cout combinatoire des grandes cartes. Sur un vivier <=64
+   * villes (cas 256² du contrat C78.3), garder la regeneration synchrone
+   * historique evite de retarder inutilement la publication du premier
+   * portefeuille. */
+  if (!("towns" in owner._catalog) || owner._catalog.towns == null
+      || OpexAirTownPoolLimit(owner._catalog.towns) <= 64) return false;
+
+  local band = stage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
+      : (stage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL : PAX_BAND_ALL);
+  task.c78AirRebuild <- {
+    ym = ym,
+    stage = stage,
+    phase = "primary",
+    band = band,
+    fleetPlan = fleetPlan,
+    plans = [],
+    cursor = {},
+    bestPlan = null,
+    published = false,
+    partialPending = false,
+    partialBestPlan = null,
+    airOps = 0,
+    regenOps = 0,
+    refreshReason = refreshReason,
+    c76Full = c76Full,
+    c76Quarter = c76Quarter,
+    c76Reason = c76Reason,
+  };
+  return true;
+}
+
+function OpexC78RequeueInitialCatalogSlice(owner, task)
+{
+  /* Tant qu'aucun portefeuille n'existe, les autres taches ne peuvent pas
+   * construire. Le catalogue est contractuellement l'index 0 de _taskQueue :
+   * le rejouer au tour suivant fait progresser le bootstrap sans affamer un
+   * portefeuille existant lors des regenerations ulterieures. */
+  if (owner._projects != null) return;
+  task.dueCycle = owner._taskCycle;
+  owner._taskCursor = 0;
+}
+
+function OpexC78ContinueCatalogAirRebuild(owner, task, year)
+{
+  if (!("c78AirRebuild" in task) || task.c78AirRebuild == null
+      || typeof task.c78AirRebuild != "table") return true;
+  local s = task.c78AirRebuild;
+
+  /* Publier le premier lot rentable au passage SUIVANT. Le scan qui l'a
+   * produit a ainsi deja rendu la main sur son budget ; le rebuild ne peut pas
+   * transformer une tranche bornee en passe monolithique. advanceStage=false
+   * garde le bootstrap sur sa meme etape jusqu'au lot exact. */
+  if (("partialPending" in s) && s.partialPending) {
+    local partialAir = {
+      complete = true,
+      airPlan = ("partialBestPlan" in s) ? s.partialBestPlan : null,
+      airPlans = s.plans,
+      airOps = s.airOps,
+    };
+    owner._rebuildProjects(s.fleetPlan, partialAir, false);
+    owner._ranked = owner._projects != null ? owner._projects.rail : null;
+    s.published = true;
+    s.partialPending = false;
+    s.partialBestPlan = null;
+    return false;
+  }
+
+  /* La tranche AIR est un calcul prive jusqu'a sa completion. L'appliquer dans
+   * le meme passage qui vient d'epuiser son budget annulerait le bornage. */
+  if (s.phase == "apply") {
+    local airOverride = {
+      complete = true,
+      airPlan = ("bestPlan" in s) ? s.bestPlan : null,
+      airPlans = s.plans,
+      airOps = s.airOps,
+    };
+    local rebuildMark = OpexOpsMeasureBegin();
+    owner._rebuildProjects(s.fleetPlan, airOverride);
+    s.regenOps += OpexOpsMeasureEnd(rebuildMark);
+    if (C39_INVALIDATION_PROBE) {
+      local reason = s.c76Full && s.c76Reason != null ? s.c76Reason : s.refreshReason;
+      local regenDays = (s.regenOps + 93000) / 186000;
+      owner._c76RecordRegen("full", s.regenOps, regenDays, year, reason);
+    }
+    if (s.c76Full) {
+      owner._c76AcknowledgeAllLayers();
+      owner._c76LastRegenQuarter = s.c76Quarter;
+      owner._c76ForceReloadRegen = false;
+    }
+    owner._lastCatalogMonth = s.ym;
+    delete task.c78AirRebuild;
+    return true;
+  }
+
+  local liveOps = AIController.GetOpsTillSuspend();
+  local sliceBudget = liveOps;
+  if (sliceBudget <= 0) sliceBudget = 1;
+  if (sliceBudget > AIR_PLAN_SLICE_OPS) sliceBudget = AIR_PLAN_SLICE_OPS;
+  local mark = OpexOpsMeasureBegin();
+  local best = OpexAirPlans(owner._catalog, owner._lines, 0, s.plans,
+      owner._abandonedPairs, s.band, -1, s.cursor,
+      sliceBudget, AIController.GetTick() + BUILD_TICK_MARGIN);
+  local sliceOps = OpexOpsMeasureEnd(mark);
+  s.airOps += sliceOps;
+  s.regenOps += sliceOps;
+  if (!("done" in s.cursor) || !s.cursor.done) {
+    if (!s.published && !s.partialPending && s.plans.len() > 0) {
+      s.partialPending = true;
+      s.partialBestPlan = best;
+    }
+    OpexC78RequeueInitialCatalogSlice(owner, task);
+    return false;
+  }
+
+  if (s.phase == "primary" && s.stage == OPEX_STAGE_AIR_ONLY && s.plans.len() == 0) {
+    s.phase = "fallback";
+    s.band = PAX_BAND_AIR_RAIL;
+    s.cursor = {};
+    s.bestPlan = null;
+    OpexC78RequeueInitialCatalogSlice(owner, task);
+    return false;
+  }
+  s.bestPlan = best;
+  s.phase = "apply";
+  OpexC78RequeueInitialCatalogSlice(owner, task);
+  return false;
+}
+
 function OpexAI::_dispatchCatalog(task, year)
 {
-
+  local refreshReason = "month";
+  if (("c78AirRebuild" in task) && task.c78AirRebuild != null) {
+    if (typeof task.c78AirRebuild == "table"
+        && ("refreshReason" in task.c78AirRebuild)) {
+      refreshReason = task.c78AirRebuild.refreshReason;
+    }
+    if (!OpexC78ContinueCatalogAirRebuild(this, task, year)) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
+  } else {
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   /* portfolio_v2 : le portefeuille n'etait regenere qu'au CHANGEMENT DE MOIS ou apres une
@@ -55,13 +207,12 @@ function OpexAI::_dispatchCatalog(task, year)
       return false;
     }
   }
-  local refreshReason = this._portfolioInvalidated ? "event"
+  refreshReason = this._portfolioInvalidated ? "event"
       : (stale ? "capital" : "month");
   if (DECISION_LOG) {
     OpexDecide("PORTFOLIO_REFRESH", "reason=" + refreshReason + " budget="
                + OpexAvailableCapital());
   }
-  this._lastCatalogMonth = ym;
   this._pruneAbandonedPairs(date);
   if (PORTFOLIO_REFRESH_PROBE) {
     local refreshMark = OpexOpsMeasureBegin();
@@ -90,6 +241,11 @@ function OpexAI::_dispatchCatalog(task, year)
           : (this._portfolioInvalidated ? "invalidated"
           : (stale ? "budget"
           : (c76PeriodicDue ? "periodic" : "initial"))));
+      if (OpexC78StartCatalogAirRebuild(this, task, ym, fleetPlan, refreshReason,
+                                        true, c76CurQuarter, c76Reason)) {
+        if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+        return false;
+      }
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
       this._rebuildProjects(fleetPlan);
       if (C39_INVALIDATION_PROBE) {
@@ -103,10 +259,15 @@ function OpexAI::_dispatchCatalog(task, year)
     } else {
       // Régénération évitée : resélection du vivier existant sous capital courant
       local budgetNow = OpexAvailableCapital();
-      this._projects = OpexReselectProjects(this._projects, budgetNow);
+      this._projects = OpexReselectProjects(
+          this._projects, budgetNow, this._abandonedPairs);
       this._c76RecordAvoided(year);
     }
   } else {
+    if (OpexC78StartCatalogAirRebuild(this, task, ym, fleetPlan, refreshReason)) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
     local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
     this._rebuildProjects(fleetPlan);
     if (C39_INVALIDATION_PROBE) {
@@ -114,6 +275,8 @@ function OpexAI::_dispatchCatalog(task, year)
       local c76Days = (c76Ops + 93000) / 186000;
       this._c76RecordRegen("full", c76Ops, c76Days, year, refreshReason);
     }
+  }
+  this._lastCatalogMonth = ym;
   }
   /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
    * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */

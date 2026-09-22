@@ -532,6 +532,62 @@ function OpexEarlySlotSelectionState()
   return state;
 }
 
+function OpexDefensiveSlotSelectionState(earlySlotState = null)
+{
+  local state = {
+    servedTowns = {}, servedCount = 0,
+    slotRemaining = {}, defensiveSlotSignal = false,
+  };
+  if (!C77_OPPORTUNISTIC_CANDIDATES) return state;
+
+  if (earlySlotState != null) {
+    state.servedTowns = earlySlotState.servedTowns;
+    state.servedCount = earlySlotState.servedCount;
+  } else {
+    local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+    for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+      local townId = AIStation.GetNearestTown(st);
+      if (townId < 0 || !AITown.IsValidTown(townId)) continue;
+      if (AITown.GetPopulation(townId) < AIR_EARLY_SLOT_MIN_POP) continue;
+      if (townId in state.servedTowns) continue;
+      state.servedTowns.rawset(townId, true);
+      state.servedCount++;
+    }
+  }
+
+  state.defensiveSlotSignal = OpexAirC83SlotSignalEnabled();
+  return state;
+}
+
+function OpexC83TownSlotsRemaining(townId, state)
+{
+  if (!C77_OPPORTUNISTIC_CANDIDATES || state == null
+      || townId < 0 || !AITown.IsValidTown(townId)) return -1;
+  if (!("defensiveSlotSignal" in state) || !state.defensiveSlotSignal) return -1;
+  if (!(townId in state.slotRemaining)) {
+    state.slotRemaining.rawset(townId, AITown.GetAllowedNoise(townId));
+  }
+  return state.slotRemaining[townId];
+}
+
+/* C78 / course defensive : avec station_noise_level=0 (configuration du duel),
+ * OpenTTD implemente AITown.GetAllowedNoise() comme max(0, 2 - nombre d'aeroports)
+ * pour TOUTES les compagnies de cette ville. C'est donc directement le nombre de
+ * slots physiques restants : 2=libre, 1=un concurrent deja present, 0=verrouille.
+ * La ville est deja exclue plus haut si Opex y possede un aeroport. Un seul appel
+ * O(1) par ville et par passe remplace ainsi tout scan de carte. Sous la regle de
+ * bruit active, ce retour change de semantique ; avec le conseil permissif (=3),
+ * le plafond des deux aeroports est lui-meme desactive. Dans ces deux cas on ne
+ * declenche pas cette politique. */
+function OpexC78TownHasCompetitorAirport(townId, state)
+{
+  local remaining = OpexC83TownSlotsRemaining(townId, state);
+  if (remaining == 1 && C78_SLOT_INTERCEPT_PROBE) {
+    OpexC78SlotLog("phase=competitor_airport town=" + townId + " slots_remaining=1");
+  }
+  return remaining == 1;
+}
+
 function OpexProjectSetEarlySlotField(project, field, value)
 {
   if (field in project) project[field] = value;
@@ -604,6 +660,92 @@ function OpexProjectRefreshEarlySlot(project, state)
   OpexProjectSetEarlySlotField(project, "earlySlotPopB", popB);
 }
 
+/* C78 : annotation strictement separee d'early-slot. Ce helper n'est appele
+ * que sous C77, afin de ne pas ajouter de travail par candidat au chemin par
+ * defaut air_early_slot=1. */
+function OpexProjectRefreshDefensiveSlot(project, state)
+{
+  if (!C77_OPPORTUNISTIC_CANDIDATES || project == null || state == null) return;
+
+  local claims = 0;
+  local competitorClaims = 0;
+  local ownClaims = 0;
+  local townA = -1;
+  local townB = -1;
+  if (("mode" in project) && project.mode == "air"
+      && ("payload" in project) && project.payload != null) {
+    local plan = project.payload;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local ownSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
+    local ownSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
+    local claimedTowns = {};
+
+    if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
+      townA = AITile.GetClosestTown(plan.siteA.anchor);
+      if (townA < 0) townA = plan.siteA.town.id;
+      if (!reuseA && townA >= 0 && AITown.IsValidTown(townA)
+          && AITown.GetPopulation(townA) >= AIR_EARLY_SLOT_MIN_POP
+          && !(townA in claimedTowns)) {
+        if (ownSecondA && (townA in state.servedTowns)
+            && OpexC83TownSlotsRemaining(townA, state) == 1) {
+          claimedTowns.rawset(townA, true);
+          claims++;
+          ownClaims++;
+        } else if (!(townA in state.servedTowns)
+            && OpexC78TownHasCompetitorAirport(townA, state)) {
+          claimedTowns.rawset(townA, true);
+          claims++;
+          competitorClaims++;
+        }
+      }
+    }
+
+    if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
+      townB = AITile.GetClosestTown(plan.siteB.anchor);
+      if (townB < 0) townB = plan.siteB.town.id;
+      if (!reuseB && townB >= 0 && AITown.IsValidTown(townB)
+          && AITown.GetPopulation(townB) >= AIR_EARLY_SLOT_MIN_POP
+          && !(townB in claimedTowns)) {
+        if (ownSecondB && (townB in state.servedTowns)
+            && OpexC83TownSlotsRemaining(townB, state) == 1) {
+          claimedTowns.rawset(townB, true);
+          claims++;
+          ownClaims++;
+        } else if (!(townB in state.servedTowns)
+            && OpexC78TownHasCompetitorAirport(townB, state)) {
+          claimedTowns.rawset(townB, true);
+          claims++;
+          competitorClaims++;
+        }
+      }
+    }
+  }
+
+  OpexProjectSetEarlySlotField(project, "defensiveSlotClaims", claims);
+  OpexProjectSetEarlySlotField(project, "defensiveCompetitorClaims", competitorClaims);
+  OpexProjectSetEarlySlotField(project, "defensiveOwnClaims", ownClaims);
+  OpexProjectSetEarlySlotField(project, "defensiveSlotTownA", townA);
+  OpexProjectSetEarlySlotField(project, "defensiveSlotTownB", townB);
+}
+
+/* C78 / course defensive au second slot : sous C77, une grande ville ou un
+ * concurrent a deja un aeroport et ou Opex peut encore en poser un est une
+ * ressource perissable. Aucun champ economique n'est modifie : cette information
+ * sert seulement de classe lexicographique devant les projets ordinaires. */
+function OpexProjectDefensiveAirPriority(project)
+{
+  if (!C77_OPPORTUNISTIC_CANDIDATES || project == null) return 0;
+  if (!("mode" in project) || project.mode != "air") return 0;
+  if (!("profitAnnual" in project) || project.profitAnnual <= 0) return 0;
+  local competitorClaims = ("defensiveCompetitorClaims" in project)
+      ? project.defensiveCompetitorClaims : 0;
+  if (competitorClaims > 0) return 2;
+  local ownClaims = ("defensiveOwnClaims" in project) ? project.defensiveOwnClaims : 0;
+  if (ownClaims > 0) return 1;
+  return 0;
+}
+
 /* portfolio_v2 : la selection finale.
  *
  * Remplace le sac a dos 0/1 par « le meilleur projet finançable ». Motif (S0 septies, trouvaille
@@ -651,6 +793,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 
   local affordable = [];
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
+  local defensiveSlotState = C77_OPPORTUNISTIC_CANDIDATES
+      ? OpexDefensiveSlotSelectionState(earlySlotState) : null;
   local scoreKey = "fundScore";
 
   local kDec = 0;
@@ -667,14 +811,25 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (financeCapital > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
+    if (C77_OPPORTUNISTIC_CANDIDATES) {
+      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+    }
     project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
         (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
-      OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+      if (C77_OPPORTUNISTIC_CANDIDATES) {
+        OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+      } else {
+        OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+      }
     }
-    OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+    if (C77_OPPORTUNISTIC_CANDIDATES) {
+      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+    } else {
+      OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+    }
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
@@ -686,14 +841,25 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       local financeCapital = OpexProjectFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
+      if (C77_OPPORTUNISTIC_CANDIDATES) {
+        OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      }
       project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
           (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
-        OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+        if (C77_OPPORTUNISTIC_CANDIDATES) {
+          OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+        } else {
+          OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+        }
       }
-      OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+      if (C77_OPPORTUNISTIC_CANDIDATES) {
+        OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+      } else {
+        OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+      }
     }
   }
   if (C69_BOTTLENECK_PROBE) {
@@ -750,6 +916,96 @@ function OpexProjectInsert(best, project, field, limit, applyEarlySlot = false)
   }
   best.insert(pos, project);
   if (best.len() > limit) best.pop();
+}
+
+/* Variante C77 uniquement. Le comparateur historique ci-dessus reste intact
+ * quand C77=0 ; la classe defensive n'ajoute donc aucun appel par comparaison
+ * au chemin normal. */
+function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false)
+{
+  local projectTier = OpexProjectDefensiveAirPriority(project);
+  local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
+  local pos = best.len();
+  while (pos > 0) {
+    local prior = best[pos - 1];
+    local priorTier = OpexProjectDefensiveAirPriority(prior);
+    if (priorTier > projectTier) break;
+    if (priorTier < projectTier) {
+      pos--;
+      continue;
+    }
+    local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
+    if (priorScore > projectScore) break;
+    if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;
+    pos--;
+  }
+  best.insert(pos, project);
+  if (best.len() > limit) best.pop();
+}
+
+/* C78 / course defensive live : `best` peut survivre plusieurs passages projects
+ * sans repasser par OpexReselectProjects. Rafraichir uniquement ce petit ensemble
+ * deja finance (PROJECT_TOP_K, 64 par defaut) permet donc de reagir a l'arrivee
+ * d'un premier aeroport concurrent sans regenerer ni rescanner tout le vivier.
+ * Les projets non AIR gardent leur ordre ; parmi les AIR defensifs, on conserve le
+ * meme score/tie-break que la selection finale. */
+function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
+{
+  if (!C77_OPPORTUNISTIC_CANDIDATES || projects == null
+      || !("best" in projects) || projects.best == null || projects.best.len() == 0) return null;
+
+  local earlyState = null;
+  local defensiveState = null;
+  local bestIndex = -1;
+  local bestTier = 0;
+  local bestScore = 0.0;
+  local bestRevenue = 0;
+  local limit = projects.best.len() < PROJECT_TOP_K ? projects.best.len() : PROJECT_TOP_K;
+
+  for (local i = 0; i < limit; i++) {
+    local project = projects.best[i];
+    if (project == null || !("mode" in project) || project.mode != "air") continue;
+    if (!("profitAnnual" in project) || project.profitAnnual <= 0) continue;
+    if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
+
+    if (defensiveState == null) {
+      if (AIR_EARLY_SLOT) earlyState = OpexEarlySlotSelectionState();
+      defensiveState = OpexDefensiveSlotSelectionState(earlyState);
+    }
+    if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlyState);
+    OpexProjectRefreshDefensiveSlot(project, defensiveState);
+    local tier = OpexProjectDefensiveAirPriority(project);
+    if (tier <= 0) continue;
+
+    local score = ("fundScore" in project)
+        ? OpexProjectSelectionScore(project, "fundScore") : project.budgetScore;
+    local revenue = ("revenueAnnual" in project) ? project.revenueAnnual : 0;
+    if (bestIndex < 0 || tier > bestTier
+        || (tier == bestTier && (score > bestScore
+            || (score == bestScore && revenue > bestRevenue)))) {
+      bestIndex = i;
+      bestTier = tier;
+      bestScore = score;
+      bestRevenue = revenue;
+    }
+  }
+
+  if (bestIndex < 0) return null;
+  local chosen = projects.best[bestIndex];
+  if (bestIndex > 0) {
+    projects.best.remove(bestIndex);
+    projects.best.insert(0, chosen);
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=defensive_priority action=promote from_rank=" + bestIndex
+          + " finance=" + OpexProjectFinanceCapital(chosen)
+          + " tier=" + bestTier
+          + " defensive_claims=" + chosen.defensiveSlotClaims
+          + " competitor_claims=" + (("defensiveCompetitorClaims" in chosen)
+              ? chosen.defensiveCompetitorClaims : 0)
+          + " own_claims=" + (("defensiveOwnClaims" in chosen) ? chosen.defensiveOwnClaims : 0));
+    }
+  }
+  return chosen;
 }
 
 
@@ -864,7 +1120,7 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
  * route ne repasse ici. Les statistiques sont remplacees ensemble car IG| et IB| doivent decrire
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
-function OpexReselectProjects(projects, capitalBudget)
+function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null)
 {
   local b6BudgetDate = AIDate.GetCurrentDate();
   local funded = null;
@@ -874,6 +1130,7 @@ function OpexReselectProjects(projects, capitalBudget)
   foreach (key, list in projects.candidateGroups) {
     foreach (project in list) alternatives.push(project);
   }
+  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   considered = alternatives.len();
   projects.stats.knapsackNodes = 0;
@@ -1035,6 +1292,9 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
         rail = OpexMergeRailCandidateSet(rail, extra);
         freightCargo = freightOrder[idx];
         generated.freightCargo = freightCargo;
+        /* Sous C77, le mode route est traite a la tranche suivante : publier le fallback reel
+         * uniquement sur cette regeneration ciblee, sans toucher au chemin normal. */
+        if (targeted) projects.freightCargo = freightCargo;
         break;
       }
     }
@@ -1087,15 +1347,13 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   return generated;
 }
 
-function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
-                                    waterSiteCatalog = null, entityKind = null, entityId = -1)
+function OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
+                                        entityKind = null, entityId = -1)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
   }
   local targeted = entityKind != null && entityId >= 0;
-  local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
-                                             mode, waterSiteCatalog, entityKind, entityId);
   local winners = {};
   local scratch = { modeCandidates = 0, modeAlternatives = 0 };
 
@@ -1131,7 +1389,65 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
     }
   }
   OpexProjectsRecountGroups(projects);
-  return OpexReselectProjects(projects, OpexAvailableCapital());
+  return OpexReselectProjects(projects, OpexAvailableCapital(), abandonedPairs);
+}
+
+function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
+                                    waterSiteCatalog = null, entityKind = null, entityId = -1)
+{
+  if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
+    return projects;
+  }
+  local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
+                                             mode, waterSiteCatalog, entityKind, entityId);
+  return OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
+                                        entityKind, entityId);
+}
+
+/* C78.4 : variante reprenable du seul mode AIR pour le worker C77. Le scan de sites
+ * d'un combo reste atomique, mais la boucle quadratique des paires rend la main sur
+ * opsBudget/deadlineTick et reprend exactement au curseur combo/a/b. */
+function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abandonedPairs,
+                                        sliceState, opsBudget, deadlineTick,
+                                        entityKind = null, entityId = -1)
+{
+  if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
+    return { done = true, projects = projects };
+  }
+  if (sliceState == null || typeof sliceState != "table") {
+    return { done = true, projects = projects };
+  }
+  if (!("plans" in sliceState)) sliceState.plans <- [];
+  if (!("airCursor" in sliceState)) sliceState.airCursor <- {};
+  if (!("ops" in sliceState)) sliceState.ops <- 0;
+
+  local mark = OpexOpsMeasureBegin();
+  local best = OpexAirPlans(catalog, lines, 0, sliceState.plans, abandonedPairs, PAX_BAND_ALL,
+                            entityKind == "town" ? entityId : -1,
+                            sliceState.airCursor, opsBudget, deadlineTick);
+  sliceState.ops += OpexOpsMeasureEnd(mark);
+  if (!("done" in sliceState.airCursor) || !sliceState.airCursor.done) {
+    return { done = false, projects = projects };
+  }
+
+  local generated = {
+    projects = [],
+    rail = null, road = null,
+    airPlan = best, waterPlan = null,
+    airPlans = sliceState.plans, waterPlans = [],
+    freightCargo = (projects != null && ("freightCargo" in projects))
+        ? projects.freightCargo : null,
+  };
+  local perPlan = sliceState.plans.len() > 0 ? sliceState.ops / sliceState.plans.len() : sliceState.ops;
+  foreach (plan in sliceState.plans) {
+    local p = OpexProjectFromAir(catalog, plan, perPlan);
+    if (p != null) generated.projects.append(p);
+  }
+  return {
+    done = true,
+    projects = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, "air",
+                                              entityKind, entityId),
+  };
 }
 
 function OpexCandidateIsAbandoned(p, abandonedPairs)
@@ -1141,13 +1457,11 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
   if (mode == "air") {
     local plan = ("payload" in p) ? p.payload : null;
     if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
-      local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
-      local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
       local siteAKey = OpexAirSitePaddingKey(plan.siteA, plan.airport.type);
       local siteBKey = OpexAirSitePaddingKey(plan.siteB, plan.airport.type);
       local townAKey = OpexAirTownPaddingKey(plan.siteA);
       local townBKey = OpexAirTownPaddingKey(plan.siteB);
-      if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
+      if (OpexAirPairIsAbandoned(abandonedPairs, plan.siteA, plan.siteB)
           || (OPEX_AIR_TOWN_PAD && ((!(("reuseA" in plan) && plan.reuseA) && (townAKey in abandonedPairs))
               || (!(("reuseB" in plan) && plan.reuseB) && (townBKey in abandonedPairs))))
           || (OPEX_AIR_SITE_PAD && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return true;
@@ -1301,6 +1615,43 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
 function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
 {
   return OpexCandidateStillValid(p, lines, abandonedPairs);
+}
+
+/* C78.2 : les sites AIR sont des predictions faites pendant un scan qui peut
+ * suspendre plusieurs fois. Juste avant tout classement, retirer les plans dont
+ * une extremite est devenue impossible ou dont la paire a ete abandonnee.
+ * Plusieurs projets peuvent partager la meme extremite : une seule sonde par
+ * site/type/reuse suffit pour toute la selection. */
+function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null)
+{
+  local live = [];
+  local siteValidity = {};
+  local stationLimitedTowns = {};
+  foreach (project in alternatives) {
+    if (project != null && ("mode" in project) && project.mode == "air") {
+      if (!("payload" in project) || project.payload == null
+          || OpexCandidateIsAbandoned(project, abandonedPairs)) continue;
+      local plan = project.payload;
+      if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) continue;
+
+      local reuseA = ("reuseA" in plan) && plan.reuseA;
+      local reuseB = ("reuseB" in plan) && plan.reuseB;
+      local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
+      local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
+      if (!(keyA in siteValidity)) {
+        siteValidity.rawset(keyA, OpexAirSiteStillBuildable(
+            plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns));
+      }
+      if (!siteValidity[keyA]) continue;
+      if (!(keyB in siteValidity)) {
+        siteValidity.rawset(keyB, OpexAirSiteStillBuildable(
+            plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns));
+      }
+      if (!siteValidity[keyB]) continue;
+    }
+    live.append(project);
+  }
+  return live;
 }
 
 /* C38 : cle stable d'une tentative au sein d'un batch. Les plans air/eau sont des objets
@@ -1773,6 +2124,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
+  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();
@@ -1913,7 +2265,9 @@ function OpexMergeRailCandidateSet(base, extra)
   return base;
 }
 
-function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, activeSubsidies = null)
+function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null,
+                           generationStage = null, priorProjects = null, freightCargo = null,
+                           freightCargoOrder = null, activeSubsidies = null, airOverride = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
@@ -2090,9 +2444,18 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local airOps = 0;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_air", "-");
   if (doAir && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
-    budget.begin();
-    airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, airBand);
-    airOps = budget.end("project_air");
+    if (airOverride != null && typeof airOverride == "table"
+        && ("complete" in airOverride) && airOverride.complete) {
+      airPlan = ("airPlan" in airOverride) ? airOverride.airPlan : null;
+      if (("airPlans" in airOverride) && airOverride.airPlans != null) {
+        foreach (plan in airOverride.airPlans) airPlans.append(plan);
+      }
+      airOps = ("airOps" in airOverride) ? airOverride.airOps : 0;
+    } else {
+      budget.begin();
+      airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, airBand);
+      airOps = budget.end("project_air");
+    }
     if (generationStage == OPEX_STAGE_AIR_RAIL && priorProjects != null
         && ("airPlans" in priorProjects) && priorProjects.airPlans != null) {
       foreach (plan in priorProjects.airPlans) {
@@ -2115,9 +2478,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
    * qu'aucun plan pax aerien n'a franchi ses filtres ; dans ce seul cas, ouvrir
    * le rail pax maintenant plutot que laisser un premier vivier 100 % fret. */
   if (generationStage == OPEX_STAGE_AIR_ONLY && airPlans.len() == 0) {
-    budget.begin();
-    airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, PAX_BAND_AIR_RAIL);
-    airOps += budget.end("project_air_overlap_fallback");
+    if (airOverride == null || !("complete" in airOverride) || !airOverride.complete) {
+      budget.begin();
+      airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, PAX_BAND_AIR_RAIL);
+      airOps += budget.end("project_air_overlap_fallback");
+    }
     local paxFallback = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
         railCandidateProfile, railPaxProfile, railPaxCandidateProfile,
         railPaxCruiseCache, railFreightCruiseCache, true, false, PAX_BAND_AIR_RAIL);
@@ -2234,6 +2599,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
+  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();

@@ -1073,7 +1073,6 @@ function OpexBuildDepot(tiles, forbidden = null)
       }
       if (onRoute) continue;
 
-      AITile.DemolishTile(candidate);
       {
         /* Bouclier : AIAccounting compte le cout SIMULE des commandes jouees en AITestMode
          * (script_object.cpp:299-302). Sans lui, le sondage qui REUSSIT ajoutait un prix de
@@ -1083,6 +1082,7 @@ function OpexBuildDepot(tiles, forbidden = null)
         local testMode = AITestMode();
         if (!AIRail.BuildRailDepot(candidate, anchor)) continue;
       }
+      AITile.DemolishTile(candidate);
       AIRail.BuildRail(stationSide, anchor, candidate);
       if (!AIRail.AreTilesConnected(stationSide, anchor, candidate) ||
           !AIRail.AreTilesConnected(stationSide, anchor, lineSide)) {
@@ -1232,10 +1232,14 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
     }
     measuredLength = trainLength;
     local okA = AIOrder.AppendOrder(train, exitA, flagsA);
-    local okB = AIOrder.AppendOrder(train, exitB, flagsB);
-    if (!okA || !okB || AIOrder.GetOrderCount(train) != 2) {
+    if (!okA) {
       return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
-               failed = true, failure = "ORDER", error = lastError, diag = diag };
+               failed = true, failure = "ORDER", error = AIError.GetLastError(), diag = diag };
+    }
+    local okB = AIOrder.AppendOrder(train, exitB, flagsB);
+    if (!okB || AIOrder.GetOrderCount(train) != 2) {
+      return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
+               failed = true, failure = "ORDER", error = !okB ? AIError.GetLastError() : 0, diag = diag };
     }
     built++;
   }

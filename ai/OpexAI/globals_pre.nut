@@ -260,6 +260,10 @@ C76_EVENTS_SINCE_PREV <- null;
 C76_REGEN_TARGETED <- false;
 /* C77 : injection immediate de candidats lies a une entite touchee par un evenement. */
 C77_OPPORTUNISTIC_CANDIDATES <- false;
+/* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
+ * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
+C78_SLOT_INTERCEPT_PROBE <- false;
+C78_SLOT_PASS_COUNTER <- 0;
 
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */

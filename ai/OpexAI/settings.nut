@@ -326,6 +326,7 @@ function OpexLoadSettings()
   AIR_CATCHMENT_PROBE = probeEvents;
   EQUIPMENT_ROI_PROBE = probeEvents;
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
+  C78_SLOT_INTERCEPT_PROBE = probePort;
 
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
   PORTFOLIO_FLOOR_PCT = 0;

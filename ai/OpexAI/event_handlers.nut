@@ -341,7 +341,8 @@ function OpexAI::_c77RemoveSubsidy(subId)
   }
   this._purgeSubsidyFromProjects(subId);
   if (this._projects != null) {
-    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+    this._projects = OpexReselectProjects(
+        this._projects, OpexAvailableCapital(), this._abandonedPairs);
     this._ranked = this._projects.rail;
   }
 }

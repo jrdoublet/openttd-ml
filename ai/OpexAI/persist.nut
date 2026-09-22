@@ -138,6 +138,29 @@ function OpexSaveActiveWorker(worker)
       }
     };
   }
+  if (worker.kind == "regen_candidates") {
+    /* C78.4 : la tranche AIR contient temporairement des plans/economics avec
+     * des flottants, interdits par le format de sauvegarde. Rien n'est publie
+     * dans candidateGroups avant DONE : on peut donc jeter uniquement la
+     * tranche AIR en cours et reprendre ce mode depuis son debut apres Load. */
+    local s = worker.state;
+    local modesCopy = [];
+    if (("modes" in s) && s.modes != null && typeof s.modes == "array") {
+      foreach (mode in s.modes) modesCopy.append(mode);
+    }
+    return {
+      kind = worker.kind,
+      state = {
+        modes = modesCopy,
+        cursor = ("cursor" in s) ? s.cursor : 0,
+        targeted = ("targeted" in s) ? s.targeted : false,
+        entityKind = ("entityKind" in s) ? s.entityKind : null,
+        entityId = ("entityId" in s) ? s.entityId : -1,
+        buildAfter = ("buildAfter" in s) ? s.buildAfter : false,
+        reason = ("reason" in s) ? s.reason : "event",
+      }
+    };
+  }
   return {
     kind = worker.kind,
     state = worker.state

@@ -270,6 +270,57 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
   this._c39FinanceableSince = stamped;
   return stamped.len();
 }
+
+/* C83.1 : equivalent d'un evenement "un concurrent vient de prendre le premier
+ * slot", absent de NoAI. On ne surveille que les K grandes villes early-slot et
+ * GetAllowedNoise est O(1). Le cache encode (slots restants + 10 si Opex y est
+ * deja present), afin de reagir aussi si notre aeroport disparait alors que le
+ * total reste a un slot. La regeneration C77 est ciblee sur UNE ville et sa cle
+ * reactive assure la coalescence. */
+function OpexAI::_c83WatchAirSlotTransitions()
+{
+  if (!C77_OPPORTUNISTIC_CANDIDATES || this._catalog == null
+      || !OpexAirC83SlotSignalEnabled()) return 0;
+  if (this._c83SlotWatch == null || typeof this._c83SlotWatch != "table") {
+    this._c83SlotWatch = {};
+  }
+
+  local enqueued = 0;
+  local watched = OpexAirC83WatchTowns(this._catalog.towns);
+  foreach (town in watched) {
+    local remaining = AITown.GetAllowedNoise(town.id);
+    local ownPresent = OpexAirTownServed(town, this._lines);
+    local state = remaining + (ownPresent ? 10 : 0);
+    local previous = (town.id in this._c83SlotWatch) ? this._c83SlotWatch[town.id] : 2;
+    this._c83SlotWatch.rawset(town.id, state);
+
+    if (state != 1 || previous == 1) continue;
+    local alreadyFunded = false;
+    if (this._projects != null && ("best" in this._projects) && this._projects.best != null) {
+      local limit = this._projects.best.len() < PROJECT_TOP_K ? this._projects.best.len() : PROJECT_TOP_K;
+      for (local i = 0; i < limit; i++) {
+        local project = this._projects.best[i];
+        if (project == null || !("mode" in project) || project.mode != "air") continue;
+        if (!("profitAnnual" in project) || project.profitAnnual <= 0) continue;
+        if (OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;
+        if (OpexProjectTouchesEntity(project, "town", town.id)) {
+          alreadyFunded = true;
+          break;
+        }
+      }
+    }
+    if (alreadyFunded) continue;
+    if (this._c77EnqueueEntity(["air"], "town", town.id, true, "c83_slot_race")) {
+      enqueued++;
+      if (C78_SLOT_INTERCEPT_PROBE) {
+        OpexC78SlotLog("phase=c83_slot_watch town=" + town.id
+            + " previous=" + previous + " remaining=1 action=targeted_regen");
+      }
+    }
+  }
+  return enqueued;
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   local c75KPassData = null;
@@ -281,11 +332,21 @@ function OpexAI::_tryBuildProjects(year)
     c75KPassData = OpexC75ComputeKPass(now);
     if (C75_YEAR_LEDGER != null) C75_YEAR_LEDGER.passes++;
   }
+
+  /* C83.1 : detecter d'abord une transition de slot qui exige un candidat absent,
+   * puis reevaluer le petit portefeuille deja finance avant toute depense. */
+  if (C77_OPPORTUNISTIC_CANDIDATES && this._projects != null) {
+    local c83TargetedRegens = this._c83WatchAirSlotTransitions();
+    if (c83TargetedRegens > 0) return true;
+    OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
+  }
+
   local c73Cash = 0;
   local c73Avail = 0;
   if (C69_BOTTLENECK_PROBE) {
     c73Cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     c73Avail = OpexAvailableCapital();
+    if (C78_SLOT_INTERCEPT_PROBE) this._c78SlotOnProjectsPass();
   }
   local c49Best = null;
   local c49BuiltRanks = null;
@@ -331,10 +392,39 @@ function OpexAI::_tryBuildProjects(year)
         + ((this._projects != null) ? this._projects.best.len() : -1));
   }
 
+  /* C78 / course defensive : le selecteur place un AIR rentable et finançable
+   * touchant une grande ville encore prenable en tete. Si un A* rail a deja fini
+   * son calcul, lui laisser consommer la caisse ici annulerait cette priorite
+   * avant meme la boucle portefeuille. Il cede exactement une passe ; le marqueur
+   * vit seulement dans _railSearch (etat deja transitoire et non serialise). */
+  local c77DefensiveHead = null;
+  if (C77_OPPORTUNISTIC_CANDIDATES && this._projects != null
+      && this._projects.best != null && this._projects.best.len() > 0) {
+    local head = this._projects.best[0];
+    if (OpexProjectDefensiveAirPriority(head) > 0
+        && OpexProjectFinanceCapital(head) <= OpexAvailableCapital()) {
+      c77DefensiveHead = head;
+    }
+  }
+  local c77DeferCompletedRail = c77DefensiveHead != null
+      && RAIL_SEARCH_RESUMABLE && this._railSearch != null
+      && this._railSearch.kind == "primary" && this._railSearch.phase == "build"
+      && !("c77DefensiveDeferred" in this._railSearch);
+  if (c77DeferCompletedRail) {
+    this._railSearch.c77DefensiveDeferred <- true;
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=defensive_priority pass=" + C78_SLOT_PASS_COUNTER
+          + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+          + " action=defer_rail finance=" + OpexProjectFinanceCapital(c77DefensiveHead)
+          + " available=" + OpexAvailableCapital());
+    }
+  }
+
   /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le
    * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
-      this._railSearch.kind == "primary" && this._railSearch.phase == "build") {
+      this._railSearch.kind == "primary" && this._railSearch.phase == "build"
+      && !c77DeferCompletedRail) {
     local railCandidate = this._railSearch.candidate;
     local railResult = this._consumeRailSearch(year);
     local outcome = railResult.outcome;
@@ -454,11 +544,23 @@ function OpexAI::_tryBuildProjects(year)
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
       if (projCap >= c75KPass) {
         c75StopReason = "k_pass";
+        if (C78_SLOT_INTERCEPT_PROBE) {
+          OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
+              + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+              + " reason=k_pass next_rank=" + i + " next_mode=" + project.mode
+              + " finance=" + projCap + " threshold=" + c75KPass);
+        }
         break;
       }
       local availCap = OpexAvailableCapital();
       if (projCap > availCap) {
         c75StopReason = "cash";
+        if (C78_SLOT_INTERCEPT_PROBE) {
+          OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
+              + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+              + " reason=cash next_rank=" + i + " next_mode=" + project.mode
+              + " finance=" + projCap + " available=" + availCap);
+        }
         break;
       }
     }
@@ -511,9 +613,42 @@ function OpexAI::_tryBuildProjects(year)
 
     if (mode == "air") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      local c78DiscardStart = C78_SLOT_INTERCEPT_PROBE ? passDiscards.len() : 0;
+      if (C78_SLOT_INTERCEPT_PROBE) {
+        local c78Plan = project.payload;
+        OpexC78SlotLog("phase=air_attempt pass=" + C78_SLOT_PASS_COUNTER
+            + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+            + " rank=" + i + " townA=" + OpexC78AirPhysicalTown(c78Plan.siteA)
+            + " townB=" + OpexC78AirPhysicalTown(c78Plan.siteB)
+            + " src=" + project.src + " dst=" + project.dst
+            + " defensive_claims=" + (("defensiveSlotClaims" in project) ? project.defensiveSlotClaims : -1)
+            + " finance=" + OpexProjectFinanceCapital(project)
+            + " available=" + OpexAvailableCapital() + " built_before=" + liveBuiltCount);
+      }
       local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                 anchor, yy);
       passDiscards = attempt.discards;
+      if (C78_SLOT_INTERCEPT_PROBE) {
+        local c78Reason = (attempt.outcome == "built") ? "built" : "unknown";
+        local c78Detail = "";
+        local c78Error = 0;
+        for (local k = c78DiscardStart; k < passDiscards.len(); k++) {
+          local d = passDiscards[k];
+          if (d != null && d.mode == "air" && d.rank == i) {
+            c78Reason = d.reason;
+            c78Detail = ("detail" in d) ? d.detail : "";
+            c78Error = ("error" in d) ? d.error : 0;
+          }
+        }
+        local c78Plan = project.payload;
+        OpexC78SlotLog("phase=air_outcome pass=" + C78_SLOT_PASS_COUNTER
+            + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+            + " rank=" + i + " townA=" + OpexC78AirPhysicalTown(c78Plan.siteA)
+            + " townB=" + OpexC78AirPhysicalTown(c78Plan.siteB)
+            + " src=" + project.src + " dst=" + project.dst
+            + " outcome=" + attempt.outcome + " reason=" + c78Reason
+            + " detail=" + c78Detail + " error=" + c78Error);
+      }
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -591,6 +726,12 @@ function OpexAI::_tryBuildProjects(year)
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
+        if (C78_SLOT_INTERCEPT_PROBE) {
+          OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
+              + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+              + " reason=rail_search blocker_rank=" + i + " blocker_mode=rail"
+              + " built_before=" + builtCount);
+        }
         /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
          * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */
         if (builtCount > 0) {
@@ -704,6 +845,21 @@ function OpexAI::_tryBuildProjects(year)
     local built = builtCount > 0;
     local empty = (c49Best == null || c49Best.len() == 0);
     OpexC73RecordPass(built, empty, c73Cash, c73Avail);
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      local c78ExitStop = c75StopReason;
+      if (c78ExitStop == null && builtCount > 0) {
+        c78ExitStop = (!C75_MULTI_BUILD) ? "single" : "list_end";
+      }
+      OpexC78SlotLog("phase=projects_exit pass=" + C78_SLOT_PASS_COUNTER
+          + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+          + " built_count=" + builtCount
+          + " stop=" + (c78ExitStop != null ? c78ExitStop : "none"));
+    }
+    if (C78_SLOT_INTERCEPT_PROBE && builtCount > 0) {
+      OpexC78SlotLog("phase=build pass=" + C78_SLOT_PASS_COUNTER
+          + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+          + " built_count=" + builtCount);
+    }
   }
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
   if (C69_TRACK_BUILDS && builtCount > 0) {
@@ -782,7 +938,7 @@ function OpexAI::_tryBuildProjects(year)
   }
   return false;
 }
-function OpexAI::_rebuildProjects(fleetPlan)
+function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = true)
 {
   /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
    * rebuild normal reste l'unique producteur du nouveau portefeuille. */
@@ -796,6 +952,33 @@ function OpexAI::_rebuildProjects(fleetPlan)
     if (this._generationStageMonth < 0) {
       local date = AIDate.GetCurrentDate();
       this._generationStageMonth = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+    }
+  }
+  /* C78.4 : pendant un parcours AIR grande carte encore actif, un rebuild
+   * post-chantier ne doit jamais retomber dans OpexAirPlans synchrone. Recycler
+   * le lot AIR du portefeuille courant pendant que le curseur catalogue produit
+   * le prochain lot en prive. Le bootstrap reste sur la meme etape jusqu'a la
+   * fin du scan. */
+  if (airOverride == null && this._catalog != null && ("towns" in this._catalog)
+      && this._catalog.towns != null
+      && OpexAirTownPoolLimit(this._catalog.towns) > 64
+      && this._projects != null && this._taskQueue != null) {
+    local c78Pending = false;
+    foreach (task in this._taskQueue) {
+      if (task != null && ("name" in task) && task.name == "catalog"
+          && ("c78AirRebuild" in task) && task.c78AirRebuild != null) {
+        c78Pending = true;
+        break;
+      }
+    }
+    if (c78Pending) {
+      airOverride = {
+        complete = true,
+        airPlan = ("airPlan" in this._projects) ? this._projects.airPlan : null,
+        airPlans = ("airPlans" in this._projects) ? this._projects.airPlans : [],
+        airOps = ("airPlanningOpcodes" in this._projects) ? this._projects.airPlanningOpcodes : 0,
+      };
+      advanceStage = false;
     }
   }
   local freightCargo = null;
@@ -819,25 +1002,26 @@ function OpexAI::_rebuildProjects(fleetPlan)
   }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       fleetPlan, this._abandonedPairs, stage, prior,
-      freightCargo, freightCargos, C77_OPPORTUNISTIC_CANDIDATES ? this._activeSubsidies : null);
+      freightCargo, freightCargos, C77_OPPORTUNISTIC_CANDIDATES ? this._activeSubsidies : null,
+      airOverride);
   if (stage == OPEX_STAGE_COMPLETE && b6StaleProjects != null) {
     OpexB6LogFreshEquivalence(b6StaleProjects, this._projects, b6StaleDate);
   }
   local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
       ? this._projects.freightCargo : freightCargo;
-  if (stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {
+  if (advanceStage && stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {
     this._bootstrapFreightCargo = actualFreightCargo;
   }
   /* Le bootstrap utilise le meme premier cargo pour son rail (etape 0) puis
    * sa route (etape 3). Ensuite chaque passe complete ne porte que sur le
    * cargo suivant : prior reste null en regime complet, donc le portefeuille
    * ne regrossit jamais par accumulation des anciens lots fret. */
-  if (freightCargos.len() > 0
+  if (advanceStage && freightCargos.len() > 0
       && (stage == OPEX_STAGE_ROUTE_ONLY || stage == OPEX_STAGE_COMPLETE)) {
     if (actualFreightCargo != null) this._lastFreightCargo = actualFreightCargo;
     if (stage == OPEX_STAGE_ROUTE_ONLY) this._bootstrapFreightCargo = -1;
   }
-  if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
+  if (advanceStage && STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
     this._generationStage++;
     if (DECISION_LOG) {
       OpexDecide("BOOTSTRAP_ADVANCE", "next=" + this._generationStage

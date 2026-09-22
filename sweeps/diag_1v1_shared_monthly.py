@@ -21,6 +21,7 @@ Sortie : un JSON avec une ligne par (IA, graine, mois), et des tableaux mensuels
 """
 import argparse
 from collections import Counter, defaultdict
+from datetime import date
 import json
 from pathlib import Path
 import re
@@ -600,7 +601,622 @@ def parse_hogex_builds_detailed(output):
     return parse_hogex_builds(output)
 
 
-def attach_logs(rows, funnel_requested=None):
+def parse_c78_slot_events(output):
+    """Evenements C78_SLOT, conserves avec leur date exacte et leurs champs."""
+    by_month = defaultdict(list)
+    for line in (output or "").splitlines():
+        sm = SCRIPT_RE.search(line)
+        if not sm or int(sm.group(1)) != 0:
+            continue
+        om = OPEX_RE.match(sm.group(2).strip())
+        if not om or om.group(4) != "C78_SLOT":
+            continue
+        year, month, day = int(om.group(1)), int(om.group(2)), int(om.group(3))
+        fields = parse_fields(om.group(5))
+        for key, value in list(fields.items()):
+            try:
+                fields[key] = int(value)
+            except (TypeError, ValueError):
+                try:
+                    fields[key] = float(value)
+                except (TypeError, ValueError):
+                    pass
+        fields["date"] = f"{year:04d}-{month:02d}-{day:02d}"
+        by_month[f"{year:04d}-{month:02d}"].append(fields)
+    return dict(by_month)
+
+
+def parse_c83_rights_events(output):
+    """Mesures passives C83_RIGHTS avec date et champs numeriques normalises."""
+    by_month = defaultdict(list)
+    for line in (output or "").splitlines():
+        sm = SCRIPT_RE.search(line)
+        if not sm or int(sm.group(1)) != 0:
+            continue
+        om = OPEX_RE.match(sm.group(2).strip())
+        if not om or om.group(4) != "C83_RIGHTS":
+            continue
+        year, month, day = int(om.group(1)), int(om.group(2)), int(om.group(3))
+        fields = parse_fields(om.group(5))
+        for key, value in list(fields.items()):
+            try:
+                fields[key] = int(value)
+            except (TypeError, ValueError):
+                try:
+                    fields[key] = float(value)
+                except (TypeError, ValueError):
+                    pass
+        fields["date"] = f"{year:04d}-{month:02d}-{day:02d}"
+        by_month[f"{year:04d}-{month:02d}"].append(fields)
+    return dict(by_month)
+
+
+
+def _iso_to_ottd_day(value):
+    try:
+        return date.fromisoformat(str(value)).toordinal() + 365
+    except (TypeError, ValueError):
+        return None
+
+
+def _ottd_day_to_iso(value):
+    try:
+        return date.fromordinal(int(value) - 365).isoformat()
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _airport_builds_by_seed_town(rows, arm):
+    """Union des aéroports vus dans STNN, avec la plus ancienne build_date par StationID."""
+    by_seed = defaultdict(lambda: defaultdict(dict))
+    for record in rows:
+        if record.get("arm") != arm:
+            continue
+        seed = record.get("seed")
+        inventory = record.get("stations_by_town") or {}
+        for town_raw, slot in inventory.items():
+            try:
+                town_id = int(town_raw)
+            except (TypeError, ValueError):
+                continue
+            for station in (slot or {}).get("stations", []):
+                if "airport" not in (station.get("facilities") or []):
+                    continue
+                try:
+                    station_id = int(station.get("id"))
+                    build_date = int(station.get("build_date"))
+                except (TypeError, ValueError):
+                    continue
+                previous = by_seed[seed][town_id].get(station_id)
+                if previous is None or build_date < previous:
+                    by_seed[seed][town_id][station_id] = build_date
+    return by_seed
+
+
+def _airport_first_and_double_by_seed_town(rows, arm):
+    """Premier aéroport vu et première coexistence réelle de deux aéroports par ville."""
+    by_seed_rows = defaultdict(list)
+    for record in rows:
+        if record.get("arm") == arm:
+            by_seed_rows[record.get("seed")].append(record)
+
+    first = defaultdict(dict)
+    doubled = defaultdict(dict)
+    for seed, seed_rows in by_seed_rows.items():
+        seed_rows.sort(key=lambda record: str(record.get("date", "")))
+        for record in seed_rows:
+            inventory = record.get("stations_by_town") or {}
+            for town_raw, slot in inventory.items():
+                try:
+                    town_id = int(town_raw)
+                except (TypeError, ValueError):
+                    continue
+                current = []
+                for station in (slot or {}).get("stations", []):
+                    if "airport" not in (station.get("facilities") or []):
+                        continue
+                    try:
+                        station_id = int(station.get("id"))
+                        build_date = int(station.get("build_date"))
+                    except (TypeError, ValueError):
+                        continue
+                    current.append((build_date, station_id))
+                    previous = first[seed].get(town_id)
+                    if previous is None or (build_date, station_id) < previous:
+                        first[seed][town_id] = (build_date, station_id)
+
+                # La première ligne mensuelle avec >=2 aéroports prouve leur coexistence.
+                # On prend les deux plus anciens encore présents à cet instant.
+                if len(current) >= 2 and town_id not in doubled[seed]:
+                    current.sort()
+                    doubled[seed][town_id] = {
+                        "snapshot_date": record.get("date"),
+                        "first": current[0],
+                        "second": current[1],
+                    }
+    return first, doubled
+
+
+def _flatten_c78_slot_events(rows):
+    events = defaultdict(list)
+    for record in rows:
+        if record.get("arm") != "OpexAI":
+            continue
+        seed = record.get("seed")
+        for event in record.get("c78_slot_events") or []:
+            day = _iso_to_ottd_day(event.get("date"))
+            if day is None:
+                continue
+            item = dict(event)
+            item["_day"] = day
+            for source, target in (("pass", "_pass"), ("tick", "_tick"), ("cycle", "_cycle")):
+                try:
+                    item[target] = int(item.get(source, -1))
+                except (TypeError, ValueError):
+                    item[target] = -1
+            events[seed].append(item)
+    for seed in events:
+        events[seed].sort(
+            key=lambda e: (e["_day"], e["_pass"], e["_tick"], e["_cycle"], e.get("phase", ""))
+        )
+    return events
+
+
+def _c78_air_candidate_group_key(event, fallback_index):
+    """Cle de groupe du portefeuille AIR : une paire O/D, independamment de l'equipement."""
+    try:
+        src = int(event.get("src", -1))
+        dst = int(event.get("dst", -1))
+    except (TypeError, ValueError):
+        return ("event", fallback_index)
+    if src < 0 or dst < 0:
+        return ("event", fallback_index)
+    if src > dst:
+        src, dst = dst, src
+    return ("air", src, dst)
+
+
+def _c78_same_pass(event, pass_event):
+    if event is None or pass_event is None:
+        return False
+    event_pass = event.get("_pass", -1)
+    pass_id = pass_event.get("_pass", -1)
+    if event_pass >= 0 and pass_id >= 0:
+        return event_pass == pass_id
+    event_cycle = event.get("_cycle", -1)
+    pass_cycle = pass_event.get("_cycle", -1)
+    if event_cycle >= 0 and pass_cycle >= 0:
+        return event_cycle == pass_cycle
+    # Un passage projects peut franchir un changement de date sous charge. Les identifiants
+    # pass/cycle sont donc prioritaires ; la date ne sert que de repli pour d'anciens logs qui
+    # ne les portent pas.
+    if event.get("_day") != pass_event.get("_day"):
+        return False
+    event_tick = event.get("_tick", -1)
+    pass_tick = pass_event.get("_tick", -1)
+    if event_tick >= 0 and pass_tick >= 0 and event_tick != pass_tick:
+        return False
+    return True
+
+
+def summarize_air_slot_intercept(rows):
+    """Corrèle 0→1→2 aéroports AAA avec le prochain passage projects d'Opex.
+
+    L'inventaire STNN donne les build_date exactes d'AAAHogEx. Les logs C78_SLOT décrivent
+    le vivier AIR au passage projects ; aucune tentative n'est faite d'inspecter une StationID
+    adverse depuis NoAI.
+    """
+    aaa_first, aaa_doubled = _airport_first_and_double_by_seed_town(rows, "AAAHogEx")
+    own = _airport_builds_by_seed_town(rows, "OpexAI")
+    events = _flatten_c78_slot_events(rows)
+    opportunities = []
+
+    for seed, towns in aaa_first.items():
+        seed_events = events.get(seed, [])
+        pass_events = [e for e in seed_events if e.get("phase") == "projects_pass"]
+        build_events = [e for e in seed_events if e.get("phase") == "build"]
+        candidate_events = [e for e in seed_events if e.get("phase") == "project_candidate"]
+        attempt_events = [e for e in seed_events if e.get("phase") == "air_attempt"]
+        outcome_events = [e for e in seed_events if e.get("phase") == "air_outcome"]
+        stop_events = [e for e in seed_events if e.get("phase") == "pass_stop"]
+        exit_events = [e for e in seed_events if e.get("phase") == "projects_exit"]
+
+        for town_id, first_ever in towns.items():
+            first_ever_day, first_ever_station = first_ever
+            double = aaa_doubled.get(seed, {}).get(town_id)
+            if double is not None:
+                first_day, first_station = double["first"]
+                second_day, second_station = double["second"]
+                double_snapshot_date = double["snapshot_date"]
+            else:
+                first_day, first_station = first_ever_day, first_ever_station
+                second_day = None
+                second_station = None
+                double_snapshot_date = None
+
+            same_day_passes = [e for e in pass_events if e["_day"] == first_day]
+            same_day_builds = [e for e in build_events if e["_day"] == first_day]
+            # STNN build_date n'a pas de tick. Un log Opex du meme jour peut donc preceder
+            # ou suivre la construction AAA : ne pas le presenter comme reaction prouvee.
+            first_pass = next((e for e in pass_events if e["_day"] > first_day), None)
+            first_build = next((e for e in build_events if e["_day"] > first_day), None)
+            matches = []
+            if first_pass is not None:
+                pass_day = first_pass["_day"]
+                pass_id = first_pass["_pass"]
+                pass_tick = first_pass["_tick"]
+                pass_cycle = first_pass["_cycle"]
+                for event in candidate_events:
+                    if event["_day"] != pass_day:
+                        continue
+                    if pass_id >= 0 and event["_pass"] >= 0:
+                        if event["_pass"] != pass_id:
+                            continue
+                    else:
+                        if pass_tick >= 0 and event["_tick"] >= 0 and event["_tick"] != pass_tick:
+                            continue
+                        if pass_cycle >= 0 and event["_cycle"] >= 0 and event["_cycle"] != pass_cycle:
+                            continue
+                    try:
+                        town_a = int(event.get("townA", -1))
+                        town_b = int(event.get("townB", -1))
+                    except (TypeError, ValueError):
+                        continue
+                    if town_a == town_id or town_b == town_id:
+                        matches.append(event)
+
+            own_builds = sorted((day, sid) for sid, day in own.get(seed, {}).get(town_id, {}).items())
+            own_before_first = next((entry for entry in own_builds if entry[0] < first_day), None)
+            own_same_day = next((entry for entry in own_builds if entry[0] == first_day), None)
+            own_after_first = next((entry for entry in own_builds if entry[0] > first_day), None)
+
+            grouped_matches = defaultdict(list)
+            for idx, event in enumerate(matches):
+                grouped_matches[_c78_air_candidate_group_key(event, idx)].append(event)
+
+            affordable_groups = []
+            funded_groups = []
+            funded_group_keys = []
+            for group_key, variants in grouped_matches.items():
+                is_affordable = False
+                is_funded = False
+                for event in variants:
+                    try:
+                        if int(event.get("affordable", 0) or 0) == 1:
+                            is_affordable = True
+                    except (TypeError, ValueError):
+                        pass
+                    try:
+                        if int(event.get("rank", -1)) >= 0:
+                            is_funded = True
+                    except (TypeError, ValueError):
+                        pass
+                if is_affordable:
+                    affordable_groups.append(variants)
+                if is_funded:
+                    funded_groups.append(variants)
+                    funded_group_keys.append(group_key)
+
+            same_pass_attempts = []
+            same_pass_outcomes = []
+            same_pass_stops = []
+            same_pass_exit = None
+            if first_pass is not None:
+                same_pass_attempts = [e for e in attempt_events if _c78_same_pass(e, first_pass)]
+                same_pass_outcomes = [e for e in outcome_events if _c78_same_pass(e, first_pass)]
+                same_pass_stops = [e for e in stop_events if _c78_same_pass(e, first_pass)]
+                same_pass_exit = next((e for e in exit_events if _c78_same_pass(e, first_pass)), None)
+
+            funded_key_set = set(funded_group_keys)
+            funded_attempts = [
+                e for idx, e in enumerate(same_pass_attempts)
+                if _c78_air_candidate_group_key(e, idx) in funded_key_set
+            ]
+            funded_outcomes = [
+                e for idx, e in enumerate(same_pass_outcomes)
+                if _c78_air_candidate_group_key(e, idx) in funded_key_set
+            ]
+            attempted_funded_keys = {
+                _c78_air_candidate_group_key(e, idx) for idx, e in enumerate(funded_attempts)
+            }
+            built_funded_keys = {
+                _c78_air_candidate_group_key(e, idx) for idx, e in enumerate(funded_outcomes)
+                if e.get("outcome") == "built"
+            }
+
+            best_rank = None
+            funded_ranks = []
+            for variants in funded_groups:
+                for event in variants:
+                    try:
+                        rank = int(event.get("rank", -1))
+                    except (TypeError, ValueError):
+                        continue
+                    if rank >= 0:
+                        funded_ranks.append(rank)
+            if funded_ranks:
+                best_rank = min(funded_ranks)
+            best_affordable_profit = None
+            if affordable_groups:
+                profits = []
+                for variants in affordable_groups:
+                    for event in variants:
+                        try:
+                            profits.append(float(event.get("profit", 0)))
+                        except (TypeError, ValueError):
+                            pass
+                if profits:
+                    best_affordable_profit = max(profits)
+
+            pass_day = first_pass["_day"] if first_pass is not None else None
+            build_day = first_build["_day"] if first_build is not None else None
+            own_day = own_after_first[0] if own_after_first is not None else None
+            before_second = lambda d: d is not None and (second_day is None or d < second_day)
+
+            opportunities.append({
+                "seed": seed,
+                "town": town_id,
+                "aaa_first_ever_station": first_ever_station,
+                "aaa_first_ever_build_date": first_ever_day,
+                "aaa_first_ever_date": _ottd_day_to_iso(first_ever_day),
+                "aaa_first_station": first_station,
+                "aaa_first_build_date": first_day,
+                "aaa_first_date": _ottd_day_to_iso(first_day),
+                "aaa_double_snapshot_date": double_snapshot_date,
+                "aaa_second_station": second_station,
+                "aaa_second_build_date": second_day,
+                "aaa_second_date": _ottd_day_to_iso(second_day) if second_day is not None else None,
+                "window_days": (second_day - first_day) if second_day is not None else None,
+                "same_day_projects_ambiguous": len(same_day_passes),
+                "same_day_builds_ambiguous": len(same_day_builds),
+                "next_projects_date": first_pass.get("date") if first_pass is not None else None,
+                "next_projects_delay_days": (pass_day - first_day) if pass_day is not None else None,
+                "next_projects_before_second": before_second(pass_day),
+                "candidate_count": len(grouped_matches),
+                "candidate_variant_count": len(matches),
+                "affordable_candidate_count": len(affordable_groups),
+                "funded_candidate_count": len(funded_groups),
+                "funded_candidate_attempted_count": len(attempted_funded_keys),
+                "funded_candidate_built_count": len(built_funded_keys),
+                "best_funded_rank": best_rank,
+                "best_affordable_profit": best_affordable_profit,
+                "candidates": [
+                    {k: v for k, v in e.items() if not k.startswith("_")}
+                    for e in matches
+                ],
+                "funded_air_attempts": [
+                    {k: v for k, v in e.items() if not k.startswith("_")}
+                    for e in funded_attempts
+                ],
+                "funded_air_outcomes": [
+                    {k: v for k, v in e.items() if not k.startswith("_")}
+                    for e in funded_outcomes
+                ],
+                "pass_stops": [
+                    {k: v for k, v in e.items() if not k.startswith("_")}
+                    for e in same_pass_stops
+                ],
+                "projects_exit": (
+                    {k: v for k, v in same_pass_exit.items() if not k.startswith("_")}
+                    if same_pass_exit is not None else None
+                ),
+                "next_build_date": first_build.get("date") if first_build is not None else None,
+                "next_build_delay_days": (build_day - first_day) if build_day is not None else None,
+                "next_build_before_second": before_second(build_day),
+                "opex_airport_already_present_before_aaa": own_before_first is not None,
+                "opex_airport_same_day_ambiguous": own_same_day is not None,
+                "opex_first_airport_after_aaa_date": _ottd_day_to_iso(own_day) if own_day is not None else None,
+                "opex_airport_before_second": before_second(own_day),
+            })
+
+    opportunities.sort(key=lambda e: (e["seed"], e["aaa_first_build_date"], e["town"]))
+    doubled = [e for e in opportunities if e["aaa_second_build_date"] is not None]
+    pass_delays = [e["next_projects_delay_days"] for e in doubled if e["next_projects_delay_days"] is not None]
+    windows = [e["window_days"] for e in doubled if e["window_days"] is not None]
+    funded_cases = [
+        e for e in doubled
+        if e["next_projects_before_second"] and e["funded_candidate_count"] > 0
+    ]
+    funded_reject_reasons = Counter()
+    funded_stop_reasons = Counter()
+    for event in funded_cases:
+        for outcome in event["funded_air_outcomes"]:
+            if outcome.get("outcome") != "built":
+                funded_reject_reasons[str(outcome.get("reason", "unknown"))] += 1
+        if event["funded_candidate_attempted_count"] == 0:
+            if event["pass_stops"]:
+                for stop in event["pass_stops"]:
+                    funded_stop_reasons[str(stop.get("reason", "unknown"))] += 1
+            elif event["projects_exit"] is not None and event["projects_exit"].get("stop") not in (None, "", "none"):
+                funded_stop_reasons[str(event["projects_exit"].get("stop"))] += 1
+            else:
+                funded_stop_reasons["no_logged_stop"] += 1
+    summary = {
+        "opportunities": len(opportunities),
+        "second_airport_cases": len(doubled),
+        "same_day_projects_ambiguous": sum(bool(e["same_day_projects_ambiguous"]) for e in doubled),
+        "same_day_builds_ambiguous": sum(bool(e["same_day_builds_ambiguous"]) for e in doubled),
+        "next_projects_before_second": sum(bool(e["next_projects_before_second"]) for e in doubled),
+        "affordable_candidate_before_second": sum(
+            bool(e["next_projects_before_second"]) and e["affordable_candidate_count"] > 0
+            for e in doubled
+        ),
+        "funded_candidate_before_second": sum(
+            bool(e["next_projects_before_second"]) and e["funded_candidate_count"] > 0
+            for e in doubled
+        ),
+        "funded_candidate_attempted_first_pass": sum(
+            e["funded_candidate_attempted_count"] > 0 for e in funded_cases
+        ),
+        "funded_candidate_built_first_pass": sum(
+            e["funded_candidate_built_count"] > 0 for e in funded_cases
+        ),
+        "funded_candidate_not_attempted_first_pass": sum(
+            e["funded_candidate_attempted_count"] == 0 for e in funded_cases
+        ),
+        "funded_reject_reasons": dict(sorted(funded_reject_reasons.items())),
+        "funded_not_attempted_stop_reasons": dict(sorted(funded_stop_reasons.items())),
+        "next_build_before_second": sum(bool(e["next_build_before_second"]) for e in doubled),
+        "opex_airport_before_second": sum(bool(e["opex_airport_before_second"]) for e in doubled),
+        "window_median_days": statistics.median(windows) if windows else None,
+        "next_projects_delay_median_days": statistics.median(pass_delays) if pass_delays else None,
+    }
+    return {"summary": summary, "opportunities": opportunities}
+
+
+def _airport_towns(record, as_of=None):
+    towns = set()
+    as_of_day = _iso_to_ottd_day(as_of) if as_of else None
+    for town_id, slot in (record.get("stations_by_town") or {}).items():
+        if not isinstance(slot, dict):
+            continue
+        stations = slot.get("stations") or []
+        has_airport = False
+        for station in stations:
+            if not isinstance(station, dict) or "airport" not in (station.get("facilities") or []):
+                continue
+            built = station.get("build_date")
+            if as_of_day is not None and isinstance(built, (int, float)) and int(built) > as_of_day:
+                continue
+            has_airport = True
+            break
+        if has_airport:
+            try:
+                towns.add(int(town_id))
+            except (TypeError, ValueError):
+                pass
+    return towns
+
+
+def summarize_c83_exclusive_rights(rows):
+    """Disponibilite et prix C83.2, avec sous-ensemble des villes aeroportuaires partagees."""
+    by_company = defaultdict(list)
+    for record in rows:
+        by_company[(record.get("seed"), record.get("arm"))].append(record)
+    for snapshots in by_company.values():
+        snapshots.sort(key=lambda item: str(item.get("date", "")))
+
+    def snapshot_at_or_after(seed, arm, event_date):
+        """Premier inventaire qui peut contenir tout ce qui existait a la date sondee."""
+        for candidate in by_company.get((seed, arm), []):
+            if str(candidate.get("date", "")) >= str(event_date):
+                return candidate
+        return {}
+
+    observations = []
+    for record in rows:
+        if record.get("arm") != "OpexAI" or not record.get("c83_rights"):
+            continue
+        for raw in record["c83_rights"]:
+            event = dict(raw)
+            event_date = event.get("date")
+            seed = record.get("seed")
+            opex_snapshot = snapshot_at_or_after(seed, "OpexAI", event_date)
+            aaa_snapshot = snapshot_at_or_after(seed, "AAAHogEx", event_date)
+            opex_air = _airport_towns(opex_snapshot, event_date)
+            aaa_air = _airport_towns(aaa_snapshot, event_date)
+            town = event.get("town")
+            try:
+                town = int(town)
+            except (TypeError, ValueError):
+                continue
+            event["seed"] = seed
+            event["source_snapshot"] = record.get("date")
+            event["snapshot"] = opex_snapshot.get("date")
+            event["opex_airport"] = town in opex_air
+            event["aaa_airport"] = town in aaa_air
+            event["shared_airport_town"] = town in opex_air and town in aaa_air
+            observations.append(event)
+
+    all_success_costs = [
+        int(item["cost"])
+        for item in observations
+        if item.get("probe_ok") == 1
+        and isinstance(item.get("cost"), (int, float))
+        and item["cost"] >= 0
+    ]
+    global_quote = statistics.median(all_success_costs) if all_success_costs else None
+
+    def aggregate(items):
+        costs = [
+            int(item["cost"]) for item in items
+            if item.get("probe_ok") == 1 and isinstance(item.get("cost"), (int, float)) and item["cost"] >= 0
+        ]
+        quote = statistics.median(costs) if costs else global_quote
+        available = sum(item.get("available") == 1 for item in items)
+        active = [item for item in items if int(item.get("exclusive_duration") or 0) > 0]
+        no_active = [
+            item for item in items
+            if int(item.get("exclusive_duration") or 0) == 0 and int(item.get("rights_enabled", 1) or 0) != 0
+        ]
+        ratios_bank = [
+            100.0 * item["cost"] / item["bank"]
+            for item in items
+            if item.get("probe_ok") == 1 and item.get("cost", -1) >= 0 and item.get("bank", 0) > 0
+        ]
+        ratios_available = [
+            100.0 * item["cost"] / item["available_capital"]
+            for item in items
+            if item.get("probe_ok") == 1 and item.get("cost", -1) >= 0
+            and item.get("available_capital", 0) > 0
+        ]
+        return {
+            "observations": len(items),
+            "available": available,
+            "available_pct": (100.0 * available / len(items)) if items else None,
+            "probe_failures": sum(item.get("available") == 1 and item.get("probe_ok") != 1 for item in items),
+            "global_quote": quote,
+            "cost_min": min(costs) if costs else None,
+            "cost_median": statistics.median(costs) if costs else None,
+            "cost_max": max(costs) if costs else None,
+            "cost_samples": len(costs),
+            "cost_to_bank_median_pct": statistics.median(ratios_bank) if ratios_bank else None,
+            "cost_to_available_capital_median_pct": statistics.median(ratios_available) if ratios_available else None,
+            "affordable_from_bank": sum(
+                item.get("probe_ok") == 1 and item.get("cost", -1) >= 0
+                and item.get("bank", 0) >= item.get("cost", 0) for item in items
+            ),
+            "affordable_from_available_capital": sum(
+                item.get("probe_ok") == 1 and item.get("cost", -1) >= 0
+                and item.get("available_capital", 0) >= item.get("cost", 0) for item in items
+            ),
+            "exclusive_active": len(active),
+            "exclusive_opex": sum(item.get("exclusive_company") == 0 for item in active),
+            "exclusive_aaahogex": sum(item.get("exclusive_company") == 1 for item in active),
+            "no_active_rights": len(no_active),
+            "cash_blocked_estimate": sum(
+                quote is not None and item.get("available") != 1 and item.get("bank", 0) < quote
+                for item in no_active
+            ),
+            "affordable_no_active_estimate": sum(
+                quote is not None and item.get("bank", 0) >= quote for item in no_active
+            ),
+            "other_unavailable_estimate": sum(
+                quote is not None and item.get("available") != 1 and item.get("bank", 0) >= quote
+                for item in no_active
+            ),
+        }
+
+    shared = [item for item in observations if item["shared_airport_town"]]
+    aaa_present = [item for item in observations if item["aaa_airport"]]
+    by_year = {}
+    for year in sorted({item.get("year") for item in observations if item.get("year") is not None}):
+        year_items = [item for item in observations if item.get("year") == year]
+        year_shared = [item for item in year_items if item["shared_airport_town"]]
+        by_year[str(year)] = {
+            "top24": aggregate(year_items),
+            "shared_airport_towns": aggregate(year_shared),
+        }
+
+    return {
+        "top24": aggregate(observations),
+        "aaa_airport_towns": aggregate(aaa_present),
+        "shared_airport_towns": aggregate(shared),
+        "by_year": by_year,
+        "observations": observations,
+    }
+
+def attach_logs(rows, funnel_requested=None, slot_requested=False):
     """Attache les journaux mensuels et rend l'etat d'instrumentation explicite."""
     last_output = {}
     for record in rows:
@@ -614,6 +1230,12 @@ def attach_logs(rows, funnel_requested=None):
     hogex_detailed_by_seed = {
         seed: parse_hogex_builds_detailed(output) for seed, output in last_output.items()
     }
+    c78_slot_by_seed = {
+        seed: parse_c78_slot_events(output) for seed, output in last_output.items()
+    }
+    c83_rights_by_seed = {
+        seed: parse_c83_rights_events(output) for seed, output in last_output.items()
+    }
     if funnel_requested is None:
         funnel_requested = any(funnel_by_seed.values()) or any(funnel_detailed_by_seed.values())
 
@@ -624,8 +1246,21 @@ def attach_logs(rows, funnel_requested=None):
         if record.get("arm") == "OpexAI":
             funnel_map = funnel_by_seed.get(seed, {})
             detail_map = funnel_detailed_by_seed.get(seed, {})
+            slot_map = c78_slot_by_seed.get(seed, {})
+            rights_map = c83_rights_by_seed.get(seed, {})
             record["funnel"] = funnel_map.get(month)
             record["funnel_detailed"] = detail_map.get(month)
+            record["c83_rights"] = rights_map.get(month)
+            record["c78_slot_events"] = slot_map.get(month, [])
+            if not slot_requested:
+                record["c78_slot_state"] = "disabled"
+            elif seed not in last_output:
+                record["c78_slot_state"] = "missing_log"
+            else:
+                record["c78_slot_state"] = (
+                    "available" if month in slot_map
+                    else ("no_activity" if slot_map else "missing_emitter")
+                )
             if not funnel_requested:
                 record["funnel_state"] = "disabled"
                 record["funnel_detailed_state"] = "disabled"
@@ -725,12 +1360,12 @@ attach_selection_opcode_deltas = attach_opcode_deltas
 
 
 def build_arms(seeds, years, shared=False, funnel=False, air_town_limit_memory=False,
-               town_station_detail=False, air_early_slot=False):
+               town_station_detail=False, air_early_slot=False, air_slot_intercept=False):
     from openttdlab import local_folder
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     if shared:
         opex_params = []
-        if funnel:
+        if funnel or air_slot_intercept:
             opex_params.append(("probe_portfolio", 1))
         if air_town_limit_memory:
             opex_params.append(("air_town_limit_memory", 1))
@@ -788,6 +1423,8 @@ def main():
                         help="Conserve l'inventaire STNN par TownID pour diagnostiquer les erreurs 771")
     parser.add_argument("--air-early-slot", action="store_true",
                         help="Arme air_early_slot=1 (cible 6 villes, min 1000 hab, bonus 50%% par slot)")
+    parser.add_argument("--air-slot-intercept", action="store_true",
+                        help="Arme la sonde C78 du vivier AIR pour correlation avec les build_date adverses")
     parser.add_argument("--selftest", action="store_true",
                         help="Verifie le decodage physique et le rendu face aux chunks invalides")
     args = parser.parse_args()
@@ -802,7 +1439,10 @@ def main():
 
     if args.funnel and args.no_funnel:
         parser.error("--funnel et --no-funnel sont incompatibles")
-    shared = args.shared or args.funnel or args.air_town_limit_memory or args.town_station_detail or args.air_early_slot
+    shared = (
+        args.shared or args.funnel or args.air_town_limit_memory or args.town_station_detail
+        or args.air_early_slot or args.air_slot_intercept
+    )
     funnel = bool(args.funnel or (shared and not args.no_funnel))
     seeds = args.seeds if args.seeds is not None else (list(DIAG_SEEDS) if shared else [42, 100, 7])
     default_name = (
@@ -829,8 +1469,9 @@ def main():
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
         experiments=build_arms(seeds, args.years, shared=shared, funnel=funnel,
                                air_town_limit_memory=args.air_town_limit_memory,
-                               town_station_detail=args.town_station_detail,
-                               air_early_slot=args.air_early_slot),
+                               town_station_detail=args.town_station_detail or args.air_slot_intercept,
+                               air_early_slot=args.air_early_slot,
+                               air_slot_intercept=args.air_slot_intercept),
         max_workers=args.workers, result_processor=keep,
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),
@@ -838,7 +1479,7 @@ def main():
         ),
     ))
     funnel_by_seed, funnel_detailed_by_seed, hogex_by_seed, hogex_detailed_by_seed = attach_logs(
-        rows, funnel_requested=funnel
+        rows, funnel_requested=funnel, slot_requested=args.air_slot_intercept
     )
     attach_opcode_deltas(rows)
     expected_months = expected_calendar_months(args.years)
@@ -848,6 +1489,8 @@ def main():
         expected_months=expected_months,
     )
     finals = render_final_comparison(rows, seeds)
+    slot_intercept = summarize_air_slot_intercept(rows) if args.air_slot_intercept else None
+    c83_rights = summarize_c83_exclusive_rights(rows)
 
     payload = {
         "openttd_version": OPENTTD_VERSION,
@@ -857,7 +1500,10 @@ def main():
         "funnel": funnel,
         "funnel_explicitly_disabled": bool(args.no_funnel),
         "air_town_limit_memory": bool(args.air_town_limit_memory),
-        "town_station_detail": bool(args.town_station_detail),
+        "town_station_detail": bool(args.town_station_detail or args.air_slot_intercept),
+        "air_slot_intercept": bool(args.air_slot_intercept),
+        "air_slot_intercept_analysis": slot_intercept,
+        "c83_exclusive_rights_analysis": c83_rights,
         "opponent": "AAAHogEx" if shared else None,
         "openttd_config": CFG_SHARED if shared else make_cfg(STARTING_YEAR),
         "rows": rows,
@@ -1493,6 +2139,8 @@ def selftest():
         "[script:4] [1] [I] 1971-3-9 # RouteBuilder Succeeded foo\n"
         "[script:4] [1] [I] 1971-3-10 HgStation.BuildExec failed AirStation\n"
         "[script:4] [1] [I] 1971-3-11 #### TryBuild\n"
+        "[script:4] [0] [I] OPEX 1971-3-12 C78_SLOT phase=project_candidate pass=9 cycle=9 tick=300 "
+        "townA=34 townB=52 rank=3 affordable=1 profit=42000 finance=120000 roi=350 score=12 age_days=8 src=100 dst=200\n"
     )
     funnel = parse_opex_funnel(funnel_log)
     mar = funnel["1971-03"]
@@ -1511,6 +2159,65 @@ def selftest():
     assert hog["1971-03"]["succeeded"] == 1
     assert hog["1971-03"]["failed"] == 1
     assert hog["1971-03"]["try_build"] == 1
+    slot_events = parse_c78_slot_events(funnel_log)
+    assert len(slot_events["1971-03"]) == 1
+    assert slot_events["1971-03"][0]["date"] == "1971-03-12"
+    assert slot_events["1971-03"][0]["phase"] == "project_candidate"
+    assert slot_events["1971-03"][0]["townA"] == 34
+    assert slot_events["1971-03"][0]["affordable"] == 1
+    assert slot_events["1971-03"][0]["pass"] == 9
+    assert slot_events["1971-03"][0]["cycle"] == 9
+    assert slot_events["1971-03"][0]["tick"] == 300
+
+    # Corrélation C78 : premier aéroport AAA -> prochain passage projects -> candidat Opex.
+    first_day = date(1971, 3, 10).toordinal() + 365
+    second_day = date(1971, 8, 10).toordinal() + 365
+    synthetic_rows = [
+        {
+            "seed": 42, "arm": "AAAHogEx", "date": "1971-08-31",
+            "stations_by_town": {
+                "34": {"count": 2, "stations": [
+                    {"id": 91, "build_date": first_day, "facilities": ["airport"]},
+                    {"id": 92, "build_date": second_day, "facilities": ["airport"]},
+                ]}
+            },
+        },
+        {
+            "seed": 42, "arm": "OpexAI", "date": "1971-03-31",
+            "stations_by_town": {},
+            "c78_slot_events": [
+                {"date": "1971-03-12", "phase": "project_candidate", "pass": 9, "cycle": 9, "tick": 300,
+                 "townA": 34, "townB": 52, "rank": 3, "affordable": 1,
+                 "profit": 42000, "finance": 120000, "src": 100, "dst": 200},
+                {"date": "1971-03-12", "phase": "projects_pass", "pass": 9, "cycle": 9, "tick": 300,
+                 "air_candidates": 4, "affordable": 2, "funded": 1},
+                {"date": "1971-03-12", "phase": "air_attempt", "pass": 9, "cycle": 9, "tick": 301,
+                 "townA": 34, "townB": 52, "rank": 3, "src": 100, "dst": 200,
+                 "finance": 120000, "available": 150000, "built_before": 0},
+                {"date": "1971-03-12", "phase": "air_outcome", "pass": 9, "cycle": 9, "tick": 302,
+                 "townA": 34, "townB": 52, "rank": 3, "src": 100, "dst": 200,
+                 "outcome": "rejected", "reason": "siteB_unbuildable", "detail": "", "error": 0},
+                {"date": "1971-03-12", "phase": "projects_exit", "pass": 9, "cycle": 9, "tick": 303,
+                 "built_count": 0, "stop": "none"},
+                {"date": "1971-03-15", "phase": "build", "pass": 10, "cycle": 10, "tick": 330,
+                 "built_count": 1},
+            ],
+        },
+    ]
+    slot_analysis = summarize_air_slot_intercept(synthetic_rows)
+    assert slot_analysis["summary"]["second_airport_cases"] == 1
+    opp = slot_analysis["opportunities"][0]
+    assert opp["next_projects_delay_days"] == 2
+    assert opp["candidate_count"] == 1
+    assert opp["affordable_candidate_count"] == 1
+    assert opp["funded_candidate_count"] == 1
+    assert opp["funded_candidate_attempted_count"] == 1
+    assert opp["funded_candidate_built_count"] == 0
+    assert opp["funded_air_outcomes"][0]["reason"] == "siteB_unbuildable"
+    assert slot_analysis["summary"]["funded_candidate_attempted_first_pass"] == 1
+    assert slot_analysis["summary"]["funded_reject_reasons"] == {"siteB_unbuildable": 1}
+    assert opp["next_build_delay_days"] == 5
+    assert opp["next_projects_before_second"] is True
 
     # Test du funnel détaillé
     funnel_detailed_log = (

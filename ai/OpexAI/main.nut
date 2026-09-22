@@ -232,6 +232,9 @@ class OpexAI extends AIController {
   _c76ModeConsumedRevision = null;
   _c76LastRegenQuarter = -1;
   _c76ForceReloadRegen = false;
+  /* C83.1 : cache reconstructible townId -> etat slot/possession Opex. Non
+   * serialise : apres Load, une ville deja menacee est simplement resondee. */
+  _c83SlotWatch = null;
 
   constructor()
   {
@@ -253,6 +256,7 @@ class OpexAI extends AIController {
     this._c76ModeConsumedRevision = {};
     this._c76LastRegenQuarter = -1;
     this._c76ForceReloadRegen = false;
+    this._c83SlotWatch = {};
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
@@ -394,6 +398,7 @@ class OpexAI extends AIController {
   function _onTownFounded(event);
   function _onEngineAvailable(event);
   function _onStationFirstVehicle(event);
+  function _c78SlotOnProjectsPass();
   function _dispatchCatalog(task, year);
   function _dispatchC41RailSignals(task, year);
   function _dispatchC41RailJunction(task, year);
@@ -432,6 +437,7 @@ class OpexAI extends AIController {
   function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
   function _c77RemoveSubsidy(subId);
+  function _c83WatchAirSlotTransitions();
   function enqueue(key, kind, payload);
   function pop();
 }

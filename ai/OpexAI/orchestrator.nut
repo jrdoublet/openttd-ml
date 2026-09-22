@@ -315,7 +315,10 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
   if (!("cursor" in s)) s.cursor <- 0;
   if (s.cursor >= s.modes.len()) return "done";
   local mode = s.modes[s.cursor];
-  owner._c77RefreshModeCatalog(mode);
+  if (!("preparedCursor" in s) || s.preparedCursor != s.cursor) {
+    owner._c77RefreshModeCatalog(mode);
+    s.preparedCursor <- s.cursor;
+  }
   if (owner._projects == null) {
     owner._catalog.refresh(owner._budget, AIDate.GetYear(AIDate.GetCurrentDate()));
     owner._rebuildProjects(null);
@@ -323,10 +326,23 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
     local targeted = ("targeted" in s) && s.targeted;
     local entityKind = targeted && ("entityKind" in s) ? s.entityKind : null;
     local entityId = targeted && ("entityId" in s) ? s.entityId : -1;
-    owner._projects = OpexRegenerateModeProjects(owner._projects, owner._catalog, owner._budget,
-        owner._lines, owner._abandonedPairs, mode, null, entityKind, entityId);
+    if (mode == "air") {
+      if (!("airState" in s) || s.airState == null || typeof s.airState != "table") {
+        s.airState <- {};
+      }
+      local airSlice = OpexRegenerateAirProjectsSlice(owner._projects, owner._catalog, owner._budget,
+          owner._lines, owner._abandonedPairs, s.airState, opsBudget, deadlineTick,
+          entityKind, entityId);
+      if (!airSlice.done) return "running";
+      owner._projects = airSlice.projects;
+      delete s.airState;
+    } else {
+      owner._projects = OpexRegenerateModeProjects(owner._projects, owner._catalog, owner._budget,
+          owner._lines, owner._abandonedPairs, mode, null, entityKind, entityId);
+    }
   }
   if (owner._projects != null) owner._ranked = owner._projects.rail;
+  if ("preparedCursor" in s) delete s.preparedCursor;
   s.cursor++;
   if (s.cursor >= s.modes.len()) {
     if (("buildAfter" in s) && s.buildAfter) {
@@ -499,7 +515,8 @@ function OpexAI::_c77InjectSubsidy(subId)
   }
   this._projects.candidateGroups = winners;
   OpexProjectsRecountGroups(this._projects);
-  this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+  this._projects = OpexReselectProjects(
+      this._projects, OpexAvailableCapital(), this._abandonedPairs);
   this._ranked = this._projects.rail;
   this._enqueueReactive("c77|build|subsidy|" + subId, "c77_build",
                         { reason = "subsidy_offer" });

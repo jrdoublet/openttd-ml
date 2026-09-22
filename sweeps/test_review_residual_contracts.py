@@ -16,6 +16,66 @@ def _read(rel: str) -> str:
 
 
 class ReviewResidualContractsTest(unittest.TestCase):
+    def test_c77_targeted_rail_carries_fallback_cargo_into_next_mode(self):
+        src = _read("ai/OpexAI/projects.nut")
+        start = src.index("function OpexGenerateModeProjects(")
+        end = src.index("function OpexRegenerateModeProjects(", start)
+        body = src[start:end]
+        fallback = body.index("generated.freightCargo = freightCargo;")
+        carry = body.index("projects.freightCargo = freightCargo;", fallback)
+        stop = body.index("break;", carry)
+        self.assertLess(fallback, carry)
+        self.assertLess(carry, stop)
+
+    def test_rail_depot_probe_precedes_demolition(self):
+        src = _read("ai/OpexAI/builder_rail.nut")
+        start = src.index("function OpexBuildDepot(")
+        end = src.index("/* Une tentative ratee", start)
+        body = src[start:end]
+        probe = body.index("local testMode = AITestMode();")
+        test_build = body.index("AIRail.BuildRailDepot(candidate, anchor)", probe)
+        demolish = body.index("AITile.DemolishTile(candidate)", test_build)
+        live_build = body.index("AIRail.BuildRailDepot(candidate, anchor)", demolish)
+        self.assertLess(probe, test_build)
+        self.assertLess(test_build, demolish)
+        self.assertLess(demolish, live_build)
+
+    def test_rail_order_failure_captures_immediate_error(self):
+        src = _read("ai/OpexAI/builder_rail.nut")
+        start = src.index("function OpexBuildTrains(")
+        end = src.index("function OpexBuildLine(", start)
+        body = src[start:end]
+        order_a = body.index("local okA = AIOrder.AppendOrder")
+        first_failure = body.index("if (!okA) {", order_a)
+        order_b = body.index("local okB = AIOrder.AppendOrder", first_failure)
+        second_failure = body.index("if (!okB || AIOrder.GetOrderCount(train) != 2)", order_b)
+        self.assertLess(order_a, first_failure)
+        self.assertLess(first_failure, order_b)
+        self.assertIn("error = AIError.GetLastError()", body[first_failure:order_b])
+        self.assertIn("error = !okB ? AIError.GetLastError() : 0", body[second_failure:second_failure + 260])
+
+    def test_air_reused_hub_failure_does_not_read_stale_aierror(self):
+        src = _read("ai/OpexAI/builder_air.nut")
+        start = src.index("function OpexBuildAirRoute(")
+        body = src[start:]
+        fail_a = body[body.index("if (airportA == null) {"):body.index("if (reuseB) {")]
+        fail_b_start = body.index("if (airportB == null) {")
+        fail_b = body[fail_b_start:body.index("local stationA =", fail_b_start)]
+        for block, reuse, saved in (
+            (fail_a, "reuseA", "airportErrorA"),
+            (fail_b, "reuseB", "airportErrorB"),
+        ):
+            guarded = block.index(f"if (!{reuse}) {{")
+            error = block.index(f"result.error = {saved};")
+            self.assertLess(guarded, error)
+            self.assertNotIn("AIError.GetLastError()", block)
+            self.assertNotIn("AIError.GetLastErrorString()", block)
+
+        build_a = body[body.index("local okA = AIAirport.BuildAirport"):body.index("if (airportA == null) {")]
+        build_b = body[body.index("local okB = AIAirport.BuildAirport"):body.index("result.opcodes += budget.end", body.index("local okB = AIAirport.BuildAirport"))]
+        self.assertIn("airportErrorA = AIError.GetLastError();", build_a)
+        self.assertIn("airportErrorB = AIError.GetLastError();", build_b)
+
     def test_air_share_orders_failure_never_starts_unordered_plane(self):
         src = _read("ai/OpexAI/builder_air.nut")
 

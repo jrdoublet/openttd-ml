@@ -1,6 +1,7 @@
 # AGENTS.md — OpenTTD-ML / OpexAI
 
-Guide applicable à tout le dépôt. État vérifié le **2026-09-21**.
+Guide applicable à tout le dépôt. État vérifié le **2026-09-21** ; repères documentaires et eau
+actualisés le **2026-09-22**.
 Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) est la
 **seule liste autoritaire du travail restant**. Les anciennes revues ne sont pas une file active.
 
@@ -11,7 +12,9 @@ Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) e
 2. Lire l'« État courant » de `docs/taches.md`, puis chercher les symboles et réglages concernés
    dans le code. Avant de rouvrir une piste, consulter aussi
    [le journal du 13 septembre](docs/journal_2026-09-13.md) et
-   [l'archive des tâches](docs/taches_archive_2026-09-09.md).
+   [l'archive des tâches](docs/taches_archive_2026-09-09.md), ainsi que les journaux quotidiens
+   récents liés depuis `docs/taches.md`. Les comptes rendus retirés de la liste le 22 septembre
+   sont conservés dans `docs/journal_2026-09-22_transfert_historique.md`.
 3. Distinguer décision utilisateur, implémentation, hypothèse et mesure. Une ancienne mention
    « à faire » ou un commentaire ne prouve pas l'état actuel.
 4. Définir une intervention isolée et sa validation avant de modifier le comportement.
@@ -21,11 +24,12 @@ Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) e
 ROI, profit/opcode et scores internes sont des heuristiques ; leur hausse ne prouve pas un gain
 économique. Vérifier l'effet sur OpexAI elle-même, pas seulement la baisse de l'adversaire.
 
-**Point de reprise daté :** au 21 septembre, `docs/taches.md` retient `b68fafb` (C68 adopté,
+**Repère historique :** au début du 21 septembre, `docs/taches.md` retenait `b68fafb` (C68 adopté,
 `air_route_plane_selection=1`, feeders supprimés). La frontière AIR capital→profit, le best
 equipment et leur cycle de vie sont abandonnés. C66 est qualifié/clos. Ce repère évite une
 réouverture accidentelle ; il n'autorise aucun reset ou changement de branche. Toujours relire
-l'état courant plutôt que considérer ce paragraphe comme un backlog permanent.
+l'état courant plutôt que considérer ce paragraphe comme un backlog permanent. Le défaut courant
+du 22 septembre inclut aussi C69 bis/C70/C75 ; les intégrations sont dans les journaux quotidiens.
 
 ## 2. Repères et architecture
 
@@ -227,14 +231,17 @@ sa campagne et ses limites ; distinguer résultat testé et hypothèse.
 
 ## 7. Bibliothèques tierces vendorisées
 
-Vérifier les **`import` et `require` transitifs**, pas uniquement `main.nut` : `builder_water.nut`
-charge déjà `lib_water.nut`, qui adapte des éléments de MinchinWeb (Lakes/Marine et utilitaires)
-et importe `queue.fibonacci_heap` v3. `main.nut` importe `pathfinder.rail` v1. La présence de
+Vérifier les **`import` et `require` transitifs**, pas uniquement `main.nut` : l'ancienne
+adaptation MinchinWeb dans `lib_water.nut` (avec `queue.fibonacci_heap` v3) a été retirée le
+21 septembre (`7c194d2`), après désactivation des chemins Lakes. Le chemin eau courant utilise
+`builder_water.nut::OpexWaterFindConnection`, un BFS borné ; C67 n'est pas encore implémenté.
+`main.nut` importe `pathfinder.rail` v1. La présence de
 SuperLib/MinchinWeb/Queue sur disque ne prouve pas un import intégral ni l'absence de réutilisation.
 
-- La décision de commencer par une bibliothèque pour l'eau a déjà donné cette adaptation.
-  Lire `lib_water.nut`, ses exclusions documentées et le builder avant de proposer un nouveau BFS.
-  C67 (remplacement de Lakes) reste un sujet de conception dans le backlog courant.
+- La décision de commencer par une bibliothèque pour l'eau avait donné cette adaptation.
+  Lire le builder courant et le journal du 21 septembre avant toute nouvelle proposition.
+  C67 porte désormais sur la carte par blocs et sa connectivité ; ne pas restaurer Lakes
+  ni planifier à nouveau son retrait.
 - Avant copie/import, vérifier dépendances, versions NoAI et licences des fichiers utilisés.
   Préserver avis de copyright et obligations applicables ; ne pas résumer GPL/LGPL à la seule
   conservation d'un en-tête. Lire les `license.txt` et en-têtes locaux : SuperLib GPLv2 ;
