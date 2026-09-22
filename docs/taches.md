@@ -13,6 +13,19 @@ la performance actuelle**. Les journaux quotidiens conservent le détail des exp
 
 ## État courant — 2026-09-22
 
+**Banc 20×10 C82 contre le défaut (C69+C70+C75)**, duel contre AAAHogEx, `9946805` (dirty=0) :
+profit 12/8, p = 0,50, delta moyen +39 413 £ (médiane +63 359 £), IC95 [−87 825 ; +166 651],
+valeur −2,8 % (ratio des moyennes), **verdict `fail_primary`** : signe et seuil de +50 k£ non
+atteints. C82 reste à 0. Contre AAAHogEx : 0/20 (valeur −76 %, profit −83 %).
+`results/c82_vs_default_10y_20seeds_20260922.json`.
+
+**Contrôle de non-régression de la fusion nuit** : défaut de `9946805` contre défaut de
+`f4b23d8`, solo 5 graines × 6 ans (7, 42, 100, 999, 2026), 10 parties saines. Valeur 3/2
+(moyenne +2,0 %, médiane +6,1 %), profit 3/2 (+3,7 %), véhicules 4/1, gares 2/3 ; écarts de
+±9 % par graine dans les deux sens, sans direction : pas de régression nette, compatible avec le
+seul décalage de cadence. `results/diag_default_main_6y_5seeds_20260922.json` et
+`results/diag_default_bench-old_6y_5seeds_20260922.json`.
+
 Fusion de `nuit-2026-09-22` (`b88de72`, issue de `c80-orchestrateur`) : C80 tranches 1-2
 (travailleurs rail et ville, `c80_worker_rail`, `c80_worker_town`), mémo de croissance urbaine
 (`town_growth_plan_memo`), C81 `air_full_load`, C82 `c82_engine_calibration`, correctif de
