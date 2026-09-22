@@ -464,7 +464,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c77_opportunistic_candidates",
-      description = "C77: inject candidates for event-touched towns/industries immediately: 1 = test arm, 0 = historical event path (default)",
+      description = "C77: inject candidates for event-touched towns/industries/subsidies immediately: 1 = test arm, 0 = historical event path (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

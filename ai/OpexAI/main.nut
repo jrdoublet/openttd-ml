@@ -213,6 +213,7 @@ class OpexAI extends AIController {
   _c41RailSignalLines = null;
   /* C41.10 : même schéma, réparation de raccord au lieu de pose PBS. */
   _c41RailJunctionLines = null;
+  _activeSubsidies = null;
   /* G4§1 : drapeau pose par _markPairAbandoned dans _tryBuildProjects, lu en fin de passe
    * pour declencher la reelection incrementale sans dependre de DECISION_LOG. */
   _hadAbandonsThisPass = false;
@@ -234,6 +235,7 @@ class OpexAI extends AIController {
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
     OpexAirResetSiteCache();
+    this._activeSubsidies = {};
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};
     this._staleness = {
@@ -347,10 +349,15 @@ class OpexAI extends AIController {
   function _markPairAbandoned(key);
   function _padAirFailedSites(plan, result);
   function _pruneAbandonedPairs(now);
+  function _purgeSubsidyFromProjects(subId);
   function _onVehicleCrashed(event);
   function _onVehicleAutoreplaced(event);
   function _onVehicleUnprofitable(event);
   function _onIndustryClose(event);
+  function _onSubsidyOffer(event);
+  function _onSubsidyOfferExpired(event);
+  function _onSubsidyAwarded(event);
+  function _onSubsidyExpired(event);
   function _onVehicleLost(event);
   function _onIndustryOpen(event);
   function _onTownFounded(event);
@@ -382,6 +389,8 @@ class OpexAI extends AIController {
   function _c76RefreshModeCatalog(mode);
   function _c76AcknowledgeMode(mode);
   function _c76PeriodicReconcile(yearMonth);
+  function _c77InjectSubsidy(subId);
+  function _c77RemoveSubsidy(subId);
   function enqueue(key, kind, payload);
   function pop();
 }

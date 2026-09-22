@@ -440,6 +440,7 @@ function OpexAI::Save()
     taskCursor = this._taskCursor,
     vehiclesToRetire = this._vehiclesToRetire,
     unprofitableStreaks = this._unprofitableStreaks,
+    activeSubsidies = this._activeSubsidies,
     taskDue = taskDue,
     railExpansion = OpexSaveRailExpansion(this._railExpansion),
     railSearchPending = this._railSearch != null,
@@ -485,6 +486,7 @@ function OpexAI::Load(version, data)
   if ("taskCursor" in data) this._taskCursor = data.taskCursor;
   if ("vehiclesToRetire" in data && data.vehiclesToRetire != null) this._vehiclesToRetire = data.vehiclesToRetire;
   if ("unprofitableStreaks" in data && data.unprofitableStreaks != null) this._unprofitableStreaks = data.unprofitableStreaks;
+  if ("activeSubsidies" in data && data.activeSubsidies != null) this._activeSubsidies = data.activeSubsidies;
   /* 11.6/11.7 : aucune lecture du monde ici. Les validations VehicleID/LineID attendent
    * _reconcileAfterLoad(), appelé depuis Start() après OpexLoadSettings(). Les sauvegardes
    * stateVersion=1 n'ont simplement pas ces champs et gardent les valeurs constructeur. */

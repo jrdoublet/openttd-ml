@@ -1,5 +1,6 @@
-"""Après retrait des subventions : préserver la persistance des retraites actives."""
+"""Contrat C45 : subventions portées par C77 seul, état persistant sans drapeau dédié."""
 from pathlib import Path
+import re
 import unittest
 
 
@@ -32,10 +33,56 @@ class TestC45SubsidyPersistence(unittest.TestCase):
         self.settings = source("settings.nut")
         self.info = source("info.nut")
 
-    def test_retired_state_is_ignored_on_save_and_load(self):
-        for field in ("activeSubsidies", "vehiclesToScrap", "subsidyStats"):
-            self.assertNotIn(field, self.persist)
-            self.assertNotIn(field, source("main.nut"))
+    def test_active_subsidies_round_trip_in_full_state(self):
+        save = function_body(self.persist, "function OpexAI::Save()")
+        load = function_body(self.persist, "function OpexAI::Load(version, data)")
+        setting = re.search(
+            r'name\s*=\s*"save_full_state".*?custom_value\s*=\s*(\d+)',
+            self.info,
+            re.S,
+        )
+
+        self.assertIsNotNone(setting)
+        self.assertEqual(setting.group(1), "1")
+        self.assertIn("activeSubsidies = this._activeSubsidies", save)
+        self.assertIn(
+            'if ("activeSubsidies" in data && data.activeSubsidies != null) '
+            "this._activeSubsidies = data.activeSubsidies",
+            load,
+        )
+
+    def test_subsidies_have_no_dedicated_flag_or_probe(self):
+        for name in ("C42_SUBSIDIES", "EVENT_SUBSIDY_PROBE", "C42_SUBSIDY_LOG", "_subsidyStats"):
+            for path in sorted(AI.glob("*.nut")):
+                self.assertNotIn(name, path.read_text(encoding="utf-8"), path.name)
+
+    def test_c77_is_the_only_subsidy_producer(self):
+        handlers = source("event_handlers.nut")
+        for handler in ("_onSubsidyOffer", "_onSubsidyOfferExpired",
+                        "_onSubsidyAwarded", "_onSubsidyExpired"):
+            body = function_body(handlers, f"function OpexAI::{handler}(event)")
+            self.assertIn("if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;", body)
+        self.assertNotIn("activeSubsidies", function_body(
+            source("projects.nut"), "function OpexBuildProjects("))
+
+    def test_c77_subsidy_offer_reaches_the_reactive_register(self):
+        handlers = source("event_handlers.nut")
+        orchestrator = source("orchestrator.nut")
+        main = source("main.nut")
+        offer = function_body(handlers, "function OpexAI::_onSubsidyOffer(event)")
+        dispatch = function_body(orchestrator, "function OpexAI::_dispatchReactiveIntention(intention)")
+
+        self.assertIn('"c77_subsidy"', offer)
+        self.assertIn('intention.kind == "c77_subsidy"', dispatch)
+        self.assertIn("function OpexAI::_c77InjectSubsidy(subId)", orchestrator)
+        self.assertIn("function OpexAI::_c77RemoveSubsidy(subId)", handlers)
+        self.assertIn("function _c77InjectSubsidy(subId);", main)
+        self.assertIn("function _c77RemoveSubsidy(subId);", main)
+        self.assertIn('entityKind == "subsidy"', source("projects.nut"))
+
+    def test_retired_scrap_state_is_ignored_on_save_and_load(self):
+        self.assertNotIn("vehiclesToScrap", self.persist)
+        self.assertNotIn("vehiclesToScrap", source("main.nut"))
 
     def test_live_retirement_state_still_round_trips(self):
         save = function_body(self.persist, "function OpexAI::Save()")
@@ -44,7 +91,6 @@ class TestC45SubsidyPersistence(unittest.TestCase):
         self.assertIn("this._vehiclesToRetire = data.vehiclesToRetire", load)
         self.assertIn("unprofitableStreaks = this._unprofitableStreaks", save)
         self.assertIn("this._unprofitableStreaks = data.unprofitableStreaks", load)
-
 
 if __name__ == "__main__":
     unittest.main()

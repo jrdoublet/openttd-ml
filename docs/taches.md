@@ -13,6 +13,21 @@ la performance actuelle**. Les journaux quotidiens conservent le détail des exp
 
 ## État courant — 2026-09-22
 
+Moteur de subventions restauré comme producteur **C77 seul** : `eaa1bc0` l'avait retiré
+comme mort alors que C77 l'alimentait (intention `c77_subsidy`, injection au vivier sans
+attendre le tour). Générateur, chemin routier, clés `subsidy|id`, prédicats `isSubsidy`
+(dont la persistance face à la régénération ciblée C76) et `activeSubsidies` persisté sont
+revenus ; les drapeaux retirés le restent (ni `C42_SUBSIDIES`, ni `EVENT_SUBSIDY_PROBE`, ni
+`C42_SUBSIDY_LOG`, ni sonde en lecture seule) : handlers actifs sous C80+C77 seulement,
+journal sous `DECISION_LOG`. Adapté au nettoyage économie (`FLAT_BONUS`, `_dynamicBatch`).
+Limite connue : sous C77 sans C76, une régénération complète perd les candidats injectés.
+Smoke 2 × 3 ans : défaut **identique au bit près** à `1fd6b66` (opcodes compris) ; C77 et
+C76+C77 diffèrent (subventions actives). Save/Load 1+1 an sur C77 et C76+C77 sains.
+Bancs (défaut = C69+C70+C75) : diagnostic 5×6 C76 / C77 / C76+C77, aucun signal significatif
+(`results/diag_c76_c77_vs_c69c70c75_6y_5seeds_20260922.json`) ; **20×10 C77 seul contre le
+défaut : profit 10/10, delta moyen −26 222 £, IC95 [−131 554 ; +79 111], valeur −1,9 %,
+verdict `fail_primary`** (`results/c77_vs_c69c70c75_10y_20seeds_20260922.json`). C77 reste à 0.
+
 Nettoyage `simplify/dead-flags-economy` intégré (`172eaf7`) : retrait des chemins économie
 désarmés (lot dynamique `portfolio_dynamic_batch`, `portfolio_fresh_budget`, `loop_budget`,
 `marginal_fleet`, `fleet_fix`, `flat_bonus`, `growth_yields`, `reborrow`, `probe_negative`,

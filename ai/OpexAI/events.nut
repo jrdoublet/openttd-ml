@@ -301,18 +301,22 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_OFFER) {
+      this._onSubsidyOffer(event);
       continue;
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) {
+      this._onSubsidyOfferExpired(event);
       continue;
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_AWARDED) {
+      this._onSubsidyAwarded(event);
       continue;
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) {
+      this._onSubsidyExpired(event);
       continue;
     }
 

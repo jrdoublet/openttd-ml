@@ -308,6 +308,91 @@ function OpexAI::_onIndustryClose(event)
   }
   return;
 }
+/* C77 : seul producteur de candidats subventionnes. Les offres ne sont suivies que sous
+ * le double registre ; generateur et builder revalident l'offre avant construction. */
+function OpexAI::_onSubsidyOffer(event)
+{
+  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
+  local subEvt = AIEventSubsidyOffer.Convert(event);
+  if (subEvt == null) return;
+  local subId = subEvt.GetSubsidyID();
+  if (!AISubsidy.IsValidSubsidy(subId)) return;
+  local subData = {
+    cargo = AISubsidy.GetCargoType(subId),
+    srcType = AISubsidy.GetSourceType(subId), srcId = AISubsidy.GetSourceIndex(subId),
+    dstType = AISubsidy.GetDestinationType(subId), dstId = AISubsidy.GetDestinationIndex(subId),
+    expDate = AISubsidy.GetExpireDate(subId)
+  };
+  if (this._activeSubsidies != null) this._activeSubsidies.rawset(subId, subData);
+  this._enqueueReactive("c77|subsidy|" + subId, "c77_subsidy", { subsidyId = subId });
+  if (DECISION_LOG) {
+    local matchedLine = OpexSubsidyMatchingLineId(subData, this._lines);
+    OpexDecide("SUBSIDY_OFFER", "sub=" + subId + " cargo=" + AICargo.GetCargoLabel(subData.cargo)
+        + " src_t=" + subData.srcType + " src=" + subData.srcId
+        + " dst_t=" + subData.dstType + " dst=" + subData.dstId + " exp=" + subData.expDate
+        + " matched=" + (matchedLine >= 0 ? matchedLine : "none"));
+  }
+}
+
+/* Offre retiree du suivi : purge des candidats encore au vivier, puis reselection. */
+function OpexAI::_c77RemoveSubsidy(subId)
+{
+  if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
+    delete this._activeSubsidies[subId];
+  }
+  this._purgeSubsidyFromProjects(subId);
+  if (this._projects != null) {
+    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+    this._ranked = this._projects.rail;
+  }
+}
+
+function OpexAI::_onSubsidyOfferExpired(event)
+{
+  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
+  local subEvt = AIEventSubsidyOfferExpired.Convert(event);
+  if (subEvt == null) return;
+  local subId = subEvt.GetSubsidyID();
+  this._c77RemoveSubsidy(subId);
+  if (DECISION_LOG) OpexDecide("SUBSIDY_OFFER_EXPIRED", "sub=" + subId);
+}
+
+function OpexAI::_onSubsidyAwarded(event)
+{
+  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
+  local subEvt = AIEventSubsidyAwarded.Convert(event);
+  if (subEvt == null) return;
+  local subId = subEvt.GetSubsidyID();
+  local company = AISubsidy.IsValidSubsidy(subId) ? AISubsidy.GetAwardedTo(subId) : -1;
+  if (company != AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) {
+    this._c77RemoveSubsidy(subId);
+    if (DECISION_LOG) OpexDecide("SUBSIDY_AWARDED", "sub=" + subId + " company=" + company + " is_self=0");
+    return;
+  }
+  /* Gagnee par nous : la ligne existe deja, aucun candidat a purger. */
+  if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
+    delete this._activeSubsidies[subId];
+  }
+  local matchedLine = -1;
+  foreach (line in this._lines) {
+    if (("isSubsidy" in line) && line.isSubsidy && ("subsidyId" in line) && line.subsidyId == subId) {
+      matchedLine = line.lineId;
+      line.subsidyAwarded <- true;
+      break;
+    }
+  }
+  if (DECISION_LOG) OpexDecide("C42_SUBSIDY_WON", "sub=" + subId + " line=" + matchedLine + " company=" + company);
+}
+
+function OpexAI::_onSubsidyExpired(event)
+{
+  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
+  local subEvt = AIEventSubsidyExpired.Convert(event);
+  if (subEvt == null) return;
+  local subId = subEvt.GetSubsidyID();
+  this._c77RemoveSubsidy(subId);
+  if (DECISION_LOG) OpexDecide("SUBSIDY_EXPIRED", "sub=" + subId);
+}
 function OpexAI::_onVehicleLost(event)
 {
 

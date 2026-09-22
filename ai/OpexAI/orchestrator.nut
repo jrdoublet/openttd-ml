@@ -293,6 +293,12 @@ function OpexAI::_dispatchReactiveIntention(intention)
     this._activeWorker = { kind = "regen_candidates", state = intention.payload };
     return true;
   }
+  if (intention.kind == "c77_subsidy") {
+    if (intention.payload != null && ("subsidyId" in intention.payload)) {
+      this._c77InjectSubsidy(intention.payload.subsidyId);
+    }
+    return true;
+  }
   if (intention.kind == "c77_build") {
     if (this._projects != null && !this._portfolioInvalidated) {
       this._tryBuildProjects(AIDate.GetYear(AIDate.GetCurrentDate()));
@@ -396,6 +402,36 @@ function OpexAI::_c76PeriodicReconcile(yearMonth)
   this._projects = OpexC76RepriceProjects(this._projects, this._catalog, this._lines,
                                           this._abandonedPairs);
   this._ranked = this._projects.rail;
+  return true;
+}
+
+function OpexAI::_c77InjectSubsidy(subId)
+{
+  if (!C77_OPPORTUNISTIC_CANDIDATES || this._projects == null
+      || !(("candidateGroups" in this._projects)) || this._projects.candidateGroups == null) return false;
+  local winners = {};
+  local scratch = { modeCandidates = 0, modeAlternatives = 0 };
+  foreach (key, entry in this._projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    foreach (project in list) {
+      if (!OpexProjectTouchesEntity(project, "subsidy", subId)) {
+        OpexProjectRememberAll(winners, project, scratch);
+      }
+    }
+  }
+  local candidates = OpexGenerateSubsidyCandidates(this._catalog, this._lines,
+      this._activeSubsidies, {}, this._abandonedPairs);
+  foreach (candidate in candidates) {
+    if (!(("subsidyId" in candidate)) || candidate.subsidyId != subId) continue;
+    local project = OpexProjectFromCandidate(candidate);
+    if (project != null) OpexProjectRememberAll(winners, project, scratch);
+  }
+  this._projects.candidateGroups = winners;
+  OpexProjectsRecountGroups(this._projects);
+  this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
+  this._ranked = this._projects.rail;
+  this._enqueueReactive("c77|build|subsidy|" + subId, "c77_build",
+                        { reason = "subsidy_offer" });
   return true;
 }
 
