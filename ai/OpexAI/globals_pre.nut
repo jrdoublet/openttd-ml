@@ -384,3 +384,6 @@ C80_WORKER_TOWN <- false;
 /* C76 étape 2 / C80 tranche 3 : régénération du vivier pilotée par les invalidations.
  * 0 = régénération mensuelle systématique historique (défaut), 1 = régénération ciblée. */
 C76_REGEN_TARGETED <- false;
+
+/* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
+C78_GEN_LOG_YEAR <- -1;

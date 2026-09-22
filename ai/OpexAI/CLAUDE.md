@@ -125,6 +125,11 @@ supprimé, pas de branche morte à unifier).
 - **Les bancs démarrent en 1970 et ne rechargent jamais** : tester explicitement le rechargement
   (`sweeps/save_load_roundtrip.py`) et un autre millésime de départ quand un état ou une date
   intervient (`docs/19_rechargement_partie.md`).
+- **Dans la sauvegarde, une référence d'objet vaut identifiant + 1** (0 = aucune) : la ville d'une
+  gare décodée par `bench_1v1_5y_20seeds.py` (`town`, `town_ids`) est l'identifiant de l'API **+ 1**.
+  Comparer des lignes de la sauvegarde entre elles est sans risque ; les croiser avec un identifiant
+  journalisé par l'IA exige le −1 (C78 étape 1 invalidée par ce décalage le 2026-09-22 ;
+  `diag_b9_air_catchment.py` et `diag_c78_lines_vs_aaa.py` le corrigent).
 
 ## Pièges Squirrel / NoAI propres à cet environnement
 - Une closure imbriquée (`local f = function(...) {...}`) **ne capture pas** les `local` de la

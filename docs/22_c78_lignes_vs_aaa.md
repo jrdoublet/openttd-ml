@@ -29,6 +29,24 @@ résultat ?
 pour orienter la suite, pas un verdict. Le profit relevé en décembre de l'année Y est celui de
 l'année Y − 1 ; le vivier comparé est celui du rapport du 1er janvier de Y.
 
+## ⛔ Correction du 2026-09-22 (étape 2) : les §3 à §5 sont faux
+
+La sauvegarde stocke la ville d'une gare comme **référence d'objet : identifiant de l'API + 1**
+(0 = aucune). Le décodeur partagé (`bench_1v1_5y_20seeds.py`) ne retire pas ce 1 : les villes des
+lignes relevées dans la sauvegarde étaient décalées d'une place par rapport aux villes journalisées
+par l'IA (`C78_CAND`). Preuve : la ville la plus proche d'une gare d'OpexAI est la ville
+« sauvegarde − 1 » dans 11 416 cas, contre ~170 pour tout autre décalage ; après correction, 100 %
+des gares des deux compagnies retombent sur leur ville la plus proche.
+
+- **Faux** : les classes du §3 (« 58 % jamais dans le vivier », « 17 % sortis ») et le cas « graine 7,
+  paire 12-18, rang 0 » du §4 comparaient des paires de villes décalées.
+- **Justes** : les paires construites par les deux compagnies et la comparaison par avion (1 avion
+  contre 2 à 5 ; 0-52 k£ contre 25-139 k£ par avion), car les deux côtés venaient de la sauvegarde.
+- Le harnais corrige désormais (`towns` = identifiants de l'API, `towns_raw` = valeur brute).
+  `diag_b9_air_catchment.py` détectait et corrigeait déjà ce décalage de son côté ; les autres
+  scripts comparent des lignes de la sauvegarde entre elles et ne sont pas touchés.
+  Résultats corrigés : §6.
+
 ## 3. Résultat : quatre classes
 
 120 lignes d'AAAHogEx (83 aériennes, 33 rail, 4 route).
@@ -71,3 +89,70 @@ deux exceptions (graine 100, paire 7-26 : 53 et 46 k£ par avion contre 6 et 7 k
 3. **Rendement par avion sur les paires communes** : le chargement complet à la gare de départ
    (C81, `docs/20_nuit_2026-09-22.md`) est une explication candidate ; la couverture des aéroports
    en est une autre (phase 4 de C67, `docs/21_cartographie_opportuniste.md`).
+
+## 6. Étape 2 (2026-09-22) : où OpexAI perd les meilleures paires d'AAAHogEx
+
+**Dispositif.** Sondes passives sous `probe_portfolio` (branche `c78-etape2-generation`, code agy
+relu et corrigé par Claude) :
+- `C78_AIRPOOL` (une génération aérienne par an) : villes triées par population avec rang, tuile,
+  bornes de distance (`airMin`, `airMax`, `railMin`, `railMax`) et codes d'erreur de l'API publiés
+  par l'IA elle-même ;
+- `C78_AIRTOWN` / `C78_AIRPAIR` : issue de chaque ville et de chaque paire examinée, dans les trois
+  bras (nouvelle paire, hub vers nouveau site, hub vers hub), avec la raison de rejet ;
+- `C78_BUILD` : chaque tentative de chantier, avec rang, issue, raison, code du constructeur
+  (`AFAIL`/`BFAIL` = aéroport A/B refusé) et erreur de l'API.
+
+Duel 5 graines (42, 100, 7, 12345, 999) × 6 ans, villes corrigées (`results/diag_c78_etape2.json`,
+non versionné ; analyse `sweeps/analyse_c78_etape2.py`). Smokes : défaut 2 × 3 et sonde sains. Le
+défaut de la branche n'est pas identique au bit près à `master` (gardes de sonde dans des chemins
+très appelés).
+
+### 6.1 Classes corrigées (20 meilleures lignes d'AAAHogEx en 1973 et 1975)
+
+| situation chez OpexAI | air | profit AAAHogEx de ces lignes |
+|---|---:|---:|
+| construite par les deux | 17 | — |
+| dans le vivier la même année, non construite | 31 | 4,4 M£ |
+| dans le vivier une année antérieure seulement | 50 | **7,8 M£** |
+| jamais dans le vivier | 44 | 4,2 M£ |
+
+Rail : 50 lignes (charbon, courrier, bétail et céréales, bois : du fret, 95 tuiles en médiane) ;
+OpexAI avait un candidat exact pour 17 d'entre elles, n'en a construit aucune.
+
+### 6.2 Les chantiers aériens échouent presque tous
+
+Sur **2 644 tentatives de chantier aérien, 282 aboutissent (11 %)** :
+
+| raison | tentatives |
+|---|---:|
+| trop de stations dans la ville (`AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN`, aéroport B ou A) | 698 |
+| site B devenu inconstructible avant le chantier (`siteB_unbuildable`) | 605 |
+| paire déjà abandonnée, pourtant toujours classée et retentée (`abandoned_pair`) | 568 |
+| plan périmé (`batch_plan_dead`) | 257 |
+| refus de la municipalité (`ERR_LOCAL_AUTHORITY_REFUSES`) | 73 |
+| terrain non plat / zone encombrée | 109 |
+
+Les paires d'AAAHogEx présentes une année puis sorties du vivier (7,8 M£) : **34 sur 50 ont été
+tentées** (19 échecs de chantier, 7 paires abandonnées, 2 sites A, 1 plan périmé, 1 manque de
+trésorerie ; 4 construites puis disparues). C'est la plus grosse poche : OpexAI **voit** ces lignes,
+les classe, puis échoue à les construire, et la paire finit abandonnée.
+
+### 6.3 La génération : le vivier des 24 villes, pas les bandes de distance
+
+Paires jamais générées (44) : 34 ont une ville hors des 24 plus peuplées examinées par la génération
+aérienne (`AIR_TOWN_POOL = 24`) ; ville fautive au rang 31,5 en médiane, 394 habitants. **Un vivier
+de 48 villes laisse passer ce filtre aux 34.**
+
+Les bandes de distance (question de l'utilisateur, `docs/03_decoupage_pax_candidates.md`) **ne sont
+pas en cause** pour ces lignes : `airMin` = 94 tuiles, et seules 2 des 44 paires sont plus courtes ;
+les meilleures liaisons d'AAAHogEx font 251 tuiles en médiane (85 au minimum).
+
+### 6.4 Suites proposées (leviers derrière des réglages à défaut 0)
+
+1. **Ne plus classer ce qui échouera** : écarter de la génération les villes dont la limite de
+   stations est atteinte (le chantier échoue sur `ERR_STATION_TOO_MANY_STATIONS_IN_TOWN`),
+   revalider les sites avant classement, et aligner la clé d'abandon de la génération sur celle du
+   chantier (568 retentatives de paires abandonnées).
+2. **Élargir le vivier de villes** : `AIR_TOWN_POOL` de 24 à 48, en réglage.
+3. Rendement par avion sur les paires communes : inchangé depuis l'étape 1 (C81 a montré que le
+   chargement complet seul ne l'explique pas).

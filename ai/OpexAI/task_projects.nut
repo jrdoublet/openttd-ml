@@ -270,6 +270,38 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
   this._c39FinanceableSince = stamped;
   return stamped.len();
 }
+
+/* C78 etape 2 : journalisation passive d'une tentative de construction d'un projet. */
+function OpexC78LogBuild(year, rank, mode, project, attempt, passDiscards, discardsLenBefore)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  local outcome = (attempt != null && ("outcome" in attempt)) ? attempt.outcome : "-";
+  local reason = "-";
+  local detail = "-";
+  local error = "-";
+  if (passDiscards != null && passDiscards.len() > discardsLenBefore) {
+    local lastEntry = passDiscards[passDiscards.len() - 1];
+    if (("reason" in lastEntry) && lastEntry.reason != null && lastEntry.reason != "") {
+      reason = lastEntry.reason;
+    }
+    /* Code du constructeur (PREA, AFAIL...) et erreur de l'API, quand l'entree les porte. */
+    if (("detail" in lastEntry) && lastEntry.detail != null && lastEntry.detail != "") detail = lastEntry.detail;
+    if (("error" in lastEntry) && lastEntry.error != null) error = lastEntry.error;
+  } else if (attempt != null && ("reason" in attempt) && attempt.reason != null && attempt.reason != "") {
+    reason = attempt.reason;
+  }
+  local towns = OpexC78ProjectTowns(project);
+  local pP = (project != null && ("profitAnnual" in project)) ? project.profitAnnual : 0;
+  local pC = (project != null) ? OpexProjectFinanceCapital(project) : 0;
+  local fields = "year=" + year + " rank=" + rank + " mode=" + mode
+               + " townA=" + towns.townA + " townB=" + towns.townB
+               + " indA=" + towns.indA + " indB=" + towns.indB
+               + " P=" + pP + " C=" + pC
+               + " outcome=" + outcome + " reason=" + reason
+               + " detail=" + detail + " error=" + error;
+  OpexC78Log("C78_BUILD", fields);
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   local c75KPassData = null;
@@ -336,6 +368,7 @@ function OpexAI::_tryBuildProjects(year)
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
       this._railSearch.kind == "primary" && this._railSearch.phase == "build") {
     local railCandidate = this._railSearch.candidate;
+    local c78DiscardsLenRail = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
     local railResult = this._consumeRailSearch(year);
     local outcome = railResult.outcome;
     if (MONTHLY_FUNNEL) funnelAttempted++;
@@ -356,6 +389,25 @@ function OpexAI::_tryBuildProjects(year)
       passDiscards.append({ rank = failRank, mode = "rail", src = railCandidate.src,
                             dst = railCandidate.dst, reason = railResult.reason,
                             extra = "", error = railResult.error });
+    }
+    if (C69_BOTTLENECK_PROBE) {
+      /* C78 etape 2 : rang et projet du classement, recherches sous sonde seulement. */
+      local c78Rank = -1;
+      local c78Project = null;
+      if (this._projects != null && this._projects.best != null) {
+        local c78Key = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+            + railCandidate.cargo + "|" + railCandidate.kind;
+        for (local i = 0; i < this._projects.best.len(); i++) {
+          local project = this._projects.best[i];
+          if (project != null && OpexProjectAttemptKey(project) == c78Key) {
+            c78Rank = i;
+            c78Project = project;
+            break;
+          }
+        }
+      }
+      local projToLog = (c78Project != null) ? c78Project : { mode = "rail", payload = railCandidate, profitAnnual = (("profitAnnual" in railCandidate) ? railCandidate.profitAnnual : 0), budgetCapital = (("capital" in railCandidate) ? railCandidate.capital : 0) };
+      OpexC78LogBuild(year, c78Rank, "rail", projToLog, railResult, passDiscards, c78DiscardsLenRail);
     }
     if (outcome != "cash") {
       if (C39_PROJECTS_CADENCE_PROBE && outcome == "built") {
@@ -470,8 +522,10 @@ function OpexAI::_tryBuildProjects(year)
 
     if (mode == "fleet") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
       passDiscards = attempt.discards;
+      if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -511,9 +565,11 @@ function OpexAI::_tryBuildProjects(year)
 
     if (mode == "air") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                 anchor, yy);
       passDiscards = attempt.discards;
+      if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -549,8 +605,10 @@ function OpexAI::_tryBuildProjects(year)
       }
     } else if (mode == "road") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
       passDiscards = attempt.discards;
+      if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -586,9 +644,11 @@ function OpexAI::_tryBuildProjects(year)
       }
     } else if (mode == "rail") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
                                                  anchor, yy);
       passDiscards = attempt.discards;
+      if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
         /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
