@@ -1039,9 +1039,43 @@ function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconom
  * le type d'aeroport, les sites, la paire et la demande avec le chemin historique. Sous le switch,
  * on ne change donc que l'appareil et l'economie de cette route, avec exactement le meme modele
  * OpexAirEconomics que M3. Sous 0, le resultat est strictement le couple historique. */
+/* C80 tranche 5 : `memoKey` identifie la route (villes ou gares, type d'aeroport, avion du combo).
+ * Etat 1 (generation complete) : choix complet, memorise. Etat 2 (mise a jour apres chantier) :
+ * seule l'economie de l'avion memorise est recalculee ; sans memo valide, choix complet memorise.
+ * Un appel plafonne en capital (construction, `maxCapital` > 0) ne lit ni n'ecrit le memo. */
 function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, monthlyPax,
                                  infrastructureMaintenance, maxCapital, newAirportCount,
-                                 opcodePadding)
+                                 opcodePadding, memoKey = null)
+{
+  if (!C80_AIR_CHOICE_MEMO || memoKey == null || maxCapital != 0 || AIR_CHOICE_MEMO_STATE == 0) {
+    return OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
+        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+  }
+  if (AIR_CHOICE_MEMO_STATE == 2 && (memoKey in AIR_CHOICE_MEMO)) {
+    local planeId = AIR_CHOICE_MEMO[memoKey];
+    local memoPlane = null;
+    if (planeId == selectedPlane.id) {
+      memoPlane = selectedPlane;
+    } else if (airport.type in catalog.airPlaneChoicesByAirport) {
+      foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
+        if (plane.id == planeId) { memoPlane = plane; break; }
+      }
+    }
+    if (memoPlane != null && (memoPlane.maxOrderDistance <= 0 || distance <= memoPlane.maxOrderDistance)) {
+      local economics = OpexAirEconomics(catalog, airport, memoPlane, distance, monthlyPax,
+          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+      if (economics != null) return { plane = memoPlane, economics = economics };
+    }
+  }
+  local choice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
+      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+  if (choice.plane != null) AIR_CHOICE_MEMO.rawset(memoKey, choice.plane.id);
+  return choice;
+}
+
+function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
+                                     infrastructureMaintenance, maxCapital, newAirportCount,
+                                     opcodePadding)
 {
   local selectedEconomics = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
@@ -1337,6 +1371,28 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     return null;
   }
 
+  /* C80 tranche 5 bis : index exacts des lignes aeriennes, construits une fois par appel (les
+   * lignes ne changent pas pendant la planification). Memes resolutions de gare que les boucles
+   * qu'ils remplacent : nombre de routes par gare (decouverte des hubs) et paires deja reliees
+   * (hub a hub), au lieu d'un parcours de toutes les lignes par hub et par paire de hubs. */
+  local hubIndex = null;
+  if (C80_AIR_HUB_INDEX && AIR_HUB && lines != null) {
+    hubIndex = { routes = {}, pairs = {} };
+    foreach (other in lines) {
+      if (!("mode" in other) || other.mode != "air") continue;
+      local oA = AIR_HUB_FIX ? OpexAirLineStationId(other, 0)
+          : (AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA));
+      local oB = AIR_HUB_FIX ? OpexAirLineStationId(other, 1)
+          : (AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB));
+      hubIndex.routes.rawset(oA, ((oA in hubIndex.routes) ? hubIndex.routes[oA] : 0) + 1);
+      if (oB != oA) hubIndex.routes.rawset(oB, ((oB in hubIndex.routes) ? hubIndex.routes[oB] : 0) + 1);
+      if (AIStation.IsValidStation(oA) && AIStation.IsValidStation(oB)) {
+        hubIndex.pairs.rawset(oA + "|" + oB, true);
+        hubIndex.pairs.rawset(oB + "|" + oA, true);
+      }
+    }
+  }
+
   local towns = OpexAirSortedTowns(catalog.towns);
   if (targetTownId >= 0) {
     local targetedTowns = [];
@@ -1440,7 +1496,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         }
 
         local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 2, opcodePadding);
+                                                    infrastructureMaintenance, maxCapital, 2, opcodePadding,
+                                                    C80_AIR_CHOICE_MEMO ? ("n|" + sites[a].town.id + "|" + sites[b].town.id
+                                                        + "|" + airport.type + "|" + plane.id) : null);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
@@ -1533,6 +1591,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           if (!AIStation.IsValidStation(station) || (station in seenStations)) continue;
 
           local routeCount = 0;
+          if (hubIndex != null) {
+            if (station in hubIndex.routes) routeCount = hubIndex.routes[station];
+          } else {
           foreach (other in lines) {
             if (!("mode" in other) || other.mode != "air") continue;
             local otherA = AIR_HUB_FIX ? OpexAirLineStationId(other, 0)
@@ -1540,6 +1601,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
             local otherB = AIR_HUB_FIX ? OpexAirLineStationId(other, 1)
                 : (AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB));
             if (otherA == station || otherB == station) routeCount++;
+          }
           }
           local maxRoutes = (existingType == AIAirport.AT_SMALL || existingType == AIAirport.AT_COMMUTER) ? 4 : 12;
           if (routeCount >= maxRoutes) continue;
@@ -1636,7 +1698,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
         if (monthlyPax < 10) monthlyPax = 10;
         local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 1, opcodePadding);
+                                                    infrastructureMaintenance, maxCapital, 1, opcodePadding,
+                                                    C80_AIR_CHOICE_MEMO ? ("h|" + hub.stationId + "|" + site.town.id
+                                                        + "|" + airport.type + "|" + plane.id) : null);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
@@ -1672,6 +1736,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local st1 = hub1.stationId;
         local st2 = hub2.stationId;
         local alreadyConnected = false;
+        if (hubIndex != null) {
+          alreadyConnected = (st1 + "|" + st2) in hubIndex.pairs;
+        } else
         foreach (line in lines) {
           if (!("mode" in line) || line.mode != "air") continue;
           /* air_hub_fix : c'est CETTE comparaison qui etait morte -- un StationID (st1/st2, issus
@@ -1720,7 +1787,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
         if (monthlyPax < 10) monthlyPax = 10;
         local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 0, opcodePadding);
+                                                    infrastructureMaintenance, maxCapital, 0, opcodePadding,
+                                                    C80_AIR_CHOICE_MEMO ? ("hh|" + hub1.stationId + "|" + hub2.stationId
+                                                        + "|" + airport.type + "|" + plane.id) : null);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {

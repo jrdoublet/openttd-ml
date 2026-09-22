@@ -150,12 +150,12 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertEqual(len(defaults), 58)
+        self.assertEqual(len(defaults), 61)
         for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build"):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c80_double_register",
                      "c76_regen_targeted", "c77_opportunistic_candidates",
-                     "c80_worker_rail", "c80_worker_town", "air_full_load",
+                     "c80_worker_rail", "c80_worker_town", "c80_mode_regen", "c80_air_choice_memo", "c80_air_hub_index", "air_full_load",
                      "c82_engine_calibration", "town_growth_plan_memo"):
             self.assertEqual(defaults[name], 0, name)
         self.assertEqual(defaults["probe_events"], 0)

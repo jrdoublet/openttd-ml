@@ -1060,8 +1060,10 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   } else if (mode == "air") {
     local mark = OpexOpsMeasureBegin();
     local plans = [];
+    if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
     local best = OpexAirPlans(catalog, lines, 0, plans, abandonedPairs, PAX_BAND_ALL,
                               entityKind == "town" ? entityId : -1);
+    AIR_CHOICE_MEMO_STATE = 0;
     local ops = OpexOpsMeasureEnd(mark);
     local perPlan = plans.len() > 0 ? ops / plans.len() : ops;
     generated.airPlan = best;
@@ -1755,7 +1757,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     local freshAirPlans = [];
+    if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
     OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
+    AIR_CHOICE_MEMO_STATE = 0;
     local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
     foreach (plan in freshAirPlans) {
       local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan);
@@ -2091,7 +2095,13 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_air", "-");
   if (doAir && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     budget.begin();
+    /* C80 tranche 5 : la generation complete refait tous les choix d'avion et les memorise. */
+    if (C80_AIR_CHOICE_MEMO) {
+      AIR_CHOICE_MEMO = {};
+      AIR_CHOICE_MEMO_STATE = 1;
+    }
     airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, airBand);
+    AIR_CHOICE_MEMO_STATE = 0;
     airOps = budget.end("project_air");
     if (generationStage == OPEX_STAGE_AIR_RAIL && priorProjects != null
         && ("airPlans" in priorProjects) && priorProjects.airPlans != null) {

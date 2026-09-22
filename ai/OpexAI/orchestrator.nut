@@ -396,7 +396,12 @@ function OpexAI::_dispatchReactiveIntention(intention)
     if (C76_REGEN_TARGETED) {
       local date = AIDate.GetCurrentDate();
       local year = AIDate.GetYear(date);
-      this._c76DoFullRegen("reactive", year);
+      local modes = (this._projects != null) ? this._c80ModeRegenModes() : null;
+      if (modes == null) {
+        this._c76DoFullRegen("reactive", year);
+      } else if (modes.len() > 0) {
+        this._c80DoModeRegen(modes, "reactive", year);
+      }
       return true;
     }
   }
@@ -965,6 +970,57 @@ function OpexAI::_c76DoFullRegen(reason, year)
            + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
   OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
            + this._projects.stats.selectedCapital + "|B0");
+}
+
+/* C80 tranche 4 : modes a regenerer quand seules des couches locales ont change.
+ * null = regeneration complete requise (villes, lignes ou moteurs aeriens ont change : l'avion,
+ * la moitie du cout d'une passe, et tous les modes en dependent) ; tableau vide = rien a faire.
+ * Les industries ne nourrissent que le fret rail et route (l'eau ne planifie que des passagers). */
+function OpexAI::_c80ModeRegenModes()
+{
+  if (!C80_MODE_REGEN || this._c76Revisions == null || this._c76AckRevisions == null) return null;
+  local r = this._c76Revisions;
+  local a = this._c76AckRevisions;
+  if (r.towns > a.towns || r.lines > a.lines || r.engines.air > a.engines.air) return null;
+  local rail = r.industries > a.industries || r.engines.rail > a.engines.rail;
+  local road = r.industries > a.industries || r.engines.road > a.engines.road;
+  local modes = [];
+  if (rail) modes.append("rail");
+  if (road) modes.append("road");
+  if (r.engines.water > a.engines.water) modes.append("water");
+  return modes;
+}
+
+/* Regenere les seuls modes donnes, puis acquitte les couches qu'ils consomment : industries et
+ * moteurs rail/route/eau (aucun autre mode n'en depend, `_c76GetModeDeps`). Ne touche ni au filet
+ * annuel ni a la rotation du cargo fret, qui restent portes par la regeneration complete. */
+function OpexAI::_c80DoModeRegen(modes, reason, year)
+{
+  local mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+  this._pruneAbandonedPairs(AIDate.GetCurrentDate());
+  foreach (mode in modes) {
+    this._c77RefreshModeCatalog(mode);
+    this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
+        this._lines, this._abandonedPairs, mode, null, null, -1);
+  }
+  if (this._projects != null) this._ranked = this._projects.rail;
+  if (C39_INVALIDATION_PROBE) {
+    local ops = OpexOpsMeasureEnd(mark);
+    local label = reason;
+    foreach (mode in modes) label += "_" + mode;
+    this._c76RecordRegen("mode", ops, (ops + 93000) / 186000, year, label);
+  }
+  local r = this._c76Revisions;
+  local a = this._c76AckRevisions;
+  a.industries = r.industries;
+  a.engines.rail = r.engines.rail;
+  a.engines.road = r.engines.road;
+  a.engines.water = r.engines.water;
+  foreach (mode, layers in this._c76ModeConsumed) {
+    foreach (layer in ["industries", "engines.rail", "engines.road", "engines.water"]) {
+      if (layer in layers) layers.rawset(layer, this._c76GetLayerRevision(layer));
+    }
+  }
 }
 
 function OpexAI::_c76SaveRevisions()

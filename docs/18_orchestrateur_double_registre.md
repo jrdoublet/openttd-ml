@@ -658,3 +658,47 @@ annuel 9, budget 8, démarrage 6. **Critère C80-5 atteint.** Correctif associé
 enregistrait la dernière régénération réactive en numéro de trimestre (~7 900) alors que la tâche
 catalogue compare des années (~1 975) : sous C80, le filet aurait été désactivé pour toujours
 après la première régénération sur événement. Les deux utilisent désormais l'année.
+
+## 14. Pile complète mesurée, tranches 4 et 5 (2026-09-22)
+
+Mesure solo 3 graines (42, 100, 7) × 10 ans, sondes `probe_portfolio`, `probe_scheduler`,
+`probe_catalogue` sur tous les bras (`sweeps/diag_c69_bottleneck_probe.py`, résultats
+`results/c80pile_*.json` et `*_raw.jsonl` du worktree `.wt_c80`, non versionnés). Pile =
+`c80_double_register`, `c80_worker_rail`, `c80_worker_town`, `c76_regen_targeted`,
+`town_growth_plan_memo`. Toutes les parties saines. **Solo, 3 graines : mécanisme, pas verdict.**
+
+| bras | chantiers 1973-78 | régén. 1976-79 (M op) | profit final 100 / 42 / 7 (M£) |
+|---|--:|--:|---|
+| défaut | 55 | 280 | 1,74 / 2,62 / 3,18 |
+| pile | 63 | 287 | 1,94 / 2,74 / 4,02 |
+| + `c80_mode_regen` | 73 | 221 | 1,86 / 2,83 / 3,84 |
+| + `c80_air_choice_memo` | 82 | 234 | 1,46 / 2,51 / 3,44 |
+| + `c80_air_hub_index` (sans memo) | **91** | **119** | 1,74 / 2,51 / 3,54 |
+
+**Où partait le temps.** Sous la pile, la file réactive C80 transformait chaque ouverture ou
+fermeture d'industrie et chaque nouveau moteur en **régénération complète** (42 sur 3 parties,
+4,6 M op chacune) : C76 ne faisait rien gagner en fin de partie. Ensuite, **la planification
+aérienne est le premier poste de l'IA** : `AIR_PLAN_PERF` compte 392 appels et 739 M op sur les
+3 parties (≈ 22 M op, ~115 jours de jeu, par partie et par an), dont 88 % d'évaluation. En fin de
+partie les nouveaux sites sont épuisés (1 à 4) et le coût vient du bras hub : la boucle hub-à-hub
+parcourait toutes les lignes pour chaque paire de hubs.
+
+**Tranche 4, `c80_mode_regen`** (défaut 0, sous `c76_regen_targeted`) : si seules les couches
+industries ou moteurs rail/route/eau ont changé, régénérer rail et/ou route et/ou eau
+(`OpexRegenerateModeProjects`) au lieu du vivier entier ; villes, lignes ou moteurs aériens gardent
+la régénération complète. Régénérations complètes réactives : 127 → 0 M op en 1976-79.
+
+**Tranche 5, `c80_air_choice_memo`** (défaut 0) : l'avion choisi par route lors d'une génération
+complète est réutilisé par les mises à jour après chantier. Coût aérien par appel 1,9 → 1,0 M op,
+mais **profit en baisse sur les 3 graines** : choix périmés possibles. Non retenu en l'état.
+
+**Tranche 5 bis, `c80_air_hub_index`** (défaut 0) : index exacts, construits une fois par appel,
+du nombre de routes par gare et des paires de gares déjà reliées. Mêmes décisions à la relecture
+(la trajectoire change par décalage d'opcodes). Régénérations 1976-79 divisées par 1,9 ; chantiers
+1973-78 +25 % sur `c80_mode_regen`.
+
+⚠️ **Lecture principale : plus de chantiers ne donne pas plus de profit.** Les deux derniers bras
+construisent le plus et gagnent moins que la pile seule, sur les 3 graines. C'est le constat de C75
+(§9 de `16_bilan_volume.md`) : sous le premier rang, le vivier classé contient peu de projets qui
+paient. Accélérer le tour a atteint ce mur ; C80-1/C80-2 (durée de tour, chantiers par an) ne sont
+plus des objectifs suffisants sans un filtre de valeur des projets marginaux.

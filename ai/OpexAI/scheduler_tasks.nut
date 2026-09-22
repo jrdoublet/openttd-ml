@@ -84,7 +84,14 @@ function OpexAI::_dispatchCatalog(task, year)
   if (C76_REGEN_TARGETED) {
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || stale || c76PeriodicDue || c76ReloadDue;
-    if (c76NeedFullRegen) {
+    local c80Modes = null;
+    if (C80_MODE_REGEN && c76LayerChanged && this._projects != null
+        && !this._portfolioInvalidated && !stale && !c76PeriodicDue && !c76ReloadDue) {
+      c80Modes = this._c80ModeRegenModes();
+    }
+    if (c80Modes != null) {
+      this._c80DoModeRegen(c80Modes, "layers", year);
+    } else if (c76NeedFullRegen) {
       local c76Reason = c76ReloadDue ? "reload"
           : (c76LayerChanged ? "layers"
           : (this._portfolioInvalidated ? "invalidated"
