@@ -562,6 +562,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c80_marginal_floor",
+      description = "C80 task 5: filter marginal multi-build projects whose calibrated profit per vehicle is below the mode realized average: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
 AddSetting({
       name = "unprofitable_streak_threshold",
       description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line (default 3)",

@@ -407,5 +407,10 @@ AIR_CHOICE_MEMO_STATE <- 0;
 /* C80 tranche 5 bis : index exacts des routes aeriennes par gare et des paires reliees. */
 C80_AIR_HUB_INDEX <- false;
 
+/* C80 tâche 5 : filtre de valeur des projets marginaux (chantiers secondaires sous multi-build).
+ * 0 = désactivé (défaut), 1 = filtre actif selon le profit par véhicule réalisé du mode. */
+C80_MARGINAL_FLOOR <- false;
+C80_MARGINAL_FLOOR_LEDGER <- null;
+
 /* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
 C78_GEN_LOG_YEAR <- -1;

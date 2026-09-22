@@ -363,6 +363,7 @@ function OpexAI::_tryBuildProjects(year)
     c75KPassData = OpexC75ComputeKPass(now);
     if (C75_YEAR_LEDGER != null) C75_YEAR_LEDGER.passes++;
   }
+  local c80DiscardsThisPass = 0;
 
   /* C83.1 : detecter d'abord une transition de slot qui exige un candidat absent,
    * puis reevaluer le petit portefeuille deja finance avant toute depense. */
@@ -613,6 +614,15 @@ function OpexAI::_tryBuildProjects(year)
               + " finance=" + projCap + " available=" + availCap);
         }
         break;
+      }
+      if (C80_MARGINAL_FLOOR) {
+        if (OpexC80ProjectBelowMarginalFloor(this._lines, project)) {
+          c80DiscardsThisPass++;
+          if (C69_BOTTLENECK_PROBE) {
+            OpexC80RecordMarginalDiscard(year, i, project);
+          }
+          continue;
+        }
       }
     }
 
@@ -926,7 +936,11 @@ function OpexAI::_tryBuildProjects(year)
   }
   if (C75_TRACK_PASSES) {
     if (builtCount > 0 && c75StopReason == null) {
-      c75StopReason = (!C75_MULTI_BUILD) ? "single" : "list_end";
+      if (c80DiscardsThisPass > 0) {
+        c75StopReason = "marginal_floor";
+      } else {
+        c75StopReason = (!C75_MULTI_BUILD) ? "single" : "list_end";
+      }
     }
     OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
   }

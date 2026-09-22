@@ -310,6 +310,77 @@ function OpexProjectFinanceCapital(project)
   return ((capital * biasPct) / 100) + nonConstructionCapital;
 }
 
+/* C80 tâche 5 : nombre de véhicules/convois introduits ou ajoutés par un projet. */
+function OpexProjectVehicleCount(project)
+{
+  if (project == null) return 1;
+  local mode = ("mode" in project) ? project.mode : "unknown";
+  if (mode == "fleet") {
+    if (("payload" in project) && project.payload != null && ("want" in project.payload)) {
+      local w = project.payload.want;
+      return w > 0 ? w : 1;
+    }
+    return 1;
+  }
+  if (mode == "road") {
+    if (("selectedRoadVehicles" in project) && project.selectedRoadVehicles > 0) {
+      return project.selectedRoadVehicles;
+    }
+    if (("payload" in project) && project.payload != null && ("trains" in project.payload) && project.payload.trains > 0) {
+      return project.payload.trains;
+    }
+    return 1;
+  }
+  if (mode == "rail") {
+    if (("payload" in project) && project.payload != null && ("trains" in project.payload) && project.payload.trains > 0) {
+      return project.payload.trains;
+    }
+    return 1;
+  }
+  /* Air : le plan porte le nombre d'avions achetes (plan.planes, economie de la route). */
+  if (mode == "air") {
+    if (("payload" in project) && project.payload != null && ("planes" in project.payload) && project.payload.planes > 0) {
+      return project.payload.planes;
+    }
+    return 1;
+  }
+  return 1;
+}
+
+/* C80 tâche 5 : filtre de valeur des projets marginaux.
+ * Écarte un chantier marginal dont le profit par véhicule calibré est strictement
+ * inférieur à la moyenne réalisée par véhicule des lignes existantes du même mode.
+ * Sans lignes matures ou si le profit réalisé du mode est non positif, ne filtre rien. */
+function OpexC80ProjectBelowMarginalFloor(lines, project)
+{
+  if (project == null || lines == null) return false;
+  local mode = ("mode" in project) ? project.mode : "unknown";
+  local targetMode = mode;
+  if (targetMode == "fleet") targetMode = "air";
+
+  local totalProfit = 0;
+  local totalVehs = 0;
+  foreach (line in lines) {
+    if (line == null || !("mode" in line) || line.mode != targetMode) continue;
+    if (!("vehCount" in line) || line.vehCount <= 0) continue;
+    if (!("lastProfit" in line)) continue;
+    totalProfit += line.lastProfit;
+    totalVehs += line.vehCount;
+  }
+  if (totalVehs <= 0 || totalProfit <= 0) return false;
+
+  local projVehs = OpexProjectVehicleCount(project);
+  if (projVehs <= 0) projVehs = 1;
+
+  local calibProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : (("profitAnnual" in project) ? project.profitAnnual : 0);
+  if (calibProfit <= 0) return true;
+
+  local projProfitPerVeh = calibProfit.tofloat() / projVehs.tofloat();
+  local modeProfitPerVeh = totalProfit.tofloat() / totalVehs.tofloat();
+
+  return projProfitPerVeh < modeProfitPerVeh;
+}
+
 function OpexProjectFromCandidate(candidate)
 {
   if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||

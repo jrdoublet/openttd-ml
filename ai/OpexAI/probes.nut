@@ -1178,6 +1178,27 @@ function OpexC75RecordPassOutcome(year, builtCount, c75KPassData, stopReason)
   }
 }
 
+/* C80 tâche 5 : sonde passive sous probe_portfolio comptant les projets rejetés par le filtre marginal */
+function OpexC80RecordMarginalDiscard(year, rank, project)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  local predProfit = (project != null && ("profitAnnual" in project)) ? project.profitAnnual : 0;
+  local calibProfit = (project != null && C70_PROFIT_CALIBRATED) ? OpexCalibratedProfit(project) : predProfit;
+  if (C80_MARGINAL_FLOOR_LEDGER != null) {
+    C80_MARGINAL_FLOOR_LEDGER.discards++;
+    C80_MARGINAL_FLOOR_LEDGER.discard_profit += predProfit;
+  }
+  local mode = (project != null && ("mode" in project)) ? project.mode : "unknown";
+  local financeCap = (project != null) ? OpexProjectFinanceCapital(project) : 0;
+  local vehs = OpexProjectVehicleCount(project);
+  local calibInt = (calibProfit != null && typeof(calibProfit) == "float") ? calibProfit.tointeger() : calibProfit;
+  OpexC69Log("phase=marginal_discard year=" + year + " rank=" + rank + " mode=" + mode
+      + " P=" + predProfit + " P_calib=" + calibInt
+      + " vehs=" + vehs + " C=" + financeCap
+      + " tot_discards=" + (C80_MARGINAL_FLOOR_LEDGER != null ? C80_MARGINAL_FLOOR_LEDGER.discards : 0)
+      + " tot_discard_profit=" + (C80_MARGINAL_FLOOR_LEDGER != null ? C80_MARGINAL_FLOOR_LEDGER.discard_profit : 0));
+}
+
 /* C75 : publication annuelle du registre de passes et chantiers */
 function OpexC75FlushYear(year)
 {
@@ -1186,6 +1207,14 @@ function OpexC75FlushYear(year)
 
   OpexC69Log("phase=c75_year year=" + year + " passes=" + C75_YEAR_LEDGER.passes
       + " builds=" + C75_YEAR_LEDGER.builds + " multi_passes=" + C75_YEAR_LEDGER.multi_passes);
+
+  if (C80_MARGINAL_FLOOR_LEDGER != null && C80_MARGINAL_FLOOR_LEDGER.discards > 0) {
+    OpexC69Log("phase=c80_marginal_year year=" + year
+        + " discards=" + C80_MARGINAL_FLOOR_LEDGER.discards
+        + " discard_profit=" + C80_MARGINAL_FLOOR_LEDGER.discard_profit);
+    C80_MARGINAL_FLOOR_LEDGER.discards = 0;
+    C80_MARGINAL_FLOOR_LEDGER.discard_profit = 0;
+  }
 
   OpexC75ResetYearLedger();
 }
