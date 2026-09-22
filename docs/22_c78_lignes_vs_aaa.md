@@ -156,3 +156,30 @@ les meilleures liaisons d'AAAHogEx font 251 tuiles en médiane (85 au minimum).
 2. **Élargir le vivier de villes** : `AIR_TOWN_POOL` de 24 à 48, en réglage.
 3. Rendement par avion sur les paires communes : inchangé depuis l'étape 1 (C81 a montré que le
    chargement complet seul ne l'explique pas).
+
+## 7. Monopoles aériens : qui tient les créneaux des villes (2026-09-22)
+
+Règle de la partie : sans niveau de bruit (`station_noise_level=false`), une ville accepte **deux
+aéroports au plus, toutes compagnies confondues** (échec 771 au-delà, `taches.md` §771). Mesure sur le
+même duel (5 graines ; aéroports rattachés à la ville la plus proche, villes corrigées) :
+
+| aéroports (AAAHogEx, OpexAI) | villes fin 1972 | dont 24 plus grandes | villes fin 1975 | dont 24 plus grandes | profit aérien AAAHogEx attribué, 1975 |
+|---|---:|---:|---:|---:|---:|
+| **(2, 0) verrouillée par AAAHogEx** | 38 | **30** | 50 | **30** | 3,2 M£ |
+| (1, 1) partagée | 73 | 70 | 94 | 80 | 4,1 M£ |
+| (1, 0) | 42 | 8 | 28 | 0 | 0,7 M£ |
+| (0, 1) | 9 | 9 | 9 | 8 | — |
+
+- OpexAI n'a **jamais** deux aéroports dans une même ville ; AAAHogEx en a deux dans 8 grandes villes
+  dès fin 1970.
+- Les 30 grandes villes verrouillées fin 1972 : 16 étaient à (1, 0) au relevé de décembre précédent
+  (fenêtre d'au moins un relevé pour prendre le second créneau), 8 déjà verrouillées fin 1970,
+  6 passées de (0, 0) à (2, 0) entre deux relevés.
+- **Placement périphérique rattaché à une ville voisine (piste n° 2 du 2026-09-15) : impossible sur
+  ces cartes.** La voisine la plus proche ayant un créneau libre est à 40 tuiles en médiane d'une
+  ville verrouillée, aucune à moins de 15.
+- La note de gare n'explique pas la perte des villes partagées (`09_air_service_quality.md` : note
+  voisine ou meilleure chez OpexAI sur 4/7 marchés) ; la captation, si (5 à 9 fois moins de
+  passagers en attente par place chez OpexAI).
+- OpexAI n'utilise aucune action municipale ; AAAHogEx construit des statues quand il est riche
+  (`AAAHogEx-115/main.nut:3637`).
