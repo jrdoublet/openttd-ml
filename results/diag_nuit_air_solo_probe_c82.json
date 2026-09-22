@@ -1,0 +1,566 @@
+{
+  "openttd_version": "15.3",
+  "starting_year": 1970,
+  "years": 6,
+  "seeds": [
+    100,
+    42,
+    12345
+  ],
+  "arms": {
+    "c82": {
+      "c82_engine_calibration": 1,
+      "probe_portfolio": 1
+    }
+  },
+  "probe": true,
+  "summary": {
+    "by_metric": {
+      "profit_year": {
+        "per_arm": {
+          "solo:c82": {
+            "mean": 2325532,
+            "median": 2712334,
+            "per_seed": {
+              "100": 1498598,
+              "42": 2712334,
+              "12345": 2765664
+            }
+          }
+        },
+        "pairs": {}
+      },
+      "company_value": {
+        "per_arm": {
+          "solo:c82": {
+            "mean": 9098618.333333334,
+            "median": 10437281,
+            "per_seed": {
+              "100": 6142870,
+              "42": 10715704,
+              "12345": 10437281
+            }
+          }
+        },
+        "pairs": {}
+      },
+      "vehicles": {
+        "per_arm": {
+          "solo:c82": {
+            "mean": 139.33333333333334,
+            "median": 140,
+            "per_seed": {
+              "100": 124,
+              "42": 140,
+              "12345": 154
+            }
+          }
+        },
+        "pairs": {}
+      },
+      "air_profit": {
+        "per_arm": {
+          "solo:c82": {
+            "mean": 2091901.3619996666,
+            "median": 2371645.511749,
+            "per_seed": {
+              "100": 1387550.402338,
+              "42": 2371645.511749,
+              "12345": 2516508.171912
+            }
+          }
+        },
+        "pairs": {}
+      },
+      "air_profit_per_seat": {
+        "per_arm": {
+          "solo:c82": {
+            "mean": 101.25555930320215,
+            "median": 97.61866687585922,
+            "per_seed": {
+              "100": 110.03571786978588,
+              "42": 97.61866687585922,
+              "12345": 96.11229316396135
+            }
+          }
+        },
+        "pairs": {}
+      },
+      "air_planes_per_line": {
+        "per_arm": {
+          "solo:c82": {
+            "mean": 1.1312411210667024,
+            "median": 1.0808080808080809,
+            "per_seed": {
+              "100": 1.2325581395348837,
+              "42": 1.0808080808080809,
+              "12345": 1.0803571428571428
+            }
+          }
+        },
+        "pairs": {}
+      }
+    },
+    "air_engines": {
+      "solo:c82": {
+        "per_seed": {
+          "100": {
+            "217": 60,
+            "223": 5,
+            "225": 2,
+            "227": 38,
+            "228": 1
+          },
+          "42": {
+            "218": 1,
+            "223": 81,
+            "225": 23,
+            "228": 2
+          },
+          "12345": {
+            "216": 1,
+            "217": 18,
+            "218": 4,
+            "221": 12,
+            "223": 85,
+            "228": 1
+          }
+        },
+        "total": {
+          "216": 1,
+          "217": 78,
+          "218": 5,
+          "221": 12,
+          "223": 171,
+          "225": 25,
+          "227": 38,
+          "228": 4
+        }
+      }
+    },
+    "c82_probes": {
+      "solo:c82": {
+        "calls_sum": 49584,
+        "differ_sum": 12528,
+        "factors_by_seed": {
+          "100": {
+            "217": {
+              "engine": 217,
+              "name": "FFP_Dart",
+              "lines": 27,
+              "k": 2.990708,
+              "year": 1975
+            },
+            "227": {
+              "engine": 227,
+              "name": "Darwin_200",
+              "lines": 27,
+              "k": 1.7851621,
+              "year": 1975
+            },
+            "228": {
+              "engine": 228,
+              "name": "Darwin_300",
+              "lines": 1,
+              "k": 0.9777423,
+              "year": 1975
+            },
+            "223": {
+              "engine": 223,
+              "name": "Bakewell_Luckett_LB-10",
+              "lines": 5,
+              "k": 1.5580502,
+              "year": 1975
+            },
+            "225": {
+              "engine": 225,
+              "name": "Yate_Aerospace_YAC_1-11",
+              "lines": 1,
+              "k": 1.0189607,
+              "year": 1975
+            }
+          },
+          "42": {
+            "228": {
+              "engine": 228,
+              "name": "Darwin_300",
+              "lines": 2,
+              "k": 0.9539574,
+              "year": 1975
+            },
+            "225": {
+              "engine": 225,
+              "name": "Yate_Aerospace_YAC_1-11",
+              "lines": 1,
+              "k": 1.0962746,
+              "year": 1975
+            },
+            "223": {
+              "engine": 223,
+              "name": "Bakewell_Luckett_LB-10",
+              "lines": 37,
+              "k": 2.3921318,
+              "year": 1975
+            },
+            "218": {
+              "engine": 218,
+              "name": "Yate_Haugan",
+              "lines": 1,
+              "k": 1.0729847,
+              "year": 1975
+            }
+          },
+          "12345": {
+            "228": {
+              "engine": 228,
+              "name": "Darwin_300",
+              "lines": 1,
+              "k": 0.95782536,
+              "year": 1975
+            },
+            "223": {
+              "engine": 223,
+              "name": "Bakewell_Luckett_LB-10",
+              "lines": 57,
+              "k": 2.014454,
+              "year": 1975
+            },
+            "221": {
+              "engine": 221,
+              "name": "Bakewell_Luckett_LB-9",
+              "lines": 1,
+              "k": 1.186224,
+              "year": 1975
+            },
+            "218": {
+              "engine": 218,
+              "name": "Yate_Haugan",
+              "lines": 4,
+              "k": 1.2103069,
+              "year": 1975
+            }
+          }
+        },
+        "latest_factors": {
+          "217": {
+            "engine": 217,
+            "name": "FFP_Dart",
+            "lines": 27,
+            "k": 2.990708,
+            "year": 1975
+          },
+          "227": {
+            "engine": 227,
+            "name": "Darwin_200",
+            "lines": 27,
+            "k": 1.7851621,
+            "year": 1975
+          },
+          "228": {
+            "engine": 228,
+            "name": "Darwin_300",
+            "lines": 1,
+            "k": 0.95782536,
+            "year": 1975
+          },
+          "223": {
+            "engine": 223,
+            "name": "Bakewell_Luckett_LB-10",
+            "lines": 57,
+            "k": 2.014454,
+            "year": 1975
+          },
+          "225": {
+            "engine": 225,
+            "name": "Yate_Aerospace_YAC_1-11",
+            "lines": 1,
+            "k": 1.0962746,
+            "year": 1975
+          },
+          "218": {
+            "engine": 218,
+            "name": "Yate_Haugan",
+            "lines": 4,
+            "k": 1.2103069,
+            "year": 1975
+          },
+          "221": {
+            "engine": 221,
+            "name": "Bakewell_Luckett_LB-9",
+            "lines": 1,
+            "k": 1.186224,
+            "year": 1975
+          }
+        },
+        "choice_samples_20": [
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=225 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=221 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=218 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=225 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=218 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=225 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=221 cal=227 k_raw=1 k_cal=1.4984634 c72=0"
+        ]
+      }
+    }
+  },
+  "final_runs": [
+    {
+      "context": "solo",
+      "arm": "c82",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2712334,
+      "opex_company_value": 10715704,
+      "opex_vehicles": 140,
+      "opex_air_engines": {
+        "218": 1,
+        "223": 81,
+        "225": 23,
+        "228": 2
+      },
+      "air_lines": 99,
+      "air_planes": 107,
+      "air_seats": 24295,
+      "air_profit": 2371645.511749,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 97.61866687585922,
+      "air_planes_per_line": 1.0808080808080809,
+      "c82_probe": {
+        "factors": {
+          "228": {
+            "engine": 228,
+            "name": "Darwin_300",
+            "lines": 2,
+            "k": 0.9539574,
+            "year": 1975
+          },
+          "225": {
+            "engine": 225,
+            "name": "Yate_Aerospace_YAC_1-11",
+            "lines": 1,
+            "k": 1.0962746,
+            "year": 1975
+          },
+          "223": {
+            "engine": 223,
+            "name": "Bakewell_Luckett_LB-10",
+            "lines": 37,
+            "k": 2.3921318,
+            "year": 1975
+          },
+          "218": {
+            "engine": 218,
+            "name": "Yate_Haugan",
+            "lines": 1,
+            "k": 1.0729847,
+            "year": 1975
+          }
+        },
+        "calls_sum": 16427,
+        "differ_sum": 5980,
+        "choice_samples": [
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=221 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=217 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-12 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-13 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-13 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-13 C69_BOTTLENECK phase=c82_choice raw=221 cal=223 k_raw=1 k_cal=1.8853434 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-13 C69_BOTTLENECK phase=c82_choice raw=225 cal=223 k_raw=1.459753 k_cal=1.8853434 c72=0"
+        ]
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "c82",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1498598,
+      "opex_company_value": 6142870,
+      "opex_vehicles": 124,
+      "opex_air_engines": {
+        "217": 60,
+        "223": 5,
+        "225": 2,
+        "227": 38,
+        "228": 1
+      },
+      "air_lines": 86,
+      "air_planes": 106,
+      "air_seats": 12610,
+      "air_profit": 1387550.402338,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 110.03571786978588,
+      "air_planes_per_line": 1.2325581395348837,
+      "c82_probe": {
+        "factors": {
+          "217": {
+            "engine": 217,
+            "name": "FFP_Dart",
+            "lines": 27,
+            "k": 2.990708,
+            "year": 1975
+          },
+          "227": {
+            "engine": 227,
+            "name": "Darwin_200",
+            "lines": 27,
+            "k": 1.7851621,
+            "year": 1975
+          },
+          "228": {
+            "engine": 228,
+            "name": "Darwin_300",
+            "lines": 1,
+            "k": 0.9777423,
+            "year": 1975
+          },
+          "223": {
+            "engine": 223,
+            "name": "Bakewell_Luckett_LB-10",
+            "lines": 5,
+            "k": 1.5580502,
+            "year": 1975
+          },
+          "225": {
+            "engine": 225,
+            "name": "Yate_Aerospace_YAC_1-11",
+            "lines": 1,
+            "k": 1.0189607,
+            "year": 1975
+          }
+        },
+        "calls_sum": 16289,
+        "differ_sum": 3088,
+        "choice_samples": [
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=225 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=221 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=218 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=223 cal=227 k_raw=0.9972584 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=225 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-27 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=217 cal=227 k_raw=1.0507995 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=218 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=225 cal=227 k_raw=1 k_cal=1.4984634 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-1-28 C69_BOTTLENECK phase=c82_choice raw=221 cal=227 k_raw=1 k_cal=1.4984634 c72=0"
+        ]
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "c82",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2765664,
+      "opex_company_value": 10437281,
+      "opex_vehicles": 154,
+      "opex_air_engines": {
+        "216": 1,
+        "217": 18,
+        "218": 4,
+        "221": 12,
+        "223": 85,
+        "228": 1
+      },
+      "air_lines": 112,
+      "air_planes": 121,
+      "air_seats": 26183,
+      "air_profit": 2516508.171912,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 96.11229316396135,
+      "air_planes_per_line": 1.0803571428571428,
+      "c82_probe": {
+        "factors": {
+          "228": {
+            "engine": 228,
+            "name": "Darwin_300",
+            "lines": 1,
+            "k": 0.95782536,
+            "year": 1975
+          },
+          "223": {
+            "engine": 223,
+            "name": "Bakewell_Luckett_LB-10",
+            "lines": 57,
+            "k": 2.014454,
+            "year": 1975
+          },
+          "221": {
+            "engine": 221,
+            "name": "Bakewell_Luckett_LB-9",
+            "lines": 1,
+            "k": 1.186224,
+            "year": 1975
+          },
+          "218": {
+            "engine": 218,
+            "name": "Yate_Haugan",
+            "lines": 4,
+            "k": 1.2103069,
+            "year": 1975
+          }
+        },
+        "calls_sum": 16868,
+        "differ_sum": 3460,
+        "choice_samples": [
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=225 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=221 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=225 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=217 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=217 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=217 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=217 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=218 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-16 C69_BOTTLENECK phase=c82_choice raw=227 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-17 C69_BOTTLENECK phase=c82_choice raw=217 cal=223 k_raw=1 k_cal=1.489877 c72=0",
+          "[2026-09-22 02:37:12] dbg: [script:4] [0] [I] OPEX 1972-2-17 C69_BOTTLENECK phase=c82_choice raw=217 cal=223 k_raw=1 k_cal=1.489877 c72=0"
+        ]
+      }
+    }
+  ]
+}

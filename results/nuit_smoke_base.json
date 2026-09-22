@@ -1,0 +1,244 @@
+{
+ "smoke_test_status": "PASSED",
+ "arm": "OpexAI",
+ "seeds": [
+  42,
+  100
+ ],
+ "years": 3,
+ "errors": [],
+ "completeness": {
+  "ok": true,
+  "expected_runs": 2,
+  "observed_runs": 2,
+  "missing_runs": [],
+  "unexpected_runs": []
+ },
+ "summary": [
+  {
+   "arm": "OpexAI",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "last_year": 1972,
+   "expected_last_year": 1972,
+   "company_value": 1985674,
+   "performance_history": 378,
+   "income_last_year": 329451,
+   "expenses_last_year": -42814,
+   "profit": 286637,
+   "profit_year": 1049722,
+   "median_station_rating": 174.0,
+   "n_station_ratings": 40,
+   "money": 272376,
+   "current_loan": 130000,
+   "n_vehicles": 59,
+   "n_stations": 27,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "selection_kopcodes_samples": 82,
+   "selection_kopcodes_total": 4423,
+   "selection_kopcodes_mean": 53.939024,
+   "selection_kopcodes_max": 237,
+   "observed_opcode_schema": "h5.observed-v1",
+   "observed_opcodes_total": 7272391,
+   "observed_opcode_samples": 133,
+   "observed_opcode_components": {
+    "selection": {
+     "samples": 82,
+     "opcodes": 4423000,
+     "coverage": "IG| field 8; current builds"
+    },
+    "rail_attempt": {
+     "samples": 0,
+     "opcodes": 0,
+     "coverage": "OB|A plan+build attempts"
+    },
+    "road_planning": {
+     "samples": 12,
+     "opcodes": 2164291,
+     "coverage": "RB| planning on emitted attempts"
+    },
+    "road_build": {
+     "samples": 12,
+     "opcodes": 588118,
+     "coverage": "RB| build on emitted attempts"
+    },
+    "air_planning": {
+     "samples": 27,
+     "opcodes": 96982,
+     "coverage": "OA| planning only"
+    },
+    "water_planning": {
+     "samples": 0,
+     "opcodes": 0,
+     "coverage": "OM|W planning; successful builds only"
+    }
+   },
+   "observed_opcode_complete_cpu": false,
+   "run_ok": true,
+   "failure_reason": null,
+   "physical_counters_version": "1.1.0",
+   "qualified_modes": {
+    "rail": true,
+    "road": true,
+    "air": true,
+    "water": false
+   },
+   "physical_ok": true,
+   "vehs_chunk_valid": true,
+   "vehs_chunk_error": null,
+   "stnn_chunk_valid": true,
+   "stnn_chunk_error": null,
+   "vehicle_pool_entries": 106,
+   "total_vehicle_pool_entries": 113,
+   "primary_vehicles": 59,
+   "qualified_primary_vehicles": 59,
+   "unqualified_primary_vehicles": 0,
+   "primary_vehicles_by_mode": {
+    "rail": 0,
+    "road": 12,
+    "air": 47,
+    "water": 0
+   },
+   "capacities_by_cargo": {
+    "0": 5700,
+    "2": 715,
+    "3": 42
+   },
+   "fleet_status": {
+    "stopped": 0,
+    "not_stopped": 59,
+    "running": 54,
+    "hidden": 4,
+    "broken": 1,
+    "crashed": 0
+   },
+   "unclassified_vehicles": 0,
+   "n_multimodal_stations": 12,
+   "stations_by_facility": {
+    "rail": 0,
+    "truck": 2,
+    "bus": 22,
+    "airport": 15,
+    "dock": 0
+   },
+   "unresolved_stations": 0,
+   "final_profit_year_per_observed_mopcode": 144343.44908,
+   "company_value_per_observed_mopcode": 273042.799816
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "last_year": 1972,
+   "expected_last_year": 1972,
+   "company_value": 2766805,
+   "performance_history": 512,
+   "income_last_year": 585171,
+   "expenses_last_year": -48247,
+   "profit": 536924,
+   "profit_year": 1680313,
+   "median_station_rating": 172.0,
+   "n_station_ratings": 48,
+   "money": 956413,
+   "current_loan": 0,
+   "n_vehicles": 55,
+   "n_stations": 34,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "selection_kopcodes_samples": 59,
+   "selection_kopcodes_total": 6678,
+   "selection_kopcodes_mean": 113.186441,
+   "selection_kopcodes_max": 335,
+   "observed_opcode_schema": "h5.observed-v1",
+   "observed_opcodes_total": 18842477,
+   "observed_opcode_samples": 91,
+   "observed_opcode_components": {
+    "selection": {
+     "samples": 59,
+     "opcodes": 6678000,
+     "coverage": "IG| field 8; current builds"
+    },
+    "rail_attempt": {
+     "samples": 1,
+     "opcodes": 11463600,
+     "coverage": "OB|A plan+build attempts"
+    },
+    "road_planning": {
+     "samples": 2,
+     "opcodes": 65366,
+     "coverage": "RB| planning on emitted attempts"
+    },
+    "road_build": {
+     "samples": 2,
+     "opcodes": 563476,
+     "coverage": "RB| build on emitted attempts"
+    },
+    "air_planning": {
+     "samples": 27,
+     "opcodes": 72035,
+     "coverage": "OA| planning only"
+    },
+    "water_planning": {
+     "samples": 0,
+     "opcodes": 0,
+     "coverage": "OM|W planning; successful builds only"
+    }
+   },
+   "observed_opcode_complete_cpu": false,
+   "run_ok": true,
+   "failure_reason": null,
+   "physical_counters_version": "1.1.0",
+   "qualified_modes": {
+    "rail": true,
+    "road": true,
+    "air": true,
+    "water": false
+   },
+   "physical_ok": true,
+   "vehs_chunk_valid": true,
+   "vehs_chunk_error": null,
+   "stnn_chunk_valid": true,
+   "stnn_chunk_error": null,
+   "vehicle_pool_entries": 102,
+   "total_vehicle_pool_entries": 114,
+   "primary_vehicles": 55,
+   "qualified_primary_vehicles": 55,
+   "unqualified_primary_vehicles": 0,
+   "primary_vehicles_by_mode": {
+    "rail": 2,
+    "road": 12,
+    "air": 41,
+    "water": 0
+   },
+   "capacities_by_cargo": {
+    "0": 6965,
+    "2": 1095,
+    "1": 220,
+    "7": 40
+   },
+   "fleet_status": {
+    "stopped": 0,
+    "not_stopped": 55,
+    "running": 54,
+    "hidden": 0,
+    "broken": 1,
+    "crashed": 0
+   },
+   "unclassified_vehicles": 0,
+   "n_multimodal_stations": 18,
+   "stations_by_facility": {
+    "rail": 2,
+    "truck": 4,
+    "bus": 28,
+    "airport": 18,
+    "dock": 0
+   },
+   "unresolved_stations": 0,
+   "final_profit_year_per_observed_mopcode": 89176.86353,
+   "company_value_per_observed_mopcode": 146838.709157
+  }
+ ]
+}
