@@ -536,7 +536,7 @@ function OpexAirFindSite(town, airport, probes)
             if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
               ok = true;
             } else {
-              AITile.LevelTiles(cachedAnchor, c4);
+              AITile.LevelTiles(cachedAnchor, OpexAirFootprintEnd(cachedAnchor, airport));
               ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
               if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
             }
@@ -638,7 +638,7 @@ function OpexAirFindSite(town, airport, probes)
             if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
               ok = true;
             } else {
-              AITile.LevelTiles(anchor, c4);
+              AITile.LevelTiles(anchor, OpexAirFootprintEnd(anchor, airport));
               ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
               if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
             }
