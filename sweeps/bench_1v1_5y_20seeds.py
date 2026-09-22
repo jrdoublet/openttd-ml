@@ -1181,7 +1181,7 @@ def main():
     parser.add_argument("--campaign", help="Identifiant C66.3 nouveau ; derive de --out ou horodate si omis")
     parser.add_argument("--policy-id", default="reference", help="Identifiant de la politique OpexAI testee")
     parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[air_early_slot=1]")
-    parser.add_argument("--variant", help="C66.4 : ex. OpexAI[air_presite=1]")
+    parser.add_argument("--variant", help="C66.4 : ex. OpexAI[c77_opportunistic_candidates=1]")
     parser.add_argument("--variant-policy-id", help="C66.4 : identifiant stable de la variante")
     parser.add_argument("--primary-metric", choices=list(SUCCESS_METRICS), default=PRIMARY_METRIC)
     parser.add_argument("--min-useful-primary-delta", type=float)
@@ -1901,16 +1901,16 @@ def selftest():
     assert defaults["air_fleet_cadence_days"] == 7
 
     diff = validate_policy_settings(
-        {"air_presite": 0, "road_mode": 0},
-        {"air_presite": 1, "road_mode": 0},
-        intervention_settings=("air_presite",),
+        {"c77_opportunistic_candidates": 0, "road_mode": 0},
+        {"c77_opportunistic_candidates": 1, "road_mode": 0},
+        intervention_settings=("c77_opportunistic_candidates",),
     )
-    assert set(diff) == {"air_presite"}
+    assert set(diff) == {"c77_opportunistic_candidates"}
     try:
         validate_policy_settings(
-            {"air_presite": 0, "road_mode": 0},
-            {"air_presite": 1, "road_mode": 1},
-            intervention_settings=("air_presite",),
+            {"c77_opportunistic_candidates": 0, "road_mode": 0},
+            {"c77_opportunistic_candidates": 1, "road_mode": 1},
+            intervention_settings=("c77_opportunistic_candidates",),
         )
     except ValueError:
         pass
@@ -1930,7 +1930,7 @@ def selftest():
         assert fingerprint_tree(snap)["sha256"] == frozen_hash
 
     # 6. C66.4 : comparaison de politiques appariée, ratios, signes et fail-closed.
-    assert parse_opex_variant("OpexAI[air_presite=1]") == (("air_presite", 1),)
+    assert parse_opex_variant("OpexAI[c77_opportunistic_candidates=1]") == (("c77_opportunistic_candidates", 1),)
     try:
         parse_opex_variant("OpexAI[reglage_inconnu_c66=1]")
     except ValueError:

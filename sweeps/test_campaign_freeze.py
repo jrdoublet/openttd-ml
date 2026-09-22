@@ -268,22 +268,22 @@ class TestCampaignFreeze(unittest.TestCase):
 
     def test_policy_guard_rejects_unannounced_and_no_effect(self):
         diff = validate_policy_settings(
-            {"air_presite": 0, "road_mode": 0},
-            {"air_presite": 1, "road_mode": 0},
-            intervention_settings=("air_presite",),
+            {"c77_opportunistic_candidates": 0, "road_mode": 0},
+            {"c77_opportunistic_candidates": 1, "road_mode": 0},
+            intervention_settings=("c77_opportunistic_candidates",),
         )
-        self.assertEqual(set(diff), {"air_presite"})
+        self.assertEqual(set(diff), {"c77_opportunistic_candidates"})
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"air_presite": 0, "road_mode": 0},
-                {"air_presite": 1, "road_mode": 1},
-                intervention_settings=("air_presite",),
+                {"c77_opportunistic_candidates": 0, "road_mode": 0},
+                {"c77_opportunistic_candidates": 1, "road_mode": 1},
+                intervention_settings=("c77_opportunistic_candidates",),
             )
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"air_presite": 0},
-                {"air_presite": 0},
-                intervention_settings=("air_presite",),
+                {"c77_opportunistic_candidates": 0},
+                {"c77_opportunistic_candidates": 0},
+                intervention_settings=("c77_opportunistic_candidates",),
             )
 
     def test_bench_audit_detects_identical_and_shared_nondefault_arms(self):
