@@ -215,6 +215,62 @@ Critère d'étape 1 (sonde) : nombre d'occasions par an, délai actuel entre l'o
 en compte (aujourd'hui jusqu'à un tour, ~45 j), et part des occasions prises par AAAHogEx pendant
 ce délai. Un levier n'est codé que si ce délai coûte des occasions mesurées.
 
+### Revue du code C76-C77 — pistes (2026-09-22)
+
+Revue en lecture seule du commit `06b5227` (branche `c80-suite`) par trois agents agy (C76, C77,
+transverse orchestrateur et persistance), recoupée par Claude dans le code. **Aucune piste n'est
+codée.** Mesures citées : solo 3 graines × 10 ans, `docs/18_orchestrateur_double_registre.md` §14.
+
+**C76 — coût des régénérations** (vérifié dans le code) :
+
+1. **Raison « budget » → resélection.** Un doublement du capital relance une régénération complète
+   (`scheduler_tasks.nut`, `_dispatchCatalog`, variable `stale`), alors que la génération des
+   candidats ne dépend pas du capital (seule `OpexProjectSelectAffordable` le lit ;
+   `builder_air.nut:1172` n'est qu'un champ de sonde). `OpexReselectProjects` suffit. Trivial ;
+   8 régénérations complètes sur 3 parties.
+2. **Couche `lines` relevée sans nécessité.** Elle invalide tous les modes. Or une ligne de bus de
+   `town_growth` (`task_town.nut:214`) ne touche que les bus de sa ville ; un retrait de ligne
+   déficitaire (`task_report.nut:534`) ne rend aucun candidat invalide ; un abandon de paire hors
+   passe (`lines.nut:267`) est déjà filtré en mémoire (`OpexCandidateIsAbandoned`). Traitement
+   local à la place. Principale source des régénérations « layers » (34 sur 3 parties).
+3. **Subvention perdue → régénération complète redondante** (`task_road.nut:30` pose
+   `_portfolioInvalidated` juste après la purge locale `_purgeSubsidyFromProjects`).
+4. **Matrice de dépendances fausse pour l'eau** (`_c76GetModeDeps`) : l'eau dépend des villes, pas
+   des industries (elle ne planifie que des passagers). `c80_mode_regen` l'exclut déjà ; reste la
+   matrice et `_c76RunSelfTest`.
+
+**Mesure (à traiter avant toute nouvelle optimisation de C80).** 5. L'horloge C39.6 n'impute ni
+les intentions réactives ni les tranches de travailleurs (elles s'exécutent dans
+`_runOrchestratorTick`, hors de `_runNextTaskWithSlackLedger`) : sous la pile C80, ~280 jours
+imputés par an contre ~363 au défaut. Toute durée de tour mesurée sous C80 est biaisée.
+
+**C77 — valeur** :
+
+6. **La construction déclenchée ne vise pas l'occasion.** `c77_build` appelle `_tryBuildProjects`,
+   qui bâtit le premier rang du vivier entier, pas le candidat de l'entité touchée ; et les
+   occasions produites valent peu (ville fondée ~100 habitants, industrie neuve à faible
+   production). Explication la plus plausible du 10/10 au 20×10 (hypothèse). Piste : ne construire
+   que si le candidat de l'événement entre en tête du classement.
+7. **Le déclencheur « AAAHogEx pose un aéroport → prendre le second créneau » n'existe pas**
+   (aucun handler ne regarde les stations concurrentes). Seul déclencheur à valeur démontrée
+   (`docs/22_c78_lignes_vs_aaa.md` §7) : relève de **C83**. Pas d'événement NoAI : scan périodique
+   `AIStationList(AIStation.STATION_AIRPORT)` filtré par propriétaire.
+
+**Corrections mineures** (vérifiées) : au rechargement, une intention `c77_build` est perdue si le
+vivier est vide (`orchestrator.nut:427`) ; sous C77 sans C76, l'invalidation historique est coupée
+(`event_handlers.nut:563`, 600, 639) sans relais pour une fermeture d'industrie ; clé de coalescence
+`c77|build|<raison>` qui fusionne deux événements de même nature (impact faible) ; une intention
+`c77_entity` attend la fin de tout travailleur, y compris un A\* rail long (latence) ; double
+tranche d'A\* dans un même tick par la récursion de `town_growth_skip_noop` (réglage à 0).
+
+**Écarté** : « une régénération réactive corrompt l'A\* en cours » (faux : le chemin historique
+régénère déjà pendant une recherche, qui porte son propre candidat) ; quota anti-famine de la file
+réactive (hypothèse non mesurée, décision ouverte §3.1.3 de la fiche C80).
+
+**Selftests à ajouter** (proposés par l'audit) : aller-retour Save/Load de la file réactive et d'un
+travailleur `regen_candidates` réel ; intention mutatrice pendant un travailleur actif ; cycle de
+vie d'une subvention C77 (`_c77InjectSubsidy`, purge).
+
 ### Clôture AIR post-C68 — frontière, best equipment et cycle de vie (2026-09-21)
 
 La branche expérimentale postérieure à `b68fafb` est archivée sous
