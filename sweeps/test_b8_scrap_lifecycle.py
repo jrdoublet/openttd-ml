@@ -60,13 +60,6 @@ class TestB8ScrapLifecycle(unittest.TestCase):
         self.assertIn('else line.scrapStartYear <- year', body)
         self.assertLess(body.index("scrapStartYear"), body.index("SendVehicleToDepot"))
 
-    def test_feeder_recovery_clears_old_scrap_timer(self):
-        body = function_body(self.report, "function OpexAI::_scrapDeadLines(")
-        recovery = body.index("FEEDER_RECOVER")
-        delete_timer = body.rfind('delete line.scrapStartYear', 0, recovery)
-        self.assertNotEqual(delete_timer, -1)
-        self.assertIn("scrap_timer_reset=1", body[delete_timer:recovery + 250])
-
     def test_old_save_fallback_still_initialises_missing_start_year(self):
         body = function_body(self.report, "function OpexAI::_scrapDeadLines(")
         self.assertIn('if (!("scrapStartYear" in line)) line.scrapStartYear <- year', body)

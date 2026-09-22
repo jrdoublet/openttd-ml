@@ -256,7 +256,8 @@ C75_YEAR_LEDGER <- null;
 C76_PREV_STATE <- null;
 C76_YEAR_LEDGER <- null;
 C76_EVENTS_SINCE_PREV <- null;
-/* C76 etape 2 : regeneration ciblee par mode, premier client reel du double registre C80. */
+/* C76 etape 2 / C80 tranche 3 : regeneration du vivier pilotee par les invalidations.
+ * 0 = regeneration mensuelle systematique historique (defaut), 1 = regeneration ciblee. */
 C76_REGEN_TARGETED <- false;
 /* C77 : injection immediate de candidats lies a une entite touchee par un evenement. */
 C77_OPPORTUNISTIC_CANDIDATES <- false;
@@ -397,10 +398,6 @@ AIR_CHOICE_MEMO <- {};
 AIR_CHOICE_MEMO_STATE <- 0;
 /* C80 tranche 5 bis : index exacts des routes aeriennes par gare et des paires reliees. */
 C80_AIR_HUB_INDEX <- false;
-
-/* C76 étape 2 / C80 tranche 3 : régénération du vivier pilotée par les invalidations.
- * 0 = régénération mensuelle systématique historique (défaut), 1 = régénération ciblée. */
-C76_REGEN_TARGETED <- false;
 
 /* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
 C78_GEN_LOG_YEAR <- -1;

@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = [
     ROOT / "docs" / "taches.md",
     ROOT / "docs" / "revue_code_2026-09-15_correctifs.md",
+    # Historique retire de taches.md le 2026-09-22 ; ses citations restent des preuves.
+    ROOT / "docs" / "journal_2026-09-22_transfert_historique.md",
     *(ROOT / "docs" / "revue").glob("*.md"),
 ]
 OUT_DIR = ROOT / "evidence" / "review"
@@ -74,7 +76,7 @@ def main() -> int:
 
     index = {
         "schema": "opex-review-evidence-v1",
-        "description": "Exact gzip copies of JSON evidence cited by docs/revue, docs/taches.md and docs/revue_code_2026-09-15_correctifs.md.",
+        "description": "Exact gzip copies of JSON evidence cited by docs/revue, docs/taches.md, docs/journal_2026-09-22_transfert_historique.md and docs/revue_code_2026-09-15_correctifs.md.",
         "artifacts": entries,
         "missing": missing,
     }

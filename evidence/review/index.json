@@ -1,6 +1,6 @@
 {
   "schema": "opex-review-evidence-v1",
-  "description": "Exact gzip copies of JSON evidence cited by docs/revue, docs/taches.md and docs/revue_code_2026-09-15_correctifs.md.",
+  "description": "Exact gzip copies of JSON evidence cited by docs/revue, docs/taches.md, docs/journal_2026-09-22_transfert_historique.md and docs/revue_code_2026-09-15_correctifs.md.",
   "artifacts": [
     {
       "source": "results/bench_air_demand_plan_10y.json",
@@ -249,6 +249,46 @@
       "raw_sha256": "76c12fb390e986176bf1e503bb249d55b97e79c23520a72b7e15274116d14de4",
       "gzip_bytes": 1386,
       "gzip_sha256": "773788c56c62a286d870d93cb67b0f9515e897e9b440a050d2b62235468ac907"
+    },
+    {
+      "source": "results/review_c68_adopted_default_smoke_2x3.json",
+      "evidence": "evidence/review/review_c68_adopted_default_smoke_2x3.json.gz",
+      "raw_bytes": 30200,
+      "raw_sha256": "2268a73447c6ca844a81f14c7ab309eb921e1b384f8fe101fb273dab8d87855c",
+      "gzip_bytes": 3897,
+      "gzip_sha256": "25376a841f2b55d9939452e6b8c046fed0330cfed0f250097278d429a0123e87"
+    },
+    {
+      "source": "results/review_c68_air_route_plane_20x10_v2.json",
+      "evidence": "evidence/review/review_c68_air_route_plane_20x10_v2.json.gz",
+      "raw_bytes": 799680,
+      "raw_sha256": "3b999644bc061b3f21bc182166e6a50efb560bcf3f5aa663acf173344090b34a",
+      "gzip_bytes": 50409,
+      "gzip_sha256": "a09ceda0784f8c3e75707624b404ef2c89839d1ae123651d095df688c9941968"
+    },
+    {
+      "source": "results/review_c68_air_route_plane_5x6.json",
+      "evidence": "evidence/review/review_c68_air_route_plane_5x6.json.gz",
+      "raw_bytes": 199815,
+      "raw_sha256": "535f68dc356dfa91667c779bebd5ca73cc8115886ab94344fd2bc5e405d309bd",
+      "gzip_bytes": 16359,
+      "gzip_sha256": "2945c170a4d89a742f0f9dc8f5a53bafe9446cabed6a32f130bcad340d4d1c50"
+    },
+    {
+      "source": "results/review_c68_air_route_plane_smoke_2x3_v3.json",
+      "evidence": "evidence/review/review_c68_air_route_plane_smoke_2x3_v3.json.gz",
+      "raw_bytes": 90584,
+      "raw_sha256": "f478fb2d45131fc390083ecd01fdd99bec7742e0bb5b51cd927e69c0872722c2",
+      "gzip_bytes": 9349,
+      "gzip_sha256": "75a685800f4dfc0d39933c8db36601486156b3c9a0037d642dbad1157b95c8c2"
+    },
+    {
+      "source": "results/review_feeder_candidates_5x6_20260917.json",
+      "evidence": "evidence/review/review_feeder_candidates_5x6_20260917.json.gz",
+      "raw_bytes": 190987,
+      "raw_sha256": "c9aa2cead7653fc2a6cc50989eb6a2ef39240a775795e3b3309f2386dc201e7e",
+      "gzip_bytes": 15444,
+      "gzip_sha256": "0cbf427e56b6b0c865d5f4f695c4806c44d41e56af203d097d33ebdc72be104a"
     },
     {
       "source": "results/review_final_m4_b7_smoke_2x3.json",
