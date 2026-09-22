@@ -1,5 +1,13 @@
 # Architecture d'`ai/OpexAI/` — schémas
 
+> **Document historique du 13 septembre, pas un inventaire du code courant.** Actualisation
+> de lecture du 22 septembre : `lib_water.nut`, son import Queue et les chemins Lakes figurant
+> ci-dessous ont été retirés le 21 septembre (`7c194d2`). Le chemin eau courant passe par
+> `builder_water.nut::OpexWaterFindConnection` (BFS borné). C67 n'est pas implémenté.
+> Voir le [journal du 21](journal_2026-09-21.md) et la [liste de travail actuelle](taches.md).
+> Les tailles et graphes ci-dessous conservent l'état daté de C65 ; les autres intégrations
+> ultérieures, notamment C80 et le retrait des feeders, n'y sont pas représentées.
+
 État relevé le 2026-09-13 après la clôture de C65 (passes 1 à 3) : 34 fichiers `.nut`,
 27 266 lignes, `main.nut` réduit à 540 lignes. Les arêtes des schémas viennent du graphe
 d'appels extrait par grep (symbole défini dans A, référencé dans le code de B) ; l'annexe donne
