@@ -125,25 +125,25 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c69_decision_bottleneck",
-      description = "C69: rank projects by P/max(C, F*tau), F = operating cash flow, tau = days per build; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C69: rank projects by P/max(C, F*tau), F = operating cash flow, tau = days per build; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
       name = "c69_fleet_exempt",
-      description = "C69 bis: fleet projects (planes added to an existing line) keep P/C under c69_decision_bottleneck, since they build nothing; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C69 bis: fleet projects (planes added to an existing line) keep P/C under c69_decision_bottleneck, since they build nothing; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
       name = "c70_mode_calibration",
-      description = "C70: scale predicted profit by a per-mode realised/predicted factor measured on own mature lines; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C70: scale predicted profit by a per-mode realised/predicted factor measured on own mature lines; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -159,9 +159,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c75_multi_build",
-      description = "C75: multi-build per pass in rich phase as long as capital < K_pass and capital <= available; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C75: multi-build per pass in rich phase as long as capital < K_pass and capital <= available; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

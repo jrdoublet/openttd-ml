@@ -227,3 +227,27 @@ bas dans la liste) ont une valeur marginale quasi nulle. `taches.md` l'avait éc
 plus gros n'est pas encore un rattrapage ». Le goulot n'est donc pas seulement le nombre de
 décisions, mais **la valeur de ce qui est proposé au vivier** : la liste classée, sous le premier
 rang, ne contient presque rien qui paie.
+
+## 10. C75 + C69 bis : banc d'autorité et ADOPTION (2026-09-21)
+
+`results/c75_c69bis_vs_default_10y_20seeds.json` (PC de l'utilisateur), 20/20 paires. Variante :
+`c75_multi_build=1, c69_decision_bottleneck=1, c69_fleet_exempt=1, c70_mode_calibration=1`.
+
+| variante − défaut | moyenne | V / D |
+|---|---:|---|
+| **`profit_year`** | **+96,4 k£/an (+6,3 %)** | **14 / 6** (p = 0,12) |
+| **`company_value`** | **+490 k£ (+6,1 %)** | **14 / 6** |
+| véhicules | +40 (+44 %) | 20 / 0 |
+| note de gare médiane | +8 | 16 / 3 (p = 0,004) |
+| rapport au profit d'AAAHogEx | +1,15 pt | 11 / 9 |
+
+Verdict du harnais : `fail_primary` (14/20 contre 15/20 requis). Écart moyen au-dessus du seuil de
++50 k£, garde de valeur tenue (+6,1 %).
+
+🔑 **Décision utilisateur du 2026-09-21 : adopté malgré 14/20.** Premier levier du jour où profit,
+valeur et volume montent ensemble. Les quatre réglages passent à **1 par défaut** dans `info.nut`.
+Contrôle : le nouveau défaut reproduit au bit près le smoke de la combinaison (graines 42 et 100,
+3 ans : 3 440 770 et 2 078 509 £), `results/adopted_c75_c69bis_default_smoke_2x3.json`.
+
+⚠️ À garder en tête : p = 0,12 au test des signes ; face à AAAHogEx l'écart reste dans le bruit
+(+1,15 pt pour ~3 pt d'écart-type). Tout banc futur compare désormais à ce nouveau défaut.

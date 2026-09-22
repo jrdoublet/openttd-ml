@@ -198,7 +198,9 @@ function OpexAI::_reportLines(year)
         line.c70Pred += cPred.tofloat();
       }
       if (("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
-        c70Sums[cMode][0] += line.c70Real / line.c70Pred;
+        /* tofloat : apres chargement, les cumuls sont des entiers (la sauvegarde arrondit les
+         * flottants) et une division entiere fausserait le ratio. */
+        c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
         c70Sums[cMode][1]++;
       }
     }

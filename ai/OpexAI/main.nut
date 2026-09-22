@@ -212,6 +212,9 @@ class OpexAI extends AIController {
   _c39CadenceLastCycle = null;
   _c39FinanceableSince = null;
   _startYear = -1;
+  /* Dates C69/C75 lues dans la sauvegarde, restaurees par _reconcileAfterLoad(). */
+  _reloadC69BuildDates = null;
+  _reloadC75PassDates = null;
   /* Retraites C52 unitaires, consommees par la tache de rebut dediee. */
   _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
@@ -504,6 +507,7 @@ function OpexAI::Start()
     /* Une sauvegarde porte son annee de debut : ne pas remettre yearsElapsed a zero au reload. */
     this._startYear = AIDate.GetYear(AIDate.GetCurrentDate());
   }
+  OPEX_START_YEAR = this._startYear;
   if (!this._loadedFromSave) {
     /* Le reload reprend la dette effectivement choisie : ne pas reemprunter sans decision. */
     AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());

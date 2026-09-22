@@ -176,6 +176,7 @@ def main():
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--seeds", nargs="+", type=int, default=[100, 12345, 42, 7, 999])
     parser.add_argument("--max-workers", type=int, default=3)
+    parser.add_argument("--starting-year", type=int, default=1970)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--arm", default=ARM, help="bras OpexAI[...] ; doit activer probe_portfolio")
     parser.add_argument("--extra-tags", nargs="*", default=[],
@@ -198,7 +199,7 @@ def main():
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers, result_processor=keep,
-        experiments=experiments(build_arms([args.arm]), args.seeds, args.years, 1, 1970),
+        experiments=experiments(build_arms([args.arm]), args.seeds, args.years, 1, args.starting_year),
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
