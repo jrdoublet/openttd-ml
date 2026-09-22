@@ -810,25 +810,80 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
                           infrastructureMaintenance, maxCapital, newAirportCount = 2,
                           opcodePadding = 0, fixedPlanes = 0)
 {
-  local trip = OpexAirTripModel(plane.speed, plane.capacity, distance);
-  local oneWayDays = trip.oneWayDays;
-  local roundTripDays = trip.roundTripDays;
-  local tripsPerMonth = trip.tripsPerMonth;
-  local capacityPerPlane = trip.capacityPerPlane;
-  if (capacityPerPlane <= 0) return null;
-  local incomeDays = OpexCeilDiv(oneWayDays, 1);
-  local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
-  local totalIncomePerUnit = paxIncome;
-  if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
-    local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
-    /* En soute, les avions de ligne transportent ~15% de fret postal sans refit */
-    totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+  local econKey = null;
+  local canMemo = C80_AIR_EVAL_FAST && fixedPlanes == 0 && opcodePadding == 0;
+  if (canMemo) {
+    /* Memo valable seulement dans le mois ou il a ete rempli (prix indexes chaque mois). */
+    local nowDate = AIDate.GetCurrentDate();
+    if (AIR_MEMO_MONTH != AIDate.GetYear(nowDate) * 12 + AIDate.GetMonth(nowDate)) canMemo = false;
   }
-  /* D4 par mode : le tarif moteur est exact, mais le rendement observe des
-   * lignes air|pax depasse de 4,27 % la prediction mediane. Corriger ici,
-   * avant revenu/profit/ROI, conserve une seule economie coherente pour le
-   * classement, le chantier et la reconciliation post-construction. */
-  local incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+  if (canMemo) {
+    econKey = plane.id + "|" + airport.type + "|" + distance + "|" + monthlyPax + "|" + newAirportCount + "|" + maxCapital + "|" + (infrastructureMaintenance ? 1 : 0);
+    if (econKey in AIR_ECONOMICS_MEMO) {
+      return AIR_ECONOMICS_MEMO[econKey];
+    }
+  }
+
+  local oneWayDays = 0;
+  local roundTripDays = 0;
+  local tripsPerMonth = 0;
+  local capacityPerPlane = 0;
+  local incomePerUnit = 0.0;
+
+  if (canMemo) {
+    local tripKey = (plane.id * 10000) + distance;
+    if (tripKey in AIR_TRIP_MEMO) {
+      local tripData = AIR_TRIP_MEMO[tripKey];
+      oneWayDays = tripData.oneWayDays;
+      roundTripDays = tripData.roundTripDays;
+      tripsPerMonth = tripData.tripsPerMonth;
+      capacityPerPlane = tripData.capacityPerPlane;
+      incomePerUnit = tripData.incomePerUnit;
+    } else {
+      local trip = OpexAirTripModel(plane.speed, plane.capacity, distance);
+      oneWayDays = trip.oneWayDays;
+      roundTripDays = trip.roundTripDays;
+      tripsPerMonth = trip.tripsPerMonth;
+      capacityPerPlane = trip.capacityPerPlane;
+      if (capacityPerPlane > 0) {
+        local incomeDays = OpexCeilDiv(oneWayDays, 1);
+        local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
+        local totalIncomePerUnit = paxIncome;
+        if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+          local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
+          totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+        }
+        incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+      }
+      AIR_TRIP_MEMO.rawset(tripKey, {
+        oneWayDays = oneWayDays,
+        roundTripDays = roundTripDays,
+        tripsPerMonth = tripsPerMonth,
+        capacityPerPlane = capacityPerPlane,
+        incomePerUnit = incomePerUnit
+      });
+    }
+  } else {
+    local trip = OpexAirTripModel(plane.speed, plane.capacity, distance);
+    oneWayDays = trip.oneWayDays;
+    roundTripDays = trip.roundTripDays;
+    tripsPerMonth = trip.tripsPerMonth;
+    capacityPerPlane = trip.capacityPerPlane;
+    if (capacityPerPlane <= 0) return null;
+    local incomeDays = OpexCeilDiv(oneWayDays, 1);
+    local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
+    local totalIncomePerUnit = paxIncome;
+    if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+      local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
+      /* En soute, les avions de ligne transportent ~15% de fret postal sans refit */
+      totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+    }
+    incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+  }
+  if (capacityPerPlane <= 0) {
+    if (canMemo) AIR_ECONOMICS_MEMO.rawset(econKey, null);
+    return null;
+  }
   local airportMaintenanceAnnual =
       infrastructureMaintenance ? 12 * newAirportCount * airport.maintenance : 0;
   local airportAmortAnnual = (newAirportCount * airport.price * INFRA_AMORT_PCT / 100) / 30;
@@ -888,6 +943,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
       };
     }
   }
+  if (canMemo) AIR_ECONOMICS_MEMO.rawset(econKey, best);
   return best;
 }
 
@@ -1517,6 +1573,18 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       : l0 + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - left);
   };
   local sliced = resumeState != null;
+  if (C80_AIR_EVAL_FAST) {
+    /* Les prix changent au debut de chaque mois (inflation) : une planification decoupee qui
+     * enjambe un changement de mois repart avec des memos vides pour rester exacte. */
+    local memoDate = AIDate.GetCurrentDate();
+    local memoMonth = AIDate.GetYear(memoDate) * 12 + AIDate.GetMonth(memoDate);
+    if (!sliced || !("airFastInit" in resumeState) || AIR_MEMO_MONTH != memoMonth) {
+      AIR_ECONOMICS_MEMO = {};
+      AIR_TRIP_MEMO = {};
+      if (sliced) resumeState.airFastInit <- true;
+    }
+    AIR_MEMO_MONTH = memoMonth;
+  }
   if (sliced) {
     if (!("done" in resumeState)) resumeState.done <- false;
     if (resumeState.done) return ("bestPlan" in resumeState) ? resumeState.bestPlan : null;
@@ -1588,6 +1656,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       resumeState.bestPlan = null;
       resumeState.sites = null;
       resumeState.done = true;
+    }
+    if (C80_AIR_EVAL_FAST) {
+      AIR_ECONOMICS_MEMO = {};
+      AIR_TRIP_MEMO = {};
     }
     return null;
   }
@@ -1890,10 +1962,17 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
             && sites[a].town.id != targetTownId && sites[b].town.id != targetTownId) continue;
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
         local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
-        local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
+        if (C80_AIR_EVAL_FAST) {
+          if (distance < minDist) {
+            if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
+            if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
+            continue;
+          }
+        }
+        local orderDistance = C80_AIR_EVAL_FAST ? 0 : AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         sites[a].anchor, sites[b].anchor);
         local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
-        if (distance < minDist) {
+        if (!C80_AIR_EVAL_FAST && distance < minDist) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
           if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
           continue;
@@ -1952,6 +2031,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           continue;
         }
 
+        if (C80_AIR_EVAL_FAST) {
+          orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, sites[a].anchor, sites[b].anchor);
+        }
         local plan = {
           siteA = sites[a], siteB = sites[b], distance = flightDistance,
           orderDistance = orderDistance,
@@ -2147,6 +2229,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local tHubEval0 = AIController.GetTick();
     local lHubEval0 = AIController.GetOpsTillSuspend();
     foreach (hub in hubs) {
+      local hubMonthlyPre = C80_AIR_EVAL_FAST
+          ? (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
+          : 0;
       foreach (site in sites) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
         local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
@@ -2155,7 +2240,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
           continue;
         }
-        local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
+        local orderDistance = C80_AIR_EVAL_FAST ? 0 : AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         hub.anchor, site.anchor);
         local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
         if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
@@ -2182,7 +2267,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
             continue;
           }
         }
-        local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
+        local hubMonthly = C80_AIR_EVAL_FAST
+            ? hubMonthlyPre
+            : (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1));
         local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
         local monthlyPax = hubMonthly + newMonthly;
         local opcodePadding = 0;
@@ -2212,6 +2299,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           }
           continue;
         }
+        if (C80_AIR_EVAL_FAST) {
+          orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub.anchor, site.anchor);
+        }
         local plan = {
           siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
           airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
@@ -2230,6 +2320,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
 
     /* Liaisons Hub-a-Hub directes entre deux aeroports existants (capital = 1 avion seul) */
     for (local i = 0; i < hubs.len(); i++) {
+      local hub1MonthlyPre = C80_AIR_EVAL_FAST
+          ? (((hubs[i].town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hubs[i].routes + 1))
+          : 0;
       for (local j = i + 1; j < hubs.len(); j++) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
         local hub1 = hubs[i];
@@ -2267,7 +2360,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
           continue;
         }
-        local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
+        local orderDistance = C80_AIR_EVAL_FAST ? 0 : AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
         if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "pax_band", 1);
@@ -2289,7 +2382,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=abandoned P=-1 C=-1");
           continue;
         }
-        local monthly1 = ((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1);
+        local monthly1 = C80_AIR_EVAL_FAST
+            ? hub1MonthlyPre
+            : (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1));
         local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;
         local opcodePadding = 0;
@@ -2318,6 +2413,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
             }
           }
           continue;
+        }
+        if (C80_AIR_EVAL_FAST) {
+          orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         }
         local plan = {
           siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,
@@ -2377,6 +2475,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     resumeState.sites = null;
     resumeState.towns = null;
     resumeState.combos = null;
+    if (C80_AIR_EVAL_FAST) {
+      AIR_ECONOMICS_MEMO = {};
+      AIR_TRIP_MEMO = {};
+    }
   }
   local elapsedDays = elapsedTicks / 74;
   if (DECISION_LOG) {
@@ -2397,6 +2499,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   if (C69_BOTTLENECK_PROBE) {
     local actualPlans = (projects != null) ? projects.len() : (bestPlan != null ? 1 : 0);
     OpexC73RecordProduced("air", actualPlans, actualPlans);
+  }
+  if (C80_AIR_EVAL_FAST && !sliced) {
+    AIR_ECONOMICS_MEMO = {};
+    AIR_TRIP_MEMO = {};
   }
   return bestPlan;
 }

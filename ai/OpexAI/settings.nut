@@ -345,6 +345,7 @@ function OpexLoadSettings()
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
   C80_AIR_HUB_INDEX = AIController.GetSetting("c80_air_hub_index") != 0;
   C80_MARGINAL_FLOOR = AIController.GetSetting("c80_marginal_floor") != 0;
+  C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
