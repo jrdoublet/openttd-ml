@@ -1,0 +1,5416 @@
+{
+  "air_band_vs_airmin": {
+    "vivier_annee_anterieure_seulement": {
+      "below_airmin": 0,
+      "above_airmin": 50,
+      "unknown": 0
+    },
+    "jamais_dans_le_vivier": {
+      "below_airmin": 2,
+      "above_airmin": 42,
+      "unknown": 0
+    },
+    "dans_le_vivier_meme_annee": {
+      "below_airmin": 0,
+      "above_airmin": 31,
+      "unknown": 0
+    }
+  },
+  "air_pair_distances": [
+    85,
+    85,
+    95,
+    101,
+    101,
+    110,
+    110,
+    112,
+    124,
+    124,
+    132,
+    158,
+    171,
+    172,
+    175,
+    175,
+    177,
+    178,
+    179,
+    179,
+    180,
+    181,
+    186,
+    186,
+    186,
+    186,
+    187,
+    188,
+    190,
+    190,
+    194,
+    199,
+    201,
+    203,
+    203,
+    206,
+    206,
+    208,
+    210,
+    211,
+    211,
+    211,
+    211,
+    217,
+    219,
+    220,
+    221,
+    221,
+    222,
+    222,
+    234,
+    238,
+    238,
+    242,
+    242,
+    242,
+    242,
+    246,
+    246,
+    250,
+    250,
+    251,
+    251,
+    252,
+    252,
+    252,
+    252,
+    254,
+    254,
+    259,
+    261,
+    261,
+    264,
+    264,
+    267,
+    267,
+    272,
+    276,
+    276,
+    276,
+    276,
+    278,
+    278,
+    280,
+    280,
+    285,
+    285,
+    285,
+    286,
+    286,
+    286,
+    291,
+    291,
+    291,
+    293,
+    299,
+    299,
+    299,
+    299,
+    300,
+    301,
+    301,
+    305,
+    307,
+    310,
+    312,
+    313,
+    313,
+    316,
+    324,
+    327,
+    327,
+    331,
+    331,
+    331,
+    332,
+    333,
+    339,
+    339,
+    340,
+    352,
+    352,
+    358,
+    362,
+    389
+  ],
+  "air_min_values": [
+    94
+  ],
+  "air_non_built_count": 125,
+  "air_stages_all_years": {
+    "jamais_dans_le_vivier": [
+      {
+        "stage": "hors_pool",
+        "reason": "hors_pool",
+        "count": 34
+      },
+      {
+        "stage": "ville_ecartee",
+        "reason": "town_pop_small",
+        "count": 3
+      },
+      {
+        "stage": "paire_ecartee",
+        "reason": "pax_band",
+        "count": 2
+      },
+      {
+        "stage": "admitted",
+        "reason": "admitted",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "abandoned_pair",
+        "count": 2
+      },
+      {
+        "stage": "tente",
+        "reason": "build_failed",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "siteA_unbuildable",
+        "count": 1
+      }
+    ],
+    "vivier_annee_anterieure_seulement": [
+      {
+        "stage": "dans_le_vivier",
+        "reason": "unranked",
+        "count": 14
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=49",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=9",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "abandoned_pair",
+        "count": 7
+      },
+      {
+        "stage": "tente",
+        "reason": "batch_plan_dead",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "build_failed",
+        "count": 19
+      },
+      {
+        "stage": "tente",
+        "reason": "built",
+        "count": 4
+      },
+      {
+        "stage": "tente",
+        "reason": "insufficient_cash",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "siteA_unbuildable",
+        "count": 2
+      }
+    ],
+    "dans_le_vivier_meme_annee": [
+      {
+        "stage": "dans_le_vivier",
+        "reason": "unranked",
+        "count": 7
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=22",
+        "count": 2
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=60",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "abandoned_pair",
+        "count": 6
+      },
+      {
+        "stage": "tente",
+        "reason": "batch_plan_dead",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "build_failed",
+        "count": 10
+      },
+      {
+        "stage": "tente",
+        "reason": "built",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "insufficient_cash",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "siteB_unbuildable",
+        "count": 2
+      }
+    ]
+  },
+  "air_stages_first_year": {
+    "jamais_dans_le_vivier": [
+      {
+        "stage": "hors_pool",
+        "reason": "hors_pool",
+        "count": 40
+      },
+      {
+        "stage": "ville_ecartee",
+        "reason": "town_pop_small",
+        "count": 2
+      },
+      {
+        "stage": "paire_ecartee",
+        "reason": "pax_band",
+        "count": 2
+      }
+    ],
+    "vivier_annee_anterieure_seulement": [
+      {
+        "stage": "hors_pool",
+        "reason": "hors_pool",
+        "count": 4
+      },
+      {
+        "stage": "dans_le_vivier",
+        "reason": "unranked",
+        "count": 27
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=1",
+        "count": 2
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=10",
+        "count": 2
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=14",
+        "count": 2
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=17",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=18",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=3",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=47",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=49",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=8",
+        "count": 2
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=9",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "abandoned_pair",
+        "count": 2
+      },
+      {
+        "stage": "tente",
+        "reason": "build_failed",
+        "count": 3
+      }
+    ],
+    "dans_le_vivier_meme_annee": [
+      {
+        "stage": "hors_pool",
+        "reason": "hors_pool",
+        "count": 6
+      },
+      {
+        "stage": "ville_ecartee",
+        "reason": "town_pop_small",
+        "count": 2
+      },
+      {
+        "stage": "dans_le_vivier",
+        "reason": "unranked",
+        "count": 14
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=18",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=23",
+        "count": 2
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=26",
+        "count": 2
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=3",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=33",
+        "count": 1
+      },
+      {
+        "stage": "classe",
+        "reason": "rank=47",
+        "count": 1
+      },
+      {
+        "stage": "tente",
+        "reason": "build_failed",
+        "count": 1
+      }
+    ]
+  },
+  "air_details": [
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        10,
+        26
+      ],
+      "aaa_profit": 446281.578125,
+      "dist_towns": 327,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=2 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=47",
+      "first_year_stage_detail": "rank=47 P=71078 C=123923 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        2,
+        38
+      ],
+      "aaa_profit": 307494.4375,
+      "dist_towns": 186,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "tente",
+      "first_year_stage_reason": "build_failed",
+      "first_year_stage_detail": "rank=1 outcome=rejected reason=build_failed"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        29,
+        45
+      ],
+      "aaa_profit": 279949.023438,
+      "dist_towns": 305,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=29 rank=35 pop=416 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=29 rank=27 pop=577 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        13,
+        31
+      ],
+      "aaa_profit": 212878.71875,
+      "dist_towns": 316,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=53382 C=216208 aff=0",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=53382 C=216208 aff=0"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        6,
+        9
+      ],
+      "aaa_profit": 190756.71875,
+      "dist_towns": 291,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=59559 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=59559 C=216208 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        0,
+        23
+      ],
+      "aaa_profit": 165648.71875,
+      "dist_towns": 217,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=23 rank=43 pop=230 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=23 rank=41 pop=315 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        9,
+        27
+      ],
+      "aaa_profit": 150189.71875,
+      "dist_towns": 220,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=34834 C=101364 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=34460 C=101364 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        34
+      ],
+      "aaa_profit": 142508.105469,
+      "dist_towns": 246,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=4 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=18",
+      "first_year_stage_detail": "rank=18 P=80613 C=123923 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        16,
+        33
+      ],
+      "aaa_profit": 138918.503906,
+      "dist_towns": 340,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=33 rank=37 pop=395 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=33 rank=36 pop=485 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        26,
+        37
+      ],
+      "aaa_profit": 132882.71875,
+      "dist_towns": 264,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=12 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "tente",
+      "first_year_stage_reason": "build_failed",
+      "first_year_stage_detail": "rank=12 outcome=rejected reason=build_failed"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        11,
+        17
+      ],
+      "aaa_profit": 101540.96875,
+      "dist_towns": 310,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=11 rank=39 pop=335 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=11 rank=40 pop=361 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        1,
+        12
+      ],
+      "aaa_profit": 85898.242188,
+      "dist_towns": 299,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "batch_plan_dead",
+      "best_stage_all_years_detail": "rank=33 outcome=rejected reason=batch_plan_dead",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=45182 C=216208 aff=0"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        5,
+        20
+      ],
+      "aaa_profit": 84971.539062,
+      "dist_towns": 352,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=5 rank=30 pop=482 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=5 rank=31 pop=542 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        7,
+        14
+      ],
+      "aaa_profit": 42087.71875,
+      "dist_towns": 194,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "classe",
+      "best_stage_all_years_reason": "rank=49",
+      "best_stage_all_years_detail": "rank=49 P=56300 C=101364 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=49",
+      "first_year_stage_detail": "rank=49 P=56300 C=101364 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        21,
+        25
+      ],
+      "aaa_profit": 30033.628906,
+      "dist_towns": 286,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=21 rank=31 pop=481 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=25 rank=35 pop=479 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        19,
+        39
+      ],
+      "aaa_profit": 20703.347656,
+      "dist_towns": 206,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=39 rank=26 pop=537 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=39 rank=28 pop=572 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        2,
+        6
+      ],
+      "aaa_profit": 308820.945312,
+      "dist_towns": 210,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "classe",
+      "best_stage_all_years_reason": "rank=9",
+      "best_stage_all_years_detail": "rank=9 P=84157 C=123923 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=9",
+      "first_year_stage_detail": "rank=9 P=84157 C=123923 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        24,
+        43
+      ],
+      "aaa_profit": 224009.265625,
+      "dist_towns": 299,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=24 rank=41 pop=285 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=24 rank=42 pop=302 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        2,
+        38
+      ],
+      "aaa_profit": 223428.597656,
+      "dist_towns": 186,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "tente",
+      "first_year_stage_reason": "build_failed",
+      "first_year_stage_detail": "rank=1 outcome=rejected reason=build_failed"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        34
+      ],
+      "aaa_profit": 190345.335938,
+      "dist_towns": 246,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=4 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=18",
+      "first_year_stage_detail": "rank=18 P=80613 C=123923 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        26,
+        37
+      ],
+      "aaa_profit": 185591.703125,
+      "dist_towns": 264,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=12 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "tente",
+      "first_year_stage_reason": "build_failed",
+      "first_year_stage_detail": "rank=12 outcome=rejected reason=build_failed"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        5,
+        20
+      ],
+      "aaa_profit": 179869.417969,
+      "dist_towns": 352,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=5 rank=30 pop=482 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=5 rank=31 pop=542 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        1,
+        12
+      ],
+      "aaa_profit": 172810.074219,
+      "dist_towns": 299,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "batch_plan_dead",
+      "best_stage_all_years_detail": "rank=33 outcome=rejected reason=batch_plan_dead",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=45182 C=216208 aff=0"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        10,
+        26
+      ],
+      "aaa_profit": 163929.082031,
+      "dist_towns": 327,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=2 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=47",
+      "first_year_stage_detail": "rank=47 P=71078 C=123923 aff=1"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        19,
+        39
+      ],
+      "aaa_profit": 73298.703125,
+      "dist_towns": 206,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=11676 C=61012 aff=1",
+      "best_stage_all_years_year": 1975,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=39 rank=28 pop=572 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        4,
+        7
+      ],
+      "aaa_profit": 65835.515625,
+      "dist_towns": 158,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=41925 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=4 rank=25 pop=693 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1973,
+      "pair": [
+        3,
+        28
+      ],
+      "aaa_profit": 65033.703125,
+      "dist_towns": 112,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=3352 C=61012 aff=1",
+      "best_stage_all_years_year": 1975,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=28 rank=33 pop=473 pool=24"
+    },
+    {
+      "seed": 7,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        27,
+        42
+      ],
+      "aaa_profit": 41391.945312,
+      "dist_towns": 172,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=44334 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=27 rank=30 pop=544 pool=24"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        26
+      ],
+      "aaa_profit": 368540.09375,
+      "dist_towns": 190,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "built",
+      "best_stage_all_years_detail": "rank=0 outcome=built reason=-",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=1",
+      "first_year_stage_detail": "rank=1 P=84856 C=123923 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        2,
+        30
+      ],
+      "aaa_profit": 359844.4375,
+      "dist_towns": 267,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=15 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=8",
+      "first_year_stage_detail": "rank=8 P=76669 C=123923 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        15,
+        31
+      ],
+      "aaa_profit": 313823.578125,
+      "dist_towns": 278,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "siteA_unbuildable",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=siteA_unbuildable",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=29642 C=101364 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        30,
+        34
+      ],
+      "aaa_profit": 304954.578125,
+      "dist_towns": 259,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=17",
+      "first_year_stage_detail": "rank=17 P=67247 C=123923 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        27,
+        36
+      ],
+      "aaa_profit": 281223.730469,
+      "dist_towns": 291,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=21 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=52596 C=216208 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        11,
+        22
+      ],
+      "aaa_profit": 256434.71875,
+      "dist_towns": 313,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "classe",
+      "best_stage_all_years_reason": "rank=22",
+      "best_stage_all_years_detail": "rank=22 P=22644 C=61012 aff=1",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=54767 C=216208 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        37,
+        38
+      ],
+      "aaa_profit": 141992.578125,
+      "dist_towns": 307,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=37 rank=37 pop=307 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=37 rank=37 pop=307 pool=24"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        6,
+        32
+      ],
+      "aaa_profit": 134204.761719,
+      "dist_towns": 242,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=40 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=30753 C=101364 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        20,
+        33
+      ],
+      "aaa_profit": 119905.578125,
+      "dist_towns": 291,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=20 rank=32 pop=360 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=20 rank=34 pop=360 pool=24"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        13,
+        27
+      ],
+      "aaa_profit": 116691.273438,
+      "dist_towns": 339,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=16 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=65537 C=216208 aff=0"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        5,
+        36
+      ],
+      "aaa_profit": 72929.5625,
+      "dist_towns": 208,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=37268 C=101364 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        15,
+        31
+      ],
+      "aaa_profit": 46657.859375,
+      "dist_towns": 278,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "siteA_unbuildable",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=siteA_unbuildable",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=29642 C=101364 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        3,
+        19
+      ],
+      "aaa_profit": 39748.804688,
+      "dist_towns": 221,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=3 rank=38 pop=297 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=3 rank=28 pop=467 pool=24"
+    },
+    {
+      "seed": 42,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        10,
+        28
+      ],
+      "aaa_profit": 36270.199219,
+      "dist_towns": 124,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=26213 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=26213 C=216208 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        2,
+        30
+      ],
+      "aaa_profit": 347846.40625,
+      "dist_towns": 267,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=15 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=8",
+      "first_year_stage_detail": "rank=8 P=76669 C=123923 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        26
+      ],
+      "aaa_profit": 289489.847656,
+      "dist_towns": 190,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "built",
+      "best_stage_all_years_detail": "rank=0 outcome=built reason=-",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=1",
+      "first_year_stage_detail": "rank=1 P=84856 C=123923 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        8,
+        41
+      ],
+      "aaa_profit": 225501.9375,
+      "dist_towns": 300,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=41 rank=36 pop=308 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=8 rank=35 pop=346 pool=24"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        11,
+        22
+      ],
+      "aaa_profit": 175713.011719,
+      "dist_towns": 313,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "classe",
+      "best_stage_all_years_reason": "rank=22",
+      "best_stage_all_years_detail": "rank=22 P=22644 C=61012 aff=1",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=54767 C=216208 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        13,
+        27
+      ],
+      "aaa_profit": 106467.132812,
+      "dist_towns": 339,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=16 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=65537 C=216208 aff=0"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        3,
+        19
+      ],
+      "aaa_profit": 93087.078125,
+      "dist_towns": 221,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=3 rank=38 pop=297 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=3 rank=28 pop=467 pool=24"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1973,
+      "pair": [
+        14,
+        24
+      ],
+      "aaa_profit": 92501.773438,
+      "dist_towns": 188,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "classe",
+      "best_stage_all_years_reason": "rank=60",
+      "best_stage_all_years_detail": "rank=60 P=10079 C=34812 aff=1",
+      "best_stage_all_years_year": 1974,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=6584 C=34812 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        10,
+        28
+      ],
+      "aaa_profit": 53541.773438,
+      "dist_towns": 124,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=26213 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=26213 C=216208 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        6,
+        32
+      ],
+      "aaa_profit": 53357.078125,
+      "dist_towns": 242,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=40 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=30753 C=101364 aff=1"
+    },
+    {
+      "seed": 42,
+      "target_year": 1975,
+      "first_year_aaa": 1974,
+      "pair": [
+        29,
+        35
+      ],
+      "aaa_profit": 25475.371094,
+      "dist_towns": 95,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=29 rank=28 pop=417 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=29 rank=30 pop=404 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        1,
+        29
+      ],
+      "aaa_profit": 126857.71875,
+      "dist_towns": 175,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "insufficient_cash",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=insufficient_cash",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=27631 C=97263 aff=0"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        5,
+        33
+      ],
+      "aaa_profit": 104704.71875,
+      "dist_towns": 187,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=10 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "ville_ecartee",
+      "first_year_stage_reason": "town_pop_small",
+      "first_year_stage_detail": "town=5 reason=town_pop_small (A:town_pop_small, B:site)"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        27,
+        28
+      ],
+      "aaa_profit": 82792.890625,
+      "dist_towns": 181,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=18 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "ville_ecartee",
+      "first_year_stage_reason": "town_pop_small",
+      "first_year_stage_detail": "town=27 reason=town_pop_small (A:town_pop_small, B:site)"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        12,
+        20
+      ],
+      "aaa_profit": 46257.292969,
+      "dist_towns": 301,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=20 rank=24 pop=481 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=20 rank=33 pop=281 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        9,
+        11
+      ],
+      "aaa_profit": 38736.273438,
+      "dist_towns": 85,
+      "airMin": 94,
+      "below_airmin": true,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "paire_ecartee",
+      "best_stage_all_years_reason": "pax_band",
+      "best_stage_all_years_detail": "arm=newpair combo=1:228 dist=85",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "paire_ecartee",
+      "first_year_stage_reason": "pax_band",
+      "first_year_stage_detail": "arm=newpair combo=1:228 dist=85"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        11,
+        22
+      ],
+      "aaa_profit": 30915.222656,
+      "dist_towns": 242,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=5 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "tente",
+      "first_year_stage_reason": "abandoned_pair",
+      "first_year_stage_detail": "rank=5 outcome=rejected reason=abandoned_pair"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        3,
+        14
+      ],
+      "aaa_profit": 17037.398438,
+      "dist_towns": 101,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=31405 C=216208 aff=0",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=29208 C=216208 aff=0"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        15,
+        19
+      ],
+      "aaa_profit": 15708.273438,
+      "dist_towns": 252,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "ville_ecartee",
+      "best_stage_all_years_reason": "town_pop_small",
+      "best_stage_all_years_detail": "town=15 reason=town_pop_small (A:town_pop_small, B:town_pop_small)",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "ville_ecartee",
+      "first_year_stage_reason": "town_pop_small",
+      "first_year_stage_detail": "town=15 reason=town_pop_small (A:town_pop_small, B:town_pop_small)"
+    },
+    {
+      "seed": 100,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        5,
+        10
+      ],
+      "aaa_profit": 13359.082031,
+      "dist_towns": 238,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=10 rank=25 pop=451 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=10 rank=25 pop=434 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        12,
+        36
+      ],
+      "aaa_profit": 322213.71875,
+      "dist_towns": 333,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "ville_ecartee",
+      "best_stage_all_years_reason": "town_pop_small",
+      "best_stage_all_years_detail": "town=36 reason=town_pop_small (A:site, B:town_pop_small)",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=36 rank=27 pop=419 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        15,
+        19
+      ],
+      "aaa_profit": 110687.703125,
+      "dist_towns": 252,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "ville_ecartee",
+      "best_stage_all_years_reason": "town_pop_small",
+      "best_stage_all_years_detail": "town=15 reason=town_pop_small (A:town_pop_small, B:town_pop_small)",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "ville_ecartee",
+      "first_year_stage_reason": "town_pop_small",
+      "first_year_stage_detail": "town=15 reason=town_pop_small (A:town_pop_small, B:town_pop_small)"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        12,
+        20
+      ],
+      "aaa_profit": 95579.054688,
+      "dist_towns": 301,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=20 rank=24 pop=481 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=20 rank=33 pop=281 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        9,
+        11
+      ],
+      "aaa_profit": 73566.703125,
+      "dist_towns": 85,
+      "airMin": 94,
+      "below_airmin": true,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "paire_ecartee",
+      "best_stage_all_years_reason": "pax_band",
+      "best_stage_all_years_detail": "arm=newpair combo=1:228 dist=85",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "paire_ecartee",
+      "first_year_stage_reason": "pax_band",
+      "first_year_stage_detail": "arm=newpair combo=1:228 dist=85"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        5,
+        10
+      ],
+      "aaa_profit": 63050.703125,
+      "dist_towns": 238,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=8 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1975,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=10 rank=25 pop=434 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        1,
+        29
+      ],
+      "aaa_profit": 56261.703125,
+      "dist_towns": 175,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "insufficient_cash",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=insufficient_cash",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=27631 C=97263 aff=0"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        11,
+        22
+      ],
+      "aaa_profit": 52921.59375,
+      "dist_towns": 242,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=5 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "tente",
+      "first_year_stage_reason": "abandoned_pair",
+      "first_year_stage_detail": "rank=5 outcome=rejected reason=abandoned_pair"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        8,
+        19
+      ],
+      "aaa_profit": 48361.453125,
+      "dist_towns": 171,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=8 rank=31 pop=369 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=8 rank=31 pop=382 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1973,
+      "pair": [
+        30,
+        36
+      ],
+      "aaa_profit": 47846.773438,
+      "dist_towns": 299,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=36 rank=28 pop=393 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=36 rank=28 pop=419 pool=24"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        3,
+        14
+      ],
+      "aaa_profit": 39165.703125,
+      "dist_towns": 101,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=31405 C=216208 aff=0",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=29208 C=216208 aff=0"
+    },
+    {
+      "seed": 100,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        2,
+        28
+      ],
+      "aaa_profit": 12958.351562,
+      "dist_towns": 272,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=2 rank=34 pop=281 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=2 rank=34 pop=277 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        38
+      ],
+      "aaa_profit": 384259.320312,
+      "dist_towns": 179,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=2 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=3",
+      "first_year_stage_detail": "rank=3 P=85218 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        6,
+        10
+      ],
+      "aaa_profit": 364816.578125,
+      "dist_towns": 211,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=2 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=26",
+      "first_year_stage_detail": "rank=26 P=75696 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        10,
+        32
+      ],
+      "aaa_profit": 240302.882812,
+      "dist_towns": 199,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=32 rank=37 pop=306 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=32 rank=35 pop=336 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        5,
+        42
+      ],
+      "aaa_profit": 233201.835938,
+      "dist_towns": 312,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=12 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=45782 C=216208 aff=0"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        30,
+        37
+      ],
+      "aaa_profit": 231519.320312,
+      "dist_towns": 222,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "built",
+      "best_stage_all_years_detail": "rank=0 outcome=built reason=-",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=10",
+      "first_year_stage_detail": "rank=10 P=83409 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        8,
+        13
+      ],
+      "aaa_profit": 220393.71875,
+      "dist_towns": 276,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=14 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=50424 C=216208 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        2,
+        14
+      ],
+      "aaa_profit": 200122.71875,
+      "dist_towns": 251,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=64701 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=64701 C=216208 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        26,
+        37
+      ],
+      "aaa_profit": 193737.136719,
+      "dist_towns": 332,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "built",
+      "best_stage_all_years_detail": "rank=15 outcome=built reason=-",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=33",
+      "first_year_stage_detail": "rank=33 P=71241 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        4,
+        43
+      ],
+      "aaa_profit": 192935.71875,
+      "dist_towns": 324,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=35610 C=216208 aff=1",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=4 rank=24 pop=647 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        7,
+        11
+      ],
+      "aaa_profit": 176405.320312,
+      "dist_towns": 331,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=7 rank=31 pop=380 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=7 rank=31 pop=415 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        2,
+        23
+      ],
+      "aaa_profit": 167793.453125,
+      "dist_towns": 219,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=25048 C=97263 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=31589 C=101364 aff=0"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        0,
+        32
+      ],
+      "aaa_profit": 76405.464844,
+      "dist_towns": 180,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=32 rank=37 pop=306 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=32 rank=35 pop=336 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        13,
+        36
+      ],
+      "aaa_profit": 76079.035156,
+      "dist_towns": 234,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=7 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=46191 C=101364 aff=0"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        21
+      ],
+      "aaa_profit": 29218.941406,
+      "dist_towns": 211,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=0 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=14",
+      "first_year_stage_detail": "rank=14 P=81537 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        3,
+        31
+      ],
+      "aaa_profit": 28477.847656,
+      "dist_towns": 261,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "admitted",
+      "best_stage_all_years_reason": "admitted",
+      "best_stage_all_years_detail": "arm=hub combo=1:228 P=16232 C=32812",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=3 rank=28 pop=537 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        12,
+        16
+      ],
+      "aaa_profit": 26261.316406,
+      "dist_towns": 252,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=13 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=12 rank=27 pop=557 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        6,
+        10
+      ],
+      "aaa_profit": 406636.40625,
+      "dist_towns": 211,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=2 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=26",
+      "first_year_stage_detail": "rank=26 P=75696 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        38
+      ],
+      "aaa_profit": 269697.945312,
+      "dist_towns": 179,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=2 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=3",
+      "first_year_stage_detail": "rank=3 P=85218 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        7,
+        11
+      ],
+      "aaa_profit": 161772.699219,
+      "dist_towns": 331,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=28 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1974,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=7 rank=31 pop=415 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        8,
+        13
+      ],
+      "aaa_profit": 151881.703125,
+      "dist_towns": 276,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=14 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=50424 C=216208 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        25,
+        34
+      ],
+      "aaa_profit": 132709.703125,
+      "dist_towns": 389,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=25 rank=35 pop=328 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=25 rank=33 pop=341 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        12,
+        16
+      ],
+      "aaa_profit": 128572.703125,
+      "dist_towns": 252,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=13 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=12 rank=27 pop=557 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        5,
+        43
+      ],
+      "aaa_profit": 115157.621094,
+      "dist_towns": 358,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=42225 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=46605 C=216208 aff=0"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        30,
+        37
+      ],
+      "aaa_profit": 100058.984375,
+      "dist_towns": 222,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "built",
+      "best_stage_all_years_detail": "rank=0 outcome=built reason=-",
+      "best_stage_all_years_year": 1971,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=10",
+      "first_year_stage_detail": "rank=10 P=83409 C=123923 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        3,
+        31
+      ],
+      "aaa_profit": 97359.703125,
+      "dist_towns": 261,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=2192 C=34812 aff=1",
+      "best_stage_all_years_year": 1974,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=3 rank=28 pop=537 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1973,
+      "pair": [
+        0,
+        1
+      ],
+      "aaa_profit": 84761.773438,
+      "dist_towns": 285,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=1 rank=34 pop=345 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=1 rank=36 pop=310 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        7,
+        12
+      ],
+      "aaa_profit": 80017.351562,
+      "dist_towns": 293,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "siteA_unbuildable",
+      "best_stage_all_years_detail": "rank=17 outcome=rejected reason=siteA_unbuildable",
+      "best_stage_all_years_year": 1974,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=7 rank=29 pop=462 pool=24"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        2,
+        14
+      ],
+      "aaa_profit": 26000.515625,
+      "dist_towns": 251,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=64701 C=216208 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=64701 C=216208 aff=1"
+    },
+    {
+      "seed": 999,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        18,
+        21
+      ],
+      "aaa_profit": 7545.011719,
+      "dist_towns": 211,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=0 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=14",
+      "first_year_stage_detail": "rank=14 P=81537 C=123923 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        21,
+        37
+      ],
+      "aaa_profit": 122151.546875,
+      "dist_towns": 110,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=15 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=59410 C=216208 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        14,
+        25
+      ],
+      "aaa_profit": 119501.773438,
+      "dist_towns": 285,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=28145 C=101364 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=22630 C=63063 aff=0"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        32,
+        39
+      ],
+      "aaa_profit": 95495.40625,
+      "dist_towns": 276,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=37580 C=101364 aff=0"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        6,
+        28
+      ],
+      "aaa_profit": 95306.542969,
+      "dist_towns": 177,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=6 rank=39 pop=255 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=6 rank=39 pop=255 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        12,
+        20
+      ],
+      "aaa_profit": 94441.125,
+      "dist_towns": 280,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=4 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=20 rank=26 pop=598 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        4,
+        42
+      ],
+      "aaa_profit": 93222.933594,
+      "dist_towns": 203,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=24228 C=97263 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=24964 C=97263 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        32,
+        35
+      ],
+      "aaa_profit": 49536.714844,
+      "dist_towns": 250,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=35 rank=31 pop=460 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=35 rank=31 pop=460 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        14,
+        21
+      ],
+      "aaa_profit": 41988.484375,
+      "dist_towns": 178,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=0 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=33087 C=101364 aff=0"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        0,
+        35
+      ],
+      "aaa_profit": 38230.199219,
+      "dist_towns": 254,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=35 rank=31 pop=460 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=35 rank=32 pop=473 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1972,
+      "pair": [
+        8,
+        30
+      ],
+      "aaa_profit": 34461.382812,
+      "dist_towns": 286,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=8 rank=27 pop=486 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=8 rank=28 pop=538 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1971,
+      "pair": [
+        12,
+        38
+      ],
+      "aaa_profit": 32407.484375,
+      "dist_towns": 201,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=22933 C=95212 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=25164 C=97263 aff=0"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1973,
+      "first_year_aaa": 1970,
+      "pair": [
+        22,
+        41
+      ],
+      "aaa_profit": 15416.484375,
+      "dist_towns": 186,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "siteB_unbuildable",
+      "best_stage_all_years_detail": "rank=24 outcome=rejected reason=siteB_unbuildable",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=23",
+      "first_year_stage_detail": "rank=23 P=42596 C=101364 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        22,
+        41
+      ],
+      "aaa_profit": 195775.417969,
+      "dist_towns": 186,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "siteB_unbuildable",
+      "best_stage_all_years_detail": "rank=24 outcome=rejected reason=siteB_unbuildable",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "classe",
+      "first_year_stage_reason": "rank=23",
+      "first_year_stage_detail": "rank=23 P=42596 C=101364 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        14,
+        25
+      ],
+      "aaa_profit": 123716.132812,
+      "dist_towns": 285,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "dans_le_vivier",
+      "best_stage_all_years_reason": "unranked",
+      "best_stage_all_years_detail": "P=28145 C=101364 aff=1",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=22630 C=63063 aff=0"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        32,
+        39
+      ],
+      "aaa_profit": 122094.132812,
+      "dist_towns": 276,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1972,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=37580 C=101364 aff=0"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        21,
+        37
+      ],
+      "aaa_profit": 114566.789062,
+      "dist_towns": 110,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=15 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=59410 C=216208 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        7,
+        29
+      ],
+      "aaa_profit": 89573.859375,
+      "dist_towns": 132,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=7 rank=32 pop=458 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=7 rank=31 pop=505 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        0,
+        35
+      ],
+      "aaa_profit": 83164.132812,
+      "dist_towns": 254,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=35 rank=31 pop=460 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=35 rank=32 pop=473 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        8,
+        30
+      ],
+      "aaa_profit": 74294.703125,
+      "dist_towns": 286,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=1 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1975,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=8 rank=28 pop=538 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        4,
+        20
+      ],
+      "aaa_profit": 67263.773438,
+      "dist_towns": 331,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=10 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1975,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=40765 C=216208 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1970,
+      "pair": [
+        32,
+        35
+      ],
+      "aaa_profit": 62224.699219,
+      "dist_towns": 250,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=35 rank=31 pop=460 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=35 rank=31 pop=460 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1972,
+      "pair": [
+        4,
+        42
+      ],
+      "aaa_profit": 45447.703125,
+      "dist_towns": 203,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "dans_le_vivier_meme_annee",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "abandoned_pair",
+      "best_stage_all_years_detail": "rank=33 outcome=rejected reason=abandoned_pair",
+      "best_stage_all_years_year": 1975,
+      "first_year_stage": "dans_le_vivier",
+      "first_year_stage_reason": "unranked",
+      "first_year_stage_detail": "P=24964 C=97263 aff=1"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1973,
+      "pair": [
+        24,
+        30
+      ],
+      "aaa_profit": 44558.289062,
+      "dist_towns": 362,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "jamais_dans_le_vivier",
+      "best_stage_all_years": "hors_pool",
+      "best_stage_all_years_reason": "hors_pool",
+      "best_stage_all_years_detail": "faulty_town=24 rank=26 pop=518 pool=24",
+      "best_stage_all_years_year": 1970,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=24 rank=31 pop=417 pool=24"
+    },
+    {
+      "seed": 12345,
+      "target_year": 1975,
+      "first_year_aaa": 1971,
+      "pair": [
+        12,
+        20
+      ],
+      "aaa_profit": 39290.132812,
+      "dist_towns": 280,
+      "airMin": 94,
+      "below_airmin": false,
+      "classe_etape1": "vivier_annee_anterieure_seulement",
+      "best_stage_all_years": "tente",
+      "best_stage_all_years_reason": "build_failed",
+      "best_stage_all_years_detail": "rank=4 outcome=rejected reason=build_failed",
+      "best_stage_all_years_year": 1973,
+      "first_year_stage": "hors_pool",
+      "first_year_stage_reason": "hors_pool",
+      "first_year_stage_detail": "faulty_town=20 rank=26 pop=598 pool=24"
+    }
+  ],
+  "top5_unbuilt_candidates": [
+    {
+      "seed": 7,
+      "mode": "air",
+      "pair": [
+        18,
+        34
+      ],
+      "best_rank_year": 1975,
+      "rank": 2,
+      "P": 81537,
+      "C": 123923,
+      "affordable": 1,
+      "build_attempts": [
+        {
+          "year": 1971,
+          "rank": 4,
+          "mode": "air",
+          "townA": 18,
+          "townB": 34,
+          "indA": -1,
+          "indB": -1,
+          "P": 81087,
+          "C": 123923,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "AFAIL",
+          "error": 771
+        },
+        {
+          "year": 1972,
+          "rank": 2,
+          "mode": "air",
+          "townA": 18,
+          "townB": 34,
+          "indA": -1,
+          "indB": -1,
+          "P": 82622,
+          "C": 123923,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "AFAIL",
+          "error": 771
+        },
+        {
+          "year": 1974,
+          "rank": 17,
+          "mode": "air",
+          "townA": 18,
+          "townB": 34,
+          "indA": -1,
+          "indB": -1,
+          "P": 81537,
+          "C": 123923,
+          "outcome": "rejected",
+          "reason": "siteA_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 4,
+          "mode": "air",
+          "townA": 18,
+          "townB": 34,
+          "indA": -1,
+          "indB": -1,
+          "P": 81162,
+          "C": 123923,
+          "outcome": "rejected",
+          "reason": "siteA_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 3,
+          "mode": "air",
+          "townA": 18,
+          "townB": 34,
+          "indA": -1,
+          "indB": -1,
+          "P": 83409,
+          "C": 123923,
+          "outcome": "rejected",
+          "reason": "siteA_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 2,
+          "mode": "air",
+          "townA": 18,
+          "townB": 34,
+          "indA": -1,
+          "indB": -1,
+          "P": 77418,
+          "C": 123923,
+          "outcome": "rejected",
+          "reason": "siteA_unbuildable",
+          "detail": "-",
+          "error": "-"
+        }
+      ],
+      "status": "tenté"
+    },
+    {
+      "seed": 42,
+      "mode": "air",
+      "pair": [
+        18,
+        26
+      ],
+      "best_rank_year": 1970,
+      "rank": 1,
+      "P": 84856,
+      "C": 123923,
+      "affordable": 1,
+      "build_attempts": [
+        {
+          "year": 1971,
+          "rank": 0,
+          "mode": "air",
+          "townA": 18,
+          "townB": 26,
+          "indA": -1,
+          "indB": -1,
+          "P": 61978,
+          "C": 67164,
+          "outcome": "built",
+          "reason": "-",
+          "detail": "-",
+          "error": "-"
+        }
+      ],
+      "status": "tenté"
+    },
+    {
+      "seed": 999,
+      "mode": "air",
+      "pair": [
+        18,
+        38
+      ],
+      "best_rank_year": 1970,
+      "rank": 3,
+      "P": 85218,
+      "C": 123923,
+      "affordable": 1,
+      "build_attempts": [
+        {
+          "year": 1971,
+          "rank": 2,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 49623,
+          "C": 67164,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1972,
+          "rank": 1,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 50659,
+          "C": 67164,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1974,
+          "rank": 11,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 62929,
+          "C": 182008,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1974,
+          "rank": 12,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 62929,
+          "C": 182008,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1974,
+          "rank": 8,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 66820,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1974,
+          "rank": 9,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 66820,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 8,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 68904,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 9,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 68904,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 6,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 74395,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 7,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 74395,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 8,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 74236,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 9,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 74236,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 15,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 76470,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1975,
+          "rank": 16,
+          "mode": "air",
+          "townA": 38,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 76470,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "abandoned_pair",
+          "detail": "-",
+          "error": "-"
+        }
+      ],
+      "status": "tenté"
+    },
+    {
+      "seed": 999,
+      "mode": "air",
+      "pair": [
+        6,
+        10
+      ],
+      "best_rank_year": 1973,
+      "rank": 1,
+      "P": 56337,
+      "C": 67164,
+      "affordable": 1,
+      "build_attempts": [
+        {
+          "year": 1971,
+          "rank": 2,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 39851,
+          "C": 67164,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1973,
+          "rank": 1,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 56337,
+          "C": 67164,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 260
+        },
+        {
+          "year": 1973,
+          "rank": 2,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 56337,
+          "C": 67164,
+          "outcome": "rejected",
+          "reason": "abandoned_pair",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 5,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 73709,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 6,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 73709,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 4,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 78167,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 5,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 78167,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 3,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 78167,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 4,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 78167,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "siteB_unbuildable",
+          "detail": "-",
+          "error": "-"
+        },
+        {
+          "year": 1975,
+          "rank": 11,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 78916,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1975,
+          "rank": 12,
+          "mode": "air",
+          "townA": 6,
+          "townB": 10,
+          "indA": -1,
+          "indB": -1,
+          "P": 78916,
+          "C": 89723,
+          "outcome": "rejected",
+          "reason": "abandoned_pair",
+          "detail": "-",
+          "error": "-"
+        }
+      ],
+      "status": "tenté"
+    },
+    {
+      "seed": 999,
+      "mode": "air",
+      "pair": [
+        18,
+        21
+      ],
+      "best_rank_year": 1974,
+      "rank": 2,
+      "P": 67119,
+      "C": 69215,
+      "affordable": 1,
+      "build_attempts": [
+        {
+          "year": 1972,
+          "rank": 0,
+          "mode": "air",
+          "townA": 21,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 54677,
+          "C": 67164,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1974,
+          "rank": 2,
+          "mode": "air",
+          "townA": 21,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 67119,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1974,
+          "rank": 3,
+          "mode": "air",
+          "townA": 21,
+          "townB": 18,
+          "indA": -1,
+          "indB": -1,
+          "P": 67119,
+          "C": 69215,
+          "outcome": "rejected",
+          "reason": "abandoned_pair",
+          "detail": "-",
+          "error": "-"
+        }
+      ],
+      "status": "tenté"
+    },
+    {
+      "seed": 12345,
+      "mode": "air",
+      "pair": [
+        12,
+        20
+      ],
+      "best_rank_year": 1973,
+      "rank": 4,
+      "P": 29131,
+      "C": 101364,
+      "affordable": 1,
+      "build_attempts": [
+        {
+          "year": 1973,
+          "rank": 4,
+          "mode": "air",
+          "townA": 12,
+          "townB": 20,
+          "indA": -1,
+          "indB": -1,
+          "P": 29131,
+          "C": 101364,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "AFAIL",
+          "error": 771
+        },
+        {
+          "year": 1975,
+          "rank": 15,
+          "mode": "air",
+          "townA": 12,
+          "townB": 20,
+          "indA": -1,
+          "indB": -1,
+          "P": 37507,
+          "C": 216208,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "AFAIL",
+          "error": 771
+        }
+      ],
+      "status": "tenté"
+    },
+    {
+      "seed": 12345,
+      "mode": "air",
+      "pair": [
+        32,
+        39
+      ],
+      "best_rank_year": 1975,
+      "rank": 2,
+      "P": 25197,
+      "C": 63063,
+      "affordable": 1,
+      "build_attempts": [
+        {
+          "year": 1972,
+          "rank": 1,
+          "mode": "air",
+          "townA": 39,
+          "townB": 32,
+          "indA": -1,
+          "indB": -1,
+          "P": 38516,
+          "C": 101364,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1975,
+          "rank": 2,
+          "mode": "air",
+          "townA": 39,
+          "townB": 32,
+          "indA": -1,
+          "indB": -1,
+          "P": 25197,
+          "C": 63063,
+          "outcome": "rejected",
+          "reason": "build_failed",
+          "detail": "BFAIL",
+          "error": 771
+        },
+        {
+          "year": 1975,
+          "rank": 3,
+          "mode": "air",
+          "townA": 39,
+          "townB": 32,
+          "indA": -1,
+          "indB": -1,
+          "P": 25197,
+          "C": 63063,
+          "outcome": "rejected",
+          "reason": "abandoned_pair",
+          "detail": "-",
+          "error": "-"
+        }
+      ],
+      "status": "tenté"
+    }
+  ],
+  "rail_lines": [
+    {
+      "seed": 7,
+      "year": 1973,
+      "pair": [
+        26,
+        30
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 104,
+      "vehicles": 1,
+      "profit": 82259.617188,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 17,
+      "best_shared_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 5,
+        "townB": 26,
+        "indA": 47,
+        "indB": 42,
+        "P": 36378,
+        "C": 86446,
+        "rank": 12,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1973,
+      "pair": [
+        10,
+        12
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 78,
+      "vehicles": 1,
+      "profit": 30442.617188,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 12,
+        "townB": 10,
+        "indA": -1,
+        "indB": -1,
+        "P": 6774,
+        "C": 84617,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 23,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 38,
+        "townB": 12,
+        "indA": -1,
+        "indB": -1,
+        "P": 11682,
+        "C": 78803,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1973,
+      "pair": [
+        12,
+        44
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 59,
+      "vehicles": 1,
+      "profit": 8387.140625,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 22,
+      "best_shared_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 44,
+        "townB": 20,
+        "indA": 15,
+        "indB": 46,
+        "P": 18612,
+        "C": 84813,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1975,
+      "pair": [
+        10,
+        26
+      ],
+      "cargo": [
+        "5"
+      ],
+      "distance": 276,
+      "vehicles": 8,
+      "profit": 1021373.769531,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 50,
+      "best_shared_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 5,
+        "townB": 26,
+        "indA": 47,
+        "indB": 42,
+        "P": 36378,
+        "C": 86446,
+        "rank": 12,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1975,
+      "pair": [
+        30,
+        34
+      ],
+      "cargo": [
+        "7"
+      ],
+      "distance": 84,
+      "vehicles": 3,
+      "profit": 119793.679688,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1974,
+        "mode": "rail",
+        "townA": 30,
+        "townB": 34,
+        "indA": 14,
+        "indB": 18,
+        "P": 18507,
+        "C": 82586,
+        "rank": 20,
+        "affordable": 1
+      },
+      "shared_cands_count": 40,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 30,
+        "townB": 11,
+        "indA": 38,
+        "indB": 1,
+        "P": 26775,
+        "C": 72743,
+        "rank": 49,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1975,
+      "pair": [
+        26,
+        30
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 104,
+      "vehicles": 1,
+      "profit": 65216.457031,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 30,
+        "townB": 26,
+        "indA": 5,
+        "indB": -1,
+        "P": 8262,
+        "C": 86851,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 32,
+      "best_shared_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 5,
+        "townB": 26,
+        "indA": 47,
+        "indB": 42,
+        "P": 36378,
+        "C": 86446,
+        "rank": 12,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1975,
+      "pair": [
+        11,
+        26
+      ],
+      "cargo": [
+        "7"
+      ],
+      "distance": 77,
+      "vehicles": 2,
+      "profit": 59198.914062,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 26,
+        "townB": 11,
+        "indA": -1,
+        "indB": -1,
+        "P": 2919,
+        "C": 76437,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 28,
+      "best_shared_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 5,
+        "townB": 26,
+        "indA": 47,
+        "indB": 42,
+        "P": 36378,
+        "C": 86446,
+        "rank": 12,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1975,
+      "pair": [
+        30,
+        34
+      ],
+      "cargo": [
+        "7"
+      ],
+      "distance": 79,
+      "vehicles": 2,
+      "profit": 39199.769531,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1974,
+        "mode": "rail",
+        "townA": 30,
+        "townB": 34,
+        "indA": 14,
+        "indB": 18,
+        "P": 18507,
+        "C": 82586,
+        "rank": 20,
+        "affordable": 1
+      },
+      "shared_cands_count": 40,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 30,
+        "townB": 11,
+        "indA": 38,
+        "indB": 1,
+        "P": 26775,
+        "C": 72743,
+        "rank": 49,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1975,
+      "pair": [
+        10,
+        12
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 78,
+      "vehicles": 1,
+      "profit": 30623.457031,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 12,
+        "townB": 10,
+        "indA": -1,
+        "indB": -1,
+        "P": 11763,
+        "C": 92587,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 38,
+      "best_shared_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 37,
+        "townB": 10,
+        "indA": -1,
+        "indB": -1,
+        "P": 12519,
+        "C": 84512,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 7,
+      "year": 1975,
+      "pair": [
+        8,
+        30
+      ],
+      "cargo": [
+        "3"
+      ],
+      "distance": 199,
+      "vehicles": 2,
+      "profit": 28118.726562,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 33,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 8,
+        "townB": 7,
+        "indA": 17,
+        "indB": 51,
+        "P": 27255,
+        "C": 87601,
+        "rank": 38,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1973,
+      "pair": [
+        8,
+        13
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 164,
+      "vehicles": 1,
+      "profit": 91505.230469,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 13,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 7,
+        "townB": 8,
+        "indA": 19,
+        "indB": 46,
+        "P": 35607,
+        "C": 89501,
+        "rank": 6,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1973,
+      "pair": [
+        5,
+        37
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 70,
+      "vehicles": 1,
+      "profit": 67330.140625,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 5,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 34,
+        "townB": 37,
+        "indA": -1,
+        "indB": -1,
+        "P": 55437,
+        "C": 89491,
+        "rank": 50,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1973,
+      "pair": [
+        21,
+        40
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 96,
+      "vehicles": 1,
+      "profit": 58126.140625,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 6,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 21,
+        "townB": 37,
+        "indA": 13,
+        "indB": -1,
+        "P": 42450,
+        "C": 80309,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1973,
+      "pair": [
+        26,
+        38
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 59,
+      "vehicles": 1,
+      "profit": 14030.140625,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 38,
+        "townB": 26,
+        "indA": -1,
+        "indB": -1,
+        "P": 9810,
+        "C": 79126,
+        "rank": 58,
+        "affordable": 1
+      },
+      "shared_cands_count": 20,
+      "best_shared_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 26,
+        "townB": 23,
+        "indA": -1,
+        "indB": -1,
+        "P": 8754,
+        "C": 76542,
+        "rank": 61,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1973,
+      "pair": [
+        13,
+        14
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 70,
+      "vehicles": 1,
+      "profit": 7779.140625,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 14,
+        "townB": 13,
+        "indA": -1,
+        "indB": -1,
+        "P": 3570,
+        "C": 78480,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 12,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 18,
+        "townB": 14,
+        "indA": -1,
+        "indB": -1,
+        "P": 6906,
+        "C": 75573,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1973,
+      "pair": [
+        23,
+        32
+      ],
+      "cargo": [
+        "0"
+      ],
+      "distance": 61,
+      "vehicles": 1,
+      "profit": 7372.617188,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 32,
+        "townB": 23,
+        "indA": -1,
+        "indB": -1,
+        "P": 1554,
+        "C": 72989,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 17,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 7,
+        "townB": 32,
+        "indA": 19,
+        "indB": 16,
+        "P": 37047,
+        "C": 90470,
+        "rank": 5,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        2,
+        39
+      ],
+      "cargo": [
+        "5"
+      ],
+      "distance": 225,
+      "vehicles": 7,
+      "profit": 556188.363281,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 60,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 39,
+        "townB": 8,
+        "indA": 3,
+        "indB": 46,
+        "P": 26509,
+        "C": 83500,
+        "rank": 30,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        12,
+        39
+      ],
+      "cargo": [
+        "7"
+      ],
+      "distance": 185,
+      "vehicles": 2,
+      "profit": 225442.914062,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 23,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 12,
+        "townB": 18,
+        "indA": 33,
+        "indB": 2,
+        "P": 32727,
+        "C": 84333,
+        "rank": 7,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        8,
+        13
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 164,
+      "vehicles": 1,
+      "profit": 119311.238281,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 22,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 7,
+        "townB": 8,
+        "indA": 19,
+        "indB": 46,
+        "P": 35607,
+        "C": 89501,
+        "rank": 6,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        13,
+        39
+      ],
+      "cargo": [
+        "5"
+      ],
+      "distance": 107,
+      "vehicles": 3,
+      "profit": 109107.148438,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 24,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 39,
+        "townB": 8,
+        "indA": 3,
+        "indB": 46,
+        "P": 26509,
+        "C": 83500,
+        "rank": 30,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        5,
+        37
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 70,
+      "vehicles": 1,
+      "profit": 67634.148438,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 5,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 34,
+        "townB": 37,
+        "indA": -1,
+        "indB": -1,
+        "P": 55437,
+        "C": 89491,
+        "rank": 50,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        21,
+        40
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 96,
+      "vehicles": 1,
+      "profit": 47584.148438,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 12,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 21,
+        "townB": 37,
+        "indA": 13,
+        "indB": -1,
+        "P": 42450,
+        "C": 80309,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        12,
+        17
+      ],
+      "cargo": [
+        "7"
+      ],
+      "distance": 78,
+      "vehicles": 2,
+      "profit": 31331.296875,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 14,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 12,
+        "townB": 18,
+        "indA": 33,
+        "indB": 2,
+        "P": 32727,
+        "C": 84333,
+        "rank": 7,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        18,
+        31
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 77,
+      "vehicles": 2,
+      "profit": 27629.914062,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 31,
+        "townB": 18,
+        "indA": -1,
+        "indB": -1,
+        "P": 10227,
+        "C": 86127,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 52,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 12,
+        "townB": 18,
+        "indA": 33,
+        "indB": 2,
+        "P": 32727,
+        "C": 84333,
+        "rank": 7,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 42,
+      "year": 1975,
+      "pair": [
+        13,
+        14
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 70,
+      "vehicles": 1,
+      "profit": 12848.148438,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 14,
+        "townB": 13,
+        "indA": -1,
+        "indB": -1,
+        "P": 4263,
+        "C": 86450,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 22,
+      "best_shared_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 18,
+        "townB": 14,
+        "indA": -1,
+        "indB": -1,
+        "P": 11367,
+        "C": 83543,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1973,
+      "pair": [
+        35,
+        38
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 154,
+      "vehicles": 1,
+      "profit": 138806.617188,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 14,
+      "best_shared_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 38,
+        "townB": 25,
+        "indA": -1,
+        "indB": -1,
+        "P": 5742,
+        "C": 75896,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1973,
+      "pair": [
+        2,
+        14
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 136,
+      "vehicles": 1,
+      "profit": 47466.964844,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 5,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 2,
+        "townB": 3,
+        "indA": 19,
+        "indB": -1,
+        "P": 19272,
+        "C": 82552,
+        "rank": 47,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1973,
+      "pair": [
+        3,
+        8
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 40,
+      "vehicles": 1,
+      "profit": 395.621094,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 9,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 34,
+        "townB": 3,
+        "indA": 10,
+        "indB": 1,
+        "P": 38442,
+        "C": 83539,
+        "rank": 33,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1975,
+      "pair": [
+        6,
+        27
+      ],
+      "cargo": [
+        "8"
+      ],
+      "distance": 268,
+      "vehicles": 3,
+      "profit": 333272.878906,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 18,
+      "best_shared_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 9,
+        "townB": 6,
+        "indA": 37,
+        "indB": -1,
+        "P": 26294,
+        "C": 87335,
+        "rank": -1,
+        "affordable": 0
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1975,
+      "pair": [
+        12,
+        16
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 210,
+      "vehicles": 2,
+      "profit": 255272.914062,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 5,
+      "best_shared_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 21,
+        "townB": 12,
+        "indA": -1,
+        "indB": -1,
+        "P": 4530,
+        "C": 75573,
+        "rank": 41,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1975,
+      "pair": [
+        3,
+        4
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 195,
+      "vehicles": 3,
+      "profit": 169963.886719,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 24,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 34,
+        "townB": 3,
+        "indA": 10,
+        "indB": 1,
+        "P": 38442,
+        "C": 83539,
+        "rank": 33,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1975,
+      "pair": [
+        2,
+        14
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 136,
+      "vehicles": 1,
+      "profit": 113046.457031,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 6,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 2,
+        "townB": 3,
+        "indA": 19,
+        "indB": -1,
+        "P": 19272,
+        "C": 82552,
+        "rank": 47,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 100,
+      "year": 1975,
+      "pair": [
+        20,
+        27
+      ],
+      "cargo": [
+        "8"
+      ],
+      "distance": 33,
+      "vehicles": 2,
+      "profit": 12277.664062,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 19,
+      "best_shared_cand": {
+        "year": 1974,
+        "mode": "rail",
+        "townA": 25,
+        "townB": 20,
+        "indA": 24,
+        "indB": 39,
+        "P": 14943,
+        "C": 73865,
+        "rank": 31,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1973,
+      "pair": [
+        7,
+        8
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 131,
+      "vehicles": 1,
+      "profit": 21148.035156,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 11,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 36,
+        "townB": 8,
+        "indA": 5,
+        "indB": -1,
+        "P": 49807,
+        "C": 72930,
+        "rank": 10,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1973,
+      "pair": [
+        2,
+        41
+      ],
+      "cargo": [
+        "0"
+      ],
+      "distance": 55,
+      "vehicles": 1,
+      "profit": 7889.140625,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 9,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 2,
+        "townB": 12,
+        "indA": 31,
+        "indB": 49,
+        "P": 31386,
+        "C": 90322,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1973,
+      "pair": [
+        5,
+        18
+      ],
+      "cargo": [
+        "0"
+      ],
+      "distance": 51,
+      "vehicles": 2,
+      "profit": 5873.878906,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 18,
+        "townB": 5,
+        "indA": -1,
+        "indB": -1,
+        "P": 6450,
+        "C": 79449,
+        "rank": -1,
+        "affordable": 0
+      },
+      "shared_cands_count": 24,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 28,
+        "townB": 18,
+        "indA": 23,
+        "indB": -1,
+        "P": 40950,
+        "C": 76110,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1975,
+      "pair": [
+        27,
+        28
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 291,
+      "vehicles": 4,
+      "profit": 199133.300781,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 32,
+      "best_shared_cand": {
+        "year": 1974,
+        "mode": "rail",
+        "townA": 28,
+        "townB": 12,
+        "indA": 23,
+        "indB": 49,
+        "P": 43950,
+        "C": 81278,
+        "rank": 10,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1975,
+      "pair": [
+        2,
+        8
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 155,
+      "vehicles": 1,
+      "profit": 115303.457031,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 28,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 36,
+        "townB": 8,
+        "indA": 5,
+        "indB": -1,
+        "P": 49807,
+        "C": 72930,
+        "rank": 10,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1975,
+      "pair": [
+        7,
+        8
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 131,
+      "vehicles": 1,
+      "profit": 88162.457031,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 17,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 36,
+        "townB": 8,
+        "indA": 5,
+        "indB": -1,
+        "P": 49807,
+        "C": 72930,
+        "rank": 10,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1975,
+      "pair": [
+        5,
+        30
+      ],
+      "cargo": [
+        "0"
+      ],
+      "distance": 96,
+      "vehicles": 2,
+      "profit": 28433.914062,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 80,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 36,
+        "townB": 30,
+        "indA": 5,
+        "indB": -1,
+        "P": 79373,
+        "C": 105600,
+        "rank": 4,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1975,
+      "pair": [
+        18,
+        28
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 57,
+      "vehicles": 2,
+      "profit": 11841.457031,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1974,
+        "mode": "rail",
+        "townA": 28,
+        "townB": 18,
+        "indA": 23,
+        "indB": -1,
+        "P": 41370,
+        "C": 76110,
+        "rank": 9,
+        "affordable": 1
+      },
+      "shared_cands_count": 51,
+      "best_shared_cand": {
+        "year": 1974,
+        "mode": "rail",
+        "townA": 28,
+        "townB": 12,
+        "indA": 23,
+        "indB": 49,
+        "P": 43950,
+        "C": 81278,
+        "rank": 10,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 999,
+      "year": 1975,
+      "pair": [
+        30,
+        32
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 22,
+      "vehicles": 2,
+      "profit": 8147.914062,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 32,
+        "townB": 30,
+        "indA": -1,
+        "indB": -1,
+        "P": 5202,
+        "C": 65237,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 76,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 36,
+        "townB": 30,
+        "indA": 5,
+        "indB": -1,
+        "P": 79373,
+        "C": 105600,
+        "rank": 4,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1973,
+      "pair": [
+        3,
+        41
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 149,
+      "vehicles": 1,
+      "profit": 106334.664062,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 26,
+      "best_shared_cand": {
+        "year": 1970,
+        "mode": "rail",
+        "townA": 28,
+        "townB": 3,
+        "indA": -1,
+        "indB": 35,
+        "P": 39381,
+        "C": 93044,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1973,
+      "pair": [
+        32,
+        40
+      ],
+      "cargo": [
+        "0"
+      ],
+      "distance": 38,
+      "vehicles": 1,
+      "profit": 5899.707031,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 13,
+      "best_shared_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 40,
+        "townB": 33,
+        "indA": -1,
+        "indB": -1,
+        "P": 5190,
+        "C": 84940,
+        "rank": -1,
+        "affordable": 0
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1973,
+      "pair": [
+        9,
+        32
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 32,
+      "vehicles": 1,
+      "profit": 3552.972656,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 32,
+        "townB": 9,
+        "indA": -1,
+        "indB": -1,
+        "P": 3150,
+        "C": 72343,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 31,
+      "best_shared_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 33,
+        "townB": 9,
+        "indA": -1,
+        "indB": -1,
+        "P": 10986,
+        "C": 76219,
+        "rank": -1,
+        "affordable": 0
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1973,
+      "pair": [
+        32,
+        37
+      ],
+      "cargo": [
+        "2"
+      ],
+      "distance": 43,
+      "vehicles": 1,
+      "profit": 2048.933594,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 37,
+        "townB": 32,
+        "indA": -1,
+        "indB": -1,
+        "P": 4530,
+        "C": 75250,
+        "rank": -1,
+        "affordable": 0
+      },
+      "shared_cands_count": 45,
+      "best_shared_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 37,
+        "townB": 33,
+        "indA": -1,
+        "indB": -1,
+        "P": 12399,
+        "C": 89661,
+        "rank": -1,
+        "affordable": 0
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1975,
+      "pair": [
+        14,
+        18
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 167,
+      "vehicles": 3,
+      "profit": 126714.914062,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 10,
+      "best_shared_cand": {
+        "year": 1973,
+        "mode": "rail",
+        "townA": 14,
+        "townB": 19,
+        "indA": 3,
+        "indB": 46,
+        "P": 6899,
+        "C": 79760,
+        "rank": -1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1975,
+      "pair": [
+        18,
+        23
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 94,
+      "vehicles": 1,
+      "profit": 74872.457031,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 26,
+      "best_shared_cand": {
+        "year": 1971,
+        "mode": "rail",
+        "townA": 4,
+        "townB": 23,
+        "indA": 33,
+        "indB": 20,
+        "P": 12095,
+        "C": 78125,
+        "rank": -1,
+        "affordable": 0
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1975,
+      "pair": [
+        5,
+        7
+      ],
+      "cargo": [
+        "1"
+      ],
+      "distance": 86,
+      "vehicles": 1,
+      "profit": 62692.457031,
+      "has_exact_cand": true,
+      "exact_cand": {
+        "year": 1975,
+        "mode": "rail",
+        "townA": 7,
+        "townB": 5,
+        "indA": -1,
+        "indB": -1,
+        "P": 3570,
+        "C": 76542,
+        "rank": -1,
+        "affordable": 1
+      },
+      "shared_cands_count": 45,
+      "best_shared_cand": {
+        "year": 1972,
+        "mode": "rail",
+        "townA": 22,
+        "townB": 7,
+        "indA": 49,
+        "indB": -1,
+        "P": 58173,
+        "C": 91429,
+        "rank": 1,
+        "affordable": 1
+      }
+    },
+    {
+      "seed": 12345,
+      "year": 1975,
+      "pair": [
+        2,
+        41
+      ],
+      "cargo": [
+        "4",
+        "6"
+      ],
+      "distance": 269,
+      "vehicles": 1,
+      "profit": 42413.65625,
+      "has_exact_cand": false,
+      "exact_cand": null,
+      "shared_cands_count": 45,
+      "best_shared_cand": {
+        "year": 1974,
+        "mode": "rail",
+        "townA": 41,
+        "townB": 37,
+        "indA": -1,
+        "indB": -1,
+        "P": 8682,
+        "C": 86555,
+        "rank": -1,
+        "affordable": 1
+      }
+    }
+  ]
+}

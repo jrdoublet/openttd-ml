@@ -105,13 +105,18 @@ function OpexC69Log(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C69_BOTTLENECK " + fields);
 }
-/* C78 : logger dedie pour le vivier annuel sous probe_portfolio */
-function OpexC78CandidateLog(fields)
+/* C78 etape 2 : journalisation passive sous probe_portfolio. */
+function OpexC78Log(tag, fields)
 {
   if (!C69_BOTTLENECK_PROBE) return;
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-             + AIDate.GetDayOfMonth(date) + " C78_CAND " + fields);
+             + AIDate.GetDayOfMonth(date) + " " + tag + " " + fields);
+}
+
+function OpexC78CandidateLog(fields)
+{
+  OpexC78Log("C78_CAND", fields);
 }
 
 /* C78 : sonde dediee a la course aux deux slots aeroportuaires d'une ville.

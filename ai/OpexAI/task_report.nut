@@ -757,6 +757,105 @@ function OpexAI::_reportYear(year, ranked)
   }
 }
 
+/* C78 : deduction des extremites (villes et industries) d'un projet ou candidat. */
+function OpexC78ProjectTowns(p)
+{
+  local townA = -1;
+  local townB = -1;
+  local indA = -1;
+  local indB = -1;
+
+  if (p == null) return { townA = -1, townB = -1, indA = -1, indB = -1 };
+
+  local mode = ("mode" in p) ? p.mode : "unknown";
+  local cand = ("payload" in p && p.payload != null) ? p.payload : p;
+
+  if (mode == "air") {
+    local plan = cand;
+    if (typeof plan == "table") {
+      if (("siteA" in plan) && plan.siteA != null && typeof plan.siteA == "table") {
+        if (("town" in plan.siteA) && plan.siteA.town != null) {
+          if (typeof plan.siteA.town == "table" && ("id" in plan.siteA.town)) {
+            townA = plan.siteA.town.id;
+          } else if (typeof plan.siteA.town == "integer") {
+            townA = plan.siteA.town;
+          }
+        }
+        if (townA < 0 && ("anchor" in plan.siteA) && AIMap.IsValidTile(plan.siteA.anchor)) {
+          townA = AITile.GetClosestTown(plan.siteA.anchor);
+        }
+      }
+      if (("siteB" in plan) && plan.siteB != null && typeof plan.siteB == "table") {
+        if (("town" in plan.siteB) && plan.siteB.town != null) {
+          if (typeof plan.siteB.town == "table" && ("id" in plan.siteB.town)) {
+            townB = plan.siteB.town.id;
+          } else if (typeof plan.siteB.town == "integer") {
+            townB = plan.siteB.town;
+          }
+        }
+        if (townB < 0 && ("anchor" in plan.siteB) && AIMap.IsValidTile(plan.siteB.anchor)) {
+          townB = AITile.GetClosestTown(plan.siteB.anchor);
+        }
+      }
+    }
+    if (townA < 0 && ("src" in p) && AIMap.IsValidTile(p.src)) townA = AITile.GetClosestTown(p.src);
+    if (townB < 0 && ("dst" in p) && AIMap.IsValidTile(p.dst)) townB = AITile.GetClosestTown(p.dst);
+  } else if (mode == "fleet") {
+    if (typeof cand == "table" && ("line" in cand) && cand.line != null && typeof cand.line == "table") {
+      local l = cand.line;
+      if (("stationA" in l) && AIMap.IsValidTile(l.stationA)) townA = AITile.GetClosestTown(l.stationA);
+      if (("stationB" in l) && AIMap.IsValidTile(l.stationB)) townB = AITile.GetClosestTown(l.stationB);
+    }
+  } else {
+    if (typeof cand == "table") {
+      if (("srcTown" in cand) && cand.srcTown >= 0) townA = cand.srcTown;
+      if (("dstTown" in cand) && cand.dstTown >= 0) townB = cand.dstTown;
+      if (("srcIndustry" in cand) && cand.srcIndustry >= 0) indA = cand.srcIndustry;
+      if (("dstIndustry" in cand) && cand.dstIndustry >= 0) indB = cand.dstIndustry;
+    }
+    if (townA < 0 && ("srcTown" in p) && p.srcTown >= 0) townA = p.srcTown;
+    if (townB < 0 && ("dstTown" in p) && p.dstTown >= 0) townB = p.dstTown;
+    if (indA < 0 && ("srcIndustry" in p) && p.srcIndustry >= 0) indA = p.srcIndustry;
+    if (indB < 0 && ("dstIndustry" in p) && p.dstIndustry >= 0) indB = p.dstIndustry;
+
+    local isFreight = (("kind" in p) && p.kind == "freight") || (typeof cand == "table" && ("kind" in cand) && cand.kind == "freight");
+    if (isFreight) {
+      if (indA < 0) {
+        local sTile = (typeof cand == "table" && ("src" in cand)) ? cand.src : (("src" in p) ? p.src : -1);
+        if (AIMap.IsValidTile(sTile)) {
+          local id = AIIndustry.GetIndustryID(sTile);
+          if (AIIndustry.IsValidIndustry(id)) indA = id;
+        }
+      }
+      if (indB < 0) {
+        local dTile = (typeof cand == "table" && ("dst" in cand)) ? cand.dst : (("dst" in p) ? p.dst : -1);
+        if (AIMap.IsValidTile(dTile)) {
+          local id = AIIndustry.GetIndustryID(dTile);
+          if (AIIndustry.IsValidIndustry(id)) indB = id;
+        }
+      }
+    }
+
+    /* Ville la plus proche meme pour le fret : les lignes relevees dans la sauvegarde sont
+     * identifiees par la ville de leurs gares, l'appariement se fait donc par paire de villes. */
+    if (townA < 0) {
+      local sTile = (typeof cand == "table" && ("src" in cand)) ? cand.src : (("src" in p) ? p.src : -1);
+      if (AIMap.IsValidTile(sTile)) townA = AITile.GetClosestTown(sTile);
+    }
+    if (townB < 0) {
+      local dTile = (typeof cand == "table" && ("dst" in cand)) ? cand.dst : (("dst" in p) ? p.dst : -1);
+      if (AIMap.IsValidTile(dTile)) townB = AITile.GetClosestTown(dTile);
+    }
+  }
+
+  if (townA >= 0 && !AITown.IsValidTown(townA)) townA = -1;
+  if (townB >= 0 && !AITown.IsValidTown(townB)) townB = -1;
+  if (indA >= 0 && !AIIndustry.IsValidIndustry(indA)) indA = -1;
+  if (indB >= 0 && !AIIndustry.IsValidIndustry(indB)) indB = -1;
+
+  return { townA = townA, townB = townB, indA = indA, indB = indB };
+}
+
 /* C78 : publication annuelle passive du vivier de candidats OpexAI */
 function OpexAI::_reportC78Candidates(year)
 {
@@ -802,95 +901,11 @@ function OpexAI::_reportC78Candidates(year)
 
   foreach (p in allCandidates) {
     local mode = ("mode" in p) ? p.mode : "unknown";
-    local townA = -1;
-    local townB = -1;
-    local indA = -1;
-    local indB = -1;
-
-    local cand = ("payload" in p && p.payload != null) ? p.payload : p;
-
-    if (mode == "air") {
-      local plan = cand;
-      if (typeof plan == "table") {
-        if (("siteA" in plan) && plan.siteA != null && typeof plan.siteA == "table") {
-          if (("town" in plan.siteA) && plan.siteA.town != null) {
-            if (typeof plan.siteA.town == "table" && ("id" in plan.siteA.town)) {
-              townA = plan.siteA.town.id;
-            } else if (typeof plan.siteA.town == "integer") {
-              townA = plan.siteA.town;
-            }
-          }
-          if (townA < 0 && ("anchor" in plan.siteA) && AIMap.IsValidTile(plan.siteA.anchor)) {
-            townA = AITile.GetClosestTown(plan.siteA.anchor);
-          }
-        }
-        if (("siteB" in plan) && plan.siteB != null && typeof plan.siteB == "table") {
-          if (("town" in plan.siteB) && plan.siteB.town != null) {
-            if (typeof plan.siteB.town == "table" && ("id" in plan.siteB.town)) {
-              townB = plan.siteB.town.id;
-            } else if (typeof plan.siteB.town == "integer") {
-              townB = plan.siteB.town;
-            }
-          }
-          if (townB < 0 && ("anchor" in plan.siteB) && AIMap.IsValidTile(plan.siteB.anchor)) {
-            townB = AITile.GetClosestTown(plan.siteB.anchor);
-          }
-        }
-      }
-      if (townA < 0 && ("src" in p) && AIMap.IsValidTile(p.src)) townA = AITile.GetClosestTown(p.src);
-      if (townB < 0 && ("dst" in p) && AIMap.IsValidTile(p.dst)) townB = AITile.GetClosestTown(p.dst);
-    } else if (mode == "fleet") {
-      if (typeof cand == "table" && ("line" in cand) && cand.line != null && typeof cand.line == "table") {
-        local l = cand.line;
-        if (("stationA" in l) && AIMap.IsValidTile(l.stationA)) townA = AITile.GetClosestTown(l.stationA);
-        if (("stationB" in l) && AIMap.IsValidTile(l.stationB)) townB = AITile.GetClosestTown(l.stationB);
-      }
-    } else {
-      if (typeof cand == "table") {
-        if (("srcTown" in cand) && cand.srcTown >= 0) townA = cand.srcTown;
-        if (("dstTown" in cand) && cand.dstTown >= 0) townB = cand.dstTown;
-        if (("srcIndustry" in cand) && cand.srcIndustry >= 0) indA = cand.srcIndustry;
-        if (("dstIndustry" in cand) && cand.dstIndustry >= 0) indB = cand.dstIndustry;
-      }
-      if (townA < 0 && ("srcTown" in p) && p.srcTown >= 0) townA = p.srcTown;
-      if (townB < 0 && ("dstTown" in p) && p.dstTown >= 0) townB = p.dstTown;
-      if (indA < 0 && ("srcIndustry" in p) && p.srcIndustry >= 0) indA = p.srcIndustry;
-      if (indB < 0 && ("dstIndustry" in p) && p.dstIndustry >= 0) indB = p.dstIndustry;
-
-      local isFreight = (("kind" in p) && p.kind == "freight") || (typeof cand == "table" && ("kind" in cand) && cand.kind == "freight");
-      if (isFreight) {
-        if (indA < 0) {
-          local sTile = (typeof cand == "table" && ("src" in cand)) ? cand.src : (("src" in p) ? p.src : -1);
-          if (AIMap.IsValidTile(sTile)) {
-            local id = AIIndustry.GetIndustryID(sTile);
-            if (AIIndustry.IsValidIndustry(id)) indA = id;
-          }
-        }
-        if (indB < 0) {
-          local dTile = (typeof cand == "table" && ("dst" in cand)) ? cand.dst : (("dst" in p) ? p.dst : -1);
-          if (AIMap.IsValidTile(dTile)) {
-            local id = AIIndustry.GetIndustryID(dTile);
-            if (AIIndustry.IsValidIndustry(id)) indB = id;
-          }
-        }
-      }
-
-      /* Ville la plus proche meme pour le fret : les lignes relevees dans la sauvegarde sont
-       * identifiees par la ville de leurs gares, l'appariement se fait donc par paire de villes. */
-      if (townA < 0) {
-        local sTile = (typeof cand == "table" && ("src" in cand)) ? cand.src : (("src" in p) ? p.src : -1);
-        if (AIMap.IsValidTile(sTile)) townA = AITile.GetClosestTown(sTile);
-      }
-      if (townB < 0) {
-        local dTile = (typeof cand == "table" && ("dst" in cand)) ? cand.dst : (("dst" in p) ? p.dst : -1);
-        if (AIMap.IsValidTile(dTile)) townB = AITile.GetClosestTown(dTile);
-      }
-    }
-
-    if (townA >= 0 && !AITown.IsValidTown(townA)) townA = -1;
-    if (townB >= 0 && !AITown.IsValidTown(townB)) townB = -1;
-    if (indA >= 0 && !AIIndustry.IsValidIndustry(indA)) indA = -1;
-    if (indB >= 0 && !AIIndustry.IsValidIndustry(indB)) indB = -1;
+    local towns = OpexC78ProjectTowns(p);
+    local townA = towns.townA;
+    local townB = towns.townB;
+    local indA = towns.indA;
+    local indB = towns.indB;
 
     local pP = ("profitAnnual" in p) ? p.profitAnnual : 0;
     local pC = OpexProjectFinanceCapital(p);

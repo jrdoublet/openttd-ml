@@ -405,7 +405,9 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           this._markPairAbandoned(abandonedKey);
           this._padAirFailedSites(plan, result);
         }
-        return { outcome = "rejected", discards = passDiscards };
+        local ret = { outcome = "rejected", discards = passDiscards };
+        if (C69_BOTTLENECK_PROBE) ret.reason <- result.reason;
+        return ret;
       }
       if (result.ok) {
         if (DECISION_LOG) {
