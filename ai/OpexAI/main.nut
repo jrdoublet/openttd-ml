@@ -355,6 +355,7 @@ class OpexAI extends AIController {
   function _recordC69BuildingPass(year, projects, builtProjects);
   function _reportYear(year, ranked);
   function _reportLines(year);
+  function _reportC78Candidates(year);
   function _scrapDeadLines(year);
   function _scrapRetiredVehicles(year);
   function _purgeUnprofitableStreaks();
