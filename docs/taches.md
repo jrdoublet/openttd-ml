@@ -66,8 +66,14 @@ Le renfort déclenché par attente durable reste une possibilité distincte.
 ### Revue du code C76-C77 — pistes (2026-09-22)
 
 Revue en lecture seule du commit `06b5227` (branche `c80-suite`) par trois agents agy (C76, C77,
-transverse orchestrateur et persistance), recoupée par Claude dans le code. **Aucune piste n'est
-codée.** Mesures citées : solo 3 graines × 10 ans, `docs/18_orchestrateur_double_registre.md` §14.
+transverse orchestrateur et persistance), recoupée par Claude dans le code. **Mise à jour du
+2026-09-23 : points 1 à 5 et les trois selftests codés** (branche `c76-pistes-a`, par agy, relus
+et corrigés par Claude) : points 1-3 sous le réglage `c76_lean_invalidation` (défaut 0, effectif
+sous `c76_regen_targeted`), point 4 sans réglage (sans effet de décision), point 5 sous
+`probe_scheduler` (clés `reactive|<kind>` et `worker|<kind>`). Smokes sains (2 × 3 ans, défaut et
+pile + `c76_lean_invalidation` : 0 régénération « budget », 57 évitées). **Première lecture de
+l'horloge complète : sous C77, `reactive|c77_build` pèse 136 jours de jeu sur 2 ans** (point 6).
+Aucun banc : effet non mesuré. Mesures citées : solo 3 graines × 10 ans, `docs/18_orchestrateur_double_registre.md` §14.
 
 **C76 — coût des régénérations** (vérifié dans le code) :
 

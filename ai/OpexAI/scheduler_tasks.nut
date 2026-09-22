@@ -239,11 +239,13 @@ function OpexAI::_dispatchCatalog(task, year)
     this._recomputeEpochBounds = false;
   }
   if (C76_REGEN_TARGETED) {
+    /* C76 lean invalidation : le doublement de capital ne necessite qu'une reselection locale. */
+    local budgetStale = stale && !C76_LEAN_INVALIDATION;
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
-        this._portfolioInvalidated || stale || c76PeriodicDue || c76ReloadDue;
+        this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
     local c80Modes = null;
     if (C80_MODE_REGEN && c76LayerChanged && this._projects != null
-        && !this._portfolioInvalidated && !stale && !c76PeriodicDue && !c76ReloadDue) {
+        && !this._portfolioInvalidated && !budgetStale && !c76PeriodicDue && !c76ReloadDue) {
       c80Modes = this._c80ModeRegenModes();
     }
     if (c80Modes != null) {
@@ -252,7 +254,7 @@ function OpexAI::_dispatchCatalog(task, year)
       local c76Reason = c76ReloadDue ? "reload"
           : (c76LayerChanged ? "layers"
           : (this._portfolioInvalidated ? "invalidated"
-          : (stale ? "budget"
+          : (budgetStale ? "budget"
           : (c76PeriodicDue ? "periodic" : "initial"))));
       if (OpexC78StartCatalogAirRebuild(this, task, ym, fleetPlan, refreshReason,
                                         true, c76CurQuarter, c76Reason)) {

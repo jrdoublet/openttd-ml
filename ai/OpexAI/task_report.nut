@@ -531,7 +531,9 @@ function OpexAI::_scrapDeadLines(year)
     this._lines.remove(toRemove[k]);
   }
   if (C76_REGEN_TARGETED && toRemove.len() > 0) {
-    this._c76BumpLayer("lines", false);
+    if (!C76_LEAN_INVALIDATION) {
+      this._c76BumpLayer("lines", false);
+    }
   }
 }
 /* Vente autonome des retraites unitaires C52. Contrairement a la mise au rebut

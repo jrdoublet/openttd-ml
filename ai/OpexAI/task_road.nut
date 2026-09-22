@@ -27,7 +27,9 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
             delete this._activeSubsidies[subId];
           }
           this._purgeSubsidyFromProjects(subId);
-          this._portfolioInvalidated = true;
+          if (!C76_LEAN_INVALIDATION) {
+            this._portfolioInvalidated = true;
+          }
           this._hadAbandonsThisPass = true;
           return { outcome = "rejected", discards = passDiscards };
         }

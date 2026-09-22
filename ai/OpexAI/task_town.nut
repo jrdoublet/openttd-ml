@@ -211,7 +211,13 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
     lineId = this._nextLineId,
   });
   this._nextLineId++;
-  if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
+  if (C76_REGEN_TARGETED) {
+    if (C76_LEAN_INVALIDATION) {
+      this._c76PurgeInvalidCandidates("road");
+    } else {
+      this._c76BumpLayer("lines", false);
+    }
+  }
   return true;
 }
 
