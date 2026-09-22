@@ -385,6 +385,19 @@ C80_WORKER_RAIL <- false;
  * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif sous c80_double_register=1. */
 C80_WORKER_TOWN <- false;
 
+/* C80 tranche 4 : sous C76, une couche industries ou moteurs non aeriens ne regenere que les
+ * modes qui en dependent (rail, route, eau) au lieu du vivier entier. 0 = desactive (defaut). */
+C80_MODE_REGEN <- false;
+
+/* C80 tranche 5 : memo de l'avion choisi par route aerienne. Rempli par la generation complete
+ * (etat 1), relu par les mises a jour apres chantier (etat 2) qui ne recalculent que l'economie
+ * de l'avion memorise. Cache reconstructible, non sauvegarde : vide apres chargement. */
+C80_AIR_CHOICE_MEMO <- false;
+AIR_CHOICE_MEMO <- {};
+AIR_CHOICE_MEMO_STATE <- 0;
+/* C80 tranche 5 bis : index exacts des routes aeriennes par gare et des paires reliees. */
+C80_AIR_HUB_INDEX <- false;
+
 /* C76 étape 2 / C80 tranche 3 : régénération du vivier pilotée par les invalidations.
  * 0 = régénération mensuelle systématique historique (défaut), 1 = régénération ciblée. */
 C76_REGEN_TARGETED <- false;

@@ -113,9 +113,15 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
   if (sliceBudget <= 0) sliceBudget = 1;
   if (sliceBudget > AIR_PLAN_SLICE_OPS) sliceBudget = AIR_PLAN_SLICE_OPS;
   local mark = OpexOpsMeasureBegin();
+  /* C80 tranche 5 : generation complete decoupee, memo remis a zero a la premiere tranche. */
+  if (C80_AIR_CHOICE_MEMO) {
+    if (s.airOps == 0) AIR_CHOICE_MEMO = {};
+    AIR_CHOICE_MEMO_STATE = 1;
+  }
   local best = OpexAirPlans(owner._catalog, owner._lines, 0, s.plans,
       owner._abandonedPairs, s.band, -1, s.cursor,
       sliceBudget, AIController.GetTick() + BUILD_TICK_MARGIN);
+  AIR_CHOICE_MEMO_STATE = 0;
   local sliceOps = OpexOpsMeasureEnd(mark);
   s.airOps += sliceOps;
   s.regenOps += sliceOps;
@@ -235,7 +241,14 @@ function OpexAI::_dispatchCatalog(task, year)
   if (C76_REGEN_TARGETED) {
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || stale || c76PeriodicDue || c76ReloadDue;
-    if (c76NeedFullRegen) {
+    local c80Modes = null;
+    if (C80_MODE_REGEN && c76LayerChanged && this._projects != null
+        && !this._portfolioInvalidated && !stale && !c76PeriodicDue && !c76ReloadDue) {
+      c80Modes = this._c80ModeRegenModes();
+    }
+    if (c80Modes != null) {
+      this._c80DoModeRegen(c80Modes, "layers", year);
+    } else if (c76NeedFullRegen) {
       local c76Reason = c76ReloadDue ? "reload"
           : (c76LayerChanged ? "layers"
           : (this._portfolioInvalidated ? "invalidated"

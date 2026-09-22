@@ -337,6 +337,9 @@ function OpexLoadSettings()
   C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0 || C77_OPPORTUNISTIC_CANDIDATES;
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
   C80_WORKER_TOWN = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_town") != 0);
+  C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
+  C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
+  C80_AIR_HUB_INDEX = AIController.GetSetting("c80_air_hub_index") != 0;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;

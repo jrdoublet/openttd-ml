@@ -420,6 +420,8 @@ class OpexAI extends AIController {
   function _c76AnyLayerChanged();
   function _c76AcknowledgeAllLayers();
   function _c76DoFullRegen(reason, year);
+  function _c80ModeRegenModes();
+  function _c80DoModeRegen(modes, reason, year);
   function _c76SaveRevisions();
   function _c76LoadRevisions(data);
   function _c76RunSelfTest();
