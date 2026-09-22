@@ -264,7 +264,11 @@ function OpexAI::_markPairAbandoned(key)
     OpexDecide("ABANDON_PAIR", "key=" + key + " count=" + count + " cooldown=" + (ABANDON_COOLDOWN_DAYS * count));
   }
   if (C76_REGEN_TARGETED) {
-    this._c76BumpLayer("lines", false);
+    if (C76_LEAN_INVALIDATION) {
+      this._c76PurgeInvalidCandidates();
+    } else {
+      this._c76BumpLayer("lines", false);
+    }
   }
 }
 /* C33.3 : Purge les paires dont le délai de reprise est écoulé.

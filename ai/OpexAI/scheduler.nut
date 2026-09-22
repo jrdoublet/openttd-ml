@@ -37,8 +37,12 @@ function OpexAI::_runNextTaskWithSlackLedger()
   }
   local ran = this._runNextTask();
   local ops = OpexOpsMeasureEnd(mark);
-  if (this._railWorkerSteppedThisTick && this._c41RailSliceLastOps >= 0) {
-    ops += this._c41RailSliceLastOps;
+  if (this._railWorkerSteppedThisTick) {
+    if (this._c41RailSliceLastOps >= 0) {
+      ops += this._c41RailSliceLastOps;
+    } else if (C39_PASS_CLOCK_LEDGER && this._c39PassClockSliceOps >= 0) {
+      ops += this._c39PassClockSliceOps;
+    }
   }
   local category = continuationCategory != null ? continuationCategory : this._c41LastTaskName;
   if (category == null) category = "idle";

@@ -550,7 +550,19 @@ function OpexAI::_runOrchestratorTick()
   if (this._hasReactiveIntentions()) {
     local intention = this._popReactive();
     if (intention != null) {
-      if (this._dispatchReactiveIntention(intention)) return true;
+      if (C39_PASS_CLOCK_LEDGER) {
+        local c39DateBefore = AIDate.GetCurrentDate();
+        local mark = OpexOpsMeasureBegin();
+        local dispatched = this._dispatchReactiveIntention(intention);
+        local ops = OpexOpsMeasureEnd(mark);
+        local passDays = AIDate.GetCurrentDate() - c39DateBefore;
+        local passTicks = AIController.GetTick() - mark.tick;
+        local kind = (("kind" in intention) && intention.kind != null) ? intention.kind : "unknown";
+        this._recordC39PassClockLedger("reactive|" + kind, passDays, passTicks, ops, 0, 0, 0);
+        if (dispatched) return true;
+      } else {
+        if (this._dispatchReactiveIntention(intention)) return true;
+      }
     }
   }
 
@@ -566,13 +578,27 @@ function OpexAI::_runOrchestratorTick()
       if (outcome == "done" || outcome == "cancelled") {
         this._activeWorker = null;
       }
+      /* C39.6 : la tranche rail_search est deja reinjectee via _railWorkerSteppedThisTick et
+       * _c41RailSliceLastOps / _c39PassClockSlice* dans scheduler.nut ; ne pas enregistrer
+       * worker|rail_search pour eviter la double imputation. */
       // ORDRE PRÉSERVÉ (Contrat C80 tranche 1 §3) :
       // Après la tranche du travailleur rail, on enchaîne avec la file de fond
       // dans le MÊME tick (pas de return true ici).
     } else if (this._activeWorker.kind == "town_growth") {
       local opsBudget = AIController.GetOpsTillSuspend();
       local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
-      local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      local outcome = null;
+      if (C39_PASS_CLOCK_LEDGER) {
+        local c39DateBefore = AIDate.GetCurrentDate();
+        local mark = OpexOpsMeasureBegin();
+        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+        local ops = OpexOpsMeasureEnd(mark);
+        local passDays = AIDate.GetCurrentDate() - c39DateBefore;
+        local passTicks = AIController.GetTick() - mark.tick;
+        this._recordC39PassClockLedger("worker|town_growth", passDays, passTicks, ops, 0, 0, 0);
+      } else {
+        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      }
       if (outcome == "done" || outcome == "cancelled") {
         this._activeWorker = null;
       }
@@ -582,7 +608,19 @@ function OpexAI::_runOrchestratorTick()
     } else {
       local opsBudget = AIController.GetOpsTillSuspend();
       local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
-      local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      local outcome = null;
+      if (C39_PASS_CLOCK_LEDGER) {
+        local workerKind = this._activeWorker.kind;
+        local c39DateBefore = AIDate.GetCurrentDate();
+        local mark = OpexOpsMeasureBegin();
+        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+        local ops = OpexOpsMeasureEnd(mark);
+        local passDays = AIDate.GetCurrentDate() - c39DateBefore;
+        local passTicks = AIController.GetTick() - mark.tick;
+        this._recordC39PassClockLedger("worker|" + workerKind, passDays, passTicks, ops, 0, 0, 0);
+      } else {
+        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      }
       if (outcome == "done" || outcome == "cancelled") {
         this._activeWorker = null;
       }
@@ -798,6 +836,347 @@ function OpexAI::_c80RunSelfTest()
     return false;
   }
 
+  // 6. Test (a) Aller-retour Save/Load en memoire de la file reactive et d'un travailleur regen_candidates
+  local savedOrigQueue = (this._reactiveQueue != null) ? OpexSaveReactiveQueue(this._reactiveQueue) : null;
+  local savedOrigWorker = this._activeWorker;
+
+  this._clearReactiveQueue();
+  this._enqueueReactive("test_regen", "regen", null);
+  this._enqueueReactive("test_entity", "c77_entity", {
+    modes = ["air", "rail"], cursor = 0, targeted = true,
+    entityKind = "town", entityId = 10, buildAfter = true, reason = "event"
+  });
+  this._enqueueReactive("test_subsidy", "c77_subsidy", { subsidyId = 7 });
+  this._enqueueReactive("test_build", "c77_build", { reason = "subsidy_offer" });
+  this._enqueueReactive("test_noop", "noop", { step = 1 });
+  // Coalescence : re-enfiler test_regen pour verifier count = 2
+  this._enqueueReactive("test_regen", "regen", null);
+
+  local testRegenWorker = {
+    kind = "regen_candidates",
+    state = {
+      modes = ["air", "rail", "road"],
+      cursor = 1,
+      targeted = true,
+      entityKind = "town",
+      entityId = 10,
+      buildAfter = true,
+      reason = "event"
+    },
+    ai = this
+  };
+
+  local savedQData = OpexSaveReactiveQueue(this._reactiveQueue);
+  local savedWData = OpexSaveActiveWorker(testRegenWorker);
+
+  local hasFloat = function(val, rec) {
+    if (typeof val == "float") return true;
+    if (typeof val == "table") {
+      foreach (k, v in val) {
+        if (typeof k == "float") return true;
+        if (rec(v, rec)) return true;
+      }
+    } else if (typeof val == "array") {
+      foreach (v in val) {
+        if (rec(v, rec)) return true;
+      }
+    }
+    return false;
+  };
+
+  if (hasFloat(savedQData, hasFloat)) {
+    AILog.Info("C80 selftest FAIL reactive queue save contains float");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (hasFloat(savedWData, hasFloat)) {
+    AILog.Info("C80 selftest FAIL active worker save contains float");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  local loadedQ = OpexLoadReactiveQueue(savedQData);
+  local loadedW = OpexLoadActiveWorker(savedWData);
+
+  if (loadedQ.len() != 5) {
+    AILog.Info("C80 selftest FAIL loaded queue len expected 5, got " + loadedQ.len());
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  local qItem1 = loadedQ.pop();
+  if (qItem1 == null || qItem1.key != "test_regen" || qItem1.kind != "regen" || qItem1.count != 2) {
+    AILog.Info("C80 selftest FAIL loaded queue item 1 mismatch");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  local qItem2 = loadedQ.pop();
+  if (qItem2 == null || qItem2.key != "test_entity" || qItem2.kind != "c77_entity" || qItem2.count != 1
+      || qItem2.payload == null || qItem2.payload.entityId != 10) {
+    AILog.Info("C80 selftest FAIL loaded queue item 2 mismatch");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  local qItem3 = loadedQ.pop();
+  if (qItem3 == null || qItem3.key != "test_subsidy" || qItem3.kind != "c77_subsidy" || qItem3.count != 1
+      || qItem3.payload == null || qItem3.payload.subsidyId != 7) {
+    AILog.Info("C80 selftest FAIL loaded queue item 3 mismatch");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  local qItem4 = loadedQ.pop();
+  if (qItem4 == null || qItem4.key != "test_build" || qItem4.kind != "c77_build" || qItem4.count != 1
+      || qItem4.payload == null || qItem4.payload.reason != "subsidy_offer") {
+    AILog.Info("C80 selftest FAIL loaded queue item 4 mismatch");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  local qItem5 = loadedQ.pop();
+  if (qItem5 == null || qItem5.key != "test_noop" || qItem5.kind != "noop" || qItem5.count != 1
+      || qItem5.payload == null || qItem5.payload.step != 1) {
+    AILog.Info("C80 selftest FAIL loaded queue item 5 mismatch");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (!loadedQ.isEmpty()) {
+    AILog.Info("C80 selftest FAIL loaded queue not empty after popping all items");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (loadedW == null || loadedW.kind != "regen_candidates" || loadedW.state == null) {
+    AILog.Info("C80 selftest FAIL loaded worker header mismatch");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (loadedW.state.cursor != 1 || loadedW.state.modes.len() != 3 || loadedW.state.modes[0] != "air"
+      || loadedW.state.targeted != true || loadedW.state.entityKind != "town" || loadedW.state.entityId != 10
+      || loadedW.state.buildAfter != true || loadedW.state.reason != "event") {
+    AILog.Info("C80 selftest FAIL loaded worker state mismatch");
+    if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+    else this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  // Nettoyage etape 6
+  if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+  else this._clearReactiveQueue();
+  this._activeWorker = savedOrigWorker;
+
+  // 7. Test (b) Intention mutatrice (kind regen) pendant qu'un travailleur noop tient le registre.
+  /* Hors C76 seulement : sous C76, l'intention regen lance une vraie regeneration complete
+   * (catalogue, rotation du cargo fret, elagage des abandons) que la restauration ne defait pas. */
+  if (!C76_REGEN_TARGETED) {
+  /* Comportement ACTUEL documente : _dispatchReactiveIntention traite l'intention "regen"
+   * immediatement (renvoie true) sans deferer, meme lorsqu'un travailleur "noop" occupe le registre,
+   * car seul regen_candidates detient un verrou d'ecriture exclusif sur le vivier. Le travailleur
+   * actif n'est ni ecrase ni annule et conserve son etat intact. */
+  local mutNoopWorker = {
+    kind = "noop",
+    state = {
+      stepCount = 0,
+      targetSteps = 3
+    }
+  };
+  this._activeWorker = mutNoopWorker;
+  this._clearReactiveQueue();
+
+  local savedC76Revs = this._c76SaveRevisions();
+  local savedC76Force = this._c76ForceReloadRegen;
+  local savedProjectsBeforeMut = this._projects;
+  local savedLastCatalog = this._lastCatalogMonth;
+
+  local regenIntention = { key = "regen", kind = "regen", payload = null };
+  local dispatchedRegen = this._dispatchReactiveIntention(regenIntention);
+  if (!dispatchedRegen) {
+    AILog.Info("C80 selftest FAIL mutating intention regen dispatch returned false");
+    this._c76LoadRevisions(savedC76Revs);
+    this._c76ForceReloadRegen = savedC76Force;
+    this._projects = savedProjectsBeforeMut;
+    this._lastCatalogMonth = savedLastCatalog;
+    this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (this._activeWorker == null || this._activeWorker.kind != "noop"
+      || this._activeWorker.state.stepCount != 0) {
+    AILog.Info("C80 selftest FAIL mutating intention corrupted active worker");
+    this._c76LoadRevisions(savedC76Revs);
+    this._c76ForceReloadRegen = savedC76Force;
+    this._projects = savedProjectsBeforeMut;
+    this._lastCatalogMonth = savedLastCatalog;
+    this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (this._hasReactiveIntentions()) {
+    AILog.Info("C80 selftest FAIL mutating intention was deferred unexpectedly");
+    this._c76LoadRevisions(savedC76Revs);
+    this._c76ForceReloadRegen = savedC76Force;
+    this._projects = savedProjectsBeforeMut;
+    this._lastCatalogMonth = savedLastCatalog;
+    this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  local mutStepOutcome = OpexWorkerStep(this._activeWorker, 10000, AIController.GetTick() + 100);
+  if (mutStepOutcome != "running" || this._activeWorker.state.stepCount != 1) {
+    AILog.Info("C80 selftest FAIL worker step failed after mutating intention dispatch");
+    this._c76LoadRevisions(savedC76Revs);
+    this._c76ForceReloadRegen = savedC76Force;
+    this._projects = savedProjectsBeforeMut;
+    this._lastCatalogMonth = savedLastCatalog;
+    this._clearReactiveQueue();
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  // Nettoyage etape 7
+  this._c76LoadRevisions(savedC76Revs);
+  this._c76ForceReloadRegen = savedC76Force;
+  this._projects = savedProjectsBeforeMut;
+  this._lastCatalogMonth = savedLastCatalog;
+  this._clearReactiveQueue();
+  this._activeWorker = savedOrigWorker;
+
+  }
+
+  // 8. Test (c) Cycle de vie d'une subvention C77 (chemins purs sans creation d'objets de jeu)
+  local savedProjectsForSub = this._projects;
+  local savedSubsidies = this._activeSubsidies;
+
+  // Chemin pur 1 : sans vivier, _c77InjectSubsidy doit renvoyer false sans planter
+  this._projects = null;
+  local injectNullResult = this._c77InjectSubsidy(999);
+  if (injectNullResult != false) {
+    AILog.Info("C80 selftest FAIL inject subsidy without projects expected false");
+    this._projects = savedProjectsForSub;
+    this._activeSubsidies = savedSubsidies;
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  // Chemin pur 2 : purge _purgeSubsidyFromProjects sur un vivier factice
+  local dummySubProject1 = {
+    payload = { isSubsidy = true, subsidyId = 77 }
+  };
+  local dummyNormalProject = {
+    payload = { isSubsidy = false, subsidyId = -1 }
+  };
+  local dummySubProject2 = {
+    payload = { isSubsidy = true, subsidyId = 88 }
+  };
+  local dummyRoadSubProject = {
+    payload = { isSubsidy = true, subsidyId = 77 }
+  };
+  local dummyRoadNormalProject = {
+    payload = { isSubsidy = false, subsidyId = -1 }
+  };
+
+  this._projects = {
+    best = [dummySubProject1, dummyNormalProject, dummySubProject2],
+    road = {
+      best = [dummyRoadSubProject, dummyRoadNormalProject]
+    },
+    candidateGroups = {
+      ["subsidy|77"] = dummySubProject1,
+      ["subsidy|88"] = dummySubProject2,
+      ["other|normal"] = dummyNormalProject
+    }
+  };
+
+  this._purgeSubsidyFromProjects(77);
+
+  if (this._projects.best.len() != 2) {
+    AILog.Info("C80 selftest FAIL purge subsidy best len expected 2, got " + this._projects.best.len());
+    this._projects = savedProjectsForSub;
+    this._activeSubsidies = savedSubsidies;
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (this._projects.best[0].payload.subsidyId == 77 || this._projects.best[1].payload.subsidyId == 77) {
+    AILog.Info("C80 selftest FAIL purge subsidy did not remove subsidy 77 from best");
+    this._projects = savedProjectsForSub;
+    this._activeSubsidies = savedSubsidies;
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (this._projects.road.best.len() != 1 || this._projects.road.best[0].payload.subsidyId == 77) {
+    AILog.Info("C80 selftest FAIL purge subsidy did not remove subsidy 77 from road.best");
+    this._projects = savedProjectsForSub;
+    this._activeSubsidies = savedSubsidies;
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if ("subsidy|77" in this._projects.candidateGroups) {
+    AILog.Info("C80 selftest FAIL purge subsidy did not delete candidateGroups entry");
+    this._projects = savedProjectsForSub;
+    this._activeSubsidies = savedSubsidies;
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  if (!("subsidy|88" in this._projects.candidateGroups) || !("other|normal" in this._projects.candidateGroups)) {
+    AILog.Info("C80 selftest FAIL purge subsidy deleted unrelated candidateGroups entries");
+    this._projects = savedProjectsForSub;
+    this._activeSubsidies = savedSubsidies;
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  // Purge avec des entrees neutralisees (null, negatif, id inexistant)
+  this._purgeSubsidyFromProjects(-1);
+  this._purgeSubsidyFromProjects(null);
+  this._purgeSubsidyFromProjects(999);
+  if (this._projects.best.len() != 2 || this._projects.road.best.len() != 1) {
+    AILog.Info("C80 selftest FAIL purge subsidy with neutral inputs corrupted projects");
+    this._projects = savedProjectsForSub;
+    this._activeSubsidies = savedSubsidies;
+    this._activeWorker = savedOrigWorker;
+    return false;
+  }
+
+  // Restauration complete de l'etat
+  this._projects = savedProjectsForSub;
+  this._activeSubsidies = savedSubsidies;
+  this._activeWorker = savedOrigWorker;
+  if (savedOrigQueue != null) this._reactiveQueue = OpexLoadReactiveQueue(savedOrigQueue);
+  else this._clearReactiveQueue();
+
   AILog.Info("C80 selftest ok");
   return true;
 }
@@ -853,7 +1232,7 @@ function OpexAI::_c76GetModeDeps(mode)
   if (mode == "rail_freight") return ["industries", "engines.rail", "lines"];
   if (mode == "road_pax") return ["towns", "engines.road", "lines"];
   if (mode == "road_freight") return ["industries", "engines.road", "lines"];
-  if (mode == "water") return ["industries", "engines.water", "lines"];
+  if (mode == "water") return ["towns", "engines.water", "lines"];
   if (mode == "fleet") return ["lines", "engines.rail", "engines.road", "engines.air", "engines.water"];
   if (mode == "rail") return ["towns", "industries", "engines.rail", "lines"];
   if (mode == "road") return ["towns", "industries", "engines.road", "lines"];
@@ -987,6 +1366,63 @@ function OpexAI::_c76DoFullRegen(reason, year)
            + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
   OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
            + this._projects.stats.selectedCapital + "|B0");
+}
+
+/* C76 : purge locale des candidats devenus invalides ou abandonnes, sans regeneration complete. */
+function OpexAI::_c76PurgeInvalidCandidates(modeFilter = null)
+{
+  if (this._projects == null || !(("candidateGroups" in this._projects)) || this._projects.candidateGroups == null) {
+    return;
+  }
+  local groups = this._projects.candidateGroups;
+  local anyRemoved = false;
+  local emptyKeys = [];
+
+  foreach (key, entry in groups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    local kept = [];
+    local changed = false;
+    foreach (p in list) {
+      if (p == null) continue;
+      local invalid = false;
+      if (modeFilter != null) {
+        if (p.mode == modeFilter) {
+          if (!OpexIncrementalCandidateStillValid(p, this._lines, this._abandonedPairs)) {
+            invalid = true;
+          }
+        }
+      } else {
+        if (OpexCandidateIsAbandoned(p, this._abandonedPairs)) {
+          invalid = true;
+        }
+      }
+      if (invalid) {
+        changed = true;
+        anyRemoved = true;
+      } else {
+        kept.append(p);
+      }
+    }
+    if (changed) {
+      if (kept.len() == 0) {
+        emptyKeys.append(key);
+      } else {
+        groups[key] = kept;
+      }
+    }
+  }
+
+  foreach (k in emptyKeys) {
+    if (k in groups) delete groups[k];
+  }
+
+  if (anyRemoved) {
+    OpexProjectsRecountGroups(this._projects);
+    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(), this._abandonedPairs);
+    if (this._projects != null && ("rail" in this._projects)) {
+      this._ranked = this._projects.rail;
+    }
+  }
 }
 
 /* C80 tranche 4 : modes a regenerer quand seules des couches locales ont change.
@@ -1162,7 +1598,7 @@ function OpexAI::_c76RunSelfTest()
     return false;
   }
 
-  // 2. Incrément de la couche towns -> régénération demandée pour air/rail_pax, pas pour water
+  // 2. Increment de la couche towns -> regeneration demandee pour air/rail_pax/water
   this._c76BumpLayer("towns", false);
   if (!this._c76AnyLayerChanged()) {
     AILog.Info("C76 selftest FAIL: towns bump did not mark any layer changed");
@@ -1176,8 +1612,8 @@ function OpexAI::_c76RunSelfTest()
     this._c76ForceReloadRegen = savedForceReload;
     return false;
   }
-  if (this._c76ModeNeedsRegen("water")) {
-    AILog.Info("C76 selftest FAIL: water needed regen after towns bump (unexpected)");
+  if (!this._c76ModeNeedsRegen("water")) {
+    AILog.Info("C76 selftest FAIL: water did not need regen after towns bump");
     this._c76LoadRevisions(savedRevs);
     this._c76ForceReloadRegen = savedForceReload;
     return false;
@@ -1198,7 +1634,7 @@ function OpexAI::_c76RunSelfTest()
     return false;
   }
 
-  // 4. Incrément de industries -> water demande regen, air non
+  // 4. Increment de industries -> rail_freight demande regen, air et water non
   this._c76BumpLayer("industries", false);
   if (!this._c76AnyLayerChanged()) {
     AILog.Info("C76 selftest FAIL: industries bump did not mark layer changed");
@@ -1206,8 +1642,8 @@ function OpexAI::_c76RunSelfTest()
     this._c76ForceReloadRegen = savedForceReload;
     return false;
   }
-  if (!this._c76ModeNeedsRegen("water")) {
-    AILog.Info("C76 selftest FAIL: water did not need regen after industries bump");
+  if (this._c76ModeNeedsRegen("water")) {
+    AILog.Info("C76 selftest FAIL: water needed regen after industries bump (unexpected)");
     this._c76LoadRevisions(savedRevs);
     this._c76ForceReloadRegen = savedForceReload;
     return false;
