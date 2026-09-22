@@ -147,28 +147,7 @@ function OpexAI::_tryTownGrowth(year)
       }
       continue;
     }
-    /* growth_yields : la croissance urbaine batit des lignes a profitAnnual = 0 et
-     * revenueAnnual = 0 EXPLICITES (voir le candidat construit ci-dessus). Son rendement est
-     * indirect -- faire grossir la ville pour nourrir les autres lignes -- mais son capital, lui,
-     * est bien reel et immediat. Or le goulot mesure de cette IA est la VITESSE DU CAPITAL :
-     * 44,5 % de la valeur d'entreprise dort en caisse, et un seul projet est bati par mois
-     * (docs/taches.md S0 decies). Cette depense a rendement nul entre donc en concurrence directe
-     * avec les projets rentables du portefeuille.
-     *
-     * Sous 1, la croissance urbaine ne prend que le capital dont le portefeuille NE VEUT PAS :
-     * elle exige un surplus au-dela de ce que celui-ci s'est deja engage a depenser
-     * (`selectedCapital`). Elle cede donc le pas sans jamais etre supprimee. */
-    if (GROWTH_YIELDS && this._projects != null) {
-      local committed = ("stats" in this._projects) ? this._projects.stats.selectedCapital : 0;
-      if (money < need + committed) {
-        if (DECISION_LOG) {
-          OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
-                     + " reason=committed need=" + need + " committed=" + committed
-                     + " cash=" + money);
-        }
-        continue;
-      }
-    }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && this._projects != null) {}
 
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);

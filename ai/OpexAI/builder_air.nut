@@ -491,9 +491,7 @@ function OpexAirFindSite(town, airport, probes)
   if (C60_TOWN_RATING_PROBE) {
     OpexC60ObserveTownRating("air", "find_site", town.id);
   }
-  if (C60_TOWN_RATING_FILTER && OpexTownRatingHopeless(town.id)) {
-    return null;
-  }
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   local key = town.id + "_" + airport.type;
   if (AIR_SITE_CACHE_ENABLED && (key in AIR_SITE_CACHE)) {
     local cachedAnchor = AIR_SITE_CACHE[key];
@@ -691,11 +689,10 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local airportAmortAnnual = (newAirportCount * airport.price * INFRA_AMORT_PCT / 100) / 30;
   local best = null;
 
-  /* Plafond d'appareils initial : jusqu'a 3 sur nouvelle ligne, jusqu'a 6 sur hub existant.
-   * marginal_fleet = 1 : demarrage minimal, 1 seul avion ; la croissance vient ensuite. */
+  /* Plafond d'appareils initial : le portefeuille flotte demarre a un seul avion. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
-  local maxAllowed = (MARGINAL_FLEET || FLEET_PORTFOLIO) ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
-  if (!MARGINAL_FLEET && !FLEET_PORTFOLIO && OPEX_AIR_PLAN_PAD && opcodePadding > 0) maxAllowed = opcodePadding;
+  local maxAllowed = (OPEX_ECONOMY_OPCODE_COMPAT_FALSE || FLEET_PORTFOLIO) ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
+  if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE && !FLEET_PORTFOLIO && OPEX_AIR_PLAN_PAD && opcodePadding > 0) maxAllowed = opcodePadding;
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -833,7 +830,6 @@ function OpexAirAddPlane(line)
   local need = price + OpexCashReserve() + 1000;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
-    if (REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) {
       result.reason = "CASH"; return result;
     }

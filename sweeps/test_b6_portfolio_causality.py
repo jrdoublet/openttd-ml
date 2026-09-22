@@ -130,7 +130,7 @@ class TestB6PortfolioCausality(unittest.TestCase):
         self.assertIn("AIIndustry.GetIndustryID(cand.src)", reprice)
         self.assertIn("OpexLineEconomics(", reprice)
         self.assertIn("OpexRoadLineEconomics(", reprice)
-        self.assertIn("cand.isTransformer", reprice)
+        self.assertNotIn("FLAT_BONUS", reprice)
 
 if __name__ == "__main__":
     unittest.main()

@@ -74,9 +74,9 @@ class TestM1MeasurementTruth(unittest.TestCase):
         self.assertIn('" rejected="', body)
         self.assertIn('" remaining="', body)
 
-    def test_selected_capital_value_is_preserved_for_growth_policy(self):
+    def test_selected_capital_value_is_preserved(self):
         town = function_body(self.town, "function OpexAI::_tryTownGrowth(")
-        self.assertIn("this._projects.stats.selectedCapital", town)
+        self.assertNotIn("GROWTH_YIELDS", town)
         self.assertGreaterEqual(self.projects.count(".selectedCapital = selectedCap"), 3)
         self.assertGreaterEqual(self.projects.count("selectionPoolCapital"), 5)
         self.assertGreaterEqual(self.projects.count("nextProjectCapital"), 5)
@@ -100,7 +100,7 @@ class TestM1MeasurementTruth(unittest.TestCase):
             self.task_projects,
         )
         self.assertIn(
-            '+ this._projects.stats.selectedCapital + "|B" + batchBuilt',
+            '+ this._projects.stats.selectedCapital + "|B" + builtCount',
             self.task_projects,
         )
         self.assertIn(

@@ -77,13 +77,6 @@ const ORIGIN_SEPARATION = 3;
  * par tick, N iterations demandent ~N/3,7 ticks ; la marge couvre la pose elle-meme. */
 const BUILD_TICK_MARGIN = 3000;
 
-/* Marge laissee au moteur pour ne pas suspendre au milieu d'une transaction, et plafond de taches
- * par tick pour qu'un tour de file entierement compose de taches hors periode ne brule pas le
- * budget en pur ordonnancement. */
-const LOOP_BUDGET_FLOOR = 2000;
-const LOOP_BUDGET_MAX_TASKS = 8;
-
-const DYNAMIC_BATCH_OPS_FLOOR = 2500;
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
@@ -135,17 +128,13 @@ class OpexAI extends AIController {
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
-  /* C38 : etat transitoire d'un batch dynamique, necessaire si un A* rail rend la main. */
-  _dynamicBatch = null;
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
   _reactiveQueue = null;
   _activeWorker = null;
   _c76LastReconcileMonth = -1;
-  /* 11.6 : _railSearch contient un pathfinder vivant et _dynamicBatch reference _projects.
-   * Ils ne sont pas serialises ; Save/Load ne conserve que leur presence pour forcer une
-   * reconstruction propre du portefeuille apres reload. */
+  /* 11.6 : _railSearch contient un pathfinder vivant. Il n'est pas serialise ;
+   * Save/Load conserve sa presence pour forcer une reconstruction propre du portefeuille. */
   _reloadDroppedRailSearch = false;
-  _reloadDroppedDynamicBatch = false;
   /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
    * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
    * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,
@@ -301,21 +290,6 @@ class OpexAI extends AIController {
       { name = "c41_rail_junction", dueCycle = 2147483647, enabled = false },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
-      /* fleet_before_new : la croissance de flotte passe AVANT la construction de lignes neuves.
-       * La note de gare est un multiplicateur, pas un bonus (docs/mecanique_jeu.md S3 : 51 % de la
-       * note vient du delai depuis le dernier ramassage) : une ligne mal servie effondre sa note et
-       * degrade tout ce qu'elle touche. On regle donc l'existant avant d'ajouter une liaison.
-       *
-       * Ce n'est pas un arbitrage, c'est un ORDRE DE SERVICE, et la mesure dit pourquoi : la
-       * croissance de flotte aerienne est refusee 31 fois sur 32 pour TRESORERIE, jamais pour le
-       * plafond de l'aeroport -- 1,6 avion par ligne pour un plafond de 16 (docs/taches.md
-       * S0 quinvicies). Quand `air` passe en premier, il ne reste rien pour `air_fleet`.
-       *
-       * ⚠️ L'echange N'A PAS LIEU ICI : ce constructeur s'execute AVANT Start(), donc avant la
-       * lecture des reglages, et FLEET_BEFORE_NEW y vaut encore son repli. La file est batie dans
-       * l'ordre historique et echangee dans Start(), une fois le reglage connu.
-       *
-       * L'ordre historique reste joignable par le reglage a 0 pour que le banc puisse trancher. */
       { name = "air", dueCycle = 0, enabled = true },
       { name = "air_fleet", dueCycle = 0, enabled = true },
       { name = "projects", dueCycle = 0, enabled = true },
@@ -441,18 +415,7 @@ function OpexAI::Start()
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 
-  /* La file a ete batie par le constructeur, avant que ce reglage ne soit lisible : c'est donc
-   * ici, et seulement ici, que l'ordre de service peut etre echange. */
-  if (FLEET_BEFORE_NEW) {
-    for (local i = 0; i < this._taskQueue.len() - 1; i++) {
-      if (this._taskQueue[i].name == "air" && this._taskQueue[i + 1].name == "air_fleet") {
-        local swap = this._taskQueue[i];
-        this._taskQueue[i] = this._taskQueue[i + 1];
-        this._taskQueue[i + 1] = swap;
-        break;
-      }
-    }
-  }
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   if (TENSION_PROBE) OpexTensionEnable(this._budget);
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
@@ -539,27 +502,7 @@ function OpexAI::Start()
     if (C80_DOUBLE_REGISTER) {
       this._runOrchestratorTick();
       AIController.Sleep(1);
-    } else if (LOOP_BUDGET) {
-      /* Le budget d'un tick n'est PAS reportable : ce qui n'est pas depense est perdu. L'ancienne
-       * boucle executait exactement UNE tache puis rendait la main, donc un tick qui tirait une
-       * tache hors de sa periode (catalog hors de son mois, report hors de son annee, repay hors
-       * du sien) depensait quelques centaines d'opcodes et jetait les ~9 700 restants.
-       * On draine desormais le tick tant qu'il reste de quoi travailler. */
-      local drained = 0;
-      while (AIController.GetOpsTillSuspend() > LOOP_BUDGET_FLOOR && drained < LOOP_BUDGET_MAX_TASKS) {
-        if (!this._runNextTaskWithSlackLedger()) break;
-        drained++;
-      }
-      /* Le plancher garde de la marge pour ne pas etre suspendu au milieu d'une transaction, et
-       * le plafond de taches empeche un tour de file entierement compose de taches inutiles de
-       * bruler le budget en pur ordonnancement. */
-      if (drained == 0) this._runNextTaskWithSlackLedger();
-      /* AUCUN Sleep ici, et c'est deliberé. Le Sleep de fin de tour rendait la main alors qu'il
-       * restait du budget, ce qui est un auto-handicap face a une IA qui ne dort pas entre ses
-       * chunks (docs/philosophie_armes_egales : les bridages servent aux parties avec des HUMAINS,
-       * jamais entre IA). Le moteur nous suspend de lui-meme quand le budget du tick est epuise et
-       * nous reprend au tick suivant exactement ou il nous avait laisses : la boucle reste donc
-       * bornee, et la partie avance normalement. */
+    } else if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
     } else {
       this._runNextTaskWithSlackLedger();
       AIController.Sleep(1);

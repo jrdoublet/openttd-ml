@@ -68,10 +68,10 @@ class TestB5RailPersistence(unittest.TestCase):
         self.assertNotIn("newSpeed =", save_projection)
         self.assertNotIn("newOneWayDays =", save_projection)
 
-    def test_save_marks_only_presence_of_live_search_and_dynamic_batch(self):
+    def test_save_marks_only_presence_of_live_search(self):
         save = function_body(self.persist, "function OpexAI::Save()")
         self.assertIn("railSearchPending = this._railSearch != null", save)
-        self.assertIn("dynamicBatchPending = this._dynamicBatch != null", save)
+        self.assertNotIn("dynamicBatchPending", save)
         self.assertNotIn("railSearch = this._railSearch", save)
         self.assertNotIn("dynamicBatch = this._dynamicBatch", save)
         self.assertIn("stateVersion = 2", save)
@@ -140,7 +140,7 @@ class TestB5RailPersistence(unittest.TestCase):
     def test_transient_search_forces_clean_portfolio_rebuild(self):
         reconcile = function_body(self.persist, "function OpexAI::_reconcileAfterLoad()")
         self.assertIn("this._railSearch = null", reconcile)
-        self.assertIn("this._dynamicBatch = null", reconcile)
+        self.assertNotIn("_dynamicBatch", reconcile)
         self.assertIn("this._projects = null", reconcile)
         self.assertIn("this._portfolioInvalidated = true", reconcile)
         self.assertIn('task.name == "catalog"', reconcile)

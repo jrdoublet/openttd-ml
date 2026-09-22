@@ -63,15 +63,6 @@ BASIN_SHARE <- false;
  * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
  * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */
 ROAD_REFLEET <- true;
-/* Drainage du budget d'opcodes du tick (revue du controleur, docs/taches.md S0 sexies point 1) :
- * repli FAUX jusqu'a la lecture unique de loop_budget dans Start(). Defaut 0 : la boucle
- * principale execute exactement UNE tache par tick puis Sleep(1), donc tout ce qui reste des
- * 10 000 opcodes du tick est PERDU -- le budget n'est pas reportable. Sur une partie de 3 ans
- * (~81 000 ticks, ~810 M d'opcodes) c'est le gisement dont AAAHogEx tire ~150 gares quand nous
- * en tirons ~18. Sous 1 : on enchaine les taches tant qu'il reste de quoi travailler.
- * Coherent avec docs/philosophie_armes_egales : Sleep sert aux parties avec des humains, pas
- * face a une IA qui, elle, ne dort pas entre ses chunks. */
-LOOP_BUDGET <- false;
 /* Taille du batch du portefeuille. Repli 1 jusqu'a la lecture unique de
  * portfolio_max_batch dans Start() : 1 garde le break apres le premier succes, donc le chemin
  * livre reste strictement le meme. */
@@ -79,13 +70,10 @@ PORTFOLIO_MAX_BATCH <- 1;
 /* C38 : le batch dynamique re-classe le vivier apres chaque succes contre la caisse vivante.
  * Il reste desactive jusqu'au diagnostic puis au banc apparie ; a 0 le chemin livre ne porte
  * aucun etat de batch supplementaire. */
-PORTFOLIO_DYNAMIC_BATCH <- false;
 /* P2 : le bras C38 ne doit pas balayer tout le vivier sur une rafale de refus,
  * ni consommer tout le tick. Ces controles ne sont lus que pour le bras
  * dynamique ; 0 reconstitue respectivement l'ancien balayage et son garde
  * absolu de 2 500 opcodes. */
-DYNAMIC_BATCH_REJECT_LIMIT <- 3;
-DYNAMIC_BATCH_OPS_BUDGET_PCT <- 50;
 /* C43/E3 famille 2 : PORTFOLIO_REFRESH_MIN_GAIN mord-il independamment du doublement (l'autre
  * moitie de la condition ET) ? Compteurs cumulatifs, publies en delta annuel par la tache
  * "report", meme schema que CASH_RESERVE_PROBE. */
@@ -104,40 +92,6 @@ PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT <- 0;
  * moment. Repli 0 (= tri au seul ratio) jusqu'a la lecture de portfolio_floor_pct dans Start().
  * Voir projects.nut::OpexProjectSelectAffordable pour le mecanisme et la mesure qui l'impose. */
 PORTFOLIO_FLOOR_PCT <- 0;
-/* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
- * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
- * deux defauts mesures tombent ensemble --
- *   1. une ligne routiere neuve n'achete plus une seconde flotte complete dans son propre cycle de
- *      construction : `vehCount` n'etant ecrit qu'une fois par an, elle arrivait au refleet avec
- *      have = 0 et se faisait reconstruire, ordres dupliques compris.
- *   2. `isAnyWaiting` ne prend plus un vehicule en chargement pour un embouteillage. Sous
- *      OF_FULL_LOAD_ANY c'est l'etat normal d'un camion, et les trois heuristiques de croissance
- *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention.
- *
- * ⚠️ CORRIGE (2026-09-08) : cette liste comptait un 3e point, « rail_refleet redevient
- * ATTEIGNABLE », decrit comme derriere fleet_fix. C'etait deja faux au moment de l'ecrire : le
- * commit 3a15646 (« fix items G1 G7 from code review », 2026-09-07 11:10) a rendu la garde
- * d'entree de _expandRailLines et la tache "expand" INCONDITIONNELLES (voir le commentaire
- * G6§1 sur _expandRailLines) -- rail_refleet est reellement atteignable au defaut livre
- * (rail_expand=0, rail_refleet=1), independamment de fleet_fix. docs/taches.md et le
- * commentaire de la reglage `fleet_fix` (info.nut) repetaient la meme erreur ; corriges le
- * meme jour. Ne pas retirer `rail_refleet` comme code mort (§8 taches.md le proposait par
- * erreur). */
-FLEET_FIX <- false;
-/* La croissance urbaine cede le pas au portefeuille (docs/taches.md S0 septies et S0 decies) :
- * repli FAUX jusqu'a la lecture unique de growth_yields dans Start(). Defaut 0 : chemin
- * historique inchange -- _tryTownGrowth depense des qu'il a de quoi payer, sur des candidats a
- * profit predit NUL. Sous 1, il exige en plus un surplus couvrant le capital que le portefeuille
- * s'est deja engage a depenser.
- *
- * MESURE le 2026-09-02 (results/bench_growth_yields_3y.json, 20 graines x 3 ans, apparie) : REJETE.
- * company_value +4,8 % pour le controle (t = 1,33, 9/20 : nul), profit_year −0,3 % (nul), mais
- * median_station_rating +10,4 % pour le controle (t = 2,97, 15/20 : REEL et defavorable a la
- * variante), et la graine 2026 s'effondre a company_value = 1. Lecture : le `profitAnnual = 0`
- * porte par les candidats de croissance est un compteur faux, pas une depense gachee -- la ville
- * qui grandit alimente les gares deja construites, et ca se lit sur la note. Ne pas remettre a 1
- * sans corriger d'abord le profit predit de ces candidats. */
-GROWTH_YIELDS <- false;
 /* Marge d'autorite aerienne appliquee PAR PLAN dans OpexAirEconomics (builder_air.nut) plutot
  * qu'en rabotant maxCapital chez l'appelant. Voir le commentaire de la boucle de dimensionnement
  * (builder_air.nut) pour le raisonnement complet et le banc a -11,5 % qu'il corrige.
@@ -145,7 +99,7 @@ GROWTH_YIELDS <- false;
  * ADOPTE le 2026-09-02, defaut 1 (results/bench_air_margin_3y.json, 20 graines x 3 ans, apparie) :
  * company_value +1,3 % (t = 0,26), profit_year -1,6 % (t = -0,28), toutes metriques sous t = 1,2.
  * NEUTRE, donc adopte pour la JUSTESSE, pas pour la performance -- ne revendiquer aucun gain. Le
- * defaut vise est reel mais son cout est nul, ce qui est coherent avec loop_budget nul : le gachis
+ * defaut vise est reel mais son cout est nul : le gachis
  * d'un cycle d'opcodes ne se paie pas. Repli VRAI jusqu'a la lecture unique dans Start(). */
 AIR_MARGIN <- true;
 /* _tryBuildAir memorise ses echecs de construction dans _abandonedPairs et OpexAirPlans les
@@ -184,19 +138,6 @@ ECONOMY_FIX <- true;
  * calcules de la meme facon :
  * L'estimation d'opcodes d'un projet routier utilise le tarif du pathfinder routier. */
 PRICING_ROAD_OPS <- true;
-/* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
- * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
- * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
- * candidate.trains, jusqu'a 4 avions/an air, flotte initiale a 3/6 avions. Mesure au banc apparie
- * 20 graines contre AAAHogEx : 8x moins de vehicules ET 8x moins de gares, plus un rendement par
- * vehicule ajoute -31,4 % (6332 £/an contre 9229 £), avec 3,26 vehicules/gare contre 2,71 --
- * capital immobilise plutot que redeploye en nouvelles lignes. Sous 1 : demarrage MINIMAL (1
- * vehicule/avion), croissance seulement apres profit reel mesure, borne par une contrainte
- * physique/marginale (quais route, age+charge+un avion/an en air) plutot que par une constante
- * generique. Voir economy.nut::OpexRoadPhysicalVehicleCap, builder_road.nut (clonage initial),
- * builder_air.nut::OpexAirEconomics (flotte initiale), main.nut::_refleetRoadLines et
- * _resizeAirFleets (croissance). */
-MARGINAL_FLEET <- false;
 /* air_roi_order (2026-09-03) : ordre de service de la croissance de flotte aerienne.
  * _resizeAirFleets parcourait _lines dans l'ordre de CONSTRUCTION -- ce n'etait pas une decision
  * de conception, juste l'ordre du tableau. Consequence mesuree (5 graines x 3 ans,
@@ -206,15 +147,6 @@ MARGINAL_FLEET <- false;
  * 1 (defaut) sert d'abord la ligne au meilleur profit PAR APPAREIL, donc celle qui rembourse
  * l'avion suivant le plus vite ; 0 rend l'ordre historique pour que le banc puisse trancher. */
 AIR_ROI_ORDER <- true;
-/* Reemprunt a la demande : repli FAUX jusqu'a la lecture unique de reborrow dans Start().
- * Defaut 0 : le trou "desendetter puis manquer d'argent" est vide (412 GC a emprunt max,
- * 0 tirage). Sans lui, _tryRepayLoan reste a sens unique. */
-REBORROW <- false;
-/* Item 7 : forcer la construction d'un echantillon de paires rejetees pour profit
- * predit <= 0. Repli FAUX jusqu'a la lecture unique de probe_negative dans Start().
- * Defaut 0 : ce n'est PAS un changement de classement. 1 ne batit qu'apres _tryBuild,
- * au plus une tentative rail par an, sur le cash que le TOP_K n'a pas pris. */
-PROBE_NEGATIVE <- false;
 /* Retuning pax borne : repli FAUX jusqu'a la lecture unique de pax_near dans Start().
  * Defaut 0. 1 admet au classement les pax <=100 tuiles a predit > -200, une
  * tentative/an au plafond dur. Le long et le fret restent filtres. */

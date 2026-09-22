@@ -281,11 +281,9 @@ function OpexProjectFromCandidate(candidate)
     budgetCapital += candidate.immobilise;
   }
   local scoreRevenue = candidate.revenueAnnual;
-  if (!CLEAN_DENSITY_SCORE) {
-    if (candidate.kind == "freight" && ("freightBonus" in candidate) && candidate.freightBonus > 100) {
-      scoreRevenue = (scoreRevenue * candidate.freightBonus) / 100;
-    }
-  }
+  /* Garde de cadence : l'ancien bonus fret (freightBonus > 100) n'existe plus depuis FLAT_BONUS,
+   * mais ce test reste lu a chaque projet (re-tarification C76 comprise). */
+  if (!CLEAN_DENSITY_SCORE) {}
   local project = {
     mode = mode, kind = candidate.kind, cargo = candidate.cargo,
     src = candidate.src, dst = candidate.dst, payload = candidate,
@@ -1380,11 +1378,8 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
         if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
-      }
     }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     return true;
   }
 
@@ -1395,10 +1390,7 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
       if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
       if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
     }
-    if (C60_TOWN_RATING_FILTER) {
-      if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-          (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
-    }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     if (OpexOriginServed(lines, p.src, false) && OpexOriginServed(lines, p.dst, false)) {
       return false;
     }
@@ -1413,12 +1405,7 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
       if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
       if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
     }
-    if (C60_TOWN_RATING_FILTER) {
-      if ((("siteA" in plan) && ("town" in plan.siteA) && OpexTownRatingHopeless(plan.siteA.town.id)) ||
-          (("siteB" in plan) && ("town" in plan.siteB) && OpexTownRatingHopeless(plan.siteB.town.id))) {
-        return false;
-      }
-    }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     if (!OpexAirBatchPlanStillLive(plan, lines)) return false;
     if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
                                          ("reuseA" in plan) && plan.reuseA)) {
@@ -1762,11 +1749,7 @@ function OpexB6RepriceFreightTop(catalog, lines, project)
     local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
     if (VIVIER_RATIO_FILTER && opcodeRatio < 200) return { status = "not_generated_ratio", monthly = monthly, freshProfit = economics.profitAnnual };
   }
-  local freightBonus = FLAT_BONUS ? 140 : 100;
-  if (FLAT_BONUS && ("isTransformer" in cand) && cand.isTransformer) {
-    freightBonus = (freightBonus * 135) / 100;
-  }
-  local freshRoi = (economics.roi * freightBonus) / 100;
+  local freshRoi = economics.roi;
   local margin = project.mode == "road" ? ROAD_CAPITAL_MARGIN : 0;
   local immobilise = ("immobilise" in economics) ? economics.immobilise : 0;
   local freshProject = { mode = project.mode, capital = economics.capital,
@@ -1828,29 +1811,6 @@ function OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capit
              + " fresh_score=" + freshScore + " runner_score=" + runnerScore
              + " runner_mode=" + (runner != null ? runner.mode : "none")
              + " budget=" + capitalBudget);
-}
-
-/* Retire du vivier incremental les projets deja essayes dans le batch courant, puis rejoue la
- * seule contrainte de capital. */
-function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, abandonedPairs = null)
-{
-  if (projects == null) return null;
-  if (("candidateGroups" in projects) && projects.candidateGroups != null) {
-    local filteredGroups = {};
-    foreach (groupKey, entry in projects.candidateGroups) {
-      local source = (typeof(entry) == "array") ? entry : [entry];
-      local kept = [];
-      foreach (p in source) {
-        if (p == null) continue;
-        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
-        local key = OpexProjectAttemptKey(p);
-        if (!(key in attempted)) kept.push(p);
-      }
-      if (kept.len() > 0) filteredGroups[groupKey] <- kept;
-    }
-    projects.candidateGroups = filteredGroups;
-  }
-  return OpexReselectProjects(projects, capitalBudget);
 }
 
 /* C36.1 : Caching incremental du vivier post-chantier.
@@ -2440,12 +2400,12 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
 
   /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
    * cela evite meme de changer la forme de this._projects dans le controle. */
-  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE || C39_INVALIDATION_PROBE
+  if (PORTFOLIO_CACHE || C39_INVALIDATION_PROBE
       || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
     local ret = {
       all = stats.odProjects, best = funded, stats = stats,
-      capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
+      capitalBudget = capitalBudget,
       capitalRemaining = remaining, candidateGroups = winners,
       rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
       airPlans = airPlans, waterPlans = waterPlans,

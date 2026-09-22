@@ -72,8 +72,8 @@ function OpexAI::_runNextTaskWithSlackLedger()
    * cette passe -- la cle "|slice" contre "|noslice" porte cette information, les trois champs
    * slice_* valent alors 0. La cle est this._c41LastTaskName ("idle" si nul), PAS `category` :
    * `category` fusionne les continuations rail (C41.11), alors qu'ici la tranche est deja portee
-   * separement par la cle slice/noslice et on veut le nom de la VRAIE tache de file. ⚠️ Sous
-   * loop_budget=0 (defaut), la boucle principale fait un Sleep(1) APRES cet appel mesure : ce
+   * separement par la cle slice/noslice et on veut le nom de la VRAIE tache de file. La boucle
+   * principale fait un Sleep(1) APRES cet appel mesure : ce
    * Sleep n'est donc jamais compte dans days/ticks. A 74 ticks/jour c'est negligeable devant les
    * 3,6 jours mesures (docs/05_cadence_projects_rail_search.md §4.3), mais le prochain lecteur
    * doit le savoir. */

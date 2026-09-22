@@ -64,8 +64,9 @@ AIR_EARLY_SLOT_TARGET_TOWNS <- 6;
 AIR_EARLY_SLOT_MIN_POP <- 1000;
 AIR_EARLY_SLOT_BONUS_PCT <- 50;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
-PORTFOLIO_FRESH_BUDGET <- false;
 /* C36.1 : Caching incremental du vivier post-chantier. */
+/* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
+OPEX_ECONOMY_OPCODE_COMPAT_FALSE <- false;
 PORTFOLIO_CACHE <- false;
 /* C39.0 : sonde passive du bus d'invalidation. A 1, les evenements marquent les
  * dependances qui SERAIENT rafraichies et journalisent la passe mensuelle actuelle ;
@@ -201,8 +202,6 @@ C55_PAX_TRACE_PROBE <- false;
 C55_PAX_TRACE_LEDGER <- null;
 /* C60 : Sonde d'exposition aux notes municipales. */
 C60_TOWN_RATING_PROBE <- false;
-/* C60 : Filtre proactif de note municipale (SuperLib). */
-C60_TOWN_RATING_FILTER <- false;
 C60_TOWN_RATING_LEDGER <- null;
 /* C56 : trace immediate du dispatch, nulle hors sonde. */
 C56_TASK_TRACE <- false;
@@ -273,12 +272,6 @@ AIR_FLEET_PROBE <- false;
 TENSION_PROBE <- false;
 /* Garde unique du logger de portefeuille : evite un OR supplementaire dans le chemin chaud. */
 PORTFOLIO_LOG <- false;
-/* fleet_before_new : servir la croissance de flotte avant la construction de lignes aeriennes
- * neuves. Defaut REMIS A 0 le 2026-09-02 apres deux bancs concordants : -20,4 % de profit annuel
- * a 3 ans (t = -3,53) et -18,3 % de valeur a 10 ans (t = -3,81, 5/15 graines, p = 0,041).
- * Pour l'aerien, la LARGEUR bat la PROFONDEUR : une liaison neuve ouvre un flux entier, un avion
- * de plus n'ajoute qu'une tranche marginale. Le reglage reste comme instrument. */
-FLEET_BEFORE_NEW <- false;
 /* C45 : persistance complete de l'etat de decision. Defaut aligne sur info.nut (custom_value = 1),
  * adopte au banc officiel 20x10 apparie -- les vingt graines identiques au bit pres. */
 SAVE_FULL_STATE <- true;
@@ -287,7 +280,6 @@ AIR_PORTFOLIO <- true;
 /* C34.2 : croissance de flotte aerienne arbitree par le portefeuille (1) au lieu de la tache dediee. */
 FLEET_PORTFOLIO <- true;
 /* C32 : bonus forfaitaires de classement du fret. 0 = supprimes. */
-FLAT_BONUS <- false;
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
 RAIL_DEVIS <- true;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
@@ -299,10 +291,6 @@ _currentTaskLogged <- false;
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
 DYNAMIC_CASH_RESERVE <- true;
-/* Decision utilisateur : la reserve ne doit jamais depasser UN mois d'entretien (totalRunning / 12),
- * contre jusqu'a 3 mois (quarterlyBuffer) ou un forfait fixe selon la branche. Defaut a false pour
- * ne rien changer tant que le banc n'a pas tranche -- voir OpexCashReserve() plus bas. */
-RESERVE_MAINT_CAP <- false;
 /* P1 : repli empirique du filtre de financabilite. Le facteur rail 1,7
  * reste applique au capital de construction estime ; les autres modes restent a 1,0. */
 CAPITAL_CALIBRATION <- true;
@@ -339,8 +327,7 @@ AIR_FLEET_LINE_PRICE <- true;
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
 AIR_CADENCE_CAP <- true;
 /* C26b : Correctif du faux embouteillage lorsque le vehicule est a l'arret a quai en chargement
- * Mesure a 10 ans et 3 ans : DEGRADE le profit de -17,6 % s'il n'est pas couple a MARGINAL_FLEET,
- * car il empile jusqu'a 16 camions sur des arrets a 1 seul quai. Defaut a false. */
+ * Ce correctif reste desactive : il empile jusqu'a 16 camions sur des arrets a 1 seul quai. */
 ROAD_LOADING_FIX <- false;
 /* C52 : symbole de compatibilite. Le remappage ET_VEHICLE_AUTOREPLACED est maintenant
  * inconditionnel ; le reglage homonyme est deprecated et sa valeur est ignoree. */

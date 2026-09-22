@@ -323,13 +323,7 @@ function OpexLoadSettings()
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
 
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
-  PORTFOLIO_FRESH_BUDGET = false;
-  PORTFOLIO_DYNAMIC_BATCH = false;
-  DYNAMIC_BATCH_REJECT_LIMIT = 3;
-  DYNAMIC_BATCH_OPS_BUDGET_PCT = 50;
   PORTFOLIO_FLOOR_PCT = 0;
-  FLAT_BONUS = false;
-  MARGINAL_FLEET = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
   C77_OPPORTUNISTIC_CANDIDATES = AIController.GetSetting("c77_opportunistic_candidates") != 0;
@@ -342,24 +336,16 @@ function OpexLoadSettings()
   JOIN_MAX_DISTANCE = 0;
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
-  REBORROW = false;
   PAX_NEAR = false;
-  PROBE_NEGATIVE = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;
-  RESERVE_MAINT_CAP = false;
   OPEX_AIR_SITE_PAD = false;
   OPEX_AIR_TOWN_PAD = false;
   C39_ENGINE_REFRESH = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
-  LOOP_BUDGET = false;
-  GROWTH_YIELDS = false;
-  FLEET_FIX = false;
-  C60_TOWN_RATING_FILTER = false;
   AIR_MAX_DISTANCE = 0;
   C53_ORDER_NOLOAD = false;
-  FLEET_BEFORE_NEW = false;
   TRANSIT_COST_PERMILLE = 0;
   INFRA_AMORT_PCT = 0;
   PORTFOLIO_MAX_BATCH = 1;

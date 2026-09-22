@@ -73,8 +73,6 @@ function OpexAI::_tryBuildAir(year)
     }
 
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    local borrowable = REBORROW ? (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()) : 0;
-    if (borrowable < 0) borrowable = 0;
     local baseReserve = OpexCashReserve();
     /* ⚠️ NE PAS « CORRIGER » CE 2 000 EN LE PORTANT A LA MARGE MAXIMALE. Essaye et MESURE le
      * 2026-09-02 (results/bench_lotE_air_marge_3y.json) : -11,5 % de valeur (t = -2,66), -9,8 % de
@@ -91,7 +89,7 @@ function OpexAI::_tryBuildAir(year)
      * La bonne correction passerait par le plan, pas par le budget : soit passer la marge exigee a
      * OpexAirPlans pour qu'il l'applique par plan, soit ne pas `break` sur rejet et reessayer avec
      * un budget rabote. Voir docs/taches.md. */
-    local maxCapital = money + borrowable - baseReserve - 2000;
+    local maxCapital = money - baseReserve - 2000;
     if (maxCapital <= 0) {
       if (DECISION_LOG) {
         local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
@@ -132,7 +130,6 @@ function OpexAI::_tryBuildAir(year)
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
     if (money < need) {
-      if (REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (DECISION_LOG) {
           local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
@@ -308,13 +305,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         if (townAId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townAId);
         if (townBId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townBId);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if ((townAId >= 0 && OpexTownRatingHopeless(townAId)) ||
-            (townBId >= 0 && OpexTownRatingHopeless(townBId))) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "town_rating_appalling", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-        }
-      }
+      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       local maxPerYear = 30;
       local maxTotal = 250;
       local airLinesThisYear = 0;
@@ -352,7 +343,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
       local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
@@ -661,43 +651,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       continue;
     }
 
-    /* marginal_fleet = 1 (2026-09-01) : dimensionnement marginal STRICT de l'air. Le commentaire
-     * de cette fonction promettait deja d'attendre un an, d'exiger une charge complete en attente
-     * et de ne jamais ajouter plus d'un avion par an -- mais rien ci-dessus ni ci-dessous ne
-     * verifiait l'age de la ligne ou le fret en attente, et la boucle plus bas autorisait jusqu'a
-     * 4 avions en un seul passage (addedThisPass < 4). Sous 0 (defaut), ce bloc ne change RIEN :
-     * il ajoute seulement des refus supplementaires, jamais un chemin different pour les
-     * conditions deja verifiees plus haut (have, deadStreak, lastProfit < 0). */
-    if (MARGINAL_FLEET && AIR_FLEET_BUFFER < 0) {
-      // (a) la ligne a au moins un an d'existence revolu
-      if (!("year" in line) || (year - line.year) < 1) {
-        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "line_too_young", 1);
-        continue;
-      }
-      // (b) lastProfit disponible ET strictement positif (pas seulement "pas negatif")
-      if (!("lastProfit" in line) || line.lastProfit <= 0) {
-        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
-        continue;
-      }
-      // (c) au moins une capacite complete d'avion attend REELLEMENT dans une des deux gares
-      local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
-      if (planeCap <= 0) {
-        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_plane_capacity", 1);
-        continue;
-      }
-      /* Pas de AIStation.STATION_INVALID ici : jamais utilise ailleurs dans ce projet, on prefere
-       * garder le meme garde-fou "hasB" que le reste du fichier (cf. lastWaitingB plus haut). */
-      local stA = AIStation.GetStationID(line.stationA);
-      local hasB = ("stationB" in line) && line.stationB != null;
-      local stB = hasB ? AIStation.GetStationID(line.stationB) : 0;
-      local waitA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : 0;
-      local waitB = (hasB && AIStation.IsValidStation(stB)) ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
-      if (waitA < planeCap && waitB < planeCap) {
-        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_stock_buffer", 1);
-        continue;
-      }
-    }
-
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && AIR_FLEET_BUFFER < 0) {}
     local isSmallAirport = false;
     if ((AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
         (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL)) {
@@ -713,15 +667,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1); continue; }
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1); continue; }
 
-    /* fleet_fix : cette garde pricait le MEILLEUR avion du catalogue, alors qu'OpexAirAddPlane
-     * clone le gabarit de LA LIGNE (builder_air.nut:224, prix lu sur l'engin du vehicule existant).
-     * Une ligne a helices desservant un petit aeroport, face a un catalogue passe au gros jet,
-     * voyait donc `need` plusieurs fois trop grand : `money < need` -> break, et une ligne
-     * rentable ne grandissait jamais alors que la tresorerie etait la. La garde interne
-     * d'OpexAirAddPlane etant correcte, celle-ci ne produisait que des FAUX NEGATIFS
-     * (docs/taches.md S0 nonies). On price desormais l'avion qu'on va reellement acheter. */
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
-    if ((FLEET_FIX || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
+    if ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
       foreach (v in line.vehicles) {
         if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
         local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
@@ -735,8 +682,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     local airMarginPadding = false;
     local need = planePrice + OpexCashReserve() + (airMarginPadding ? 0 : 2000);
     local addedThisPass = 0;
-    // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
-    local maxAddedPerPass = MARGINAL_FLEET ? 1 : 4;
+    local maxAddedPerPass = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : 4;
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
      * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
      * Si buildNum < 1 : refus W (pas assez de cargo au sol).
@@ -791,7 +737,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
       local grown = OpexAirAddPlane(line);
       if (grown.added <= 0) { OpexAirFleetRefusal(line, year, "X"); break; }

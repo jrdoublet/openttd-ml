@@ -443,7 +443,6 @@ function OpexAI::Save()
     taskDue = taskDue,
     railExpansion = OpexSaveRailExpansion(this._railExpansion),
     railSearchPending = this._railSearch != null,
-    dynamicBatchPending = this._dynamicBatch != null,
     c41RailSignalLines = OpexCopyBoolTable(this._c41RailSignalLines),
     c41RailJunctionLines = OpexCopyBoolTable(this._c41RailJunctionLines),
     stateVersion = 2,
@@ -491,7 +490,11 @@ function OpexAI::Load(version, data)
    * stateVersion=1 n'ont simplement pas ces champs et gardent les valeurs constructeur. */
   if ("railExpansion" in data) this._railExpansion = OpexLoadRailExpansion(data.railExpansion);
   this._reloadDroppedRailSearch = ("railSearchPending" in data) && data.railSearchPending;
-  this._reloadDroppedDynamicBatch = ("dynamicBatchPending" in data) && data.dynamicBatchPending;
+  if (("dynamicBatchPending" in data) && data.dynamicBatchPending) {
+    this._projects = null;
+    this._ranked = null;
+    this._portfolioInvalidated = true;
+  }
   if ("c41RailSignalLines" in data && data.c41RailSignalLines != null) {
     this._c41RailSignalLines = OpexCopyBoolTable(data.c41RailSignalLines);
   }
@@ -613,14 +616,11 @@ function OpexAI::_reconcileAfterLoad()
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();
 
-  /* _railSearch contient un pathfinder/segmented search vivant et _dynamicBatch depend de
-   * _projects, qui n'est pas persiste. On ne fabrique pas de pseudo-serialisation de ces objets :
-   * si Save() les a vus actifs, abandon explicite puis reconstruction immediate du portefeuille. */
+  /* _railSearch contient un pathfinder/segmented search vivant, qui n'est pas persiste.
+   * Si Save() l'a vu actif, abandon explicite puis reconstruction immediate du portefeuille. */
   local droppedRailSearch = this._reloadDroppedRailSearch ? 1 : 0;
-  local droppedDynamicBatch = this._reloadDroppedDynamicBatch ? 1 : 0;
-  if (this._reloadDroppedRailSearch || this._reloadDroppedDynamicBatch) {
+  if (this._reloadDroppedRailSearch) {
     this._railSearch = null;
-    this._dynamicBatch = null;
     this._projects = null;
     this._ranked = null;
     this._portfolioInvalidated = true;
@@ -635,7 +635,6 @@ function OpexAI::_reconcileAfterLoad()
     }
   }
   this._reloadDroppedRailSearch = false;
-  this._reloadDroppedDynamicBatch = false;
 
   this._c41RailSignalLines = this._filterPersistedRailRepairQueue(this._c41RailSignalLines);
   this._c41RailJunctionLines = this._filterPersistedRailRepairQueue(this._c41RailJunctionLines);
@@ -661,7 +660,6 @@ function OpexAI::_reconcileAfterLoad()
              + " rail_expansion_pending_recovered=" + railExpansion.pending_recovered
              + " rail_expansion_ambiguous_aborted=" + railExpansion.ambiguous_aborted
              + " rail_search_dropped=" + droppedRailSearch
-             + " dynamic_batch_dropped=" + droppedDynamicBatch
              + " rail_signal_queue=" + this._c41RailSignalLines.len()
              + " rail_junction_queue=" + this._c41RailJunctionLines.len());
 }

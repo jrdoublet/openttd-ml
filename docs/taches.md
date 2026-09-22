@@ -13,6 +13,21 @@ la performance actuelle**. Les journaux quotidiens conservent le détail des exp
 
 ## État courant — 2026-09-22
 
+Nettoyage `simplify/dead-flags-economy` intégré (`172eaf7`) : retrait des chemins économie
+désarmés (lot dynamique `portfolio_dynamic_batch`, `portfolio_fresh_budget`, `loop_budget`,
+`marginal_fleet`, `fleet_fix`, `flat_bonus`, `growth_yields`, `reborrow`, `probe_negative`,
+`reserve_maint_cap`, filtre C60 de note de ville), gardes `OPEX_ECONOMY_OPCODE_COMPAT_FALSE`
+pour la cadence VM. Conflits résolus en gardant tout le code vivant de `master` :
+`OpexReselectProjects` et les fonctions C76/C77 que la branche retirait, C69/C75 dans
+`_tryBuildProjects` sans le lot dynamique, socle C80 dans `Start()`. Garde de cadence
+ajoutée dans `OpexProjectFromCandidate` (`if (!CLEAN_DENSITY_SCORE) {}`) : sans elle, la
+re-tarification C76 décalait la cadence et C76+C77 graine 42 divergeait en 1972-03.
+Smoke 2 graines × 3 ans (défaut, C77, C76+C77) : **métriques économiques identiques à
+`4e38d7e` sur les 6 parties et 36 relevés**, compteurs d'opcodes à ±40 près. Save/Load
+1+1 an : `LOAD_RECONCILE`, activité reprise, compagnie fantôme du harnais. Six tests de
+contrat (B3, B5, B6, M1) adaptés au retrait ; schéma `IB|` inchangé. 121 tests : seuls les
+deux échecs préexistants feeder scrap et index de preuves.
+
 Fusion de `c69-goulot-decision` (`5dfcf7f`) et de `feat/c76-c77-reactive-events`
 (`23a4bcb`) : défaut adopté C69 bis/C70/C75 importé avec les correctifs de dates,
 calibration après rechargement et coût de Save. C76/C77 sont maintenant implémentés
