@@ -221,11 +221,13 @@ function OpexLoadSettings()
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
+  C82_ENGINE_CALIBRATION = AIController.GetSetting("c82_engine_calibration") != 0;
   C69_BOTTLENECK_PROBE = probePort;
   C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
   C69_FLEET_EXEMPT = AIController.GetSetting("c69_fleet_exempt") != 0;
   C69_FLEET_DEMAND_BATCH = AIController.GetSetting("c69_fleet_demand_batch") != 0;
   C72_PLANE_CHOICE = AIController.GetSetting("c72_plane_choice");
+  AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
@@ -406,7 +408,6 @@ function OpexLoadSettings()
   C60_TOWN_RATING_FILTER = false;
   AIR_CADENCE_CAP_ADAPTIVE = false;
   AIR_MAX_DISTANCE = 0;
-  AIR_FULL_LOAD = false;
   C53_ORDER_NOLOAD = false;
   FLEET_BEFORE_NEW = false;
   TRANSIT_COST_PERMILLE = 0;

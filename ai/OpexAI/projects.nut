@@ -183,6 +183,7 @@ function OpexC70RecomputeFactors(lines)
   }
   foreach (m, acc in sums) {
     C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+    OpexC69Log("phase=c70_reload mode=" + m + " lines=" + acc[1] + " k=" + C70_MODE_FACTOR[m]);
   }
 }
 
@@ -194,10 +195,67 @@ function OpexC70Factor(project)
   return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
 }
 
+/* C82 : facteurs par moteur d'avion recalcules depuis les cumuls par ligne (sauvegardes avec les lignes).
+ * Meme formule que le rapport annuel (task_report.nut) : pseudo-ligne a 1. Appele au chargement. */
+function OpexC82RecomputeFactors(lines)
+{
+  local sums = {};
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || line.mode != "air") continue;
+      if (!("planeId" in line) || line.planeId < 0) continue;
+      if (!("c70Pred" in line) || !("c70Real" in line) || line.c70Pred <= 0) continue;
+      local e = line.planeId;
+      if (!(e in sums)) sums[e] <- [0.0, 0];
+      sums[e][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
+      sums[e][1]++;
+    }
+  }
+  C82_ENGINE_FACTOR.clear();
+  foreach (e, acc in sums) {
+    C82_ENGINE_FACTOR[e] <- (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+    OpexC69Log("phase=c82_reload engine=" + e + " lines=" + acc[1] + " k=" + C82_ENGINE_FACTOR[e]);
+  }
+}
+
+/* C82 : facteur d'un moteur d'avion. 1.0 si inactif ou moteur absent de la table. */
+function OpexC82EngineFactor(engine)
+{
+  if (!C82_ENGINE_CALIBRATION) return 1.0;
+  return (engine in C82_ENGINE_FACTOR) ? C82_ENGINE_FACTOR[engine] : 1.0;
+}
+
+/* C82 : determine le moteur d'avion concerne par un projet air ou flotte. -1 si non identifiable. */
+function OpexC82ProjectEngine(project)
+{
+  if (project == null || !("mode" in project) || !("payload" in project) || project.payload == null) return -1;
+  if (project.mode == "air") {
+    local payload = project.payload;
+    if (("plane" in payload) && payload.plane != null && ("id" in payload.plane) && payload.plane.id != null) {
+      return payload.plane.id;
+    }
+    return -1;
+  }
+  if (project.mode == "fleet") {
+    local payload = project.payload;
+    if (("line" in payload) && payload.line != null) {
+      local line = payload.line;
+      if (("planeId" in line) && line.planeId != null) return line.planeId;
+      if (("refleetEngine" in line) && line.refleetEngine != null) return line.refleetEngine;
+    }
+    return -1;
+  }
+  return -1;
+}
+
 /* C70 : profit servant au classement. Le brut reste dans profitAnnual, et donc dans
  * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
 function OpexC70Profit(project)
 {
+  if (C82_ENGINE_CALIBRATION) {
+    local e = OpexC82ProjectEngine(project);
+    if (e >= 0) return project.profitAnnual * OpexC82EngineFactor(e);
+  }
   if (!C70_MODE_CALIBRATION) return project.profitAnnual;
   return project.profitAnnual * OpexC70Factor(project);
 }
@@ -723,7 +781,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       if (C49_VARIABLE_DENOMINATOR) {
         project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
       } else {
-        project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+        project.fundScore <- OpexProjectScore((C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION) ? OpexC70Profit(project) : project.profitAnnual,
             (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
       }
       if (C69_BOTTLENECK_PROBE) {
@@ -748,7 +806,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         if (C49_VARIABLE_DENOMINATOR) {
           project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
         } else {
-          project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+          project.fundScore <- OpexProjectScore((C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION) ? OpexC70Profit(project) : project.profitAnnual,
             (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
         }
         if (C69_BOTTLENECK_PROBE) {

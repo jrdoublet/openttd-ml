@@ -22,6 +22,7 @@ function OpexAI::_reportLines(year)
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
+  local c82Sums = C82_ENGINE_CALIBRATION ? {} : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
@@ -182,26 +183,33 @@ function OpexAI::_reportLines(year)
       OpexC63RecordLine(lMode, lAge, predProfit, profit, predRev, profit + runCost,
                         vehCount, line.lineId, year - 1);
     }
-    /* C70 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
+    /* C70 / C82 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
      * construction est partielle). Par convoi initial, amortissement predit retire du realise
      * (GetProfitLastYear n'amortit rien). Ratio de sommes : une annee aberrante pese son poids. */
-    if (C70_MODE_CALIBRATION) {
+    if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION) {
       local cMode = ("mode" in line) ? line.mode : "unknown";
       local cAge = ("year" in line) ? (year - line.year) : -1;
       local cPred = ("predicted" in line) ? line.predicted : 0;
       local cN0 = ("trains0" in line) ? line.trains0 : 0;
-      if (cAge >= 2 && cPred > 0 && cN0 > 0 && vehCount > 0 && (cMode in c70Sums)) {
+      local modeOk = (c70Sums != null && (cMode in c70Sums)) || (cMode == "air");
+      if (cAge >= 2 && cPred > 0 && cN0 > 0 && vehCount > 0 && modeOk) {
         local cAmort = ("predAmort" in line) ? line.predAmort : 0;
         local real = profit.tofloat() * cN0 / vehCount - cAmort;
         if (!("c70Real" in line)) { line.c70Real <- 0.0; line.c70Pred <- 0.0; }
         line.c70Real += real;
         line.c70Pred += cPred.tofloat();
       }
-      if (("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
+      if (C70_MODE_CALIBRATION && ("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
         /* tofloat : apres chargement, les cumuls sont des entiers (la sauvegarde arrondit les
          * flottants) et une division entiere fausserait le ratio. */
         c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
         c70Sums[cMode][1]++;
+      }
+      if (C82_ENGINE_CALIBRATION && cMode == "air" && ("planeId" in line) && line.planeId >= 0 && ("c70Pred" in line) && line.c70Pred > 0) {
+        local e = line.planeId;
+        if (!(e in c82Sums)) c82Sums[e] <- [0.0, 0];
+        c82Sums[e][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
+        c82Sums[e][1]++;
       }
     }
     if (C69_BOTTLENECK_PROBE) {
@@ -375,6 +383,24 @@ function OpexAI::_reportLines(year)
         OpexC69Log("phase=c70_factor year=" + year + " mode=" + m + " lines=" + acc[1]
             + " k=" + C70_MODE_FACTOR[m]);
       }
+    }
+  }
+  if (C82_ENGINE_CALIBRATION) {
+    C82_ENGINE_FACTOR.clear();
+    foreach (e, acc in c82Sums) {
+      local n = acc[1];
+      local k = (acc[0] + 1.0) / (n + 1).tofloat();
+      C82_ENGINE_FACTOR[e] <- k;
+      if (C69_BOTTLENECK_PROBE) {
+        OpexC69Log("phase=c82_factor year=" + year + " engine=" + e + " name=" + OpexPlaneName(e)
+            + " lines=" + n + " k=" + k);
+      }
+    }
+    if (C69_BOTTLENECK_PROBE) {
+      OpexC69Log("phase=c82_choice_summary year=" + year
+          + " calls=" + C82_CHOICE_CALLS + " differ=" + C82_CHOICE_DIFFER);
+      C82_CHOICE_CALLS = 0;
+      C82_CHOICE_DIFFER = 0;
     }
   }
   if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {

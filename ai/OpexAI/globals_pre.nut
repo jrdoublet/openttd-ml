@@ -266,6 +266,11 @@ C63_INVEST_LEDGER <- null;
 /* C70 : facteur realise/predit par mode, recalcule au rapport annuel. 1.0 hors reglage. */
 C70_MODE_CALIBRATION <- false;
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
+/* C82 : facteur realise/predit par moteur d'avion, recalcule au rapport annuel. 1.0 hors reglage ou si absent. */
+C82_ENGINE_CALIBRATION <- false;
+C82_ENGINE_FACTOR <- {};
+C82_CHOICE_CALLS <- 0;
+C82_CHOICE_DIFFER <- 0;
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
  * de tau. 1970 n'est qu'un repli, pose avant Start(). */
@@ -395,7 +400,7 @@ AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
-AIR_FULL_LOAD <- false;
+AIR_FULL_LOAD <- 0;
 C53_ORDER_NONSTOP <- false;
 C53_ORDER_NOLOAD <- false;
 COMPLEX_CARGO <- true;

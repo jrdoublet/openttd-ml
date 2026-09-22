@@ -159,6 +159,9 @@ supprimé, pas de branche morte à unifier).
 - `OPEX_START_YEAR` (posé dans `Start()` depuis `_startYear`) sert de base aux calculs de F et τ
   de C69/C75 : ne pas le remplacer par 1970 (défaut corrigé le 2026-09-21). Les dates C69/C75 sont
   sauvegardées exprès : sans elles, K_dec est multiplié par ~14 après un chargement.
+- Dans `_reconcileAfterLoad`, `OpexC70RecomputeFactors` / `OpexC82RecomputeFactors` sont appelés
+  **après** `this._lines = liveLines` : plus haut, la liste est encore vide et tous les facteurs
+  retombaient à 1 (défaut corrigé le 2026-09-22, `docs/19_rechargement_partie.md` §7).
 - Les sondes du 2026-09-21 (C69, C72, C73, C76) ont réécrit des conditions de filtrage en blocs
   avec compteurs (`builder_air.nut`, `candidates.nut`, `task_air.nut`, `builder_water.nut`) ; leur
   équivalence avec l'original a été vérifiée à la lecture et figure à l'étape 2 de la revue

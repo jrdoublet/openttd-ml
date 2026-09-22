@@ -18,8 +18,8 @@ AIR_MAX_PLANES_PER_ROUTE <- 16;
 AIR_PLAN_DIAG_SEQ <- 0;
 /* Plafond de distance aerienne (0 = illimite, docs/taches.md C6 supprime) */
 AIR_MAX_DISTANCE <- 0;
-/* Ordre de chargement passagers aerien (true = OF_FULL_LOAD_ANY, false = OF_NONE) */
-AIR_FULL_LOAD <- false;
+/* Ordre de chargement passagers aerien (0 = aucun, 1 = deux extremites, 2 = premiere extremite seulement, comme AAAHogEx) */
+AIR_FULL_LOAD <- 0;
 /* Cache de sites d'aeroport par ville et type d'aeroport (C33.1) */
 AIR_SITE_CACHE_ENABLED <- true;
 AIR_SITE_CACHE <- {};
@@ -951,9 +951,10 @@ function OpexAirRefleetCrashedPlane(line)
   }
   local plane = AIVehicle.BuildVehicleWithRefit(hangar, line.refleetEngine, line.cargo);
   if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return result; }
-  local flags = AIR_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
-  if (!AIOrder.AppendOrder(plane, line.stationA, flags) ||
-      !AIOrder.AppendOrder(plane, line.stationB, flags) || AIOrder.GetOrderCount(plane) != 2) {
+  local flagsA = (AIR_FULL_LOAD == 1 || AIR_FULL_LOAD == 2) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local flagsB = (AIR_FULL_LOAD == 1) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  if (!AIOrder.AppendOrder(plane, line.stationA, flagsA) ||
+      !AIOrder.AppendOrder(plane, line.stationB, flagsB) || AIOrder.GetOrderCount(plane) != 2) {
     AIVehicle.SellVehicle(plane); result.reason = "ORDER"; return result;
   }
   if (!AIVehicle.StartStopVehicle(plane)) {
@@ -981,6 +982,126 @@ function OpexAirPlanBetter(plan, bestPlan)
   return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
 }
 
+/* C82 : arbitrage d'appareil par route evalue sur les profits et ROI calibres par moteur.
+ * L'objet economics renvoye reste brut (non modifie). */
+function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics, distance, monthlyPax,
+                                 infrastructureMaintenance, maxCapital, newAirportCount, demandCap)
+{
+  local bestPlane = selectedPlane;
+  local bestEconomics = selectedEconomics;
+  local bestK = (selectedPlane != null) ? OpexC82EngineFactor(selectedPlane.id) : 1.0;
+  local bestCalProfit = (selectedEconomics != null) ? (selectedEconomics.profitAnnual * bestK) : 0.0;
+  local bestCalRoi = (selectedEconomics != null) ? (selectedEconomics.roi * bestK) : 0.0;
+  local bestScore = 0.0;
+
+  local kDec = 0;
+  if (C69_BOTTLENECK_PROBE || C72_PLANE_CHOICE == 2) {
+    kDec = OpexC69CachedKDec();
+  }
+
+  if (C72_PLANE_CHOICE == 2 && selectedEconomics != null) {
+    local denom = selectedEconomics.capital > kDec ? selectedEconomics.capital : kDec;
+    bestScore = denom > 0 ? (bestCalProfit.tofloat() * 1000.0) / denom : 0.0;
+  }
+
+  local rawPlane = null;
+  local rawEconomics = null;
+  local rawScore = 0.0;
+  local evalCount = 0;
+
+  if (C69_BOTTLENECK_PROBE) {
+    if (selectedEconomics != null) {
+      evalCount = 1;
+      rawPlane = selectedPlane;
+      rawEconomics = selectedEconomics;
+      local denom = selectedEconomics.capital > kDec ? selectedEconomics.capital : kDec;
+      rawScore = denom > 0 ? (selectedEconomics.profitAnnual.tofloat() * 1000.0) / denom : 0.0;
+    }
+  }
+
+  foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
+    if (plane.id == selectedPlane.id) continue;
+    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+    local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        infrastructureMaintenance, maxCapital, newAirportCount, demandCap);
+    if (economics == null) continue;
+
+    local k = OpexC82EngineFactor(plane.id);
+    local calProfit = economics.profitAnnual * k;
+    local calRoi = economics.roi * k;
+
+    if (C72_PLANE_CHOICE == 1) {
+      if (bestEconomics == null || calRoi > bestCalRoi ||
+          (calRoi == bestCalRoi && calProfit > bestCalProfit)) {
+        bestPlane = plane;
+        bestEconomics = economics;
+        bestCalProfit = calProfit;
+        bestCalRoi = calRoi;
+      }
+    } else if (C72_PLANE_CHOICE == 2) {
+      local curDenom = economics.capital > kDec ? economics.capital : kDec;
+      local curScore = curDenom > 0 ? (calProfit.tofloat() * 1000.0) / curDenom : 0.0;
+      if (bestEconomics == null || curScore > bestScore ||
+          (curScore == bestScore && calProfit > bestCalProfit)) {
+        bestPlane = plane;
+        bestEconomics = economics;
+        bestScore = curScore;
+        bestCalProfit = calProfit;
+        bestCalRoi = calRoi;
+      }
+    } else {
+      if (bestEconomics == null || calProfit > bestCalProfit ||
+          (calProfit == bestCalProfit && calRoi > bestCalRoi)) {
+        bestPlane = plane;
+        bestEconomics = economics;
+        bestCalProfit = calProfit;
+        bestCalRoi = calRoi;
+      }
+    }
+
+    if (C69_BOTTLENECK_PROBE) {
+      evalCount++;
+      if (C72_PLANE_CHOICE == 1) {
+        if (rawEconomics == null || economics.roi > rawEconomics.roi ||
+            (economics.roi == rawEconomics.roi && economics.profitAnnual > rawEconomics.profitAnnual)) {
+          rawPlane = plane;
+          rawEconomics = economics;
+        }
+      } else if (C72_PLANE_CHOICE == 2) {
+        local curDenom = economics.capital > kDec ? economics.capital : kDec;
+        local curScore = curDenom > 0 ? (economics.profitAnnual.tofloat() * 1000.0) / curDenom : 0.0;
+        if (rawEconomics == null || curScore > rawScore ||
+            (curScore == rawScore && economics.profitAnnual > rawEconomics.profitAnnual)) {
+          rawPlane = plane;
+          rawEconomics = economics;
+          rawScore = curScore;
+        }
+      } else {
+        if (rawEconomics == null || economics.profitAnnual > rawEconomics.profitAnnual ||
+            (economics.profitAnnual == rawEconomics.profitAnnual && economics.roi > rawEconomics.roi)) {
+          rawPlane = plane;
+          rawEconomics = economics;
+        }
+      }
+    }
+  }
+
+  if (C69_BOTTLENECK_PROBE && evalCount >= 2) {
+    C82_CHOICE_CALLS++;
+    local idBrut = (rawPlane != null) ? rawPlane.id : -1;
+    local idCalibre = (bestPlane != null) ? bestPlane.id : -1;
+    if (idCalibre != idBrut) {
+      C82_CHOICE_DIFFER++;
+      local kBrut = (idBrut >= 0) ? OpexC82EngineFactor(idBrut) : 1.0;
+      local kCalibre = (idCalibre >= 0) ? OpexC82EngineFactor(idCalibre) : 1.0;
+      OpexC69Log("phase=c82_choice raw=" + idBrut + " cal=" + idCalibre
+          + " k_raw=" + kBrut + " k_cal=" + kCalibre + " c72=" + C72_PLANE_CHOICE);
+    }
+  }
+
+  return { plane = bestPlane, economics = bestEconomics };
+}
+
 /* C68 : transforme le contre-factuel passif M3 en intervention minimale. Le caller a deja choisi
  * le type d'aeroport, les sites, la paire et la demande avec le chemin historique. Sous le switch,
  * on ne change donc que l'appareil et l'economie de cette route, avec exactement le meme modele
@@ -994,6 +1115,7 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
   if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport)) {
     return { plane = selectedPlane, economics = selectedEconomics };
   }
+  if (C82_ENGINE_CALIBRATION) return OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics, distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, demandCap);
 
   local bestPlane = selectedPlane;
   local bestEconomics = selectedEconomics;
@@ -2110,10 +2232,11 @@ function OpexBuildAirRoute(catalog, budget, plan)
     return result;
   }
 
-  local airFlags = AIR_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
-  local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlags);
+  local airFlagsA = (AIR_FULL_LOAD == 1 || AIR_FULL_LOAD == 2) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local airFlagsB = (AIR_FULL_LOAD == 1) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlagsA);
   local errorA = okOrderA ? 0 : AIError.GetLastError();
-  local okOrderB = AIOrder.AppendOrder(plane, airportB, airFlags);
+  local okOrderB = AIOrder.AppendOrder(plane, airportB, airFlagsB);
   local errorB = okOrderB ? 0 : AIError.GetLastError();
   local ordersOk = okOrderA && okOrderB && AIOrder.GetOrderCount(plane) == 2;
   if (!ordersOk) {
