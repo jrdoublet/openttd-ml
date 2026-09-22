@@ -440,6 +440,7 @@ class OpexAI extends AIController {
   function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
   function _c77RemoveSubsidy(subId);
+  function _c77RegenEntitySync(payload);
   function _c83WatchAirSlotTransitions();
   function enqueue(key, kind, payload);
   function pop();

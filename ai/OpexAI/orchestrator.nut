@@ -304,6 +304,29 @@ OpexRegisterWorker("town_growth", OpexWorkerTownGrowthStep, OpexWorkerTownGrowth
  * touchee par un evenement (ville, industrie) ou d'un mode dont un moteur vient d'arriver,
  * puis enfile la construction. Son state ne contient que des valeurs serialisables ;
  * l'instance vit dans worker.ai, rattachee au rechargement. */
+function OpexFinishRegenEntity(owner, s)
+{
+  if (("buildAfter" in s) && s.buildAfter) {
+    local reason = ("reason" in s) ? s.reason : "event";
+    local key = "c77|build|" + reason;
+    if (C77_FIXES) {
+      if (("targeted" in s) && s.targeted && ("entityKind" in s) && ("entityId" in s)
+          && s.entityKind != null && s.entityId >= 0) {
+        key = "c77|build|" + s.entityKind + "|" + s.entityId + "|" + reason;
+      } else if (("subsidyId" in s) && s.subsidyId >= 0) {
+        key = "c77|build|subsidy|" + s.subsidyId + "|" + reason;
+      }
+    }
+    local payload = { reason = reason };
+    if (C77_TARGETED_BUILD || C77_FIXES) {
+      if ("entityKind" in s) payload.entityKind <- s.entityKind;
+      if ("entityId" in s) payload.entityId <- s.entityId;
+      if ("subsidyId" in s) payload.subsidyId <- s.subsidyId;
+    }
+    owner._enqueueReactive(key, "c77_build", payload);
+  }
+}
+
 function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
 {
   if (worker == null || !("state" in worker) || worker.state == null
@@ -345,10 +368,7 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
   if ("preparedCursor" in s) delete s.preparedCursor;
   s.cursor++;
   if (s.cursor >= s.modes.len()) {
-    if (("buildAfter" in s) && s.buildAfter) {
-      local reason = ("reason" in s) ? s.reason : "event";
-      owner._enqueueReactive("c77|build|" + reason, "c77_build", { reason = reason });
-    }
+    OpexFinishRegenEntity(owner, s);
     return "done";
   }
   return "running";
@@ -361,6 +381,27 @@ function OpexWorkerRegenCandidatesCancel(worker)
 }
 
 OpexRegisterWorker("regen_candidates", OpexWorkerRegenCandidatesStep, OpexWorkerRegenCandidatesCancel);
+
+function OpexRegenEntitySync(owner, s)
+{
+  if (owner == null || s == null || !("modes" in s) || s.modes == null) return false;
+  local dummyWorker = { state = s, ai = owner };
+  /* Meme budget et echeance fraiche a chaque pas que le travailleur (tranche AIR reprenable C78.4) ;
+   * borne de securite contre une tranche qui n'avancerait pas. */
+  local guard = 0;
+  while (guard < 10000) {
+    guard++;
+    local outcome = OpexWorkerRegenCandidatesStep(dummyWorker, AIR_PLAN_SLICE_OPS,
+        AIController.GetTick() + BUILD_TICK_MARGIN);
+    if (outcome != "running") break;
+  }
+  return true;
+}
+
+function OpexAI::_c77RegenEntitySync(payload)
+{
+  return OpexRegenEntitySync(this, payload);
+}
 
 /* ============================================================================
  * 3. Intégration dans OpexAI (File de fond, boucle ordonnancée, selftest)
@@ -424,10 +465,22 @@ function OpexAI::_dispatchReactiveIntention(intention)
   /* C77 : un travailleur regen_candidates detient le droit d'ecriture sur le vivier jusqu'a la
    * fin de sa tranche, et un seul travailleur occupe le registre : une intention C77 qui en a
    * besoin (ou qui muterait le vivier en cours) attend en file sans en ecraser un autre. */
-  if (this._activeWorker != null
-      && (this._activeWorker.kind == "regen_candidates" || intention.kind == "c77_entity")) {
-    this._enqueueReactive(intention.key, intention.kind, intention.payload);
-    return false;
+  if (this._activeWorker != null) {
+    if (this._activeWorker.kind == "regen_candidates") {
+      this._enqueueReactive(intention.key, intention.kind, intention.payload);
+      return false;
+    }
+    if (intention.kind == "c77_entity") {
+      /* Tâche 10 (c77_fixes) : si le travailleur actif est rail_search ou town_growth,
+       * exécuter la régénération ciblée de l'entité de façon synchrone au lieu d'attendre.
+       * Ne s'applique que sous C77_FIXES ; sinon on attend comme historiquement. */
+      if (C77_FIXES && (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "town_growth")) {
+        OpexRegenEntitySync(this, intention.payload);
+        return true;
+      }
+      this._enqueueReactive(intention.key, intention.kind, intention.payload);
+      return false;
+    }
   }
   if (intention.kind == "c77_entity") {
     this._activeWorker = { kind = "regen_candidates", state = intention.payload, ai = this };
@@ -435,14 +488,70 @@ function OpexAI::_dispatchReactiveIntention(intention)
   }
   if (intention.kind == "c77_subsidy") {
     if (intention.payload != null && ("subsidyId" in intention.payload)) {
-      this._c77InjectSubsidy(intention.payload.subsidyId);
+      local injected = this._c77InjectSubsidy(intention.payload.subsidyId);
+      /* Tâche 7 (c77_fixes) : au rechargement, une intention c77_subsidy échoue si
+       * this._projects == null. Ré-enfiler au lieu de la perdre, avec un compteur de reports
+       * (N=3 reports max pour laisser le temps au vivier d'être reconstruit par la file de fond
+       * sans risquer une boucle infinie de ré-enfilage si le vivier tarde). */
+      if (!injected && C77_FIXES && this._projects == null) {
+        local retries = ("retries" in intention.payload) ? intention.payload.retries : 0;
+        if (retries < 3) {
+          local retryPayload = clone intention.payload;
+          retryPayload.retries <- retries + 1;
+          this._enqueueReactive(intention.key, intention.kind, retryPayload);
+          return false;
+        }
+      }
     }
     return true;
   }
   if (intention.kind == "c77_build") {
-    if (this._projects != null && !this._portfolioInvalidated) {
-      this._tryBuildProjects(AIDate.GetYear(AIDate.GetCurrentDate()));
+    /* Tâche 7 (c77_fixes) : au rechargement, une intention c77_build est perdue si
+     * this._projects == null. Ré-enfiler l'intention jusqu'à 3 fois (N=3) pour laisser la file
+     * de fond réinitialiser le vivier, puis abandonner si le vivier n'est toujours pas disponible. */
+    if (this._projects == null) {
+      if (C77_FIXES) {
+        local payload = (intention.payload != null) ? clone intention.payload : {};
+        local retries = ("retries" in payload) ? payload.retries : 0;
+        if (retries < 3) {
+          payload.retries <- retries + 1;
+          this._enqueueReactive(intention.key, intention.kind, payload);
+          return false;
+        }
+      }
+      return true;
     }
+    if (this._portfolioInvalidated) {
+      return true;
+    }
+    /* Tâche 4 (c77_targeted_build) : ne lancer la construction que si le premier projet financé
+     * (this._projects.best[0]) touche l'entité de l'événement (OpexProjectTouchesEntity ; pour
+     * une subvention, le projet isSubsidy de ce subsidyId) ; sinon abandonner l'intention
+     * (la passe normale décidera). */
+    if (C77_TARGETED_BUILD) {
+      if (this._projects.best == null || this._projects.best.len() == 0) {
+        return true;
+      }
+      OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
+      local head = this._projects.best[0];
+      local payload = intention.payload;
+      local touches = false;
+      if (payload != null) {
+        if (("subsidyId" in payload) && payload.subsidyId >= 0) {
+          /* OpexProjectTouchesEntity ne connait que villes et industries : tester le projet de subvention. */
+          touches = head != null && ("payload" in head) && head.payload != null
+              && ("isSubsidy" in head.payload) && head.payload.isSubsidy
+              && ("subsidyId" in head.payload) && head.payload.subsidyId == payload.subsidyId;
+        } else if (("entityKind" in payload) && ("entityId" in payload)
+                   && payload.entityKind != null && payload.entityId >= 0) {
+          touches = OpexProjectTouchesEntity(head, payload.entityKind, payload.entityId);
+        }
+      }
+      if (!touches) {
+        return true;
+      }
+    }
+    this._tryBuildProjects(AIDate.GetYear(AIDate.GetCurrentDate()));
     return true;
   }
   return true;
@@ -523,8 +632,13 @@ function OpexAI::_c77InjectSubsidy(subId)
   this._projects = OpexReselectProjects(
       this._projects, OpexAvailableCapital(), this._abandonedPairs);
   this._ranked = this._projects.rail;
-  this._enqueueReactive("c77|build|subsidy|" + subId, "c77_build",
-                        { reason = "subsidy_offer" });
+  local buildPayload = { reason = "subsidy_offer" };
+  if (C77_TARGETED_BUILD || C77_FIXES) {
+    buildPayload.subsidyId <- subId;
+    buildPayload.entityKind <- "subsidy";
+    buildPayload.entityId <- subId;
+  }
+  this._enqueueReactive("c77|build|subsidy|" + subId, "c77_build", buildPayload);
   return true;
 }
 

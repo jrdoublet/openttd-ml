@@ -546,6 +546,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c77_targeted_build",
+      description = "C77: only trigger reactive c77_build if the top funded project touches the event entity: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c77_fixes",
+      description = "C77 fixes: re-enqueue c77_build/subsidy on reload, restore industry_close invalidation, distinct coalescence keys, sync entity regen during rail/town workers: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
 AddSetting({
       name = "unprofitable_streak_threshold",
       description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line (default 3)",

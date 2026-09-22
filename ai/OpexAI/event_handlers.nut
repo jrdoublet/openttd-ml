@@ -305,6 +305,22 @@ function OpexAI::_onIndustryClose(event)
                       "industry", probeEvt.GetIndustryID());
     }
   }
+  /* Tâche 8 (c77_fixes) : sous C77 sans C76 (c76_regen_targeted=0), l'invalidation historique
+   * a été coupée par la garde !(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))
+   * dans les autres handlers. Or l'événement industry_close n'est pas routé par C77 (events.nut,
+   * reason != "industry_close"). Sous C77_FIXES && !C76_REGEN_TARGETED, on rétablit l'invalidation
+   * historique pour cet événement orphelin. */
+  if (C77_FIXES && !C76_REGEN_TARGETED) {
+    if (this._catalog != null) {
+      this._catalog._refreshIndustries();
+    }
+    this._portfolioInvalidated = true;
+    if (this._taskQueue != null) {
+      foreach (t in this._taskQueue) {
+        if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+      }
+    }
+  }
   return;
 }
 /* C77 : seul producteur de candidats subventionnes. Les offres ne sont suivies que sous

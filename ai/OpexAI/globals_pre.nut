@@ -261,6 +261,10 @@ C76_EVENTS_SINCE_PREV <- null;
 C76_REGEN_TARGETED <- false;
 /* C77 : injection immediate de candidats lies a une entite touchee par un evenement. */
 C77_OPPORTUNISTIC_CANDIDATES <- false;
+/* C77 : construction reactive ciblee sur l'entite de l'evenement (tache 4). */
+C77_TARGETED_BUILD <- false;
+/* C77 : correctifs (reports au rechargement, invalidation fermeture industrie, cle de coalescence, worker sync). */
+C77_FIXES <- false;
 /* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
 C78_SLOT_INTERCEPT_PROBE <- false;

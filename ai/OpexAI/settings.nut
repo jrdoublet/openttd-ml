@@ -333,6 +333,8 @@ function OpexLoadSettings()
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
   C77_OPPORTUNISTIC_CANDIDATES = AIController.GetSetting("c77_opportunistic_candidates") != 0;
+  C77_TARGETED_BUILD = C77_OPPORTUNISTIC_CANDIDATES && (AIController.GetSetting("c77_targeted_build") != 0);
+  C77_FIXES = C77_OPPORTUNISTIC_CANDIDATES && (AIController.GetSetting("c77_fixes") != 0);
   /* C77 alimente la file reactive : l'armer implique le socle C80. C76 fonctionne sans. */
   C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0 || C77_OPPORTUNISTIC_CANDIDATES;
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
