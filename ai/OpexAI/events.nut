@@ -41,7 +41,17 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
                             portfolio = false, selection = false, affectedKind = null,
                             affectedId = -1, affectedMode = null, targetedRelevant = true)
 {
-  local functional = C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES);
+  if (C76_REGEN_TARGETED) {
+    if (reason == "industry_open" || reason == "industry_close") {
+      this._c76BumpLayer("industries", true);
+    } else if (reason == "town_founded") {
+      this._c76BumpLayer("towns", true);
+    } else if (reason == "engine_available" && affectedMode != null) {
+      this._c76BumpLayer("engines." + affectedMode, true);
+    }
+  }
+  /* C77 alimente la file reactive ; C76 suit ses propres revisions ci-dessus. */
+  local functional = C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES;
   if ((!C39_INVALIDATION_PROBE && !functional) || this._staleness == null) return;
   local revisionTracking = C41_REVISION_PROBE || functional;
   local revisionBumped = false;
@@ -115,16 +125,17 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
     local targeted = C77_OPPORTUNISTIC_CANDIDATES
         && affectedId >= 0 && (affectedKind == "town" || affectedKind == "industry")
         && reason != "industry_close";
-    local shouldRoute = C76_REGEN_TARGETED
-        || (C77_OPPORTUNISTIC_CANDIDATES && (targeted || reason == "engine_available"));
+    /* Un moteur neuf releve d'une regeneration de mode ; si C76 est arme, sa couche
+     * engines a deja enfile la regeneration complete et C77 ne la double pas. */
+    local shouldRoute = targeted || (reason == "engine_available" && !C76_REGEN_TARGETED);
     local modes = [];
     foreach (layer in candidateLayers) {
       if (targeted && affectedKind == "town" && layer == "water") continue;
       modes.append(layer);
     }
     if (shouldRoute && modes.len() > 0) {
-      this._c76EnqueueRegen(modes, targeted ? affectedKind : null,
-                            targeted ? affectedId : -1, targeted, targeted, reason);
+      this._c77EnqueueEntity(modes, targeted ? affectedKind : null,
+                             targeted ? affectedId : -1, targeted, reason);
     }
   }
   if (WATER_OPCODE_COMPAT_FALSE && targetedRelevant && catalogLayers != null) {

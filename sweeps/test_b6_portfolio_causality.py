@@ -32,7 +32,7 @@ class TestB6PortfolioCausality(unittest.TestCase):
         self.assertIn("PORTFOLIO_FLOOR_PCT <- 0;", self.globals)
         select = body(self.projects, "function OpexProjectSelectAffordable(")
         self.assertIn('"fundScore"', select)
-        self.assertIn("OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,", select)
+        self.assertIn("OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,", select)
         self.assertIn('(C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital', select)
 
     def test_probe_is_decision_log_guarded(self):

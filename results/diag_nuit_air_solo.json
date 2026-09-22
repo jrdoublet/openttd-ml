@@ -1,0 +1,1048 @@
+{
+  "openttd_version": "15.3",
+  "starting_year": 1970,
+  "years": 6,
+  "seeds": [
+    100,
+    42,
+    12345
+  ],
+  "arms": {
+    "base": {},
+    "fl1": {
+      "air_full_load": 1
+    },
+    "fl2": {
+      "air_full_load": 2
+    },
+    "c82": {
+      "c82_engine_calibration": 1
+    }
+  },
+  "probe": false,
+  "summary": {
+    "by_metric": {
+      "profit_year": {
+        "per_arm": {
+          "solo:base": {
+            "mean": 2201883,
+            "median": 2289246,
+            "per_seed": {
+              "100": 1431512,
+              "42": 2289246,
+              "12345": 2884891
+            }
+          },
+          "solo:fl1": {
+            "mean": 1013078.3333333334,
+            "median": 1020744,
+            "per_seed": {
+              "100": 740186,
+              "42": 1278305,
+              "12345": 1020744
+            }
+          },
+          "solo:fl2": {
+            "mean": 1379951.3333333333,
+            "median": 1694245,
+            "per_seed": {
+              "100": 609321,
+              "42": 1694245,
+              "12345": 1836288
+            }
+          },
+          "solo:c82": {
+            "mean": 2473780.6666666665,
+            "median": 2612023,
+            "per_seed": {
+              "100": 1946562,
+              "42": 2612023,
+              "12345": 2862757
+            }
+          }
+        },
+        "pairs": {
+          "solo:fl1-base": {
+            "deltas": {
+              "100": -691326,
+              "42": -1010941,
+              "12345": -1864147
+            },
+            "delta_mean": -1188804.6666666667,
+            "delta_median": -1010941,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:fl2-base": {
+            "deltas": {
+              "100": -822191,
+              "42": -595001,
+              "12345": -1048603
+            },
+            "delta_mean": -821931.6666666666,
+            "delta_median": -822191,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:c82-base": {
+            "deltas": {
+              "100": 515050,
+              "42": 322777,
+              "12345": -22134
+            },
+            "delta_mean": 271897.6666666667,
+            "delta_median": 322777,
+            "paired_outcome": {
+              "wins": 2,
+              "ties": 0,
+              "losses": 1
+            }
+          }
+        }
+      },
+      "company_value": {
+        "per_arm": {
+          "solo:base": {
+            "mean": 8468755.333333334,
+            "median": 9200576,
+            "per_seed": {
+              "100": 5424687,
+              "42": 9200576,
+              "12345": 10781003
+            }
+          },
+          "solo:fl1": {
+            "mean": 3891522.6666666665,
+            "median": 3803759,
+            "per_seed": {
+              "100": 3531861,
+              "42": 4338948,
+              "12345": 3803759
+            }
+          },
+          "solo:fl2": {
+            "mean": 5556837,
+            "median": 5943772,
+            "per_seed": {
+              "100": 2246159,
+              "42": 5943772,
+              "12345": 8480580
+            }
+          },
+          "solo:c82": {
+            "mean": 9051313.333333334,
+            "median": 10199886,
+            "per_seed": {
+              "100": 6273046,
+              "42": 10199886,
+              "12345": 10681008
+            }
+          }
+        },
+        "pairs": {
+          "solo:fl1-base": {
+            "deltas": {
+              "100": -1892826,
+              "42": -4861628,
+              "12345": -6977244
+            },
+            "delta_mean": -4577232.666666667,
+            "delta_median": -4861628,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:fl2-base": {
+            "deltas": {
+              "100": -3178528,
+              "42": -3256804,
+              "12345": -2300423
+            },
+            "delta_mean": -2911918.3333333335,
+            "delta_median": -3178528,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:c82-base": {
+            "deltas": {
+              "100": 848359,
+              "42": 999310,
+              "12345": -99995
+            },
+            "delta_mean": 582558,
+            "delta_median": 848359,
+            "paired_outcome": {
+              "wins": 2,
+              "ties": 0,
+              "losses": 1
+            }
+          }
+        }
+      },
+      "vehicles": {
+        "per_arm": {
+          "solo:base": {
+            "mean": 131.33333333333334,
+            "median": 142,
+            "per_seed": {
+              "100": 142,
+              "42": 94,
+              "12345": 158
+            }
+          },
+          "solo:fl1": {
+            "mean": 115.66666666666667,
+            "median": 114,
+            "per_seed": {
+              "100": 121,
+              "42": 112,
+              "12345": 114
+            }
+          },
+          "solo:fl2": {
+            "mean": 111.66666666666667,
+            "median": 111,
+            "per_seed": {
+              "100": 77,
+              "42": 111,
+              "12345": 147
+            }
+          },
+          "solo:c82": {
+            "mean": 137,
+            "median": 141,
+            "per_seed": {
+              "100": 125,
+              "42": 145,
+              "12345": 141
+            }
+          }
+        },
+        "pairs": {
+          "solo:fl1-base": {
+            "deltas": {
+              "100": -21,
+              "42": 18,
+              "12345": -44
+            },
+            "delta_mean": -15.666666666666666,
+            "delta_median": -21,
+            "paired_outcome": {
+              "wins": 1,
+              "ties": 0,
+              "losses": 2
+            }
+          },
+          "solo:fl2-base": {
+            "deltas": {
+              "100": -65,
+              "42": 17,
+              "12345": -11
+            },
+            "delta_mean": -19.666666666666668,
+            "delta_median": -11,
+            "paired_outcome": {
+              "wins": 1,
+              "ties": 0,
+              "losses": 2
+            }
+          },
+          "solo:c82-base": {
+            "deltas": {
+              "100": -17,
+              "42": 51,
+              "12345": -17
+            },
+            "delta_mean": 5.666666666666667,
+            "delta_median": -17,
+            "paired_outcome": {
+              "wins": 1,
+              "ties": 0,
+              "losses": 2
+            }
+          }
+        }
+      },
+      "air_profit": {
+        "per_arm": {
+          "solo:base": {
+            "mean": 1973640.781255,
+            "median": 1998476.339848,
+            "per_seed": {
+              "100": 1253231.773441,
+              "42": 1998476.339848,
+              "12345": 2669214.230476
+            }
+          },
+          "solo:fl1": {
+            "mean": 906161.0872416666,
+            "median": 985235.199221,
+            "per_seed": {
+              "100": 642450.07422,
+              "42": 1090797.988284,
+              "12345": 985235.199221
+            }
+          },
+          "solo:fl2": {
+            "mean": 1344385.8710963333,
+            "median": 1623820.31641,
+            "per_seed": {
+              "100": 675313.894533,
+              "42": 1623820.31641,
+              "12345": 1734023.402346
+            }
+          },
+          "solo:c82": {
+            "mean": 2171717.828138,
+            "median": 2391630.199228,
+            "per_seed": {
+              "100": 1723399.839862,
+              "42": 2391630.199228,
+              "12345": 2400123.445324
+            }
+          }
+        },
+        "pairs": {
+          "solo:fl1-base": {
+            "deltas": {
+              "100": -610781.699221,
+              "42": -907678.3515640001,
+              "12345": -1683979.0312549998
+            },
+            "delta_mean": -1067479.6940133334,
+            "delta_median": -907678.3515640001,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:fl2-base": {
+            "deltas": {
+              "100": -577917.878908,
+              "42": -374656.0234380001,
+              "12345": -935190.8281299998
+            },
+            "delta_mean": -629254.9101586667,
+            "delta_median": -577917.878908,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:c82-base": {
+            "deltas": {
+              "100": 470168.06642100005,
+              "42": 393153.8593799998,
+              "12345": -269090.7851519999
+            },
+            "delta_mean": 198077.04688299997,
+            "delta_median": 393153.8593799998,
+            "paired_outcome": {
+              "wins": 2,
+              "ties": 0,
+              "losses": 1
+            }
+          }
+        }
+      },
+      "air_profit_per_seat": {
+        "per_arm": {
+          "solo:base": {
+            "mean": 144.42730616638335,
+            "median": 157.52223254505753,
+            "per_seed": {
+              "100": 91.73792353714954,
+              "42": 184.02176241694292,
+              "12345": 157.52223254505753
+            }
+          },
+          "solo:fl1": {
+            "mean": 67.30557548446633,
+            "median": 67.36650934844444,
+            "per_seed": {
+              "100": 53.11699662835882,
+              "42": 81.43322047659574,
+              "12345": 67.36650934844444
+            }
+          },
+          "solo:fl2": {
+            "mean": 107.59132344520675,
+            "median": 109.54032863840808,
+            "per_seed": {
+              "100": 88.27632608274509,
+              "42": 124.9573156144671,
+              "12345": 109.54032863840808
+            }
+          },
+          "solo:c82": {
+            "mean": 127.69753207955583,
+            "median": 129.3518429169496,
+            "per_seed": {
+              "100": 119.07689075257376,
+              "42": 134.66386256914413,
+              "12345": 129.3518429169496
+            }
+          }
+        },
+        "pairs": {
+          "solo:fl1-base": {
+            "deltas": {
+              "100": -38.62092690879072,
+              "42": -102.58854194034718,
+              "12345": -90.1557231966131
+            },
+            "delta_mean": -77.121730681917,
+            "delta_median": -90.1557231966131,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:fl2-base": {
+            "deltas": {
+              "100": -3.4615974544044548,
+              "42": -59.064446802475814,
+              "12345": -47.98190390664945
+            },
+            "delta_mean": -36.83598272117657,
+            "delta_median": -47.98190390664945,
+            "paired_outcome": {
+              "wins": 0,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:c82-base": {
+            "deltas": {
+              "100": 27.33896721542422,
+              "42": -49.35789984779879,
+              "12345": -28.170389628107927
+            },
+            "delta_mean": -16.7297740868275,
+            "delta_median": -28.170389628107927,
+            "paired_outcome": {
+              "wins": 1,
+              "ties": 0,
+              "losses": 2
+            }
+          }
+        }
+      },
+      "air_planes_per_line": {
+        "per_arm": {
+          "solo:base": {
+            "mean": 1.5053947702462553,
+            "median": 1.5384615384615385,
+            "per_seed": {
+              "100": 1.5384615384615385,
+              "42": 1.75,
+              "12345": 1.2277227722772277
+            }
+          },
+          "solo:fl1": {
+            "mean": 2.053548085901027,
+            "median": 2.05,
+            "per_seed": {
+              "100": 2.0392156862745097,
+              "42": 2.05,
+              "12345": 2.0714285714285716
+            }
+          },
+          "solo:fl2": {
+            "mean": 1.902377350413397,
+            "median": 1.951219512195122,
+            "per_seed": {
+              "100": 2.3703703703703702,
+              "42": 1.951219512195122,
+              "12345": 1.3855421686746987
+            }
+          },
+          "solo:c82": {
+            "mean": 1.2885657785546552,
+            "median": 1.2873563218390804,
+            "per_seed": {
+              "100": 1.3095238095238095,
+              "42": 1.2688172043010753,
+              "12345": 1.2873563218390804
+            }
+          }
+        },
+        "pairs": {
+          "solo:fl1-base": {
+            "deltas": {
+              "100": 0.5007541478129711,
+              "42": 0.2999999999999998,
+              "12345": 0.8437057991513439
+            },
+            "delta_mean": 0.5481533156547717,
+            "delta_median": 0.5007541478129711,
+            "paired_outcome": {
+              "wins": 3,
+              "ties": 0,
+              "losses": 0
+            }
+          },
+          "solo:fl2-base": {
+            "deltas": {
+              "100": 0.8319088319088317,
+              "42": 0.2012195121951219,
+              "12345": 0.157819396397471
+            },
+            "delta_mean": 0.39698258016714155,
+            "delta_median": 0.2012195121951219,
+            "paired_outcome": {
+              "wins": 3,
+              "ties": 0,
+              "losses": 0
+            }
+          },
+          "solo:c82-base": {
+            "deltas": {
+              "100": -0.228937728937729,
+              "42": -0.48118279569892475,
+              "12345": 0.05963354956185274
+            },
+            "delta_mean": -0.21682899169160033,
+            "delta_median": -0.228937728937729,
+            "paired_outcome": {
+              "wins": 1,
+              "ties": 0,
+              "losses": 2
+            }
+          }
+        }
+      }
+    },
+    "air_engines": {
+      "solo:base": {
+        "per_seed": {
+          "100": {
+            "216": 2,
+            "217": 76,
+            "218": 2,
+            "221": 4,
+            "223": 6,
+            "225": 16,
+            "227": 13,
+            "228": 1
+          },
+          "42": {
+            "217": 14,
+            "218": 3,
+            "221": 4,
+            "223": 18,
+            "225": 7,
+            "227": 23,
+            "228": 1
+          },
+          "12345": {
+            "217": 65,
+            "218": 13,
+            "221": 7,
+            "223": 21,
+            "225": 4,
+            "227": 12,
+            "228": 2
+          }
+        },
+        "total": {
+          "216": 2,
+          "217": 155,
+          "218": 18,
+          "221": 15,
+          "223": 45,
+          "225": 27,
+          "227": 48,
+          "228": 4
+        }
+      },
+      "solo:fl1": {
+        "per_seed": {
+          "100": {
+            "217": 72,
+            "221": 4,
+            "223": 6,
+            "225": 5,
+            "227": 16,
+            "228": 1
+          },
+          "42": {
+            "217": 31,
+            "221": 2,
+            "223": 24,
+            "225": 10,
+            "227": 10,
+            "228": 2,
+            "232": 3
+          },
+          "12345": {
+            "217": 31,
+            "223": 32,
+            "225": 1,
+            "227": 22,
+            "228": 1
+          }
+        },
+        "total": {
+          "217": 134,
+          "221": 6,
+          "223": 62,
+          "225": 16,
+          "227": 48,
+          "228": 4,
+          "232": 3
+        }
+      },
+      "solo:fl2": {
+        "per_seed": {
+          "100": {
+            "217": 34,
+            "221": 1,
+            "223": 3,
+            "225": 6,
+            "227": 19,
+            "228": 1
+          },
+          "42": {
+            "217": 14,
+            "221": 13,
+            "223": 21,
+            "225": 13,
+            "227": 15,
+            "228": 4
+          },
+          "12345": {
+            "217": 56,
+            "218": 17,
+            "221": 6,
+            "223": 21,
+            "225": 3,
+            "227": 11,
+            "228": 1
+          }
+        },
+        "total": {
+          "217": 104,
+          "218": 17,
+          "221": 20,
+          "223": 45,
+          "225": 22,
+          "227": 45,
+          "228": 6
+        }
+      },
+      "solo:c82": {
+        "per_seed": {
+          "100": {
+            "216": 1,
+            "217": 44,
+            "223": 18,
+            "225": 39,
+            "227": 7,
+            "228": 1
+          },
+          "42": {
+            "217": 81,
+            "218": 1,
+            "223": 34,
+            "228": 2
+          },
+          "12345": {
+            "217": 64,
+            "218": 2,
+            "223": 44,
+            "227": 1,
+            "228": 1
+          }
+        },
+        "total": {
+          "216": 1,
+          "217": 189,
+          "218": 3,
+          "223": 96,
+          "225": 39,
+          "227": 8,
+          "228": 4
+        }
+      }
+    }
+  },
+  "final_runs": [
+    {
+      "context": "solo",
+      "arm": "base",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2289246,
+      "opex_company_value": 9200576,
+      "opex_vehicles": 94,
+      "opex_air_engines": {
+        "217": 14,
+        "218": 3,
+        "221": 4,
+        "223": 18,
+        "225": 7,
+        "227": 23,
+        "228": 1
+      },
+      "air_lines": 40,
+      "air_planes": 70,
+      "air_seats": 10860,
+      "air_profit": 1998476.339848,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 184.02176241694292,
+      "air_planes_per_line": 1.75,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "base",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1431512,
+      "opex_company_value": 5424687,
+      "opex_vehicles": 142,
+      "opex_air_engines": {
+        "216": 2,
+        "217": 76,
+        "218": 2,
+        "221": 4,
+        "223": 6,
+        "225": 16,
+        "227": 13,
+        "228": 1
+      },
+      "air_lines": 78,
+      "air_planes": 120,
+      "air_seats": 13661,
+      "air_profit": 1253231.773441,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 91.73792353714954,
+      "air_planes_per_line": 1.5384615384615385,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "base",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2884891,
+      "opex_company_value": 10781003,
+      "opex_vehicles": 158,
+      "opex_air_engines": {
+        "217": 65,
+        "218": 13,
+        "221": 7,
+        "223": 21,
+        "225": 4,
+        "227": 12,
+        "228": 2
+      },
+      "air_lines": 101,
+      "air_planes": 124,
+      "air_seats": 16945,
+      "air_profit": 2669214.230476,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 157.52223254505753,
+      "air_planes_per_line": 1.2277227722772277,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "c82",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2612023,
+      "opex_company_value": 10199886,
+      "opex_vehicles": 145,
+      "opex_air_engines": {
+        "217": 81,
+        "218": 1,
+        "223": 34,
+        "228": 2
+      },
+      "air_lines": 93,
+      "air_planes": 118,
+      "air_seats": 17760,
+      "air_profit": 2391630.199228,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 134.66386256914413,
+      "air_planes_per_line": 1.2688172043010753,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "c82",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1946562,
+      "opex_company_value": 6273046,
+      "opex_vehicles": 125,
+      "opex_air_engines": {
+        "216": 1,
+        "217": 44,
+        "223": 18,
+        "225": 39,
+        "227": 7,
+        "228": 1
+      },
+      "air_lines": 84,
+      "air_planes": 110,
+      "air_seats": 14473,
+      "air_profit": 1723399.839862,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 119.07689075257376,
+      "air_planes_per_line": 1.3095238095238095,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "c82",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2862757,
+      "opex_company_value": 10681008,
+      "opex_vehicles": 141,
+      "opex_air_engines": {
+        "217": 64,
+        "218": 2,
+        "223": 44,
+        "227": 1,
+        "228": 1
+      },
+      "air_lines": 87,
+      "air_planes": 112,
+      "air_seats": 18555,
+      "air_profit": 2400123.445324,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 129.3518429169496,
+      "air_planes_per_line": 1.2873563218390804,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "fl1",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 1278305,
+      "opex_company_value": 4338948,
+      "opex_vehicles": 112,
+      "opex_air_engines": {
+        "217": 31,
+        "221": 2,
+        "223": 24,
+        "225": 10,
+        "227": 10,
+        "228": 2,
+        "232": 3
+      },
+      "air_lines": 40,
+      "air_planes": 82,
+      "air_seats": 13395,
+      "air_profit": 1090797.988284,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 81.43322047659574,
+      "air_planes_per_line": 2.05,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "fl1",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 740186,
+      "opex_company_value": 3531861,
+      "opex_vehicles": 121,
+      "opex_air_engines": {
+        "217": 72,
+        "221": 4,
+        "223": 6,
+        "225": 5,
+        "227": 16,
+        "228": 1
+      },
+      "air_lines": 51,
+      "air_planes": 104,
+      "air_seats": 12095,
+      "air_profit": 642450.07422,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 53.11699662835882,
+      "air_planes_per_line": 2.0392156862745097,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "fl1",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 1020744,
+      "opex_company_value": 3803759,
+      "opex_vehicles": 114,
+      "opex_air_engines": {
+        "217": 31,
+        "223": 32,
+        "225": 1,
+        "227": 22,
+        "228": 1
+      },
+      "air_lines": 42,
+      "air_planes": 87,
+      "air_seats": 14625,
+      "air_profit": 985235.199221,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 67.36650934844444,
+      "air_planes_per_line": 2.0714285714285716,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "fl2",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 1694245,
+      "opex_company_value": 5943772,
+      "opex_vehicles": 111,
+      "opex_air_engines": {
+        "217": 14,
+        "221": 13,
+        "223": 21,
+        "225": 13,
+        "227": 15,
+        "228": 4
+      },
+      "air_lines": 41,
+      "air_planes": 80,
+      "air_seats": 12995,
+      "air_profit": 1623820.31641,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 124.9573156144671,
+      "air_planes_per_line": 1.951219512195122,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "fl2",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 609321,
+      "opex_company_value": 2246159,
+      "opex_vehicles": 77,
+      "opex_air_engines": {
+        "217": 34,
+        "221": 1,
+        "223": 3,
+        "225": 6,
+        "227": 19,
+        "228": 1
+      },
+      "air_lines": 27,
+      "air_planes": 64,
+      "air_seats": 7650,
+      "air_profit": 675313.894533,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 88.27632608274509,
+      "air_planes_per_line": 2.3703703703703702,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    },
+    {
+      "context": "solo",
+      "arm": "fl2",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 1836288,
+      "opex_company_value": 8480580,
+      "opex_vehicles": 147,
+      "opex_air_engines": {
+        "217": 56,
+        "218": 17,
+        "221": 6,
+        "223": 21,
+        "225": 3,
+        "227": 11,
+        "228": 1
+      },
+      "air_lines": 83,
+      "air_planes": 115,
+      "air_seats": 15830,
+      "air_profit": 1734023.402346,
+      "air_profit_source": "this_year",
+      "air_profit_per_seat": 109.54032863840808,
+      "air_planes_per_line": 1.3855421686746987,
+      "c82_probe": {
+        "factors": {},
+        "calls_sum": 0,
+        "differ_sum": 0,
+        "choice_samples": []
+      }
+    }
+  ]
+}

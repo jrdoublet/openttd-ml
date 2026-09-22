@@ -158,6 +158,26 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_full_load",
+      description = "C81: air full-load orders; 0 = none (default), 1 = full load at both airports, 2 = full load at the first airport only (AAAHogEx default)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c82_engine_calibration",
+      description = "C82: scale predicted air profit by a per-aircraft-engine realised/predicted factor from own mature air lines, instead of the C70 air factor (project ranking and aircraft choice per route); 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "c75_multi_build",
       description = "C75: multi-build per pass in rich phase as long as capital < K_pass and capital <= available; 1 = on (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -423,6 +443,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "town_growth_plan_memo",
+      description = "Town growth: remember a town whose bus-line planning failed (TRACEX/DEPOTX/SITE) and retry only when its house count changed; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "town_growth_skip_noop",
       description = "After an empty town-growth attempt, run the next task immediately: 1 = skip slot, 0 = historical (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -455,8 +483,24 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c80_worker_rail",
+      description = "C80 tranche 1: migrate A* rail search to execution register worker: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c80_worker_town",
+      description = "C80 tranche 2: migrate town growth to execution register worker: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c76_regen_targeted",
-      description = "C76 step 2: regenerate only invalidated candidate modes with a periodic safety net: 1 = test arm, 0 = full historical regeneration (default)",
+      description = "C76 step 2 / C80 tranche 3: invalidation-driven project pool regeneration: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

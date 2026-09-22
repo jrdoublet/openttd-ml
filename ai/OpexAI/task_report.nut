@@ -7,6 +7,7 @@ function OpexAI::_reportLines(year)
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
+  local c82Sums = C82_ENGINE_CALIBRATION ? {} : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
@@ -157,26 +158,33 @@ function OpexAI::_reportLines(year)
       OpexC63RecordLine(lMode, lAge, predProfit, profit, predRev, profit + runCost,
                         vehCount, line.lineId, year - 1);
     }
-    /* C70 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
+    /* C70 / C82 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
      * construction est partielle). Par convoi initial, amortissement predit retire du realise
      * (GetProfitLastYear n'amortit rien). Ratio de sommes : une annee aberrante pese son poids. */
-    if (C70_MODE_CALIBRATION) {
+    if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION) {
       local cMode = ("mode" in line) ? line.mode : "unknown";
       local cAge = ("year" in line) ? (year - line.year) : -1;
       local cPred = ("predicted" in line) ? line.predicted : 0;
       local cN0 = ("trains0" in line) ? line.trains0 : 0;
-      if (cAge >= 2 && cPred > 0 && cN0 > 0 && vehCount > 0 && (cMode in c70Sums)) {
+      local modeOk = (c70Sums != null && (cMode in c70Sums)) || (cMode == "air");
+      if (cAge >= 2 && cPred > 0 && cN0 > 0 && vehCount > 0 && modeOk) {
         local cAmort = ("predAmort" in line) ? line.predAmort : 0;
         local real = profit.tofloat() * cN0 / vehCount - cAmort;
         if (!("c70Real" in line)) { line.c70Real <- 0.0; line.c70Pred <- 0.0; }
         line.c70Real += real;
         line.c70Pred += cPred.tofloat();
       }
-      if (("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
+      if (C70_MODE_CALIBRATION && ("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
         /* tofloat : apres chargement, les cumuls sont des entiers (la sauvegarde arrondit les
          * flottants) et une division entiere fausserait le ratio. */
         c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
         c70Sums[cMode][1]++;
+      }
+      if (C82_ENGINE_CALIBRATION && cMode == "air" && ("planeId" in line) && line.planeId >= 0 && ("c70Pred" in line) && line.c70Pred > 0) {
+        local e = line.planeId;
+        if (!(e in c82Sums)) c82Sums[e] <- [0.0, 0];
+        c82Sums[e][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
+        c82Sums[e][1]++;
       }
     }
     if (C69_BOTTLENECK_PROBE) {
@@ -350,6 +358,24 @@ function OpexAI::_reportLines(year)
       }
     }
   }
+  if (C82_ENGINE_CALIBRATION) {
+    C82_ENGINE_FACTOR.clear();
+    foreach (e, acc in c82Sums) {
+      local n = acc[1];
+      local k = (acc[0] + 1.0) / (n + 1).tofloat();
+      C82_ENGINE_FACTOR[e] <- k;
+      if (C69_BOTTLENECK_PROBE) {
+        OpexC69Log("phase=c82_factor year=" + year + " engine=" + e + " name=" + OpexPlaneName(e)
+            + " lines=" + n + " k=" + k);
+      }
+    }
+    if (C69_BOTTLENECK_PROBE) {
+      OpexC69Log("phase=c82_choice_summary year=" + year
+          + " calls=" + C82_CHOICE_CALLS + " differ=" + C82_CHOICE_DIFFER);
+      C82_CHOICE_CALLS = 0;
+      C82_CHOICE_DIFFER = 0;
+    }
+  }
   if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {
     foreach (item in C69_PENDING_FOLLOWUPS) {
       OpexC69Log("phase=c3_pending pass=" + item.passId + " passes_waited=" + item.passesWaited
@@ -503,6 +529,9 @@ function OpexAI::_scrapDeadLines(year)
    * traite dans toRemove. */
   for (local k = toRemove.len() - 1; k >= 0; k--) {
     this._lines.remove(toRemove[k]);
+  }
+  if (C76_REGEN_TARGETED && toRemove.len() > 0) {
+    this._c76BumpLayer("lines", false);
   }
 }
 /* Vente autonome des retraites unitaires C52. Contrairement a la mise au rebut
@@ -725,7 +754,7 @@ function OpexAI::_reportYear(year, ranked)
 
 }
 
-function OpexAI::_c76RecordRegen(kind, ops, days, year)
+function OpexAI::_c76RecordRegen(kind, ops, days, year, reason = "unknown")
 {
   if (!C39_INVALIDATION_PROBE) return;
 
@@ -923,7 +952,8 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
     && linesDelta == 0
     && townsDelta == 0) ? 1 : 0;
 
-  local line = "phase=regen kind=" + kind + " year=" + year
+  local line = "phase=regen kind=" + kind + " reason=" + reason + " year=" + year
+    + " days=" + days
     + " days_since_prev=" + daysSincePrev
     + " ops=" + ops
     + " towns_n=" + townsN
@@ -956,10 +986,12 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
       C76_YEAR_LEDGER.rawset(year, {
         full = 0,
         incremental = 0,
+        avoided = 0,
         ops_total = 0,
         days_total = 0,
         unchanged_deps = 0,
-        top1_unchanged = 0
+        top1_unchanged = 0,
+        reasons = {}
       });
     }
     local rec = C76_YEAR_LEDGER[year];
@@ -969,6 +1001,9 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
     rec.days_total += days;
     if (unchangedDeps == 1) rec.unchanged_deps++;
     if (bestSameTop1 == 1) rec.top1_unchanged++;
+    if (!("reasons" in rec)) rec.reasons <- {};
+    if (reason in rec.reasons) rec.reasons[reason]++;
+    else rec.reasons.rawset(reason, 1);
   }
 
   C76_PREV_STATE = {
@@ -993,4 +1028,29 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
   };
 
   C76_EVENTS_SINCE_PREV = { total = 0, by_type = {} };
+}
+
+function OpexAI::_c76RecordAvoided(year)
+{
+  if (!C39_INVALIDATION_PROBE) return;
+  if (C76_YEAR_LEDGER != null) {
+    if (!(year in C76_YEAR_LEDGER)) {
+      C76_YEAR_LEDGER.rawset(year, {
+        full = 0,
+        incremental = 0,
+        avoided = 0,
+        ops_total = 0,
+        days_total = 0,
+        unchanged_deps = 0,
+        top1_unchanged = 0,
+        reasons = {}
+      });
+    }
+    local rec = C76_YEAR_LEDGER[year];
+    if (!("avoided" in rec)) rec.avoided <- 0;
+    rec.avoided++;
+  }
+  local avoidedCount = (C76_YEAR_LEDGER != null && (year in C76_YEAR_LEDGER) && ("avoided" in C76_YEAR_LEDGER[year]))
+      ? C76_YEAR_LEDGER[year].avoided : 1;
+  OpexC76Log("phase=regen_avoided year=" + year + " avoided_count=" + avoidedCount);
 }

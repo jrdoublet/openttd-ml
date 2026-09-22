@@ -47,151 +47,185 @@ function OpexGetServedTowns(lines)
   }
   return result;
 }
-/* Tache basse priorite de croissance urbaine : construit au plus une ligne bus de base dans une
- * ville deja desservie. */
-function OpexAI::_tryTownGrowth(year)
+/* Évalue les gardes d'éligibilité et de trésorerie pour la croissance urbaine.
+ * Renvoie le tableau des villes desservies en cas de succès, null sinon. */
+function OpexAI::_prepareTownGrowth()
 {
-  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return false;
+  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return null;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < OpexCashReserve() + 25000) return false;
+  if (money < OpexCashReserve() + 25000) return null;
+
+  local engine = (this._catalog.paxCargo in this._catalog.roadEngineByCargo)
+      ? this._catalog.roadEngineByCargo[this._catalog.paxCargo] : null;
+  if (engine == null) return null;
+
+  local servedTowns = OpexGetServedTowns(this._lines);
+  if (servedTowns.len() == 0) return null;
+
+  return servedTowns;
+}
+
+/* Traite une seule ville pour la croissance urbaine.
+ * Renvoie true si une ligne a été construite avec succès, false sinon. */
+function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
+{
+  if (!AITown.IsValidTown(townId)) return false;
+  /* Une seule ligne bus de base par commune. Le plafond de croissance n'autorise pas cinq
+   * lignes superposees : les quartiers suivants deviennent des bus_pax_extension de la ligne. */
+  if (OpexTownBusPaxServed(this._lines, townId)) return false;
+  if (TOWN_GROWTH_PLAN_MEMO && this._townPlanFailures != null && (townId in this._townPlanFailures)
+      && this._townPlanFailures[townId] == AITown.GetHouseCount(townId)) {
+    if (DECISION_LOG) OpexDecide("TOWN_GROWTH_MEMO", "action=skip town=" + townId);
+    return false;
+  }
+  local currentCount = OpexCountTownStations(townId);
+  if (currentCount >= 5) return false;
+
+  local townTile = AITown.GetLocation(townId);
+  local townPop = AITown.GetPopulation(townId);
+  if (townPop < 100) return false;
+
+  local cx = AIMap.GetTileX(townTile);
+  local cy = AIMap.GetTileY(townTile);
+  local srcCenter = townTile;
+  local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];
+  local dstCenter = null;
+  foreach (off in offsets) {
+    local tx = cx + off[0];
+    local ty = cy + off[1];
+    if (OpexRoadInMap(tx, ty)) {
+      local t = AIMap.GetTileIndex(tx, ty);
+      if (AITile.GetClosestTown(t) == townId && AITile.GetCargoProduction(t, this._catalog.paxCargo, 1, 1, 3) > 0) {
+        dstCenter = t;
+        break;
+      }
+    }
+  }
+  if (dstCenter == null) {
+    dstCenter = townTile + AIMap.GetTileIndex(5, 5);
+    if (!AIMap.IsValidTile(dstCenter) || AITile.GetClosestTown(dstCenter) != townId) dstCenter = townTile;
+  }
+
+  local dist = AIMap.DistanceManhattan(srcCenter, dstCenter);
+  if (dist < 4) dist = 5;
 
   local engine = (this._catalog.paxCargo in this._catalog.roadEngineByCargo)
       ? this._catalog.roadEngineByCargo[this._catalog.paxCargo] : null;
   if (engine == null) return false;
 
-  local servedTowns = OpexGetServedTowns(this._lines);
-  if (servedTowns.len() == 0) return false;
+  local candidate = {
+    src = srcCenter,
+    dst = dstCenter,
+    srcTown = townId,
+    dstTown = townId,
+    cargo = this._catalog.paxCargo,
+    kind = "pax",
+    distance = dist,
+    trains = 1,
+    engine = engine,
+    capital = 2 * this._catalog.costRoadBusStop + 20 * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + engine.price,
+    revenueAnnual = 0,
+    runningAnnual = 0,
+    amortAnnual = 0,
+    carried = 0,
+    oneWayDays = 1,
+    iterations = 0,
+    profitAnnual = 0,
+    effectiveSpeed = engine.speed,
+  };
+
+  this._budget.begin();
+  local planning = OpexRoadPlanFor(this._catalog, candidate);
+  local planOps = this._budget.end("build_road_plans");
+  local plan = planning.plan;
+  if (plan == null) {
+    if (TOWN_GROWTH_PLAN_MEMO) {
+      if (this._townPlanFailures == null) this._townPlanFailures = {};
+      this._townPlanFailures.rawset(townId, AITown.GetHouseCount(townId));
+      if (DECISION_LOG) OpexDecide("TOWN_GROWTH_MEMO", "action=store town=" + townId + " houses=" + AITown.GetHouseCount(townId));
+    }
+    if (DECISION_LOG) {
+      OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                 + " reason=plan detail=" + planning.reason);
+    }
+    return false;
+  }
+
+  local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+  if (actualDist < 1) actualDist = 1;
+  candidate.distance = actualDist;
+  local routeDist = (plan.routeDistance != null && plan.routeDistance > 0) ? plan.routeDistance : actualDist;
+  candidate.capital = 2 * this._catalog.costRoadBusStop + routeDist * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + candidate.engine.price;
+
+  local need = candidate.capital + OpexCashReserve();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < need) {
+    if (DECISION_LOG) {
+      OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                 + " reason=cash need=" + need + " cash=" + money);
+    }
+    return false;
+  }
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && this._projects != null) {}
+
+  local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+  if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
+  if (anchor == null) anchor = AIMap.GetTileIndex(1, 1);
+  if (ROAD_COST_PROBE) {
+    OpexSign(anchor, "RP|" + townId + "|" + result.plannedCapital + "|" + result.actualCost
+                           + "|" + (result.ok ? result.vehicles.len() : 0));
+  }
+  if (!result.ok) {
+    if (DECISION_LOG) {
+      OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                 + " reason=build detail=" + result.reason + " error=" + result.error
+                 + " dist=" + actualDist);
+    }
+    return false;
+  }
+
+  local newCount = OpexCountTownStations(townId);
+  OpexSign(anchor, "TG|" + (year % 100) + "|" + townId + "|" + currentCount + "|" + newCount);
+  if (DECISION_LOG) {
+    OpexDecide("TOWN_GROWTH", "action=build town=" + townId + " stations_before=" + currentCount + " stations_after=" + newCount + " cost=" + candidate.capital);
+  }
+
+  this._lines.append({
+    stationA = result.stopA, stationB = result.stopB,
+    originA = candidate.src, originB = candidate.dst,
+    cargo = candidate.cargo,
+    predicted = 0, iterations = 0, trains = result.vehicles.len(), distance = dist, year = year,
+    predRevenue = 0, predRunning = 0, predAmort = 0, predCarried = 0, predTrains = 1, predOneWayDays = 1,
+    /* Batie pour la CROISSANCE de la ville, pas pour son profit : son candidat porte
+     * revenueAnnual = 0 EXPLICITE. A exclure nommement d'une comparaison predit/reel, et non
+     * devinee par pred_rev == 0 -- 21 a 23 % des enregistrements du diagnostic. */
+    purpose = "town_growth",
+    effectiveSpeed = engine.speed, catalogSpeed = engine.speed,
+    mode = "road", kind = "pax", depot = result.depot,
+    srcTown = townId, dstTown = townId, extraStops = [],
+    nStopsA = result.nStopsA, nStopsB = result.nStopsB,
+    srcIndustry = -1, dstIndustry = -1,
+    deadStreak = 0, scrapping = false, scrapVehicles = [],
+    isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
+    opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
+    lineId = this._nextLineId,
+  });
+  this._nextLineId++;
+  if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
+  return true;
+}
+
+/* Tache basse priorite de croissance urbaine : construit au plus une ligne bus de base dans une
+ * ville deja desservie. Les quartiers suivants sont proposes au portefeuille comme extensions
+ * espacees de cette meme ligne, jusqu'au plafond de croissance maximale OpenTTD. */
+function OpexAI::_tryTownGrowth(year)
+{
+  local servedTowns = this._prepareTownGrowth();
+  if (servedTowns == null) return false;
 
   local anchor = AIMap.GetTileIndex(1, 1);
-
   foreach (townId in servedTowns) {
-    if (!AITown.IsValidTown(townId)) continue;
-    /* Une seule ligne bus de base par commune. */
-    if (OpexTownBusPaxServed(this._lines, townId)) continue;
-    local currentCount = OpexCountTownStations(townId);
-    if (currentCount >= 5) continue;
-
-    local townTile = AITown.GetLocation(townId);
-    local townPop = AITown.GetPopulation(townId);
-    if (townPop < 100) continue;
-
-    local cx = AIMap.GetTileX(townTile);
-    local cy = AIMap.GetTileY(townTile);
-    local srcCenter = townTile;
-    local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];
-    local dstCenter = null;
-    foreach (off in offsets) {
-      local tx = cx + off[0];
-      local ty = cy + off[1];
-      if (OpexRoadInMap(tx, ty)) {
-        local t = AIMap.GetTileIndex(tx, ty);
-        if (AITile.GetClosestTown(t) == townId && AITile.GetCargoProduction(t, this._catalog.paxCargo, 1, 1, 3) > 0) {
-          dstCenter = t;
-          break;
-        }
-      }
-    }
-    if (dstCenter == null) {
-      dstCenter = townTile + AIMap.GetTileIndex(5, 5);
-      if (!AIMap.IsValidTile(dstCenter) || AITile.GetClosestTown(dstCenter) != townId) dstCenter = townTile;
-    }
-
-    local dist = AIMap.DistanceManhattan(srcCenter, dstCenter);
-    if (dist < 4) dist = 5;
-
-    local candidate = {
-      src = srcCenter,
-      dst = dstCenter,
-      srcTown = townId,
-      dstTown = townId,
-      cargo = this._catalog.paxCargo,
-      kind = "pax",
-      distance = dist,
-      trains = 1,
-      engine = engine,
-      capital = 2 * this._catalog.costRoadBusStop + 20 * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + engine.price,
-      revenueAnnual = 0,
-      runningAnnual = 0,
-      amortAnnual = 0,
-      carried = 0,
-      oneWayDays = 1,
-      iterations = 0,
-      profitAnnual = 0,
-      effectiveSpeed = engine.speed,
-    };
-
-    this._budget.begin();
-    local planning = OpexRoadPlanFor(this._catalog, candidate);
-    local planOps = this._budget.end("build_road_plans");
-    local plan = planning.plan;
-    if (plan == null) {
-      if (DECISION_LOG) {
-        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
-                   + " reason=plan detail=" + planning.reason);
-      }
-      continue;
-    }
-
-    local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
-    if (actualDist < 1) actualDist = 1;
-    candidate.distance = actualDist;
-    local routeDist = (plan.routeDistance != null && plan.routeDistance > 0) ? plan.routeDistance : actualDist;
-    candidate.capital = 2 * this._catalog.costRoadBusStop + routeDist * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + candidate.engine.price;
-
-    local need = candidate.capital + OpexCashReserve();
-    money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < need) {
-      if (DECISION_LOG) {
-        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
-                   + " reason=cash need=" + need + " cash=" + money);
-      }
-      continue;
-    }
-    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && this._projects != null) {}
-
-    local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
-    if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
-    if (ROAD_COST_PROBE) {
-      OpexSign(anchor, "RP|" + townId + "|" + result.plannedCapital + "|" + result.actualCost
-                             + "|" + (result.ok ? result.vehicles.len() : 0));
-    }
-    if (!result.ok) {
-      if (DECISION_LOG) {
-        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
-                   + " reason=build detail=" + result.reason + " error=" + result.error
-                   + " dist=" + actualDist);
-      }
-      continue;
-    }
-
-    local newCount = OpexCountTownStations(townId);
-    OpexSign(anchor, "TG|" + (year % 100) + "|" + townId + "|" + currentCount + "|" + newCount);
-    if (DECISION_LOG) {
-      OpexDecide("TOWN_GROWTH", "action=build town=" + townId + " stations_before=" + currentCount + " stations_after=" + newCount + " cost=" + candidate.capital);
-    }
-
-    this._lines.append({
-      stationA = result.stopA, stationB = result.stopB,
-      originA = candidate.src, originB = candidate.dst,
-      cargo = candidate.cargo,
-      predicted = 0, iterations = 0, trains = result.vehicles.len(), distance = dist, year = year,
-      predRevenue = 0, predRunning = 0, predAmort = 0, predCarried = 0, predTrains = 1, predOneWayDays = 1,
-      /* Batie pour la CROISSANCE de la ville, pas pour son profit : son candidat porte
-       * revenueAnnual = 0 EXPLICITE. A exclure nommement d'une comparaison predit/reel, et non
-       * devinee par pred_rev == 0 -- 21 a 23 % des enregistrements du diagnostic. */
-      purpose = "town_growth",
-      effectiveSpeed = engine.speed, catalogSpeed = engine.speed,
-      mode = "road", kind = "pax", depot = result.depot,
-      srcTown = townId, dstTown = townId,
-      nStopsA = result.nStopsA, nStopsB = result.nStopsB,
-      srcIndustry = -1, dstIndustry = -1,
-      deadStreak = 0, scrapping = false, scrapVehicles = [],
-      isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
-      opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
-      lineId = this._nextLineId,
-    });
-    this._nextLineId++;
-    return true;
+    if (this._tryTownGrowthCity(townId, year, anchor)) return true;
   }
   return false;
 }

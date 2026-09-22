@@ -131,7 +131,7 @@ class OpexAI extends AIController {
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
   _reactiveQueue = null;
   _activeWorker = null;
-  _c76LastReconcileMonth = -1;
+  _railWorkerSteppedThisTick = false;
   /* 11.6 : _railSearch contient un pathfinder vivant. Il n'est pas serialise ;
    * Save/Load conserve sa presence pour forcer une reconstruction propre du portefeuille. */
   _reloadDroppedRailSearch = false;
@@ -191,6 +191,7 @@ class OpexAI extends AIController {
   _c39PassClockSliceOps = -1;
   /* C39.6 : accumulateur annuel, cle = "<nom de tache>|slice" ou "<nom de tache>|noslice". */
   _c39PassClockLedger = null;
+  _townWorkerStats = null;
   /* C48 : deux accumulateurs annuels distincts : une ligne par tentative et la vue par passe. */
   _c49ScarcityLedger = null;
   _c49ScarcityRegime = "cash";
@@ -202,6 +203,9 @@ class OpexAI extends AIController {
   _c39CadenceLastCycle = null;
   _c39FinanceableSince = null;
   _startYear = -1;
+  /* town_growth_plan_memo : townId -> nombre de maisons au moment du dernier echec de planification.
+   * Non sauvegarde : apres chargement, chaque ville est simplement replanifiee une fois. */
+  _townPlanFailures = null;
   /* Dates C69/C75 lues dans la sauvegarde, restaurees par _reconcileAfterLoad(). */
   _reloadC69BuildDates = null;
   _reloadC75PassDates = null;
@@ -221,11 +225,34 @@ class OpexAI extends AIController {
    * non-vide→vide ou une fois par mois, pas à chaque passe vide. */
   _lastBestCount = -1;
   _lastEmptyProbeMonth = -1;
+  /* C76 étape 2 / C80 tranche 3 : révisions réelles du vivier pilotées par les invalidations */
+  _c76Revisions = null;
+  _c76AckRevisions = null;
+  _c76ModeConsumed = null;
+  _c76ModeConsumedRevision = null;
+  _c76LastRegenQuarter = -1;
+  _c76ForceReloadRegen = false;
 
   constructor()
   {
     this._lastBestCount = -1;
     this._lastEmptyProbeMonth = -1;
+    this._c76Revisions = {
+      towns = 0,
+      industries = 0,
+      lines = 0,
+      engines = { rail = 0, road = 0, air = 0, water = 0 }
+    };
+    this._c76AckRevisions = {
+      towns = 0,
+      industries = 0,
+      lines = 0,
+      engines = { rail = 0, road = 0, air = 0, water = 0 }
+    };
+    this._c76ModeConsumed = {};
+    this._c76ModeConsumedRevision = {};
+    this._c76LastRegenQuarter = -1;
+    this._c76ForceReloadRegen = false;
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
@@ -265,6 +292,7 @@ class OpexAI extends AIController {
     this._c41OpportunityLedger = {};
     this._c41AdmissionLedger = {};
     this._c39PassClockLedger = {};
+    this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
     this._c39CadenceLastDate = -1;
     this._c39CadenceLastTick = -1;
     this._c39CadenceLastCycle = -1;
@@ -277,7 +305,6 @@ class OpexAI extends AIController {
     this._recomputeEpochBounds = false;
     this._reactiveQueue = OpexReactiveQueue();
     this._activeWorker = null;
-    this._c76LastReconcileMonth = -1;
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
@@ -308,6 +335,9 @@ class OpexAI extends AIController {
   function _tryBuildProjects(year);
   function _c39StampFinanceable(capital = null, isProjectsTurn = false);
   function _tryTownGrowth(year);
+  function _prepareTownGrowth();
+  function _tryTownGrowthCity(townId, year, anchor = null);
+  function _recordTownWorkerSlice(sliceOps, builtCount);
   function _runNextTask();
   function _runNextTaskWithSlackLedger();
   function _logC41SlackLedger(year);
@@ -375,7 +405,18 @@ class OpexAI extends AIController {
   function _dispatchRefleet(task, year);
   function _dispatchTownGrowth(task, year);
   function _dispatchRepay(task, year);
-  function _c76RecordRegen(kind, ops, days, year);
+  function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
+  function _c76RecordAvoided(year);
+  function _c76BumpLayer(layer, isEvent = false);
+  function _c76GetLayerRevision(layer);
+  function _c76GetModeDeps(mode);
+  function _c76ModeNeedsRegen(mode);
+  function _c76AnyLayerChanged();
+  function _c76AcknowledgeAllLayers();
+  function _c76DoFullRegen(reason, year);
+  function _c76SaveRevisions();
+  function _c76LoadRevisions(data);
+  function _c76RunSelfTest();
   function _runOrchestratorTick();
   function _runBackgroundQueue();
   function _enqueueReactive(key, kind, payload);
@@ -384,11 +425,10 @@ class OpexAI extends AIController {
   function _clearReactiveQueue();
   function _dispatchReactiveIntention(intention);
   function _c80RunSelfTest();
-  function _c76EnqueueRegen(modes, entityKind = null, entityId = -1, targeted = false,
-                             buildAfter = false, reason = "event");
-  function _c76RefreshModeCatalog(mode);
-  function _c76AcknowledgeMode(mode);
-  function _c76PeriodicReconcile(yearMonth);
+  function _advanceRailSearchSliceWithLedgers();
+  function _c77EnqueueEntity(modes, entityKind = null, entityId = -1, buildAfter = false,
+                             reason = "event");
+  function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
   function _c77RemoveSubsidy(subId);
   function enqueue(key, kind, payload);
@@ -497,6 +537,9 @@ function OpexAI::Start()
 
   if (C80_DOUBLE_REGISTER) {
     this._c80RunSelfTest();
+  }
+  if (C76_REGEN_TARGETED) {
+    this._c76RunSelfTest();
   }
 
   while (true) {

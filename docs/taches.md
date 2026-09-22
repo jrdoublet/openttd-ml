@@ -13,6 +13,28 @@ la performance actuelle**. Les journaux quotidiens conservent le détail des exp
 
 ## État courant — 2026-09-22
 
+Fusion de `nuit-2026-09-22` (`b88de72`, issue de `c80-orchestrateur`) : C80 tranches 1-2
+(travailleurs rail et ville, `c80_worker_rail`, `c80_worker_town`), mémo de croissance urbaine
+(`town_growth_plan_memo`), C81 `air_full_load`, C82 `c82_engine_calibration`, correctif de
+rechargement C70, harnais `bench_v2` ; tous à défaut 0. **C76 : version nuit retenue (décision
+utilisateur)** — régénération complète sautée si aucune couche n'a changé, filet annuel ; la
+version master (régénération par mode, re-tarification semestrielle `OpexC76Reprice*`,
+`_c76PeriodicReconcile`) est retirée. C77 est reconstruit dessus : travailleur `regen_candidates`
+à la signature nuit (instance hors sauvegarde, rattachée au rechargement), `_c77EnqueueEntity` ;
+un moteur neuf relève de C76 quand il est armé ; une intention C77 n'attend que si le registre
+est occupé. Subventions : la régénération complète recrée leurs candidats depuis
+`activeSubsidies`, transmis sous C77 seulement. Adaptations aux nettoyages de master : drapeaux
+C46/C48/C49/C50B, `waterSiteCatalog` et `vehiclesToScrap` non réintroduits, `GROWTH_YIELDS` en
+garde de cadence, C82 aligné sur `OpexAirEconomics(..., opcodePadding)` (plantage `demandCap`
+corrigé), choix C70/C82 sorti de la boucle de sélection (`C70_PROFIT_CALIBRATED`,
+`OpexCalibratedProfit`). Smoke 2 × 3 ans sur défaut, C76, C77, C76+C77, travailleurs C80,
+`air_full_load` 1 et 2, C82 et mémo : toutes les parties saines. Save/Load 1+1 an sur C76+C77 et
+travailleurs : sains, selftests C80 et C76 ok. **Le défaut n'est pas identique au bit** à
+`f4b23d8` : compteurs identiques jusqu'en 1970-09, puis écart de cadence dû aux tests des
+nouveaux réglages dans les chemins rail et air ; sur le smoke, valeur +9,6 % et −13,9 % selon la
+graine, bruit de cadence et non effet mesuré. Tests de contrat adaptés (58 réglages, expression
+de sélection, contrat subventions).
+
 Moteur de subventions restauré comme producteur **C77 seul** : `eaa1bc0` l'avait retiré
 comme mort alors que C77 l'alimentait (intention `c77_subsidy`, injection au vivier sans
 attendre le tour). Générateur, chemin routier, clés `subsidy|id`, prédicats `isSubsidy`
@@ -112,9 +134,14 @@ comme une file active.
 
 | Statut courant | Chantier | Travail restant / règle de reprise |
 |---|---|---|
+| **À BANCER — 2026-09-22** | **C82 — calibration réalisé/prédit par moteur d'avion (`c82_engine_calibration`)** | Facteur C70 calculé par moteur (`line.planeId`), appliqué au choix de l'avion d'une route et au classement des projets aériens et de flotte à la place du facteur air. Solo 3 × 6 : profit +272 k£/an (2 V / 1 D), 25 % des choix d'avion changent, bascule vers FFP Dart et LB-10 (k de 2 à 3). 20×10 à lancer sur le PC (`docs/13_banc_c69_20x10_pc.md` §9). Fiche `docs/20_nuit_2026-09-22.md` §2. |
+| **MESURÉ, PRIORITÉ BASSE — 2026-09-22** | **C81 — chargement complet des avions (`air_full_load` 0/1/2)** | Réglage rendu lisible (était forcé à 0). AAAHogEx charge aux **deux** extrémités en avion (`air.nut:201`), pas à la seule gare de départ. Solo 3 × 6 : profit −54 % (deux extrémités) et −37 % (départ seul), 0/3, profit par place en chute, plus d'avions par ligne. Commandes 20×10 écrites (§9), à ne lancer qu'après C82. Fiche `docs/20_nuit_2026-09-22.md` §1. |
+| **CORRIGÉ — 2026-09-22** | **Rechargement : facteurs C70 (et C82) recalculés sur une liste vide** | Le recalcul C70 du 2026-09-21 tournait avant la reconstitution de `this._lines` : facteurs remis à 1 après chaque chargement. Déplacé, vérifié à 10⁻⁶ près sur la graine 42 (branche `nuit-2026-09-22`, `docs/19_rechargement_partie.md` §7). |
 | **PRIORITAIRE — 2026-09-21** | **C80 — orchestrateur à double registre (intentions / exécution)** | Choix utilisateur (option 2 de son plan) : file réactive (événements C76/C77) et file de fond (dérive, scans, maintenance) pour **décider quoi faire** ; registre d'exécution de travailleurs résumables et sérialisables, chacun avec son échéance locale, pour **découper les calculs lourds** (A\* rail, régénération par mode, `town_growth`). Un événement peut s'intercaler entre deux tranches d'un A\*. Contrat à écrire avant code. |
 | **PRIORITAIRE — 2026-09-21** | **C77 — déclenchement des candidats opportunistes** | Un événement ou un changement mesuré produit **tout de suite** les candidats de l'entité touchée, insérés au vivier sans régénération complète et constructibles sans attendre le tour suivant (~45 j). Détail : [§ C76-C77](#c76-c77). Dépend de C76. |
 | **VALIDÉ — ÉTAPE 2 À FAIRE — 2026-09-21** | **C76 — gestion des événements : consommer les invalidations** | Étape 1 faite (`docs/17_evenements_regeneration.md` §6) : 53-76 % des régénérations sans changement, ~145-180 j de jeu/an/partie de régénération ; C3 échoue (tête du classement instable) mais **C76 validé tel quel par l'utilisateur**. Étape 2 à intégrer à l'orchestrateur C80. |
+| **À BANCER — 2026-09-21** | **`town_growth_plan_memo` (mémo des échecs de planification)** | 97 % des planifications `town_growth` échouaient sur les mêmes villes (TRACEX/DEPOTX). Mémo : replanifier seulement si le nombre de maisons change. Coût −70 à −80 %, tour −10 % en fin de partie. À bancer dans la pile C80 (`docs/16_bilan_volume.md` §11). |
+| **DIFFÉRÉ — 2026-09-21** | **Revue de code du 2026-09-21** | Plan prêt (`docs/revue_code_2026-09-21_plan.md`, 6 étapes) ; reportée par décision utilisateur. Priorité à la reprise : étape 1 (chemin adopté par défaut ; rien de C69/C75/C70 ne survit à un chargement) et étape 3 (refactor `town_growth` exécuté au défaut, identité non tenue sur la graine 100). |
 | **ADOPTÉ — 2026-09-21** | **C75 + C69 bis + C70 (nouveau défaut)** | 20×10 duel contre l'ancien défaut : profit **+96 k£/an (+6,3 %), 14/6**, valeur +6,1 % 14/6, véhicules +40 20/0, note de gare 16/3. `fail_primary` à la lettre (p = 0,12), **adopté par décision utilisateur**. Réglages `c75_multi_build`, `c69_decision_bottleneck`, `c69_fleet_exempt`, `c70_mode_calibration` à 1 par défaut. `docs/16_bilan_volume.md` §10. |
 | **NON ADOPTÉ — 2026-09-21** | **C75 — plusieurs chantiers par passe** | 20×10 duel : véhicules **+42 (19/0)**, note de gare 14/4, mais profit +23 k£/an **10/10**, valeur 9/11 (`fail_primary`). Le volume ajouté ne paie pas : ~550 £/véhicule/an. `docs/16_bilan_volume.md` §9. |
 | **À FAIRE — 2026-09-21** | **C78 — chronologie décision par décision contre AAAHogEx** | 1970-1973 en duel : chaque chantier des deux IA (date, mode, villes, coût, avions) et le revenu de chaque ligne au fil du temps ; journal d'AAAHogEx via `-d script=4`. Question : quand et où l'écart de revenu aérien se creuse. |

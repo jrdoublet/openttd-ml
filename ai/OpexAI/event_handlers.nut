@@ -298,8 +298,7 @@ function OpexAI::_onVehicleUnprofitable(event)
 function OpexAI::_onIndustryClose(event)
 {
 
-  if (C39_INVALIDATION_PROBE
-      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
+  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
     local probeEvt = AIEventIndustryClose.Convert(event);
     if (probeEvt != null) {
       this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
@@ -540,8 +539,7 @@ function OpexAI::_onVehicleLost(event)
 function OpexAI::_onIndustryOpen(event)
 {
 
-  if (C39_INVALIDATION_PROBE
-      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
+  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
     local probeEvt = AIEventIndustryOpen.Convert(event);
     if (probeEvt != null) {
       this._markDirty("industry_open", ["industries"], ["rail", "road"], true, true,
@@ -578,8 +576,7 @@ function OpexAI::_onIndustryOpen(event)
 function OpexAI::_onTownFounded(event)
 {
 
-  if (C39_INVALIDATION_PROBE
-      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
+  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
     local probeEvt = AIEventTownFounded.Convert(event);
     if (probeEvt != null) {
       this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
@@ -618,8 +615,8 @@ function OpexAI::_onEngineAvailable(event)
 
   this._recomputeEpochBounds = true;
   if (this._catalog != null) OpexRefreshEpochBounds(this._catalog);
-  if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH
-      || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
+  if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH || C76_REGEN_TARGETED
+      || C77_OPPORTUNISTIC_CANDIDATES) {
     local engineEvt = AIEventEngineAvailable.Convert(event);
     if (engineEvt != null) {
       local engine = engineEvt.GetEngineID();
@@ -632,7 +629,7 @@ function OpexAI::_onEngineAvailable(event)
       if (mode != null) {
         /* La sonde reste la seule à conserver l'état/les IDs. C39.2 consomme le chemin
          * historique sans changer les cas industrie déjà couverts par P3. */
-        if (C39_INVALIDATION_PROBE || (C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
+        if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
           local targetedRelevant = !(WATER_OPCODE_COMPAT_FALSE && WATER_OPCODE_COMPAT_FALSE
               && mode == "water");
           this._markDirty("engine_available", [mode], [mode], true, true, "engine", engine,

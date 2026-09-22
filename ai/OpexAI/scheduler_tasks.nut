@@ -30,12 +30,30 @@ function OpexAI::_dispatchCatalog(task, year)
     }
     if (gainOk && doubleOk) stale = true;
   }
-  /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
-   * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
-  if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
-      !this._portfolioInvalidated) {
-    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-    return false;
+  local c76LayerChanged = false;
+  local c76PeriodicDue = false;
+  local c76ReloadDue = false;
+  local c76CurQuarter = 0;
+  if (C76_REGEN_TARGETED) {
+    c76LayerChanged = this._c76AnyLayerChanged();
+    /* Filet periodique ANNUEL (decision utilisateur du 2026-09-21) : une regeneration complete au
+     * moins une fois par annee de jeu. La variable garde son nom historique ; elle porte l'annee. */
+    c76CurQuarter = year;
+    c76PeriodicDue = (this._c76LastRegenQuarter < 0 || c76CurQuarter > this._c76LastRegenQuarter);
+    c76ReloadDue = this._c76ForceReloadRegen;
+    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
+        !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
+  } else {
+    /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
+     * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
+    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
+        !this._portfolioInvalidated) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
   }
   local refreshReason = this._portfolioInvalidated ? "event"
       : (stale ? "capital" : "month");
@@ -45,22 +63,6 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   this._lastCatalogMonth = ym;
   this._pruneAbandonedPairs(date);
-  /* C76 : une fois le vivier initialise, la cadence mensuelle historique ne
-   * justifie plus une regeneration spatiale complete. Le capital se reselecte
-   * sur le vivier vivant ; les derivees silencieuses passent par le filet
-   * periodique, et les evenements par la file reactive C80. */
-  if (C76_REGEN_TARGETED && C80_DOUBLE_REGISTER && this._projects != null
-      && !this._portfolioInvalidated) {
-    local didWork = false;
-    if (stale) {
-      this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital());
-      this._ranked = this._projects.rail;
-      didWork = true;
-    }
-    if (this._c76PeriodicReconcile(ym)) didWork = true;
-    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-    return didWork;
-  }
   if (PORTFOLIO_REFRESH_PROBE) {
     local refreshMark = OpexOpsMeasureBegin();
     this._catalog.refresh(this._budget, year);
@@ -79,13 +81,39 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexRefreshEpochBounds(this._catalog);
     this._recomputeEpochBounds = false;
   }
-  local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-  local c76StartDay = C39_INVALIDATION_PROBE ? AIDate.GetCurrentDate() : 0;
-  this._rebuildProjects(fleetPlan);
-  if (C39_INVALIDATION_PROBE) {
-    local c76Ops = OpexOpsMeasureEnd(c76Mark);
-    local c76Days = AIDate.GetCurrentDate() - c76StartDay;
-    this._c76RecordRegen("full", c76Ops, c76Days, year);
+  if (C76_REGEN_TARGETED) {
+    local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
+        this._portfolioInvalidated || stale || c76PeriodicDue || c76ReloadDue;
+    if (c76NeedFullRegen) {
+      local c76Reason = c76ReloadDue ? "reload"
+          : (c76LayerChanged ? "layers"
+          : (this._portfolioInvalidated ? "invalidated"
+          : (stale ? "budget"
+          : (c76PeriodicDue ? "periodic" : "initial"))));
+      local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+      this._rebuildProjects(fleetPlan);
+      if (C39_INVALIDATION_PROBE) {
+        local c76Ops = OpexOpsMeasureEnd(c76Mark);
+        local c76Days = (c76Ops + 93000) / 186000;
+        this._c76RecordRegen("full", c76Ops, c76Days, year, c76Reason);
+      }
+      this._c76AcknowledgeAllLayers();
+      this._c76LastRegenQuarter = c76CurQuarter;
+      this._c76ForceReloadRegen = false;
+    } else {
+      // Régénération évitée : resélection du vivier existant sous capital courant
+      local budgetNow = OpexAvailableCapital();
+      this._projects = OpexReselectProjects(this._projects, budgetNow);
+      this._c76RecordAvoided(year);
+    }
+  } else {
+    local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+    this._rebuildProjects(fleetPlan);
+    if (C39_INVALIDATION_PROBE) {
+      local c76Ops = OpexOpsMeasureEnd(c76Mark);
+      local c76Days = (c76Ops + 93000) / 186000;
+      this._c76RecordRegen("full", c76Ops, c76Days, year, refreshReason);
+    }
   }
   /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
    * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */
@@ -560,8 +588,58 @@ function OpexAI::_dispatchRefleet(task, year)
 }
 function OpexAI::_dispatchTownGrowth(task, year)
 {
-
   if (!TOWN_GROWTH_ENABLED) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+
+  /* C80 tranche 2 : travailleur résumable town_growth */
+  if (C80_DOUBLE_REGISTER && C80_WORKER_TOWN) {
+    if (this._activeWorker != null && this._activeWorker.kind == "town_growth") {
+      /* Le travailleur town_growth est déjà en cours : ne rien refaire et laisser la file avancer */
+      if (TOWN_GROWTH_SKIP_NOOP) {
+        if (C56_TASK_TRACE) {
+          local nextTask = this._runNextTask();
+          OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+          return nextTask;
+        }
+        return this._runNextTask();
+      }
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return true;
+    }
+
+    if (this._activeWorker == null) {
+      /* Pas de travailleur en cours : évaluer les gardes et créer le travailleur */
+      local servedTowns = this._prepareTownGrowth();
+      if (servedTowns != null && servedTowns.len() > 0) {
+        this._activeWorker = {
+          kind = "town_growth",
+          ai = this,
+          state = {
+            cursorTownIndex = 0,
+            servedTownsList = servedTowns,
+            year = year
+          }
+        };
+        if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+        return true;
+      }
+      /* Gardes échouées : même effet qu'un tryTownGrowth infructueux */
+      if (TOWN_GROWTH_SKIP_NOOP) {
+        if (C56_TASK_TRACE) {
+          local nextTask = this._runNextTask();
+          OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+          return nextTask;
+        }
+        return this._runNextTask();
+      }
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return true;
+    }
+
+    /* this._activeWorker != null && this._activeWorker.kind != "town_growth" :
+     * Registre à emplacement unique occupé par un autre travailleur (ex. rail_search).
+     * Limite : repli sur le chemin monolithique historique pour ce passage. */
+  }
+
   if (TOWN_GROWTH_SKIP_NOOP && !this._tryTownGrowth(year)) {
     if (C56_TASK_TRACE) {
       local nextTask = this._runNextTask();

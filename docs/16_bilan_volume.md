@@ -251,3 +251,35 @@ Contrôle : le nouveau défaut reproduit au bit près le smoke de la combinaison
 
 ⚠️ À garder en tête : p = 0,12 au test des signes ; face à AAAHogEx l'écart reste dans le bruit
 (+1,15 pt pour ~3 pt d'écart-type). Tout banc futur compare désormais à ce nouveau défaut.
+
+## 11. `town_growth` : 97 % d'échecs répétés, et le mémo (2026-09-21)
+
+**Diagnostic** (journal de décision, graine 42 × 6 ans, `results/tg.json`) : **407 échecs de
+planification pour 14 lignes construites**. Les échecs sont géométriques (`TRACEX` 258, aucun
+tracé ; `DEPOTX` 147, aucun dépôt) et portent toujours sur les **mêmes 20 villes**, replanifiées
+jusqu'à 41 fois chacune. Une passe qui ne construit rien replanifie toutes les villes : d'où ses
+2,7 à 5 M opcodes. Le journal du 2026-09-13 l'avait noté sans le traiter.
+
+**Levier** `town_growth_plan_memo` (défaut 0) : une ville dont la planification a échoué n'est
+replanifiée que si son nombre de maisons a changé (sa croissance est ce qui peut rendre un tracé
+possible ; aucune constante).
+
+**Incident de mesure trouvé en route** : `bench_v2` passait toutes les valeurs effectives à
+OpenTTD, dont la ligne `[ai_players]` est lue sur ~1 024 caractères ; les réglages de fin d'ordre
+alphabétique étaient ignorés (la première mesure du mémo comparait deux bras identiques). Corrigé
+(`615cdf8`) ; bancs antérieurs non touchés (935 caractères sur `master`).
+
+**Mesure** 3 graines × 10 ans, solo, défaut adopté, horloge C39.6 (`results/tgmemo_off.json`,
+`results/tgmemo_on.json`) :
+
+| année | jours `town_growth` / partie | M opcodes / passe | passes `projects` / an | jours par tour |
+|---|---|---|---|---|
+| 1971 | 62 → 20 | 0,37 → 0,07 | **31 → 57** | 11 → 6 |
+| 1973 | 108 → 36 | 2,73 → 0,73 | 7,3 → 9,3 | 51 → 42 |
+| 1975 | 118 → 25 | 4,69 → 1,03 | 5,3 → 5,0 | 79 → 76 |
+| 1979 | 62 → 23 | 4,30 → 1,60 | 3,3 → 3,0 | 135 → 119 |
+
+Coût de `town_growth` −70 à −80 %. Le tour ne raccourcit nettement qu'en 1971 ; ensuite la
+régénération du vivier domine (sous le nouveau défaut, un tour dure 76 à 135 jours). Pas de signal
+économique en solo sur 3 graines. Le levier prend tout son sens combiné à C76 (54 % de
+régénérations évitées) : c'est la pile à bancer.

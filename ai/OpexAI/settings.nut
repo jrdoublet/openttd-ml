@@ -131,6 +131,7 @@ function OpexLoadSettings()
 
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
+  TOWN_GROWTH_PLAN_MEMO = AIController.GetSetting("town_growth_plan_memo") != 0;
 
   UNPROFITABLE_STREAK_THRESHOLD = AIController.GetSetting("unprofitable_streak_threshold");
 
@@ -214,11 +215,15 @@ function OpexLoadSettings()
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
+  C82_ENGINE_CALIBRATION = AIController.GetSetting("c82_engine_calibration") != 0;
+  C70_PROFIT_CALIBRATED = C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION;
+  ::OpexCalibratedProfit <- C82_ENGINE_CALIBRATION ? OpexC82Profit : OpexC70Profit;
   C69_BOTTLENECK_PROBE = probePort;
   C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
   C69_FLEET_EXEMPT = AIController.GetSetting("c69_fleet_exempt") != 0;
   C69_FLEET_DEMAND_BATCH = AIController.GetSetting("c69_fleet_demand_batch") != 0;
   C72_PLANE_CHOICE = AIController.GetSetting("c72_plane_choice");
+  AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
@@ -327,9 +332,10 @@ function OpexLoadSettings()
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
   C77_OPPORTUNISTIC_CANDIDATES = AIController.GetSetting("c77_opportunistic_candidates") != 0;
-  /* C76/C77 sont des clients du double registre : les armer implique le socle C80. */
-  C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0
-      || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES;
+  /* C77 alimente la file reactive : l'armer implique le socle C80. C76 fonctionne sans. */
+  C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0 || C77_OPPORTUNISTIC_CANDIDATES;
+  C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
+  C80_WORKER_TOWN = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_town") != 0);
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;

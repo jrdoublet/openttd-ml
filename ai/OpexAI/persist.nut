@@ -114,6 +114,30 @@ function OpexSaveActiveWorker(worker)
 {
   if (worker == null || typeof worker != "table") return null;
   if (!("kind" in worker) || !("state" in worker) || worker.state == null || typeof worker.state != "table") return null;
+  if (worker.kind == "rail_search") {
+    /* C80 tranche 1 : _railSearch contient un pathfinder C++ non sérialisable.
+     * On ne sauvegarde pas le pathfinder dans le savegame. */
+    return {
+      kind = worker.kind,
+      state = {}
+    };
+  }
+  if (worker.kind == "town_growth") {
+    /* C80 tranche 2 : le state de town_growth ne contient que des entiers et tableaux d'entiers. */
+    local s = worker.state;
+    local townsCopy = [];
+    if ("servedTownsList" in s && s.servedTownsList != null) {
+      foreach (t in s.servedTownsList) townsCopy.append(t);
+    }
+    return {
+      kind = worker.kind,
+      state = {
+        cursorTownIndex = ("cursorTownIndex" in s) ? s.cursorTownIndex : 0,
+        servedTownsList = townsCopy,
+        year = ("year" in s) ? s.year : 0
+      }
+    };
+  }
   return {
     kind = worker.kind,
     state = worker.state
@@ -367,20 +391,26 @@ function OpexAI::Save()
   }
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
    * le serialiseur execute Save() sous budget d'opcodes. */
-  if (!SAVE_FULL_STATE) return {
-    version = 1,
-    generationStage = this._generationStage,
-    generationStageMonth = this._generationStageMonth,
-    lastFreightCargo = this._lastFreightCargo,
-    bootstrapFreightCargo = this._bootstrapFreightCargo,
-    nextLineId = this._nextLineId,
-    lastCatalogMonth = this._lastCatalogMonth,
-    lastReportYear = this._lastReportYear,
-    startYear = this._startYear,
-    abandonedPairs = abandoned,
-    airBuilt = this._airBuilt,
-    waterBuilt = this._waterBuilt,
-  };
+  if (!SAVE_FULL_STATE) {
+    local shortSave = {
+      version = 1,
+      generationStage = this._generationStage,
+      generationStageMonth = this._generationStageMonth,
+      lastFreightCargo = this._lastFreightCargo,
+      bootstrapFreightCargo = this._bootstrapFreightCargo,
+      nextLineId = this._nextLineId,
+      lastCatalogMonth = this._lastCatalogMonth,
+      lastReportYear = this._lastReportYear,
+      startYear = this._startYear,
+      abandonedPairs = abandoned,
+      airBuilt = this._airBuilt,
+      waterBuilt = this._waterBuilt,
+    };
+    if (C76_REGEN_TARGETED) {
+      shortSave.c76Revisions <- this._c76SaveRevisions();
+    }
+    return shortSave;
+  }
 
   local taskDue = {};
   if (this._taskQueue != null) {
@@ -451,11 +481,9 @@ function OpexAI::Save()
   if (C80_DOUBLE_REGISTER) {
     saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
     saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
-    if ((C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) && this._staleness != null) {
-      saveObj.c76Revisions <- this._staleness.revisions;
-      saveObj.c76Acknowledged <- this._staleness.acknowledged;
-      saveObj.c76LastReconcileMonth <- this._c76LastReconcileMonth;
-    }
+  }
+  if (C76_REGEN_TARGETED) {
+    saveObj.c76Revisions <- this._c76SaveRevisions();
   }
   return saveObj;
 }
@@ -517,34 +545,8 @@ function OpexAI::Load(version, data)
   if ("c80ActiveWorker" in data && data.c80ActiveWorker != null) {
     this._activeWorker = OpexLoadActiveWorker(data.c80ActiveWorker);
   }
-  if (this._staleness != null) {
-    if ("c76Revisions" in data && data.c76Revisions != null) {
-      this._staleness.revisions = data.c76Revisions;
-    }
-    if ("c76Acknowledged" in data && data.c76Acknowledged != null) {
-      this._staleness.acknowledged = data.c76Acknowledged;
-    }
-    if ("c76LastReconcileMonth" in data) {
-      this._c76LastReconcileMonth = data.c76LastReconcileMonth;
-    }
-    foreach (layer in ["cargos", "towns", "industries", "rail", "road", "air", "water"]) {
-      if ((layer in this._staleness.revisions.catalog)
-          && (layer in this._staleness.acknowledged.catalog)) {
-        this._staleness.catalog[layer] =
-            this._staleness.revisions.catalog[layer] > this._staleness.acknowledged.catalog[layer];
-      }
-    }
-    foreach (mode in ["rail", "road", "air", "water"]) {
-      if ((mode in this._staleness.revisions.candidates)
-          && (mode in this._staleness.acknowledged.candidates)) {
-        this._staleness.candidates[mode] =
-            this._staleness.revisions.candidates[mode] > this._staleness.acknowledged.candidates[mode];
-      }
-    }
-    this._staleness.portfolio =
-        this._staleness.revisions.portfolio > this._staleness.acknowledged.portfolio;
-    this._staleness.selection =
-        this._staleness.revisions.selection > this._staleness.acknowledged.selection;
+  if ("c76Revisions" in data && data.c76Revisions != null) {
+    this._c76LoadRevisions(data.c76Revisions);
   }
 }
 /* Load tourne trop tot et sous DisableDoCommandScope : la verification du monde est donc faite
@@ -560,7 +562,6 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._reloadC69BuildDates = null;
   this._reloadC75PassDates = null;
-  if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
 
   local saved = 0;
   local kept = 0;
@@ -615,6 +616,10 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._lines = liveLines;
   this._pendingLines = null;
+  /* C70/C82 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
+   * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
+  if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
+  if (C82_ENGINE_CALIBRATION) OpexC82RecomputeFactors(this._lines);
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();
 
@@ -638,6 +643,40 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._reloadDroppedRailSearch = false;
 
+  /* C80 tranche 1 : au rechargement, un travailleur "rail_search" restauré sans
+   * _railSearch (qui n'est pas sauvegardé) doit être abandonné proprement. */
+  if (this._activeWorker != null && this._activeWorker.kind == "rail_search" && this._railSearch == null) {
+    OpexWorkerCancel(this._activeWorker);
+    this._activeWorker = null;
+  }
+
+  /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
+  if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {
+    this._activeWorker.ai <- this;
+  }
+
+  /* C80 tranche 2 : au rechargement, un travailleur "town_growth" reprend à la ville suivante
+   * en sautant les villes devenues invalides. */
+  if (this._activeWorker != null && this._activeWorker.kind == "town_growth") {
+    this._activeWorker.ai <- this;
+    if ("state" in this._activeWorker && this._activeWorker.state != null) {
+      local s = this._activeWorker.state;
+      if (!("cursorTownIndex" in s)) s.cursorTownIndex <- 0;
+      if (!("servedTownsList" in s) || s.servedTownsList == null) {
+        this._activeWorker = null;
+      } else {
+        while (s.cursorTownIndex < s.servedTownsList.len() && !AITown.IsValidTown(s.servedTownsList[s.cursorTownIndex])) {
+          s.cursorTownIndex++;
+        }
+        if (s.cursorTownIndex >= s.servedTownsList.len()) {
+          this._activeWorker = null;
+        }
+      }
+    } else {
+      this._activeWorker = null;
+    }
+  }
+
   this._c41RailSignalLines = this._filterPersistedRailRepairQueue(this._c41RailSignalLines);
   this._c41RailJunctionLines = this._filterPersistedRailRepairQueue(this._c41RailJunctionLines);
   this._rearmPersistedRailRepairTasks();
@@ -651,6 +690,9 @@ function OpexAI::_reconcileAfterLoad()
     foreach (vehicle in staleRetireTickets) {
       if (vehicle in this._vehiclesToRetire) delete this._vehiclesToRetire[vehicle];
     }
+  }
+  if (C76_REGEN_TARGETED) {
+    this._c76ForceReloadRegen = true;
   }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */
   OpexDecide("LOAD_RECONCILE", "saved=" + saved + " kept=" + kept + " dropped=" + dropped

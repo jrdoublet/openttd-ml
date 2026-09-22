@@ -3,8 +3,8 @@
 > **Relecture du 2026-09-21 (Claude).** Contrat rédigé par agy ; références au code vérifiées par
 > échantillon (`task_rail.nut:814-826`, `main.nut:297`, `main.nut:541`, `task_town.nut:63-75`,
 > `persist.nut:8-17` : justes). Corrigés en place : rythme des événements (source erronée),
-> description de l'échec de `portfolio_max_batch`, critère C80-6 ramené au profit annuel. Point
-> ouvert : la constante $N_{\max}$ de l'anti-famine (§3.1.3). Les objectifs chiffrés (tour ≤ 20 j,
+> description de l'échec de `portfolio_max_batch`, critère C80-6 ramené au profit annuel. N_max :
+> tranché le 2026-09-21 (§3.1.3, option 3 : pas de constante, sonde à la place). Les objectifs chiffrés (tour ≤ 20 j,
 > tranche `town_growth` ≤ 150 k opcodes) sont des **cibles**, pas des mesures.
 
 
@@ -208,8 +208,8 @@ Pour éviter qu'une tempête d'événements n'affame la file de fond sans introd
 3. **Règle structurelle de vidage** :
    - Une micro-action réactive ne consomme qu'**un seul tick**.
    - Une intention réactive lourde instancie un travailleur résumable qui s'exécute par tranches d'opcodes bornées.
-   - Si la file réactive reste non vide pendant plus de $N_{\text{max}}$ ticks consécutifs (situation anormale de saturation), l'ordonnanceur accorde obligatoirement le tick suivant à la file de fond.
-   - ⚠️ **Point ouvert (relecture)** : $N_{\text{max}}$ est une constante, contraire au titre de cette section. À remplacer par une règle mesurée (par exemple : la file de fond reçoit la main dès que la file réactive a consommé autant de ticks que sa part mesurée d'occupation), ou à assumer explicitement comme garde-fou.
+   - **Pas de règle de saturation (décision utilisateur du 2026-09-21, option 3).** Aucune constante $N_{\max}$ n'est introduite : avec 12 à 20 événements par an et par partie (sonde C76), la file réactive ne devrait jamais rester pleine plusieurs ticks d'affilée, et une règle qui ne se déclenche pas n'est que du code à maintenir.
+   - **Sonde à la place** : dès qu'un producteur alimente la file réactive (C76 étape 2, C77), l'orchestrateur compte, sous sonde, le plus long enchaînement de ticks consécutifs servis à la file réactive et le nombre de ticks où la file de fond a attendu. Une règle anti-famine ne sera écrite que si cette sonde mesure une saturation.
 
 ---
 
@@ -573,3 +573,88 @@ exactement comme la branche par défaut (`LOOP_BUDGET` désactivé).
 graine 100 **identique au bit près** entre réglage 0 et 1 (1 803 818 £) ; graine 42 différente
 (2,52 contre 2,74 M£), attendu : l'appel supplémentaire décale les opcodes et la trajectoire est
 chaotique (fiche 11 §13.4). `results/c80_smoke_2x3.json`, `results/c80_smoke_on.json`.
+
+## 11. Tranche 1 livrée : l'A* rail dans le registre (2026-09-21)
+
+Implémentée par agy, relue. Réglage `c80_worker_rail` (défaut 0, effectif seulement sous
+`c80_double_register=1`). Le travailleur `rail_search` référence `_railSearch` (seule source de
+vérité) ; sa tranche passe par `_advanceRailSearchSliceWithLedgers()` (mêmes ledgers C41.46/C39.6),
+puis la file de fond enchaîne dans le même tick ; `_railWorkerSteppedThisTick` empêche
+`_runNextTask` de rejouer la tranche. Correction de relecture : l'extension rail reste avant la
+tranche A*, comme aujourd'hui. Sauvegarde : le pathfinder n'est pas sauvegardé (comme avant), le
+travailleur est abandonné proprement au rechargement. Selftest étendu (intercalation d'une
+intention entre deux tranches) : `C80 selftest ok` sur les deux graines.
+
+**Smoke** (2 × 3 ans, 0 échec) : le bras `c80_double_register=1` seul reproduit au bit près la
+tranche 0 (chemin historique intact). Avec le travailleur : graine 100 1,78 contre 1,80 M£,
+graine 42 2,84 contre 2,74 M£. **Identité non démontrée** : le travailleur ajoute quelques
+centaines d'opcodes par tick pendant une recherche et décale la trajectoire (même effet qu'au §13.4
+de la fiche 11) ; aucune différence de logique n'a été trouvée à la relecture.
+
+## 12. Tranche 2 livrée : découpage de la croissance urbaine (2026-09-21)
+
+Implémentée par agy. Réglage `c80_worker_town` (défaut 0, effectif seulement sous `c80_double_register=1`).
+Découpage de `_tryTownGrowth` en deux morceaux partagés : préparation (`_prepareTownGrowth`) et traitement unitaire (`_tryTownGrowthCity`), préservant strictement le chemin monolithique historique au défaut.
+Le travailleur `town_growth` parcourt les mêmes villes dans le même ordre, 1 ville par tranche (`cursorTownIndex`, liste de villes `servedTownsList` figée à l'initialisation).
+Arrêt immédiat ("done") dès qu'une ligne est construite, ou quand toutes les villes sont parcourues sans construction.
+Enchaînement tick : comme `rail_search`, sa tranche est jouée puis la file de fond enchaîne dans le même tick.
+Quand la file de fond arrive sur la tâche `town_growth` alors qu'un travailleur `town_growth` tourne déjà, la tâche laisse avancer la file (mécanique noop).
+Registre à emplacement unique : si le registre est occupé par un autre travailleur (ex. `rail_search`), la tâche `town_growth` retombe sur le chemin monolithique historique pour ce passage.
+Persistance : `cursorTownIndex`, `servedTownsList`, `year` (entiers et tableaux d'entiers uniquement) ; au rechargement, les villes devenues invalides sont sautées et `ai` est réattaché.
+Sonde C80-4 : mesure des opcodes par tranche sous `probe_scheduler` (`C39_PASS_CLOCK_LEDGER`), publication annuelle via `OpexC39PassClockLog(phase=town_worker_year year=.. slices=.. ops_max=.. ops_total=.. built=..)`.
+Selftest : cas 5 ajouté (simulation de 3 villes avec arrêt après la première construction), `C80 selftest ok` reste l'unique ligne journalisée.
+Au défaut : code exécuté inchangé à des tests de drapeaux près.
+
+## 12. Tranche 2 : `town_growth` en travailleur, mesure (2026-09-21)
+
+Implémentée par agy, relue (§ revue à venir, étape 3). Réglage `c80_worker_town` (défaut 0).
+Mesure 3 graines × 10 ans en solo, sur le **nouveau défaut** (C75 + C69 bis + C70), horloge C39.6,
+avec et sans travailleur (`results/c80t2_on.json`, `results/c80t2_off.json`, 0 échec, selftest ok
+sur les 3 graines).
+
+| par partie | 1972 sans → avec | 1975 | 1978 |
+|---|---|---|---|
+| passes `projects` par an | 15,7 → **23,7** | 4,3 → 4,7 | 2,7 → 3,7 |
+| jours de file imputés à `town_growth` | 97 → 3 | 90 → 4 | 69 → 3 |
+
+- **Le tour raccourcit surtout en début de partie** (+50 % de passes en 1972), peu ensuite : sous
+  C75, les passes sont déjà rares (4 par an en 1975) et c'est la régénération qui domine.
+- ⚠️ Les jours imputés à `town_growth` chutent parce que le travail est passé dans les tranches du
+  travailleur, que l'horloge C39.6 n'impute à aucune tâche ; la baisse n'est pas un gain net.
+- ❌ **Critère C80-4 non tenu** : une tranche (une ville) coûte jusqu'à **0,24 à 1,39 M opcodes**,
+  pas ≤ 150 k : planifier et bâtir une ligne de bus dans une ville est déjà lourd.
+- **Identité au défaut non tenue** : graine 42 identique à l'état d'avant la tranche (3 153 311 £),
+  graine 100 différente (2 144 974 contre 2 078 509 £). Le refactor de `_tryTownGrowth` est exécuté
+  au défaut : à examiner en priorité à l'étape 3 de la revue (`revue_code_2026-09-21_plan.md`).
+
+## 13. Tranche 3 : C76 étape 2, régénération pilotée par les couches (2026-09-21)
+
+Implémentée par agy (réglage `c76_regen_targeted`, défaut 0 ; fonctionne sans C80 ; sous
+`c80_double_register`, un événement enfile une intention réactive « regen »). `_dispatchCatalog`
+ne régénère que si une couche a changé, si le vivier est invalidé, si le budget a doublé, au
+filet trimestriel ou au rechargement ; sinon il resélectionne le vivier existant contre le capital
+du moment. Selftest `C76 selftest ok`. Sonde : champ « jours » corrigé, raisons publiées.
+
+**Correctif de relecture (Claude).** Chaque ligne construite incrémente la couche `lines`, dont
+dépendent tous les modes : la régénération complète repartait presque à chaque tour, alors que la
+mise à jour incrémentale qui suit un chantier a déjà intégré la ligne. La couche `lines` est
+désormais acquittée après cette mise à jour.
+
+Mesure 3 graines × 6 ans, solo, `probe_catalogue` (`results/c80t3.json`, `results/c80t3b.json`) :
+
+| version | complètes | évitées | part évitée | raisons des complètes |
+|---|--:|--:|--:|---|
+| agy | 133 | 26 | 16 % | couches 109, trimestre 17, démarrage 6, budget 1 |
+| + acquittement de `lines` | 103 | 48 | **32 %** | couches 49, **trimestre 42**, démarrage 6, budget 6 |
+
+**Critère C80-5 (≥ 50 %) non atteint.** Le filet trimestriel est devenu la première cause : avec un
+tour de ~45 jours, il force une régénération complète à peu près un tour sur deux. Le contrat
+(§5.3) prévoyait une cadence **semestrielle ou annuelle** ; la consigne de la tranche disait
+trimestrielle. Décision utilisateur requise sur la période du filet.
+
+**Décision utilisateur du 2026-09-21 : filet périodique ANNUEL.** Mesure (3 × 6 ans,
+`results/c80t3c.json`) : **68 complètes, 79 évitées, 54 %** ; raisons des complètes : couches 45,
+annuel 9, budget 8, démarrage 6. **Critère C80-5 atteint.** Correctif associé : l'orchestrateur
+enregistrait la dernière régénération réactive en numéro de trimestre (~7 900) alors que la tâche
+catalogue compare des années (~1 975) : sous C80, le filet aurait été désactivé pour toujours
+après la première régénération sur événement. Les deux utilisent désormais l'année.

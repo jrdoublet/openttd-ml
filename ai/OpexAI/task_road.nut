@@ -284,6 +284,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
       }
       this._nextLineId++;
+      if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
       return { outcome = "built", discards = passDiscards };
 
   return { outcome = "rejected", discards = passDiscards };

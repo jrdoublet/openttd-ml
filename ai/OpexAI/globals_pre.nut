@@ -214,6 +214,14 @@ C63_INVEST_LEDGER <- null;
 /* C70 : facteur realise/predit par mode, recalcule au rapport annuel. 1.0 hors reglage. */
 C70_MODE_CALIBRATION <- false;
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
+/* C82 : facteur realise/predit par moteur d'avion, recalcule au rapport annuel. 1.0 hors reglage ou si absent. */
+C82_ENGINE_CALIBRATION <- false;
+/* C70 ou C82 : score sur le profit calibre. Calcule une fois dans OpexLoadSettings pour que la
+ * boucle de selection ne lise qu'une globale, comme avant C82 (meme cadence VM). */
+C70_PROFIT_CALIBRATED <- false;
+C82_ENGINE_FACTOR <- {};
+C82_CHOICE_CALLS <- 0;
+C82_CHOICE_DIFFER <- 0;
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
  * de tau. 1970 n'est qu'un repli, pose avant Start(). */
@@ -252,8 +260,6 @@ C76_EVENTS_SINCE_PREV <- null;
 C76_REGEN_TARGETED <- false;
 /* C77 : injection immediate de candidats lies a une entite touchee par un evenement. */
 C77_OPPORTUNISTIC_CANDIDATES <- false;
-/* Filet de reconciliation pour les derivees sans evenement NoAI. */
-C76_RECONCILE_MONTHS <- 6;
 
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */
@@ -314,6 +320,7 @@ AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
+AIR_FULL_LOAD <- 0;
 C53_ORDER_NONSTOP <- false;
 C53_ORDER_NOLOAD <- false;
 COMPLEX_CARGO <- true;
@@ -365,3 +372,15 @@ HARD_ITERATION_CAP <- 10000;
 /* C80 tranche 0 : socle de l'orchestrateur à double registre (intentions / exécution).
  * 0 = ordonnanceur historique (défaut), 1 = orchestrateur à double registre actif. */
 C80_DOUBLE_REGISTER <- false;
+
+/* C80 tranche 1 : migration de la recherche A* rail (_railSearch) dans le registre d'exécution.
+ * 0 = désactivé (défaut), 1 = travailleur "rail_search" actif sous c80_double_register=1. */
+C80_WORKER_RAIL <- false;
+
+/* C80 tranche 2 : découpage de la croissance urbaine (_tryTownGrowth) en travailleur "town_growth".
+ * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif sous c80_double_register=1. */
+C80_WORKER_TOWN <- false;
+
+/* C76 étape 2 / C80 tranche 3 : régénération du vivier pilotée par les invalidations.
+ * 0 = régénération mensuelle systématique historique (défaut), 1 = régénération ciblée. */
+C76_REGEN_TARGETED <- false;

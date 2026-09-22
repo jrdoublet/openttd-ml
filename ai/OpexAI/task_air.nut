@@ -204,6 +204,7 @@ function OpexAI::_tryBuildAir(year)
     OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
                      + AICargo.GetCargoLabel(this._catalog.paxCargo));
     this._nextLineId++;
+    if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
     builtCount++;
   }
 }
@@ -476,6 +477,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           }
         }
         this._nextLineId++;
+        if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
         return { outcome = "built", discards = passDiscards };
       }
 

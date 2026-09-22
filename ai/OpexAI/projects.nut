@@ -183,6 +183,7 @@ function OpexC70RecomputeFactors(lines)
   }
   foreach (m, acc in sums) {
     C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+    OpexC69Log("phase=c70_reload mode=" + m + " lines=" + acc[1] + " k=" + C70_MODE_FACTOR[m]);
   }
 }
 
@@ -194,6 +195,59 @@ function OpexC70Factor(project)
   return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
 }
 
+/* C82 : facteurs par moteur d'avion recalcules depuis les cumuls par ligne (sauvegardes avec les lignes).
+ * Meme formule que le rapport annuel (task_report.nut) : pseudo-ligne a 1. Appele au chargement. */
+function OpexC82RecomputeFactors(lines)
+{
+  local sums = {};
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || line.mode != "air") continue;
+      if (!("planeId" in line) || line.planeId < 0) continue;
+      if (!("c70Pred" in line) || !("c70Real" in line) || line.c70Pred <= 0) continue;
+      local e = line.planeId;
+      if (!(e in sums)) sums[e] <- [0.0, 0];
+      sums[e][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
+      sums[e][1]++;
+    }
+  }
+  C82_ENGINE_FACTOR.clear();
+  foreach (e, acc in sums) {
+    C82_ENGINE_FACTOR[e] <- (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+    OpexC69Log("phase=c82_reload engine=" + e + " lines=" + acc[1] + " k=" + C82_ENGINE_FACTOR[e]);
+  }
+}
+
+/* C82 : facteur d'un moteur d'avion. 1.0 si inactif ou moteur absent de la table. */
+function OpexC82EngineFactor(engine)
+{
+  if (!C82_ENGINE_CALIBRATION) return 1.0;
+  return (engine in C82_ENGINE_FACTOR) ? C82_ENGINE_FACTOR[engine] : 1.0;
+}
+
+/* C82 : determine le moteur d'avion concerne par un projet air ou flotte. -1 si non identifiable. */
+function OpexC82ProjectEngine(project)
+{
+  if (project == null || !("mode" in project) || !("payload" in project) || project.payload == null) return -1;
+  if (project.mode == "air") {
+    local payload = project.payload;
+    if (("plane" in payload) && payload.plane != null && ("id" in payload.plane) && payload.plane.id != null) {
+      return payload.plane.id;
+    }
+    return -1;
+  }
+  if (project.mode == "fleet") {
+    local payload = project.payload;
+    if (("line" in payload) && payload.line != null) {
+      local line = payload.line;
+      if (("planeId" in line) && line.planeId != null) return line.planeId;
+      if (("refleetEngine" in line) && line.refleetEngine != null) return line.refleetEngine;
+    }
+    return -1;
+  }
+  return -1;
+}
+
 /* C70 : profit servant au classement. Le brut reste dans profitAnnual, et donc dans
  * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
 function OpexC70Profit(project)
@@ -201,6 +255,19 @@ function OpexC70Profit(project)
   if (!C70_MODE_CALIBRATION) return project.profitAnnual;
   return project.profitAnnual * OpexC70Factor(project);
 }
+
+/* C82 : facteur du moteur d'avion s'il est connu, sinon calibration C70 du mode. */
+function OpexC82Profit(project)
+{
+  local e = OpexC82ProjectEngine(project);
+  if (e >= 0) return project.profitAnnual * OpexC82EngineFactor(e);
+  return OpexC70Profit(project);
+}
+
+/* Profit calibre des scores : OpexC70Profit, ou OpexC82Profit sous c82_engine_calibration.
+ * Choisi une fois dans OpexLoadSettings ; l'appel coute autant qu'un appel direct, ce qui garde
+ * la cadence VM de la selection identique quand C82 est inactif. */
+OpexCalibratedProfit <- OpexC70Profit;
 
 function OpexProjectScore(value, cost)
 {
@@ -600,11 +667,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (financeCapital > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-    project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+    project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
         (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
-      project.c69Score <- OpexProjectScore(OpexC70Profit(project), denom);
+      project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
       OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
     }
     OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
@@ -619,11 +686,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       local financeCapital = OpexProjectFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-      project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+      project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
           (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
-        project.c69Score <- OpexProjectScore(OpexC70Profit(project), denom);
+        project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
         OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
       }
       OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
@@ -1063,220 +1130,6 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
       projects.waterPlans = generated.waterPlans;
     }
   }
-  OpexProjectsRecountGroups(projects);
-  return OpexReselectProjects(projects, OpexAvailableCapital());
-}
-
-/* C76 : filet périodique sans recherche spatiale. On garde les couples déjà
- * découverts, on remet seulement à jour leur demande et leur économie. */
-function OpexC76CatalogTown(catalog, townId)
-{
-  if (catalog == null || townId < 0) return null;
-  foreach (town in catalog.towns) if (town.id == townId) return town;
-  return null;
-}
-
-function OpexC76GroundMonthly(project, catalog, lines)
-{
-  if (project == null || !(("payload" in project)) || project.payload == null) return 0;
-  local cand = project.payload;
-  if (project.kind == "pax") {
-    if (!(("srcTown" in cand)) || !(("dstTown" in cand))
-        || cand.srcTown < 0 || cand.dstTown < 0
-        || !AITown.IsValidTown(cand.srcTown) || !AITown.IsValidTown(cand.dstTown)) {
-      return ("monthly" in cand) ? cand.monthly : 0;
-    }
-    if (project.mode == "rail") {
-      local prodA = AITown.GetLastMonthProduction(cand.srcTown, cand.cargo);
-      local prodB = AITown.GetLastMonthProduction(cand.dstTown, cand.cargo);
-      if (prodA <= 0) prodA = (AITown.GetPopulation(cand.srcTown) * 22) / 100;
-      if (prodB <= 0) prodB = (AITown.GetPopulation(cand.dstTown) * 22) / 100;
-      local sa = OpexOriginService(lines, cand.src);
-      local sb = OpexOriginService(lines, cand.dst);
-      if (BASIN_SHARE && sa != null) prodA = OpexShareBasin(prodA, lines, sa.stationId, cand.cargo);
-      if (BASIN_SHARE && sb != null) prodB = OpexShareBasin(prodB, lines, sb.stationId, cand.cargo);
-      return ((prodA + prodB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-    }
-    if (project.mode == "road") {
-      local townA = OpexC76CatalogTown(catalog, cand.srcTown);
-      local townB = OpexC76CatalogTown(catalog, cand.dstTown);
-      if (townA == null || townB == null) return ("monthly" in cand) ? cand.monthly : 0;
-      local prodA = AITown.GetLastMonthProduction(cand.srcTown, cand.cargo);
-      local prodB = AITown.GetLastMonthProduction(cand.dstTown, cand.cargo);
-      if (prodA <= 0) prodA = (AITown.GetPopulation(cand.srcTown) * 15) / 100;
-      if (prodB <= 0) prodB = (AITown.GetPopulation(cand.dstTown) * 15) / 100;
-      local marginalA = prodA - (OpexTownRoadLineCount(lines, townA.tile) * 40);
-      local marginalB = prodB - (OpexTownRoadLineCount(lines, townB.tile) * 40);
-      if (marginalA < 25) marginalA = 25;
-      if (marginalB < 25) marginalB = 25;
-      local capturedA = OpexTownBusCatchment(townA, marginalA);
-      local capturedB = OpexTownBusCatchment(townB, marginalB);
-      return ROAD_PAX_OVERLAP
-          ? OpexRoadPaxUniqueMonthly(capturedA, capturedB, cand.distance)
-          : capturedA + capturedB;
-    }
-  }
-
-  if (project.kind == "freight") {
-    local srcIndustry = AIIndustry.GetIndustryID(cand.src);
-    if (!AIIndustry.IsValidIndustry(srcIndustry)
-        && ("placeJoin" in cand) && cand.placeJoin != null
-        && ("candidateEnd" in cand.placeJoin) && cand.placeJoin.candidateEnd == "A") {
-      local service = OpexOriginService(lines, cand.src);
-      if (service != null && !(("blocked" in service) && service.blocked)
-          && ("line" in service) && service.line != null
-          && ("srcIndustry" in service.line)) {
-        srcIndustry = service.line.srcIndustry;
-      }
-    }
-    if (!AIIndustry.IsValidIndustry(srcIndustry)) return ("monthly" in cand) ? cand.monthly : 0;
-    local monthly = AIIndustry.GetLastMonthProduction(srcIndustry, cand.cargo);
-    if (project.mode == "rail") {
-      local srcService = OpexOriginService(lines, cand.src);
-      if (BASIN_SHARE && srcService != null) {
-        monthly = OpexShareBasin(monthly, lines, srcService.stationId, cand.cargo);
-      }
-      if (monthly <= 0 && srcService != null && ("dstTown" in cand) && cand.dstTown >= 0) {
-        monthly = 45;
-      }
-    }
-    return monthly;
-  }
-  return ("monthly" in cand) ? cand.monthly : 0;
-}
-
-function OpexC76MarkProjectDormant(project)
-{
-  if (project == null) return null;
-  project.profitAnnual = -1;
-  project.revenueAnnual = 0;
-  project.roi = 0;
-  project.economicsDate = AIDate.GetCurrentDate();
-  return project;
-}
-
-function OpexC76RepriceProject(project, catalog, lines)
-{
-  if (project == null || !(("mode" in project))) return project;
-  if (project.mode == "fleet") return project;
-  if (OpexProjectIsPersistentSpecial(project)) return project;
-
-  if ((project.mode == "rail" || project.mode == "road")
-      && ("payload" in project) && project.payload != null) {
-    local cand = project.payload;
-    local monthly = OpexC76GroundMonthly(project, catalog, lines);
-    cand.monthly = monthly;
-    if (monthly <= 0) return OpexC76MarkProjectDormant(project);
-    local economics = null;
-    if (project.mode == "rail") {
-      economics = OpexLineEconomics(catalog, cand.cargo, cand.distance, monthly, cand.kind);
-      if (economics != null) OpexApplyRailEconomics(cand, economics);
-    } else {
-      local engine = (cand.cargo in catalog.roadEngineByCargo)
-          ? catalog.roadEngineByCargo[cand.cargo]
-          : (("engine" in cand) ? cand.engine : null);
-      if (engine != null) {
-        cand.engine = engine;
-        economics = OpexRoadLineEconomics(catalog, cand.cargo, cand.distance, monthly, engine, cand.kind);
-      }
-      if (economics != null) OpexApplyRoadEconomics(cand, economics);
-    }
-    if (economics == null) return OpexC76MarkProjectDormant(project);
-    local fresh = OpexProjectFromCandidate(cand);
-    if (fresh != null) return fresh;
-    project.profitAnnual = cand.profitAnnual;
-    project.revenueAnnual = cand.revenueAnnual;
-    project.roi = cand.roi;
-    project.economicsDate = AIDate.GetCurrentDate();
-    return project;
-  }
-
-  if (project.mode == "air" && ("payload" in project) && project.payload != null) {
-    local plan = project.payload;
-    if (!(("siteA" in plan)) || !(("siteB" in plan)) || !(("plane" in plan))
-        || plan.siteA == null || plan.siteB == null || plan.plane == null) {
-      return OpexC76MarkProjectDormant(project);
-    }
-    local townA = plan.siteA.town.id;
-    local townB = plan.siteB.town.id;
-    if (!AITown.IsValidTown(townA) || !AITown.IsValidTown(townB)) {
-      return OpexC76MarkProjectDormant(project);
-    }
-    local popA = AITown.GetPopulation(townA);
-    local popB = AITown.GetPopulation(townB);
-    local reuseA = ("reuseA" in plan) && plan.reuseA;
-    local reuseB = ("reuseB" in plan) && plan.reuseB;
-    local monthlyA = (popA * TOWN_CATCHMENT_SHARE_PCT) / 100;
-    local monthlyB = (popB * TOWN_CATCHMENT_SHARE_PCT) / 100;
-    if (reuseA) {
-      local routesA = ("routes" in plan.siteA) ? plan.siteA.routes : 0;
-      monthlyA /= routesA + 1;
-    }
-    if (reuseB) {
-      local routesB = ("routes" in plan.siteB) ? plan.siteB.routes : 0;
-      monthlyB /= routesB + 1;
-    }
-    local monthlyPax = monthlyA + monthlyB;
-    local demandCap = 0;
-    if (monthlyPax < 10) monthlyPax = 10;
-    local newAirports = (reuseA ? 0 : 1) + (reuseB ? 0 : 1);
-    local infrastructureMaintenance =
-        AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
-    local choice = OpexAirChooseRoutePlane(catalog, plan.airport, plan.plane, plan.distance,
-        monthlyPax, infrastructureMaintenance, 0, newAirports, demandCap);
-    if (choice == null || choice.economics == null) return OpexC76MarkProjectDormant(project);
-    plan.plane = choice.plane;
-    plan.monthlyPax = monthlyPax;
-    plan.planes = choice.economics.planes;
-    plan.capital = choice.economics.capital;
-    plan.economics = choice.economics;
-    local fresh = OpexProjectFromAir(catalog, plan,
-        ("planningOpcodes" in project) ? project.planningOpcodes : 0);
-    return fresh != null ? fresh : OpexC76MarkProjectDormant(project);
-  }
-
-  if (project.mode == "water" && ("payload" in project) && project.payload != null) {
-    local plan = project.payload;
-    if (!(("siteA" in plan)) || !(("siteB" in plan))
-        || plan.siteA == null || plan.siteB == null) return OpexC76MarkProjectDormant(project);
-    local townA = plan.siteA.town.id;
-    local townB = plan.siteB.town.id;
-    if (!AITown.IsValidTown(townA) || !AITown.IsValidTown(townB)) {
-      return OpexC76MarkProjectDormant(project);
-    }
-    local monthlyPax = ((AITown.GetPopulation(townA) + AITown.GetPopulation(townB)) * 22) / 100;
-    local economics = OpexWaterEconomics(catalog, plan.distance, plan.tariffDistance,
-                                         plan.orderDistance, monthlyPax);
-    if (economics == null) return OpexC76MarkProjectDormant(project);
-    plan.economics = economics;
-    local fresh = OpexProjectFromWater(catalog, plan,
-        ("planningOpcodes" in project) ? project.planningOpcodes : 0);
-    return fresh != null ? fresh : OpexC76MarkProjectDormant(project);
-  }
-  return project;
-}
-
-function OpexC76RepriceProjects(projects, catalog, lines, abandonedPairs = null)
-{
-  if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
-    return projects;
-  }
-  local winners = {};
-  local scratch = { modeCandidates = 0, modeAlternatives = 0 };
-
-  foreach (groupKey, entry in projects.candidateGroups) {
-    local list = (typeof entry == "array") ? entry : [entry];
-    foreach (project in list) {
-      if (project == null) continue;
-      if (project.mode != "fleet"
-          && !OpexIncrementalCandidateStillValid(project, lines, abandonedPairs)) {
-        continue;
-      }
-      local refreshed = OpexC76RepriceProject(project, catalog, lines);
-      if (refreshed != null) OpexProjectRememberAll(winners, refreshed, scratch);
-    }
-  }
-  projects.candidateGroups = winners;
   OpexProjectsRecountGroups(projects);
   return OpexReselectProjects(projects, OpexAvailableCapital());
 }
@@ -2060,7 +1913,7 @@ function OpexMergeRailCandidateSet(base, extra)
   return base;
 }
 
-function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null)
+function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, activeSubsidies = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
@@ -2357,6 +2210,18 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         } else if (C69_BOTTLENECK_PROBE) {
           OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
         }
+      }
+    }
+    /* C77 : une regeneration complete (celle de C76 comprise) recree les candidats des offres de
+     * subvention suivies, sinon elle effacerait ceux que l'offre avait injectes. L'appelant ne
+     * transmet activeSubsidies que sous C77. */
+    if (activeSubsidies != null && activeSubsidies.len() > 0) {
+      foreach (candidate in OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs)) {
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+          abandonFiltered++;
+          continue;
+        }
+        OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
       }
     }
 
