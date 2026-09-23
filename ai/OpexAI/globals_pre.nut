@@ -390,6 +390,11 @@ C80_WORKER_TOWN <- false;
  * les variations de budget seul et traite localement les lignes et subventions. 0 = desactive (defaut). */
 C76_LEAN_INVALIDATION <- false;
 
+/* C76 : sous C76_REGEN_TARGETED, un mois sans regeneration complete fait quand meme tourner le
+ * cargo fret (regeneration des seuls modes rail et route sur le cargo suivant). Sans lui, le lot
+ * fret reste fige entre deux regenerations completes. 0 = desactive (defaut). */
+C76_FREIGHT_ROTATION <- false;
+
 /* C80 tranche 4 : sous C76, une couche industries ou moteurs non aeriens ne regenere que les
  * modes qui en dependent (rail, route, eau) au lieu du vivier entier. 0 = desactive (defaut). */
 C80_MODE_REGEN <- false;

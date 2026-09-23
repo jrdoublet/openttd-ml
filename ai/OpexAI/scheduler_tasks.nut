@@ -273,9 +273,15 @@ function OpexAI::_dispatchCatalog(task, year)
       this._c76ForceReloadRegen = false;
     } else {
       // Régénération évitée : resélection du vivier existant sous capital courant
-      local budgetNow = OpexAvailableCapital();
-      this._projects = OpexReselectProjects(
-          this._projects, budgetNow, this._abandonedPairs);
+      /* Cette branche n'est atteinte qu'au changement de mois (_lastCatalogMonth != ym) : la
+       * rotation du fret y est donc au plus mensuelle. */
+      if (C76_FREIGHT_ROTATION && !(STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE)) {
+        this._c76RotateFreight(year);
+      } else {
+        local budgetNow = OpexAvailableCapital();
+        this._projects = OpexReselectProjects(
+            this._projects, budgetNow, this._abandonedPairs);
+      }
       this._c76RecordAvoided(year);
     }
   } else {

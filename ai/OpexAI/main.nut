@@ -413,6 +413,7 @@ class OpexAI extends AIController {
   function _dispatchRepay(task, year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
+  function _c76RotateFreight(year);
   function _c76BumpLayer(layer, isEvent = false);
   function _c76GetLayerRevision(layer);
   function _c76GetModeDeps(mode);

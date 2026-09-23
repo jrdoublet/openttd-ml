@@ -1579,6 +1579,49 @@ function OpexAI::_c80DoModeRegen(modes, reason, year)
   }
 }
 
+/* C76 : rotation du cargo fret sans regeneration complete. Une regeneration complete ne produit
+ * le fret que pour UN cargo et fait tourner _lastFreightCargo (_rebuildProjects) ; sous C76, un
+ * mois sans regeneration complete laissait le lot fret fige. Ici, seuls les modes rail et route
+ * sont regeneres sur le cargo suivant (l'etape AIR, la plus chere, n'est pas rejouee). Le
+ * catalogue vient d'etre rafraichi et les abandons elagues par la tache catalogue. */
+function OpexAI::_c76RotateFreight(year)
+{
+  local freightCargos = OpexFreightCargoOrder(this._catalog);
+  if (this._projects == null || !("candidateGroups" in this._projects)
+      || this._projects.candidateGroups == null || freightCargos.len() == 0) {
+    if (this._projects != null) {
+      this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(),
+                                            this._abandonedPairs);
+    }
+    return;
+  }
+  local nextCargo = 0;
+  if (this._lastFreightCargo >= 0) {
+    for (local i = 0; i < freightCargos.len(); i++) {
+      if (freightCargos[i] == this._lastFreightCargo) {
+        nextCargo = (i + 1) % freightCargos.len();
+        break;
+      }
+    }
+  }
+  local mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+  this._projects.rawset("freightCargo", freightCargos[nextCargo]);
+  /* Rail d'abord : son repli sur un cargo sans candidat publie le cargo reel, que la route
+   * reprend ensuite. Chaque appel se termine par OpexReselectProjects. */
+  foreach (mode in ["rail", "road"]) {
+    this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
+        this._lines, this._abandonedPairs, mode, null, null, -1);
+  }
+  if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
+    this._lastFreightCargo = this._projects.freightCargo;
+  }
+  this._ranked = this._projects.rail;
+  if (C39_INVALIDATION_PROBE) {
+    local ops = OpexOpsMeasureEnd(mark);
+    this._c76RecordRegen("freight", ops, (ops + 93000) / 186000, year, "rotation");
+  }
+}
+
 function OpexAI::_c76SaveRevisions()
 {
   local consumedCopy = {};

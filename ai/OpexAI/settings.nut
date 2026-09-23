@@ -341,6 +341,7 @@ function OpexLoadSettings()
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
   C80_WORKER_TOWN = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_town") != 0);
   C76_LEAN_INVALIDATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_lean_invalidation") != 0);
+  C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
   C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
   C80_AIR_HUB_INDEX = AIController.GetSetting("c80_air_hub_index") != 0;
