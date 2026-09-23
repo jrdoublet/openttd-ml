@@ -376,6 +376,14 @@ fois). **Règle générale retenue : ne jamais compter sur la capture de closure
 passer explicitement tout ce dont une fonction imbriquée a besoin en paramètre.** Corrigé en
 ajoutant `platformLength` comme second paramètre de `buildStation`.
 
+**Deux pièges de nommage Squirrel rencontrés en C67.5 (2026-09-23, `water_graph.nut`) :**
+`parent` est un mot réservé du Squirrel de NoAI (`expected 'IDENTIFIER'` à la compilation),
+comme `clone` et `base`. Et une méthode de classe nommée comme un **métaméthode** (`_get`,
+`_set`, `_call`, `_cmp`, `_nexti`, `_tostring`, `_cloned`, …) en prend le rôle sans
+avertissement : avec une méthode `_get(id)`, tout nom libre absent de l'instance
+(`OpexTerrainIds`, une classe globale) passait par elle et valait `null`, d'où
+`attempt to call 'null'`. Préfixer les méthodes privées sans reprendre ces noms.
+
 ### Bug 2 — dépôt raccordé à la mauvaise tuile, trains bloqués à vie
 
 Le quai plus long **n'a pas suffi** : après correction, les wagons restaient encore à

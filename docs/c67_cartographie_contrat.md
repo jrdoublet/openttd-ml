@@ -390,3 +390,81 @@ mois ; la construction est désormais paresseuse, dans le premier crochet. Save/
 Débit mesuré sur 256² : 85 à 760 blocs par an dans le reliquat seul, pic de tranche
 7 161 opcodes. Le fond ne peut pas servir de source rapide ; le consommateur C67.6 devra
 budgéter ses propres tranches. Saturation du cache en jeu et boucle C80 non exercées.
+
+## 16. C67.5 — graphe de composantes eau et oracle (conception du 23 septembre)
+
+Fixé avant implémentation. Complète §6 ; S=5 (§13).
+
+**Périmètre.** Connectivité **eau** seulement : c'est la seule relation qui dispose déjà
+d'une référence exacte dans le code (`OpexWaterFindConnection`). Prédicat identique :
+tuile navigable = `AITile.IsWaterTile` ; arête = voisin cardinal, les deux tuiles eau et
+`AIMarine.AreWaterTilesConnected`. Pas de diagonale. Quais, écluses, aqueducs et bouées
+ne sont pas modélisés, comme dans le builder actuel. Corridors rail/route : hors C67.5.
+
+**Analyse d'un bloc (reprenable).** Pour chaque bloc, lecture tuile par tuile avec
+curseur : eau, puis arêtes internes est/sud, puis arêtes de frontière est/sud vers le
+bloc voisin. Union-find sans API pour étiqueter les composantes internes. Enregistrement
+publié atomiquement : `comps`, étiquettes des tuiles (absentes si aucun eau), drapeaux de
+passage est/sud par tuile de frontière, génération. Cache LRU propre, ≤ 4 096
+enregistrements, distinct des résumés ; invalidation paresseuse par rectangles comme §14.
+
+**Graphe implicite.** Nœud = (bloc, composante). Voisins est/sud lus dans l'enregistrement
+du bloc, ouest/nord dans celui du voisin. Le quotient est **exact** : tout chemin de tuiles
+se décompose en segments internes et passages de frontière observés. Aucune table
+permanente par tuile sur la carte.
+
+**Oracle `Query(tileA, tileB)`, par tranches.** Parcours en largeur des nœuds depuis celui
+de A ; un bloc manquant est analysé avant l'expansion qui en dépend.
+
+- `connected` : le nœud de B est atteint ; la chaîne de nœuds est la preuve.
+- `disconnected` : la frontière est épuisée, la composante de A est entièrement énumérée et
+  ne contient pas B. Preuve fermée, seule forme admise de déconnexion.
+- `unknown` : plafond de blocs analysés ou d'opcodes, invalidation d'un bloc visité pendant
+  la requête, ou A/B non navigables (raison explicite).
+
+`distance_kind` : `none` pour l'oracle. `CorridorDistance` fait ensuite un BFS de tuiles
+**restreint aux blocs de la chaîne dilatés d'un bloc**, par tranches : longueur d'un chemin
+réel (majorant du plus court), `distance_kind = corridor`. Elle ne remplace pas la distance
+tarifaire. Un échec dans le corridor rend `unknown`, jamais `disconnected`.
+
+**Livraison.** `water_graph.nut`, non chargé par OpexAI en C67.5 (comme C67.2) ;
+branchement éventuel par le consommateur C67.6 sous réglage à défaut 0.
+
+**Validation C67.5.**
+1. Fixture Squirrel, source factice : cas §7 (deux bassins dans un bloc, chenal traversant
+   une frontière, île et détour, contact diagonal, péninsule, bassins disjoints, bord de
+   carte, invalidation pendant requête) contre un BFS de tuiles exhaustif ; cartes
+   aléatoires : oracle sans plafond = BFS exhaustif sur toutes les paires testées ; oracle
+   borné = même réponse ou `unknown`, jamais l'inverse.
+2. Sonde sur cartes réelles (IA de diagnostic, entrées figées) : paires de tuiles d'eau
+   déterministes ; comparaison oracle borné, BFS exhaustif et prédicat du builder actuel
+   (marge 24, 12 000 nœuds). Rapporter accord, taux `unknown`, faux `-1` du builder actuel
+   (paires connectées qu'il rejette), opcodes par requête et pic de tranche.
+Aucun connecté/déconnecté affirmé à tort n'est toléré. Pas de gain économique mesuré ici.
+
+## 17. Résultats C67.5 (23 septembre)
+
+`ai/OpexAI/water_graph.nut` (non chargé par OpexAI), fixture `sweeps/fixtures/WaterGraphProbe`,
+harnais `sweeps/diag_c67_water.py`. Rapport final `results/c675_water_6y_20260923_04.json` :
+3 graines × 256² et 512², six parties saines, marqueurs de fin présents.
+
+- Cas adverses §7 et 30 cartes aléatoires (≈ 300 paires) contre un BFS exhaustif : passe ;
+  oracle borné jamais contradictoire, corridor toujours trouvé et ≥ distance exacte.
+- Cartes réelles, 1 200 paires comparées à un étiquetage exact de toute la carte :
+  **zéro réponse fausse** ; 642 `connected`, 557 `disconnected` (preuves fermées), 1 `unknown`
+  (plafond de 1 024 blocs).
+- Builder actuel (`OpexWaterFindConnection`, marge 24, 12 000 nœuds) : 21 faux rejets sur
+  642 paires connectées (3,3 %), tous sur des paires lointaines (Manhattan 266–961, chemin
+  navigable 433–961) ; aucun sur les 600 paires proches. Aucun faux accept. Sur les 621
+  paires trouvées par les deux, la distance de corridor est **égale** à celle du builder.
+- Coût propre au service (opcodes) : oracle médiane 83 k si connecté, 210 k si déconnecté
+  (p90 0,6 M / 1,6 M, max 8,2 M ; l'inconnu 13 M) ; builder médiane 153 k (p90 0,6 M) ;
+  corridor médiane 166 k. Blocs analysés : 674 à 2 455 par carte, aucune éviction.
+- Tranches ≤ 8 024 opcodes ; unité indivisible ≤ 3 578. La réserve de tick est portée à
+  4 000 et vérifiée avant **chaque** unité (un premier essai, vérifiant seulement à l'entrée,
+  montrait des unités coupées par un tick à ~12 000).
+
+Limites : eau seulement ; déconnexion coûteuse sur grande composante (une recherche
+bidirectionnelle réduirait ce coût, non implémentée) ; pas de mesure 1024²/2048² ; les paires
+sont des tuiles d'eau tirées au hasard, pas les paires de quais du builder. L'exposition
+réelle (paires lointaines rejetées à tort) reste à établir en C67.6 avant tout branchement.
