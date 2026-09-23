@@ -277,6 +277,13 @@ tests pertinents et smoke 1×1 ; comportement → diagnostic apparié 5×6 ; ado
 Ajouter la validation Save/Load quand nécessaire. Figer les entrées, conserver les limites
 et ne pas confondre absence de significativité et équivalence.
 
+**Graines du banc.** Il n'y a plus de graine morte connue : 2026, 1337 et 1024 gelaient dans la
+phase eau (C56) jusqu'au correctif `water_lakes_ops_budget` du 2026-09-11. Vérifié sur les 20×10
+duel du 2026-09-23 (bras défaut) : 2026 = 65 gares / 136 véhicules, 1337 = 57 / 164, 1024 = 91 /
+191, pour une médiane d'environ 68 gares. Les 20 graines de `bench_v2.py` comptent donc toutes ;
+ne pas en retirer. Un gel reste détecté par le harnais (`last_year` < `expected_last_year` →
+`incomplete_run`), jamais moyenné en silence.
+
 Docker : `--cpus=3 --memory=2g --memory-swap=2g`, volume `openttd-lab-home:/home/lab`,
 dépôt réellement monté dans `/work`, trois workers maximum et une seule campagne VPS à la fois.
 
