@@ -206,6 +206,8 @@ C60_TOWN_RATING_LEDGER <- null;
 /* C56 : trace immediate du dispatch, nulle hors sonde. */
 C56_TASK_TRACE <- false;
 C56_LOOP_TICK_COUNT <- 0;
+/* C56 : cumul des tranches du travailleur actif (trace seulement). */
+C56_WORKER_ACC <- null;
 /* C50 : Sonde chronologique legere (tresorerie, profit par ligne, projets batis et refuses). */
 C50_CHRONOLOGY_PROBE <- false;
 /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */

@@ -695,13 +695,52 @@ function OpexC55PaxTraceLog(kind, fields)
  * - TASK_ENTER/TASK_EXIT apparies jusqu'au bout puis plus rien : blocage hors tache ;
  * - LOOP_TICK continu sans TASK_ENTER : boucle active, ordonnanceur sans selection ;
  * - plus aucune trace : script lui-meme plus execute par le moteur. */
-function OpexC56TaskLog(kind, name, cycle)
+function OpexC56TaskLog(kind, name, cycle, extra = null)
 {
   if (!C56_TASK_TRACE) return;
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C56_TASK " + kind + " name=" + name
-             + " cycle=" + cycle);
+             + " cycle=" + cycle + " tick=" + AIController.GetTick()
+             + " opsclk=" + OpexOpsClock() + (extra != null ? " " + extra : ""));
+}
+/* C56 : intention reactive de l'orchestrateur, bornee par INTENT_ENTER/INTENT_EXIT. */
+function OpexC56DispatchReactive(owner, intention)
+{
+  if (!C56_TASK_TRACE) return owner._dispatchReactiveIntention(intention);
+  local kind = (("kind" in intention) && intention.kind != null) ? intention.kind : "unknown";
+  OpexC56TaskLog("INTENT_ENTER", kind, "-");
+  local dispatched = owner._dispatchReactiveIntention(intention);
+  OpexC56TaskLog("INTENT_EXIT", kind, "-", "dispatched=" + (dispatched ? 1 : 0));
+  return dispatched;
+}
+/* C56 : tranche de travailleur. Une trace par travailleur (WORKER_ENTER a la premiere tranche,
+ * WORKER_EXIT a la derniere) et non par tranche : un A* rail en compte des milliers. Les tranches
+ * s'intercalent avec la file de fond, d'ou le cumul `step_ops` propre au travailleur. */
+function OpexC56WorkerStep(worker, opsBudget, deadlineTick)
+{
+  if (!C56_TASK_TRACE) return OpexWorkerStep(worker, opsBudget, deadlineTick);
+  if (C56_WORKER_ACC == null || C56_WORKER_ACC.worker != worker) {
+    ::C56_WORKER_ACC = { worker = worker, kind = worker.kind, steps = 0, ops = 0 };
+    OpexC56TaskLog("WORKER_ENTER", worker.kind, "-");
+  }
+  local acc = C56_WORKER_ACC;
+  local mark = OpexOpsMeasureBegin();
+  local outcome = OpexWorkerStep(worker, opsBudget, deadlineTick);
+  acc.ops += OpexOpsMeasureEnd(mark);
+  acc.steps++;
+  if (outcome == "done" || outcome == "cancelled") {
+    OpexC56TaskLog("WORKER_EXIT", acc.kind, "-", "outcome=" + outcome + " steps=" + acc.steps
+                   + " step_ops=" + acc.ops);
+    ::C56_WORKER_ACC = null;
+  }
+  return outcome;
+}
+/* Horloge d'opcodes monotone, meme convention qu'OpexOpsMeasureEnd : un tick franchi compte pour
+ * OPS_PER_TICK. La difference entre deux traces C56 donne le cout d'une etape. */
+function OpexOpsClock()
+{
+  return AIController.GetTick() * OPS_PER_TICK + (OPS_PER_TICK - AIController.GetOpsTillSuspend());
 }
 /* C52 : gate dedie et autonome. La sonde observe aussi quand la reparation est desarmee. */
 function OpexC52AutoreplaceLog(fields)

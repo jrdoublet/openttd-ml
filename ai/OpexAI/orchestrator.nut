@@ -656,7 +656,7 @@ function OpexAI::_runOrchestratorTick()
       if (C39_PASS_CLOCK_LEDGER) {
         local c39DateBefore = AIDate.GetCurrentDate();
         local mark = OpexOpsMeasureBegin();
-        local dispatched = this._dispatchReactiveIntention(intention);
+        local dispatched = OpexC56DispatchReactive(this, intention);
         local ops = OpexOpsMeasureEnd(mark);
         local passDays = AIDate.GetCurrentDate() - c39DateBefore;
         local passTicks = AIController.GetTick() - mark.tick;
@@ -664,7 +664,7 @@ function OpexAI::_runOrchestratorTick()
         this._recordC39PassClockLedger("reactive|" + kind, passDays, passTicks, ops, 0, 0, 0);
         if (dispatched) return true;
       } else {
-        if (this._dispatchReactiveIntention(intention)) return true;
+        if (OpexC56DispatchReactive(this, intention)) return true;
       }
     }
   }
@@ -677,7 +677,7 @@ function OpexAI::_runOrchestratorTick()
       this._railWorkerSteppedThisTick = true;
       local opsBudget = AIController.GetOpsTillSuspend();
       local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
-      local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      local outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
       if (outcome == "done" || outcome == "cancelled") {
         this._activeWorker = null;
       }
@@ -694,13 +694,13 @@ function OpexAI::_runOrchestratorTick()
       if (C39_PASS_CLOCK_LEDGER) {
         local c39DateBefore = AIDate.GetCurrentDate();
         local mark = OpexOpsMeasureBegin();
-        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
         local ops = OpexOpsMeasureEnd(mark);
         local passDays = AIDate.GetCurrentDate() - c39DateBefore;
         local passTicks = AIController.GetTick() - mark.tick;
         this._recordC39PassClockLedger("worker|town_growth", passDays, passTicks, ops, 0, 0, 0);
       } else {
-        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
       }
       if (outcome == "done" || outcome == "cancelled") {
         this._activeWorker = null;
@@ -716,13 +716,13 @@ function OpexAI::_runOrchestratorTick()
         local workerKind = this._activeWorker.kind;
         local c39DateBefore = AIDate.GetCurrentDate();
         local mark = OpexOpsMeasureBegin();
-        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
         local ops = OpexOpsMeasureEnd(mark);
         local passDays = AIDate.GetCurrentDate() - c39DateBefore;
         local passTicks = AIController.GetTick() - mark.tick;
         this._recordC39PassClockLedger("worker|" + workerKind, passDays, passTicks, ops, 0, 0, 0);
       } else {
-        outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
       }
       if (outcome == "done" || outcome == "cancelled") {
         this._activeWorker = null;

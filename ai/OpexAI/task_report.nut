@@ -1139,6 +1139,9 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year, reason = "unknown")
     + " lines_delta=" + linesDelta
     + " cash_budget_delta_pct=" + cashBudgetDeltaPct
     + " events_since_prev=" + evStr;
+  local freightCargoId = (this._projects != null && ("freightCargo" in this._projects))
+      ? this._projects.freightCargo : null;
+  line += " freight_cargo=" + (freightCargoId != null ? AICargo.GetCargoLabel(freightCargoId) : "none");
 
   foreach (m in modeOrder) {
     line += " cand_" + m + "_n=" + candN[m]

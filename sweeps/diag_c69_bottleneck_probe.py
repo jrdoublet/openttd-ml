@@ -183,6 +183,9 @@ def main():
                         help="autres canaux OPEX a recopier dans --raw (ex. C39_PASS_CLOCK)")
     parser.add_argument("--grep", default=None, help="recopie dans --raw les lignes du journal contenant ce texte")
     parser.add_argument("--raw", type=Path, default=None, help="Ecrit les lignes C69_BOTTLENECK brutes (jsonl)")
+    parser.add_argument("--no-checkpoint", action="store_true",
+                        help="checkpoint vers /dev/null : chaque ligne mensuelle recopie tout le journal, "
+                             "soit plusieurs Go avec les sondes verbeuses (probe_events)")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
     if args.selftest:
@@ -194,7 +197,7 @@ def main():
         parser.error("--seeds ne doit pas contenir de doublon")
 
     out = args.out or ROOT / "results" / "diag_c69_bottleneck_probe_6y_5seeds.json"
-    bench_v2.CHECKPOINT_PATH = out.with_suffix(".jsonl")
+    bench_v2.CHECKPOINT_PATH = Path("/dev/null") if args.no_checkpoint else out.with_suffix(".jsonl")
     enable_savegame_cleanup()
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
@@ -220,11 +223,12 @@ def main():
                         if args.grep in text:
                             fh.write(json.dumps({"seed": record["seed"], "grep": text.strip()[-200:]}) + "\n")
                 for tag in args.extra_tags:
-                    tag_re = re.compile(r"OPEX (\d+)-\d+-\d+ " + re.escape(tag) + r"\s*(.*)")
-                    for year, fields in tag_re.findall(record.get("openttd_output", "")):
+                    tag_re = re.compile(r"OPEX ((\d+)-\d+-\d+) " + re.escape(tag) + r"\s*(.*)")
+                    for date, year, fields in tag_re.findall(record.get("openttd_output", "")):
                         extra = parse_fields(fields)
                         fh.write(json.dumps({"seed": record["seed"], "tag": tag,
-                                             "_log_year": int(year), **extra}) + "\n")
+                                             "_log_year": int(year), "_log_date": date,
+                                             **extra}) + "\n")
         per_seed.append({"seed": record["seed"], "run_ok": record["run_ok"],
                          "n_events": len(events), "metrics": build_metrics(events),
                          "c1": c1_years(events, c49_events),
