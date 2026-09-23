@@ -221,7 +221,7 @@ def main():
                 if args.grep:
                     for text in (record.get("openttd_output", "") or "").splitlines():
                         if args.grep in text:
-                            fh.write(json.dumps({"seed": record["seed"], "grep": text.strip()[-200:]}) + "\n")
+                            fh.write(json.dumps({"seed": record["seed"], "grep": text.strip()[-800:]}) + "\n")
                 for tag in args.extra_tags:
                     tag_re = re.compile(r"OPEX ((\d+)-\d+-\d+) " + re.escape(tag) + r"\s*(.*)")
                     for date, year, fields in tag_re.findall(record.get("openttd_output", "")):
