@@ -49,7 +49,7 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         cls.probes = read("ai/OpexAI/probes.nut")
         cls.info = read("ai/OpexAI/info.nut")
 
-    def test_c77_reuses_live_air_claims_without_changing_its_default(self):
+    def test_c77_reuses_live_air_claims_with_corrected_default(self):
         state = body(self.projects, "function OpexDefensiveSlotSelectionState(")
         self.assertIn("!C77_OPPORTUNISTIC_CANDIDATES", state)
         self.assertIn("if (earlySlotState != null)", state)
@@ -60,10 +60,15 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertIn("OpexDefensiveSlotSelectionState(earlySlotState)", select)
         self.assertIn("OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);", select)
 
-        c77_setting = self.info.index('name = "c77_opportunistic_candidates"')
-        c77_block = self.info[c77_setting : c77_setting + 420]
-        self.assertIn("easy_value = 0, medium_value = 0, hard_value = 0", c77_block)
-        self.assertIn("custom_value = 0", c77_block)
+        for setting in (
+            "c77_opportunistic_candidates",
+            "c77_targeted_build",
+            "c77_fixes",
+        ):
+            c77_setting = self.info.index(f'name = "{setting}"')
+            c77_block = self.info[c77_setting : c77_setting + 720]
+            self.assertIn("easy_value = 1, medium_value = 1, hard_value = 1", c77_block)
+            self.assertIn("custom_value = 1", c77_block)
 
     def test_competitor_airport_signal_uses_constant_time_slot_count(self):
         enabled = body(self.builder_air, "function OpexAirC83SlotSignalEnabled(")

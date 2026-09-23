@@ -508,9 +508,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c77_opportunistic_candidates",
-      description = "C77: inject candidates for event-touched towns/industries/subsidies immediately: 1 = test arm, 0 = historical event path (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C77: inject candidates for event-touched towns/industries/subsidies immediately: 1 = enabled (default), 0 = historical event path",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -548,17 +548,17 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c77_targeted_build",
-      description = "C77: only trigger reactive c77_build if the top funded project touches the event entity: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C77: only trigger reactive c77_build if the top funded project touches the event entity: 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
       name = "c77_fixes",
-      description = "C77 fixes: re-enqueue c77_build/subsidy on reload, restore industry_close invalidation, distinct coalescence keys, sync entity regen during rail/town workers: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C77 fixes: re-enqueue c77_build/subsidy on reload, restore industry_close invalidation, distinct coalescence keys, sync entity regen during rail/town workers: 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
