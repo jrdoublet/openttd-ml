@@ -75,8 +75,14 @@ function OpexAI::_reportLines(year)
     }
     OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
     if (C56_TASK_TRACE && vehicleType == AIVehicle.VT_AIR) {
+      local paxCargo = this._catalog.paxCargo;
+      local waitA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, paxCargo) : -1;
+      local waitB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, paxCargo) : -1;
+      local rateA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoRating(stationA, paxCargo) : -1;
+      local rateB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoRating(stationB, paxCargo) : -1;
       OpexC56TaskLog("LINE_PROFIT", line.lineId, "-", "year=" + year + " profit=" + profit
-                     + " veh=" + vehCount);
+                     + " veh=" + vehCount + " stA=" + stationA + " stB=" + stationB
+                     + " waitA=" + waitA + " waitB=" + waitB + " rateA=" + rateA + " rateB=" + rateB);
     }
     OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
     /* Collision/crash detector: an owned train that disappears outside the explicit freight

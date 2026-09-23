@@ -353,6 +353,7 @@ function OpexLoadSettings()
   JOIN_MAX_DISTANCE = 0;
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
+  RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

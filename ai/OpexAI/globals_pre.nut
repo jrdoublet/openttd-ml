@@ -295,6 +295,8 @@ FLEET_PORTFOLIO <- true;
 RAIL_DEVIS <- true;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
+/* F-RAIL-ECON-01 : prise en compte du cout du depot dans le capital d'infrastructure rail. */
+RAIL_DEPOT_COST <- false;
 OPS_PER_TICK <- 10000;
 _budgetSignIds <- {};
 _currentTaskName <- null;

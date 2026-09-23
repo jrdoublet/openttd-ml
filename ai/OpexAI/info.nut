@@ -303,6 +303,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "rail_depot_cost",
+      description = "Include rail depot construction cost in rail line infrastructure economics (F-RAIL-ECON-01): 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "project_top_k",
       description = "Taille de la fenetre de selection du portefeuille (64 = defaut mesure)",
       min_value = 8, max_value = 128,

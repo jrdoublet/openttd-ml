@@ -282,7 +282,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
       ? fixedPlatformLength
       : OpexRailWantedPlatformLength(wagons, catalog.platformLength);
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
-  local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation;
+  local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation
+      + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
   if (freightSetupDetail) {
     profile.freightEconomicsCapitalOps += OpexOpsMeasureEnd(capitalMark);
