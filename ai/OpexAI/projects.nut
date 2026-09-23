@@ -609,7 +609,6 @@ function OpexDefensiveSlotSelectionState(earlySlotState = null)
     servedTowns = {}, servedCount = 0,
     slotRemaining = {}, defensiveSlotSignal = false,
   };
-  if (!C77_OPPORTUNISTIC_CANDIDATES) return state;
 
   if (earlySlotState != null) {
     state.servedTowns = earlySlotState.servedTowns;
@@ -632,8 +631,7 @@ function OpexDefensiveSlotSelectionState(earlySlotState = null)
 
 function OpexC83TownSlotsRemaining(townId, state)
 {
-  if (!C77_OPPORTUNISTIC_CANDIDATES || state == null
-      || townId < 0 || !AITown.IsValidTown(townId)) return -1;
+  if (state == null || townId < 0 || !AITown.IsValidTown(townId)) return -1;
   if (!("defensiveSlotSignal" in state) || !state.defensiveSlotSignal) return -1;
   if (!(townId in state.slotRemaining)) {
     state.slotRemaining.rawset(townId, AITown.GetAllowedNoise(townId));
@@ -736,7 +734,7 @@ function OpexProjectRefreshEarlySlot(project, state)
  * defaut air_early_slot=1. */
 function OpexProjectRefreshDefensiveSlot(project, state)
 {
-  if (!C77_OPPORTUNISTIC_CANDIDATES || project == null || state == null) return;
+  if (project == null || state == null) return;
 
   local claims = 0;
   local competitorClaims = 0;
@@ -806,7 +804,7 @@ function OpexProjectRefreshDefensiveSlot(project, state)
  * sert seulement de classe lexicographique devant les projets ordinaires. */
 function OpexProjectDefensiveAirPriority(project)
 {
-  if (!C77_OPPORTUNISTIC_CANDIDATES || project == null) return 0;
+  if (project == null) return 0;
   if (!("mode" in project) || project.mode != "air") return 0;
   if (!("profitAnnual" in project) || project.profitAnnual <= 0) return 0;
   local competitorClaims = ("defensiveCompetitorClaims" in project)
@@ -864,8 +862,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 
   local affordable = [];
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
-  local defensiveSlotState = C77_OPPORTUNISTIC_CANDIDATES
-      ? OpexDefensiveSlotSelectionState(earlySlotState) : null;
+  local defensiveSlotState = OpexDefensiveSlotSelectionState(earlySlotState);
   local scoreKey = "fundScore";
 
   local kDec = 0;
@@ -882,25 +879,15 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (financeCapital > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-    if (C77_OPPORTUNISTIC_CANDIDATES) {
-      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
-    }
+    OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
     project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
         (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
-      if (C77_OPPORTUNISTIC_CANDIDATES) {
-        OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
-      } else {
-        OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
-      }
+      OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
     }
-    if (C77_OPPORTUNISTIC_CANDIDATES) {
-      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-    } else {
-      OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-    }
+    OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
@@ -912,25 +899,15 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       local financeCapital = OpexProjectFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-      if (C77_OPPORTUNISTIC_CANDIDATES) {
-        OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
-      }
+      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
       project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
           (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
-        if (C77_OPPORTUNISTIC_CANDIDATES) {
-          OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
-        } else {
-          OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
-        }
+        OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
       }
-      if (C77_OPPORTUNISTIC_CANDIDATES) {
-        OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-      } else {
-        OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-      }
+      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
   }
   if (C69_BOTTLENECK_PROBE) {
@@ -971,27 +948,7 @@ function OpexProjectSelectionScore(project, field)
   return score * factor;
 }
 
-/* Insertion bornee et stable. Early-slot est volontairement opt-in : les tris
- * intermediaires gardent leur semantique historique, et seule la selection
- * finançable finale demande la prime strategique. */
-function OpexProjectInsert(best, project, field, limit, applyEarlySlot = false)
-{
-  local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
-  local pos = best.len();
-  while (pos > 0) {
-    local prior = best[pos - 1];
-    local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
-    if (priorScore > projectScore) break;
-    if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;
-    pos--;
-  }
-  best.insert(pos, project);
-  if (best.len() > limit) best.pop();
-}
-
-/* Variante C77 uniquement. Le comparateur historique ci-dessus reste intact
- * quand C77=0 ; la classe defensive n'ajoute donc aucun appel par comparaison
- * au chemin normal. */
+/* Insertion bornee et stable avec classe defensive C77 permanente. */
 function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false)
 {
   local projectTier = OpexProjectDefensiveAirPriority(project);
@@ -1022,8 +979,8 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot 
  * meme score/tie-break que la selection finale. */
 function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
 {
-  if (!C77_OPPORTUNISTIC_CANDIDATES || projects == null
-      || !("best" in projects) || projects.best == null || projects.best.len() == 0) return null;
+  if (projects == null || !("best" in projects)
+      || projects.best == null || projects.best.len() == 0) return null;
 
   local earlyState = null;
   local defensiveState = null;
@@ -2104,8 +2061,8 @@ function OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capit
              + " budget=" + capitalBudget);
 }
 
-/* C80 fleet inject : sous c80_fleet_inject, injecte les opportunites mures de
- * flotte directement dans candidateGroups, sans recalculer les plans aeriens. */
+/* C80 fleet inject : injecte les opportunites mures de flotte directement dans
+ * candidateGroups, sans recalculer les plans aeriens. */
 function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
@@ -2152,7 +2109,7 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null)
 {
-  local airBuilt = C80_AIR_TARGETED_UPDATE && airTouchedTowns != null && airTouchedTowns.len() > 0;
+  local airBuilt = airTouchedTowns != null && airTouchedTowns.len() > 0;
   local b6BudgetDate = AIDate.GetCurrentDate();
   local stats = {
     odProjects = 0,
@@ -2190,10 +2147,10 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
          * nombre de villes deja securisees peut changer ; un ancien plan air ne
          * doit donc jamais conserver un bonus devenu perime. Les plans air sont
          * regeneres frais un peu plus bas dans cette meme passe. */
-        /* c80_air_targeted_update : sans chantier aerien dans la passe, les plans air sont gardes
+        /* Sans chantier aerien dans la passe, les plans air sont gardes
          * (le bonus early slot est recalcule a la selection, OpexProjectRefreshEarlySlot) ; apres un
          * chantier aerien, comportement historique : tout jeter puis tout replanifier. */
-        if ((!C80_AIR_TARGETED_UPDATE || airBuilt) && AIR_EARLY_SLOT && p.mode == "air") continue;
+        if (airBuilt && AIR_EARLY_SLOT && p.mode == "air") continue;
 
         if (OpexCandidateIsAbandoned(p, abandonedPairs)) {
           abandonFiltered++;
@@ -2226,8 +2183,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
-    if (!C80_AIR_TARGETED_UPDATE || airBuilt) {
-      if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental(airBuilt ? "targeted" : "full");
+    if (airBuilt) {
+      if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental("targeted");
       local freshAirPlans = [];
       if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
       OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
@@ -2775,32 +2732,12 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     OpexLogVivier("build", vivierPool, stats, capitalBudget, remaining);
   }
 
-  /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
-   * cela evite meme de changer la forme de this._projects dans le controle. */
-  if (PORTFOLIO_CACHE || C39_INVALIDATION_PROBE || C69_BOTTLENECK_PROBE
-      || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
-    local ret = {
-      all = stats.odProjects, best = funded, stats = stats,
-      capitalBudget = capitalBudget,
-      capitalRemaining = remaining, candidateGroups = winners,
-      rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
-      airPlans = airPlans, waterPlans = waterPlans,
-      airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,
-      generationStage = generationStage,
-      freightCargo = freightCargo,
-    };
-    if (C69_BOTTLENECK_PROBE) {
-      ret.c69Best <- ::C69_LAST_AFFORDABLE;
-      ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
-    }
-    return ret;
-  }
+  /* Le vivier est conservé en permanence par le chemin incrémental adopté. */
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
   local ret = {
     all = stats.odProjects, best = funded, stats = stats,
-    capitalBudget = capitalBudget,
-    capitalRemaining = remaining,
+    capitalBudget = capitalBudget, capitalRemaining = remaining,
+    candidateGroups = winners,
     rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
     airPlans = airPlans, waterPlans = waterPlans,
     airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,

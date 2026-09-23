@@ -309,20 +309,16 @@ function OpexFinishRegenEntity(owner, s)
   if (("buildAfter" in s) && s.buildAfter) {
     local reason = ("reason" in s) ? s.reason : "event";
     local key = "c77|build|" + reason;
-    if (C77_FIXES) {
-      if (("targeted" in s) && s.targeted && ("entityKind" in s) && ("entityId" in s)
-          && s.entityKind != null && s.entityId >= 0) {
-        key = "c77|build|" + s.entityKind + "|" + s.entityId + "|" + reason;
-      } else if (("subsidyId" in s) && s.subsidyId >= 0) {
-        key = "c77|build|subsidy|" + s.subsidyId + "|" + reason;
-      }
+    if (("targeted" in s) && s.targeted && ("entityKind" in s) && ("entityId" in s)
+        && s.entityKind != null && s.entityId >= 0) {
+      key = "c77|build|" + s.entityKind + "|" + s.entityId + "|" + reason;
+    } else if (("subsidyId" in s) && s.subsidyId >= 0) {
+      key = "c77|build|subsidy|" + s.subsidyId + "|" + reason;
     }
     local payload = { reason = reason };
-    if (C77_TARGETED_BUILD || C77_FIXES) {
-      if ("entityKind" in s) payload.entityKind <- s.entityKind;
-      if ("entityId" in s) payload.entityId <- s.entityId;
-      if ("subsidyId" in s) payload.subsidyId <- s.subsidyId;
-    }
+    if ("entityKind" in s) payload.entityKind <- s.entityKind;
+    if ("entityId" in s) payload.entityId <- s.entityId;
+    if ("subsidyId" in s) payload.subsidyId <- s.subsidyId;
     owner._enqueueReactive(key, "c77_build", payload);
   }
 }
@@ -471,10 +467,9 @@ function OpexAI::_dispatchReactiveIntention(intention)
       return false;
     }
     if (intention.kind == "c77_entity") {
-      /* Tâche 10 (c77_fixes) : si le travailleur actif est rail_search ou town_growth,
-       * exécuter la régénération ciblée de l'entité de façon synchrone au lieu d'attendre.
-       * Ne s'applique que sous C77_FIXES ; sinon on attend comme historiquement. */
-      if (C77_FIXES && (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "town_growth")) {
+      /* Si le travailleur actif est rail_search ou town_growth, exécuter la
+       * régénération ciblée de l'entité de façon synchrone au lieu d'attendre. */
+      if (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "town_growth") {
         OpexRegenEntitySync(this, intention.payload);
         return true;
       }
@@ -489,11 +484,11 @@ function OpexAI::_dispatchReactiveIntention(intention)
   if (intention.kind == "c77_subsidy") {
     if (intention.payload != null && ("subsidyId" in intention.payload)) {
       local injected = this._c77InjectSubsidy(intention.payload.subsidyId);
-      /* Tâche 7 (c77_fixes) : au rechargement, une intention c77_subsidy échoue si
+      /* Au rechargement, une intention c77_subsidy échoue si
        * this._projects == null. Ré-enfiler au lieu de la perdre, avec un compteur de reports
        * (N=3 reports max pour laisser le temps au vivier d'être reconstruit par la file de fond
        * sans risquer une boucle infinie de ré-enfilage si le vivier tarde). */
-      if (!injected && C77_FIXES && this._projects == null) {
+      if (!injected && this._projects == null) {
         local retries = ("retries" in intention.payload) ? intention.payload.retries : 0;
         if (retries < 3) {
           local retryPayload = clone intention.payload;
@@ -506,50 +501,46 @@ function OpexAI::_dispatchReactiveIntention(intention)
     return true;
   }
   if (intention.kind == "c77_build") {
-    /* Tâche 7 (c77_fixes) : au rechargement, une intention c77_build est perdue si
+    /* Au rechargement, une intention c77_build est perdue si
      * this._projects == null. Ré-enfiler l'intention jusqu'à 3 fois (N=3) pour laisser la file
      * de fond réinitialiser le vivier, puis abandonner si le vivier n'est toujours pas disponible. */
     if (this._projects == null) {
-      if (C77_FIXES) {
-        local payload = (intention.payload != null) ? clone intention.payload : {};
-        local retries = ("retries" in payload) ? payload.retries : 0;
-        if (retries < 3) {
-          payload.retries <- retries + 1;
-          this._enqueueReactive(intention.key, intention.kind, payload);
-          return false;
-        }
+      local payload = (intention.payload != null) ? clone intention.payload : {};
+      local retries = ("retries" in payload) ? payload.retries : 0;
+      if (retries < 3) {
+        payload.retries <- retries + 1;
+        this._enqueueReactive(intention.key, intention.kind, payload);
+        return false;
       }
       return true;
     }
     if (this._portfolioInvalidated) {
       return true;
     }
-    /* Tâche 4 (c77_targeted_build) : ne lancer la construction que si le premier projet financé
+    /* Ne lancer la construction que si le premier projet financé
      * (this._projects.best[0]) touche l'entité de l'événement (OpexProjectTouchesEntity ; pour
      * une subvention, le projet isSubsidy de ce subsidyId) ; sinon abandonner l'intention
      * (la passe normale décidera). */
-    if (C77_TARGETED_BUILD) {
-      if (this._projects.best == null || this._projects.best.len() == 0) {
-        return true;
+    if (this._projects.best == null || this._projects.best.len() == 0) {
+      return true;
+    }
+    OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
+    local head = this._projects.best[0];
+    local payload = intention.payload;
+    local touches = false;
+    if (payload != null) {
+      if (("subsidyId" in payload) && payload.subsidyId >= 0) {
+        /* OpexProjectTouchesEntity ne connait que villes et industries : tester le projet de subvention. */
+        touches = head != null && ("payload" in head) && head.payload != null
+            && ("isSubsidy" in head.payload) && head.payload.isSubsidy
+            && ("subsidyId" in head.payload) && head.payload.subsidyId == payload.subsidyId;
+      } else if (("entityKind" in payload) && ("entityId" in payload)
+                 && payload.entityKind != null && payload.entityId >= 0) {
+        touches = OpexProjectTouchesEntity(head, payload.entityKind, payload.entityId);
       }
-      OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
-      local head = this._projects.best[0];
-      local payload = intention.payload;
-      local touches = false;
-      if (payload != null) {
-        if (("subsidyId" in payload) && payload.subsidyId >= 0) {
-          /* OpexProjectTouchesEntity ne connait que villes et industries : tester le projet de subvention. */
-          touches = head != null && ("payload" in head) && head.payload != null
-              && ("isSubsidy" in head.payload) && head.payload.isSubsidy
-              && ("subsidyId" in head.payload) && head.payload.subsidyId == payload.subsidyId;
-        } else if (("entityKind" in payload) && ("entityId" in payload)
-                   && payload.entityKind != null && payload.entityId >= 0) {
-          touches = OpexProjectTouchesEntity(head, payload.entityKind, payload.entityId);
-        }
-      }
-      if (!touches) {
-        return true;
-      }
+    }
+    if (!touches) {
+      return true;
     }
     this._tryBuildProjects(AIDate.GetYear(AIDate.GetCurrentDate()));
     return true;
@@ -608,7 +599,7 @@ function OpexAI::_c77RefreshModeCatalog(mode)
 
 function OpexAI::_c77InjectSubsidy(subId)
 {
-  if (!C77_OPPORTUNISTIC_CANDIDATES || this._projects == null
+  if (this._projects == null
       || !(("candidateGroups" in this._projects)) || this._projects.candidateGroups == null) return false;
   local winners = {};
   local scratch = { modeCandidates = 0, modeAlternatives = 0 };
@@ -633,11 +624,9 @@ function OpexAI::_c77InjectSubsidy(subId)
       this._projects, OpexAvailableCapital(), this._abandonedPairs);
   this._ranked = this._projects.rail;
   local buildPayload = { reason = "subsidy_offer" };
-  if (C77_TARGETED_BUILD || C77_FIXES) {
-    buildPayload.subsidyId <- subId;
-    buildPayload.entityKind <- "subsidy";
-    buildPayload.entityId <- subId;
-  }
+  buildPayload.subsidyId <- subId;
+  buildPayload.entityKind <- "subsidy";
+  buildPayload.entityId <- subId;
   this._enqueueReactive("c77|build|subsidy|" + subId, "c77_build", buildPayload);
   return true;
 }

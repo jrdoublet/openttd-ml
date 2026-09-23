@@ -49,9 +49,9 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         cls.probes = read("ai/OpexAI/probes.nut")
         cls.info = read("ai/OpexAI/info.nut")
 
-    def test_c77_reuses_live_air_claims_with_corrected_default(self):
+    def test_c77_reuses_live_air_claims_as_permanent_policy(self):
         state = body(self.projects, "function OpexDefensiveSlotSelectionState(")
-        self.assertIn("!C77_OPPORTUNISTIC_CANDIDATES", state)
+        self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", state)
         self.assertIn("if (earlySlotState != null)", state)
         self.assertIn("state.servedTowns = earlySlotState.servedTowns;", state)
         self.assertIn("state.defensiveSlotSignal = OpexAirC83SlotSignalEnabled();", state)
@@ -65,13 +65,11 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
             "c77_targeted_build",
             "c77_fixes",
         ):
-            c77_setting = self.info.index(f'name = "{setting}"')
-            c77_block = self.info[c77_setting : c77_setting + 720]
-            self.assertIn("easy_value = 1, medium_value = 1, hard_value = 1", c77_block)
-            self.assertIn("custom_value = 1", c77_block)
+            self.assertNotIn(f'name = "{setting}"', self.info)
 
     def test_competitor_airport_signal_uses_constant_time_slot_count(self):
         enabled = body(self.builder_air, "function OpexAirC83SlotSignalEnabled(")
+        self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", enabled)
         self.assertIn('AIGameSettings.IsValid("economy.station_noise_level")', enabled)
         self.assertIn('AIGameSettings.GetValue("economy.station_noise_level") == 0', enabled)
         self.assertIn('AIGameSettings.IsValid("difficulty.town_council_tolerance")', enabled)
@@ -97,7 +95,7 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
 
     def test_defensive_air_is_a_lexicographic_class_after_profit_and_cash_gates(self):
         priority = body(self.projects, "function OpexProjectDefensiveAirPriority(")
-        self.assertIn("!C77_OPPORTUNISTIC_CANDIDATES", priority)
+        self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", priority)
         self.assertIn('project.mode != "air"', priority)
         self.assertIn("project.profitAnnual <= 0", priority)
         self.assertIn("if (competitorClaims > 0) return 2;", priority)
@@ -107,9 +105,9 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         refresh_at = select.index("OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);")
         self.assertLess(select.index("financeCapital > capitalBudget"), refresh_at)
         self.assertLess(select.index("project.profitAnnual < floorProfit"), refresh_at)
-        self.assertIn("if (C77_OPPORTUNISTIC_CANDIDATES)", select)
+        self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", select)
         self.assertIn('OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);', select)
-        self.assertIn('OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);', select)
+        self.assertNotIn('OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);', select)
 
         insert = body(self.projects, "function OpexProjectInsertDefensive(")
         tier_at = insert.index("OpexProjectDefensiveAirPriority(prior)")
@@ -118,12 +116,9 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertIn("if (priorTier > projectTier) break;", insert)
         self.assertIn("if (priorTier < projectTier)", insert)
 
-        historical = body(self.projects, "function OpexProjectInsert(")
-        self.assertNotIn("OpexProjectDefensiveAirPriority", historical)
-
     def test_projects_pass_refreshes_only_the_funded_topk_before_spending(self):
         promote = body(self.projects, "function OpexPromoteLiveDefensiveAir(")
-        self.assertIn("!C77_OPPORTUNISTIC_CANDIDATES", promote)
+        self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", promote)
         self.assertIn("projects.best", promote)
         self.assertIn("PROJECT_TOP_K", promote)
         self.assertIn("OpexProjectFinanceCapital(project) > capitalBudget", promote)

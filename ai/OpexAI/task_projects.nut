@@ -279,8 +279,7 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
  * reactive assure la coalescence. */
 function OpexAI::_c83WatchAirSlotTransitions()
 {
-  if (!C77_OPPORTUNISTIC_CANDIDATES || this._catalog == null
-      || !OpexAirC83SlotSignalEnabled()) return 0;
+  if (this._catalog == null || !OpexAirC83SlotSignalEnabled()) return 0;
   if (this._c83SlotWatch == null || typeof this._c83SlotWatch != "table") {
     this._c83SlotWatch = {};
   }
@@ -367,7 +366,7 @@ function OpexAI::_tryBuildProjects(year)
 
   /* C83.1 : detecter d'abord une transition de slot qui exige un candidat absent,
    * puis reevaluer le petit portefeuille deja finance avant toute depense. */
-  if (C77_OPPORTUNISTIC_CANDIDATES && this._projects != null) {
+  if (this._projects != null) {
     local c83TargetedRegens = this._c83WatchAirSlotTransitions();
     if (c83TargetedRegens > 0) return true;
     OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
@@ -430,8 +429,7 @@ function OpexAI::_tryBuildProjects(year)
    * avant meme la boucle portefeuille. Il cede exactement une passe ; le marqueur
    * vit seulement dans _railSearch (etat deja transitoire et non serialise). */
   local c77DefensiveHead = null;
-  if (C77_OPPORTUNISTIC_CANDIDATES && this._projects != null
-      && this._projects.best != null && this._projects.best.len() > 0) {
+  if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
     local head = this._projects.best[0];
     if (OpexProjectDefensiveAirPriority(head) > 0
         && OpexProjectFinanceCapital(head) <= OpexAvailableCapital()) {
@@ -746,14 +744,12 @@ function OpexAI::_tryBuildProjects(year)
         builtCount++;
         if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
-        if (C80_AIR_TARGETED_UPDATE) {
-          if (airTouchedTowns == null) airTouchedTowns = {};
-          local plan = project.payload;
-          local tA = ("siteA" in plan && "town" in plan.siteA && "id" in plan.siteA.town) ? plan.siteA.town.id : -1;
-          local tB = ("siteB" in plan && "town" in plan.siteB && "id" in plan.siteB.town) ? plan.siteB.town.id : -1;
-          if (tA >= 0) airTouchedTowns.rawset(tA, true);
-          if (tB >= 0) airTouchedTowns.rawset(tB, true);
-        }
+        if (airTouchedTowns == null) airTouchedTowns = {};
+        local plan = project.payload;
+        local tA = ("siteA" in plan && "town" in plan.siteA && "id" in plan.siteA.town) ? plan.siteA.town.id : -1;
+        local tB = ("siteB" in plan && "town" in plan.siteB && "id" in plan.siteB.town) ? plan.siteB.town.id : -1;
+        if (tA >= 0) airTouchedTowns.rawset(tA, true);
+        if (tB >= 0) airTouchedTowns.rawset(tB, true);
         if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       }
     } else if (mode == "road") {
@@ -1084,7 +1080,7 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
   }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       fleetPlan, this._abandonedPairs, stage, prior,
-      freightCargo, freightCargos, C77_OPPORTUNISTIC_CANDIDATES ? this._activeSubsidies : null,
+      freightCargo, freightCargos, this._activeSubsidies,
       airOverride);
   if (stage == OPEX_STAGE_COMPLETE && b6StaleProjects != null) {
     OpexB6LogFreshEquivalence(b6StaleProjects, this._projects, b6StaleDate);

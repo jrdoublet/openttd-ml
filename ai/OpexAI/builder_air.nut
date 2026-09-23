@@ -284,8 +284,7 @@ function OpexAirTownServed(town, lines, diag = null)
  * mode permissif (qui leve la limite). */
 function OpexAirC83SlotSignalEnabled()
 {
-  return C77_OPPORTUNISTIC_CANDIDATES
-      && AIGameSettings.IsValid("economy.station_noise_level")
+  return AIGameSettings.IsValid("economy.station_noise_level")
       && AIGameSettings.GetValue("economy.station_noise_level") == 0
       && AIGameSettings.IsValid("difficulty.town_council_tolerance")
       && AIGameSettings.GetValue("difficulty.town_council_tolerance") != 3;

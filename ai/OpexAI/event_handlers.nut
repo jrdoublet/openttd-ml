@@ -297,20 +297,14 @@ function OpexAI::_onVehicleUnprofitable(event)
 }
 function OpexAI::_onIndustryClose(event)
 {
-
-  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
-    local probeEvt = AIEventIndustryClose.Convert(event);
-    if (probeEvt != null) {
-      this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
-                      "industry", probeEvt.GetIndustryID());
-    }
+  local probeEvt = AIEventIndustryClose.Convert(event);
+  if (probeEvt != null) {
+    this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
+                    "industry", probeEvt.GetIndustryID());
   }
-  /* Tâche 8 (c77_fixes) : sous C77 sans C76 (c76_regen_targeted=0), l'invalidation historique
-   * a été coupée par la garde !(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))
-   * dans les autres handlers. Or l'événement industry_close n'est pas routé par C77 (events.nut,
-   * reason != "industry_close"). Sous C77_FIXES && !C76_REGEN_TARGETED, on rétablit l'invalidation
-   * historique pour cet événement orphelin. */
-  if (C77_FIXES && !C76_REGEN_TARGETED) {
+  /* La fermeture d'industrie n'est pas routée par la régénération ciblée C77 ;
+   * sans C76, conserver l'invalidation historique pour cet événement orphelin. */
+  if (!C76_REGEN_TARGETED) {
     if (this._catalog != null) {
       this._catalog._refreshIndustries();
     }
@@ -327,7 +321,6 @@ function OpexAI::_onIndustryClose(event)
  * le double registre ; generateur et builder revalident l'offre avant construction. */
 function OpexAI::_onSubsidyOffer(event)
 {
-  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
   local subEvt = AIEventSubsidyOffer.Convert(event);
   if (subEvt == null) return;
   local subId = subEvt.GetSubsidyID();
@@ -365,7 +358,6 @@ function OpexAI::_c77RemoveSubsidy(subId)
 
 function OpexAI::_onSubsidyOfferExpired(event)
 {
-  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
   local subEvt = AIEventSubsidyOfferExpired.Convert(event);
   if (subEvt == null) return;
   local subId = subEvt.GetSubsidyID();
@@ -375,7 +367,6 @@ function OpexAI::_onSubsidyOfferExpired(event)
 
 function OpexAI::_onSubsidyAwarded(event)
 {
-  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
   local subEvt = AIEventSubsidyAwarded.Convert(event);
   if (subEvt == null) return;
   local subId = subEvt.GetSubsidyID();
@@ -402,7 +393,6 @@ function OpexAI::_onSubsidyAwarded(event)
 
 function OpexAI::_onSubsidyExpired(event)
 {
-  if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;
   local subEvt = AIEventSubsidyExpired.Convert(event);
   if (subEvt == null) return;
   local subId = subEvt.GetSubsidyID();
@@ -555,13 +545,10 @@ function OpexAI::_onVehicleLost(event)
 }
 function OpexAI::_onIndustryOpen(event)
 {
-
-  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
-    local probeEvt = AIEventIndustryOpen.Convert(event);
-    if (probeEvt != null) {
-      this._markDirty("industry_open", ["industries"], ["rail", "road"], true, true,
-                      "industry", probeEvt.GetIndustryID());
-    }
+  local probeEvt = AIEventIndustryOpen.Convert(event);
+  if (probeEvt != null) {
+    this._markDirty("industry_open", ["industries"], ["rail", "road"], true, true,
+                    "industry", probeEvt.GetIndustryID());
   }
   if (EVENT_CATALOG_INVALIDATE) {
     local indEvt = AIEventIndustryOpen.Convert(event);
@@ -577,14 +564,6 @@ function OpexAI::_onIndustryOpen(event)
         if (this._catalog != null) {
           this._catalog._refreshIndustries();
         }
-        if (!(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
-          this._portfolioInvalidated = true;
-          if (this._taskQueue != null) {
-            foreach (t in this._taskQueue) {
-              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
-            }
-          }
-        }
       }
     }
   }
@@ -592,13 +571,10 @@ function OpexAI::_onIndustryOpen(event)
 }
 function OpexAI::_onTownFounded(event)
 {
-
-  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
-    local probeEvt = AIEventTownFounded.Convert(event);
-    if (probeEvt != null) {
-      this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
-                      true, true, "town", probeEvt.GetTownID());
-    }
+  local probeEvt = AIEventTownFounded.Convert(event);
+  if (probeEvt != null) {
+    this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
+                    true, true, "town", probeEvt.GetTownID());
   }
   if (EVENT_CATALOG_INVALIDATE) {
     local townEvt = AIEventTownFounded.Convert(event);
@@ -614,14 +590,6 @@ function OpexAI::_onTownFounded(event)
         if (this._catalog != null) {
           this._catalog._refreshTowns();
         }
-        if (!(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
-          this._portfolioInvalidated = true;
-          if (this._taskQueue != null) {
-            foreach (t in this._taskQueue) {
-              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
-            }
-          }
-        }
       }
     }
   }
@@ -632,36 +600,20 @@ function OpexAI::_onEngineAvailable(event)
 
   this._recomputeEpochBounds = true;
   if (this._catalog != null) OpexRefreshEpochBounds(this._catalog);
-  if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH || C76_REGEN_TARGETED
-      || C77_OPPORTUNISTIC_CANDIDATES) {
-    local engineEvt = AIEventEngineAvailable.Convert(event);
-    if (engineEvt != null) {
-      local engine = engineEvt.GetEngineID();
-      local vehicleType = AIEngine.IsValidEngine(engine) ? AIEngine.GetVehicleType(engine) : -1;
-      local mode = null;
-      if (vehicleType == AIVehicle.VT_RAIL) mode = "rail";
-      else if (vehicleType == AIVehicle.VT_ROAD) mode = "road";
-      else if (vehicleType == AIVehicle.VT_AIR) mode = "air";
-      else if (vehicleType == AIVehicle.VT_WATER) mode = "water";
-      if (mode != null) {
-        /* La sonde reste la seule à conserver l'état/les IDs. C39.2 consomme le chemin
-         * historique sans changer les cas industrie déjà couverts par P3. */
-        if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES) {
-          local targetedRelevant = !(WATER_OPCODE_COMPAT_FALSE && WATER_OPCODE_COMPAT_FALSE
-              && mode == "water");
-          this._markDirty("engine_available", [mode], [mode], true, true, "engine", engine,
-                          mode, targetedRelevant);
-        }
-        if (C39_ENGINE_REFRESH
-            && !(C80_DOUBLE_REGISTER && (C76_REGEN_TARGETED || C77_OPPORTUNISTIC_CANDIDATES))) {
-          this._portfolioInvalidated = true;
-          if (this._taskQueue != null) {
-            foreach (t in this._taskQueue) {
-              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
-            }
-          }
-        }
-      }
+  local engineEvt = AIEventEngineAvailable.Convert(event);
+  if (engineEvt != null) {
+    local engine = engineEvt.GetEngineID();
+    local vehicleType = AIEngine.IsValidEngine(engine) ? AIEngine.GetVehicleType(engine) : -1;
+    local mode = null;
+    if (vehicleType == AIVehicle.VT_RAIL) mode = "rail";
+    else if (vehicleType == AIVehicle.VT_ROAD) mode = "road";
+    else if (vehicleType == AIVehicle.VT_AIR) mode = "air";
+    else if (vehicleType == AIVehicle.VT_WATER) mode = "water";
+    if (mode != null) {
+      local targetedRelevant = !(WATER_OPCODE_COMPAT_FALSE && WATER_OPCODE_COMPAT_FALSE
+          && mode == "water");
+      this._markDirty("engine_available", [mode], [mode], true, true, "engine", engine,
+                      mode, targetedRelevant);
     }
   }
   return;

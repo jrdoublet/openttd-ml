@@ -61,9 +61,10 @@ class TestC45SubsidyPersistence(unittest.TestCase):
         for handler in ("_onSubsidyOffer", "_onSubsidyOfferExpired",
                         "_onSubsidyAwarded", "_onSubsidyExpired"):
             body = function_body(handlers, f"function OpexAI::{handler}(event)")
-            self.assertIn("if (!C80_DOUBLE_REGISTER || !C77_OPPORTUNISTIC_CANDIDATES) return;", body)
+            self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", body)
         rebuild = function_body(source("task_projects.nut"), "function OpexAI::_rebuildProjects(")
-        self.assertIn("C77_OPPORTUNISTIC_CANDIDATES ? this._activeSubsidies : null", rebuild)
+        self.assertIn("freightCargo, freightCargos, this._activeSubsidies,", rebuild)
+        self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", rebuild)
 
     def test_c77_subsidy_offer_reaches_the_reactive_register(self):
         handlers = source("event_handlers.nut")

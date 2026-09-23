@@ -259,12 +259,6 @@ C76_EVENTS_SINCE_PREV <- null;
 /* C76 etape 2 / C80 tranche 3 : regeneration du vivier pilotee par les invalidations.
  * 0 = regeneration mensuelle systematique historique (defaut), 1 = regeneration ciblee. */
 C76_REGEN_TARGETED <- false;
-/* C77 : injection immediate de candidats lies a une entite touchee par un evenement. */
-C77_OPPORTUNISTIC_CANDIDATES <- false;
-/* C77 : construction reactive ciblee sur l'entite de l'evenement (tache 4). */
-C77_TARGETED_BUILD <- false;
-/* C77 : correctifs (reports au rechargement, invalidation fermeture industrie, cle de coalescence, worker sync). */
-C77_FIXES <- false;
 /* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
 C78_SLOT_INTERCEPT_PROBE <- false;
@@ -418,15 +412,6 @@ C80_AIR_EVAL_FAST <- false;
 AIR_ECONOMICS_MEMO <- {};
 AIR_TRIP_MEMO <- {};
 AIR_MEMO_MONTH <- -1;
-
-/* C80 fleet inject : sous c80_fleet_inject, _dispatchAirFleet injecte les projets de flotte
- * directement dans le vivier sans replanifier tout l'aerien. 0 = desactive (defaut). */
-C80_FLEET_INJECT <- false;
-
-/* C80 air targeted update : apres un chantier ou un abandon, ne replanifie l'aerien que pour
- * les villes touchees par un chantier aerien, ou conserve les plans aeriens valides si aucun
- * chantier aerien n'a eu lieu. 0 = desactive (defaut). */
-C80_AIR_TARGETED_UPDATE <- false;
 
 /* Sonde incrementale air sous probe_portfolio */
 C80_AIR_INC_COUNTS <- { full = 0, targeted = 0, none = 0 };

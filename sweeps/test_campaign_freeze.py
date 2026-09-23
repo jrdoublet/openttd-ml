@@ -150,16 +150,19 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertEqual(len(defaults), 68)
-        for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build",
-                     "c77_opportunistic_candidates", "c77_targeted_build", "c77_fixes"):
+        self.assertEqual(len(defaults), 63)
+        for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build"):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c80_double_register",
                      "c76_regen_targeted", "c76_lean_invalidation",
                      "c80_worker_rail", "c80_worker_town", "c80_mode_regen", "c80_air_choice_memo", "c80_air_hub_index", "c80_air_eval_fast", "air_full_load",
-                     "c82_engine_calibration", "town_growth_plan_memo", "c80_marginal_floor",
-                     "c80_fleet_inject", "c80_air_targeted_update"):
+                     "c82_engine_calibration", "town_growth_plan_memo", "c80_marginal_floor"):
             self.assertEqual(defaults[name], 0, name)
+        self.assertNotIn("c80_fleet_inject", defaults)
+        self.assertNotIn("c80_air_targeted_update", defaults)
+        self.assertNotIn("c77_opportunistic_candidates", defaults)
+        self.assertNotIn("c77_targeted_build", defaults)
+        self.assertNotIn("c77_fixes", defaults)
         self.assertEqual(defaults["probe_events"], 0)
         self.assertEqual(defaults["probe_cost"], 0)
         self.assertEqual(defaults["policy_rail"], 1)
@@ -272,22 +275,22 @@ class TestCampaignFreeze(unittest.TestCase):
 
     def test_policy_guard_rejects_unannounced_and_no_effect(self):
         diff = validate_policy_settings(
-            {"c77_opportunistic_candidates": 0, "road_mode": 0},
-            {"c77_opportunistic_candidates": 1, "road_mode": 0},
-            intervention_settings=("c77_opportunistic_candidates",),
+            {"c80_mode_regen": 0, "road_mode": 0},
+            {"c80_mode_regen": 1, "road_mode": 0},
+            intervention_settings=("c80_mode_regen",),
         )
-        self.assertEqual(set(diff), {"c77_opportunistic_candidates"})
+        self.assertEqual(set(diff), {"c80_mode_regen"})
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"c77_opportunistic_candidates": 0, "road_mode": 0},
-                {"c77_opportunistic_candidates": 1, "road_mode": 1},
-                intervention_settings=("c77_opportunistic_candidates",),
+                {"c80_mode_regen": 0, "road_mode": 0},
+                {"c80_mode_regen": 1, "road_mode": 1},
+                intervention_settings=("c80_mode_regen",),
             )
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"c77_opportunistic_candidates": 0},
-                {"c77_opportunistic_candidates": 0},
-                intervention_settings=("c77_opportunistic_candidates",),
+                {"c80_mode_regen": 0},
+                {"c80_mode_regen": 0},
+                intervention_settings=("c80_mode_regen",),
             )
 
     def test_bench_audit_detects_identical_and_shared_nondefault_arms(self):

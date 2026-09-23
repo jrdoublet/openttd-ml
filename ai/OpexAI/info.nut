@@ -507,14 +507,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c77_opportunistic_candidates",
-      description = "C77: inject candidates for event-touched towns/industries/subsidies immediately: 1 = enabled (default), 0 = historical event path",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c76_lean_invalidation",
       description = "C76: lean invalidation avoids full pool regenerations for budget changes and local line/subsidy updates: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -547,22 +539,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c77_targeted_build",
-      description = "C77: only trigger reactive c77_build if the top funded project touches the event entity: 1 = enabled (default), 0 = disabled",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c77_fixes",
-      description = "C77 fixes: re-enqueue c77_build/subsidy on reload, restore industry_close invalidation, distinct coalescence keys, sync entity regen during rail/town workers: 1 = enabled (default), 0 = disabled",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c80_marginal_floor",
       description = "C80 task 5: filter marginal multi-build projects whose calibrated profit per vehicle is below the mode realized average: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -573,22 +549,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c80_air_eval_fast",
       description = "C80 air eval fast: exact memoization and deferred checks in air planning (same decisions, fewer opcodes): 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_fleet_inject",
-      description = "C80 fleet: inject only fresh fleet projects into candidate groups without full air replanning: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_air_targeted_update",
-      description = "C80 air: post-build update replans air only for touched towns or skips air replanning if no air build: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

@@ -50,10 +50,8 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
       this._c76BumpLayer("engines." + affectedMode, true);
     }
   }
-  /* C77 alimente la file reactive ; C76 suit ses propres revisions ci-dessus. */
-  local functional = C80_DOUBLE_REGISTER && C77_OPPORTUNISTIC_CANDIDATES;
-  if ((!C39_INVALIDATION_PROBE && !functional) || this._staleness == null) return;
-  local revisionTracking = C41_REVISION_PROBE || functional;
+  /* C77 alimente en permanence la file reactive ; C76 suit ses propres revisions ci-dessus. */
+  if (this._staleness == null) return;
   local revisionBumped = false;
   if (C39_DECISION_DELTA_PROBE && !this._staleness.topBeforeCaptured) {
     this._staleness.topBefore = OpexC39ProjectSignature(this._projects);
@@ -62,7 +60,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (catalogLayers != null) {
     foreach (layer in catalogLayers) {
       if (layer in this._staleness.catalog) {
-        if (revisionTracking && targetedRelevant && !this._staleness.catalog[layer]) {
+        if (targetedRelevant && !this._staleness.catalog[layer]) {
           this._staleness.revisions.catalog[layer]++;
           this._staleness.dirtySince.catalog[layer] = AIDate.GetCurrentDate();
           if (layer == "water") {
@@ -78,7 +76,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (candidateLayers != null) {
     foreach (layer in candidateLayers) {
       if (layer in this._staleness.candidates) {
-        if (revisionTracking && targetedRelevant && !this._staleness.candidates[layer]) {
+        if (targetedRelevant && !this._staleness.candidates[layer]) {
           this._staleness.revisions.candidates[layer]++;
           this._staleness.dirtySince.candidates[layer] = AIDate.GetCurrentDate();
           revisionBumped = true;
@@ -88,7 +86,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
     }
   }
   if (portfolio) {
-    if (revisionTracking && targetedRelevant && !this._staleness.portfolio) {
+    if (targetedRelevant && !this._staleness.portfolio) {
       this._staleness.revisions.portfolio++;
       this._staleness.dirtySince.portfolio = AIDate.GetCurrentDate();
       revisionBumped = true;
@@ -96,7 +94,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
     this._staleness.portfolio = true;
   }
   if (selection) {
-    if (revisionTracking && targetedRelevant && !this._staleness.selection) {
+    if (targetedRelevant && !this._staleness.selection) {
       this._staleness.revisions.selection++;
       this._staleness.dirtySince.selection = AIDate.GetCurrentDate();
       revisionBumped = true;
@@ -121,9 +119,8 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (C41_REVISION_PROBE && revisionBumped) {
     OpexC39Log("C41_REVISION", OpexC41RevisionSnapshot(this._staleness.revisions));
   }
-  if (functional && targetedRelevant && candidateLayers != null) {
-    local targeted = C77_OPPORTUNISTIC_CANDIDATES
-        && affectedId >= 0 && (affectedKind == "town" || affectedKind == "industry")
+  if (targetedRelevant && candidateLayers != null) {
+    local targeted = affectedId >= 0 && (affectedKind == "town" || affectedKind == "industry")
         && reason != "industry_close";
     /* Un moteur neuf releve d'une regeneration de mode ; si C76 est arme, sa couche
      * engines a deja enfile la regeneration complete et C77 ne la double pas. */

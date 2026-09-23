@@ -336,11 +336,8 @@ function OpexLoadSettings()
   PORTFOLIO_FLOOR_PCT = 0;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
-  C77_OPPORTUNISTIC_CANDIDATES = AIController.GetSetting("c77_opportunistic_candidates") != 0;
-  C77_TARGETED_BUILD = C77_OPPORTUNISTIC_CANDIDATES && (AIController.GetSetting("c77_targeted_build") != 0);
-  C77_FIXES = C77_OPPORTUNISTIC_CANDIDATES && (AIController.GetSetting("c77_fixes") != 0);
-  /* C77 alimente la file reactive : l'armer implique le socle C80. C76 fonctionne sans. */
-  C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0 || C77_OPPORTUNISTIC_CANDIDATES;
+  /* C77 corrigé est permanent et repose sur le socle du double registre. */
+  C80_DOUBLE_REGISTER = true;
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
   C80_WORKER_TOWN = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_town") != 0);
   C76_LEAN_INVALIDATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_lean_invalidation") != 0);
@@ -349,8 +346,6 @@ function OpexLoadSettings()
   C80_AIR_HUB_INDEX = AIController.GetSetting("c80_air_hub_index") != 0;
   C80_MARGINAL_FLOOR = AIController.GetSetting("c80_marginal_floor") != 0;
   C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
-  C80_FLEET_INJECT = AIController.GetSetting("c80_fleet_inject") != 0;
-  C80_AIR_TARGETED_UPDATE = AIController.GetSetting("c80_air_targeted_update") != 0;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
