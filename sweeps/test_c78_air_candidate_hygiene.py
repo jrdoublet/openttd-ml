@@ -24,6 +24,22 @@ def body(source, signature):
     raise AssertionError(f"unterminated function: {signature}")
 
 
+def air_plans_pipeline(source):
+    if "function OpexAirPlansPrepare(" in source:
+        blocks = [
+            "function OpexAirPlansPrepare(",
+            "function OpexAirPlansFindSites(",
+            "function OpexAirPlansNewPairs(",
+            "function OpexAirPlansDiscoverHubs(",
+            "function OpexAirPlansHubToSite(",
+            "function OpexAirPlansHubToHub(",
+            "function OpexAirPlansFinalize(",
+            "function OpexAirPlans(",
+        ]
+        return "\n".join(body(source, sig) for sig in blocks)
+    return body(source, "function OpexAirPlans(")
+
+
 class C78AirCandidateHygieneTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -46,7 +62,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertIn("local perimeterCapacity = 4 * (cellsX + cellsY);", pool)
         self.assertIn("gridCapacity < perimeterCapacity ? gridCapacity : perimeterCapacity", pool)
         self.assertIn("towns.len()", pool)
-        plans = body(self.air, "function OpexAirPlans(")
+        plans = air_plans_pipeline(self.air)
         self.assertIn("OpexAirTownPoolLimit(towns)", plans)
         self.assertIn("resumeState.townLimit", plans)
 
@@ -57,7 +73,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertIn("OpexAirRememberTownStationLimit", find_site)
         still_buildable = body(self.air, "function OpexAirSiteStillBuildable(")
         self.assertIn("AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN", still_buildable)
-        plans = body(self.air, "function OpexAirPlans(")
+        plans = air_plans_pipeline(self.air)
         self.assertLess(
             plans.index("OpexAirSiteStillBuildable(site, airport, plane, false"),
             plans.index("OpexAirChooseRoutePlane("),
@@ -79,7 +95,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertIn("if (a > b)", pair_key)
         self.assertIn('return "air|" + a + "|" + b;', pair_key)
 
-        plans = body(self.air, "function OpexAirPlans(")
+        plans = air_plans_pipeline(self.air)
         self.assertIn("OpexAirPairIsAbandoned(abandoned, sites[a], sites[b])", plans)
         self.assertIn("OpexAirPairIsAbandoned(abandoned, hub, site)", plans)
         self.assertIn("OpexAirPairIsAbandoned(abandoned, hub1, hub2)", plans)
@@ -99,7 +115,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertLess(attempt.index("OpexAirBatchSiteStillBuildable(plan.siteB"), build_at)
 
     def test_air_pair_scan_can_resume_on_combo_a_b_budget(self):
-        plans = body(self.air, "function OpexAirPlans(")
+        plans = air_plans_pipeline(self.air)
         self.assertIn("resumeState = null, opsBudget = 0, deadlineTick = 0", plans)
         self.assertIn("resumeState.combo", plans)
         self.assertIn("resumeState.a", plans)
@@ -116,7 +132,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertIn("if (!sliced || !resumingCombo)", plans)
 
     def test_air_site_scan_and_revalidation_resume_before_pairs(self):
-        plans = body(self.air, "function OpexAirPlans(")
+        plans = air_plans_pipeline(self.air)
         for field in (
             "resumeState.towns",
             "resumeState.scanIndex",

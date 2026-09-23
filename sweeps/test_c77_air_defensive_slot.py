@@ -23,6 +23,22 @@ def body(source, signature):
     raise AssertionError(f"unterminated function: {signature}")
 
 
+def air_plans_pipeline(source):
+    if "function OpexAirPlansPrepare(" in source:
+        blocks = [
+            "function OpexAirPlansPrepare(",
+            "function OpexAirPlansFindSites(",
+            "function OpexAirPlansNewPairs(",
+            "function OpexAirPlansDiscoverHubs(",
+            "function OpexAirPlansHubToSite(",
+            "function OpexAirPlansHubToHub(",
+            "function OpexAirPlansFinalize(",
+            "function OpexAirPlans(",
+        ]
+        return "\n".join(body(source, sig) for sig in blocks)
+    return body(source, "function OpexAirPlans(")
+
+
 class C77AirDefensiveSlotTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -162,7 +178,7 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertIn("&& !c77DeferCompletedRail", consume_guard)
 
     def test_c83_can_generate_and_revalidate_own_second_slot_in_top_towns(self):
-        plans = body(self.builder_air, "function OpexAirPlans(")
+        plans = air_plans_pipeline(self.builder_air)
         self.assertIn("c83TopTownIds", plans)
         self.assertIn("AIR_EARLY_SLOT_TARGET_TOWNS", plans)
         self.assertIn("OpexAirC83SecondSlotOpen(towns[i])", plans)
