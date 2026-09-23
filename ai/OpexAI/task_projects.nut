@@ -572,6 +572,7 @@ function OpexAI::_tryBuildProjects(year)
     }
   }
 
+  local airTouchedTowns = null;
   if ((C75_MULTI_BUILD || builtCount < maxBatch)
       && this._projects != null && this._projects.best.len() > 0) {
   local logDiscardsThisPass = false;
@@ -745,6 +746,14 @@ function OpexAI::_tryBuildProjects(year)
         builtCount++;
         if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
+        if (C80_AIR_TARGETED_UPDATE) {
+          if (airTouchedTowns == null) airTouchedTowns = {};
+          local plan = project.payload;
+          local tA = ("siteA" in plan && "town" in plan.siteA && "id" in plan.siteA.town) ? plan.siteA.town.id : -1;
+          local tB = ("siteB" in plan && "town" in plan.siteB && "id" in plan.siteB.town) ? plan.siteB.town.id : -1;
+          if (tA >= 0) airTouchedTowns.rawset(tA, true);
+          if (tB >= 0) airTouchedTowns.rawset(tB, true);
+        }
         if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       }
     } else if (mode == "road") {
@@ -968,7 +977,7 @@ function OpexAI::_tryBuildProjects(year)
     } else if (PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects)) {
       local budgetNow = OpexAvailableCapital();
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-      this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
+      this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns);
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
         local c76Days = (c76Ops + 93000) / 186000;

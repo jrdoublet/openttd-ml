@@ -693,7 +693,11 @@ function OpexAI::_dispatchAirFleet(task, year)
       this._resizeAirFleets(year, fleetPlan);
       if (fleetPlan.len() > 0) {
         local budgetNow = OpexAvailableCapital();
-        this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
+        if (C80_FLEET_INJECT) {
+          this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow);
+        } else {
+          this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
+        }
         this._ranked = this._projects.rail;
       }
     }

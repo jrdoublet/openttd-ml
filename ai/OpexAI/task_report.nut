@@ -407,6 +407,7 @@ function OpexAI::_reportLines(year)
       OpexC73FlushLedger(c73Year);
       OpexC75FlushYear(c73Year);
       if (C39_INVALIDATION_PROBE) OpexC76FlushYear(c73Year);
+      OpexC80FlushAirIncremental(c73Year);
     }
   }
 }
