@@ -112,7 +112,43 @@ function C67SyntheticTests() {
   C67Assert(bounded.Request(256) == "full" && bounded.Stats().pending == 256, "257th request refused");
   bounded.Clear();
   C67Assert(bounded.Stats().pending == 0 && bounded.Stats().resident == 0, "clear pending queue");
+  C67LifecycleTests();
   AILog.Info("C67_SYNTHETIC_PASS");
+}
+
+/* C67.4 (contract section 14): lazy invalidation, background without eviction, cancel. */
+function C67LifecycleTests() {
+  local source = C67FakeSource();
+  local m = OpexTerrainMap(5, 2, 2, source);
+  m.Request(0); C67Drain(m, source, 100000);
+  local hits = m.Stats().hits;
+  C67Assert(m.Request(0, 0) == "ready" && m.Stats().hits == hits, "background probe is silent");
+  m.Request(1); C67Drain(m, source, 100000);
+  C67Assert(m.BackgroundRoom() == 0 && m.Request(2, 0) == "full", "background refused when full");
+  C67Assert(m.Stats().bg_refused == 1 && m.Stats().evictions == 0, "background never evicts");
+
+  m.Clear(); m.Request(0); C67Drain(m, source, 100000);
+  C67Assert(m.Request(1, 0) == "pending" && m.Request(2, 1) == "pending", "mixed queue");
+  C67Drain(m, source, 100000);
+  C67Assert(m.Peek(2).status == "ready" && m.Peek(1).status == "absent", "background result dropped");
+  C67Assert(m.Stats().bg_dropped == 1 && m.Stats().evictions == 0, "dropped, not evicted");
+
+  m.Clear(); m.Request(5);
+  m.InvalidateRect(10, 5, 13, 7); // Before the computation begins: not stale afterwards.
+  C67Drain(m, source, 100000);
+  C67Assert(m.Peek(5).status == "ready", "generation stamped at computation start");
+  local reads = source.reads;
+  for (local i = 0; i < 40; i++) m.InvalidateRect(0, 0, 1, 1);
+  C67Assert(m.Stats().rects <= 32 && source.reads == reads, "bounded rectangles, no reads");
+  C67Assert(m.Peek(5).status == "stale", "merged rectangle stays conservative");
+  C67Assert(m.Stats().invalidations == 41, "invalidation count");
+
+  m.Clear(); m.Request(0); m.Step(1, source.Tick() + 1000);
+  C67Assert(m.Cancel(0) && !m.Cancel(0), "cancel active once");
+  C67Assert(m.PendingCount() == 0 && m.Peek(0).status == "absent", "cancel leaves nothing");
+  C67Drain(m, source, 100000);
+  C67Assert(m.Stats().completed == 0 && m.Stats().withdrawn == 1, "cancelled block not published");
+  AILog.Info("C67_LIFECYCLE_PASS");
 }
 
 class TerrainMapProbe extends AIController {

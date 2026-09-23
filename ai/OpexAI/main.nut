@@ -45,6 +45,7 @@ require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
 require("spatial.nut");
+require("terrain_map.nut");
 require("candidates.nut");
 require("tension.nut");
 require("projects.nut");
@@ -142,6 +143,14 @@ class OpexAI extends AIController {
   _reactiveQueue = null;
   _activeWorker = null;
   _railWorkerSteppedThisTick = false;
+  /* C67.4 : service de carte par blocs, reconstruit, jamais sauvegarde (task_terrain.nut). */
+  _c67Terrain = null;
+  _c67BgCursor = 0;
+  _c67BgFresh = 0;
+  _c67BgIdle = false;
+  _c67LinesSeen = 0;
+  _c67Ledger = null;
+  _c67Year = -1;
   /* 11.6 : _railSearch contient un pathfinder vivant. Il n'est pas serialise ;
    * Save/Load conserve sa presence pour forcer une reconstruction propre du portefeuille. */
   _reloadDroppedRailSearch = false;
@@ -463,6 +472,11 @@ class OpexAI extends AIController {
   function _c76LoadRevisions(data);
   function _c76RunSelfTest();
   function _runOrchestratorTick();
+  function _c67TerrainInit();
+  function _c67NoteNewLines();
+  function _c67FeedBackground();
+  function _c67LogYear();
+  function _c67TerrainSlackStep();
   function _runBackgroundQueue();
   function _enqueueReactive(key, kind, payload);
   function _popReactive();
@@ -502,6 +516,7 @@ require("task_projects.nut");
 require("task_rail.nut");
 require("task_report.nut");
 require("task_road.nut");
+require("task_terrain.nut");
 require("task_town.nut");
 require("task_water.nut");
 
@@ -606,11 +621,13 @@ function OpexAI::Start()
     if (C80_DOUBLE_REGISTER) {
       this._runOrchestratorTick();
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+      if (C67_TERRAIN_MAP) this._c67TerrainSlackStep();
       AIController.Sleep(1);
     } else if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
     } else {
       this._runNextTaskWithSlackLedger();
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+      if (C67_TERRAIN_MAP) this._c67TerrainSlackStep();
       AIController.Sleep(1);
     }
   }

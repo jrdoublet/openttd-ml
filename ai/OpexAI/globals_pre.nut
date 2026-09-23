@@ -448,6 +448,10 @@ C80_WORKER_RAIL <- false;
  * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif sous c80_double_register=1. */
 C80_WORKER_TOWN <- false;
 
+/* C67.4 : carte par blocs dans le reliquat de tick, sans consommateur (contrat C67 §14).
+ * 0 = service absent (défaut), 1 = service construit et rempli en fond. */
+C67_TERRAIN_MAP <- false;
+
 /* C76 : sous C76_REGEN_TARGETED, evite les regenerations completes du vivier pour
  * les variations de budget seul et traite localement les lignes et subventions. 0 = desactive (defaut). */
 C76_LEAN_INVALIDATION <- false;

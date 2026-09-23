@@ -1,5 +1,6 @@
-/* C67.2: isolated, reconstructible terrain summaries. Not loaded by main.nut.
- * budget.nut must be loaded first. No economic consumer and no connectivity claim. */
+/* C67.2: isolated, reconstructible terrain summaries. C67.4: loaded by OpexAI, but only
+ * constructed under c67_terrain_map (task_terrain.nut). budget.nut must be loaded first.
+ * No economic consumer and no connectivity claim. */
 
 class OpexTerrainSource {
   function Width() { return AIMap.GetMapSizeX(); }
@@ -66,6 +67,9 @@ class OpexTerrainMap {
   _active = null;
   _serial = 0;
   _stats = null;
+  /* C67.4: lazy invalidation. At most _rectLimit dated rectangles, never a scan of residents. */
+  _rects = null;
+  _rectLimit = 32;
 
   constructor(side, capacity = 4096, queueCapacity = 256, source = null) {
     if (side != 5 && side != 10) throw "C67: side must be 5 or 10";
@@ -90,11 +94,13 @@ class OpexTerrainMap {
     this._urgent = OpexTerrainIds();
     this._background = OpexTerrainIds();
     this._active = null;
+    this._rects = [];
     /* Never reuse a version within the lifetime of this service. */
     this._serial++;
     this._stats = { reads = 0, hits = 0, misses = 0, refused = 0,
       evictions = 0, completed = 0, cancelled = 0, queue_peak = 0,
-      steps = 0, ops_total = 0, ops_max = 0, read_ops_max = 0 };
+      steps = 0, ops_total = 0, ops_max = 0, read_ops_max = 0,
+      bg_refused = 0, bg_dropped = 0, withdrawn = 0, invalidations = 0 };
   }
 
   function BlockId(x, y) {
@@ -113,11 +119,27 @@ class OpexTerrainMap {
       y1 = min(this._height, y + this._side) };
   }
 
+  /* A resident older than an intersecting invalidation rectangle becomes stale here. */
+  function _fresh(id) {
+    local entry = this._cache[id];
+    if (entry.stale) return false;
+    foreach (r in this._rects) {
+      if (r.serial > entry.generation && this._intersects(id, r.x0, r.y0, r.x1, r.y1)) {
+        entry.stale = true;
+        entry.summary = null;
+        entry.generation = r.serial;
+        return false;
+      }
+    }
+    return true;
+  }
+
   function Peek(id) {
     if (!this._valid(id)) return { status = "absent", generation = null, summary = null };
     if (id in this._requests)
       return { status = "pending", generation = this._requests[id].generation, summary = null };
     if (!(id in this._cache)) return { status = "absent", generation = null, summary = null };
+    this._fresh(id);
     local entry = this._cache[id];
     this._lru.Push(id);
     return { status = entry.stale ? "stale" : "ready", generation = entry.generation,
@@ -138,10 +160,18 @@ class OpexTerrainMap {
       }
       return "pending";
     }
-    if ((id in this._cache) && !this._cache[id].stale) {
+    if ((id in this._cache) && this._fresh(id)) {
+      /* A background probe must not reorder the LRU nor count as a consumer hit. */
+      if (priority == 0) return "ready";
       this._stats.hits++;
       this._lru.Push(id);
       return "ready";
+    }
+    /* C67.4: background work never evicts; leave room for the pending requests too. */
+    if (priority == 0 && !(id in this._cache)
+        && this._cache.len() + this._requests.len() >= this._capacity) {
+      this._stats.bg_refused++;
+      return "full";
     }
     if (this._requests.len() >= this._queueCapacity) {
       this._stats.refused++;
@@ -158,6 +188,8 @@ class OpexTerrainMap {
 
   function _begin(id) {
     local b = this._bounds(id);
+    /* The generation starts with the computation: later rectangles cancel or stale it. */
+    this._requests[id].generation = ++this._serial;
     this._active = { id = id, bounds = b, cursor = 0, summary = {
       schema_version = 1, block_id = id, generation = this._requests[id].generation,
       sample_count = 0, invalid_count = 0, water_count = 0, coast_count = 0,
@@ -198,6 +230,13 @@ class OpexTerrainMap {
     s.rawset("buildable_ratio", n == 0 ? null : s.buildable_count.tofloat() / n);
     s.rawset("mean_tile_min_height", n == 0 ? null : s.height_min_sum.tofloat() / n);
     s.rawset("relief", n == 0 ? null : s.height_max - s.height_min);
+    if (!(a.id in this._cache) && this._cache.len() >= this._capacity
+        && this._requests[a.id].priority == 0) {
+      delete this._requests[a.id];
+      this._active = null;
+      this._stats.bg_dropped++;
+      return;
+    }
     if (!(a.id in this._cache) && this._cache.len() >= this._capacity) {
       local victim = this._lru.Pop();
       delete this._cache[victim];
@@ -253,31 +292,56 @@ class OpexTerrainMap {
     x0 = max(0, x0); y0 = max(0, y0);
     x1 = min(this._width, x1); y1 = min(this._height, y1);
     if (x0 >= x1 || y0 >= y1) return;
-    /* Bounded by resident entries + requests, never by map area.
+    /* O(_rectLimit), never bounded by residents or map area. Merging the two oldest
+     * rectangles over-invalidates, which only costs recomputation.
      * No topology exists yet: C67.5 must also invalidate incident graph edges. */
-    foreach (id, entry in this._cache) {
-      if (!this._intersects(id, x0, y0, x1, y1)) continue;
-      entry.stale = true;
-      entry.summary = null;
-      entry.generation = ++this._serial;
+    this._stats.invalidations++;
+    this._rects.append({ x0 = x0, y0 = y0, x1 = x1, y1 = y1, serial = ++this._serial });
+    if (this._rects.len() > this._rectLimit) {
+      local a = this._rects[0], b = this._rects[1];
+      this._rects[1] = { x0 = min(a.x0, b.x0), y0 = min(a.y0, b.y0),
+        x1 = max(a.x1, b.x1), y1 = max(a.y1, b.y1), serial = max(a.serial, b.serial) };
+      this._rects.remove(0);
     }
-    foreach (id, request in this._requests) {
-      if (!this._intersects(id, x0, y0, x1, y1)) continue;
-      request.generation = ++this._serial;
-      if (this._active != null && this._active.id == id) {
-        this._active = null;
-        if (request.priority == 1) this._urgent.Push(id);
-        else this._background.Push(id);
-        this._stats.cancelled++;
-      }
+    /* Pending requests are stamped when their computation begins; only the active one
+     * holds partial aggregates of an older generation. */
+    if (this._active != null && this._intersects(this._active.id, x0, y0, x1, y1)) {
+      local id = this._active.id;
+      this._active = null;
+      if (this._requests[id].priority == 1) this._urgent.Push(id);
+      else this._background.Push(id);
+      this._stats.cancelled++;
     }
   }
+
+  /* C67.4: withdraw one request, including the block being computed. */
+  function Cancel(id) {
+    if (!(id in this._requests)) return false;
+    if (this._active != null && this._active.id == id) this._active = null;
+    this._urgent.Remove(id);
+    this._background.Remove(id);
+    delete this._requests[id];
+    this._stats.withdrawn++;
+    return true;
+  }
+
+  /* Slots the background may still fill without ever forcing an eviction. */
+  function BackgroundRoom() {
+    return this._capacity - this._cache.len() - this._requests.len();
+  }
+
+  function BlockCount() { return this._nx * this._ny; }
+
+  function PendingCount() { return this._requests.len(); }
+
+  function HasUrgent() { return this._urgent.head != null; }
 
   function Stats() {
     local out = clone this._stats;
     out.rawset("resident", this._cache.len());
     out.rawset("pending", this._requests.len());
     out.rawset("active", this._active == null ? 0 : 1);
+    out.rawset("rects", this._rects.len());
     return out;
   }
 }

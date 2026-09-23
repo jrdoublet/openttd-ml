@@ -317,3 +317,76 @@ S=10 est ~12 % moins cher par tuile en balayage et plus économe en mémoire tan
 cache n'est pas saturé (256²/512²) ; au plafond, ΔRSS ≈ 8,4 MiB pour les deux.
 **S=5 est retenu provisoirement** selon la règle §8. Non couverts : balayage complet
 2048², fixtures de bord rectangulaire. Chiffres détaillés : journal du 23 septembre.
+
+## 14. C67.4 — cycle de vie et ordonnancement (conception du 23 septembre)
+
+Décisions fixées **avant** implémentation et mesure. Granularité : S=5 (§13).
+
+**Activation.** Réglage `c67_terrain_map`, booléen, défaut 0. À 0, aucun service n'est
+construit et la boucle principale ne paie qu'un test de constante. Il n'active ni
+C80 ni aucun autre réglage ; les deux boucles (historique et C80) portent le même crochet.
+
+**Place dans la boucle : reliquat avant `Sleep(1)`.** Après la passe métier du tick
+(tâche de file ou tick d'orchestrateur), et juste avant le `Sleep(1)` qui abandonne de
+toute façon le reste du tick, le crochet avance le service avec
+`budget = GetOpsTillSuspend() − 3 000` et l'échéance « tick courant + 1 ». Il ne
+franchit jamais un tick : les tâches métier ne sont ni préemptées ni retardées, et
+reprennent au même tick qu'en l'absence du service. Corollaire testable : sans
+consommateur, une partie avec le service doit être **identique** (mêmes grandeurs
+physiques et économiques) à la même graine sans lui. Toute divergence est un défaut.
+
+**Priorités et interruption.** Les demandes métier (priorité 1) sont servies avant
+le remplissage de fond. Un calcul de fond en cours est remis en file à la tranche
+suivante (contrat C67.2 inchangé). `Cancel(id)` retire une demande, y compris le
+calcul actif. Aucun consommateur n'existe en C67.4 : l'API est prête pour C67.6.
+
+**Remplissage de fond.** Un curseur parcourt les blocs en ordre raster et soumet au
+plus quelques demandes de priorité 0 par crochet, sans jamais remplir la file au-delà
+d'une petite réserve. Le fond **n'évince jamais** : une demande de fond est refusée
+quand `résidents + demandes ≥ capacité`, et un résultat de fond est abandonné plutôt
+que d'évincer. Sonder un bloc prêt par le fond ne modifie ni l'ordre LRU ni les hits.
+Après un tour complet sans nouvelle demande, le fond s'arrête jusqu'à la prochaine
+invalidation. L'ordre raster est arbitraire : l'ordre pertinent viendra du consommateur.
+
+**Invalidation paresseuse et bornée.** `InvalidateRect` n'itère plus sur les résidents :
+il ajoute un rectangle daté par numéro de série à une liste d'au plus 32 entrées
+(fusion conservatrice des deux plus anciennes en boîte englobante quand elle est
+pleine). Un résident dont la génération précède un rectangle qui le touche devient
+`stale` à sa prochaine lecture. Seul le calcul actif est annulé immédiatement ; une
+demande en attente reçoit sa génération au début de son calcul. Coût : O(32) par
+lecture, O(1) par invalidation, indépendant du cache et de la carte.
+
+**Travaux propres et changements externes.** Chaque nouvelle ligne inscrite dans
+`_lines` invalide la boîte englobante de ses deux extrémités élargie de 8 tuiles,
+détectée par le crochet via la longueur de `_lines` (aucune modification des six
+sites de construction). Non couverts : démolitions, agrandissements de gares,
+double voie, routes de croissance urbaine et tous les changements adverses ou
+naturels. Pour eux, aucun TTL : le résumé reste une observation datée et une
+revalidation fine au niveau tuile est obligatoire avant toute construction.
+
+**Save/Load.** Rien n'est sauvegardé. Après chargement, le service repart vide et le
+fond reprend au curseur 0 ; les intentions métier appartiennent à leur consommateur.
+Contrôle : Save/Load avec le réglage actif, sans erreur ni divergence de format.
+
+**Télémétrie.** Une ligne `AILog` annuelle `C67_TERRAIN` (résidents, calculs, lectures,
+opcodes cumulés et maximum par tranche, refus, évictions, invalidations, crochets
+actifs/sautés), uniquement sous le réglage.
+
+**Validation C67.4.** Tests de fixture Squirrel des nouveaux cas (invalidation
+paresseuse, fond sans éviction, annulation, génération au début du calcul), smoke
+1×1 avec le réglage, diagnostic d'équivalence solo 3 graines × 2 ans (référence
+contre réglage actif : grandeurs identiques attendues), puis Save/Load. Aucun gain
+économique n'est attendu ni recherché : le service n'a pas encore de consommateur.
+
+## 15. Résultats C67.4 (23 septembre)
+
+Fixture de contrat avec les cas §14 : passe. Équivalence `OpexAI` contre
+`OpexAI[c67_terrain_map=1]`, 3 graines × 3 ans (`results/c67_runtime_3y_20260923_01.json`) :
+108 checkpoints appariés, zéro écart de jeu ni d'opcodes. Une première version, qui
+construisait le service dans `Start()`, décalait de 1–2 opcodes la télémétrie du premier
+mois ; la construction est désormais paresseuse, dans le premier crochet. Save/Load
+(`results/c67_saveload_20260923_01.json`) : OK, service reconstruit vide après chargement.
+
+Débit mesuré sur 256² : 85 à 760 blocs par an dans le reliquat seul, pic de tranche
+7 161 opcodes. Le fond ne peut pas servir de source rapide ; le consommateur C67.6 devra
+budgéter ses propres tranches. Saturation du cache en jeu et boucle C80 non exercées.
