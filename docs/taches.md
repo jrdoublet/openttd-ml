@@ -144,9 +144,9 @@ mois ; sous C76, il reste figé entre deux régénérations complètes, et la de
 1. ~~Mesurer l'exposition~~ **fait** ([nuit du 23](23_nuit_2026-09-23.md) §7) : le défaut ne
    régénère qu'à chaque tour de file (~86 j) ; C76 seul garde la même cadence grâce aux
    régénérations réactives ; `lean` retire ~40 % des changements de cargo fret.
-2. **Rotation fret mensuelle légère** sous C76 : chaque mois sans régénération complète,
-   régénérer le seul fret (rail + route) sur le cargo suivant via `OpexRegenerateModeProjects`,
-   en faisant avancer `_lastFreightCargo` (aujourd'hui non avancé par ce chemin).
+2. **Rotation fret mensuelle légère** : implémentée (`c76_freight_rotation`, défaut 0,
+   `3618073`). Duel 5×6 contre le défaut : +70 k£/an, 4/1, valeur +6,1 %, non concluant
+   ([nuit du 23](23_nuit_2026-09-23.md) §8). **À faire : 20×10 apparié contre le défaut.**
 3. **Réévaluation légère du vivier** (demande et profit des candidats existants, sans recherche
    spatiale), mensuelle ou trimestrielle.
 
