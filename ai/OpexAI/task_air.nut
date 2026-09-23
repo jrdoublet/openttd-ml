@@ -168,6 +168,8 @@ function OpexAI::_tryBuildAir(year)
     }
 
     this._airBuilt = true;
+    if (C56_TASK_TRACE) OpexC56TaskLog("AIR_BUILT", ("arm" in plan) ? plan.arm : "unknown", "-",
+        "line=" + this._nextLineId + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital);
     if (DECISION_LOG) {
       OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
     }
@@ -419,6 +421,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=air cargo=" + cargoStr + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " dist=" + plan.distance + " cost=" + plan.capital + " profit=" + plan.economics.profitAnnual + " roi=" + project.roi);
           OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
         }
+        if (C56_TASK_TRACE) OpexC56TaskLog("AIR_BUILT", ("arm" in plan) ? plan.arm : "unknown", "-",
+            "line=" + this._nextLineId + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital);
         this._airBuilt = true;
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,

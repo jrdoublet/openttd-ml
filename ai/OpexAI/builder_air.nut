@@ -2710,7 +2710,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     hubs = []
   };
 
-  if (!OpexAirPlansPrepare(ctx)) {
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_prepare", "-");
+  local prepared = OpexAirPlansPrepare(ctx);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_prepare", "-",
+      "combos=" + (ctx.combos != null ? ctx.combos.len() : 0) + " towns=" + (ctx.towns != null ? ctx.towns.len() : 0)
+      + " target=" + targetTownId);
+  if (!prepared) {
     return ctx.bestPlan;
   }
 
@@ -2721,21 +2726,42 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local minDist = (plane.speed >= 400) ? 32 : 30;
     local resumingCombo = ctx.sliced && ctx.resumeState.combo == comboIndex && ctx.resumeState.sites != null;
 
-    if (!OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo)) {
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_find_sites", "-");
+    local sitesOk = OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo);
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_find_sites", "-",
+        "combo=" + comboIndex + " sites=" + ctx.sites.len() + " probes=" + ctx.perfProbesCount);
+    if (!sitesOk) {
       return ctx.bestPlan;
     }
 
-    if (!OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo)) {
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_new_pairs", "-");
+    local pairsOk = OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo);
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_new_pairs", "-",
+        "combo=" + comboIndex + " plans=" + (ctx.projects != null ? ctx.projects.len() : -1));
+    if (!pairsOk) {
       return ctx.bestPlan;
     }
 
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hubs", "-");
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_discover", "-");
     OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_discover", "-",
+        "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len());
 
+    local c56PlansBefore = (ctx.projects != null) ? ctx.projects.len() : 0;
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_site", "-");
     local tHubEval0 = AIController.GetTick();
     local lHubEval0 = AIController.GetOpsTillSuspend();
     OpexAirPlansHubToSite(ctx, combo, airport, plane);
+    local c56PlansMid = (ctx.projects != null) ? ctx.projects.len() : 0;
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_to_site", "-",
+        "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len() + " admitted=" + (c56PlansMid - c56PlansBefore));
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_hub", "-");
     OpexAirPlansHubToHub(ctx, combo, airport, plane);
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_to_hub", "-",
+        "hubs=" + ctx.hubs.len() + " admitted=" + (((ctx.projects != null) ? ctx.projects.len() : 0) - c56PlansMid));
     ctx.perfOpsEval += _calcDeltaOps(tHubEval0, lHubEval0);
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hubs", "-", "hubs=" + ctx.hubs.len());
 
     if (AIR_HUB && ctx.hubs.len() > 0) {
       OpexSign(AIMap.GetTileIndex(1, 6), "AU|" + ctx.hubs.len() + "|"
@@ -2764,7 +2790,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     if (bestPlan != null && bestPlan.airport.allowBig) break;
   }
 
-  return OpexAirPlansFinalize(ctx);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_finalize", "-");
+  local finalPlan = OpexAirPlansFinalize(ctx);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_finalize", "-");
+  return finalPlan;
 }
 
 /* Sondage pur d'un site : rend 0 s'il accepte l'aeroport, sinon le code d'erreur. Ne depense

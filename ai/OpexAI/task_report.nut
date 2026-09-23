@@ -74,6 +74,10 @@ function OpexAI::_reportLines(year)
       }
     }
     OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
+    if (C56_TASK_TRACE && vehicleType == AIVehicle.VT_AIR) {
+      OpexC56TaskLog("LINE_PROFIT", line.lineId, "-", "year=" + year + " profit=" + profit
+                     + " veh=" + vehCount);
+    }
     OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
     /* Collision/crash detector: an owned train that disappears outside the explicit freight
      * scrapping path is never silently ignored. RX is an alarm (loss can also be engine-side),
