@@ -1,6 +1,7 @@
 """Tests du contrat de réglages et du gel de campagne C66."""
 import contextlib
 import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
@@ -15,13 +16,30 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 
+try:
+    import openttdlab
+except ImportError:
+    fake_lab = types.ModuleType("openttdlab")
+    fake_lab.bananas_ai = mock.MagicMock()
+    fake_lab.bananas_ai_library = mock.MagicMock()
+    fake_lab.local_folder = mock.MagicMock()
+    fake_lab.run_experiments = mock.MagicMock()
+    sys.modules["openttdlab"] = fake_lab
+
 from bench_v2 import (
+    SEEDS,
+    SEEDS_40,
+    SEEDS_EXTRA_20,
     comparison_setting_audit,
     observed_opcode_stats,
     paired_comparisons,
     parse_opex_variant,
     portfolio_selection_opcode_stats,
     resolved_arm_settings,
+)
+from bench_1v1_5y_20seeds import (
+    build_policy_comparison,
+    student_t_ci95_critical_value,
 )
 from campaign_freeze import (
     effective_ai_settings,
@@ -338,6 +356,171 @@ class TestCampaignFreeze(unittest.TestCase):
             (root / "file.txt").write_text("changed", encoding="utf-8")
             dirty = git_state(root)
             self.assertTrue(dirty["dirty"])
+
+    def test_seeds_extension_properties(self):
+        """Vérifie la reproductibilité et l'absence de chevauchement de SEEDS_EXTRA_20."""
+        self.assertEqual(len(SEEDS), 20)
+        self.assertEqual(len(SEEDS_EXTRA_20), 20)
+        self.assertEqual(len(SEEDS_40), 40)
+        self.assertEqual(len(set(SEEDS_40)), 40)
+        self.assertEqual(set(SEEDS) & set(SEEDS_EXTRA_20), set())
+        for seed in SEEDS_EXTRA_20:
+            self.assertIsInstance(seed, int)
+            self.assertGreater(seed, 0)
+
+    def test_prepare_frozen_campaign_records_decision_rule(self):
+        """Vérifie que prepare_frozen_campaign enregistre decision_rule dans le manifeste."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ai_dir = root / "ai" / "OpexAI"
+            ai_dir.mkdir(parents=True)
+            (ai_dir / "info.nut").write_text(
+                'AddSetting({ name = "test_opt", min_value = 0, max_value = 1, custom_value = 0, flags = 0 });\n',
+                encoding="utf-8",
+            )
+            aaahogex_dir = root / "ai" / "AAAHogEx-115"
+            aaahogex_dir.mkdir(parents=True)
+            (aaahogex_dir / "info.nut").write_text(
+                'AddSetting({ name = "other", min_value = 0, max_value = 1, custom_value = 0, flags = 0 });\n',
+                encoding="utf-8",
+            )
+            harness = root / "harness.py"
+            harness.write_text("# harness", encoding="utf-8")
+
+            rule_mean40 = {
+                "rule": "mean40",
+                "primary_metric": "profit_year",
+                "min_useful_primary_delta": 50.0,
+                "value_guard_metric": "company_value",
+                "value_guard_max_loss_pct": 5.0,
+                "all_planned_pairs_required_for_verdict": True,
+            }
+            env = {
+                "C66_GIT_SHA": "b" * 40,
+                "C66_GIT_DIRTY": "0",
+                "C66_GIT_STATUS_B64": "",
+            }
+            with mock.patch.dict(os.environ, env, clear=False):
+                frozen = prepare_frozen_campaign(
+                    root=root,
+                    out_path=root / "results" / "test_campaign.json",
+                    campaign_id="test_campaign",
+                    policy_id="ref",
+                    seeds=[42, 100],
+                    years=1,
+                    repeats=1,
+                    starting_year=1970,
+                    config_text="[difficulty]\n",
+                    opex_explicit_settings=(("test_opt", 0),),
+                    library_specs=(),
+                    harness_files=("harness.py",),
+                    openttd_version="15.3",
+                    opengfx_version="7.1",
+                    policy_definitions=(
+                        {"id": "ref", "role": "reference", "explicit_settings": (("test_opt", 0),)},
+                        {"id": "var", "role": "variant", "explicit_settings": (("test_opt", 1),)},
+                    ),
+                    intervention_settings=("test_opt",),
+                    decision_rule=rule_mean40,
+                )
+                manifest = json.loads(frozen.manifest_path.read_text(encoding="utf-8"))
+                self.assertIn("comparison", manifest)
+                self.assertEqual(manifest["comparison"]["decision_rule"], rule_mean40)
+                self.assertEqual(manifest["comparison"]["decision_rule"]["rule"], "mean40")
+
+    def test_decision_rule_mean40_and_signs20_adoption(self):
+        """Vérifie l'évaluation de mean40 (pass, fail_primary, incomplet) et la non-régression de signs20."""
+        # 1. student_t_ci95_critical_value
+        self.assertEqual(student_t_ci95_critical_value(1), 12.706205)
+        self.assertEqual(student_t_ci95_critical_value(19), 2.093024)
+        self.assertEqual(student_t_ci95_critical_value(39), 2.022691)
+        self.assertEqual(student_t_ci95_critical_value(40), 2.021075)
+        self.assertEqual(student_t_ci95_critical_value(100), 1.983972)
+        with self.assertRaises(ValueError):
+            student_t_ci95_critical_value(0)
+
+        def make_synthetic_case(deltas, decision_rule="signs20", seeds=None):
+            summary = []
+            rows = []
+            if seeds is None:
+                seeds = list(range(1, len(deltas) + 1))
+            for seed, delta in zip(seeds, deltas):
+                for policy, opex_profit, opex_val in (
+                    ("ref", 100.0, 1000.0),
+                    ("var", 100.0 + delta, 1001.0),
+                ):
+                    for arm, p_val, c_val in (
+                        ("OpexAI", opex_profit, opex_val),
+                        ("AAAHogEx", 90.0, 1100.0),
+                    ):
+                        rec = {
+                            "duel_policy_id": policy,
+                            "policy_id": policy if arm == "OpexAI" else "AAAHogEx",
+                            "arm": arm,
+                            "seed": seed,
+                            "repeat": 0,
+                            "run_ok": True,
+                            "game_ok": True,
+                            "status": "complete",
+                            "failure_reason": None,
+                            "profit_year": p_val,
+                            "company_value": c_val,
+                            "profit": p_val / 4.0,
+                            "performance_history": 100,
+                            "median_station_rating": 100,
+                        }
+                        summary.append(rec)
+                        rows.append({**rec, "run": [arm, seed, 0], "date": "1970-12-01"})
+            return build_policy_comparison(
+                summary,
+                rows,
+                seeds=seeds,
+                repeats=1,
+                reference_policy_id="ref",
+                variant_policy_id="var",
+                primary_metric="profit_year",
+                min_useful_primary_delta=5.0,
+                value_guard_max_loss_pct=5.0,
+                starting_year=1970,
+                years=1,
+                decision_rule=decision_rule,
+            )
+
+        # signs20 non-régression
+        signs_pass = make_synthetic_case([10.0] * 15 + [-1.0] * 5, decision_rule="signs20")
+        self.assertEqual(signs_pass["verdict"], "pass")
+        self.assertTrue(signs_pass["sign_pass"])
+        self.assertEqual(signs_pass["decision_rule"]["required_pairs"], 20)
+
+        signs_fail = make_synthetic_case([100.0] * 10 + [-1.0] * 10, decision_rule="signs20")
+        self.assertEqual(signs_fail["verdict"], "fail_primary")
+        self.assertFalse(signs_fail["sign_pass"])
+
+        # mean40 pass
+        m40_pass = make_synthetic_case([20.0] * 35 + [5.0] * 5, decision_rule="mean40")
+        self.assertEqual(m40_pass["verdict"], "pass")
+        self.assertTrue(m40_pass["ci_pass"])
+        self.assertTrue(m40_pass["primary_pass"])
+        self.assertEqual(m40_pass["decision_rule"]["required_pairs"], 40)
+        self.assertEqual(m40_pass["decision_rule"]["rule"], "mean40")
+
+        # mean40 fail_primary (faible moyenne)
+        m40_fail_low = make_synthetic_case([3.0] * 40, decision_rule="mean40")
+        self.assertEqual(m40_fail_low["verdict"], "fail_primary")
+        self.assertTrue(m40_fail_low["ci_pass"])
+        self.assertFalse(m40_fail_low["primary_mean_pass"])
+        self.assertFalse(m40_fail_low["primary_pass"])
+
+        # mean40 fail_primary (variance élevée, borne basse négative)
+        m40_fail_var = make_synthetic_case([100.0] * 22 + [-100.0] * 18, decision_rule="mean40")
+        self.assertEqual(m40_fail_var["verdict"], "fail_primary")
+        self.assertFalse(m40_fail_var["ci_pass"])
+        self.assertFalse(m40_fail_var["primary_pass"])
+
+        # mean40 incomplet
+        m40_incomplete = make_synthetic_case([20.0] * 39, decision_rule="mean40", seeds=list(range(1, 41)))
+        self.assertEqual(m40_incomplete["verdict"], "incomplete")
+        self.assertFalse(m40_incomplete["comparison_complete"])
 
 
 if __name__ == "__main__":

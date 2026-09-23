@@ -32,6 +32,8 @@ def main():
     parser.add_argument("--primary-metric")
     parser.add_argument("--min-useful-primary-delta", type=float)
     parser.add_argument("--value-guard-max-loss-pct", type=float)
+    parser.add_argument("--decision-rule", choices=["signs20", "mean40"], default="signs20",
+                        help="Règle d'adoption C66.4 (défaut 'signs20')")
     parser.add_argument("--years", type=int)
     parser.add_argument("--seeds", nargs="+", type=int)
     parser.add_argument("--repeats", type=int)
@@ -80,6 +82,8 @@ def main():
         benchmark += ["--min-useful-primary-delta", str(args.min_useful_primary_delta)]
     if args.value_guard_max_loss_pct is not None:
         benchmark += ["--value-guard-max-loss-pct", str(args.value_guard_max_loss_pct)]
+    if args.decision_rule is not None:
+        benchmark += ["--decision-rule", args.decision_rule]
     if args.out is not None:
         benchmark += ["--out", args.out]
 

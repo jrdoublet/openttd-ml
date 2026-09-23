@@ -24,6 +24,8 @@ from bench_v2 import (
     OPENGFX_VERSION,
     OPENTTD_VERSION,
     SEEDS,
+    SEEDS_EXTRA_20,
+    SEEDS_40,
     SUCCESS_METRICS,
     arm_statistics,
     make_cfg,
@@ -810,6 +812,43 @@ def exact_sign_test_p(wins, losses):
     return _number(min(1.0, probability))
 
 
+# Table exacte précalculée du quantile bilatéral 95% (t_{0.975, df}) pour df = 1 à 40.
+# Source : intégration numérique de la densité de Student-t (résultats identiques aux tables NIST/Fisher-Yates).
+_STUDENT_T_95_TABLE = (
+    12.706205, 4.302653, 3.182446, 2.776445, 2.570582,
+    2.446912, 2.364624, 2.306004, 2.262157, 2.228139,
+    2.200985, 2.178813, 2.160369, 2.144787, 2.131450,
+    2.119905, 2.109816, 2.100922, 2.093024, 2.085963,
+    2.079614, 2.073873, 2.068658, 2.063899, 2.059539,
+    2.055529, 2.051831, 2.048407, 2.045230, 2.042272,
+    2.039513, 2.036933, 2.034515, 2.032245, 2.030108,
+    2.028094, 2.026192, 2.024394, 2.022691, 2.021075,
+)
+
+
+def student_t_ci95_critical_value(df: int) -> float:
+    """Valeur critique bilatérale à 95% (quantile 0.975) de Student-t pour df degrés de liberté.
+
+    Calcul pur Python sans scipy. Utilise la table exacte pour df in 1..40 (dont df=39 pour 40 graines,
+    df=19 pour 20 graines) et une expansion de Cornish-Fisher d'ordre 4 pour df > 40 (erreur < 1e-6).
+    """
+    if df < 1:
+        raise ValueError(f"df doit être >= 1 (reçu {df})")
+    if df <= len(_STUDENT_T_95_TABLE):
+        return _STUDENT_T_95_TABLE[df - 1]
+    # Approximation de Cornish-Fisher d'ordre 4 depuis le quantile normal z = 1.959963984540054
+    z = 1.959963984540054
+    inv_df = 1.0 / df
+    inv_df2 = inv_df * inv_df
+    inv_df3 = inv_df2 * inv_df
+    inv_df4 = inv_df3 * inv_df
+    term1 = (z**3 + z) / 4.0 * inv_df
+    term2 = (5.0 * z**5 + 16.0 * z**3 + 3.0 * z) / 96.0 * inv_df2
+    term3 = (3.0 * z**7 + 19.0 * z**5 + 17.0 * z**3 - 15.0 * z) / 384.0 * inv_df3
+    term4 = (79.0 * z**9 + 776.0 * z**7 + 1482.0 * z**5 - 1920.0 * z**3 - 945.0 * z) / 92160.0 * inv_df4
+    return round(z + term1 + term2 + term3 + term4, 6)
+
+
 def delta_statistics(values):
     """Statistiques appariées sur les deltas, jamais différence de deux moyennes."""
     values = [float(value) for value in values if value is not None]
@@ -824,8 +863,12 @@ def delta_statistics(values):
     if standard_error is not None:
         margin = 1.959963984540054 * standard_error
         ci95 = [_number(mean - margin), _number(mean + margin)]
+        t_crit = student_t_ci95_critical_value(n - 1) if n > 1 else None
+        margin_t = t_crit * standard_error if t_crit is not None else None
+        student_ci95 = [_number(mean - margin_t), _number(mean + margin_t)] if margin_t is not None else None
     else:
         ci95 = None
+        student_ci95 = None
     return {
         "n": n,
         "mean": _number(mean),
@@ -833,6 +876,7 @@ def delta_statistics(values):
         "standard_deviation": _number(standard_deviation),
         "standard_error": _number(standard_error),
         "mean_normal_95pct_ci": ci95,
+        "mean_student_t_95pct_ci": student_ci95,
         "wins": wins,
         "losses": losses,
         "ties": ties,
@@ -918,6 +962,7 @@ def build_policy_comparison(
     value_guard_max_loss_pct,
     starting_year,
     years,
+    decision_rule="signs20",
 ):
     """Rapport C66.4 fail-closed pour deux politiques jouant chacune contre AAAHogEx."""
     index = {}
@@ -1086,22 +1131,80 @@ def build_policy_comparison(
         and not incomplete_pairs
         and metric_coverage_complete
     )
-    adoption_sample_complete = planned == 20
-    sign_pass = (
-        primary_stats["wins"] >= 15
-        and primary_stats["sign_test_p"] is not None
-        and primary_stats["sign_test_p"] < 0.05
-        if adoption_sample_complete and comparison_complete else None
-    )
-    primary_mean_pass = (
-        primary_stats["mean"] is not None
-        and primary_stats["mean"] >= float(min_useful_primary_delta)
-        if comparison_complete else None
-    )
-    primary_pass = (
-        bool(sign_pass and primary_mean_pass)
-        if adoption_sample_complete and comparison_complete else None
-    )
+    if decision_rule == "mean40":
+        adoption_sample_complete = planned == 40
+        primary_ci95 = primary_stats.get("mean_student_t_95pct_ci")
+        ci_lower_positive = (
+            primary_ci95 is not None
+            and primary_ci95[0] is not None
+            and primary_ci95[0] > 0
+        )
+        ci_pass = (
+            bool(ci_lower_positive)
+            if adoption_sample_complete and comparison_complete else None
+        )
+        sign_pass = None
+        primary_mean_pass = (
+            primary_stats["mean"] is not None
+            and primary_stats["mean"] >= float(min_useful_primary_delta)
+            if comparison_complete else None
+        )
+        primary_pass = (
+            bool(ci_pass and primary_mean_pass)
+            if adoption_sample_complete and comparison_complete else None
+        )
+        decision_rule_record = {
+            "rule": "mean40",
+            "required_pairs": 40,
+            "confidence_level": 0.95,
+            "min_useful_primary_delta": float(min_useful_primary_delta),
+            "value_guard_max_loss_pct": float(value_guard_max_loss_pct),
+            "primary_rule": (
+                "all planned pairs required (40); "
+                "student_t_ci95_lower(variant-reference) > 0; "
+                "then mean(variant-reference) >= min_useful_primary_delta"
+            ),
+            "value_guard_rule": (
+                "all 40 reference denominators must be positive; then "
+                "ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct"
+            ),
+            "all_planned_pairs_required_for_verdict": True,
+        }
+    else:
+        adoption_sample_complete = planned == 20
+        sign_pass = (
+            primary_stats["wins"] >= 15
+            and primary_stats["sign_test_p"] is not None
+            and primary_stats["sign_test_p"] < 0.05
+            if adoption_sample_complete and comparison_complete else None
+        )
+        ci_pass = None
+        primary_mean_pass = (
+            primary_stats["mean"] is not None
+            and primary_stats["mean"] >= float(min_useful_primary_delta)
+            if comparison_complete else None
+        )
+        primary_pass = (
+            bool(sign_pass and primary_mean_pass)
+            if adoption_sample_complete and comparison_complete else None
+        )
+        decision_rule_record = {
+            "required_pairs": 20,
+            "required_wins": 15,
+            "max_sign_test_p_exclusive": 0.05,
+            "min_useful_primary_delta": float(min_useful_primary_delta),
+            "value_guard_max_loss_pct": float(value_guard_max_loss_pct),
+            "primary_rule": (
+                "first wins>=15/20 and exact two-sided sign-test p<0.05; "
+                "then mean(variant-reference) >= min_useful_primary_delta"
+            ),
+            "value_guard_rule": (
+                "all 20 reference denominators must be positive; then "
+                "ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct"
+            ),
+            "all_planned_pairs_required_for_verdict": True,
+        }
+
     guard_pass = (
         guard_ratio is not None
         and guard_ratio >= -float(value_guard_max_loss_pct)
@@ -1126,22 +1229,7 @@ def build_policy_comparison(
         "variant_policy_id": variant_policy_id,
         "primary_metric": primary_metric,
         "value_guard_metric": VALUE_GUARD_METRIC,
-        "decision_rule": {
-            "required_pairs": 20,
-            "required_wins": 15,
-            "max_sign_test_p_exclusive": 0.05,
-            "min_useful_primary_delta": float(min_useful_primary_delta),
-            "value_guard_max_loss_pct": float(value_guard_max_loss_pct),
-            "primary_rule": (
-                "first wins>=15/20 and exact two-sided sign-test p<0.05; "
-                "then mean(variant-reference) >= min_useful_primary_delta"
-            ),
-            "value_guard_rule": (
-                "all 20 reference denominators must be positive; then "
-                "ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct"
-            ),
-            "all_planned_pairs_required_for_verdict": True,
-        },
+        "decision_rule": decision_rule_record,
         "planned_pairs": planned,
         "complete_pairs": len(complete_pairs),
         "comparison_complete": comparison_complete,
@@ -1157,6 +1245,7 @@ def build_policy_comparison(
         "aggregates": aggregates,
         "air_structural_aggregates": structural_aggregates,
         "sign_pass": sign_pass,
+        "ci_pass": ci_pass,
         "primary_mean_pass": primary_mean_pass,
         "primary_pass": primary_pass,
         "value_guard_pass": guard_pass,
@@ -1175,7 +1264,20 @@ def enforce_validation_outcome(failed_runs, policy_comparison=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", type=int, default=DEFAULT_YEARS)
-    parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))
+    parser.add_argument(
+        "--decision-rule",
+        choices=["signs20", "mean40"],
+        default="signs20",
+        help="Règle d'adoption C66.4 : 'signs20' (20 paires, test des signes bilatéral 15/20) "
+             "ou 'mean40' (40 paires, IC95 Student-t > 0 et moyenne >= min_useful_primary_delta)",
+    )
+    parser.add_argument(
+        "--seeds",
+        nargs="+",
+        type=int,
+        default=None,
+        help="Graines de carte (défaut : SEEDS (20) sous signs20, SEEDS_40 (40) sous mean40)",
+    )
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--campaign", help="Identifiant C66.3 nouveau ; derive de --out ou horodate si omis")
@@ -1199,6 +1301,8 @@ def main():
         help="Timeout subprocess OpenTTD par partie, en secondes (0 = aucun)",
     )
     args = parser.parse_args()
+    if args.seeds is None:
+        args.seeds = list(SEEDS_40) if args.decision_rule == "mean40" else list(SEEDS)
 
     if args.selftest:
         selftest()
@@ -1250,6 +1354,7 @@ def main():
             "explicit_settings": tuple(variant_settings),
         })
         decision_rule = {
+            "rule": args.decision_rule,
             "primary_metric": args.primary_metric,
             "min_useful_primary_delta": args.min_useful_primary_delta,
             "value_guard_metric": VALUE_GUARD_METRIC,
@@ -1508,6 +1613,7 @@ def main():
             value_guard_max_loss_pct=args.value_guard_max_loss_pct,
             starting_year=STARTING_YEAR,
             years=args.years,
+            decision_rule=args.decision_rule,
         )
 
     payload = {
@@ -1635,11 +1741,19 @@ def main():
         primary = policy_comparison["aggregates"][args.primary_metric]["policy_delta"]
         guard = policy_comparison["aggregates"][VALUE_GUARD_METRIC]["policy_ratio"]
         print("\n=== C66.4 VARIANTE - RÉFÉRENCE ===")
-        print(
-            f"{args.primary_metric}: delta moyen={primary['mean']} median={primary['median']} "
-            f"V/D/E={primary['wins']}/{primary['losses']}/{primary['ties']} "
-            f"p_signes={primary['sign_test_p']} CI95={primary['mean_normal_95pct_ci']}"
-        )
+        if args.decision_rule == "mean40":
+            ci_t = primary.get("mean_student_t_95pct_ci")
+            print(
+                f"{args.primary_metric}: delta moyen={primary['mean']} median={primary['median']} "
+                f"V/D/E={primary['wins']}/{primary['losses']}/{primary['ties']} "
+                f"CI95_Student={ci_t} (borne basse > 0: {policy_comparison.get('ci_pass')})"
+            )
+        else:
+            print(
+                f"{args.primary_metric}: delta moyen={primary['mean']} median={primary['median']} "
+                f"V/D/E={primary['wins']}/{primary['losses']}/{primary['ties']} "
+                f"p_signes={primary['sign_test_p']} CI95={primary['mean_normal_95pct_ci']}"
+            )
         print(
             f"company_value: ratio des moyennes={guard['ratio_of_means']} "
             f"({guard['ratio_of_means_percent_change']}%), moyenne des ratios={guard['mean_of_ratios']}"
@@ -1997,10 +2111,25 @@ def selftest():
     assert ratio["ratio_of_means"] != ratio["mean_of_ratios"]
     assert ratio_statistics([(10, 5), (20, 0), (30, -1)])["n_positive_denominator"] == 1
 
-    def synthetic_policy_case(deltas):
+    # Test de la fonction de quantile Student-t (valeurs critiques 95% bilatéral)
+    assert student_t_ci95_critical_value(1) == 12.706205
+    assert student_t_ci95_critical_value(19) == 2.093024
+    assert student_t_ci95_critical_value(39) == 2.022691
+    assert student_t_ci95_critical_value(40) == 2.021075
+    assert student_t_ci95_critical_value(100) == 1.983972
+    try:
+        student_t_ci95_critical_value(0)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("student_t_ci95_critical_value doit rejeter df < 1")
+
+    def synthetic_policy_case(deltas, decision_rule="signs20", seeds=None):
         case_summary = []
         case_rows = []
-        for seed, delta in enumerate(deltas, start=1):
+        if seeds is None:
+            seeds = list(range(1, len(deltas) + 1))
+        for seed, delta in zip(seeds, deltas):
             for policy, opex_profit, opex_value in (
                 ("reference", 100, 1000),
                 ("variant", 100 + delta, 1001),
@@ -2035,7 +2164,7 @@ def selftest():
         return build_policy_comparison(
             case_summary,
             case_rows,
-            seeds=list(range(1, 21)),
+            seeds=seeds,
             repeats=1,
             reference_policy_id="reference",
             variant_policy_id="variant",
@@ -2044,21 +2173,73 @@ def selftest():
             value_guard_max_loss_pct=5,
             starting_year=1970,
             years=1,
+            decision_rule=decision_rule,
         )
 
-    adopted = synthetic_policy_case([10] * 15 + [-1] * 5)
+    # Non-régression signs20 : pass (15 victoires / 5 défaites, delta moyen >= 5)
+    adopted = synthetic_policy_case([10] * 15 + [-1] * 5, decision_rule="signs20")
     assert adopted["comparison_complete"] is True
     assert adopted["adoption_sample_complete"] is True
     assert adopted["sign_pass"] is True
     assert adopted["primary_mean_pass"] is True
     assert adopted["primary_pass"] is True
     assert adopted["verdict"] == "pass"
+    assert adopted["decision_rule"]["required_pairs"] == 20
+    assert adopted["decision_rule"]["required_wins"] == 15
 
-    mean_positive_but_signs_fail = synthetic_policy_case([100] * 10 + [-1] * 10)
+    # Non-régression signs20 : fail_primary (signes échouent 10/10 malgré moyenne positive)
+    mean_positive_but_signs_fail = synthetic_policy_case([100] * 10 + [-1] * 10, decision_rule="signs20")
     assert mean_positive_but_signs_fail["primary_mean_pass"] is True
     assert mean_positive_but_signs_fail["sign_pass"] is False
     assert mean_positive_but_signs_fail["primary_pass"] is False
     assert mean_positive_but_signs_fail["verdict"] == "fail_primary"
+
+    # mean40 : pass (40 paires, moyenne >= 5, borne basse IC95 Student > 0, garde OK)
+    pass_mean40 = synthetic_policy_case([20] * 35 + [5] * 5, decision_rule="mean40")
+    assert pass_mean40["comparison_complete"] is True
+    assert pass_mean40["adoption_sample_complete"] is True
+    assert pass_mean40["ci_pass"] is True
+    assert pass_mean40["primary_mean_pass"] is True
+    assert pass_mean40["primary_pass"] is True
+    assert pass_mean40["value_guard_pass"] is True
+    assert pass_mean40["verdict"] == "pass"
+    assert pass_mean40["decision_rule"]["rule"] == "mean40"
+    assert pass_mean40["decision_rule"]["required_pairs"] == 40
+    p_delta_40 = pass_mean40["aggregates"]["profit_year"]["policy_delta"]
+    assert p_delta_40["mean_student_t_95pct_ci"] is not None
+    assert p_delta_40["mean_student_t_95pct_ci"][0] > 0
+
+    # mean40 : fail_primary (cas A : moyenne < min_useful_primary_delta, ex: deltas 3.0 < 5.0)
+    fail_mean_low = synthetic_policy_case([3] * 40, decision_rule="mean40")
+    assert fail_mean_low["comparison_complete"] is True
+    assert fail_mean_low["adoption_sample_complete"] is True
+    assert fail_mean_low["ci_pass"] is True
+    assert fail_mean_low["primary_mean_pass"] is False
+    assert fail_mean_low["primary_pass"] is False
+    assert fail_mean_low["verdict"] == "fail_primary"
+
+    # mean40 : fail_primary (cas B : moyenne >= 5 mais forte variance -> borne basse IC95 <= 0)
+    # 22 victoires (+100) et 18 pertes (-100) : moyenne = 10 >= 5, mais IC95 négatif en borne basse
+    fail_ci_noise = synthetic_policy_case([100] * 22 + [-100] * 18, decision_rule="mean40")
+    assert fail_ci_noise["comparison_complete"] is True
+    assert fail_ci_noise["adoption_sample_complete"] is True
+    assert fail_ci_noise["ci_pass"] is False
+    assert fail_ci_noise["primary_mean_pass"] is True
+    assert fail_ci_noise["primary_pass"] is False
+    assert fail_ci_noise["verdict"] == "fail_primary"
+
+    # mean40 : incomplet (39 paires fournies pour 40 planifiées)
+    incomplete_mean40 = synthetic_policy_case([20] * 39, decision_rule="mean40", seeds=list(range(1, 41)))
+    assert incomplete_mean40["comparison_complete"] is False
+    assert incomplete_mean40["verdict"] == "incomplete"
+    assert incomplete_mean40["primary_pass"] is None
+
+    # mean40 : diagnostic_only (20 paires complètes sur 40 requises pour l'adoption)
+    diag_mean40 = synthetic_policy_case([20] * 20, decision_rule="mean40", seeds=list(range(1, 21)))
+    assert diag_mean40["comparison_complete"] is True
+    assert diag_mean40["adoption_sample_complete"] is False
+    assert diag_mean40["verdict"] == "diagnostic_only"
+    assert diag_mean40["primary_pass"] is None
 
     incomplete = build_policy_comparison(
         synthetic_summary[:-1],

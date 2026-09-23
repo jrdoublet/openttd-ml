@@ -48,6 +48,17 @@ SEEDS = (
     1, 17, 73, 314, 512, 1024, 1337, 4096, 8191, 12345,
     54321, 65537, 123456, 424242, 8675309,
 )
+# Proposition de 20 graines supplémentaires pour le protocole 40x10.
+# Méthode déterministe et reproductible : suite LCG POSIX (X_{n+1} = (1103515245 * X_n + 12345) mod 2^31)
+# initialisée à la date du protocole (20260923), projetée modulo 1_000_000, sans chevauchement avec SEEDS.
+# Ces graines sont une proposition ouverte à la décision de l'utilisateur.
+SEEDS_EXTRA_20 = (
+    423960, 613553, 515222, 781335, 375172,
+    999533, 442018, 746035, 455216, 230185,
+    706990, 983759, 802204, 232037, 723002,
+    313707, 701256, 292001, 841478, 59527,
+)
+SEEDS_40 = SEEDS + SEEDS_EXTRA_20
 MAX_WORKERS = 3
 DEFAULT_ARMS = ("OpexAI", "AAAHogEx", "AdmiralAI", "trAIns")
 
