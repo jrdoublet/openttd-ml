@@ -405,7 +405,9 @@ C80_MODE_REGEN <- false;
 C80_AIR_CHOICE_MEMO <- false;
 AIR_CHOICE_MEMO <- {};
 AIR_CHOICE_MEMO_STATE <- 0;
-/* C80 tranche 5 bis : index exacts des routes aeriennes par gare et des paires reliees. */
+/* C80 tranche 5 bis : index exacts des routes aeriennes par gare et des paires reliees.
+ * Defaut 1 depuis le 2026-09-23 (decision utilisateur) : memes decisions, ~1/3 d'opcodes hub-hub
+ * en moins, 20x10 neutre ; valeur reelle lue dans settings.nut. */
 C80_AIR_HUB_INDEX <- false;
 
 /* C80 tâche 5 : filtre de valeur des projets marginaux (chantiers secondaires sous multi-build).

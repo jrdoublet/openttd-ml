@@ -540,9 +540,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c80_air_hub_index",
-      description = "C80 tranche 5 bis: exact per-call indexes of air routes per station and connected station pairs in air planning (same decisions, fewer opcodes): 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C80 tranche 5 bis: exact per-call indexes of air routes per station and connected station pairs in air planning (same decisions, fewer opcodes): 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
