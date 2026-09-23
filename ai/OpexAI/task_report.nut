@@ -484,8 +484,7 @@ function OpexAI::_scrapDeadLines(year)
       local remaining = [];
       foreach (v in line.scrapVehicles) {
         if (!AIVehicle.IsValidVehicle(v)) continue;  // deja vendu ou detruit
-        if (AIVehicle.IsStoppedInDepot(v)) {
-          AIVehicle.SellVehicle(v);
+        if (AIVehicle.IsStoppedInDepot(v) && AIVehicle.SellVehicle(v)) {
           if (this._unprofitableStreaks != null && (v in this._unprofitableStreaks)) {
             delete this._unprofitableStreaks[v];
           }

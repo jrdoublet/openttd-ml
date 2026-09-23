@@ -747,13 +747,28 @@ function OpexRoadPlanFor(catalog, candidate)
  * Le rollback ne supprime donc jamais une route de ville preexistante. */
 function OpexRoadRollback(stopA, stopB, depot, vehicles, added)
 {
-  foreach (v in vehicles) {
-    if (AIVehicle.IsValidVehicle(v)) AIVehicle.SellVehicle(v);
+  local allSold = true;
+  if (vehicles != null) {
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      if (!AIVehicle.IsStoppedInDepot(v)) {
+        AIVehicle.StartStopVehicle(v);
+      }
+      if (AIVehicle.IsStoppedInDepot(v)) {
+        if (!AIVehicle.SellVehicle(v)) allSold = false;
+      } else {
+        allSold = false;
+        AIVehicle.SendVehicleToDepot(v);
+      }
+    }
   }
+  if (!allSold) return;
   if (depot != null && AIRoad.IsRoadDepotTile(depot)) AIRoad.RemoveRoadDepot(depot);
   if (stopB != null && AIRoad.IsRoadStationTile(stopB)) AIRoad.RemoveRoadStation(stopB);
   if (stopA != null && AIRoad.IsRoadStationTile(stopA)) AIRoad.RemoveRoadStation(stopA);
-  for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+  if (added != null) {
+    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+  }
 }
 
 /* Un arret de plus, meme facade, tuile cardinale voisine, joint au StationID deja pose.
@@ -1154,13 +1169,25 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     built.append(extra);
   }
 
+  local started = [];
+  local startFailed = false;
   foreach (v in built) {
     if (!AIVehicle.StartStopVehicle(v)) {
-      result.error = AIError.GetLastError();
-      result.opcodes += budget.end("build_road_vehicles");
-      result.actualCost = costs.GetCosts();
-      OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "START"; return result;
+      startFailed = true;
+      break;
     }
+    started.append(v);
+  }
+  if (startFailed) {
+    foreach (v in started) {
+      AIVehicle.StartStopVehicle(v);
+    }
+    result.error = AIError.GetLastError();
+    result.opcodes += budget.end("build_road_vehicles");
+    result.actualCost = costs.GetCosts();
+    OpexRoadRollback(stopA, stopB, depot, built, added);
+    result.reason = "START";
+    return result;
   }
   result.opcodes += budget.end("build_road_vehicles");
 

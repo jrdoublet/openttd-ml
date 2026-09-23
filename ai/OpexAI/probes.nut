@@ -36,6 +36,7 @@ function OpexC50ResetNonExpansionLedger()
 function OpexSign(anchor, name)
 {
   if (!DEBUG_SIGNS) return;
+  if (name != null && name.len() > 31) name = name.slice(0, 31);
   AISign.BuildSign(anchor, name);
 }
 function OpexDecide(kind, fields)

@@ -1246,7 +1246,24 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
   /* Pas de train lance avant que la transaction entiere soit certaine : voir OpexRollback.
    * La double voie construit un convoi par depot puis les demarre ensemble. */
   if (startVehicles) {
-    foreach (train in vehicles) AIVehicle.StartStopVehicle(train);
+    local started = [];
+    local startFailed = false;
+    foreach (train in vehicles) {
+      if (!AIVehicle.StartStopVehicle(train)) {
+        startFailed = true;
+        break;
+      }
+      started.append(train);
+    }
+    if (startFailed) {
+      foreach (train in started) {
+        AIVehicle.StartStopVehicle(train);
+      }
+      return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
+               failed = true, failure = "START", error = AIError.GetLastError(), diag = diag,
+               trainLength = measuredLength, locoLength = measuredLocoLength,
+               wagonLength = measuredWagonLength };
+    }
   }
   return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
            failed = false, failure = "", error = lastError, diag = diag, trainLength = measuredLength,
@@ -1744,7 +1761,23 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   }
   if (!trains.failed && trains.built > 0) {
-    foreach (train in trains.vehicles) AIVehicle.StartStopVehicle(train);
+    local started = [];
+    local startFailed = false;
+    foreach (train in trains.vehicles) {
+      if (!AIVehicle.StartStopVehicle(train)) {
+        startFailed = true;
+        trains.failed = true;
+        trains.failure = "START";
+        trains.error = AIError.GetLastError();
+        break;
+      }
+      started.append(train);
+    }
+    if (startFailed) {
+      foreach (train in started) {
+        AIVehicle.StartStopVehicle(train);
+      }
+    }
   }
   result.opcodes += budget.end("build_trains");
   result.error = trains.error;
@@ -2014,6 +2047,7 @@ function OpexBuildSecondTrain(catalog, line, cashReserve)
   local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, line.depot2,
                                     stA, stB, 1, line.loco, line.wagons, line.platformLength, true);
   if (newTrains.failed || newTrains.built == 0) {
+    OpexRollback(null, null, null, null, newTrains.rollbackVehicles);
     result.reason = "TRAINFAIL"; return result;
   }
   result.ok = true;

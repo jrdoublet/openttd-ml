@@ -155,6 +155,74 @@ class ReviewResidualContractsTest(unittest.TestCase):
         self.assertIn("passDiscards = [];", src[second_flush:second_choice])
         self.assertIn("if (RAIL_EXPAND || RAIL_REFLEET) {", src)
 
+    def test_life_scrap_checks_sell_vehicle_success(self):
+        src = _read("ai/OpexAI/task_report.nut")
+        start = src.index("function OpexAI::_scrapDeadLines(")
+        end = src.index("function OpexAI::_scrapRetiredVehicles(", start)
+        body = src[start:end]
+        guard = body.index("if (AIVehicle.IsStoppedInDepot(v) && AIVehicle.SellVehicle(v)) {")
+        streak = body.index("delete this._unprofitableStreaks[v];", guard)
+        fallback = body.index("remaining.append(v);", streak)
+        self.assertLess(guard, streak)
+        self.assertLess(streak, fallback)
+
+    def test_rail_start_failure_aborts_and_restops_trains(self):
+        src = _read("ai/OpexAI/builder_rail.nut")
+        # OpexBuildTrains
+        bt_start = src.index("function OpexBuildTrains(")
+        bt_end = src.index("function OpexTryBuildSignal(", bt_start)
+        bt_body = src[bt_start:bt_end]
+        bt_guard = bt_body.index("if (!AIVehicle.StartStopVehicle(train)) {")
+        self.assertIn('failure = "START"', bt_body[bt_guard:])
+        self.assertIn("AIVehicle.StartStopVehicle(train)", bt_body[bt_guard:])
+
+        # OpexExecuteRailPlan
+        exec_start = src.index("function OpexExecuteRailPlan(")
+        exec_end = src.index("function OpexBuildLine(", exec_start)
+        exec_body = src[exec_start:exec_end]
+        exec_guard = exec_body.index("if (!AIVehicle.StartStopVehicle(train)) {")
+        self.assertIn("trains.failed = true;", exec_body[exec_guard:])
+        self.assertIn('trains.failure = "START";', exec_body[exec_guard:])
+        self.assertIn("OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);", exec_body[exec_guard:])
+
+    def test_rail_second_train_cleans_rollback_vehicles_on_failure(self):
+        src = _read("ai/OpexAI/builder_rail.nut")
+        start = src.index("function OpexBuildSecondTrain(")
+        body = src[start:]
+        build_call = body.index("local newTrains = OpexBuildTrains(")
+        fail_check = body.index("if (newTrains.failed || newTrains.built == 0) {", build_call)
+        rollback = body.index("OpexRollback(null, null, null, null, newTrains.rollbackVehicles);", fail_check)
+        self.assertLess(build_call, fail_check)
+        self.assertLess(fail_check, rollback)
+
+    def test_road_rollback_and_start_failure_contract(self):
+        src = _read("ai/OpexAI/builder_road.nut")
+        # OpexRoadRollback
+        rb_start = src.index("function OpexRoadRollback(")
+        rb_end = src.index("function OpexRoadTryJoinStop(", rb_start)
+        rb_body = src[rb_start:rb_end]
+        self.assertIn("local allSold = true;", rb_body)
+        self.assertIn("if (!AIVehicle.SellVehicle(v)) allSold = false;", rb_body)
+        self.assertIn("AIVehicle.SendVehicleToDepot(v);", rb_body)
+        self.assertIn("if (!allSold) return;", rb_body)
+
+        # OpexBuildRoadRoute
+        route_start = src.index("function OpexBuildRoadRoute(")
+        route_end = src.index("function OpexRoadRefleet(", route_start)
+        route_body = src[route_start:route_end]
+        start_check = route_body.index("if (!AIVehicle.StartStopVehicle(v)) {")
+        rollback_call = route_body.index("OpexRoadRollback(stopA, stopB, depot, built, added);", start_check)
+        self.assertIn("AIVehicle.StartStopVehicle(v)", route_body[start_check:rollback_call])
+
+    def test_sign_truncates_name_to_31_chars(self):
+        src = _read("ai/OpexAI/probes.nut")
+        start = src.index("function OpexSign(")
+        end = src.index("function OpexDecide(", start)
+        body = src[start:end]
+        truncate = body.index("if (name != null && name.len() > 31) name = name.slice(0, 31);")
+        build_sign = body.index("AISign.BuildSign(anchor, name);", truncate)
+        self.assertLess(truncate, build_sign)
+
     def test_ig_parser_does_not_claim_a_knapsack_truncation(self):
         path = ROOT / "sweeps" / "opex_full_campaign.py"
         spec = importlib.util.spec_from_file_location("opex_full_campaign_review_test", path)
