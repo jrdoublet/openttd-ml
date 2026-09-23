@@ -249,6 +249,13 @@ C69_PLANE_CHOICE_DIFFER_C69 <- 0;
 C73_VIVIER_LEDGER <- null;
 /* C72 etape 2 : levier du choix d'avion (0 = profit max, 1 = ROI max, 2 = P/max(C, K_dec)) */
 C72_PLANE_CHOICE <- 0;
+/* C84 : profondeur cible de flotte pour l'appareil deja choisi par la politique courante.
+ * La ligne reste lancee avec un seul avion sous FLEET_PORTFOLIO ; la cible ne peut assouplir
+ * qu'un premier mauvais exercice, et seulement derriere l'attente reelle et le plafond de cadence. */
+C84_AIR_TARGET_FLEET <- false;
+/* C85 : reduire le choix C68 par route aux avions structurellement non domines,
+ * calcules une fois au refresh du catalogue. Experimental, defaut 0. */
+C85_AIR_EQUIPMENT_FRONTIER <- false;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
 C75_TRACK_PASSES <- false;

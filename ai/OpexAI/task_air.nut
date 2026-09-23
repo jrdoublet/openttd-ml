@@ -199,6 +199,11 @@ function OpexAI::_tryBuildAir(year)
       isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
       lineId = this._nextLineId,
     });
+    if (C84_AIR_TARGET_FLEET) {
+      this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
+          ? plan.targetPlanes : result.vehicles.len();
+      this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+    }
     OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
                            + plan.economics.profitAnnual);
     OpexSign(anchor, "AH|" + this._nextLineId + "|"
@@ -451,6 +456,11 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
+        if (C84_AIR_TARGET_FLEET) {
+          this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
+              ? plan.targetPlanes : result.vehicles.len();
+          this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+        }
         OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
                                + plan.economics.profitAnnual);
         OpexSign(anchor, "AH|" + this._nextLineId + "|"
@@ -638,6 +648,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
       continue;
     }
+    local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
+        && line.targetAirPlanes > have;
     if (("deadStreak" in line) && line.deadStreak >= 2) {
       OpexAirFleetRefusal(line, year, "D");
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "dead_line", 1);
@@ -645,7 +657,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
 
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
-    if (("lastProfit" in line) && line.lastProfit < 0) {
+    if (!c84BelowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
       OpexAirFleetRefusal(line, year, "L");
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
       continue;
@@ -664,8 +676,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "airport_capacity_reached", 1); continue; }
     local maxPlanesForAirport = physicalMaxPlanes;
     if (OPEX_AIR_CAP_PAD) maxPlanesForAirport = maxPlanesForAirport;
-    if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1); continue; }
-    if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1); continue; }
+    if (!c84BelowTarget && ("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1); continue; }
+    if (!c84BelowTarget && ("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1); continue; }
 
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
     if ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
@@ -716,13 +728,25 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       }
       maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
     }
+    if (c84BelowTarget) {
+      local targetNeed = line.targetAirPlanes - have;
+      if (targetNeed > 0 && maxAddedPerPass > targetNeed) maxAddedPerPass = targetNeed;
+    }
     if (plan != null) {
       /* Mode a blanc : on ne touche ni a la tresorerie ni a la ligne. Le test de capital est celui
        * du portefeuille, pas celui d'ici -- c'est tout l'objet de l'arbitrage. */
       local room = maxPlanesForAirport - have;
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
-        plan.append({ line = line, want = want, planePrice = planePrice });
+        local fleetEntry = { line = line, want = want, planePrice = planePrice };
+        if (c84BelowTarget) {
+          local marginal = OpexAirExistingLineMarginalEconomics(this._catalog, line, have, want);
+          if (marginal != null) {
+            fleetEntry.c84MarginalProfit <- marginal.profitAnnual;
+            fleetEntry.c84MarginalRevenue <- marginal.revenueAnnual;
+          }
+        }
+        plan.append(fleetEntry);
         if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
           local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
           if (!("c50_want_ym" in line) || line.c50_want_ym != ym) {

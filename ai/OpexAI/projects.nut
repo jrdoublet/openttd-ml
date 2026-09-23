@@ -453,9 +453,10 @@ function OpexProjectFromCandidate(candidate)
  * franchies, y compris la regle de tampon C14 qui garantit qu'une pleine capacite d'avion attend
  * reellement au sol. Il ne reste ici qu'a pricer la marge.
  *
- * Profit marginal : on prefere le profit REALISE par appareil quand la ligne en a un ; sinon on
- * retombe sur sa prediction (predRevenue - predRunning) par appareil. Sans ce repli, aucune ligne
- * de moins d'un an ne produirait de projet de flotte -- or l'annee 1 est precisement la cible. */
+ * Profit marginal : sous C84 et tant que la ligne est sous sa cible, utiliser la DIFFERENCE
+ * have -> have+want calculee a blanc par _resizeAirFleets avec OpexAirEconomics(fixedPlanes).
+ * Le profit realise / avion et le repli predRevenue - predRunning restent le contrat historique
+ * hors de ce chemin. */
 function OpexProjectFromFleet(entry)
 {
   if (entry == null || entry.want <= 0 || entry.planePrice <= 0) return null;
@@ -464,23 +465,42 @@ function OpexProjectFromFleet(entry)
              : (("vehicles" in line) ? line.vehicles.len() : 0);
   if (have < 1) return null;
 
-  local perPlaneProfit = 0;
-  if (("lastProfit" in line) && line.lastProfit > 0) {
-    perPlaneProfit = line.lastProfit / have;
-  } else if (("predRevenue" in line) && line.predRevenue > 0) {
-    local running = ("predRunning" in line) ? line.predRunning : 0;
-    local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
-    perPlaneProfit = (line.predRevenue - running) / planes;
+  local profit = 0;
+  local revenue = 0;
+  local usedTargetMarginal = false;
+  local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
+      && line.targetAirPlanes > have;
+  if (c84BelowTarget) {
+    /* Une sauvegarde/prototype C84 plus ancien peut porter targetAirPlanes sans airMonthlyPax,
+     * donc _resizeAirFleets ne peut pas produire le marginal exact. Ne jamais retomber alors sur
+     * la prediction lineaire 1-avion qui a motive ce correctif. */
+    if (!("c84MarginalProfit" in entry)) return null;
+    profit = entry.c84MarginalProfit;
+    if (profit <= 0) return null;
+    if ("c84MarginalRevenue" in entry) revenue = entry.c84MarginalRevenue;
+    if (revenue <= 0) revenue = profit;
+    usedTargetMarginal = true;
   }
-  if (perPlaneProfit <= 0) return null;
 
-  local profit = perPlaneProfit * entry.want;
-  local capital = entry.planePrice * entry.want;
-  local revenue = profit;
-  if (("predRevenue" in line) && line.predRevenue > 0) {
-    local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
-    revenue = (line.predRevenue / planes) * entry.want;
+  if (!usedTargetMarginal) {
+    local perPlaneProfit = 0;
+    if (("lastProfit" in line) && line.lastProfit > 0) {
+      perPlaneProfit = line.lastProfit / have;
+    } else if (("predRevenue" in line) && line.predRevenue > 0) {
+      local running = ("predRunning" in line) ? line.predRunning : 0;
+      local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
+      perPlaneProfit = (line.predRevenue - running) / planes;
+    }
+    if (perPlaneProfit <= 0) return null;
+    profit = perPlaneProfit * entry.want;
+    revenue = profit;
+    if (("predRevenue" in line) && line.predRevenue > 0) {
+      local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
+      revenue = (line.predRevenue / planes) * entry.want;
+    }
   }
+
+  local capital = entry.planePrice * entry.want;
   /* Un achat d'avion ne coute aucune planification : ni pathfinder, ni sondage de site. Seules
    * les commandes transactionnelles restent, d'ou un opcodeScore structurellement tres favorable
    * -- c'est exact, et c'est precisement ce que l'arbitrage doit pouvoir voir. */

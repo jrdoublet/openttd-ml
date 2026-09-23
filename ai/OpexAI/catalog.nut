@@ -249,6 +249,7 @@ class OpexCatalog {
   plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
   airCombos = null;    // [{kind="large"|"small", airport={...}, plane={...}}] ou null
   airPlaneChoicesByAirport = null; // M3/C68: airport type -> appareils compatibles
+  airPlaneFrontierByAirport = null; // C85: airport type -> sous-ensemble structurel non domine
 
   ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
   maxShipPrice = 0;
@@ -290,6 +291,7 @@ class OpexCatalog {
     this.roadEngineByCargo = {};
     this.roadEngineChoicesByCargo = {};
     this.airPlaneChoicesByAirport = {};
+    this.airPlaneFrontierByAirport = {};
     this.bounds = null;
     this._ticksAnchorDate = -1;
     this._ticksAnchorTick = -1;
@@ -306,6 +308,53 @@ class OpexCatalog {
   /* C41.15 : point d'entree cible, homologue de refreshWater(). */
   function refreshRoad(budget);
   function _cargoArray(list);
+}
+
+/* C85 : a couvre toute route que b peut physiquement desservir.
+ * Le contrat historique traite toute portee <= 0 comme illimitee. */
+function OpexAirRangeCovers(a, b)
+{
+  local ar = ("maxOrderDistance" in a) ? a.maxOrderDistance : 0;
+  local br = ("maxOrderDistance" in b) ? b.maxOrderDistance : 0;
+  if (ar <= 0) return true;
+  if (br <= 0) return false;
+  return ar >= br;
+}
+
+/* Dominance structurelle exacte pour le modele C68 courant (max profit).
+ * A meme compatibilite aeroport, une vitesse/capacite plus grande ne peut qu'ameliorer
+ * OpexAirTripModel et le revenu transporte ; prix et runningCost plus faibles ne peuvent
+ * qu'ameliorer capital/amortissement/exploitation. La portee doit aussi couvrir celle du
+ * moteur elimine. Au moins une dimension doit etre strictement meilleure. */
+function OpexAirEquipmentStaticDominates(a, b)
+{
+  if (a == null || b == null || a.id == b.id) return false;
+  if (a.capacity < b.capacity || a.speed < b.speed
+      || a.price > b.price || a.runningCost > b.runningCost) return false;
+  if (!OpexAirRangeCovers(a, b)) return false;
+
+  local ar = ("maxOrderDistance" in a) ? a.maxOrderDistance : 0;
+  local br = ("maxOrderDistance" in b) ? b.maxOrderDistance : 0;
+  local rangeStrict = (ar <= 0 && br > 0) || (ar > 0 && br > 0 && ar > br);
+  return a.capacity > b.capacity || a.speed > b.speed
+      || a.price < b.price || a.runningCost < b.runningCost || rangeStrict;
+}
+
+function OpexAirEquipmentStaticFrontier(choices)
+{
+  local frontier = [];
+  if (choices == null) return frontier;
+  foreach (candidate in choices) {
+    local dominated = false;
+    foreach (other in choices) {
+      if (OpexAirEquipmentStaticDominates(other, candidate)) {
+        dominated = true;
+        break;
+      }
+    }
+    if (!dominated) frontier.append(candidate);
+  }
+  return frontier;
 }
 
 /* M3/G12 : reproduit STRICTEMENT le departage locomotive courant pour un wagon alternatif.
@@ -588,6 +637,7 @@ function OpexCatalog::_refreshAir()
   this.plane = null;
   this.airCombos = [];
   this.airPlaneChoicesByAirport = {};
+  this.airPlaneFrontierByAirport = {};
   if (this.paxCargo < 0) return;
 
   local airportLargeTypes = [
@@ -603,7 +653,7 @@ function OpexCatalog::_refreshAir()
   local engines = AIEngineList(AIVehicle.VT_AIR);
   engines.Valuate(AIEngine.IsBuildable);
   engines.KeepValue(1);
-  local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION;
+  local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION || C85_AIR_EQUIPMENT_FRONTIER;
 
   // 1. Combo Grand Aeroport + Avion compatible
   foreach (choice in airportLargeTypes) {
@@ -632,6 +682,9 @@ function OpexCatalog::_refreshAir()
     }
     if (keepPlaneChoices && probeChoices.len() > 0) {
       this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
+      if (C85_AIR_EQUIPMENT_FRONTIER) {
+        this.airPlaneFrontierByAirport.rawset(choice.type, OpexAirEquipmentStaticFrontier(probeChoices));
+      }
     }
     if (best != null) {
       local ap = {
@@ -679,6 +732,9 @@ function OpexCatalog::_refreshAir()
     }
     if (keepPlaneChoices && probeChoices.len() > 0) {
       this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
+      if (C85_AIR_EQUIPMENT_FRONTIER) {
+        this.airPlaneFrontierByAirport.rawset(choice.type, OpexAirEquipmentStaticFrontier(probeChoices));
+      }
     }
     if (best != null) {
       local ap = {
