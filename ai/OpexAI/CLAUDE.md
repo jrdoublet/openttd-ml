@@ -175,8 +175,11 @@ supprimé, pas de branche morte à unifier).
   `OpexAirTripModel`) et route (`OpexRoadPhysicalVehicleCap = 2 × min(arrêts)`) sont des
   approximations grossières **connues** ; la cible est un modèle temporel partagé, pas une
   suppression brute (déjà réfutée par C50b).
-- **C56** : sur certaines graines l'IA cesse toute activité après 1970 sans erreur NoAI ; cause non
-  élucidée — un finding qui explique un arrêt silencieux du cycle annuel vaut de l'or.
+- **C56 (clos)** : les graines 2026, 1337 et 1024 gelaient dans la phase eau (`FindPath` de
+  MinchinWeb Lakes, budget compté en itérations alors qu'une itération n'est pas bornée). Corrigé
+  le 2026-09-11 par `water_lakes_ops_budget` (budget en opcodes, défaut 1) ; vérifié le 2026-09-23 :
+  ces graines jouent normalement dans les 20×10 duel. Leçon toujours valable : un arrêt silencieux
+  (`run_ok` vrai, aucune erreur NoAI) se cherche par l'année de fin et les jalons de phase.
 - **Goulot du volume** (`docs/16_bilan_volume.md` §6-§11) : un tour de la file de tâches dure 45
   à 135 jours ; `catalog` (régénération complète du vivier), `projects` et `town_growth` le
   remplissent. C75 construit plusieurs projets par passe ; C76 (`c76_regen_targeted`, défaut 0)
