@@ -403,5 +403,17 @@ AIR_CHOICE_MEMO_STATE <- 0;
 /* C80 tranche 5 bis : index exacts des routes aeriennes par gare et des paires reliees. */
 C80_AIR_HUB_INDEX <- false;
 
+/* C80 fleet inject : sous c80_fleet_inject, _dispatchAirFleet injecte les projets de flotte
+ * directement dans le vivier sans replanifier tout l'aerien. 0 = desactive (defaut). */
+C80_FLEET_INJECT <- false;
+
+/* C80 air targeted update : apres un chantier ou un abandon, ne replanifie l'aerien que pour
+ * les villes touchees par un chantier aerien, ou conserve les plans aeriens valides si aucun
+ * chantier aerien n'a eu lieu. 0 = desactive (defaut). */
+C80_AIR_TARGETED_UPDATE <- false;
+
+/* Sonde incrementale air sous probe_portfolio */
+C80_AIR_INC_COUNTS <- { full = 0, targeted = 0, none = 0 };
+
 /* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
 C78_GEN_LOG_YEAR <- -1;

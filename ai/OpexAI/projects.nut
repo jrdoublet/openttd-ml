@@ -2033,13 +2033,55 @@ function OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capit
              + " budget=" + capitalBudget);
 }
 
+/* C80 fleet inject : sous c80_fleet_inject, injecte les opportunites mures de
+ * flotte directement dans candidateGroups, sans recalculer les plans aeriens. */
+function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null)
+{
+  if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
+    return projects;
+  }
+  if (capitalBudget == null) capitalBudget = OpexAvailableCapital();
+
+  local winners = {};
+  local scratch = { modeCandidates = 0, modeAlternatives = 0 };
+
+  /* 1. Retirer les anciens projets de mode fleet et filtrer les paires abandonnees */
+  foreach (groupKey, entry in projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    foreach (project in list) {
+      if (project == null) continue;
+      if (project.mode == "fleet") continue;
+      if (abandonedPairs != null && OpexCandidateIsAbandoned(project, abandonedPairs)) continue;
+      OpexProjectRememberAll(winners, project, scratch);
+    }
+  }
+
+  /* 2. Injecter les opportunites de flotte fraiches */
+  if (FLEET_PORTFOLIO && fleetPlan != null) {
+    foreach (entry in fleetPlan) {
+      local p = OpexProjectFromFleet(entry);
+      if (p != null) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
+        OpexProjectRememberAll(winners, p, scratch);
+      } else if (C69_BOTTLENECK_PROBE) {
+        OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
+      }
+    }
+  }
+
+  projects.candidateGroups = winners;
+  OpexProjectsRecountGroups(projects);
+  return OpexReselectProjects(projects, capitalBudget, abandonedPairs);
+}
+
 /* C36.1 : Caching incremental du vivier post-chantier.
  * Au lieu de reconstruire tout le portefeuille ex nihilo apres chaque ligne achevee (15 jours
  * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
  * nouvelles opportunites de flotte, et réélit le portefeuille sur le capital restant.
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
-function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null)
+function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null)
 {
+  local airBuilt = C80_AIR_TARGETED_UPDATE && airTouchedTowns != null && airTouchedTowns.len() > 0;
   local b6BudgetDate = AIDate.GetCurrentDate();
   local stats = {
     odProjects = 0,
@@ -2077,7 +2119,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
          * nombre de villes deja securisees peut changer ; un ancien plan air ne
          * doit donc jamais conserver un bonus devenu perime. Les plans air sont
          * regeneres frais un peu plus bas dans cette meme passe. */
-        if (AIR_EARLY_SLOT && p.mode == "air") continue;
+        /* c80_air_targeted_update : sans chantier aerien dans la passe, les plans air sont gardes
+         * (le bonus early slot est recalcule a la selection, OpexProjectRefreshEarlySlot) ; apres un
+         * chantier aerien, comportement historique : tout jeter puis tout replanifier. */
+        if ((!C80_AIR_TARGETED_UPDATE || airBuilt) && AIR_EARLY_SLOT && p.mode == "air") continue;
+
         if (OpexCandidateIsAbandoned(p, abandonedPairs)) {
           abandonFiltered++;
           continue;
@@ -2109,16 +2155,21 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
-    local freshAirPlans = [];
-    if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
-    OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
-    AIR_CHOICE_MEMO_STATE = 0;
-    local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
-    foreach (plan in freshAirPlans) {
-      local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan);
-      if (p != null) {
-        OpexProjectRememberAll(newWinners, p, stats);
+    if (!C80_AIR_TARGETED_UPDATE || airBuilt) {
+      if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental(airBuilt ? "targeted" : "full");
+      local freshAirPlans = [];
+      if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
+      OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
+      AIR_CHOICE_MEMO_STATE = 0;
+      local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
+      foreach (plan in freshAirPlans) {
+        local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan);
+        if (p != null) {
+          OpexProjectRememberAll(newWinners, p, stats);
+        }
       }
+    } else {
+      if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental("none");
     }
   }
 

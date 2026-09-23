@@ -238,6 +238,9 @@ function OpexLoadSettings()
     C69_PLANE_CHOICE_DIFFER_C69 = 0;
     if (C69_BOTTLENECK_PROBE) {
       OpexC73ResetLedger();
+      C80_AIR_INC_COUNTS.full = 0;
+      C80_AIR_INC_COUNTS.targeted = 0;
+      C80_AIR_INC_COUNTS.none = 0;
     }
   }
   C75_MULTI_BUILD = AIController.GetSetting("c75_multi_build") != 0;
@@ -341,6 +344,8 @@ function OpexLoadSettings()
   C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
   C80_AIR_HUB_INDEX = AIController.GetSetting("c80_air_hub_index") != 0;
+  C80_FLEET_INJECT = AIController.GetSetting("c80_fleet_inject") != 0;
+  C80_AIR_TARGETED_UPDATE = AIController.GetSetting("c80_air_targeted_update") != 0;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;

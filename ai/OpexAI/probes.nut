@@ -1328,6 +1328,27 @@ function OpexC73FlushLedger(year)
   C73_VIVIER_LEDGER.flushedYear = year;
 }
 
+/* C80 : sonde incrementale air sous probe_portfolio */
+function OpexC80RecordAirIncremental(kind)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  if (kind in C80_AIR_INC_COUNTS) {
+    C80_AIR_INC_COUNTS[kind]++;
+  }
+}
+
+function OpexC80FlushAirIncremental(year)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  OpexC69Log("phase=air_incremental_year year=" + year
+      + " full=" + C80_AIR_INC_COUNTS.full
+      + " targeted=" + C80_AIR_INC_COUNTS.targeted
+      + " none=" + C80_AIR_INC_COUNTS.none);
+  C80_AIR_INC_COUNTS.full = 0;
+  C80_AIR_INC_COUNTS.targeted = 0;
+  C80_AIR_INC_COUNTS.none = 0;
+}
+
 /* C76 : sonde passive sous C39_INVALIDATION_PROBE (probe_catalogue). */
 function OpexC76Log(fields)
 {
