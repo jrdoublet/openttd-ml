@@ -72,7 +72,9 @@ class TerrainBenchProbe extends AIController {
   function Start() {
     local side = AIController.GetSetting("allocate");
     local full = AIController.GetSetting("full");
+    local scanBlocks = AIController.GetSetting("scan_blocks");
     if (side != 0 && side != 5 && side != 10) throw "C67 side invalid";
+    if (scanBlocks < 0 || scanBlocks > 200000) throw "C67 scan limit invalid";
     this.Emit("meta", "side", side);
     this.Emit("meta", "full", full);
     this.Emit("meta", "width", AIMap.GetMapSizeX());
@@ -124,10 +126,14 @@ class TerrainBenchProbe extends AIController {
     if (full != 0) {
       local nx = (source.Width() + side - 1) / side;
       local ny = (source.Height() + side - 1) / side;
+      local totalBlocks = nx * ny;
+      local targetBlocks = scanBlocks == 0 ? totalBlocks : min(totalBlocks, scanBlocks);
       startTick = AIController.GetTick(); mark = OpexOpsMeasureBegin(); before = map.Stats();
-      for (local id = 0; id < nx * ny; id++) this.RunBlock(map, id);
+      for (local id = 0; id < targetBlocks; id++) this.RunBlock(map, id);
       this.Phase(map, "scan", mark, startTick, before);
-      this.Emit("scan", "blocks", nx * ny);
+      this.Emit("scan", "blocks", targetBlocks);
+      this.Emit("scan", "total", totalBlocks);
+      this.Emit("scan", "limited", targetBlocks < totalBlocks ? 1 : 0);
       this.Emit("scan", "area", source.Width() * source.Height());
       if (map.Stats().resident > 4096) throw "C67 cache bound";
       startTick = AIController.GetTick(); mark = OpexOpsMeasureBegin(); before = map.Stats();

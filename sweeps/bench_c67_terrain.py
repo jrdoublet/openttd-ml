@@ -82,7 +82,7 @@ def keep(row):
 
 
 def assess_run(records: list[dict], arm: int, seed: int, repeat: int, size: int,
-               full: bool, years: int = 1) -> dict:
+               full: bool, scan_blocks: int, years: int = 1) -> dict:
     records = sorted(records, key=lambda r: r["date"])
     identity = all((r["arm"], r["seed"], r["repeat"], r["map_size"])
                    == (arm, seed, repeat, size) for r in records)
@@ -109,8 +109,13 @@ def assess_run(records: list[dict], arm: int, seed: int, repeat: int, size: int,
         complete = complete and final.get("warm", {}).get("reads") == 0
         complete = complete and final.get("cold", {}).get("max", 0) <= 10000
         if full:
-            complete = complete and final.get("scan", {}).get("blocks") == (
-                ((1 << size) + arm - 1) // arm) ** 2
+            total_blocks = ((1 << size) + arm - 1) // arm
+            expected_blocks = total_blocks ** 2 if scan_blocks == 0 else min(
+                total_blocks ** 2, scan_blocks)
+            complete = complete and final.get("scan", {}).get("blocks") == expected_blocks
+            complete = complete and final.get("scan", {}).get("total") == total_blocks ** 2
+            complete = complete and final.get("scan", {}).get("limited") == int(
+                expected_blocks < total_blocks ** 2)
             complete = complete and final.get("scan", {}).get("resident", 99999) <= 4096
             complete = complete and final.get("scan", {}).get("max", 99999) <= 10000
             complete = complete and final.get("invalidate", {}).get("ready") == 1
@@ -130,7 +135,7 @@ def assess_run(records: list[dict], arm: int, seed: int, repeat: int, size: int,
 
 
 def summarise(rows: list[dict], raw: list[dict], *, sizes: list[int], seeds: list[int],
-              repeats: int, full: bool, years: int = 1) -> dict:
+              repeats: int, full: bool, scan_tiles: int, years: int = 1) -> dict:
     grouped: dict[tuple[int, int, int, int], list[dict]] = defaultdict(list)
     for row in rows:
         grouped[(row["map_size"], row["seed"], row["repeat"], row["arm"])].append(row)
@@ -149,7 +154,10 @@ def summarise(rows: list[dict], raw: list[dict], *, sizes: list[int], seeds: lis
                 arms = {}
                 for arm in ARMS:
                     key = (size, seed, repeat, arm)
-                    status = assess_run(grouped.get(key, []), arm, seed, repeat, size, full, years)
+                    side_scan_blocks = (0 if scan_tiles == 0 else max(
+                        1, scan_tiles // (arm * arm))) if arm else 0
+                    status = assess_run(grouped.get(key, []), arm, seed, repeat, size,
+                                        full, side_scan_blocks, years)
                     rss = process.get(key)
                     status["process_memory_kib"] = (rss or {}).get("process_memory_kib")
                     status["returncode"] = (rss or {}).get("returncode")
@@ -213,6 +221,8 @@ def main():
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--days", type=int, default=365)
     parser.add_argument("--full", type=int, choices=[0, 1], default=1)
+    parser.add_argument("--scan-tiles", type=int, default=0,
+                        help="bound each full scan to this many tiles (0 = complete scan)")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
     if args.selftest:
@@ -223,7 +233,7 @@ def main():
         parser.error("Run inside canonical openttd-lab Docker with repository at /work")
     if any(size not in (8, 9, 10, 11) for size in args.map_sizes):
         parser.error("map sizes must be 8..11")
-    if args.repeats < 1 or args.days not in (365, 2920):
+    if args.repeats < 1 or args.days not in (365, 2920) or args.scan_tiles < 0:
         parser.error("C67.3 uses >=1 repeat and a declared one- or eight-year horizon")
     bundle = args.out.with_name(args.out.stem + "_fixture")
     raw_dir = args.out.with_name(args.out.stem + "_raw")
@@ -238,8 +248,13 @@ def main():
     memory._RUN_TOKEN = f"c67_{time.time_ns()}"
     from openttdlab import local_folder, run_experiments
     import openttdlab
-    arms = {side: local_folder(str(bundle.resolve()), NAME,
-                               (("allocate", side), ("full", args.full))) for side in ARMS}
+    arms = {}
+    for side in ARMS:
+        scan_blocks = 0 if args.scan_tiles == 0 or side == 0 else max(
+            1, args.scan_tiles // (side * side))
+        arms[side] = local_folder(str(bundle.resolve()), NAME,
+                                   (("allocate", side), ("full", args.full),
+                                    ("scan_blocks", scan_blocks)))
     experiments = []
     for size in args.map_sizes:
         cfg = bench_v2.make_cfg(1970, size)
@@ -253,6 +268,7 @@ def main():
     manifest_run = {"schema": "c67-terrain-v1", "source_hashes": manifest,
                     "sizes": args.map_sizes, "seeds": args.seeds, "repeats": args.repeats,
                     "days": args.days, "full": bool(args.full),
+                    "scan_tiles": args.scan_tiles,
                     "experiment_order": [exp["bench_run"] for exp in experiments],
                     "trace_points": {str(size): trace_points(1 << size, 1 << size)
                                      for size in args.map_sizes},
@@ -286,7 +302,8 @@ def main():
         item.update({"arm": side, "repeat": repeat})
         raw.append(item)
     summary = summarise(rows, raw, sizes=args.map_sizes, seeds=args.seeds,
-                        repeats=args.repeats, full=bool(args.full), years=args.days // 365)
+                        repeats=args.repeats, full=bool(args.full),
+                        scan_tiles=args.scan_tiles, years=args.days // 365)
     bench_v2.write_json_atomically(args.out, {"manifest": manifest_run, "summary": summary})
     print(json.dumps({k: v for k, v in summary.items() if k not in ("assessments", "pairs")},
                      indent=2))

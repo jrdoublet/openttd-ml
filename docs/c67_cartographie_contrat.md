@@ -276,3 +276,44 @@ Les opcodes et ticks sont mesurés séparément par phase dans la fixture. Les t
 de seize blocs sur chaque bras détectent les erreurs d'agrégats ; ils ne constituent
 pas une preuve sur toutes les tuiles. Le balayage complet vérifie le nombre de blocs,
 les lectures, la résidence bornée et l'horizon.
+
+## 12. Pilote 2048² et version bornée du protocole
+
+Le pilote version 2 (`results/c67_pilot_2048_8y_20260922_01.json`) a couvert les 96 mois
+pour les trois bras sans erreur moteur ni NoAI. Les phases locales 64 blocs sont valides,
+mais le balayage complet n'a pas atteint `scan` avant la fin de l'horizon : `evict` et
+`invalidate` sont donc absents. Ce résultat est une limite de durée, pas un échec de
+compilation ou d'exactitude ; il interdit de traiter le balayage complet 2048² comme une
+mesure qualifiée sous huit ans.
+
+La version bornée ajoute le réglage de fixture `scan_blocks` et l'option du harnais
+`--scan-tiles`. Le pilote `results/c67_pilot_2048_bounded_20260923_01.json` fixe une
+enveloppe commune de 409 600 tuiles par granularité, sur 2048², graine 42, un worker,
+96 mois : 16 384 blocs 5×5 et 4 096 blocs 10×10. Les trois bras ont 96 checkpoints,
+empreinte d'entrée identique, marqueur final, zéro erreur et les contrôles d'oracle sur
+16 blocs. Les deux paires sont valides ; le pic RSS du processus contre le témoin est de
+8 436 KiB (5×5) et 8 516 KiB (10×10). Le balayage borné mesure respectivement 163 684 997
+et 142 683 642 opcodes, 409 160 et 408 620 lectures, avec 1 240 opcodes de tranche au
+maximum et 4 096 résidents. Ces chiffres décrivent cette enveloppe progressive ; ils ne
+qualifient pas la couverture complète 2048².
+
+La matrice complète n'a pas été lancée après ce pilote. Les versions complète 256²/512²/
+1024² et bornée 2048² devront conserver dans leur manifeste l'enveloppe de tuiles, les
+empreintes et le statut `limited`; un résultat tronqué reste incomplet. Aucun choix de
+granularité ni défaut de jeu n'est adopté par ce pilote technique.
+
+## 13. Matrice C67.3 version 2 — choix provisoire S=5
+
+Deux campagnes séquentielles (un worker chacune, exécutées en parallèle dans deux
+conteneurs plafonnés séparément), graines 42/100/999, trois répétitions, 96 mois :
+`results/c67_matrix_full_8y_20260923_01.json` (256²/512²/1024², balayage complet) et
+`results/c67_matrix_2048_bounded_8y_20260923_01.json` (2048², 409 600 tuiles). 108/108
+parties, 72/72 paires valides, aucune erreur, oracle et bornes respectés (tranche ≤ 1 299
+opcodes, résidents ≤ 4 096). Rapport `sweeps/report_c67_terrain.py` :
+`results/c67_matrix_8y_20260923_01_report.json`.
+
+Delta relatif apparié des opcodes à froid S5 vs S10 : médiane −71,8 % (36 paires).
+S=10 est ~12 % moins cher par tuile en balayage et plus économe en mémoire tant que le
+cache n'est pas saturé (256²/512²) ; au plafond, ΔRSS ≈ 8,4 MiB pour les deux.
+**S=5 est retenu provisoirement** selon la règle §8. Non couverts : balayage complet
+2048², fixtures de bord rectangulaire. Chiffres détaillés : journal du 23 septembre.

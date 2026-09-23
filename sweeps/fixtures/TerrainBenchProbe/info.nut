@@ -14,6 +14,9 @@ class TerrainBenchProbeInfo extends AIInfo {
     AddSetting({name = "full", description = "Stream entire map after localized phases",
       min_value = 0, max_value = 1, easy_value = 0, medium_value = 0,
       hard_value = 0, custom_value = 0, flags = 0});
+    AddSetting({name = "scan_blocks", description = "0 full scan, otherwise bounded block count",
+      min_value = 0, max_value = 200000, easy_value = 0, medium_value = 0,
+      hard_value = 0, custom_value = 0, flags = 0});
   }
 }
 RegisterAI(TerrainBenchProbeInfo());
