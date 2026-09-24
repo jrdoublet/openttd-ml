@@ -484,9 +484,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "town_growth_plan_memo",
-      description = "Town growth: remember a town whose bus-line planning failed (TRACEX/DEPOTX/SITE) and retry only when its house count changed; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Town growth: remember a town whose bus-line planning failed (TRACEX/DEPOTX/SITE) and retry only when its house count changed; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -572,9 +572,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c80_mode_regen",
-      description = "C80 tranche 4: under c76_regen_targeted, an industry or non-air engine change regenerates only the dependent modes (rail, road, water) instead of the whole pool: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C80 tranche 4: under c76_regen_targeted, an industry or non-air engine change regenerates only the dependent modes (rail, road, water) instead of the whole pool: 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
