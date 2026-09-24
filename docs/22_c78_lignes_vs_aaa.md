@@ -455,9 +455,20 @@ la priorité s'applique quand même aux projets déjà dans le portefeuille.
 Sondes, sous `C78_SLOT_INTERCEPT_PROBE` : `c83_preempt_target`, `c83_preempt_built`,
 `c83_preempt_lost`.
 
-Validation faite : `sweeps/test_c83_preempt.py`. Validation restante : smoke 1×1,
-puis 5×6 apparié. Le défaut reste 0. Effet utile d'un futur 20×10 : +50 k£/an,
-15/20, p < 0,05, garde de valeur −5 %.
+Validation faite : `sweeps/test_c83_preempt.py` ; smoke 2 graines × 3 ans sondé
+(2 cibles, 2 aéroports préemptifs construits, aucune erreur) ; aller-retour Save/Load
+avec le réglage armé (`results/air_saveload.json` : `Load()` appelé, partie reprise,
+aucune erreur de script).
+
+### Diagnostic 5×6 du 2026-09-24 — non retenu
+
+Campagne `c83_preempt_open_vs_default_6y_5seeds_20260924` (graines 42, 100, 999, 1234,
+5678 ; 5/5 paires complètes) : `profit_year` −4,4 k£/an en moyenne, médiane +4,4 k£,
+3/2, p=1,0, IC95 [−157,5 ; +148,7] k£ ; valeur ratio des moyennes **−8,0 %** (garde
+−5 % violée), moyenne des ratios −8,2 %. Quelques aéroports en plus sur deux graines
+(42 : 28 contre 24 ; 999 : 23 contre 19), mais la graine 5678 perd 1,1 M£ de valeur.
+Préempter une grande ville vide immobilise du capital sans profit supplémentaire.
+**Pas de 20×10** ; le réglage reste à 0.
 
 ## 13. Lot aérien — une ville neuve par projet financé (`air_batch_town_reserve`)
 
@@ -481,3 +492,17 @@ Sonde, sous `probe_portfolio` (`C78_SLOT_INTERCEPT_PROBE` ou, à défaut,
 construction). Le réglage change les décisions. Mesure d'exposition d'abord, puis
 5×6 et 20×10 avant tout changement de défaut (+50 k£/an, 15/20, p < 0,05, garde
 −5 %). Contrats : `sweeps/test_air_batch_town_reserve.py`. Pas de partie.
+
+### Diagnostic 5×6 du 2026-09-24 — rejeté
+
+Campagne `air_batch_town_reserve_vs_default_6y_5seeds_20260924` (mêmes graines, 5/5
+paires complètes) : `profit_year` **−179,9 k£/an** en moyenne, médiane −194,4 k£,
+**0/5**, p=0,0625, IC95 **[−293,1 ; −66,6] k£** (entièrement négatif) ; valeur ratio des
+moyennes −6,2 % (garde violée). Smoke sondé 2 × 3 ans : 22 et 31 `batch_plan_dead` en
+3 ans, contre ~160 par partie sur 6 ans au diagnostic du défaut (indicatif, non apparié).
+
+Cause probable (relecture, non mesurée isolément) : la réserve retire des projets de la
+liste **déjà sélectionnée sous budget** (`OpexProjectSelectAffordable`) sans réaffecter
+le capital libéré. Chaque passe construit donc moins pour éviter des plans qui mouraient
+sans rien coûter. Une reprise devrait appliquer la réserve **avant** la sélection
+(alternatives dédoublonnées par ville neuve). **Rejeté en l'état** ; le réglage reste à 0.
