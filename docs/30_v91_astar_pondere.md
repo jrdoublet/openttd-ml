@@ -244,3 +244,64 @@ Duel 20×10 contre le défaut (V90 + C76), campagne `v91_w120_vs_default_10y_20s
 **Décision utilisateur du 2026-09-24 : `v91_astar_weight_pct` = 120 par défaut**, en application
 de la règle d'adoption des optimisations d'opcodes (AGENTS.md §4) : recherches ÷ 5, tracés presque
 optimaux, 20×10 sans perte. Le poids 150 reste rejeté (tracés +8 %, 7/13).
+
+---
+
+## 7. Rentabilité par mode : outil d'analyse (`sweeps/analyse_line_profit_by_mode.py`)
+
+Sous V91 (défaut 120), le nombre moyen de trains par partie passe de 1,15 à 2,35 (+1,2 train/partie, 12 hausses / 1 baisse), mais sans accroissement correspondant du profit annuel (`profit_year` médian +28,1 k£/an, moyen −28,6 k£/an, 11/9). Pour discriminer entre lignes ferroviaires déficitaires en valeur absolue et lignes ferroviaires rapportant simplement un ROI plus faible que l'aérien par livre investie, l'outil `sweeps/analyse_line_profit_by_mode.py` extrait la rentabilité par ligne et par mode (rail, air, route, eau) à partir des journaux bruts de diagnostic.
+
+### Protocole de collecte des traces
+
+Lancer un diagnostic avec les sondes de portfolio et d'événements activées (`probe_portfolio=1,probe_events=1`) sur un échantillon représentatif (ex. 5 graines × 8 ans) :
+
+```bash
+python3 sweeps/diag_c69_bottleneck_probe.py \
+  --arm "OpexAI[probe_portfolio=1,probe_events=1]" \
+  --seeds 42,100,999,1234,5678 \
+  --years 8 \
+  --grep "C56_TASK" \
+  --raw results/c56_task_diag_5x8.jsonl
+```
+
+### Analyse de la rentabilité
+
+```bash
+# Rapport synthétique en texte avec tableau récapitulatif et détail rail :
+python3 sweeps/analyse_line_profit_by_mode.py results/c56_task_diag_5x8.jsonl
+
+# Export structuré JSON :
+python3 sweeps/analyse_line_profit_by_mode.py results/c56_task_diag_5x8.jsonl --json
+
+# Validation autonome des calculs et contrats :
+python3 sweeps/analyse_line_profit_by_mode.py --selftest
+python3 -m unittest sweeps/test_analyse_line_profit_by_mode.py
+```
+
+### Métriques produites par mode
+- **Nombre de lignes** et lignes exploitables ;
+- **Profit annuel réalisé par ligne** : moyenne, médiane, part des lignes déficitaires (profit < 0) ;
+- **Capital moyen / médian par ligne** et capital total investi ;
+- **ROI annuel (profit / capital)** : moyenne, médiane et ratio macro (somme des profits / somme des capitaux) ;
+- **Âge moyen / médian des lignes** ;
+- **Détail spécifique au rail** : liste de chaque ligne ferroviaire avec sa distance, son nombre de trains, son profit par an de service plein, son capital, son année de construction et son statut ;
+- **Règle de traitement** : déduplication par `(seed, line_id, profit_year)` et exclusion par défaut de l'année de mise en service (incomplète) pour mesurer la rentabilité pérenne.
+
+### Rentabilité par mode : première mesure (2026-09-24)
+
+Défaut courant (V90 + V91 à 120 + C76), `probe_portfolio=1,probe_events=1`, graines
+42/100/999/1234/5678 × 8 ans (`results/lineprofit_5x8.jsonl`), analysé par
+`sweeps/analyse_line_profit_by_mode.py`. Année de mise en service exclue ; capital rail = coût réel
+payé (recalé par `OpexApplyRailActualCapital`).
+
+| mode | lignes (évaluées) | profit/an médian | pertes | capital moyen | ROI macro |
+|---|---:|---:|---:|---:|---:|
+| rail | 5 (3) | 28,5 k£ | 0 % | 52,7 k£ | **57,5 %** |
+| air | 338 (250) | 45,9 k£ | 1,2 % | 85,8 k£ | **61,4 %** |
+| route | 49 (39) | 0,7 k£ | 5,1 % | 12,6 k£ | 43,0 % |
+
+Lecture : les lignes rail ne perdent pas d'argent ; leur rendement par livre est proche de
+l'aérien (57,5 % contre 61,4 %), mais elles sont **rares** (5 lignes sur 40 graines-années, un
+train chacune). Échantillon trop petit pour conclure ligne à ligne (3 lignes évaluées ; ROI
+21,5 % à 106,9 %). Le rail n'est donc pas un gouffre : sa limite est le volume (vivier, un seul
+créneau de recherche, un train par ligne), pas la rentabilité unitaire.

@@ -237,6 +237,11 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                + AICargo.GetCargoLabel(candidate.cargo));
       OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
                                + "|" + result.vehicles.len());
+      if (C56_TASK_TRACE) {
+        OpexC56TaskLog("ROAD_BUILT", candidate.kind, "-",
+                       "line=" + idx + " cost=" + candidate.capital + " dist=" + candidate.distance
+                       + " veh=" + result.vehicles.len() + " profit=" + candidate.profitAnnual);
+      }
       this._lines.append({
         stationA = result.stopA, stationB = result.stopB,
         originA = candidate.src, originB = candidate.dst,

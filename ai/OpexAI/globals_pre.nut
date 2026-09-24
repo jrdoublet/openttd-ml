@@ -295,6 +295,8 @@ AIR_DEMAND_LINE_MEMO_LEN <- -1;
 V88_GOODS_CHAIN <- false;
 /* V88 test : force les projets chaine en tete (validation du chemin de construction). */
 V88_CHAIN_FORCE <- false;
+/* V88 : autorise l'etape 2 a construire sans attendre idle si son railPlan est pret. Defaut 0. */
+V88_STEP2_PLAN_IMMEDIATE <- false;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
 C75_TRACK_PASSES <- false;
