@@ -354,6 +354,9 @@ function OpexLoadSettings()
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
+  AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
+  local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
+  AIR_HUB_MAX_ROUTES = hubMaxRoutes >= 0 ? hubMaxRoutes : 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

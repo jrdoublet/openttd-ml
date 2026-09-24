@@ -570,6 +570,24 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "air_hubhub_marginal",
+      description = "C86: Deduct cannibalised revenue from existing hub lines when evaluating hub-to-hub air routes: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_hub_max_routes",
+      description = "C86: Maximum number of routes per airport hub: 0 = default caps (4 for small/commuter, 12 for others), 1..12 = cap at min(default, N)",
+      min_value = 0, max_value = 12,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
 AddSetting({
       name = "unprofitable_streak_threshold",
       description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line (default 3)",

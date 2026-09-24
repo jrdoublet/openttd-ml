@@ -237,7 +237,7 @@ function OpexAirBatchHubHasCapacity(anchor, plane, lines)
         AIStation.GetStationID(line.stationB) == station) routes++;
   }
   local airportType = AIAirport.GetAirportType(anchor);
-  local maxRoutes = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;
+  local maxRoutes = OpexAirAirportMaxRoutes(airportType);
   return routes < maxRoutes;
 }
 /* La paire O/D et les bouts nouveaux etaient valides lors de la generation. Avant toute tentative,

@@ -429,3 +429,11 @@ C80_AIR_INC_COUNTS <- { full = 0, targeted = 0, none = 0 };
 
 /* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
 C78_GEN_LOG_YEAR <- -1;
+
+/* C86 Variante A : prise en compte de la cannibalisation hub->hub en retranchant
+ * la perte de revenu des lignes existantes des deux hubs. 0 = desactive (defaut). */
+AIR_HUBHUB_MARGINAL <- false;
+
+/* C86 Variante B : plafond abaisse de routes par aeroport hub.
+ * 0 = plafonds actuels (4 petits/commuter, 12 grands), 1..12 = min(plafond actuel, N). */
+AIR_HUB_MAX_ROUTES <- 0;

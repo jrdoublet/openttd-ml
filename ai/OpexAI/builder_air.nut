@@ -454,6 +454,17 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
   return airportType != AIAirport.AT_SMALL && airportType != AIAirport.AT_COMMUTER;
 }
 
+/* C86 Variante B : plafond de routes autorisees par type d'aeroport.
+ * Si air_hub_max_routes vaut N > 0, le plafond devient min(plafond actuel, N). */
+function OpexAirAirportMaxRoutes(airportType)
+{
+  local defaultCap = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;
+  if (AIR_HUB_MAX_ROUTES > 0) {
+    return AIR_HUB_MAX_ROUTES < defaultCap ? AIR_HUB_MAX_ROUTES : defaultCap;
+  }
+  return defaultCap;
+}
+
 /* C36.3 : l'emprise est-elle constructible SANS AITestMode ni LevelTiles ?
  * IsBuildableRectangle accepte Clear + Trees (BuildAirport les rase) et le cote, et refuse
  * maisons, industries, rail, mer, riviere. Le cote passe IsBuildable : on l'exclut a part,
@@ -2282,7 +2293,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
             if (otherA == station || otherB == station) routeCount++;
           }
         }
-        local maxRoutes = (existingType == AIAirport.AT_SMALL || existingType == AIAirport.AT_COMMUTER) ? 4 : 12;
+        local maxRoutes = OpexAirAirportMaxRoutes(existingType);
         if (routeCount >= maxRoutes) continue;
         local townId = AITile.GetClosestTown(end.origin);
         if (townId < 0) continue;
@@ -2479,6 +2490,64 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
   local hubIndex = ctx.hubIndex;
   local bestPlan = ctx.bestPlan;
 
+  local hubAvgIncome = [];
+  if (AIR_HUBHUB_MARGINAL) {
+    for (local h = 0; h < hubs.len(); h++) hubAvgIncome.append(0.0);
+    if (lines != null && hubs.len() > 0) {
+      local hubIndexByStation = {};
+      for (local h = 0; h < hubs.len(); h++) {
+        hubIndexByStation.rawset(hubs[h].stationId, h);
+      }
+      local hubLinesCount = [];
+      local hubLinesIncomeSum = [];
+      for (local h = 0; h < hubs.len(); h++) {
+        hubLinesCount.append(0);
+        hubLinesIncomeSum.append(0.0);
+      }
+      foreach (line in lines) {
+        if (!("mode" in line) || line.mode != "air") continue;
+        if (("deadStreak" in line) && line.deadStreak >= 2) continue;
+        local stA = AIR_HUB_FIX ? OpexAirLineStationId(line, 0)
+            : (AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA));
+        local stB = AIR_HUB_FIX ? OpexAirLineStationId(line, 1)
+            : (AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB));
+        if (!AIStation.IsValidStation(stA) || !AIStation.IsValidStation(stB)) continue;
+
+        local dist = ("distance" in line && line.distance > 0)
+            ? line.distance
+            : (AIMap.IsValidTile(line.stationA) && AIMap.IsValidTile(line.stationB)
+                ? OpexFlightDistance(line.stationA, line.stationB) : 0);
+        if (dist <= 0) continue;
+        local days = ("predOneWayDays" in line && line.predOneWayDays > 0) ? line.predOneWayDays : 0;
+        local incomeDays = OpexCeilDiv(days, 1);
+        if (incomeDays < 1) incomeDays = 1;
+        local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, dist, incomeDays);
+        local totalIncomePerUnit = paxIncome;
+        if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+          local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, dist, incomeDays);
+          totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+        }
+        local incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+
+        if (stA in hubIndexByStation) {
+          local h = hubIndexByStation[stA];
+          hubLinesCount[h]++;
+          hubLinesIncomeSum[h] += incomePerUnit;
+        }
+        if (stB in hubIndexByStation && stB != stA) {
+          local h = hubIndexByStation[stB];
+          hubLinesCount[h]++;
+          hubLinesIncomeSum[h] += incomePerUnit;
+        }
+      }
+      for (local h = 0; h < hubs.len(); h++) {
+        if (hubLinesCount[h] > 0) {
+          hubAvgIncome[h] = hubLinesIncomeSum[h] / hubLinesCount[h];
+        }
+      }
+    }
+  }
+
   for (local i = 0; i < hubs.len(); i++) {
     local hub1MonthlyPre = C80_AIR_EVAL_FAST
         ? (((hubs[i].town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hubs[i].routes + 1))
@@ -2559,6 +2628,23 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       if (EQUIPMENT_ROI_PROBE) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 0, opcodePadding, economics, "pre_admission_hubhub");
+      }
+      if (AIR_HUBHUB_MARGINAL && economics != null && economics.profitAnnual > 0) {
+        /* C86 Variante A : retrancher la perte de revenu annuel des lignes aeriennes existantes.
+         * Hypothese : CargoDist etant desactive (DT_MANUAL), les passagers montent dans le premier avion
+         * quelle que soit sa destination. La nouvelle ligne hub->hub cannibalise les passagers des lignes
+         * existantes des deux hubs. Aucun gain de note de gare (station rating) n'est modelise. */
+        local pax1 = (monthlyPax > 0) ? (economics.carried.tofloat() * monthly1) / monthlyPax : 0.0;
+        if (pax1 > monthly1) pax1 = monthly1.tofloat();
+        local pax2 = (monthlyPax > 0) ? (economics.carried.tofloat() * monthly2) / monthlyPax : 0.0;
+        if (pax2 > monthly2) pax2 = monthly2.tofloat();
+        local lossAnnual = (12.0 * (pax1 * hubAvgIncome[i] + pax2 * hubAvgIncome[j])).tointeger();
+        if (lossAnnual > 0) {
+          economics = clone economics;
+          economics.profitAnnual -= lossAnnual;
+          local totalCapital = economics.capital + economics.immobilise;
+          economics.roi = totalCapital > 0 ? (economics.profitAnnual * 1000) / totalCapital : 0;
+        }
       }
       if (economics == null || economics.profitAnnual <= 0) {
         if (C69_BOTTLENECK_PROBE) {
