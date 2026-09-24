@@ -174,6 +174,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c83_fixes",
+      description = "C83 review fixes (contestable watch towns, slot-town identity, rearmable race, skip dead air pairs, targeted site scan): 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v92_air_service_choice",
       description = "V92: choose an air service (engine x count) plus a cheap one-aircraft variant of the same route, and allow later re-equipment; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

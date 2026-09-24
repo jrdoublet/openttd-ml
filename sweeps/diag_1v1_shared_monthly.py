@@ -626,31 +626,6 @@ def parse_c78_slot_events(output):
     return dict(by_month)
 
 
-def parse_c83_rights_events(output):
-    """Mesures passives C83_RIGHTS avec date et champs numeriques normalises."""
-    by_month = defaultdict(list)
-    for line in (output or "").splitlines():
-        sm = SCRIPT_RE.search(line)
-        if not sm or int(sm.group(1)) != 0:
-            continue
-        om = OPEX_RE.match(sm.group(2).strip())
-        if not om or om.group(4) != "C83_RIGHTS":
-            continue
-        year, month, day = int(om.group(1)), int(om.group(2)), int(om.group(3))
-        fields = parse_fields(om.group(5))
-        for key, value in list(fields.items()):
-            try:
-                fields[key] = int(value)
-            except (TypeError, ValueError):
-                try:
-                    fields[key] = float(value)
-                except (TypeError, ValueError):
-                    pass
-        fields["date"] = f"{year:04d}-{month:02d}-{day:02d}"
-        by_month[f"{year:04d}-{month:02d}"].append(fields)
-    return dict(by_month)
-
-
 
 def _iso_to_ottd_day(value):
     try:
@@ -1077,157 +1052,6 @@ def summarize_air_slot_intercept(rows):
     return {"summary": summary, "opportunities": opportunities}
 
 
-def _airport_towns(record, as_of=None):
-    towns = set()
-    as_of_day = _iso_to_ottd_day(as_of) if as_of else None
-    for town_id, slot in (record.get("stations_by_town") or {}).items():
-        if not isinstance(slot, dict):
-            continue
-        stations = slot.get("stations") or []
-        has_airport = False
-        for station in stations:
-            if not isinstance(station, dict) or "airport" not in (station.get("facilities") or []):
-                continue
-            built = station.get("build_date")
-            if as_of_day is not None and isinstance(built, (int, float)) and int(built) > as_of_day:
-                continue
-            has_airport = True
-            break
-        if has_airport:
-            try:
-                towns.add(int(town_id))
-            except (TypeError, ValueError):
-                pass
-    return towns
-
-
-def summarize_c83_exclusive_rights(rows):
-    """Disponibilite et prix C83.2, avec sous-ensemble des villes aeroportuaires partagees."""
-    by_company = defaultdict(list)
-    for record in rows:
-        by_company[(record.get("seed"), record.get("arm"))].append(record)
-    for snapshots in by_company.values():
-        snapshots.sort(key=lambda item: str(item.get("date", "")))
-
-    def snapshot_at_or_after(seed, arm, event_date):
-        """Premier inventaire qui peut contenir tout ce qui existait a la date sondee."""
-        for candidate in by_company.get((seed, arm), []):
-            if str(candidate.get("date", "")) >= str(event_date):
-                return candidate
-        return {}
-
-    observations = []
-    for record in rows:
-        if record.get("arm") != "OpexAI" or not record.get("c83_rights"):
-            continue
-        for raw in record["c83_rights"]:
-            event = dict(raw)
-            event_date = event.get("date")
-            seed = record.get("seed")
-            opex_snapshot = snapshot_at_or_after(seed, "OpexAI", event_date)
-            aaa_snapshot = snapshot_at_or_after(seed, "AAAHogEx", event_date)
-            opex_air = _airport_towns(opex_snapshot, event_date)
-            aaa_air = _airport_towns(aaa_snapshot, event_date)
-            town = event.get("town")
-            try:
-                town = int(town)
-            except (TypeError, ValueError):
-                continue
-            event["seed"] = seed
-            event["source_snapshot"] = record.get("date")
-            event["snapshot"] = opex_snapshot.get("date")
-            event["opex_airport"] = town in opex_air
-            event["aaa_airport"] = town in aaa_air
-            event["shared_airport_town"] = town in opex_air and town in aaa_air
-            observations.append(event)
-
-    all_success_costs = [
-        int(item["cost"])
-        for item in observations
-        if item.get("probe_ok") == 1
-        and isinstance(item.get("cost"), (int, float))
-        and item["cost"] >= 0
-    ]
-    global_quote = statistics.median(all_success_costs) if all_success_costs else None
-
-    def aggregate(items):
-        costs = [
-            int(item["cost"]) for item in items
-            if item.get("probe_ok") == 1 and isinstance(item.get("cost"), (int, float)) and item["cost"] >= 0
-        ]
-        quote = statistics.median(costs) if costs else global_quote
-        available = sum(item.get("available") == 1 for item in items)
-        active = [item for item in items if int(item.get("exclusive_duration") or 0) > 0]
-        no_active = [
-            item for item in items
-            if int(item.get("exclusive_duration") or 0) == 0 and int(item.get("rights_enabled", 1) or 0) != 0
-        ]
-        ratios_bank = [
-            100.0 * item["cost"] / item["bank"]
-            for item in items
-            if item.get("probe_ok") == 1 and item.get("cost", -1) >= 0 and item.get("bank", 0) > 0
-        ]
-        ratios_available = [
-            100.0 * item["cost"] / item["available_capital"]
-            for item in items
-            if item.get("probe_ok") == 1 and item.get("cost", -1) >= 0
-            and item.get("available_capital", 0) > 0
-        ]
-        return {
-            "observations": len(items),
-            "available": available,
-            "available_pct": (100.0 * available / len(items)) if items else None,
-            "probe_failures": sum(item.get("available") == 1 and item.get("probe_ok") != 1 for item in items),
-            "global_quote": quote,
-            "cost_min": min(costs) if costs else None,
-            "cost_median": statistics.median(costs) if costs else None,
-            "cost_max": max(costs) if costs else None,
-            "cost_samples": len(costs),
-            "cost_to_bank_median_pct": statistics.median(ratios_bank) if ratios_bank else None,
-            "cost_to_available_capital_median_pct": statistics.median(ratios_available) if ratios_available else None,
-            "affordable_from_bank": sum(
-                item.get("probe_ok") == 1 and item.get("cost", -1) >= 0
-                and item.get("bank", 0) >= item.get("cost", 0) for item in items
-            ),
-            "affordable_from_available_capital": sum(
-                item.get("probe_ok") == 1 and item.get("cost", -1) >= 0
-                and item.get("available_capital", 0) >= item.get("cost", 0) for item in items
-            ),
-            "exclusive_active": len(active),
-            "exclusive_opex": sum(item.get("exclusive_company") == 0 for item in active),
-            "exclusive_aaahogex": sum(item.get("exclusive_company") == 1 for item in active),
-            "no_active_rights": len(no_active),
-            "cash_blocked_estimate": sum(
-                quote is not None and item.get("available") != 1 and item.get("bank", 0) < quote
-                for item in no_active
-            ),
-            "affordable_no_active_estimate": sum(
-                quote is not None and item.get("bank", 0) >= quote for item in no_active
-            ),
-            "other_unavailable_estimate": sum(
-                quote is not None and item.get("available") != 1 and item.get("bank", 0) >= quote
-                for item in no_active
-            ),
-        }
-
-    shared = [item for item in observations if item["shared_airport_town"]]
-    aaa_present = [item for item in observations if item["aaa_airport"]]
-    by_year = {}
-    for year in sorted({item.get("year") for item in observations if item.get("year") is not None}):
-        year_items = [item for item in observations if item.get("year") == year]
-        year_shared = [item for item in year_items if item["shared_airport_town"]]
-        by_year[str(year)] = {
-            "top24": aggregate(year_items),
-            "shared_airport_towns": aggregate(year_shared),
-        }
-
-    return {
-        "top24": aggregate(observations),
-        "aaa_airport_towns": aggregate(aaa_present),
-        "shared_airport_towns": aggregate(shared),
-        "by_year": by_year,
-        "observations": observations,
-    }
 
 def attach_logs(rows, funnel_requested=None, slot_requested=False):
     """Attache les journaux mensuels et rend l'etat d'instrumentation explicite."""
@@ -1246,9 +1070,6 @@ def attach_logs(rows, funnel_requested=None, slot_requested=False):
     c78_slot_by_seed = {
         seed: parse_c78_slot_events(output) for seed, output in last_output.items()
     }
-    c83_rights_by_seed = {
-        seed: parse_c83_rights_events(output) for seed, output in last_output.items()
-    }
     if funnel_requested is None:
         funnel_requested = any(funnel_by_seed.values()) or any(funnel_detailed_by_seed.values())
 
@@ -1260,10 +1081,8 @@ def attach_logs(rows, funnel_requested=None, slot_requested=False):
             funnel_map = funnel_by_seed.get(seed, {})
             detail_map = funnel_detailed_by_seed.get(seed, {})
             slot_map = c78_slot_by_seed.get(seed, {})
-            rights_map = c83_rights_by_seed.get(seed, {})
             record["funnel"] = funnel_map.get(month)
             record["funnel_detailed"] = detail_map.get(month)
-            record["c83_rights"] = rights_map.get(month)
             record["c78_slot_events"] = slot_map.get(month, [])
             if not slot_requested:
                 record["c78_slot_state"] = "disabled"
@@ -1503,8 +1322,6 @@ def main():
     )
     finals = render_final_comparison(rows, seeds)
     slot_intercept = summarize_air_slot_intercept(rows) if args.air_slot_intercept else None
-    c83_rights = summarize_c83_exclusive_rights(rows)
-
     payload = {
         "openttd_version": OPENTTD_VERSION,
         "years": args.years,
@@ -1516,7 +1333,6 @@ def main():
         "town_station_detail": bool(args.town_station_detail or args.air_slot_intercept),
         "air_slot_intercept": bool(args.air_slot_intercept),
         "air_slot_intercept_analysis": slot_intercept,
-        "c83_exclusive_rights_analysis": c83_rights,
         "opponent": "AAAHogEx" if shared else None,
         "openttd_config": CFG_SHARED if shared else make_cfg(STARTING_YEAR),
         "rows": rows,

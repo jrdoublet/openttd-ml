@@ -624,7 +624,7 @@ function OpexAI::_c77InjectSubsidy(subId)
   this._projects.candidateGroups = winners;
   OpexProjectsRecountGroups(this._projects);
   this._projects = OpexReselectProjects(
-      this._projects, OpexAvailableCapital(), this._abandonedPairs);
+      this._projects, OpexAvailableCapital(), this._abandonedPairs, this._lines);
   this._ranked = this._projects.rail;
   local buildPayload = { reason = "subsidy_offer" };
   buildPayload.subsidyId <- subId;
@@ -1524,7 +1524,7 @@ function OpexAI::_c76PurgeInvalidCandidates(modeFilter = null)
 
   if (anyRemoved) {
     OpexProjectsRecountGroups(this._projects);
-    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(), this._abandonedPairs);
+    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(), this._abandonedPairs, this._lines);
     if (this._projects != null && ("rail" in this._projects)) {
       this._ranked = this._projects.rail;
     }
@@ -1594,7 +1594,7 @@ function OpexAI::_c76RotateFreight(year)
       || this._projects.candidateGroups == null || freightCargos.len() == 0) {
     if (this._projects != null) {
       this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(),
-                                            this._abandonedPairs);
+                                            this._abandonedPairs, this._lines);
     }
     return;
   }
