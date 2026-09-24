@@ -49,7 +49,7 @@ class TestC84AirTargetFleet(unittest.TestCase):
         economics = function_body(self.builder, "function OpexAirEconomics(")
         self.assertIn("targetSizing = false", economics)
         self.assertIn("local multiPlaneMax =", economics)
-        self.assertIn("local maxAllowed = targetSizing ? multiPlaneMax", economics)
+        self.assertIn("local maxAllowed = (targetSizing || serviceScan) ? multiPlaneMax", economics)
         self.assertIn(
             "((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || FLEET_PORTFOLIO) ? 1 : multiPlaneMax)",
             economics,
@@ -88,7 +88,7 @@ class TestC84AirTargetFleet(unittest.TestCase):
         hard_dead = resize.index("line.deadStreak >= 2", below)
         wait = resize.index('OpexAirFleetRefusal(line, year, "W")', hard_dead)
         target_cap = resize.index("local targetNeed = line.targetAirPlanes - have;", wait)
-        purchase = resize.index("OpexAirAddPlane(line)", target_cap)
+        purchase = resize.index("OpexAirAddPlane(line, this._catalog)", target_cap)
 
         self.assertLess(below, hard_dead)
         self.assertLess(hard_dead, wait)

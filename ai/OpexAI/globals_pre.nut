@@ -262,6 +262,14 @@ C84_AIR_TARGET_FLEET <- false;
 /* C85 : reduire le choix C68 par route aux avions structurellement non domines,
  * calcules une fois au refresh du catalogue. Experimental, defaut 0. */
 C85_AIR_EQUIPMENT_FRONTIER <- false;
+/* V92 : choix d'un service (moteur x nombre) et variante bon marche de la meme route.
+ * Le renforcement peut remplacer le moteur. Experimental, defaut 0. */
+V92_AIR_SERVICE_CHOICE <- false;
+/* Cache reconstructible : engineId -> capacite courrier lue sur un avion vivant. */
+AIR_MAIL_CAP <- {};
+AIR_MAIL_LEARN_MONTH <- -1;
+/* Paires dont une variante V92 a deja ete posee dans cette partie. */
+V92_CLOSED_PAIRS <- {};
 /* V88 : chaines industrielles de biens completes (intrant vers usine + biens vers ville). Defaut 0. */
 V88_GOODS_CHAIN <- false;
 /* V88 test : force les projets chaine en tete (validation du chemin de construction). */
@@ -468,3 +476,9 @@ V90_FAST_PATHFINDER <- true;
 /* V90 : vérification de conformité pas à pas en mode test.
  * Effectif seulement si v90_fast_pathfinder=1. 0 = désactivé (défaut). */
 V90_PATHFINDER_CHECK <- false;
+
+/* V91 : heuristique pondérée A* rail (weighted A*).
+ * Multiplicateur en pourcentage de l'estimation heuristique retournée par _Estimate.
+ * 100 = non pondéré (V90 strictement inchangé), > 100 accélère la recherche au prix de tracés légèrement
+ * sub-optimaux. Défaut 120 depuis le 2026-09-24 (décision utilisateur) : recherches ÷ 5, 20x10 neutre. */
+V91_ASTAR_WEIGHT_PCT <- 120;

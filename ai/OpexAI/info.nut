@@ -174,6 +174,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v92_air_service_choice",
+      description = "V92: choose an air service (engine x count) plus a cheap one-aircraft variant of the same route, and allow later re-equipment; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v88_goods_chain",
       description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -660,6 +668,16 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v91_astar_weight_pct",
+      description = "V91: weighted A* heuristic percentage for rail pathfinder (100 = unweighted V90, >100 faster search with slightly longer routes; default 120)",
+      min_value = 100, max_value = 300,
+      easy_value = 120, medium_value = 120, hard_value = 120,
+      custom_value = 120,
+      step_size = 10,
+      flags = 0
     });
   }
 }

@@ -10,6 +10,9 @@
  *       precomputed bridge types per length per search;
  *       added OpexRailPathfinderCheckerV90 for step-by-step parallel validation with BaNaNaS original;
  *       strictly identical route and cost decisions.
+ *       V91 (2026-09-24): Added weighted A* heuristic support (_EstimateWeighted, v91_astar_weight_pct);
+ *       zero overhead at default weight 100 via callback selection;
+ *       comparative finish_weighted trace in OpexRailPathfinderCheckerV90 when weight > 100.
  */
 
 /* $Id: main.nut 15101 2009-01-16 00:05:26Z truebrain $ */
@@ -36,6 +39,9 @@ class OpexRailPathFinderV90
 	_running = null;
 	_goals = null;
 
+	/* V91 : Poids heuristique (pourcentage, 100 = non pondéré V90) */
+	_weight = 100;
+
 	/* V90 : Constantes et précalculs par instance */
 	_mapSizeX = null;
 	_offsets = null;
@@ -50,7 +56,7 @@ class OpexRailPathFinderV90
 	_cache_rail = null;
 	_cache_buildable = null;
 
-	constructor()
+	constructor(weight = null)
 	{
 		this._max_cost = 10000000;
 		this._cost_tile = 100;
@@ -62,7 +68,9 @@ class OpexRailPathFinderV90
 		this._cost_coast = 20;
 		this._max_bridge_length = 6;
 		this._max_tunnel_length = 6;
-		this._pathfinder = this._aystar_class(this._Cost, this._Estimate, this._Neighbours, this._CheckDirection, this, this, this, this);
+		this._weight = (weight != null) ? weight : V91_ASTAR_WEIGHT_PCT;
+		local estimate_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+		this._pathfinder = this._aystar_class(this._Cost, estimate_fn, this._Neighbours, this._CheckDirection, this, this, this, this);
 
 		this.cost = this.Cost(this);
 		this._running = false;
@@ -119,6 +127,8 @@ class OpexRailPathFinderV90
 
 	function _Cost(path, new_tile, new_direction, self);
 	function _Estimate(cur_tile, cur_direction, goal_tiles, self);
+	function _EstimateWeighted(cur_tile, cur_direction, goal_tiles, self);
+	function SetWeight(weight);
 	function _Neighbours(path, cur_node, self);
 	function _CheckDirection(tile, existing_direction, new_direction, self);
 	function _GetBridgeNumSlopes(end_a, end_b);
@@ -147,6 +157,7 @@ class OpexRailPathFinderV90.Cost
 			case "coast":             this._main._cost_coast = val; break;
 			case "max_bridge_length": this._main._max_bridge_length = val; break;
 			case "max_tunnel_length": this._main._max_tunnel_length = val; break;
+			case "astar_weight_pct":  this._main.SetWeight(val); break;
 			default: throw("the index '" + idx + "' does not exist");
 		}
 
@@ -166,6 +177,7 @@ class OpexRailPathFinderV90.Cost
 			case "coast":             return this._main._cost_coast;
 			case "max_bridge_length": return this._main._max_bridge_length;
 			case "max_tunnel_length": return this._main._max_tunnel_length;
+			case "astar_weight_pct":  return this._main._weight;
 			default: throw("the index '" + idx + "' does not exist");
 		}
 	}
@@ -176,9 +188,22 @@ class OpexRailPathFinderV90.Cost
 	}
 };
 
+function OpexRailPathFinderV90::SetWeight(weight)
+{
+	this._weight = (weight >= 100) ? weight : 100;
+	local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+	this._pathfinder._estimate_callback = target_fn;
+}
+
 function OpexRailPathFinderV90::InitializePath(sources, goals, ignored_tiles = [])
 {
 	local nsources = [];
+
+	/* V91 : synchroniser le callback d'estimation selon le poids effectif */
+	local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+	if (this._pathfinder._estimate_callback != target_fn) {
+		this._pathfinder._estimate_callback = target_fn;
+	}
 
 	/* V90 : vider les caches par recherche */
 	this._cache_slope = {};
@@ -394,6 +419,28 @@ function OpexRailPathFinderV90::_Estimate(cur_tile, cur_direction, goal_tiles, s
 	return min_cost;
 }
 
+function OpexRailPathFinderV90::_EstimateWeighted(cur_tile, cur_direction, goal_tiles, self)
+{
+	local min_cost = self._max_cost;
+	local cur_x = AIMap.GetTileX(cur_tile);
+	local cur_y = AIMap.GetTileY(cur_tile);
+	local diag_cost2 = self._cost_diagonal_tile * 2;
+	local straight_cost = self._cost_tile;
+
+	/* As estimate we multiply the lowest possible cost for a single tile with
+	 * the minimum number of tiles we need to traverse. */
+	foreach (g in self._goalCoords) {
+		local dx = abs(cur_x - g.x);
+		local dy = abs(cur_y - g.y);
+		local min_d = (dx < dy) ? dx : dy;
+		local max_d = (dx > dy) ? dx : dy;
+		local cost = min_d * diag_cost2 + (max_d - min_d) * straight_cost;
+		if (cost < min_cost) min_cost = cost;
+	}
+	if (min_cost >= self._max_cost) return self._max_cost;
+	return (min_cost * self._weight) / 100;
+}
+
 function OpexRailPathFinderV90::_Neighbours(path, cur_node, self)
 {
 	if (self._HasRail(cur_node)) return [];
@@ -544,38 +591,127 @@ class OpexRailPathfinderCheckerV90
 	_orig = null;
 	_v90 = null;
 	_stepCount = 0;
+	_stepCountOrig = 0;
+	_stepCountV90 = 0;
 	_firstDiffIter = -1;
 	_firstDiffDesc = null;
 	_doneLogged = false;
+	_doneOrig = false;
+	_doneV90 = false;
+	_resOrig = false;
+	_resV90 = false;
+	_isWeighted = false;
 	cost = null;
 	_pathfinder = null;
 
-	constructor()
+	constructor(weight = null)
 	{
 		this._orig = RailPathFinder();
-		this._v90 = OpexRailPathFinderV90();
+		this._v90 = OpexRailPathFinderV90(weight);
 		this.cost = this.Cost(this);
 		this._pathfinder = this._v90._pathfinder;
 		this._stepCount = 0;
+		this._stepCountOrig = 0;
+		this._stepCountV90 = 0;
 		this._firstDiffIter = -1;
 		this._firstDiffDesc = null;
 		this._doneLogged = false;
+		this._doneOrig = false;
+		this._doneV90 = false;
+		this._resOrig = false;
+		this._resV90 = false;
+		this._isWeighted = (this._v90._weight > 100);
 	}
 
 	function InitializePath(sources, goals, ignored_tiles = [])
 	{
 		this._stepCount = 0;
+		this._stepCountOrig = 0;
+		this._stepCountV90 = 0;
 		this._firstDiffIter = -1;
 		this._firstDiffDesc = null;
 		this._doneLogged = false;
+		this._doneOrig = false;
+		this._doneV90 = false;
+		this._resOrig = false;
+		this._resV90 = false;
 		this._orig.InitializePath(sources, goals, ignored_tiles);
 		this._v90.InitializePath(sources, goals, ignored_tiles);
 		this._pathfinder = this._v90._pathfinder;
+		this._isWeighted = (this._v90._weight > 100);
 	}
 
 	function FindPath(iterations)
 	{
 		local count = (iterations > 0) ? iterations : 1;
+
+		if (this._isWeighted) {
+			for (local i = 0; i < count; i++) {
+				if (!this._doneV90) {
+					local rV90 = this._v90.FindPath(1);
+					this._stepCountV90++;
+					if (rV90 != false) {
+						this._doneV90 = true;
+						this._resV90 = rV90;
+					}
+				}
+				if (!this._doneOrig) {
+					local rOrig = this._orig.FindPath(1);
+					this._stepCountOrig++;
+					if (rOrig != false) {
+						this._doneOrig = true;
+						this._resOrig = rOrig;
+					}
+				}
+				if (this._doneV90) break;
+			}
+
+			if (this._doneV90) {
+				while (!this._doneOrig) {
+					local rOrig = this._orig.FindPath(1);
+					this._stepCountOrig++;
+					if (rOrig != false) {
+						this._doneOrig = true;
+						this._resOrig = rOrig;
+						break;
+					}
+				}
+
+				if (!this._doneLogged) {
+					this._doneLogged = true;
+					local lenOrig = 0;
+					local costOrig = 0;
+					if (this._resOrig != null && this._resOrig != false) {
+						lenOrig = OpexSegmentTiles(this._resOrig).len();
+						costOrig = this._resOrig.GetCost();
+					}
+					local lenV90 = 0;
+					local costV90 = 0;
+					if (this._resV90 != null && this._resV90 != false) {
+						lenV90 = OpexSegmentTiles(this._resV90).len();
+						costV90 = this._resV90.GetCost();
+					}
+					local ratioIters = (this._stepCountOrig > 0) ? (this._stepCountV90 * 1.0 / this._stepCountOrig) : 1.0;
+					local ratioLen = (lenOrig > 0) ? (lenV90 * 1.0 / lenOrig) : 1.0;
+					local ratioCost = (costOrig > 0) ? (costV90 * 1.0 / costOrig) : 1.0;
+
+					OpexC56TaskLog("V90_CHECK", "finish_weighted", "-",
+					               "iters_orig=" + this._stepCountOrig +
+					               " iters_weighted=" + this._stepCountV90 +
+					               " ratio_iters=" + ratioIters +
+					               " len_orig=" + lenOrig +
+					               " len_weighted=" + lenV90 +
+					               " ratio_len=" + ratioLen +
+					               " cost_orig=" + costOrig +
+					               " cost_weighted=" + costV90 +
+					               " ratio_cost=" + ratioCost);
+				}
+				return this._resV90;
+			}
+			return false;
+		}
+
+		/* Mode non pondéré (weight == 100) : comparaison pas à pas lockstep */
 		local retOrig = false;
 		local retV90 = false;
 
@@ -657,6 +793,11 @@ class OpexRailPathfinderCheckerV90.Cost
 
 	function _set(idx, val)
 	{
+		if (idx == "astar_weight_pct") {
+			this._checker._v90.cost[idx] = val;
+			this._checker._isWeighted = (this._checker._v90._weight > 100);
+			return val;
+		}
 		this._checker._orig.cost[idx] = val;
 		this._checker._v90.cost[idx] = val;
 		return val;

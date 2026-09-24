@@ -1063,9 +1063,14 @@ function OpexAI::_continueRailSearch()
       else state.candidate.v89SearchEndTick = curTick;
       local searchDays = ("startDate" in state) ? (curDate - state.startDate) : -1;
       local searchTicks = ("startTick" in state) ? (curTick - state.startTick) : -1;
+      local outcome = slice.stop;
+      local result = (outcome == "OK") ? "found" : ((outcome == "ABND" || outcome == "DEAD") ? "cap" : "none");
+      local pathLen = (outcome == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
+      local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
       OpexC56TaskLog("RAIL_SEARCH_END", "primary", this._taskCycle,
                      "src=" + state.candidate.src + " dst=" + state.candidate.dst
-                     + " outcome=" + slice.stop + " iters=" + state.spent
+                     + " outcome=" + outcome + " result=" + result + " iters=" + state.spent
+                     + " len=" + pathLen + " weight=" + weightUsed
                      + " budget=" + state.iterationBudget + " days=" + searchDays
                      + " ticks=" + searchTicks);
     }
@@ -1076,6 +1081,16 @@ function OpexAI::_continueRailSearch()
     return;
   }
   if (state.kind == "upgrade") {
+    if (C56_TASK_TRACE) {
+      local outcome = slice.stop;
+      local result = (outcome == "OK") ? "found" : ((outcome == "ABND" || outcome == "DEAD") ? "cap" : "none");
+      local pathLen = (outcome == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
+      local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
+      OpexC56TaskLog("RAIL_SEARCH_END", "upgrade", this._taskCycle,
+                     "outcome=" + outcome + " result=" + result + " iters=" + state.spent
+                     + " len=" + pathLen + " weight=" + weightUsed
+                     + " budget=" + state.iterationBudget);
+    }
     /* `search` n'existe pas dans l'etat initial : en Squirrel, une nouvelle
      * cle de table exige `<-`, sinon le premier upgrade leve une exception. */
     state.search <- slice;
