@@ -360,7 +360,16 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
   foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
   foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
   if (sources.len() == 0 || goals.len() == 0) return null;
-  local pathfinder = RailPathFinder();
+  local pathfinder;
+  if (V90_FAST_PATHFINDER) {
+    if (V90_PATHFINDER_CHECK) {
+      pathfinder = OpexRailPathfinderCheckerV90();
+    } else {
+      pathfinder = OpexRailPathFinderV90();
+    }
+  } else {
+    pathfinder = RailPathFinder();
+  }
   pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
   return pathfinder;
@@ -684,7 +693,16 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.segments++;
       state.currentSegmentLimit = state.nextSegmentLimit;
       state.nextSegmentLimit = SEGMENTED_SEGMENT_ITERS;
-      local pathfinder = RailPathFinder();
+      local pathfinder;
+      if (V90_FAST_PATHFINDER) {
+        if (V90_PATHFINDER_CHECK) {
+          pathfinder = OpexRailPathfinderCheckerV90();
+        } else {
+          pathfinder = OpexRailPathFinderV90();
+        }
+      } else {
+        pathfinder = RailPathFinder();
+      }
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);

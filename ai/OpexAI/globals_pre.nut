@@ -460,3 +460,11 @@ AIR_HUB_MAX_ROUTES <- 0;
  * Avance des tranches supplémentaires tant qu'il reste du budget d'opcodes dans le tick,
  * sans bloquer la file de fond ni changer l'ordre des tâches. 0 = désactivé (défaut). */
 V89_RAIL_SEARCH_THROUGHPUT <- false;
+
+/* V90 : A* ferroviaire rapide vendorisé (tracé identique, −8 % d opcodes par itération mesuré).
+ * 0 = RailPathFinder BaNaNaS, 1 = OpexRailPathFinderV90 (défaut, décision utilisateur du 2026-09-24). */
+V90_FAST_PATHFINDER <- true;
+
+/* V90 : vérification de conformité pas à pas en mode test.
+ * Effectif seulement si v90_fast_pathfinder=1. 0 = désactivé (défaut). */
+V90_PATHFINDER_CHECK <- false;

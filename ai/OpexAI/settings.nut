@@ -363,6 +363,8 @@ function OpexLoadSettings()
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
   AIR_HUB_MAX_ROUTES = hubMaxRoutes >= 0 ? hubMaxRoutes : 0;
   V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
+  V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;
+  V90_PATHFINDER_CHECK = AIController.GetSetting("v90_pathfinder_check") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

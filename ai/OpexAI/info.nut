@@ -645,6 +645,22 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+
+    AddSetting({
+      name = "v90_fast_pathfinder",
+      description = "V90: optimized vendorized rail pathfinder (identical routes): 1 = enabled (default), 0 = BaNaNaS RailPathFinder",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v90_pathfinder_check",
+      description = "V90: test-mode parallel step-by-step verification between BaNaNaS and V90 pathfinder: 1 = enabled (only if v90_fast_pathfinder=1), 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 
