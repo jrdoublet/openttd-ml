@@ -142,7 +142,9 @@ function OpexAI::_tryBuildAir(year)
       }
     }
 
-    local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
+    local result = V93_AIR_DEMAND_PRODUCTION
+        ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
+        : OpexBuildAirRoute(this._catalog, this._budget, plan);
     if (C63_INVEST_PROBE) OpexC63RecordSpendResult("air", result, plan.capital);
     local anchor = AIMap.GetTileIndex(1, 1);
     OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
@@ -382,7 +384,9 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
-      local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
+      local result = V93_AIR_DEMAND_PRODUCTION
+          ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
+          : OpexBuildAirRoute(this._catalog, this._budget, plan);
       if (C63_INVEST_PROBE) OpexC63RecordSpendResult("air", result, plan.capital);
       OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
       if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
