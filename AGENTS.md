@@ -135,6 +135,16 @@ Le nom `bench_1v1_5y_20seeds.py` n'impose pas la durée : passer **`--years 10`*
 | Adoption par défaut | Banc officiel apparié **20 graines × 10 ans**, complet et sain, avant changement du défaut |
 | Persistance | En plus, validation adaptée de Save/Load, notamment `sweeps/save_load_roundtrip.py` |
 
+**Optimisations d'opcodes (décision utilisateur du 2026-09-24).** Un changement dont le but est
+d'économiser des opcodes est **adopté par défaut s'il est neutre** : gain d'opcodes mesuré sur le
+poste visé (sonde existante, même protocole des deux côtés), puis 20×10 apparié complet et sain
+qui ne montre **pas de perte** — IC95 du delta `profit_year` non entièrement négatif, pas de
+défaite significative au test des signes (p ≥ 0,05 ou majorité de victoires) et garde de valeur
+−5 % tenue. Le seuil d'effet utile positif (+50 k£/an, 15/20) ne s'applique pas : les opcodes
+libérés sont une ressource réservée à d'autres chantiers (C67…). Un changement qui modifie aussi
+les décisions reste soumis à cette même absence de perte ; « même tracé / mêmes décisions »
+dispense seulement de chercher la cause d'une dérive de trajectoire.
+
 Les tests Python ne compilent pas Squirrel. Un smoke ne valide pas la rentabilité ; le banc CI
 20×3 ne remplace pas le 20×10 d'adoption. Ne pas lancer un banc coûteux pour une simple édition
 documentaire. Les scripts exposant `--selftest` peuvent être testés sur l'hôte.

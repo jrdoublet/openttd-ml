@@ -548,9 +548,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c76_regen_targeted",
-      description = "C76 step 2 / C80 tranche 3: invalidation-driven project pool regeneration: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C76 step 2 / C80 tranche 3: invalidation-driven project pool regeneration: 1 = enabled (default), 0 = monthly full regeneration",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

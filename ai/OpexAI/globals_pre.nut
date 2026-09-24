@@ -276,8 +276,9 @@ C76_PREV_STATE <- null;
 C76_YEAR_LEDGER <- null;
 C76_EVENTS_SINCE_PREV <- null;
 /* C76 etape 2 / C80 tranche 3 : regeneration du vivier pilotee par les invalidations.
- * 0 = regeneration mensuelle systematique historique (defaut), 1 = regeneration ciblee. */
-C76_REGEN_TARGETED <- false;
+ * 0 = regeneration mensuelle systematique historique, 1 = regeneration ciblee (defaut depuis le
+ * 2026-09-24 : economie d'opcodes et 20x10 neutre, regle d'adoption des optimisations d'opcodes). */
+C76_REGEN_TARGETED <- true;
 /* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
 C78_SLOT_INTERCEPT_PROBE <- false;
