@@ -228,6 +228,8 @@ function OpexLoadSettings()
   C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
   V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;
+  V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;
+  V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");

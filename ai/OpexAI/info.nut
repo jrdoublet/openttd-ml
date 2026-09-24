@@ -190,6 +190,28 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v93_airport_no_pop_floor",
+      description = "V93: a town under 600 people can take a large airport when route economics pass, down to 100 people; 1 = on, 0 = off (default)",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v93_air_demand_production",
+      description = "V93.1: air demand from last-month passenger production, competitor share and a per-line cap, at both ends; 1 = on, 0 = off (default). Independent of v93_airport_no_pop_floor",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v88_goods_chain",
       description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
