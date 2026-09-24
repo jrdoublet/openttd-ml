@@ -279,6 +279,159 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
   return stamped.len();
 }
 
+/* Projet finance, non-reuse, dont l'ancre est imputee a la ville surveillee
+ * et qui passe encore OpexAirBatchPlanStillLive. */
+function OpexAirC83FundedRaceCoversTown(projects, lines, townId)
+{
+  if (projects == null || !("best" in projects) || projects.best == null || lines == null) return false;
+  local limit = projects.best.len() < PROJECT_TOP_K ? projects.best.len() : PROJECT_TOP_K;
+  for (local i = 0; i < limit; i++) {
+    local project = projects.best[i];
+    if (project == null || !("mode" in project) || project.mode != "air") continue;
+    if (!("profitAnnual" in project) || project.profitAnnual <= 0) continue;
+    if (OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;
+    if (!("payload" in project) || project.payload == null) continue;
+    local plan = project.payload;
+    if (!("siteA" in plan) || plan.siteA == null || !("siteB" in plan) || plan.siteB == null) continue;
+    if (!OpexAirBatchPlanStillLive(plan, lines)) continue;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    if (!reuseA && ("anchor" in plan.siteA) && OpexAirSlotTownId(plan.siteA.anchor) == townId) return true;
+    if (!reuseB && ("anchor" in plan.siteB) && OpexAirSlotTownId(plan.siteB.anchor) == townId) return true;
+  }
+  return false;
+}
+
+function OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount)
+{
+  if (!C78_SLOT_INTERCEPT_PROBE || remaining != 0) return;
+  if (previous != 1 && previous != 11 && previous != 2) return;
+  local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
+  local fields = "phase=" + (claimed ? "c83_slot_claimed" : "c83_slot_lost")
+      + " town=" + townId + " previous=" + previous + " remaining=0 own=" + (ownPresent ? 1 : 0);
+  if (previous == 2) fields += " jump=1";
+  OpexC78SlotLog(fields);
+}
+
+/* Une ville sortie du top contestable : journaliser la fermeture, garder
+ * l'observation d'un slot 11, sinon oublier l'entree. */
+function OpexC83WatchDroppedTown(ai, townId, ownCounts)
+{
+  if (!AITown.IsValidTown(townId)) {
+    delete ai._c83SlotWatch[townId];
+    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
+    return;
+  }
+  local remaining = AITown.GetAllowedNoise(townId);
+  local ownCount = (townId in ownCounts) ? ownCounts[townId] : 0;
+  local ownPresent = ownCount > 0;
+  local state = remaining + (ownPresent ? 10 : 0);
+  local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
+  OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
+  if (remaining == 0) {
+    delete ai._c83SlotWatch[townId];
+    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
+  } else if (state == 1 || state == 11) {
+    ai._c83SlotWatch.rawset(townId, state);
+    if (state == 11 && (townId in ai._c83SlotRace)) delete ai._c83SlotRace[townId];
+  } else {
+    delete ai._c83SlotWatch[townId];
+    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
+  }
+}
+
+function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
+{
+  local remaining = AITown.GetAllowedNoise(townId);
+  local ownCount = (townId in ownCounts) ? ownCounts[townId] : 0;
+  local ownPresent = ownCount > 0;
+  local state = remaining + (ownPresent ? 10 : 0);
+  local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
+  OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
+
+  if (ownPresent || remaining != 1) {
+    ai._c83SlotWatch.rawset(townId, state);
+    /* La course n'est plus l'etat 1 : le plafond de rearm ne doit pas
+     * bloquer une prochaine ouverture de ce slot. */
+    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
+    return 0;
+  }
+
+  /* Etat 1 sans aeroport Opex : la course reste armee. Le recu d'enqueue
+   * (_c83SlotRace) n'est ecrit qu'apres un enqueue reussi. */
+  if (OpexAirC83FundedRaceCoversTown(ai._projects, ai._lines, townId)) {
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
+          + " previous=" + previous + " remaining=1 action=already_funded");
+    }
+    ai._c83SlotWatch.rawset(townId, state);
+    return 0;
+  }
+
+  local raceKey = "c77|town|" + townId + "|air";
+  if (ai._reactiveQueue != null && ai._reactiveQueue.has(raceKey)) {
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
+          + " previous=" + previous + " remaining=1 action=coalesced");
+    }
+    ai._c83SlotWatch.rawset(townId, state);
+    return 0;
+  }
+
+  local lastEnqueue = (townId in ai._c83SlotRace) ? ai._c83SlotRace[townId] : -1;
+  if (lastEnqueue >= 0 && today - lastEnqueue < rearmDays) {
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
+          + " previous=" + previous + " remaining=1 action=rearm_capped");
+    }
+    ai._c83SlotWatch.rawset(townId, state);
+    return 0;
+  }
+
+  if (ai._c77EnqueueEntity(["air"], "town", townId, true, "c83_slot_race")) {
+    ai._c83SlotRace.rawset(townId, today);
+    ai._c83SlotWatch.rawset(townId, state);
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
+          + " previous=" + previous + " remaining=1 action=targeted_regen");
+    }
+    return 1;
+  }
+  if (C78_SLOT_INTERCEPT_PROBE) {
+    OpexC78SlotLog("phase=c83_slot_watch town=" + townId
+        + " previous=" + previous + " remaining=1 action=enqueue_failed");
+  }
+  return 0;
+}
+
+function OpexC83WatchAirSlots(ai)
+{
+  if (ai._c83SlotWatch == null || typeof ai._c83SlotWatch != "table") {
+    ai._c83SlotWatch = {};
+  }
+  if (ai._c83SlotRace == null || typeof ai._c83SlotRace != "table") {
+    ai._c83SlotRace = {};
+  }
+
+  local enqueued = 0;
+  local watched = OpexAirC83WatchTowns(ai._catalog.towns);
+  local ownCounts = OpexAirOwnSlotTownCounts();
+  local seen = {};
+  local today = AIDate.GetCurrentDate();
+  local rearmDays = 365;
+  foreach (town in watched) {
+    seen.rawset(town.id, true);
+    enqueued += OpexC83WatchOneTown(ai, town.id, ownCounts, today, rearmDays);
+  }
+
+  local stale = [];
+  foreach (townId, prevState in ai._c83SlotWatch) {
+    if (!(townId in seen)) stale.append(townId);
+  }
+  foreach (townId in stale) OpexC83WatchDroppedTown(ai, townId, ownCounts);
+  return enqueued;
+}
+
 /* C83.1 : equivalent d'un evenement "un concurrent vient de prendre le premier
  * slot", absent de NoAI. On ne surveille que les K grandes villes early-slot et
  * GetAllowedNoise est O(1). Le cache encode (slots restants + 10 si Opex y est
@@ -288,6 +441,7 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
 function OpexAI::_c83WatchAirSlotTransitions()
 {
   if (this._catalog == null || !OpexAirC83SlotSignalEnabled()) return 0;
+  if (C83_FIXES) return OpexC83WatchAirSlots(this);
   if (this._c83SlotWatch == null || typeof this._c83SlotWatch != "table") {
     this._c83SlotWatch = {};
   }
@@ -317,6 +471,16 @@ function OpexAI::_c83WatchAirSlotTransitions()
     if (previous == 1 && remaining == 0 && C78_SLOT_INTERCEPT_PROBE) {
       OpexC78SlotLog("phase=" + (ownPresent ? "c83_slot_claimed" : "c83_slot_lost")
           + " town=" + town.id + " previous=1 remaining=0 own=" + (ownPresent ? 1 : 0));
+    } else if (C78_SLOT_INTERCEPT_PROBE && remaining == 0 && (previous == 11 || previous == 2)) {
+      local ownCount = ownPresent ? 1 : 0;
+      if (previous == 11) {
+        local closureCounts = OpexAirOwnSlotTownCounts();
+        ownCount = (town.id in closureCounts) ? closureCounts[town.id] : 0;
+      }
+      local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
+      local jump = (previous == 2) ? " jump=1" : "";
+      OpexC78SlotLog("phase=" + (claimed ? "c83_slot_claimed" : "c83_slot_lost")
+          + " town=" + town.id + " previous=" + previous + " remaining=0 own=" + (ownPresent ? 1 : 0) + jump);
     }
 
     if (state != 1 || previous == 1) continue;

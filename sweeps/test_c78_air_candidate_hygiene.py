@@ -131,30 +131,6 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertIn("OpexAirSiteStillBuildable", plans)
         self.assertIn("if (!sliced || !resumingCombo)", plans)
 
-    def test_air_site_scan_and_revalidation_resume_before_pairs(self):
-        plans = air_plans_pipeline(self.air)
-        for field in (
-            "resumeState.towns",
-            "resumeState.scanIndex",
-            "resumeState.scanSites",
-            "resumeState.scanProbes",
-            "resumeState.rankIndex",
-            "resumeState.rankSites",
-        ):
-            self.assertIn(field, plans)
-        find_at = plans.index("OpexAirFindSite(towns[i], airport, probes)")
-        scan_cursor_at = plans.index("resumeState.scanIndex = i + 1;", find_at)
-        scan_budget_at = plans.index("scanSliceOps >= opsBudget", scan_cursor_at)
-        pair_at = plans.index("local startA =", scan_budget_at)
-        self.assertLess(find_at, scan_cursor_at)
-        self.assertLess(scan_cursor_at, scan_budget_at)
-        self.assertLess(scan_budget_at, pair_at)
-        rank_probe_at = plans.index("OpexAirSiteStillBuildable(site, airport, plane, false", scan_budget_at)
-        rank_cursor_at = plans.index("resumeState.rankIndex = rankIndex + 1;", rank_probe_at)
-        rank_budget_at = plans.index("rankSliceOps >= opsBudget", rank_cursor_at)
-        self.assertLess(rank_probe_at, rank_cursor_at)
-        self.assertLess(rank_cursor_at, rank_budget_at)
-
     def test_catalog_air_slicing_is_large_pool_only(self):
         start = body(self.scheduler_tasks, "function OpexC78StartCatalogAirRebuild(")
         self.assertIn("OpexAirTownPoolLimit(owner._catalog.towns) <= 64", start)

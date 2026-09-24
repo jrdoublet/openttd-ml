@@ -35,6 +35,9 @@ TOWN_OUTCOME_ORDER = {
     "origin_served": 0,
     "town_pop_small": 1,
     "no_site": 2,
+    "no_site_slot": 2,
+    "no_site_budget": 2,
+    "no_site_terrain": 2,
     "site": 3,
 }
 
@@ -46,6 +49,7 @@ PAIR_OUTCOME_ORDER = {
     "max_order_distance": 3,
     "abandoned": 4,
     "already_connected": 5,
+    "batch_plan_dead": 5,
     "economics_unavailable": 6,
     "profit_nonpositive": 7,
     "admitted": 8,
@@ -728,6 +732,24 @@ def run_selftest():
 
     summary = build_summary(air_analyses, top5_unbuilt, rail_analyses)
     assert summary["air_non_built_count"] == 4
+
+    for outcome in ("no_site", "no_site_slot", "no_site_budget", "no_site_terrain"):
+        snap = {
+            "year": 1971,
+            "airpool": {"pool": 24, "towns": {10: [0, 2500], 20: [1, 2000]}},
+            "airtowns": [
+                {"town": 10, "outcome": outcome},
+                {"town": 20, "outcome": "site"},
+            ],
+            "airpairs": [],
+            "candidates": [],
+            "builds": [],
+            "companies": {"0": {"lines": []}},
+        }
+        ev = evaluate_air_pair_in_year(snap, (10, 20))
+        assert ev["stage"] == "ville_ecartee", outcome
+        assert ev["reason"] == outcome, ev
+
     print("analyse_c78_etape2 selftest passed: stages, reasons, top5 candidates and rail analysis verified.")
 
 

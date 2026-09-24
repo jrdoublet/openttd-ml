@@ -249,8 +249,10 @@ class OpexAI extends AIController {
   _c76LastRegenQuarter = -1;
   _c76ForceReloadRegen = false;
   /* C83.1 : cache reconstructible townId -> etat slot/possession Opex. Non
-   * serialise : apres Load, une ville deja menacee est simplement resondee. */
+   * serialise : apres Load, une ville deja menacee est simplement resondee.
+   * _c83SlotRace : date du dernier enqueue reussi (c83_fixes). Meme regime. */
   _c83SlotWatch = null;
+  _c83SlotRace = null;
 
   constructor()
   {
@@ -273,6 +275,7 @@ class OpexAI extends AIController {
     this._c76LastRegenQuarter = -1;
     this._c76ForceReloadRegen = false;
     this._c83SlotWatch = {};
+    this._c83SlotRace = {};
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];

@@ -69,6 +69,9 @@ AIR_EARLY_SLOT_BONUS_PCT <- 50;
  * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
  * pas requalifie. */
 AIR_C83_TARGET_TOWNS <- 6;
+/* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
+ * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
+C83_FIXES <- false;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
@@ -270,6 +273,24 @@ AIR_MAIL_CAP <- {};
 AIR_MAIL_LEARN_MONTH <- -1;
 /* Paires dont une variante V92 a deja ete posee dans cette partie. */
 V92_CLOSED_PAIRS <- {};
+/* V93 : pas de plancher a 600 habitants pour poser un aeroport. Defaut 0.
+ * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
+V93_AIRPORT_NO_POP_FLOOR <- false;
+V93_AIRPORT_MIN_POP <- 100;
+/* V93.1 : demande aerienne lue sur la production du mois passe. Defaut 0,
+ * independant du plancher de population. Le plafond par extremite, le seuil
+ * de petite ville et le poids des concurrents ne sont pas des reglages. */
+V93_AIR_DEMAND_PRODUCTION <- false;
+V93_AIR_LINE_PAX_CAP <- 200;
+V93_AIR_LINE_PAX_SMALL_POP <- 700;
+V93_AIR_COMPETITOR_WEIGHT <- 70;
+/* Cargo passagers retenu par le catalogue pour ce modele. -1 tant qu'il n'est pas connu. */
+AIR_DEMAND_PAX_CARGO <- -1;
+/* Date de jeu du dernier controle de mois : evite GetYear/GetMonth a chaque paire. */
+AIR_DEMAND_MEMO_DATE <- -1;
+/* Nombre de lignes aeriennes par ville/ancre. Invalide des que la liste change de longueur. */
+AIR_DEMAND_LINE_MEMO <- {};
+AIR_DEMAND_LINE_MEMO_LEN <- -1;
 /* V88 : chaines industrielles de biens completes (intrant vers usine + biens vers ville). Defaut 0. */
 V88_GOODS_CHAIN <- false;
 /* V88 test : force les projets chaine en tete (validation du chemin de construction). */

@@ -71,7 +71,10 @@ class TestM3EquipmentRoi(unittest.TestCase):
         self.assertIn("refit_proxy_choices=", probe_src)
         self.assertIn("native_choices=", probe_src)
         self.assertIn('economics, "post_route"', TASK_ROAD.read_text(encoding="utf-8"))
-        self.assertIn("if (bestPlan != null && bestPlan.airport.allowBig) break;", AIR.read_text(encoding="utf-8"))
+        # V93 : le break apres un plan grand reste le chemin par defaut (reglage a 0).
+        air_src = AIR.read_text(encoding="utf-8")
+        self.assertIn("if (bestPlan != null && bestPlan.airport.allowBig) {", air_src)
+        self.assertIn("if (!V93_AIRPORT_NO_POP_FLOOR) break;", air_src)
 
 if __name__ == "__main__":
     unittest.main()

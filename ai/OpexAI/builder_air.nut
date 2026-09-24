@@ -298,6 +298,67 @@ function OpexAirC83SecondSlotOpen(town)
   return AITown.GetAllowedNoise(town.id) == 1;
 }
 
+/* Plancher des grands aeroports (combo large), 600 aujourd'hui. Point unique :
+ * un futur reglage du type V93_AIRPORT_MIN_POP se brancherait ici. */
+function OpexAirLargeAirportMinPop()
+{
+  return 600;
+}
+
+/* Ville debitée par le moteur pour un aeroport : ClosestTown de l'ancre
+ * (CmdBuildAirport), pas GetNearestTown ni la ville commerciale du site. */
+function OpexAirSlotTownId(anchor)
+{
+  if (anchor == null || !AIMap.IsValidTile(anchor)) return -1;
+  local townId = AITile.GetClosestTown(anchor);
+  if (townId >= 0 && AITown.IsValidTown(townId)) return townId;
+  return -1;
+}
+
+function OpexAirOwnSlotTownCounts()
+{
+  local counts = {};
+  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+    local townId = OpexAirSlotTownId(AIStation.GetLocation(st));
+    if (townId < 0) continue;
+    local n = (townId in counts) ? counts[townId] : 0;
+    counts.rawset(townId, n + 1);
+  }
+  return counts;
+}
+
+/* Ville encore disputable : population du plancher grand aeroport, au moins un
+ * slot, et aucun aeroport Opex dont l'ancre est imputee a cette ville. */
+function OpexAirC83TownContestable(town, ownCounts)
+{
+  if (town == null || !("id" in town) || !AITown.IsValidTown(town.id)) return false;
+  if (AITown.GetPopulation(town.id) < OpexAirLargeAirportMinPop()) return false;
+  if (AITown.GetAllowedNoise(town.id) < 1) return false;
+  if (ownCounts != null && (town.id in ownCounts)) return false;
+  return true;
+}
+
+/* Meme predicat que la derniere boucle de OpexAirBatchPlanStillLive : une ligne
+ * aerienne relie deja les centres-villes (originA/originB), pas les tuiles d'aeroport. */
+function OpexAirTownCentersLinked(tileA, tileB, lines)
+{
+  if (lines == null || tileA == null || tileB == null) return false;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "air") continue;
+    if ((line.originA == tileA && line.originB == tileB) ||
+        (line.originA == tileB && line.originB == tileA)) return true;
+  }
+  return false;
+}
+
+function OpexAirC78NoteNoSite(probes, reason)
+{
+  if (!C69_BOTTLENECK_PROBE || probes == null) return;
+  if ("c78NoSite" in probes) probes.c78NoSite = reason;
+  else probes.c78NoSite <- reason;
+}
+
 /* C83.1 : petit ensemble surveille par la course reactive. Contrairement a
  * OpexAirSortedTowns, ce helper ne trie jamais tout le catalogue : il maintient
  * seulement les K plus grandes villes, donc O(n*K) avec K=6 au defaut. */
@@ -307,10 +368,14 @@ function OpexAirC83WatchTowns(towns)
   if (!OpexAirC83SlotSignalEnabled() || towns == null || AIR_C83_TARGET_TOWNS <= 0) {
     return best;
   }
+  local ownCounts = null;
+  if (C83_FIXES) ownCounts = OpexAirOwnSlotTownCounts();
   foreach (town in towns) {
     if (town == null || !("id" in town) || !AITown.IsValidTown(town.id)) continue;
     local pop = AITown.GetPopulation(town.id);
-    if (pop < AIR_EARLY_SLOT_MIN_POP) continue;
+    if (C83_FIXES) {
+      if (!OpexAirC83TownContestable(town, ownCounts)) continue;
+    } else if (pop < AIR_EARLY_SLOT_MIN_POP) continue;
     local item = { town = town, pop = pop };
     local pos = best.len();
     while (pos > 0 && best[pos - 1].pop < pop) pos--;
@@ -568,6 +633,7 @@ function OpexAirRememberTownStationLimit(probes, town, error)
   if (probes != null && ("stationLimitedTowns" in probes)) {
     probes.stationLimitedTowns.rawset(town.id, true);
   }
+  OpexAirC78NoteNoSite(probes, "no_site_slot");
   return true;
 }
 
@@ -650,6 +716,7 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
           }
         }
         if ("tested" in probes) probes.tested++;
+        if (ok && C83_FIXES && OpexAirSlotTownId(cachedAnchor) != town.id) ok = false;
         if (ok) return { town = town, anchor = cachedAnchor };
       }
     }
@@ -685,6 +752,7 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
         local c4 = anchor + AIMap.GetTileIndex(offX, offY);
         if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
         if (requiredSlotTownId >= 0 && AITile.GetClosestTown(anchor) != requiredSlotTownId) continue;
+        if (C83_FIXES && requiredSlotTownId < 0 && OpexAirSlotTownId(anchor) != town.id) continue;
         if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
 
         if (AIR_CHEAP_SITE) {
@@ -716,10 +784,14 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
         }
 
         if (used >= allowance) {
+          OpexAirC78NoteNoSite(probes, "no_site_budget");
           if (useSiteCache) AIR_SITE_CACHE[key] <- null;
           return null;
         }
-        if (probes.left <= 0) return null;
+        if (probes.left <= 0) {
+          OpexAirC78NoteNoSite(probes, "no_site_budget");
+          return null;
+        }
 
         local ok = false;
         if (AIR_CHEAP_SITE) {
@@ -772,6 +844,9 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
         used++;
         probes.left--;
         if ("tested" in probes) probes.tested++;
+        if (ok && C83_FIXES && requiredSlotTownId < 0 && OpexAirSlotTownId(anchor) != town.id) {
+          ok = false;
+        }
         if (ok) {
           if (useSiteCache) AIR_SITE_CACHE[key] <- anchor;
           return { town = town, anchor = anchor };
@@ -798,6 +873,11 @@ function OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTo
   if (!("town" in site) || site.town == null || !("id" in site.town)) return false;
   if (stationLimitedTowns != null && (site.town.id in stationLimitedTowns)) return false;
   if (AIAirport.GetNearestTown(site.anchor, airport.type) != site.town.id) return false;
+  if (C83_FIXES) {
+    local requiredSlot = site.town.id;
+    if (("c83SlotTown" in site) && site.c83SlotTown >= 0) requiredSlot = site.c83SlotTown;
+    if (OpexAirSlotTownId(site.anchor) != requiredSlot) return false;
+  }
   if (AIR_CHEAP_SITE && !OpexAirFootprintCheapOk(site.anchor, airport)) return false;
 
   local ok = false;
@@ -1044,7 +1124,7 @@ function OpexAirExistingLineMarginalEconomics(catalog, line, have, want)
  * Les arrets joints n'ajoutent que leur bassin marginal hors couverture de l'aeroport et la flotte
  * est figee au nombre reellement construit. Le cout comptable final remplace le capital estime,
  * puis amortissement, profit et ROI sont derives ensemble. */
-function OpexAirReconcileActualBuild(catalog, plan, result)
+function OpexAirReconcileActualBuild(catalog, plan, result, lines = null)
 {
   if (plan == null || result == null || !("economics" in plan)) return;
   local actualPlanes = ("vehicles" in result && result.vehicles != null) ? result.vehicles.len() : 0;
@@ -1054,6 +1134,23 @@ function OpexAirReconcileActualBuild(catalog, plan, result)
       ? result.joinedMonthlyPax : 0;
   local monthlyPax = baseMonthly + joinedMonthly;
   if (monthlyPax < 10) monthlyPax = 10;
+  if (V93_AIR_DEMAND_PRODUCTION) {
+    /* Meme unite qu'avant : passagers mensuels de la paire, somme des deux bouts,
+     * plus le bassin marginal des arrets joints. Le plancher de 10 ne s'applique pas. */
+    if (catalog != null) AIR_DEMAND_PAX_CARGO = catalog.paxCargo;
+    local airport = ("airport" in plan) ? plan.airport : null;
+    local demandA = 0;
+    local demandB = 0;
+    if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
+      local anchorA = ("anchor" in plan.siteA) ? plan.siteA.anchor : null;
+      demandA = OpexAirTownMonthlyPax(plan.siteA.town, anchorA, airport, lines);
+    }
+    if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
+      local anchorB = ("anchor" in plan.siteB) ? plan.siteB.anchor : null;
+      demandB = OpexAirTownMonthlyPax(plan.siteB.town, anchorB, airport, lines);
+    }
+    monthlyPax = demandA + demandB + joinedMonthly;
+  }
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
       + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
   local economics = OpexAirEconomics(catalog, plan.airport, plan.plane, plan.distance, monthlyPax,
@@ -2184,6 +2281,7 @@ function OpexAirPlansPrepare(ctx)
   local catalog = ctx.catalog;
   local lines = ctx.lines;
   local targetTownId = ctx.targetTownId;
+  if (V93_AIR_DEMAND_PRODUCTION) AIR_DEMAND_PAX_CARGO = catalog.paxCargo;
   local resumeState = ctx.resumeState;
   local t0_all = ctx.t0_all;
   local sliced = ctx.sliced;
@@ -2317,6 +2415,9 @@ function OpexAirPlansPrepare(ctx)
      * avant une eventuelle remise en tete targetTownId preserve le vrai
      * classement par population. */
     if (OpexAirC83SlotSignalEnabled() && AIR_C83_TARGET_TOWNS > 0) {
+      /* c83_fixes ne retouche pas cette liste : elle autorise le second slot
+       * proactif d'une ville DEJA servie par Opex (C83.1 adopte). Le filtre
+       * « ville encore disputable, Opex absent » ne concerne que le watcher. */
       local c83TopLimit = towns.len() < AIR_C83_TARGET_TOWNS
           ? towns.len() : AIR_C83_TARGET_TOWNS;
       for (local c83i = 0; c83i < c83TopLimit; c83i++) {
@@ -2444,13 +2545,24 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
             stationLimitedTowns = stationLimitedTowns
           };
     local scanStart = sliced ? resumeState.scanIndex : 0;
+    local scanEnd = limit;
+    if (C83_FIXES && targetTownId >= 0) {
+      scanEnd = scanStart;
+      for (local c83Scan = scanStart; c83Scan < limit; c83Scan++) {
+        if (towns[c83Scan].id == targetTownId) {
+          scanEnd = c83Scan + 1;
+          break;
+        }
+      }
+    }
     local testedBefore = probes.tested;
     local cheapBefore = ("cheapSkip" in probes) ? probes.cheapSkip : 0;
     local foundBefore = scanSites.len();
     local tSites0 = AIController.GetTick();
     local lSites0 = AIController.GetOpsTillSuspend();
-    for (local i = scanStart; i < limit; i++) {
+    for (local i = scanStart; i < scanEnd; i++) {
       probes.townsLeft = limit - i;
+      if (C83_FIXES && targetTownId >= 0) probes.townsLeft = scanEnd - i;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       if (towns[i].id in stationLimitedTowns) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_station_limit", 1);
@@ -2465,22 +2577,46 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
         if (isServed && !c83OwnSecondSlot) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "origin_served", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=origin_served");
-        } else if (combo.kind == "large" && towns[i].pop < 600) {
-          /* Grands aeroports : accessibles des 600 habitants, comme le chemin historique. */
+        } else if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && towns[i].pop < 600) {
+          /* Grands aeroports : accessibles des 600 habitants. A 0, le booleen
+           * est le seul test ajoute sur ce chemin. */
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_pop_small", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_pop_small");
+        } else if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < V93_AIRPORT_MIN_POP) {
+          /* V93 : plancher minimal, grand ou petit. A 0 ce test est faux. */
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_pop_v93", 1);
+          if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_pop_v93");
         } else {
           local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
               ? targetTownId : -1;
+          if (C83_FIXES && c83RequiredSlotTown < 0 && c83OwnSecondSlot) {
+            c83RequiredSlotTown = towns[i].id;
+          }
+          if (c78Gen && ("c78NoSite" in probes)) probes.c78NoSite = null;
           local site = OpexAirFindSite(towns[i], airport, probes, c83RequiredSlotTown);
           if (site != null) {
             if (c83OwnSecondSlot) site.c83OwnSecondSlot <- true;
+            if (C83_FIXES && c83RequiredSlotTown >= 0) site.c83SlotTown <- c83RequiredSlotTown;
             scanSites.append(site);
-            if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site");
+            if (c78Gen) {
+              if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < 600) {
+                OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site v93=1 pop=" + towns[i].pop);
+              } else {
+                OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site");
+              }
+            }
           }
           else {
             if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "no_site", 1);
-            if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=no_site");
+            if (c78Gen) {
+              local c78Outcome = "no_site_terrain";
+              if (("c78NoSite" in probes) && probes.c78NoSite != null) c78Outcome = probes.c78NoSite;
+              if (c78Outcome != "no_site_slot" && OpexAirC83SlotSignalEnabled()
+                  && AITown.GetAllowedNoise(towns[i].id) < 1) {
+                c78Outcome = "no_site_slot";
+              }
+              OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=" + c78Outcome);
+            }
           }
         }
       }
@@ -2599,6 +2735,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
   local deadlineTick = ctx.deadlineTick;
   local stationLimitedTowns = ctx.stationLimitedTowns;
   local targetTownId = ctx.targetTownId;
+  local lines = ctx.lines;
   local catalog = ctx.catalog;
   local paxBand = ctx.paxBand;
   local abandoned = ctx.abandoned;
@@ -2693,6 +2830,14 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       }
       if (targetTownId >= 0
           && sites[a].town.id != targetTownId && sites[b].town.id != targetTownId) continue;
+      if (C83_FIXES && OpexAirTownCentersLinked(sites[a].town.tile, sites[b].town.tile, lines)) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "batch_plan_dead", 1);
+        if (c78Gen) {
+          local linkedDist = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
+          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + linkedDist + " outcome=batch_plan_dead P=-1 C=-1");
+        }
+        continue;
+      }
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
       if (C80_AIR_EVAL_FAST) {
@@ -2744,6 +2889,10 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       local opcodePadding = 0;
       if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
       if (monthlyPax < 10) monthlyPax = 10;
+      if (V93_AIR_DEMAND_PRODUCTION) {
+        monthlyPax = OpexAirTownMonthlyPax(sites[a].town, sites[a].anchor, airport, ctx.lines)
+            + OpexAirTownMonthlyPax(sites[b].town, sites[b].anchor, airport, ctx.lines);
+      }
       if (a == 0 && b == 1) {
         OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
       }
@@ -2792,7 +2941,15 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "profit_nonpositive", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=profit_nonpositive P=" + economics.profitAnnual + " C=" + economics.capital);
       } else {
-        if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
+        if (c78Gen) {
+          if (V93_AIR_DEMAND_PRODUCTION) {
+            local paxOld = ((sites[a].town.pop + sites[b].town.pop) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+            if (paxOld < 10) paxOld = 10;
+            OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital + " paxNew=" + monthlyPax + " paxOld=" + paxOld);
+          } else {
+            OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
+          }
+        }
         bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
       }
     }
@@ -2854,8 +3011,19 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
       };
       local tHubSites0 = AIController.GetTick();
       local lHubSites0 = AIController.GetOpsTillSuspend();
-      for (local i = 0; i < limit && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
+      local hubScanEnd = limit;
+      if (C83_FIXES && targetTownId >= 0) {
+        hubScanEnd = 0;
+        for (local c83Scan = 0; c83Scan < limit; c83Scan++) {
+          if (towns[c83Scan].id == targetTownId) {
+            hubScanEnd = c83Scan + 1;
+            break;
+          }
+        }
+      }
+      for (local i = 0; i < hubScanEnd && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
         hubProbes.townsLeft = limit - i;
+        if (C83_FIXES && targetTownId >= 0) hubProbes.townsLeft = hubScanEnd - i;
         if (towns[i].id in stationLimitedTowns) {
           continue;
         }
@@ -2863,14 +3031,32 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
         local c83OwnSecondSlot = isServed && (towns[i].id in c83TopTownIds)
             && OpexAirC83SecondSlotOpen(towns[i]);
         if (isServed && !c83OwnSecondSlot) continue;
-        /* Typage : grands aéroports dès 600 hab */
-        if (combo.kind == "large" && towns[i].pop < 600) continue;
+        /* Typage : grands aeroports des 600 hab. A 0, seul le booleen est ajoute. */
+        if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && towns[i].pop < 600) continue;
+        if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < V93_AIRPORT_MIN_POP) continue;
         if (combo.kind == "small" && towns[i].pop >= 2500) continue;
         local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
             ? targetTownId : -1;
+        if (C83_FIXES && c83RequiredSlotTown < 0 && c83OwnSecondSlot) {
+          c83RequiredSlotTown = towns[i].id;
+        }
         local extraSite = OpexAirFindSite(towns[i], airport, hubProbes, c83RequiredSlotTown);
         if (extraSite != null) {
           if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;
+          if (C83_FIXES && c83RequiredSlotTown >= 0) extraSite.c83SlotTown <- c83RequiredSlotTown;
+          /* v93=1 seulement si le scan principal n'a pas deja retenu cette ville. */
+          if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < 600 && ("c78Gen" in ctx) && ctx.c78Gen) {
+            local v93Already = false;
+            foreach (prev in sites) {
+              if (("town" in prev) && prev.town != null && ("id" in prev.town) && prev.town.id == towns[i].id) {
+                v93Already = true;
+                break;
+              }
+            }
+            if (!v93Already) {
+              OpexC78Log("C78_AIRTOWN", "year=" + ctx.c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site v93=1 pop=" + towns[i].pop);
+            }
+          }
           sites.append(extraSite);
           ctx.perfSitesFound++;
         }
@@ -3009,6 +3195,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
   local projects = ctx.projects;
   local bestPlan = ctx.bestPlan;
   local targetTownId = ctx.targetTownId;
+  local lines = ctx.lines;
 
   foreach (hub in hubs) {
     local hubMonthlyPre = C80_AIR_EVAL_FAST
@@ -3017,6 +3204,14 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
     foreach (site in sites) {
       if (targetTownId >= 0
           && hub.town.id != targetTownId && site.town.id != targetTownId) continue;
+      if (C83_FIXES && OpexAirTownCentersLinked(hub.town.tile, site.town.tile, lines)) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "batch_plan_dead", 1);
+        if (c78Gen) {
+          local linkedDist = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
+          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + linkedDist + " outcome=batch_plan_dead P=-1 C=-1");
+        }
+        continue;
+      }
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
       if (distance < 20) {
@@ -3059,6 +3254,10 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       local opcodePadding = 0;
       if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
       if (monthlyPax < 10) monthlyPax = 10;
+      if (V93_AIR_DEMAND_PRODUCTION) {
+        monthlyPax = OpexAirTownMonthlyPax(hub.town, hub.anchor, airport, ctx.lines)
+            + OpexAirTownMonthlyPax(site.town, site.anchor, airport, ctx.lines);
+      }
       local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
                                                   infrastructureMaintenance, maxCapital, 1, opcodePadding,
                                                   C80_AIR_CHOICE_MEMO ? ("h|" + hub.stationId + "|" + site.town.id
@@ -3099,7 +3298,16 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       }
       OpexAirReserveJoinedStops(catalog, plan);
       if (plan.economics.profitAnnual <= 0) continue;
-      if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
+      if (c78Gen) {
+        if (V93_AIR_DEMAND_PRODUCTION) {
+          local paxOld = (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
+              + ((site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100);
+          if (paxOld < 10) paxOld = 10;
+          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital + " paxNew=" + monthlyPax + " paxOld=" + paxOld);
+        } else {
+          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
+        }
+      }
       bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
     }
   }
@@ -3255,6 +3463,11 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       local opcodePadding = 0;
       if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
       if (monthlyPax < 10) monthlyPax = 10;
+      if (V93_AIR_DEMAND_PRODUCTION) {
+        monthly1 = OpexAirTownMonthlyPax(hub1.town, hub1.anchor, airport, lines);
+        monthly2 = OpexAirTownMonthlyPax(hub2.town, hub2.anchor, airport, lines);
+        monthlyPax = monthly1 + monthly2;
+      }
       local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
                                                   infrastructureMaintenance, maxCapital, 0, opcodePadding,
                                                   C80_AIR_CHOICE_MEMO ? ("hh|" + hub1.stationId + "|" + hub2.stationId
@@ -3311,7 +3524,16 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       }
       OpexAirReserveJoinedStops(catalog, plan);
       if (plan.economics.profitAnnual <= 0) continue;
-      if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
+      if (c78Gen) {
+        if (V93_AIR_DEMAND_PRODUCTION) {
+          local paxOld = (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1))
+              + (((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1));
+          if (paxOld < 10) paxOld = 10;
+          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital + " paxNew=" + monthlyPax + " paxOld=" + paxOld);
+        } else {
+          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
+        }
+      }
       bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
     }
   }
@@ -3384,6 +3606,18 @@ function OpexAirPlansFinalize(ctx)
     AIR_TRIP_MEMO = {};
   }
   return bestPlan;
+}
+
+/* Index du prochain combo kind=small apres comboIndex, ou -1. Aucun appel d'API. */
+function OpexAirV93NextSmallCombo(combos, comboIndex)
+{
+  local nextSmall = comboIndex + 1;
+  while (nextSmall < combos.len()) {
+    local candidate = combos[nextSmall];
+    if (("kind" in candidate) && candidate.kind == "small") return nextSmall;
+    nextSmall++;
+  }
+  return -1;
 }
 
 /* `abandoned` : table des paires dont une construction a deja echoue (cle
@@ -3510,8 +3744,19 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       ctx.resumeState.perfCheapSkip = ctx.perfCheapSkip;
       ctx.resumeState.perfSitesFound = ctx.perfSitesFound;
     }
+    /* Un plan grand arrete la boucle. Sous V93, les combos petits qui suivent
+     * sont quand meme parcourus ; les grands suivants restent sautes. A 0, le
+     * booleen provoque le meme break, sans helper ni appel d'API. */
     local bestPlan = ctx.bestPlan;
-    if (bestPlan != null && bestPlan.airport.allowBig) break;
+    if (bestPlan != null && bestPlan.airport.allowBig) {
+      if (!V93_AIRPORT_NO_POP_FLOOR) break;
+      if (!(("kind" in combo) && combo.kind == "small")) {
+        local nextSmall = OpexAirV93NextSmallCombo(ctx.combos, comboIndex);
+        if (nextSmall < 0) break;
+        if (ctx.sliced) ctx.resumeState.combo = nextSmall;
+        comboIndex = nextSmall - 1;
+      }
+    }
   }
 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_finalize", "-");
@@ -3701,7 +3946,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
 
 /* Construit une ligne aerienne complete. Le caller a deja mesure la recherche des sites et
  * verifie le budget monetaire. Rend toujours une table, jamais une exception. */
-function OpexBuildAirRoute(catalog, budget, plan)
+function OpexBuildAirRoute(catalog, budget, plan, lines = null)
 {
   local result = { ok = false, reason = "", opcodes = 0, error = 0, errorText = "", stationA = null,
                    stationB = null, vehicle = null, vehicles = [], actualCost = 0,
@@ -3957,6 +4202,165 @@ function OpexBuildAirRoute(catalog, budget, plan)
         + " planned_capital=" + result.plannedCapital + " actual_cost=" + result.actualCost
         + " probe_ops=" + probeOps);
   }
-  OpexAirReconcileActualBuild(catalog, plan, result);
+  if (V93_AIR_DEMAND_PRODUCTION) OpexAirReconcileActualBuild(catalog, plan, result, lines);
+  else OpexAirReconcileActualBuild(catalog, plan, result);
   return result;
+}
+
+/* V93.1 : memos du mois, meme horloge que C80 (AIR_MEMO_MONTH / AIR_ECONOMICS_MEMO).
+ * Les cles v93t| et v93c| ne collisionnent pas avec les cles d'economie. */
+function OpexAirDemandTouchMemo()
+{
+  local nowDate = AIDate.GetCurrentDate();
+  if (nowDate == AIR_DEMAND_MEMO_DATE) return;
+  AIR_DEMAND_MEMO_DATE = nowDate;
+  local month = AIDate.GetYear(nowDate) * 12 + AIDate.GetMonth(nowDate);
+  if (AIR_MEMO_MONTH != month) {
+    AIR_ECONOMICS_MEMO = {};
+    AIR_TRIP_MEMO = {};
+    AIR_MEMO_MONTH = month;
+  }
+}
+
+/* Cargo passagers du catalogue. Repli : premiere classe CC_PASSENGERS, sans identifiant fixe. */
+function OpexAirDemandPaxCargo()
+{
+  if (AIR_DEMAND_PAX_CARGO >= 0) return AIR_DEMAND_PAX_CARGO;
+  local list = AICargoList();
+  for (local c = list.Begin(); !list.IsEnd(); c = list.Next()) {
+    if (AICargo.HasCargoClass(c, AICargo.CC_PASSENGERS)) {
+      AIR_DEMAND_PAX_CARGO = c;
+      return c;
+    }
+  }
+  return -1;
+}
+
+function OpexAirDemandTownRecord(town, paxCargo)
+{
+  local townId = town.id;
+  local key = "v93t|" + townId;
+  if (key in AIR_ECONOMICS_MEMO) return AIR_ECONOMICS_MEMO[key];
+  if (!AITown.IsValidTown(townId)) return null;
+  local pop = ("pop" in town) ? town.pop : AITown.GetPopulation(townId);
+  local produced = AITown.GetLastMonthProduction(townId, paxCargo);
+  if (pop >= 0 && produced > pop) produced = pop / 8;
+  if (produced < 0) produced = 0;
+  local transported = AITown.GetLastMonthTransportedPercentage(townId, paxCargo);
+  if (transported < 0) transported = 0;
+  /* AITile.GetCargoProduction compte des tuiles productrices, pas des passagers :
+   * on ne s'en sert que comme proportion (tuiles couvertes par l'aeroport / tuiles
+   * productrices de la ville), rayon croissant avec la population. */
+  local townRadius = 4 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
+  if (townRadius > 20) townRadius = 20;
+  local producerTiles = AITile.GetCargoProduction(AITown.GetLocation(townId), paxCargo, 1, 1, townRadius);
+  if (producerTiles < 0) producerTiles = 0;
+  local record = { produced = produced, transported = transported, pop = pop, producerTiles = producerTiles };
+  AIR_ECONOMICS_MEMO.rawset(key, record);
+  return record;
+}
+
+/* Lignes aeriennes Opex qui partent de cette ville (origin = centre-ville) ou de cet
+ * aeroport (station = tuile d'aeroport). Le compte est stable tant que la liste ne change
+ * pas de longueur : la boucle de paires ne la reparcourt pas. */
+function OpexAirDemandOwnLines(town, siteAnchor, lines)
+{
+  if (lines == null) return 0;
+  local nLines = lines.len();
+  if (AIR_DEMAND_LINE_MEMO_LEN != nLines) {
+    AIR_DEMAND_LINE_MEMO = {};
+    AIR_DEMAND_LINE_MEMO_LEN = nLines;
+  }
+  local townId = ("id" in town) ? town.id : -1;
+  local anchorKey = siteAnchor == null ? -1 : siteAnchor;
+  local cacheKey = townId + "|" + anchorKey;
+  if (cacheKey in AIR_DEMAND_LINE_MEMO) return AIR_DEMAND_LINE_MEMO[cacheKey];
+  local townTile = ("tile" in town) ? town.tile : -1;
+  local n = 0;
+  foreach (line in lines) {
+    if (line == null || !("mode" in line) || line.mode != "air") continue;
+    local hit = false;
+    if (townTile >= 0) {
+      if (("originA" in line) && line.originA == townTile) hit = true;
+      else if (("originB" in line) && line.originB == townTile) hit = true;
+    }
+    if (!hit && siteAnchor != null) {
+      if (("stationA" in line) && line.stationA == siteAnchor) hit = true;
+      else if (("stationB" in line) && line.stationB == siteAnchor) hit = true;
+    }
+    if (hit) n++;
+  }
+  AIR_DEMAND_LINE_MEMO.rawset(cacheKey, n);
+  return n;
+}
+
+/* Type reel si l'ancre est deja un aeroport, sinon le type que l'on s'apprete a poser.
+ * -1 dans le memo : ancre encore libre, le type vient de l'argument. */
+function OpexAirDemandAirportType(siteAnchor, airport)
+{
+  if (airport == null || !("type" in airport)) return -1;
+  if (siteAnchor == null) return airport.type;
+  local key = "v93a|" + siteAnchor;
+  if (key in AIR_ECONOMICS_MEMO) {
+    local cached = AIR_ECONOMICS_MEMO[key];
+    if (cached >= 0) return cached;
+    return airport.type;
+  }
+  local resolved = -1;
+  if (AIAirport.IsAirportTile(siteAnchor)) {
+    local existing = AIAirport.GetAirportType(siteAnchor);
+    if (AIAirport.IsValidAirportType(existing)) resolved = existing;
+  }
+  AIR_ECONOMICS_MEMO.rawset(key, resolved);
+  if (resolved >= 0) return resolved;
+  return airport.type;
+}
+
+/* -1 si l'ancre est inconnue : pas de borne. Sinon le nombre de tuiles productrices
+ * du bassin (GetCargoProduction compte des producteurs), en cache par ancre et par
+ * type pour le mois. */
+function OpexAirDemandCatchment(siteAnchor, airportType, paxCargo)
+{
+  if (siteAnchor == null || airportType < 0) return -1;
+  local key = "v93c|" + siteAnchor + "|" + airportType + "|" + paxCargo;
+  if (key in AIR_ECONOMICS_MEMO) return AIR_ECONOMICS_MEMO[key];
+  if (!AIMap.IsValidTile(siteAnchor) || !AIAirport.IsValidAirportType(airportType)) return -1;
+  local sum = OpexAirAirportCatchmentProduction(siteAnchor, airportType, paxCargo);
+  if (sum < 0) sum = 0;
+  AIR_ECONOMICS_MEMO.rawset(key, sum);
+  return sum;
+}
+
+/* Passagers mensuels d'une extremite. Appele pour les deux bouts quand
+ * V93_AIR_DEMAND_PRODUCTION est arme. Sans ligne Opex au depart, la part deja
+ * transporte est celle des autres : production * 70 / (pourcentage + 70).
+ * Avec des lignes, ce pourcentage melange nos avions : on partage seulement
+ * la production par (lignes + 1). Le / (lignes + 1) est toujours applique
+ * (il vaut 1 tant qu'aucune ligne ne part). Puis part des tuiles productrices captees, puis
+ * plafond de ligne (200, ou 100 sous 700 habitants). */
+function OpexAirTownMonthlyPax(town, siteAnchor, airport, lines)
+{
+  if (town == null || !("id" in town)) return 0;
+  local paxCargo = OpexAirDemandPaxCargo();
+  if (paxCargo < 0) return 0;
+  OpexAirDemandTouchMemo();
+  local record = OpexAirDemandTownRecord(town, paxCargo);
+  if (record == null) return 0;
+  local ownLines = OpexAirDemandOwnLines(town, siteAnchor, lines);
+  local pax = record.produced;
+  if (ownLines == 0) {
+    pax = (record.produced * V93_AIR_COMPETITOR_WEIGHT) / (record.transported + V93_AIR_COMPETITOR_WEIGHT);
+  }
+  pax = pax / (ownLines + 1);
+  /* Part de la ville reellement captee par l'emprise : proportion de ses tuiles
+   * productrices dans le rayon de l'aeroport (unite commune, tuiles). */
+  local catchment = OpexAirDemandCatchment(siteAnchor, OpexAirDemandAirportType(siteAnchor, airport), paxCargo);
+  if (catchment >= 0 && record.producerTiles > 0 && catchment < record.producerTiles) {
+    pax = (pax * catchment) / record.producerTiles;
+  }
+  local cap = V93_AIR_LINE_PAX_CAP;
+  if (record.pop >= 0 && record.pop < V93_AIR_LINE_PAX_SMALL_POP) cap = V93_AIR_LINE_PAX_CAP / 2;
+  if (pax > cap) pax = cap;
+  if (pax < 0) pax = 0;
+  return pax;
 }

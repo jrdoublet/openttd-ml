@@ -385,3 +385,30 @@ Artefacts :
 `results/diag_c83_slot_control_20x10_20260924.json` et
 `results/diag_c83_slot_treatment_20x10_20260924.json` (expansion 24 villes), plus
 `results/diag_c83_slot_final6_treatment_20x10_20260924.json` pour le défaut final à 6 villes.
+
+## 11. C83 — correctifs de revue (`c83_fixes`)
+
+Réglage unique `c83_fixes` (0/1, défaut 0) : `info.nut`, `settings.nut`, `C83_FIXES <- false` dans `globals_pre.nut`. À 0, les décisions restent celles du défaut qualifié ; seul le test du drapeau s'ajoute. Le paquet se mesure en un 5×6 puis, si l'effet le justifie, un 20×10 (`c83_fixes=1` contre `0`). Aucune partie n'a été lancée ici.
+
+1. **Liste collée aux six plus grandes villes.** Sous le drapeau, `OpexAirC83WatchTowns` garde K=6 mais ne classe que les villes encore contestables : population ≥ `OpexAirLargeAirportMinPop()` (600, plancher des grands aéroports ; pas de réglage V93 dans ce dépôt), `GetAllowedNoise() >= 1` sous le signal de slot déjà en place, et aucun aéroport Opex imputé à cette ville. Recalcul à chaque passe : une ville verrouillée libère sa place. `c83TopTownIds` (second slot proactif d'une ville déjà servie par Opex, adopté avec C83.1) reste la liste des six plus grandes : y appliquer « Opex absent » désactivait ce mécanisme (smoke 2 graines × 3 ans : 0 fermeture contre 12 `c83_slot_claimed` au défaut).
+
+2. **Course à un seul tir.** Le reçu `_c83SlotRace` n'est écrit qu'après un enqueue réussi. L'état 1 reste armé tant qu'Opex n'a pas d'aéroport sur la ville du slot ou que le bruit tombe à 0. `already_funded` ne compte qu'un projet financé non-reuse dont `OpexAirSlotTownId(ancre)` est la ville suivie et qui passe `OpexAirBatchPlanStillLive`. Le saut 2→0 entre deux passes est journalisé. Au plus un enqueue réussi par ville et par 365 jours ; une intention déjà en file est coalescée (`action=coalesced`) au lieu de relancer un replan complet.
+
+3. **Quatre identifiants de ville.** `OpexAirSlotTownId` (`GetClosestTown(ancre)`, la ville débitée par le moteur) sert à la présence du watcher, à la présence défensive, à `OpexAirSiteStillBuildable` et au hit du cache de site. Le second créneau proactif impose aussi `requiredSlotTown`. `site.town` reste la ville commerciale de la demande. L'attribution claimed/lost du bras corrigé utilise le même helper : la sortie de l'état 11 est `claimed` quand Opex a au moins deux aéroports sur cette ville.
+
+4. **Paires nées mortes.** La génération hub→site et nouvelles paires saute, sous le drapeau, les couples dont les centres-villes ont déjà une ligne aérienne (`OpexAirTownCentersLinked`, même prédicat que `OpexAirBatchPlanStillLive`). `OpexFilterAirAlternativesStillValid` appelle `OpexAirBatchPlanStillLive` : ces plans n'entrent plus dans `best`.
+
+5. **`no_site` ambigu, télémétrie seule.** Sous les sondes C78/C69 déjà en place, `C78_AIRTOWN` distingue `no_site_slot` (erreur 771 ou bruit 0), `no_site_budget` (budget de sondes épuisé) et `no_site_terrain`. Le rejet C73 reste `no_site`. Les décodeurs lisent encore l'ancien `no_site`.
+
+6. **Transitions de slot.** Les événements C83 restent sous `probe_portfolio` (`C78_SLOT_INTERCEPT_PROBE`). On journalise aussi la sortie de l'état 11 et le saut 2→0. Le décodeur `C83_RIGHTS` ne servait plus : plus aucun `.nut` ne l'émet, et seul `test_c83_exclusive_rights_probe.py` l'importait. Les deux ont été retirés.
+
+**Scan de site d'une régénération ciblée (constat 8).** Sous le drapeau, les boucles de sites (nouvelles paires et compléments hub) ne parcourent que la ville `targetTownId` et lui laissent le budget de sondes. Le classement des paires ciblé existant est inchangé.
+
+Validation faite : contrats `sweeps/test_c83_fixes.py`, décodeurs C78, compteur de réglages. Validation restante : smoke 1×1 non exécuté (pas de partie dans cette session), puis 5×6 apparié et 20×10 avant toute adoption. Le défaut reste 0.
+
+### Diagnostic 5×6 du 2026-09-24 (`c83_fixes=1` contre défaut)
+
+Campagne `c83fix_vs_default_6y_5seeds_20260924` (graines 42, 100, 999, 1234, 5678 ; 5/5 paires complètes,
+aucune erreur de script) : `profit_year` **+43,1 k£/an** en moyenne, médiane +89,0 k£, **4/1**, p=0,375,
+IC95 [−234,7 ; +320,9] k£ ; valeur ratio des moyennes −1,86 %, moyenne des ratios +9,15 %. Aéroports Opex
+quasi inchangés (23,4 contre 24,0 par partie). Direction favorable, garde de valeur tenue : 20×10 à lancer.

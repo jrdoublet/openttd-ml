@@ -7,7 +7,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 
-from bench_1v1_5y_20seeds import _station_route_index
+try:
+    from bench_1v1_5y_20seeds import _station_route_index
+except ImportError as exc:  # openttdlab absent hors du conteneur openttd-lab
+    raise unittest.SkipTest(f"harnais indisponible hors Docker : {exc}")
 from campaign_freeze import parse_ai_settings
 
 INFO = ROOT / "ai" / "OpexAI" / "info.nut"
