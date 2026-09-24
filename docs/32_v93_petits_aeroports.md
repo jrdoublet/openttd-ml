@@ -281,3 +281,36 @@ Métrique, effet utile et garde de valeur fixés avant le banc. Le plancher de
 600 habitants a déjà son 5×6 ; le combiner avec V93.1 est un essai distinct.
 Contrats hôte seulement pour l'instant. Pas de partie lancée avec ce
 changement.
+
+## Prédit contre réalisé
+
+`sweeps/analyse_air_demand_vs_realized.py` ne change pas l'IA. Il lit les
+sorties JSON ou JSONL déjà produites par les harnais :
+
+- `C78_AIRPAIR` admis (`P` = profit prédit ; `paxOld` et `paxNew` quand V93.1
+  est armé — `parse_c78_logs`) ;
+- `C78_BUILD` ;
+- `LINE_PROFIT` s'il est présent (`parse_c56_log_line`) ;
+- les snapshots de `diag_c78_lines_vs_aaa.py` : `companies["0"].lines`
+  (`towns`, `vehicles`, `profit_last_year`), et `C78_AIRPOOL` pour la
+  population.
+
+La jointure est la paire de villes non ordonnée. Les identifiants de sauvegarde
+valent l'identifiant API plus un ; le harnais a déjà soustrait 1, et le script
+utilise `towns`, pas `towns_raw`.
+
+Deux modèles, parce que `P` n'appartient qu'au modèle qui a tourné :
+
+- proxy de population : admission sans `paxNew` ;
+- production : admission avec `paxNew`.
+
+Pour chacun : médiane et moyenne du rapport profit réalisé / profit prédit, et,
+si le chiffre existe, passagers réalisés / passagers mensuels prédits. Découpage
+par bande de la plus petite ville (`<600`, `600-1500`, `>1500`) et par degré
+d'aéroport (nombre de lignes aériennes OpexAI sur l'aéroport, tuile de gare si
+elle est dans le snapshot, sinon ville). Le facteur de calibration du revenu est
+la médiane réalisé/prédit sur le revenu ; il reste vide tant que les entrées
+n'ont pas les deux revenus. Le facteur passagers est celui qui recentrerait un
+revenu proportionnel aux passagers, à tarif constant. Le résumé français dit
+quelles entrées manquent. Contrats : `sweeps/test_analyse_air_demand_vs_realized.py`.
+Pas de partie lancée pour remplir ces tableaux.

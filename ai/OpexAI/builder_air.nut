@@ -305,6 +305,36 @@ function OpexAirLargeAirportMinPop()
   return 600;
 }
 
+/* Plancher de la preemption C83. Le plancher historique reste 600. Si V93 est
+ * arme, le plancher minimal de ce reglage remplace les 600, et seulement ici. */
+function OpexAirPreemptMinPop()
+{
+  if (V93_AIRPORT_NO_POP_FLOOR) return V93_AIRPORT_MIN_POP;
+  return OpexAirLargeAirportMinPop();
+}
+
+/* Plus grande ville encore vide : deux slots libres, population au plancher,
+ * aucun aeroport Opex impute a cette ville. Une seule cible. */
+function OpexAirPreemptPickTown(towns, ownCounts)
+{
+  if (!C83_PREEMPT_OPEN || !OpexAirC83SlotSignalEnabled() || towns == null) return null;
+  local floor = OpexAirPreemptMinPop();
+  local best = null;
+  local bestPop = -1;
+  foreach (town in towns) {
+    if (town == null || !("id" in town) || !AITown.IsValidTown(town.id)) continue;
+    local pop = AITown.GetPopulation(town.id);
+    if (pop < floor) continue;
+    if (AITown.GetAllowedNoise(town.id) != 2) continue;
+    if (ownCounts != null && (town.id in ownCounts)) continue;
+    if (best == null || pop > bestPop || (pop == bestPop && town.id < best.id)) {
+      best = town;
+      bestPop = pop;
+    }
+  }
+  return best;
+}
+
 /* Ville debitée par le moteur pour un aeroport : ClosestTown de l'ancre
  * (CmdBuildAirport), pas GetNearestTown ni la ville commerciale du site. */
 function OpexAirSlotTownId(anchor)

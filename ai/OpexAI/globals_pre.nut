@@ -72,6 +72,17 @@ AIR_C83_TARGET_TOWNS <- 6;
 /* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
+/* C83 : une seule grande ville encore vide (deux slots libres), avant que le
+ * maillage ne se fige. 0 = aucun effet. La cible et l'arret sont des globales
+ * restaurees apres Load quand le reglage est arme. */
+C83_PREEMPT_OPEN <- false;
+C83_PREEMPT_TOWN <- -1;
+C83_PREEMPT_STOPPED <- false;
+/* Lot AIR : au plus un projet finance par ville de nouvel aeroport.
+ * Les compteurs ne vivent que sous les sondes deja existantes. */
+AIR_BATCH_TOWN_RESERVE <- false;
+AIR_BATCH_TOWN_RESERVE_DROPPED <- 0;
+AIR_BATCH_TOWN_RESERVE_DEAD <- 0;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */

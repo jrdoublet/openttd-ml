@@ -412,3 +412,72 @@ Campagne `c83fix_vs_default_6y_5seeds_20260924` (graines 42, 100, 999, 1234, 567
 aucune erreur de script) : `profit_year` **+43,1 k£/an** en moyenne, médiane +89,0 k£, **4/1**, p=0,375,
 IC95 [−234,7 ; +320,9] k£ ; valeur ratio des moyennes −1,86 %, moyenne des ratios +9,15 %. Aéroports Opex
 quasi inchangés (23,4 contre 24,0 par partie). Direction favorable, garde de valeur tenue : 20×10 à lancer.
+
+## 12. C83 — préempter une grande ville encore vide (`c83_preempt_open`)
+
+Réglage 0/1, défaut **0** : `info.nut`, `settings.nut`, `C83_PREEMPT_OPEN <- false`.
+À 0, le watcher, la priorité et la sauvegarde ne font qu'un test de booléen.
+Aucune partie n'a été lancée.
+
+Le constat du duel par défaut (5 graines × 6 ans) : AAAHogEx finit vers 42 aéroports
+par partie, OpexAI vers 23, et OpexAI n'ouvre plus d'aéroport après 1972. Trente et une
+villes d'au moins 600 habitants où AAAHogEx a un aéroport n'ont pas de site OpexAI :
+les deux créneaux sont déjà pris. `AITown.GetAllowedNoise` vaut alors 0. La course
+C83.1 ne voit ces villes qu'une fois le premier créneau adverse posé (`== 1`).
+
+À 1, une seule cible à la fois, la plus grande ville qui reste entièrement libre :
+
+- population ≥ `OpexAirPreemptMinPop()` : `OpexAirLargeAirportMinPop()` (600), ou
+  `V93_AIRPORT_MIN_POP` (100) si `v93_airport_no_pop_floor` est armé ;
+- `OpexAirC83SlotSignalEnabled()` et `AITown.GetAllowedNoise() == 2` ;
+- aucun aéroport Opex imputé à cette ville (`OpexAirOwnSlotTownCounts` /
+  `OpexAirSlotTownId`), que `c83_fixes` soit armé ou non.
+
+On s'arrête quand cette ville est servie (`c83_preempt_built`) ou verrouillée
+(`c83_preempt_lost` : bruit ≠ 2, ou population sous le plancher). Pas de deuxième
+cible dans la même partie. L'état (ville, arrêt, date de réarm) est sauvé seulement
+si le réglage est à 1, et relu après `OpexLoadSettings`.
+
+Un projet aérien **rentable** dont une extrémité neuve a
+`OpexAirSlotTownId(ancre) == cible` reçoit la priorité défensive 2, la même classe
+que la course au second créneau, donc devant le second aéroport déjà à nous (1) et
+devant hub→hub (0). `profitAnnual <= 0` reste un retour 0 : on ne pose pas un
+aéroport vide ou déficitaire. La régénération ciblée qui produit ce site passe déjà
+`requiredSlotTown` à `OpexAirFindSite` (`ClosestTown(ancre) == ville`).
+
+S'il n'y a pas de tel projet financé et encore vivant
+(`OpexAirC83FundedRaceCoversTown`), on enfile la même régénération AIR que le
+watcher C83 (`_c77EnqueueEntity`, clé `c77|town|<id>|air`). La file coalescée et,
+quand `c83_fixes` est à 1, le plafond de 365 jours sont respectés. Sans
+`c80_double_register`, cet enqueue ne fait rien, comme la course déjà en place :
+la priorité s'applique quand même aux projets déjà dans le portefeuille.
+
+Sondes, sous `C78_SLOT_INTERCEPT_PROBE` : `c83_preempt_target`, `c83_preempt_built`,
+`c83_preempt_lost`.
+
+Validation faite : `sweeps/test_c83_preempt.py`. Validation restante : smoke 1×1,
+puis 5×6 apparié. Le défaut reste 0. Effet utile d'un futur 20×10 : +50 k£/an,
+15/20, p < 0,05, garde de valeur −5 %.
+
+## 13. Lot aérien — une ville neuve par projet financé (`air_batch_town_reserve`)
+
+Réglage 0/1, défaut **0**. À 0, `OpexProjectSelectAffordable` et la passe de
+construction ne font qu'un test de booléen. Les 818 rejets `batch_plan_dead`
+viennent de `OpexAirBatchPlanStillLive` (`task_air.nut`) : plusieurs plans du même
+lot visent la même ville de nouvel aéroport ; le premier la dessert, les autres
+meurent.
+
+À 1, la liste financée (`best`) ne garde que le meilleur projet aérien, selon le
+classement déjà en place, pour chaque ville de slot d'une extrémité **neuve**
+(`OpexAirSlotTownId`, pas un hub `reuse`). Les projets écartés ne sont pas retirés
+du vivier d'alternatives : une passe ultérieure peut les reprendre si le premier
+n'a pas été construit. La passe de construction applique la même réserve, pour un
+lot qui contiendrait encore deux plans. Hub→hub, qui ne pose pas d'aéroport, n'est
+pas concerné.
+
+Sonde, sous `probe_portfolio` (`C78_SLOT_INTERCEPT_PROBE` ou, à défaut,
+`C69_BOTTLENECK_PROBE`) : `phase=air_batch_town_reserve`, avec `dropped` (plans
+écartés par la réserve) et `batch_plan_dead` (morts encore observées à la
+construction). Le réglage change les décisions. Mesure d'exposition d'abord, puis
+5×6 et 20×10 avant tout changement de défaut (+50 k£/an, 15/20, p < 0,05, garde
+−5 %). Contrats : `sweeps/test_air_batch_town_reserve.py`. Pas de partie.
