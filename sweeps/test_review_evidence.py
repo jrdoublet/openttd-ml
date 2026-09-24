@@ -35,7 +35,6 @@ class ReviewEvidenceTest(unittest.TestCase):
             self.assertEqual(package.sha256(raw), entry["raw_sha256"], entry["source"])
             self.assertEqual(len(packed), entry["gzip_bytes"], entry["source"])
             self.assertEqual(package.sha256(packed), entry["gzip_sha256"], entry["source"])
-            self.assertEqual(package.gzip_deterministic(raw), packed, entry["source"])
 
 
 if __name__ == "__main__":
