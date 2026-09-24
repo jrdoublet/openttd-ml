@@ -452,6 +452,12 @@ C80_WORKER_TOWN <- false;
  * 0 = service absent (défaut), 1 = service construit et rempli en fond. */
 C67_TERRAIN_MAP <- false;
 
+/* C67.6 : sonde passive d'exposition eau (task_terrain.nut), 0 = absente (défaut).
+ * C67_SLACK_HOOK vaut vrai si au moins un service C67 utilise le reliquat de tick. */
+C67_WATER_EXPOSURE <- false;
+C67_SLACK_HOOK <- false;
+C67_WATER_EXPO <- null;
+
 /* C76 : sous C76_REGEN_TARGETED, evite les regenerations completes du vivier pour
  * les variations de budget seul et traite localement les lignes et subventions. 0 = desactive (defaut). */
 C76_LEAN_INVALIDATION <- false;

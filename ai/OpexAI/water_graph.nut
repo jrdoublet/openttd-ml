@@ -80,8 +80,9 @@ class OpexWaterGraph {
   function _record(id) {
     if (!(id in this._cache)) return null;
     local rec = this._cache[id];
+    local bx = id % this._nx, by = id / this._nx;
     foreach (r in this._rects) {
-      if (r.serial > rec.generation && this._intersects(id, r.x0, r.y0, r.x1, r.y1)) {
+      if (r.serial > rec.generation && bx >= r.bx0 && bx <= r.bx1 && by >= r.by0 && by <= r.by1) {
         delete this._cache[id];
         this._lru.Remove(id);
         return null;
@@ -95,11 +96,13 @@ class OpexWaterGraph {
     x0 = max(0, x0); y0 = max(0, y0);
     x1 = min(this._width, x1); y1 = min(this._height, y1);
     if (x0 >= x1 || y0 >= y1) return;
-    this._rects.append({ x0 = x0, y0 = y0, x1 = x1, y1 = y1, serial = ++this._serial });
+    /* Stored in block coordinates (inclusive), so a staleness check is four comparisons. */
+    this._rects.append({ bx0 = x0 / this._side, by0 = y0 / this._side,
+      bx1 = (x1 - 1) / this._side, by1 = (y1 - 1) / this._side, serial = ++this._serial });
     if (this._rects.len() > this._rectLimit) {
       local a = this._rects[0], b = this._rects[1];
-      this._rects[1] = { x0 = min(a.x0, b.x0), y0 = min(a.y0, b.y0),
-        x1 = max(a.x1, b.x1), y1 = max(a.y1, b.y1), serial = max(a.serial, b.serial) };
+      this._rects[1] = { bx0 = min(a.bx0, b.bx0), by0 = min(a.by0, b.by0),
+        bx1 = max(a.bx1, b.bx1), by1 = max(a.by1, b.by1), serial = max(a.serial, b.serial) };
       this._rects.remove(0);
     }
     if (this._job != null && this._intersects(this._job.id, x0, y0, x1, y1)) {
@@ -221,7 +224,18 @@ class OpexWaterGraph {
     local q = this._query;
     if (q == null) return null;
     return { status = q.status, reason = q.reason, distance_kind = "none", distance = null,
-      chain = q.chain, blocks_analyzed = q.analyzed, nodes = q.prev.len() };
+      chain = q.chain, blocks_analyzed = q.analyzed, nodes = q.prev.len(),
+      /* After a closed "disconnected" proof, every node of A's component. */
+      component = q.status == "disconnected" ? q.prev : null };
+  }
+
+  /* Node (block, component) of a tile from a fresh record, or null when not known yet. */
+  function NodeOf(x, y) {
+    local id = this.BlockOf(x, y);
+    local rec = this._record(id);
+    if (rec == null || rec.labels == null) return null;
+    local label = rec.labels[this._local(rec, id, x, y)];
+    return label < 0 ? null : id * 16 + label;
   }
 
   function Cancel() {

@@ -429,6 +429,8 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
         if (C56_TASK_TRACE) { c56BfsIn++; OpexC56TaskLog("PAIR", "bfs_enter", "- pair=" + c56PairsExamined); }
         navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
+        if (C67_WATER_EXPOSURE) OpexC67WaterExposureNote(sites[a], sites[b], navigableDistance,
+                                                         tariffDistance, orderDistance, monthlyPax);
         if (C56_TASK_TRACE) { c56BfsOut++; OpexC56TaskLog("PAIR", "bfs_exit", "- pair=" + c56PairsExamined); }
         if (profile != null) {
           profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);

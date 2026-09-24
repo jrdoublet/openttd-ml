@@ -468,3 +468,88 @@ Limites : eau seulement ; déconnexion coûteuse sur grande composante (une rech
 bidirectionnelle réduirait ce coût, non implémentée) ; pas de mesure 1024²/2048² ; les paires
 sont des tuiles d'eau tirées au hasard, pas les paires de quais du builder. L'exposition
 réelle (paires lointaines rejetées à tort) reste à établir en C67.6 avant tout branchement.
+
+## 18. C67.6 — sonde passive d'exposition eau (24 septembre)
+
+Accord utilisateur du 23 septembre pour une sonde passive (consigne maritime). Réglage
+`c67_water_exposure_probe` (défaut 0) : au site du BFS d'`OpexWaterPlans`, compteurs et
+file dédupliquée des paires rejetées ; réévaluation par l'oracle C67.5 et le corridor dans
+le reliquat de tick seulement, puis `OpexWaterEconomics` sur les faux rejets. `diag_c67_runtime.py`
+relève désormais toutes les lignes `C67*`.
+
+**Exposition mesurée** (solo, 5 graines × 6 ans, années 1970–1974 couvertes par les lignes
+annuelles) : en 256², le BFS n'est appelé que **32 fois** au total, toutes rejetées, pour
+**6 paires de quais distinctes** ; en 512², **aucun appel** (deux campagnes). Le reliquat
+est trop rare pour trancher en jeu : **aucune** des 6 paires n'a été évaluée (≤ 53 blocs
+analysés en cinq ans). Fichiers : `results/c676_expo_256_6y_20260924_01*.json`,
+`results/c676_expo_512_6y_20260924_0{1,2}*.json`.
+
+**Neutralité du crochet : révision de §14–15.** OpexAI seul est déterministe en 512²
+(`results/c676_determinism_512_3y_20260924_01.json`, 5 graines × 2 répétitions, zéro écart).
+Pourtant les bras `c67_water_exposure_probe=1` **et** `c67_terrain_map=1` divergent tous deux
+de la référence sur la graine 999 dès juin 1970, avec les mêmes 67 checkpoints
+(`results/c674_terrain_512_6y_20260924_01*.json`) : la cause est l'entrée commune du crochet,
+non la sonde. Même réduite à un test d'opcodes restant placé en premier, elle coûte quelques
+opcodes ; quand le tick est presque épuisé à cet instant, le script est suspendu et le
+`Sleep(1)` décale l'IA d'un tick, d'où une trajectoire chaotiquement différente. L'équivalence
+C67.4 (3 graines × 3 ans, 256²) était donc une observation favorable, **pas une garantie** :
+le crochet est quasi neutre, pas strictement neutre.
+
+Autres corrections : le crochet teste le reliquat avant tout travail ; les rectangles
+d'invalidation du graphe eau sont stockés en coordonnées de blocs (une unité atteignait
+10 358 opcodes avec 32 rectangles) ; contrat eau rejoué sain
+(`results/c675_water_6y_20260924_05.json` : 1 200 paires, zéro erreur, unité ≤ 3 598).
+
+**Conclusion provisoire.** Sur les cartes de banc, le chemin eau n'expose presque aucune
+paire au BFS ; même si les 6 paires étaient de faux rejets, le gain potentiel est marginal.
+Critère C67.6 non rempli : ne pas brancher l'oracle eau en décision.
+
+## 19. C67.6 — exposition du coût rail au terrain (protocole fixé le 24 septembre)
+
+Choix utilisateur : explorer un autre mode que l'eau. Consommateur candidat repris du plan
+[21_cartographie_opportuniste.md](21_cartographie_opportuniste.md), phase 2 : le capital rail
+**avant A\*** est majoré d'un facteur fixe 1,70 (`OpexProjectFinanceCapital`) ; après le tracé,
+le devis réel le remplace. La carte par blocs ne peut donc améliorer que le classement et le
+financement **avant** A\*.
+
+**Mesure (sans effet au défaut).** Sous `decision_log` (défaut 0) : `OpexBuildLine` retient le
+coût modèle avant devis (`modelCapital`), et chaque tentative produit une ligne `RAIL_ATTEMPT`
+(extrémités, type, Manhattan, modèle, devis, coût réel, succès, raison, itérations, opcodes).
+Collecte solo 10 graines × 6 ans, 256² et 512², journal niveau 4 (`diag_c67_runtime.py
+--decision-kinds`). Biais connu : seuls les candidats effectivement tentés sont observés.
+
+**Porte 1 — exposition.** Rapporter le nombre de tentatives, les échecs et leurs opcodes, et la
+distribution de `devis/modèle` et `réel/modèle`. Erreur de référence : `|1,70·modèle − réel| / réel`.
+Si sa médiane est ≤ 10 % ou s'il y a moins de 20 tentatives réussies, la marge est trop faible
+pour un modèle terrain : arrêter ce consommateur.
+
+**Porte 2 — valeur du terrain (seulement si la porte 1 passe).** Rejouer, sur les mêmes graines
+et configuration, les corridors tentés dans une fixture qui résume les blocs S=5 du corridor
+(eau, relief, pente, constructibilité). Ajuster sur la moitié des graines, évaluer sur l'autre :
+retenir le terrain seulement si l'erreur relative médiane baisse d'au moins 25 % face au facteur
+fixe (critère du plan 21), puis diagnostic apparié avant tout branchement.
+
+## 20. Résultats de l'exposition rail (24 septembre)
+
+Collecte `OpexAI[decision_log=1]`, 10 graines × 6 ans, 256² et 512², 20 parties saines
+(`results/c676_rail_{256,512}_6y_20260924_02_c67.json`). Trois coûts journalisés par tentative :
+`pre` (capital du candidat au début de la préparation A\*, tel que financé), `model` (même
+modèle recalculé sur la longueur réelle du tracé), `actual` (coût débité). Un premier essai
+(`_01`) ne portait que `model` : il a montré que ce champ est déjà recalculé après A\* et ne
+mesure pas l'estimation financée ; il est conservé mais non utilisé pour la porte.
+
+- 16 tentatives, 16 réussites ; 29 recherches A\*, 1 abandon (`ABND`, 10 000 itérations), aucun
+  `NOPA`. L'exposition d'un pré-tracé A\* (phase 3 du plan 21) est donc elle aussi faible.
+- `actual/pre` : médiane 0,959 (Q1 0,949, Q3 0,984 ; min 0,928, max 1,221).
+- Erreur relative médiane : facteur 1,70 → **77 %** ; facteur 1,0 → 5,0 % ; meilleure
+  constante (0,96) → 1,8 %.
+
+**Porte 1 : échec.** Moins de 20 tentatives réussies, et l'erreur hors facteur est déjà de
+quelques pourcents sans aucun terrain : un modèle terrain ne peut pas réduire de 25 % une
+erreur que la seule constante ramène à 2–5 %. Le consommateur « coût rail » n'est pas ouvert.
+
+**Constat hors C67.** Sur les lignes tentées, le facteur fixe 1,70 (`biasPct`, actif par défaut
+via `policy_portfolio`) surestime le coût réel d'environ 77 % en médiane. Biais de sélection :
+seuls les candidats qui ont passé ce facteur sont observés ; les corridors refusés par lui
+pourraient coûter davantage. À traiter comme piste distincte (mesure des candidats non tentés,
+puis banc), pas comme un résultat d'adoption.

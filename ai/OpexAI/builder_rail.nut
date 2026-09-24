@@ -1446,6 +1446,10 @@ function OpexPlaceJoinSignals(planA, planB, tiles, depot)
  * recherche a lancer. */
 function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hardCap = 10000)
 {
+  /* C67.6 rail : capital du candidat tel que finance avant A* (distance Manhattan). */
+  if (DECISION_LOG && !("preCapital" in candidate)
+      && !(("capitalIsActual" in candidate) && candidate.capitalIsActual))
+    candidate.preCapital <- candidate.capital;
   local plan = { ok = false, reason = "", iterations = 0, opcodes = 0,
                  plansA = null, plansB = null, planA = null, planB = null,
                  length = candidate.platformLength,
@@ -1870,6 +1874,11 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
  * et referait le gel. Le bras historique (railPlan absent) planifie puis construit. */
 function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve, hardCap = 10000)
 {
+  /* C67.6 rail : cout modele avant devis, pour mesurer l'ecart au facteur fixe 1,70.
+   * Journal de decision seulement (defaut 0) : aucun effet sur la partie par defaut. */
+  if (DECISION_LOG && !("modelCapital" in candidate)
+      && !(("capitalIsActual" in candidate) && candidate.capitalIsActual))
+    candidate.modelCapital <- candidate.capital;
   local plan = null;
   if (("railPlan" in candidate) && candidate.railPlan != null) {
     plan = candidate.railPlan;

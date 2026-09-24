@@ -46,6 +46,7 @@ require("catalog.nut");
 require("economy.nut");
 require("spatial.nut");
 require("terrain_map.nut");
+require("water_graph.nut");
 require("candidates.nut");
 require("tension.nut");
 require("projects.nut");
@@ -151,6 +152,8 @@ class OpexAI extends AIController {
   _c67LinesSeen = 0;
   _c67Ledger = null;
   _c67Year = -1;
+  /* C67.6 : sonde passive d'exposition eau, jamais sauvegardee. */
+  _c67Water = null;
   /* 11.6 : _railSearch contient un pathfinder vivant. Il n'est pas serialise ;
    * Save/Load conserve sa presence pour forcer une reconstruction propre du portefeuille. */
   _reloadDroppedRailSearch = false;
@@ -477,6 +480,11 @@ class OpexAI extends AIController {
   function _c67FeedBackground();
   function _c67LogYear();
   function _c67TerrainSlackStep();
+  function _c67SlackHook();
+  function _c67WaterLogYear();
+  function _c67WaterNextQuery(job);
+  function _c67WaterFinish(job, result, reason, cdist);
+  function _c67WaterExposureStep();
   function _runBackgroundQueue();
   function _enqueueReactive(key, kind, payload);
   function _popReactive();
@@ -621,13 +629,13 @@ function OpexAI::Start()
     if (C80_DOUBLE_REGISTER) {
       this._runOrchestratorTick();
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
-      if (C67_TERRAIN_MAP) this._c67TerrainSlackStep();
+      if (C67_SLACK_HOOK) this._c67SlackHook();
       AIController.Sleep(1);
     } else if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
     } else {
       this._runNextTaskWithSlackLedger();
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
-      if (C67_TERRAIN_MAP) this._c67TerrainSlackStep();
+      if (C67_SLACK_HOOK) this._c67SlackHook();
       AIController.Sleep(1);
     }
   }

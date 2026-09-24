@@ -1255,6 +1255,15 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
   }
 
   if (DECISION_LOG) {
+    /* C67.6 rail : une ligne par tentative, reussie ou non, pour l'exposition du cout terrain. */
+    OpexDecide("RAIL_ATTEMPT", "src=" + candidate.src + " dst=" + candidate.dst
+               + " kind=" + candidate.kind + " manh=" + candidate.distance
+               + " pre=" + (("preCapital" in candidate) ? candidate.preCapital : -1)
+               + " model=" + (("modelCapital" in candidate) ? candidate.modelCapital : -1)
+               + " quote=" + (("capital" in result) ? result.capital : -1)
+               + " actual=" + (("actualCost" in result) ? result.actualCost : -1)
+               + " ok=" + (result.ok ? 1 : 0) + " reason=" + (result.reason == "" ? "-" : result.reason)
+               + " iters=" + result.iterations + " ops=" + result.opcodes);
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons);

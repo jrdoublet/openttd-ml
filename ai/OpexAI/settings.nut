@@ -349,6 +349,8 @@ function OpexLoadSettings()
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
+  C67_WATER_EXPOSURE = AIController.GetSetting("c67_water_exposure_probe") != 0;
+  C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
   /* C77 corrigé est permanent et repose sur le socle du double registre. */
   C80_DOUBLE_REGISTER = true;
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
