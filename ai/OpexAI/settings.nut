@@ -365,6 +365,8 @@ function OpexLoadSettings()
   V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
   V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;
   V90_PATHFINDER_CHECK = AIController.GetSetting("v90_pathfinder_check") != 0;
+  local astarWeight = AIController.GetSetting("v91_astar_weight_pct");
+  V91_ASTAR_WEIGHT_PCT = (astarWeight != null && astarWeight >= 100 && astarWeight <= 300) ? astarWeight : 100;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

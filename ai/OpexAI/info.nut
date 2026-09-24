@@ -661,6 +661,16 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "v91_astar_weight_pct",
+      description = "V91: weighted A* heuristic percentage for rail pathfinder (100 = unweighted V90 default, >100 faster search with slightly longer routes)",
+      min_value = 100, max_value = 300,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
+      step_size = 10,
+      flags = 0
+    });
   }
 }
 

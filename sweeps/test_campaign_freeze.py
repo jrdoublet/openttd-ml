@@ -168,7 +168,7 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertEqual(len(defaults), 75)
+        self.assertEqual(len(defaults), 76)
         for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build",
                      "c80_air_hub_index", "town_growth_roi_gate", "c76_regen_targeted",
                      "v90_fast_pathfinder"):
@@ -180,6 +180,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "air_hubhub_marginal", "air_hub_max_routes", "v89_rail_search_throughput",
                      "v90_pathfinder_check"):
             self.assertEqual(defaults[name], 0, name)
+        self.assertEqual(defaults["v91_astar_weight_pct"], 100)
         self.assertNotIn("c80_fleet_inject", defaults)
         self.assertNotIn("c80_air_targeted_update", defaults)
         self.assertNotIn("c77_opportunistic_candidates", defaults)

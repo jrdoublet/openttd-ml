@@ -468,3 +468,8 @@ V90_FAST_PATHFINDER <- true;
 /* V90 : vérification de conformité pas à pas en mode test.
  * Effectif seulement si v90_fast_pathfinder=1. 0 = désactivé (défaut). */
 V90_PATHFINDER_CHECK <- false;
+
+/* V91 : heuristique pondérée A* rail (weighted A*).
+ * Multiplicateur en pourcentage de l'estimation heuristique retournée par _Estimate.
+ * 100 = défaut non pondéré (V90 strictement inchangé), > 100 accélère la recherche au prix de tracés légèrement sub-optimaux. */
+V91_ASTAR_WEIGHT_PCT <- 100;
