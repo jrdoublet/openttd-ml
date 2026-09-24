@@ -676,6 +676,7 @@ function OpexCatalog::_refreshAir()
         id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
         price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
         maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = isBig,
+        ageYears = AIEngine.GetMaxAge(e) / 365, mailCapacity = -1,
       };
       if (keepPlaneChoices) probeChoices.append(entry);
       if (replaces) best = entry;
@@ -726,6 +727,7 @@ function OpexCatalog::_refreshAir()
         id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
         price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
         maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = false,
+        ageYears = AIEngine.GetMaxAge(e) / 365, mailCapacity = -1,
       };
       if (keepPlaneChoices) probeChoices.append(entry);
       if (replaces) best = entry;

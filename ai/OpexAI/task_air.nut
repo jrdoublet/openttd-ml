@@ -199,10 +199,15 @@ function OpexAI::_tryBuildAir(year)
       isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
       lineId = this._nextLineId,
     });
-    if (C84_AIR_TARGET_FLEET) {
-      this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
-          ? plan.targetPlanes : result.vehicles.len();
+    if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE) {
+      if (C84_AIR_TARGET_FLEET) {
+        this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
+            ? plan.targetPlanes : result.vehicles.len();
+      }
       this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+    }
+    if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
+      V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
     }
     OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
                            + plan.economics.profitAnnual);
@@ -284,6 +289,10 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       local plan = project.payload;
+      if (OpexAirV92PairBlocked(this._lines, plan)) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "v92_pair_taken", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+      }
       if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
@@ -456,10 +465,15 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
-        if (C84_AIR_TARGET_FLEET) {
-          this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
-              ? plan.targetPlanes : result.vehicles.len();
+        if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE) {
+          if (C84_AIR_TARGET_FLEET) {
+            this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
+                ? plan.targetPlanes : result.vehicles.len();
+          }
           this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+        }
+        if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
+          V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
         }
         OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
                                + plan.economics.profitAnnual);
@@ -601,6 +615,12 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       OpexAirFleetRefusal(line, year, "K");
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "scrapping", 1);
       continue;
+    }
+    /* V92 : finir un remplacement même si la ligne n'est plus candidate à la croissance.
+     * Sinon les avions déjà envoyés au hangar y restent. */
+    if (V92_AIR_SERVICE_CHOICE && OpexAirLineReequipPending(line)) {
+      local resumed = OpexAirAddPlane(line, this._catalog);
+      if (!(("reason" in resumed) && (resumed.reason == "NOLIVE" || resumed.reason == "NOVEH"))) continue;
     }
     /* Reconstitution de crash : elle passe avant les gardes de croissance
      * (have=0, profit ancien negatif, cadence), sinon le dernier avion ne peut
@@ -762,7 +782,15 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
-      local grown = OpexAirAddPlane(line);
+      local grown = OpexAirAddPlane(line, this._catalog);
+      if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {
+        if (grown.reason == "REPLACE" && ("vehCount" in grown)) {
+          have = grown.vehCount;
+          line.vehCount <- have;
+          line.trains = have;
+        }
+        break;
+      }
       if (grown.added <= 0) { OpexAirFleetRefusal(line, year, "X"); break; }
       have += grown.added;
       addedThisPass += grown.added;

@@ -219,8 +219,15 @@ function OpexAI::_onVehicleUnprofitable(event)
                 if (have > 1) {
                   /* Ligne multi-vehicules surcapacitaire : retrait unitaire, sans
                    * basculer la ligne dans scrapping. La tache scrap vend ensuite
-                   * reellement le vehicule, independamment du traitement annuel de rebut. */
-                  if (AIVehicle.SendVehicleToDepot(vehicle)) {
+                   * reellement le vehicule, independamment du traitement annuel de rebut.
+                   * V92 possède déjà l'envoi au hangar : un second appel l'annulerait
+                   * et changerait le compte de la flotte en cours d'échange. */
+                  if (OpexAirLineReequipPending(line)) {
+                    if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                      OpexDecide("UNPROFITABLE_RETIRE", "action=defer_v92 vehicle=" + vehicle
+                                 + " line=" + line.lineId + " streak=" + streak);
+                    }
+                  } else if (AIVehicle.SendVehicleToDepot(vehicle)) {
                     local now = AIDate.GetCurrentDate();
                     if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
                     this._vehiclesToRetire.rawset(vehicle, {
