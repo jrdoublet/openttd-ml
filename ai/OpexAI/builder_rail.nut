@@ -309,6 +309,27 @@ function OpexRailPlatformPlans(catalog, candidate)
   if (wanted > catalog.platformLength) wanted = catalog.platformLength;
   local sawA = false;
   local sawB = false;
+
+  /* V88 : si le candidat dispose d'un quai joint a une gare existante (ex. usine pour ligne de biens) */
+  if (("joinPlatform" in candidate) && candidate.joinPlatform != null &&
+      ("joinStationId" in candidate) && candidate.joinStationId >= 0) {
+    local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
+    if (jointPlansA.len() > 0) {
+      local jointLength = candidate.joinPlatform.length;
+      foreach (p in jointPlansA) {
+        p.stationId <- candidate.joinStationId;
+      }
+      local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, jointLength,
+                                      MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
+                                      candidate.kind == "pax", statsB);
+      if (plansB.len() > 0) {
+        return { plansA = jointPlansA, plansB = plansB, length = jointLength,
+                 slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
+      }
+      sawA = true;
+    }
+  }
+
   for (local length = wanted; length >= floor; length--) {
     local found = OpexRailTryPlatformLength(catalog, candidate, length, statsA, statsB);
     if (found.nA > 0) sawA = true;
@@ -1556,8 +1577,10 @@ function OpexSimulateRailInfraCost(plan)
     for (local i = 0; i < planB.length; i++) {
       AITile.DemolishTile(planB.anchor + planB.step * i);
     }
-    AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, AIStation.STATION_NEW);
-    AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, AIStation.STATION_NEW);
+    local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
+    local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
+    AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
+    AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
 
     for (local i = 1; i < tiles.len() - 1; i++) {
       local prev = tiles[i - 1];
@@ -1673,10 +1696,10 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   for (local i = 0; i < planB.length; i++) {
     AITile.DemolishTile(planB.anchor + planB.step * i);
   }
-  local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length,
-                                      AIStation.STATION_NEW);
-  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length,
-                                      AIStation.STATION_NEW);
+  local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
+  local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
+  local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
+  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
   if (!okA || !okB) {
     OpexRollback(null, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""C86 Etape 1 : Analyse de cannibalisation des lignes aeriennes hub->hub.
+"""V86 Etape 1 : Analyse de cannibalisation des lignes aeriennes hub->hub.
 
 Lit un jsonl brut produit par `sweeps/diag_c69_bottleneck_probe.py --grep " C56_TASK "`
 (chaque ligne JSON contient `seed` et `grep` = ligne de log OPEX C56_TASK).
@@ -381,7 +381,7 @@ def format_currency(val):
 def print_report(summary):
     """Affiche le rapport formateur sur stdout."""
     print("=" * 80)
-    print(" C86 : ANALYSE DE CANNIBALISATION AIR HUB->HUB")
+    print(" V86 : ANALYSE DE CANNIBALISATION AIR HUB->HUB")
     print("=" * 80)
     print(f"Lignes hub->hub construites : {summary['total_hubhub_built']}")
     print(f"Cas evaluables              : {summary['total_evaluated']}")
@@ -487,12 +487,12 @@ def run_selftest():
     assert c2["new_line_profit"] == 20000.0
     assert c2["neighbors_decreased"] is False
 
-    print("Selftest analyse_c86_cannibalisation : PASS (assertions verifiees avec succes).")
+    print("Selftest analyse_v86_cannibalisation : PASS (assertions verifiees avec succes).")
     return True
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyse de cannibalisation AIR hub->hub (C86)")
+    parser = argparse.ArgumentParser(description="Analyse de cannibalisation AIR hub->hub (V86)")
     parser.add_argument("input_file", nargs="?", help="Fichier jsonl brut produit par sweeps/diag_c69_bottleneck_probe.py --grep ' C56_TASK '")
     parser.add_argument("--json", action="store_true", help="Sortie structuree en JSON")
     parser.add_argument("--selftest", action="store_true", help="Execute le test interne pur Python")

@@ -146,6 +146,11 @@ function OpexProjectKeyFor(project)
       && ("isSubsidy" in project.payload) && project.payload.isSubsidy) {
     return "subsidy|" + project.payload.subsidyId;
   }
+  if (("payload" in project) && project.payload != null
+      && ("isChain" in project.payload) && project.payload.isChain) {
+    return "chain|" + project.payload.inputCargo + "|" + project.payload.sourceIndustryId + "|"
+           + project.payload.factoryId + "|t" + project.payload.dstTown;
+  }
   /* Garde de forme conservee pour le cout d'opcodes historique. La generation d'extensions
    * route a disparu, mais retirer ces tests de table deplace les frontieres de suspension NoAI
    * et change les resultats deterministes du smoke. */
@@ -442,6 +447,7 @@ function OpexProjectFromCandidate(candidate)
   /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
   project.turnoverBonus <- ("turnoverBonus" in candidate) ? candidate.turnoverBonus : 100;
   project.generationRatio <- ("ratio" in candidate) ? candidate.ratio : 0;
+  if (("isChain" in candidate) && candidate.isChain) project.isChain <- true;
   return project;
 }
 
@@ -897,7 +903,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   foreach (project in alternatives) {
     local financeCapital = OpexProjectFinanceCapital(project);
     if (financeCapital > capitalBudget) continue;
-    if (project.profitAnnual < floorProfit) continue;
+    if (project.profitAnnual < floorProfit && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
     OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
     project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
@@ -968,15 +974,23 @@ function OpexProjectSelectionScore(project, field)
   return score * factor;
 }
 
+/* V88 test (v88_chain_force) : projet chaine force en tete du classement. */
+function OpexProjectIsForcedChain(project)
+{
+  return V88_CHAIN_FORCE && project != null && ("isChain" in project) && project.isChain;
+}
+
 /* Insertion bornee et stable avec classe defensive C77 permanente. */
 function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false)
 {
-  local projectTier = OpexProjectDefensiveAirPriority(project);
+  local projectTier = OpexProjectDefensiveAirPriority(project)
+      + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
   local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
   local pos = best.len();
   while (pos > 0) {
     local prior = best[pos - 1];
-    local priorTier = OpexProjectDefensiveAirPriority(prior);
+    local priorTier = OpexProjectDefensiveAirPriority(prior)
+        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
     if (priorTier > projectTier) break;
     if (priorTier < projectTier) {
       pos--;

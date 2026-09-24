@@ -156,6 +156,106 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      /* V88 : Projet chaine industrielle complete (intrant -> usine -> biens -> ville) */
+      if (("isChain" in candidate) && candidate.isChain) {
+        if (this._activeGoodsChain != null) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "chain_in_progress", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (!OpexRailVehicleSlotAvailable()) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "vehicle_limit", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        local inputCand = candidate.inputCandidate;
+        local close = this._tooClose(inputCand);
+        if (close.hard >= 0) {
+          if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (close.blocking >= 0) {
+          if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        local need = inputCand.capital + OpexCashReserve();
+        local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        local lowCash = (money < need);
+        local willStartSearch = RAIL_SEARCH_RESUMABLE && !(("railPlan" in inputCand) && inputCand.railPlan != null);
+        if (lowCash && !willStartSearch) {
+          if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", i, inputCand.capital, inputCand.profitAnnual, inputCand.roi, inputCand.src, inputCand.dst, need, money);
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
+        inputCand.chainParent <- candidate;
+        inputCand.isChainStep1 <- true;
+        local alternativeRatio = MIN_RATIO;
+        local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+        local posPacked = i * TOP_K + this._projects.best.len();
+        if (RAIL_SEARCH_RESUMABLE && !(("railPlan" in inputCand) && inputCand.railPlan != null)) {
+          if (DECISION_LOG) {
+            foreach (d in passDiscards) {
+              OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+            }
+            passDiscards = [];
+            local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+            OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+            OpexDecide("CHAIN_CHOSEN", "fact=" + candidate.factoryId + " town=" + candidate.dstTown + " goodsCargo=" + candidate.goodsCargo);
+          }
+          local start = this._startRailSearch(inputCand, alternativeRatio, hardCap, posPacked);
+          if (start.pending) return { outcome = "pending", discards = passDiscards };
+          inputCand.railPlan <- start.plan;
+        }
+        local result = OpexBuildLine(this._catalog, this._budget, inputCand, alternativeRatio,
+                                     OpexCashReserve(), hardCap);
+        if (result.reason == "CASH") {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if ("railPlan" in inputCand) inputCand.railPlan = null;
+        if (DECISION_LOG && !RAIL_SEARCH_RESUMABLE) {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+          OpexDecide("CHAIN_CHOSEN", "fact=" + candidate.factoryId + " town=" + candidate.dstTown + " goodsCargo=" + candidate.goodsCargo);
+        }
+        local recorded = this._recordRailAttempt(inputCand, result, posPacked, year);
+        if (recorded) {
+          local inputLine = this._lines[this._lines.len() - 1];
+          this._activeGoodsChain = {
+            step = 2,
+            factoryId = candidate.factoryId,
+            townId = candidate.dstTown,
+            inputLineId = inputLine.lineId,
+            factoryStationId = inputLine.stationB,
+            factoryPlatform = {
+              anchor = inputLine.platformB.anchor,
+              direction = inputLine.platformB.direction,
+              length = inputLine.platformB.length,
+              step = inputLine.platformB.step
+            },
+            goodsCandidate = candidate.goodsCandidate,
+            year = year
+          };
+          OpexV88Log("CHAIN_STEP1", "line=" + inputLine.lineId + " fact=" + candidate.factoryId);
+          OpexSign(anchor, "C1|" + yy + "|" + inputLine.lineId + "|" + candidate.factoryId);
+          local step2Need = candidate.goodsCandidate.capital + OpexCashReserve();
+          if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) >= step2Need && this._railSearch == null) {
+            this._tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
+          }
+          return { outcome = "built", discards = passDiscards };
+        }
+        this._activeGoodsChain = null;
+        OpexV88Log("CHAIN_FAIL", "step=1 reason=" + result.reason);
+        OpexSign(anchor, "CF|" + yy + "|1|" + OpexAttemptReasonCode(result.reason));
+        local failReason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
+        local failError = ("error" in result) ? result.error : 0;
+        passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                              reason = failReason, extra = "", error = failError });
+        return { outcome = "rejected", discards = passDiscards };
+      }
       /* M4/16.2 : aucun A* ni devis terrain pour un projet qui ne pourra physiquement acheter
        * aucun train. OpexExecuteRailPlan refait la meme garde juste avant la premiere depense pour
        * couvrir la course avec une recherche reprenable. */
@@ -245,6 +345,99 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
       return { outcome = recorded ? "built" : "rejected", discards = passDiscards };
 
+}
+/* V88 : Construction de l'etape 2 d'une chaine de biens (troncon usine -> ville avec quai joint) */
+function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
+{
+  if (this._activeGoodsChain == null || this._activeGoodsChain.step != 2) return false;
+  local chain = this._activeGoodsChain;
+  local goodsCand = chain.goodsCandidate;
+  if (goodsCand == null) {
+    OpexV88Log("CHAIN_FAIL", "step=2 reason=no_goods_candidate");
+    this._activeGoodsChain = null;
+    return false;
+  }
+
+  if (!AIIndustry.IsValidIndustry(chain.factoryId)) {
+    OpexV88Log("CHAIN_FAIL", "step=2 reason=factory_gone");
+    this._activeGoodsChain = null;
+    return false;
+  }
+
+  local inputLine = null;
+  foreach (line in this._lines) {
+    if (line.lineId == chain.inputLineId) { inputLine = line; break; }
+  }
+  if (inputLine == null) {
+    OpexV88Log("CHAIN_FAIL", "step=2 reason=input_line_gone line=" + chain.inputLineId);
+    this._activeGoodsChain = null;
+    return false;
+  }
+
+  goodsCand.joinPlatform <- chain.factoryPlatform;
+  goodsCand.joinStationId <- chain.factoryStationId;
+  goodsCand.joinLineId <- chain.inputLineId;
+  goodsCand.isChainStep2 <- true;
+  goodsCand.townId <- chain.townId;
+  goodsCand.factoryId <- chain.factoryId;
+
+  local abandonedKey = OpexAbandonedPairKey(goodsCand);
+  if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+    OpexV88Log("CHAIN_FAIL", "step=2 reason=abandoned_pair");
+    this._activeGoodsChain = null;
+    return false;
+  }
+
+  local close = this._tooClose(goodsCand);
+  if (close.hard >= 0 || close.blocking >= 0) {
+    OpexV88Log("CHAIN_FAIL", "step=2 reason=too_close");
+    this._markPairAbandoned(abandonedKey);
+    this._activeGoodsChain = null;
+    return false;
+  }
+
+  local need = goodsCand.capital + OpexCashReserve();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local lowCash = (money < need);
+  local willStartSearch = RAIL_SEARCH_RESUMABLE && !(("railPlan" in goodsCand) && goodsCand.railPlan != null);
+  if (lowCash && !willStartSearch) {
+    OpexV88Log("CHAIN_WAIT", "step=2 reason=cash need=" + need + " money=" + money);
+    return false;
+  }
+
+  local alternativeRatio = MIN_RATIO;
+  local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+  local posPacked = 0;
+
+  if (RAIL_SEARCH_RESUMABLE && !(("railPlan" in goodsCand) && goodsCand.railPlan != null)) {
+    local start = this._startRailSearch(goodsCand, alternativeRatio, hardCap, posPacked);
+    OpexV88Log("CHAIN_STEP2_SEARCH", "pending=" + (start.pending ? 1 : 0));
+    if (start.pending) return true;
+    goodsCand.railPlan <- start.plan;
+  }
+
+  local result = OpexBuildLine(this._catalog, this._budget, goodsCand, alternativeRatio,
+                               OpexCashReserve(), hardCap);
+  if (result.reason == "CASH") {
+    return false;
+  }
+  if ("railPlan" in goodsCand) goodsCand.railPlan = null;
+
+  local recorded = this._recordRailAttempt(goodsCand, result, posPacked, year);
+  if (recorded) {
+    local goodsLine = this._lines[this._lines.len() - 1];
+    OpexV88Log("CHAIN_STEP2", "line=" + goodsLine.lineId + " town=" + chain.townId);
+    OpexSign(anchor, "C2|" + yy + "|" + goodsLine.lineId + "|" + chain.townId);
+    this._activeGoodsChain = null;
+    return true;
+  } else {
+    local failReason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
+    OpexV88Log("CHAIN_FAIL", "step=2 reason=" + failReason);
+    OpexSign(anchor, "CF|" + yy + "|2|" + OpexAttemptReasonCode(failReason));
+    this._markPairAbandoned(abandonedKey);
+    this._activeGoodsChain = null;
+    return false;
+  }
 }
 /* Choisit au plus UNE expansion par an. L'infrastructure est deja payee et aucun pathfinder ne
  * tourne : le classement porte donc sur le gain annuel marginal, les candidats ayant tous le
@@ -707,6 +900,14 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
       return { pending = false, plan = plan };
     }
   }
+  local curDate = AIDate.GetCurrentDate();
+  local curTick = AIController.GetTick();
+  if (C56_TASK_TRACE) {
+    if (!("v89SelectedDate" in candidate)) candidate.v89SelectedDate <- curDate;
+    else candidate.v89SelectedDate = curDate;
+    if (!("v89SelectedTick" in candidate)) candidate.v89SelectedTick <- curTick;
+    else candidate.v89SelectedTick = curTick;
+  }
   this._railSearch = {
     kind = "primary",
     phase = "search",
@@ -715,13 +916,20 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     spent = 0,
     iterationBudget = plan.iterationBudget,
     /* Borne horaire large : le budget d'iterations est la vraie limite (piege 1). */
-    safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS,
+    safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS,
     plan = plan,
     candidate = candidate,
     alternativeRatio = alternativeRatio,
     hardCap = hardCap,
     posPacked = posPacked,
+    startDate = curDate,
+    startTick = curTick,
   };
+  if (C56_TASK_TRACE) {
+    OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
+                   "src=" + candidate.src + " dst=" + candidate.dst
+                   + " budget=" + plan.iterationBudget + " hard_cap=" + hardCap);
+  }
   if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL) {
     if (this._activeWorker == null || this._activeWorker.kind == "rail_search") {
       this._activeWorker = {
@@ -770,6 +978,7 @@ function OpexAI::_continueRailSearch()
     deadlineTick = AIController.GetTick() + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
   }
   local slice;
+  local spentBefore = state.spent;
   if (("segmented" in state) && state.segmented != null) {
     slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
   } else {
@@ -778,11 +987,22 @@ function OpexAI::_continueRailSearch()
   }
   /* spent est le CUMUL de toutes les tranches : c'est le denominateur du classement. */
   state.spent = slice.iterations;
+  local sliceIters = state.spent - spentBefore;
+  if (C56_TASK_TRACE) {
+    this._v89YearIters += sliceIters;
+    this._v89YearSlices++;
+  }
   if (state.kind == "primary") {
     state.plan.opcodes += this._budget.end("build_search");
     state.plan.iterations = state.spent;
   } else {
     this._budget.end("build_search");
+  }
+  if (C56_TASK_TRACE) {
+    OpexC56TaskLog("RAIL_SLICE", (state.kind == "primary" ? "primary" : "upgrade"), this._taskCycle,
+                   "slice_iters=" + sliceIters + " spent=" + state.spent
+                   + " budget=" + state.iterationBudget + " done=" + (slice.done ? 1 : 0)
+                   + " stop=" + slice.stop);
   }
   if (!slice.done) {
     /* C41.48 : sonde passive a chaque frontiere de tranche (slice.stop == "CONT" ici, la SEULE
@@ -834,6 +1054,21 @@ function OpexAI::_continueRailSearch()
   }
 
   if (state.kind == "primary") {
+    if (C56_TASK_TRACE) {
+      local curDate = AIDate.GetCurrentDate();
+      local curTick = AIController.GetTick();
+      if (!("v89SearchEndDate" in state.candidate)) state.candidate.v89SearchEndDate <- curDate;
+      else state.candidate.v89SearchEndDate = curDate;
+      if (!("v89SearchEndTick" in state.candidate)) state.candidate.v89SearchEndTick <- curTick;
+      else state.candidate.v89SearchEndTick = curTick;
+      local searchDays = ("startDate" in state) ? (curDate - state.startDate) : -1;
+      local searchTicks = ("startTick" in state) ? (curTick - state.startTick) : -1;
+      OpexC56TaskLog("RAIL_SEARCH_END", "primary", this._taskCycle,
+                     "src=" + state.candidate.src + " dst=" + state.candidate.dst
+                     + " outcome=" + slice.stop + " iters=" + state.spent
+                     + " budget=" + state.iterationBudget + " days=" + searchDays
+                     + " ticks=" + searchTicks);
+    }
     local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan, slice);
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
@@ -853,6 +1088,10 @@ function OpexAI::_continueRailSearch()
  * d'echec pour les ledgers de la passe appelante. */
 function OpexAI::_consumeRailSearch(year)
 {
+  if (V88_GOODS_CHAIN && this._railSearch != null && ("candidate" in this._railSearch)
+      && this._railSearch.candidate != null && ("isChainStep2" in this._railSearch.candidate)) {
+    OpexV88Log("CHAIN_CONSUME", "step=2");
+  }
   local state = this._railSearch;
   local candidate = state.candidate;
   /* G3§1 : Un plan en echec (ABND/NOPA/DEAD) n'a besoin d'aucune tresorerie : OpexBuildLine
@@ -876,6 +1115,7 @@ function OpexAI::_consumeRailSearch(year)
         OpexC41RailCashReleaseLog("reason=precheck src=" + candidate.src + " dst=" + candidate.dst
                                   + " need=" + need + " money=" + money);
       }
+      if (("isChainStep2" in candidate) && candidate.isChainStep2) OpexV88Log("CHAIN_WAIT", "step=2 reason=cash_after_search need=" + need + " money=" + money);
       return { outcome = "cash", reason = "insufficient_cash", error = 0 };
     }
   }
@@ -897,6 +1137,49 @@ function OpexAI::_consumeRailSearch(year)
   local built = this._recordRailAttempt(candidate, result, state.posPacked, year);
   local reason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
   local error = ("error" in result) ? result.error : 0;
+  if (("isChainStep1" in candidate) && candidate.isChainStep1) {
+    local anchor = AIMap.GetTileIndex(1, 1);
+    local yy = year % 100;
+    if (built) {
+      local inputLine = this._lines[this._lines.len() - 1];
+      local chainParent = candidate.chainParent;
+      this._activeGoodsChain = {
+        step = 2,
+        factoryId = chainParent.factoryId,
+        townId = chainParent.dstTown,
+        inputLineId = inputLine.lineId,
+        factoryStationId = inputLine.stationB,
+        factoryPlatform = {
+          anchor = inputLine.platformB.anchor,
+          direction = inputLine.platformB.direction,
+          length = inputLine.platformB.length,
+          step = inputLine.platformB.step
+        },
+        goodsCandidate = chainParent.goodsCandidate,
+        year = year
+      };
+      OpexV88Log("CHAIN_STEP1", "line=" + inputLine.lineId + " fact=" + chainParent.factoryId);
+      OpexSign(anchor, "C1|" + yy + "|" + inputLine.lineId + "|" + chainParent.factoryId);
+    } else {
+      this._activeGoodsChain = null;
+      OpexV88Log("CHAIN_FAIL", "step=1 reason=" + result.reason);
+      OpexSign(anchor, "CF|" + yy + "|1|" + OpexAttemptReasonCode(result.reason));
+    }
+  } else if (("isChainStep2" in candidate) && candidate.isChainStep2) {
+    local anchor = AIMap.GetTileIndex(1, 1);
+    local yy = year % 100;
+    if (built) {
+      local goodsLine = this._lines[this._lines.len() - 1];
+      OpexV88Log("CHAIN_STEP2", "line=" + goodsLine.lineId + " town=" + candidate.townId);
+      OpexSign(anchor, "C2|" + yy + "|" + goodsLine.lineId + "|" + candidate.townId);
+      this._activeGoodsChain = null;
+    } else {
+      OpexV88Log("CHAIN_FAIL", "step=2 reason=" + result.reason);
+      OpexSign(anchor, "CF|" + yy + "|2|" + OpexAttemptReasonCode(result.reason));
+      this._markPairAbandoned(OpexAbandonedPairKey(candidate));
+      this._activeGoodsChain = null;
+    }
+  }
   return { outcome = built ? "built" : "failed", reason = reason, error = error };
 }
 /* Panneaux + enregistrement d'une tentative rail, reussie ou non. Facteur commun au chemin
@@ -945,6 +1228,17 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 
   if (result.ok) {
     local idx = this._nextLineId;
+    if (C56_TASK_TRACE) {
+      local curDate = AIDate.GetCurrentDate();
+      local selectDate = ("v89SelectedDate" in candidate) ? candidate.v89SelectedDate : -1;
+      local searchEndDate = ("v89SearchEndDate" in candidate) ? candidate.v89SearchEndDate : -1;
+      local delaySelectDays = (selectDate >= 0) ? (curDate - selectDate) : -1;
+      local delaySearchDays = (searchEndDate >= 0) ? (curDate - searchEndDate) : -1;
+      OpexC56TaskLog("RAIL_COMMISSION", "primary", this._taskCycle,
+                     "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst
+                     + " iters=" + result.iterations + " delay_days=" + delaySelectDays
+                     + " search_to_service_days=" + delaySearchDays);
+    }
     local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
     OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
     OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);

@@ -67,6 +67,118 @@ function OpexLoadRailExpansion(data)
   };
 }
 
+/* V88 : Sauvegarde d'une chaine industrielle en cours (sans floats pour NoAI) */
+function OpexSaveGoodsChain(chain)
+{
+  if (chain == null || typeof chain != "table") return null;
+  local gc = ("goodsCandidate" in chain && chain.goodsCandidate != null) ? chain.goodsCandidate : null;
+  local savedGc = null;
+  if (gc != null) {
+    savedGc = {
+      src = gc.src,
+      dst = gc.dst,
+      cargo = gc.cargo,
+      kind = gc.kind,
+      capital = gc.capital.tointeger(),
+      profitAnnual = gc.profitAnnual.tointeger(),
+      monthly = gc.monthly.tointeger(),
+      distance = gc.distance.tointeger(),
+      wagons = gc.wagons,
+      trains = gc.trains,
+      platformLength = gc.platformLength,
+      revenueAnnual = gc.revenueAnnual.tointeger(),
+      runningAnnual = gc.runningAnnual.tointeger(),
+      amortAnnual = gc.amortAnnual.tointeger(),
+      carried = gc.carried.tointeger(),
+      offered = gc.offered.tointeger(),
+      oneWayDays = gc.oneWayDays.tointeger(),
+      headwayDays = gc.headwayDays.tointeger(),
+      stationRating = gc.stationRating.tointeger(),
+      trainsForHeadway = gc.trainsForHeadway,
+      monthlyCapacity = gc.monthlyCapacity.tointeger(),
+      effectiveSpeed = gc.effectiveSpeed.tointeger(),
+      locoId = ("loco" in gc && gc.loco != null && ("id" in gc.loco)) ? gc.loco.id : -1,
+    };
+  }
+  local plat = ("factoryPlatform" in chain && chain.factoryPlatform != null) ? chain.factoryPlatform : null;
+  local savedPlat = null;
+  if (plat != null) {
+    savedPlat = {
+      anchor = plat.anchor,
+      direction = plat.direction,
+      length = plat.length,
+      step = plat.step
+    };
+  }
+  return {
+    step = chain.step,
+    factoryId = chain.factoryId,
+    townId = chain.townId,
+    inputLineId = chain.inputLineId,
+    factoryStationId = chain.factoryStationId,
+    factoryPlatform = savedPlat,
+    goodsCandidate = savedGc,
+    year = ("year" in chain) ? chain.year : 0
+  };
+}
+
+function OpexLoadGoodsChain(data, catalog = null)
+{
+  if (data == null || typeof data != "table") return null;
+  if (!("step" in data) || !("factoryId" in data) || !("townId" in data)) return null;
+  local chain = {
+    step = data.step,
+    factoryId = data.factoryId,
+    townId = data.townId,
+    inputLineId = ("inputLineId" in data) ? data.inputLineId : -1,
+    factoryStationId = ("factoryStationId" in data) ? data.factoryStationId : -1,
+    factoryPlatform = ("factoryPlatform" in data) ? data.factoryPlatform : null,
+    goodsCandidate = null,
+    year = ("year" in data) ? data.year : 0
+  };
+  if (("goodsCandidate" in data) && data.goodsCandidate != null) {
+    local gc = data.goodsCandidate;
+    local loco = null;
+    if (catalog != null && ("bestLocoByCargo" in catalog) && (gc.cargo in catalog.bestLocoByCargo)) {
+      loco = catalog.bestLocoByCargo[gc.cargo];
+    } else if (catalog != null && ("locos" in catalog) && ("locoId" in gc) && gc.locoId >= 0) {
+      foreach (l in catalog.locos) {
+        if (l.id == gc.locoId) { loco = l; break; }
+      }
+    }
+    chain.goodsCandidate = {
+      mode = "rail",
+      kind = gc.kind,
+      src = gc.src,
+      dst = gc.dst,
+      cargo = gc.cargo,
+      capital = gc.capital,
+      profitAnnual = gc.profitAnnual,
+      monthly = gc.monthly,
+      distance = gc.distance,
+      wagons = gc.wagons,
+      trains = gc.trains,
+      platformLength = gc.platformLength,
+      revenueAnnual = gc.revenueAnnual,
+      runningAnnual = gc.runningAnnual,
+      amortAnnual = gc.amortAnnual,
+      carried = gc.carried,
+      offered = gc.offered,
+      oneWayDays = gc.oneWayDays,
+      headwayDays = gc.headwayDays,
+      stationRating = gc.stationRating,
+      trainsForHeadway = gc.trainsForHeadway,
+      monthlyCapacity = gc.monthlyCapacity,
+      effectiveSpeed = gc.effectiveSpeed,
+      loco = loco,
+      isChainStep2 = true,
+      factoryId = chain.factoryId,
+      townId = chain.townId
+    };
+  }
+  return chain;
+}
+
 function OpexCopyBoolTable(source)
 {
   local out = {};
@@ -429,6 +541,9 @@ function OpexAI::Save()
       airBuilt = this._airBuilt,
       waterBuilt = this._waterBuilt,
     };
+    if (this._activeGoodsChain != null) {
+      shortSave.activeGoodsChain <- OpexSaveGoodsChain(this._activeGoodsChain);
+    }
     if (C76_REGEN_TARGETED) {
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
@@ -499,6 +614,7 @@ function OpexAI::Save()
     railSearchPending = this._railSearch != null,
     c41RailSignalLines = OpexCopyBoolTable(this._c41RailSignalLines),
     c41RailJunctionLines = OpexCopyBoolTable(this._c41RailJunctionLines),
+    activeGoodsChain = OpexSaveGoodsChain(this._activeGoodsChain),
     stateVersion = 2,
   };
   if (C80_DOUBLE_REGISTER) {
@@ -554,6 +670,7 @@ function OpexAI::Load(version, data)
   if ("c41RailJunctionLines" in data && data.c41RailJunctionLines != null) {
     this._c41RailJunctionLines = OpexCopyBoolTable(data.c41RailJunctionLines);
   }
+  if ("activeGoodsChain" in data) this._activeGoodsChain = OpexLoadGoodsChain(data.activeGoodsChain, this._catalog);
   /* Cle par nom : l'ordre de la file peut evoluer entre deux versions de l'IA. */
   if ("taskDue" in data && data.taskDue != null && this._taskQueue != null) {
     foreach (task in this._taskQueue) {
@@ -704,6 +821,31 @@ function OpexAI::_reconcileAfterLoad()
   this._c41RailJunctionLines = this._filterPersistedRailRepairQueue(this._c41RailJunctionLines);
   this._rearmPersistedRailRepairTasks();
 
+  /* V88 : Réconciliation d'une chaine industrielle en cours */
+  if (this._activeGoodsChain != null) {
+    local validChain = true;
+    if (!AIIndustry.IsValidIndustry(this._activeGoodsChain.factoryId)) validChain = false;
+    if (!AITown.IsValidTown(this._activeGoodsChain.townId)) validChain = false;
+    if (this._activeGoodsChain.step == 2) {
+      local inputLineFound = false;
+      foreach (line in this._lines) {
+        if (line.lineId == this._activeGoodsChain.inputLineId) {
+          inputLineFound = true;
+          break;
+        }
+      }
+      if (!inputLineFound) validChain = false;
+      if (!AIStation.IsValidStation(this._activeGoodsChain.factoryStationId)) validChain = false;
+    }
+    if (!validChain) {
+      this._activeGoodsChain = null;
+    } else if (this._activeGoodsChain.goodsCandidate != null && this._activeGoodsChain.goodsCandidate.loco == null && this._catalog != null) {
+      if (this._activeGoodsChain.goodsCandidate.cargo in this._catalog.bestLocoByCargo) {
+        this._activeGoodsChain.goodsCandidate.loco = this._catalog.bestLocoByCargo[this._activeGoodsChain.goodsCandidate.cargo];
+      }
+    }
+  }
+
   this._purgeUnprofitableStreaks();
   if (this._vehiclesToRetire != null) {
     local staleRetireTickets = [];
@@ -727,6 +869,7 @@ function OpexAI::_reconcileAfterLoad()
              + " rail_expansion_pending_recovered=" + railExpansion.pending_recovered
              + " rail_expansion_ambiguous_aborted=" + railExpansion.ambiguous_aborted
              + " rail_search_dropped=" + droppedRailSearch
+             + " goods_chain=" + (this._activeGoodsChain != null ? this._activeGoodsChain.step : 0)
              + " rail_signal_queue=" + this._c41RailSignalLines.len()
              + " rail_junction_queue=" + this._c41RailJunctionLines.len());
 }

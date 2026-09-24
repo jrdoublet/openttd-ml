@@ -212,6 +212,9 @@ function OpexWorkerRailSearchStep(worker, opsBudget, deadlineTick)
     return "done";
   }
   ai._advanceRailSearchSliceWithLedgers();
+  if (V89_RAIL_SEARCH_THROUGHPUT) {
+    ai._advanceRailSearchThroughput();
+  }
   if (ai._railSearch == null || ai._railSearch.phase != "search") {
     return "done";
   }

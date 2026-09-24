@@ -228,6 +228,7 @@ function OpexAI::_dispatchCatalog(task, year)
   } else {
     this._catalog.refresh(this._budget, year);
   }
+  if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
   local fleetPlan = null;
   if (FLEET_PORTFOLIO) {
     /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
@@ -263,6 +264,7 @@ function OpexAI::_dispatchCatalog(task, year)
       }
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
       this._rebuildProjects(fleetPlan);
+      if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
         local c76Days = (c76Ops + 93000) / 186000;
@@ -291,6 +293,7 @@ function OpexAI::_dispatchCatalog(task, year)
     }
     local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
     this._rebuildProjects(fleetPlan);
+    if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
     if (C39_INVALIDATION_PROBE) {
       local c76Ops = OpexOpsMeasureEnd(c76Mark);
       local c76Days = (c76Ops + 93000) / 186000;
@@ -299,6 +302,7 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   this._lastCatalogMonth = ym;
   }
+  if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
   /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
    * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */
   if (C39_PROJECTS_CADENCE_PROBE) this._c39StampFinanceable();
@@ -652,6 +656,7 @@ function OpexAI::_dispatchReport(task, year)
   this._logC41AdmissionLedger(year);
   this._logC41RailSliceLedger(year);
   this._logC39PassClockLedger(year);
+  this._logC89AnnualRail(year);
   if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
   if (C55_ORIGIN_RELAX_PROBE) this._logC55OriginRelaxLedger(year);
   if (C52_AUTOREPLACE_LOG) this._logC52AutoreplaceLedger(year);
@@ -660,6 +665,15 @@ function OpexAI::_dispatchReport(task, year)
   if (C60_TOWN_RATING_PROBE) this._logC60TownRatingLedger(year);
   if (C50_CHRONOLOGY_PROBE) this._logC50AnnualReport(year);
   this._reportYear(year, this._ranked);
+  if (V88_GOODS_CHAIN) {
+    local rs = this._railSearch;
+    local own = (rs != null && ("candidate" in rs) && rs.candidate != null
+        && ("isChainStep2" in rs.candidate)) ? 1 : 0;
+    OpexV88Log("CHAIN_STATE", "active=" + (this._activeGoodsChain != null ? this._activeGoodsChain.step : 0)
+        + " search=" + (rs != null ? rs.kind + "/" + rs.phase : "none") + " own=" + own
+        + " spent=" + ((rs != null && "spent" in rs) ? rs.spent : -1)
+        + " budget=" + ((rs != null && "iterationBudget" in rs) ? rs.iterationBudget : -1));
+  }
   this._reportLines(year);
   if (C63_INVEST_PROBE) OpexC63EnsureYear(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);

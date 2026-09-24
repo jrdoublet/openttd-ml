@@ -174,6 +174,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v88_goods_chain",
+      description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_chain_force",
+      description = "V88 test only: under v88_goods_chain, goods chain projects bypass top-K, profit floor and ranking to validate their construction path: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_full_load",
       description = "C81: air full-load orders; 0 = none (default), 1 = full load at both airports, 2 = full load at the first airport only (AAAHogEx default)",
       min_value = 0, max_value = 2,
@@ -596,7 +612,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "air_hubhub_marginal",
-      description = "C86: Deduct cannibalised revenue from existing hub lines when evaluating hub-to-hub air routes: 1 = enabled, 0 = disabled (default)",
+      description = "V86: Deduct cannibalised revenue from existing hub lines when evaluating hub-to-hub air routes: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -604,7 +620,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "air_hub_max_routes",
-      description = "C86: Maximum number of routes per airport hub: 0 = default caps (4 for small/commuter, 12 for others), 1..12 = cap at min(default, N)",
+      description = "V86: Maximum number of routes per airport hub: 0 = default caps (4 for small/commuter, 12 for others), 1..12 = cap at min(default, N)",
       min_value = 0, max_value = 12,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
@@ -612,7 +628,15 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
-AddSetting({
+    AddSetting({
+      name = "v89_rail_search_throughput",
+      description = "V89: opportunistic rail A* search throughput (multiple slices per tick / inter-stage): 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "unprofitable_streak_threshold",
       description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line (default 3)",
       min_value = 1, max_value = 10,

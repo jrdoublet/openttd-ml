@@ -226,6 +226,8 @@ function OpexLoadSettings()
   C72_PLANE_CHOICE = AIController.GetSetting("c72_plane_choice");
   C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;
   C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
+  V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
+  V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
   if (C69_TRACK_BUILDS) {
@@ -360,6 +362,7 @@ function OpexLoadSettings()
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
   AIR_HUB_MAX_ROUTES = hubMaxRoutes >= 0 ? hubMaxRoutes : 0;
+  V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

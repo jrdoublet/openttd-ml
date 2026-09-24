@@ -558,6 +558,8 @@ def keep(row):
         "company_value": last_closed.get("company_value"),
         "performance_history": last_closed.get("performance_history"),
         "income_last_year": last_closed.get("income"),
+        # Fret livre par cargo au dernier trimestre clos (V88 : biens reellement livres).
+        "delivered_cargo_last_quarter": last_closed.get("delivered_cargo"),
         "expenses_last_year": last_closed.get("expenses"),
         "profit": quarter_profit(last_closed),
         "profit_year": year_profit(closed),

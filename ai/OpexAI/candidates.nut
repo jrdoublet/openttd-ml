@@ -1,4 +1,4 @@
-﻿/* Etages 1 et 2 : ce que rapporte un candidat, et ce qu'il coute en opcodes.
+/* Etages 1 et 2 : ce que rapporte un candidat, et ce qu'il coute en opcodes.
  *
  * Etage 1 -- le profit attendu. Changement de fond par rapport a TrainLineAI : la variable n'est
  * plus population_a * population_b / distance (un proxy) mais la PRODUCTION reelle multipliee par
@@ -1235,6 +1235,166 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   }
 }
 
+/* V88 : Chaines industrielles completes de biens :
+ * intrants (ex. cereales, betail, acier) -> industrie de transformation (ex. usine) -> biens vers ville acceptatrice.
+ * La production aval de biens est estimee a partir du volume d'intrants livre par le premier troncon
+ * (sortie ≈ intrants livres, via OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT). */
+function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
+{
+  local industries = catalog.industries;
+  local bounds = OpexCatalogBounds(catalog);
+
+  /* 1. Identification de tous les cargos a effet biens (Goods) */
+  local goodsCargos = [];
+  foreach (c in catalog.cargos) {
+    if (AICargo.GetTownEffect(c) == AICargo.TE_GOODS) {
+      goodsCargos.append(c);
+    }
+  }
+  if (goodsCargos.len() == 0) return;
+
+  foreach (goodsCargo in goodsCargos) {
+    /* La rotation du fret (OpexFreightCargoOrder) ne retient que les cargos produits : une usine
+     * non alimentee ne produit aucun bien, donc filtrer sur le cargo biens excluait toute chaine.
+     * Le lot fret d'une passe porte sur le cargo INTRANT (filtre plus bas). */
+    if (!(goodsCargo in catalog.townAcceptors)) continue;
+    local townSinks = catalog.townAcceptors[goodsCargo];
+    if (townSinks.len() == 0) continue;
+
+    if (!(goodsCargo in catalog.producers)) continue;
+    local factoryIndices = catalog.producers[goodsCargo];
+
+    foreach (fi in factoryIndices) {
+      local factory = industries[fi];
+      if (!("isTransformer" in factory) || !factory.isTransformer) continue;
+      if (targetKind == "industry" && targetId >= 0 && factory.id != targetId) continue;
+
+      /* L'usine ne doit pas etre bloquee par des gares distinctes */
+      local factoryService = OpexOriginService(lines, factory.tile);
+      if (factoryService != null && factoryService.blocked) continue;
+
+      local acceptedCargos = AIIndustryType.GetAcceptedCargo(factory.type);
+      local acceptedList = catalog._cargoArray(acceptedCargos);
+
+      foreach (cargoIn in acceptedList) {
+        if (freightCargo != null && cargoIn != freightCargo) continue;
+        if (!(cargoIn in catalog.producers)) continue;
+        local sourceIndices = catalog.producers[cargoIn];
+
+        foreach (si in sourceIndices) {
+          if (si == fi) continue;
+          local source = industries[si];
+          if (targetKind == "town") continue;
+          if (targetKind == "industry" && targetId >= 0
+              && source.id != targetId && factory.id != targetId) continue;
+
+          /* Verifier l'abandon sur le troncon intrant */
+          if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+            local inputPairKey = "freight|" + cargoIn + "|" + source.id + "|" + factory.id;
+            if (inputPairKey in abandonedPairs) continue;
+          }
+
+          /* La source d'intrant ne doit pas etre deja servie */
+          local ss = OpexOriginService(lines, source.tile);
+          if (ss != null) continue;
+
+          local inputMonthly = AIIndustry.GetLastMonthProduction(source.id, cargoIn);
+          if (BASIN_SHARE && ss != null) {
+            inputMonthly = OpexShareBasin(inputMonthly, lines, ss.stationId, cargoIn);
+          }
+          if (inputMonthly <= 0) continue;
+
+          /* Evaluer le troncon intrant */
+          local candInput = OpexMakeCandidate(catalog, "freight", cargoIn, source.tile,
+                                              factory.tile, inputMonthly, false, stats, true, profile, cruiseCache);
+          if (candInput == null || candInput.carried <= 0) continue;
+
+          /* Production aval de biens estimee a partir des intrants livres */
+          local goodsMonthly = (candInput.carried * OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT).tointeger();
+          if (goodsMonthly <= 0) continue;
+
+          /* Associer les villes acceptatrices de biens */
+          foreach (town in townSinks) {
+            if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
+
+            /* Verifier l'abandon sur le troncon biens (cle G9§1 : t<townId>) */
+            if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+              local goodsPairKey = "freight|" + goodsCargo + "|" + factory.id + "|t" + town.id;
+              if (goodsPairKey in abandonedPairs) continue;
+            }
+
+            local st = OpexOriginService(lines, town.tile);
+            if (st != null) continue;
+
+            local goodsDist = AIMap.DistanceManhattan(factory.tile, town.tile);
+            if (goodsDist > bounds.railMax) continue;
+            local itersGoods = OpexRailIterations(goodsDist);
+            if (itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;
+
+            local candGoods = OpexMakeCandidate(catalog, "freight", goodsCargo, factory.tile,
+                                                town.tile, goodsMonthly, false, stats, false, profile, cruiseCache);
+            if (candGoods == null) continue;
+            candGoods.dstTown <- town.id;
+
+            /* Evaluation conjointe du projet chaine */
+            local totalProfit = candInput.profitAnnual + candGoods.profitAnnual;
+            if (totalProfit <= 0) continue;
+            local totalCapital = candInput.capital + candGoods.capital;
+            if (totalCapital <= 0) continue;
+            local totalRevenue = candInput.revenueAnnual + candGoods.revenueAnnual;
+            local chainRoi = (totalProfit * 1000) / totalCapital;
+            local chainDistance = candInput.distance + candGoods.distance;
+            local chainIterations = candInput.iterations + candGoods.iterations;
+            local chainOpcodeRatio = chainIterations > 0 ? (totalProfit * 1000) / chainIterations : 0;
+
+            local chainCandidate = {
+              mode = "rail",
+              kind = "freight",
+              isChain = true,
+              cargo = goodsCargo,
+              inputCargo = cargoIn,
+              goodsCargo = goodsCargo,
+              src = source.tile,
+              mid = factory.tile,
+              dst = town.tile,
+              dstTown = town.id,
+              sourceIndustryId = source.id,
+              factoryId = factory.id,
+              inputCandidate = candInput,
+              goodsCandidate = candGoods,
+              distance = chainDistance,
+              monthly = goodsMonthly,
+              inputMonthly = inputMonthly,
+              profitAnnual = totalProfit,
+              revenueAnnual = totalRevenue,
+              capital = totalCapital,
+              budgetCapital = totalCapital,
+              roi = chainRoi,
+              iterations = chainIterations,
+              opcodeRatio = chainOpcodeRatio,
+              ratio = chainOpcodeRatio + (chainRoi * 15),
+              originServed = false,
+              isTransformer = true,
+              trains = candInput.trains + candGoods.trains,
+              wagons = candInput.wagons + candGoods.wagons,
+              platformLength = candInput.platformLength > candGoods.platformLength ? candInput.platformLength : candGoods.platformLength,
+            };
+
+            /* Test V88 : garantir le passage du plafond TOP_K (tri par ratio). */
+            if (V88_CHAIN_FORCE) chainCandidate.ratio = 1000000000;
+            stats.accepted++;
+            if (DECISION_LOG) {
+              OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + cargoIn + " out=" + goodsCargo
+                         + " town=" + town.id + " P=" + totalProfit + " C=" + totalCapital + " roi=" + chainRoi);
+            }
+            out.append(chainCandidate);
+          }
+        }
+      }
+    }
+  }
+}
+
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
@@ -1274,6 +1434,10 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   if (generateFreight) {
     OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
                           freightCargo, targetKind, targetId);
+    if (V88_GOODS_CHAIN) {
+      OpexGoodsChainCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
+                               freightCargo, targetKind, targetId);
+    }
   }
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);

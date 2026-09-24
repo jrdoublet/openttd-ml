@@ -153,14 +153,20 @@ function OpexAI::_runNextTask()
   /* Sonder d'abord la transaction, puis CONTINUER la file dans le meme passage. Retourner ici
    * affamait de nouveau le scheduler pendant tout le trajet vers le depot (jusqu'a un an mesure),
    * alors que ce trajet ne consomme aucun opcode de l'IA. */
+  if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
   if (this._railExpansion != null && !this._railWorkerSteppedThisTick) this._continueRailExpansion();
   /* A4 : avancer l'A* d'une tranche PUIS continuer la file, comme _railExpansion. Retourner
    * ici sans encherner les autres taches reconstituerait le gel (rien d'autre ne tourne tant
    * que la recherche n'a pas fini).
    * C80 tranche 1 : sous c80_worker_rail=1, la tranche est exécutée par le travailleur dans
-   * _runOrchestratorTick (étape c) avant la file de fond ; elle n'est pas refaite ici. */
+   * _runOrchestratorTick (étape c) avant la file de fond ; elle n'est pas refaite ici.
+   * V89 : sous v89_rail_search_throughput=1, avance des tranches supplémentaires sur le
+   * budget d'opcodes disponible du tick. */
   if (this._railSearch != null && !this._railWorkerSteppedThisTick) {
     this._advanceRailSearchSliceWithLedgers();
+    if (V89_RAIL_SEARCH_THROUGHPUT) {
+      this._advanceRailSearchThroughput();
+    }
   }
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local task = null;
@@ -250,6 +256,11 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
     /* C39.6 reutilise ce MEME sliceOps que C41.46 -- pas de second begin()/end() pour la meme
      * tranche, les deux sondes partagent la seule mesure d'opcodes necessaire. */
     local sliceOps = OpexOpsMeasureEnd(sliceMark);
+    if (sliceOps > 0) {
+      local nextEst = sliceOps + 500;
+      if (nextEst < 1500) nextEst = 1500;
+      this._v89EstimatedSliceOps = nextEst;
+    }
     if (C41_RAIL_SLICE_LEDGER) {
       this._c41RailSliceLastOps = sliceOps;
       this._c41RailSliceLastIterDelta = sliceState.spent - spentBefore;
@@ -264,6 +275,67 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
       this._c39PassClockSliceOps = sliceOps;
     }
   } else {
+    local sliceMark = (V89_RAIL_SEARCH_THROUGHPUT && this._railSearch.phase == "search")
+        ? OpexOpsMeasureBegin() : null;
     this._continueRailSearch();
+    if (sliceMark != null) {
+      local sliceOps = OpexOpsMeasureEnd(sliceMark);
+      if (sliceOps > 0) {
+        local nextEst = sliceOps + 500;
+        if (nextEst < 1500) nextEst = 1500;
+        this._v89EstimatedSliceOps = nextEst;
+      }
+    }
   }
+}
+
+/* V89 : suivi passif des jours de jeu passés avec une recherche en phase "search". */
+function OpexAI::_v89TrackSearchDays(now)
+{
+  if (this._v89LastDay < 0) {
+    this._v89LastDay = now;
+    return;
+  }
+  if (now > this._v89LastDay) {
+    local deltaDays = now - this._v89LastDay;
+    if (this._railSearch != null && this._railSearch.phase == "search") {
+      this._v89SearchDaysThisYear += deltaDays;
+    }
+    this._v89LastDay = now;
+  }
+}
+
+/* V89 : journalise le bilan annuel A* rail sous probe_events (C56_TASK_TRACE). */
+function OpexAI::_logC89AnnualRail(year)
+{
+  if (!C56_TASK_TRACE) return;
+  local activeSearch = (this._railSearch != null && this._railSearch.phase == "search") ? 1 : 0;
+  OpexC56TaskLog("RAIL_ANNUAL", "rail", this._taskCycle,
+                 "year=" + year + " year_iters=" + this._v89YearIters
+                 + " year_slices=" + this._v89YearSlices
+                 + " search_days=" + this._v89SearchDaysThisYear
+                 + " active_search=" + activeSearch + " est_slice_ops=" + this._v89EstimatedSliceOps);
+  this._v89YearIters = 0;
+  this._v89YearSlices = 0;
+  this._v89SearchDaysThisYear = 0;
+}
+
+/* V89 : débit de recherche A* rail opportuniste.
+ * Avance des tranches supplémentaires tant que GetOpsTillSuspend() dépasse le coût estimé
+ * d'une tranche, chacune avec sa propre échéance locale via RAIL_MICRO_DEADLINE. */
+function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)
+{
+  if (!V89_RAIL_SEARCH_THROUGHPUT) return 0;
+  if (this._railSearch == null || this._railSearch.phase != "search") return 0;
+
+  local slicesRan = 0;
+  local minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
+  while (this._railSearch != null && this._railSearch.phase == "search"
+         && AIController.GetOpsTillSuspend() >= minThreshold) {
+    if (maxSlices > 0 && slicesRan >= maxSlices) break;
+    this._advanceRailSearchSliceWithLedgers();
+    slicesRan++;
+    minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
+  }
+  return slicesRan;
 }

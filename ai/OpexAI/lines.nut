@@ -221,6 +221,15 @@ function OpexAbandonedPairKey(candidate)
   if (("isSubsidy" in candidate) && candidate.isSubsidy) {
     return "subsidy|" + candidate.subsidyId;
   }
+  if (("isChain" in candidate) && candidate.isChain) {
+    if (("isChainStep2" in candidate) && candidate.isChainStep2) {
+      return "freight|" + candidate.cargo + "|" + candidate.factoryId + "|t" + candidate.dstTown;
+    }
+    local srcInd = ("sourceIndustryId" in candidate) ? candidate.sourceIndustryId : AIIndustry.GetIndustryID(candidate.src);
+    local fId = ("factoryId" in candidate) ? candidate.factoryId : AIIndustry.GetIndustryID(candidate.dst);
+    local inCargo = ("inputCargo" in candidate) ? candidate.inputCargo : candidate.cargo;
+    return "freight|" + inCargo + "|" + srcInd + "|" + fId;
+  }
   local src = candidate.src;
   local dst = candidate.dst;
   if (candidate.kind == "pax") {
@@ -297,12 +306,15 @@ function OpexAI::_pruneAbandonedPairs(now)
 /* Verifie les separations d'origine et de gare pour une nouvelle ligne rail. */
 function OpexAI::_tooClose(candidate)
 {
+  /* V88 : la ligne d intrant d une chaine partage volontairement la gare de l usine. */
+  local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
   local originA = -1;
   local originB = -1;
   foreach (line in this._lines) {
     if (("mode" in line) && line.mode != "rail") continue;
+    if (joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
@@ -320,6 +332,7 @@ function OpexAI::_tooClose(candidate)
 
   foreach (line in this._lines) {
     if (("mode" in line) && line.mode != "rail") continue;
+    if (joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
     foreach (lineEnd in ["A", "B"]) {
       local stationId = OpexLineStationId(line, lineEnd);
       if (stationId < 0) continue;

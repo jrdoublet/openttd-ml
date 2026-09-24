@@ -1,4 +1,4 @@
-"""Tests de contrat pour les variantes C86 (cannibalisation hub->hub et plafond de routes)."""
+"""Tests de contrat pour les variantes V86 (cannibalisation hub->hub et plafond de routes)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-class C86HubHubContractTest(unittest.TestCase):
+class V86HubHubContractTest(unittest.TestCase):
     def test_settings_declared_in_info_nut(self):
         info = _read("ai/OpexAI/info.nut")
 

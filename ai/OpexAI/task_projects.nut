@@ -570,6 +570,24 @@ function OpexAI::_tryBuildProjects(year)
     }
   }
 
+  /* V88 : reprise prioritaire de l'etape 2 d'une chaine de biens en attente */
+  if (V88_GOODS_CHAIN && this._activeGoodsChain != null && this._activeGoodsChain.step == 2
+      && this._railSearch != null) {
+    local v88Own = (("candidate" in this._railSearch) && this._railSearch.candidate != null
+        && ("isChainStep2" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep2) ? 1 : 0;
+    OpexV88Log("CHAIN_WAIT", "step=2 reason=rail_search own=" + v88Own
+               + " kind=" + (("kind" in this._railSearch) ? this._railSearch.kind : "?"));
+  }
+  if (V88_GOODS_CHAIN && this._activeGoodsChain != null && this._activeGoodsChain.step == 2 && this._railSearch == null) {
+    local step2Built = this._tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
+    if (step2Built) {
+      builtCount++;
+      if (C69_TRACK_BUILDS && this._lines.len() > 0) {
+        c69BuiltProjects.append(this._lines[this._lines.len() - 1]);
+      }
+    }
+  }
+
   local airTouchedTowns = null;
   if ((C75_MULTI_BUILD || builtCount < maxBatch)
       && this._projects != null && this._projects.best.len() > 0) {
@@ -895,7 +913,9 @@ function OpexAI::_tryBuildProjects(year)
         if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       }
     }
+    if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
   }
+  if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
   if (fallthroughProbeActive) {
     OpexC41ProjectsFallthroughLog("phase=exit invalidated="
         + (this._portfolioInvalidated ? 1 : 0) + " attempted=" + fallthroughAttempted

@@ -283,6 +283,7 @@ function OpexAI::_tryTownGrowth(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   foreach (townId in servedTowns) {
     if (this._tryTownGrowthCity(townId, year, anchor)) return true;
+    if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
   }
   return false;
 }

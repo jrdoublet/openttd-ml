@@ -39,6 +39,14 @@ function OpexSign(anchor, name)
   if (name != null && name.len() > 31) name = name.slice(0, 31);
   AISign.BuildSign(anchor, name);
 }
+/* V88 : evenements de chaine de biens, sous decision_log ou probe_events (moins perturbant). */
+function OpexV88Log(kind, fields)
+{
+  if (!DECISION_LOG && !C56_TASK_TRACE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
 function OpexDecide(kind, fields)
 {
   local date = AIDate.GetCurrentDate();

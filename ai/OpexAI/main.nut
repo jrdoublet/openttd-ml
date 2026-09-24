@@ -93,6 +93,11 @@ const DEAD_STREAK_THRESHOLD = 2;
  * largement le temps a un vehicule sain de rejoindre son depot. */
 const SCRAP_TIMEOUT_YEARS = 2;
 
+/* V88 : Hypothese de conversion intrants -> biens pour une usine de transformation (Factory).
+ * En climat tempere avec un seul intrant actif (cereales, betail ou acier), chaque unite
+ * d'intrant livree produit environ une unite de biens (ratio de transformation standard = 1.0). */
+const OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT = 1.0;
+
 class OpexAI extends AIController {
   _budget = null;
   _catalog = null;
@@ -108,6 +113,8 @@ class OpexAI extends AIController {
   _abandonCounts = null;
   _airBuilt = false;
   _waterBuilt = false;
+  /* V88 : etat de la chaine industrielle de biens en cours (etape 2 en attente de fonds/recherche) */
+  _activeGoodsChain = null;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
    * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */
   _taskQueue = null;
@@ -161,6 +168,12 @@ class OpexAI extends AIController {
   _portfolioRefreshProbeLastRefreshOps = 0;
   _portfolioRefreshProbeLastRefreshCount = 0;
   _lastRepayMonth = -1;
+  /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
+  _v89EstimatedSliceOps = 2000;
+  _v89LastDay = -1;
+  _v89YearIters = 0;
+  _v89YearSlices = 0;
+  _v89SearchDaysThisYear = 0;
   /* G2 : une ouverture d'industrie ou fondation de ville rend le catalogue ET le
    * portefeuille derive perimes. dueCycle = 0 ne suffit pas : catalog peut deja
    * avoir tourne ce mois-ci et sortir par son garde de cadence. */
@@ -331,10 +344,12 @@ class OpexAI extends AIController {
       { name = "town_growth", dueCycle = 0, enabled = true },
       { name = "repay", dueCycle = 0, enabled = true },
     ];
+    this._activeGoodsChain = null;
   }
 
   function Start();
   function _tooClose(candidate);
+  function _tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
   function _tryBuildAir(year);
   function _tryBuildProjects(year);
   function _c39StampFinanceable(capital = null, isProjectsTurn = false);
@@ -446,6 +461,9 @@ class OpexAI extends AIController {
   function _c83WatchAirSlotTransitions();
   function enqueue(key, kind, payload);
   function pop();
+  function _advanceRailSearchThroughput(maxSlices = -1);
+  function _v89TrackSearchDays(now);
+  function _logC89AnnualRail(year);
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */
@@ -564,12 +582,15 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
+    if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     if (C80_DOUBLE_REGISTER) {
       this._runOrchestratorTick();
+      if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
       AIController.Sleep(1);
     } else if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
     } else {
       this._runNextTaskWithSlackLedger();
+      if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
       AIController.Sleep(1);
     }
   }

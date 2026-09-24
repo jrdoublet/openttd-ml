@@ -256,6 +256,10 @@ C84_AIR_TARGET_FLEET <- false;
 /* C85 : reduire le choix C68 par route aux avions structurellement non domines,
  * calcules une fois au refresh du catalogue. Experimental, defaut 0. */
 C85_AIR_EQUIPMENT_FRONTIER <- false;
+/* V88 : chaines industrielles de biens completes (intrant vers usine + biens vers ville). Defaut 0. */
+V88_GOODS_CHAIN <- false;
+/* V88 test : force les projets chaine en tete (validation du chemin de construction). */
+V88_CHAIN_FORCE <- false;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
 C75_TRACK_PASSES <- false;
@@ -437,10 +441,15 @@ C80_AIR_INC_COUNTS <- { full = 0, targeted = 0, none = 0 };
 /* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
 C78_GEN_LOG_YEAR <- -1;
 
-/* C86 Variante A : prise en compte de la cannibalisation hub->hub en retranchant
+/* V86 Variante A : prise en compte de la cannibalisation hub->hub en retranchant
  * la perte de revenu des lignes existantes des deux hubs. 0 = desactive (defaut). */
 AIR_HUBHUB_MARGINAL <- false;
 
-/* C86 Variante B : plafond abaisse de routes par aeroport hub.
+/* V86 Variante B : plafond abaisse de routes par aeroport hub.
  * 0 = plafonds actuels (4 petits/commuter, 12 grands), 1..12 = min(plafond actuel, N). */
 AIR_HUB_MAX_ROUTES <- 0;
+
+/* V89 : débit de recherche A* rail opportuniste.
+ * Avance des tranches supplémentaires tant qu'il reste du budget d'opcodes dans le tick,
+ * sans bloquer la file de fond ni changer l'ordre des tâches. 0 = désactivé (défaut). */
+V89_RAIL_SEARCH_THROUGHPUT <- false;

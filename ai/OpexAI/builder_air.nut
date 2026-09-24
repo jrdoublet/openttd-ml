@@ -454,7 +454,7 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
   return airportType != AIAirport.AT_SMALL && airportType != AIAirport.AT_COMMUTER;
 }
 
-/* C86 Variante B : plafond de routes autorisees par type d'aeroport.
+/* V86 Variante B : plafond de routes autorisees par type d'aeroport.
  * Si air_hub_max_routes vaut N > 0, le plafond devient min(plafond actuel, N). */
 function OpexAirAirportMaxRoutes(airportType)
 {
@@ -2744,7 +2744,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
             infrastructureMaintenance, maxCapital, 0, opcodePadding, economics, "pre_admission_hubhub");
       }
       if (AIR_HUBHUB_MARGINAL && economics != null && economics.profitAnnual > 0) {
-        /* C86 Variante A : retrancher la perte de revenu annuel des lignes aeriennes existantes.
+        /* V86 Variante A : retrancher la perte de revenu annuel des lignes aeriennes existantes.
          * Hypothese : CargoDist etant desactive (DT_MANUAL), les passagers montent dans le premier avion
          * quelle que soit sa destination. La nouvelle ligne hub->hub cannibalise les passagers des lignes
          * existantes des deux hubs. Aucun gain de note de gare (station rating) n'est modelise. */
