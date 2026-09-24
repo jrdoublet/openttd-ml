@@ -1031,6 +1031,15 @@ def summarize_air_slot_intercept(rows):
                 funded_stop_reasons[str(event["projects_exit"].get("stop"))] += 1
             else:
                 funded_stop_reasons["no_logged_stop"] += 1
+    c83_phase_counts = Counter()
+    c83_watch_actions = Counter()
+    for seed_events in events.values():
+        for event in seed_events:
+            phase = str(event.get("phase", ""))
+            if phase in ("c83_slot_watch", "c83_slot_claimed", "c83_slot_lost"):
+                c83_phase_counts[phase] += 1
+            if phase == "c83_slot_watch":
+                c83_watch_actions[str(event.get("action", "unknown"))] += 1
     summary = {
         "opportunities": len(opportunities),
         "second_airport_cases": len(doubled),
@@ -1056,6 +1065,10 @@ def summarize_air_slot_intercept(rows):
         ),
         "funded_reject_reasons": dict(sorted(funded_reject_reasons.items())),
         "funded_not_attempted_stop_reasons": dict(sorted(funded_stop_reasons.items())),
+        "c83_slot_watch": c83_phase_counts["c83_slot_watch"],
+        "c83_slot_watch_actions": dict(sorted(c83_watch_actions.items())),
+        "c83_slot_claimed": c83_phase_counts["c83_slot_claimed"],
+        "c83_slot_lost": c83_phase_counts["c83_slot_lost"],
         "next_build_before_second": sum(bool(e["next_build_before_second"]) for e in doubled),
         "opex_airport_before_second": sum(bool(e["opex_airport_before_second"]) for e in doubled),
         "window_median_days": statistics.median(windows) if windows else None,

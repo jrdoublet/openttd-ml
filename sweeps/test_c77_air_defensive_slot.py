@@ -128,6 +128,8 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertIn("tier > bestTier", promote)
         self.assertIn("projects.best.remove(bestIndex);", promote)
         self.assertIn("projects.best.insert(0, chosen);", promote)
+        self.assertIn('" tick=" + AIController.GetTick()', promote)
+        self.assertIn('" townA=" + defensiveTownA + " townB=" + defensiveTownB', promote)
         self.assertNotIn("candidateGroups", promote)
         self.assertNotIn("OpexAirSiteStillBuildable", promote)
 
@@ -144,16 +146,28 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         watch = body(self.task_projects, "function OpexAI::_c83WatchAirSlotTransitions(")
         self.assertIn("OpexAirC83WatchTowns(this._catalog.towns)", watch)
         self.assertIn("AITown.GetAllowedNoise(town.id)", watch)
-        self.assertIn("OpexAirTownServed(town, this._lines)", watch)
+        self.assertIn("AIStationList(AIStation.STATION_AIRPORT)", watch)
+        self.assertIn("AIStation.GetLocation(st)", watch)
+        self.assertIn("AITile.GetClosestTown(ownLoc)", watch)
+        self.assertNotIn("AIStation.GetNearestTown(st)", watch)
+        self.assertIn("local ownPresent = town.id in ownAirportTowns;", watch)
+        self.assertNotIn("OpexAirTownServed(town, this._lines)", watch)
+        self.assertIn('ownPresent ? "c83_slot_claimed" : "c83_slot_lost"', watch)
         self.assertIn("if (state != 1 || previous == 1) continue;", watch)
+        self.assertIn("action=already_funded", watch)
+        self.assertIn("action=enqueue_failed", watch)
         self.assertIn('this._c77EnqueueEntity(["air"], "town", town.id, true, "c83_slot_race")', watch)
         self.assertNotIn("candidateGroups", watch)
         self.assertNotIn("AIAirport.IsAirportTile", watch)
 
         top = body(self.builder_air, "function OpexAirC83WatchTowns(")
-        self.assertIn("AIR_EARLY_SLOT_TARGET_TOWNS", top)
-        self.assertIn("if (best.len() > AIR_EARLY_SLOT_TARGET_TOWNS) best.pop();", top)
+        self.assertIn("AIR_C83_TARGET_TOWNS", top)
+        self.assertNotIn("AIR_EARLY_SLOT_TARGET_TOWNS", top)
+        self.assertIn("if (best.len() > AIR_C83_TARGET_TOWNS) best.pop();", top)
         self.assertNotIn("OpexAirSortedTowns", top)
+
+        globals_pre = read("ai/OpexAI/globals_pre.nut")
+        self.assertIn("AIR_C83_TARGET_TOWNS <- 6;", globals_pre)
 
         attempt = body(self.task_projects, "function OpexAI::_tryBuildProjects(")
         watch_at = attempt.index("this._c83WatchAirSlotTransitions();")
@@ -161,11 +175,19 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertLess(watch_at, promote_at)
 
     def test_c78_probe_exposes_defensive_claims_only_inside_probe_paths(self):
+        slot_town = body(self.probes, "function OpexC78AirSlotTown(")
+        self.assertIn("AITile.GetClosestTown(site.anchor)", slot_town)
+        self.assertNotIn("AIAirport.GetNearestTown(site.anchor, airportType)", slot_town)
         pass_probe = body(self.probes, "function OpexAI::_c78SlotOnProjectsPass(")
+        self.assertIn("OpexC78AirSlotTown(plan.siteA, airportType)", pass_probe)
+        self.assertIn("closestA=", pass_probe)
         self.assertIn("defensive_claims=", pass_probe)
+        self.assertIn("defensive_competitor_claims=", pass_probe)
         attempt = body(self.task_projects, "function OpexAI::_tryBuildProjects(")
         self.assertIn("if (C78_SLOT_INTERCEPT_PROBE)", attempt)
+        self.assertIn("OpexC78AirSlotTown(c78Plan.siteA, c78AirportType)", attempt)
         self.assertIn("defensive_claims=", attempt)
+        self.assertIn("defensive_competitor_claims=", attempt)
 
     def test_completed_rail_search_yields_only_one_pass_to_defensive_air(self):
         attempt = body(self.task_projects, "function OpexAI::_tryBuildProjects(")
@@ -180,7 +202,7 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
     def test_c83_can_generate_and_revalidate_own_second_slot_in_top_towns(self):
         plans = air_plans_pipeline(self.builder_air)
         self.assertIn("c83TopTownIds", plans)
-        self.assertIn("AIR_EARLY_SLOT_TARGET_TOWNS", plans)
+        self.assertIn("AIR_C83_TARGET_TOWNS", plans)
         self.assertIn("OpexAirC83SecondSlotOpen(towns[i])", plans)
         self.assertIn("site.c83OwnSecondSlot <- true;", plans)
         self.assertIn('c83OwnSecondSlotA = ("c83OwnSecondSlot" in sites[a])', plans)
@@ -192,8 +214,40 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertIn("if (!servedB || !OpexAirC83SecondSlotOpen(plan.siteB.town)) return false;", live)
 
         refresh = body(self.projects, "function OpexProjectRefreshDefensiveSlot(")
+        self.assertIn("AITile.GetClosestTown(plan.siteA.anchor)", refresh)
+        self.assertIn("AITile.GetClosestTown(plan.siteB.anchor)", refresh)
+        self.assertNotIn("AIAirport.GetNearestTown(plan.siteA.anchor", refresh)
+        self.assertNotIn("AIAirport.GetNearestTown(plan.siteB.anchor", refresh)
         self.assertIn("ownClaims++;", refresh)
         self.assertIn('OpexProjectSetEarlySlotField(project, "defensiveOwnClaims", ownClaims);', refresh)
+
+    def test_targeted_air_regen_skips_only_pairs_that_cannot_touch_target(self):
+        find_site = body(self.builder_air, "function OpexAirFindSite(")
+        self.assertIn("requiredSlotTownId = -1", find_site)
+        self.assertIn("AITile.GetClosestTown(anchor) != requiredSlotTownId", find_site)
+        self.assertIn("local useSiteCache = AIR_SITE_CACHE_ENABLED && requiredSlotTownId < 0;", find_site)
+
+        find_sites = body(self.builder_air, "function OpexAirPlansFindSites(")
+        self.assertIn("local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)", find_sites)
+        self.assertIn("OpexAirFindSite(towns[i], airport, probes, c83RequiredSlotTown)", find_sites)
+
+        new_pairs = body(self.builder_air, "function OpexAirPlansNewPairs(")
+        self.assertIn("local targetSiteIndex = -1;", new_pairs)
+        self.assertIn("if (targetTownId >= 0 && targetSiteIndex < 0) pairOuterLimit = 0;", new_pairs)
+        self.assertIn("else if (targetTownId >= 0 && targetSiteIndex == 0) pairOuterLimit = 1;", new_pairs)
+        self.assertIn("for (local a = startA; a < pairOuterLimit; a++)", new_pairs)
+        self.assertIn("sites[a].town.id != targetTownId && sites[b].town.id != targetTownId", new_pairs)
+
+        hub_site = body(self.builder_air, "function OpexAirPlansHubToSite(")
+        self.assertIn("local targetTownId = ctx.targetTownId;", hub_site)
+        self.assertIn("hub.town.id != targetTownId && site.town.id != targetTownId", hub_site)
+
+        discover_hubs = body(self.builder_air, "function OpexAirPlansDiscoverHubs(")
+        self.assertIn("OpexAirFindSite(towns[i], airport, hubProbes, c83RequiredSlotTown)", discover_hubs)
+
+        hub_hub = body(self.builder_air, "function OpexAirPlansHubToHub(")
+        self.assertIn("local targetTownId = ctx.targetTownId;", hub_hub)
+        self.assertIn("hub1.town.id != targetTownId && hub2.town.id != targetTownId", hub_hub)
 
 
 if __name__ == "__main__":

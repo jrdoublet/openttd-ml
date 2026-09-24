@@ -771,7 +771,9 @@ function OpexProjectRefreshDefensiveSlot(project, state)
     local claimedTowns = {};
 
     if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
-      townA = AITile.GetClosestTown(plan.siteA.anchor);
+      if (("anchor" in plan.siteA) && AIMap.IsValidTile(plan.siteA.anchor)) {
+        townA = AITile.GetClosestTown(plan.siteA.anchor);
+      }
       if (townA < 0) townA = plan.siteA.town.id;
       if (!reuseA && townA >= 0 && AITown.IsValidTown(townA)
           && AITown.GetPopulation(townA) >= AIR_EARLY_SLOT_MIN_POP
@@ -791,7 +793,9 @@ function OpexProjectRefreshDefensiveSlot(project, state)
     }
 
     if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
-      townB = AITile.GetClosestTown(plan.siteB.anchor);
+      if (("anchor" in plan.siteB) && AIMap.IsValidTile(plan.siteB.anchor)) {
+        townB = AITile.GetClosestTown(plan.siteB.anchor);
+      }
       if (townB < 0) townB = plan.siteB.town.id;
       if (!reuseB && townB >= 0 && AITown.IsValidTown(townB)
           && AITown.GetPopulation(townB) >= AIR_EARLY_SLOT_MIN_POP
@@ -1044,9 +1048,13 @@ function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
     projects.best.remove(bestIndex);
     projects.best.insert(0, chosen);
     if (C78_SLOT_INTERCEPT_PROBE) {
+      local defensiveTownA = ("defensiveSlotTownA" in chosen) ? chosen.defensiveSlotTownA : -1;
+      local defensiveTownB = ("defensiveSlotTownB" in chosen) ? chosen.defensiveSlotTownB : -1;
       OpexC78SlotLog("phase=defensive_priority action=promote from_rank=" + bestIndex
+          + " tick=" + AIController.GetTick()
           + " finance=" + OpexProjectFinanceCapital(chosen)
           + " tier=" + bestTier
+          + " townA=" + defensiveTownA + " townB=" + defensiveTownB
           + " defensive_claims=" + chosen.defensiveSlotClaims
           + " competitor_claims=" + (("defensiveCompetitorClaims" in chosen)
               ? chosen.defensiveCompetitorClaims : 0)

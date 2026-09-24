@@ -147,6 +147,23 @@ function OpexC78AirPhysicalTown(site)
   return -1;
 }
 
+/* C83.1 : avec station_noise_level=0, la limite historique de deux aeroports
+ * est portee par la ville de la tuile d'ancrage (ClosestTownFromTile dans
+ * CmdBuildAirport), pas par la ville de bruit de l'emprise aeroportuaire. */
+function OpexC78AirSlotTown(site, airportType)
+{
+  if (site == null) return -1;
+  if (("anchor" in site) && AIMap.IsValidTile(site.anchor)) {
+    local townId = AITile.GetClosestTown(site.anchor);
+    if (townId >= 0) return townId;
+  }
+  if (("town" in site) && site.town != null) {
+    if (typeof site.town == "table" && ("id" in site.town)) return site.town.id;
+    if (typeof site.town == "integer") return site.town;
+  }
+  return -1;
+}
+
 function OpexC78FundedRank(projects, project)
 {
   if (projects == null || !("best" in projects) || projects.best == null) return -1;
@@ -187,8 +204,12 @@ function OpexAI::_c78SlotOnProjectsPass()
       local plan = project.payload;
       if (!("siteA" in plan) || !("siteB" in plan)) continue;
 
-      local townA = OpexC78AirPhysicalTown(plan.siteA);
-      local townB = OpexC78AirPhysicalTown(plan.siteB);
+      local airportType = (("airport" in plan) && plan.airport != null && ("type" in plan.airport))
+          ? plan.airport.type : -1;
+      local townA = OpexC78AirSlotTown(plan.siteA, airportType);
+      local townB = OpexC78AirSlotTown(plan.siteB, airportType);
+      local closestTownA = OpexC78AirPhysicalTown(plan.siteA);
+      local closestTownB = OpexC78AirPhysicalTown(plan.siteB);
       local capital = ("budgetCapital" in project) ? project.budgetCapital : 0;
       local finance = OpexProjectFinanceCapital(project);
       local isAffordable = finance <= available;
@@ -197,6 +218,10 @@ function OpexAI::_c78SlotOnProjectsPass()
           ? OpexProjectSelectionScore(project, "fundScore") : -1;
       local defensiveClaims = ("defensiveSlotClaims" in project)
           ? project.defensiveSlotClaims : -1;
+      local defensiveCompetitorClaims = ("defensiveCompetitorClaims" in project)
+          ? project.defensiveCompetitorClaims : -1;
+      local defensiveOwnClaims = ("defensiveOwnClaims" in project)
+          ? project.defensiveOwnClaims : -1;
       local age = ("economicsDate" in project)
           ? AIDate.GetCurrentDate() - project.economicsDate : -1;
 
@@ -207,9 +232,12 @@ function OpexAI::_c78SlotOnProjectsPass()
       OpexC78SlotLog("phase=project_candidate pass=" + passId
           + " cycle=" + cycle + " tick=" + tick
           + " townA=" + townA + " townB=" + townB
+          + " closestA=" + closestTownA + " closestB=" + closestTownB
           + " rank=" + rank + " affordable=" + (isAffordable ? 1 : 0)
           + " profit=" + project.profitAnnual + " capital=" + capital + " finance=" + finance
           + " roi=" + project.roi + " score=" + score + " defensive_claims=" + defensiveClaims
+          + " defensive_competitor_claims=" + defensiveCompetitorClaims
+          + " defensive_own_claims=" + defensiveOwnClaims
           + " age_days=" + age
           + " src=" + project.src + " dst=" + project.dst);
     }
