@@ -413,6 +413,39 @@ aucune erreur de script) : `profit_year` **+43,1 k£/an** en moyenne, médiane +
 IC95 [−234,7 ; +320,9] k£ ; valeur ratio des moyennes −1,86 %, moyenne des ratios +9,15 %. Aéroports Opex
 quasi inchangés (23,4 contre 24,0 par partie). Direction favorable, garde de valeur tenue : 20×10 à lancer.
 
+## 11 bis. Écart d'aéroports avec AAAHogEx — diagnostic du 2026-09-24
+
+Duel 5 graines × 6 ans sur le défaut (`sweeps/diag_c78_lines_vs_aaa.py`, flotte par moteur ;
+`results/diag_airports_5x6.json`). Fin 1975, 5 parties additionnées :
+
+| | OpexAI | AAAHogEx |
+|---|---|---|
+| Aéroports | 116 | 212 |
+| Paires de villes | 399 | 101 |
+| Avions | 444 | 255 |
+| Destinations par aéroport | ≈ 7 (maillage) | 1 (deux aéroports dédiés par ligne) |
+| Avions par paire | 1,1 | 2,5 |
+| Profit aérien annuel | 5,7 M£ | 8,5 M£ |
+
+Le rendement par aéroport est comparable (49 k£ contre 40 k£) : l'écart tient au **nombre** d'aéroports.
+OpexAI n'ouvre presque plus d'aéroports après 1972 (+27, +33, puis ≈ +8 par an). En 1975 le balayage des
+villes donne `origin_served` 109, `town_pop_small` 76 (grand aéroport refusé sous 600 habitants),
+`no_site` 31, `site` 1. Villes aéroport d'AAAHogEx (162) : 94 communes, **35 sous 600 habitants**,
+**31 au-dessus de 600 sans site pour OpexAI** (créneaux pris), 50 villes à deux aéroports AAAHogEx.
+Lignes AAAHogEx touchant une ville sous 600 habitants : ≈ 50-66 k£/an chacune.
+
+Règle des créneaux (bancs : `station_noise_level` désactivé) : au plus **deux aéroports par ville toutes
+compagnies confondues**, sans condition de population ; `AITown.GetAllowedNoise` = créneaux restants.
+AAAHogEx n'a pas de seuil de population : il estime la demande par la production réelle
+(`AITown.GetLastMonthProduction`), la partage entre ses lignes et la plafonne (voir fiche 32, V93.1).
+
+Flotte fin 1975 : OpexAI 75 % FFP Dart (217), 13 % LB-10 ; AAAHogEx diversifiée (Yate Haugan 218 25 %,
+moteur 226 22 %, Darwin 300 15 %, LB-10 12 %).
+
+Suites mesurées : V93 (plancher de population retiré, fiche 32 : plus d'aéroports, valeur −15 %),
+`c83_fixes` (§11, 20×10 en cours sur le PC de l'utilisateur), `c83_preempt_open` et
+`air_batch_town_reserve` (§12-§13, non retenus).
+
 ## 12. C83 — préempter une grande ville encore vide (`c83_preempt_open`)
 
 Réglage 0/1, défaut **0** : `info.nut`, `settings.nut`, `C83_PREEMPT_OPEN <- false`.

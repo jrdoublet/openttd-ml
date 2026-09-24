@@ -31,3 +31,25 @@ Aucun nom d'avion, aucun EngineID, aucun seuil de places.
 À 0, les décisions d'avion restent celles d'avant : un appareil, forfait courrier 15 %, amortissement sur 20 ans, clonage du même moteur. Le catalogue appelle quand même `GetMaxAge` et pose `mailCapacity`, et le revenu passe par `OpexAirFarePerPax`. Les décisions sont les mêmes. La trajectoire peut dériver, parce que la consommation d'opcodes n'est pas identique.
 
 Smoke 1×1, graine 42, `v92_air_service_choice=1` : partie jusqu'au 1971-01-01, `run_ok`, compteurs physiques valides (`results/smoke_v92_air_service_20260924.json`). Pas de diagnostic 5×6.
+
+## Mesures du 2026-09-24 : V92, V92.1, V92.2 (code V92.1/V92.2 non intégré)
+
+Duels appariés 5 graines × 6 ans (42, 100, 999, 1234, 5678) contre le défaut, `profit_year` :
+
+| Bras | Profit/an (moyen / médian) | V/D | IC95 | Valeur |
+|---|---|---|---|---|
+| V92 (`v92_air_service_choice=1`, master) | −570 k / −469 k | 0/5 | [−887 ; −254] k | −42 % |
+| V92.1 (moteur au balayage, 1 avion, sans variante bon marché ni rééquipement) | −865 k / −781 k | 0/5 | [−1 185 ; −544] k | −55 % |
+| V92.2 critère 0 (score C82 à la flotte optimale n, courrier 15 %, amortissement 20 ans) | −627 k / −772 k | 1/4 | [−1 020 ; −234] k | −51 % |
+| V92.2 critère 1 (choix du défaut, départage au profit à n dans 5 %) | −86 k / −69 k | 2/3 | [−351 ; +179] k | −10 % |
+
+Traces : sous V92, 29 chantiers sur 31 prenaient la variante à un appareil bon marché (≈ 65 k£), qui
+fermait la paire au meilleur service (≈ 494 k£ pour n ≈ 3). V92.1 supprime ce concurrent et démarre
+chaque ligne à un avion, mais perd davantage : le défaut démarre déjà à un avion (`FLEET_PORTFOLIO`),
+et V92 changeait en même temps le critère de moteur (profit absolu au lieu de C82), le forfait courrier
+(soute réelle) et l'amortissement (âge maximal). Revenir au critère C82 et au modèle du défaut
+(V92.2 critère 1) efface presque toute la perte sans rien gagner. La soute courrier réellement chargée
+vaut ~0,32 fois les passagers (sonde `V92_MAIL`), contre 0,105 supposé par V92.
+
+Conclusion : choisir l'avion au meilleur service à la flotte optimale n'apporte rien face au choix C82
+à un avion. **V92 non retenu.** Le code V92.1/V92.2 est resté dans une worktree locale, hors master.
