@@ -341,6 +341,7 @@ class OpexAI extends AIController {
   function _tryTownGrowth(year);
   function _prepareTownGrowth();
   function _tryTownGrowthCity(townId, year, anchor = null);
+  function _markTownGrowthRejected(townId);
   function _recordTownWorkerSlice(sliceOps, builtCount);
   function _runNextTask();
   function _runNextTaskWithSlackLedger();

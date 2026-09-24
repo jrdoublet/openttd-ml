@@ -466,6 +466,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "town_growth_roi_gate",
+      description = "C87: build a town-growth bus line only if its predicted annual profit is positive, and close one losing money two full years in a row; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
         AddSetting({
       name = "rail_expand",
       description = "Add one wagon to profitable saturated one-train rail lines: 1 = enabled, 0 = control (default)",

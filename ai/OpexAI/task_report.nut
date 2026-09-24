@@ -337,6 +337,25 @@ function OpexAI::_reportLines(year)
       if (!("scrapping" in line)) line.scrapping <- false;
       if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
       if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
+    } else if (TOWN_GROWTH_ROI_GATE && ("purpose" in line) && line.purpose == "town_growth") {
+      /* C87 : une ligne de croissance urbaine n'a pas d'autre justification que son bilan. Comme
+       * l'air (G10), deux annees deficitaires consecutives la ferment via _scrapDeadLines ; seules
+       * comptent les annees pleines (ligne construite avant le 1er janvier de l'annee rapportee). */
+      local fullYear = ("year" in line) && line.year <= year - 2;
+      local priorStreak = ("deadStreak" in line) ? line.deadStreak : 0;
+      local nextStreak = (fullYear && profit < 0) ? priorStreak + 1 : 0;
+      if ("deadStreak" in line) line.deadStreak = nextStreak;
+      else line.deadStreak <- nextStreak;
+      if (!("scrapping" in line)) line.scrapping <- false;
+      if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
+      if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
+      if (nextStreak >= DEAD_STREAK_THRESHOLD && !line.scrapping && ("srcTown" in line)) {
+        this._markTownGrowthRejected(line.srcTown);
+        if (DECISION_LOG) {
+          OpexDecide("TOWN_GROWTH", "action=close town=" + line.srcTown + " line=" + line.lineId
+                     + " profit=" + profit + " streak=" + nextStreak);
+        }
+      }
     }
   }
   if (C50_CHRONOLOGY_PROBE) {

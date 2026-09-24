@@ -47,6 +47,36 @@ function OpexGetServedTowns(lines)
   }
   return result;
 }
+/* C87 : cle de refus d'une ville dans _abandonedPairs (sauvegardee, purgee par _pruneAbandonedPairs). */
+function OpexTownGrowthRejectKey(townId)
+{
+  return "town_growth|" + townId;
+}
+
+/* C87 : passagers mensuels captes par les deux arrets d'une ligne intra-ville.
+ * GetCargoProduction compte des tuiles productrices, pas des passagers : on les convertit avec la
+ * production moyenne par maison de la ville le mois dernier. Le recouvrement des deux bassins est
+ * retire comme pour une ligne ville-ville (OpexRoadPaxUniqueMonthly). */
+function OpexTownGrowthStopsMonthly(townId, cargo, tileA, tileB, distance)
+{
+  local houses = AITown.GetHouseCount(townId);
+  if (houses < 1) houses = 1;
+  local perHouse = AITown.GetLastMonthProduction(townId, cargo).tofloat() / houses;
+  local capA = (AITile.GetCargoProduction(tileA, cargo, 1, 1, ROAD_PAX_CATCHMENT_RADIUS) * perHouse).tointeger();
+  local capB = (AITile.GetCargoProduction(tileB, cargo, 1, 1, ROAD_PAX_CATCHMENT_RADIUS) * perHouse).tointeger();
+  return OpexRoadPaxUniqueMonthly(capA, capB, distance);
+}
+
+/* C87 : memorise un refus sans passer par _markPairAbandoned, qui declencherait une reelection du
+ * portefeuille (_hadAbandonsThisPass) et une invalidation C76 sans objet pour la croissance urbaine. */
+function OpexAI::_markTownGrowthRejected(townId)
+{
+  local key = OpexTownGrowthRejectKey(townId);
+  local count = (key in this._abandonCounts) ? (this._abandonCounts[key] + 1) : 1;
+  this._abandonCounts[key] <- count;
+  this._abandonedPairs[key] <- { date = AIDate.GetCurrentDate(), count = count };
+}
+
 /* Évalue les gardes d'éligibilité et de trésorerie pour la croissance urbaine.
  * Renvoie le tableau des villes desservies en cas de succès, null sinon. */
 function OpexAI::_prepareTownGrowth()
@@ -78,6 +108,9 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
     if (DECISION_LOG) OpexDecide("TOWN_GROWTH_MEMO", "action=skip town=" + townId);
     return false;
   }
+  /* C87 : une ville refusee (profit predit <= 0 ou ligne fermee a perte) n'est pas replanifiee
+   * avant la fin de son delai d'abandon ; la planification est le poste couteux de cette tache. */
+  if (TOWN_GROWTH_ROI_GATE && (OpexTownGrowthRejectKey(townId) in this._abandonedPairs)) return false;
   local currentCount = OpexCountTownStations(townId);
   if (currentCount >= 5) return false;
 
@@ -156,6 +189,24 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
   candidate.distance = actualDist;
   local routeDist = (plan.routeDistance != null && plan.routeDistance > 0) ? plan.routeDistance : actualDist;
   candidate.capital = 2 * this._catalog.costRoadBusStop + routeDist * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + candidate.engine.price;
+
+  if (TOWN_GROWTH_ROI_GATE) {
+    /* C87 : meme modele et meme seuil que les lignes route de profit apres implantation
+     * (task_road.nut, unprofitable_after_siting), sur la demande captee par les deux arrets reels. */
+    local monthly = OpexTownGrowthStopsMonthly(townId, this._catalog.paxCargo, plan.stopA.tile,
+                                               plan.stopB.tile, actualDist);
+    local economics = OpexRoadLineEconomics(this._catalog, this._catalog.paxCargo, actualDist,
+                                            monthly, engine, "pax", plan.routeDistance);
+    local predicted = (economics == null) ? 0 : economics.profitAnnual;
+    if (economics == null || predicted <= 0) {
+      this._markTownGrowthRejected(townId);
+      if (DECISION_LOG) {
+        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                   + " reason=roi monthly=" + monthly + " profit=" + predicted + " dist=" + actualDist);
+      }
+      return false;
+    }
+  }
 
   local need = candidate.capital + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
