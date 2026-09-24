@@ -272,3 +272,116 @@ réintroduire le coût et les risques de sérialisation qui avaient déjà affec
 La prochaine question C78 n'est plus « le parcours 1024² bloque-t-il l'IA ? » mais « la sélection
 des 256 villes garde-t-elle les bonnes occasions ? ». Une stratification spatiale ne doit être
 introduite qu'après une mesure de rappel/qualité du vivier contre les lignes rentables d'AAAHogEx.
+
+## 10. C83.1 — fermeture du contrat de ville de slot (2026-09-24)
+
+Le 20×10 précédent avait montré un effet territorial mais `opex_airport_before_second=0`. L'audit
+des cas construits a trouvé que ce zéro mélangeait plusieurs notions de « ville » :
+
+- le watcher utilisait `OpexAirTownServed`, qui signifie qu'une origine commerciale de ligne est à
+  moins de 15 cases, pas qu'Opex occupe physiquement un slot de cette ville ;
+- les projets et la sonde pouvaient rattacher le site via une ville différente de celle qui porte le
+  verrou des deux aéroports ;
+- la course C83 réutilisait directement la constante early-slot à 6 villes, ce qui empêchait
+  d'expérimenter séparément sa largeur de surveillance ;
+- le regroupement STNN du harnais n'est pas le TownID du slot moteur et ne peut donc pas servir de
+  vérité terrain pour savoir qui a fermé le deuxième slot.
+
+Le correctif donne donc à C83 sa propre constante `AIR_C83_TARGET_TOWNS`; le watcher construit une
+fois par passe l'ensemble des aéroports Opex et les rattache par
+`AITile.GetClosestTown(AIStation.GetLocation(st))`; une régénération ciblée impose
+`ClosestTown(anchor)==targetTownId` et n'utilise pas le cache de site historique sur ce chemin rare.
+Les parcours AIR ciblés ne conservent que les paires pouvant toucher cette cible. Enfin la sonde
+publie les transitions directes `c83_slot_claimed` (Opex ferme le second slot) et `c83_slot_lost`
+(le concurrent le ferme), qui sont la métrique correcte de cette course.
+
+### Validation mécanique
+
+- tests ciblés Docker : **9/9 OK** ; selftest `diag_1v1_shared_monthly.py` OK ;
+- smoke sensible graines 999 et 65537 × 3 ans : **2/2 sain**, 20 événements watcher
+  (5 `already_funded`, 15 `targeted_regen`), **13 slots claimed / 5 lost** ;
+- ablation 5×6 du watcher corrigé : le cœur **6 villes** observe **19 watches, 16 claimed / 2 lost**
+  (88,9 % des fermetures résolues), contre **44 watches, 33 claimed / 11 lost** avec 24 villes
+  (75,0 %). Étendre 6→24 donne seulement **+13,8 k£/an** de `profit_year` moyen sur ces cinq graines
+  mais **−182,9 k£** de valeur moyenne ; l'échantillon est trop petit pour une conclusion économique,
+  mais les 18 villes marginales ont un taux de course moins propre. Le défaut final revient donc à
+  **`AIR_C83_TARGET_TOWNS=6`**, tout en gardant la constante séparée pour de futures requalifications.
+
+### Qualification causale 20×10 de l'expansion 24 villes
+
+Les deux bras utilisent les 20 graines canoniques × 10 ans, 6 workers / 6 CPU, et terminent
+**20/20 sains** au 1979-12-01. Les conteneurs parallèles sont autorisés par le protocole courant.
+
+Économie Opex :
+
+- `profit_year` : **+76 904 £/an** en moyenne, médiane **+53 741 £/an**, **13/7**, test des signes
+  p=**0,263176**, IC95 normal indicatif **[-81,4 ; +235,2] k£/an** ;
+- valeur d'entreprise : **−138 567 £** en moyenne, ratio des moyennes **−1,54 %**, **10/10** ;
+- la règle standard 20×10 n'est donc **pas franchie** sur wins/p, même si le seuil utile moyen
+  (+50 k£/an) et la garde valeur (−5 %) sont respectés ;
+- l'écart de profit `Opex−AAAHogEx` s'améliore en moyenne d'environ **+60,1 k£/an**, mais l'écart
+  de valeur se dégrade d'environ **−766,5 k£**.
+
+Territoire STNN (utile pour comparer les bras, mais pas pour attribuer une fermeture de slot) :
+
+| état `(AAAHogEx,OpexAI)` | contrôle fin 1972 | C83 fin 1972 | contrôle fin 1975 | C83 fin 1975 | contrôle fin 1979 | C83 fin 1979 |
+|---|---:|---:|---:|---:|---:|---:|
+| `(2,0)` monopole AAA | **142** | **119** | **184** | **178** | **215** | **193** |
+| `(1,1)` partagé | 247 | 264 | 353 | 358 | 426 | 401 |
+| `(0,2)` double Opex | 0 | **26** | 0 | **36** | 1 | **48** |
+
+La mesure directe du verrou est plus nette : **200 `c83_slot_watch`**, dont 103 trouvent déjà un
+candidat financé et 97 déclenchent une régénération ciblée ; **136 slots sont ensuite claimed par
+Opex contre 57 lost**, soit **70,5 %** des fermetures observées. Le solde `claimed−lost` est positif
+sur **17/20 graines** (exploratoire : test des signes p≈0,00258). Le binomial événement par événement
+serait encore plus petit mais n'est pas utilisé comme preuve indépendante, les événements d'une même
+graine étant corrélés.
+
+Cette expansion prouve que C83.1 fonctionne comme **mécanisme territorial direct**, mais elle n'est
+pas retenue comme largeur par défaut : le 20×10 reste 13/7 sur `profit_year`, et l'ablation 5×6
+montre que les villes 7–24 diluent le taux de fermeture. Les **57 courses perdues** appartiennent donc
+au diagnostic 24-villes, pas au reliquat du défaut final à six villes.
+
+### Qualification causale 20×10 du défaut final à 6 villes
+
+Le défaut final `AIR_C83_TARGET_TOWNS=6` a ensuite été rejoué sur les mêmes 20 graines canoniques
+× 10 ans, 6 workers / 6 CPU, contre le même contrôle signal-off. Les deux bras sont **20/20 sains**
+au 1979-12-01. Le contrôle publie bien 0 événement `c83_slot_watch/claimed/lost`, donc la largeur
+6/24 n'intervient pas dans ce bras.
+
+Économie Opex :
+
+- `profit_year` : **+165 329 £/an** en moyenne, médiane **+230 108 £/an**, **15/5**,
+  test des signes p=**0,041389**, IC95 normal indicatif **[+36,4 ; +294,2] k£/an** ;
+- valeur d'entreprise : **+609 128 £** en moyenne, **13/7**, ratio des moyennes **+6,78 %** ;
+- la règle standard 20×10 est donc **franchie** : effet moyen > +50 k£/an, au moins 15 victoires,
+  p<0,05 et garde valeur largement respectée ;
+- AAAHogEx recule en moyenne de **314 729 £/an** de `profit_year` et de **668 167 £** de valeur ;
+  l'écart `Opex−AAAHogEx` s'améliore donc d'environ **+480,1 k£/an** en profit et **+1,277 M£**
+  en valeur.
+
+Territoire STNN, toujours utile pour la comparaison entre bras mais pas pour attribuer la fermeture
+du slot moteur :
+
+| état `(AAAHogEx,OpexAI)` | contrôle fin 1972 | C83-6 fin 1972 | contrôle fin 1975 | C83-6 fin 1975 | contrôle fin 1979 | C83-6 fin 1979 |
+|---|---:|---:|---:|---:|---:|---:|
+| `(2,0)` monopole AAA | **142** | **119** | **184** | **159** | **215** | **178** |
+| `(1,1)` partagé | 247 | **284** | 353 | **372** | 426 | **435** |
+| `(0,2)` double Opex | 0 | **12** | 0 | **15** | 1 | **15** |
+
+La mesure directe du verrou sur le défaut final compte **76 watches** :
+35 trouvent déjà un candidat financé et 41 déclenchent une régénération ciblée. Elles se résolvent
+en **56 `c83_slot_claimed` contre 17 `c83_slot_lost`**, soit **76,7 %** des fermetures observées
+en faveur d'Opex. Le solde `claimed−lost` est positif sur **17/20 graines**, négatif sur une et nul
+sur deux ; test des signes exploratoire sur les graines non nulles p≈**0,000145**.
+
+Conclusion : **C83.1 est terminé et qualifié avec le défaut final à 6 villes**, à la fois comme
+mécanisme territorial direct et comme amélioration économique sur ce protocole. L'expansion à
+24 villes reste un diagnostic utile mais n'est pas retenue.
+
+Artefacts :
+`results/diag_c83_slot_control_5x6_20260924.json`,
+`results/diag_c83_slot_treatment_5x6_20260924.json`,
+`results/diag_c83_slot_control_20x10_20260924.json` et
+`results/diag_c83_slot_treatment_20x10_20260924.json` (expansion 24 villes), plus
+`results/diag_c83_slot_final6_treatment_20x10_20260924.json` pour le défaut final à 6 villes.

@@ -304,7 +304,7 @@ function OpexAirC83SecondSlotOpen(town)
 function OpexAirC83WatchTowns(towns)
 {
   local best = [];
-  if (!OpexAirC83SlotSignalEnabled() || towns == null || AIR_EARLY_SLOT_TARGET_TOWNS <= 0) {
+  if (!OpexAirC83SlotSignalEnabled() || towns == null || AIR_C83_TARGET_TOWNS <= 0) {
     return best;
   }
   foreach (town in towns) {
@@ -314,9 +314,9 @@ function OpexAirC83WatchTowns(towns)
     local item = { town = town, pop = pop };
     local pos = best.len();
     while (pos > 0 && best[pos - 1].pop < pop) pos--;
-    if (pos >= AIR_EARLY_SLOT_TARGET_TOWNS) continue;
+    if (pos >= AIR_C83_TARGET_TOWNS) continue;
     best.insert(pos, item);
-    if (best.len() > AIR_EARLY_SLOT_TARGET_TOWNS) best.pop();
+    if (best.len() > AIR_C83_TARGET_TOWNS) best.pop();
   }
   local out = [];
   foreach (item in best) out.append(item.town);
@@ -574,7 +574,7 @@ function OpexAirRememberTownStationLimit(probes, town, error)
 /* Trouve la premiere ancre constructible, par couronnes autour de la ville. L'ancre est bien le
  * coin haut-gauche attendu par BuildAirport. La couverture est testee contre le rectangle entier,
  * pas seulement contre son coin. */
-function OpexAirFindSite(town, airport, probes)
+function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
 {
   if (C60_TOWN_RATING_PROBE) {
     OpexC60ObserveTownRating("air", "find_site", town.id);
@@ -583,7 +583,11 @@ function OpexAirFindSite(town, airport, probes)
   if (probes != null && ("stationLimitedTowns" in probes)
       && (town.id in probes.stationLimitedTowns)) return null;
   local key = town.id + "_" + airport.type;
-  if (AIR_SITE_CACHE_ENABLED && (key in AIR_SITE_CACHE)) {
+  /* C83 cible : le cache historique est indexe par ville commerciale/type.
+   * Une course au slot exige en plus ClosestTown(anchor)==ville cible ; ne pas
+   * reutiliser ni ecrire ce cache dans ce chemin rare. */
+  local useSiteCache = AIR_SITE_CACHE_ENABLED && requiredSlotTownId < 0;
+  if (useSiteCache && (key in AIR_SITE_CACHE)) {
     local cachedAnchor = AIR_SITE_CACHE[key];
     if (cachedAnchor == null) {
       return null;
@@ -680,6 +684,7 @@ function OpexAirFindSite(town, airport, probes)
         if (AITile.IsWaterTile(anchor) || AITile.IsCoastTile(anchor)) continue;
         local c4 = anchor + AIMap.GetTileIndex(offX, offY);
         if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
+        if (requiredSlotTownId >= 0 && AITile.GetClosestTown(anchor) != requiredSlotTownId) continue;
         if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
 
         if (AIR_CHEAP_SITE) {
@@ -711,7 +716,7 @@ function OpexAirFindSite(town, airport, probes)
         }
 
         if (used >= allowance) {
-          if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- null;
+          if (useSiteCache) AIR_SITE_CACHE[key] <- null;
           return null;
         }
         if (probes.left <= 0) return null;
@@ -725,7 +730,7 @@ function OpexAirFindSite(town, airport, probes)
           if (!ok) {
             local err = AIError.GetLastError();
             if (OpexAirRememberTownStationLimit(probes, town, err)) {
-              if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- null;
+              if (useSiteCache) AIR_SITE_CACHE[key] <- null;
               return null;
             } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
                 OpexAirFootprintIsFlat(anchor, airport)) {
@@ -746,7 +751,7 @@ function OpexAirFindSite(town, airport, probes)
           if (!ok) {
             local err = AIError.GetLastError();
             if (OpexAirRememberTownStationLimit(probes, town, err)) {
-              if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- null;
+              if (useSiteCache) AIR_SITE_CACHE[key] <- null;
               return null;
             } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
               ok = true;
@@ -756,7 +761,7 @@ function OpexAirFindSite(town, airport, probes)
               if (!ok) {
                 local retryErr = AIError.GetLastError();
                 if (OpexAirRememberTownStationLimit(probes, town, retryErr)) {
-                  if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- null;
+                  if (useSiteCache) AIR_SITE_CACHE[key] <- null;
                   return null;
                 }
                 if (retryErr == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
@@ -768,13 +773,13 @@ function OpexAirFindSite(town, airport, probes)
         probes.left--;
         if ("tested" in probes) probes.tested++;
         if (ok) {
-          if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- anchor;
+          if (useSiteCache) AIR_SITE_CACHE[key] <- anchor;
           return { town = town, anchor = anchor };
         }
       }
     }
   }
-  if (AIR_SITE_CACHE_ENABLED && (used >= allowance || probes.left > 0)) {
+  if (useSiteCache && (used >= allowance || probes.left > 0)) {
     AIR_SITE_CACHE[key] <- null;
   }
   return null;
@@ -1819,9 +1824,9 @@ function OpexAirPlansPrepare(ctx)
      * villes deja couvertes par la politique early-slot. Calculer ce rang
      * avant une eventuelle remise en tete targetTownId preserve le vrai
      * classement par population. */
-    if (OpexAirC83SlotSignalEnabled() && AIR_EARLY_SLOT_TARGET_TOWNS > 0) {
-      local c83TopLimit = towns.len() < AIR_EARLY_SLOT_TARGET_TOWNS
-          ? towns.len() : AIR_EARLY_SLOT_TARGET_TOWNS;
+    if (OpexAirC83SlotSignalEnabled() && AIR_C83_TARGET_TOWNS > 0) {
+      local c83TopLimit = towns.len() < AIR_C83_TARGET_TOWNS
+          ? towns.len() : AIR_C83_TARGET_TOWNS;
       for (local c83i = 0; c83i < c83TopLimit; c83i++) {
         if (towns[c83i].pop >= AIR_EARLY_SLOT_MIN_POP) {
           c83TopTownIds.rawset(towns[c83i].id, true);
@@ -1922,6 +1927,7 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
   local stationLimitedTowns = ctx.stationLimitedTowns;
   local towns = ctx.towns;
   local lines = ctx.lines;
+  local targetTownId = ctx.targetTownId;
   local servedDiag = ctx.servedDiag;
   local c83TopTownIds = ctx.c83TopTownIds;
   local c78Gen = ctx.c78Gen;
@@ -1972,7 +1978,9 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_pop_small", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_pop_small");
         } else {
-          local site = OpexAirFindSite(towns[i], airport, probes);
+          local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
+              ? targetTownId : -1;
+          local site = OpexAirFindSite(towns[i], airport, probes, c83RequiredSlotTown);
           if (site != null) {
             if (c83OwnSecondSlot) site.c83OwnSecondSlot <- true;
             scanSites.append(site);
@@ -2120,9 +2128,26 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
   local tEval0 = AIController.GetTick();
   local lEval0 = AIController.GetOpsTillSuspend();
   local siteValidity = {};
+  /* Une regeneration AIR ciblee sur une ville ne conservera plus tard que les
+   * projets qui touchent cette ville. OpexAirPlansPrepare met deja la cible en
+   * tete : dans le cas normal, evaluer seulement a=0 transforme C(n,2) en O(n)
+   * sans changer l'ensemble de candidats finalement reinjecte. Si l'invariant
+   * ne tient pas, repli exact sur le parcours complet + filtre historique. */
+  local targetSiteIndex = -1;
+  if (targetTownId >= 0) {
+    for (local targetIndex = 0; targetIndex < sites.len(); targetIndex++) {
+      if (sites[targetIndex].town.id == targetTownId) {
+        targetSiteIndex = targetIndex;
+        break;
+      }
+    }
+  }
+  local pairOuterLimit = sites.len();
+  if (targetTownId >= 0 && targetSiteIndex < 0) pairOuterLimit = 0;
+  else if (targetTownId >= 0 && targetSiteIndex == 0) pairOuterLimit = 1;
   local startA = sliced && resumeState.combo == comboIndex ? resumeState.a : 0;
   local pairProgress = false;
-  for (local a = startA; a < sites.len(); a++) {
+  for (local a = startA; a < pairOuterLimit; a++) {
     local startB = sliced && resumeState.combo == comboIndex && a == startA
         ? resumeState.b : a + 1;
     for (local b = startB; b < sites.len(); b++) {
@@ -2326,6 +2351,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
   local limit = ctx.limit;
   local stationLimitedTowns = ctx.stationLimitedTowns;
   local towns = ctx.towns;
+  local targetTownId = ctx.targetTownId;
   local servedDiag = ctx.servedDiag;
   local c83TopTownIds = ctx.c83TopTownIds;
   local hubIndex = ctx.hubIndex;
@@ -2351,7 +2377,9 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
         /* Typage : grands aéroports dès 600 hab */
         if (combo.kind == "large" && towns[i].pop < 600) continue;
         if (combo.kind == "small" && towns[i].pop >= 2500) continue;
-        local extraSite = OpexAirFindSite(towns[i], airport, hubProbes);
+        local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
+            ? targetTownId : -1;
+        local extraSite = OpexAirFindSite(towns[i], airport, hubProbes, c83RequiredSlotTown);
         if (extraSite != null) {
           if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;
           sites.append(extraSite);
@@ -2491,12 +2519,15 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
   local c78Gen = ctx.c78Gen;
   local projects = ctx.projects;
   local bestPlan = ctx.bestPlan;
+  local targetTownId = ctx.targetTownId;
 
   foreach (hub in hubs) {
     local hubMonthlyPre = C80_AIR_EVAL_FAST
         ? (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
         : 0;
     foreach (site in sites) {
+      if (targetTownId >= 0
+          && hub.town.id != targetTownId && site.town.id != targetTownId) continue;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
       if (distance < 20) {
@@ -2603,6 +2634,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
   local lines = ctx.lines;
   local hubIndex = ctx.hubIndex;
   local bestPlan = ctx.bestPlan;
+  local targetTownId = ctx.targetTownId;
 
   local hubAvgIncome = [];
   if (AIR_HUBHUB_MARGINAL) {
@@ -2667,9 +2699,11 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         ? (((hubs[i].town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hubs[i].routes + 1))
         : 0;
     for (local j = i + 1; j < hubs.len(); j++) {
-      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local hub1 = hubs[i];
       local hub2 = hubs[j];
+      if (targetTownId >= 0
+          && hub1.town.id != targetTownId && hub2.town.id != targetTownId) continue;
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local st1 = hub1.stationId;
       local st2 = hub2.stationId;
       local alreadyConnected = false;

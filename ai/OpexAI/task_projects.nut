@@ -286,12 +286,30 @@ function OpexAI::_c83WatchAirSlotTransitions()
 
   local enqueued = 0;
   local watched = OpexAirC83WatchTowns(this._catalog.towns);
+  /* C83.1 : "present" doit signifier qu'Opex occupe physiquement un slot de
+   * CETTE ville, pas seulement qu'une origine commerciale de ligne est proche.
+   * OpexAirTownServed() est volontairement plus large (<15 Manhattan autour des
+   * originA/B) et peut donc masquer a tort l'arrivee du premier aeroport adverse.
+   * Construire l'ensemble une fois par passage garde le cout O(nb aeroports),
+   * au lieu de reparcourir toutes les lignes pour chacune des K villes suivies. */
+  local ownAirportTowns = {};
+  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+    local ownLoc = AIStation.GetLocation(st);
+    local ownTownId = AIMap.IsValidTile(ownLoc) ? AITile.GetClosestTown(ownLoc) : -1;
+    if (ownTownId >= 0 && AITown.IsValidTown(ownTownId)) ownAirportTowns.rawset(ownTownId, true);
+  }
   foreach (town in watched) {
     local remaining = AITown.GetAllowedNoise(town.id);
-    local ownPresent = OpexAirTownServed(town, this._lines);
+    local ownPresent = town.id in ownAirportTowns;
     local state = remaining + (ownPresent ? 10 : 0);
     local previous = (town.id in this._c83SlotWatch) ? this._c83SlotWatch[town.id] : 2;
     this._c83SlotWatch.rawset(town.id, state);
+
+    if (previous == 1 && remaining == 0 && C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=" + (ownPresent ? "c83_slot_claimed" : "c83_slot_lost")
+          + " town=" + town.id + " previous=1 remaining=0 own=" + (ownPresent ? 1 : 0));
+    }
 
     if (state != 1 || previous == 1) continue;
     local alreadyFunded = false;
@@ -308,13 +326,22 @@ function OpexAI::_c83WatchAirSlotTransitions()
         }
       }
     }
-    if (alreadyFunded) continue;
+    if (alreadyFunded) {
+      if (C78_SLOT_INTERCEPT_PROBE) {
+        OpexC78SlotLog("phase=c83_slot_watch town=" + town.id
+            + " previous=" + previous + " remaining=1 action=already_funded");
+      }
+      continue;
+    }
     if (this._c77EnqueueEntity(["air"], "town", town.id, true, "c83_slot_race")) {
       enqueued++;
       if (C78_SLOT_INTERCEPT_PROBE) {
         OpexC78SlotLog("phase=c83_slot_watch town=" + town.id
             + " previous=" + previous + " remaining=1 action=targeted_regen");
       }
+    } else if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + town.id
+          + " previous=" + previous + " remaining=1 action=enqueue_failed");
     }
   }
   return enqueued;
@@ -697,12 +724,18 @@ function OpexAI::_tryBuildProjects(year)
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       if (C78_SLOT_INTERCEPT_PROBE) {
         local c78Plan = project.payload;
+        local c78AirportType = (("airport" in c78Plan) && c78Plan.airport != null
+            && ("type" in c78Plan.airport)) ? c78Plan.airport.type : -1;
         OpexC78SlotLog("phase=air_attempt pass=" + C78_SLOT_PASS_COUNTER
             + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
-            + " rank=" + i + " townA=" + OpexC78AirPhysicalTown(c78Plan.siteA)
-            + " townB=" + OpexC78AirPhysicalTown(c78Plan.siteB)
+            + " rank=" + i + " townA=" + OpexC78AirSlotTown(c78Plan.siteA, c78AirportType)
+            + " townB=" + OpexC78AirSlotTown(c78Plan.siteB, c78AirportType)
+            + " closestA=" + OpexC78AirPhysicalTown(c78Plan.siteA)
+            + " closestB=" + OpexC78AirPhysicalTown(c78Plan.siteB)
             + " src=" + project.src + " dst=" + project.dst
             + " defensive_claims=" + (("defensiveSlotClaims" in project) ? project.defensiveSlotClaims : -1)
+            + " defensive_competitor_claims=" + (("defensiveCompetitorClaims" in project) ? project.defensiveCompetitorClaims : -1)
+            + " defensive_own_claims=" + (("defensiveOwnClaims" in project) ? project.defensiveOwnClaims : -1)
             + " finance=" + OpexProjectFinanceCapital(project)
             + " available=" + OpexAvailableCapital() + " built_before=" + liveBuiltCount);
       }
@@ -723,11 +756,18 @@ function OpexAI::_tryBuildProjects(year)
           }
         }
         local c78Plan = project.payload;
+        local c78AirportType = (("airport" in c78Plan) && c78Plan.airport != null
+            && ("type" in c78Plan.airport)) ? c78Plan.airport.type : -1;
         OpexC78SlotLog("phase=air_outcome pass=" + C78_SLOT_PASS_COUNTER
             + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
-            + " rank=" + i + " townA=" + OpexC78AirPhysicalTown(c78Plan.siteA)
-            + " townB=" + OpexC78AirPhysicalTown(c78Plan.siteB)
+            + " rank=" + i + " townA=" + OpexC78AirSlotTown(c78Plan.siteA, c78AirportType)
+            + " townB=" + OpexC78AirSlotTown(c78Plan.siteB, c78AirportType)
+            + " closestA=" + OpexC78AirPhysicalTown(c78Plan.siteA)
+            + " closestB=" + OpexC78AirPhysicalTown(c78Plan.siteB)
             + " src=" + project.src + " dst=" + project.dst
+            + " defensive_claims=" + (("defensiveSlotClaims" in project) ? project.defensiveSlotClaims : -1)
+            + " defensive_competitor_claims=" + (("defensiveCompetitorClaims" in project) ? project.defensiveCompetitorClaims : -1)
+            + " defensive_own_claims=" + (("defensiveOwnClaims" in project) ? project.defensiveOwnClaims : -1)
             + " outcome=" + attempt.outcome + " reason=" + c78Reason
             + " detail=" + c78Detail + " error=" + c78Error);
       }

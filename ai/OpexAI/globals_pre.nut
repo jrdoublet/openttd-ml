@@ -63,6 +63,12 @@ AIR_EARLY_SLOT <- false;
 AIR_EARLY_SLOT_TARGET_TOWNS <- 6;
 AIR_EARLY_SLOT_MIN_POP <- 1000;
 AIR_EARLY_SLOT_BONUS_PCT <- 50;
+/* C83.1 : objectif territorial distinct du bonus early-slot historique.
+ * L'ablation du 2026-09-24 a teste 24 villes, mais les 18 villes marginales
+ * ajoutaient des courses moins propres et degradaient la valeur au 5x6 ;
+ * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
+ * pas requalifie. */
+AIR_C83_TARGET_TOWNS <- 6;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
