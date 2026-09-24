@@ -222,3 +222,25 @@ le duel ne valorise pas.
 V91 fait bien prendre des lignes rail (présence ×3,5, constante), mais AAAHogEx n'en est pas
 gênée et ces lignes ne paient pas assez pour compenser. L'occupation du terrain ne vaut que si
 les lignes prises sont bonnes : à rejouer quand le rail sera rentable ligne par ligne.
+
+### Poids 120 : adopté par défaut (2026-09-24)
+
+Mode vérification, graines 100/999/1234 × 8 ans (`results/v91_w120.jsonl`) : 5 recherches,
+itérations 2 863→1 853, 1 820→241, 9 582→389, 5 863→1 081, 3 470→1 313 : ratio médian **0,18**
+(÷ 5,4) ; longueur identique (médiane 1,00) ; coût A* **+3,6 %** médian (0 à +9,6 %).
+
+Duel 20×10 contre le défaut (V90 + C76), campagne `v91_w120_vs_default_10y_20seeds_20260924`,
+40/40 parties, 20/20 paires, statuts `complete` :
+
+| métrique | résultat |
+|---|---|
+| `profit_year` (variante − référence) | moyenne −28,6 k£/an, médiane **+28,1 k£/an**, IC95 [−127,4 ; +70,1] |
+| victoires / défaites | **11 / 9** (p signes = 0,82) |
+| valeur d'entreprise | −0,79 % (garde −5 % tenue) |
+| trains / gares rail OpexAI | 1,15 → 2,35 trains (12/1), +2,3 gares rail (12/1) |
+| profit/an AAAHogEx | −169 k£ (médiane −190 k£, 8/12) |
+| verdict du harnais | `fail_primary` (seuil +50 k£/an non visé) |
+
+**Décision utilisateur du 2026-09-24 : `v91_astar_weight_pct` = 120 par défaut**, en application
+de la règle d'adoption des optimisations d'opcodes (AGENTS.md §4) : recherches ÷ 5, tracés presque
+optimaux, 20×10 sans perte. Le poids 150 reste rejeté (tracés +8 %, 7/13).

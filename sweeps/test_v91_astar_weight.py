@@ -2,8 +2,8 @@
 """Tests de contrat textuels pour V91 : heuristique pondérée A* rail (weighted A*).
 
 Vérifie les contrats statiques du code Squirrel (.nut) :
-1. Déclaration du réglage v91_astar_weight_pct dans info.nut (défaut 100, min 100, max 300, pas 10 ou 25, flags 0).
-2. Déclaration de la globale V91_ASTAR_WEIGHT_PCT <- 100; dans globals_pre.nut.
+1. Déclaration du réglage v91_astar_weight_pct dans info.nut (défaut 120 depuis le 2026-09-24, min 100, max 300, pas 10 ou 25, flags 0).
+2. Déclaration de la globale V91_ASTAR_WEIGHT_PCT <- 120; dans globals_pre.nut.
 3. Chargement dans settings.nut via AIController.GetSetting("v91_astar_weight_pct").
 4. Présence dans parse_ai_settings et parse_ai_setting_specs de campaign_freeze.
 5. Application du poids uniquement dans OpexRailPathFinderV90 (pas dans BaNaNaS ni d'autres pathfinders).
@@ -51,16 +51,16 @@ class TestV91AstarWeightContract(unittest.TestCase):
         block = info[start:info.index("});", start)]
         self.assertIn("min_value = 100", block)
         self.assertIn("max_value = 300", block)
-        self.assertIn("custom_value = 100", block)
-        self.assertIn("easy_value = 100", block)
-        self.assertIn("medium_value = 100", block)
-        self.assertIn("hard_value = 100", block)
+        self.assertIn("custom_value = 120", block)
+        self.assertIn("easy_value = 120", block)
+        self.assertIn("medium_value = 120", block)
+        self.assertIn("hard_value = 120", block)
         self.assertIn("flags = 0", block)
         self.assertTrue("step_size = 10" in block or "step_size = 25" in block)
 
     def test_global_declared_in_globals_pre_nut(self):
         globals_pre = _read("ai/OpexAI/globals_pre.nut")
-        self.assertIn("V91_ASTAR_WEIGHT_PCT <- 100;", globals_pre)
+        self.assertIn("V91_ASTAR_WEIGHT_PCT <- 120;", globals_pre)
 
     def test_setting_loaded_in_settings_nut(self):
         settings = _read("ai/OpexAI/settings.nut")
@@ -71,7 +71,7 @@ class TestV91AstarWeightContract(unittest.TestCase):
         defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
         specs = parse_ai_setting_specs(ROOT / "ai" / "OpexAI" / "info.nut")
         self.assertIn("v91_astar_weight_pct", defaults)
-        self.assertEqual(defaults["v91_astar_weight_pct"], 100)
+        self.assertEqual(defaults["v91_astar_weight_pct"], 120)
         spec = specs["v91_astar_weight_pct"]
         self.assertEqual(spec["min_value"], 100)
         self.assertEqual(spec["max_value"], 300)

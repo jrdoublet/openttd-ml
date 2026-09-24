@@ -672,10 +672,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v91_astar_weight_pct",
-      description = "V91: weighted A* heuristic percentage for rail pathfinder (100 = unweighted V90 default, >100 faster search with slightly longer routes)",
+      description = "V91: weighted A* heuristic percentage for rail pathfinder (100 = unweighted V90, >100 faster search with slightly longer routes; default 120)",
       min_value = 100, max_value = 300,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
+      easy_value = 120, medium_value = 120, hard_value = 120,
+      custom_value = 120,
       step_size = 10,
       flags = 0
     });

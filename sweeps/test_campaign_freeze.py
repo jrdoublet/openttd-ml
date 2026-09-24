@@ -180,7 +180,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "air_hubhub_marginal", "air_hub_max_routes", "v89_rail_search_throughput",
                      "v90_pathfinder_check", "v92_air_service_choice"):
             self.assertEqual(defaults[name], 0, name)
-        self.assertEqual(defaults["v91_astar_weight_pct"], 100)
+        self.assertEqual(defaults["v91_astar_weight_pct"], 120)
         self.assertNotIn("c80_fleet_inject", defaults)
         self.assertNotIn("c80_air_targeted_update", defaults)
         self.assertNotIn("c77_opportunistic_candidates", defaults)
