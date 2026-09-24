@@ -229,6 +229,20 @@ def run_selftest():
     assert builds[0]["outcome"] == "built"
     assert builds[0]["reason"] == "-"
 
+    extra = parse_c78_logs(
+        "OPEX 1971-1-1 C78_AIRTOWN year=1971 combo=0:12 town=11 rank=1 outcome=no_site\n"
+        "OPEX 1971-1-1 C78_AIRTOWN year=1971 combo=0:12 town=12 rank=2 outcome=no_site_slot\n"
+        "OPEX 1971-1-1 C78_AIRTOWN year=1971 combo=0:12 town=13 rank=3 outcome=no_site_budget\n"
+        "OPEX 1971-1-1 C78_AIRTOWN year=1971 combo=0:12 town=14 rank=4 outcome=no_site_terrain\n"
+    )
+    outs = {row["town"]: row["outcome"] for row in extra["airtowns"][1971]}
+    assert outs == {
+        11: "no_site",
+        12: "no_site_slot",
+        13: "no_site_budget",
+        14: "no_site_terrain",
+    }
+
     print("diag_c78_lines_vs_aaa selftest passed: parsing C78_CAND, AIRPOOL, AIRTOWN, AIRPAIR, BUILD ok.")
 
 

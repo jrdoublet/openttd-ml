@@ -282,7 +282,7 @@ function OpexAI::_dispatchCatalog(task, year)
       } else {
         local budgetNow = OpexAvailableCapital();
         this._projects = OpexReselectProjects(
-            this._projects, budgetNow, this._abandonedPairs);
+            this._projects, budgetNow, this._abandonedPairs, this._lines);
       }
       this._c76RecordAvoided(year);
     }
@@ -713,7 +713,7 @@ function OpexAI::_dispatchAirFleet(task, year)
       this._resizeAirFleets(year, fleetPlan);
       if (fleetPlan.len() > 0) {
         local budgetNow = OpexAvailableCapital();
-        this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow);
+        this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow, this._lines);
         this._ranked = this._projects.rail;
       }
     }

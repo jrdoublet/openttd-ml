@@ -620,6 +620,10 @@ function OpexEarlySlotSelectionState()
   local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
   for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
     local townId = AIStation.GetNearestTown(st);
+    if (C83_FIXES) {
+      local slotTown = OpexAirSlotTownId(AIStation.GetLocation(st));
+      if (slotTown >= 0) townId = slotTown;
+    }
     if (townId < 0 || !AITown.IsValidTown(townId)) continue;
     if (AITown.GetPopulation(townId) < AIR_EARLY_SLOT_MIN_POP) continue;
     if (townId in state.servedTowns) continue;
@@ -643,6 +647,10 @@ function OpexDefensiveSlotSelectionState(earlySlotState = null)
     local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
     for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
       local townId = AIStation.GetNearestTown(st);
+      if (C83_FIXES) {
+        local slotTown = OpexAirSlotTownId(AIStation.GetLocation(st));
+        if (slotTown >= 0) townId = slotTown;
+      }
       if (townId < 0 || !AITown.IsValidTown(townId)) continue;
       if (AITown.GetPopulation(townId) < AIR_EARLY_SLOT_MIN_POP) continue;
       if (townId in state.servedTowns) continue;
@@ -1190,7 +1198,7 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
  * route ne repasse ici. Les statistiques sont remplacees ensemble car IG| et IB| doivent decrire
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
-function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null)
+function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null)
 {
   local b6BudgetDate = AIDate.GetCurrentDate();
   local funded = null;
@@ -1200,7 +1208,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null)
   foreach (key, list in projects.candidateGroups) {
     foreach (project in list) alternatives.push(project);
   }
-  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs);
+  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   considered = alternatives.len();
   projects.stats.knapsackNodes = 0;
@@ -1420,7 +1428,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
 }
 
 function OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
-                                        entityKind = null, entityId = -1)
+                                        entityKind = null, entityId = -1, lines = null)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
@@ -1461,7 +1469,7 @@ function OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mod
     }
   }
   OpexProjectsRecountGroups(projects);
-  return OpexReselectProjects(projects, OpexAvailableCapital(), abandonedPairs);
+  return OpexReselectProjects(projects, OpexAvailableCapital(), abandonedPairs, lines);
 }
 
 function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
@@ -1473,7 +1481,7 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
   local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
                                              mode, waterSiteCatalog, entityKind, entityId);
   return OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
-                                        entityKind, entityId);
+                                        entityKind, entityId, lines);
 }
 
 /* C78.4 : variante reprenable du seul mode AIR pour le worker C77. Le scan de sites
@@ -1520,7 +1528,7 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   return {
     done = true,
     projects = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, "air",
-                                              entityKind, entityId),
+                                              entityKind, entityId, lines),
   };
 }
 
@@ -1696,7 +1704,7 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
  * une extremite est devenue impossible ou dont la paire a ete abandonnee.
  * Plusieurs projets peuvent partager la meme extremite : une seule sonde par
  * site/type/reuse suffit pour toute la selection. */
-function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null)
+function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null, lines = null)
 {
   local live = [];
   local siteValidity = {};
@@ -1707,6 +1715,7 @@ function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null
           || OpexCandidateIsAbandoned(project, abandonedPairs)) continue;
       local plan = project.payload;
       if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) continue;
+      if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) continue;
 
       local reuseA = ("reuseA" in plan) && plan.reuseA;
       local reuseB = ("reuseB" in plan) && plan.reuseB;
@@ -2105,7 +2114,7 @@ function OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capit
 
 /* C80 fleet inject : injecte les opportunites mures de flotte directement dans
  * candidateGroups, sans recalculer les plans aeriens. */
-function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null)
+function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null, lines = null)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
@@ -2141,7 +2150,7 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
 
   projects.candidateGroups = winners;
   OpexProjectsRecountGroups(projects);
-  return OpexReselectProjects(projects, capitalBudget, abandonedPairs);
+  return OpexReselectProjects(projects, capitalBudget, abandonedPairs, lines);
 }
 
 /* C36.1 : Caching incremental du vivier post-chantier.
@@ -2251,7 +2260,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
-  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs);
+  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();
@@ -2732,7 +2741,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
-  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs);
+  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();

@@ -69,6 +69,9 @@ AIR_EARLY_SLOT_BONUS_PCT <- 50;
  * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
  * pas requalifie. */
 AIR_C83_TARGET_TOWNS <- 6;
+/* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
+ * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
+C83_FIXES <- false;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
