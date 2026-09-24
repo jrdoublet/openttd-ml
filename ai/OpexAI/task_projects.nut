@@ -180,7 +180,15 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   local costs = C63_INVEST_PROBE ? AIAccounting() : null;
   local added = 0;
   for (local k = 0; k < entry.want; k++) {
-    local grown = OpexAirAddPlane(line);
+    local grown = OpexAirAddPlane(line, this._catalog);
+    if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {
+      if (grown.reason == "REPLACE" && ("vehCount" in grown)) {
+        line.vehCount <- grown.vehCount;
+        line.trains = grown.vehCount;
+        added += 1;
+      }
+      break;
+    }
     if (grown.added <= 0) break;
     added += grown.added;
     local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;

@@ -476,12 +476,15 @@ function OpexAI::_triggerScrapLine(line, criterion)
   local stationA = AIStation.GetStationID(line.stationA);
   local vehicles = ("vehicles" in line) ? line.vehicles
       : (AIStation.IsValidStation(stationA) ? OpexLineVehicleIds(line, stationA) : []);
+  local reequipPending = OpexAirLineReequipPending(line);
   foreach (v in vehicles) {
     if (!AIVehicle.IsValidVehicle(v)) continue;
     if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
-    AIVehicle.SendVehicleToDepot(v);
+    /* V92 a déjà envoyé ces avions. Un second SendVehicleToDepot annulerait le trajet. */
+    if (!reequipPending) AIVehicle.SendVehicleToDepot(v);
     ids.append(v);
   }
+  if (reequipPending) OpexAirClearReequip(line);
   line.scrapVehicles = ids;
   if (DECISION_LOG) {
     local m = ("mode" in line) ? line.mode : "unknown";
@@ -590,6 +593,8 @@ function OpexAI::_scrapRetiredVehicles(year)
       clearStreaks.append(vehicle);
       continue;
     }
+    local ownerLine = lineId >= 0 ? this._findLineById(lineId) : null;
+    if (OpexAirLineReequipPending(ownerLine)) continue;
     local started = ("startedDate" in ticket) ? ticket.startedDate : now;
     if (AIVehicle.IsStoppedInDepot(vehicle)) {
       if (AIVehicle.SellVehicle(vehicle)) {

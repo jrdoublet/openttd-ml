@@ -35,7 +35,7 @@ class TestB8ScrapLifecycle(unittest.TestCase):
         body = function_body(self.air, "function OpexAI::_resizeAirFleets(")
         guard = body.index('if (("scrapping" in line) && line.scrapping)')
         crash = body.index('if (("needsRefleet" in line) && line.needsRefleet)')
-        purchase = body.index("local grown = OpexAirAddPlane(line)")
+        purchase = body.index("local grown = OpexAirAddPlane(line, this._catalog)")
         self.assertLess(guard, crash)
         self.assertLess(guard, purchase)
         self.assertIn('OpexAirFleetRefusal(line, year, "K")', body[guard:crash])
@@ -44,7 +44,7 @@ class TestB8ScrapLifecycle(unittest.TestCase):
     def test_fleet_project_revalidates_scrapping_at_purchase_boundary(self):
         body = function_body(self.projects, "function OpexAI::_tryBuildFleetProject(")
         guard = body.index('line == null || (("scrapping" in line) && line.scrapping)')
-        purchase = body.index("local grown = OpexAirAddPlane(line)")
+        purchase = body.index("local grown = OpexAirAddPlane(line, this._catalog)")
         self.assertLess(guard, purchase)
         self.assertIn('reason = "line_scrapping"', body[guard:purchase])
         self.assertIn('outcome = "rejected"', body[guard:purchase])
