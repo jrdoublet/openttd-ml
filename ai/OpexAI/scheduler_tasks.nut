@@ -623,6 +623,48 @@ function OpexAI::_dispatchReport(task, year)
   }
   OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+  /* Diagnostic passif de tresorerie sous probe_portfolio. Les quatre panneaux
+   * sont volontairement compacts (< 31 caracteres) pour etre relus depuis le
+   * chunk SIGN sans dependre du journal stdout d'OpenTTD. Ils sont publies
+   * avant _logC49ScarcityLedger(), qui remet le registre annuel a zero. */
+  if (C49_SCARCITY_LEDGER) {
+    local ucCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    local ucLoan = AICompany.GetLoanAmount();
+    local ucReserve = OpexCashReserve();
+    local ucAvail = OpexAvailableCapital();
+    local ucHeadNeed = -1;
+    local ucHeadMode = "none";
+    if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0
+        && this._projects.best[0] != null) {
+      local ucHead = this._projects.best[0];
+      ucHeadNeed = OpexProjectFinanceCapital(ucHead);
+      if (("mode" in ucHead) && ucHead.mode != null) ucHeadMode = ucHead.mode;
+    }
+    local ucRailPhase = 0;
+    local ucRailNeed = -1;
+    if (this._railSearch != null) {
+      ucRailPhase = (("phase" in this._railSearch) && this._railSearch.phase == "build") ? 2 : 1;
+      if (("candidate" in this._railSearch) && this._railSearch.candidate != null
+          && ("capital" in this._railSearch.candidate)) {
+        ucRailNeed = this._railSearch.candidate.capital;
+      }
+    }
+    OpexSign(AIMap.GetTileIndex(2, 1), "UC|" + (year % 100) + "|" + ucCash + "|" + ucLoan + "|" + ucReserve);
+    OpexSign(AIMap.GetTileIndex(2, 2), "UP|" + (year % 100) + "|" + ucAvail + "|" + ucHeadNeed + "|" + ucHeadMode);
+    OpexSign(AIMap.GetTileIndex(2, 3), "UR|" + (year % 100) + "|" + ucRailPhase + "|" + ucRailNeed);
+    if (this._c49ScarcityLedger != null) {
+      local ucDecision = this._c49ScarcityLedger.decision_attempted + this._c49ScarcityLedger.decision_unattempted;
+      OpexSign(AIMap.GetTileIndex(2, 4), "US|" + (year % 100) + "|" + this._c49ScarcityLedger.cash
+               + "|" + this._c49ScarcityLedger.site + "|" + ucDecision + "|" + this._c49ScarcityLedger.none);
+      OpexSign(AIMap.GetTileIndex(2, 5), "UT|" + (year % 100) + "|" + this._c49ScarcityLedger.stop_k_pass
+               + "|" + this._c49ScarcityLedger.stop_cash + "|" + this._c49ScarcityLedger.stop_rail_search
+               + "|" + this._c49ScarcityLedger.stop_list_end + "|" + this._c49ScarcityLedger.stop_other);
+    }
+    if (C75_YEAR_LEDGER != null) {
+      OpexSign(AIMap.GetTileIndex(2, 6), "UB|" + (year % 100) + "|" + C75_YEAR_LEDGER.passes
+               + "|" + C75_YEAR_LEDGER.builds + "|" + C75_YEAR_LEDGER.multi_passes);
+    }
+  }
   if (CASH_RESERVE_PROBE) {
     local calls = CASH_RESERVE_PROBE_CALLS - this._cashReserveProbeLastCalls;
     local minBinds = CASH_RESERVE_PROBE_MIN_BINDS - this._cashReserveProbeLastMinBinds;

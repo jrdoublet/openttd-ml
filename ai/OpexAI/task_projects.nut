@@ -1135,6 +1135,9 @@ function OpexAI::_tryBuildProjects(year)
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
+        if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
+          this._c49ScarcityLedger.stop_rail_search++;
+        }
         if (C78_SLOT_INTERCEPT_PROBE) {
           OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
               + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
@@ -1283,6 +1286,13 @@ function OpexAI::_tryBuildProjects(year)
       } else {
         c75StopReason = (!C75_MULTI_BUILD) ? "single" : "list_end";
       }
+    }
+    if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null && builtCount > 0) {
+      if (c75StopReason == "k_pass") this._c49ScarcityLedger.stop_k_pass++;
+      else if (c75StopReason == "cash") this._c49ScarcityLedger.stop_cash++;
+      else if (c75StopReason == "rail_search") this._c49ScarcityLedger.stop_rail_search++;
+      else if (c75StopReason == "list_end") this._c49ScarcityLedger.stop_list_end++;
+      else this._c49ScarcityLedger.stop_other++;
     }
     OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
   }

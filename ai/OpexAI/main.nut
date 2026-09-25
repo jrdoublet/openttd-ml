@@ -518,7 +518,8 @@ function OpexAI::Start()
   if (TENSION_PROBE) OpexTensionEnable(this._budget);
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
-        decision_attempted = 0, decision_unattempted = 0, none = 0 };
+        decision_attempted = 0, decision_unattempted = 0, none = 0,
+        stop_k_pass = 0, stop_cash = 0, stop_rail_search = 0, stop_list_end = 0, stop_other = 0 };
     this._c49ScarcityRegime = "cash";
   }
   if (C50_CHRONOLOGY_PROBE) {

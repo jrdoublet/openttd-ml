@@ -277,7 +277,8 @@ function OpexAI::_logC49ScarcityLedger(year)
       + " decision_unattempted=" + entry.decision_unattempted
       + " none=" + entry.none + " regime=" + regime);
   this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
-      decision_attempted = 0, decision_unattempted = 0, none = 0 };
+      decision_attempted = 0, decision_unattempted = 0, none = 0,
+      stop_k_pass = 0, stop_cash = 0, stop_rail_search = 0, stop_list_end = 0, stop_other = 0 };
 }
 /* C50 : suivi mensuel de la tresorerie. 12 lignes par an, leger et sans allocation inutile. */
 function OpexAI::_checkC50MonthlyTreasury(year)
