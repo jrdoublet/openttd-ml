@@ -228,6 +228,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v88_step2_plan_immediate",
+      description = "V88: allow goods chain step 2 to build when railPlan is already computed, without waiting for railSearch to be idle: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_full_load",
       description = "C81: air full-load orders; 0 = none (default), 1 = full load at both airports, 2 = full load at the first airport only (AAAHogEx default)",
       min_value = 0, max_value = 2,

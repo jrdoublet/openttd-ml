@@ -130,3 +130,66 @@ Conformément à la consigne, les smokes et diagnostics en partie réelle seront
 - **Seuils d'arbitrage** :
   - **Effet utile** : `+50 k£/an`
   - **Garde de valeur d'entreprise** : `−5 %` maximum admissible sur la valeur finale de l'entreprise.
+
+---
+
+## 5. Avec la recherche rapide (V90/V91)
+
+Depuis le **2026-09-24**, les optimisations V90 (−8 % opcodes/itération) et V91 (A* pondéré au poids 120, itérations par recherche ÷ 5,4) sont actives par défaut dans OpexAI.
+
+### 5.1 Impact physique sur le cycle d'une chaîne
+- **Durée de recherche** : Une recherche qui exigeait ~3 000 itérations (soit 2,5 à 3 années de jeu à 900 iters/an) ne demande plus qu'environ **450 à 650 itérations**, parcourues en **10 à 12 tranches** de `RAIL_SEARCH_SLICE = 50`.
+- **Délai temporel** : À raison d'un passage de tâche toutes les ~8-10 semaines calendaires, chaque étape de recherche s'accomplit désormais en **~60 à 100 jours de jeu (2 à 3 mois)**.
+- **Cycle complet** :
+  1. Décision portefeuille (`CHAIN_CHOSEN`)
+  2. Recherche étape 1 (intrant) : ~2–3 mois (`CHAIN_STEP1_SEARCH` → `CHAIN_SEARCH_END step=1`)
+  3. Mise en service étape 1 (`CHAIN_STEP1`)
+  4. Recherche étape 2 (biens) : ~2–3 mois (`CHAIN_STEP2_SEARCH` → `CHAIN_SEARCH_END step=2`)
+  5. Mise en service étape 2 (`CHAIN_STEP2`)
+  6. Première livraison de biens : ~3–4 mois après mise en service (`CHAIN_DELIVERY`)
+  - **Délai total décision → étape 2** : **~6 à 9 mois**, contre 5 à 6 ans avant V91.
+
+### 5.2 Analyse des attentes et goulots restants (hors A*)
+1. **Absence d'attente de production de biens** :
+   - Le code (`ai/OpexAI/task_rail.nut:350-440`) ne contient **aucun test d'attente de production effective** (`GetLastMonthProduction > 0`) entre l'étape 1 et l'étape 2.
+   - L'étape 2 s'engage immédiatement dès la pose du quai d'intrant. Le délai de recherche de l'étape 2 (~2-3 mois) chevauche naturellement le premier aller-retour du train d'intrants (trajet dépôt → ferme, chargement, trajet ferme → usine, déchargement, soit ~80-120 jours).
+2. **Une seule chaîne active à la fois** :
+   - `this._activeGoodsChain` (`task_rail.nut:161`) impose un verrou exclusif : toute nouvelle chaîne candidate est écartée avec `chain_in_progress` tant que l'étape 2 n'est pas construite.
+3. **Monopolisation du créneau `_railSearch`** :
+   - L'emplacement unique `this._railSearch` est occupé consécutivement par l'étape 1 puis l'étape 2. Pendant chacune de ces phases de 2-3 mois, les autres projets ferroviaires reçoivent `search_in_progress`.
+4. **Trésorerie et calibrage du portefeuille** :
+   - `OpexProjectFinanceCapital` (`projects.nut:288`) applique `budgetCapital = candInput.capital + candGoods.capital` multiplié par 1,7 (biais rail). Une chaîne exige donc 120k à 180k£ de trésorerie disponible pour franchir le filtre `financeCapital <= capitalBudget` (`projects.nut:909`).
+   - Même sous `v88_chain_force=1`, ce filtre de capital n'était pas contourné, empêchant l'élection d'une chaîne dans les 2 premières années de jeu.
+5. **Cadence de sélection / rotation du fret** :
+   - `candidates.nut:1280` filtre sur `cargoIn == freightCargo`. Le cargo d'intrant (céréales, bétail, acier) n'est donc évalué que lors des passes où la rotation `freightCargoOrder` le sélectionne.
+6. **Condition de reprise de l'étape 2 (`v88_step2_plan_immediate`)** :
+   - `task_projects.nut:616` imposait `this._railSearch == null` pour reprendre l'étape 2. Si l'étape 2 avait déjà calculé son `railPlan` mais avait été différée pour trésorerie insuffisante (`C41_RAIL_CASH_RELEASE`), elle restait bloquée si un autre projet rail lançait une recherche.
+   - Le nouveau réglage `v88_step2_plan_immediate` (défaut 0, booléen) autorise la construction de l'étape 2 dès que son `railPlan` est prêt, sans attendre que `_railSearch` redevienne inactif.
+
+### 5.3 Protocole de mesure opérationnel
+1. **Diagnostic solo 5 graines × 8 ans** :
+   ```bash
+   python3 sweeps/diag_c69_bottleneck_probe.py \
+     --arm "OpexAI[probe_portfolio=1,probe_events=1,v88_goods_chain=1]" \
+     --seeds 100 12345 42 7 999 --years 8 --max-workers 3 \
+     --grep "CHAIN_" --raw results/diag_v88_chain_solo_raw.jsonl \
+     --out results/diag_v88_chain_solo.json
+   ```
+   Variante avec forçage de chaîne :
+   ```bash
+   python3 sweeps/diag_c69_bottleneck_probe.py \
+     --arm "OpexAI[probe_portfolio=1,probe_events=1,v88_goods_chain=1,v88_chain_force=1]" \
+     --seeds 100 12345 42 7 999 --years 8 --max-workers 3 \
+     --grep "CHAIN_" --raw results/diag_v88_chain_force_raw.jsonl \
+     --out results/diag_v88_chain_force.json
+   ```
+2. **Analyse des délais et livraisons** :
+   ```bash
+   python3 sweeps/analyse_v88_chains.py results/diag_v88_chain_solo_raw.jsonl
+   python3 sweeps/analyse_v88_chains.py results/diag_v88_chain_force_raw.jsonl
+   ```
+   - Indicateurs : chaînes choisies, terminées, livrant des biens (`CHAIN_DELIVERY` et `delivered_cargo_last_quarter[goods] > 0`), délais médians par étape.
+3. **Critères d'accès au duel** :
+   - Passage au **duel apparié 5×6** (`run_c66_reference.py`) si au moins 3/5 graines construisent une chaîne complète avec des biens livrés.
+   - Seuil de qualification économique : effet utile `+50 k£/an` sur `profit_year`, garde de valeur d'entreprise `−5 %`.
+   - Duel officiel **20 graines × 10 ans** avant tout changement de défaut.

@@ -36,6 +36,9 @@ except ImportError:
     pass
 
 
+from physical_counters import decode_vehicles
+
+
 C78_TAG_RE = re.compile(r"OPEX (\d+)-\d+-\d+ (C78_[A-Z]+)\s*(.*)")
 
 
@@ -155,8 +158,17 @@ def keep(row):
                 "tiles": l.get("ordered_station_tiles", []),
                 "cargo": l.get("cargo_types", []),
             })
+        # Flotte aerienne par modele (EngineID de la tete, decodeur physique 1.2.0).
+        air_engines = {}
+        veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=owner)
+        if veh_dec.get("chunk_valid"):
+            for vehicle in veh_dec["primary_vehicles_detail"]:
+                if vehicle.get("mode") == "air" and vehicle.get("engine_type") is not None:
+                    key = str(vehicle["engine_type"])
+                    air_engines[key] = air_engines.get(key, 0) + 1
         companies_data[str(owner)] = {
             "lines": lines_summary,
+            "air_engines": air_engines if veh_dec.get("chunk_valid") else None,
         }
 
     return ({

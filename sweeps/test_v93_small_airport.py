@@ -31,7 +31,7 @@ class V93AirportNoPopFloorTests(unittest.TestCase):
         self.assertIn("V93_AIRPORT_MIN_POP <- 100;", GLOBALS)
         self.assertNotIn("V93_SMALL_AIRPORT_TOWNS", GLOBALS)
         self.assertNotIn("V93_SMALL_AIRPORT_MIN_POP", GLOBALS)
-        self.assertEqual(INFO.count("AddSetting("), 80)
+        self.assertEqual(INFO.count("AddSetting("), 81)
         start = INFO.index('name = "v93_airport_no_pop_floor"')
         block = INFO[start:INFO.index("});", start)]
         for token in (

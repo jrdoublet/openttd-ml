@@ -226,7 +226,7 @@ def selftest():
             c66 = json.load(f)
         tel = physical_telemetry(c66["chunks"], owner=0)
         assert tel["chunk_valid"] is True, "Télémétrie valide attendue sur fixture C66"
-        assert tel["schema_version"] == "1.1.0"
+        assert tel["schema_version"] in ("1.1.0", "1.2.0")
         assert tel["primary_vehicles_by_mode"]["train"] == 1
         assert tel["primary_vehicles_by_mode"]["roadveh"] == 17
         assert tel["primary_vehicles_by_mode"]["aircraft"] == 3

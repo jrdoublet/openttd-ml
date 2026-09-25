@@ -50,7 +50,7 @@ class C83FixesContractTests(unittest.TestCase):
             'C83_FIXES = AIController.GetSetting("c83_fixes") != 0;',
             self.settings,
         )
-        self.assertEqual(self.info.count("AddSetting("), 80)
+        self.assertEqual(self.info.count("AddSetting("), 81)
         self.assertIn("_c83SlotRace = null;", self.main)
 
     def test_watch_list_ranks_contestable_towns_only_when_enabled(self):

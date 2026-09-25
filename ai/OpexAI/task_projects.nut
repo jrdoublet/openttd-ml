@@ -769,15 +769,23 @@ function OpexAI::_tryBuildProjects(year)
     }
   }
 
-  /* V88 : reprise prioritaire de l'etape 2 d'une chaine de biens en attente */
+  /* V88 : reprise prioritaire de l'etape 2 d'une chaine de biens en attente.
+   * ("cle" in null) tue le script : ne lire la chaine que si elle existe. */
+  local step2CanRun = this._railSearch == null;
+  if (!step2CanRun && V88_STEP2_PLAN_IMMEDIATE && this._activeGoodsChain != null
+      && ("goodsCandidate" in this._activeGoodsChain) && this._activeGoodsChain.goodsCandidate != null
+      && ("railPlan" in this._activeGoodsChain.goodsCandidate)
+      && this._activeGoodsChain.goodsCandidate.railPlan != null) {
+    step2CanRun = true;
+  }
   if (V88_GOODS_CHAIN && this._activeGoodsChain != null && this._activeGoodsChain.step == 2
-      && this._railSearch != null) {
+      && this._railSearch != null && !step2CanRun) {
     local v88Own = (("candidate" in this._railSearch) && this._railSearch.candidate != null
         && ("isChainStep2" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep2) ? 1 : 0;
     OpexV88Log("CHAIN_WAIT", "step=2 reason=rail_search own=" + v88Own
                + " kind=" + (("kind" in this._railSearch) ? this._railSearch.kind : "?"));
   }
-  if (V88_GOODS_CHAIN && this._activeGoodsChain != null && this._activeGoodsChain.step == 2 && this._railSearch == null) {
+  if (V88_GOODS_CHAIN && this._activeGoodsChain != null && this._activeGoodsChain.step == 2 && step2CanRun) {
     local step2Built = this._tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
     if (step2Built) {
       builtCount++;

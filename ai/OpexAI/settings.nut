@@ -232,6 +232,7 @@ function OpexLoadSettings()
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
+  V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
   if (C69_TRACK_BUILDS) {
