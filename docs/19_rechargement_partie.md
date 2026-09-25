@@ -112,4 +112,4 @@ reconstitution de `this._lines` dans `_reconcileAfterLoad` : il tournait sur la 
 remettait tous les facteurs à 1, soit le défaut qu'il devait corriger. La vérification du §6 ne
 portait que sur K_dec et K_pass. Déplacé après `this._lines = liveLines` (branche
 `nuit-2026-09-22`) ; vérifié sur la graine 42 : facteurs identiques avant la sauvegarde et après le
-chargement, à l'arrondi près (`20_nuit_2026-09-22.md` §3).
+chargement, à l'arrondi près (`journaux/20_nuit_2026-09-22.md` §3).

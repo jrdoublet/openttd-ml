@@ -11,10 +11,10 @@ Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) e
    modification. Préserver les changements et fichiers non suivis de l'utilisateur.
 2. Lire l'« État courant » de `docs/taches.md`, puis chercher les symboles et réglages concernés
    dans le code. Avant de rouvrir une piste, consulter aussi
-   [le journal du 13 septembre](docs/journal_2026-09-13.md) et
-   [l'archive des tâches](docs/taches_archive_2026-09-09.md), ainsi que les journaux quotidiens
+   [le journal du 13 septembre](docs/journaux/journal_2026-09-13.md) et
+   [l'archive des tâches](docs/archives/taches_archive_2026-09-09.md), ainsi que les journaux quotidiens
    récents liés depuis `docs/taches.md`. Les comptes rendus retirés de la liste le 22 septembre
-   sont conservés dans `docs/journal_2026-09-22_transfert_historique.md`.
+   sont conservés dans `docs/journaux/journal_2026-09-22_transfert_historique.md`.
 3. Distinguer décision utilisateur, implémentation, hypothèse et mesure. Une ancienne mention
    « à faire » ou un commentaire ne prouve pas l'état actuel.
 4. Définir une intervention isolée et sa validation avant de modifier le comportement.

@@ -1,6 +1,6 @@
 {
   "schema": "opex-review-evidence-v1",
-  "description": "Exact gzip copies of JSON evidence cited by docs/revue, docs/taches.md, docs/journal_2026-09-22_transfert_historique.md and docs/revue_code_2026-09-15_correctifs.md.",
+  "description": "Exact gzip copies of JSON evidence cited by docs/revue, docs/taches.md, docs/journaux/journal_2026-09-22_transfert_historique.md and docs/revue_code_2026-09-15_correctifs.md.",
   "artifacts": [
     {
       "source": "results/bench_air_demand_plan_10y.json",

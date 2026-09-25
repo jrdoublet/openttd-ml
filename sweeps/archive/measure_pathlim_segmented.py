@@ -6,7 +6,7 @@ mesuree est le prototype ai/TrainLineAI-segmented, PAS la production ai/TrainLin
 aucun fichier de production, de donnees ou de checkpoint n'est ecrit.
 
 Ce harnais et le prototype ont ete rapatries depuis /tmp le 2026-08-28 -- ils y avaient
-ete produits, et /tmp ne survit pas a un redemarrage. Voir docs/journal_2026-08-28.md.
+ete produits, et /tmp ne survit pas a un redemarrage. Voir docs/journaux/journal_2026-08-28.md.
 """
 import json
 import re

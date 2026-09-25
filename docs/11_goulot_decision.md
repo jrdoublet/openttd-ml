@@ -23,11 +23,11 @@ dans sa **génération** quand il devient riche, pas son classement (§12).
 | fait | mesure | source |
 |---|---|---|
 | Le classement est une densité pure, à tout moment de la partie | `fundScore = P × 1000 / financeCapital` | `projects.nut:681`, `:699` |
-| Un ratio seul est *cheap-first* | `portfolio_v2` isolé : gares **+27 %**, valeur **−24,4 %**, profit **−30,7 %** | `journal_2026-09-02.md:259`, `bench_isolation_3y_20seeds` |
+| Un ratio seul est *cheap-first* | `portfolio_v2` isolé : gares **+27 %**, valeur **−24,4 %**, profit **−30,7 %** | `journaux/journal_2026-09-02.md:259`, `bench_isolation_3y_20seeds` |
 | La trésorerie ne bloque que les premières années | cause `cash` : **53 %** des non-chantiers en 1972, **0 %** en 1974-1975 ; `decision` **92–94 %** après correction du biais | `06_denominateur_variable.md` §9-§10 |
 | La caisse s'accumule sans emploi (C68, médiane 5 graines) | **0,2 M£** au 1972-01, **1,3 M£** au 1974-01, **3,3 M£** fin 1975 | `results/opcode_frontier_optimized_final_vs_c68_5x6.json`, bras C68 |
-| Les décisions deviennent rares | **168 → 18,3** passes pour 100 jours entre 1971 et 1975 (÷9,2) | C39.6b, `journal_2026-09-13.md:259` |
-| Une décision coûte de plus en plus cher | régénération **573 k → 2 355 k** opcodes par appel, environ **38 k par ligne possédée** | C48.1, `journal_2026-09-13.md:2510` |
+| Les décisions deviennent rares | **168 → 18,3** passes pour 100 jours entre 1971 et 1975 (÷9,2) | C39.6b, `journaux/journal_2026-09-13.md:259` |
+| Une décision coûte de plus en plus cher | régénération **573 k → 2 355 k** opcodes par appel, environ **38 k par ligne possédée** | C48.1, `journaux/journal_2026-09-13.md:2510` |
 | Le vivier est souvent vide | **58,6–61,8 %** des passes `projects` | C39.5b, C49 §9 |
 
 **Lecture.** Le capital est la ressource rare pendant environ trois ans ; ensuite, c'est la

@@ -6,7 +6,7 @@
 
 ⚠️ **Décision utilisateur explicite du 2026-09-10.** Elle **lève** le refus du 2026-09-07 (« A1 /
 dénominateur variable selon la ressource rare — décliné pour raison de doctrine, converge vers
-l'aiguillage pauvre/riche d'AAAHogEx », `taches_archive_2026-09-09.md:2144`). Le refus était
+l'aiguillage pauvre/riche d'AAAHogEx », `archives/taches_archive_2026-09-09.md:2144`). Le refus était
 **doctrinal, jamais mesuré** : rien n'a été réfuté, une direction avait été écartée.
 
 ⛔ **Ne pas présenter cette fiche comme validée par un banc.** C'est une décision, au même titre que
@@ -53,7 +53,7 @@ non-chantier. Le dénominateur du classement est celui de la ressource en tête.
 
 🔑 **L'argument théorique, et il vient de l'archive** : un prix d'ombre n'est valide que si la
 contrainte est **effectivement saturée par la décision du cycle en cours** — la *complementary
-slackness*, condition que `shadow_pricing` violait (`taches_archive_2026-09-09.md:340`). Un compteur
+slackness*, condition que `shadow_pricing` violait (`archives/taches_archive_2026-09-09.md:340`). Un compteur
 de blocages réellement observés **est** une mesure empirique de saturation. C'est ce qui distingue
 structurellement C49 de C35.
 
@@ -347,7 +347,7 @@ et les gros projets rentables ne sont jamais atteints »*.
 
 Le correctif existe déjà : **`portfolio_floor_pct`**, un plancher de profit absolu **relatif** au
 meilleur projet finançable (donc sans constante d'époque, de carte ni d'inflation). Il a été bencé
-— 20 graines × 3 ans, `results/bench_floor_3y_20seeds.json`, `docs/journal_2026-09-02.md:317` :
+— 20 graines × 3 ans, `results/bench_floor_3y_20seeds.json`, `docs/journaux/journal_2026-09-02.md:317` :
 
 | plancher | valeur vs contrôle |
 |---|---:|

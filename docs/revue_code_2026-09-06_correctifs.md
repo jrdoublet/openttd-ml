@@ -1,6 +1,6 @@
 # Priorisation des correctifs — revue de code du 2026-09-06
 
-Source : `docs/journal_2026-09-07.md` (10 étapes de revue, consignées le 2026-09-07). 40 constats
+Source : `docs/journaux/journal_2026-09-07.md` (10 étapes de revue, consignées le 2026-09-07). 40 constats
 au total (hors ✅ vérifiés non-bugs). Regroupés ici par fichier/mécanisme pour permettre un
 correctif par groupe plutôt qu'un par constat, avec les sujets du backlog (`docs/taches.md`) qui
 touchent le même mécanisme et peuvent être traités dans la même passe.
@@ -232,7 +232,7 @@ passage dédié à effort plus élevé.
 
 ### G14. Tension / prix d'ombre (étape 4, constats #1, #2, #3, #5)
 Tous conditionnels à `tension_scoring=1` ou `shadow_pricing=1`, **tous les deux à 0 par défaut**.
-C35.3/C35.4/C35.5 ont déjà été mesurés et rejetés au banc officiel (`docs/journal_2026-09-06.md`).
+C35.3/C35.4/C35.5 ont déjà été mesurés et rejetés au banc officiel (`docs/journaux/journal_2026-09-06.md`).
 Corriger ces bugs ne changerait rien au comportement livré aujourd'hui.
 
 **Ne pas ouvrir de tâche ici.** Seule exception : si A1 (dans **G1**) finit par vouloir

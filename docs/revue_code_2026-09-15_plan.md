@@ -61,7 +61,7 @@ C'est la contrainte qui a dicté le découpage, pas un commentaire d'accompagnem
 - **Contexte d'amorçage autorisé et suffisant** : `ai/OpexAI/CLAUDE.md` (153 l., écrit exactement
   pour ça) + la ligne du tableau de l'étape + les fichiers de l'étape. Rien d'autre.
 - **Interdits explicites** — c'est ce qui fait exploser le quota : `docs/taches.md` en entier
-  (860 l.), les `docs/journal_*.md` en entier, `results/*.json` (22 Mo), `sweeps/` hors des
+  (860 l.), les `docs/journaux/journal_*.md` en entier, `results/*.json` (22 Mo), `sweeps/` hors des
   étapes 17-19, `ai/library/` (16 374 l. de code tiers).
 - **Pour vérifier un réglage** : `grep -n "<nom>" info.nut settings.nut globals_*.nut` plutôt
   qu'ouvrir `info.nut` (2 746 l.).

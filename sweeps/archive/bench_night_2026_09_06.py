@@ -37,7 +37,7 @@ from bench_v2 import (  # noqa: E402
 import bench_v2  # noqa: E402
 
 DOCS = ROOT / "results"
-STATUS = DOCS / "night_2026_09_06_status.txt"
+STATUS = DOCS / "journaux" / "night_2026_09_06_status.txt"
 LIBS = (
     bananas_ai_library("51554648", "Queue.FibonacciHeap"),
     bananas_ai_library("5046524c", "Pathfinder.Rail"),

@@ -530,13 +530,13 @@ Le code dispose déjà de plusieurs métriques de calibrage de flotte :
 
 #### 2.3 Réfutations causales antérieures (à ne pas reproduire)
 
-La consultation de `docs/taches.md` et de `docs/journal_2026-09-13.md` rappelle les impasses fermement établies :
+La consultation de `docs/taches.md` et de `docs/journaux/journal_2026-09-13.md` rappelle les impasses fermement établies :
 
 | Expérience / Levier | Réfutation dans l'historique | Résultat mesuré | Source |
 |---|---|---|---|
-| `air_fleet_buffer = -1` (suppression de la réserve d'attente W) | Réserve aérienne indispensable : forcer des avions sans passagers au sol détruit le capital | **0 V / 20 D**, −5,093 M£ de valeur, −666 k£/an de profit | `docs/taches.md:1089-1092`, `journal_2026-09-13.md:2356` |
+| `air_fleet_buffer = -1` (suppression de la réserve d'attente W) | Réserve aérienne indispensable : forcer des avions sans passagers au sol détruit le capital | **0 V / 20 D**, −5,093 M£ de valeur, −666 k£/an de profit | `docs/taches.md:1089-1092`, `journaux/journal_2026-09-13.md:2356` |
 | Seuil de buffer à 50 % de capacité | Forcer la profondeur consomme le capital sans rentabilité | Graine 42 × 3 ans : **−240,2 k£/an**, **−32,3 % de valeur** | `docs/taches.md:1401` |
-| `air_cadence_cap = 0` (suppression du cap de cadence) | Suppression du plafond de holding pattern | 21 V / 19 D (neutre, non concluant) | `docs/taches.md:1091`, `journal_2026-09-13.md:2357` |
+| `air_cadence_cap = 0` (suppression du cap de cadence) | Suppression du plafond de holding pattern | 21 V / 19 D (neutre, non concluant) | `docs/taches.md:1091`, `journaux/journal_2026-09-13.md:2357` |
 | Causalité fréquence/rating | « 1 avion ⇒ mauvais rating ⇒ refus W » est réfutée | Opex a un meilleur rating qu'AAA sur 4/7 marchés mais 5 fois moins de profit/capacité | `docs/taches.md:1413-1420` |
 
 **Règle d'or** : Le refus `W` et la réserve `AIR_FLEET_BUFFER` sont des gardes indispensables qui protègent la trésorerie. Le contrat ne touche pas à l'admission d'un renfort, mais uniquement au **dimensionnement du lot (`want`) lorsque le renfort est légitime**.

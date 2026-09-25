@@ -87,7 +87,7 @@ deux exceptions (graine 100, paire 7-26 : 53 et 46 k£ par avion contre 6 et 7 k
 2. **Pourquoi un premier rang finançable n'est pas construit** : relier les `C78_CAND` de rang 0 aux
    tentatives de chantier et à leurs raisons d'échec.
 3. **Rendement par avion sur les paires communes** : le chargement complet à la gare de départ
-   (C81, `docs/20_nuit_2026-09-22.md`) est une explication candidate ; la couverture des aéroports
+   (C81, `docs/journaux/20_nuit_2026-09-22.md`) est une explication candidate ; la couverture des aéroports
    en est une autre (phase 4 de C67, `docs/21_cartographie_opportuniste.md`).
 
 ## 6. Étape 2 (2026-09-22) : où OpexAI perd les meilleures paires d'AAAHogEx

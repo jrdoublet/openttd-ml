@@ -33,7 +33,7 @@ ci-dessous.
 
 Avant de rouvrir une piste, rechercher son nom et ses réglages dans
 [le journal du 13 septembre](journal_2026-09-13.md) **et** dans
-[l'archive du 9 septembre](taches_archive_2026-09-09.md). L'archive sert à retrouver les
+[l'archive du 9 septembre](../archives/taches_archive_2026-09-09.md). L'archive sert à retrouver les
 implémentations et les raisons des décisions ; **aucun résultat antérieur au 09/09 ne prouve
 la performance actuelle**. Les journaux quotidiens conservent le détail des expériences.
 
@@ -173,8 +173,8 @@ comme une file active.
 
 | Statut courant | Chantier | Travail restant / règle de reprise |
 |---|---|---|
-| **À BANCER — 2026-09-22** | **C82 — calibration réalisé/prédit par moteur d'avion (`c82_engine_calibration`)** | Facteur C70 calculé par moteur (`line.planeId`), appliqué au choix de l'avion d'une route et au classement des projets aériens et de flotte à la place du facteur air. Solo 3 × 6 : profit +272 k£/an (2 V / 1 D), 25 % des choix d'avion changent, bascule vers FFP Dart et LB-10 (k de 2 à 3). 20×10 à lancer sur le PC (`docs/13_banc_c69_20x10_pc.md` §9). Fiche `docs/20_nuit_2026-09-22.md` §2. |
-| **MESURÉ, PRIORITÉ BASSE — 2026-09-22** | **C81 — chargement complet des avions (`air_full_load` 0/1/2)** | Réglage rendu lisible (était forcé à 0). AAAHogEx charge aux **deux** extrémités en avion (`air.nut:201`), pas à la seule gare de départ. Solo 3 × 6 : profit −54 % (deux extrémités) et −37 % (départ seul), 0/3, profit par place en chute, plus d'avions par ligne. Commandes 20×10 écrites (§9), à ne lancer qu'après C82. Fiche `docs/20_nuit_2026-09-22.md` §1. |
+| **À BANCER — 2026-09-22** | **C82 — calibration réalisé/prédit par moteur d'avion (`c82_engine_calibration`)** | Facteur C70 calculé par moteur (`line.planeId`), appliqué au choix de l'avion d'une route et au classement des projets aériens et de flotte à la place du facteur air. Solo 3 × 6 : profit +272 k£/an (2 V / 1 D), 25 % des choix d'avion changent, bascule vers FFP Dart et LB-10 (k de 2 à 3). 20×10 à lancer sur le PC (`docs/13_banc_c69_20x10_pc.md` §9). Fiche `docs/journaux/20_nuit_2026-09-22.md` §2. |
+| **MESURÉ, PRIORITÉ BASSE — 2026-09-22** | **C81 — chargement complet des avions (`air_full_load` 0/1/2)** | Réglage rendu lisible (était forcé à 0). AAAHogEx charge aux **deux** extrémités en avion (`air.nut:201`), pas à la seule gare de départ. Solo 3 × 6 : profit −54 % (deux extrémités) et −37 % (départ seul), 0/3, profit par place en chute, plus d'avions par ligne. Commandes 20×10 écrites (§9), à ne lancer qu'après C82. Fiche `docs/journaux/20_nuit_2026-09-22.md` §1. |
 | **CORRIGÉ — 2026-09-22** | **Rechargement : facteurs C70 (et C82) recalculés sur une liste vide** | Le recalcul C70 du 2026-09-21 tournait avant la reconstitution de `this._lines` : facteurs remis à 1 après chaque chargement. Déplacé, vérifié à 10⁻⁶ près sur la graine 42 (branche `nuit-2026-09-22`, `docs/19_rechargement_partie.md` §7). |
 | **PRIORITAIRE — 2026-09-21** | **C80 — orchestrateur à double registre (intentions / exécution)** | Choix utilisateur (option 2 de son plan) : file réactive (événements C76/C77) et file de fond (dérive, scans, maintenance) pour **décider quoi faire** ; registre d'exécution de travailleurs résumables et sérialisables, chacun avec son échéance locale, pour **découper les calculs lourds** (A\* rail, régénération par mode, `town_growth`). Un événement peut s'intercaler entre deux tranches d'un A\*. Contrat à écrire avant code. |
 | **PRIORITAIRE — 2026-09-21** | **C77 — déclenchement des candidats opportunistes** | Un événement ou un changement mesuré produit **tout de suite** les candidats de l'entité touchée, insérés au vivier sans régénération complète et constructibles sans attendre le tour suivant (~45 j). Détail : [§ C76-C77](#c76-c77). Dépend de C76. |

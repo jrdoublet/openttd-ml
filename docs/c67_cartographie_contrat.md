@@ -79,6 +79,17 @@ une éviction ou une limite de budget rendent une donnée indisponible, jamais u
 de projet. Réponse sans travail si budget non positif ou échéance déjà atteinte.
 Pas de `Sleep()` ajouté au service ; l'appelant décide quand demander la tranche suivante.
 
+**Intégration ordonnanceur cible (précisée le 2026-09-25).** C67 est destiné à devenir un worker
+résumable consommant en priorité le **reliquat d'opcodes du tick**, pas une nouvelle tâche
+monolithique du round-robin. Une demande issue d'un projet réellement bloqué par une donnée de carte
+est prioritaire sur le remplissage opportuniste. Lorsque plusieurs workers sont prêts (A* rail,
+`town_growth`, cartographie), l'orchestrateur doit réarbitrer tranche par tranche selon l'état du
+pipeline : résultats déjà prêts, demande métier en attente et capacité de la prochaine tranche à
+débloquer une décision. Exemple : si suffisamment de tracés A* sont déjà prêts, la valeur marginale
+d'un A* supplémentaire baisse et le reliquat peut servir C67 ou `town_growth`. Le détail de cette
+politique est décrit dans [34_arbitrage_economique_unifie.md](34_arbitrage_economique_unifie.md)
+§5.5.
+
 Les travaux propres invalident explicitement leurs emprises. Les modifications adverses
 et naturelles ne sont pas toutes signalées : fraîcheur limitée et revalidation fine
 obligatoire avant une décision de construction. Aucun TTL ne prouve l'absence de changement.

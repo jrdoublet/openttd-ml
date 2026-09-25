@@ -47,7 +47,7 @@ conditionnel `results/review_b5_rail_expand_5x6.json` exécute 5 graines × 6 an
 
 `info.nut:2136-2137` déclare `min_value = 0` et documente explicitement la valeur 0 :
 `"86 = measured route default; 0 = historical 22% rail-calibrated control"`. `info.nut:2131-2133`
-et `docs/journal_2026-08-29.md:848-851` s'appuient sur ce bras (« `0` rétablit le contrôle à
+et `docs/journaux/journal_2026-08-29.md:848-851` s'appuient sur ce bras (« `0` rétablit le contrôle à
 22 % », banc apparié 20 graines, `results/bench_road_pax_catchment.json`).
 
 1. `settings.nut:38-39` — `local roadPaxCatchment = GetSetting("road_pax_catchment_pct");`
@@ -126,8 +126,8 @@ par passe) ; le constat ici est que la borne annoncée n'est pas câblée.
 
 ### 01.6 — Cinq défauts actifs et vivants n'ont aucune trace documentaire        [gravité : P2 — volet B]
 
-Recherche des 82 défauts actifs sur `docs/taches.md`, `docs/taches_archive_2026-09-09.md`, les 17
-`docs/journal_*.md` et `docs/revue_code_2026-09-06_correctifs.md`. Cinq réglages actifs, dont le
+Recherche des 82 défauts actifs sur `docs/taches.md`, `docs/archives/taches_archive_2026-09-09.md`, les 17
+`docs/journaux/journal_*.md` et `docs/revue_code_2026-09-06_correctifs.md`. Cinq réglages actifs, dont le
 maître est lui aussi actif, et dont la globale est consommée en production, ne sont mentionnés
 **nulle part** dans `docs/` — seulement épinglés dans `sweeps/bench_v2.py` :
 

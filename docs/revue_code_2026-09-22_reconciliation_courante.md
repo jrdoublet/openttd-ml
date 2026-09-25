@@ -228,7 +228,7 @@ portions modifiées du harnais.
 
 **Sévérité : basse, mais susceptible de faire lancer le mauvais bras.**
 
-'docs/20_nuit_2026-09-22.md' corrige explicitement la prémisse : AAAHogEx applique le plein
+'docs/journaux/20_nuit_2026-09-22.md' corrige explicitement la prémisse : AAAHogEx applique le plein
 chargement aux **deux** extrémités en AIR, ce qui correspond à 'air_full_load=1'.
 'docs/13_banc_c69_20x10_pc.md' §9 contient encore un libellé qui décrit
 'air_full_load=2' comme « comme AAAHogEx ». Les commandes elles-mêmes exposent bien les deux

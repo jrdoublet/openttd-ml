@@ -7,7 +7,7 @@ pièges de méthode, y compris tout ce qui a été retiré du backlog actif parc
 **Il reste la référence pour la règle « lire les réfutés avant de conseiller »** : avant toute
 recommandation stratégique, grepper **ce fichier ET `docs/taches.md`**, pas seulement le second —
 sinon une piste déjà mesurée et écartée sera reproposée. Les journaux datés
-(`docs/journal_*.md`) restent la source la plus fine pour le détail d'une journée.
+(`docs/journaux/journal_*.md`) restent la source la plus fine pour le détail d'une journée.
 
 Ne rien réécrire ici : c'est un instantané. Les décisions nouvelles vont dans `docs/taches.md`
 ou dans le journal du jour.
@@ -17,7 +17,7 @@ ou dans le journal du jour.
 # Liste des tâches
 
 Backlog du projet depuis la bascule vers `OpexAI` (2026-08-28). Les tâches faites sortent de cette
-liste ; l'historique reste dans les journaux `docs/journal_*.md`.
+liste ; l'historique reste dans les journaux `docs/journaux/journal_*.md`.
 
 ---
 
@@ -59,7 +59,7 @@ passaient le test `_IsRich` d'AAAHogEx.
 ressource dominante — ROI quand l'argent manque, profit par temps de VM quand les opcodes mordent,
 profit brut quand les deux abondent — reste techniquement cohérente, mais elle est trop proche de
 l'aiguillage pauvre/riche d'AAAHogEx. OpexAI ne doit pas converger vers sa doctrine pour combler
-l'écart. La proposition et ses prérequis sont archivés dans `docs/journal_2026-09-07.md` ;
+l'écart. La proposition et ses prérequis sont archivés dans `docs/journaux/journal_2026-09-07.md` ;
 `tension_scoring` et `shadow_pricing` restent à 0. **C38 a depuis été mesuré et rejeté ; le
 prochain candidat est C39.**
 
@@ -293,7 +293,7 @@ théorique correct ? ». Trois strates de causes, à ne pas confondre entre elle
 Score officiel **+29,4 pts** (357,6 vs 328,2, 3/5 victoires), note de gare **+13,5 pts**, réseau
 plus étendu (+7,6 gares), résilience spectaculaire sur la graine aride 2026 (+166 % valeur,
 +114 % profit, +138 pts score) — **mais valeur moyenne −11,2 % et profit −25,6 % sur les cartes
-riches.** Mécanisme identifié (C35.4, `journal_2026-09-05.md` §0 trenonagies point 7) :
+riches.** Mécanisme identifié (C35.4, `../journaux/journal_2026-09-05.md` §0 trenonagies point 7) :
 `OpexKnapsackComputeBound` (`projects.nut:468`) calcule bien un vrai prix d'ombre pour le capital
 — le ratio profit/capital du candidat critique dans le tri par densité, la borne de Dantzig
 classique sur un sac à dos fractionnel. Mais la généralisation aux 4 ressources (capital, opcodes,
@@ -307,7 +307,7 @@ contraintes semblent actives ensemble sans l'être réellement), effet inverse s
 cette raison précise — pas une hygiène de réglage, un défaut structurel identifié et non corrigé.
 
 **2. Bugs d'implémentation trouvés ensuite** (revue de code 2026-09-06/07,
-`journal_2026-09-07.md`, section « étape 4 : tension et prix d'ombre »). Même la théorie juste
+`../journaux/journal_2026-09-07.md`, section « étape 4 : tension et prix d'ombre »). Même la théorie juste
 serait cassée par le code livré :
 - 🔴 **Mélange de scores dans des contextes et unités différentes.** Après le premier chantier,
   `portfolio_cache` (C36.1) recopie l'ancien `tensionScore` des candidats conservés (coût réduit
@@ -328,7 +328,7 @@ serait cassée par le code livré :
 
 Aucun de ces bugs n'a été corrigé. Ils s'ajoutent à C35.4, pas à sa place.
 
-**3. Le cadre théorique correct** (`journal_2026-09-05.md` §0 trenonagies point 4-6). Un prix
+**3. Le cadre théorique correct** (`../journaux/journal_2026-09-05.md` §0 trenonagies point 4-6). Un prix
 d'ombre valide est le **multiplicateur de Lagrange** de la contrainte $r$ dans le programme
 **réellement résolu à chaque cycle** — pas dans une relaxation artificielle du vivier entier.
 Conditions nécessaires, aucune actuellement remplie ensemble :
@@ -352,7 +352,7 @@ seul). Ce qui manque n'est pas le calcul, c'est la **coordination jointe des qua
 problème réel avec conflits** — c'est-à-dire C35.4, jamais fait.
 
 **4. D4 — le prérequis de prédiction est désormais couvert par mode actif.** Le recalibrage
-physique de l'estimateur **routier passagers** (`journal_2026-09-05.md` §0 quattuornonagies, banc
+physique de l'estimateur **routier passagers** (`../journaux/journal_2026-09-05.md` §0 quattuornonagies, banc
 10 ans × 5 graines, 1 980 enregistrements) est **fait et validé le 2026-09-05** : ratio revenu
 réel/prédit **0,31 → 0,94**, profit réel/prédit **0,13 → 0,93**, part sous la moitié écrasée
 **83 % → 2 %**. La consolidation D4 inclut maintenant les autres modes :
@@ -405,7 +405,7 @@ reste à trancher indépendamment.
 
 - ❌ **C38 — Batch de portefeuille dynamique par filtre + re-classement, au lieu d'un plafond
   fixe — implémenté, mesuré et rejeté le 2026-09-07.** `portfolio_max_batch` (plafond fixe 1 à 8) a été **mesuré et rejeté**
-  (`docs/journal_2026-09-02.md` §0 vicies : −3,8 % valeur, **11/20 graines en nuls exacts**). Le
+  (`docs/journaux/journal_2026-09-02.md` §0 vicies : −3,8 % valeur, **11/20 graines en nuls exacts**). Le
   mécanisme identifié à l'époque : (a) un passage réussi régénère de toute façon tout le
   portefeuille, donc empiler N projets dans un seul passage fusionne des cycles au lieu d'en
   ajouter ; (b) le batch ne dépassait jamais 2 même à plafond 8, parce que `capitalBudget` est
@@ -1519,7 +1519,7 @@ reste à trancher indépendamment.
   attribuées en candidats, pas seulement les mesurer.** Trouvé le 2026-09-08 en cherchant
   pourquoi ce sujet avait disparu du backlog : il n'a pas disparu, il est resté **coincé à
   mi-chemin**. `A7.3`/`C17` (`event_subsidy_probe`, `info.nut:162-169`, `main.nut:4634-4729`) est
-  **fait et marqué ✅ le 2026-09-02** (`journal_2026-09-02.md`) : écoute réelle par événement —
+  **fait et marqué ✅ le 2026-09-02** (`../journaux/journal_2026-09-02.md`) : écoute réelle par événement —
   `AIEventSubsidyOffer`, `SubsidyOfferExpired`, `SubsidyAwarded`, `SubsidyExpired` — aucun
   sondage de `AISubsidyList` en boucle, donc le push fonctionne bien comme prévu. Mais c'est une
   **sonde en lecture seule**, réglage à `0` par défaut : elle mesure les offres et leur adéquation
@@ -1542,7 +1542,7 @@ reste à trancher indépendamment.
   avec le vivier régulier sans lui voler son classement) avant tout banc.
 
 - 🔶 **C43 / E3 — Audit de toutes les constantes en dur, jamais fait.** Retrouvé le 2026-09-08 :
-  demandé le 2026-09-02, documenté en détail dans `journal_2026-09-02.md` §3 ter, référencé comme
+  demandé le 2026-09-02, documenté en détail dans `../journaux/journal_2026-09-02.md` §3 ter, référencé comme
   item **E3** dans la table d'hygiène du même journal mais **jamais marqué ✅** contrairement à
   ses voisins E1/E6/E10, et jamais synthétisé dans `taches.md` — même mécanisme de disparition
   que `docs/cible.md` et C17/C42 ci-dessus.
@@ -2129,7 +2129,7 @@ reste à trancher indépendamment.
   dépense (`DYNAMIC_BATCH_OPS_FLOOR = 2500`, `DYNAMIC_BATCH_OPS_BUDGET_PCT = 50`,
   `HARD_ITERATION_CAP = 10 000`, `LOOP_BUDGET` défaut 0), jamais un prix dans le rang.
 
-  **Conséquence déjà mesurée** (C37 §2, `journal_2026-09-06.md`) : un bus de 5 tuiles à ROI 6 490
+  **Conséquence déjà mesurée** (C37 §2, `../journaux/journal_2026-09-06.md`) : un bus de 5 tuiles à ROI 6 490
   prend le rang 0 sur la densité **avant même qu'`opcodeScore` ait la parole** ; à `maxBatch=1` ce
   rang 0 occupe tout le passage, puis le mois suivant. Le coût d'opportunité réel n'est pas les
   287 k opcodes de pose — c'est **le profit aérien forclos pendant le verrou** (graine 7 : 1 ligne
@@ -2160,7 +2160,7 @@ reste à trancher indépendamment.
 
   **Ce que la fiche demande** : facturer le **tour de cycle** — la seule ressource réellement
   rationnée — et non une n-ième pondération capital/opcodes. Aucune implémentation proposée à ce
-  stade ; deux contraintes qu'une solution devra respecter, héritées de `journal_2026-09-06.md`
+  stade ; deux contraintes qu'une solution devra respecter, héritées de `../journaux/journal_2026-09-06.md`
   §6 : (1) **garder le classement par densité** (c'est lui qui élit le rail et la flotte) ;
   (2) **ne pas additionner de terme en opcodes bruts**.
 
@@ -3573,14 +3573,14 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
 
 ## 📓 Journal détaillé (diagnostics et mesures de banc)
 
-Les entrées datées (diagnostics, bancs, décisions adopté/rejeté) ont été archivées le 2026-09-06 dans `docs/journal_*.md`, un fichier par jour, pour que ce document reste chargeable. Rien n'est perdu : les références `§0 xxx` du reste de ce document restent valables, il suffit de grepper leur nom d'ordinal latin dans les journaux ci-dessous.
+Les entrées datées (diagnostics, bancs, décisions adopté/rejeté) ont été archivées le 2026-09-06 dans `docs/journaux/journal_*.md`, un fichier par jour, pour que ce document reste chargeable. Rien n'est perdu : les références `§0 xxx` du reste de ce document restent valables, il suffit de grepper leur nom d'ordinal latin dans les journaux ci-dessous.
 
-- `docs/journal_2026-08-29.md`
-- `docs/journal_2026-09-01.md`
-- `docs/journal_2026-09-02.md`
-- `docs/journal_2026-09-03.md`
-- `docs/journal_2026-09-04.md`
-- `docs/journal_2026-09-05.md`
-- `docs/journal_2026-09-06.md`
+- `docs/journaux/journal_2026-08-29.md`
+- `docs/journaux/journal_2026-09-01.md`
+- `docs/journaux/journal_2026-09-02.md`
+- `docs/journaux/journal_2026-09-03.md`
+- `docs/journaux/journal_2026-09-04.md`
+- `docs/journaux/journal_2026-09-05.md`
+- `docs/journaux/journal_2026-09-06.md`
 
-Commande : `grep -rn "0 <ordinal>" docs/journal_*.md` pour retrouver une section citée ailleurs (ex. `§0 undecies ter`).
+Commande : `grep -rn "0 <ordinal>" docs/journaux/journal_*.md` pour retrouver une section citée ailleurs (ex. `§0 undecies ter`).
