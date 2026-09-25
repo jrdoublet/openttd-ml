@@ -220,6 +220,40 @@ class OpexAI extends AIController {
   /* C39.6 : accumulateur annuel, cle = "<nom de tache>|slice" ou "<nom de tache>|noslice". */
   _c39PassClockLedger = null;
   _townWorkerStats = null;
+  /* V95 item 1 : pile de frames observatoires (selection de tache). Jamais sauvegardee. */
+  _schedIdlePeekTask = null;
+  _schedIdlePredReason = null;
+  _schedIdlePredClass = null;
+  _schedIdlePreVehCount = 0;
+  _schedIdlePreLinesCount = 0;
+  _schedIdlePreLoan = 0;
+  _schedIdlePreRailSearch = null;
+  _schedIdlePreActiveWorker = null;
+  _schedIdlePreProjects = null;
+  _schedIdlePreBestLen = 0;
+  _schedIdlePreHadAbandons = false;
+  _schedIdlePreC83Preempt = 0;
+  _schedIdlePreC78Rebuild = null;
+  _schedIdlePreDate = -1;
+  _schedIdlePreTick = -1;
+  _schedIdleLastWorkDate = null;
+  _schedIdleLastWorkTick = null;
+  _schedIdleProjectsLastDate = -1;
+  _schedIdleProjectsLastTick = -1;
+  _schedIdleSinceProjectsSel = 0;
+  _schedIdleSinceProjectsWork = 0;
+  /* P2 : observatoire du cycle de vie du portefeuille post-build (sous probe_scheduler). */
+  _p2BuildSeq = 0;
+  _p2PendingBuilds = null;
+  _p2PreCapital = 0;
+  _p2PreCandidateGroupsLen = 0;
+  _p2CatalogPreReason = null;
+  /* P2 bis : observatoire de reconciliation des passages projects (sous probe_scheduler). */
+  _p2ProjectsSeq = 0;
+  _p2TasksSinceProjects = null;
+  _p2LastProjectsPostBest = -1;
+  _p2LastProjectsPostCap = -1;
+  _p2LastStopReason = null;
   /* C48 : deux accumulateurs annuels distincts : une ligne par tentative et la vue par passe. */
   _c49ScarcityLedger = null;
   _c49ScarcityRegime = "cash";
@@ -399,6 +433,9 @@ class OpexAI extends AIController {
   function _logC41RailSliceLedger(year);
   function _recordC39PassClockLedger(key, days, ticks, ops, sliceDays, sliceTicks, sliceOps);
   function _logC39PassClockLedger(year);
+  function _schedIdleEnsure();
+  function _schedIdlePreDispatch();
+  function _schedIdlePostDispatch(taskName, ran, ops, days, ticks);
   function _recordC49ScarcityPass(best, builtRanks, attemptedRanks, passDiscards);
   function _logC49ScarcityLedger(year);
   function _logC54VehicleOrders(year);

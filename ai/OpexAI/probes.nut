@@ -887,6 +887,15 @@ function OpexC39PassClockLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C39_PASS_CLOCK " + fields);
 }
+/* V95 item 1 : gate propre sous probe_scheduler. Ne pas reutiliser OpexC41SchedulerLog :
+ * ce dernier reste silencieux si seuls certains flags C41 sont actifs. */
+function OpexSchedIdleLog(kind, fields)
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
 function OpexC41StalenessLog(kind, fields)
 {
   if (!C41_STALENESS_LEDGER) return;

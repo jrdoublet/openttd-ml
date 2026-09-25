@@ -657,7 +657,10 @@ function OpexAI::_tryBuildProjects(year)
     if (C83_PREEMPT_OPEN && this._c83PreemptEnqueued > 0) {
       c83TargetedRegens += this._c83PreemptEnqueued;
     }
-    if (c83TargetedRegens > 0) return true;
+    if (c83TargetedRegens > 0) {
+      if (V95_SCHED_IDLE_LEDGER) this._p2LastStopReason = "c83_reactive";
+      return true;
+    }
     OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
   }
 
@@ -1295,6 +1298,24 @@ function OpexAI::_tryBuildProjects(year)
       else this._c49ScarcityLedger.stop_other++;
     }
     OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
+  }
+
+  if (V95_SCHED_IDLE_LEDGER) {
+    if (c75StopReason != null) {
+      this._p2LastStopReason = c75StopReason;
+    } else if (builtCount > 0) {
+      this._p2LastStopReason = (!C75_MULTI_BUILD) ? "single" : "list_end";
+    } else {
+      if (this._projects == null || !("best" in this._projects) || this._projects.best == null || this._projects.best.len() == 0) {
+        this._p2LastStopReason = "empty_pool";
+      } else if (this._railSearch != null && this._railSearch.phase == "search") {
+        this._p2LastStopReason = "rail_search";
+      } else if (passDiscards != null && passDiscards.len() > 0) {
+        this._p2LastStopReason = passDiscards[0].reason;
+      } else {
+        this._p2LastStopReason = "no_candidate_built";
+      }
+    }
   }
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage

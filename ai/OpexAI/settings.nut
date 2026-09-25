@@ -153,6 +153,7 @@ function OpexLoadSettings()
   C41_ADMISSION_LEDGER = probeScheduler;
   C39_PASS_CLOCK_LEDGER = probeScheduler;
   C41_RAIL_SLICE_LEDGER = probeScheduler;
+  V95_SCHED_IDLE_LEDGER = probeScheduler;
 
   // 3. probe_candidates_road : profiles pax, freight, town sinks, feeder
   local probeCandRoad = AIController.GetSetting("probe_candidates_road") != 0;

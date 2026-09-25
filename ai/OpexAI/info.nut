@@ -61,7 +61,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "probe_scheduler",
-      description = "Enable scheduler opcode and latency diagnostic ledgers (C41, C39); 1 = on, 0 = off (default)",
+      description = "Enable scheduler opcode, latency and idle-tour diagnostic ledgers (C41, C39, V95); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
