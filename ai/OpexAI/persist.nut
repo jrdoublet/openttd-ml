@@ -518,6 +518,21 @@ function OpexAI::_rearmPersistedRailRepairTasks()
   }
 }
 
+/* Cles ajoutees seulement quand c83_preempt_open est arme : a 0 le format
+ * historique de Save() ne gagne aucun champ. */
+function OpexSaveC83Preempt(saveObj, ai)
+{
+  if (!C83_PREEMPT_OPEN || saveObj == null || ai == null) return;
+  saveObj.c83PreemptTown <- C83_PREEMPT_TOWN;
+  saveObj.c83PreemptStopped <- C83_PREEMPT_STOPPED ? 1 : 0;
+  saveObj.c83PreemptQueued <- ai._c83PreemptQueued;
+  local race = {};
+  if (ai._c83PreemptRace != null) {
+    foreach (townId, when in ai._c83PreemptRace) race.rawset(townId, when);
+  }
+  saveObj.c83PreemptRace <- race;
+}
+
 function OpexAI::Save()
 {
   local abandoned = {};
@@ -547,6 +562,7 @@ function OpexAI::Save()
     if (C76_REGEN_TARGETED) {
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
+    if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
     return shortSave;
   }
 
@@ -624,6 +640,7 @@ function OpexAI::Save()
   if (C76_REGEN_TARGETED) {
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }
+  if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -688,6 +705,10 @@ function OpexAI::Load(version, data)
   if ("c76Revisions" in data && data.c76Revisions != null) {
     this._c76LoadRevisions(data.c76Revisions);
   }
+  if ("c83PreemptTown" in data) this._reloadC83PreemptTown = data.c83PreemptTown;
+  if ("c83PreemptStopped" in data) this._reloadC83PreemptStopped = data.c83PreemptStopped;
+  if ("c83PreemptQueued" in data) this._reloadC83PreemptQueued = data.c83PreemptQueued;
+  if ("c83PreemptRace" in data) this._reloadC83PreemptRace = data.c83PreemptRace;
 }
 /* Load tourne trop tot et sous DisableDoCommandScope : la verification du monde est donc faite
  * ici, apres les reglages. Les stationA/stationB sont des TUILES, jamais des StationID. */
@@ -700,6 +721,19 @@ function OpexAI::_reconcileAfterLoad()
   if (C75_TRACK_PASSES && this._reloadC75PassDates != null && typeof this._reloadC75PassDates == "array") {
     C75_PASS_DATES = this._reloadC75PassDates;
   }
+  if (C83_PREEMPT_OPEN) {
+    if (this._reloadC83PreemptTown != null) ::C83_PREEMPT_TOWN = this._reloadC83PreemptTown;
+    if (this._reloadC83PreemptStopped != null) ::C83_PREEMPT_STOPPED = this._reloadC83PreemptStopped != 0;
+    if (this._reloadC83PreemptQueued != null) this._c83PreemptQueued = this._reloadC83PreemptQueued;
+    if (this._reloadC83PreemptRace != null && typeof this._reloadC83PreemptRace == "table") {
+      this._c83PreemptRace = {};
+      foreach (townId, when in this._reloadC83PreemptRace) this._c83PreemptRace.rawset(townId, when);
+    }
+  }
+  this._reloadC83PreemptTown = null;
+  this._reloadC83PreemptStopped = null;
+  this._reloadC83PreemptQueued = null;
+  this._reloadC83PreemptRace = null;
   this._reloadC69BuildDates = null;
   this._reloadC75PassDates = null;
 

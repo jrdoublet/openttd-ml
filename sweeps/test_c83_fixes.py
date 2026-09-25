@@ -50,7 +50,7 @@ class C83FixesContractTests(unittest.TestCase):
             'C83_FIXES = AIController.GetSetting("c83_fixes") != 0;',
             self.settings,
         )
-        self.assertEqual(self.info.count("AddSetting("), 81)
+        self.assertEqual(self.info.count("AddSetting("), 85)
         self.assertIn("_c83SlotRace = null;", self.main)
 
     def test_watch_list_ranks_contestable_towns_only_when_enabled(self):
@@ -129,15 +129,16 @@ class C83FixesContractTests(unittest.TestCase):
             self.assertIn("AIStation.GetNearestTown(st)", state)
 
         still = body(self.air, "function OpexAirSiteStillBuildable(")
-        self.assertIn("if (C83_FIXES)", still)
-        self.assertIn("OpexAirSlotTownId(site.anchor)", still)
+        # Portee C83 restreinte (2026-09-25) : seuls les sites de course portent c83SlotTown.
+        self.assertIn("C83_FIXES && (\"c83SlotTown\" in site)", still)
+        self.assertIn("OpexAirSlotTownId(site.anchor) != site.c83SlotTown", still)
         self.assertIn('("c83SlotTown" in site)', still)
         self.assertIn("AIAirport.GetNearestTown(site.anchor, airport.type) != site.town.id", still)
 
         find = body(self.air, "function OpexAirFindSite(")
         self.assertIn("AITile.GetClosestTown(anchor) != requiredSlotTownId", find)
-        self.assertIn("C83_FIXES && requiredSlotTownId < 0 && OpexAirSlotTownId(anchor) != town.id", find)
-        self.assertIn("C83_FIXES && OpexAirSlotTownId(cachedAnchor) != town.id", find)
+        self.assertNotIn("OpexAirSlotTownId(anchor) != town.id", find)
+        self.assertNotIn("OpexAirSlotTownId(cachedAnchor) != town.id", find)
 
         sites = body(self.air, "function OpexAirPlansFindSites(")
         self.assertIn("c83RequiredSlotTown = towns[i].id", sites)

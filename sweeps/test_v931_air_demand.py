@@ -32,7 +32,7 @@ class V931AirDemandTests(unittest.TestCase):
         self.assertIn("V93_AIR_COMPETITOR_WEIGHT <- 70;", GLOBALS)
         self.assertIn("AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;", GLOBALS)
         self.assertIn("C82_ENGINE_CALIBRATION <- false;", GLOBALS)
-        self.assertEqual(INFO.count("AddSetting("), 81)
+        self.assertEqual(INFO.count("AddSetting("), 85)
         start = INFO.index('name = "v93_air_demand_production"')
         block = INFO[start:INFO.index("});", start)]
         for token in (

@@ -296,6 +296,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           return { outcome = "rejected", discards = passDiscards };
       }
       if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
+          if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveNote("batch_plan_dead", 1);
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
       }

@@ -225,6 +225,11 @@ class OpexAI extends AIController {
   /* Dates C69/C75 lues dans la sauvegarde, restaurees par _reconcileAfterLoad(). */
   _reloadC69BuildDates = null;
   _reloadC75PassDates = null;
+  /* C83 preempt : lus dans la sauvegarde, appliques apres les reglages. */
+  _reloadC83PreemptTown = null;
+  _reloadC83PreemptStopped = null;
+  _reloadC83PreemptQueued = null;
+  _reloadC83PreemptRace = null;
   /* Retraites C52 unitaires, consommees par la tache de rebut dediee. */
   _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
@@ -253,6 +258,11 @@ class OpexAI extends AIController {
    * _c83SlotRace : date du dernier enqueue reussi (c83_fixes). Meme regime. */
   _c83SlotWatch = null;
   _c83SlotRace = null;
+  /* c83_preempt_open : date de rearm par ville, ville deja demandee, et
+   * nombre d'enqueues de la passe. Non lus quand le reglage est a 0. */
+  _c83PreemptRace = null;
+  _c83PreemptQueued = -1;
+  _c83PreemptEnqueued = 0;
 
   constructor()
   {
@@ -276,6 +286,9 @@ class OpexAI extends AIController {
     this._c76ForceReloadRegen = false;
     this._c83SlotWatch = {};
     this._c83SlotRace = {};
+    this._c83PreemptRace = {};
+    this._c83PreemptQueued = -1;
+    this._c83PreemptEnqueued = 0;
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
