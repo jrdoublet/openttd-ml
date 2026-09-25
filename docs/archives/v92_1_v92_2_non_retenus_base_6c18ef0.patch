@@ -1,0 +1,1696 @@
+diff --git a/ai/OpexAI/builder_air.nut b/ai/OpexAI/builder_air.nut
+index a821fed..ce13c86 100644
+--- a/ai/OpexAI/builder_air.nut
++++ b/ai/OpexAI/builder_air.nut
+@@ -820,8 +820,7 @@ function OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTo
+   return false;
+ }
+ 
+-/* Revenu par passager transporte. Sous V92, la soute connue remplace le forfait de 15 % :
+- * elle est remplie dans la meme proportion que la cabine. Sans mesure, le forfait reste. */
++/* Revenu par passager transporte. Le forfait courrier de 15 % s'applique a toutes les routes. */
+ function OpexAirFarePerPax(catalog, plane, distance, incomeDays)
+ {
+   local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
+@@ -829,10 +828,6 @@ function OpexAirFarePerPax(catalog, plane, distance, incomeDays)
+   if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+     local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
+     local mailPct = 15;
+-    if (V92_AIR_SERVICE_CHOICE && plane != null && ("mailCapacity" in plane)
+-        && plane.mailCapacity >= 0 && plane.capacity > 0) {
+-      mailPct = (plane.mailCapacity * 100) / plane.capacity;
+-    }
+     totalIncomePerUnit = paxIncome + (mailIncome * mailPct) / 100;
+   }
+   return (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+@@ -950,7 +945,6 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+     local revenueAnnual = (12 * carried * incomePerUnit).tointeger();
+     local runningAnnual = planes * plane.runningCost + airportMaintenanceAnnual;
+     local lifeYears = 20;
+-    if (V92_AIR_SERVICE_CHOICE && ("ageYears" in plane) && plane.ageYears > 1) lifeYears = plane.ageYears;
+     local amortAnnual = planes * plane.price / lifeYears + airportAmortAnnual;
+     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+     local immobilise = (TRANSIT_COST_PERMILLE > 0)
+@@ -1134,6 +1128,7 @@ function OpexAirClearReequip(line)
+   if (line == null) return;
+   if ("v92PendingEngine" in line) delete line.v92PendingEngine;
+   if ("v92PendingCount" in line) delete line.v92PendingCount;
++  if ("v92PendingDate" in line) delete line.v92PendingDate;
+   if ("v92SentToHangar" in line) line.v92SentToHangar = [];
+ }
+ 
+@@ -1309,6 +1304,39 @@ function OpexAirReplaceFleet(line, hangar, catalog, plane, count)
+   line.vehCount <- built.len();
+   line.trains = built.len();
+   line.v92LastReplaceYear <- AIDate.GetYear(AIDate.GetCurrentDate());
++
++  /* Recalcul des previsions de la ligne pour le nouveau service (C70/C82/lignes mortes). */
++  local airportTile = ("originA" in line) && AIAirport.IsAirportTile(line.originA)
++      ? line.originA
++      : (AIAirport.IsAirportTile(line.stationA) ? line.stationA : null);
++  local airportType = (airportTile != null) ? AIAirport.GetAirportType(airportTile) : AIAirport.AT_INVALID;
++  if (AIAirport.IsValidAirportType(airportType) && ("airMonthlyPax" in line) && line.airMonthlyPax > 0
++      && ("distance" in line) && line.distance > 0) {
++    local airport = {
++      type = airportType,
++      price = AIAirport.GetPrice(airportType),
++      maintenance = AIAirport.GetMonthlyMaintenanceCost(airportType),
++    };
++    local infrastructure = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
++    local newEcon = OpexAirEconomics(catalog, airport, plane, line.distance, line.airMonthlyPax,
++        infrastructure, 0, 0, 0, built.len(), false, false);
++    if (newEcon != null) {
++      /* Ecriture tolerante : `=` sur une cle absente leve une exception en Squirrel. */
++      line.rawset("predicted", newEcon.profitAnnual);
++      line.rawset("predRevenue", newEcon.revenueAnnual);
++      line.rawset("predRunning", newEcon.runningAnnual);
++      line.rawset("predAmort", newEcon.amortAnnual);
++      line.rawset("predCarried", newEcon.carried);
++      line.rawset("trains0", built.len());
++      line.rawset("capital", newEcon.capital);
++      line.rawset("roi", newEcon.roi);
++      line.rawset("year", AIDate.GetYear(AIDate.GetCurrentDate()));
++      line.rawset("deadStreak", 0);
++      if ("c70Real" in line) line.c70Real = 0.0;
++      if ("c70Pred" in line) line.c70Pred = 0.0;
++    }
++  }
++
+   OpexAirClearReequip(line);
+   if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+     local mail = AIVehicle.GetCapacity(built[0], catalog.mailCargo);
+@@ -1317,7 +1345,7 @@ function OpexAirReplaceFleet(line, hangar, catalog, plane, count)
+   return { added = 0, reason = "REPLACE", vehCount = built.len() };
+ }
+ 
+-/* Un autre moteur au meilleur nombre bat un appareil de plus du moteur actuel. */
++/* V92.1 : re-equipement si un autre moteur a capacite offerte egale ou superieure bat le moteur actuel. */
+ function OpexAirConsiderReplace(line, catalog, airportTile)
+ {
+   if (("scrapping" in line) && line.scrapping) return null;
+@@ -1344,42 +1372,114 @@ function OpexAirConsiderReplace(line, catalog, airportTile)
+   local current = OpexAirCatalogPlane(catalog, airportType, currentId);
+   if (current == null) return null;
+   OpexAirApplyKnownMail(current);
++
++  local cap = OpexAirCadenceCap(line, catalog, null);
++  if (cap < 1) cap = 1;
++
++  /* 4.a : keep = economie du moteur actuel a exactement have appareils */
+   local keep = OpexAirEconomics(catalog, airport, current, line.distance, line.airMonthlyPax,
+-      infrastructure, 0, 0, 0, have + 1, false, false);
++      infrastructure, 0, 0, 0, have, false, false);
++  if (keep == null) return null;
++
+   if (catalog.airPlaneChoicesByAirport == null
+       || !(airportType in catalog.airPlaneChoicesByAirport)) return null;
++
++  /* 4.b : alternative = meilleur autre moteur a un nombre m tel que
++   * m * capacity_alt >= have * capacity_current, borne par cap (invariant de capacite). */
++  local currentCap = current.capacity;
++  local totalCapacityCurrent = have * currentCap;
+   local bestPlane = null;
+   local bestEcon = null;
++  local bestM = 0;
+   foreach (plane in catalog.airPlaneChoicesByAirport[airportType]) {
+     if (plane.id == currentId || !OpexAirPlaneInRange(plane, line.distance)) continue;
+     OpexAirApplyKnownMail(plane);
++    local planeCap = plane.capacity;
++    if (planeCap <= 0) continue;
++    local m = OpexCeilDiv(totalCapacityCurrent, planeCap);
++    if (m < 1) m = 1;
++    if (m > cap) continue;
+     local econ = OpexAirEconomics(catalog, airport, plane, line.distance, line.airMonthlyPax,
+-        infrastructure, 0, 0, 0, 0, false, true);
++        infrastructure, 0, 0, 0, m, false, false);
+     if (OpexAirServiceBetter(econ, bestEcon)) {
+       bestPlane = plane;
+       bestEcon = econ;
++      bestM = m;
+     }
+   }
+-  if (bestPlane == null) return null;
+-  local cap = OpexAirCadenceCap(line, catalog, null);
+-  if (cap < 1) cap = 1;
+-  if (bestEcon.planes > cap) {
+-    bestEcon = OpexAirEconomics(catalog, airport, bestPlane, line.distance, line.airMonthlyPax,
+-        infrastructure, 0, 0, 0, cap, false, false);
+-  }
+-  if (!OpexAirServiceBetter(bestEcon, keep)) return null;
++  if (bestPlane == null || bestEcon == null) return null;
++
++  /* 4.c : netGain avec cout de transaction amorti sur 2 ans et perte de chiffre d'affaires */
+   local sell = OpexAirLineSellValue(line);
+-  local cost = bestEcon.planes * bestPlane.price;
++  local cost = bestM * bestPlane.price;
++  local keepProfit = keep.profitAnnual;
++  local newProfit = bestEcon.profitAnnual;
++
++  local transCost = cost - sell;
++  local annualTransCost = transCost / 2;
++  local downtimeDays = ("oneWayDays" in keep) ? keep.oneWayDays : 1;
++  local curProfit = (("lastProfit" in line) && line.lastProfit > 0) ? line.lastProfit
++      : ((("predicted" in line) && line.predicted > 0) ? line.predicted : 0);
++  local downtimeLoss = (curProfit * downtimeDays) / 365;
++  local netGain = (newProfit - keepProfit) - annualTransCost - downtimeLoss;
++  if (netGain <= 0) return null;
++
++  /* 4.d : Opportunity guard */
++  local netSpend = cost - sell;
++  local denom = (netSpend > 1) ? netSpend : 1;
++  /* Meme unite que economics.roi / project.roi : pour mille. */
++  local reequipRoi = (netGain * 1000) / denom;
+   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
++  local reequipCash = (cost > sell) ? (cost - sell) : 0;
++  if (V92_BEST_PENDING != null
++      && (AIDate.GetCurrentDate() - V92_BEST_PENDING.date < 90)
++      && V92_BEST_PENDING.roi > reequipRoi
++      && V92_BEST_PENDING.capital <= (money + reequipCash)) {
++    if (C56_TASK_TRACE) {
++      local lineId = ("lineId" in line) ? line.lineId : -1;
++      OpexC56TaskLog("V92_REPLACE", "SKIP_OPPORTUNITY", "-",
++          "line=" + lineId + " pending_roi=" + V92_BEST_PENDING.roi + " reequip_roi=" + reequipRoi);
++    }
++    return null;
++  }
++
+   if (money + sell < cost + OpexCashReserve()) return null;
+-  return { plane = bestPlane, count = bestEcon.planes };
++  return {
++    plane = bestPlane,
++    count = bestM,
++    have = have,
++    m = bestM,
++    capCurrent = currentCap,
++    capAlt = bestPlane.capacity,
++    netGain = netGain,
++    profitKeep = keepProfit,
++    profitNew = newProfit,
++    cost = cost,
++    sell = sell
++  };
+ }
+ 
+ function OpexAirMaybeReequip(line, catalog, hangar, airportTile)
+ {
++  local lineId = ("lineId" in line) ? line.lineId : -1;
+   if (("v92PendingEngine" in line) && line.v92PendingEngine >= 0) {
++    local waitDays = ("v92PendingDate" in line) ? (AIDate.GetCurrentDate() - line.v92PendingDate) : 0;
++    local oldCount = ("vehicles" in line && line.vehicles != null) ? line.vehicles.len() : 1;
++    if (waitDays > 90) {
++      OpexAirReleaseHangarHold(line);
++      line.v92LastReplaceYear <- AIDate.GetYear(AIDate.GetCurrentDate());
++      if (C56_TASK_TRACE) {
++        OpexC56TaskLog("V92_REPLACE", "TIMEOUT", "-", "line=" + lineId + " wait_days=" + waitDays);
++      }
++      V92_ANNUAL_ABORTED++;
++      V92_ANNUAL_HANGAR_DAYS += waitDays * oldCount;
++      return { added = 0, reason = "REEEQUIP_TIMEOUT" };
++    }
+     if (!OpexAirLineAllInHangar(line)) {
+       OpexAirSendLineToHangar(line, hangar);
++      if (C56_TASK_TRACE) {
++        OpexC56TaskLog("V92_REPLACE", "WAIT", "-", "line=" + lineId + " wait_days=" + waitDays);
++      }
+       return { added = 0, reason = "REEEQUIP_WAIT" };
+     }
+     local airportType = AIAirport.GetAirportType(airportTile);
+@@ -1388,27 +1488,86 @@ function OpexAirMaybeReequip(line, catalog, hangar, airportTile)
+     local swapped = OpexAirReplaceFleet(line, hangar, catalog, plane, count);
+     if (swapped != null && swapped.reason == "ABORT") {
+       OpexAirReleaseHangarHold(line);
++      line.v92LastReplaceYear <- AIDate.GetYear(AIDate.GetCurrentDate());
++      if (C56_TASK_TRACE) {
++        OpexC56TaskLog("V92_REPLACE", "ABORT", "-", "line=" + lineId + " wait_days=" + waitDays);
++      }
++      V92_ANNUAL_ABORTED++;
++      V92_ANNUAL_HANGAR_DAYS += waitDays * oldCount;
+       return { added = 0, reason = "REEEQUIP_ABORT" };
+     }
+-    if (swapped != null) return swapped;
++    if (swapped != null) {
++      if (C56_TASK_TRACE) {
++        OpexC56TaskLog("V92_REPLACE", "REPLACE", "-", "line=" + lineId + " wait_days=" + waitDays);
++      }
++      V92_ANNUAL_SUCCESS++;
++      V92_ANNUAL_HANGAR_DAYS += waitDays * oldCount;
++      return swapped;
++    }
+     OpexAirClearReequip(line);
++    line.v92LastReplaceYear <- AIDate.GetYear(AIDate.GetCurrentDate());
++    if (C56_TASK_TRACE) {
++      OpexC56TaskLog("V92_REPLACE", "FAIL", "-", "line=" + lineId + " wait_days=" + waitDays);
++    }
++    V92_ANNUAL_ABORTED++;
++    V92_ANNUAL_HANGAR_DAYS += waitDays * oldCount;
+     return { added = 0, reason = "REEEQUIP_FAIL" };
+   }
++
+   local decision = OpexAirConsiderReplace(line, catalog, airportTile);
+   if (decision == null) return null;
++  local oldEngine = ("refleetEngine" in line) ? line.refleetEngine : -1;
++  local oldCount = 0;
++  foreach (v in line.vehicles) {
++    if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) oldCount++;
++  }
++  if (C56_TASK_TRACE) {
++    OpexC56TaskLog("V92_REPLACE", "DECISION", "-",
++        "line=" + lineId + " old_engine=" + oldEngine + " old_n=" + oldCount
++        + " have=" + decision.have + " new_engine=" + decision.plane.id + " new_n=" + decision.count
++        + " m=" + decision.m + " cap_current=" + decision.capCurrent + " cap_alt=" + decision.capAlt
++        + " profit_keep=" + decision.profitKeep + " profit_new=" + decision.profitNew
++        + " net_gain=" + decision.netGain
++        + " cost=" + decision.cost + " sell=" + decision.sell);
++  }
++  V92_ANNUAL_DECIDED++;
+   line.v92PendingEngine <- decision.plane.id;
+   line.v92PendingCount <- decision.count;
++  line.v92PendingDate <- AIDate.GetCurrentDate();
+   OpexAirSendLineToHangar(line, hangar);
+   if (OpexAirLineAllInHangar(line)) {
++    local waitDays = 0;
+     local swapped = OpexAirReplaceFleet(line, hangar, catalog, decision.plane, decision.count);
+     if (swapped != null && swapped.reason == "ABORT") {
+       OpexAirReleaseHangarHold(line);
++      line.v92LastReplaceYear <- AIDate.GetYear(AIDate.GetCurrentDate());
++      if (C56_TASK_TRACE) {
++        OpexC56TaskLog("V92_REPLACE", "ABORT", "-", "line=" + lineId + " wait_days=" + waitDays);
++      }
++      V92_ANNUAL_ABORTED++;
++      V92_ANNUAL_HANGAR_DAYS += waitDays * oldCount;
+       return { added = 0, reason = "REEEQUIP_ABORT" };
+     }
+-    if (swapped != null) return swapped;
++    if (swapped != null) {
++      if (C56_TASK_TRACE) {
++        OpexC56TaskLog("V92_REPLACE", "REPLACE", "-", "line=" + lineId + " wait_days=" + waitDays);
++      }
++      V92_ANNUAL_SUCCESS++;
++      V92_ANNUAL_HANGAR_DAYS += waitDays * oldCount;
++      return swapped;
++    }
+     OpexAirClearReequip(line);
++    line.v92LastReplaceYear <- AIDate.GetYear(AIDate.GetCurrentDate());
++    if (C56_TASK_TRACE) {
++      OpexC56TaskLog("V92_REPLACE", "FAIL", "-", "line=" + lineId + " wait_days=" + waitDays);
++    }
++    V92_ANNUAL_ABORTED++;
++    V92_ANNUAL_HANGAR_DAYS += waitDays * oldCount;
+     return { added = 0, reason = "REEEQUIP_FAIL" };
+   }
++  if (C56_TASK_TRACE) {
++    OpexC56TaskLog("V92_REPLACE", "WAIT", "-", "line=" + lineId + " wait_days=0");
++  }
+   return { added = 0, reason = "REEEQUIP_WAIT" };
+ }
+ 
+@@ -1439,7 +1598,7 @@ function OpexAirAddPlane(line, catalog = null)
+     }
+   }
+   if (template == null) { result.reason = "NOLIVE"; return result; }
+-  if (V92_AIR_SERVICE_CHOICE && catalog != null) {
++  if (V92_REEQUIP && catalog != null) {
+     local swapped = OpexAirMaybeReequip(line, catalog, hangar, airportTile);
+     if (swapped != null) return swapped;
+   }
+@@ -1534,56 +1693,94 @@ function OpexAirPlanBetter(plan, bestPlan)
+   return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
+ }
+ 
+-/* V92 : pose le service retenu et, s'il differe, la variante a un appareil bon marche.
+- * Les deux portent la meme cle de paire pour qu'un seul soit construit. */
+-function OpexAirV92PairBlocked(lines, plan)
++/* V92 : une trace par paire de villes et par generation du vivier (sonde seulement). */
++function OpexV92LogRoute(plan, routeChoice)
+ {
+-  if (!V92_AIR_SERVICE_CHOICE || plan == null || !("v92PairKey" in plan)) return false;
+-  if (plan.v92PairKey in V92_CLOSED_PAIRS) return true;
+-  if (lines == null || !("siteA" in plan) || !("siteB" in plan)) return false;
+-  local tileA = plan.siteA.town.tile;
+-  local tileB = plan.siteB.town.tile;
+-  foreach (line in lines) {
+-    if (!("mode" in line) || line.mode != "air") continue;
+-    local originA = ("originA" in line) ? line.originA : -1;
+-    local originB = ("originB" in line) ? line.originB : -1;
+-    if ((originA == tileA && originB == tileB) || (originA == tileB && originB == tileA)) return true;
+-  }
+-  return false;
++  if (plan == null || !("siteA" in plan) || !("siteB" in plan) || !("economics" in plan)
++      || plan.economics == null) return;
++  local townA = plan.siteA.town.id;
++  local townB = plan.siteB.town.id;
++  local pairKey = (townA <= townB) ? (townA + "_" + townB) : (townB + "_" + townA);
++  if (pairKey in V92_ROUTE_LOGGED) return;
++  V92_ROUTE_LOGGED.rawset(pairKey, true);
++  local scanN = (routeChoice != null && ("scanPlanes" in routeChoice)) ? routeChoice.scanPlanes : plan.economics.planes;
++  local scanProfit = (routeChoice != null && ("scanProfit" in routeChoice)) ? routeChoice.scanProfit : plan.economics.profitAnnual;
++  local scanCapital = (routeChoice != null && ("scanCapital" in routeChoice)) ? routeChoice.scanCapital : plan.economics.capital;
++  local fallback = (routeChoice != null && ("fallback" in routeChoice) && routeChoice.fallback) ? 1 : 0;
++  local criterion = (routeChoice != null && ("criterion" in routeChoice)) ? routeChoice.criterion : V92_ENGINE_CRITERION;
++  local calScore = (routeChoice != null && ("score" in routeChoice)) ? routeChoice.score : 0.0;
++  local defEngStr = "";
++  if (criterion == 1 && routeChoice != null && ("defaultEngine" in routeChoice)) {
++    defEngStr = " default_engine=" + routeChoice.defaultEngine;
++  }
++  OpexC56TaskLog("V92_ROUTE", "-", "-",
++      "townA=" + townA + " townB=" + townB + " dist=" + plan.distance
++      + " criterion=" + criterion
++      + defEngStr
++      + " engine=" + plan.plane.id
++      + " chosen_engine=" + plan.plane.id
++      + " scan_n=" + scanN
++      + " scan_profit=" + scanProfit
++      + " scan_capital=" + scanCapital
++      + " score=" + calScore
++      + " cal_score=" + calScore
++      + " profit=" + plan.economics.profitAnnual
++      + " capital=" + plan.economics.capital
++      + " roi=" + plan.economics.roi
++      + " fallback=" + fallback);
+ }
+ 
+ function OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan)
+ {
+-  if (V92_AIR_SERVICE_CHOICE && routeChoice != null && ("alternate" in routeChoice)
+-      && routeChoice.alternate != null && routeChoice.alternate.economics != null
+-      && routeChoice.alternate.economics.profitAnnual > 0) {
+-    local alt = routeChoice.alternate;
+-    local townA = plan.siteA.town.id;
+-    local townB = plan.siteB.town.id;
+-    if (townA > townB) {
+-      local swap = townA;
+-      townA = townB;
+-      townB = swap;
+-    }
+-    local key = townA + "|" + townB + "|" + plan.airport.type;
+-    plan.v92PairKey <- key;
+-    plan.v92Role <- "service";
+-    local cheap = {};
+-    foreach (k, v in plan) cheap[k] <- v;
+-    cheap.plane = alt.plane;
+-    cheap.economics = alt.economics;
+-    cheap.planes = alt.economics.planes;
+-    cheap.capital = alt.economics.capital;
+-    cheap.v92Role = "cheap";
+-    if ("targetPlanes" in cheap) cheap.targetPlanes = alt.economics.planes;
+-    if (projects != null) projects.append(cheap);
+-    if (OpexAirPlanBetter(cheap, bestPlan)) bestPlan = cheap;
++  if (V92_AIR_SERVICE_CHOICE) {
++    local isFallback = (routeChoice != null && ("fallback" in routeChoice) && routeChoice.fallback);
++    local role = isFallback ? "fallback" : "service";
++    if ("v92Role" in plan) plan.v92Role = role;
++    else plan.v92Role <- role;
+   }
++  if (C56_TASK_TRACE && V92_AIR_SERVICE_CHOICE) OpexV92LogRoute(plan, routeChoice);
+   if (projects != null) projects.append(plan);
+   if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
+   return bestPlan;
+ }
+ 
++/* C82 / V92.2 : evaluation calibree commune d'un appareil selon C72_PLANE_CHOICE.
++ * Renvoye un tuple { score, calProfit, calRoi, secondary } permettant la comparaison C82
++ * et le departage en bande de profit sous V92.2. */
++function OpexC82EngineScore(plane, economics, kDec = 0)
++{
++  if (plane == null || economics == null) {
++    return { score = 0.0, calProfit = 0.0, calRoi = 0.0, secondary = 0.0 };
++  }
++  local k = OpexC82EngineFactor(plane.id);
++  local calProfit = economics.profitAnnual * k;
++  local calRoi = economics.roi * k;
++  local score = 0.0;
++  local secondary = 0.0;
++
++  if (C72_PLANE_CHOICE == 1) {
++    score = calRoi;
++    secondary = calProfit;
++  } else if (C72_PLANE_CHOICE == 2) {
++    local denom = economics.capital > kDec ? economics.capital : kDec;
++    score = denom > 0 ? (calProfit.tofloat() * 1000.0) / denom : 0.0;
++    secondary = calProfit;
++  } else {
++    score = calProfit;
++    secondary = calRoi;
++  }
++  return { score = score, calProfit = calProfit, calRoi = calRoi, secondary = secondary };
++}
++
++function OpexC82ScoreBetter(cand, best)
++{
++  if (cand == null) return false;
++  if (best == null) return true;
++  if (cand.score > best.score) return true;
++  if (cand.score == best.score && cand.secondary > best.secondary) return true;
++  return false;
++}
++
+ /* C82 : arbitrage d'appareil par route evalue sur les profits et ROI calibres par moteur.
+  * L'objet economics renvoye reste brut (non modifie). */
+ function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics, distance, monthlyPax,
+@@ -1591,20 +1788,11 @@ function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconom
+ {
+   local bestPlane = selectedPlane;
+   local bestEconomics = selectedEconomics;
+-  local bestK = (selectedPlane != null) ? OpexC82EngineFactor(selectedPlane.id) : 1.0;
+-  local bestCalProfit = (selectedEconomics != null) ? (selectedEconomics.profitAnnual * bestK) : 0.0;
+-  local bestCalRoi = (selectedEconomics != null) ? (selectedEconomics.roi * bestK) : 0.0;
+-  local bestScore = 0.0;
+-
+   local kDec = 0;
+   if (C69_BOTTLENECK_PROBE || C72_PLANE_CHOICE == 2) {
+     kDec = OpexC69CachedKDec();
+   }
+-
+-  if (C72_PLANE_CHOICE == 2 && selectedEconomics != null) {
+-    local denom = selectedEconomics.capital > kDec ? selectedEconomics.capital : kDec;
+-    bestScore = denom > 0 ? (bestCalProfit.tofloat() * 1000.0) / denom : 0.0;
+-  }
++  local bestScore = OpexC82EngineScore(selectedPlane, selectedEconomics, kDec);
+ 
+   local rawPlane = null;
+   local rawEconomics = null;
+@@ -1628,37 +1816,12 @@ function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconom
+         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+     if (economics == null) continue;
+ 
+-    local k = OpexC82EngineFactor(plane.id);
+-    local calProfit = economics.profitAnnual * k;
+-    local calRoi = economics.roi * k;
++    local curScore = OpexC82EngineScore(plane, economics, kDec);
+ 
+-    if (C72_PLANE_CHOICE == 1) {
+-      if (bestEconomics == null || calRoi > bestCalRoi ||
+-          (calRoi == bestCalRoi && calProfit > bestCalProfit)) {
+-        bestPlane = plane;
+-        bestEconomics = economics;
+-        bestCalProfit = calProfit;
+-        bestCalRoi = calRoi;
+-      }
+-    } else if (C72_PLANE_CHOICE == 2) {
+-      local curDenom = economics.capital > kDec ? economics.capital : kDec;
+-      local curScore = curDenom > 0 ? (calProfit.tofloat() * 1000.0) / curDenom : 0.0;
+-      if (bestEconomics == null || curScore > bestScore ||
+-          (curScore == bestScore && calProfit > bestCalProfit)) {
+-        bestPlane = plane;
+-        bestEconomics = economics;
+-        bestScore = curScore;
+-        bestCalProfit = calProfit;
+-        bestCalRoi = calRoi;
+-      }
+-    } else {
+-      if (bestEconomics == null || calProfit > bestCalProfit ||
+-          (calProfit == bestCalProfit && calRoi > bestCalRoi)) {
+-        bestPlane = plane;
+-        bestEconomics = economics;
+-        bestCalProfit = calProfit;
+-        bestCalRoi = calRoi;
+-      }
++    if (bestEconomics == null || OpexC82ScoreBetter(curScore, bestScore)) {
++      bestPlane = plane;
++      bestEconomics = economics;
++      bestScore = curScore;
+     }
+ 
+     if (C69_BOTTLENECK_PROBE) {
+@@ -1725,8 +1888,8 @@ function OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infras
+   return choice;
+ }
+ 
+-/* Lit la soute des avions deja en vol de cette compagnie, une fois par mois.
+- * AIVehicleList ne voit pas les avions des autres compagnies. */
++/* Lit la soute des avions deja en vol de la compagnie (AIVehicleList() ne liste que les
++ * vehicules de la compagnie, pas toutes compagnies), une fois par mois. */
+ function OpexAirLearnMailCaps(catalog)
+ {
+   if (catalog == null || !("mailCargo" in catalog) || catalog.mailCargo < 0
+@@ -1750,7 +1913,10 @@ function OpexAirLearnMailCaps(catalog)
+ function OpexAirApplyKnownMail(plane)
+ {
+   if (plane == null || !("id" in plane)) return;
+-  if (plane.id in AIR_MAIL_CAP) plane.mailCapacity = AIR_MAIL_CAP[plane.id];
++  if (plane.id in AIR_MAIL_CAP) {
++    if ("mailCapacity" in plane) plane.mailCapacity = AIR_MAIL_CAP[plane.id];
++    else plane.mailCapacity <- AIR_MAIL_CAP[plane.id];
++  }
+ }
+ 
+ function OpexAirPlaneInRange(plane, distance)
+@@ -1767,86 +1933,130 @@ function OpexAirServiceBetter(candidate, incumbent)
+   return false;
+ }
+ 
+-/* V92 : pour chaque moteur compatible, le nombre d'appareils au meilleur profit,
+- * puis la meilleure variante a un seul appareil dont le prix ne depasse pas
+- * le gros jet le moins cher (ou le moins cher tout court sur un petit aeroport). */
++/* V92.2 critere 0 : scan moteur x n pour choisir le meilleur appareil selon le critere C82 calibre,
++ * economie retournee a 1 avion. Pas de variante bon marche separee.
++ * Fallback de financement a 1 avion evalue avec le meme critere calibre. */
+ function OpexAirChooseRouteService(catalog, airport, selectedPlane, distance, monthlyPax,
+                                    infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding)
+ {
+   OpexAirLearnMailCaps(catalog);
++  local kDec = 0;
++  if (C69_BOTTLENECK_PROBE || C72_PLANE_CHOICE == 2) {
++    kDec = OpexC69CachedKDec();
++  }
++
+   local bestPlane = null;
+   local bestEcon = null;
+-  local cheapPlane = null;
+-  local cheapEcon = null;
++  local bestScore = null;
++
+   if (airport == null || catalog == null || catalog.airPlaneChoicesByAirport == null
+       || !(airport.type in catalog.airPlaneChoicesByAirport)) {
+     local econ = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
+         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1, false, false);
+-    return { plane = selectedPlane, economics = econ };
++    local sc = OpexC82EngineScore(selectedPlane, econ, kDec);
++    return {
++      plane = selectedPlane,
++      economics = econ,
++      fallback = false,
++      scanPlanes = (econ != null ? econ.planes : 1),
++      scanProfit = (econ != null ? econ.profitAnnual : 0),
++      scanCapital = (econ != null ? econ.capital : 0),
++      criterion = 0,
++      score = sc.score
++    };
+   }
+   local choices = catalog.airPlaneChoicesByAirport[airport.type];
+-  local cheapLimit = -1;
+-  local anyPrice = -1;
+-  foreach (plane in choices) {
+-    if (!OpexAirPlaneInRange(plane, distance)) continue;
+-    OpexAirApplyKnownMail(plane);
+-    if (anyPrice < 0 || plane.price < anyPrice) anyPrice = plane.price;
+-    if (("isBig" in plane) && plane.isBig && (cheapLimit < 0 || plane.price < cheapLimit)) {
+-      cheapLimit = plane.price;
+-    }
+-  }
+-  if (cheapLimit < 0) cheapLimit = anyPrice;
+   if (selectedPlane != null) OpexAirApplyKnownMail(selectedPlane);
+ 
+   foreach (plane in choices) {
+     if (!OpexAirPlaneInRange(plane, distance)) continue;
++    OpexAirApplyKnownMail(plane);
+     local scanned = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 0, false, true);
+-    if (OpexAirServiceBetter(scanned, bestEcon)) {
++    if (scanned == null || scanned.profitAnnual <= 0) continue;
++    local candScore = OpexC82EngineScore(plane, scanned, kDec);
++    if (bestScore == null || OpexC82ScoreBetter(candScore, bestScore)) {
+       bestPlane = plane;
+       bestEcon = scanned;
+-    }
+-    if (cheapLimit >= 0 && plane.price <= cheapLimit) {
+-      local one = (scanned != null && scanned.planes == 1) ? scanned
+-          : OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+-              infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1, false, false);
+-      if (OpexAirServiceBetter(one, cheapEcon)) {
+-        cheapPlane = plane;
+-        cheapEcon = one;
+-      }
++      bestScore = candScore;
+     }
+   }
+   if (bestPlane == null && selectedPlane != null) {
+-    bestEcon = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
+-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1, false, false);
+     bestPlane = selectedPlane;
+   }
+-  local choice = { plane = bestPlane, economics = bestEcon };
+-  if (cheapPlane != null && bestPlane != null && cheapEcon != null
+-      && (cheapPlane.id != bestPlane.id || cheapEcon.planes != bestEcon.planes)) {
+-    choice.alternate <- { plane = cheapPlane, economics = cheapEcon };
++
++  local scanPlanes = (bestEcon != null) ? bestEcon.planes : 1;
++  local scanProfit = (bestEcon != null) ? bestEcon.profitAnnual : 0;
++  local scanCapital = (bestEcon != null) ? bestEcon.capital : 0;
++
++  /* Economie a exactement 1 avion pour le moteur choisi par le scan */
++  local onePlaneEcon = (bestPlane != null)
++      ? OpexAirEconomics(catalog, airport, bestPlane, distance, monthlyPax,
++          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1, false, false)
++      : null;
++
++  local finalPlane = bestPlane;
++  local finalEcon = onePlaneEcon;
++  local finalScore = (bestScore != null) ? bestScore.score : 0.0;
++  local fallback = false;
++
++  /* Repli de financement si le moteur prefere a 1 avion n'est pas financable ou non profitable */
++  if (onePlaneEcon == null || onePlaneEcon.profitAnnual <= 0
++      || (maxCapital > 0 && onePlaneEcon.capital > maxCapital)) {
++    local fallbackPlane = null;
++    local fallbackEcon = null;
++    local fallbackScore = null;
++    foreach (plane in choices) {
++      if (!OpexAirPlaneInRange(plane, distance)) continue;
++      local candEcon = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
++          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1, false, false);
++      if (candEcon == null || candEcon.profitAnnual <= 0) continue;
++      if (maxCapital > 0 && candEcon.capital > maxCapital) continue;
++      local candScore = OpexC82EngineScore(plane, candEcon, kDec);
++      if (fallbackScore == null || OpexC82ScoreBetter(candScore, fallbackScore)) {
++        fallbackPlane = plane;
++        fallbackEcon = candEcon;
++        fallbackScore = candScore;
++      }
++    }
++    if (fallbackPlane != null) {
++      finalPlane = fallbackPlane;
++      finalEcon = fallbackEcon;
++      finalScore = fallbackScore.score;
++      fallback = true;
++    }
+   }
+-  return choice;
++
++  return {
++    plane = finalPlane,
++    economics = finalEcon,
++    fallback = fallback,
++    scanPlanes = scanPlanes,
++    scanProfit = scanProfit,
++    scanCapital = scanCapital,
++    criterion = 0,
++    score = finalScore
++  };
+ }
+ 
+ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, monthlyPax,
+                                  infrastructureMaintenance, maxCapital, newAirportCount,
+                                  opcodePadding, memoKey = null)
+ {
+-  if (V92_AIR_SERVICE_CHOICE) {
++  if (V92_AIR_SERVICE_CHOICE && V92_ENGINE_CRITERION == 0) {
+     return OpexAirChooseRouteService(catalog, airport, selectedPlane, distance, monthlyPax,
+         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+   }
++
++  local defaultChoice = null;
+   if (!C80_AIR_CHOICE_MEMO || memoKey == null || maxCapital != 0 || AIR_CHOICE_MEMO_STATE == 0) {
+-    local choice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
++    defaultChoice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
+         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+     if (C84_AIR_TARGET_FLEET) {
+-      return OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
+-          newAirportCount, opcodePadding, choice);
++      defaultChoice = OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
++          newAirportCount, opcodePadding, defaultChoice);
+     }
+-    return choice;
+-  }
+-  if (AIR_CHOICE_MEMO_STATE == 2 && (memoKey in AIR_CHOICE_MEMO)) {
++  } else if (AIR_CHOICE_MEMO_STATE == 2 && (memoKey in AIR_CHOICE_MEMO)) {
+     local planeId = AIR_CHOICE_MEMO[memoKey];
+     local memoPlane = null;
+     if (planeId == selectedPlane.id) {
+@@ -1860,20 +2070,122 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
+       local economics = OpexAirEconomics(catalog, airport, memoPlane, distance, monthlyPax,
+           infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+       if (economics != null) {
+-        local choice = { plane = memoPlane, economics = economics };
++        defaultChoice = { plane = memoPlane, economics = economics };
+         if (C84_AIR_TARGET_FLEET) {
+-          return OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
+-              newAirportCount, opcodePadding, choice);
++          defaultChoice = OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
++              newAirportCount, opcodePadding, defaultChoice);
+         }
+-        return choice;
+       }
+     }
++    if (defaultChoice == null) {
++      defaultChoice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
++          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
++      if (defaultChoice.plane != null) AIR_CHOICE_MEMO.rawset(memoKey, defaultChoice.plane.id);
++      if (C84_AIR_TARGET_FLEET) {
++        defaultChoice = OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
++            newAirportCount, opcodePadding, defaultChoice);
++      }
++    }
++  } else {
++    defaultChoice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
++        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
++    if (defaultChoice.plane != null) AIR_CHOICE_MEMO.rawset(memoKey, defaultChoice.plane.id);
++    if (C84_AIR_TARGET_FLEET) {
++      defaultChoice = OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
++          newAirportCount, opcodePadding, defaultChoice);
++    }
+   }
+-  local choice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
+-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+-  if (choice.plane != null) AIR_CHOICE_MEMO.rawset(memoKey, choice.plane.id);
++
++  if (!V92_AIR_SERVICE_CHOICE) {
++    return defaultChoice;
++  }
++
++  /* V92.2 critere 1 (departage bande 5% du defaut) */
++  OpexAirLearnMailCaps(catalog);
++  if (defaultChoice == null || defaultChoice.plane == null || defaultChoice.economics == null
++      || airport == null || catalog == null || catalog.airPlaneChoicesByAirport == null
++      || !(airport.type in catalog.airPlaneChoicesByAirport)) {
++    return defaultChoice;
++  }
++
++  local defaultPlane = defaultChoice.plane;
++  local defaultEcon = defaultChoice.economics;
++  local kDec = 0;
++  if (C69_BOTTLENECK_PROBE || C72_PLANE_CHOICE == 2) {
++    kDec = OpexC69CachedKDec();
++  }
++  local winnerScoreObj = OpexC82EngineScore(defaultPlane, defaultEcon, kDec);
++  local winnerScore = winnerScoreObj.score;
++
++  local defaultScanned = OpexAirEconomics(catalog, airport, defaultPlane, distance, monthlyPax,
++      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 0, false, true);
++  local defaultScanCalProfit = (defaultScanned != null)
++      ? (defaultScanned.profitAnnual * OpexC82EngineFactor(defaultPlane.id)) : 0.0;
++
++  local bestPlane = defaultPlane;
++  local bestEcon = defaultEcon;
++  local bestScanCalProfit = defaultScanCalProfit;
++  local bestScanPlanes = (defaultScanned != null) ? defaultScanned.planes : 1;
++  local bestScanProfit = (defaultScanned != null) ? defaultScanned.profitAnnual : 0;
++  local bestScanCapital = (defaultScanned != null) ? defaultScanned.capital : defaultEcon.capital;
++  local bestScore = winnerScore;
++  local tieBreakHappened = false;
++
++  local bandThreshold = (winnerScore > 0) ? (winnerScore * 0.95) : winnerScore;
++  local choices = catalog.airPlaneChoicesByAirport[airport.type];
++
++  foreach (plane in choices) {
++    if (plane.id == defaultPlane.id) continue;
++    if (!OpexAirPlaneInRange(plane, distance)) continue;
++    local candEcon = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
++        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
++    if (candEcon == null || candEcon.profitAnnual <= 0) continue;
++    if (maxCapital > 0 && candEcon.capital > maxCapital) continue;
++    local candScoreObj = OpexC82EngineScore(plane, candEcon, kDec);
++    local candScore = candScoreObj.score;
++    if (candScore < bandThreshold) continue;
++
++    local scanned = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
++        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 0, false, true);
++    if (scanned == null || scanned.profitAnnual <= 0) continue;
++    local k = OpexC82EngineFactor(plane.id);
++    local scanCalProfit = scanned.profitAnnual * k;
++    if (scanCalProfit > bestScanCalProfit) {
++      bestPlane = plane;
++      bestEcon = candEcon;
++      bestScanCalProfit = scanCalProfit;
++      bestScanPlanes = scanned.planes;
++      bestScanProfit = scanned.profitAnnual;
++      bestScanCapital = scanned.capital;
++      bestScore = candScore;
++      tieBreakHappened = true;
++    }
++  }
++
++  if (!tieBreakHappened) {
++    if ("scanPlanes" in defaultChoice) defaultChoice.scanPlanes = bestScanPlanes; else defaultChoice.scanPlanes <- bestScanPlanes;
++    if ("scanProfit" in defaultChoice) defaultChoice.scanProfit = bestScanProfit; else defaultChoice.scanProfit <- bestScanProfit;
++    if ("scanCapital" in defaultChoice) defaultChoice.scanCapital = bestScanCapital; else defaultChoice.scanCapital <- bestScanCapital;
++    if ("fallback" in defaultChoice) defaultChoice.fallback = false; else defaultChoice.fallback <- false;
++    if ("criterion" in defaultChoice) defaultChoice.criterion = 1; else defaultChoice.criterion <- 1;
++    if ("defaultEngine" in defaultChoice) defaultChoice.defaultEngine = defaultPlane.id; else defaultChoice.defaultEngine <- defaultPlane.id;
++    if ("score" in defaultChoice) defaultChoice.score = bestScore; else defaultChoice.score <- bestScore;
++    return defaultChoice;
++  }
++
++  local choice = {
++    plane = bestPlane,
++    economics = bestEcon,
++    fallback = false,
++    scanPlanes = bestScanPlanes,
++    scanProfit = bestScanProfit,
++    scanCapital = bestScanCapital,
++    criterion = 1,
++    defaultEngine = defaultPlane.id,
++    score = bestScore
++  };
+   if (C84_AIR_TARGET_FLEET) {
+-    return OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
++    choice = OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
+         newAirportCount, opcodePadding, choice);
+   }
+   return choice;
+@@ -2187,6 +2499,7 @@ function OpexAirPlansPrepare(ctx)
+   local resumeState = ctx.resumeState;
+   local t0_all = ctx.t0_all;
+   local sliced = ctx.sliced;
++  if (C56_TASK_TRACE) V92_ROUTE_LOGGED = {};
+ 
+   if (C80_AIR_EVAL_FAST) {
+     /* Les prix changent au debut de chaque mois (inflation) : une planification decoupee qui
+diff --git a/ai/OpexAI/catalog.nut b/ai/OpexAI/catalog.nut
+index 594694e..4748314 100644
+--- a/ai/OpexAI/catalog.nut
++++ b/ai/OpexAI/catalog.nut
+@@ -676,7 +676,6 @@ function OpexCatalog::_refreshAir()
+         id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
+         price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
+         maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = isBig,
+-        ageYears = AIEngine.GetMaxAge(e) / 365, mailCapacity = -1,
+       };
+       if (keepPlaneChoices) probeChoices.append(entry);
+       if (replaces) best = entry;
+@@ -727,7 +726,6 @@ function OpexCatalog::_refreshAir()
+         id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
+         price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
+         maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = false,
+-        ageYears = AIEngine.GetMaxAge(e) / 365, mailCapacity = -1,
+       };
+       if (keepPlaneChoices) probeChoices.append(entry);
+       if (replaces) best = entry;
+diff --git a/ai/OpexAI/event_handlers.nut b/ai/OpexAI/event_handlers.nut
+index 40b9b7d..24874e4 100644
+--- a/ai/OpexAI/event_handlers.nut
++++ b/ai/OpexAI/event_handlers.nut
+@@ -360,6 +360,7 @@ function OpexAI::_c77RemoveSubsidy(subId)
+     this._projects = OpexReselectProjects(
+         this._projects, OpexAvailableCapital(), this._abandonedPairs);
+     this._ranked = this._projects.rail;
++    OpexV92UpdateBestPending(this._projects);
+   }
+ }
+ 
+diff --git a/ai/OpexAI/globals_pre.nut b/ai/OpexAI/globals_pre.nut
+index 8c5d00f..5b238ed 100644
+--- a/ai/OpexAI/globals_pre.nut
++++ b/ai/OpexAI/globals_pre.nut
+@@ -262,14 +262,24 @@ C84_AIR_TARGET_FLEET <- false;
+ /* C85 : reduire le choix C68 par route aux avions structurellement non domines,
+  * calcules une fois au refresh du catalogue. Experimental, defaut 0. */
+ C85_AIR_EQUIPMENT_FRONTIER <- false;
+-/* V92 : choix d'un service (moteur x nombre) et variante bon marche de la meme route.
+- * Le renforcement peut remplacer le moteur. Experimental, defaut 0. */
++/* V92 : choix d'un service aerien (moteur x nombre) au vivier (1 avion construit).
++ * Le renforcement peut remplacer le moteur si v92_reequip=1. Experimental, defaut 0. */
+ V92_AIR_SERVICE_CHOICE <- false;
++/* V92.1 : re-equipement automatique de la flotte aerienne (defaut 0, inerte). */
++V92_REEQUIP <- false;
++/* V92.2 : critere de selection du moteur (0 = C82 scan-n, 1 = bande 5% defaut). */
++V92_ENGINE_CRITERION <- 0;
++/* V92.1 : garde d'opportunite (snapshot du meilleur projet en attente). */
++V92_BEST_PENDING <- null;
+ /* Cache reconstructible : engineId -> capacite courrier lue sur un avion vivant. */
+ AIR_MAIL_CAP <- {};
+ AIR_MAIL_LEARN_MONTH <- -1;
+-/* Paires dont une variante V92 a deja ete posee dans cette partie. */
+-V92_CLOSED_PAIRS <- {};
++/* V92 sondes : filtrage volume route et compteurs annuels (actifs sous C56_TASK_TRACE). */
++V92_ROUTE_LOGGED <- {};
++V92_ANNUAL_DECIDED <- 0;
++V92_ANNUAL_SUCCESS <- 0;
++V92_ANNUAL_ABORTED <- 0;
++V92_ANNUAL_HANGAR_DAYS <- 0;
+ /* V88 : chaines industrielles de biens completes (intrant vers usine + biens vers ville). Defaut 0. */
+ V88_GOODS_CHAIN <- false;
+ /* V88 test : force les projets chaine en tete (validation du chemin de construction). */
+diff --git a/ai/OpexAI/info.nut b/ai/OpexAI/info.nut
+index fc966aa..e35d7e3 100644
+--- a/ai/OpexAI/info.nut
++++ b/ai/OpexAI/info.nut
+@@ -181,6 +181,26 @@ class OpexAIInfo extends AIInfo {
+       flags = AICONFIG_BOOLEAN
+     });
+ 
++    AddSetting({
++      name = "v92_reequip",
++      description = "V92: allow re-equipment of air lines when a better engine exists; 1 = on, 0 = off (default)",
++      min_value = 0,
++      max_value = 1,
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0,
++      flags = AICONFIG_BOOLEAN
++    });
++
++    AddSetting({
++      name = "v92_engine_criterion",
++      description = "V92.2: air engine selection criterion under v92_air_service_choice (0 = calibrated C82 at scan-optimal n, 1 = tie-break within 5% of default winner; default 0)",
++      min_value = 0,
++      max_value = 1,
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0,
++      flags = 0
++    });
++
+     AddSetting({
+       name = "v88_goods_chain",
+       description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
+diff --git a/ai/OpexAI/projects.nut b/ai/OpexAI/projects.nut
+index 089f391..fef104b 100644
+--- a/ai/OpexAI/projects.nut
++++ b/ai/OpexAI/projects.nut
+@@ -1185,6 +1185,35 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded,
+   stats.emptyCause <- emptyCause;
+ }
+ 
++/* V92.1 : garde d'opportunite -- snapshot du meilleur projet finançable en attente. */
++function OpexV92UpdateBestPending(projects)
++{
++  if (!V92_AIR_SERVICE_CHOICE) return;
++  if (projects == null) return;
++  local list = ("best" in projects) && projects.best != null ? projects.best : null;
++  if (list == null || list.len() == 0) return;
++  local bestP = null;
++  local bestRoi = -1;
++  foreach (p in list) {
++    if (p == null) continue;
++    local r = ("roi" in p) ? p.roi : 0;
++    if (bestP == null || r > bestRoi) {
++      bestP = p;
++      bestRoi = r;
++    }
++  }
++  if (bestP != null) {
++    local cap = OpexProjectFinanceCapital(bestP);
++    local snap = {
++      roi = bestRoi,
++      capital = cap,
++      date = AIDate.GetCurrentDate()
++    };
++    /* Declaree dans globals_pre.nut ; getroottable() n'est pas expose par OpenTTD. */
++    ::V92_BEST_PENDING = snap;
++  }
++}
++
+ /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
+  * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
+  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
+@@ -1248,6 +1277,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null)
+     OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
+   }
+ 
++  OpexV92UpdateBestPending(projects);
+   return projects;
+ }
+ 
+@@ -2305,6 +2335,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
+   projects.capitalBudget = capitalBudget;
+   projects.capitalRemaining = remaining;
+   projects.candidateGroups = newWinners;
++  OpexV92UpdateBestPending(projects);
+   return projects;
+ }
+ 
+@@ -2790,5 +2821,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
+     ret.c69Best <- ::C69_LAST_AFFORDABLE;
+     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
+   }
++  OpexV92UpdateBestPending(ret);
+   return ret;
+ }
+diff --git a/ai/OpexAI/settings.nut b/ai/OpexAI/settings.nut
+index 0b0126d..55bacce 100644
+--- a/ai/OpexAI/settings.nut
++++ b/ai/OpexAI/settings.nut
+@@ -227,6 +227,8 @@ function OpexLoadSettings()
+   C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;
+   C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
+   V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;
++  V92_REEQUIP = V92_AIR_SERVICE_CHOICE && (AIController.GetSetting("v92_reequip") != 0);
++  V92_ENGINE_CRITERION = AIController.GetSetting("v92_engine_criterion");
+   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
+   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
+   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
+diff --git a/ai/OpexAI/task_air.nut b/ai/OpexAI/task_air.nut
+index df4587f..ce30a2b 100644
+--- a/ai/OpexAI/task_air.nut
++++ b/ai/OpexAI/task_air.nut
+@@ -206,8 +206,21 @@ function OpexAI::_tryBuildAir(year)
+       }
+       this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+     }
+-    if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
+-      V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
++    if (V92_AIR_SERVICE_CHOICE) {
++      local role = ("v92Role" in plan) ? plan.v92Role : "service";
++      if ("v92Role" in this._lines[this._lines.len() - 1]) {
++        this._lines[this._lines.len() - 1].v92Role = role;
++      } else {
++        this._lines[this._lines.len() - 1].v92Role <- role;
++      }
++      if (C56_TASK_TRACE) {
++        OpexC56TaskLog("V92_BUILD", "-", "-",
++            "line=" + this._nextLineId + " role=" + role
++            + " engine=" + AIVehicle.GetEngineType(result.vehicle)
++            + " planes=" + result.vehicles.len()
++            + " profit=" + plan.economics.profitAnnual
++            + " capital=" + plan.capital);
++      }
+     }
+     OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
+                            + plan.economics.profitAnnual);
+@@ -289,10 +302,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
+   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
+   local i = rank;
+       local plan = project.payload;
+-      if (OpexAirV92PairBlocked(this._lines, plan)) {
+-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "v92_pair_taken", extra = "" });
+-          return { outcome = "rejected", discards = passDiscards };
+-      }
+       if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
+           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
+           return { outcome = "rejected", discards = passDiscards };
+@@ -472,8 +481,21 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
+           }
+           this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+         }
+-        if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
+-          V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
++        if (V92_AIR_SERVICE_CHOICE) {
++          local role = ("v92Role" in plan) ? plan.v92Role : "service";
++          if ("v92Role" in this._lines[this._lines.len() - 1]) {
++            this._lines[this._lines.len() - 1].v92Role = role;
++          } else {
++            this._lines[this._lines.len() - 1].v92Role <- role;
++          }
++          if (C56_TASK_TRACE) {
++            OpexC56TaskLog("V92_BUILD", "-", "-",
++                "line=" + this._nextLineId + " role=" + role
++                + " engine=" + AIVehicle.GetEngineType(result.vehicle)
++                + " planes=" + result.vehicles.len()
++                + " profit=" + plan.economics.profitAnnual
++                + " capital=" + plan.capital);
++          }
+         }
+         OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
+                                + plan.economics.profitAnnual);
+@@ -618,7 +640,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
+     }
+     /* V92 : finir un remplacement même si la ligne n'est plus candidate à la croissance.
+      * Sinon les avions déjà envoyés au hangar y restent. */
+-    if (V92_AIR_SERVICE_CHOICE && OpexAirLineReequipPending(line)) {
++    if (V92_REEQUIP && OpexAirLineReequipPending(line)) {
+       local resumed = OpexAirAddPlane(line, this._catalog);
+       if (!(("reason" in resumed) && (resumed.reason == "NOLIVE" || resumed.reason == "NOVEH"))) continue;
+     }
+@@ -783,7 +805,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
+       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+       if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
+       local grown = OpexAirAddPlane(line, this._catalog);
+-      if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {
++      if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT" || grown.reason == "REEEQUIP_TIMEOUT")) {
+         if (grown.reason == "REPLACE" && ("vehCount" in grown)) {
+           have = grown.vehCount;
+           line.vehCount <- have;
+diff --git a/ai/OpexAI/task_report.nut b/ai/OpexAI/task_report.nut
+index 5da6605..f296473 100644
+--- a/ai/OpexAI/task_report.nut
++++ b/ai/OpexAI/task_report.nut
+@@ -83,6 +83,39 @@ function OpexAI::_reportLines(year)
+       OpexC56TaskLog("LINE_PROFIT", line.lineId, "-", "year=" + year + " profit=" + profit
+                      + " veh=" + vehCount + " stA=" + stationA + " stB=" + stationB
+                      + " waitA=" + waitA + " waitB=" + waitB + " rateA=" + rateA + " rateB=" + rateB);
++      if (("mailCargo" in this._catalog) && this._catalog.mailCargo >= 0) {
++        local mailCargo = this._catalog.mailCargo;
++        local totCapPax = 0;
++        local totCapMail = 0;
++        local totLoadPax = 0;
++        local totLoadMail = 0;
++        local planeEng = -1;
++        local countV = 0;
++        foreach (v in vehicles) {
++          if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
++          if (planeEng < 0) planeEng = AIVehicle.GetEngineType(v);
++          totCapPax += AIVehicle.GetCapacity(v, paxCargo);
++          totCapMail += AIVehicle.GetCapacity(v, mailCargo);
++          totLoadPax += AIVehicle.GetCargoLoad(v, paxCargo);
++          totLoadMail += AIVehicle.GetCargoLoad(v, mailCargo);
++          countV++;
++        }
++        if (countV > 0) {
++          local avgCapPax = totCapPax / countV;
++          local avgCapMail = totCapMail / countV;
++          local avgLoadPax = totLoadPax / countV;
++          local avgLoadMail = totLoadMail / countV;
++          local obsRatio = (totLoadPax > 0) ? (totLoadMail.tofloat() / totLoadPax.tofloat()) : 0.0;
++          local assumedRatio = 0.15;
++          if (V92_AIR_SERVICE_CHOICE && planeEng >= 0 && (planeEng in AIR_MAIL_CAP) && avgCapPax > 0) {
++            assumedRatio = AIR_MAIL_CAP[planeEng].tofloat() / avgCapPax.tofloat();
++          }
++          OpexC56TaskLog("V92_MAIL", "-", "-", "line=" + line.lineId + " engine=" + planeEng
++              + " cap_pax=" + avgCapPax + " cap_mail=" + avgCapMail
++              + " load_pax=" + avgLoadPax + " load_mail=" + avgLoadMail
++              + " obs_ratio=" + obsRatio + " assumed_ratio=" + assumedRatio);
++        }
++      }
+     }
+     OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
+     /* Collision/crash detector: an owned train that disappears outside the explicit freight
+@@ -439,6 +472,28 @@ function OpexAI::_reportLines(year)
+       OpexC80FlushAirIncremental(c73Year);
+     }
+   }
++
++  if (C56_TASK_TRACE) {
++    local roleService = 0;
++    local roleFallback = 0;
++    local roleNone = 0;
++    foreach (line in this._lines) {
++      if (!("mode" in line) || line.mode != "air") continue;
++      local r = ("v92Role" in line) ? line.v92Role : "none";
++      if (r == "service") roleService++;
++      else if (r == "fallback" || r == "cheap") roleFallback++;
++      else roleNone++;
++    }
++    OpexC56TaskLog("V92_ANNUAL", "air", "-",
++        "year=" + year
++        + " service=" + roleService + " fallback=" + roleFallback + " none=" + roleNone
++        + " decided=" + V92_ANNUAL_DECIDED + " success=" + V92_ANNUAL_SUCCESS
++        + " aborted=" + V92_ANNUAL_ABORTED + " hangar_days=" + V92_ANNUAL_HANGAR_DAYS);
++    V92_ANNUAL_DECIDED = 0;
++    V92_ANNUAL_SUCCESS = 0;
++    V92_ANNUAL_ABORTED = 0;
++    V92_ANNUAL_HANGAR_DAYS = 0;
++  }
+ }
+ /* Remediation ligne morte (2026-08-28) : une fois deadStreak >= DEAD_STREAK_THRESHOLD confirme
+  * par _reportLines, on arrete l'hemorragie de cout de fonctionnement en vendant les convois --
+diff --git a/docs/31_v92_choix_service_air.md b/docs/31_v92_choix_service_air.md
+index fc56e78..7450da6 100644
+--- a/docs/31_v92_choix_service_air.md
++++ b/docs/31_v92_choix_service_air.md
+@@ -26,8 +26,107 @@ Chaque paire chiffre chaque moteur plusieurs fois et peut produire deux projets.
+ 
+ Aucun nom d'avion, aucun EngineID, aucun seuil de places.
+ 
++## Sondes (actives sous probe_events / C56_TASK_TRACE)
++
++Toutes les sondes V92 sont émises via `OpexC56TaskLog` sous format clé=valeur en majuscules :
++- `V92_ROUTE` : tracé à chaque sélection de route par `OpexAirChooseRouteService` produisant un choix viable (`profitAnnual > 0`). Contient `townA`, `townB`, `dist`, `engine`, `n`, `profit`, `capital`, et les caractéristiques de la variante bon marché si présente (`cheap_engine`, `cheap_n`, `cheap_profit`, `cheap_capital`). Le calcul du chemin historique unitaire est omis car non disponible sans recalcul supplémentaire. Limité à une seule ligne par paire de villes et par génération de vivier (`V92_ROUTE_LOGGED`, réinitialisé dans `OpexAirPlansPrepare`).
++- `V92_BUILD` : émis à chaque construction d'une ligne aérienne sous V92. Contient `line`, `role` (`service`, `cheap` ou `none`), `engine`, `planes`, `profit`, `capital`. Le rôle est persisté sur la ligne (`line.v92Role`).
++- `V92_REPLACE` : émis lors de la décision (`DECISION`) avec `line`, `old_engine`, `old_n`, `new_engine`, `new_n`, `profit_keep`, `profit_new`, `cost`, `sell`, puis lors de chaque issue avec les jours écoulés (`wait_days`) : `WAIT`, `REPLACE`, `ABORT`, `FAIL`, `TIMEOUT`.
++- `V92_ANNUAL` : publié au rapport annuel par `_reportLines`. Décompte des lignes par rôle (`service`, `cheap`, `none`), et compteurs annuels : remplacements décidés (`decided`), réussis (`success`), abandonnés/échoués/expirés (`aborted`), et jours-avion cumulés immobilisés au hangar (`hangar_days`).
++
++## Durcissement
++
++1. **Délai maximal d'attente au hangar (90 jours)** : la date de décision `v92PendingDate` est mémorisée sur la ligne et persistée. Si les avions ne sont pas tous au hangar après 90 jours, `OpexAirReleaseHangarHold` libère les appareils arrêtés, émet `V92_REPLACE TIMEOUT`, et pose `v92LastReplaceYear` pour bloquer toute nouvelle décision de remplacement sur cette ligne pendant 2 ans.
++2. **Recalcul des prévisions après REPLACE** : dès qu'un remplacement réussit (`OpexAirReplaceFleet`), les prévisions économiques de la ligne sont réévaluées via `OpexAirEconomics` avec le nouveau moteur et le nombre d'appareils livrés (`built.len()`). Sont mis à jour : `line.predicted` (profit annuel), `line.predRevenue`, `line.predRunning`, `line.predAmort`, `line.predCarried`, `line.trains0` (nouvelle taille de flotte initiale pour la normalisation convoi de C70/C82), `line.capital`, `line.roi`, `line.year` (réaligné sur l'année courante afin de ne pas fausser l'âge mature `cAge >= 2`), `line.deadStreak = 0`, et réinitialisation de `line.c70Real = 0.0` et `line.c70Pred = 0.0` pour que la calibration C70/C82 reparte sur des bases propres au nouveau service sans polluer les ratios avec l'ancien matériel.
++3. **Analyse de la reprise V92 dans `_resizeAirFleets`** : sous `FLEET_PORTFOLIO=true` (défaut), aucun appelant n'appelle `_resizeAirFleets` avec `plan == null` (toutes les tâches passent un accumulateur `fleetPlan`). Limiter la reprise V92 à `plan == null` paralyserait définitivement l'échange des flottes. Le comportement immédiat est donc conservé : tout comme la reconstitution de crash (`needsRefleet`), la finalisation d'un échange déjà engagé est une opération d'entretien prioritaire qui doit s'exécuter dès que la flotte est rassemblée au hangar.
++4. **Préservation du chemin d'opcodes au catalogue (défaut 0)** : `catalog.nut` ne calcule `AIEngine.GetMaxAge(e)` et ne pose `mailCapacity` que lorsque `V92_AIR_SERVICE_CHOICE` est actif. À 0, ces champs ne sont pas ajoutés à la table, évitant l'appel API NoAI et reproduisant fidèlement la consommation d'opcodes pré-V92. Tous les lecteurs vérifient l'existence de `"ageYears" in plane`.
++5. **Précision de l'apprentissage du courrier** : commentaire d'`OpexAirLearnMailCaps` corrigé pour rappeler que `AIVehicleList()` ne liste que les véhicules de la compagnie et non toutes compagnies.
++
++## Réglage v92_replace_full_cost
++
++Nouveau réglage booléen `v92_replace_full_cost` (défaut 0, effectif uniquement lorsque `v92_air_service_choice=1`).
++Dans `OpexAirConsiderReplace` :
++1. « Garder le moteur actuel » (`keep`) est chiffré au **meilleur nombre d'appareils** (`serviceScan=true` borné par `OpexAirCadenceCap`), et non au simple `have + 1`.
++2. Le gain annuel `profit_new - profit_keep` est diminué de :
++   - l'annualisation du coût de transaction net : `(prix_neuf_total - valeur_revente_flotte) / 2` amorti sur le verrou de 2 ans ;
++   - la perte de revenu pendant l'attente estimée : `(profit_journalier_actuel * jours_aller_simple)`.
++3. Le remplacement n'est validé que si le gain net reste strictement positif.
++
++## Sonde de charge réelle du courrier (V92_MAIL)
++
++Une fois par an, au rapport annuel (`_reportLines`), sous `C56_TASK_TRACE`, chaque ligne aérienne inspecte ses appareils en service :
++- relève la capacité passagers et courrier (`AIVehicle.GetCapacity`) ;
++- relève la charge observée passagers et courrier (`AIVehicle.GetCargoLoad`) ;
++- calcule le ratio courrier/passagers moyen observé ;
++- publie `V92_MAIL` : `line`, `engine`, `cap_pax`, `cap_mail`, `load_pax`, `load_mail`, `obs_ratio`, `assumed_ratio` (ratio supposé par `OpexAirFarePerPax` = soute connue ou forfait 15 %).
++Aucune décision ne dépend de cette mesure.
++
++## V92.1 — isolation du choix du moteur neuf seul
++
++### Problème mesuré sous V92 initial
++Sous `v92_air_service_choice=1`, `OpexAirStoreRoutePlan` émettait deux projets par paire de villes :
++1. le plan « service » dimensionné au nombre optimal d'appareils $n$ issu du scan (capital médian ~494 k£) ;
++2. une variante « cheap » à un seul appareil (~65 k£) partageant `v92PairKey`.
++
++Le portefeuille retenait la variante bon marché 29 fois sur 31 en raison de son faible capital, enfermant la paire sur le moteur le moins cher plutôt que sur le meilleur service. Résultat 5 graines × 6 ans : −570 k£/an, valeur −42 %.
++
++### Principes et implémentation de V92.1
++1. **Choix du moteur par scan, économie à 1 avion** :
++   Dans `OpexAirChooseRouteService`, le scan moteur × $n$ (`OpexAirEconomics` avec `serviceScan=true`) sert **uniquement** à choisir le meilleur type de moteur. L'économie transmise au plan et au portefeuille est recalculée pour ce moteur à exactement 1 appareil (`count=1`). Le meilleur $n$ du scan et son profit/capital sont conservés comme diagnostics (`scanPlanes`, `scanProfit`, `scanCapital`) pour la sonde `V92_ROUTE`. Tout ce qui entre au vivier et au portefeuille correspond à 1 appareil réellement acheté.
++2. **Un seul projet par paire, aucun concurrent cheap** :
++   Suppression complète de la variante bon marché concurrente (`choice.alternate`), de la duplication dans `OpexAirStoreRoutePlan`, ainsi que de `v92PairKey`, `v92Role="cheap"`, `V92_CLOSED_PAIRS` et `OpexAirV92PairBlocked`.
++   En cas de contrainte de financement sous `maxCapital` (ou si l'économie du moteur préféré à 1 avion est nulle ou non profitable), un repli de financement sélectionne le meilleur moteur à 1 avion finançable (`choice.fallback = true`, rôle `"fallback"`). Ce n'est jamais un projet distinct.
++3. **Ré-équipement désactivé par défaut (`v92_reequip=0`)** :
++   Remplacement de `v92_replace_full_cost` par `v92_reequip` (défaut 0, inerte). `OpexAirMaybeReequip` n'est appelé lors de la croissance de flotte que si `V92_REEQUIP` est actif. À 0, les lignes V92 s'étendent via le clonage standard existant, de manière strictement inchangée.
++4. **Règle de contrôle du ré-équipement (`v92_reequip=1`)** :
++   - *Maintien (`keep`)* : chiffré pour le moteur actuel à exactement `have` avions (taille actuelle de la flotte), jamais à $have+1$ ni à un optimal théorique.
++   - *Alternative* : meilleur autre moteur à un nombre d'appareils $m$ garantissant une capacité offerte non régressive ($m \times \text{capacity\_alt} \ge have \times \text{capacity\_current}$, arrondi supérieur, plafonné par `OpexAirCadenceCap`). Invariant strict : un remplacement ne réduit jamais la capacité offerte de la ligne. Si aucun $m$ ne tient dans le plafond de cadence, aucun remplacement.
++   - *Gain net* : $(P_{\text{alt}} - P_{\text{keep}}) - \frac{m \times \text{price}_{\text{alt}} - \text{sell}}{2} - \text{downtimeLoss}$. Remplacement validé uniquement si $netGain > 0$.
++   - *Garde d'opportunité* : snapshot global `V92_BEST_PENDING` maintenu lors des sélections du portefeuille. ROI de ré-équipement (en ‰, comme `economics.roi`) $= \frac{netGain \times 1000}{\max(1, m \times \text{price}_{\text{alt}} - \text{sell})}$. Le remplacement est sauté (`SKIP_OPPORTUNITY`) si un projet du vivier datant de moins de 90 jours offre un ROI supérieur et peut être financé par la trésorerie disponible augmentée de la dépense évitée.
++5. **Sondes enrichies** :
++   - `V92_ROUTE` trace : `criterion=0/1`, `default_engine` (pour critère 1), `engine`, `chosen_engine`, `scan_n`, `scan_profit`, `scan_capital`, `score`, `profit`, `capital`, `roi`, `fallback=0/1`.
++   - `V92_BUILD` : rôle `"service"` ou `"fallback"`.
++   - `V92_REPLACE DECISION` : trace `old_engine`, `old_n`, `have`, `new_engine`, `new_n`, `m`, `cap_current`, `cap_alt`, `profit_keep`, `profit_new`, `net_gain`, `cost`, `sell`.
++   - `V92_ANNUAL` : compteurs par rôle `service`, `fallback`, `none`.
++
++## V92.2 — isolation du choix du moteur
++
++### Mesure V92.1 et diagnostic causal
++Un banc 5 graines × 6 ans de V92.1 contre le défaut a mesuré :
++- profit annuel : **−865 k£/an**, 0/5 ;
++- valeur de compagnie : **−55 %** ;
++- flotte : **43 avions contre 94** ;
++- couverture : **13 aéroports contre 25**, emprunt bloqué au plafond.
++
++Le défaut démarre déjà chaque ligne aérienne à un seul avion (`FLEET_PORTFOLIO=true`), donc la cause de l'effondrement n'était pas la taille initiale de flotte. L'analyse causale a isolé trois facteurs modifiés simultanément sous V92.1 :
++1. **Critère de moteur** : choix basé sur le profit absolu au $n$ optimal issu du scan, court-circuitant le sélecteur calibré C82 du défaut (`OpexC82ChooseRoutePlane`, qui applique les calibrations d'opcodes `OpexC82EngineFactor` et le mode d'objectif `C72_PLANE_CHOICE` : 1 = ROI calibré, 2 = profit calibré / $\max(\text{capital}, kDec)$, sinon profit calibré).
++2. **Modèle de revenu aérien** : `OpexAirFarePerPax` utilisait le ratio de capacité courrier réel de la soute de l'appareil au lieu du forfait fixe historique de 15 %.
++3. **Amortissement** : `OpexAirEconomics` utilisait `lifeYears = AIEngine.GetMaxAge` au lieu de la durée fixe de 20 ans.
++
++### Principes et implémentation de V92.2
++
++1. **Suppression des facteurs confondants de revenu et d'amortissement** :
++   - Sous `v92_air_service_choice=1`, `OpexAirFarePerPax` rétablit le forfait fixe de 15 % de courrier, strictement comme au défaut.
++   - `OpexAirEconomics` conserve l'amortissement sur `lifeYears = 20` ans, strictement comme au défaut.
++   - L'apprentissage de soute `AIR_MAIL_CAP` et la sonde annuelle `V92_MAIL` restent présents en télémétrie passive sans aucun impact économique.
++   - Les champs `ageYears` et `mailCapacity` sont retirés du catalogue aérien (`_refreshAir`), éliminant tout appel superflu à `AIEngine.GetMaxAge(e)`.
++
++2. **Nouveau réglage `v92_engine_criterion`** :
++   Déclaré dans `info.nut` (min 0, max 1, défaut 0), chargé dans `settings.nut` et initialisé dans `globals_pre.nut` (`V92_ENGINE_CRITERION <- 0`), actif uniquement sous `v92_air_service_choice=1` :
++   - **Critère 0 (principal, V92.2)** : pour chaque appareil compatible en portée, calcul de l'économie `serviceScan` (à son $n$ optimal), puis évaluation du score selon exactement le critère calibré C82 (mêmes facteurs `OpexC82EngineFactor`, même mode `C72_PLANE_CHOICE` et même réserve $kDec$ issue de `OpexC69CachedKDec` en mode 2), calculé sur l'économie à $n$ appareils. L'appareil retenu est celui maximisant ce score calibré. L'économie soumise au portefeuille est ensuite recalculée pour cet appareil à exactement 1 avion. En cas de contrainte de caisse sous `maxCapital` (ou profit nul), le repli de financement à 1 avion applique le même critère calibré sur l'économie unitaire.
++   - **Critère 1 (variante départage en bande 5 %)** : exécute le chemin complet du sélecteur par défaut (`OpexAirChooseRoutePlaneFull` / C82 / mémo C80 / attachement C84) pour identifier l'appareil gagnant par défaut. Puis, parmi les appareils dont le score calibré par défaut se situe dans une bande de 5 % du gagnant ($\text{score} \ge \text{winnerScore} \times 0{,}95$), retient celui offrant le meilleur profit calibré au $n$ optimal du scan. L'économie retournée est l'économie à 1 avion de l'appareil choisi. Si aucun autre appareil n'est dans la bande ou si le gagnant par défaut n'est pas battu, le retour est strictement identique à l'octet près au choix par défaut.
++
++3. **Helper partagé C82** :
++   La formule de score C82 est factorisée dans `OpexC82EngineScore(plane, economics, kDec)` et `OpexC82ScoreBetter(cand, best)`. Utilisé à la fois par `OpexC82ChooseRoutePlane` et par V92, garantissant une cohérence parfaite des critères tout en conservant le comportement et les traces C69 strictement identiques lorsque V92 est inactif.
++
++4. **Invariants conservés** :
++   - 1 seul projet soumis par paire de villes, aucun concurrent bon marché (« cheap »).
++   - 1 seul appareil commandé initialement au vivier.
++   - Ré-équipement (`v92_reequip`) désactivé par défaut (0), gardes de non-régression de capacité et d'opportunité intactes.
++   - Sonde `V92_ROUTE` enrichie avec `criterion`, `default_engine` (pour critère 1), `engine` / `chosen_engine`, `scan_n` et `score` (score calibré).
++
+ ## Hors de ce réglage
+ 
+-À 0, les décisions d'avion restent celles d'avant : un appareil, forfait courrier 15 %, amortissement sur 20 ans, clonage du même moteur. Le catalogue appelle quand même `GetMaxAge` et pose `mailCapacity`, et le revenu passe par `OpexAirFarePerPax`. Les décisions sont les mêmes. La trajectoire peut dériver, parce que la consommation d'opcodes n'est pas identique.
++À 0, les décisions d'avion restent celles d'avant : un appareil, forfait courrier 15 %, amortissement sur 20 ans, clonage du même moteur. Le profil d'opcodes reste strictement identique au défaut historique.
+ 
+ Smoke 1×1, graine 42, `v92_air_service_choice=1` : partie jusqu'au 1971-01-01, `run_ok`, compteurs physiques valides (`results/smoke_v92_air_service_20260924.json`). Pas de diagnostic 5×6.
+diff --git a/docs/taches.md b/docs/taches.md
+index 4764b1b..37ca169 100644
+--- a/docs/taches.md
++++ b/docs/taches.md
+@@ -57,7 +57,7 @@ avant d'en prendre un, vérifier qu'aucun C ni V ne le porte déjà.
+ | **Harnais — aide `--memory` du lanceur** | Correctif mineur | `sweeps/run_c66_reference.py` annonce ~1 Go par worker en duel 10 ans ; observé < 800 Mo à 10 workers (PC de l'utilisateur). Corriger le texte ; sur le VPS, 3 workers avec 2 Go suffisent. |
+ | **C88 — joueur humain actif et joueur IA actif** | Non démarré ; reconnaissance seule, demandé le 2026-09-24 | Deux booléens, recalculés quand une compagnie apparaît, fait faillite ou fusionne : au moins une compagnie humaine vivante, et au moins une compagnie IA vivante. Actif = compagnie encore dans le pool (`AICompany.ResolveCompanyID` différent de `COMPANY_INVALID`). Un spectateur n'est pas une compagnie. OpexAI compte comme IA. L'API NoAI 15 (`AICompany`, en-tête `script_company.hpp` du master relu le 2026-09-24) n'expose pas `Company::is_ai`, alors que le chunk `PLYR` des sauvegardes le porte. Première étape : le confirmer sur le binaire OpenTTD 15.3. Si l'API ne le donne pas, le constater et s'arrêter ; ne pas classer une compagnie par son nom, son argent ou son activité. Piège déjà mesuré : un rechargement headless crée une compagnie fantôme `is_ai=0` (~100 000 £, jamais mouvementée ; [journal du 13](journal_2026-09-13.md)). Cache reconstructible, rien à sauver. Aucun changement de décision ni de défaut. |
+ | **Améliorer et rendre rentables C85 puis C84** | demandé le 2026-09-24 ; les deux réglages restent à défaut 0 | Ordre imposé : **C85 d'abord**, C84 ensuite. **C85** (`c85_air_equipment_frontier`) : frontière conservatrice d'équipement, non adoptée. 5×6 : −24,5 k£/an, 2/3, garde de valeur tenue (−2,69 %) ; gain d'opcodes réel mais modeste (environ 4–8 % du planning AIR). Une short-list de rôles ou une borne de profit par route changerait le contrat de sûreté et doit être mesurée à part. [Fiche](25_c85_air_equipment_frontier.md). **C84** (`c84_air_target_fleet`) : profondeur de flotte mémorisée, chantier initial toujours à un avion. 5×6 propre : −69,6 k£/an ; le franchissement forcé du premier signal de mauvaise santé n'est pas un levier retenu. [Fiche](24_c84_air_target_fleet.md). Ne pas enchaîner C84 tant que C85 n'a pas un 5×6 au-dessus de +50 k£/an. Ne pas lancer de 20×10 ni changer un défaut avant cette qualification, garde de valeur −5 %. |
+-| **V92 — choix d'un service aérien** | implémenté, défaut 0 ; smoke 1×1 graine 42 OK | `v92_air_service_choice`. Pour chaque route : meilleur profit sur (moteur × nombre d'appareils), plus une variante à un appareil dont le prix ne dépasse pas le gros jet le moins cher. Une seule des deux variantes est construite. Le remplacement mémorise les avions déjà envoyés au hangar, reprend à chaque passe de flotte, et revérifie la caisse avant la vente. Pas de 5×6. [Fiche](31_v92_choix_service_air.md). |
++| **V92 — choix d'un service aérien** | V92.2 implémenté (isolation critère moteur, réglage v92_engine_criterion 0/1, amortissement 20 ans et courrier 15 % restaurés), défauts 0 ; tests OK | `v92_air_service_choice` (défaut 0). V92.1 mesuré 5×6 à −865 k£/an ; 3 facteurs confondants identifiés. V92.2 isole le critère de choix moteur sous réglage `v92_engine_criterion` (défaut 0) : 0 = scoring C82 calibré au n optimal du scan avec repli finançable à 1 avion ; 1 = départage bande 5 % du gagnant par défaut au meilleur profit calibré au n optimal. Amortissement (20 ans) et revenu courrier (15 %) réalignés strictement sur le défaut. Réglage `v92_reequip` (défaut 0, inerte). Invariants V92.1 tenus (1 projet par paire, 1 avion construit, pas de variante cheap). Sondes `V92_ROUTE` (criterion, default_engine, engine, scan_n, score), `V92_BUILD`, `V92_REPLACE`, `V92_ANNUAL`, `V92_MAIL`. [Fiche](31_v92_choix_service_air.md). |
+ 
+ <a id="c76-c77"></a>
+ ### C76/C77 — limites du reliquat
+diff --git a/sweeps/bench_c50b_physical.py b/sweeps/bench_c50b_physical.py
+index a343dad..0ef5b68 100644
+--- a/sweeps/bench_c50b_physical.py
++++ b/sweeps/bench_c50b_physical.py
+@@ -226,7 +226,7 @@ def selftest():
+             c66 = json.load(f)
+         tel = physical_telemetry(c66["chunks"], owner=0)
+         assert tel["chunk_valid"] is True, "Télémétrie valide attendue sur fixture C66"
+-        assert tel["schema_version"] == "1.1.0"
++        assert tel["schema_version"] in ("1.1.0", "1.2.0")
+         assert tel["primary_vehicles_by_mode"]["train"] == 1
+         assert tel["primary_vehicles_by_mode"]["roadveh"] == 17
+         assert tel["primary_vehicles_by_mode"]["aircraft"] == 3
+diff --git a/sweeps/diag_c78_lines_vs_aaa.py b/sweeps/diag_c78_lines_vs_aaa.py
+index 78a07d6..a966434 100644
+--- a/sweeps/diag_c78_lines_vs_aaa.py
++++ b/sweeps/diag_c78_lines_vs_aaa.py
+@@ -36,6 +36,9 @@ except ImportError:
+     pass
+ 
+ 
++from physical_counters import decode_vehicles
++
++
+ C78_TAG_RE = re.compile(r"OPEX (\d+)-\d+-\d+ (C78_[A-Z]+)\s*(.*)")
+ 
+ 
+@@ -155,8 +158,17 @@ def keep(row):
+                 "tiles": l.get("ordered_station_tiles", []),
+                 "cargo": l.get("cargo_types", []),
+             })
++        # Flotte aerienne par modele (EngineID de la tete, decodeur physique 1.2.0).
++        air_engines = {}
++        veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=owner)
++        if veh_dec.get("chunk_valid"):
++            for vehicle in veh_dec["primary_vehicles_detail"]:
++                if vehicle.get("mode") == "air" and vehicle.get("engine_type") is not None:
++                    key = str(vehicle["engine_type"])
++                    air_engines[key] = air_engines.get(key, 0) + 1
+         companies_data[str(owner)] = {
+             "lines": lines_summary,
++            "air_engines": air_engines if veh_dec.get("chunk_valid") else None,
+         }
+ 
+     return ({
+diff --git a/sweeps/physical_counters.py b/sweeps/physical_counters.py
+index bad1295..7294dcd 100644
+--- a/sweeps/physical_counters.py
++++ b/sweeps/physical_counters.py
+@@ -5,12 +5,12 @@ pour les véhicules (`VEHS`) et les gares (`STNN`), évitant les surcomptages hi
+ (wagons de train ou ombres d'avion comptés comme des véhicules indépendants, mélange
+ des capacités passagers et fret, gares multimodales comptées plusieurs fois).
+ 
+-Schéma de version : 1.1.0
++Schéma de version : 1.2.0 (1.2.0 : `engine_type` de la tête dans `primary_vehicles_detail`)
+ """
+ from collections import Counter, defaultdict
+ from typing import Any, Dict, List, Optional, Tuple, Union
+ 
+-SCHEMA_VERSION = "1.1.0"
++SCHEMA_VERSION = "1.2.0"
+ 
+ # Modes de véhicules et correspondance avec le champ `type` du chunk VEHS
+ # 0: train, 1: roadveh, 2: ship, 3: aircraft, 4: effect, 5: disaster
+@@ -124,7 +124,7 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0)
+ 
+     Retourne :
+         Dictionnaire conforme au schéma 1.1.0 avec :
+-        - `schema_version` : version du schéma ("1.1.0").
++        - `schema_version` : version du schéma ("1.2.0").
+         - `chunk_valid` : booléen (False si le chunk est absent, d'un type inattendu,
+           ou si une anomalie interne laisse un comptage incomplet).
+         - `chunk_error` : None ou chaîne descriptive de l'erreur ("chunk_missing", etc.).
+@@ -371,6 +371,8 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0)
+         primary_details.append({
+             "index": idx,
+             "mode": mode,
++            # EngineID de la tete (None si absent du chunk) : modele d'avion, de loco, etc.
++            "engine_type": common.get("engine_type"),
+             "unitnumber": unitnumber,
+             "subtype": subtype,
+             "vehstatus": vehstatus,
+diff --git a/sweeps/test_campaign_freeze.py b/sweeps/test_campaign_freeze.py
+index 33c8986..109a190 100644
+--- a/sweeps/test_campaign_freeze.py
++++ b/sweeps/test_campaign_freeze.py
+@@ -168,7 +168,7 @@ class TestCampaignFreeze(unittest.TestCase):
+     def test_real_info_settings_contract(self):
+         defaults = parse_ai_settings(INFO)
+         specs = parse_ai_setting_specs(INFO)
+-        self.assertEqual(len(defaults), 77)
++        self.assertEqual(len(defaults), 79)
+         for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build",
+                      "c80_air_hub_index", "town_growth_roi_gate", "c76_regen_targeted",
+                      "v90_fast_pathfinder"):
+@@ -178,7 +178,7 @@ class TestCampaignFreeze(unittest.TestCase):
+                      "c80_worker_rail", "c80_worker_town", "c80_mode_regen", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
+                      "c82_engine_calibration", "town_growth_plan_memo", "c80_marginal_floor", "rail_depot_cost",
+                      "air_hubhub_marginal", "air_hub_max_routes", "v89_rail_search_throughput",
+-                     "v90_pathfinder_check", "v92_air_service_choice"):
++                     "v90_pathfinder_check", "v92_air_service_choice", "v92_reequip", "v92_engine_criterion"):
+             self.assertEqual(defaults[name], 0, name)
+         self.assertEqual(defaults["v91_astar_weight_pct"], 120)
+         self.assertNotIn("c80_fleet_inject", defaults)
+diff --git a/sweeps/test_physical_counters.py b/sweeps/test_physical_counters.py
+index cc251ca..dd22d42 100644
+--- a/sweeps/test_physical_counters.py
++++ b/sweeps/test_physical_counters.py
+@@ -496,6 +496,12 @@ class TestPhysicalCounters(unittest.TestCase):
+         self.assertEqual(dec["components_breakdown"]["aircraft_shadows_rotors"], 4)
+         self.assertEqual(len(dec["unclassified_entries"]), 0)
+ 
++        # 1.2.0 : modele de la tete publie pour chaque convoi pilotable.
++        air_engines = sorted(v["engine_type"] for v in dec["primary_vehicles_detail"] if v["mode"] == "air")
++        self.assertEqual(len(air_engines), 4)
++        self.assertTrue(all(isinstance(e, int) for e in air_engines))
++        self.assertTrue(all(v["engine_type"] is not None for v in dec["primary_vehicles_detail"]))
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/sweeps/test_v92_air_service.py b/sweeps/test_v92_air_service.py
+index b7d73c5..063ee98 100644
+--- a/sweeps/test_v92_air_service.py
++++ b/sweeps/test_v92_air_service.py
+@@ -42,36 +42,43 @@ class V92AirServiceChoiceTests(unittest.TestCase):
+         self.assertIn("serviceScan = false", economics)
+         self.assertIn("(targetSizing || serviceScan) ? multiPlaneMax", economics)
+         self.assertIn('&& !serviceScan', economics)
+-        self.assertIn("plane.ageYears > 1", economics)
++        self.assertNotIn("plane.ageYears", economics)
++        self.assertIn("local lifeYears = 20;", economics)
+         self.assertIn("plane.price / lifeYears", economics)
+ 
+-    def test_mail_uses_measured_hold_ratio(self):
++    def test_mail_uses_default_flat_ratio_under_v92(self):
+         fare = function_body(BUILDER, "function OpexAirFarePerPax(")
+         self.assertIn("local mailPct = 15;", fare)
+-        self.assertIn("(plane.mailCapacity * 100) / plane.capacity", fare)
+-        self.assertIn("V92_AIR_SERVICE_CHOICE", fare)
++        self.assertNotIn("mailCapacity", fare)
++        self.assertNotIn("V92_AIR_SERVICE_CHOICE", fare)
+ 
+     def test_choice_emits_service_and_cheap_variant(self):
+         choose = function_body(BUILDER, "function OpexAirChooseRoutePlane(")
+-        self.assertLess(
+-            choose.index("V92_AIR_SERVICE_CHOICE"),
+-            choose.index("OpexAirChooseRoutePlaneFull("),
+-        )
++        self.assertIn("V92_AIR_SERVICE_CHOICE && V92_ENGINE_CRITERION == 0", choose)
++        self.assertIn("OpexAirChooseRouteService(", choose)
++        self.assertIn("OpexAirChooseRoutePlaneFull(", choose)
+         service = function_body(BUILDER, "function OpexAirChooseRouteService(")
+         self.assertIn("false, true)", service)
+-        self.assertIn("choice.alternate <-", service)
+-        self.assertIn("plane.price <= cheapLimit", service)
++        self.assertNotIn("choice.alternate <-", service)
++        self.assertNotIn("cheapLimit", service)
++        self.assertIn("scanPlanes", service)
++        self.assertIn("fallback", service)
++        self.assertIn("OpexC82EngineScore", service)
++        self.assertIn("OpexC82ScoreBetter", service)
+         self.assertIn("infrastructureMaintenance, maxCapital, newAirportCount", service)
+         store = function_body(BUILDER, "function OpexAirStoreRoutePlan(")
+-        self.assertIn('cheap.v92Role = "cheap"', store)
+-        self.assertIn("v92PairKey", store)
+-        self.assertIn("OpexAirV92PairBlocked", TASK_AIR)
++        self.assertNotIn('cheap.v92Role = "cheap"', store)
++        self.assertNotIn("v92PairKey", store)
++        self.assertNotIn("OpexAirV92PairBlocked", TASK_AIR)
++        self.assertNotIn("V92_CLOSED_PAIRS", GLOBALS)
+ 
+     def test_growth_can_replace_the_engine(self):
+         add = function_body(BUILDER, "function OpexAirAddPlane(")
+         self.assertIn("OpexAirMaybeReequip(line, catalog, hangar, airportTile)", add)
++        self.assertIn("if (V92_REEQUIP && catalog != null)", add)
+         consider = function_body(BUILDER, "function OpexAirConsiderReplace(")
+-        self.assertIn("have + 1", consider)
++        self.assertNotIn("have + 1", consider)
++        self.assertIn("have, false, false);", consider)
+         self.assertIn("OpexAirCadenceCap(line, catalog, null)", consider)
+         self.assertIn("OpexAirLineSellValue(line)", consider)
+         send = function_body(BUILDER, "function OpexAirSendLineToHangar(")
+@@ -88,9 +95,8 @@ class V92AirServiceChoiceTests(unittest.TestCase):
+         report = (ROOT / "ai" / "OpexAI" / "task_report.nut").read_text(encoding="utf-8")
+         scrap = function_body(report, "function OpexAI::_triggerScrapLine(")
+         self.assertIn("if (!reequipPending) AIVehicle.SendVehicleToDepot(v);", scrap)
+-        self.assertIn("OpexAirClearReequip(line)", scrap)
+-        self.assertIn("ageYears = AIEngine.GetMaxAge(e) / 365", CATALOG)
+-        self.assertIn("mailCapacity = -1", CATALOG)
++        self.assertNotIn("entry.ageYears <- AIEngine.GetMaxAge(e) / 365;", CATALOG)
++        self.assertNotIn("entry.mailCapacity <- -1;", CATALOG)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/sweeps/test_v92_hardening.py b/sweeps/test_v92_hardening.py
+new file mode 100644
+index 0000000..5546aa9
+--- /dev/null
++++ b/sweeps/test_v92_hardening.py
+@@ -0,0 +1,195 @@
++"""Contrats textuels pour le durcissement, les sondes et le réglage v92_replace_full_cost de V92."""
++from pathlib import Path
++import unittest
++
++ROOT = Path(__file__).resolve().parents[1]
++BUILDER = (ROOT / "ai" / "OpexAI" / "builder_air.nut").read_text(encoding="utf-8")
++GLOBALS = (ROOT / "ai" / "OpexAI" / "globals_pre.nut").read_text(encoding="utf-8")
++INFO = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
++SETTINGS = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
++CATALOG = (ROOT / "ai" / "OpexAI" / "catalog.nut").read_text(encoding="utf-8")
++TASK_AIR = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
++TASK_REPORT = (ROOT / "ai" / "OpexAI" / "task_report.nut").read_text(encoding="utf-8")
++
++
++PROJECTS = (ROOT / "ai" / "OpexAI" / "projects.nut").read_text(encoding="utf-8")
++
++
++def function_body(text, signature):
++    start = text.index(signature)
++    brace = text.index("{", start)
++    depth = 0
++    for pos in range(brace, len(text)):
++        if text[pos] == "{":
++            depth += 1
++        elif text[pos] == "}":
++            depth -= 1
++            if depth == 0:
++                return text[start:pos + 1]
++    raise AssertionError(signature)
++
++
++class V92HardeningTests(unittest.TestCase):
++    def test_new_setting_declared_loaded_default_zero(self):
++        self.assertIn("V92_REEQUIP <- false;", GLOBALS)
++        start = INFO.index('name = "v92_reequip"')
++        block = INFO[start:INFO.index("});", start)]
++        for token in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
++            self.assertIn(token, block)
++        self.assertIn(
++            'V92_REEQUIP = V92_AIR_SERVICE_CHOICE && (AIController.GetSetting("v92_reequip") != 0);',
++            SETTINGS,
++        )
++
++        self.assertIn("V92_ENGINE_CRITERION <- 0;", GLOBALS)
++        start_crit = INFO.index('name = "v92_engine_criterion"')
++        block_crit = INFO[start_crit:INFO.index("});", start_crit)]
++        for token in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
++            self.assertIn(token, block_crit)
++        self.assertIn(
++            'V92_ENGINE_CRITERION = AIController.GetSetting("v92_engine_criterion");',
++            SETTINGS,
++        )
++
++    def test_catalog_no_getmaxage_outside_v92(self):
++        body = function_body(CATALOG, "function OpexCatalog::_refreshAir()")
++        self.assertEqual(body.count("AIEngine.GetMaxAge(e)"), 0)
++        self.assertNotIn("ageYears", body)
++        self.assertNotIn("mailCapacity", body)
++
++    def test_hangar_timeout_and_pending_date(self):
++        reequip = function_body(BUILDER, "function OpexAirMaybeReequip(")
++        self.assertIn("line.v92PendingDate <- AIDate.GetCurrentDate();", reequip)
++        self.assertIn("waitDays > 90", reequip)
++        self.assertIn("OpexAirReleaseHangarHold(line)", reequip)
++        self.assertIn("line.v92LastReplaceYear <- AIDate.GetYear(AIDate.GetCurrentDate());", reequip)
++        self.assertIn('reason = "REEEQUIP_TIMEOUT"', reequip)
++        self.assertIn('OpexC56TaskLog("V92_REPLACE", "TIMEOUT"', reequip)
++
++        clear = function_body(BUILDER, "function OpexAirClearReequip(")
++        self.assertIn('delete line.v92PendingDate', clear)
++
++    def test_replace_forecast_recomputation(self):
++        replace = function_body(BUILDER, "function OpexAirReplaceFleet(")
++        for key, value in (("predicted", "newEcon.profitAnnual"), ("predRevenue", "newEcon.revenueAnnual"),
++                           ("predRunning", "newEcon.runningAnnual"), ("predAmort", "newEcon.amortAnnual"),
++                           ("predCarried", "newEcon.carried"), ("trains0", "built.len()"),
++                           ("capital", "newEcon.capital"), ("roi", "newEcon.roi"), ("deadStreak", "0")):
++            # rawset : les lignes aeriennes n'ont pas toutes ces cles, `=` leverait une exception.
++            self.assertIn('line.rawset("%s", %s);' % (key, value), replace)
++        self.assertIn('line.rawset("year", AIDate.GetYear(AIDate.GetCurrentDate()));', replace)
++        self.assertNotIn("line.roi = ", replace)
++        self.assertIn('line.c70Real = 0.0;', replace)
++        self.assertIn('line.c70Pred = 0.0;', replace)
++
++    def test_honest_replacement_decision(self):
++        consider = function_body(BUILDER, "function OpexAirConsiderReplace(")
++        # keep evaluated at exactly have planes
++        self.assertIn("have, false, false);", consider)
++        self.assertNotIn("have + 1", consider)
++        # capacity invariant
++        self.assertIn("totalCapacityCurrent", consider)
++        self.assertIn("OpexCeilDiv(totalCapacityCurrent, planeCap)", consider)
++        # transaction cost and downtime formulas
++        self.assertIn("local transCost = cost - sell;", consider)
++        self.assertIn("local annualTransCost = transCost / 2;", consider)
++        self.assertIn("downtimeDays", consider)
++        self.assertIn("downtimeLoss", consider)
++        self.assertIn("local netGain = (newProfit - keepProfit) - annualTransCost - downtimeLoss;", consider)
++        self.assertIn("if (netGain <= 0) return null;", consider)
++        # opportunity guard
++        self.assertIn("V92_BEST_PENDING", consider)
++        self.assertIn("SKIP_OPPORTUNITY", consider)
++        self.assertIn("reequipRoi", consider)
++
++    def test_opportunity_guard_and_best_pending(self):
++        self.assertIn("V92_BEST_PENDING <- null;", GLOBALS)
++        self.assertIn("function OpexV92UpdateBestPending(projects)", PROJECTS)
++        reselect = function_body(PROJECTS, "function OpexReselectProjects(")
++        self.assertIn("OpexV92UpdateBestPending(projects);", reselect)
++
++    def test_traces_under_c56_task_trace(self):
++        # V92_ROUTE
++        # La trace de route vit dans OpexAirStoreRoutePlan, qui connait les villes du plan ;
++        # memoKey (nul au defaut, chaine sous C80) ne doit pas servir a les deduire.
++        store = function_body(BUILDER, "function OpexAirStoreRoutePlan(")
++        self.assertIn("if (C56_TASK_TRACE && V92_AIR_SERVICE_CHOICE) OpexV92LogRoute(plan, routeChoice);", store)
++        log_route = function_body(BUILDER, "function OpexV92LogRoute(")
++        self.assertIn('OpexC56TaskLog("V92_ROUTE"', log_route)
++        self.assertIn('V92_ROUTE_LOGGED', log_route)
++        self.assertIn('criterion=', log_route)
++        self.assertIn('default_engine=', log_route)
++        self.assertIn('engine=', log_route)
++        self.assertIn('chosen_engine=', log_route)
++        self.assertIn('scan_n=', log_route)
++        self.assertIn('scan_profit=', log_route)
++        self.assertIn('scan_capital=', log_route)
++        self.assertIn('score=', log_route)
++        self.assertIn('fallback=', log_route)
++        self.assertNotIn("cheap_engine", log_route)
++        self.assertNotIn("memoKey / 10000", BUILDER)
++        prepare = function_body(BUILDER, "function OpexAirPlansPrepare(")
++        self.assertIn('if (C56_TASK_TRACE) V92_ROUTE_LOGGED = {};', prepare)
++
++        # V92_BUILD
++        build_task = function_body(TASK_AIR, "function OpexAI::_tryBuildAir(")
++        self.assertIn('OpexC56TaskLog("V92_BUILD"', build_task)
++        self.assertIn('.v92Role', TASK_AIR)
++        self.assertNotIn('V92_CLOSED_PAIRS', TASK_AIR)
++
++        # V92_REPLACE
++        reequip = function_body(BUILDER, "function OpexAirMaybeReequip(")
++        self.assertIn('OpexC56TaskLog("V92_REPLACE", "DECISION"', reequip)
++        self.assertIn('have=', reequip)
++        self.assertIn('m=', reequip)
++        self.assertIn('cap_current=', reequip)
++        self.assertIn('cap_alt=', reequip)
++        self.assertIn('net_gain=', reequip)
++        self.assertIn('OpexC56TaskLog("V92_REPLACE", "WAIT"', reequip)
++        self.assertIn('OpexC56TaskLog("V92_REPLACE", "REPLACE"', reequip)
++        self.assertIn('OpexC56TaskLog("V92_REPLACE", "ABORT"', reequip)
++        self.assertIn('OpexC56TaskLog("V92_REPLACE", "FAIL"', reequip)
++        self.assertIn('OpexC56TaskLog("V92_REPLACE", "TIMEOUT"', reequip)
++
++        # V92_ANNUAL
++        report = function_body(TASK_REPORT, "function OpexAI::_reportLines(")
++        self.assertIn('OpexC56TaskLog("V92_ANNUAL", "air"', report)
++        self.assertIn("service=", report)
++        self.assertIn("fallback=", report)
++        self.assertIn("none=", report)
++        self.assertIn("decided=", report)
++        self.assertIn("success=", report)
++        self.assertIn("aborted=", report)
++        self.assertIn("hangar_days=", report)
++
++    def test_mail_probe(self):
++        report = function_body(TASK_REPORT, "function OpexAI::_reportLines(")
++        self.assertIn('OpexC56TaskLog("V92_MAIL"', report)
++        self.assertIn("AIVehicle.GetCargoLoad", report)
++        self.assertIn("AIVehicle.GetCapacity", report)
++        self.assertIn("obs_ratio=", report)
++        self.assertIn("assumed_ratio=", report)
++
++    def test_mail_learn_comment(self):
++        comment_start = BUILDER.rfind("/*", 0, BUILDER.index("function OpexAirLearnMailCaps("))
++        comment = BUILDER[comment_start:BUILDER.index("function OpexAirLearnMailCaps(")]
++        self.assertIn("AIVehicleList()", comment)
++        self.assertIn("pas toutes compagnies", comment)
++
++    def test_c82_criterion_shared_helper(self):
++        self.assertIn("function OpexC82EngineScore(plane, economics, kDec = 0)", BUILDER)
++        self.assertIn("function OpexC82ScoreBetter(cand, best)", BUILDER)
++        c82_body = function_body(BUILDER, "function OpexC82ChooseRoutePlane(")
++        self.assertIn("OpexC82EngineScore(", c82_body)
++        self.assertIn("OpexC82ScoreBetter(", c82_body)
++        service_body = function_body(BUILDER, "function OpexAirChooseRouteService(")
++        self.assertIn("OpexC82EngineScore(", service_body)
++        self.assertIn("OpexC82ScoreBetter(", service_body)
++        route_body = function_body(BUILDER, "function OpexAirChooseRoutePlane(")
++        self.assertIn("V92_ENGINE_CRITERION == 0", route_body)
++        self.assertIn("winnerScore * 0.95", route_body)
++        self.assertIn("OpexC82EngineScore(", route_body)
++
++
++if __name__ == "__main__":
++    unittest.main()
