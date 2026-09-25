@@ -74,14 +74,20 @@ function OpexAI::_reportLines(year)
       }
     }
     OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
-    if (C56_TASK_TRACE && vehicleType == AIVehicle.VT_AIR) {
-      local paxCargo = this._catalog.paxCargo;
-      local waitA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, paxCargo) : -1;
-      local waitB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, paxCargo) : -1;
-      local rateA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoRating(stationA, paxCargo) : -1;
-      local rateB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoRating(stationB, paxCargo) : -1;
+    if (C56_TASK_TRACE) {
+      local lineCargo = ("cargo" in line) ? line.cargo : this._catalog.paxCargo;
+      local waitA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, lineCargo) : -1;
+      local waitB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, lineCargo) : -1;
+      local rateA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoRating(stationA, lineCargo) : -1;
+      local rateB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoRating(stationB, lineCargo) : -1;
+      local modeName = ("mode" in line) ? line.mode : (vehicleType == AIVehicle.VT_AIR ? "air" : (vehicleType == AIVehicle.VT_ROAD ? "road" : (vehicleType == AIVehicle.VT_WATER ? "water" : "rail")));
+      local cap = ("actualCapital" in line) ? line.actualCapital : (("capital" in line) ? line.capital : -1);
+      local dist = ("distance" in line) ? line.distance : -1;
+      local buildYr = ("year" in line) ? line.year : -1;
       OpexC56TaskLog("LINE_PROFIT", line.lineId, "-", "year=" + year + " profit=" + profit
-                     + " veh=" + vehCount + " stA=" + stationA + " stB=" + stationB
+                     + " veh=" + vehCount + " mode=" + modeName + " capital=" + cap
+                     + " dist=" + dist + " built=" + buildYr
+                     + " stA=" + stationA + " stB=" + stationB
                      + " waitA=" + waitA + " waitB=" + waitB + " rateA=" + rateA + " rateB=" + rateB);
     }
     OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
@@ -149,6 +155,12 @@ function OpexAI::_reportLines(year)
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
     line.lastRevenue <- profit + runCost;
+    if (V88_GOODS_CHAIN && vehicleType == AIVehicle.VT_RAIL && AICargo.GetTownEffect(line.cargo) == AICargo.TE_GOODS) {
+      if (!("goodsDeliveredLogged" in line) && (profit + runCost > 0)) {
+        line.goodsDeliveredLogged <- true;
+        OpexV88Log("CHAIN_DELIVERY", "line=" + line.lineId + " year=" + year + " profit=" + profit + " rev=" + (profit + runCost));
+      }
+    }
     if (C50_CHRONOLOGY_PROBE) {
       local cLabel = AICargo.IsValidCargo(line.cargo) ? AICargo.GetCargoLabel(line.cargo) : "unknown";
       local lMode = ("mode" in line) ? line.mode : "unknown";

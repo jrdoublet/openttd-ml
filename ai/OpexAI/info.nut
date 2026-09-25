@@ -182,6 +182,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c83_preempt_open",
+      description = "C83: keep one empty large town (both airport slots free) as a defensive new-airport target ahead of hub-to-hub, still subject to the profit test: 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_batch_town_reserve",
+      description = "Air batch: fund at most one air project per new-airport town (reuse ends ignored); displaced plans stay in the pool: 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v92_air_service_choice",
       description = "V92: choose an air service (engine x count) plus a cheap one-aircraft variant of the same route, and allow later re-equipment; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -222,6 +238,14 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "v88_chain_force",
       description = "V88 test only: under v88_goods_chain, goods chain projects bypass top-K, profit floor and ranking to validate their construction path: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_step2_plan_immediate",
+      description = "V88: allow goods chain step 2 to build when railPlan is already computed, without waiting for railSearch to be idle: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -708,6 +732,22 @@ class OpexAIInfo extends AIInfo {
       custom_value = 120,
       step_size = 10,
       flags = 0
+    });
+
+    AddSetting({
+      name = "v94_air_site_list",
+      description = "V94: native AITileList prefilter for OpexAirFindSite (same anchor and probes): 1 = enabled (default), 0 = legacy scan",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v94_air_site_check",
+      description = "V94: run legacy and AITileList airport site scans on the same input; legacy decides; log V94_CHECK: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
     });
   }
 }

@@ -227,11 +227,14 @@ function OpexLoadSettings()
   C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;
   C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
+  C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
+  AIR_BATCH_TOWN_RESERVE = AIController.GetSetting("air_batch_town_reserve") != 0;
   V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;
   V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
+  V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
   if (C69_TRACK_BUILDS) {
@@ -371,6 +374,8 @@ function OpexLoadSettings()
   V90_PATHFINDER_CHECK = AIController.GetSetting("v90_pathfinder_check") != 0;
   local astarWeight = AIController.GetSetting("v91_astar_weight_pct");
   V91_ASTAR_WEIGHT_PCT = (astarWeight != null && astarWeight >= 100 && astarWeight <= 300) ? astarWeight : 100;
+  V94_AIR_SITE_LIST = AIController.GetSetting("v94_air_site_list") != 0;
+  V94_AIR_SITE_CHECK = AIController.GetSetting("v94_air_site_check") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

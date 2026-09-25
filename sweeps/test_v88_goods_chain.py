@@ -125,10 +125,43 @@ class V88GoodsChainContractTest(unittest.TestCase):
         self.assertIn('"C2|" + yy + "|" + goodsLine.lineId + "|" + chain.townId', task_rail)
         self.assertIn('"CF|" + yy + "|', task_rail)
 
-        # Sondes OpexDecide
+        # Sondes OpexDecide et OpexV88Log
         self.assertIn('OpexV88Log("CHAIN_STEP1"', task_rail)
         self.assertIn('OpexV88Log("CHAIN_STEP2"', task_rail)
         self.assertIn('OpexV88Log("CHAIN_FAIL"', task_rail)
+
+    def test_v88_step2_plan_immediate_contract(self):
+        """Vérifie la déclaration et l'effet du réglage v88_step2_plan_immediate."""
+        info = _read("ai/OpexAI/info.nut")
+        self.assertIn('name = "v88_step2_plan_immediate"', info)
+        block = info[info.index('name = "v88_step2_plan_immediate"'):]
+        block = block[:block.index("});")]
+        self.assertIn("flags = AICONFIG_BOOLEAN", block)
+        self.assertIn("custom_value = 0", block)
+
+        globals_pre = _read("ai/OpexAI/globals_pre.nut")
+        self.assertIn("V88_STEP2_PLAN_IMMEDIATE <- false;", globals_pre)
+
+        settings = _read("ai/OpexAI/settings.nut")
+        self.assertIn('V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);', settings)
+
+        task_proj = _read("ai/OpexAI/task_projects.nut")
+        self.assertIn("V88_STEP2_PLAN_IMMEDIATE", task_proj)
+        self.assertIn("step2CanRun", task_proj)
+
+    def test_trace_timestamps_contract(self):
+        """Vérifie la présence de tous les horodatages sous OpexV88Log (décision, recherche, mise en service, livraison)."""
+        task_rail = _read("ai/OpexAI/task_rail.nut")
+        self.assertIn('OpexV88Log("CHAIN_CHOSEN"', task_rail)
+        self.assertIn('OpexV88Log("CHAIN_STEP1_SEARCH"', task_rail)
+        self.assertIn('OpexV88Log("CHAIN_SEARCH_END"', task_rail)
+        self.assertIn('OpexV88Log("CHAIN_STEP1"', task_rail)
+        self.assertIn('OpexV88Log("CHAIN_STEP2_SEARCH"', task_rail)
+        self.assertIn('OpexV88Log("CHAIN_STEP2"', task_rail)
+
+        task_report = _read("ai/OpexAI/task_report.nut")
+        self.assertIn('OpexV88Log("CHAIN_DELIVERY"', task_report)
+        self.assertIn("AICargo.TE_GOODS", task_report)
 
 
 if __name__ == "__main__":

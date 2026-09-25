@@ -72,6 +72,17 @@ AIR_C83_TARGET_TOWNS <- 6;
 /* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
+/* C83 : une seule grande ville encore vide (deux slots libres), avant que le
+ * maillage ne se fige. 0 = aucun effet. La cible et l'arret sont des globales
+ * restaurees apres Load quand le reglage est arme. */
+C83_PREEMPT_OPEN <- false;
+C83_PREEMPT_TOWN <- -1;
+C83_PREEMPT_STOPPED <- false;
+/* Lot AIR : au plus un projet finance par ville de nouvel aeroport.
+ * Les compteurs ne vivent que sous les sondes deja existantes. */
+AIR_BATCH_TOWN_RESERVE <- false;
+AIR_BATCH_TOWN_RESERVE_DROPPED <- 0;
+AIR_BATCH_TOWN_RESERVE_DEAD <- 0;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
@@ -295,6 +306,8 @@ AIR_DEMAND_LINE_MEMO_LEN <- -1;
 V88_GOODS_CHAIN <- false;
 /* V88 test : force les projets chaine en tete (validation du chemin de construction). */
 V88_CHAIN_FORCE <- false;
+/* V88 : autorise l'etape 2 a construire sans attendre idle si son railPlan est pret. Defaut 0. */
+V88_STEP2_PLAN_IMMEDIATE <- false;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
 C75_TRACK_PASSES <- false;
@@ -503,3 +516,9 @@ V90_PATHFINDER_CHECK <- false;
  * 100 = non pondéré (V90 strictement inchangé), > 100 accélère la recherche au prix de tracés légèrement
  * sub-optimaux. Défaut 120 depuis le 2026-09-24 (décision utilisateur) : recherches ÷ 5, 20x10 neutre. */
 V91_ASTAR_WEIGHT_PCT <- 120;
+
+/* V94 : pré-filtre AITileList de OpexAirFindSite, défaut 1 depuis le 2026-09-25 (20×10 neutre). 0 = balayage historique. */
+V94_AIR_SITE_LIST <- true;
+/* V94 : compare le balayage historique et la liste sur la même entrée.
+ * Le balayage historique décide. 0 = désactivé. */
+V94_AIR_SITE_CHECK <- false;

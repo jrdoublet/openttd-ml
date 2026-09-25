@@ -5,12 +5,12 @@ pour les véhicules (`VEHS`) et les gares (`STNN`), évitant les surcomptages hi
 (wagons de train ou ombres d'avion comptés comme des véhicules indépendants, mélange
 des capacités passagers et fret, gares multimodales comptées plusieurs fois).
 
-Schéma de version : 1.1.0
+Schéma de version : 1.2.0 (`engine_type` de la tête dans `primary_vehicles_detail`)
 """
 from collections import Counter, defaultdict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-SCHEMA_VERSION = "1.1.0"
+SCHEMA_VERSION = "1.2.0"
 
 # Modes de véhicules et correspondance avec le champ `type` du chunk VEHS
 # 0: train, 1: roadveh, 2: ship, 3: aircraft, 4: effect, 5: disaster
@@ -123,8 +123,8 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
         target_owner : ID du joueur cible (défaut 0).
 
     Retourne :
-        Dictionnaire conforme au schéma 1.1.0 avec :
-        - `schema_version` : version du schéma ("1.1.0").
+        Dictionnaire conforme au schéma 1.2.0 avec :
+        - `schema_version` : version du schéma ("1.2.0").
         - `chunk_valid` : booléen (False si le chunk est absent, d'un type inattendu,
           ou si une anomalie interne laisse un comptage incomplet).
         - `chunk_error` : None ou chaîne descriptive de l'erreur ("chunk_missing", etc.).
@@ -371,6 +371,8 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
         primary_details.append({
             "index": idx,
             "mode": mode,
+            # EngineID de la tete (None si absent du chunk) : modele d'avion, de loco, etc.
+            "engine_type": common.get("engine_type"),
             "unitnumber": unitnumber,
             "subtype": subtype,
             "vehstatus": vehstatus,
@@ -422,8 +424,8 @@ def decode_stations(stnn_chunk: Union[dict, list, None], target_owner: int = 0) 
         target_owner : ID du joueur cible (défaut 0).
 
     Retourne :
-        Dictionnaire conforme au schéma 1.1.0 avec :
-        - `schema_version` : version du schéma ("1.1.0").
+        Dictionnaire conforme au schéma 1.2.0 avec :
+        - `schema_version` : version du schéma ("1.2.0").
         - `chunk_valid` : booléen (False si chunk manquant, de type inattendu,
           ou si `unresolved_stations` n'est pas vide).
         - `chunk_error` : None ou chaîne descriptive de l'erreur.

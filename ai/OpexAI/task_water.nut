@@ -56,6 +56,11 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=water cargo=" + cargoStr + " src=" + result.dockA + " dst=" + result.dockB + " dist=" + plan.distance + " cost=" + capital + " roi=" + project.roi);
           OpexDecide("WATER_BUILD", "line=" + this._nextLineId + " src=" + result.dockA + " dst=" + result.dockB + " cargo=" + cargoStr + " dist=" + plan.distance + " cost=" + capital);
         }
+        if (C56_TASK_TRACE) {
+          OpexC56TaskLog("WATER_BUILT", "water", "-",
+                         "line=" + this._nextLineId + " cost=" + capital + " dist=" + plan.distance
+                         + " profit=0");
+        }
         this._waterBuilt = true;
         this._lines.append({
           stationA = result.dockA, stationB = result.dockB,

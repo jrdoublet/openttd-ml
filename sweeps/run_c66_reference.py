@@ -42,8 +42,9 @@ def main():
     parser.add_argument("--line-telemetry", action="store_true")
     parser.add_argument("--cpus", type=int, default=3)
     parser.add_argument("--memory", default="2g",
-                        help="plafond RAM Docker, swap egal (defaut 2g : VPS 4 coeurs / 3,8 Go). "
-                             "Compter ~1 Go par worker en duel 10 ans.")
+                        help="plafond RAM Docker, swap egal (defaut 2g). "
+                             "Pic observe sous 800 Mo meme a 10 workers en duel 10 ans ; "
+                             "sur le VPS, 3 workers avec 2 Go suffisent.")
     parser.add_argument("--out")
     args = parser.parse_args()
 

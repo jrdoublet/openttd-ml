@@ -201,7 +201,11 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
             OpexDecide("CHAIN_CHOSEN", "fact=" + candidate.factoryId + " town=" + candidate.dstTown + " goodsCargo=" + candidate.goodsCargo);
           }
+          OpexV88Log("CHAIN_CHOSEN", "fact=" + candidate.factoryId + " town=" + candidate.dstTown
+                     + " inCargo=" + candidate.inputCargo + " goodsCargo=" + candidate.goodsCargo
+                     + " src=" + candidate.src + " dst=" + candidate.dst);
           local start = this._startRailSearch(inputCand, alternativeRatio, hardCap, posPacked);
+          OpexV88Log("CHAIN_STEP1_SEARCH", "pending=" + (start.pending ? 1 : 0));
           if (start.pending) return { outcome = "pending", discards = passDiscards };
           inputCand.railPlan <- start.plan;
         }
@@ -220,6 +224,11 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
           OpexDecide("CHAIN_CHOSEN", "fact=" + candidate.factoryId + " town=" + candidate.dstTown + " goodsCargo=" + candidate.goodsCargo);
+        }
+        if (!RAIL_SEARCH_RESUMABLE) {
+          OpexV88Log("CHAIN_CHOSEN", "fact=" + candidate.factoryId + " town=" + candidate.dstTown
+                     + " inCargo=" + candidate.inputCargo + " goodsCargo=" + candidate.goodsCargo
+                     + " src=" + candidate.src + " dst=" + candidate.dst);
         }
         local recorded = this._recordRailAttempt(inputCand, result, posPacked, year);
         if (recorded) {
@@ -1074,6 +1083,19 @@ function OpexAI::_continueRailSearch()
                      + " budget=" + state.iterationBudget + " days=" + searchDays
                      + " ticks=" + searchTicks);
     }
+    if (V88_GOODS_CHAIN && (DECISION_LOG || C56_TASK_TRACE) && state.candidate != null) {
+      if (("isChainStep1" in state.candidate) && state.candidate.isChainStep1) {
+        local pathLen = (slice.stop == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
+        local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
+        OpexV88Log("CHAIN_SEARCH_END", "step=1 iters=" + state.spent + " len=" + pathLen
+                   + " weight=" + weightUsed + " outcome=" + slice.stop);
+      } else if (("isChainStep2" in state.candidate) && state.candidate.isChainStep2) {
+        local pathLen = (slice.stop == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
+        local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
+        OpexV88Log("CHAIN_SEARCH_END", "step=2 iters=" + state.spent + " len=" + pathLen
+                   + " weight=" + weightUsed + " outcome=" + slice.stop);
+      }
+    }
     local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan, slice);
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
@@ -1251,6 +1273,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       local delaySearchDays = (searchEndDate >= 0) ? (curDate - searchEndDate) : -1;
       OpexC56TaskLog("RAIL_COMMISSION", "primary", this._taskCycle,
                      "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst
+                     + " cost=" + result.capital + " dist=" + candidate.distance + " trains=" + result.trains
                      + " iters=" + result.iterations + " delay_days=" + delaySelectDays
                      + " search_to_service_days=" + delaySearchDays);
     }

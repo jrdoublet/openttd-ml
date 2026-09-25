@@ -412,3 +412,130 @@ Campagne `c83fix_vs_default_6y_5seeds_20260924` (graines 42, 100, 999, 1234, 567
 aucune erreur de script) : `profit_year` **+43,1 k£/an** en moyenne, médiane +89,0 k£, **4/1**, p=0,375,
 IC95 [−234,7 ; +320,9] k£ ; valeur ratio des moyennes −1,86 %, moyenne des ratios +9,15 %. Aéroports Opex
 quasi inchangés (23,4 contre 24,0 par partie). Direction favorable, garde de valeur tenue : 20×10 à lancer.
+
+## 11 bis. Écart d'aéroports avec AAAHogEx — diagnostic du 2026-09-24
+
+Duel 5 graines × 6 ans sur le défaut (`sweeps/diag_c78_lines_vs_aaa.py`, flotte par moteur ;
+`results/diag_airports_5x6.json`). Fin 1975, 5 parties additionnées :
+
+| | OpexAI | AAAHogEx |
+|---|---|---|
+| Aéroports | 116 | 212 |
+| Paires de villes | 399 | 101 |
+| Avions | 444 | 255 |
+| Destinations par aéroport | ≈ 7 (maillage) | 1 (deux aéroports dédiés par ligne) |
+| Avions par paire | 1,1 | 2,5 |
+| Profit aérien annuel | 5,7 M£ | 8,5 M£ |
+
+Le rendement par aéroport est comparable (49 k£ contre 40 k£) : l'écart tient au **nombre** d'aéroports.
+OpexAI n'ouvre presque plus d'aéroports après 1972 (+27, +33, puis ≈ +8 par an). En 1975 le balayage des
+villes donne `origin_served` 109, `town_pop_small` 76 (grand aéroport refusé sous 600 habitants),
+`no_site` 31, `site` 1. Villes aéroport d'AAAHogEx (162) : 94 communes, **35 sous 600 habitants**,
+**31 au-dessus de 600 sans site pour OpexAI** (créneaux pris), 50 villes à deux aéroports AAAHogEx.
+Lignes AAAHogEx touchant une ville sous 600 habitants : ≈ 50-66 k£/an chacune.
+
+Règle des créneaux (bancs : `station_noise_level` désactivé) : au plus **deux aéroports par ville toutes
+compagnies confondues**, sans condition de population ; `AITown.GetAllowedNoise` = créneaux restants.
+AAAHogEx n'a pas de seuil de population : il estime la demande par la production réelle
+(`AITown.GetLastMonthProduction`), la partage entre ses lignes et la plafonne (voir fiche 32, V93.1).
+
+Flotte fin 1975 : OpexAI 75 % FFP Dart (217), 13 % LB-10 ; AAAHogEx diversifiée (Yate Haugan 218 25 %,
+moteur 226 22 %, Darwin 300 15 %, LB-10 12 %).
+
+Suites mesurées : V93 (plancher de population retiré, fiche 32 : plus d'aéroports, valeur −15 %),
+`c83_fixes` (§11, 20×10 en cours sur le PC de l'utilisateur), `c83_preempt_open` et
+`air_batch_town_reserve` (§12-§13, non retenus).
+
+## 12. C83 — préempter une grande ville encore vide (`c83_preempt_open`)
+
+Réglage 0/1, défaut **0** : `info.nut`, `settings.nut`, `C83_PREEMPT_OPEN <- false`.
+À 0, le watcher, la priorité et la sauvegarde ne font qu'un test de booléen.
+Aucune partie n'a été lancée.
+
+Le constat du duel par défaut (5 graines × 6 ans) : AAAHogEx finit vers 42 aéroports
+par partie, OpexAI vers 23, et OpexAI n'ouvre plus d'aéroport après 1972. Trente et une
+villes d'au moins 600 habitants où AAAHogEx a un aéroport n'ont pas de site OpexAI :
+les deux créneaux sont déjà pris. `AITown.GetAllowedNoise` vaut alors 0. La course
+C83.1 ne voit ces villes qu'une fois le premier créneau adverse posé (`== 1`).
+
+À 1, une seule cible à la fois, la plus grande ville qui reste entièrement libre :
+
+- population ≥ `OpexAirPreemptMinPop()` : `OpexAirLargeAirportMinPop()` (600), ou
+  `V93_AIRPORT_MIN_POP` (100) si `v93_airport_no_pop_floor` est armé ;
+- `OpexAirC83SlotSignalEnabled()` et `AITown.GetAllowedNoise() == 2` ;
+- aucun aéroport Opex imputé à cette ville (`OpexAirOwnSlotTownCounts` /
+  `OpexAirSlotTownId`), que `c83_fixes` soit armé ou non.
+
+On s'arrête quand cette ville est servie (`c83_preempt_built`) ou verrouillée
+(`c83_preempt_lost` : bruit ≠ 2, ou population sous le plancher). Pas de deuxième
+cible dans la même partie. L'état (ville, arrêt, date de réarm) est sauvé seulement
+si le réglage est à 1, et relu après `OpexLoadSettings`.
+
+Un projet aérien **rentable** dont une extrémité neuve a
+`OpexAirSlotTownId(ancre) == cible` reçoit la priorité défensive 2, la même classe
+que la course au second créneau, donc devant le second aéroport déjà à nous (1) et
+devant hub→hub (0). `profitAnnual <= 0` reste un retour 0 : on ne pose pas un
+aéroport vide ou déficitaire. La régénération ciblée qui produit ce site passe déjà
+`requiredSlotTown` à `OpexAirFindSite` (`ClosestTown(ancre) == ville`).
+
+S'il n'y a pas de tel projet financé et encore vivant
+(`OpexAirC83FundedRaceCoversTown`), on enfile la même régénération AIR que le
+watcher C83 (`_c77EnqueueEntity`, clé `c77|town|<id>|air`). La file coalescée et,
+quand `c83_fixes` est à 1, le plafond de 365 jours sont respectés. Sans
+`c80_double_register`, cet enqueue ne fait rien, comme la course déjà en place :
+la priorité s'applique quand même aux projets déjà dans le portefeuille.
+
+Sondes, sous `C78_SLOT_INTERCEPT_PROBE` : `c83_preempt_target`, `c83_preempt_built`,
+`c83_preempt_lost`.
+
+Validation faite : `sweeps/test_c83_preempt.py` ; smoke 2 graines × 3 ans sondé
+(2 cibles, 2 aéroports préemptifs construits, aucune erreur) ; aller-retour Save/Load
+avec le réglage armé (`results/air_saveload.json` : `Load()` appelé, partie reprise,
+aucune erreur de script).
+
+### Diagnostic 5×6 du 2026-09-24 — non retenu
+
+Campagne `c83_preempt_open_vs_default_6y_5seeds_20260924` (graines 42, 100, 999, 1234,
+5678 ; 5/5 paires complètes) : `profit_year` −4,4 k£/an en moyenne, médiane +4,4 k£,
+3/2, p=1,0, IC95 [−157,5 ; +148,7] k£ ; valeur ratio des moyennes **−8,0 %** (garde
+−5 % violée), moyenne des ratios −8,2 %. Quelques aéroports en plus sur deux graines
+(42 : 28 contre 24 ; 999 : 23 contre 19), mais la graine 5678 perd 1,1 M£ de valeur.
+Préempter une grande ville vide immobilise du capital sans profit supplémentaire.
+**Pas de 20×10** ; le réglage reste à 0.
+
+## 13. Lot aérien — une ville neuve par projet financé (`air_batch_town_reserve`)
+
+Réglage 0/1, défaut **0**. À 0, `OpexProjectSelectAffordable` et la passe de
+construction ne font qu'un test de booléen. Les 818 rejets `batch_plan_dead`
+viennent de `OpexAirBatchPlanStillLive` (`task_air.nut`) : plusieurs plans du même
+lot visent la même ville de nouvel aéroport ; le premier la dessert, les autres
+meurent.
+
+À 1, la liste financée (`best`) ne garde que le meilleur projet aérien, selon le
+classement déjà en place, pour chaque ville de slot d'une extrémité **neuve**
+(`OpexAirSlotTownId`, pas un hub `reuse`). Les projets écartés ne sont pas retirés
+du vivier d'alternatives : une passe ultérieure peut les reprendre si le premier
+n'a pas été construit. La passe de construction applique la même réserve, pour un
+lot qui contiendrait encore deux plans. Hub→hub, qui ne pose pas d'aéroport, n'est
+pas concerné.
+
+Sonde, sous `probe_portfolio` (`C78_SLOT_INTERCEPT_PROBE` ou, à défaut,
+`C69_BOTTLENECK_PROBE`) : `phase=air_batch_town_reserve`, avec `dropped` (plans
+écartés par la réserve) et `batch_plan_dead` (morts encore observées à la
+construction). Le réglage change les décisions. Mesure d'exposition d'abord, puis
+5×6 et 20×10 avant tout changement de défaut (+50 k£/an, 15/20, p < 0,05, garde
+−5 %). Contrats : `sweeps/test_air_batch_town_reserve.py`. Pas de partie.
+
+### Diagnostic 5×6 du 2026-09-24 — rejeté
+
+Campagne `air_batch_town_reserve_vs_default_6y_5seeds_20260924` (mêmes graines, 5/5
+paires complètes) : `profit_year` **−179,9 k£/an** en moyenne, médiane −194,4 k£,
+**0/5**, p=0,0625, IC95 **[−293,1 ; −66,6] k£** (entièrement négatif) ; valeur ratio des
+moyennes −6,2 % (garde violée). Smoke sondé 2 × 3 ans : 22 et 31 `batch_plan_dead` en
+3 ans, contre ~160 par partie sur 6 ans au diagnostic du défaut (indicatif, non apparié).
+
+Cause probable (relecture, non mesurée isolément) : la réserve retire des projets de la
+liste **déjà sélectionnée sous budget** (`OpexProjectSelectAffordable`) sans réaffecter
+le capital libéré. Chaque passe construit donc moins pour éviter des plans qui mouraient
+sans rien coûter. Une reprise devrait appliquer la réserve **avant** la sélection
+(alternatives dédoublonnées par ville neuve). **Rejeté en l'état** ; le réglage reste à 0.

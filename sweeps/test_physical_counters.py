@@ -496,6 +496,12 @@ class TestPhysicalCounters(unittest.TestCase):
         self.assertEqual(dec["components_breakdown"]["aircraft_shadows_rotors"], 4)
         self.assertEqual(len(dec["unclassified_entries"]), 0)
 
+        # 1.2.0 : modele de la tete publie pour chaque convoi pilotable.
+        air_engines = sorted(v["engine_type"] for v in dec["primary_vehicles_detail"] if v["mode"] == "air")
+        self.assertEqual(len(air_engines), 4)
+        self.assertTrue(all(isinstance(e, int) for e in air_engines))
+        self.assertTrue(all(v["engine_type"] is not None for v in dec["primary_vehicles_detail"]))
+
 
 if __name__ == "__main__":
     unittest.main()
