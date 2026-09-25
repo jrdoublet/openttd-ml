@@ -709,6 +709,22 @@ class OpexAIInfo extends AIInfo {
       step_size = 10,
       flags = 0
     });
+
+    AddSetting({
+      name = "v94_air_site_list",
+      description = "V94: native AITileList prefilter for OpexAirFindSite (same anchor and probes): 1 = enabled (default), 0 = legacy scan",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v94_air_site_check",
+      description = "V94: run legacy and AITileList airport site scans on the same input; legacy decides; log V94_CHECK: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

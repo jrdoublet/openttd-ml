@@ -503,3 +503,9 @@ V90_PATHFINDER_CHECK <- false;
  * 100 = non pondéré (V90 strictement inchangé), > 100 accélère la recherche au prix de tracés légèrement
  * sub-optimaux. Défaut 120 depuis le 2026-09-24 (décision utilisateur) : recherches ÷ 5, 20x10 neutre. */
 V91_ASTAR_WEIGHT_PCT <- 120;
+
+/* V94 : pré-filtre AITileList de OpexAirFindSite, défaut 1 depuis le 2026-09-25 (20×10 neutre). 0 = balayage historique. */
+V94_AIR_SITE_LIST <- true;
+/* V94 : compare le balayage historique et la liste sur la même entrée.
+ * Le balayage historique décide. 0 = désactivé. */
+V94_AIR_SITE_CHECK <- false;
