@@ -1,11 +1,13 @@
 # V93 — grands aéroports dans les villes sous 600 habitants
 
-État au 2026-09-24 : **deux réglages, défaut 0**.
+État au 2026-09-25 : **deux réglages, défaut 0**.
 `v93_airport_no_pop_floor` est mesuré en duel 5×6 et laissé à 0.
-`v93_air_demand_production` (V93.1) est implémenté, contrats hôte seulement.
-Plancher minimal `V93_AIRPORT_MIN_POP = 100` et plafond de demande
-`V93_AIR_LINE_PAX_CAP = 200` : constantes dans `globals_pre.nut`, pas des
-réglages. Les deux réglages sont indépendants.
+`v93_air_demand_production` correspond sur `master` à **V93.1**, également
+laissé à 0 après un 20×10 nettement défavorable. Une variante simplifiée
+**V93.2** a été testée sur la branche `v93-demand-residual`, puis rejetée au
+5×6 ; son comportement n'est pas fusionné dans `master`. Le plancher minimal
+`V93_AIRPORT_MIN_POP = 100` et le plafond V93.1
+`V93_AIR_LINE_PAX_CAP = 200` restent donc présents dans le code courant.
 
 ## Ce qu'AAAHogEx fait, et ce qu'OpexAI refusait
 
@@ -192,7 +194,7 @@ le bassin réel du site. V93.1 change ce chiffre, pas le plancher.
 - Contrôle du site : `AITile.GetCargoProduction` sur le rayon de captage
   (vers 2750).
 
-### Ce que fait `v93_air_demand_production`
+### V93.1 — ce que fait `v93_air_demand_production` sur `master`
 
 Réglage 0/1, défaut **0**, déclaré dans `info.nut`, chargé dans
 `settings.nut`, globale `V93_AIR_DEMAND_PRODUCTION <- false`. Il ne lit pas
@@ -256,6 +258,54 @@ le réglage est à 1, la ligne gagne `paxNew=` (chiffre utilisé) et `paxOld=`
 (proxy de population, plancher de 10 compris). À 0, le texte admis est celui
 d'aujourd'hui.
 
+### Duel V93.1, 20 graines × 10 ans
+
+Campagne `v93_1_air_demand_vs_default_20x10_20260924`, 20 paires complètes.
+La première version est nettement rejetée :
+
+- `profit_year` : **−421,5 k£/an** en moyenne, médiane −409,4 k£, 3/17,
+  `p=0,002577`, IC95 Student **[−586,4 ; −256,6] k£/an** ;
+- valeur d'entreprise : **−1,790 M£**, soit **−18,24 %**, 4/16 ;
+- véhicules : **−17,45** (**−11,16 %**) ;
+- créneaux aéroport Opex : **−4,85**, 1/18/1, `p=0,000076` ;
+- villes avec présence Opex : **−4,15**, 2/18, `p=0,000402` ;
+- villes partagées 1–1 : **−2,4** ; monopoles AAAHogEx `(2,0)` : **+1,2**.
+
+La divergence apparaît très tôt : l'écart moyen de créneaux Opex vaut déjà
+−2,0 en 1971 et environ −5 à partir de 1972. Le déficit de `profit_year`
+s'amplifie ensuite jusqu'à −421,5 k£/an en 1979. Le cumul
+`pourcentage transporté + /(lignes+1) + bassin + plafond 100/200` sous-estime
+donc trop fortement la demande et étrangle l'expansion AIR.
+
+### V93.2 — expérience de demande résiduelle simplifiée, non fusionnée
+
+La branche historique `v93-demand-residual` a conservé le même réglage à
+défaut 0 mais a essayé une fonction plus simple :
+
+1. production passagers réelle du mois passé ;
+2. part du bassin réellement couverte par l'aéroport ;
+3. correction de concurrence `×70/(transported+70)` uniquement lorsqu'aucune
+   ligne Opex ne touche encore cette extrémité.
+
+Cette variante supprimait la division générale par `(lignes Opex + 1)` et les
+plafonds fixes 200/100 pax par mois. Quand une ligne Opex existait déjà, le
+pourcentage transporté n'était plus appliqué car il mélange nos propres avions
+et ceux des concurrents.
+
+Smoke 1×1, graine 42, 1 an : exécution saine mais `Δprofit_year = −67,6 k£/an`
+et valeur −30,44 % contre le défaut. Le 5×6
+`v93_2_demand_residual_vs_default_5x6_20260924` confirme un signal défavorable :
+
+- `profit_year` : **−203,9 k£/an**, médiane −155,3 k£, **0/5**,
+  `p=0,0625`, IC95 Student **[−332,0 ; −75,7] k£/an** ;
+- ratio des moyennes de `profit_year` : **−15,29 %** ;
+- valeur d'entreprise : **−541,5 k£**, soit **−10,98 %** ;
+- véhicules : **+3,0** en moyenne ;
+- créneaux Opex : **−3,6** ; villes Opex présentes : **−3,0**.
+
+V93.2 reste donc une expérience archivée : **pas de 20×10 et pas de fusion du
+comportement dans `master`** sous cette forme.
+
 ### Ce qu'il faut remesurer
 
 `AIR_PAX_REVENUE_CALIBRATION_PCT` reste **104**. `OpexAirFarePerPax` l'applique
@@ -272,15 +322,14 @@ choisit le moteur avec `OpexC82EngineFactor`, et `OpexC82Profit` pondère le
 score du projet. Les facteurs viennent du rapport annuel réel / prédit par
 moteur (`task_report.nut`, rechargés par `OpexC82RecomputeFactors`). Le prédit
 passe par `monthlyPax` dans `OpexAirEconomics`. Des facteurs appris sur
-l'ancien modèle ne sont pas une preuve sous V93.1. La formule et le défaut
-restent en place.
+l'ancien modèle ne sont pas une preuve sous une future fonction de demande.
+La formule C82 et son défaut restent en place.
 
-Avant d'armer l'un ou l'autre par défaut : smoke 1×1 avec
-`v93_air_demand_production=1`, puis duel apparié 5×6 contre le défaut.
-Métrique, effet utile et garde de valeur fixés avant le banc. Le plancher de
-600 habitants a déjà son 5×6 ; le combiner avec V93.1 est un essai distinct.
-Contrats hôte seulement pour l'instant. Pas de partie lancée avec ce
-changement.
+V93.1 et V93.2 sont désormais tous deux défavorables. Avant tout nouvel essai,
+changer le modèle causalement plutôt que prolonger l'une de ces variantes.
+Métrique, effet utile et garde de valeur doivent être fixés avant le prochain
+banc. Ne pas combiner automatiquement une nouvelle fonction de demande avec le
+retrait du plancher de 600 habitants : ce serait un essai distinct.
 
 ## Prédit contre réalisé
 
