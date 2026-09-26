@@ -823,6 +823,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "homogeneous_preselect",
+      description = "Rank rail and road candidate pools by the portfolio funding score: 1 = enabled, 0 = historical ranking (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

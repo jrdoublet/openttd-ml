@@ -8,6 +8,9 @@ function OpexLoadSettings()
   DECISION_LOG = AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
   SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
+  /* Résolution au chargement : aucun test ajouté aux boucles de génération au défaut. */
+  ::OpexTopK <- AIController.GetSetting("homogeneous_preselect") != 0
+      ? OpexTopKFund : OpexTopKLegacy;
 
   /* --- 2. Macro-politiques unifiees (8 groupes) --- */
 

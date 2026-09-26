@@ -866,6 +866,31 @@ function OpexTopK(all, k)
   return best;
 }
 
+/* Variante de tri, installée une fois au chargement des réglages. Le chemin
+ * historique OpexTopK reste exactement celui exécuté au défaut. */
+OpexTopKLegacy <- OpexTopK;
+function OpexTopKFund(all, k)
+{
+  local best = [];
+  local floor = 0.0;
+  foreach (candidate in all) {
+    local project = OpexProjectFromCandidate(candidate);
+    if (project == null) continue;
+    local financeCapital = OpexProjectFinanceCapital(project);
+    local score = OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
+                                   financeCapital);
+    if ("fundScore" in candidate) candidate.fundScore = score;
+    else candidate.fundScore <- score;
+    if (best.len() >= k && score <= floor) continue;
+    local pos = best.len();
+    while (pos > 0 && best[pos - 1].fundScore < score) pos--;
+    best.insert(pos, candidate);
+    if (best.len() > k) best.pop();
+    if (best.len() >= k) floor = best[best.len() - 1].fundScore;
+  }
+  return best;
+}
+
 /* Exclusion a la GENERATION plutot qu'au FILTRAGE (2026-08-28). Mesure sur graine 42/20 ans
  * (results/opex_full_campaign_20y.json) : les stalles restants de la campagne sont 20/20 candidats du
  * TOP_K rejetes par _tooClose (main.nut) pour la MEME raison -- une origine deja desservie, jamais
