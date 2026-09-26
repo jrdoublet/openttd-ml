@@ -61,7 +61,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "probe_scheduler",
-      description = "Enable scheduler opcode and latency diagnostic ledgers (C41, C39); 1 = on, 0 = off (default)",
+      description = "Enable scheduler opcode, latency and idle-tour diagnostic ledgers (C41, C39, V95); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -425,6 +425,16 @@ class OpexAIInfo extends AIInfo {
       easy_value = 170, medium_value = 170, hard_value = 170,
       custom_value = 170,
       step_size = 10,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "rail_finance_bias_pct",
+      description = "Rail project finance capital bias percentage (candidate capital * bias / 100); default 170",
+      min_value = 90, max_value = 200,
+      easy_value = 170, medium_value = 170, hard_value = 170,
+      custom_value = 170,
+      step_size = 5,
       flags = 0
     });
 

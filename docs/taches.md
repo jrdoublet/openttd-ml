@@ -20,6 +20,14 @@ Les bancs C77 seul et C82 du 22 septembre sont terminés et non adoptés : ils n
 à lancer. Les feeders et Lakes sont retirés. C67.3 à C67.6 sont livrés, mais aucun consommateur
 métier n'est encore exposé : ne pas présenter C67 comme « non implémenté ».
 
+Le **2026-09-25**, le **correctif sonde** restaure la pureté stricte du chemin `probe_scheduler=0`
+dans `task_rail.nut` et `task_projects.nut` (identité binaire exacte vérifiée contre `b34e5de` sur
+graines 100 et 999 × 6 ans avec recherches rail, ainsi que smoke 42 1 an). Trois leviers sont
+implémentés/préparés derrière des réglages expérimentaux dont le défaut reproduit strictement le
+comportement actuel : le C75 bis retenu est désormais `c75_kpass_bypass` **défaut 1** ;
+`v89_rail_search_throughput` reste **défaut 0** après son 5×6 non favorable ;
+`rail_finance_bias_pct` reste expérimental à **170**. Les sondes V95 restent observatoires.
+
 Les preuves, limitations et décisions correspondantes sont dans les journaux des
 [20 septembre](journaux/journal_2026-09-20.md), [21 septembre](journaux/journal_2026-09-21.md) et
 [22 septembre](journaux/journal_2026-09-22.md). La [source historique intégrale transférée](journaux/journal_2026-09-22_transfert_historique.md)
@@ -45,7 +53,7 @@ avant d'en prendre un, vérifier qu'aucun C ni V ne le porte déjà.
 | **V90 — A* rail rapide vendorisé** | **défaut 1 (décision utilisateur du 2026-09-24) : équivalence parfaite, gain −8 %** | Réduction par au moins 2 du coût en opcodes d'une itération d'A* rail, à tracé et exploration strictement identiques. Copies vendorisées GPLv2 dans `ai/OpexAI/pathfinder_v90/` (`OpexBinaryHeapV90`, `OpexAyStarV90`, `OpexRailPathFinderV90`). Optimisations : ensemble fermé en table Squirrel native au lieu d'AIList, précalcul des constantes (taille de carte, offsets, coordonnées de buts), mémoïsation par recherche des requêtes invariantes de tuiles (`GetSlope`, `IsBuildable`, `IsCoastTile`, `IsBridgeTile`, `IsTunnelTile`, `HasTransportType`) et types de ponts par longueur. Réglage `v90_fast_pathfinder` (défaut 0) et mode de test parallèle pas à pas `v90_pathfinder_check` (défaut 0, traces `V90_CHECK`). **Mesure (2026-09-24)** : zéro écart sur ≈ 3 300 pas comparés ; 2 821 → 2 583 opcodes/itération (−8 %), car un appel API ne coûte presque rien en opcodes : le coût est dans la logique Squirrel (tas, `Path`, `_Cost`). Un gain ≥ ×2 exige de réduire le nombre d'itérations (heuristique pondérée), donc de changer le tracé. [Fiche](29_v90_pathfinder_rail.md) §9. |
 | **V91 — heuristique pondérée A* rail (weighted A*)** | **poids 120 par défaut (décision utilisateur du 2026-09-24)** : recherches ÷ 5, coût A* +3,6 %, 20×10 neutre (médiane +28 k£/an, 11/9, p = 0,82, valeur −0,8 %) ; poids 150 rejeté (−40,8 k£/an, 7/13) | Réduction forte du nombre d'itérations d'exploration du pathfinder rail (levier direct pour accélérer les recherches par ≥ ×2). Multiplication de l'estimation admissible `_Estimate` par $w = \text{weight\_pct} / 100$ ($w \in [1{,}0 ; 3{,}0]$) dans `OpexRailPathFinderV90`. Réglage `v91_astar_weight_pct` (entier 100-300, pas 10, défaut 100 = V90 strictement inchangé, aucun surcoût d'opcodes au défaut grâce à la sélection de fonction au constructeur). Mode de test `v90_pathfinder_check` adapté (désactivation des alertes pas à pas, publication de la trace de fin `V90_CHECK name=finish_weighted` avec itérations, longueurs via `OpexSegmentTiles`, coûts et ratios). Instrumentation `RAIL_SEARCH_END` étendue sous `C56_TASK_TRACE` (résultat `found`/`none`/`cap`, longueur et poids). Protocole : smoke check 1×1 poids 150, mesure itérations/recherche et longueur des tracés à 100/150/200 sur graines 100/999/1234 × 8 ans avec `probe_events`+`probe_scheduler`, puis duel apparié 20×10 `run_c66_reference.py` contre le défaut (métrique `profit_year`, effet utile +50 k£/an, garde −5 %). [Fiche](30_v91_astar_pondere.md). |
 | **C67 — carte par blocs** | **C67.3 à C67.6 livrés ; aucun consommateur métier exposé** | C67.3 : S=5 retenu provisoirement. C67.4 : service résumable dans le reliquat de tick sous 'c67_terrain_map=0', quasi neutre. C67.5 : graphe/oracle eau exact-ou-inconnu livré. C67.6 : sonde eau appelée 32 fois (6 paires) en 256², jamais en 512² ; côté rail, 16 lignes / 20 parties et capital pré-A* déjà à ~5 % du coût réel, donc aucun consommateur eau/rail suffisamment exposé pour être branché. Les services restent **non branchés aux décisions économiques**. [Contrat](c67_cartographie_contrat.md), journaux du [23](journaux/journal_2026-09-23.md) et du [24](journaux/journal_2026-09-24.md). |
-| **Facteur rail 1,70 (biasPct)** | Constat C67.6, à mesurer | Sur 16 lignes tentées, le coût réel vaut ~0,96× le capital financé avant A* : le facteur 1,70 surestime fortement le besoin. Mesurer d'abord les candidats rail refusés par ce facteur avant toute modification. [Contrat C67 §20](c67_cartographie_contrat.md). |
+| **Facteur rail 1,70 (biasPct)** | **implémenté derrière `rail_finance_bias_pct` (défaut 170) ; 5×6 duel nettement positif, 20×10 prioritaire** | `candidate.capital` inclut déjà `RAIL_TERRAIN_FACTOR=170` sur la voie (`economy.nut:284`) ; `OpexProjectFinanceCapital` le multiplie ENCORE par `biasPct=170` (`projects.nut`). C67.6 mesure un coût réel ≈ 0,96 × `candidate.capital` : c'est ce second facteur qui surestime le besoin d'environ 77 % (avec biais de sélection : seules les lignes franchissant le facteur sont observées). Réglage entier `rail_finance_bias_pct` (bornes 90..200, pas 5, défaut 170). Bras variante proposé : 100. Contrefactuel P5 bis : capital médian 82,5 k£ → 46,6 k£ (−43,5 %), déficit médian 54,0 k£ → 18,3 k£ (−35,7 k£), rang médian vivier 139 → 49 (+90 places), Top 5 vivier atteint 24,4 %. Smokes et 3y solo sains. **Duel 5×6 (2026-09-25, `results/diag_rail_bias100_5x6_20260925.*`)** : `profit_year` +199,5 k£/an (médiane +189,2 k£), **5/0**, IC95 [+131,9 ; +267,1] k£, valeur +12,6 % ; `diagnostic_only`. ⚠️ Le gain passe surtout par l'AIR (véhicules air +4 à +28 par graine, rail +0 à +4) : hypothèse non vérifiée d'un capital ou de passes libérés (le `k_pass` dépend du prochain projet). Prochaine étape : 20×10, avant C75 bis puis V89. [Contrat C67 §20](c67_cartographie_contrat.md). |
 | **C67 — lecture de bloc par Valuate** | À mesurer (fixture, sans partie longue) | Comparer le lecteur tuile-par-tuile actuel à AITileList.AddRectangle + Valuate sur blocs 5×5 et 10×10 : opcodes, exactitude des résumés et borne non suspendable. Remplacer _readOne seulement si le gain est net ; ne jamais lancer un Valuate sur une carte entière. |
 | **C78 — occasions présentes chez AAAHogEx, absentes chez OpexAI** | C78.3/C78.4 validés ; C83.1 qualifié | **C78.3/C78.4** restent validés. Le défaut C83.1 résiduel était sémantique : le watcher confondait une ligne AIR commerciale proche avec un aéroport occupant physiquement le slot, et la génération ciblée ne garantissait pas `ClosestTown(anchor)==ville cible`. Correction du 2026-09-24 : état Opex par aéroports physiques, constante C83 distincte, site ciblé contraint au TownID du slot et télémétrie `c83_slot_claimed/lost`. L'ablation 24 villes n'est pas retenue ; le défaut final reste **6 villes**. Son 20×10 donne **+165,3 k£/an**, 15/5, p=0,0414, valeur **+6,78 %** et fait tomber les monopoles AAA fin 1979 **215→178**. [Fiche](22_c78_lignes_vs_aaa.md) §10. |
 | **C83 — empêcher les monopoles aériens d'AAAHogEx** | **C83.1 qualifié (6 villes) ; `c83_fixes`, `c83_preempt_open` et `air_batch_town_reserve` à défaut 0** | Le 20×10 du défaut 6 villes reste qualifié : **+165,3 k£/an**, 15/5, p=0,0414, valeur **+6,78 %**, monopoles AAA fin 1979 **215→178**. Les correctifs de revue restent sous **`c83_fixes` défaut 0**. **`c83_preempt_open`** (défaut 0) garde une seule grande ville encore vide (`GetAllowedNoise()==2`) et lui donne la priorité défensive devant hub→hub, sans sauter le test de profit. **`air_batch_town_reserve`** (défaut 0) ne finance qu'un projet aérien par ville de nouvel aéroport ; les autres restent dans le vivier. **5×6 du 24 :** `c83_preempt_open` −4 k£/an, 3/2, valeur **−8 %** (garde violée) → non retenu ; `air_batch_town_reserve` **−180 k£/an, 0/5**, IC95 entièrement négatif, valeur −6 % → rejeté (réserve appliquée après la sélection sous budget, capital libéré perdu). **C83.2 non retenu.** [Fiche](22_c78_lignes_vs_aaa.md) §11–§13. **`c83_fixes` (défaut 0) non adopté** : 20×10 du 2026-09-24 `fail_primary`, −28,8 k£/an, 10/10, p=1,0, IC95 [−158 ; +100] k, valeur +1,78 % ; créneaux Opex −2,1, villes Opex −1,95, véhicules −13 %, déficit croissant à partir de 1972. Correctif de portée (2026-09-25) : la contrainte `OpexAirSlotTownId` ne vaut plus que pour les sites de course C83 (`c83SlotTown`), plus pour la recherche AIR ordinaire. 5×6 (`c83_slotscope_vs_default_6y_5seeds_20260924b`) : −30 k£/an, 1/4, créneaux −1,4, villes −1,2 : la contrainte globale n'explique pas seule le recul. **Prochaine étape : ne plus mesurer `c83_fixes` en bloc. Le scinder en sous-réglages causaux et tester séparément les corrections de revue. Priorité au watcher `OpexAirC83WatchTowns` : le défaut C83.1 qualifié surveille les 6 plus grandes villes avec `AIR_EARLY_SLOT_MIN_POP=1000`, alors que `c83_fixes=1` passe à 6 villes contestables dès `OpexAirLargeAirportMinPop()=600` ; mesurer isolément ce changement 1000→600 / top-6→contestables avant de conserver ou rejeter les autres correctifs (réarmement/coalescence, identité physique du slot, élimination des paires mortes, scan ciblé).** |
@@ -120,35 +128,126 @@ la priorité générale « flotte avant nouvelles lignes » a déjà perdu **−
 
 Objectif : conserver les décisions économiques actuelles autant que possible, mais cesser de brûler
 des tours sur des tâches non dues et faire de la file réactive un vrai chemin d'urgence. Procéder par
-étapes séparées et mesurables :
+étapes séparées et mesurables selon la nouvelle priorité convenue :
+- **P1** : instrumentation scheduler (fait)
+- **P2** : cycle de vie du portefeuille post-build (fait, voir ci-dessous)
+- **P3** : C75 bis / allocation de capital (retenu d'après P2 : 100 % `all_unaffordable`)
+- **P4** : watcher C83 réellement réactif
+- **P5** : reliquat opcodes → workers
+- **P6** : arbitre simple des workers
+- **P7** : maintenance conditionnelle / skip-not-due seulement comme nettoyage secondaire
 
-1. **Mesurer les tours réellement inutiles avant de changer l'ordre.** Sous `probe_scheduler`, ajouter
-   par tâche : `selected`, `did_work`, `noop_reason`, jours/ticks/opcodes et âge depuis le dernier vrai
-   travail. Séparer au minimum `report_same_year`, `repay_same_month`, `catalog_fresh`, maintenance
-   sans travail et `projects_empty`. Publier aussi le nombre de tâches de fond traversées entre deux
-   passages utiles de `projects`, surtout sur 1970-1972. Cette étape est observatoire.
-2. **Admission `skip-not-due` avant le choix de la tâche.** Déplacer les gardes calendaires et états
-   sûrs dans un prédicat d'éligibilité du scheduler, sans changer le corps métier :
-   - `report` admissible seulement si `year != _lastReportYear` ;
-   - `repay` admissible seulement si le mois courant diffère de `_lastRepayMonth` ;
-   - `catalog` admissible seulement si mois/invalidation/couches/capital imposent réellement une
-     resélection ou reconstruction ;
-   - les slots C41 dormants restent désactivés comme aujourd'hui.
-   Une tâche non due doit être **sautée dans le même scan**, pas élue puis consommée pour rien. Premier
-   banc causal : cette seule modification, sans nouvelle règle de priorité économique.
-   **Architecture opcodes à préparer en parallèle, sans l'activer en bloc** : après l'action utile du
-   tick, les workers résumables pourront consommer le reliquat d'opcodes avant `Sleep(1)`, puis être
-   réarbitrés tranche par tranche selon le travail déjà prêt et ce qui bloque réellement l'aval
-   (`rail_search`, `town_growth`, puis C67). Ce n'est pas le retour de `loop_budget` : aucune deuxième
-   décision économique complète n'est lancée sur le reliquat. Voir
-   [34_arbitrage_economique_unifie.md](34_arbitrage_economique_unifie.md) §5.5.
-3. **Rendre la maintenance conditionnelle quand une garde bon marché existe.** `expand`, `refleet`,
-   `scrap` et `town_growth` ne doivent pas obtenir automatiquement le même droit de passage qu'un
-   investissement neuf si aucun travail n'est plausible. Préférer des drapeaux/queues `needs*`
-   alimentés par événements et états existants (`needsRefleet`, ligne à étendre, véhicule retiré,
-   ville effectivement éligible) à un appel complet qui découvre ensuite qu'il n'y a rien à faire.
-   Ne pas inventer un scan coûteux juste pour savoir s'il faut scanner.
-4. **Sortir le watcher C83 du passage `projects`.** Aujourd'hui la transition est détectée seulement
+1. **Mesurer les tours réellement inutiles avant de changer l'ordre (V95 item 1 / P1 — instrumenté, résultats v3 corrigés).**
+   Instrumentation passive sous `probe_scheduler=1` greffée sur l'enveloppe `_runNextTaskWithSlackLedger()` (aucun code ni opcode ajouté aux chemins exécutés à `probe_scheduler=0`).
+   Émission d'un enregistrement compact `SCHED_IDLE` par sélection individuelle, permettant des distributions réelles (sans agrégation mensuelle tronquée), le coût unitaire de chaque couple (tâche, raison) et la vérification stricte de l'invariant `did_work == true ⇔ skip_class == "work"`.
+   Tests de contrat Python étendus (`sweeps/test_sched_idle.py`, 16 tests validés avec succès), analyseur réécrit (`sweeps/analyse_sched_idle.py`) et diagnostic 4 ans (`sweeps/diag_sched_idle.py` / `results/diag_v95c_idle_4y_s42_100_999.json`).
+   - **Définitions de `did_work == true` par dispatcher** :
+     - `catalog` : resélection, régénération, ou tranche AIR C78 appliquée (`ran == true`).
+     - `report` : publication annuelle de début d'année (`_lastReportYear != year`).
+     - `repay` : remboursement partiel ou total du prêt (`curLoan < preLoan`).
+     - `scrap` : véhicule vendu ou ligne fermée/retirée (`curVehs < preVehs || curLines < preLines`).
+     - `expand` : 2e train ou wagon ajouté, expansion ou recherche A* démarrée (`curVehs > preVehs || railExp || railSearch`).
+     - `refleet` : nouveau véhicule acheté et ajouté à une ligne existante (`curVehs > preVehs`).
+     - `town_growth` : travailleur urbain démarré, véhicule/gare/ligne urbaine construite.
+     - `air_fleet` : injection de projets de flotte dans le vivier ou achat de nouvel avion.
+     - `projects` : `projects_useful` (construction lancée/achevée, A* démarré/consommé, réactif C83 consommé, abandon traité). Seul `projects_useful` réinitialise les compteurs de cadence.
+     - `air` : construction aérienne hors portefeuille (auto-désactivée sous AIR_PORTFOLIO).
+     - Invariant vérifié : pour chaque tâche, `did_work + noop == selected`, et pour chaque événement, `classe == "work" ⇔ did_work == 1`.
+   - **Perturbation mesurée (horizon 4 ans 1970–1973, graines 100, 42, 999, probe0 vs probe1)** :
+     - graine 100 : valeur 2 759 363 £ → 4 191 113 £ (+51,9 %) ; profit_year 1 225 260 £ → 1 611 261 £ (+31,5 %) ; veh 81 → 110 (+29) ; st 35 → 46 (+11).
+     - graine 42 : valeur 6 506 622 £ → 6 034 738 £ (−7,3 %) ; profit_year 2 798 372 £ → 2 595 595 £ (−7,2 %) ; veh 117 → 97 (−20) ; st 60 → 57 (−3).
+     - graine 999 : valeur 5 420 465 £ → 5 464 179 £ (+0,8 %) ; profit_year 2 440 715 £ → 2 428 276 £ (−0,5 %) ; veh 85 → 82 (−3) ; st 63 → 57 (−6).
+     - Moyenne deltas : valeur +15,1 %, profit_year +7,9 %. La mesure est prise sous la perturbation induite par le décalage des points de suspension NoAI sous sonde.
+     - À `probe_scheduler=0`, conformité bit-à-bit stricte avec la référence solo (smoke 1 an graine 42 : valeur 393164, profit 302818, veh 24, st 22).
+   - **Résultats par tâche (années complètes 1970–1972, couverture 12/12 sur les 3 graines, total = 3 860 sélections)** :
+     | tâche | sel | work | noop | noop% | pred | after | ops tot | ops moy | ops med | jours tot | jours moy | age d med | age d p90 | age tk med |
+     |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+     | air | 3 | 0 | 3 | 100,0 % | 3 | 0 | 1 098 | 366 | 366 | 0 | 0,00 | — | — | — |
+     | air_fleet | 429 | 0 | 429 | 100,0 % | 0 | 429 | 52 003 230 | 121 220 | 23 259 | 285 | 0,66 | — | — | — |
+     | catalog | 430 | 102 | 328 | 76,3 % | 328 | 0 | 161 813 095 | 376 310 | 1 742 | 877 | 2,04 | 31,0 | 50,2 | 575 |
+     | expand | 428 | 1 | 427 | 99,8 % | 0 | 427 | 4 318 152 | 10 089 | 10 004 | 38 | 0,09 | — | — | — |
+     | projects | 428 | 102 | 326 | 76,2 % | 0 | 326 | 251 993 142 | 588 769 | 5 605 | 1 356 | 3,17 | 29,0 | 52,6 | 530 |
+     | refleet | 428 | 12 | 416 | 97,2 % | 0 | 416 | 1 359 827 | 3 177 | 2 194 | 8 | 0,02 | 119,0 | 492,4 | 2 198 |
+     | repay | 427 | 13 | 414 | 97,0 % | 338 | 76 | 1 237 321 | 2 898 | 391 | 15 | 0,04 | 43,5 | 178,8 | 801 |
+     | report | 430 | 9 | 421 | 97,9 % | 421 | 0 | 10 003 297 | 23 263 | 459 | 58 | 0,13 | 380,5 | 388,0 | 7 047 |
+     | scrap | 430 | 0 | 430 | 100,0 % | 0 | 430 | 304 310 | 708 | 659 | 7 | 0,02 | — | — | — |
+     | town_growth | 427 | 17 | 410 | 96,0 % | 0 | 410 | 31 258 932 | 73 206 | 2 654 | 170 | 0,40 | 155,0 | 381,8 | 2 869 |
+     | **Total** | **3 860** | **256** | **3 604** | **93,4 %** | **1 090** | **2 514** | **514 292 404** | **133 236** | **1 127** | **2 814** | **0,73** | — | — | — |
+   - **Coût unitaire par couple (tâche, raison) (années complètes 1970–1972)** :
+     | tâche | raison | classe | n | % tâche | ops tot | ops moy | ops med | ops p90 | jours moy | ticks moy | ticks med |
+     |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+     | scrap | scrap_no_work | after | 430 | 100,0 % | 304 310 | 708 | 659 | 875 | 0,02 | 0,3 | 0 |
+     | air_fleet | air_fleet_no_work | after | 429 | 100,0 % | 52 003 230 | 121 220 | 23 259 | 322 211 | 0,66 | 11,8 | 2 |
+     | expand | expand_no_work | after | 427 | 99,8 % | 4 172 001 | 9 770 | 10 004 | 10 117 | 0,09 | 1,3 | 1 |
+     | report | report_same_year | pred | 421 | 97,9 % | 194 079 | 461 | 459 | 459 | 0,01 | 0,3 | 0 |
+     | refleet | refleet_no_work | after | 416 | 97,2 % | 993 026 | 2 387 | 2 193 | 3 228 | 0,02 | 0,3 | 0 |
+     | town_growth | town_growth_no_work | after | 410 | 96,0 % | 21 858 892 | 53 314 | 2 529 | 169 491 | 0,28 | 5,2 | 0 |
+     | repay | repay_same_month | pred | 338 | 79,2 % | 132 263 | 391 | 391 | 391 | 0,00 | 0,0 | 0 |
+     | catalog | catalog_fresh | pred | 328 | 76,3 % | 544 048 | 1 659 | 1 598 | 2 066 | 0,00 | 0,0 | 0 |
+     | projects | projects_empty | after | 312 | 72,9 % | 1 488 997 | 4 772 | 4 474 | 6 515 | 0,00 | 0,0 | 0 |
+     | catalog | catalog_refresh | work | 102 | 23,7 % | 161 269 047 | 1 581 069 | 1 149 919 | 3 655 919 | 8,60 | 159,4 | 115 |
+     | projects | projects_useful | work | 102 | 23,8 % | 238 798 905 | 2 341 166 | 2 359 918 | 3 424 939 | 12,69 | 235,1 | 238 |
+     | repay | repay_no_work | after | 76 | 17,8 % | 716 694 | 9 430 | 9 928 | 9 928 | 0,16 | 2,4 | 1 |
+     | town_growth | town_growth_work | work | 17 | 4,0 % | 9 400 040 | 552 944 | 380 074 | 979 288 | 3,18 | 59,1 | 40 |
+     | projects | projects_examined_no_effect | after | 14 | 3,3 % | 11 705 240 | 836 089 | 438 676 | 1 846 921 | 4,43 | 83,3 | 44 |
+     | repay | repay_work | work | 13 | 3,0 % | 388 364 | 29 874 | 29 923 | 29 923 | 0,15 | 3,0 | 3 |
+     | refleet | refleet_work | work | 12 | 2,8 % | 366 801 | 30 567 | 30 520 | 31 107 | 0,08 | 3,0 | 3 |
+     | report | report_work | work | 9 | 2,1 % | 9 809 218 | 1 089 913 | 1 100 019 | 1 847 597 | 5,78 | 109,0 | 110 |
+     | air | air_disabled | pred | 3 | 100,0 % | 1 098 | 366 | 366 | 366 | 0,00 | 0,0 | 0 |
+     | expand | expand_work | work | 1 | 0,2 % | 146 151 | 146 151 | 146 151 | 146 151 | 1,00 | 14,0 | 14 |
+   - **Couverture et répartition par graine × année** :
+     - Graine 42 : 1970 12/12 (464 sel, 33 work, 431 noop, 92,9 %, 130 pred, 301 after) ; 1971 12/12 (104 sel, 29 work, 75 noop, 72,1 %, 12 pred, 63 after) ; 1972 12/12 (58 sel, 18 work, 40 noop, 69,0 %, 6 pred, 34 after) ; 1973 10/12 (50 sel, 12 work, 38 noop, 76,0 %, 6 pred, 32 after, partiel). Total 1970–1972 = 626 sel.
+     - Graine 100 : 1970 12/12 (1 887 sel, 34 work, 1 853 noop, 98,2 %, 601 pred, 1 252 after) ; 1971 12/12 (526 sel, 34 work, 492 noop, 93,5 %, 149 pred, 343 after) ; 1972 12/12 (97 sel, 33 work, 64 noop, 66,0 %, 10 pred, 54 after) ; 1973 12/12 (69 sel, 18 work, 51 noop, 73,9 %, 8 pred, 43 after). Total 1970–1972 = 2 510 sel.
+     - Graine 999 : 1970 12/12 (536 sel, 26 work, 510 noop, 95,1 %, 158 pred, 352 after) ; 1971 12/12 (125 sel, 29 work, 96 noop, 76,8 %, 17 pred, 79 after) ; 1972 12/12 (63 sel, 20 work, 43 noop, 68,3 %, 7 pred, 36 after) ; 1973 10/12 (33 sel, 14 work, 19 noop, 57,6 %, 2 pred, 17 after, partiel). Total 1970–1972 = 724 sel.
+     - **Vérification de cohérence exacte des totaux** : 626 (s42) + 2 510 (s100) + 724 (s999) = **3 860 sélections**. La somme par graine coïncide à l'unité près avec la somme par année (2 887 en 1970 + 755 en 1971 + 218 en 1972 = 3 860), la somme par tâche (3 860) et la somme par raison (3 860). L'analyseur intègre une assertion de cohérence stricte qui échoue bruyamment en cas de divergence.
+   - **Cadence `projects` utile (distributions réelles, n = 99 intervalles)** :
+     - Tâches d'arrière-plan traversées entre deux passages utiles : moyenne = 37,6 tâches, médiane = 8 tâches, p90 = 80,0 tâches.
+     - ~~Délai calendaire entre deux passages utiles : médiane 29,0 j~~ — **chiffre faux** : la réconciliation P2 bis (`results/diag_p2bis_reconciliation_4y_s42_100_999.*`) mesure ≈ 4 j médian entre passages utiles en phase de construction ; les passages vides sont concentrés dans 32 épisodes d'attente de capital (459 passages, ~0,1 j par tour de file).
+     - Délai en ticks moteur : moyenne = 589,4 ticks, médiane = 530 ticks, p90 = 970,8 ticks.
+   - **Candidats `skip-not-due` justifiés (cls=pred), classés par enjeu réel** :
+     - `report_same_year` (421 tours, 461 ops moy, 459 ops med, 0,01 j moy, 0,3 tk moy, 194 079 ops tot, 6 jours totaux) : garde d'éligibilité annuelle évidente, consomme inutilement 11 mois sur 12.
+     - `repay_same_month` (338 tours, 391 ops moy, 391 ops med, 0,00 j moy, 0,0 tk moy, 132 263 ops tot, 1 jour total) : garde calendaire mensuelle simple, supprime ~340 tours à vide.
+     - `catalog_fresh` (328 tours, 1 659 ops moy, 1 598 ops med, 0,00 j moy, 0,0 tk moy, 544 048 ops tot, 0 jour total) : enjeu exclusivement en opcodes (~1 600 ops par tour gaspillé, soit un demi-million d'opcodes au total sans aucun tick moteur consommé).
+     - `air_disabled` (3 tours, 366 ops moy, 366 ops med, 0,00 j moy, 0,0 tk moy, 1 098 ops tot) : inerte sous `AIR_PORTFOLIO`.
+   - **Constat sur `projects_empty` et goulot de `projects`** :
+     - Sur les 428 sélections de `projects`, 312 tours (72,9 %) sont des no-ops `projects_empty` (vivier vide). Ils constituent **95,7 % des 326 no-ops de la tâche** (les 14 restants étant `projects_examined_no_effect` où des projets existent mais ne sont pas finançables/faisables).
+     - La comparaison avec `catalog` montre une symétrie parfaite : `catalog_refresh` a produit du travail exactement **102 fois**, et `projects_useful` a consommé ce travail exactement **102 fois**.
+     - Dès qu'un projet est construit, l'hypothèse initiale postulait que « le vivier est vidé et projects tourne à vide » : cette hypothèse a été rigoureusement testée et réfutée par le diagnostic P2 ci-dessous.
+     - **Conclusion P1** : le goulot de `projects` n'est pas sa fréquence de passage dans l'ordonnanceur (qui passe déjà largement assez souvent, tous les 8 tours de file en médiane), mais le cycle de réapprovisionnement et de financement du vivier.
+
+2. **Cycle de vie du portefeuille post-build (V95 item 2 / P2 — instrumenté et mesuré).**
+   Instrumentation légère sous `probe_scheduler=1` (`P2_BUILD` et `P2_RESOLVE`) greffée sur `_schedIdlePostDispatch()` dans `ai/OpexAI/ledgers.nut` (aucun surcoût ni opcode à `probe_scheduler=0`, conformité bit-à-bit vérifiée : smoke 1 an graine 42 = 393164 / 24 / 22 / 302818).
+   Tests déterministes Python (`sweeps/test_p2_lifecycle.py`, 6 tests couvrant toutes les causes et raisons, 25/25 avec P1), décodeur/analyseur (`sweeps/analyse_p2_lifecycle.py`), diagnostic 4 ans (1970–1972 complets, graines 42, 100, 999 : `results/diag_p2_lifecycle_4y_s42_100_999.json` et `.md`).
+   - **Réfutation de l'hypothèse de vidage systématique** :
+     - Sur 102 constructions observées, le portefeuille **reste immédiatement non vide dans 70 cas (68,6 %)** (`cause=none`, `funded > 0` après `OpexIncrementalUpdateProjects`).
+     - Dans seulement **32 cas (31,4 %)**, la construction vide le portefeuille (`funded == 0`).
+   - **Répartition des causes de vide (`emptyCause`, n = 32)** :
+     - `all_unaffordable` : **32 / 32 (100,0 % des cas de vide, 31,4 % du total)**. Des projets alternatifs sont toujours présents dans le vivier (médiane 383 alternatives scannées, 236 retenues), mais tous dépassent le capital restant.
+     - `cache_exhausted` : **0 / 32 (0,0 %)**. Le vivier incrémental n'est jamais épuisé.
+     - `empty_pool` / `stage_empty` / `abandon_filtered` / `selection_empty` : **0 / 32 (0,0 %)**.
+   - **Délai de réapparition d'un portefeuille non vide (n = 32)** :
+     - Min = 2 j, Médiane = **15,0 jours** (290,5 ticks moteur), Moyenne = 15,3 j, p90 = 28 j, Max = 47 j.
+   - **Déclencheurs du retour à non-vide (`ret_reason`, n = 32)** :
+     - `immediate` : 70 / 102 (68,6 %).
+     - `air_fleet` : **16 / 32 (50,0 %)**. L'injection incrémentale de flotte aérienne introduit des appareils bon marché (~15–20 k£) immédiatement finançables sans attendre le mois suivant.
+     - `month` : **8 / 32 (25,0 %)**. Nouveau mois calendaire forçant le rafraîchissement global.
+     - `capital` : **4 / 32 (12,5 %)**. Hausse de trésorerie (>2× ou +50 k£).
+     - Autres tâches (`expand`, `scrap`, `catalog_other`) : **4 / 32 (12,5 %)**.
+   - **Analyse financière post-build (`all_unaffordable`, n = 32)** :
+     - Capital restant médian après build : 23 567 £.
+     - Capital requis médian pour le projet suivant (`next_k`) : 32 812 £.
+     - Déficit médian : **seulement 5 475 £**.
+   - **Conclusion causale et décision P3** :
+     - Le vide n'est ni un manque réel d'opportunités, ni un vivier épuisé, ni un défaut de diversité du pool. Le blocage est **100 % financier** (`all_unaffordable`).
+     - Selon la grille d'arbitrage convenue (`cache_exhausted` → refresh ciblé, `all_unaffordable` → C75 bis / allocation de capital, `stage_empty` → diversité), le résultat impose **C75 bis / allocation de capital** comme priorité P3 (déblocage caisse / contournement `k_pass` pour nouvelles lignes finançables).
+3. **Priorité P3 : C75 bis / allocation de capital (levier issu de P2, désormais adopté sous `c75_kpass_bypass`, défaut 1).**
+   Le diagnostic P2 ayant démontré que 100 % des vidages de vivier post-build sont de type `all_unaffordable`
+   (déficit médian minime de 5 475 £), le contournement de `k_pass` est implémenté : au plus une fois par passe
+   et uniquement pour une nouvelle ligne (`air`, `rail`, `road`, `water`) dont le capital est réellement disponible
+   (`projCap <= availCap`), jamais pour `fleet`. Aucun état persistant nouveau (compteur local à la passe).
+   Aucune réservation d'argent pour un A* rail simplement présent dans le vivier (une recherche rail en vol garde ses règles).
+   Smokes 1y et solo 3y validés (divergence nette : +5 avions en 3 ans). Commandes 5×6 et 20×10 prêtes. Voir fiche C75 bis.
+4. **Watcher C83 réellement réactif (P4).** Aujourd'hui la transition est détectée seulement
    dans `_tryBuildProjects()` via `_c83WatchAirSlotTransitions()` : une ville surveillée passe de
    `AITown.GetAllowedNoise()==2` à `==1`, sans aéroport Opex, puis seulement alors
    `_c77EnqueueEntity(["air"], "town", townId, true, "c83_slot_race")` alimente la file réactive.
@@ -157,27 +256,52 @@ des tours sur des tâches non dues et faire de la file réactive un vrai chemin 
    `projects`**, avant le dépilage réactif de `_runOrchestratorTick` (ou à une cadence courte bornée).
    Le watcher ne construit rien : il détecte/coalesce/enqueue seulement. Tester explicitement les
    transitions `2→1`, `11→1` après disparition Opex, `1→0`, réarmement et Save/Load.
-5. **Faire viser l'occasion par le réactif.** Une course C83 doit transporter l'identité de la ville
-   et, après régénération ciblée, ne doit pas se réduire à un `_tryBuildProjects()` générique capable
-   de construire un autre rang du portefeuille. Réutiliser la promotion défensive existante ou une
-   exécution ciblée qui revalide au dernier moment : slot toujours à `1`, aucun aéroport Opex,
-   candidat AIR rentable, finançable et encore constructible. `k_pass` reste la protection générale
-   des constructions ordinaires ; la course à une ressource périssable est l'exception explicite.
-6. **Séparer ensuite priorité investissement et maintenance, sans permuter aveuglément la file.** Une
-   fois `skip-not-due` qualifié, tester un ordonnanceur par classes. La cible n'est plus « un worker
-   obligatoire avant la file », mais :
-   `réactif urgent → action/tâche réellement due → allocation du reliquat aux workers → Sleep(1)`.
-   Le choix du worker dépend du pipeline : un A* qui bloque le meilleur projet passe devant ; si des
-   résultats rail sont déjà prêts, `town_growth` ou plus tard C67 peuvent récupérer le reliquat.
-   Avec `FLEET_PORTFOLIO`, `air_fleet` doit surtout **produire/injecter un candidat** ; c'est ensuite le
-   portefeuille qui arbitre renfort d'une ligne existante contre nouvelle ligne. Ne pas recréer une
-   règle « servir toute la flotte avant de construire ».
-7. **Politique bootstrap séparée, uniquement après la phase structurelle.** Mesurer sur les premières
-   années une règle où `town_growth` et éventuellement `repay` cèdent leur tour lorsqu'un projet
-   rentable est immédiatement finançable. Ce changement touche l'allocation de capital : réglage à
-   défaut 0, diagnostic 5×6 puis banc officiel seulement si l'exposition est réelle. `town_growth`
-   reste autorisé comme emploi du capital résiduel ; le remboursement garde les protections de
-   `_tryRepayLoan()` et ne doit jamais être supprimé globalement.
+   Faire viser l'occasion par le réactif : transporter l'identité de la ville et construire de manière
+   ciblée si le créneau est encore libre.
+5. **Mesure de pré-planification A* rail pendant l'attente de capital (P5 bis — corrigé, mesuré sous défaut et V89).**
+   Instrumentation sous `probe_scheduler=1` (`P5_WAIT_START`, `P5_WAIT_END`, `P5_RAIL_PASS`, `P5_RAIL_SEARCH_START`, `P5_RAIL_SEARCH_END`, `P5_BUILD_LINE`) greffée dans `ledgers.nut` (le correctif sonde du 2026-09-25 a retiré toute garde V95 et restructuration de `task_rail.nut` et `task_projects.nut`, restaurant une pureté stricte du chemin `probe_scheduler=0` : identité bit-à-bit exacte vérifiée contre `b34e5de` sur graines 100 et 999 × 6 ans avec recherches rail, et smoke 42 1 an).
+   Tests déterministes Python (`sweeps/test_p5_preplan.py`, 31 tests unitaires), analyseur (`sweeps/analyse_p5_preplan.py`), diagnostic étendu 6 ans (graines 42, 100, 999, horizon 1970–1975) sous deux bras : défaut (`v89_rail_search_throughput=0`) et V89 (`v89_rail_search_throughput=1`). Sorties : `results/diag_p5b_defaut_probe1_6y.json` et `results/diag_p5b_v89_probe1_6y.json`.
+   - **Correction de l'artefact P5 et issues réelles de l'A*** :
+     - Le constat P5 initial « 0/5 succès, 5/5 NOPA » était un pur artefact de mesure (`ledgers.nut` testait `plan.path`, or un tracé réussi remplit `plan.tiles` et `plan.ok`, jamais `path`). La détection au terme effectif de recherche via `plan.ok` / `plan.reason` montre **100 % de succès réels** :
+       - Bras défaut : **16 / 16 recherches réussies (100,0 % OK)**, 0 NOPA, 0 plafond itérations, 0 SHORT/NOMATCH.
+       - Bras V89 : **13 / 13 recherches réussies (100,0 % OK)**, 0 NOPA, 0 plafond itérations, 0 SHORT/NOMATCH.
+   - **Coût A*, débit et durée calendaire (défaut vs V89)** :
+     - Bras défaut : itérations médiane = **860,5** (p90 = 2 237) ; opcodes médiane = **2 525 197** (p90 = 6 174 037) ; durée calendaire médiane = **118,5 jours** (2 189 ticks, p90 = 288 j) ; débit A* = **1 556 opcodes/tick** (moyenne = 2 157).
+     - Bras V89 : itérations médiane = **529** (p90 = 2 232) ; opcodes médiane = **1 451 465** (p90 = 6 151 267) ; durée calendaire médiane = **32,0 jours** (585 ticks, p90 = 242 j) ; débit A* = **1 210 opcodes/tick** (moyenne = 1 794). V89 divise par près de 4 la durée calendaire d'une recherche rail (−73 % en jours et en ticks).
+   - **Exposition en attente de capital (`all_unaffordable`)** :
+     - Épisodes d'attente observés : **41** sous défaut, **36** sous V89. Présence d'alternatives rail dans le vivier : **100,0 % des épisodes** (41/41 et 36/36).
+     - Durée médiane d'un épisode : **15,0 jours** (277 ticks).
+     - Opcodes inutilisés par tick d'attente : médiane = **1 391 ops/tk** (défaut) / **1 414 ops/tk** (V89), p90 = 3 100 à 3 700 ops/tk, cumul = 23,5 M opcodes gaspillés.
+     - *Explication des écarts d'opcodes libres (450 à 4 500+ ops/tk)* : l'ordonnanceur dispose de 10 000 ops/tick alloués par le moteur. Lors des ticks actifs (reconstruction de catalogue, tri de projets, maintenance), une part du quota est consommée. Lors des ticks d'attente passive pure, 9 500+ opcodes sont relâchés.
+   - **Impact quantifié du facteur 1,70 (double application vérifiée dans le code)** :
+     - Le code applique `RAIL_TERRAIN_FACTOR = 170` (+70 % sur la voie, `economy.nut`), puis `RAIL_FINANCE_CAPITAL_BIAS_PCT = 170` (+70 % sur tout le projet, `projects.nut`), imposant un multiplicateur combiné de ~1,77 alors que le coût réel (C67.6) vaut 0,96×.
+     - Contrefactuel calculé hors jeu (capital à 0,96/1,70 du modélisé, sans changer le code de décision) :
+       - Capital requis médian : 82 552 £ → **46 617 £** (−43,5 %).
+       - Déficit médian vs caisse : 54 029 £ → **18 317 £** (−35 712 £).
+       - Rang médian vivier : 139 → **49** (+90 places !).
+       - Épisodes finançables : 1/41 → **5/41** (+4).
+       - Dans le Top 1 (meilleur ROI) : 0 → **2** ; Top 3 : 0 → **9 (22,0 %)** ; Top 5 : 0 → **10 (24,4 %)**.
+     - Le facteur 1,70 masque lourdement le rail en refoulant ses projets du Top 3/5 vers les rangs 130–140.
+   - **Avance mesurable et devenir des candidats** :
+     - La recherche étant reprenable, le gain n'est pas binaire mais progressif :
+     - Bras défaut : avance médiane disponible = **15,0 jours** (12,7 % de l'A*). Avance théorique totale = **628 jours**, dont **133 jours** sur des candidats effectivement construits plus tard dans la partie (`built_later` = 14 épisodes, 34,1 %). 26 épisodes dépassés par un autre mode (`superseded_by_other_mode`), 1 jamais construit (`never_built`).
+     - Bras V89 : avance médiane disponible = **15,0 jours**, mais couvrant **46,9 % de l'A*** (durée réduite à 32 j).
+   - **Perturbation sous sonde (`probe_scheduler=1` vs `probe_scheduler=0`)** :
+     - Bras défaut : s100 (valeur +0,0 %, profit −14,0 %), s42 (valeur −4,3 %, profit +4,7 %), s999 (valeur +0,7 %, profit +2,1 %).
+     - Bras V89 : s100 (valeur +10,0 %, profit +2,0 %), s42 (valeur +7,6 %, profit +6,0 %), s999 (valeur +2,1 %, profit +2,2 %).
+   - **Synthèse et décision P5** :
+     - La pré-planification A* n'est **pas réfutée techniquement** : le taux de succès est de 100 %, les opcodes d'attente sont amplement suffisants et 133 jours de chantier sont récupérables sur des lignes réelles.
+     - Cependant, deux contraintes structurelles modifient l'arbitrage :
+       1. Sans correction préalable du facteur 1,70, les candidats rail restent relégués au rang 139 et sont supplantés par d'autres modes dès que la caisse remonte (63 % des épisodes).
+       2. L'activation de V89 règle déjà l'essentiel de la latence de recherche (118 j → 32 j) sans complexité d'anticipation.
+     - **Recommandation et livrables** : C75 bis a depuis été adopté sous `c75_kpass_bypass=1`. Le facteur rail reste exposé via `rail_finance_bias_pct` (défaut 170) et doit encore être qualifié au 20×10 avant adoption. V89 reste à défaut 0 après le 5×6 causal courant non favorable, malgré le diagnostic de latence P5 bis. La pré-planification en reliquat (P5/P6) reste un levier complémentaire valable une fois le vivier rail réaligné.
+6. **Arbitre simple des workers (P6).** Sélection tranche par tranche selon le travail déjà prêt et ce qui bloque
+   réellement l'aval (`rail_search`, `town_growth`, puis C67). Avec `FLEET_PORTFOLIO`, `air_fleet` doit surtout
+   produire/injecter un candidat ; c'est le portefeuille qui arbitre renfort contre nouvelle ligne.
+7. **Maintenance conditionnelle et admission `skip-not-due` comme nettoyage secondaire (P7).**
+   Déplacer les gardes calendaires et états sûrs (`report_same_year`, `repay_same_month`, `catalog_fresh`,
+   drapeaux `needs*` pour `refleet`/`expand`/`scrap`) dans un prédicat d'éligibilité du scheduler pour délester
+   les no-ops prédictibles. Une tâche non due est sautée dans le même scan, pas élue puis consommée pour rien.
 8. **Ne pas transformer `projects` en boucle chaude générale.** Après `k_pass`, ne pas faire
    systématiquement `projects → projects` ni augmenter le batch : les essais historiques de débit
    supplémentaire du portefeuille ont été négatifs. Les seules reprises accélérées admises sont une
@@ -190,11 +314,7 @@ des tours sur des tâches non dues et faire de la file réactive un vrai chemin 
    leur effet ; toute variante qui améliore seulement les opcodes mais dégrade l'économie reste non
    adoptée.
 
-Ordre d'implémentation recommandé : **(1) instrumentation → (2) skip-not-due → (4) watcher C83
-réactif → (5) construction C83 ciblée → (3) maintenance conditionnelle → (6) classes de priorité
-→ (7) politique bootstrap**. Les étapes 2 et 4 sont les candidats les plus conservateurs : elles
-réduisent respectivement les tours manifestement vides et la latence d'une ressource périssable sans
-changer le classement économique normal du portefeuille.
+Ordre d'implémentation (nouvelle séquence P1–P7 convenue le 2026-09-25) : **P1 instrumentation scheduler (fait) → P2 cycle de vie portefeuille (fait) → P3 C75 bis / allocation de capital (priorité décidée d'après P2) → P4 watcher C83 réactif → P5 reliquat opcodes workers → P6 arbitre workers → P7 maintenance conditionnelle / skip-not-due comme nettoyage secondaire**.
 
 <a id="revue-c76-c77"></a>
 ### Revue du code C76-C77 — pistes (2026-09-22)

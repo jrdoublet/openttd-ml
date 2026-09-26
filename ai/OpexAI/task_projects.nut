@@ -957,7 +957,6 @@ function OpexAI::_tryBuildProjects(year)
               + " reason=cash next_rank=" + i + " next_mode=" + project.mode
               + " finance=" + projCap + " available=" + availCap);
         }
-        break;
       }
       if (C80_MARGINAL_FLOOR) {
         if (OpexC80ProjectBelowMarginalFloor(this._lines, project)) {

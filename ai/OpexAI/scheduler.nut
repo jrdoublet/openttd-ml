@@ -35,6 +35,9 @@ function OpexAI::_runNextTaskWithSlackLedger()
   } else if (this._railExpansion != null) {
     continuationCategory = "rail_expansion";
   }
+  if (V95_SCHED_IDLE_LEDGER) {
+    this._schedIdlePreDispatch();
+  }
   local ran = this._runNextTask();
   local ops = OpexOpsMeasureEnd(mark);
   if (this._railWorkerSteppedThisTick) {
@@ -100,6 +103,14 @@ function OpexAI::_runNextTaskWithSlackLedger()
         hasSlice ? this._c39PassClockSliceDays : 0,
         hasSlice ? this._c39PassClockSliceTicks : 0,
         hasSlice ? this._c39PassClockSliceOps : 0);
+    if (V95_SCHED_IDLE_LEDGER) {
+      local taskOps = ops;
+      if (hasSlice && this._c41RailSliceLastOps >= 0) {
+        taskOps = ops - this._c41RailSliceLastOps;
+        if (taskOps < 0) taskOps = 0;
+      }
+      this._schedIdlePostDispatch(taskName, ran, taskOps, passDays, passTicks);
+    }
   }
   /* C41.13 : apres la tache historique, seules les couches encore sales sont admissibles au
    * delestage. Une meme tranche peut etre une opportunite pour plusieurs couches : le total par

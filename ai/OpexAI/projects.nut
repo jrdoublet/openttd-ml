@@ -292,7 +292,7 @@ function OpexProjectFinanceCapital(project)
   if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;
 
   local biasPct = 0;
-  if (project.mode == "rail") biasPct = 170;
+  if (project.mode == "rail") biasPct = RAIL_FINANCE_BIAS_PCT;
   else if (project.mode == "road") biasPct = 121;
   else return financeCapital;
 

@@ -115,6 +115,9 @@ C41_OPPORTUNITY_LEDGER <- false;
 /* C41.14 : contrat passif d'admission d'une micro-tache. Le seul pilote declare est le petit
  * refresh water ; ajouter route/rail/air exige d'abord leur point d'entree cible et son cout. */
 C41_ADMISSION_LEDGER <- false;
+/* V95 item 1 : tours de file selectionnes vs no-op, strictement observatoire.
+ * Meme gate que les ledgers C41/C39 : probe_scheduler, defaut 0. Aucune admission. */
+V95_SCHED_IDLE_LEDGER <- false;
 /* C41.16 : ventilation passive de la generation de candidats route historique. */
 C41_ROAD_CANDIDATE_PROFILE <- false;
 /* C41.17 : sous-ventilation passive du fret producteur->accepteur. */
@@ -329,6 +332,9 @@ C75_MULTI_BUILD <- false;
 C75_KPASS_BYPASS <- false;
 C75_KPASS_BYPASS_LEDGER <- null;
 C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
+/* Facteur de financement rail applique dans OpexProjectFinanceCapital.
+ * Reglage experimental, defaut historique 170. */
+RAIL_FINANCE_BIAS_PCT <- 170;
 C75_TRACK_PASSES <- false;
 C75_PASS_DATES <- null;
 C75_YEAR_LEDGER <- null;

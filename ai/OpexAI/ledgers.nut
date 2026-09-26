@@ -185,6 +185,878 @@ function OpexAI::_logC39PassClockLedger(year)
     this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
   }
 }
+
+/* V95 item 1 — tours de file selectionnes vs no-op. Piggyback sur
+ * _runNextTaskWithSlackLedger (actif uniquement sous probe_scheduler) : opcodes/jours/ticks
+ * sont ceux deja mesures par C39.6, sans begin/end supplementaire.
+ *
+ * Definition de did_work par dispatcher (Issues 2-4) :
+ *   catalog: reselection / regeneration / tranche AIR C78 (ran == true).
+ *   report: publication annuelle (this._lastReportYear != year).
+ *   repay: pret effectivement baisse (curLoan < preLoan).
+ *   scrap: vehicule vendu ou ligne retiree (curVehs < preVehs || curLines < preLines).
+ *   air: construction aerienne executee (ran == true ; desactive sous AIR_PORTFOLIO).
+ *   air_fleet: opportunite injectee dans le vivier (this._projects != preProjects) ou achat.
+ *   projects: 3 etats :
+ *     - projects_selected_noop : vivier vide (projects_empty, cls=after) ou invalide (projects_invalidated, cls=pred).
+ *     - projects_examined_no_effect : vivier examine, aucun effet (cls=after).
+ *     - projects_useful : vrai travail (cls=work) -> construction lancee/achevee (built),
+ *       A* rail demarre (rail_search_started), A* rail consomme (rail_search_consumed),
+ *       reactif C83 consomme (c83_reactive), abandon traite (abandon_handled).
+ *       Seul projects_useful compte comme passage utile.
+ *   expand: 2e train / wagon ajoute ou recherche/expansion demarree (curVehs > preVehs || railExp || railSearch).
+ *   refleet: vehicule ajoute (curVehs > preVehs).
+ *   town_growth: travailleur cree ou vehicule/gare/ligne ajoutee.
+ *   taches desactivees (c41_water, c41_road, etc.): task_disabled (cls=pred).
+ *
+ * Invariant : pour chaque tache, did_work + noop == selected.
+ * cls=pred : garde pre-dispatch identifiee avant execution bloquant la tache.
+ * cls=after : absence d'effet ou garde dynamique constatee apres execution.
+ * cls=work : vrai travail observe. */
+function OpexAI::_schedIdleEnsure()
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  if (this._schedIdleLastWorkDate == null) this._schedIdleLastWorkDate = {};
+  if (this._schedIdleLastWorkTick == null) this._schedIdleLastWorkTick = {};
+  if (this._p2PendingBuilds == null) this._p2PendingBuilds = [];
+  if (this._p2TasksSinceProjects == null) this._p2TasksSinceProjects = [];
+  if (this._p2ProjectsSeq == null) this._p2ProjectsSeq = 0;
+  if (this._p2LastProjectsPostBest == null) this._p2LastProjectsPostBest = -1;
+  if (this._p2LastProjectsPostCap == null) this._p2LastProjectsPostCap = -1;
+  if (this._p5EpisodeActive == null) this._p5EpisodeActive = false;
+  if (this._p5EpisodeId == null) this._p5EpisodeId = -1;
+  if (this._p5EpisodeUnusedOps == null) this._p5EpisodeUnusedOps = 0;
+  if (this._p5EpisodeUsedOps == null) this._p5EpisodeUsedOps = 0;
+  if (this._p5EpisodeDispatches == null) this._p5EpisodeDispatches = 0;
+  if (this._p5RailSearchSeq == null) this._p5RailSearchSeq = 0;
+  if (this._p5ActiveRailSearch == null) this._p5ActiveRailSearch = null;
+  if (this._p5LastTrackedRailSearch == null) this._p5LastTrackedRailSearch = null;
+  if (this._schedIdlePreMarkLeft == null) this._schedIdlePreMarkLeft = 10000;
+}
+
+function OpexAI::_schedIdlePreDispatch()
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  this._schedIdleEnsure();
+  this._schedIdlePreMarkLeft = AIController.GetOpsTillSuspend();
+  this._schedIdlePeekTask = null;
+  this._schedIdlePredReason = null;
+  this._schedIdlePredClass = null;
+
+  if (this._taskQueue == null || this._taskQueue.len() == 0) return;
+
+  local task = null;
+  local cycle = this._taskCycle;
+  for (local index = this._taskCursor; index < this._taskQueue.len(); index++) {
+    local candidate = this._taskQueue[index];
+    if (candidate.enabled && candidate.dueCycle <= cycle) {
+      task = candidate;
+      break;
+    }
+  }
+  if (task == null) {
+    cycle++;
+    for (local index = 0; index < this._taskQueue.len(); index++) {
+      local candidate = this._taskQueue[index];
+      if (candidate.enabled && candidate.dueCycle <= cycle) {
+        task = candidate;
+        break;
+      }
+    }
+  }
+  if (task == null) return;
+
+  local taskName = task.name;
+  this._schedIdlePeekTask = taskName;
+
+  local date = AIDate.GetCurrentDate();
+  local tick = AIController.GetTick();
+  this._schedIdlePreDate = date;
+  this._schedIdlePreTick = tick;
+
+  this._schedIdlePreVehCount = AIVehicleList().Count();
+  this._schedIdlePreLinesCount = this._lines.len();
+  this._schedIdlePreLoan = AICompany.GetLoanAmount();
+  this._schedIdlePreRailSearch = this._railSearch;
+  this._schedIdlePreActiveWorker = this._activeWorker;
+  this._schedIdlePreProjects = this._projects;
+  this._schedIdlePreBestLen = (this._projects != null && ("best" in this._projects) && this._projects.best != null) ? this._projects.best.len() : 0;
+  this._schedIdlePreHadAbandons = this._hadAbandonsThisPass;
+  this._schedIdlePreC83Preempt = (C83_PREEMPT_OPEN && ("_c83PreemptEnqueued" in this)) ? this._c83PreemptEnqueued : 0;
+  this._schedIdlePreC78Rebuild = (("c78AirRebuild" in task) && task.c78AirRebuild != null) ? task.c78AirRebuild : null;
+  this._p2PreCapital = OpexAvailableCapital();
+  this._p2PreCandidateGroupsLen = (this._projects != null && ("candidateGroups" in this._projects) && this._projects.candidateGroups != null) ? this._projects.candidateGroups.len() : 0;
+  this._p2CatalogPreReason = null;
+
+  local curYear = AIDate.GetYear(date);
+  local curMonth = AIDate.GetMonth(date);
+  local curYm = curYear * 12 + curMonth;
+
+  if (this._projects == null && taskName != "catalog") {
+    this._schedIdlePredReason = "projects_null";
+    this._schedIdlePredClass = "pred";
+    return;
+  }
+
+  if (taskName == "report") {
+    if (this._lastReportYear == curYear) {
+      this._schedIdlePredReason = "report_same_year";
+      this._schedIdlePredClass = "pred";
+    }
+  } else if (taskName == "repay") {
+    if (this._lastRepayMonth == curYm) {
+      this._schedIdlePredReason = "repay_same_month";
+      this._schedIdlePredClass = "pred";
+    }
+  } else if (taskName == "air") {
+    if (AIR_PORTFOLIO) {
+      this._schedIdlePredReason = "air_disabled";
+      this._schedIdlePredClass = "pred";
+    }
+  } else if (taskName == "expand") {
+    if (!RAIL_EXPAND && !RAIL_REFLEET) {
+      this._schedIdlePredReason = "expand_disabled";
+      this._schedIdlePredClass = "pred";
+    }
+  } else if (taskName == "town_growth") {
+    if (!TOWN_GROWTH_ENABLED) {
+      this._schedIdlePredReason = "town_growth_disabled";
+      this._schedIdlePredClass = "pred";
+    }
+  } else if (taskName == "catalog") {
+    if (("c78AirRebuild" in task) && task.c78AirRebuild != null) {
+      local s = task.c78AirRebuild;
+      if (("partialPending" in s) && s.partialPending) {
+        this._schedIdlePredReason = "catalog_c78_partial_pending";
+        this._schedIdlePredClass = "pred";
+      } else if (s.phase != "apply") {
+        this._schedIdlePredReason = "catalog_c78_slice_incomplete";
+        this._schedIdlePredClass = "pred";
+      }
+      this._p2CatalogPreReason = "c78_air";
+    } else {
+      local stale = false;
+      if (this._projects != null) {
+        local budgetNow = OpexAvailableCapital();
+        local budgetThen = this._projects.capitalBudget;
+        local gainOk = budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN;
+        local doubleOk = budgetNow > budgetThen * 2;
+        if (gainOk && doubleOk) stale = true;
+      }
+      local isFresh = false;
+      if (C76_REGEN_TARGETED) {
+        local c76LayerChanged = this._c76AnyLayerChanged();
+        local c76PeriodicDue = (this._c76LastRegenQuarter < 0 || curYear > this._c76LastRegenQuarter);
+        local c76ReloadDue = this._c76ForceReloadRegen;
+        if (this._lastCatalogMonth == curYm && this._projects != null && !stale &&
+            !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+          this._schedIdlePredReason = "catalog_fresh";
+          this._schedIdlePredClass = "pred";
+          isFresh = true;
+        }
+      } else {
+        if (this._lastCatalogMonth == curYm && this._projects != null && !stale && !this._portfolioInvalidated) {
+          this._schedIdlePredReason = "catalog_fresh";
+          this._schedIdlePredClass = "pred";
+          isFresh = true;
+        }
+      }
+      if (isFresh) {
+        this._p2CatalogPreReason = "catalog_fresh";
+      } else if (this._portfolioInvalidated) {
+        this._p2CatalogPreReason = "invalidation";
+      } else if (stale) {
+        this._p2CatalogPreReason = "capital";
+      } else if (this._lastCatalogMonth != curYm) {
+        this._p2CatalogPreReason = "month";
+      } else {
+        this._p2CatalogPreReason = "catalog_other";
+      }
+    }
+  } else if (taskName == "projects") {
+    if (this._portfolioInvalidated) {
+      this._schedIdlePredReason = "projects_invalidated";
+      this._schedIdlePredClass = "pred";
+    }
+  } else if (taskName == "c41_water" || taskName == "c41_road" ||
+             taskName == "c41_rail_signals" || taskName == "c41_rail_junction") {
+    this._schedIdlePredReason = "task_disabled";
+    this._schedIdlePredClass = "pred";
+  }
+}
+
+/* P5 : observatoire de scan du vivier de candidats (sous probe_scheduler). */
+function OpexAI::_p5ScanCandidatePool(projects, availableCapital)
+{
+  local res = {
+    nAlts = 0,
+    nRail = 0,
+    nAir = 0,
+    nRoad = 0,
+    nFleet = 0,
+    nWater = 0,
+    bestRail = null,
+    bestRailRank = -1,
+    bestRailScore = 0.0,
+    bestRailFinanceCap = 0,
+    bestRailDeficit = 0,
+    bestRailKind = "none",
+    bestRailSrc = -1,
+    bestRailDst = -1,
+    bestRailProfit = 0,
+    bestRailRoi = 0,
+    bestRailIters = -1,
+    aheadAir = 0,
+    aheadRoad = 0,
+    aheadFleet = 0,
+    bestNonRailMode = "none",
+    bestNonRailScore = 0.0,
+    bestNonRailCap = 0,
+    bestRailCfFinanceCap = 0,
+    bestRailCfDeficit = 0,
+    bestRailCfScore = 0.0,
+    bestRailCfRank = -1
+  };
+
+  if (projects == null || !("candidateGroups" in projects) || projects.candidateGroups == null) {
+    return res;
+  }
+
+  local alts = [];
+  foreach (key, list in projects.candidateGroups) {
+    if (list == null) continue;
+    foreach (p in list) {
+      if (p == null) continue;
+      alts.append(p);
+    }
+  }
+  res.nAlts = alts.len();
+  if (res.nAlts == 0) return res;
+
+  local scored = [];
+  local bestRailCand = null;
+  local bestRailScore = -1.0;
+  local bestRailFinanceCap = 0;
+
+  foreach (p in alts) {
+    local mode = ("mode" in p) ? p.mode : "unknown";
+    if (mode == "rail") res.nRail++;
+    else if (mode == "air") res.nAir++;
+    else if (mode == "road") res.nRoad++;
+    else if (mode == "fleet") res.nFleet++;
+    else if (mode == "water") res.nWater++;
+
+    local financeCap = OpexProjectFinanceCapital(p);
+    local profit = (C70_PROFIT_CALIBRATED) ? OpexCalibratedProfit(p) : (("profitAnnual" in p) ? p.profitAnnual : 0);
+    local score = OpexProjectScore(profit, financeCap);
+
+    scored.append({
+      p = p,
+      mode = mode,
+      score = score,
+      financeCap = financeCap,
+      profit = profit
+    });
+
+    if (mode == "rail") {
+      if (score > bestRailScore || (score == bestRailScore && bestRailCand != null && profit > bestRailCand.profitAnnual)) {
+        bestRailScore = score;
+        bestRailCand = p;
+        bestRailFinanceCap = financeCap;
+      }
+    } else {
+      if (score > res.bestNonRailScore) {
+        res.bestNonRailScore = score;
+        res.bestNonRailMode = mode;
+        res.bestNonRailCap = financeCap;
+      }
+    }
+  }
+
+  if (bestRailCand != null) {
+    res.bestRail = bestRailCand;
+    res.bestRailScore = bestRailScore;
+    res.bestRailFinanceCap = bestRailFinanceCap;
+    res.bestRailDeficit = (bestRailFinanceCap > availableCapital) ? (bestRailFinanceCap - availableCapital) : 0;
+    res.bestRailKind = ("kind" in bestRailCand) ? bestRailCand.kind : "unknown";
+    res.bestRailSrc = ("src" in bestRailCand) ? bestRailCand.src : -1;
+    res.bestRailDst = ("dst" in bestRailCand) ? bestRailCand.dst : -1;
+    res.bestRailProfit = ("profitAnnual" in bestRailCand) ? bestRailCand.profitAnnual : 0;
+    res.bestRailRoi = ("roi" in bestRailCand) ? bestRailCand.roi : 0;
+    res.bestRailIters = (("payload" in bestRailCand) && bestRailCand.payload != null && ("iterations" in bestRailCand.payload))
+        ? bestRailCand.payload.iterations : -1;
+
+    local rank = 0;
+    foreach (s in scored) {
+      if (s.score > bestRailScore) {
+        rank++;
+        if (s.mode == "air") res.aheadAir++;
+        else if (s.mode == "road") res.aheadRoad++;
+        else if (s.mode == "fleet") res.aheadFleet++;
+      }
+    }
+    res.bestRailRank = rank;
+
+    local cfFinanceCap = (bestRailFinanceCap * 96) / 170;
+    local cfScore = OpexProjectScore(res.bestRailProfit, cfFinanceCap);
+    res.bestRailCfFinanceCap = cfFinanceCap;
+    res.bestRailCfDeficit = (cfFinanceCap > availableCapital) ? (cfFinanceCap - availableCapital) : 0;
+    res.bestRailCfScore = cfScore;
+
+    local cfRank = 0;
+    foreach (s in scored) {
+      if (s.score > cfScore) cfRank++;
+    }
+    res.bestRailCfRank = cfRank;
+  }
+
+  return res;
+}
+
+function OpexAI::_p5OnRailSearchStart(kind, cand, budget)
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  this._schedIdleEnsure();
+  if (this._p5ActiveRailSearch != null) {
+    this._p5OnRailSearchEnd(null, "cancelled", "none");
+  }
+  this._p5RailSearchSeq++;
+  this._p5ActiveRailSearch = {
+    id = this._p5RailSearchSeq,
+    kind = kind,
+    src = (cand != null && ("src" in cand)) ? cand.src : -1,
+    dst = (cand != null && ("dst" in cand)) ? cand.dst : -1,
+    startDate = AIDate.GetCurrentDate(),
+    startTick = AIController.GetTick(),
+    budget = budget,
+    iters = 0,
+    ops = 0,
+    slices = 0
+  };
+}
+
+function OpexAI::_p5OnRailSearchEnd(state, outcome, result)
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  if (this._p5ActiveRailSearch == null) return;
+
+  local curDate = AIDate.GetCurrentDate();
+  local curTick = AIController.GetTick();
+  local sDays = curDate - this._p5ActiveRailSearch.startDate;
+  local sTicks = curTick - this._p5ActiveRailSearch.startTick;
+
+  local finalIters = this._p5ActiveRailSearch.iters;
+  if (state != null && ("spent" in state) && state.spent > finalIters) {
+    finalIters = state.spent;
+  }
+
+  OpexSchedIdleLog("P5_RAIL_SEARCH", "id=" + this._p5ActiveRailSearch.id
+      + " kind=" + this._p5ActiveRailSearch.kind
+      + " src=" + this._p5ActiveRailSearch.src + " dst=" + this._p5ActiveRailSearch.dst
+      + " iters=" + finalIters + " ops=" + this._p5ActiveRailSearch.ops
+      + " slices=" + this._p5ActiveRailSearch.slices
+      + " days=" + sDays + " ticks=" + sTicks
+      + " outcome=" + outcome + " result=" + result
+      + " budget=" + this._p5ActiveRailSearch.budget);
+
+  this._p5ActiveRailSearch = null;
+}
+
+function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  if (taskName == null) taskName = "idle";
+  this._schedIdleEnsure();
+  if (this._schedIdlePeekTask != taskName) this._schedIdlePredReason = null;
+
+  /* P5 : comptabilite opcodes et reliquat d'attente */
+  local markLeft = (this._schedIdlePreMarkLeft != null) ? this._schedIdlePreMarkLeft : 10000;
+  local unused = (ticks <= 0) ? (ops < markLeft ? markLeft - ops : 0) : ((markLeft + ticks * 10000) - ops);
+  if (unused < 0) unused = 0;
+  if (this._p5EpisodeActive) {
+    this._p5EpisodeUnusedOps += unused;
+    this._p5EpisodeUsedOps += ops;
+    this._p5EpisodeDispatches++;
+  }
+
+  /* P5 : detecter le demarrage d'une recherche rail */
+  if (this._railSearch != null && this._p5ActiveRailSearch == null) {
+    local rs = this._railSearch;
+    local kind = ("kind" in rs) ? rs.kind : "primary";
+    local cand = ("candidate" in rs) ? rs.candidate : (("line" in rs) ? rs.line : null);
+    local budget = ("iterationBudget" in rs) ? rs.iterationBudget : 0;
+    this._p5OnRailSearchStart(kind, cand, budget);
+  }
+
+  /* P5 : cumuler les opcodes et iterations de la tranche executee dans ce tick */
+  if (this._p5ActiveRailSearch != null && this._c41RailSliceLastOps >= 0) {
+    this._p5ActiveRailSearch.ops += this._c41RailSliceLastOps;
+    this._p5ActiveRailSearch.iters += this._c41RailSliceLastIterDelta;
+    this._p5ActiveRailSearch.slices++;
+  }
+
+  /* P5 : detecter la fin d'une recherche rail */
+  if (this._p5ActiveRailSearch != null && (this._railSearch == null || this._railSearch.phase != "search")) {
+    if (this._railSearch == null) {
+      this._p5OnRailSearchEnd(null, "cancelled", "none");
+    } else {
+      local finalOutcome = "none";
+      local finalResult = "none";
+      if (this._railSearch.kind == "primary") {
+        local plan = ("candidate" in this._railSearch && this._railSearch.candidate != null && ("railPlan" in this._railSearch.candidate))
+            ? this._railSearch.candidate.railPlan
+            : (("plan" in this._railSearch) ? this._railSearch.plan : null);
+        if (plan != null) {
+          if (("ok" in plan) && plan.ok) {
+            finalOutcome = "OK";
+            finalResult = "found";
+          } else if (("reason" in plan) && plan.reason != null && plan.reason != "") {
+            finalOutcome = plan.reason;
+            finalResult = (finalOutcome == "ABND" || finalOutcome == "DEAD") ? "cap" : "none";
+          }
+        }
+      } else if (this._railSearch.kind == "upgrade") {
+        local slice = ("search" in this._railSearch) ? this._railSearch.search : null;
+        finalOutcome = (slice != null && ("stop" in slice)) ? slice.stop : "OK";
+        finalResult = (finalOutcome == "OK") ? "found" : ((finalOutcome == "ABND" || finalOutcome == "DEAD") ? "cap" : "none");
+      }
+      this._p5OnRailSearchEnd(this._railSearch, finalOutcome, finalResult);
+    }
+  }
+
+  local didWork = false;
+  local reason = "unspecified_noop";
+  local skipClass = "after";
+  local subField = "none";
+  local curVehs = AIVehicleList().Count();
+  local curLines = this._lines.len();
+  local builtLine = curLines > this._schedIdlePreLinesCount;
+  local builtVeh = curVehs > this._schedIdlePreVehCount;
+
+  if (taskName == "projects") {
+    if (this._schedIdlePredReason == "projects_invalidated") {
+      if (!ran) {
+        didWork = false; reason = "projects_invalidated"; skipClass = "pred"; subField = "invalidated";
+      } else {
+        didWork = true; reason = "projects_mismatch"; skipClass = "work"; subField = "mismatch";
+      }
+    } else if (this._schedIdlePreBestLen == 0) {
+      didWork = false; reason = "projects_empty"; skipClass = "after"; subField = "empty";
+    } else {
+      local railSearchStarted = this._railSearch != null && this._schedIdlePreRailSearch == null;
+      local railSearchConsumed = this._schedIdlePreRailSearch != null && (this._railSearch == null || this._railSearch != this._schedIdlePreRailSearch);
+      local c83Reactive = C83_PREEMPT_OPEN && ("_c83PreemptEnqueued" in this) && this._c83PreemptEnqueued > this._schedIdlePreC83Preempt;
+      local abandonHandled = this._hadAbandonsThisPass != this._schedIdlePreHadAbandons || (this._hadAbandonsThisPass == true);
+
+      if (builtLine || builtVeh || railSearchStarted || railSearchConsumed || c83Reactive || abandonHandled) {
+        didWork = true;
+        reason = "projects_useful";
+        skipClass = "work";
+        if (builtLine || builtVeh) subField = "built";
+        else if (railSearchStarted) subField = "rail_search_started";
+        else if (railSearchConsumed) subField = "rail_search_consumed";
+        else if (c83Reactive) subField = "c83_reactive";
+        else if (abandonHandled) subField = "abandon_handled";
+        else subField = "useful_other";
+      } else {
+        didWork = false;
+        reason = "projects_examined_no_effect";
+        skipClass = "after";
+        subField = "no_effect";
+      }
+    }
+  } else if (taskName == "report") {
+    if (this._schedIdlePredReason == "report_same_year") {
+      if (!ran) { didWork = false; reason = "report_same_year"; skipClass = "pred"; }
+      else { didWork = true; reason = "report_mismatch"; skipClass = "work"; }
+    } else {
+      if (ran) { didWork = true; reason = "report_work"; skipClass = "work"; }
+      else { didWork = false; reason = "report_mismatch"; skipClass = "after"; }
+    }
+  } else if (taskName == "repay") {
+    if (this._schedIdlePredReason == "repay_same_month") {
+      if (!ran) { didWork = false; reason = "repay_same_month"; skipClass = "pred"; }
+      else { didWork = true; reason = "repay_mismatch"; skipClass = "work"; }
+    } else {
+      local curLoan = AICompany.GetLoanAmount();
+      if (curLoan < this._schedIdlePreLoan) {
+        didWork = true; reason = "repay_work"; skipClass = "work";
+      } else {
+        didWork = false; reason = "repay_no_work"; skipClass = "after";
+      }
+    }
+  } else if (taskName == "catalog") {
+    if (this._schedIdlePredReason != null) {
+      if (!ran) { didWork = false; reason = this._schedIdlePredReason; skipClass = "pred"; }
+      else { didWork = true; reason = "catalog_mismatch"; skipClass = "work"; }
+    } else {
+      if (ran) {
+        didWork = true; reason = "catalog_refresh"; skipClass = "work";
+      } else {
+        local c78Now = (("c78AirRebuild" in this._taskQueue[0]) && this._taskQueue[0].c78AirRebuild != null);
+        if (c78Now && this._schedIdlePreC78Rebuild == null) {
+          didWork = false; reason = "catalog_c78_started"; skipClass = "after";
+        } else {
+          didWork = false; reason = "catalog_mismatch"; skipClass = "after";
+        }
+      }
+    }
+  } else if (taskName == "air") {
+    if (this._schedIdlePredReason == "air_disabled") {
+      if (!ran) { didWork = false; reason = "air_disabled"; skipClass = "pred"; }
+      else { didWork = true; reason = "air_mismatch"; skipClass = "work"; }
+    } else {
+      didWork = ran; reason = ran ? "air_work" : "air_no_work"; skipClass = ran ? "work" : "after";
+    }
+  } else if (taskName == "air_fleet") {
+    local curVehs = AIVehicleList().Count();
+    if (FLEET_PORTFOLIO) {
+      if (this._projects != this._schedIdlePreProjects || curVehs != this._schedIdlePreVehCount) {
+        didWork = true; reason = "air_fleet_injected"; skipClass = "work";
+      } else {
+        didWork = false; reason = "air_fleet_no_work"; skipClass = "after";
+      }
+    } else {
+      if (ran || curVehs != this._schedIdlePreVehCount) {
+        didWork = true; reason = "air_fleet_work"; skipClass = "work";
+      } else {
+        didWork = false; reason = "air_fleet_no_work"; skipClass = "after";
+      }
+    }
+  } else if (taskName == "scrap") {
+    local curVehs = AIVehicleList().Count();
+    local curLines = this._lines.len();
+    if (curVehs < this._schedIdlePreVehCount || curLines < this._schedIdlePreLinesCount) {
+      didWork = true; reason = "scrap_work"; skipClass = "work";
+    } else {
+      didWork = false; reason = "scrap_no_work"; skipClass = "after";
+    }
+  } else if (taskName == "expand") {
+    if (this._schedIdlePredReason == "expand_disabled") {
+      if (!ran) { didWork = false; reason = "expand_disabled"; skipClass = "pred"; }
+      else { didWork = true; reason = "expand_mismatch"; skipClass = "work"; }
+    } else {
+      local curVehs = AIVehicleList().Count();
+      local railExp = this._railExpansion != null;
+      local railSearch = this._railSearch != null && this._schedIdlePreRailSearch == null;
+      if (curVehs > this._schedIdlePreVehCount || railExp || railSearch) {
+        didWork = true; reason = "expand_work"; skipClass = "work";
+      } else {
+        didWork = false; reason = "expand_no_work"; skipClass = "after";
+      }
+    }
+  } else if (taskName == "refleet") {
+    local curVehs = AIVehicleList().Count();
+    if (curVehs > this._schedIdlePreVehCount) {
+      didWork = true; reason = "refleet_work"; skipClass = "work";
+    } else {
+      didWork = false; reason = "refleet_no_work"; skipClass = "after";
+    }
+  } else if (taskName == "town_growth") {
+    if (this._schedIdlePredReason == "town_growth_disabled") {
+      if (!ran) { didWork = false; reason = "town_growth_disabled"; skipClass = "pred"; }
+      else { didWork = true; reason = "town_growth_mismatch"; skipClass = "work"; }
+    } else {
+      local curVehs = AIVehicleList().Count();
+      local curLines = this._lines.len();
+      local worker = this._activeWorker != null && this._schedIdlePreActiveWorker == null;
+      if (curVehs > this._schedIdlePreVehCount || curLines > this._schedIdlePreLinesCount || worker) {
+        didWork = true; reason = "town_growth_work"; skipClass = "work";
+      } else {
+        didWork = false; reason = "town_growth_no_work"; skipClass = "after";
+      }
+    }
+  } else {
+    if (this._schedIdlePredReason != null) {
+      didWork = false; reason = this._schedIdlePredReason; skipClass = "pred";
+    } else {
+      didWork = ran; reason = ran ? "unspecified_work" : "unspecified_noop"; skipClass = ran ? "work" : "after";
+    }
+  }
+
+  if (didWork) {
+    skipClass = "work";
+  } else {
+    if (skipClass == "work") skipClass = "after";
+  }
+
+  local now = AIDate.GetCurrentDate();
+  local tick = AIController.GetTick();
+  local lastDate = (taskName in this._schedIdleLastWorkDate) ? this._schedIdleLastWorkDate[taskName] : -1;
+  local lastTick = (taskName in this._schedIdleLastWorkTick) ? this._schedIdleLastWorkTick[taskName] : -1;
+  local ageDays = lastDate >= 0 ? now - lastDate : -1;
+  local ageTicks = lastTick >= 0 ? tick - lastTick : -1;
+
+  if (didWork) {
+    this._schedIdleLastWorkDate.rawset(taskName, now);
+    this._schedIdleLastWorkTick.rawset(taskName, tick);
+  }
+
+  local gapDays = -1;
+  local gapTicks = -1;
+  local bg = -1;
+  local bgw = -1;
+  if (taskName == "projects") {
+    if (didWork) {
+      gapDays = this._schedIdleProjectsLastDate >= 0 ? now - this._schedIdleProjectsLastDate : -1;
+      gapTicks = this._schedIdleProjectsLastTick >= 0 ? tick - this._schedIdleProjectsLastTick : -1;
+      bg = this._schedIdleSinceProjectsSel;
+      bgw = this._schedIdleSinceProjectsWork;
+      this._schedIdleProjectsLastDate = now;
+      this._schedIdleProjectsLastTick = tick;
+      this._schedIdleSinceProjectsSel = 0;
+      this._schedIdleSinceProjectsWork = 0;
+    } else {
+      this._schedIdleSinceProjectsSel++;
+    }
+  } else {
+    this._schedIdleSinceProjectsSel++;
+    if (didWork) this._schedIdleSinceProjectsWork++;
+  }
+
+  local extra = "";
+  if (taskName == "projects" && didWork && gapDays >= 0) {
+    extra = " gap_d=" + gapDays + " gap_tk=" + gapTicks + " bg=" + bg + " bgw=" + bgw;
+  }
+
+  OpexSchedIdleLog("SCHED_IDLE", "t=" + taskName + " w=" + (didWork ? 1 : 0)
+                   + " r=" + reason + " cls=" + skipClass
+                   + " op=" + ops + " d=" + days + " tk=" + ticks
+                   + " ad=" + ageDays + " at=" + ageTicks + extra);
+
+  if (taskName != "projects") {
+    local taskDesc = taskName + ":" + reason + ":" + (didWork ? "1" : "0");
+    if (this._p2TasksSinceProjects == null) this._p2TasksSinceProjects = [];
+    this._p2TasksSinceProjects.append(taskDesc);
+  }
+
+  /* P2 : observatoire du cycle de vie du portefeuille post-build */
+  if (taskName == "projects" && (builtLine || builtVeh)) {
+    this._p2BuildSeq++;
+    local buildId = this._p2BuildSeq;
+    local curDate = AIDate.GetCurrentDate();
+    local curTick = AIController.GetTick();
+    local nBuiltLines = curLines - this._schedIdlePreLinesCount;
+    local nBuiltFleet = (nBuiltLines == 0 && curVehs > this._schedIdlePreVehCount) ? (curVehs - this._schedIdlePreVehCount) : 0;
+    local nBuilt = nBuiltLines + nBuiltFleet;
+    local builtMode = "unknown";
+    if (nBuiltLines > 0) {
+      local newLine = this._lines[curLines - 1];
+      builtMode = ("mode" in newLine) ? newLine.mode : "unknown";
+    } else if (nBuiltFleet > 0) {
+      builtMode = "fleet";
+    }
+    local postCap = OpexAvailableCapital();
+    local postCgLen = (this._projects != null && ("candidateGroups" in this._projects) && this._projects.candidateGroups != null) ? this._projects.candidateGroups.len() : 0;
+    local postBestLen = (this._projects != null && ("best" in this._projects) && this._projects.best != null) ? this._projects.best.len() : 0;
+    local st = (this._projects != null && ("stats" in this._projects)) ? this._projects.stats : null;
+    local scanned = (st != null && ("cacheScanned" in st)) ? st.cacheScanned : 0;
+    local retained = (st != null && ("cacheRetained" in st)) ? st.cacheRetained : 0;
+    local abandon = (st != null && ("abandonFiltered" in st)) ? st.abandonFiltered : 0;
+    local alts = (st != null && ("budgetConsidered" in st)) ? st.budgetConsidered : 0;
+    local funded = postBestLen;
+    local cause = (st != null && ("emptyCause" in st) && st.emptyCause != null && st.emptyCause != "") ? st.emptyCause : (funded > 0 ? "none" : "unknown");
+    local nextCap = (st != null && ("nextProjectCapital" in st) && st.nextProjectCapital > 0) ? st.nextProjectCapital : ((st != null && ("minCapital" in st) && st.minCapital > 0) ? st.minCapital : 0);
+    local bStop = (nBuilt > 0) ? "list_end" : "none";
+
+    OpexSchedIdleLog("P2_BUILD", "id=" + buildId + " mode=" + builtMode + " n_built=" + nBuilt
+        + " cap_before=" + this._p2PreCapital + " cap_after=" + postCap
+        + " cg_before=" + this._p2PreCandidateGroupsLen + " cg_after=" + postCgLen
+        + " scanned=" + scanned + " retained=" + retained + " abandon=" + abandon
+        + " alts=" + alts + " funded=" + funded + " cause=" + cause + " next_k=" + nextCap
+        + " stop=" + bStop);
+
+    if (nBuiltLines > 0 && this._lines.len() > 0) {
+      local startIdx = this._lines.len() - nBuiltLines;
+      if (startIdx < 0) startIdx = 0;
+      for (local li = startIdx; li < this._lines.len(); li++) {
+        local newLine = this._lines[li];
+        local lSrc = ("src" in newLine) ? newLine.src : (("originA" in newLine) ? newLine.originA : -1);
+        local lDst = ("dst" in newLine) ? newLine.dst : (("originB" in newLine) ? newLine.originB : -1);
+        local lCap = ("capital" in newLine) ? newLine.capital : (("predCapital" in newLine) ? newLine.predCapital : 0);
+        local lMode = ("mode" in newLine) ? newLine.mode : builtMode;
+        OpexSchedIdleLog("P5_BUILD_LINE", "id=" + buildId + " mode=" + lMode
+            + " src=" + lSrc + " dst=" + lDst + " cap=" + lCap);
+      }
+    }
+
+    if (postBestLen > 0) {
+      OpexSchedIdleLog("P2_RESOLVE", "id=" + buildId + " days=0 ticks=0 ret_reason=immediate ret_task=projects ret_date="
+          + AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate)
+          + " funded=" + postBestLen + " cause=none");
+    } else {
+      local scan = this._p5ScanCandidatePool(this._projects, postCap);
+      this._p5EpisodeActive = true;
+      this._p5EpisodeId = buildId;
+      this._p5EpisodeUnusedOps = 0;
+      this._p5EpisodeUsedOps = 0;
+      this._p5EpisodeDispatches = 0;
+
+      local curDateStr = AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate);
+      local extraRail = "";
+      if (scan.nRail > 0) {
+        extraRail = " rail_rank=" + scan.bestRailRank
+            + " rail_kind=" + scan.bestRailKind
+            + " rail_src=" + scan.bestRailSrc
+            + " rail_dst=" + scan.bestRailDst
+            + " rail_cap=" + scan.bestRail.capital
+            + " rail_fin_cap=" + scan.bestRailFinanceCap
+            + " rail_def=" + scan.bestRailDeficit
+            + " rail_prof=" + scan.bestRailProfit
+            + " rail_roi=" + scan.bestRailRoi
+            + " rail_score=" + scan.bestRailScore
+            + " rail_cf_cap=" + scan.bestRailCfFinanceCap
+            + " rail_cf_def=" + scan.bestRailCfDeficit
+            + " rail_cf_rank=" + scan.bestRailCfRank
+            + " rail_iters=" + scan.bestRailIters
+            + " ahead_air=" + scan.aheadAir
+            + " ahead_road=" + scan.aheadRoad
+            + " ahead_fleet=" + scan.aheadFleet;
+      } else {
+        extraRail = " rail_rank=-1";
+      }
+
+      OpexSchedIdleLog("P5_WAIT_START", "id=" + buildId + " date=" + curDateStr + " tick=" + curTick
+          + " cap=" + postCap + " alts=" + scan.nAlts
+          + " n_rail=" + scan.nRail + " n_air=" + scan.nAir + " n_road=" + scan.nRoad + " n_fleet=" + scan.nFleet
+          + extraRail);
+
+      if (this._p2PendingBuilds == null) this._p2PendingBuilds = [];
+      this._p2PendingBuilds.append({
+        id = buildId,
+        buildDate = curDate,
+        buildTick = curTick,
+        cause = cause
+      });
+    }
+  }
+
+  /* P2 bis : observatoire de reconciliation des passages projects */
+  if (taskName == "projects") {
+    this._p2ProjectsSeq++;
+    local passId = this._p2ProjectsSeq;
+    local curDate = AIDate.GetCurrentDate();
+    local curTick = AIController.GetTick();
+    local inBest = this._schedIdlePreBestLen;
+    local inCap = this._p2PreCapital;
+    local postBest = (this._projects != null && ("best" in this._projects) && this._projects.best != null) ? this._projects.best.len() : 0;
+    local postCap = OpexAvailableCapital();
+    local nBuiltLines = curLines - this._schedIdlePreLinesCount;
+    local nBuiltFleet = (nBuiltLines == 0 && curVehs > this._schedIdlePreVehCount) ? (curVehs - this._schedIdlePreVehCount) : 0;
+    local nBuilt = nBuiltLines + nBuiltFleet;
+    local passBuiltMode = "none";
+    if (nBuiltLines > 0) {
+      local newLine = this._lines[curLines - 1];
+      passBuiltMode = ("mode" in newLine) ? newLine.mode : "unknown";
+    } else if (nBuiltFleet > 0) {
+      passBuiltMode = "fleet";
+    }
+    local passStop = (reason == "projects_invalidated") ? "invalidated"
+        : (inBest == 0 ? "empty_pool" : (nBuilt > 0 ? "list_end" : "no_candidate_built"));
+
+    local tasksSince = "";
+    if (this._p2TasksSinceProjects != null && this._p2TasksSinceProjects.len() > 0) {
+      foreach (idx, item in this._p2TasksSinceProjects) {
+        if (idx > 0) tasksSince += ";";
+        tasksSince += item;
+      }
+    } else {
+      tasksSince = "none";
+    }
+
+    local dCap = (this._p2LastProjectsPostCap >= 0) ? (inCap - this._p2LastProjectsPostCap) : 0;
+    local dBest = (this._p2LastProjectsPostBest >= 0) ? (inBest - this._p2LastProjectsPostBest) : 0;
+
+    OpexSchedIdleLog("P2_PASS", "pass=" + passId
+        + " date=" + AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate)
+        + " tick=" + curTick + " in_best=" + inBest + " in_cap=" + inCap
+        + " n_built=" + nBuilt + " stop=" + passStop
+        + " post_best=" + postBest + " post_cap=" + postCap
+        + " d_cap=" + dCap + " d_best=" + dBest
+        + " tasks_since=" + tasksSince);
+
+    local passScan = this._p5ScanCandidatePool(this._projects, inCap);
+    local nRailInBest = 0;
+    local nNonRailInBest = 0;
+    if (this._projects != null && ("best" in this._projects) && this._projects.best != null) {
+      foreach (bp in this._projects.best) {
+        if (bp != null && ("mode" in bp)) {
+          if (bp.mode == "rail") nRailInBest++;
+          else nNonRailInBest++;
+        }
+      }
+    }
+    local nRailBuilt = (passBuiltMode == "rail" ? nBuilt : 0);
+    local passDateStr = AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate);
+    local p5PassExtra = "";
+    if (passScan.nRail > 0) {
+      p5PassExtra = " best_rail_def=" + passScan.bestRailDeficit
+          + " best_rail_cap=" + passScan.bestRailFinanceCap
+          + " best_rail_prof=" + passScan.bestRailProfit
+          + " best_rail_score=" + passScan.bestRailScore
+          + " best_rail_cf_def=" + passScan.bestRailCfDeficit
+          + " best_rail_cf_cap=" + passScan.bestRailCfFinanceCap
+          + " best_rail_cf_rank=" + passScan.bestRailCfRank
+          + " best_rail_kind=" + passScan.bestRailKind
+          + " best_rail_rank=" + passScan.bestRailRank;
+    } else {
+      p5PassExtra = " best_rail_rank=-1";
+    }
+    OpexSchedIdleLog("P5_RAIL_PASS", "pass=" + passId + " date=" + passDateStr + " in_cap=" + inCap
+        + " alts=" + passScan.nAlts + " rail_alts=" + passScan.nRail
+        + " rail_aff=" + (passScan.bestRailDeficit == 0 && passScan.nRail > 0 ? 1 : 0)
+        + " rail_in_best=" + nRailInBest + " nonrail_in_best=" + nNonRailInBest
+        + " rail_built=" + nRailBuilt + " stop=" + passStop
+        + p5PassExtra
+        + " best_nonrail_mode=" + passScan.bestNonRailMode
+        + " best_nonrail_score=" + passScan.bestNonRailScore
+        + " best_nonrail_cap=" + passScan.bestNonRailCap);
+
+    this._p2TasksSinceProjects = [];
+    this._p2LastProjectsPostBest = postBest;
+    this._p2LastProjectsPostCap = postCap;
+  }
+
+  if (this._p2PendingBuilds != null && this._p2PendingBuilds.len() > 0) {
+    local curBestLen = (this._projects != null && ("best" in this._projects) && this._projects.best != null) ? this._projects.best.len() : 0;
+    if (curBestLen > 0) {
+      local curDate = AIDate.GetCurrentDate();
+      local curTick = AIController.GetTick();
+      local retReason = "other";
+      if (taskName == "catalog") {
+        if (this._p2CatalogPreReason != null && this._p2CatalogPreReason != "catalog_fresh") {
+          retReason = this._p2CatalogPreReason;
+        } else {
+          retReason = "catalog_other";
+        }
+      } else if (taskName == "air_fleet") {
+        retReason = "air_fleet";
+      } else if (taskName == "projects") {
+        retReason = "targeted_air";
+      } else {
+        retReason = taskName;
+      }
+      local curSt = (this._projects != null && ("stats" in this._projects)) ? this._projects.stats : null;
+      local curCause = (curSt != null && ("emptyCause" in curSt) && curSt.emptyCause != null && curSt.emptyCause != "") ? curSt.emptyCause : "none";
+      local retDateStr = AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate);
+      foreach (item in this._p2PendingBuilds) {
+        local pDays = curDate - item.buildDate;
+        local pTicks = curTick - item.buildTick;
+        OpexSchedIdleLog("P2_RESOLVE", "id=" + item.id + " days=" + pDays + " ticks=" + pTicks
+            + " ret_reason=" + retReason + " ret_task=" + taskName + " ret_date=" + retDateStr
+            + " funded=" + curBestLen + " cause=" + curCause);
+        OpexSchedIdleLog("P5_WAIT_END", "id=" + item.id + " days=" + pDays + " ticks=" + pTicks
+            + " dispatches=" + this._p5EpisodeDispatches
+            + " unused_ops=" + this._p5EpisodeUnusedOps
+            + " used_ops=" + this._p5EpisodeUsedOps
+            + " ret_reason=" + retReason + " ret_task=" + taskName + " funded=" + curBestLen);
+      }
+      this._p2PendingBuilds = [];
+      this._p5EpisodeActive = false;
+    }
+  }
+}
+
 /* C49 : une seule cause, pour le premier rang non bati de LA passe. La tresorerie est lue ici,
  * a la fin : la question est MARGINALE — « given what we just did, what blocked the next one? ».
  * Une construction qui a consomme du cash rend donc correctement le rang suivant bloque par

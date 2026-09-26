@@ -153,6 +153,7 @@ function OpexLoadSettings()
   C41_ADMISSION_LEDGER = probeScheduler;
   C39_PASS_CLOCK_LEDGER = probeScheduler;
   C41_RAIL_SLICE_LEDGER = probeScheduler;
+  V95_SCHED_IDLE_LEDGER = probeScheduler;
 
   // 3. probe_candidates_road : profiles pax, freight, town sinks, feeder
   local probeCandRoad = AIController.GetSetting("probe_candidates_road") != 0;
@@ -385,6 +386,8 @@ function OpexLoadSettings()
   V90_PATHFINDER_CHECK = AIController.GetSetting("v90_pathfinder_check") != 0;
   local astarWeight = AIController.GetSetting("v91_astar_weight_pct");
   V91_ASTAR_WEIGHT_PCT = (astarWeight != null && astarWeight >= 100 && astarWeight <= 300) ? astarWeight : 100;
+  local railBias = AIController.GetSetting("rail_finance_bias_pct");
+  RAIL_FINANCE_BIAS_PCT = (railBias != null && railBias >= 90 && railBias <= 200) ? railBias : 170;
   V94_AIR_SITE_LIST = AIController.GetSetting("v94_air_site_list") != 0;
   V94_AIR_SITE_CHECK = AIController.GetSetting("v94_air_site_check") != 0;
   PAX_NEAR = false;
