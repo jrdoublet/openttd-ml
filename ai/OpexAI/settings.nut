@@ -232,6 +232,10 @@ function OpexLoadSettings()
   V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;
   V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
+  V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;
+  V95_AIR_POST73_YEAR = -1;
+  V95_AIR_TARGETED_SECOND = AIController.GetSetting("v95_air_targeted_second") != 0;
+  V95_AIR_POST73_TARGETED = AIController.GetSetting("v95_air_post73_targeted") != 0;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);

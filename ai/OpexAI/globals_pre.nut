@@ -295,6 +295,21 @@ V93_AIR_DEMAND_PRODUCTION <- false;
 V93_AIR_LINE_PAX_CAP <- 200;
 V93_AIR_LINE_PAX_SMALL_POP <- 700;
 V93_AIR_COMPETITOR_WEIGHT <- 70;
+/* V95 : sonde passive des occasions AIR post-1973 ecartees avant economie
+ * (petites villes et seconds slots). Defaut 0, aucun effet decisionnel. */
+V95_AIR_POST73_PROBE <- false;
+V95_AIR_POST73_YEAR <- -1;
+/* V95.1 : extension AIR post-1973 tres ciblee. Seulement un second aeroport
+ * dans une ville >=600 ou Opex possede deja exactement un aeroport, hors coeur
+ * C83.1, avec bassin reel/cout/profit mesures. Defaut 0. */
+V95_AIR_TARGETED_SECOND <- false;
+V95_AIR_SECOND_MIN_PAX_SITE <- 50;
+V95_AIR_SECOND_MIN_PROFIT <- 50000;
+V95_AIR_SECOND_MAX_SITE_COST <- 30000;
+/* V95 causal minimal : petite ville encore non servie, un seul slot physique
+ * deja pris par un concurrent, et economie C68 non degradee quand la demande
+ * du nouveau site est remplacee par son bassin mesure. Defaut 0. */
+V95_AIR_POST73_TARGETED <- false;
 /* Cargo passagers retenu par le catalogue pour ce modele. -1 tant qu'il n'est pas connu. */
 AIR_DEMAND_PAX_CARGO <- -1;
 /* Date de jeu du dernier controle de mois : evite GetYear/GetMonth a chaque paire. */

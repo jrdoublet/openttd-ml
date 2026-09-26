@@ -363,3 +363,33 @@ n'ont pas les deux revenus. Le facteur passagers est celui qui recentrerait un
 revenu proportionnel aux passagers, à tarif constant. Le résumé français dit
 quelles entrées manquent. Contrats : `sweeps/test_analyse_air_demand_vs_realized.py`.
 Pas de partie lancée pour remplir ces tableaux.
+
+## V95 — requalification ciblée post-1973 (2026-09-26)
+
+La suite n'a pas réouvert V93. La sonde passive `v95_air_post73_probe=1`
+cherche à blanc un site pour les villes `<600` et les extensions actuellement
+rejetées par `origin_served`, puis conserve séparément : production mensuelle
+réelle de la ville, couverture du site en tuiles productrices, estimation de la
+production captée, coût du site et économie C68. Le comportement par défaut
+reste inchangé et le plancher de 600 reste actif.
+
+Le diagnostic solo graines 42/100/999 × 6 ans montre une forte exposition mais
+pas un gisement rentable évident. Sur 154 candidats `small`, le profit courant
+médian vaut **16,6 k£/an**, contre **10,8 k£/an** quand l'extrémité nouvelle est
+réévaluée par le bassin mesuré ; aucun ne dépasse 50 k£/an mesuré. Les seconds
+slots Opex sont eux aussi nombreux (141 événements), mais passent de **23,9** à
+**8,7 k£/an** de profit médian. Le coût de site est modeste (≈18–19 k£ en
+médiane) : le verrou est la qualité de demande, pas le prix du terrain.
+
+En duel passif contre AAAHogEx, V95 trouve **60 seconds slots concurrents** sur
+3×6. Dix-neuf routes entières dépassent 50 k£/an avec la demande mesurée, mais
+ce chiffre inclut le hub Opex existant. La contribution estimée du **nouveau
+site** n'est que ≈**3,9 k£/an** en médiane et **0/60** satisfait simultanément
+`measured_profit >= profit` et `measured_profit > hub_only_profit`. Le signal
+territorial existe, mais il n'est donc pas équivalent à une bonne nouvelle ligne
+économique.
+
+Conclusion : **aucun 5×6 causal V95 n'est lancé**. Un futur filtre doit mesurer
+la valeur résiduelle/marginale du nouveau site ou une valeur territoriale
+explicite ; un simple seuil PASS/MAIL + coût + profit de route entière serait
+trop permissif. Voir `docs/35_v95_air_post1973.md`.

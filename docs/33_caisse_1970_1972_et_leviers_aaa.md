@@ -134,12 +134,16 @@ En revanche, C83.1 montre qu'un **second créneau très ciblé** peut payer : av
 seulement six grandes villes surveillées, +165,3 k£/an, 15/5 et +6,78 % de
 valeur au 20×10. L'extension à 24 villes diluait le bénéfice.
 
-Suite la plus propre : ne pas « ouvrir toutes les petites villes ». Ajouter
-d'abord une **sonde site-production** qui mesure la production PASS/MAIL
-réellement couverte par les sites `<600` et les seconds sites possibles, tout
-en laissant l'ancien modèle économique décider. Le premier levier à tester
-ensuite est un candidat dédié seulement si le site a une production réelle
-suffisante ; le seuil doit être fixé à partir de l'exposition, pas inventé.
+Cette mesure est désormais faite par **V95** (`docs/35_v95_air_post1973.md`).
+L'exposition est abondante, mais elle ne révèle pas de filtre causal propre :
+sur le solo 3×6, les petites villes passent de 16,6 à 10,8 k£/an de profit
+médian quand l'extrémité nouvelle est réévaluée par son bassin ; les seconds
+slots Opex passent de 23,9 à 8,7 k£/an. En duel passif 3×6, 60 vrais seconds
+slots concurrents sont exposés, mais leur contribution marginale estimée n'est
+que ≈3,9 k£/an en médiane et aucun ne satisfait le critère strict non-dégradé +
+incrémental. **Ne pas lancer de 5×6 V95 tel quel.** Le prochain levier, s'il est
+repris, doit isoler la demande résiduelle de la ville cible ou valoriser
+explicitement le créneau territorial ; ne pas réactiver V93 globalement.
 
 ## 5. Rail fret : plus gros gisement absolu
 

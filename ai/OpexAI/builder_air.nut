@@ -358,6 +358,19 @@ function OpexAirOwnSlotTownCounts()
   return counts;
 }
 
+/* V95 causal : le second slot doit etre encore libre et le premier doit etre
+ * detenu par un tiers. Avec station_noise_level=0, slots=1 et zero aeroport
+ * Opex sur la ville physique impliquent exactement un aeroport concurrent. */
+function OpexAirV95CompetitorSecondSlotOpen(town, anchor = null)
+{
+  if (!OpexAirC83SlotSignalEnabled() || town == null || !("id" in town)
+      || !AITown.IsValidTown(town.id)) return false;
+  if (anchor != null && OpexAirSlotTownId(anchor) != town.id) return false;
+  if (AITown.GetAllowedNoise(town.id) != 1) return false;
+  local ownCounts = OpexAirOwnSlotTownCounts();
+  return !(town.id in ownCounts) || ownCounts[town.id] == 0;
+}
+
 /* Ville encore disputable : population du plancher grand aeroport, au moins un
  * slot, et aucun aeroport Opex dont l'ancre est imputee a cette ville. */
 function OpexAirC83TownContestable(town, ownCounts)
@@ -3821,6 +3834,275 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
   ctx.bestPlan = bestPlan;
 }
 
+/* V95 : diagnostic annuel, strictement passif, des occasions que le scan courant
+ * n'atteint pas parce que la ville est deja servie ou sous le plancher de 600.
+ * La sonde ne remplit ni AIR_SITE_CACHE, ni ctx.sites, ni le portefeuille. */
+function OpexAirV95Log(fields)
+{
+  if (!V95_AIR_POST73_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("V95_AIR_POST73 year=" + AIDate.GetYear(date)
+      + " month=" + AIDate.GetMonth(date) + " " + fields);
+}
+
+/* Cout de terrassement estime seul. AITestMode ne modifie pas le terrain, donc
+ * on ne peut pas enchainer dessus un BuildAirport fiable ; le cout de site publie
+ * separement airport.price + ce terrassement, sans pretendre inclure les arbres. */
+function OpexAirV95LevelCost(site, airport)
+{
+  if (site == null || airport == null) return -1;
+  if (OpexAirFootprintIsFlat(site.anchor, airport)) return 0;
+  local accounting = AIAccounting();
+  local ok = false;
+  {
+    local test = AITestMode();
+    ok = AITile.LevelTiles(site.anchor, OpexAirFootprintEnd(site.anchor, airport));
+  }
+  if (!ok) return -1;
+  local cost = accounting.GetCosts();
+  if (cost < 0) cost = -cost;
+  return cost;
+}
+
+/* Meilleur raccordement du site ignore vers un hub Opex existant, avec les memes
+ * filtres et le meme proxy de demande que le bras hub->site courant. On ne memoise
+ * pas le choix d'avion : c'est une lecture ponctuelle du C68 courant. */
+function OpexAirV95BestHubRoute(ctx, site, airport, plane)
+{
+  local result = { best = null, reject = "no_hub" };
+  if (ctx.hubs == null || ctx.hubs.len() == 0) return result;
+  result.reject = "distance_or_band";
+  foreach (hub in ctx.hubs) {
+    /* La revalidation de chantier refuse toujours une paire de centres deja
+     * reliee, meme quand c83_fixes=0. Le shadow doit appliquer le meme contrat,
+     * sinon il surestime les extensions V95 qui mourraient avant tentative. */
+    if (OpexAirTownCentersLinked(hub.town.tile, site.town.tile, ctx.lines)) {
+      result.reject = "already_linked";
+      continue;
+    }
+    local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
+    if (distance < 20) continue;
+    local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
+    if (!OpexAirPairInBand(ctx.catalog, distance, flightDistance, ctx.paxBand)) continue;
+    if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
+    if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+    if (ctx.abandoned != null
+        && (OpexAirPairIsAbandoned(ctx.abandoned, hub, site)
+            || (OPEX_AIR_TOWN_PAD && (OpexAirTownPaddingKey(site) in ctx.abandoned))
+            || (OPEX_AIR_SITE_PAD && (OpexAirSitePaddingKey(site, airport.type) in ctx.abandoned)))) {
+      result.reject = "abandoned";
+      continue;
+    }
+
+    local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
+    local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
+    local monthlyPax = hubMonthly + newMonthly;
+    if (monthlyPax < 10) monthlyPax = 10;
+    local choice = OpexAirChooseRoutePlane(ctx.catalog, airport, plane, flightDistance, monthlyPax,
+        ctx.infrastructureMaintenance, 0, 1, 0, null);
+    local econ = choice != null ? choice.economics : null;
+    if (econ == null) {
+      result.reject = "economics_unavailable";
+      continue;
+    }
+    if (econ.profitAnnual <= 0) {
+      result.reject = "profit_nonpositive";
+      continue;
+    }
+    if (result.best == null || econ.profitAnnual > result.best.economics.profitAnnual
+        || (econ.profitAnnual == result.best.economics.profitAnnual
+            && econ.roi > result.best.economics.roi)) {
+      result.best = {
+        hub = hub, choice = choice, economics = econ,
+        distance = flightDistance, monthlyPax = monthlyPax
+      };
+      result.reject = "candidate";
+    }
+  }
+  return result;
+}
+
+function OpexAirV95Post73Probe(ctx, combo, airport, plane)
+{
+  if (!V95_AIR_POST73_PROBE || ctx.targetTownId >= 0) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (year < 1973 || V95_AIR_POST73_YEAR == year) return;
+  if (!(("kind" in combo) && combo.kind == "large")) return;
+  V95_AIR_POST73_YEAR = year;
+
+  local ownCounts = OpexAirOwnSlotTownCounts();
+  local available = OpexAvailableCapital();
+  local smallCount = 0;
+  local secondCount = 0;
+  local siteCount = 0;
+  local profitableCount = 0;
+  local affordableCount = 0;
+  local scanLimit = ctx.limit < ctx.towns.len() ? ctx.limit : ctx.towns.len();
+
+  for (local i = 0; i < scanLimit; i++) {
+    local town = ctx.towns[i];
+    local served = OpexAirTownServed(town, ctx.lines);
+    local c83OwnSecond = served && (town.id in ctx.c83TopTownIds)
+        && OpexAirC83SecondSlotOpen(town);
+    local isSmall = town.pop < OpexAirLargeAirportMinPop();
+    local isSecond = served && !c83OwnSecond;
+    if (!isSmall && !isSecond) continue;
+
+    local currentReject = "";
+    if (town.id in ctx.stationLimitedTowns) {
+      currentReject = "station_limit";
+    } else if (isSecond) {
+      currentReject = "origin_served";
+    } else if (!V93_AIRPORT_NO_POP_FLOOR && isSmall) {
+      currentReject = "pop_floor";
+    } else {
+      continue;
+    }
+
+    if (isSmall) smallCount++;
+    if (isSecond) secondCount++;
+    local family = isSmall ? (isSecond ? "small_second" : "small") : "second";
+
+    local requiredSlotTown = isSecond ? town.id : -1;
+    local preSlots = OpexAirC83SlotSignalEnabled() ? AITown.GetAllowedNoise(town.id) : -1;
+    local preOwn = (town.id in ownCounts) ? ownCounts[town.id] : 0;
+    if (requiredSlotTown >= 0 && preSlots == 0) {
+      OpexAirV95Log("phase=town family=" + family + " town=" + town.id + " pop=" + town.pop
+          + " current_reject=" + currentReject
+          + " shadow_reject=slot_closed served=" + (served ? 1 : 0)
+          + " slot_town=" + town.id + " slots_remaining=0 own_airports=" + preOwn
+          + " competitor_airports=" + (2 - preOwn));
+      continue;
+    }
+
+    local probes = {
+      left = AIR_MAX_SITE_PROBES, townsLeft = 1, tested = 0, cheapSkip = 0,
+      stationLimitedTowns = {}
+    };
+    local key = "v95|" + year + "|" + town.id + "|" + airport.type;
+    local found = OpexAirFindSiteListed(town, airport, probes, requiredSlotTown, key, false);
+    local site = found.site;
+    if (site == null) {
+      local reason = probes.left <= 0 ? "site_budget" : "site_terrain";
+      if (town.id in probes.stationLimitedTowns) reason = "site_slot";
+      OpexAirV95Log("phase=town family=" + family + " town=" + town.id + " pop=" + town.pop
+          + " current_reject=" + currentReject + " shadow_reject=" + reason
+          + " served=" + (served ? 1 : 0) + " slots_remaining=" + preSlots
+          + " own_airports=" + preOwn + " probes=" + found.used);
+      continue;
+    }
+    siteCount++;
+
+    local slotTown = OpexAirSlotTownId(site.anchor);
+    local slotsRemaining = (slotTown >= 0 && OpexAirC83SlotSignalEnabled())
+        ? AITown.GetAllowedNoise(slotTown) : -1;
+    local ownAirports = (slotTown in ownCounts) ? ownCounts[slotTown] : 0;
+    local occupied = slotsRemaining >= 0 ? 2 - slotsRemaining : -1;
+    local competitors = occupied >= 0 ? occupied - ownAirports : -1;
+    if (competitors < 0 && occupied >= 0) competitors = 0;
+
+    local paxProd = AITown.GetLastMonthProduction(town.id, ctx.catalog.paxCargo);
+    if (paxProd < 0) paxProd = 0;
+    local mailProd = -1;
+    if (("mailCargo" in ctx.catalog) && ctx.catalog.mailCargo >= 0) {
+      mailProd = AITown.GetLastMonthProduction(town.id, ctx.catalog.mailCargo);
+      if (mailProd < 0) mailProd = 0;
+    }
+    local paxTiles = OpexAirAirportCatchmentProduction(site.anchor, airport.type, ctx.catalog.paxCargo);
+    local mailTiles = -1;
+    if (("mailCargo" in ctx.catalog) && ctx.catalog.mailCargo >= 0) {
+      mailTiles = OpexAirAirportCatchmentProduction(site.anchor, airport.type, ctx.catalog.mailCargo);
+    }
+    local houses = AITown.GetHouseCount(town.id);
+    if (houses < 1) houses = 1;
+    local paxSiteEst = (paxTiles * paxProd) / houses;
+    local mailSiteEst = mailProd >= 0 && mailTiles >= 0 ? (mailTiles * mailProd) / houses : -1;
+    local levelCost = OpexAirV95LevelCost(site, airport);
+    local siteCost = airport.price + (levelCost > 0 ? levelCost : 0);
+
+    local route = OpexAirV95BestHubRoute(ctx, site, airport, plane);
+    local shadowReject = route.reject;
+    local planeId = -1;
+    local profit = -1;
+    local capital = -1;
+    local roi = -1;
+    local hubTown = -1;
+    local monthlyProxy = -1;
+    local measuredMonthly = -1;
+    local measuredPlaneId = -1;
+    local measuredProfit = -1;
+    local measuredCapital = -1;
+    local measuredRoi = -1;
+    local hubOnlyMonthly = -1;
+    local hubOnlyPlaneId = -1;
+    local hubOnlyProfit = -1;
+    if (route.best != null) {
+      profitableCount++;
+      planeId = route.best.choice.plane != null ? route.best.choice.plane.id : -1;
+      profit = route.best.economics.profitAnnual;
+      capital = route.best.economics.capital;
+      roi = route.best.economics.roi;
+      hubTown = route.best.hub.town.id;
+      monthlyProxy = route.best.monthlyPax;
+      if (capital > available) {
+        shadowReject = "cash";
+      } else {
+        shadowReject = "candidate";
+        affordableCount++;
+      }
+
+      /* Contre-factuel diagnostic minimal : meme site, meme hub et meme C68,
+       * mais la demande du nouveau site est remplacee par la production de
+       * bassin estimee ci-dessus. Le hub existant garde son proxy courant. */
+      local hubMonthlyMeasured = ((route.best.hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+          / (route.best.hub.routes + 1);
+      measuredMonthly = hubMonthlyMeasured + paxSiteEst;
+      if (measuredMonthly < 10) measuredMonthly = 10;
+      local measuredChoice = OpexAirChooseRoutePlane(ctx.catalog, airport, plane,
+          route.best.distance, measuredMonthly, ctx.infrastructureMaintenance, 0, 1, 0, null);
+      if (measuredChoice != null && measuredChoice.economics != null) {
+        measuredPlaneId = measuredChoice.plane != null ? measuredChoice.plane.id : -1;
+        measuredProfit = measuredChoice.economics.profitAnnual;
+        measuredCapital = measuredChoice.economics.capital;
+        measuredRoi = measuredChoice.economics.roi;
+      }
+      hubOnlyMonthly = hubMonthlyMeasured;
+      if (hubOnlyMonthly < 10) hubOnlyMonthly = 10;
+      local hubOnlyChoice = OpexAirChooseRoutePlane(ctx.catalog, airport, plane,
+          route.best.distance, hubOnlyMonthly, ctx.infrastructureMaintenance, 0, 1, 0, null);
+      if (hubOnlyChoice != null && hubOnlyChoice.economics != null) {
+        hubOnlyPlaneId = hubOnlyChoice.plane != null ? hubOnlyChoice.plane.id : -1;
+        hubOnlyProfit = hubOnlyChoice.economics.profitAnnual;
+      }
+    }
+
+    OpexAirV95Log("phase=town family=" + family + " town=" + town.id + " pop=" + town.pop
+        + " current_reject=" + currentReject + " shadow_reject=" + shadowReject
+        + " served=" + (served ? 1 : 0)
+        + " anchor=" + site.anchor + " slot_town=" + slotTown
+        + " slots_remaining=" + slotsRemaining + " own_airports=" + ownAirports
+        + " competitor_airports=" + competitors
+        + " pax_prod=" + paxProd + " mail_prod=" + mailProd
+        + " pax_tiles=" + paxTiles + " mail_tiles=" + mailTiles
+        + " pax_site_est=" + paxSiteEst + " mail_site_est=" + mailSiteEst
+        + " airport_price=" + airport.price + " level_cost=" + levelCost
+        + " site_cost_est=" + siteCost
+        + " hub_town=" + hubTown + " plane=" + planeId
+        + " monthly_proxy=" + monthlyProxy + " profit=" + profit
+        + " capital=" + capital + " roi=" + roi + " available=" + available
+        + " measured_monthly=" + measuredMonthly + " measured_plane=" + measuredPlaneId
+        + " measured_profit=" + measuredProfit + " measured_capital=" + measuredCapital
+        + " measured_roi=" + measuredRoi
+        + " hub_only_monthly=" + hubOnlyMonthly + " hub_only_plane=" + hubOnlyPlaneId
+        + " hub_only_profit=" + hubOnlyProfit
+        + " probes=" + found.used);
+  }
+  OpexAirV95Log("phase=summary towns=" + scanLimit + " small=" + smallCount
+      + " second=" + secondCount + " sites=" + siteCount
+      + " profitable=" + profitableCount + " affordable=" + affordableCount
+      + " hubs=" + ctx.hubs.len() + " available=" + available);
+}
+
 /* 7. Finalisation : enregistrement des perf, sondes et nettoyage de la reprise. */
 function OpexAirPlansFinalize(ctx)
 {
@@ -3986,6 +4268,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_discover", "-",
         "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len());
+    OpexAirV95Post73Probe(ctx, combo, airport, plane);
 
     local c56PlansBefore = (ctx.projects != null) ? ctx.projects.len() : 0;
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_site", "-");

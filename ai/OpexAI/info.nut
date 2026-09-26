@@ -228,6 +228,30 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v95_air_post73_probe",
+      description = "V95: passive annual diagnostic of post-1973 AIR opportunities rejected by population floor or served-town filters; 1 = probe, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v95_air_targeted_second",
+      description = "V95.1: post-1973 targeted second airport only where Opex already owns one slot and measured site demand/cost plus C68 profit pass fixed gates; 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v95_air_post73_targeted",
+      description = "V95 causal: after 1973, allow only sub-600 AIR sites where a competitor owns the first physical slot and measured catchment economics do not degrade C68 profit; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v88_goods_chain",
       description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
