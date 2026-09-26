@@ -47,7 +47,7 @@ class AirBatchTownReserveTests(unittest.TestCase):
             'AIR_BATCH_TOWN_RESERVE = AIController.GetSetting("air_batch_town_reserve") != 0;',
             self.settings,
         )
-        self.assertEqual(self.info.count("AddSetting("), 85)
+        self.assertEqual(self.info.count("AddSetting("), 89)
 
     def test_selection_keeps_one_new_town_and_leaves_the_pool(self):
         towns = body(self.projects, "function OpexAirProjectNewSlotTowns(")

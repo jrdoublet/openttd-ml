@@ -641,6 +641,7 @@ function OpexAI::_tryBuildProjects(year)
   local c75KPassData = null;
   local c75StopReason = null;
   local c75BuiltKeys = {};
+  local c75BisBypassCount = 0;
   if (C75_TRACK_PASSES) {
     local now = AIDate.GetCurrentDate();
     OpexC75RecordPassDate(now);
@@ -657,10 +658,7 @@ function OpexAI::_tryBuildProjects(year)
     if (C83_PREEMPT_OPEN && this._c83PreemptEnqueued > 0) {
       c83TargetedRegens += this._c83PreemptEnqueued;
     }
-    if (c83TargetedRegens > 0) {
-      if (V95_SCHED_IDLE_LEDGER) this._p2LastStopReason = "c83_reactive";
-      return true;
-    }
+    if (c83TargetedRegens > 0) return true;
     OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
   }
 
@@ -914,25 +912,38 @@ function OpexAI::_tryBuildProjects(year)
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
       if (projCap >= c75KPass) {
-        c75StopReason = "k_pass";
-        if (C78_SLOT_INTERCEPT_PROBE) {
-          OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
-              + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
-              + " reason=k_pass next_rank=" + i + " next_mode=" + project.mode
-              + " finance=" + projCap + " threshold=" + c75KPass);
+        local allowBypass = C75_BIS_NEW_LINE_BYPASS && c75BisBypassCount == 0 && project.mode != "fleet";
+        local availCap = OpexAvailableCapital();
+        if (allowBypass && projCap <= availCap) {
+          c75BisBypassCount++;
+          if (C78_SLOT_INTERCEPT_PROBE) {
+            OpexC78SlotLog("phase=k_pass_bypass pass=" + C78_SLOT_PASS_COUNTER
+                + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+                + " rank=" + i + " mode=" + project.mode
+                + " finance=" + projCap + " threshold=" + c75KPass + " available=" + availCap);
+          }
+        } else {
+          c75StopReason = (allowBypass && projCap > availCap) ? "cash" : "k_pass";
+          if (C78_SLOT_INTERCEPT_PROBE) {
+            OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
+                + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+                + " reason=" + c75StopReason + " next_rank=" + i + " next_mode=" + project.mode
+                + " finance=" + projCap + " threshold=" + c75KPass);
+          }
+          break;
         }
-        break;
-      }
-      local availCap = OpexAvailableCapital();
-      if (projCap > availCap) {
-        c75StopReason = "cash";
-        if (C78_SLOT_INTERCEPT_PROBE) {
-          OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
-              + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
-              + " reason=cash next_rank=" + i + " next_mode=" + project.mode
-              + " finance=" + projCap + " available=" + availCap);
+      } else {
+        local availCap = OpexAvailableCapital();
+        if (projCap > availCap) {
+          c75StopReason = "cash";
+          if (C78_SLOT_INTERCEPT_PROBE) {
+            OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
+                + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+                + " reason=cash next_rank=" + i + " next_mode=" + project.mode
+                + " finance=" + projCap + " available=" + availCap);
+          }
+          break;
         }
-        break;
       }
       if (C80_MARGINAL_FLOOR) {
         if (OpexC80ProjectBelowMarginalFloor(this._lines, project)) {
@@ -1298,24 +1309,6 @@ function OpexAI::_tryBuildProjects(year)
       else this._c49ScarcityLedger.stop_other++;
     }
     OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
-  }
-
-  if (V95_SCHED_IDLE_LEDGER) {
-    if (c75StopReason != null) {
-      this._p2LastStopReason = c75StopReason;
-    } else if (builtCount > 0) {
-      this._p2LastStopReason = (!C75_MULTI_BUILD) ? "single" : "list_end";
-    } else {
-      if (this._projects == null || !("best" in this._projects) || this._projects.best == null || this._projects.best.len() == 0) {
-        this._p2LastStopReason = "empty_pool";
-      } else if (this._railSearch != null && this._railSearch.phase == "search") {
-        this._p2LastStopReason = "rail_search";
-      } else if (passDiscards != null && passDiscards.len() > 0) {
-        this._p2LastStopReason = passDiscards[0].reason;
-      } else {
-        this._p2LastStopReason = "no_candidate_built";
-      }
-    }
   }
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage

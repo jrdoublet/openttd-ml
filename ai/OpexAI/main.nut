@@ -253,7 +253,16 @@ class OpexAI extends AIController {
   _p2TasksSinceProjects = null;
   _p2LastProjectsPostBest = -1;
   _p2LastProjectsPostCap = -1;
-  _p2LastStopReason = null;
+  /* P5 : observatoire pre-planification A* rail et reliquat d'attente (sous probe_scheduler). */
+  _p5EpisodeActive = false;
+  _p5EpisodeId = -1;
+  _p5EpisodeUnusedOps = 0;
+  _p5EpisodeUsedOps = 0;
+  _p5EpisodeDispatches = 0;
+  _p5RailSearchSeq = 0;
+  _p5ActiveRailSearch = null;
+  _p5LastTrackedRailSearch = null;
+  _schedIdlePreMarkLeft = 10000;
   /* C48 : deux accumulateurs annuels distincts : une ligne par tentative et la vue par passe. */
   _c49ScarcityLedger = null;
   _c49ScarcityRegime = "cash";
@@ -436,6 +445,8 @@ class OpexAI extends AIController {
   function _schedIdleEnsure();
   function _schedIdlePreDispatch();
   function _schedIdlePostDispatch(taskName, ran, ops, days, ticks);
+  function _p5OnRailSearchStart(kind, cand, budget);
+  function _p5OnRailSearchEnd(state, outcome, result);
   function _recordC49ScarcityPass(best, builtRanks, attemptedRanks, passDiscards);
   function _logC49ScarcityLedger(year);
   function _logC54VehicleOrders(year);

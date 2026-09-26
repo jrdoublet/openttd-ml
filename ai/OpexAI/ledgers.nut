@@ -223,12 +223,22 @@ function OpexAI::_schedIdleEnsure()
   if (this._p2ProjectsSeq == null) this._p2ProjectsSeq = 0;
   if (this._p2LastProjectsPostBest == null) this._p2LastProjectsPostBest = -1;
   if (this._p2LastProjectsPostCap == null) this._p2LastProjectsPostCap = -1;
+  if (this._p5EpisodeActive == null) this._p5EpisodeActive = false;
+  if (this._p5EpisodeId == null) this._p5EpisodeId = -1;
+  if (this._p5EpisodeUnusedOps == null) this._p5EpisodeUnusedOps = 0;
+  if (this._p5EpisodeUsedOps == null) this._p5EpisodeUsedOps = 0;
+  if (this._p5EpisodeDispatches == null) this._p5EpisodeDispatches = 0;
+  if (this._p5RailSearchSeq == null) this._p5RailSearchSeq = 0;
+  if (this._p5ActiveRailSearch == null) this._p5ActiveRailSearch = null;
+  if (this._p5LastTrackedRailSearch == null) this._p5LastTrackedRailSearch = null;
+  if (this._schedIdlePreMarkLeft == null) this._schedIdlePreMarkLeft = 10000;
 }
 
 function OpexAI::_schedIdlePreDispatch()
 {
   if (!V95_SCHED_IDLE_LEDGER) return;
   this._schedIdleEnsure();
+  this._schedIdlePreMarkLeft = AIController.GetOpsTillSuspend();
   this._schedIdlePeekTask = null;
   this._schedIdlePredReason = null;
   this._schedIdlePredClass = null;
@@ -375,12 +385,244 @@ function OpexAI::_schedIdlePreDispatch()
   }
 }
 
+/* P5 : observatoire de scan du vivier de candidats (sous probe_scheduler). */
+function OpexAI::_p5ScanCandidatePool(projects, availableCapital)
+{
+  local res = {
+    nAlts = 0,
+    nRail = 0,
+    nAir = 0,
+    nRoad = 0,
+    nFleet = 0,
+    nWater = 0,
+    bestRail = null,
+    bestRailRank = -1,
+    bestRailScore = 0.0,
+    bestRailFinanceCap = 0,
+    bestRailDeficit = 0,
+    bestRailKind = "none",
+    bestRailSrc = -1,
+    bestRailDst = -1,
+    bestRailProfit = 0,
+    bestRailRoi = 0,
+    bestRailIters = -1,
+    aheadAir = 0,
+    aheadRoad = 0,
+    aheadFleet = 0,
+    bestNonRailMode = "none",
+    bestNonRailScore = 0.0,
+    bestNonRailCap = 0,
+    bestRailCfFinanceCap = 0,
+    bestRailCfDeficit = 0,
+    bestRailCfScore = 0.0,
+    bestRailCfRank = -1
+  };
+
+  if (projects == null || !("candidateGroups" in projects) || projects.candidateGroups == null) {
+    return res;
+  }
+
+  local alts = [];
+  foreach (key, list in projects.candidateGroups) {
+    if (list == null) continue;
+    foreach (p in list) {
+      if (p == null) continue;
+      alts.append(p);
+    }
+  }
+  res.nAlts = alts.len();
+  if (res.nAlts == 0) return res;
+
+  local scored = [];
+  local bestRailCand = null;
+  local bestRailScore = -1.0;
+  local bestRailFinanceCap = 0;
+
+  foreach (p in alts) {
+    local mode = ("mode" in p) ? p.mode : "unknown";
+    if (mode == "rail") res.nRail++;
+    else if (mode == "air") res.nAir++;
+    else if (mode == "road") res.nRoad++;
+    else if (mode == "fleet") res.nFleet++;
+    else if (mode == "water") res.nWater++;
+
+    local financeCap = OpexProjectFinanceCapital(p);
+    local profit = (C70_PROFIT_CALIBRATED) ? OpexCalibratedProfit(p) : (("profitAnnual" in p) ? p.profitAnnual : 0);
+    local score = OpexProjectScore(profit, financeCap);
+
+    scored.append({
+      p = p,
+      mode = mode,
+      score = score,
+      financeCap = financeCap,
+      profit = profit
+    });
+
+    if (mode == "rail") {
+      if (score > bestRailScore || (score == bestRailScore && bestRailCand != null && profit > bestRailCand.profitAnnual)) {
+        bestRailScore = score;
+        bestRailCand = p;
+        bestRailFinanceCap = financeCap;
+      }
+    } else {
+      if (score > res.bestNonRailScore) {
+        res.bestNonRailScore = score;
+        res.bestNonRailMode = mode;
+        res.bestNonRailCap = financeCap;
+      }
+    }
+  }
+
+  if (bestRailCand != null) {
+    res.bestRail = bestRailCand;
+    res.bestRailScore = bestRailScore;
+    res.bestRailFinanceCap = bestRailFinanceCap;
+    res.bestRailDeficit = (bestRailFinanceCap > availableCapital) ? (bestRailFinanceCap - availableCapital) : 0;
+    res.bestRailKind = ("kind" in bestRailCand) ? bestRailCand.kind : "unknown";
+    res.bestRailSrc = ("src" in bestRailCand) ? bestRailCand.src : -1;
+    res.bestRailDst = ("dst" in bestRailCand) ? bestRailCand.dst : -1;
+    res.bestRailProfit = ("profitAnnual" in bestRailCand) ? bestRailCand.profitAnnual : 0;
+    res.bestRailRoi = ("roi" in bestRailCand) ? bestRailCand.roi : 0;
+    res.bestRailIters = (("payload" in bestRailCand) && bestRailCand.payload != null && ("iterations" in bestRailCand.payload))
+        ? bestRailCand.payload.iterations : -1;
+
+    local rank = 0;
+    foreach (s in scored) {
+      if (s.score > bestRailScore) {
+        rank++;
+        if (s.mode == "air") res.aheadAir++;
+        else if (s.mode == "road") res.aheadRoad++;
+        else if (s.mode == "fleet") res.aheadFleet++;
+      }
+    }
+    res.bestRailRank = rank;
+
+    local cfFinanceCap = (bestRailFinanceCap * 96) / 170;
+    local cfScore = OpexProjectScore(res.bestRailProfit, cfFinanceCap);
+    res.bestRailCfFinanceCap = cfFinanceCap;
+    res.bestRailCfDeficit = (cfFinanceCap > availableCapital) ? (cfFinanceCap - availableCapital) : 0;
+    res.bestRailCfScore = cfScore;
+
+    local cfRank = 0;
+    foreach (s in scored) {
+      if (s.score > cfScore) cfRank++;
+    }
+    res.bestRailCfRank = cfRank;
+  }
+
+  return res;
+}
+
+function OpexAI::_p5OnRailSearchStart(kind, cand, budget)
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  this._schedIdleEnsure();
+  if (this._p5ActiveRailSearch != null) {
+    this._p5OnRailSearchEnd(null, "cancelled", "none");
+  }
+  this._p5RailSearchSeq++;
+  this._p5ActiveRailSearch = {
+    id = this._p5RailSearchSeq,
+    kind = kind,
+    src = (cand != null && ("src" in cand)) ? cand.src : -1,
+    dst = (cand != null && ("dst" in cand)) ? cand.dst : -1,
+    startDate = AIDate.GetCurrentDate(),
+    startTick = AIController.GetTick(),
+    budget = budget,
+    iters = 0,
+    ops = 0,
+    slices = 0
+  };
+}
+
+function OpexAI::_p5OnRailSearchEnd(state, outcome, result)
+{
+  if (!V95_SCHED_IDLE_LEDGER) return;
+  if (this._p5ActiveRailSearch == null) return;
+
+  local curDate = AIDate.GetCurrentDate();
+  local curTick = AIController.GetTick();
+  local sDays = curDate - this._p5ActiveRailSearch.startDate;
+  local sTicks = curTick - this._p5ActiveRailSearch.startTick;
+
+  local finalIters = this._p5ActiveRailSearch.iters;
+  if (state != null && ("spent" in state) && state.spent > finalIters) {
+    finalIters = state.spent;
+  }
+
+  OpexSchedIdleLog("P5_RAIL_SEARCH", "id=" + this._p5ActiveRailSearch.id
+      + " kind=" + this._p5ActiveRailSearch.kind
+      + " src=" + this._p5ActiveRailSearch.src + " dst=" + this._p5ActiveRailSearch.dst
+      + " iters=" + finalIters + " ops=" + this._p5ActiveRailSearch.ops
+      + " slices=" + this._p5ActiveRailSearch.slices
+      + " days=" + sDays + " ticks=" + sTicks
+      + " outcome=" + outcome + " result=" + result
+      + " budget=" + this._p5ActiveRailSearch.budget);
+
+  this._p5ActiveRailSearch = null;
+}
+
 function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
 {
   if (!V95_SCHED_IDLE_LEDGER) return;
   if (taskName == null) taskName = "idle";
   this._schedIdleEnsure();
   if (this._schedIdlePeekTask != taskName) this._schedIdlePredReason = null;
+
+  /* P5 : comptabilite opcodes et reliquat d'attente */
+  local markLeft = (this._schedIdlePreMarkLeft != null) ? this._schedIdlePreMarkLeft : 10000;
+  local unused = (ticks <= 0) ? (ops < markLeft ? markLeft - ops : 0) : ((markLeft + ticks * 10000) - ops);
+  if (unused < 0) unused = 0;
+  if (this._p5EpisodeActive) {
+    this._p5EpisodeUnusedOps += unused;
+    this._p5EpisodeUsedOps += ops;
+    this._p5EpisodeDispatches++;
+  }
+
+  /* P5 : detecter le demarrage d'une recherche rail */
+  if (this._railSearch != null && this._p5ActiveRailSearch == null) {
+    local rs = this._railSearch;
+    local kind = ("kind" in rs) ? rs.kind : "primary";
+    local cand = ("candidate" in rs) ? rs.candidate : (("line" in rs) ? rs.line : null);
+    local budget = ("iterationBudget" in rs) ? rs.iterationBudget : 0;
+    this._p5OnRailSearchStart(kind, cand, budget);
+  }
+
+  /* P5 : cumuler les opcodes et iterations de la tranche executee dans ce tick */
+  if (this._p5ActiveRailSearch != null && this._c41RailSliceLastOps >= 0) {
+    this._p5ActiveRailSearch.ops += this._c41RailSliceLastOps;
+    this._p5ActiveRailSearch.iters += this._c41RailSliceLastIterDelta;
+    this._p5ActiveRailSearch.slices++;
+  }
+
+  /* P5 : detecter la fin d'une recherche rail */
+  if (this._p5ActiveRailSearch != null && (this._railSearch == null || this._railSearch.phase != "search")) {
+    if (this._railSearch == null) {
+      this._p5OnRailSearchEnd(null, "cancelled", "none");
+    } else {
+      local finalOutcome = "none";
+      local finalResult = "none";
+      if (this._railSearch.kind == "primary") {
+        local plan = ("candidate" in this._railSearch && this._railSearch.candidate != null && ("railPlan" in this._railSearch.candidate))
+            ? this._railSearch.candidate.railPlan
+            : (("plan" in this._railSearch) ? this._railSearch.plan : null);
+        if (plan != null) {
+          if (("ok" in plan) && plan.ok) {
+            finalOutcome = "OK";
+            finalResult = "found";
+          } else if (("reason" in plan) && plan.reason != null && plan.reason != "") {
+            finalOutcome = plan.reason;
+            finalResult = (finalOutcome == "ABND" || finalOutcome == "DEAD") ? "cap" : "none";
+          }
+        }
+      } else if (this._railSearch.kind == "upgrade") {
+        local slice = ("search" in this._railSearch) ? this._railSearch.search : null;
+        finalOutcome = (slice != null && ("stop" in slice)) ? slice.stop : "OK";
+        finalResult = (finalOutcome == "OK") ? "found" : ((finalOutcome == "ABND" || finalOutcome == "DEAD") ? "cap" : "none");
+      }
+      this._p5OnRailSearchEnd(this._railSearch, finalOutcome, finalResult);
+    }
+  }
 
   local didWork = false;
   local reason = "unspecified_noop";
@@ -615,7 +857,7 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
     local funded = postBestLen;
     local cause = (st != null && ("emptyCause" in st) && st.emptyCause != null && st.emptyCause != "") ? st.emptyCause : (funded > 0 ? "none" : "unknown");
     local nextCap = (st != null && ("nextProjectCapital" in st) && st.nextProjectCapital > 0) ? st.nextProjectCapital : ((st != null && ("minCapital" in st) && st.minCapital > 0) ? st.minCapital : 0);
-    local bStop = (this._p2LastStopReason != null) ? this._p2LastStopReason : "none";
+    local bStop = (nBuilt > 0) ? "list_end" : "none";
 
     OpexSchedIdleLog("P2_BUILD", "id=" + buildId + " mode=" + builtMode + " n_built=" + nBuilt
         + " cap_before=" + this._p2PreCapital + " cap_after=" + postCap
@@ -624,11 +866,61 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
         + " alts=" + alts + " funded=" + funded + " cause=" + cause + " next_k=" + nextCap
         + " stop=" + bStop);
 
+    if (nBuiltLines > 0 && this._lines.len() > 0) {
+      local startIdx = this._lines.len() - nBuiltLines;
+      if (startIdx < 0) startIdx = 0;
+      for (local li = startIdx; li < this._lines.len(); li++) {
+        local newLine = this._lines[li];
+        local lSrc = ("src" in newLine) ? newLine.src : (("originA" in newLine) ? newLine.originA : -1);
+        local lDst = ("dst" in newLine) ? newLine.dst : (("originB" in newLine) ? newLine.originB : -1);
+        local lCap = ("capital" in newLine) ? newLine.capital : (("predCapital" in newLine) ? newLine.predCapital : 0);
+        local lMode = ("mode" in newLine) ? newLine.mode : builtMode;
+        OpexSchedIdleLog("P5_BUILD_LINE", "id=" + buildId + " mode=" + lMode
+            + " src=" + lSrc + " dst=" + lDst + " cap=" + lCap);
+      }
+    }
+
     if (postBestLen > 0) {
       OpexSchedIdleLog("P2_RESOLVE", "id=" + buildId + " days=0 ticks=0 ret_reason=immediate ret_task=projects ret_date="
           + AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate)
           + " funded=" + postBestLen + " cause=none");
     } else {
+      local scan = this._p5ScanCandidatePool(this._projects, postCap);
+      this._p5EpisodeActive = true;
+      this._p5EpisodeId = buildId;
+      this._p5EpisodeUnusedOps = 0;
+      this._p5EpisodeUsedOps = 0;
+      this._p5EpisodeDispatches = 0;
+
+      local curDateStr = AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate);
+      local extraRail = "";
+      if (scan.nRail > 0) {
+        extraRail = " rail_rank=" + scan.bestRailRank
+            + " rail_kind=" + scan.bestRailKind
+            + " rail_src=" + scan.bestRailSrc
+            + " rail_dst=" + scan.bestRailDst
+            + " rail_cap=" + scan.bestRail.capital
+            + " rail_fin_cap=" + scan.bestRailFinanceCap
+            + " rail_def=" + scan.bestRailDeficit
+            + " rail_prof=" + scan.bestRailProfit
+            + " rail_roi=" + scan.bestRailRoi
+            + " rail_score=" + scan.bestRailScore
+            + " rail_cf_cap=" + scan.bestRailCfFinanceCap
+            + " rail_cf_def=" + scan.bestRailCfDeficit
+            + " rail_cf_rank=" + scan.bestRailCfRank
+            + " rail_iters=" + scan.bestRailIters
+            + " ahead_air=" + scan.aheadAir
+            + " ahead_road=" + scan.aheadRoad
+            + " ahead_fleet=" + scan.aheadFleet;
+      } else {
+        extraRail = " rail_rank=-1";
+      }
+
+      OpexSchedIdleLog("P5_WAIT_START", "id=" + buildId + " date=" + curDateStr + " tick=" + curTick
+          + " cap=" + postCap + " alts=" + scan.nAlts
+          + " n_rail=" + scan.nRail + " n_air=" + scan.nAir + " n_road=" + scan.nRoad + " n_fleet=" + scan.nFleet
+          + extraRail);
+
       if (this._p2PendingBuilds == null) this._p2PendingBuilds = [];
       this._p2PendingBuilds.append({
         id = buildId,
@@ -652,9 +944,15 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
     local nBuiltLines = curLines - this._schedIdlePreLinesCount;
     local nBuiltFleet = (nBuiltLines == 0 && curVehs > this._schedIdlePreVehCount) ? (curVehs - this._schedIdlePreVehCount) : 0;
     local nBuilt = nBuiltLines + nBuiltFleet;
+    local passBuiltMode = "none";
+    if (nBuiltLines > 0) {
+      local newLine = this._lines[curLines - 1];
+      passBuiltMode = ("mode" in newLine) ? newLine.mode : "unknown";
+    } else if (nBuiltFleet > 0) {
+      passBuiltMode = "fleet";
+    }
     local passStop = (reason == "projects_invalidated") ? "invalidated"
-        : ((this._p2LastStopReason != null) ? this._p2LastStopReason
-        : (inBest == 0 ? "empty_pool" : (nBuilt > 0 ? "list_end" : "no_candidate_built")));
+        : (inBest == 0 ? "empty_pool" : (nBuilt > 0 ? "list_end" : "no_candidate_built"));
 
     local tasksSince = "";
     if (this._p2TasksSinceProjects != null && this._p2TasksSinceProjects.len() > 0) {
@@ -677,10 +975,46 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
         + " d_cap=" + dCap + " d_best=" + dBest
         + " tasks_since=" + tasksSince);
 
+    local passScan = this._p5ScanCandidatePool(this._projects, inCap);
+    local nRailInBest = 0;
+    local nNonRailInBest = 0;
+    if (this._projects != null && ("best" in this._projects) && this._projects.best != null) {
+      foreach (bp in this._projects.best) {
+        if (bp != null && ("mode" in bp)) {
+          if (bp.mode == "rail") nRailInBest++;
+          else nNonRailInBest++;
+        }
+      }
+    }
+    local nRailBuilt = (passBuiltMode == "rail" ? nBuilt : 0);
+    local passDateStr = AIDate.GetYear(curDate) + "-" + AIDate.GetMonth(curDate) + "-" + AIDate.GetDayOfMonth(curDate);
+    local p5PassExtra = "";
+    if (passScan.nRail > 0) {
+      p5PassExtra = " best_rail_def=" + passScan.bestRailDeficit
+          + " best_rail_cap=" + passScan.bestRailFinanceCap
+          + " best_rail_prof=" + passScan.bestRailProfit
+          + " best_rail_score=" + passScan.bestRailScore
+          + " best_rail_cf_def=" + passScan.bestRailCfDeficit
+          + " best_rail_cf_cap=" + passScan.bestRailCfFinanceCap
+          + " best_rail_cf_rank=" + passScan.bestRailCfRank
+          + " best_rail_kind=" + passScan.bestRailKind
+          + " best_rail_rank=" + passScan.bestRailRank;
+    } else {
+      p5PassExtra = " best_rail_rank=-1";
+    }
+    OpexSchedIdleLog("P5_RAIL_PASS", "pass=" + passId + " date=" + passDateStr + " in_cap=" + inCap
+        + " alts=" + passScan.nAlts + " rail_alts=" + passScan.nRail
+        + " rail_aff=" + (passScan.bestRailDeficit == 0 && passScan.nRail > 0 ? 1 : 0)
+        + " rail_in_best=" + nRailInBest + " nonrail_in_best=" + nNonRailInBest
+        + " rail_built=" + nRailBuilt + " stop=" + passStop
+        + p5PassExtra
+        + " best_nonrail_mode=" + passScan.bestNonRailMode
+        + " best_nonrail_score=" + passScan.bestNonRailScore
+        + " best_nonrail_cap=" + passScan.bestNonRailCap);
+
     this._p2TasksSinceProjects = [];
     this._p2LastProjectsPostBest = postBest;
     this._p2LastProjectsPostCap = postCap;
-    this._p2LastStopReason = null;
   }
 
   if (this._p2PendingBuilds != null && this._p2PendingBuilds.len() > 0) {
@@ -711,8 +1045,14 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
         OpexSchedIdleLog("P2_RESOLVE", "id=" + item.id + " days=" + pDays + " ticks=" + pTicks
             + " ret_reason=" + retReason + " ret_task=" + taskName + " ret_date=" + retDateStr
             + " funded=" + curBestLen + " cause=" + curCause);
+        OpexSchedIdleLog("P5_WAIT_END", "id=" + item.id + " days=" + pDays + " ticks=" + pTicks
+            + " dispatches=" + this._p5EpisodeDispatches
+            + " unused_ops=" + this._p5EpisodeUnusedOps
+            + " used_ops=" + this._p5EpisodeUsedOps
+            + " ret_reason=" + retReason + " ret_task=" + taskName + " funded=" + curBestLen);
       }
       this._p2PendingBuilds = [];
+      this._p5EpisodeActive = false;
     }
   }
 }

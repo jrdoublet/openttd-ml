@@ -313,6 +313,10 @@ V88_CHAIN_FORCE <- false;
 V88_STEP2_PLAN_IMMEDIATE <- false;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
+/* C75 bis : au plus un bypass de K_pass par passe pour une nouvelle ligne (air, rail, road, water). */
+C75_BIS_NEW_LINE_BYPASS <- false;
+/* Facteur de financement rail (candidate.capital * bias / 100) applique dans OpexProjectFinanceCapital. */
+RAIL_FINANCE_BIAS_PCT <- 170;
 C75_TRACK_PASSES <- false;
 C75_PASS_DATES <- null;
 C75_YEAR_LEDGER <- null;

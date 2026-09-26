@@ -51,7 +51,7 @@ class C83PreemptContractTests(unittest.TestCase):
             'C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;',
             self.settings,
         )
-        self.assertEqual(self.info.count("AddSetting("), 85)
+        self.assertEqual(self.info.count("AddSetting("), 89)
         self.assertIn("_c83PreemptRace = null;", self.main)
         self.assertIn("this._c83PreemptQueued = -1;", self.main)
 
