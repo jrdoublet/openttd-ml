@@ -184,7 +184,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "air_hubhub_marginal", "air_hub_max_routes", "v89_rail_search_throughput",
                      "v90_pathfinder_check", "v92_air_service_choice", "c83_fixes",
                      "c83_preempt_open", "air_batch_town_reserve",
-                     "v93_airport_no_pop_floor", "v93_air_demand_production",
+                     "v93_airport_no_pop_floor", "v93_air_demand_production", "v95_air_post73_probe",
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)
         self.assertEqual(defaults["v91_astar_weight_pct"], 120)
