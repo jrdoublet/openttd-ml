@@ -179,7 +179,7 @@ class TestCampaignFreeze(unittest.TestCase):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c84_air_target_fleet", "c85_air_equipment_frontier", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate", "c80_double_register",
                      "c76_lean_invalidation", "c76_freight_rotation",
-                     "c80_worker_rail", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
+                     "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "c80_marginal_floor", "rail_depot_cost",
                      "air_hubhub_marginal", "air_hub_max_routes",
                      "v90_pathfinder_check", "v92_air_service_choice", "c83_fixes",

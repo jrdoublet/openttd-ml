@@ -238,6 +238,76 @@ function OpexWorkerRailSearchCancel(worker)
 // Enregistrement du travailleur rail_search
 OpexRegisterWorker("rail_search", OpexWorkerRailSearchStep, OpexWorkerRailSearchCancel);
 
+/* Travailleur "rail_stock" (C80 Étape 2) :
+ * Avance l'A* de recherche rail en arrière-plan par micro-tranches avec échéance locale,
+ * absorbe le reliquat d'opcodes, surveille l'échéance maximale de 180 jours de jeu,
+ * et dépose le plan complété dans _railReadyStock. */
+function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
+{
+  if (worker == null || !("state" in worker) || worker.state == null || typeof worker.state != "table") {
+    return "cancelled";
+  }
+  local ai = ("ai" in worker.state) ? worker.state.ai : null;
+  if (ai == null || ai._railSearch == null) return "done";
+
+  // 0. Expiration éventuelle du stock existant
+  ai._checkRailStockExpiry();
+
+  // 1. Durée maximale d'une recherche : 180 jours de jeu
+  local curDate = AIDate.GetCurrentDate();
+  local startDate = ("startDate" in ai._railSearch) ? ai._railSearch.startDate : curDate;
+  if (curDate - startDate > 180) {
+    ai._handleRailStockSearchTimeout();
+    return "done";
+  }
+
+  // 2. Première tranche d'A*
+  ai._advanceRailSearchSliceWithLedgers();
+
+  // 3. Débit sur reliquat tant que GetOpsTillSuspend() >= seuil estimé
+  local minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
+  while (ai._railSearch != null && ai._railSearch.phase == "search"
+         && AIController.GetOpsTillSuspend() >= minThreshold) {
+    curDate = AIDate.GetCurrentDate();
+    if (curDate - startDate > 180) {
+      ai._handleRailStockSearchTimeout();
+      return "done";
+    }
+    ai._advanceRailSearchSliceWithLedgers();
+    minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
+  }
+
+  if (ai._railSearch == null) return "done";
+
+  if (ai._railSearch.phase == "build") {
+    ai._handleRailStockSearchCompleted();
+    return "done";
+  }
+
+  return "running";
+}
+
+function OpexWorkerRailStockCancel(worker)
+{
+  if (worker == null || !("state" in worker) || worker.state == null || typeof worker.state != "table") {
+    return;
+  }
+  local ai = ("ai" in worker.state) ? worker.state.ai : null;
+  if (ai != null) {
+    if (ai._railSearch != null) {
+      if ("pathfinder" in ai._railSearch && ai._railSearch.pathfinder != null) ai._railSearch.pathfinder = null;
+      if ("segmented" in ai._railSearch && ai._railSearch.segmented != null) ai._railSearch.segmented = null;
+      ai._railSearch = null;
+    }
+    if (ai._railReadyStock.len() < 1) {
+      ai._tryStartRailStockWorker();
+    }
+  }
+}
+
+// Enregistrement du travailleur rail_stock
+OpexRegisterWorker("rail_stock", OpexWorkerRailStockStep, OpexWorkerRailStockCancel);
+
 /* Travailleur "town_growth" (Tranche 2 de C80) :
  * Découpe la croissance urbaine en 1 ville par tranche.
  * Son state contient uniquement des entiers et tableaux d'entiers :
@@ -690,6 +760,26 @@ function OpexAI::_runOrchestratorTick()
       // ORDRE PRÉSERVÉ (Contrat C80 tranche 1 §3) :
       // Après la tranche du travailleur rail, on enchaîne avec la file de fond
       // dans le MÊME tick (pas de return true ici).
+    } else if (this._activeWorker.kind == "rail_stock") {
+      if (this._railExpansion != null) this._continueRailExpansion();
+      this._railWorkerSteppedThisTick = true;
+      local opsBudget = AIController.GetOpsTillSuspend();
+      local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
+      local outcome = null;
+      if (C39_PASS_CLOCK_LEDGER) {
+        local c39DateBefore = AIDate.GetCurrentDate();
+        local mark = OpexOpsMeasureBegin();
+        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
+        local ops = OpexOpsMeasureEnd(mark);
+        local passDays = AIDate.GetCurrentDate() - c39DateBefore;
+        local passTicks = AIController.GetTick() - mark.tick;
+        this._recordC39PassClockLedger("worker|rail_stock", passDays, passTicks, ops, 0, 0, 0);
+      } else {
+        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      }
+      if (outcome == "done" || outcome == "cancelled") {
+        this._activeWorker = null;
+      }
     } else if (this._activeWorker.kind == "town_growth") {
       local opsBudget = AIController.GetOpsTillSuspend();
       local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;

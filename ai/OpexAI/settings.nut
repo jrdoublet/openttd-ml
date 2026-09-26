@@ -363,6 +363,8 @@ function OpexLoadSettings()
   /* C77 corrigé est permanent et repose sur le socle du double registre. */
   C80_DOUBLE_REGISTER = true;
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
+  C80_RAIL_STOCK_GATE = AIController.GetSetting("c80_rail_stock_gate") != 0;
+  C80_RAIL_STOCK_WORKER = C80_RAIL_STOCK_GATE && (AIController.GetSetting("c80_rail_stock_worker") != 0);
   C80_WORKER_TOWN = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_town") != 0);
   C76_LEAN_INVALIDATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_lean_invalidation") != 0);
   C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
@@ -382,6 +384,7 @@ function OpexLoadSettings()
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
   AIR_HUB_MAX_ROUTES = hubMaxRoutes >= 0 ? hubMaxRoutes : 0;
   V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
+  if (C80_RAIL_STOCK_WORKER) V89_RAIL_SEARCH_THROUGHPUT = false;
   V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;
   V90_PATHFINDER_CHECK = AIController.GetSetting("v90_pathfinder_check") != 0;
   local astarWeight = AIController.GetSetting("v91_astar_weight_pct");

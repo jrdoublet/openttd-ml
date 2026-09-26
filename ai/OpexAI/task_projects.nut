@@ -1349,7 +1349,13 @@ function OpexAI::_tryBuildProjects(year)
     } else if (PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects)) {
       local budgetNow = OpexAvailableCapital();
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-      this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns);
+      if (C80_RAIL_STOCK_GATE) {
+        if (C80_RAIL_STOCK_WORKER)
+          this._projects.candidateGroups = OpexRailStockStripCandidateGroups(this._projects.candidateGroups);
+        this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns, this._railReadyStock);
+      } else {
+        this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns);
+      }
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
         local c76Days = (c76Ops + 93000) / 186000;
@@ -1388,7 +1394,13 @@ function OpexAI::_tryBuildProjects(year)
              + this._projects.stats.selectedCapital + "|B" + builtCount);
     /* L'abandon a maintenant ete consomme par la reelection/reconstruction. */
     if (hadAbandons) this._hadAbandonsThisPass = false;
+    if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
+      this._tryStartRailStockWorker();
+    }
     return true;
+  }
+  if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
+    this._tryStartRailStockWorker();
   }
   return false;
 }
@@ -1454,10 +1466,18 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
       freightCargo = freightCargos[nextCargo];
     }
   }
-  this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
-      fleetPlan, this._abandonedPairs, stage, prior,
-      freightCargo, freightCargos, this._activeSubsidies,
-      airOverride);
+  if (C80_RAIL_STOCK_GATE) {
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
+        fleetPlan, this._abandonedPairs, stage, prior,
+        freightCargo, freightCargos, this._activeSubsidies,
+        airOverride, this._railReadyStock);
+    if (C80_RAIL_STOCK_WORKER) this._projects.railStockAI <- this;
+  } else {
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
+        fleetPlan, this._abandonedPairs, stage, prior,
+        freightCargo, freightCargos, this._activeSubsidies,
+        airOverride);
+  }
   if (stage == OPEX_STAGE_COMPLETE && b6StaleProjects != null) {
     OpexB6LogFreshEquivalence(b6StaleProjects, this._projects, b6StaleDate);
   }

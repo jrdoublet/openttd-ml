@@ -1198,6 +1198,27 @@ function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
   return chosen;
 }
 
+/* Active uniquement au demarrage sous les deux reglages C80. Le point d'appel
+ * existant dans projects re-selectionne alors le registre courant avant C78. */
+function OpexPromoteLiveDefensiveAirStock(projects, capitalBudget)
+{
+  if (projects != null && ("candidateGroups" in projects) && ("railStockAI" in projects)) {
+    local ai = projects.railStockAI;
+    ai._checkRailStockExpiry();
+    OpexReselectProjects(projects, capitalBudget, ai._abandonedPairs, ai._lines, ai._railReadyStock);
+    if (C56_TASK_TRACE) {
+      local funded = 0;
+      foreach (p in projects.best) if (p.mode == "rail") funded++;
+      local ready = ("railReadyStock" in projects) && projects.railReadyStock != null
+          ? projects.railReadyStock.len() : 0;
+      OpexC56TaskLog("RAIL_STOCK_SELECT", "projects", "-",
+          "ready=" + ready + " funded=" + funded
+          + " merge_ops=" + projects.stats.railStockFusionOpcodes);
+    }
+  }
+  return OpexPromoteLiveDefensiveAirBase(projects, capitalBudget);
+}
+
 
 function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 {
@@ -1310,8 +1331,11 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
  * route ne repasse ici. Les statistiques sont remplacees ensemble car IG| et IB| doivent decrire
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
-function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null)
+function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null)
 {
+  if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
+    railReadyStock = projects.railReadyStock;
+  }
   local b6BudgetDate = AIDate.GetCurrentDate();
   local funded = null;
   local considered = 0;
@@ -1320,6 +1344,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   foreach (key, list in projects.candidateGroups) {
     foreach (project in list) alternatives.push(project);
   }
+  if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, projects.stats);
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   considered = alternatives.len();
@@ -1353,6 +1378,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
 
   projects.best = funded;
+  if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
   if (C69_BOTTLENECK_PROBE) {
     projects.c69Best <- ::C69_LAST_AFFORDABLE;
     projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
@@ -1849,6 +1875,67 @@ function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null
   return live;
 }
 
+/* C80 étape 1 : vérifie si un projet rail possède un tracé prêt validé dans le stock. */
+function OpexRailProjectHasReadyRoute(project, railReadyStock)
+{
+  if (project == null) return false;
+  if (("payload" in project) && project.payload != null
+      && ("railPlan" in project.payload) && project.payload.railPlan != null
+      && (!("ok" in project.payload.railPlan) || project.payload.railPlan.ok)) {
+    return true;
+  }
+  if (railReadyStock == null) return false;
+  local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+  if (!(pairKey in railReadyStock)) return false;
+  local entry = railReadyStock[pairKey];
+  if (entry == null || !("plan" in entry) || entry.plan == null) return false;
+  if (("ok" in entry.plan) && !entry.plan.ok) return false;
+  return true;
+}
+
+/* C80 étape 1 : filtre les alternatives rail sans tracé prêt validé dans le stock. */
+function OpexFilterRailStockGate(alternatives, railReadyStock)
+{
+  local kept = [];
+  foreach (project in alternatives) {
+    if (project != null && ("mode" in project) && project.mode == "rail") {
+      /* Le worker est le seul producteur de projets rail eligibles. */
+      if (C80_RAIL_STOCK_WORKER) continue;
+      if (!OpexRailProjectHasReadyRoute(project, railReadyStock)) continue;
+    }
+    kept.push(project);
+  }
+  if (C80_RAIL_STOCK_WORKER && railReadyStock != null) {
+    foreach (pairKey, entry in railReadyStock) {
+      if (entry != null && ("project" in entry) && entry.project != null)
+        kept.push(entry.project);
+    }
+  }
+  return kept;
+}
+
+/* Meme sonde d'opcodes que la selection, limitee a la fusion par passe. */
+function OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats)
+{
+  local mark = C80_RAIL_STOCK_WORKER ? OpexOpsMeasureBegin() : null;
+  local merged = OpexFilterRailStockGate(alternatives, railReadyStock);
+  if (mark != null) stats.railStockFusionOpcodes <- OpexOpsMeasureEnd(mark);
+  return merged;
+}
+
+/* Appele seulement dans une branche C80 deja armee ; la file des candidats
+ * reste dans projects.rail, tandis que candidateGroups porte les autres modes. */
+function OpexRailStockStripCandidateGroups(groups)
+{
+  local nonRailGroups = {};
+  foreach (key, list in groups) {
+    local retained = [];
+    foreach (p in list) if (p != null && p.mode != "rail") retained.push(p);
+    if (retained.len() > 0) nonRailGroups.rawset(key, retained);
+  }
+  return nonRailGroups;
+}
+
 /* C38 : cle stable d'une tentative au sein d'un batch. Les plans air/eau sont des objets
  * regenerables ; l'identite doit donc reposer sur le mode, les extremites, le cargo et le type,
  * jamais sur l'adresse du payload. La flotte cible une ligne existante. */
@@ -2270,8 +2357,11 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
  * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
  * nouvelles opportunites de flotte, et réélit le portefeuille sur le capital restant.
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
-function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null)
+function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null, railReadyStock = null)
 {
+  if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
+    railReadyStock = projects.railReadyStock;
+  }
   local airBuilt = airTouchedTowns != null && airTouchedTowns.len() > 0;
   local b6BudgetDate = AIDate.GetCurrentDate();
   local stats = {
@@ -2372,6 +2462,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
+  if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
@@ -2426,6 +2517,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
+  if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
   return projects;
 }
 
@@ -2515,7 +2607,8 @@ function OpexMergeRailCandidateSet(base, extra)
 
 function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null,
                            generationStage = null, priorProjects = null, freightCargo = null,
-                           freightCargoOrder = null, activeSubsidies = null, airOverride = null)
+                           freightCargoOrder = null, activeSubsidies = null, airOverride = null,
+                           railReadyStock = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
@@ -2853,6 +2946,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
+  if (C80_RAIL_STOCK_GATE) {
+    alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
+    if (C80_RAIL_STOCK_WORKER) winners = OpexRailStockStripCandidateGroups(winners);
+  }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
@@ -2907,6 +3004,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     generationStage = generationStage,
     freightCargo = freightCargo,
   };
+  if (C80_RAIL_STOCK_GATE) ret.railReadyStock <- railReadyStock;
   if (C69_BOTTLENECK_PROBE) {
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;

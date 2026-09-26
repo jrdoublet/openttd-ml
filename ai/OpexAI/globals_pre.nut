@@ -512,6 +512,14 @@ C80_AIR_HUB_INDEX <- false;
 C80_MARGINAL_FLOOR <- false;
 C80_MARGINAL_FLOOR_LEDGER <- null;
 
+/* C80 étape 1 : porte d'éligibilité rail passive (le projet n'entre dans alternatives
+ * que s'il a un tracé prêt dans _railReadyStock). Défaut 0 (désactivé). */
+C80_RAIL_STOCK_GATE <- false;
+
+/* C80 étape 2 : worker producteur autonome RailSearchStock (N=1) sur reliquat.
+ * N'a d'effet que si C80_RAIL_STOCK_GATE est actif. Défaut 0 (désactivé). */
+C80_RAIL_STOCK_WORKER <- false;
+
 /* C80 air eval fast : optimisations exactes de la planification aerienne (memo d'economie,
  * memo de trajectoire/revenu, report de GetOrderDistance). Defaut 0. */
 C80_AIR_EVAL_FAST <- false;

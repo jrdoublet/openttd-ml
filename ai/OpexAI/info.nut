@@ -643,6 +643,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c80_rail_stock_gate",
+      description = "C80 A* stock step 1: rail candidate is eligible only with ready route in _railReadyStock: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c80_rail_stock_worker",
+      description = "C80 A* stock step 2: autonomous RailSearchStock worker (N=1) on slack: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c80_worker_town",
       description = "C80 tranche 2: migrate town growth to execution register worker: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

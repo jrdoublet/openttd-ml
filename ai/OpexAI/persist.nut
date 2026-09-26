@@ -226,8 +226,8 @@ function OpexSaveActiveWorker(worker)
 {
   if (worker == null || typeof worker != "table") return null;
   if (!("kind" in worker) || !("state" in worker) || worker.state == null || typeof worker.state != "table") return null;
-  if (worker.kind == "rail_search") {
-    /* C80 tranche 1 : _railSearch contient un pathfinder C++ non sérialisable.
+  if (worker.kind == "rail_search" || worker.kind == "rail_stock") {
+    /* C80 : _railSearch contient un pathfinder C++ non sérialisable.
      * On ne sauvegarde pas le pathfinder dans le savegame. */
     return {
       kind = worker.kind,
@@ -817,12 +817,17 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._reloadDroppedRailSearch = false;
 
-  /* C80 tranche 1 : au rechargement, un travailleur "rail_search" restauré sans
+  /* C80 : au rechargement, un travailleur "rail_search" ou "rail_stock" restauré sans
    * _railSearch (qui n'est pas sauvegardé) doit être abandonné proprement. */
-  if (this._activeWorker != null && this._activeWorker.kind == "rail_search" && this._railSearch == null) {
+  if (this._activeWorker != null && (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "rail_stock") && this._railSearch == null) {
     OpexWorkerCancel(this._activeWorker);
     this._activeWorker = null;
   }
+
+  /* C80 étape 1 : le stock de tracés rail est reconstructible / transitoire (non persisté). */
+  this._railReadyStock = {};
+  /* C80 étape 2 : la table de retrait temporaire des paires est reconstructible. */
+  this._railStockCooldown = {};
 
   /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
   if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {

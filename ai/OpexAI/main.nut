@@ -144,6 +144,12 @@ class OpexAI extends AIController {
   _reactiveQueue = null;
   _activeWorker = null;
   _railWorkerSteppedThisTick = false;
+  /* C80 étape 1 : table des tracés rail prêts validés par les workers, indexée par pairKey.
+   * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
+  _railReadyStock = null;
+  /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
+   * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
+  _railStockCooldown = null;
   /* C67.4 : service de carte par blocs, reconstruit, jamais sauvegarde (task_terrain.nut). */
   _c67Terrain = null;
   _c67BgCursor = 0;
@@ -354,6 +360,8 @@ class OpexAI extends AIController {
     this._unprofitableStreaks = {};
     OpexAirResetSiteCache();
     this._activeSubsidies = {};
+    this._railReadyStock = {};
+    this._railStockCooldown = {};
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};
     this._staleness = {
@@ -553,6 +561,12 @@ class OpexAI extends AIController {
   function _advanceRailSearchThroughput(maxSlices = -1);
   function _v89TrackSearchDays(now);
   function _logC89AnnualRail(year);
+  function _tryStartRailStockWorker();
+  function _startRailStockSearch(candidate);
+  function _handleRailStockSearchTimeout();
+  function _handleRailStockSearchCompleted();
+  function _checkRailStockExpiry();
+  function _revalidateRailStockPlan(candidate, plan);
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */
@@ -662,6 +676,11 @@ function OpexAI::Start()
   }
   if (C76_REGEN_TARGETED) {
     this._c76RunSelfTest();
+  }
+  if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER) {
+    ::OpexPromoteLiveDefensiveAirBase <- ::OpexPromoteLiveDefensiveAir;
+    ::OpexPromoteLiveDefensiveAir = ::OpexPromoteLiveDefensiveAirStock;
+    this._tryStartRailStockWorker();
   }
 
   while (true) {
