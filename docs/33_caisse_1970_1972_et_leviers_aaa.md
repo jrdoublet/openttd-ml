@@ -277,7 +277,9 @@ mais moins prioritaire que le fret rail.
    1970–71 ; smoke puis 5×6 causal.
 2. **V89 sur le défaut V91=120 courant** : diagnostic 3×6 seulement ; duel si
    le délai A* reste réellement exposé.
-3. **V88 goods** : smoke avec biens livrés puis 5×6 causal.
+3. **V88 goods** : diagnostic solo 5×8 terminé ; seulement 2/5 graines avec
+   chaîne complète livrée, sous le seuil ≥3/5. Ne pas lancer le 5×6 causal tel
+   quel ; retravailler l'exposition ou le blocage résiduel de l'étape 2 rail.
 4. **AIR post-1973** : sonde de production des sites `<600`/seconds slots,
    puis filtre ciblé ; ne pas réactiver V93 globalement.
 5. **MAIL-only sur aéroports existants** : prototype isolé, puis 5×6 avec

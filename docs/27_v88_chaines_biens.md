@@ -193,3 +193,26 @@ Depuis le **2026-09-24**, les optimisations V90 (−8 % opcodes/itération) et V
    - Passage au **duel apparié 5×6** (`run_c66_reference.py`) si au moins 3/5 graines construisent une chaîne complète avec des biens livrés.
    - Seuil de qualification économique : effet utile `+50 k£/an` sur `profit_year`, garde de valeur d'entreprise `−5 %`.
    - Duel officiel **20 graines × 10 ans** avant tout changement de défaut.
+
+### 5.4 Résultat du diagnostic solo 5×8 — 2026-09-25
+
+Campagne `results/v88_goods_chain_solo_5x8_20260925.json` avec traces
+`results/v88_goods_chain_solo_5x8_20260925.jsonl`, graines 100/12345/42/7/999 :
+**5/5 parties saines, 0 échec moteur**.
+
+Après correction d'un bug de l'analyseur (une chaîne terminée était perdue lorsqu'une nouvelle
+`CHAIN_CHOSEN` survenait avant sa première `CHAIN_DELIVERY`), le bilan réel est :
+- **4 chaînes choisies** ;
+- **2 chaînes terminées** ;
+- **2 chaînes avec livraison de biens**, sur les graines **42 et 7** ;
+- **0 chaîne en échec explicite** ;
+- **8 attentes** `step=2 reason=rail_search`.
+
+Délais médians observés : recherche étape 1 **153 jours**, mise en service étape 1 **72 jours**,
+recherche étape 2 **300,5 jours**, mise en service étape 2 **136,5 jours**, décision→étape 2
+**863,5 jours (2,37 ans)**, étape 2→première livraison **295 jours**. Pathfinder médian :
+étape 1 **694 itérations / 57 tuiles**, étape 2 **853 itérations / 70 tuiles**.
+
+Le critère préalable au duel (**≥3/5 graines avec chaîne complète livrée**) n'est donc **pas atteint**.
+Ne pas lancer le 5×6 causal V88 tel quel ; il faut d'abord augmenter l'exposition ou supprimer le
+blocage résiduel de l'étape 2, notamment autour du slot rail unique.

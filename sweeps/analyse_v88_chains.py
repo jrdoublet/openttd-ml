@@ -129,8 +129,13 @@ def analyse_seed_events(events: list[dict]) -> dict:
         days = ev["days"]
 
         if tag == "CHAIN_CHOSEN":
-            if current_chain is not None and not current_chain.get("completed", False) and not current_chain.get("failed", False):
-                current_chain["abandoned_implicit"] = True
+            if current_chain is not None:
+                # Une chaîne terminée peut recevoir sa première CHAIN_DELIVERY
+                # après la sélection de la suivante. Il faut donc toujours
+                # l'archiver avant de remplacer current_chain, pas seulement
+                # lorsqu'elle est encore incomplète.
+                if not current_chain.get("completed", False) and not current_chain.get("failed", False):
+                    current_chain["abandoned_implicit"] = True
                 chains.append(current_chain)
             current_chain = {
                 "chosen_days": days,
@@ -444,6 +449,26 @@ def selftest() -> None:
         assert agg["total_completed"] == 1
         assert agg["pathfinder"]["step1_iters_med"] == 520
         assert agg["pathfinder"]["step2_iters_med"] == 490
+
+        # Régression : une nouvelle chaîne peut être choisie après CHAIN_STEP2
+        # mais avant la première livraison de la chaîne précédente. La chaîne
+        # terminée doit rester retrouvable par son numéro de ligne.
+        delayed_delivery_lines = [
+            {"seed": 7, "grep": "OPEX 1973-08-24 CHAIN_CHOSEN fact=2 town=1 inCargo=7 goodsCargo=5 src=11447 dst=11056"},
+            {"seed": 7, "grep": "OPEX 1976-06-17 CHAIN_STEP2 line=78 town=1"},
+            {"seed": 7, "grep": "OPEX 1976-11-09 CHAIN_CHOSEN fact=11 town=32 inCargo=7 goodsCargo=5 src=2699 dst=31912"},
+            {"seed": 7, "grep": "OPEX 1977-04-07 CHAIN_DELIVERY line=78 year=1977 profit=12834 rev=15716"},
+        ]
+        delayed_file = Path(tmpdir) / "test_delayed_delivery.jsonl"
+        with open(delayed_file, "w", encoding="utf-8") as f:
+            for line in delayed_delivery_lines:
+                f.write(json.dumps(line) + "\n")
+        delayed_events = load_events(delayed_file)
+        delayed_analysis = analyse_seed_events(delayed_events[7])
+        assert delayed_analysis["total_chosen"] == 2
+        assert delayed_analysis["total_completed"] == 1
+        assert delayed_analysis["total_delivering"] == 1
+        assert delayed_analysis["chains"][0]["delivery"]["line"] == "78"
     print("selftest passed")
 
 

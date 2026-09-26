@@ -191,8 +191,8 @@ def main():
     if args.selftest:
         run_selftest()
         return
-    if args.years <= 0 or not args.seeds or args.max_workers not in (1, 2, 3):
-        parser.error("--seeds non vide ; --max-workers vaut 1, 2 ou 3")
+    if args.years <= 0 or not args.seeds or args.max_workers <= 0:
+        parser.error("--seeds non vide ; --max-workers doit etre strictement positif")
     if len(set(args.seeds)) != len(args.seeds):
         parser.error("--seeds ne doit pas contenir de doublon")
 
