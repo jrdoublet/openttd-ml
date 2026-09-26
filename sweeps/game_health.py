@@ -56,9 +56,11 @@ _STATUS_RANK = {name: index for index, name in enumerate(STATUSES)}
 
 COLLECTION_FAILURES = frozenset((
     "engine_error", "missing_data", "duplicate_checkpoint", "noai_error", "horizon_truncated",
-    "inactive_company", "stagnation_suspect",
+    "inactive_company",
 ))
-ECONOMIC_OUTCOMES = frozenset(("complete", "bankrupt"))
+# C66.2 : une suspicion de stagnation est un signal diagnostique, pas un echec
+# de collecte. Elle reste donc dans les statistiques economiques.
+ECONOMIC_OUTCOMES = frozenset(("complete", "bankrupt", "stagnation_suspect"))
 ACTIVITY_RECENT_STEPS = 3
 DEFAULT_ENGINE_TIMEOUT_SEC = 1800
 
@@ -254,14 +256,20 @@ def _engine_marker(text):
 def parse_script_errors(output, slot_map=None):
     """Découpe le journal en erreurs attribuées ou non attribuées.
 
-    `slot_map` relie l'index de script OpenTTD (ordre des `ais`) à `{company_id, name}`.
-    Un id de script inconnu, un company id qui contredit le manifeste, ou un marqueur
-    sans `[script:N] [C]` restent `unattributed` — jamais joueur 0 par défaut.
+    `slot_map` fournit les company ids attendus et leurs noms. Le company id imprime
+    par OpenTTD est autoritatif ; le numero `[script:N]` est conserve pour le
+    diagnostic mais peut diverger du slot attendu. Company id inconnu ou marqueur
+    sans `[script:N] [C]` restent `unattributed` — jamais joueur 0 par defaut.
     """
     slot_map = slot_map or DUEL_SLOT_MAP
     attributed = []
     unattributed = []
     engine = _engine_marker(output)
+    company_map = {
+        int(slot["company_id"]): slot["name"]
+        for slot in slot_map.values()
+        if "company_id" in slot and "name" in slot
+    }
 
     for raw in (output or "").splitlines():
         marker = _marker_in(raw)
@@ -280,8 +288,13 @@ def parse_script_errors(output, slot_map=None):
             continue
         script_id = int(match.group(1))
         company_id = int(match.group(2))
-        slot = slot_map.get(script_id)
-        if slot is None or int(slot["company_id"]) != company_id:
+        # Le company id imprime par OpenTTD est l'identite autoritative. En
+        # pratique, le numero [script:N] peut diverger du slot du manifeste
+        # (cas reel AAAHogEx: [script:0] [1]). Le script id reste conserve pour
+        # le diagnostic mais ne doit pas transformer une erreur attribuable en
+        # erreur globale.
+        company_name = company_map.get(company_id)
+        if company_name is None:
             unattributed.append({
                 "script_id": script_id,
                 "company_id": company_id,
@@ -296,9 +309,19 @@ def parse_script_errors(output, slot_map=None):
             "company_id": company_id,
             "marker": marker,
             "excerpt": raw.strip()[:240],
-            "attributed_to": slot["name"],
-            "attribution": "script+company",
+            "attributed_to": company_name,
+            "attribution": "company_id",
         })
+
+    # OpenTTD emet souvent juste apres l'erreur detaillee une ligne generique
+    # "The script died unexpectedly" sans company id. Si une erreur fatale a
+    # deja ete attribuee dans ce meme log, cette ligne n'est pas une seconde
+    # erreur inconnue et ne doit pas invalider l'autre compagnie.
+    if attributed:
+        unattributed = [
+            item for item in unattributed
+            if item["marker"] != "The script died unexpectedly"
+        ]
 
     if engine and not attributed and not unattributed:
         unattributed.append({

@@ -104,6 +104,21 @@ class TestGameHealth(unittest.TestCase):
         names = {item["attributed_to"] for item in game["companies"]["AAAHogEx"]["script_errors"]}
         self.assertEqual(names, {"AAAHogEx"})
 
+    def test_company_id_wins_when_script_slot_differs(self):
+        log = "\n".join((
+            "[script:0] [1] [S] Your script made an error: the index 'BuildDepot' does not exist",
+            "[script:0] The script died unexpectedly.",
+        ))
+        parsed = parse_script_errors(log, slot_map=DUEL_SLOT_MAP)
+        self.assertFalse(parsed["unattributed"])
+        self.assertEqual(len(parsed["attributed"]), 1)
+        self.assertEqual(parsed["attributed"][0]["attributed_to"], "AAAHogEx")
+        self.assertEqual(parsed["attributed"][0]["company_id"], 1)
+        records = _monthly_pair(7)
+        game = assess_game(records, starting_year=1970, years=5, engine_log=log)
+        self.assertEqual(game["companies"]["AAAHogEx"]["status"], "noai_error")
+        self.assertEqual(game["companies"]["OpexAI"]["status"], "complete")
+
     def test_ambiguous_log_is_unattributed(self):
         log = (FIXTURES / "ambiguous.log").read_text()
         parsed = parse_script_errors(log)
@@ -194,9 +209,9 @@ class TestGameHealth(unittest.TestCase):
             engine_log=(FIXTURES / "clean.log").read_text(),
         )
         self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
-        self.assertFalse(game["companies"]["OpexAI"]["include_in_economic_stats"])
-        self.assertFalse(game["companies"]["OpexAI"]["run_ok"])
-        self.assertFalse(game["game_ok"])
+        self.assertTrue(game["companies"]["OpexAI"]["include_in_economic_stats"])
+        self.assertTrue(game["companies"]["OpexAI"]["run_ok"])
+        self.assertTrue(game["game_ok"])
         self.assertIn("stagnation_suspect", game["companies"]["OpexAI"]["failure_reason"])
 
     def test_declining_value_without_expansion_is_stagnation(self):
@@ -221,7 +236,7 @@ class TestGameHealth(unittest.TestCase):
             engine_log=(FIXTURES / "clean.log").read_text(),
         )
         self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
-        self.assertFalse(game["game_ok"])
+        self.assertTrue(game["game_ok"])
 
     def test_recent_one_point_uptick_does_not_hide_net_decline(self):
         values = [1200, 1160, 1120, 1080, 1040, 1000, 960, 920, 901, 899, 900, 900]
@@ -250,8 +265,8 @@ class TestGameHealth(unittest.TestCase):
             engine_log=(FIXTURES / "clean.log").read_text(),
         )
         self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
-        self.assertFalse(game["companies"]["OpexAI"]["run_ok"])
-        self.assertFalse(game["game_ok"])
+        self.assertTrue(game["companies"]["OpexAI"]["run_ok"])
+        self.assertTrue(game["game_ok"])
 
     def test_missing_internal_month_is_protocol_failure(self):
         records = [
