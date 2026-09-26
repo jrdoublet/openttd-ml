@@ -702,3 +702,29 @@ construisent le plus et gagnent moins que la pile seule, sur les 3 graines. C'es
 (§9 de `16_bilan_volume.md`) : sous le premier rang, le vivier classé contient peu de projets qui
 paient. Accélérer le tour a atteint ce mur ; C80-1/C80-2 (durée de tour, chantiers par an) ne sont
 plus des objectifs suffisants sans un filtre de valeur des projets marginaux.
+
+## 15. Qualification économique de la pile complète sur le défaut courant (2026-09-25)
+
+Campagne `results/c80_full_stack_workers_vs_current_default_20x10_20260925.json`,
+20 graines canoniques × 10 ans, 10 workers / 10 CPU, **20/20 paires complètes**.
+Le défaut courant conserve dans les deux bras les optimisations C80 déjà adoptées
+(`c76_regen_targeted=1`, `town_growth_plan_memo=1`, `c80_mode_regen=1`,
+`c80_air_hub_index=1`, socle double registre permanent). Le seul contraste est :
+
+- référence : `c80_worker_rail=0,c80_worker_town=0` ;
+- variante : `c80_worker_rail=1,c80_worker_town=1`.
+
+Variante − référence :
+
+- `profit_year` moyen **+32,6 k£/an** ;
+- médiane **+104,8 k£/an** ;
+- **12 victoires / 8 défaites**, test des signes p=**0,503445** ;
+- IC95 normal **[−162,5 ; +227,7] k£/an** ;
+- valeur d'entreprise : ratio des moyennes **+1,76 %** ;
+- verdict du harnais : `fail_primary`.
+
+La pile ne montre pas de régression économique, mais **échoue au critère C80-6 écrit d'avance** :
+il fallait au moins 15/20 victoires, p<0,05 et un effet moyen > +50 k£/an, avec garde de valeur −5 %.
+Les travailleurs `c80_worker_rail` et `c80_worker_town` restent donc **à défaut 0**. La prochaine
+itération C80 doit améliorer l'allocation du travail/opcodes ou cibler un poste réellement limitant,
+plutôt que d'activer ces deux workers tels quels.
