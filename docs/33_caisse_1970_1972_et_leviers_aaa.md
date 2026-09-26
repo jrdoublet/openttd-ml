@@ -275,8 +275,11 @@ mais moins prioritaire que le fret rail.
 
 1. **C75 nouvelle-ligne / cash** : petit levier directement issu du diagnostic
    1970–71 ; smoke puis 5×6 causal.
-2. **V89 sur le défaut V91=120 courant** : diagnostic 3×6 seulement ; duel si
-   le délai A* reste réellement exposé.
+2. **V89 sur le défaut V91=120 courant** : diagnostic 3×6 terminé le 2026-09-25 ;
+   le délai A* reste exposé (recherches médiane 189,5 j, maximum 735 j ; délai
+   sélection→service jusqu'à 822 j). Le duel causal 5×6 est **non favorable** :
+   `profit_year` −62,0 k£/an en moyenne, médiane −117,7 k£, 2/3, valeur +1,48 %.
+   **Ne pas lancer le 20×10 tel quel** ; retravailler le mécanisme avant nouvelle mesure.
 3. **V88 goods** : diagnostic solo 5×8 terminé ; seulement 2/5 graines avec
    chaîne complète livrée, sous le seuil ≥3/5. Ne pas lancer le 5×6 causal tel
    quel ; retravailler l'exposition ou le blocage résiduel de l'étape 2 rail.

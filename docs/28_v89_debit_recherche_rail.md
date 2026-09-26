@@ -1,6 +1,6 @@
 # V89 — Débit de recherche de chemin ferroviaire opportuniste
 
-Date : **2026-09-24**.
+Date : **2026-09-24**. Protocole requalifié le **2026-09-25** après adoption de V91=120.
 Objectif : réduire le **délai de mise en service** des lignes ferroviaires sans toucher au budget d'itérations ni à la qualité des tracés.
 
 ---
@@ -111,22 +111,58 @@ Toutes les traces réutilisent `OpexC56TaskLog` (actif sous `probe_events=1`, co
 
 ---
 
-## 7. Protocole de validation prévu (à exécuter ultérieurement)
+## 7. Protocole de validation courant
 
-Aucune partie ni commande Docker n'a été exécutée dans cette session. Le protocole suivant est à réaliser :
+Les mesures historiques de §1 précèdent l'adoption de **V91=120**, qui réduit désormais le
+nombre d'itérations de recherche d'environ ×5. Il faut donc d'abord vérifier que le goulot
+calendaire existe encore sur le défaut courant avant de mesurer causalement V89.
 
-### Étape 1 : Diagnostic d'exposition solo 3 graines × 10 ans
+### Étape 1 : diagnostic d'exposition solo 3 graines × 6 ans
 
-- **Commandes** : graines 42, 100, 999 sur 10 ans, avec `probe_events=1` :
-  - Bras 1 : référence défaut (`OpexAI`)
-  - Bras 2 : variante `OpexAI[v89_rail_search_throughput=1]`
+- **Graines** : 42, 100, 999 ; **6 ans**.
+- **Bras unique** : défaut courant (`OpexAI`, donc V90 actif, V91=120 et
+  `v89_rail_search_throughput=0`) avec `probe_portfolio=1,probe_events=1`.
+- Ce diagnostic ne mesure **pas** encore l'effet économique de V89 : il répond uniquement à la
+  question « V91 a-t-il déjà absorbé le goulot de débit rail ? ».
 - **Indicateurs mesurés** :
   - Débit A* : itérations par an (`year_iters`), nombre de tranches (`year_slices`), jours avec recherche active (`search_days`).
   - Délais : délai médian sélection → mise en service (`delay_days`) et fin recherche → mise en service (`search_to_service_days`).
   - Volume ferroviaire : nombre de lignes rail construites, trains pilotés.
   - Part d'opcodes : répartition du temps script par tâche (`self_ops` via `sweeps/analyse_c76_exposure.py`).
 
-### Étape 2 : Duel apparié officiel 20 graines × 10 ans
+**Résultat du 2026-09-25 — exposition confirmée.** Campagne
+`results/v89_exposure_v91_current_3x6_20260925.json` + traces `.jsonl`, graines
+42/100/999, 3/3 parties saines. Les 6 recherches terminées durent 20, 48, 68,
+311, 414 et 735 jours, soit une médiane de **189,5 jours**. Quatre lignes sont
+mises en service dans l'horizon, avec des délais sélection→service de 102, 108,
+342 et 822 jours (médiane **225 jours**) ; le délai fin recherche→service vaut
+31, 40, 82 et 87 jours (médiane **61 jours**). Les bilans annuels avec recherche
+active rapportent 294, 350, 739, 800 et 900 itérations/an (médiane **739**) et
+132 à 340 jours/an de recherche active. V91=120 a donc réduit le nombre total
+d'itérations par recherche, mais **n'a pas supprimé le goulot calendaire**.
+
+Si les recherches restent étalées sur des mois/années ou continuent de bloquer sensiblement le
+slot `_railSearch`, passer à l'étape 2. Sinon, considérer que V91 a absorbé l'exposition et ne pas
+dépenser un 20×10 sur V89.
+
+### Étape 2 : duel causal 5 graines × 6 ans, conditionnel
+
+- **Seulement si l'étape 1 confirme l'exposition**.
+- Référence : défaut courant ; variante : `OpexAI[v89_rail_search_throughput=1]`.
+- Graines 42, 100, 999, 1234, 5678 ; métrique `profit_year`, effet utile +50 k£/an,
+  garde de valeur −5 %.
+- Mesurer en parallèle les mêmes délais et volumes ferroviaires pour vérifier que le mécanisme
+  agit bien par accélération de mise en service plutôt que par une dérive économique indirecte.
+
+**Résultat du 2026-09-25 — non favorable.** Campagne
+`results/v89_rail_throughput_vs_default_5x6_20260925.json`, 5/5 paires complètes.
+Variante − référence : `profit_year` moyen **−62,0 k£/an**, médiane **−117,7 k£**,
+**2 victoires / 3 défaites**, test des signes p=1,0, IC95 **[−177,5 ; +53,5] k£/an**.
+La valeur d'entreprise moyenne est **+1,48 %**. Le mécanisme ne franchit donc pas le seuil
+de qualification économique prévu pour passer au 20×10. Le 20×10 V89 ne doit pas être lancé
+tel quel ; toute reprise doit d'abord modifier causalement l'allocation du slack/opcodes.
+
+### Étape 3 : qualification 20 graines × 10 ans, seulement après un 5×6 favorable
 
 - **Harnais** : `sweeps/run_c66_reference.py`
   ```bash
@@ -139,7 +175,8 @@ Aucune partie ni commande Docker n'a été exécutée dans cette session. Le pro
     --primary-metric "profit_year" \
     --min-useful-primary-delta 50000 \
     --value-guard-max-loss-pct 5.0 \
-    --max-workers 3
+    --max-workers 10 \
+    --cpus 10
   ```
 - **Critères d'adoption** :
   - Métrique primaire : `profit_year` (profit annuel moyen).
