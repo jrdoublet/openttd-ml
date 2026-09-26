@@ -422,18 +422,18 @@ class OpexAIInfo extends AIInfo {
       name = "rail_terrain_factor",
       description = "Pourcentage applique au cout du rail par tuile (100 = brut, 170 = calibre reel, docs/taches.md C2)",
       min_value = 100, max_value = 300,
-      easy_value = 170, medium_value = 170, hard_value = 170,
-      custom_value = 170,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
       step_size = 10,
       flags = 0
     });
 
     AddSetting({
       name = "rail_finance_bias_pct",
-      description = "Rail project finance capital bias percentage (candidate capital * bias / 100); default 170",
+      description = "Rail project finance capital bias percentage (candidate capital * bias / 100); default 100",
       min_value = 90, max_value = 200,
-      easy_value = 170, medium_value = 170, hard_value = 170,
-      custom_value = 170,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
       step_size = 5,
       flags = 0
     });

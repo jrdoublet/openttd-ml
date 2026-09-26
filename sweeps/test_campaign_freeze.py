@@ -187,7 +187,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "v93_airport_no_pop_floor", "v93_air_demand_production", "v95_air_post73_probe",
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)
-        self.assertEqual(defaults["rail_finance_bias_pct"], 170)
+        self.assertEqual(defaults["rail_finance_bias_pct"], 100)
         self.assertEqual(defaults["v91_astar_weight_pct"], 120)
         self.assertNotIn("c80_fleet_inject", defaults)
         self.assertNotIn("c80_air_targeted_update", defaults)

@@ -334,7 +334,7 @@ C75_KPASS_BYPASS_LEDGER <- null;
 C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
 /* Facteur de financement rail applique dans OpexProjectFinanceCapital.
  * Reglage experimental, defaut historique 170. */
-RAIL_FINANCE_BIAS_PCT <- 170;
+RAIL_FINANCE_BIAS_PCT <- 100;
 C75_TRACK_PASSES <- false;
 C75_PASS_DATES <- null;
 C75_YEAR_LEDGER <- null;
