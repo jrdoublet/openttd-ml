@@ -374,13 +374,43 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           local reval = this._revalidateRailStockPlan(candidate, entry.plan);
           if (!reval.ok) {
             if (C56_TASK_TRACE) {
-              OpexC56TaskLog("RAIL_STOCK_REVALIDATE_FAIL", "rail_stock", this._taskCycle,
-                             "src=" + candidate.src + " dst=" + candidate.dst + " reason=" + reval.reason);
+              local failMsg = "src=" + candidate.src + " dst=" + candidate.dst + " reason=" + reval.reason;
+              if ("failedSegments" in reval) {
+                failMsg += " failed=" + reval.failedSegments;
+              }
+              if ("firstSegment" in reval && reval.firstSegment != null) {
+                failMsg += " first=" + reval.firstSegment;
+              }
+              if ("firstTile" in reval && reval.firstTile != null) {
+                failMsg += " first_tile=" + reval.firstTile;
+              }
+              OpexC56TaskLog("RAIL_STOCK_REVALIDATE_FAIL", "rail_stock", this._taskCycle, failMsg);
+            }
+            if (reval.reason == "cash") {
+              if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+                passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                      reason = "cash_at_revalidate", extra = "" });
+              }
+              return { outcome = "rejected", discards = passDiscards };
             }
             delete this._railReadyStock[pairKey];
-            this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 180;
-            if (this._activeWorker == null) this._tryStartRailStockWorker();
             if ("railPlan" in candidate) candidate.railPlan = null;
+            if (reval.reason == "industry_closed") {
+              this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+              if (C56_TASK_TRACE) {
+                OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                               "src=" + candidate.src + " dst=" + candidate.dst
+                               + " reason=" + reval.reason + " issue=abandoned");
+              }
+              if (this._activeWorker == null) this._tryStartRailStockWorker();
+            } else {
+              // Règle 3 : relancer en priorité un A* pour la même paire (nouvelle recherche)
+              local started = this._startRailStockSearch(candidate, true, reval.reason);
+              if (!started) {
+                this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 180;
+                if (this._activeWorker == null) this._tryStartRailStockWorker();
+              }
+            }
             if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
               passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
                                     reason = "revalidate_fail", extra = reval.reason });
@@ -1552,11 +1582,30 @@ function OpexAI::_consumeRailUpgrade()
  * C80 Étape 2 : Worker RailSearchStock autonome (N=1) sur reliquat
  * ============================================================================ */
 
+/* C80 étape 2 : met à jour le seuil de sélection mémorisé à partir du dernier projet financé
+ * lors de la dernière sélection qui a financé au moins un projet.
+ * Mémoire transitoire (vidée au chargement). Si aucune sélection n'a encore financé de projet,
+ * le seuil reste à 0.0 (pas de filtre). */
+function OpexAI::_updateRailStockSelectionThreshold()
+{
+  if (!C80_RAIL_STOCK_WORKER || !C80_RAIL_STOCK_GATE) return;
+  if (this._projects == null || !("best" in this._projects) || this._projects.best == null) return;
+  if (this._projects.best.len() == 0) return;
+
+  local lastFunded = this._projects.best[this._projects.best.len() - 1];
+  if (lastFunded != null && ("fundScore" in lastFunded) && lastFunded.fundScore != null) {
+    this._railStockLastFundedScore = lastFunded.fundScore;
+    this._railStockLastFundedDate = AIDate.GetCurrentDate();
+  }
+}
+
 /* C80 étape 2 : sélectionne le meilleur candidat rail de tête et lance sa recherche de stock.
- * Règle §2.2.B : liste ordonnée existante, pas de balayage du vivier, filtres de trésorerie et cooldown. */
+ * Règle §2.2.B : liste ordonnée existante, pas de balayage du vivier, filtres de trésorerie et cooldown.
+ * Révision 3.2 ter : seuil = fundScore du dernier projet financé à la dernière sélection non vide. */
 function OpexAI::_tryStartRailStockWorker()
 {
   if (!C80_RAIL_STOCK_WORKER || !C80_RAIL_STOCK_GATE) return false;
+  this._updateRailStockSelectionThreshold();
   if (this._railReadyStock.len() >= 1) return false;
   if (this._railSearch != null) return false;
   if (this._projects == null) return false;
@@ -1570,6 +1619,12 @@ function OpexAI::_tryStartRailStockWorker()
     }
   }
   if (railCandidates == null || railCandidates.len() == 0) return false;
+
+  // Seuil de score grossier : fundScore du dernier projet financé lors de la dernière sélection non vide.
+  // Question posée : « ce candidat aurait-il été financé à la dernière vraie sélection ? ».
+  // Si aucune sélection n'a encore financé de projet (début de partie), le seuil reste à 0.0 (aucun filtre).
+  local threshold = this._railStockLastFundedScore;
+  local thresholdDate = this._railStockLastFundedDate;
 
   local available = OpexAvailableCapital();
   local maxCost = (available * 3) / 2;
@@ -1592,15 +1647,45 @@ function OpexAI::_tryStartRailStockWorker()
       if (!AIIndustry.IsValidIndustry(candidate.src) || !AIIndustry.IsValidIndustry(candidate.dst)) continue;
     }
 
-    return this._startRailStockSearch(candidate);
+    local paperProject = OpexProjectFromCandidate(candidate);
+    if (paperProject == null) continue;
+    local paperFinanceCapital = OpexProjectFinanceCapital(paperProject);
+    local paperProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(paperProject) : paperProject.profitAnnual;
+    local coarseFundScore = OpexProjectScore(paperProfit, paperFinanceCapital);
+
+    if (threshold > 0.0 && coarseFundScore < threshold) {
+      if (C56_TASK_TRACE) {
+        local thresholdDateStr = (thresholdDate >= 0)
+            ? (AIDate.GetYear(thresholdDate) + "-" + AIDate.GetMonth(thresholdDate) + "-" + AIDate.GetDayOfMonth(thresholdDate))
+            : "none";
+        OpexC56TaskLog("RAIL_STOCK_SKIP_BELOW_THRESHOLD", "rail_stock", this._taskCycle,
+                       "src=" + candidate.src + " dst=" + candidate.dst
+                       + " score=" + coarseFundScore + " threshold=" + threshold
+                       + " threshold_date=" + thresholdDateStr);
+      }
+      continue;
+    }
+
+    return this._startRailStockSearch(candidate, false, null, coarseFundScore);
   }
 
   return false;
 }
 
 /* C80 étape 2 : initialise la recherche A* d'un candidat de tête pour le stock de tracés. */
-function OpexAI::_startRailStockSearch(candidate)
+function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason = null, coarseScore = null)
 {
+  if (coarseScore == null) {
+    local paperProject = OpexProjectFromCandidate(candidate);
+    if (paperProject != null) {
+      local paperFinanceCapital = OpexProjectFinanceCapital(paperProject);
+      local paperProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(paperProject) : paperProject.profitAnnual;
+      coarseScore = OpexProjectScore(paperProfit, paperFinanceCapital);
+    } else {
+      coarseScore = 0.0;
+    }
+  }
+
   local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
   local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
   local hardCap = OpexDynamicHardCap(this._lines.len(), false);
@@ -1610,6 +1695,11 @@ function OpexAI::_startRailStockSearch(candidate)
   if (plan.plansA == null) {
     local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
     this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+    if (isRepair && C56_TASK_TRACE) {
+      OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                     "src=" + candidate.src + " dst=" + candidate.dst
+                     + " reason=" + repairReason + " issue=failed");
+    }
     return false;
   }
 
@@ -1620,6 +1710,11 @@ function OpexAI::_startRailStockSearch(candidate)
     if (segmented == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+      if (isRepair && C56_TASK_TRACE) {
+        OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                       "src=" + candidate.src + " dst=" + candidate.dst
+                       + " reason=" + repairReason + " issue=failed");
+      }
       return false;
     }
   } else {
@@ -1627,6 +1722,11 @@ function OpexAI::_startRailStockSearch(candidate)
     if (pathfinder == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+      if (isRepair && C56_TASK_TRACE) {
+        OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                       "src=" + candidate.src + " dst=" + candidate.dst
+                       + " reason=" + repairReason + " issue=failed");
+      }
       return false;
     }
   }
@@ -1648,7 +1748,10 @@ function OpexAI::_startRailStockSearch(candidate)
     posPacked = posPacked,
     startDate = curDate,
     startTick = curTick,
-    isStockSearch = true
+    isStockSearch = true,
+    isRepair = isRepair,
+    repairReason = repairReason,
+    coarseScore = coarseScore
   };
 
   this._activeWorker = {
@@ -1659,9 +1762,20 @@ function OpexAI::_startRailStockSearch(candidate)
   };
 
   if (C56_TASK_TRACE) {
+    local threshold = this._railStockLastFundedScore;
+    local thresholdDate = this._railStockLastFundedDate;
+    local thresholdDateStr = (thresholdDate >= 0)
+        ? (AIDate.GetYear(thresholdDate) + "-" + AIDate.GetMonth(thresholdDate) + "-" + AIDate.GetDayOfMonth(thresholdDate))
+        : "none";
     OpexC56TaskLog("RAIL_STOCK_START", "rail_stock", this._taskCycle,
                    "src=" + candidate.src + " dst=" + candidate.dst
-                   + " budget=" + plan.iterationBudget + " hard_cap=" + hardCap);
+                   + " budget=" + plan.iterationBudget + " hard_cap=" + hardCap
+                   + " threshold=" + threshold + " threshold_date=" + thresholdDateStr);
+    if (isRepair) {
+      OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                     "src=" + candidate.src + " dst=" + candidate.dst
+                     + " reason=" + repairReason + " issue=started");
+    }
   }
 
   return true;
@@ -1677,11 +1791,18 @@ function OpexAI::_handleRailStockSearchTimeout()
   local curDate = AIDate.GetCurrentDate();
   local days = ("startDate" in state) ? (curDate - state.startDate) : 180;
   local ticks = ("startTick" in state) ? (AIController.GetTick() - state.startTick) : 0;
+  local isRepair = ("isRepair" in state) && state.isRepair;
+  local repairReason = ("repairReason" in state && state.repairReason != null) ? state.repairReason : "";
 
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_STOCK_TIMEOUT", "rail_stock", this._taskCycle,
                    "src=" + candidate.src + " dst=" + candidate.dst
                    + " iters=" + iters + " days=" + days + " ticks=" + ticks);
+    if (isRepair) {
+      OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                     "src=" + candidate.src + " dst=" + candidate.dst
+                     + " reason=" + repairReason + " issue=timeout");
+    }
   }
 
   local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
@@ -1707,10 +1828,17 @@ function OpexAI::_handleRailStockSearchCompleted()
   local days = ("startDate" in state) ? (curDate - state.startDate) : 0;
   local ticks = ("startTick" in state) ? (AIController.GetTick() - state.startTick) : 0;
   local opcodes = (plan != null && ("opcodes" in plan)) ? plan.opcodes : 0;
+  local isRepair = ("isRepair" in state) && state.isRepair;
+  local repairReason = ("repairReason" in state && state.repairReason != null) ? state.repairReason : "";
 
   local readyProject = (plan != null && ("ok" in plan) && plan.ok)
       ? OpexProjectFromCandidate(candidate) : null;
   if (readyProject != null) {
+    local readyFinanceCapital = OpexProjectFinanceCapital(readyProject);
+    local readyProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(readyProject) : readyProject.profitAnnual;
+    local readyFundScore = OpexProjectScore(readyProfit, readyFinanceCapital);
+    readyProject.fundScore <- readyFundScore;
+
     this._railReadyStock[pairKey] <- {
       plan = plan,
       candidate = candidate,
@@ -1724,10 +1852,28 @@ function OpexAI::_handleRailStockSearchCompleted()
                      "src=" + candidate.src + " dst=" + candidate.dst
                      + " iters=" + iters + " days=" + days + " ticks=" + ticks
                      + " opcodes=" + opcodes);
+
+      local scoreBefore = ("coarseScore" in state && state.coarseScore != null) ? state.coarseScore : 0.0;
+      local scoreAfter = readyFundScore;
+      local scoreDiff = scoreAfter - scoreBefore;
+      OpexC56TaskLog("RAIL_STOCK_SCORE", "rail_stock", this._taskCycle,
+                     "src=" + candidate.src + " dst=" + candidate.dst
+                     + " before=" + scoreBefore + " after=" + scoreAfter + " diff=" + scoreDiff);
+
+      if (isRepair) {
+        OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                       "src=" + candidate.src + " dst=" + candidate.dst
+                       + " reason=" + repairReason + " issue=repaired");
+      }
     }
   } else {
     // Échec de recherche : retrait temporaire 365 jours
     this._railStockCooldown[pairKey] <- curDate + 365;
+    if (C56_TASK_TRACE && isRepair) {
+      OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                     "src=" + candidate.src + " dst=" + candidate.dst
+                     + " reason=" + repairReason + " issue=failed");
+    }
     this._tryStartRailStockWorker();
   }
 
@@ -1800,8 +1946,16 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
     local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
     if (!okA || !okB) return { ok = false, reason = "station_blocked" };
 
-    local trackFailed = OpexBuildTrack(tiles, (("structures" in plan) ? plan.structures : null));
-    if (trackFailed > 0) return { ok = false, reason = "track_blocked" };
+    local trackRes = OpexTestRailTrack(tiles, (("structures" in plan) ? plan.structures : null));
+    if (trackRes.failed > 0) {
+      return {
+        ok = false,
+        reason = "track_blocked",
+        failedSegments = trackRes.failed,
+        firstSegment = trackRes.firstSegment,
+        firstTile = trackRes.firstTile
+      };
+    }
 
     local depotFound = false;
     local offsets = [

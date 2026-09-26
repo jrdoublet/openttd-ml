@@ -359,6 +359,7 @@ function OpexAI::_c77RemoveSubsidy(subId)
   if (this._projects != null) {
     this._projects = OpexReselectProjects(
         this._projects, OpexAvailableCapital(), this._abandonedPairs, this._lines);
+    if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
     this._ranked = this._projects.rail;
   }
 }

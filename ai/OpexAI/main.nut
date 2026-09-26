@@ -150,6 +150,10 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* C80 étape 2 : seuil de score grossier pour le worker rail (score du dernier projet financé
+   * lors de la dernière sélection non vide). Mémoire transitoire, réinitialisée à 0 au chargement. */
+  _railStockLastFundedScore = 0.0;
+  _railStockLastFundedDate = -1;
   /* C67.4 : service de carte par blocs, reconstruit, jamais sauvegarde (task_terrain.nut). */
   _c67Terrain = null;
   _c67BgCursor = 0;
@@ -362,6 +366,8 @@ class OpexAI extends AIController {
     this._activeSubsidies = {};
     this._railReadyStock = {};
     this._railStockCooldown = {};
+    this._railStockLastFundedScore = 0.0;
+    this._railStockLastFundedDate = -1;
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};
     this._staleness = {
@@ -561,8 +567,9 @@ class OpexAI extends AIController {
   function _advanceRailSearchThroughput(maxSlices = -1);
   function _v89TrackSearchDays(now);
   function _logC89AnnualRail(year);
+  function _updateRailStockSelectionThreshold();
   function _tryStartRailStockWorker();
-  function _startRailStockSearch(candidate);
+  function _startRailStockSearch(candidate, isRepair = false, repairReason = null, coarseScore = null);
   function _handleRailStockSearchTimeout();
   function _handleRailStockSearchCompleted();
   function _checkRailStockExpiry();

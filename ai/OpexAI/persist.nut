@@ -709,6 +709,9 @@ function OpexAI::Load(version, data)
   if ("c83PreemptStopped" in data) this._reloadC83PreemptStopped = data.c83PreemptStopped;
   if ("c83PreemptQueued" in data) this._reloadC83PreemptQueued = data.c83PreemptQueued;
   if ("c83PreemptRace" in data) this._reloadC83PreemptRace = data.c83PreemptRace;
+  /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
+  this._railStockLastFundedScore = 0.0;
+  this._railStockLastFundedDate = -1;
 }
 /* Load tourne trop tot et sous DisableDoCommandScope : la verification du monde est donc faite
  * ici, apres les reglages. Les stationA/stationB sont des TUILES, jamais des StationID. */

@@ -1356,6 +1356,7 @@ function OpexAI::_tryBuildProjects(year)
       } else {
         this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns);
       }
+      if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
         local c76Days = (c76Ops + 93000) / 186000;
@@ -1471,7 +1472,10 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
         fleetPlan, this._abandonedPairs, stage, prior,
         freightCargo, freightCargos, this._activeSubsidies,
         airOverride, this._railReadyStock);
-    if (C80_RAIL_STOCK_WORKER) this._projects.railStockAI <- this;
+    if (C80_RAIL_STOCK_WORKER) {
+      this._projects.railStockAI <- this;
+      this._updateRailStockSelectionThreshold();
+    }
   } else {
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
         fleetPlan, this._abandonedPairs, stage, prior,

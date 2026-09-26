@@ -78,6 +78,28 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
     def test_revalidation_mandatory_before_build(self):
         self.assertIn("function OpexAI::_revalidateRailStockPlan(candidate, plan)", self.task_rail)
         self.assertIn("this._revalidateRailStockPlan(candidate, entry.plan)", self.task_rail)
+        # Contrat : _revalidateRailStockPlan n'appelle plus OpexBuildTrack mais OpexTestRailTrack
+        start_reval = self.task_rail.index("function OpexAI::_revalidateRailStockPlan")
+        end_reval = self.task_rail.index("\n}\n", start_reval) + 3
+        reval_body = self.task_rail[start_reval:end_reval]
+        self.assertNotIn("OpexBuildTrack", reval_body)
+        self.assertIn("OpexTestRailTrack", reval_body)
+
+        # Contrat : OpexBuildTrack inchangée par rapport à 6895781
+        import subprocess
+        orig_file = subprocess.check_output(
+            ["git", "show", "6895781:ai/OpexAI/builder_rail.nut"],
+            cwd=str(ROOT),
+            text=True,
+        )
+        def _extract_build_track(content):
+            start = content.index("function OpexBuildTrack(")
+            end = content.index("\n}\n", start) + 3
+            return content[start:end]
+
+        curr_build_track = _extract_build_track((ROOT / "ai/OpexAI/builder_rail.nut").read_text(encoding="utf-8"))
+        orig_build_track = _extract_build_track(orig_file)
+        self.assertEqual(curr_build_track, orig_build_track, "OpexBuildTrack doit être strictement identique à 6895781")
 
     def test_v89_throughput_interaction_documented_and_guarded(self):
         # Le worker absorbe le reliquat et V89 cède sous C80_RAIL_STOCK_WORKER
@@ -104,6 +126,9 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
             "RAIL_STOCK_CONSUME",
             "RAIL_STOCK_REVALIDATE_FAIL",
             "RAIL_STOCK_SELECT",
+            "RAIL_STOCK_SKIP_BELOW_THRESHOLD",
+            "RAIL_STOCK_SCORE",
+            "RAIL_STOCK_REPAIR",
         ]
         for trace in required_traces:
             self.assertIn(f'"{trace}"', self.task_rail + self.task_projects + self.projects)
@@ -120,17 +145,61 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertIn("railStockFusionOpcodes", self.projects)
         self.assertIn("this._railReadyStock[pairKey].project != project", self.task_rail)
 
+    def test_coarse_score_and_selection_threshold_contract(self):
+        # 1. Calcul du fundScore papier avec exactement les fonctions de la sélection
+        self.assertIn("local paperProject = OpexProjectFromCandidate(candidate);", self.task_rail)
+        self.assertIn("local paperFinanceCapital = OpexProjectFinanceCapital(paperProject);", self.task_rail)
+        self.assertIn("local paperProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(paperProject) : paperProject.profitAnnual;", self.task_rail)
+        self.assertIn("local coarseFundScore = OpexProjectScore(paperProfit, paperFinanceCapital);", self.task_rail)
+        # 2. Seuil mémorisé du dernier projet financé de la dernière sélection non vide
+        self.assertIn("local threshold = this._railStockLastFundedScore;", self.task_rail)
+        self.assertIn("local thresholdDate = this._railStockLastFundedDate;", self.task_rail)
+        self.assertIn("threshold > 0.0 && coarseFundScore < threshold", self.task_rail)
+        self.assertIn("threshold_date=", self.task_rail)
+        # 3. Suppression intégrale de bestUnfundedScore et selectionReduced
+        self.assertNotIn("bestUnfundedScore", self.task_rail)
+        self.assertNotIn("selectionReduced", self.task_rail)
+        # 4. Mémoire transitoire vidée au chargement
+        self.assertIn("this._railStockLastFundedScore = 0.0;", self.persist)
+        self.assertIn("this._railStockLastFundedDate = -1;", self.persist)
+        # 5. Mesure de fiabilité avant / après A*
+        self.assertIn("RAIL_STOCK_SCORE", self.task_rail)
+        self.assertIn("before=", self.task_rail)
+        self.assertIn("after=", self.task_rail)
+
+    def test_repair_instead_of_abandon_contract(self):
+        # En cas d'échec de revalidation, tentative de relance A* pour la même paire
+        self.assertIn("local started = this._startRailStockSearch(candidate, true, reval.reason);", self.task_rail)
+        # Retrait uniquement si la recherche ne peut pas démarrer ou échoue
+        self.assertIn("if (!started)", self.task_rail)
+        self.assertIn("isRepair", self.task_rail)
+        self.assertIn("repairReason", self.task_rail)
+        self.assertIn("issue=repaired", self.task_rail)
+        self.assertIn("issue=started", self.task_rail)
+
     def test_diagnostic_counts_ready_funded_built_and_merge_cost(self):
         events = extract("\n".join([
             "OPEX 1970-1-1 C56_TASK RAIL_STOCK_DEPOSIT src=1 dst=2",
             "OPEX 1970-1-2 C56_TASK RAIL_STOCK_SELECT ready=1 funded=1 merge_ops=47",
             "OPEX 1970-1-3 C56_TASK RAIL_STOCK_CONSUME src=1 dst=2 delay_days=2",
+            "OPEX 1970-1-4 C56_TASK RAIL_STOCK_SKIP_BELOW_THRESHOLD src=1 dst=3 score=120 threshold=250 threshold_date=1970-1-1",
+            "OPEX 1970-1-5 C56_TASK RAIL_STOCK_SCORE src=1 dst=2 before=300 after=280 diff=-20",
+            "OPEX 1970-1-6 C56_TASK RAIL_STOCK_REPAIR src=1 dst=2 reason=track_blocked issue=started",
+            "OPEX 1970-1-7 C56_TASK RAIL_STOCK_REPAIR src=1 dst=2 reason=track_blocked issue=repaired",
         ]))
         metrics = analyze_events(events)
         self.assertEqual(metrics["stock_ready_passes"], 1)
         self.assertEqual(metrics["stock_funded_passes"], 1)
         self.assertEqual(metrics["stock_built"], 1)
         self.assertEqual(metrics["stock_merge_ops"], [47])
+        self.assertEqual(metrics["stock_skips_below_threshold"], 1)
+        self.assertEqual(metrics["stock_repairs_count"], 2)
+        self.assertEqual(metrics["stock_repairs_repaired"], 1)
+        self.assertEqual(metrics["stock_repairs_by_issue"]["started"], 1)
+        self.assertEqual(metrics["stock_repairs_by_issue"]["repaired"], 1)
+        self.assertEqual(metrics["score_diff_avg"], -20.0)
+        self.assertEqual(metrics["score_diffs"], [-20.0])
+        self.assertEqual(metrics["ready_unfunded_details"], [])
 
 
 if __name__ == "__main__":

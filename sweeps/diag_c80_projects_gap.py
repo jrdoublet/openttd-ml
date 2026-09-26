@@ -27,6 +27,7 @@ KEEP_C56 = (
     "RAIL_STOCK_START", "RAIL_STOCK_DEPOSIT", "RAIL_STOCK_TIMEOUT",
     "RAIL_STOCK_EXPIRE", "RAIL_STOCK_CONSUME", "RAIL_STOCK_REVALIDATE_FAIL",
     "RAIL_STOCK_SELECT",
+    "RAIL_STOCK_SKIP_BELOW_THRESHOLD", "RAIL_STOCK_SCORE", "RAIL_STOCK_REPAIR",
 )
 
 
@@ -121,12 +122,31 @@ def analyze_events(events):
             builds_by_mode[m] = builds_by_mode.get(m, 0) + 1
 
     # Métriques C80 Stock & Worker
+    stock_starts = [e for e in events if e["type"] == "rail_stock_start"]
     stock_deposits = [e for e in events if e["type"] == "rail_stock_deposit"]
     stock_consumes = [e for e in events if e["type"] == "rail_stock_consume"]
     stock_expires = [e for e in events if e["type"] == "rail_stock_expire"]
     stock_timeouts = [e for e in events if e["type"] == "rail_stock_timeout"]
     stock_reval_fails = [e for e in events if e["type"] == "rail_stock_revalidate_fail"]
     stock_selections = [e for e in events if e["type"] == "rail_stock_select"]
+    stock_skips = [e for e in events if e["type"] == "rail_stock_skip_below_threshold"]
+    stock_scores = [e for e in events if e["type"] == "rail_stock_score"]
+    stock_repairs = [e for e in events if e["type"] == "rail_stock_repair"]
+
+    stock_reval_by_reason = {}
+    stock_reval_details = []
+    for e in stock_reval_fails:
+        r = e.get("reason", "unknown")
+        stock_reval_by_reason[r] = stock_reval_by_reason.get(r, 0) + 1
+        stock_reval_details.append({
+            "date": e.get("date"),
+            "reason": r,
+            "failed": e.get("failed"),
+            "first": e.get("first"),
+            "src": e.get("src"),
+            "dst": e.get("dst"),
+        })
+
     def _number(e, key):
         try:
             return int(e.get(key, 0))
@@ -135,6 +155,35 @@ def analyze_events(events):
     stock_ready_passes = sum(_number(e, "ready") > 0 for e in stock_selections)
     stock_funded_passes = sum(_number(e, "funded") > 0 for e in stock_selections)
     stock_merge_ops = [_number(e, "merge_ops") for e in stock_selections]
+
+    ready_unfunded_details = []
+    for e in stock_selections:
+        if _number(e, "ready") > 0 and _number(e, "funded") == 0:
+            ready_unfunded_details.append({
+                "date": e.get("date"),
+                "rail_score": float(e["rail_score"]) if "rail_score" in e else None,
+                "rail_cap": int(e["rail_cap"]) if "rail_cap" in e else None,
+                "budget": int(e["budget"]) if "budget" in e else None,
+                "last_score": float(e["last_score"]) if "last_score" in e else None,
+                "last_cap": int(e["last_cap"]) if "last_cap" in e else None,
+            })
+
+    score_diffs = []
+    for e in stock_scores:
+        if "diff" in e and e["diff"] is not None:
+            try:
+                score_diffs.append(float(e["diff"]))
+            except (ValueError, TypeError):
+                pass
+    score_diff_avg = (sum(score_diffs) / len(score_diffs)) if score_diffs else None
+
+    repairs_by_issue = {}
+    repairs_repaired = 0
+    for e in stock_repairs:
+        iss = e.get("issue", "unknown")
+        repairs_by_issue[iss] = repairs_by_issue.get(iss, 0) + 1
+        if iss == "repaired":
+            repairs_repaired += 1
 
     search_days_list = []
     for e in stock_deposits + stock_timeouts:
@@ -168,15 +217,25 @@ def analyze_events(events):
         "rail_search_stops": rail_search_stops,
         "no_ready_route_discards": no_ready_route_discards,
         "builds_by_mode": builds_by_mode,
+        "stock_starts": len(stock_starts),
         "stock_deposits": len(stock_deposits),
         "stock_consumes": len(stock_consumes),
         "stock_expires": len(stock_expires),
         "stock_timeouts": len(stock_timeouts),
         "stock_reval_fails": len(stock_reval_fails),
+        "stock_reval_by_reason": stock_reval_by_reason,
+        "stock_reval_details": stock_reval_details,
+        "stock_skips_below_threshold": len(stock_skips),
+        "stock_repairs_count": len(stock_repairs),
+        "stock_repairs_repaired": repairs_repaired,
+        "stock_repairs_by_issue": repairs_by_issue,
         "stock_ready_passes": stock_ready_passes,
         "stock_funded_passes": stock_funded_passes,
+        "ready_unfunded_details": ready_unfunded_details,
         "stock_built": len(stock_consumes),
         "stock_merge_ops": stock_merge_ops,
+        "score_diff_avg": score_diff_avg,
+        "score_diffs": score_diffs,
         "search_days_median": search_days_med,
         "search_days_max": search_days_max,
         "delay_days_median": delay_days_med,

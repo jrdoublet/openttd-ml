@@ -1206,14 +1206,34 @@ function OpexPromoteLiveDefensiveAirStock(projects, capitalBudget)
     local ai = projects.railStockAI;
     ai._checkRailStockExpiry();
     OpexReselectProjects(projects, capitalBudget, ai._abandonedPairs, ai._lines, ai._railReadyStock);
+    ai._updateRailStockSelectionThreshold();
     if (C56_TASK_TRACE) {
       local funded = 0;
       foreach (p in projects.best) if (p.mode == "rail") funded++;
       local ready = ("railReadyStock" in projects) && projects.railReadyStock != null
           ? projects.railReadyStock.len() : 0;
+      local extraLog = "";
+      if (ready > 0 && funded == 0) {
+        local lastFunded = (projects.best != null && projects.best.len() > 0)
+            ? projects.best[projects.best.len() - 1] : null;
+        local lastScore = (lastFunded != null && ("fundScore" in lastFunded)) ? lastFunded.fundScore : 0.0;
+        local lastCap = (lastFunded != null) ? OpexProjectFinanceCapital(lastFunded) : 0;
+        local railScore = 0.0;
+        local railCap = 0;
+        foreach (k, stockEntry in projects.railReadyStock) {
+          if (stockEntry != null && ("project" in stockEntry) && stockEntry.project != null) {
+            local rp = stockEntry.project;
+            railScore = ("fundScore" in rp) ? rp.fundScore : 0.0;
+            railCap = OpexProjectFinanceCapital(rp);
+            break;
+          }
+        }
+        extraLog = " rail_score=" + railScore + " rail_cap=" + railCap
+                 + " budget=" + capitalBudget + " last_score=" + lastScore + " last_cap=" + lastCap;
+      }
       OpexC56TaskLog("RAIL_STOCK_SELECT", "projects", "-",
           "ready=" + ready + " funded=" + funded
-          + " merge_ops=" + projects.stats.railStockFusionOpcodes);
+          + " merge_ops=" + projects.stats.railStockFusionOpcodes + extraLog);
     }
   }
   return OpexPromoteLiveDefensiveAirBase(projects, capitalBudget);

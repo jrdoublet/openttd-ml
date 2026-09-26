@@ -283,6 +283,7 @@ function OpexAI::_dispatchCatalog(task, year)
         local budgetNow = OpexAvailableCapital();
         this._projects = OpexReselectProjects(
             this._projects, budgetNow, this._abandonedPairs, this._lines);
+        if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
       }
       this._c76RecordAvoided(year);
     }
@@ -756,6 +757,7 @@ function OpexAI::_dispatchAirFleet(task, year)
       if (fleetPlan.len() > 0) {
         local budgetNow = OpexAvailableCapital();
         this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow, this._lines);
+        if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
         this._ranked = this._projects.rail;
       }
     }

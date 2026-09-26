@@ -509,6 +509,90 @@ rafraîchit `fundScore` avec le capital disponible, sans refaire le devis à cha
 revalidation de la carte reste obligatoire juste avant la dépense. Le devis physique exact par
 `AITestMode` reste celui de la construction ; `capitalIsActual` n'est pas revendiqué ici.
 
+### 3.2 ter Révision : Ne chercher que ce que la sélection retiendrait, et réparer au lieu d'abandonner (décision utilisateur, 2026-09-26)
+
+**Constat qui motive la révision (solo 3 graines × 6 ans, `results/astar_e2b_solo_3x6.json`).**
+1. Un projet rail prêt est présent dans 68 passes sur 85 (graine 100) mais n'est retenu par la sélection que 9 fois.
+   Le worker choisissait la tête de `projects.rail.best` classée par `ratio` (profit/opcode + ROI bonifié), sans rapport
+   avec le critère de sélection (`fundScore`). `homogeneous_preselect=1` harmonise le préclassement par `fundScore` papier,
+   mais le worker continuait de chercher des corridors sans vérifier s'ils pouvaient franchir le seuil du portefeuille du moment.
+2. Lorsque la sélection retenait un projet rail prêt, sa re-vérification matérielle échouait souvent en cours de partie
+   (`track_blocked`, 4 fois de suite en 1970 sur la graine 5678 face à la croissance urbaine), et le projet était immédiatement
+   écarté en retrait temporaire pendant 180 jours au lieu d'être réparé par un A* rapide. Sans sonde, le résultat était
+   de 2, 0 et 0 trains contre 9, 4 et 6 au défaut.
+
+**Principes implémentés (entièrement sous `c80_rail_stock_worker=1`) :**
+
+1. **Score grossier avant l'A\* et seuil dynamique de la dernière sélection non vide** :
+   - Pour chaque candidat de tête de `railCandidates`, le worker calcule le `fundScore` papier exact avec les mêmes fonctions
+     que la sélection : `OpexProjectFromCandidate`, `OpexProjectFinanceCapital`, `OpexCalibratedProfit` (C70), `OpexProjectScore`.
+   - **Définition et mémorisation du seuil exact** :
+     - Seuil = `fundScore` du **dernier projet financé lors de la dernière sélection qui a financé au moins un projet** (`this._railStockLastFundedScore`),
+       mis à jour à chaque sélection non vide via `_updateRailStockSelectionThreshold()`. Question posée : « ce candidat aurait-il été financé à la dernière vraie sélection ? ».
+     - Si aucune sélection n'a encore financé de projet (tout début de partie) : pas de filtre (seuil initialisé à 0.0).
+     - La branche `bestUnfundedScore` / `selectionReduced` a été intégralement supprimée (elle bloquait les candidats en exigeant qu'ils soient premiers de toute la liste des alternatives dès qu'un projet dépassait le budget).
+     - **Mémoire transitoire** : vidée au chargement (`Load()`), le seuil repart à 0.0 jusqu'à la prochaine sélection non vide.
+   - Le worker ne lance l'A\* que si `coarseFundScore >= threshold`. Si un candidat est en dessous du seuil, il est ignoré.
+   - Traces sous sonde (`probe_events=1`) :
+     - `RAIL_STOCK_SKIP_BELOW_THRESHOLD src=... dst=... score=... threshold=... threshold_date=...`
+     - `RAIL_STOCK_START src=... dst=... budget=... hard_cap=... threshold=... threshold_date=...`
+
+2. **Mesure de fiabilité avant / après A\*** :
+   - Au dépôt du tracé complété dans `_handleRailStockSearchCompleted`, comparaison du score grossier papier avant A\*
+     (`scoreBefore`, mémorisé dans `state.coarseScore`) et du score du projet prêt après recalcul économique sur la longueur
+     réelle du chemin A\* (`scoreAfter = readyProject.fundScore`).
+   - Trace sous sonde (`probe_events=1`) : `RAIL_STOCK_SCORE src=... dst=... before=... after=... diff=...`.
+
+3. **Réparation au lieu d'abandon sur échec de revalidation** :
+   - Dans `_tryBuildRailProject`, lorsque `_revalidateRailStockPlan` échoue sur obstacle matériel (`track_blocked`, `station_blocked`,
+     `depot_blocked`, `invalid_plan_structure`) : le plan périmé est retiré du stock, mais aucun cooldown n'est appliqué à la paire.
+   - Le worker relance immédiatement et en priorité une nouvelle recherche A\* pour la même paire (`this._startRailStockSearch(candidate, true, reval.reason)`).
+   - Le retrait (cooldown 365 j) n'est appliqué que si cette nouvelle recherche échoue à trouver un chemin ou dépasse l'échéance de 180 j.
+   - Traces sous sonde (`probe_events=1`) : `RAIL_STOCK_REPAIR src=... dst=... reason=... issue=started|repaired|failed|timeout`.
+
+**Validation et mesures (Solo 3×6 graines 100, 999, 5678, `results/astar_e2d_solo_3x6.json`) :**
+- **Saut sous le seuil** : 392 skips (graine 100), 69 skips (graine 999), 123 skips (graine 5678) — 584 recherches évitées (contre 805 en e2c).
+- **Recherches et dépôts** :
+  - Graine 100 : 7 recherches démarrées, 6 dépôts en stock, 34 passes avec projet prêt, 13 passes financé.
+  - Graine 999 : 6 recherches démarrées, 2 dépôts en stock, 6 passes avec projet prêt, 0 passe financé.
+  - Graine 5678 : 12 recherches démarrées, 10 dépôts en stock, 20 passes avec projet prêt, 9 passes financé.
+- **Réparations effectives** :
+  - Graine 100 : 6 événements réparation, 3 réparations complétées avec succès (`repaired: 3`).
+  - Graine 5678 : 16 événements réparation, 8 réparations complétées avec succès (`repaired: 8`).
+- **Écart de score avant/après A\*** : diff moyen −1,88 (graine 100), +1,29 (graine 999), +2,10 (graine 5678). Le score papier est remarquablement fidèle au devis réel A\*.
+- **Économie propre sans sonde** (`gate=1, worker=1, homogeneous_preselect=1`) :
+  - Graine 100 : profit 1 799 534 £ (+2,4 %), valeur 7 073 319 £ (+17,6 %) ;
+  - Graine 999 : profit 3 134 890 £ (−14,9 %), valeur 10 985 147 £ (−1,9 %) ;
+  - Graine 5678 : profit 3 934 419 £ (−1,8 %), valeur 14 118 880 £ (+10,9 %) ;
+  - Moyenne 3 graines : profit 2 956 281 £ (−6,1 % vs réf 3 148 981 £), valeur 10 725 782 £ (+7,5 % vs réf 9 981 718 £).
+- **Diagnostic capital vs score vs revalidation (causes de non-construction)** :
+  1. *Pourquoi le projet rail n'est pas financé dans certaines passes où il est prêt* :
+     - En début de partie (1970) : contrainte de trésorerie (`rail_cap` ~38-40 k£ > `budget` disponible ~22-29 k£).
+     - En milieu/fin de partie : concurrence de score avec l'aérien (`rail_score` de 20 à 327 inférieur au `last_score` des liaisons aériennes qui plafonne entre 305 et 625).
+  2. *Pourquoi le projet rail n'est pas construit lorsqu'il EST financé (13 fois sur graine 100, 9 fois sur graine 5678)* :
+     - Cause identifiée au niveau moteur : `_revalidateRailStockPlan` teste la faisabilité des voies en appelant `OpexBuildTrack(tiles)` sous `AITestMode()`. Or dans `OpexBuildTrack`, chaque tronçon appelle `AIRail.AreTilesConnected(prev, cur, next)` pour vérifier la connexion des rails. Comme `AITestMode` n'écrit pas les voies sur la carte, `AreTilesConnected` teste des tuiles vierges et renvoie systématiquement `false`.
+     - Résultat : `trackFailed > 0` et le plan prêt échoue systématiquement avec `reason=track_blocked` (faux positif matériel). Le projet est rejeté (`c78_build reason=revalidate_fail`) et part en réparation en boucle au lieu de poser la voie physique.
+
+- **Correction de la re-validation (`OpexTestRailTrack`) et validation finale (§4 AGENTS.md, `results/astar_e2e_solo_3x6.json`) :**
+  - **Correction apportée** : fonction dédiée `OpexTestRailTrack(tiles, structures)` ajoutée dans `ai/OpexAI/builder_rail.nut` (l. 1087-1127). Même parcours physique que `OpexBuildTrack` (tunnels, ponts, rails simples), mais **sans** le contrôle `AIRail.AreTilesConnected` (qui n'a de sens qu'après pose réelle sur la carte). `OpexBuildTrack` reste strictement inchangée au bit près par rapport à `6895781`.
+  - Traces enrichies : `RAIL_STOCK_REVALIDATE_FAIL` trace `failed=<nb_segments_en_echec>` et `first=<tuiles_premier_segment>` pour distinguer un vrai blocage d'un faux.
+  - Tests de contrat Python : 17 tests au vert dans `sweeps/test_c80_rail_stock_worker.py` (vérifiant que `_revalidateRailStockPlan` n'appelle plus `OpexBuildTrack` et que `OpexBuildTrack` est strictement identique à `6895781`).
+  - **Identité au bit près au défaut confirmée** :
+    - 42 × 1 an : 427 019 / 306 642 / 23 / 20.
+    - 100 × 6 ans : 6 014 565 / 1 756 502 / 141 / 56.
+    - 999 × 6 ans : 11 200 121 / 3 685 733 / 138 / 78.
+  - **Smoke 42 × 1 an** (`c80_rail_stock_gate=1,c80_rail_stock_worker=1,homogeneous_preselect=1`) : `run_ok=true`, zéro erreur NoAI.
+  - **Solo 3×6 graines (100, 999, 5678) — Résultats après correction (`results/astar_e2e_solo_3x6.json`)** :
+    - Les faux échecs de re-validation tombent à **strictement 0** (`reval_fails=0` sur toutes les graines, contre 3 sur 100 et 8 sur 5678 en e2d).
+    - Les projets rail sont **effectivement construits** :
+      - En mode sondé : 2 projets construits sur 100, 1 sur 5678 (1 et 2 trains en service).
+      - En mode propre sans sonde : **1 train sur graine 100**, **3 trains sur graine 999**, **1 train sur graine 5678** (du rail construit sur toutes les graines !).
+    - Performances économiques du bras propre (`homogeneous_preselect=1`) :
+      - Graine 100 : profit 1 799 534 £ (+2,4 %), valeur 7 073 319 £ (+17,6 %) ;
+      - Graine 999 : profit 3 333 596 £ (−9,6 % vs réf 3 685 733 £, en nette hausse vs 3 134 890 £ en e2d), valeur 10 442 964 £ ;
+      - Graine 5678 : profit 4 244 024 £ (+6,0 % vs réf 4 004 709 £), valeur 13 710 873 £ (+7,7 %) ;
+      - Moyenne 3 graines : profit 3 125 718 £ (−0,74 % vs réf 3 148 981 £), valeur 10 409 052 £ (+4,28 % vs réf 9 981 718 £).
+
 ### 3.3 Étape 3 — Stock borné $N=2$ et devis réel dans le sac à dos (`c80_rail_stock_capacity`)
 
 - **Changement** :

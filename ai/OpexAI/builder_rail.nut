@@ -1082,6 +1082,49 @@ function OpexBuildTrack(tiles, structures = null)
   return failed;
 }
 
+/* C80 : Re-verification d'un trace de voie sous AITestMode pour le stock de traces.
+ * Meme parcours que OpexBuildTrack mais SANS le controle AreTilesConnected,
+ * car sous mode test les voies ne sont pas reellement posees sur la carte. */
+function OpexTestRailTrack(tiles, structures = null)
+{
+  local testMode = AITestMode();
+  local failed = 0;
+  local firstSegment = null;
+  local firstTile = null;
+  for (local i = 1; i < tiles.len() - 1; i++) {
+    local prev = tiles[i - 1];
+    local cur = tiles[i];
+    local next = tiles[i + 1];
+    local ok = false;
+    if (prev == next) {
+      ok = true;                                   // aller-retour, rien a poser
+    } else if (AIMap.DistanceManhattan(prev, cur) > 1) {
+      ok = true;                                   // autre bout d'un franchissement deja pose
+    } else if (AIMap.DistanceManhattan(cur, next) > 1) {
+      local plannedKind = OpexPlannedStructureKind(structures, cur, next);
+      if (plannedKind == "tunnel" ||
+          (plannedKind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
+        ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
+      } else {
+        local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
+        bridges.Valuate(AIBridge.GetMaxSpeed);
+        bridges.Sort(AIList.SORT_BY_VALUE, false);
+        ok = !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
+      }
+    } else {
+      ok = AIRail.BuildRail(prev, cur, next);
+    }
+    if (!ok) {
+      failed++;
+      if (firstSegment == null) {
+        firstTile = cur;
+        firstSegment = prev + "-" + cur + "-" + next;
+      }
+    }
+  }
+  return { failed = failed, firstSegment = firstSegment, firstTile = firstTile };
+}
+
 /* Depot pres du depart. On pose l'aiguillage AVANT le batiment et on verifie la connectivite a
  * chaque etape : un appel qui renvoie "reussi" ne prouve pas que le resultat est raccorde. */
 function OpexBuildDepot(tiles, forbidden = null)
