@@ -39,6 +39,7 @@ from bench_v2 import (
 )
 from bench_1v1_5y_20seeds import (
     build_policy_comparison,
+    project_build_sign_metrics,
     student_t_ci95_critical_value,
 )
 from campaign_freeze import (
@@ -168,8 +169,11 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertEqual(len(defaults), 87)
-        for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build",
+        self.assertEqual(
+            len(defaults),
+            INFO.read_text(encoding="utf-8").count("AddSetting("),
+        )
+        for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build", "c75_kpass_bypass",
                      "c80_air_hub_index", "town_growth_roi_gate", "c76_regen_targeted",
                      "town_growth_plan_memo", "c80_mode_regen", "v90_fast_pathfinder", "v94_air_site_list"):
             self.assertEqual(defaults[name], 1, name)
@@ -252,6 +256,20 @@ class TestCampaignFreeze(unittest.TestCase):
         })
         self.assertEqual(legacy["selection_kopcodes_samples"], 0)
         self.assertIsNone(legacy["selection_kopcodes_total"])
+
+    def test_project_build_sign_parser_reuses_existing_ib_panels(self):
+        parsed = project_build_sign_metrics({
+            "SIGN": {
+                1: {"name": "IB|70|500000|240000|B2"},
+                2: {"name": "IB|70|600000|300000|B1"},
+                3: {"name": "IB|71|700000|350000|B3"},
+                4: {"name": "IB|71|legacy"},
+                5: {"name": "OTHER|x"},
+            }
+        })
+        self.assertEqual(parsed["project_build_signs_parsed"], 3)
+        self.assertEqual(parsed["project_builds_sign_total"], 6)
+        self.assertEqual(parsed["project_builds_sign_by_year"], {"1970": 3, "1971": 3})
 
     def test_observed_opcode_parser_uses_real_non_overlapping_panels(self):
         chunks = {

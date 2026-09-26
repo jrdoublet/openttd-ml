@@ -303,6 +303,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c75_kpass_bypass",
+      description = "C75 bis: allow at most one financeable new-line project per projects pass to bypass K_pass; fleet projects never qualify; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
 
     AddSetting({
       name = "probe_events",

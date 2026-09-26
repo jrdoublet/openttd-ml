@@ -636,11 +636,22 @@ function OpexC78LogBuild(year, rank, mode, project, attempt, passDiscards, disca
   OpexC78Log("C78_BUILD", fields);
 }
 
+/* C75 bis : seuls les modes qui ouvrent une ligne sont eligibles. La liste
+ * explicite evite qu'un futur mode de maintenance beneficie du bypass par defaut. */
+function OpexC75KPassBypassIsNewLine(project)
+{
+  if (project == null || !("mode" in project)) return false;
+  return project.mode == "air" || project.mode == "rail"
+      || project.mode == "road" || project.mode == "water";
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   local c75KPassData = null;
   local c75StopReason = null;
   local c75BuiltKeys = {};
+  local c75BypassConsumed = false;
+  if (C75_KPASS_BYPASS) OpexC75BypassEnsureYear(year);
   if (C75_TRACK_PASSES) {
     local now = AIDate.GetCurrentDate();
     OpexC75RecordPassDate(now);
@@ -910,17 +921,34 @@ function OpexAI::_tryBuildProjects(year)
     if (C75_MULTI_BUILD && builtCount > 0) {
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
+      local availCap = -1;
       if (projCap >= c75KPass) {
-        c75StopReason = "k_pass";
-        if (C78_SLOT_INTERCEPT_PROBE) {
-          OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
-              + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
-              + " reason=k_pass next_rank=" + i + " next_mode=" + project.mode
-              + " finance=" + projCap + " threshold=" + c75KPass);
+        local c75BypassThisProject = false;
+        if (C75_KPASS_BYPASS && OpexC75KPassBypassIsNewLine(project)) {
+          availCap = OpexAvailableCapital();
+          if (projCap <= availCap) {
+            OpexC75BypassRecordEligible(year, project, projCap, availCap, c75KPass,
+                                        builtCount, c75BypassConsumed);
+            if (!c75BypassConsumed) {
+              c75BypassConsumed = true;
+              c75BypassThisProject = true;
+              OpexC75BypassRecordConsumed(year, project, projCap, availCap, c75KPass, builtCount);
+            }
+          }
         }
-        break;
+        if (!c75BypassThisProject) {
+          c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";
+          if (C78_SLOT_INTERCEPT_PROBE) {
+            OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
+                + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+                + " reason=" + c75StopReason + " next_rank=" + i + " next_mode=" + project.mode
+                + " finance=" + projCap + " threshold=" + c75KPass
+                + (availCap >= 0 ? " available=" + availCap : ""));
+          }
+          break;
+        }
       }
-      local availCap = OpexAvailableCapital();
+      if (availCap < 0) availCap = OpexAvailableCapital();
       if (projCap > availCap) {
         c75StopReason = "cash";
         if (C78_SLOT_INTERCEPT_PROBE) {
@@ -1162,6 +1190,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
         if (C75_TRACK_PASSES && builtCount > 0) {
+          if (C75_KPASS_BYPASS) OpexC75BypassRecordStop("rail_search");
           OpexC75RecordPassOutcome(year, builtCount, c75KPassData, "rail_search");
         }
         return true;
@@ -1294,6 +1323,7 @@ function OpexAI::_tryBuildProjects(year)
       else if (c75StopReason == "list_end") this._c49ScarcityLedger.stop_list_end++;
       else this._c49ScarcityLedger.stop_other++;
     }
+    if (C75_KPASS_BYPASS && builtCount > 0) OpexC75BypassRecordStop(c75StopReason);
     OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
   }
 

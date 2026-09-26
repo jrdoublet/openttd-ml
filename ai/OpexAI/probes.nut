@@ -1235,6 +1235,145 @@ function OpexC75ResetYearLedger()
   };
 }
 
+/* C75 bis : registre separe pour que le chemin c75_kpass_bypass=0 ne fasse
+ * aucun comptage supplementaire a chaque passe. */
+function OpexC75BypassResetYearLedger(year = -1)
+{
+  C75_KPASS_BYPASS_LEDGER = {
+    eligible = 0,
+    consumed = 0,
+    fleet_consumed = 0,
+    stop_k_pass = 0,
+    stop_cash = 0,
+    stop_rail_search = 0,
+    stop_list_end = 0,
+    stop_other = 0
+  };
+  C75_KPASS_BYPASS_LEDGER_YEAR = year;
+}
+
+function OpexC75BypassEnsureYear(year)
+{
+  if (!C75_KPASS_BYPASS) return;
+  if (C75_KPASS_BYPASS_LEDGER == null) {
+    OpexC75BypassResetYearLedger(year);
+    return;
+  }
+  if (C75_KPASS_BYPASS_LEDGER_YEAR < 0) {
+    C75_KPASS_BYPASS_LEDGER_YEAR = year;
+    return;
+  }
+  if (C75_KPASS_BYPASS_LEDGER_YEAR != year) {
+    OpexC75BypassFlushYear(C75_KPASS_BYPASS_LEDGER_YEAR);
+    C75_KPASS_BYPASS_LEDGER_YEAR = year;
+  }
+}
+
+function OpexC75BypassProjectKind(project)
+{
+  if (project == null) return "unknown";
+  if (("kind" in project) && project.kind != null) return project.kind;
+  if (("payload" in project) && project.payload != null &&
+      ("kind" in project.payload) && project.payload.kind != null) return project.payload.kind;
+  return "unknown";
+}
+
+function OpexC75BypassModeCode(project)
+{
+  if (project == null || !("mode" in project)) return "?";
+  if (project.mode == "air") return "A";
+  if (project.mode == "rail") return "T";
+  if (project.mode == "road") return "R";
+  if (project.mode == "water") return "W";
+  if (project.mode == "fleet") return "F";
+  return "?";
+}
+
+function OpexC75BypassKindCode(project)
+{
+  local kind = OpexC75BypassProjectKind(project);
+  if (kind == "pax") return "P";
+  if (kind == "freight") return "F";
+  if (kind == "fleet") return "L";
+  return "U";
+}
+
+function OpexC75BypassRecordEligible(year, project, financeCapital, availableCapital, kPass, builtBefore, alreadyConsumed)
+{
+  if (!C75_KPASS_BYPASS) return;
+  if (C75_KPASS_BYPASS_LEDGER == null) OpexC75BypassResetYearLedger();
+  local mode = (project != null && ("mode" in project)) ? project.mode : "unknown";
+  local isFleet = mode == "fleet" ? 1 : 0;
+  C75_KPASS_BYPASS_LEDGER.eligible++;
+  AILog.Info("C75_BYPASS phase=eligible year=" + year
+      + " mode=" + mode
+      + " kind=" + OpexC75BypassProjectKind(project)
+      + " capital=" + financeCapital
+      + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+      + " available=" + availableCapital
+      + " k_pass=" + kPass + " built_before=" + builtBefore
+      + " already_consumed=" + (alreadyConsumed ? 1 : 0)
+      + " fleet=" + isFleet);
+}
+
+function OpexC75BypassRecordConsumed(year, project, financeCapital, availableCapital, kPass, builtBefore)
+{
+  if (!C75_KPASS_BYPASS) return;
+  if (C75_KPASS_BYPASS_LEDGER == null) OpexC75BypassResetYearLedger();
+  local mode = (project != null && ("mode" in project)) ? project.mode : "unknown";
+  local isFleet = mode == "fleet" ? 1 : 0;
+  local modeChar = OpexC75BypassModeCode(project);
+  local kindChar = OpexC75BypassKindCode(project);
+  C75_KPASS_BYPASS_LEDGER.consumed++;
+  C75_KPASS_BYPASS_LEDGER.fleet_consumed += isFleet;
+  AILog.Info("C75_BYPASS phase=consumed year=" + year
+      + " mode=" + mode
+      + " kind=" + OpexC75BypassProjectKind(project)
+      + " capital=" + financeCapital
+      + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+      + " available=" + availableCapital
+      + " k_pass=" + kPass + " built_before=" + builtBefore
+      + " fleet=" + isFleet);
+  OpexSign(AIMap.GetTileIndex(3, 7), "C7C|" + (year % 100) + "|" + modeChar + "|" + kindChar
+      + "|" + (financeCapital / 1000) + "|" + (availableCapital / 1000)
+      + "|" + (kPass / 1000));
+}
+
+function OpexC75BypassRecordStop(stopReason)
+{
+  if (!C75_KPASS_BYPASS || C75_KPASS_BYPASS_LEDGER == null || stopReason == null) return;
+  if (stopReason == "k_pass") C75_KPASS_BYPASS_LEDGER.stop_k_pass++;
+  else if (stopReason == "cash") C75_KPASS_BYPASS_LEDGER.stop_cash++;
+  else if (stopReason == "rail_search") C75_KPASS_BYPASS_LEDGER.stop_rail_search++;
+  else if (stopReason == "list_end") C75_KPASS_BYPASS_LEDGER.stop_list_end++;
+  else C75_KPASS_BYPASS_LEDGER.stop_other++;
+}
+
+function OpexC75BypassFlushYear(year)
+{
+  if (!C75_KPASS_BYPASS || C75_KPASS_BYPASS_LEDGER == null) return;
+  AILog.Info("C75_BYPASS phase=year year=" + year
+      + " eligible=" + C75_KPASS_BYPASS_LEDGER.eligible
+      + " consumed=" + C75_KPASS_BYPASS_LEDGER.consumed
+      + " fleet_consumed=" + C75_KPASS_BYPASS_LEDGER.fleet_consumed
+      + " stop_k_pass=" + C75_KPASS_BYPASS_LEDGER.stop_k_pass
+      + " stop_cash=" + C75_KPASS_BYPASS_LEDGER.stop_cash
+      + " stop_rail_search=" + C75_KPASS_BYPASS_LEDGER.stop_rail_search
+      + " stop_list_end=" + C75_KPASS_BYPASS_LEDGER.stop_list_end
+      + " stop_other=" + C75_KPASS_BYPASS_LEDGER.stop_other);
+  OpexSign(AIMap.GetTileIndex(3, 8), "C7Y|" + (year % 100)
+      + "|" + C75_KPASS_BYPASS_LEDGER.eligible
+      + "|" + C75_KPASS_BYPASS_LEDGER.consumed
+      + "|" + C75_KPASS_BYPASS_LEDGER.fleet_consumed);
+  OpexSign(AIMap.GetTileIndex(3, 9), "C7S|" + (year % 100)
+      + "|" + C75_KPASS_BYPASS_LEDGER.stop_k_pass
+      + "|" + C75_KPASS_BYPASS_LEDGER.stop_cash
+      + "|" + C75_KPASS_BYPASS_LEDGER.stop_rail_search
+      + "|" + C75_KPASS_BYPASS_LEDGER.stop_list_end
+      + "|" + C75_KPASS_BYPASS_LEDGER.stop_other);
+  OpexC75BypassResetYearLedger();
+}
+
 /* C75 : enregistre le resultat d'une passe et publie phase=c75_pass si au moins 1 chantier */
 function OpexC75RecordPassOutcome(year, builtCount, c75KPassData, stopReason)
 {

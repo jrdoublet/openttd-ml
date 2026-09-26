@@ -451,6 +451,14 @@ function OpexAI::_reportLines(year)
       OpexC80FlushAirIncremental(c73Year);
     }
   }
+  /* C75 bis : la telemetrie du bras causal doit rester disponible sans
+   * probe_portfolio/C69, sinon activer la sonde changerait le protocole mesure. */
+  if (C75_KPASS_BYPASS) {
+    local c75BypassYear = year - 1;
+    if (c75BypassYear >= 1970 && C75_KPASS_BYPASS_LEDGER_YEAR == c75BypassYear) {
+      OpexC75BypassFlushYear(c75BypassYear);
+    }
+  }
 }
 /* Remediation ligne morte (2026-08-28) : une fois deadStreak >= DEAD_STREAK_THRESHOLD confirme
  * par _reportLines, on arrete l'hemorragie de cout de fonctionnement en vendant les convois --

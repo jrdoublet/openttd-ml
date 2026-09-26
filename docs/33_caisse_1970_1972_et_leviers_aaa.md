@@ -91,7 +91,7 @@ rail. En 1972, C75 construit déjà en lot (79 chantiers pour 25 passes) et le
 cash/A* rail deviennent de vrais verrous *pendant* certaines passes, sans
 expliquer la sous-utilisation précoce de 1970–1971.
 
-## 3. Conséquence : ne pas supprimer C75, tester un bypass « nouvelle source »
+## 3. C75 bis : bypass ciblé de `K_pass` pour une nouvelle ligne
 
 Le précédent C75 interdit une conclusion simpliste. C75 seul avait ajouté
 **+42 véhicules (+45 %)** au 20×10 pour seulement **+23 k£/an**, 10/10 :
@@ -99,19 +99,89 @@ construire tout ce qui tient en caisse ajoute surtout de la capacité marginale
 de faible valeur. C75 n'a été conservé que dans la pile C69 bis/C70 où profit,
 valeur et volume montaient ensemble.
 
-Le test causal suivant doit donc être plus étroit :
+Le réglage `c75_kpass_bypass` (désormais défaut **1** par décision utilisateur
+du 2026-09-25) est appliqué au point
+minimal : dans `_tryBuildProjects`, après un premier chantier réussi,
+exactement là où C75 arrêterait la continuation sur
+`OpexProjectFinanceCapital(project) >= K_pass`. Le classement du portefeuille
+n'est pas modifié. Un candidat ne franchit cette garde que si son mode est
+explicitement une **nouvelle ligne** (`air/rail/road/water`), si son capital est
+déjà inférieur ou égal à `OpexAvailableCapital()`, et si aucun bypass n'a
+encore été consommé dans cette passe. `fleet` est exclu par construction.
+Après consommation, le marqueur local interdit tout second bypass ; le contrôle
+cash, le plancher marginal C80, les revalidations des constructeurs et le
+blocage A* rail restent inchangés.
 
-1. conserver `K_pass` pour `mode == fleet` ;
-2. autoriser **au plus un bypass supplémentaire par passe** pour un projet qui
-   ouvre une nouvelle ligne (`air`, `rail`, éventuellement `road/water`) lorsque
-   son capital est réellement disponible, même s'il dépasse `K_pass` ;
-3. ne pas réserver d'argent à un A* rail simplement parce qu'il existe dans le
-   vivier ; une recherche rail effectivement en vol garde ses règles actuelles ;
-4. gate expérimental défaut 0, puis smoke et 5×6 causal contre le défaut.
+La télémétrie durable ne dépend pas de `probe_portfolio` : `C7C` décrit chaque
+consommation (année, mode/type, capital, capital disponible et `K_pass`) ;
+`C7Y` agrège éligibles/consommés/`fleet` et `C7S` les raisons d'arrêt
+restantes. Le smoke propre 2×4
+`c75_kpass_bypass_smoke3_2x4_20260925` donne **23 consommations**, dont
+**21 AIR, 2 route, 0 fleet** ; 1970/1971/1972 en comptent respectivement
+**4/9/4**. Les arrêts `k_pass`, cash et `rail_search` restent présents : le
+bypass n'a pas transformé la boucle en cascade. Sur seulement deux graines le
+signal économique est indicatif : **+140,6 k£/an**, 1/1, valeur **+16,16 %**.
 
-Cette variante attaque exactement les arrêts `k_pass` observés en 1970–71 sans
-rouvrir le comportement « acheter encore des avions sur les mêmes lignes » que
-le C75 brut avait montré peu rentable.
+Le duel causal **5×6** `c75_kpass_bypass_vs_default_5x6_20260925` est plus
+net : **+148,5 k£/an** en moyenne, médiane **+141,0 k£**, **5/0**,
+`p=0,0625`, IC95 Student **[+15,7 ; +281,4] k£/an**, valeur
+**+18,43 %**. La variante consomme **79 bypass** : 55 AIR, 13 rail, 11 route,
+**0 fleet** ; 58 d'entre eux se produisent déjà en 1970–1972 (14/25/19).
+Sur ces cinq graines elle ajoute en moyenne **+7,6 véhicules** et **+6,8 gares**.
+Le premier 5×6 avait été gelé avant l'ajout du décodeur passif des panneaux
+`IB|...|B<n>`, donc le nombre exact de chantiers supplémentaires n'est pas
+reconstructible dans cet artefact sans rejouer.
+
+Le **20×10 canonique relancé**
+`c75_kpass_bypass_vs_default_20x10_20260925_r2` est complet (20/20 paires) et
+ne confirme pas la force du 5×6 :
+
+- `profit_year` : **+48,0 k£/an** en moyenne, médiane **+104,9 k£** ;
+- **14/6**, test des signes bilatéral **p=0,115318** ;
+- IC95 Student **[−97,8 ; +193,7] k£/an** ;
+- `company_value` : **+5,85 %** (garde de valeur passée) ;
+- flotte finale : **+11,3 véhicules** en moyenne ;
+- gares finales : **+2,15** en moyenne.
+
+Le mécanisme reste très exposé : **323 bypass consommés**, toujours **0 fleet**,
+dont 220 AIR, 58 rail, 44 route et 1 water ; 249 pax et 74 fret. Sur 1970–1972,
+les consommations sont **48 / 46 / 83**. Malgré cette exposition, C66.4 rend
+`fail_primary` : la moyenne reste légèrement sous le seuil utile de +50 k£/an
+et le test des signes n'est pas significatif. À ce stade du protocole C66.4,
+la conclusion statistique était donc de ne pas promouvoir C75 bis tel quel.
+
+À la demande utilisateur, un **deuxième 20×10 indépendant** a ensuite été
+réalisé sur les graines **20001–20020**, avec comme règle explicite : adopter
+uniquement si le nouveau `p` diminue par rapport à **0,115318**.
+La campagne `c75_kpass_bypass_vs_default_20x10_20260925_r3` est complète
+(20/20 paires) et donne :
+
+- `profit_year` : **+24,9 k£/an** en moyenne, médiane **+38,7 k£** ;
+- **10/10**, test des signes bilatéral **p=1,0** ;
+- IC95 Student **[−92,9 ; +142,7] k£/an** ;
+- `company_value` : **−0,77 %**, donc garde de valeur toujours respectée ;
+- flotte finale : **+7 véhicules** en moyenne ;
+- gares finales : **+3,9** en moyenne.
+
+La télémétrie confirme encore l'exposition du mécanisme : **308 bypass**,
+**0 fleet**, dont 199 AIR, 66 rail et 43 route ; 232 pax et 76 fret. Le nouveau
+`p` ne diminue pas mais passe de **0,115318 à 1,0**. Ce deuxième lot ne
+renforçait donc pas le signal.
+
+Un troisième lot indépendant **40×10** sur les graines **20021–20060**
+(`c75_kpass_bypass_vs_default_40x10_20260925_r4`) donne **+52,5 k£/an**,
+médiane **+51,9 k£**, **22/18**, **p=0,635828**, IC95 Student
+**[−60,2 ; +165,1] k£/an** et valeur **+2,63 %**.
+
+Agrégés sur les **80 paires** des trois campagnes : **+44,4 k£/an** en moyenne,
+médiane **+70,5 k£**, **46/34**, test des signes **p=0,218518**, IC95 ≈
+**[−25,9 ; +114,8] k£/an**, valeur **+2,48 %** et **+6,25 véhicules** en
+moyenne. Le signal global reste donc positif mais non significatif, avec une
+moyenne légèrement sous le seuil utile C66.4 de +50 k£/an.
+
+Malgré ce verdict statistique, l'utilisateur a pris le **2026-09-25** la
+décision explicite de l'adopter. La décision produit fait foi :
+**`c75_kpass_bypass=1` est désormais le défaut**.
 
 ## 4. Vivier AIR après 1973
 

@@ -90,6 +90,14 @@ AIR_EARLY_SLOT_DIAG_METRICS = (
     "early_slot_build_claims",
 )
 AIR_STRUCTURAL_METRICS = AIR_SLOT_METRICS + AIR_EARLY_SLOT_DIAG_METRICS
+C75_BYPASS_SUMMARY_METRICS = (
+    "c75_bypass_events",
+    "c75_bypass_consumed_signs",
+    "c75_bypass_consumed_by_mode",
+    "c75_bypass_consumed_by_kind",
+    "c75_bypass_consumed_by_year",
+    "c75_bypass_years",
+)
 
 LIBRARY_SPECS = (
     {"unique_id": "51554648", "name": "Queue.FibonacciHeap"},
@@ -232,6 +240,103 @@ def early_slot_sign_metrics(chunks):
         "early_slot_select_signs": sum(name.startswith("SK|") for name in names),
         "early_slot_build_signs": sum(name.startswith("SB|") for name in names),
         "early_slot_build_claims": build_claims,
+    }
+
+
+def c75_bypass_sign_metrics(chunks):
+    """Telemetry C75 bis durable lue depuis SIGN, sans dependance a stdout script."""
+    signs = (chunks or {}).get("SIGN") or {}
+    records = signs.values() if isinstance(signs, dict) else signs
+    names = [
+        sign.get("name", "")
+        for sign in records
+        if isinstance(sign, dict) and isinstance(sign.get("name", ""), str)
+    ]
+    events = []
+    years = {}
+    for name in names:
+        parts = name.split("|")
+        if name.startswith("C7C|") and len(parts) == 7:
+            try:
+                events.append({
+                    "year": 1900 + int(parts[1]),
+                    "mode": parts[2],
+                    "kind": parts[3],
+                    "capital_k": int(parts[4]),
+                    "available_k": int(parts[5]),
+                    "k_pass_k": int(parts[6]),
+                })
+            except ValueError:
+                continue
+        elif name.startswith("C7Y|") and len(parts) == 5:
+            try:
+                yy = int(parts[1])
+                years.setdefault(str(1900 + yy), {}).update({
+                    "eligible": int(parts[2]),
+                    "consumed": int(parts[3]),
+                    "fleet_consumed": int(parts[4]),
+                })
+            except ValueError:
+                continue
+        elif name.startswith("C7S|") and len(parts) == 7:
+            try:
+                yy = int(parts[1])
+                years.setdefault(str(1900 + yy), {}).update({
+                    "stop_k_pass": int(parts[2]),
+                    "stop_cash": int(parts[3]),
+                    "stop_rail_search": int(parts[4]),
+                    "stop_list_end": int(parts[5]),
+                    "stop_other": int(parts[6]),
+                })
+            except ValueError:
+                continue
+    by_mode = {}
+    by_kind = {}
+    by_year = {}
+    for event in events:
+        by_mode[event["mode"]] = by_mode.get(event["mode"], 0) + 1
+        by_kind[event["kind"]] = by_kind.get(event["kind"], 0) + 1
+        key = str(event["year"])
+        by_year[key] = by_year.get(key, 0) + 1
+    return {
+        "c75_bypass_events": events,
+        "c75_bypass_consumed_signs": len(events),
+        "c75_bypass_consumed_by_mode": by_mode,
+        "c75_bypass_consumed_by_kind": by_kind,
+        "c75_bypass_consumed_by_year": by_year,
+        "c75_bypass_years": years,
+    }
+
+
+def project_build_sign_metrics(chunks):
+    """Somme les chantiers deja publies par IB|...|B<n>, sans nouvelle sonde IA."""
+    signs = (chunks or {}).get("SIGN") or {}
+    records = signs.values() if isinstance(signs, dict) else signs
+    total = 0
+    parsed = 0
+    by_year = {}
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        name = str(sign.get("name", ""))
+        if not name.startswith("IB|"):
+            continue
+        parts = name.split("|")
+        if len(parts) < 5 or not parts[-1].startswith("B"):
+            continue
+        try:
+            yy = 1900 + int(parts[1])
+            built = int(parts[-1][1:])
+        except ValueError:
+            continue
+        parsed += 1
+        total += built
+        key = str(yy)
+        by_year[key] = by_year.get(key, 0) + built
+    return {
+        "project_builds_sign_total": total,
+        "project_build_signs_parsed": parsed,
+        "project_builds_sign_by_year": by_year,
     }
 
 
@@ -672,6 +777,8 @@ def keep(row):
     structural = {}
     structural.update(airport_slot_metrics(chunks))
     structural.update(early_slot_sign_metrics(chunks))
+    structural.update(c75_bypass_sign_metrics(chunks))
+    structural.update(project_build_sign_metrics(chunks))
     rec0.update(structural)
     rec1.update(structural)
     shared_identity = {
@@ -945,6 +1052,8 @@ def _stamp_structural_metrics(summary_records, raw_records):
     source = max(opex_rows or raw_records, key=lambda row: str(row.get("date") or ""))
     for record in summary_records:
         for metric in AIR_STRUCTURAL_METRICS:
+            record[metric] = source.get(metric)
+        for metric in C75_BYPASS_SUMMARY_METRICS:
             record[metric] = source.get(metric)
     return summary_records
 

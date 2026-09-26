@@ -325,6 +325,10 @@ V88_CHAIN_FORCE <- false;
 V88_STEP2_PLAN_IMMEDIATE <- false;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
+/* C75 bis : autorise une seule nouvelle ligne finançable a franchir K_pass par passe. Defaut 0. */
+C75_KPASS_BYPASS <- false;
+C75_KPASS_BYPASS_LEDGER <- null;
+C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
 C75_TRACK_PASSES <- false;
 C75_PASS_DATES <- null;
 C75_YEAR_LEDGER <- null;

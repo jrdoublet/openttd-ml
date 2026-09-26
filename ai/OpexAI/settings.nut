@@ -261,6 +261,10 @@ function OpexLoadSettings()
     }
   }
   C75_MULTI_BUILD = AIController.GetSetting("c75_multi_build") != 0;
+  C75_KPASS_BYPASS = AIController.GetSetting("c75_kpass_bypass") != 0;
+  if (C75_KPASS_BYPASS) {
+    OpexC75BypassResetYearLedger();
+  }
   C75_TRACK_PASSES = C75_MULTI_BUILD || C69_BOTTLENECK_PROBE;
   if (C75_TRACK_PASSES) {
     C75_PASS_DATES = [];
