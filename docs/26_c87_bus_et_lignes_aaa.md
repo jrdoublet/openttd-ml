@@ -115,3 +115,29 @@ de durée de tour (`town_growth` ≈ 28 % du tour, `16_bilan_volume.md` §7) n'a
 **Décision utilisateur du 2026-09-24 : défaut passé à 1 sans 20×10**, au motif que les bus
 déficitaires pèsent sur la note de performance. Ce n'est pas une adoption fondée sur un gain de
 profit mesuré ; le bras `town_growth_roi_gate=0` sert désormais de témoin historique.
+
+## 5. Qualification 20×10 sur le défaut courant — 2026-09-25
+
+Campagne `results/c87_town_growth_roi_gate_vs_current_default_20x10_20260925.json`,
+20 graines canoniques × 10 ans, 10 workers / 10 CPU, télémétrie de lignes activée.
+Contraste causal unique :
+
+- référence : `OpexAI[town_growth_roi_gate=0]` ;
+- variante : `OpexAI[town_growth_roi_gate=1]`.
+
+Les **20/20 paires sont complètes**. Variante − référence :
+
+- `profit_year` moyen **−8,5 k£/an** ;
+- médiane **+5,3 k£/an** ;
+- **10 victoires / 10 défaites**, test des signes p=**1,0** ;
+- IC95 normal **[−132,1 ; +115,1] k£/an** ;
+- valeur d'entreprise : ratio des moyennes **+0,86 %** ;
+- verdict brut du harnais : `fail_primary` parce que le seuil de gain utile reste fixé à
+  **+50 k£/an**.
+
+Lecture : le 20×10 ne met en évidence **ni gain ni perte économique** du garde-fou. La garde de
+valeur est tenue et l'intervalle de confiance est centré autour de zéro. Le 5×6 avait déjà montré
+que le mécanisme réduit fortement le nombre de bus et de lignes déficitaires ; le 20×10 confirme
+qu'on peut conserver ce comportement sans coût économique mesurable. Le réglage reste donc
+**à 1 par défaut**, conformément à la décision utilisateur du 2026-09-24 motivée par la note de
+performance plutôt que par un gain direct de profit.
