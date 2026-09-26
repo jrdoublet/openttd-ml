@@ -44,7 +44,7 @@ Conformément à `docs/archives/taches_archive_2026-09-09.md` (lignes 615–640 
 
 ## 4. Conception retenue
 
-L'implémentation est placée derrière le réglage expérimental `v89_rail_search_throughput` (défaut 0).
+L'implémentation est placée derrière le réglage `v89_rail_search_throughput`. Le réglage est **défaut 1 depuis le 2026-09-26**, par décision utilisateur, car V88 dépend de ce débit de recherche rail.
 
 ### 4.1 Mécanisme d'avancement opportuniste (`_advanceRailSearchThroughput`)
 

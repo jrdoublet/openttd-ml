@@ -50,10 +50,10 @@ class TestC89RailThroughputContract(unittest.TestCase):
         start = info.index('name = "v89_rail_search_throughput"')
         block = info[start:info.index("});", start)]
         self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("custom_value = 0", block)
-        self.assertIn("easy_value = 0", block)
-        self.assertIn("medium_value = 0", block)
-        self.assertIn("hard_value = 0", block)
+        self.assertIn("custom_value = 1", block)
+        self.assertIn("easy_value = 1", block)
+        self.assertIn("medium_value = 1", block)
+        self.assertIn("hard_value = 1", block)
 
     def test_global_declared_in_globals_pre_nut(self):
         globals_pre = _read("ai/OpexAI/globals_pre.nut")
@@ -179,7 +179,7 @@ class TestC89RailThroughputContract(unittest.TestCase):
         specs = parse_ai_setting_specs(info_path)
 
         self.assertIn("v89_rail_search_throughput", defaults)
-        self.assertEqual(defaults["v89_rail_search_throughput"], 0)
+        self.assertEqual(defaults["v89_rail_search_throughput"], 1)
         self.assertTrue(specs["v89_rail_search_throughput"]["boolean"])
         self.assertIn("v89_rail_search_throughput", defaults)
 

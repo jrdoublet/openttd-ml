@@ -750,9 +750,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v89_rail_search_throughput",
-      description = "V89: opportunistic rail A* search throughput (multiple slices per tick / inter-stage): 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "V89: opportunistic rail A* search throughput (multiple slices per tick / inter-stage): 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
