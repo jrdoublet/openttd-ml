@@ -2926,8 +2926,10 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   /* Le memo historique ne stocke qu'un EngineID : il perdrait decisionEconomics
-   * (C111) et l'economie replay conditionnelle C115. */
-  if (C111_AIR_C100_DECISION_SHADOW || C115_AIR_C100_CAPITAL_REPLAY
+   * (C111) et l'economie replay conditionnelle C115. C116.4 ne change plus
+   * l'economie de generation : il doit donc reutiliser exactement le memo C68. */
+  if (C111_AIR_C100_DECISION_SHADOW
+      || (C115_AIR_C100_CAPITAL_REPLAY && !C116_AIR_MARGINAL_CAPITAL)
       || !C80_AIR_CHOICE_MEMO || memoKey == null
       || maxCapital != 0 || AIR_CHOICE_MEMO_STATE == 0) {
     local choice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
@@ -3417,6 +3419,82 @@ function OpexC109OneStepSpeedElasticityChoice(catalog, airport, distance, monthl
   return runner;
 }
 
+/* C116 passif : regularisation du C68 legacy sur le cout incremental de
+ * l'upgrade, sans timing C100/C100.1. */
+function OpexC116LegacyIncrementalCandidates(catalog, airport, distance, monthlyPax,
+                                             infrastructureMaintenance, maxCapital,
+                                             newAirportCount, opcodePadding, legacy)
+{
+  if (legacy == null || legacy.plane == null || legacy.economics == null
+      || legacy.economics.capital <= 0 || legacy.economics.profitAnnual <= 0) return null;
+  local runner = null;
+  foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
+    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+    local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+    if (economics == null || economics.capital <= 0 || economics.profitAnnual <= 0
+        || economics.capital >= legacy.economics.capital) continue;
+    if (runner == null || economics.profitAnnual > runner.economics.profitAnnual
+        || (economics.profitAnnual == runner.economics.profitAnnual
+            && economics.roi > runner.economics.roi)) runner = { plane = plane, economics = economics };
+  }
+  if (runner == null) return { runner = legacy, gate = legacy, score = legacy, marginal = legacy,
+      opportunity = legacy, opportunitySteps = 0,
+      deltaCapital = 0, deltaProfit = 0, kDec = OpexC69CachedKDec(), legacyScore = 0.0,
+      runnerScore = 0.0, marginalRoi = 0.0 };
+
+  local kDec = OpexC69CachedKDec();
+  local deltaCapital = legacy.economics.capital - runner.economics.capital;
+  local deltaProfit = legacy.economics.profitAnnual - runner.economics.profitAnnual;
+  local legacyDenom = legacy.economics.capital > kDec ? legacy.economics.capital : kDec;
+  local runnerDenom = runner.economics.capital > kDec ? runner.economics.capital : kDec;
+  local legacyScore = legacyDenom > 0 ? (legacy.economics.profitAnnual.tofloat() * 1000.0) / legacyDenom : 0.0;
+  local runnerScore = runnerDenom > 0 ? (runner.economics.profitAnnual.tofloat() * 1000.0) / runnerDenom : 0.0;
+  local marginalRoi = deltaCapital > 0 ? (deltaProfit.tofloat() * 1000.0) / deltaCapital : 0.0;
+  local gateChoice = legacy;
+  local scoreChoice = legacy;
+  local marginalChoice = legacy;
+  local opportunityChoice = legacy;
+  local opportunitySteps = 0;
+  if (kDec > 0) {
+    if (deltaCapital > kDec) gateChoice = runner;
+    if (runnerScore > legacyScore) scoreChoice = runner;
+    if (deltaCapital > kDec && deltaProfit > 0 && marginalRoi < runnerScore) marginalChoice = runner;
+
+    /* C116.1 passif : cout d'opportunite relatif a chaque cran de la frontiere.
+     * Refuser l'upgrade si son gain relatif de profit est inferieur a la part
+     * d'un budget de decision K_dec qu'il immobilise : dP/P_runner < dC/K_dec. */
+    local current = legacy;
+    while (true) {
+      local next = null;
+      foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
+        if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+        local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+            infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+        if (economics == null || economics.capital <= 0 || economics.profitAnnual <= 0
+            || economics.capital >= current.economics.capital) continue;
+        if (next == null || economics.profitAnnual > next.economics.profitAnnual
+            || (economics.profitAnnual == next.economics.profitAnnual
+                && economics.roi > next.economics.roi)) next = { plane = plane, economics = economics };
+      }
+      if (next == null) break;
+      local stepCapital = current.economics.capital - next.economics.capital;
+      local stepProfit = current.economics.profitAnnual - next.economics.profitAnnual;
+      local relativeProfit = next.economics.profitAnnual > 0
+          ? stepProfit.tofloat() / next.economics.profitAnnual.tofloat() : 0.0;
+      local relativeCapital = stepCapital.tofloat() / kDec.tofloat();
+      if (!(stepProfit > 0 && relativeProfit < relativeCapital)) break;
+      current = next;
+      opportunitySteps++;
+    }
+    opportunityChoice = current;
+  }
+  return { runner = runner, gate = gateChoice, score = scoreChoice, marginal = marginalChoice,
+      opportunity = opportunityChoice, opportunitySteps = opportunitySteps,
+      deltaCapital = deltaCapital, deltaProfit = deltaProfit, kDec = kDec,
+      legacyScore = legacyScore, runnerScore = runnerScore, marginalRoi = marginalRoi };
+}
+
 function OpexC104FormatAirChoice(prefix, choice)
 {
   if (choice == null || !("economics" in choice) || choice.economics == null) return prefix + "_id=-1";
@@ -3439,6 +3517,83 @@ function OpexC104FormatAirChoice(prefix, choice)
       + " " + prefix + "_rating=" + e.stationRating
       + " " + prefix + "_mcap=" + e.monthlyCapacity
       + " " + prefix + "_carried=" + e.carried;
+}
+
+/* C116.2 passif : serialisation du snapshot du portefeuille precedent. Aucun
+ * calcul de projet n'est declenche ici ; seules des valeurs deja memorisees sont
+ * lues. p1/p2/p3 sont les trois premiers projets AIR finançables dans l'ordre
+ * reel du portefeuille au dernier OpexProjectSelectAffordable. */
+function OpexC116SnapshotBest(frontier, deltaCapital)
+{
+  if (frontier == null || deltaCapital <= 0) return null;
+  local best = null;
+  foreach (point in frontier) {
+    if (point.gap > deltaCapital) continue;
+    if (best == null || point.hurdle > best.hurdle
+        || (point.hurdle == best.hurdle && point.profit > best.profit)) best = point;
+  }
+  return best;
+}
+
+function OpexC116FormatSnapshotPoint(prefix, point, frontierN)
+{
+  local out = " " + prefix + "_n=" + frontierN;
+  if (point == null) return out + " " + prefix + "_gap=-1";
+  return out + " " + prefix + "_gap=" + point.gap
+      + " " + prefix + "_mode=" + point.mode
+      + " " + prefix + "_P=" + point.profit
+      + " " + prefix + "_C=" + point.finance
+      + " " + prefix + "_hurdle=" + point.hurdle
+      + " " + prefix + "_roi=" + point.roi
+      + " " + prefix + "_dist=" + point.distance;
+}
+
+function OpexC116BestUnlockedAirProject(deltaCapital)
+{
+  local snapshot = C116_AIR_PROJECT_SNAPSHOT;
+  if (snapshot == null || !("unlockable" in snapshot) || deltaCapital <= 0) return null;
+  local unlocked = null;
+  foreach (point in snapshot.unlockable) {
+    if (point.gap > deltaCapital) continue;
+    if (unlocked == null || point.hurdle > unlocked.hurdle
+        || (point.hurdle == unlocked.hurdle && point.profit > unlocked.profit)) unlocked = point;
+  }
+  return unlocked;
+}
+
+function OpexC116FormatProjectSnapshot(deltaCapital)
+{
+  local snapshot = C116_AIR_PROJECT_SNAPSHOT;
+  if (snapshot == null) return " c116p_age=-1 c116p_budget=0 c116p_top_mode=none c116p_n=0 c116u_n=0 c116u_gap=-1 c116g_n=0 c116g_gap=-1";
+  local age = AIDate.GetCurrentDate() - snapshot.date;
+  local out = " c116p_age=" + age + " c116p_budget=" + snapshot.budget
+      + " c116p_top_mode=" + snapshot.topMode + " c116p_n=" + snapshot.air.len();
+  if (("top" in snapshot) && snapshot.top != null) {
+    out += " c116t_mode=" + snapshot.top.mode
+        + " c116t_P=" + snapshot.top.profit
+        + " c116t_C=" + snapshot.top.finance
+        + " c116t_hurdle=" + snapshot.top.hurdle
+        + " c116t_score=" + snapshot.top.score;
+  } else {
+    out += " c116t_mode=none c116t_P=0 c116t_C=0 c116t_hurdle=0 c116t_score=0";
+  }
+  for (local i = 0; i < snapshot.air.len() && i < 3; i++) {
+    local p = snapshot.air[i];
+    local prefix = "c116p" + (i + 1);
+    out += " " + prefix + "_rank=" + p.rank
+        + " " + prefix + "_P=" + p.profit
+        + " " + prefix + "_C=" + p.finance
+        + " " + prefix + "_score=" + p.score
+        + " " + prefix + "_roi=" + p.roi
+        + " " + prefix + "_dist=" + p.distance;
+  }
+  local airN = ("unlockable" in snapshot) ? snapshot.unlockable.len() : 0;
+  local airPoint = ("unlockable" in snapshot) ? OpexC116SnapshotBest(snapshot.unlockable, deltaCapital) : null;
+  out += OpexC116FormatSnapshotPoint("c116u", airPoint, airN);
+  local globalN = ("unlockableAny" in snapshot) ? snapshot.unlockableAny.len() : 0;
+  local globalPoint = ("unlockableAny" in snapshot) ? OpexC116SnapshotBest(snapshot.unlockableAny, deltaCapital) : null;
+  out += OpexC116FormatSnapshotPoint("c116g", globalPoint, globalN);
+  return out;
 }
 
 function OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
@@ -3495,11 +3650,14 @@ function OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 750);
   local elastic100 = OpexC109OneStepSpeedElasticityChoice(catalog, airport, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1000);
+  local c116 = OpexC116LegacyIncrementalCandidates(catalog, airport, distance, monthlyPax,
+      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, legacy);
   if (legacy == null || replay == null || physical == null || c69Physical == null || marginal == null
       || oneStep == null
       || power7 == null || power8 == null || power9 == null || power10 == null
       || speed1 == null || speed2 == null || speed3 == null || speed4 == null
-      || elastic25 == null || elastic50 == null || elastic75 == null || elastic100 == null) return;
+      || elastic25 == null || elastic50 == null || elastic75 == null || elastic100 == null
+      || c116 == null) return;
   local replayLegacy = OpexAirEconomics(catalog, airport, replay.plane, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   local replayPhysical = OpexAirEconomics(catalog, airport, replay.plane, distance, monthlyPax,
@@ -3514,6 +3672,14 @@ function OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   local arm = newAirportCount == 2 ? "newpair" : (newAirportCount == 1 ? "hubsite" : "hubhub");
   local kDec = C69_DECISION_BOTTLENECK ? OpexC69CachedKDec() : 0;
+  local available = OpexAvailableCapital();
+  local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+  local legacyFinance = legacy.economics.capital + financeMargin;
+  if (("immobilise" in legacy.economics) && legacy.economics.immobilise > 0) legacyFinance += legacy.economics.immobilise;
+  local runnerFinance = c116.runner.economics.capital + financeMargin;
+  if (("immobilise" in c116.runner.economics) && c116.runner.economics.immobilise > 0) runnerFinance += c116.runner.economics.immobilise;
+  local selfGap = legacyFinance > available ? legacyFinance - available : 0;
+  local selfUnlock = legacyFinance > available && runnerFinance <= available ? 1 : 0;
   AILog.Warning("C104_COMPARE year=" + year + " arm=" + arm + " airport=" + airport.type
       + " dist=" + distance + " pax=" + monthlyPax + " maxC=" + maxCapital + " kdec=" + kDec
       + " " + OpexC104FormatAirChoice("legacy", legacy)
@@ -3538,7 +3704,19 @@ function OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
       + " " + OpexC104FormatAirChoice("replay_physical", { plane = replay.plane, economics = replayPhysical })
       + " " + OpexC104FormatAirChoice("physical_legacy", { plane = physical.plane, economics = physicalLegacy })
       + " " + OpexC104FormatAirChoice("physical_replay", { plane = physical.plane, economics = physicalReplay })
-      + " " + OpexC104FormatAirChoice("marginal_legacy", { plane = marginal.plane, economics = marginalLegacy }));
+      + " " + OpexC104FormatAirChoice("marginal_legacy", { plane = marginal.plane, economics = marginalLegacy })
+      + " " + OpexC104FormatAirChoice("c116_runner", c116.runner)
+      + " " + OpexC104FormatAirChoice("c116_gate", c116.gate)
+      + " " + OpexC104FormatAirChoice("c116_score", c116.score)
+      + " " + OpexC104FormatAirChoice("c116_marg", c116.marginal)
+      + " " + OpexC104FormatAirChoice("c116_opp", c116.opportunity)
+      + " c116_dC=" + c116.deltaCapital + " c116_dP=" + c116.deltaProfit
+      + " c116_lscore=" + c116.legacyScore + " c116_rscore=" + c116.runnerScore
+      + " c116_mroi=" + c116.marginalRoi + " c116_opp_steps=" + c116.opportunitySteps
+      + " c116_avail=" + available + " c116_legacy_fin=" + legacyFinance
+      + " c116_runner_fin=" + runnerFinance + " c116_self_gap=" + selfGap
+      + " c116_self_unlock=" + selfUnlock
+      + OpexC116FormatProjectSnapshot(c116.deltaCapital));
 }
 
 /* C105 : cellule manquante du factoriel C100/C103.
@@ -3628,6 +3806,87 @@ function OpexC108ChooseRoutePlane(catalog, airport, selectedPlane, selectedEcono
   return { plane = choice.plane, economics = choice.economics };
 }
 
+/* C116.3 passif : reproduit l'argmax C68 et conserve les evaluations pour
+ * trouver le meilleur runner moins capitalistique sans second scan moteur. */
+function OpexC116LegacyDecisionRunner(catalog, airport, distance, monthlyPax,
+                                      infrastructureMaintenance, maxCapital,
+                                      newAirportCount, opcodePadding)
+{
+  local items = [];
+  local decision = null;
+  foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
+    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+    local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+    if (economics == null) continue;
+    local item = { plane = plane, economics = economics };
+    items.append(item);
+    if (decision == null || economics.profitAnnual > decision.economics.profitAnnual
+        || (economics.profitAnnual == decision.economics.profitAnnual
+            && economics.roi > decision.economics.roi)) decision = item;
+  }
+  if (decision == null) return null;
+  local runner = null;
+  foreach (item in items) {
+    if (item.economics.capital >= decision.economics.capital) continue;
+    if (runner == null || item.economics.profitAnnual > runner.economics.profitAnnual
+        || (item.economics.profitAnnual == runner.economics.profitAnnual
+            && item.economics.roi > runner.economics.roi)) runner = item;
+  }
+  return { decision = decision, runner = runner };
+}
+
+function OpexC116LogProjectProbe(airport, distance, monthlyPax, maxCapital,
+                                 newAirportCount, opcodePadding,
+                                 scan, chosen, kDec, replayUsed)
+{
+  if (!C116_AIR_PROJECT_PROBE || scan == null || scan.decision == null || chosen == null) return;
+  if (C116_AIR_PROJECT_SNAPSHOT == null) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (C116_AIR_PROJECT_PROBE_YEAR != year) {
+    C116_AIR_PROJECT_PROBE_YEAR = year;
+    C116_AIR_PROJECT_PROBE_YEAR_COUNT = 0;
+  }
+  if (C116_AIR_PROJECT_PROBE_COUNT >= 600 || C116_AIR_PROJECT_PROBE_YEAR_COUNT >= 150) return;
+  local key = year + "|" + airport.type + "|" + distance + "|" + monthlyPax + "|"
+      + newAirportCount + "|" + maxCapital + "|" + opcodePadding;
+  if (key in C116_AIR_PROJECT_PROBE_SEEN) return;
+  C116_AIR_PROJECT_PROBE_SEEN.rawset(key, true);
+  C116_AIR_PROJECT_PROBE_COUNT++;
+  C116_AIR_PROJECT_PROBE_YEAR_COUNT++;
+
+  local decision = scan.decision;
+  local runner = scan.runner;
+  local deltaCapital = 0;
+  local deltaProfit = 0;
+  local marginalRoi = 0.0;
+  if (runner != null) {
+    deltaCapital = decision.economics.capital - runner.economics.capital;
+    deltaProfit = decision.economics.profitAnnual - runner.economics.profitAnnual;
+    if (deltaCapital > 0) marginalRoi = (deltaProfit.tofloat() * 1000.0) / deltaCapital.tofloat();
+  }
+  local available = OpexAvailableCapital();
+  local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+  local legacyFinance = decision.economics.capital + financeMargin;
+  if (("immobilise" in decision.economics) && decision.economics.immobilise > 0) legacyFinance += decision.economics.immobilise;
+  local runnerFinance = runner != null ? runner.economics.capital + financeMargin : legacyFinance;
+  if (runner != null && ("immobilise" in runner.economics) && runner.economics.immobilise > 0) runnerFinance += runner.economics.immobilise;
+  local selfGap = legacyFinance > available ? legacyFinance - available : 0;
+  local selfUnlock = runner != null && legacyFinance > available && runnerFinance <= available ? 1 : 0;
+  local arm = newAirportCount == 2 ? "newpair" : (newAirportCount == 1 ? "hubsite" : "hubhub");
+  local runnerText = runner != null ? OpexC104FormatAirChoice("runner", runner) : "runner_id=-1";
+  AILog.Warning("C116_PROJECT year=" + year + " arm=" + arm + " airport=" + airport.type
+      + " dist=" + distance + " pax=" + monthlyPax + " maxC=" + maxCapital
+      + " kdec=" + kDec + " avail=" + available + " replay_used=" + replayUsed
+      + " " + OpexC104FormatAirChoice("legacy", decision)
+      + " " + OpexC104FormatAirChoice("c115", chosen)
+      + " " + runnerText
+      + " dC=" + deltaCapital + " dP=" + deltaProfit + " mroi=" + marginalRoi
+      + " legacy_fin=" + legacyFinance + " runner_fin=" + runnerFinance
+      + " self_gap=" + selfGap + " self_unlock=" + selfUnlock
+      + OpexC116FormatProjectSnapshot(deltaCapital));
+}
+
 /* C115 : conserver le couplage choix moteur + economie de route qui porte le
  * signal C114, mais seulement lorsque le capital est encore le goulot de la
  * decision. K_dec = flux * temps entre constructions : si K_dec >= C68.capital,
@@ -3641,22 +3900,166 @@ function OpexC115ChooseRoutePlane(catalog, airport, selectedPlane, selectedEcono
   /* selectedEconomics est seulement l'economie de l'appareil d'entree de
    * OpexAirChooseRoutePlaneFull. Recalculer explicitement l'argmax C68 avant de
    * tester le goulot, sinon K_dec serait compare au mauvais capital. */
-  local decision = OpexC104BestAirEngine(catalog, airport, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 0);
+  local scan = C116_AIR_PROJECT_PROBE
+      ? OpexC116LegacyDecisionRunner(catalog, airport, distance, monthlyPax,
+          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding)
+      : null;
+  local decision = scan != null ? scan.decision
+      : OpexC104BestAirEngine(catalog, airport, distance, monthlyPax,
+          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 0);
   if (decision == null || decision.plane == null || decision.economics == null
       || decision.economics.capital <= 0) {
     return { plane = selectedPlane, economics = selectedEconomics };
   }
   local kDec = OpexC69CachedKDec();
   if (kDec >= decision.economics.capital) {
+    if (C116_AIR_PROJECT_PROBE) OpexC116LogProjectProbe(airport, distance, monthlyPax, maxCapital,
+        newAirportCount, opcodePadding, scan, decision, kDec, 0);
     return { plane = decision.plane, economics = decision.economics };
   }
   local replay = OpexC104BestAirEngine(catalog, airport, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1);
   if (replay == null || replay.plane == null || replay.economics == null) {
+    if (C116_AIR_PROJECT_PROBE) OpexC116LogProjectProbe(airport, distance, monthlyPax, maxCapital,
+        newAirportCount, opcodePadding, scan, decision, kDec, 0);
     return { plane = decision.plane, economics = decision.economics };
   }
+  if (C116_AIR_PROJECT_PROBE) OpexC116LogProjectProbe(airport, distance, monthlyPax, maxCapital,
+      newAirportCount, opcodePadding, scan, replay, kDec, 1);
   return { plane = replay.plane, economics = replay.economics };
+}
+
+function OpexC116RouteFinanceCapital(economics, newAirportCount)
+{
+  if (economics == null || economics.capital <= 0) return 0;
+  local margin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+  local finance = economics.capital + margin;
+  if (("immobilise" in economics) && economics.immobilise > 0) finance += economics.immobilise;
+  return finance;
+}
+
+/* C116.2 : rendement du meilleur projet AIR actuellement non finançable que
+ * `deltaCapital` rendrait finançable. La frontière a été construite pendant la
+ * sélection portefeuille précédente ; aucune nouvelle recherche n'est faite ici. */
+function OpexC116UnlockedProjectOpportunity(deltaCapital)
+{
+  if (deltaCapital <= 0 || C116_AIR_PROJECT_SNAPSHOT == null
+      || !("unlockable" in C116_AIR_PROJECT_SNAPSHOT)) return null;
+  local best = null;
+  foreach (point in C116_AIR_PROJECT_SNAPSHOT.unlockable) {
+    if (point.gap > deltaCapital) continue;
+    if (best == null || point.hurdle > best.hurdle
+        || (point.hurdle == best.hurdle && point.profit > best.profit)) best = point;
+  }
+  return best;
+}
+
+/* C116.4 : le projet portefeuille reste strictement C68. Le snapshot courant
+ * ne sert qu'apres selection du projet, au moment d'acheter l'equipement. */
+function OpexC116BestPendingAirProject()
+{
+  if (C116_AIR_PROJECT_SNAPSHOT == null
+      || !("unlockable" in C116_AIR_PROJECT_SNAPSHOT)
+      || C116_AIR_PROJECT_SNAPSHOT.unlockable.len() == 0) return null;
+  local best = null;
+  foreach (point in C116_AIR_PROJECT_SNAPSHOT.unlockable) {
+    if (point.gap <= 0) continue;
+    if (best == null || point.hurdle > best.hurdle
+        || (point.hurdle == best.hurdle && point.profit > best.profit)) best = point;
+  }
+  return best;
+}
+
+/* C116.4 : le portefeuille doit voir strictement le plan C68. Cette fonction
+ * n'est donc appelee qu'apres selection/revalidation du projet, juste avant le
+ * test de tresorerie et le chantier. Elle ne recherche ni route ni site : elle
+ * relit seulement le snapshot portefeuille et scanne une fois les moteurs du
+ * type d'aeroport deja choisi.
+ *
+ * Le plan original reste immuable. En cas de bascule, un clone porte le moteur
+ * et l'economie effectivement achetes ; le projet classe garde ainsi son
+ * profit/capital/ROI/fundScore C68 meme si l'equipement final est moins cher. */
+function OpexC116ChooseBuildPlan(catalog, plan)
+{
+  local unchanged = { plan = plan, changed = false, target = null,
+      deltaCapital = 0, deltaProfit = 0 };
+  if (!C116_AIR_MARGINAL_CAPITAL || catalog == null || plan == null
+      || !("airport" in plan) || plan.airport == null
+      || !("plane" in plan) || plan.plane == null
+      || !("economics" in plan) || plan.economics == null
+      || !("distance" in plan) || !("monthlyPax" in plan)
+      || catalog.airPlaneChoicesByAirport == null
+      || !(plan.airport.type in catalog.airPlaneChoicesByAirport)) return unchanged;
+
+  /* C116 qualifie uniquement le C68 normal. Ne pas superposer une seconde
+   * politique d'equipement a C85/V92/C82/etc. C115 est l'exception volontaire :
+   * quand C116=1, son replay est deja neutralise dans le chooser de generation. */
+  if (V92_AIR_SERVICE_CHOICE || C72_PLANE_CHOICE != 0
+      || C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY
+      || C85_AIR_EQUIPMENT_FRONTIER || C99_AIR_SPEED_API_FIX || C100_AIR_TRIP_PHYSICAL
+      || C101_AIR_PHYSICAL_ENGINE_CHOICE || C103_AIR_C100_RANK_REPLAY
+      || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
+      || C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE || C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
+      || C109_AIR_SPEED_ELASTICITY_PHYSICAL || C111_AIR_C100_DECISION_SHADOW
+      || C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL || C114_AIR_C100_FULL_REPLAY) return unchanged;
+
+  /* Le modele hub-hub marginal retranche une cannibalisation apres le chooser
+   * et ne conserve pas ses composantes dans le plan. Ne pas comparer un C68
+   * penalise a un runner brut si cette option experimentale est active. */
+  if (AIR_HUBHUB_MARGINAL && ("arm" in plan) && plan.arm == "hubhub") return unchanged;
+
+  local target = OpexC116BestPendingAirProject();
+  if (target == null || target.gap <= 0) return unchanged;
+  unchanged.target = target;
+
+  local baselinePlane = plan.plane;
+  local baselineEconomics = plan.economics;
+  if (baselineEconomics.capital <= 0 || baselineEconomics.profitAnnual <= 0) return unchanged;
+  local newAirportCount = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
+      + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+  local infrastructureMaintenance = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+  local runner = null;
+
+  foreach (plane in catalog.airPlaneChoicesByAirport[plan.airport.type]) {
+    if (plane.id == baselinePlane.id || plane.price >= baselinePlane.price) continue;
+    if (plane.maxOrderDistance > 0 && plan.distance > plane.maxOrderDistance) continue;
+    if (("reuseA" in plan) && plan.reuseA && AIAirport.IsAirportTile(plan.siteA.anchor)
+        && !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteA.anchor), plane.planeType)) continue;
+    if (("reuseB" in plan) && plan.reuseB && AIAirport.IsAirportTile(plan.siteB.anchor)
+        && !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteB.anchor), plane.planeType)) continue;
+
+    local economics = OpexAirEconomics(catalog, plan.airport, plane, plan.distance, plan.monthlyPax,
+        infrastructureMaintenance, 0, newAirportCount, 0);
+    if (economics == null || economics.profitAnnual <= 0
+        || economics.capital >= baselineEconomics.capital) continue;
+    local deltaCapital = baselineEconomics.capital - economics.capital;
+    if (deltaCapital < target.gap) continue;
+    if (runner == null || economics.profitAnnual > runner.economics.profitAnnual
+        || (economics.profitAnnual == runner.economics.profitAnnual
+            && economics.roi > runner.economics.roi)) runner = { plane = plane, economics = economics };
+  }
+  if (runner == null) return unchanged;
+
+  local buildPlan = {};
+  foreach (k, v in plan) buildPlan[k] <- v;
+  buildPlan.plane = runner.plane;
+  buildPlan.economics = runner.economics;
+  buildPlan.planes = runner.economics.planes;
+  buildPlan.capital = runner.economics.capital;
+  if (C84_AIR_TARGET_FLEET) {
+    local targetEconomics = OpexAirTargetEconomics(catalog, buildPlan.airport, buildPlan.plane,
+        buildPlan.distance, buildPlan.monthlyPax, infrastructureMaintenance, newAirportCount, 0);
+    local targetPlanes = targetEconomics != null ? targetEconomics.planes : runner.economics.planes;
+    if ("targetPlanes" in buildPlan) buildPlan.targetPlanes = targetPlanes;
+    else buildPlan.targetPlanes <- targetPlanes;
+  }
+  buildPlan.c116BaselineEngine <- baselinePlane.id;
+  buildPlan.c116BaselineCapital <- baselineEconomics.capital;
+  buildPlan.c116BaselineProfit <- baselineEconomics.profitAnnual;
+  buildPlan.c116TargetGap <- target.gap;
+  return { plan = buildPlan, changed = true, target = target,
+      deltaCapital = baselineEconomics.capital - runner.economics.capital,
+      deltaProfit = baselineEconomics.profitAnnual - runner.economics.profitAnnual };
 }
 
 function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
@@ -3668,7 +4071,8 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport)) {
     return { plane = selectedPlane, economics = selectedEconomics };
   }
-  if (C104_AIR_C100_COMPARE_PROBE && C72_PLANE_CHOICE == 0 && !C82_ENGINE_CALIBRATION
+  if (C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY
+      && C72_PLANE_CHOICE == 0 && !C82_ENGINE_CALIBRATION
       && !C85_AIR_EQUIPMENT_FRONTIER && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
@@ -3705,7 +4109,7 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
       && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
       && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
+      && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
       && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
       && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
@@ -3747,10 +4151,11 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
       && !C82_ENGINE_CALIBRATION && !C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY
       && !C85_AIR_EQUIPMENT_FRONTIER && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
+      && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
       && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL && !C114_AIR_C100_FULL_REPLAY) {
+      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL && !C114_AIR_C100_FULL_REPLAY
+      && !C116_AIR_MARGINAL_CAPITAL) {
     return OpexC115ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }

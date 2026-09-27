@@ -202,12 +202,15 @@ function OpexAI::_tryBuildAir(year)
       isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
       lineId = this._nextLineId,
     });
-    if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE) {
+    if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE) {
       if (C84_AIR_TARGET_FLEET) {
         this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
             ? plan.targetPlanes : result.vehicles.len();
       }
       this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+      if (C98_AIR_REALIZED_PROBE) {
+        this._lines[this._lines.len() - 1].c98Arm <- ("arm" in plan) ? plan.arm : "unknown";
+      }
     }
     if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
       V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
@@ -346,6 +349,18 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         return { outcome = "rejected", discards = passDiscards };
       }
 
+      local buildChoice = OpexC116ChooseBuildPlan(this._catalog, plan);
+      local buildPlan = buildChoice.plan;
+      if (buildChoice.changed && DECISION_LOG) {
+        OpexDecide("C116_EQUIPMENT", "rank=" + i
+            + " arm=" + (("arm" in plan) ? plan.arm : "unknown")
+            + " base_engine=" + buildPlan.c116BaselineEngine + " engine=" + buildPlan.plane.id
+            + " gap=" + buildPlan.c116TargetGap
+            + " dC=" + buildChoice.deltaCapital + " dP=" + buildChoice.deltaProfit
+            + " base_C=" + buildPlan.c116BaselineCapital + " C=" + buildPlan.economics.capital
+            + " base_P=" + buildPlan.c116BaselineProfit + " P=" + buildPlan.economics.profitAnnual);
+      }
+
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
       if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
@@ -353,7 +368,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local requiredMargin = airMarginPadding
           ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
           : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
-      local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
+      local capital = ("capital" in buildPlan) ? buildPlan.capital
+          : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
@@ -386,17 +402,17 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
-      if (B9_AIR_DEMAND_SHADOW) OpexAirB9DemandShadow(this._catalog, plan);
+      if (B9_AIR_DEMAND_SHADOW) OpexAirB9DemandShadow(this._catalog, buildPlan);
       local result = V93_AIR_DEMAND_PRODUCTION
-          ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
-          : OpexBuildAirRoute(this._catalog, this._budget, plan);
-      if (C63_INVEST_PROBE) OpexC63RecordSpendResult("air", result, plan.capital);
+          ? OpexBuildAirRoute(this._catalog, this._budget, buildPlan, this._lines)
+          : OpexBuildAirRoute(this._catalog, this._budget, buildPlan);
+      if (C63_INVEST_PROBE) OpexC63RecordSpendResult("air", result, buildPlan.capital);
       OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
       if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
       if (AIR_COST_PROBE) {
         OpexSign(anchor, "AC|" + this._nextLineId + "|" + result.plannedCapital + "|"
                                + result.actualCost + "|"
-                               + (("planes" in plan) ? plan.planes : 1) + "|"
+                               + (("planes" in buildPlan) ? buildPlan.planes : 1) + "|"
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
@@ -441,27 +457,27 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           passDiscards = [];
           local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=air cargo=" + cargoStr + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " dist=" + plan.distance + " cost=" + plan.capital + " profit=" + plan.economics.profitAnnual + " roi=" + project.roi);
-          OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
+          OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + buildPlan.economics.profitAnnual + " cost=" + buildPlan.capital + " planes=" + result.vehicles.len() + " engine=" + buildPlan.plane.id);
         }
         if (C56_TASK_TRACE) OpexC56TaskLog("AIR_BUILT", ("arm" in plan) ? plan.arm : "unknown", "-",
-            "line=" + this._nextLineId + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital
+            "line=" + this._nextLineId + " profit=" + buildPlan.economics.profitAnnual + " cost=" + buildPlan.capital
             + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
         this._airBuilt = true;
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
           originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
           cargo = this._catalog.paxCargo,
-          predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
-          predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
-          predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
-          predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
-          planeCapacity = plan.plane.capacity,
-          planeId = plan.plane.id,
+          predicted = ("economics" in buildPlan && "profitAnnual" in buildPlan.economics) ? buildPlan.economics.profitAnnual : 0,
+          predRevenue = buildPlan.economics.revenueAnnual, predRunning = buildPlan.economics.runningAnnual,
+          predAmort = buildPlan.economics.amortAnnual, predCarried = buildPlan.economics.carried,
+          predTrains = buildPlan.planes, predOneWayDays = buildPlan.economics.oneWayDays,
+          planeCapacity = buildPlan.plane.capacity,
+          planeId = buildPlan.plane.id,
           sharedAirportA = ("reuseA" in plan) && plan.reuseA,
           hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
           joinedStopsA = result.joinedStopsA, joinedStopsB = result.joinedStopsB,
           joinedMonthlyPax = result.joinedMonthlyPax, joinedStopCost = result.joinedStopCost,
-          actualCapital = plan.capital,
+          actualCapital = buildPlan.capital,
           iterations = 0, trains = result.vehicles.len(), trains0 = result.vehicles.len(), distance = plan.distance, year = year,
           buildDate = AIDate.GetCurrentDate(),
           mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
@@ -472,21 +488,24 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
-        if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE) {
+        if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE) {
           if (C84_AIR_TARGET_FLEET) {
-            this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
-                ? plan.targetPlanes : result.vehicles.len();
+            this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in buildPlan)
+                ? buildPlan.targetPlanes : result.vehicles.len();
           }
-          this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+          this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in buildPlan) ? buildPlan.monthlyPax : 0;
+          if (C98_AIR_REALIZED_PROBE) {
+            this._lines[this._lines.len() - 1].c98Arm <- ("arm" in plan) ? plan.arm : "unknown";
+          }
         }
         if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
           V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
         }
         OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
-                               + plan.economics.profitAnnual);
+                               + buildPlan.economics.profitAnnual);
         OpexSign(anchor, "AH|" + this._nextLineId + "|"
                          + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
-                         + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
+                         + buildPlan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
         OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
                          + AICargo.GetCargoLabel(this._catalog.paxCargo));
         if (AIR_EARLY_SLOT && ("earlySlotBonusPct" in project) && project.earlySlotBonusPct > 0) {

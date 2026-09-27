@@ -256,6 +256,14 @@ function OpexLoadSettings()
   C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;
   C114_AIR_C100_FULL_REPLAY = AIController.GetSetting("c114_air_c100_full_replay") != 0;
   C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
+  C116_AIR_MARGINAL_CAPITAL = AIController.GetSetting("c116_air_marginal_capital") != 0;
+  C116_AIR_PROJECT_PROBE = AIController.GetSetting("c116_air_project_probe") != 0;
+  if (C116_AIR_PROJECT_PROBE) {
+    C116_AIR_PROJECT_PROBE_COUNT = 0;
+    C116_AIR_PROJECT_PROBE_YEAR = -1;
+    C116_AIR_PROJECT_PROBE_YEAR_COUNT = 0;
+    C116_AIR_PROJECT_PROBE_SEEN = {};
+  }
   /* C113 etend C111 : reutiliser ses branches shadow/memo sans dupliquer le hot path. */
   if (C113_AIR_C100_FULL_DECISION_SHADOW) C111_AIR_C100_DECISION_SHADOW = true;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
@@ -263,7 +271,7 @@ function OpexLoadSettings()
   V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
-      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY;
+      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY || C116_AIR_MARGINAL_CAPITAL;
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];

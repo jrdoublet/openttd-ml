@@ -373,6 +373,23 @@ C114_AIR_C100_FULL_REPLAY <- false;
  * Le replay n'est utilise que tant que le capital du choix C68 depasse K_dec ;
  * aucun seuil de caisse, d'annee ou d'EngineID n'est introduit. */
 C115_AIR_C100_CAPITAL_REPLAY <- false;
+/* C116.4 : decouplage complet portefeuille/equipement. Generation, admission,
+ * classement et fundScore restent strictement C68 ; seulement apres selection
+ * du projet, un moteur moins cher peut etre achete si son economie de capital
+ * couvre le gap du meilleur projet AIR non financable du snapshot courant. */
+C116_AIR_MARGINAL_CAPITAL <- false;
+/* C116.3 diagnostic leger : observe sous le vrai temoin C115 le meilleur runner
+ * C68, les projets debloques par son economie de capital et l'auto-deblocage de
+ * la route courante. Aucun recalcul moteur supplementaire. */
+C116_AIR_PROJECT_PROBE <- false;
+C116_AIR_PROJECT_PROBE_COUNT <- 0;
+C116_AIR_PROJECT_PROBE_YEAR <- -1;
+C116_AIR_PROJECT_PROBE_YEAR_COUNT <- 0;
+C116_AIR_PROJECT_PROBE_SEEN <- {};
+/* C116.2 : snapshot tres bon marche du portefeuille AIR deja classe. Il est
+ * rempli uniquement pour la sonde C104/C116 (ou C116 actif) a partir de la
+ * liste `affordable` deja triee : aucune recherche de route supplementaire. */
+C116_AIR_PROJECT_SNAPSHOT <- null;
 /* Cargo passagers retenu par le catalogue pour ce modele. -1 tant qu'il n'est pas connu. */
 AIR_DEMAND_PAX_CARGO <- -1;
 /* Date de jeu du dernier controle de mois : evite GetYear/GetMonth a chaque paire. */

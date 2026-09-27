@@ -793,7 +793,7 @@ function OpexAI::_reconcileAfterLoad()
   /* C70/C82 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
   if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
-  if (C82_ENGINE_CALIBRATION) OpexC82RecomputeFactors(this._lines);
+  if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) OpexC82RecomputeFactors(this._lines);
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();
 

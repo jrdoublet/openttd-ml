@@ -226,7 +226,7 @@ function OpexC82RecomputeFactors(lines)
 /* C82 : facteur d'un moteur d'avion. 1.0 si inactif ou moteur absent de la table. */
 function OpexC82EngineFactor(engine)
 {
-  if (!C82_ENGINE_CALIBRATION) return 1.0;
+  if (!C82_ENGINE_CALIBRATION && !C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) return 1.0;
   return (engine in C82_ENGINE_FACTOR) ? C82_ENGINE_FACTOR[engine] : 1.0;
 }
 
@@ -527,8 +527,54 @@ function OpexProjectFromFleet(entry)
   return project;
 }
 
+function OpexC111ProjectFromAir(catalog, plan, planningOps)
+{
+  if (plan == null || !("economics" in plan)) return null;
+  local economics = plan.economics;
+  local decisionEconomics = (("decisionEconomics" in plan) && plan.decisionEconomics != null)
+      ? plan.decisionEconomics : economics;
+  if (economics.revenueAnnual <= 0 || economics.capital <= 0 ||
+      (!C113_AIR_C100_FULL_DECISION_SHADOW && economics.profitAnnual <= 0)) return null;
+  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
+      decisionEconomics.capital <= 0) return null;
+  local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+  local airMarginPadding = false;
+  local margin = airMarginPadding
+      ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+      : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
+  local budgetCapital = economics.capital + margin;
+  if (("immobilise" in economics) && economics.immobilise > 0) {
+    budgetCapital += economics.immobilise;
+  }
+  local decisionBudgetCapital = decisionEconomics.capital + margin;
+  if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
+    decisionBudgetCapital += decisionEconomics.immobilise;
+  }
+  /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
+   * que sur les opcodes encore necessaires pour construire le projet. */
+  local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
+  local project = {
+    mode = "air", kind = "pax", cargo = catalog.paxCargo,
+    src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
+    distance = plan.distance, capital = economics.capital,
+    budgetCapital = budgetCapital, decisionFinanceCapital = decisionBudgetCapital,
+    profitAnnual = decisionEconomics.profitAnnual,
+    revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi,
+    expectedOpcodes = expectedOps,
+    budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
+    opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
+    planningOpcodes = planningOps,
+    economicsDate = AIDate.GetCurrentDate(),
+  };
+  return project;
+}
+
 function OpexProjectFromAir(catalog, plan, planningOps)
 {
+  if (C111_AIR_C100_DECISION_SHADOW && plan != null
+      && ("decisionEconomics" in plan) && plan.decisionEconomics != null) {
+    return OpexC111ProjectFromAir(catalog, plan, planningOps);
+  }
   if (plan == null || !("economics" in plan)) return null;
   local economics = plan.economics;
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
@@ -964,6 +1010,73 @@ function OpexAirBatchTownReserveHit(claimed, project)
   return false;
 }
 
+/* C116.2 : memoriser les trois premiers projets AIR deja finançables/classes.
+ * Le cout est borne a PROJECT_TOP_K (64 par defaut), sans generation, economie
+ * ni recherche de site supplementaire. Le snapshot sert au diagnostic moteur
+ * de la generation AIR suivante et reste volontairement reconstructible. */
+function OpexC116InsertPortfolioOpportunity(frontier, point)
+{
+  foreach (prior in frontier) {
+    if (prior.gap <= point.gap && prior.hurdle >= point.hurdle) return;
+  }
+  for (local i = frontier.len() - 1; i >= 0; i--) {
+    local prior = frontier[i];
+    if (point.gap <= prior.gap && point.hurdle >= prior.hurdle) frontier.remove(i);
+  }
+  frontier.append(point);
+}
+
+function OpexC116ObserveAirPortfolioOpportunity(snapshot, project, financeCapital, capitalBudget)
+{
+  if (snapshot == null || project == null || !("mode" in project)) return;
+  if (!("profitAnnual" in project) || project.profitAnnual <= 0 || financeCapital <= capitalBudget) return;
+  local gap = financeCapital - capitalBudget;
+  local hurdle = (project.profitAnnual.tofloat() * 1000.0) / financeCapital.tofloat();
+  local point = { mode = project.mode, gap = gap, profit = project.profitAnnual, finance = financeCapital,
+      hurdle = hurdle, roi = ("roi" in project) ? project.roi : 0.0,
+      distance = ("distance" in project) ? project.distance : 0 };
+  if (C104_AIR_C100_COMPARE_PROBE || C116_AIR_PROJECT_PROBE) {
+    OpexC116InsertPortfolioOpportunity(snapshot.unlockableAny, point);
+  }
+  if (project.mode == "air") OpexC116InsertPortfolioOpportunity(snapshot.unlockable, point);
+}
+
+function OpexC116RememberAirPortfolioOpportunity(affordable, capitalBudget, snapshot)
+{
+  if (!C104_AIR_C100_COMPARE_PROBE && !C116_AIR_MARGINAL_CAPITAL && !C116_AIR_PROJECT_PROBE) return;
+  if (snapshot == null) snapshot = { date = AIDate.GetCurrentDate(), budget = capitalBudget,
+      topMode = "none", top = null, air = [], unlockable = [], unlockableAny = [] };
+  if ((C104_AIR_C100_COMPARE_PROBE || C116_AIR_PROJECT_PROBE)
+      && affordable != null && affordable.len() > 0) {
+    local top = affordable[0];
+    if (top != null && ("mode" in top)) {
+      snapshot.topMode = top.mode;
+      local topFinance = OpexProjectFinanceCapital(top);
+      snapshot.top = {
+        mode = top.mode,
+        profit = ("profitAnnual" in top) ? top.profitAnnual : 0,
+        finance = topFinance,
+        hurdle = (topFinance > 0 && ("profitAnnual" in top) && top.profitAnnual > 0)
+            ? (top.profitAnnual.tofloat() * 1000.0) / topFinance.tofloat() : 0.0,
+        score = ("fundScore" in top) ? top.fundScore : 0.0,
+      };
+    }
+    for (local i = 0; i < affordable.len() && snapshot.air.len() < 3; i++) {
+      local project = affordable[i];
+      if (project == null || !("mode" in project) || project.mode != "air") continue;
+      snapshot.air.append({
+        rank = i,
+        profit = ("profitAnnual" in project) ? project.profitAnnual : 0,
+        finance = OpexProjectFinanceCapital(project),
+        score = ("fundScore" in project) ? project.fundScore : 0.0,
+        roi = ("roi" in project) ? project.roi : 0.0,
+        distance = ("distance" in project) ? project.distance : 0,
+      });
+    }
+  }
+  C116_AIR_PROJECT_SNAPSHOT = snapshot;
+}
+
 /* portfolio_v2 : la selection finale.
  *
  * Remplace le sac a dos 0/1 par « le meilleur projet finançable ». Motif (S0 septies, trouvaille
@@ -1010,9 +1123,14 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   }
 
   local affordable = [];
+  local c116Snapshot = (C104_AIR_C100_COMPARE_PROBE || C116_AIR_MARGINAL_CAPITAL || C116_AIR_PROJECT_PROBE)
+      ? { date = AIDate.GetCurrentDate(), budget = capitalBudget,
+          topMode = "none", top = null, air = [], unlockable = [], unlockableAny = [] }
+      : null;
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
   local defensiveSlotState = OpexDefensiveSlotSelectionState(earlySlotState);
   local scoreKey = "fundScore";
+  local c111DecisionShadow = C111_AIR_C100_DECISION_SHADOW;
 
   local kDec = 0;
   local kDecData = null;
@@ -1025,12 +1143,16 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 
   foreach (project in alternatives) {
     local financeCapital = OpexProjectFinanceCapital(project);
+    OpexC116ObserveAirPortfolioOpportunity(c116Snapshot, project, financeCapital, capitalBudget);
     if (financeCapital > capitalBudget) continue;
     if (project.profitAnnual < floorProfit && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
     OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+    local decisionFinanceCapital = financeCapital;
+    if (c111DecisionShadow && project.mode == "air" && ("decisionFinanceCapital" in project)
+        && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
     project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
-        (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
+        (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : decisionFinanceCapital);
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1049,8 +1171,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       if (financeCapital > capitalBudget) continue;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      local decisionFinanceCapital = financeCapital;
+      if (c111DecisionShadow && project.mode == "air" && ("decisionFinanceCapital" in project)
+          && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
       project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
-          (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
+          (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : decisionFinanceCapital);
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1080,6 +1205,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     }
     OpexC73RecordSelection(toSel, aff, sel);
   }
+  OpexC116RememberAirPortfolioOpportunity(affordable, capitalBudget, c116Snapshot);
   return affordable;
 }
 
