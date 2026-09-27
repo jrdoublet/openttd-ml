@@ -237,11 +237,33 @@ function OpexLoadSettings()
   V95_AIR_POST73_YEAR = -1;
   V95_AIR_TARGETED_SECOND = AIController.GetSetting("v95_air_targeted_second") != 0;
   V95_AIR_POST73_TARGETED = AIController.GetSetting("v95_air_post73_targeted") != 0;
+  C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
+  C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;
+  C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
+  C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;
+  C100_AIR_TRIP_PHYSICAL = AIController.GetSetting("c100_air_trip_physical") != 0;
+  C102_AIR_STATION_RATING_PROBE = AIController.GetSetting("c102_air_station_rating_probe") != 0;
+  C101_AIR_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c101_air_physical_engine_choice") != 0;
+  C103_AIR_C100_RANK_REPLAY = AIController.GetSetting("c103_air_c100_rank_replay") != 0;
+  C104_AIR_C100_COMPARE_PROBE = AIController.GetSetting("c104_air_c100_compare_probe") != 0;
+  C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS = AIController.GetSetting("c105_air_replay_choice_physical_economics") != 0;
+  C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c106_air_marginal_physical_engine_choice") != 0;
+  C108_AIR_ONESTEP_PHYSICAL_ECONOMICS = AIController.GetSetting("c108_air_onestep_physical_economics") != 0;
+  C109_AIR_SPEED_ELASTICITY_PHYSICAL = AIController.GetSetting("c109_air_speed_elasticity_physical") != 0;
+  C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
+  C111_AIR_C100_DECISION_SHADOW = AIController.GetSetting("c111_air_c100_decision_shadow") != 0;
+  C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL = AIController.GetSetting("c112_air_speed_elasticity_e75_physical") != 0;
+  C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;
+  C114_AIR_C100_FULL_REPLAY = AIController.GetSetting("c114_air_c100_full_replay") != 0;
+  C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
+  /* C113 etend C111 : reutiliser ses branches shadow/memo sans dupliquer le hot path. */
+  if (C113_AIR_C100_FULL_DECISION_SHADOW) C111_AIR_C100_DECISION_SHADOW = true;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
-  C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
+  C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
+      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY;
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];

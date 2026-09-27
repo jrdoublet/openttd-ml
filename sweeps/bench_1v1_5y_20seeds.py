@@ -18,6 +18,28 @@ import re
 import statistics
 import sys
 
+
+def _force_utf8_stdio():
+    """Keep Rich/openttdlab progress output portable on Windows cp1252 consoles.
+
+    openttdlab renders a Unicode check mark when its progress context closes.
+    On Windows hosts whose inherited stdout/stderr are cp1252, that final render
+    can raise UnicodeEncodeError after every OpenTTD job has completed, before
+    run_experiments() returns its rows. Reconfigure only text encoding; the
+    benchmark protocol and Docker execution are unchanged.
+    """
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="backslashreplace")
+            except (OSError, ValueError):
+                pass
+
+
+_force_utf8_stdio()
+
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import (

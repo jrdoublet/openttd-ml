@@ -313,6 +313,63 @@ V95_AIR_SECOND_MAX_SITE_COST <- 30000;
  * deja pris par un concurrent, et economie C68 non degradee quand la demande
  * du nouveau site est remplacee par son bassin mesure. Defaut 0. */
 V95_AIR_POST73_TARGETED <- false;
+/* C96 : selection de l'ancre aeroport par qualite physique de catchment, sans
+ * changer la demande ni l'economie de la route. Defaut 0. La recherche reste
+ * bornee : au plus quatre sites constructibles, du premier anneau qui en
+ * contient un jusqu'a l'anneau suivant. */
+C96_AIR_SITE_CATCHMENT <- true;
+C96_AIR_SITE_MAX_VALID <- 4;
+C96_AIR_SITE_EXTRA_RINGS <- 1;
+/* C97 : sonde passive du choix moteur AIR par argmax direct (moteur, profondeur)
+ * sur P_calibre/max(capital portefeuille, K_dec). Aucun effet decisionnel. */
+C97_AIR_C69_ENGINE_PROBE <- false;
+/* C98 : sonde passive du biais du modele AIR par moteur/ligne. Compare la
+ * prevision de construction au realise annuel sans modifier aucun choix. */
+C98_AIR_REALIZED_PROBE <- false;
+C99_AIR_SPEED_API_FIX <- false;
+C100_AIR_TRIP_PHYSICAL <- false;
+C102_AIR_STATION_RATING_PROBE <- false;
+C101_AIR_PHYSICAL_ENGINE_CHOICE <- false;
+/* C103 : replay causal du classement moteur du premier C100 positif. Le timing
+ * volontairement pessimiste ne sert QUE de regularisateur de classement ;
+ * l'admission et l'economie retournee au portefeuille restent legacy. */
+C103_AIR_C100_RANK_REPLAY <- false;
+/* C104 : sonde passive, meme contexte de route evalue sous legacy, premier C100
+ * positif (replay) et C100.1 physique. Aucun effet decisionnel. */
+C104_AIR_C100_COMPARE_PROBE <- false;
+C104_AIR_C100_COMPARE_SEEN <- {};
+C104_AIR_C100_COMPARE_COUNT <- 0;
+/* C105 : timing C100.1 partout, mais classement moteur rejoue comme le premier
+ * C100 positif. L'economie retournee au portefeuille reste C100.1. */
+C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS <- false;
+/* C106 : choix moteur par rendement marginal relatif sous l'economie C100.1,
+ * mais economie legacy retournee au portefeuille. Aucun seuil de caisse. */
+C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE <- false;
+/* C108 : economie/timing C100.1 partout, moteur choisi par le rendement
+ * marginal relatif en une seule marche (C107 passif). Aucun seuil de caisse. */
+C108_AIR_ONESTEP_PHYSICAL_ECONOMICS <- false;
+/* C109 : economie C100.1 partout et choix moteur par elasticite relative du
+ * profit au gain de vitesse. Seuil e50 = 0.5, sans cash ni EngineID. */
+C109_AIR_SPEED_ELASTICITY_PHYSICAL <- false;
+/* C110 : reutilise l'apprentissage C82 realise/predit uniquement pour le choix
+ * du moteur AIR. Le classement portefeuille reste celui de C70. */
+C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY <- false;
+/* C111 : isolation causale du signal C100 positif. Le moteur suit le replay C100,
+ * mais le classement de marche/projet garde un shadow C68 distinct. Le cout reel
+ * du moteur choisi reste utilise pour la faisabilite et la construction. */
+C111_AIR_C100_DECISION_SHADOW <- false;
+/* C112 : economie C100.1 partout, moteur choisi par elasticite relative
+ * profit/vitesse avec seuil e75 = 0.75. Aucun seuil de caisse ni EngineID. */
+C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL <- false;
+/* C113 : isolation C100 complete. Reutilise le shadow C68 de C111 jusque dans
+ * l'admission pre-portefeuille ; l'economie du moteur choisi ne fournit plus
+ * que capital/flotte/constructibilite. */
+C113_AIR_C100_FULL_DECISION_SHADOW <- false;
+C114_AIR_C100_FULL_REPLAY <- false;
+/* C115 : regularisateur C100 conditionne par le goulot macroeconomique C69.
+ * Le replay n'est utilise que tant que le capital du choix C68 depasse K_dec ;
+ * aucun seuil de caisse, d'annee ou d'EngineID n'est introduit. */
+C115_AIR_C100_CAPITAL_REPLAY <- false;
 /* Cargo passagers retenu par le catalogue pour ce modele. -1 tant qu'il n'est pas connu. */
 AIR_DEMAND_PAX_CARGO <- -1;
 /* Date de jeu du dernier controle de mois : evite GetYear/GetMonth a chaque paire. */

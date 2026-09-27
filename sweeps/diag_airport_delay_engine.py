@@ -118,11 +118,43 @@ def _order_list(chunks, common):
     entry = (chunks.get("ORDL") or {}).get(key)
     entry = _first(entry)
     orders = entry.get("orders") if isinstance(entry, dict) else None
-    return orders if isinstance(orders, list) else None
+    return (key, orders) if isinstance(orders, list) else None
+
+
+def _air_usage(chunks, stations):
+    vehs = chunks.get("VEHS") or {}
+    iterator = vehs.items() if isinstance(vehs, dict) else enumerate(vehs)
+    station_aircraft = defaultdict(int)
+    station_routes = defaultdict(set)
+    route_aircraft = defaultdict(int)
+    for _vehicle_id, raw in iterator:
+        if not isinstance(raw, dict) or str(raw.get("type")) != "3": continue
+        body = _first(raw.get("aircraft"))
+        common = _first(body.get("common")) if isinstance(body, dict) else None
+        if not isinstance(common, dict) or common.get("owner") != 0: continue
+        if int(_first(common.get("unitnumber", 0)) or 0) <= 0: continue
+        resolved = _order_list(chunks, common)
+        if resolved is None: continue
+        order_key, orders = resolved
+        destinations = set()
+        for order in orders:
+            if not isinstance(order, dict): continue
+            raw_type = order.get("type")
+            if not isinstance(raw_type, int) or (raw_type & 0x0F) != 1: continue
+            try: dest = int(order.get("dest"))
+            except (TypeError, ValueError): continue
+            if dest in stations: destinations.add(dest)
+        if len(destinations) < 2: continue
+        route_aircraft[order_key] += 1
+        for dest in destinations:
+            station_aircraft[dest] += 1
+            station_routes[dest].add(order_key)
+    return station_aircraft, station_routes, route_aircraft
 
 
 def extract_measurements(chunks, seed, date):
     stations = _station_index(chunks)
+    station_aircraft, station_routes, route_aircraft = _air_usage(chunks, stations)
     vehs = chunks.get("VEHS") or {}
     iterator = vehs.items() if isinstance(vehs, dict) else enumerate(vehs)
     rows = []
@@ -139,9 +171,10 @@ def extract_measurements(chunks, seed, date):
         speed = _script_air_speed(engine) if engine is not None else None
         if speed is None or speed <= 0:
             continue
-        orders = _order_list(chunks, common)
-        if not orders:
+        resolved = _order_list(chunks, common)
+        if resolved is None:
             continue
+        order_key, orders = resolved
         station_orders = []
         for order_index, order in enumerate(orders):
             if not isinstance(order, dict):
@@ -173,12 +206,18 @@ def extract_measurements(chunks, seed, date):
                 "seed": seed,
                 "date": date,
                 "vehicle_id": str(vehicle_id),
+                "order_list_id": order_key,
                 "unitnumber": int(_first(common.get("unitnumber", 0)) or 0),
                 "engine": int(engine),
                 "speed_api": speed,
                 "order_index": order_index,
                 "src_station": prev_dest,
                 "dst_station": dest,
+                "route_aircraft": route_aircraft.get(order_key, 0),
+                "src_station_aircraft": station_aircraft.get(prev_dest, 0),
+                "dst_station_aircraft": station_aircraft.get(dest, 0),
+                "src_station_routes": len(station_routes.get(prev_dest, set())),
+                "dst_station_routes": len(station_routes.get(dest, set())),
                 "src_airport_type": src["airport_type"],
                 "dst_airport_type": dst["airport_type"],
                 "distance": distance,
@@ -228,6 +267,7 @@ def _summary(rows, key_fn):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--start-year", type=int, default=1970)
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 999, 1234, 5678])
     parser.add_argument("--workers", type=int, default=3)
@@ -235,16 +275,14 @@ def main():
                         default=ROOT / "results" / "diag_airport_delay_engine_5x6.json")
     args = parser.parse_args()
 
-    settings = (
-        ("decision_log", 0),
-        ("air_route_plane_selection", 1),
-        ("air_best_equipment", 1),
-        ("air_capital_frontier", 1),
-        ("air_capital_frontier_probe", 0),
-    )
+    # Diagnostic passif sur les vrais defaults courants. Les anciennes versions
+    # de cette sonde forçaient trois politiques AIR historiques, ce qui rendait
+    # leur distribution de congestion non représentative du défaut moderne.
+    settings = (("decision_log", 0),)
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", settings)
+    cfg = CFG.replace("starting_year = 1970", f"starting_year = {args.start_year}")
     experiments = [
-        {"seed": seed, "days": 365 * args.years, "openttd_config": CFG, "ais": (ai,)}
+        {"seed": seed, "days": 365 * args.years, "openttd_config": cfg, "ais": (ai,)}
         for seed in args.seeds
     ]
     rows = list(run_experiments(
@@ -266,6 +304,7 @@ def main():
             latest[seed] = row
     measurements = [m for row in latest.values() for m in row["measurements"]]
     payload = {
+        "start_year": args.start_year,
         "years": args.years,
         "seeds": args.seeds,
         "latest_dates": {str(seed): row["date"] for seed, row in latest.items()},
