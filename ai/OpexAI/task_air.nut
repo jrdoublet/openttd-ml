@@ -142,6 +142,7 @@ function OpexAI::_tryBuildAir(year)
       }
     }
 
+    if (B9_AIR_DEMAND_SHADOW) OpexAirB9DemandShadow(this._catalog, plan);
     local result = V93_AIR_DEMAND_PRODUCTION
         ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
         : OpexBuildAirRoute(this._catalog, this._budget, plan);
@@ -385,6 +386,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
+      if (B9_AIR_DEMAND_SHADOW) OpexAirB9DemandShadow(this._catalog, plan);
       local result = V93_AIR_DEMAND_PRODUCTION
           ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
           : OpexBuildAirRoute(this._catalog, this._budget, plan);

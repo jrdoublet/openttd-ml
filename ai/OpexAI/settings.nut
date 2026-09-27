@@ -331,6 +331,8 @@ function OpexLoadSettings()
 
   // 9. probe_events : C52 autoreplace, exposure, crash, unprofitable, first vehicle, C56 task trace, air fleet/catchment, equipment roi, vehicle orders
   local probeEvents = AIController.GetSetting("probe_events") != 0;
+  local b9CatchmentProbe = AIController.GetSetting("b9_air_catchment_probe") != 0;
+  B9_AIR_DEMAND_SHADOW = AIController.GetSetting("b9_air_demand_shadow") != 0;
   C52_AUTOREPLACE_LOG = probeEvents;
   if (C52_AUTOREPLACE_LOG) {
     C52_AUTOREPLACE_LEDGER = {
@@ -370,7 +372,7 @@ function OpexLoadSettings()
   C56_TASK_TRACE = probeEvents;
   if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
   AIR_FLEET_PROBE = probeEvents;
-  AIR_CATCHMENT_PROBE = probeEvents;
+  AIR_CATCHMENT_PROBE = probeEvents || b9CatchmentProbe;
   EQUIPMENT_ROI_PROBE = probeEvents;
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
   C78_SLOT_INTERCEPT_PROBE = probePort;

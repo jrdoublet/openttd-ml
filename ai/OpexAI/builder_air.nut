@@ -72,6 +72,21 @@ function OpexAirDistanceToRect(tile, anchor, width, height)
   return dx + dy;
 }
 
+/* B9/G4 mesure uniquement : appartenance au catchment reel d'une emprise.
+ * OpenTTD etend TileArea(width,height) de radius sur X et Y independamment ;
+ * ce n'est pas le losange Manhattan utilise ailleurs pour le classement. */
+function OpexAirB9TileInExpandedRect(tile, anchor, width, height, radius)
+{
+  if (!AIMap.IsValidTile(tile) || !AIMap.IsValidTile(anchor)) return false;
+  local x = AIMap.GetTileX(tile);
+  local y = AIMap.GetTileY(tile);
+  local left = AIMap.GetTileX(anchor) - radius;
+  local top = AIMap.GetTileY(anchor) - radius;
+  local right = AIMap.GetTileX(anchor) + width - 1 + radius;
+  local bottom = AIMap.GetTileY(anchor) + height - 1 + radius;
+  return x >= left && x <= right && y >= top && y <= bottom;
+}
+
 /* B9/G4 : toutes les demandes AIR sont exprimees en production mensuelle de
  * cargo couverte. Pour un site neuf, l'emprise et le type d'aeroport sont deja
  * connus avant construction, donc cette grandeur est mesurable sans proxy de
@@ -105,6 +120,234 @@ function OpexAirJoinedMarginalProduction(stationId, airportTile, airportType, ca
   local airportProduction = OpexAirAirportCatchmentProduction(airportTile, airportType, cargo);
   local marginal = unionProduction - airportProduction;
   return marginal > 0 ? marginal : 0;
+}
+
+/* B9/G4 : prediction passive des arrets joints d'un site neuf.
+ * Meme geometrie, meme tri et meme anti-chevauchement que le chantier reel,
+ * mais aucun ordre n'est execute. Le AITestMode ne sert qu'a eliminer les
+ * orientations impossibles ; AIAccounting imbrique jette leur cout simule. */
+function OpexAirB9PredictJoinedStops(site, airport, town, paxCargo)
+{
+  local chosen = [];
+  if (!B9_AIR_DEMAND_SHADOW || !AIR_JOINED_STOPS || AIR_JOINED_STOP_LIMIT <= 0
+      || site == null || town == null || paxCargo < 0) return chosen;
+
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local spread = AIGameSettings.GetValue("station.station_spread");
+  if (spread < 4) spread = 12;
+  local airportTile = site.anchor;
+  local w = airport.width;
+  local h = airport.height;
+  local ax = AIMap.GetTileX(airportTile);
+  local ay = AIMap.GetTileY(airportTile);
+  local center = airportTile + AIMap.GetTileIndex(w / 2, h / 2);
+  local minX = ax + w - spread;
+  if (minX < 1) minX = 1;
+  local maxX = ax + spread - 1;
+  if (maxX >= mapX - 1) maxX = mapX - 2;
+  local minY = ay + h - spread;
+  if (minY < 1) minY = 1;
+  local maxY = ay + spread - 1;
+  if (maxY >= mapY - 1) maxY = mapY - 2;
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  local airportCoverage = AIAirport.GetAirportCoverageRadius(airport.type);
+  local dirs = [
+    AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(0, 1),
+    AIMap.GetTileIndex(-1, 0), AIMap.GetTileIndex(0, -1)
+  ];
+  local candidates = [];
+
+  for (local x = minX; x <= maxX; x++) {
+    for (local y = minY; y <= maxY; y++) {
+      local tile = AIMap.GetTileIndex(x, y);
+      if (!AIMap.IsValidTile(tile) || AITile.GetClosestTown(tile) != town.id) continue;
+      if (!AIRoad.IsRoadTile(tile) || AIRoad.IsRoadStationTile(tile)
+          || AIRoad.IsRoadDepotTile(tile) || AITile.IsStationTile(tile)) continue;
+      if (AIMap.DistanceManhattan(tile, center) < 3) continue;
+      if (OpexAirDistanceToRect(tile, airportTile, w, h) <= airportCoverage) continue;
+      local val = AITile.GetCargoProduction(tile, paxCargo, 1, 1, coverage);
+      if (val <= 0) continue;
+
+      local buildable = false;
+      foreach (dir in dirs) {
+        local front = tile + dir;
+        if (!AIMap.IsValidTile(front) || !AIRoad.IsRoadTile(front)) continue;
+        local shield = AIAccounting();
+        local test = AITestMode();
+        local ok = AIRoad.BuildDriveThroughRoadStation(
+            tile, front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+        test = null;
+        shield = null;
+        if (ok) {
+          buildable = true;
+          break;
+        }
+      }
+      if (buildable) {
+        candidates.append({
+          tile = tile,
+          value = val,
+          dist = AIMap.DistanceManhattan(tile, town.tile)
+        });
+      }
+    }
+  }
+
+  candidates.sort(function(a, b) {
+    if (a.value > b.value) return -1;
+    if (a.value < b.value) return 1;
+    if (a.dist < b.dist) return -1;
+    if (a.dist > b.dist) return 1;
+    return 0;
+  });
+  local maxStops = AIR_JOINED_STOP_LIMIT;
+  if (maxStops > 2) maxStops = 2;
+  foreach (cand in candidates) {
+    if (chosen.len() >= maxStops) break;
+    local overlaps = false;
+    foreach (prev in chosen) {
+      if (AIMap.DistanceManhattan(cand.tile, prev) <= 2 * coverage) {
+        overlaps = true;
+        break;
+      }
+    }
+    if (!overlaps) chosen.append(cand.tile);
+  }
+  return chosen;
+}
+
+/* Production mensuelle de LA ville couverte par l'union pre-build.
+ * stationId >= 0 : union exacte d'un hub existant.
+ * stationId < 0  : union geometrique aeroport + stops predicts du site neuf. */
+function OpexAirB9TownUnionMonthly(town, airportTile, airportType, cargo, stopTiles, stationId = -1)
+{
+  local out = { monthly = 0, produced = 0, townTiles = 0, coveredTiles = 0 };
+  if (town == null || !AITown.IsValidTown(town.id) || cargo < 0) return out;
+  local pop = AITown.GetPopulation(town.id);
+  local townRadius = 4 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
+  if (townRadius > 20) townRadius = 20;
+  local townTile = AITown.GetLocation(town.id);
+  out.townTiles = AITile.GetCargoProduction(townTile, cargo, 1, 1, townRadius);
+  if (out.townTiles < 0) out.townTiles = 0;
+  out.produced = AITown.GetLastMonthProduction(town.id, cargo);
+  if (out.produced < 0) out.produced = 0;
+
+  if (stationId >= 0 && AIStation.IsValidStation(stationId)) {
+    local coverageTiles = AITileList_StationCoverage(stationId);
+    foreach (tile, value in coverageTiles) {
+      if (AITile.GetClosestTown(tile) != town.id) continue;
+      out.coveredTiles += AITile.GetCargoProduction(tile, cargo, 1, 1, 0);
+    }
+  } else {
+    if (!AIMap.IsValidTile(airportTile) || !AIAirport.IsValidAirportType(airportType)) return out;
+    local w = AIAirport.GetAirportWidth(airportType);
+    local h = AIAirport.GetAirportHeight(airportType);
+    local airportRadius = AIAirport.GetAirportCoverageRadius(airportType);
+    local busRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+    local left = AIMap.GetTileX(airportTile) - airportRadius;
+    local right = AIMap.GetTileX(airportTile) + w - 1 + airportRadius;
+    local top = AIMap.GetTileY(airportTile) - airportRadius;
+    local bottom = AIMap.GetTileY(airportTile) + h - 1 + airportRadius;
+    foreach (stop in stopTiles) {
+      local sx = AIMap.GetTileX(stop);
+      local sy = AIMap.GetTileY(stop);
+      if (sx - busRadius < left) left = sx - busRadius;
+      if (sx + busRadius > right) right = sx + busRadius;
+      if (sy - busRadius < top) top = sy - busRadius;
+      if (sy + busRadius > bottom) bottom = sy + busRadius;
+    }
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+    local mapX = AIMap.GetMapSizeX();
+    local mapY = AIMap.GetMapSizeY();
+    if (right >= mapX) right = mapX - 1;
+    if (bottom >= mapY) bottom = mapY - 1;
+    for (local x = left; x <= right; x++) {
+      for (local y = top; y <= bottom; y++) {
+        local tile = AIMap.GetTileIndex(x, y);
+        /* OpenTTD RecomputeCatchment() ajoute, pour chaque tuile de station,
+         * TileArea(tile, 1, 1).Expand(radius) : la metrique est donc carree
+         * (Chebyshev), pas Manhattan. */
+        local covered = OpexAirB9TileInExpandedRect(
+            tile, airportTile, w, h, airportRadius);
+        if (!covered) {
+          foreach (stop in stopTiles) {
+            if (OpexAirB9TileInExpandedRect(tile, stop, 1, 1, busRadius)) {
+              covered = true;
+              break;
+            }
+          }
+        }
+        if (!covered || AITile.GetClosestTown(tile) != town.id) continue;
+        out.coveredTiles += AITile.GetCargoProduction(tile, cargo, 1, 1, 0);
+      }
+    }
+  }
+  local usable = out.coveredTiles;
+  if (out.townTiles > 0 && usable > out.townTiles) usable = out.townTiles;
+  if (out.townTiles > 0) out.monthly = (out.produced * usable) / out.townTiles;
+  return out;
+}
+
+function OpexAirB9DemandShadowEndpoint(catalog, plan, site, reused)
+{
+  local result = {
+    airportMonthly = 0, unionMonthly = 0, unionAllocated = 0,
+    routeDiv = 1, predictedStops = 0, produced = 0,
+    townTiles = 0, unionTiles = 0
+  };
+  if (site == null || !("town" in site) || site.town == null) return result;
+  local airportType = plan.airport.type;
+  if (reused && AIAirport.IsAirportTile(site.anchor)) {
+    airportType = AIAirport.GetAirportType(site.anchor);
+  }
+  local airportOnly = OpexAirB9TownUnionMonthly(
+      site.town, site.anchor, airportType, catalog.paxCargo, [], -1);
+  local stops = [];
+  local stationId = -1;
+  if (reused) {
+    if ("stationId" in site) stationId = site.stationId;
+  } else {
+    stops = OpexAirB9PredictJoinedStops(site, plan.airport, site.town, catalog.paxCargo);
+  }
+  local union = OpexAirB9TownUnionMonthly(
+      site.town, site.anchor, airportType, catalog.paxCargo, stops, stationId);
+  local routeDiv = reused && ("routes" in site) ? site.routes + 1 : 1;
+  result.airportMonthly = airportOnly.monthly / routeDiv;
+  result.unionMonthly = union.monthly;
+  result.unionAllocated = union.monthly / routeDiv;
+  result.routeDiv = routeDiv;
+  result.predictedStops = stops.len();
+  result.produced = union.produced;
+  result.townTiles = union.townTiles;
+  result.unionTiles = union.coveredTiles;
+  return result;
+}
+
+function OpexAirB9DemandShadow(catalog, plan)
+{
+  if (!B9_AIR_DEMAND_SHADOW || !AIR_CATCHMENT_PROBE || plan == null
+      || !("siteA" in plan) || !("siteB" in plan)) return;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local a = OpexAirB9DemandShadowEndpoint(catalog, plan, plan.siteA, reuseA);
+  local b = OpexAirB9DemandShadowEndpoint(catalog, plan, plan.siteB, reuseB);
+  OpexAirCatchmentLog("AIR_DEMAND_SHADOW",
+      "arm=" + (("arm" in plan) ? plan.arm : "unknown")
+      + " town_a=" + plan.siteA.town.id + " town_b=" + plan.siteB.town.id
+      + " anchor_a=" + plan.siteA.anchor + " anchor_b=" + plan.siteB.anchor
+      + " reuse_a=" + (reuseA ? 1 : 0) + " reuse_b=" + (reuseB ? 1 : 0)
+      + " route_div_a=" + a.routeDiv + " route_div_b=" + b.routeDiv
+      + " base_monthly=" + plan.monthlyPax
+      + " airport_monthly_a=" + a.airportMonthly + " airport_monthly_b=" + b.airportMonthly
+      + " union_monthly_a=" + a.unionAllocated + " union_monthly_b=" + b.unionAllocated
+      + " shadow_monthly=" + (a.unionAllocated + b.unionAllocated)
+      + " raw_union_a=" + a.unionMonthly + " raw_union_b=" + b.unionMonthly
+      + " predicted_stops_a=" + a.predictedStops + " predicted_stops_b=" + b.predictedStops
+      + " town_prod_a=" + a.produced + " town_prod_b=" + b.produced
+      + " town_tiles_a=" + a.townTiles + " town_tiles_b=" + b.townTiles
+      + " union_tiles_a=" + a.unionTiles + " union_tiles_b=" + b.unionTiles);
 }
 
 function OpexAirCatchmentProbeEndpoint(catalog, stationId, airportTile, townId,
@@ -149,7 +392,8 @@ function OpexAirCatchmentProbeEndpoint(catalog, stationId, airportTile, townId,
     if (AITile.GetClosestTown(coverageTile) == townId) {
       townUnionPaxTiles += paxHere;
       townUnionMailTiles += mailHere;
-      if (OpexAirDistanceToRect(coverageTile, airportTile, w, h) <= airportRadius) {
+      if (OpexAirB9TileInExpandedRect(
+          coverageTile, airportTile, w, h, airportRadius)) {
         townAirportPaxTiles += paxHere;
         townAirportMailTiles += mailHere;
       }
@@ -194,6 +438,8 @@ function OpexAirCatchmentProbeEndpoint(catalog, stationId, airportTile, townId,
   local rawMinusTrue = reused ? 0 : rawJoinedPax - marginalPax;
   local modelMinusTrue = reused ? 0 : modelJoinedPax - marginalPax;
   local rectDistance = OpexAirDistanceToRect(townTile, airportTile, w, h);
+  local townCenterInAirport = OpexAirB9TileInExpandedRect(
+      townTile, airportTile, w, h, airportRadius);
   local airportCenter = airportTile + AIMap.GetTileIndex(w / 2, h / 2);
   local left = AIController.GetOpsTillSuspend();
   local elapsed = AIController.GetTick() - t0;
@@ -209,7 +455,7 @@ function OpexAirCatchmentProbeEndpoint(catalog, stationId, airportTile, townId,
       + " bus_radius=" + AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP)
       + " rect_distance=" + rectDistance
       + " center_distance=" + AIMap.DistanceManhattan(townTile, airportCenter)
-      + " town_center_airport=" + (rectDistance <= airportRadius ? 1 : 0)
+      + " town_center_airport=" + (townCenterInAirport ? 1 : 0)
       + " town_center_union=" + (townCenterInUnion ? 1 : 0)
       + " coverage_tiles=" + unionTiles
       + " airport_pax_prod=" + airportPax + " union_pax_prod=" + unionPax
@@ -222,7 +468,9 @@ function OpexAirCatchmentProbeEndpoint(catalog, stationId, airportTile, townId,
       + " airport_pax_month_est=" + airportPaxMonthEst
       + " union_pax_month_est=" + unionPaxMonthEst
       + " joined_marginal_pax=" + marginalPax
+      + " joined_marginal_pax_tiles=" + marginalPax
       + " model_joined_pax=" + modelJoinedPax + " raw_joined_pax=" + rawJoinedPax
+      + " model_joined_pax_tiles=" + modelJoinedPax + " raw_joined_pax_tiles=" + rawJoinedPax
       + " overlap_overcount_pax=" + (rawMinusTrue > 0 ? rawMinusTrue : 0)
       + " raw_undercount_pax=" + (rawMinusTrue < 0 ? -rawMinusTrue : 0)
       + " model_error_pax=" + modelMinusTrue
@@ -6040,10 +6288,13 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
         && ("profitAnnual" in plan.economics)) ? plan.economics.profitAnnual : 0;
     local predictedAnnualRevenue = (("economics" in plan) && plan.economics != null
         && ("revenueAnnual" in plan.economics)) ? plan.economics.revenueAnnual : 0;
+    local routeDivA = reuseA && ("routes" in plan.siteA) ? plan.siteA.routes + 1 : 1;
+    local routeDivB = reuseB && ("routes" in plan.siteB) ? plan.siteB.routes + 1 : 1;
     OpexAirCatchmentLog("AIR_CATCHMENT_BUILD",
         "arm=" + (("arm" in plan) ? plan.arm : "unknown")
         + " base_source=" + (OPEX_AIR_PLAN_PAD ? "demand_plan" : "town_population_proxy")
         + " base_monthly=" + plan.monthlyPax
+        + " route_div_a=" + routeDivA + " route_div_b=" + routeDivB
         + " reserve_stop_cost=" + (("joinedStopReserve" in plan) ? plan.joinedStopReserve : 0)
         + " actual_stop_cost=" + result.joinedStopCost + " stop_limit=" + AIR_JOINED_STOP_LIMIT
         + " stops_a=" + result.joinedStopsA + " stops_b=" + result.joinedStopsB

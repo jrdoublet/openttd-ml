@@ -13,7 +13,10 @@ import re
 import statistics
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
-EVENT_RE = re.compile(r"OPEX (\d+)-(\d+)-(\d+) (AIR_CATCHMENT_ENDPOINT|AIR_CATCHMENT_BUILD)\s*(.*)$")
+EVENT_RE = re.compile(
+    r"OPEX (\d+)-(\d+)-(\d+) "
+    r"(AIR_CATCHMENT_ENDPOINT|AIR_CATCHMENT_BUILD|AIR_DEMAND_SHADOW)\s*(.*)$"
+)
 
 
 def parse_fields(text):
@@ -121,10 +124,40 @@ def collect_probe_events_from_engine_logs(engine_dir):
     return out
 
 
+def _shadow_route_key(event):
+    pairs = []
+    for suffix in ("a", "b"):
+        town = event.get(f"town_{suffix}")
+        anchor = event.get(f"anchor_{suffix}")
+        if not isinstance(town, (int, float)) or not isinstance(anchor, (int, float)):
+            return None
+        pairs.append((int(town), int(anchor)))
+    return tuple(sorted(pairs))
+
+
+def _endpoint_route_key(endpoints):
+    if len(endpoints) != 2:
+        return None
+    pairs = []
+    for endpoint in endpoints:
+        town = endpoint.get("town")
+        anchor = endpoint.get("airport_tile")
+        if not isinstance(town, (int, float)) or not isinstance(anchor, (int, float)):
+            return None
+        pairs.append((int(town), int(anchor)))
+    return tuple(sorted(pairs))
+
+
 def pair_builds(events):
     pending, builds = [], []
+    shadows_by_key = {}
     orphan_endpoints = orphan_builds = 0
     for event in events:
+        if event["kind"] == "AIR_DEMAND_SHADOW":
+            key = _shadow_route_key(event)
+            if key is not None:
+                shadows_by_key[key] = event
+            continue
         if event["kind"] == "AIR_CATCHMENT_ENDPOINT":
             pending.append(event)
             if len(pending) > 2:
@@ -136,7 +169,9 @@ def pair_builds(events):
         endpoints = pending[-2:] if len(pending) >= 2 else []
         if len(endpoints) != 2:
             orphan_builds += 1
-        builds.append({**event, "endpoints": endpoints})
+        key = _endpoint_route_key(endpoints)
+        shadow = shadows_by_key.pop(key, None) if key is not None else None
+        builds.append({**event, "endpoints": endpoints, "shadow": shadow})
         pending = []
     orphan_endpoints += len(pending)
     return builds, orphan_endpoints, orphan_builds
@@ -145,15 +180,24 @@ def pair_builds(events):
 def summary_stats(values):
     values = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
     if not values:
-        return {"n": 0, "mean": None, "median": None, "min": None, "max": None}
+        return {"n": 0, "mean": None, "median": None, "pstdev": None,
+                "p25": None, "p75": None, "iqr": None, "min": None, "max": None}
+    if len(values) >= 2:
+        p25, _, p75 = statistics.quantiles(values, n=4, method="inclusive")
+    else:
+        p25 = p75 = values[0]
     return {"n": len(values), "mean": round(statistics.mean(values), 6),
             "median": round(statistics.median(values), 6),
+            "pstdev": round(statistics.pstdev(values), 6),
+            "p25": round(p25, 6), "p75": round(p75, 6),
+            "iqr": round(p75 - p25, 6),
             "min": min(values), "max": max(values)}
 
 
 def summarise_probe(games):
     all_events = [event for events in games.values() for event in events]
     endpoints = [event for event in all_events if event["kind"] == "AIR_CATCHMENT_ENDPOINT"]
+    shadows = [event for event in all_events if event["kind"] == "AIR_DEMAND_SHADOW"]
     builds, orphan_endpoints, orphan_builds = [], 0, 0
     for events in games.values():
         paired, oe, ob = pair_builds(events)
@@ -164,14 +208,22 @@ def summarise_probe(games):
     newpairs = [build for build in builds if build.get("arm") == "newpair"
                 and len(build["endpoints"]) == 2
                 and build.get("reuse_a") == 0 and build.get("reuse_b") == 0]
-    base_vs_union, base_plus_raw_vs_union = [], []
+    base_vs_airport_est, base_vs_union_est = [], []
+    base_over_airport_est, base_over_union_est = [], []
     for build in newpairs:
-        union = sum(endpoint.get("union_pax_prod", 0) for endpoint in build["endpoints"])
-        base, raw = build.get("base_monthly"), build.get("raw_joined_total")
-        if isinstance(base, (int, float)):
-            base_vs_union.append(base - union)
-        if isinstance(base, (int, float)) and isinstance(raw, (int, float)):
-            base_plus_raw_vs_union.append(base + raw - union)
+        base = build.get("base_monthly")
+        airport_est = [endpoint.get("airport_pax_month_est") for endpoint in build["endpoints"]]
+        union_est = [endpoint.get("union_pax_month_est") for endpoint in build["endpoints"]]
+        if isinstance(base, (int, float)) and all(isinstance(v, (int, float)) for v in airport_est):
+            total = sum(airport_est)
+            base_vs_airport_est.append(base - total)
+            if total > 0:
+                base_over_airport_est.append(base / total)
+        if isinstance(base, (int, float)) and all(isinstance(v, (int, float)) for v in union_est):
+            total = sum(union_est)
+            base_vs_union_est.append(base - total)
+            if total > 0:
+                base_over_union_est.append(base / total)
     reserve_delta = [build["reserve_stop_cost"] - build["actual_stop_cost"] for build in builds
                      if isinstance(build.get("reserve_stop_cost"), (int, float))
                      and isinstance(build.get("actual_stop_cost"), (int, float))]
@@ -193,9 +245,142 @@ def summarise_probe(games):
                     "date": endpoint.get("date"), "endpoint": endpoint.get("endpoint"),
                     "invariant": f"union_{cargo}_prod>=airport_{cargo}_prod",
                     "airport": airport, "union": union})
+
+    shadow_by_arm = {}
+    for arm in ("newpair", "hubsite", "hubhub"):
+        rows = []
+        for build in builds:
+            shadow = build.get("shadow")
+            if build.get("arm") != arm or not isinstance(shadow, dict) or len(build.get("endpoints") or []) != 2:
+                continue
+            endpoint_by_name = {
+                str(endpoint.get("endpoint") or "").upper(): endpoint
+                for endpoint in build["endpoints"]
+            }
+            endpoint_a = endpoint_by_name.get("A", build["endpoints"][0])
+            endpoint_b = endpoint_by_name.get("B", build["endpoints"][1])
+            div_a = shadow.get("route_div_a", 1)
+            div_b = shadow.get("route_div_b", 1)
+            if not isinstance(div_a, (int, float)) or div_a <= 0:
+                div_a = 1
+            if not isinstance(div_b, (int, float)) or div_b <= 0:
+                div_b = 1
+            actual_a = endpoint_a.get("union_pax_month_est")
+            actual_b = endpoint_b.get("union_pax_month_est")
+            predicted = shadow.get("shadow_monthly")
+            if not all(isinstance(v, (int, float)) for v in (actual_a, actual_b, predicted)):
+                continue
+            actual = (actual_a / div_a) + (actual_b / div_b)
+            predicted_stops = (shadow.get("predicted_stops_a") or 0) + (shadow.get("predicted_stops_b") or 0)
+            actual_stops = (build.get("stops_a") or 0) + (build.get("stops_b") or 0)
+            base = build.get("base_monthly")
+            coverage_errors_pp = []
+            renormalized_components = []
+            for suffix, endpoint, divisor in (
+                ("a", endpoint_a, div_a),
+                ("b", endpoint_b, div_b),
+            ):
+                pred_tiles = shadow.get(f"union_tiles_{suffix}")
+                pred_town_tiles = shadow.get(f"town_tiles_{suffix}")
+                actual_tiles = endpoint.get("town_union_pax_tiles")
+                actual_town_tiles = endpoint.get("town_pax_tiles")
+                if all(isinstance(v, (int, float)) for v in (
+                    pred_tiles, pred_town_tiles, actual_tiles, actual_town_tiles
+                )) and pred_town_tiles > 0 and actual_town_tiles > 0:
+                    coverage_errors_pp.append(
+                        ((pred_tiles / pred_town_tiles) - (actual_tiles / actual_town_tiles)) * 100.0
+                    )
+                build_month_production = endpoint.get("town_pax_month")
+                if all(isinstance(v, (int, float)) for v in (
+                    pred_tiles, pred_town_tiles, build_month_production
+                )) and pred_town_tiles > 0:
+                    usable_tiles = min(pred_tiles, pred_town_tiles)
+                    renormalized_components.append(
+                        (build_month_production * usable_tiles / pred_town_tiles) / divisor
+                    )
+            renormalized = (
+                sum(renormalized_components) if len(renormalized_components) == 2 else None
+            )
+            rows.append({
+                "predicted": predicted,
+                "actual": actual,
+                "error": predicted - actual,
+                "abs_error": abs(predicted - actual),
+                "ratio": (predicted / actual) if actual > 0 else None,
+                "rel_error_pct": ((predicted - actual) * 100.0 / actual) if actual > 0 else None,
+                "base_over_shadow": (base / predicted)
+                    if isinstance(base, (int, float)) and predicted > 0 else None,
+                "base_over_actual": (base / actual)
+                    if isinstance(base, (int, float)) and actual > 0 else None,
+                "renormalized": renormalized,
+                "renormalized_error": (renormalized - actual)
+                    if isinstance(renormalized, (int, float)) else None,
+                "renormalized_abs_error": abs(renormalized - actual)
+                    if isinstance(renormalized, (int, float)) else None,
+                "renormalized_ratio": (renormalized / actual)
+                    if isinstance(renormalized, (int, float)) and actual > 0 else None,
+                "renormalized_rel_error_pct": ((renormalized - actual) * 100.0 / actual)
+                    if isinstance(renormalized, (int, float)) and actual > 0 else None,
+                "base_over_renormalized": (base / renormalized)
+                    if isinstance(base, (int, float))
+                    and isinstance(renormalized, (int, float)) and renormalized > 0 else None,
+                "predicted_stops": predicted_stops,
+                "actual_stops": actual_stops,
+                "coverage_error_pp": statistics.mean(coverage_errors_pp)
+                    if coverage_errors_pp else None,
+                "coverage_abs_error_pp": statistics.mean(abs(v) for v in coverage_errors_pp)
+                    if coverage_errors_pp else None,
+                "same_month": all(
+                    isinstance(date, str) and len(date) >= 7
+                    for date in (shadow.get("date"), endpoint_a.get("date"), endpoint_b.get("date"))
+                ) and shadow["date"][:7] == endpoint_a["date"][:7] == endpoint_b["date"][:7],
+            })
+        shadow_by_arm[arm] = {
+            "n": len(rows),
+            "shadow_monthly": summary_stats(row["predicted"] for row in rows),
+            "postbuild_union_monthly": summary_stats(row["actual"] for row in rows),
+            "shadow_minus_postbuild": summary_stats(row["error"] for row in rows),
+            "shadow_abs_error": summary_stats(row["abs_error"] for row in rows),
+            "shadow_over_postbuild_ratio": summary_stats(row["ratio"] for row in rows),
+            "relative_error_pct": summary_stats(row["rel_error_pct"] for row in rows),
+            "base_over_shadow_ratio": summary_stats(row["base_over_shadow"] for row in rows),
+            "base_over_postbuild_ratio": summary_stats(row["base_over_actual"] for row in rows),
+            "shadow_at_build_production_monthly": summary_stats(
+                row["renormalized"] for row in rows
+            ),
+            "shadow_at_build_production_minus_postbuild": summary_stats(
+                row["renormalized_error"] for row in rows
+            ),
+            "shadow_at_build_production_abs_error": summary_stats(
+                row["renormalized_abs_error"] for row in rows
+            ),
+            "shadow_at_build_production_over_postbuild_ratio": summary_stats(
+                row["renormalized_ratio"] for row in rows
+            ),
+            "shadow_at_build_production_relative_error_pct": summary_stats(
+                row["renormalized_rel_error_pct"] for row in rows
+            ),
+            "base_over_shadow_at_build_production_ratio": summary_stats(
+                row["base_over_renormalized"] for row in rows
+            ),
+            "predicted_stops": summary_stats(row["predicted_stops"] for row in rows),
+            "actual_stops": summary_stats(row["actual_stops"] for row in rows),
+            "coverage_error_pp": summary_stats(row["coverage_error_pp"] for row in rows),
+            "coverage_abs_error_pp": summary_stats(row["coverage_abs_error_pp"] for row in rows),
+            "stop_count_exact_share": round(
+                sum(row["predicted_stops"] == row["actual_stops"] for row in rows) / len(rows), 6
+            ) if rows else None,
+            "same_month_share": round(
+                sum(row["same_month"] for row in rows) / len(rows), 6
+            ) if rows else None,
+        }
     return {
         "games_with_probe": sum(bool(events) for events in games.values()),
         "events": len(all_events), "endpoint_events": len(endpoints), "build_events": len(builds),
+        "shadow_events": len(shadows),
+        "shadow_paired_builds": sum(isinstance(build.get("shadow"), dict) for build in builds),
+        "shadow_unpaired_events": len(shadows) - sum(isinstance(build.get("shadow"), dict) for build in builds),
+        "shadow_accuracy_by_arm": shadow_by_arm,
         "orphan_endpoints": orphan_endpoints, "orphan_builds": orphan_builds,
         "invariant_failures": invariant_failures,
         "airport_types": dict(Counter(str(event.get("airport_type")) for event in endpoints)),
@@ -210,6 +395,19 @@ def summarise_probe(games):
         "union_pax_prod": summary_stats(event.get("union_pax_prod") for event in endpoints),
         "airport_mail_prod": summary_stats(event.get("airport_mail_prod") for event in endpoints),
         "union_mail_prod": summary_stats(event.get("union_mail_prod") for event in endpoints),
+        "producer_tile_semantics": "*_prod historiques = nombres de tuiles productrices, pas pax/mail par mois",
+        "town_pax_month": summary_stats(event.get("town_pax_month") for event in endpoints),
+        "town_pax_tiles": summary_stats(event.get("town_pax_tiles") for event in endpoints),
+        "town_airport_pax_tiles": summary_stats(event.get("town_airport_pax_tiles") for event in endpoints),
+        "town_union_pax_tiles": summary_stats(event.get("town_union_pax_tiles") for event in endpoints),
+        "airport_pax_month_est": summary_stats(event.get("airport_pax_month_est") for event in endpoints),
+        "union_pax_month_est": summary_stats(event.get("union_pax_month_est") for event in endpoints),
+        "town_mail_month": summary_stats(event.get("town_mail_month") for event in endpoints),
+        "town_mail_tiles": summary_stats(event.get("town_mail_tiles") for event in endpoints),
+        "town_airport_mail_tiles": summary_stats(event.get("town_airport_mail_tiles") for event in endpoints),
+        "town_union_mail_tiles": summary_stats(event.get("town_union_mail_tiles") for event in endpoints),
+        "airport_mail_month_est": summary_stats(event.get("airport_mail_month_est") for event in endpoints),
+        "union_mail_month_est": summary_stats(event.get("union_mail_month_est") for event in endpoints),
         "joined_marginal_pax": summary_stats(event.get("joined_marginal_pax") for event in new_endpoints),
         "raw_joined_pax": summary_stats(event.get("raw_joined_pax") for event in new_endpoints),
         "model_joined_pax": summary_stats(event.get("model_joined_pax") for event in new_endpoints),
@@ -226,8 +424,12 @@ def summarise_probe(games):
         "actual_stops": summary_stats(actual for actual, _ in stop_utilisation),
         "reserved_stop_capacity": summary_stats(capacity for _, capacity in stop_utilisation),
         "underfilled_stop_reserve_count": sum(actual < capacity for actual, capacity in stop_utilisation),
-        "newpair_base_minus_union_pax": summary_stats(base_vs_union),
-        "newpair_base_plus_raw_minus_union_pax": summary_stats(base_plus_raw_vs_union),
+        "newpair_base_minus_airport_pax_month_est": summary_stats(base_vs_airport_est),
+        "newpair_base_minus_union_pax_month_est": summary_stats(base_vs_union_est),
+        "newpair_base_over_airport_pax_month_est_ratio": summary_stats(base_over_airport_est),
+        "newpair_base_over_union_pax_month_est_ratio": summary_stats(base_over_union_est),
+        "predicted_annual_profit": summary_stats(build.get("predicted_annual_profit") for build in builds),
+        "predicted_annual_revenue": summary_stats(build.get("predicted_annual_revenue") for build in builds),
         "base_sources": dict(Counter(str(build.get("base_source")) for build in builds)),
     }
 
@@ -248,6 +450,20 @@ def _rect_distance(tile, anchor, width, height, map_width):
     dx = left - x if x < left else (x - right if x > right else 0)
     dy = top - y if y < top else (y - bottom if y > bottom else 0)
     return dx + dy
+
+
+def _in_expanded_rect(tile, anchor, width, height, radius, map_width):
+    point, start = _tile_xy(tile, map_width), _tile_xy(anchor, map_width)
+    if point is None or start is None or not width or not height:
+        return None
+    if not isinstance(radius, (int, float)) or radius < 0:
+        return None
+    x, y = point
+    left, top = start
+    right = left + int(width) - 1
+    bottom = top + int(height) - 1
+    return (left - radius <= x <= right + radius
+            and top - radius <= y <= bottom + radius)
 
 
 def extract_airport_snapshots(payload):
@@ -317,7 +533,13 @@ def summarise_geometry(payload, probe_games, map_width=256):
             placement.append(distance)
             radius = radius_by_type.get(row.get("type"))
             if radius is not None:
-                covered.append(distance <= radius)
+                in_catchment = _in_expanded_rect(
+                    town_tiles.get((row.get("seed"), normalized_town)),
+                    row.get("tile"), row.get("width"), row.get("height"),
+                    radius, map_width,
+                )
+                if in_catchment is not None:
+                    covered.append(in_catchment)
         by_arm[arm] = {
             "airport_snapshots": len(group),
             "types": dict(Counter(str(row.get("type")) for row in group)),
@@ -345,10 +567,11 @@ def analyse(source_payload, checkpoint_rows, map_width=256, engine_dir=None):
         "source_campaign": source_payload.get("campaign_id"),
         "source_bundle_sha256": source_payload.get("source_bundle_sha256"),
         "limitations": [
-            "Exact pax/mail catchment production is measured only for OpexAI by the default-off NoAI probe.",
+            "AITown donne la production mensuelle exacte de la ville ; le volume captable par le site est une estimation proportionnelle a la fraction de tuiles productrices de cette ville couvertes par le catchment.",
             "AAAHogEx geometry comes from STNN; exact AAAHogEx production by coverage tile is unavailable in current chunks.",
             "Cross-AI placement uses only TownID whose town tile was observed by the Opex probe in the same shared map.",
-            "base_monthly is a model input; union_*_prod are tile-production measurements and remain separately labelled.",
+            "rect_distance reste une distance Manhattan descriptive ; town_center_covered utilise l'expansion rectangulaire reelle du catchment et ne doit pas etre deduite de rect_distance <= radius.",
+            "Les anciens champs airport_*_prod/union_*_prod sont des nombres de tuiles productrices, pas des volumes mensuels ; ils ne sont jamais soustraits a base_monthly.",
         ],
         "probe": summarise_probe(probe_games),
         "geometry": summarise_geometry(source_payload, probe_games, map_width=map_width),
@@ -358,15 +581,17 @@ def analyse(source_payload, checkpoint_rows, map_width=256, engine_dir=None):
 def selftest():
     rows = [{"run": ["OpexAI[x]", 42, 0], "date": "1970-01-01",
              "openttd_output": "\n".join([
-        "x OPEX 1970-1-1 AIR_CATCHMENT_ENDPOINT endpoint=A station=1 town=7 town_tile=100 town_pop=500 airport_tile=110 airport_type=1 airport_w=6 airport_h=6 airport_radius=5 rect_distance=2 center_distance=4 town_center_airport=1 town_center_union=1 coverage_tiles=120 airport_pax_prod=20 union_pax_prod=30 joined_marginal_pax=10 raw_joined_pax=15 overlap_overcount_pax=5 raw_undercount_pax=0 airport_mail_prod=5 union_mail_prod=7 joined_marginal_mail=2 reused=0 probe_ops=100",
-        "x OPEX 1970-1-1 AIR_CATCHMENT_ENDPOINT endpoint=B station=2 town=8 town_tile=200 town_pop=600 airport_tile=210 airport_type=1 airport_w=6 airport_h=6 airport_radius=5 rect_distance=3 center_distance=5 town_center_airport=1 town_center_union=1 coverage_tiles=121 airport_pax_prod=25 union_pax_prod=35 joined_marginal_pax=10 raw_joined_pax=12 overlap_overcount_pax=2 raw_undercount_pax=0 airport_mail_prod=6 union_mail_prod=9 joined_marginal_mail=3 reused=0 probe_ops=110",
-        "x OPEX 1970-1-1 AIR_CATCHMENT_BUILD arm=newpair base_source=town_population_share base_monthly=50 reserve_stop_cost=1000 actual_stop_cost=800 stop_limit=2 stops_a=1 stops_b=1 raw_joined_a=15 raw_joined_b=12 raw_joined_total=27 reuse_a=0 reuse_b=0 planned_capital=100000 actual_cost=90000 probe_ops=210"]) }]
+        "x OPEX 1970-1-1 AIR_CATCHMENT_ENDPOINT endpoint=A station=1 town=7 town_tile=100 town_pop=500 airport_tile=110 airport_type=1 airport_w=6 airport_h=6 airport_radius=5 rect_distance=2 center_distance=4 town_center_airport=1 town_center_union=1 coverage_tiles=120 airport_pax_prod=20 union_pax_prod=30 town_pax_month=100 town_pax_tiles=40 town_airport_pax_tiles=20 town_union_pax_tiles=30 airport_pax_month_est=50 union_pax_month_est=75 joined_marginal_pax=10 raw_joined_pax=15 overlap_overcount_pax=5 raw_undercount_pax=0 airport_mail_prod=5 union_mail_prod=7 town_mail_month=20 town_mail_tiles=10 town_airport_mail_tiles=5 town_union_mail_tiles=7 airport_mail_month_est=10 union_mail_month_est=14 joined_marginal_mail=2 reused=0 probe_ops=100",
+        "x OPEX 1970-1-1 AIR_CATCHMENT_ENDPOINT endpoint=B station=2 town=8 town_tile=200 town_pop=600 airport_tile=210 airport_type=1 airport_w=6 airport_h=6 airport_radius=5 rect_distance=3 center_distance=5 town_center_airport=1 town_center_union=1 coverage_tiles=121 airport_pax_prod=25 union_pax_prod=35 town_pax_month=120 town_pax_tiles=40 town_airport_pax_tiles=20 town_union_pax_tiles=30 airport_pax_month_est=60 union_pax_month_est=90 joined_marginal_pax=10 raw_joined_pax=12 overlap_overcount_pax=2 raw_undercount_pax=0 airport_mail_prod=6 union_mail_prod=9 town_mail_month=24 town_mail_tiles=12 town_airport_mail_tiles=6 town_union_mail_tiles=9 airport_mail_month_est=12 union_mail_month_est=18 joined_marginal_mail=3 reused=0 probe_ops=110",
+        "x OPEX 1970-1-1 AIR_CATCHMENT_BUILD arm=newpair base_source=town_population_share base_monthly=220 predicted_annual_profit=50000 predicted_annual_revenue=70000 reserve_stop_cost=1000 actual_stop_cost=800 stop_limit=2 stops_a=1 stops_b=1 raw_joined_a=15 raw_joined_b=12 raw_joined_total=27 reuse_a=0 reuse_b=0 planned_capital=100000 actual_cost=90000 probe_ops=210"]) }]
     summary = summarise_probe(collect_probe_events(rows))
     assert summary["endpoint_events"] == 2 and summary["build_events"] == 1
     assert summary["overlap_overcount_positive"] == 2
     assert summary["invariant_failures"] == []
     assert summary["reserve_over_actual_count"] == 1
-    assert summary["newpair_base_minus_union_pax"]["mean"] == -15
+    assert summary["newpair_base_minus_airport_pax_month_est"]["mean"] == 110
+    assert summary["newpair_base_minus_union_pax_month_est"]["mean"] == 55
+    assert summary["predicted_annual_profit"]["mean"] == 50000
     print("selftest OK")
 
 

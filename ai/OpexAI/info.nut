@@ -472,6 +472,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "b9_air_catchment_probe",
+      description = "B9/G4 passive AIR catchment/placement probe only; no decision change; 1 = enabled, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "b9_air_demand_shadow",
+      description = "B9/G4 passive pre-build AIR demand shadow; logs only, no decision change; 1 = enabled, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* --- 3. Macro-politiques adoptees unifiees (8 groupes) --- */
 
     AddSetting({

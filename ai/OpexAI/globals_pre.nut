@@ -48,6 +48,9 @@ AIR_JOINED_STOPS <- false;
 /* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile
  * supplementaire n'est inspectee dans le comportement livre. */
 AIR_CATCHMENT_PROBE <- false;
+/* B9/G4 shadow : estime la demande capturable du plan finalement retenu, juste
+ * apres la decision et avant chantier. Defaut 0 ; aucune lecture par le score. */
+B9_AIR_DEMAND_SHADOW <- false;
 /* M3/G12 : sonde passive du choix de materiel avant ROI. Elle n'est jamais lue par les
  * regles de selection ; elle autorise uniquement les comparatifs et logs de diagnostic. */
 EQUIPMENT_ROI_PROBE <- false;
