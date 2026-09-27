@@ -162,7 +162,9 @@ de capital pour ~**28,9 k£/an**, rendement marginal ≈**26,3 %** du ROI de bas
 
 ## C115 — replay conditionne par le goulot de capital
 
-`c115_air_c100_capital_replay` reste a **0 par defaut**. Il reutilise
+`c115_air_c100_capital_replay` est passe a **1 par defaut temporairement** par
+decision utilisateur du 2026-09-27, en attendant une regle marginale C116 plus
+propre. Il reutilise
 `K_dec = flux operationnel F × temps moyen tau entre decisions/constructions` de C69.
 Pour chaque route : calculer le vrai gagnant C68 ; si `K_dec >= capital_C68`, garder
 C68 ; si `K_dec < capital_C68`, utiliser le replay C100. Aucune constante de richesse,

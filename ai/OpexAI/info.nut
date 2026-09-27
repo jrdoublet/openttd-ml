@@ -389,9 +389,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c115_air_c100_capital_replay",
-      description = "C115: use first-C100 replay AIR economics only while the normal C68 route capital exceeds endogenous C69 K_dec; otherwise keep C68; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C115: use first-C100 replay AIR economics only while the normal C68 route capital exceeds endogenous C69 K_dec; otherwise keep C68; 1 = enabled (temporary default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
