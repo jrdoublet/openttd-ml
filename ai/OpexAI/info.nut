@@ -276,6 +276,38 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v88_all_inputs",
+      description = "V88: evaluate all transformer input cargos regardless of freight rotation: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_chain_step1_finance",
+      description = "V88: finance capital of goods chain candidate based on step 1 only: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_step2_rail_prio",
+      description = "V88: priority for chain rail searches: block new rail searches while step 2 is pending, and throughput slice cap: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_step2_cash_reserve",
+      description = "V88: reserve capital for goods chain step 2 when step 1 is built: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_full_load",
       description = "C81: air full-load orders; 0 = none (default), 1 = full load at both airports, 2 = full load at the first airport only (AAAHogEx default)",
       min_value = 0, max_value = 2,

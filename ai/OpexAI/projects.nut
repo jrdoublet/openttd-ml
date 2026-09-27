@@ -447,7 +447,12 @@ function OpexProjectFromCandidate(candidate)
   /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
   project.turnoverBonus <- ("turnoverBonus" in candidate) ? candidate.turnoverBonus : 100;
   project.generationRatio <- ("ratio" in candidate) ? candidate.ratio : 0;
-  if (("isChain" in candidate) && candidate.isChain) project.isChain <- true;
+  if (("isChain" in candidate) && candidate.isChain) {
+    project.isChain <- true;
+    if (V88_CHAIN_STEP1_FINANCE && ("inputCandidate" in candidate) && candidate.inputCandidate != null) {
+      project.budgetCapital = candidate.inputCandidate.capital;
+    }
+  }
   return project;
 }
 

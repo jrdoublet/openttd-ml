@@ -240,6 +240,10 @@ function OpexLoadSettings()
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);
+  V88_ALL_INPUTS = V88_GOODS_CHAIN && (AIController.GetSetting("v88_all_inputs") != 0);
+  V88_CHAIN_STEP1_FINANCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_step1_finance") != 0);
+  V88_STEP2_RAIL_PRIO = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_rail_prio") != 0);
+  V88_STEP2_CASH_RESERVE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_cash_reserve") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
   if (C69_TRACK_BUILDS) {

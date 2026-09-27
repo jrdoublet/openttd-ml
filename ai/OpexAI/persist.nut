@@ -872,12 +872,17 @@ function OpexAI::_reconcileAfterLoad()
       if (!AIStation.IsValidStation(this._activeGoodsChain.factoryStationId)) validChain = false;
     }
     if (!validChain) {
-      this._activeGoodsChain = null;
-    } else if (this._activeGoodsChain.goodsCandidate != null && this._activeGoodsChain.goodsCandidate.loco == null && this._catalog != null) {
-      if (this._activeGoodsChain.goodsCandidate.cargo in this._catalog.bestLocoByCargo) {
-        this._activeGoodsChain.goodsCandidate.loco = this._catalog.bestLocoByCargo[this._activeGoodsChain.goodsCandidate.cargo];
+      this._setActiveGoodsChain(null);
+    } else {
+      if (this._activeGoodsChain.goodsCandidate != null && this._activeGoodsChain.goodsCandidate.loco == null && this._catalog != null) {
+        if (this._activeGoodsChain.goodsCandidate.cargo in this._catalog.bestLocoByCargo) {
+          this._activeGoodsChain.goodsCandidate.loco = this._catalog.bestLocoByCargo[this._activeGoodsChain.goodsCandidate.cargo];
+        }
       }
+      this._setActiveGoodsChain(this._activeGoodsChain);
     }
+  } else {
+    this._setActiveGoodsChain(null);
   }
 
   this._purgeUnprofitableStreaks();

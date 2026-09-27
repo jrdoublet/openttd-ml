@@ -46,7 +46,7 @@ class TestLeverContracts(unittest.TestCase):
         self.assertIn('name = "v89_rail_search_throughput"', self.info)
         start = self.info.index('name = "v89_rail_search_throughput"')
         block = self.info[start:self.info.index("});", start)]
-        self.assertIn("custom_value = 0", block)
+        self.assertIn("custom_value = 1", block)
         self.assertIn("flags = AICONFIG_BOOLEAN", block)
 
     def test_globals_declared(self):

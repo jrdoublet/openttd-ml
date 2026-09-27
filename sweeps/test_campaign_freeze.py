@@ -185,6 +185,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "v90_pathfinder_check", "v92_air_service_choice", "c83_fixes",
                      "c83_preempt_open", "air_batch_town_reserve",
                      "v93_airport_no_pop_floor", "v93_air_demand_production", "v95_air_post73_probe",
+                     "v88_all_inputs", "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve",
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)
         self.assertEqual(defaults["rail_finance_bias_pct"], 100)

@@ -216,3 +216,98 @@ recherche étape 2 **300,5 jours**, mise en service étape 2 **136,5 jours**, d�
 Le critère préalable au duel (**≥3/5 graines avec chaîne complète livrée**) n'est donc **pas atteint**.
 Ne pas lancer le 5×6 causal V88 tel quel ; il faut d'abord augmenter l'exposition ou supprimer le
 blocage résiduel de l'étape 2, notamment autour du slot rail unique.
+
+### 5.5 Requalification sur le défaut courant (`master` `ed8fc13`) — 2026-09-26
+
+Campagne `results/v88x_diag_chain_solo.json` avec traces `results/v88x_diag_chain_solo_raw.jsonl`,
+mesurée sur `master` à jour (incluant `rail_finance_bias_pct=100` et `v89_rail_search_throughput=1`) :
+- **Graines analysées** : 5 (100, 12345, 42, 7, 999) sur 8 ans, arm `OpexAI[probe_portfolio=1,probe_events=1,v88_goods_chain=1]`
+- **Chaînes choisies** : 6
+- **Chaînes terminées** : 1 (graine 100)
+- **Chaînes avec livraison de biens** : **0** (0/5 graines)
+- **Chaînes échouées** : 3 (2 `TRKFAIL` graine 100, 1 `factory_gone` graine 7)
+- **Attentes mesurées** : **17 attentes** `step=2 reason=rail_search`
+- **Délais médians** : recherche ét. 1 **142,5 j**, commission ét. 1 **155 j**, recherche ét. 2 **889 j**, décision→ét. 2 **322 j**.
+
+**Diagnostic des goulots mesurés dans l'entonnoir (Étape 2) :**
+1. **Évaluation du capital au portefeuille** : `candInput.capital + candGoods.capital` imposait ~100k-120k£ de trésorerie disponible pour qu'une chaîne entre dans `projects.best`, retardant le premier choix à 1974.
+2. **Rotation des cargos de fret** : `OpexGoodsChainCandidates` ne scannait que `cargoIn == freightCargo`. Si le charbon était actif, toutes les usines (céréales, bétail, acier) étaient ignorées.
+3. **Monopolisation du slot `_railSearch`** : Des recherches ferroviaires ordinaires ont accaparé le slot unique jusqu'à 1 517 jours (4,15 ans sur graine 999), interdisant à la chaîne de lancer l'A*.
+4. **Famine de trésorerie post-étape 1** : Sans réserve, les lignes aériennes vidaient la caisse dès l'étape 1 construite, retardant l'étape 2 (1,5 an sur graine 7, conduisant à la fermeture de l'usine `factory_gone`).
+
+### 5.6 Levée des verrous d'exposition et qualification (Étape 2) — 2026-09-26
+
+Quatre réglages neufs (défaut 0, sans aucun surcoût ni dérive au défaut) ont été introduits :
+- `v88_all_inputs` : évalue tous les intrants acceptés sans attendre la rotation `freightCargo`.
+- `v88_chain_step1_finance` : capitalise la chaîne sur l'étape 1 (~50 k£) pour la sélection initiale.
+- `v88_step2_rail_prio` : bloque les recherches rail concurrentes quand l'étape 2 attend, et plafonne le seuil de tranche de débit à 2 500 opcodes.
+- `v88_step2_cash_reserve` : réserve le capital estimé de l'étape 2 dans `OpexAvailableCapital` dès que l'étape 1 est construite.
+
+**Validation préalable de non-régression et contrat :**
+- 359/359 tests unitaires Python OK (`test_campaign_freeze.py`, `test_v88_goods_chain.py`, `test_v89_rail_throughput.py`).
+- **Identité stricte au défaut** (`bench_v2.py --arms "OpexAI" --seeds 42 --years 1`) : 100 % identique au bit près à la référence sur `master` (`company_value=427019`, `score=194`, `profit_year=306642`, `median_station_rating=167`, `n_vehicles=23`, `n_stations=20`).
+- **Persistance Save/Load** (`sweeps/save_load_roundtrip.py`) : `LOAD_RECONCILE` OK, synchronisation de `V88_STEP2_RESERVE_AMOUNT` validée à la réconciliation.
+
+**Résultats de la requalification 5×8 solo** (`results/v88x_diag_chain_fixed.json`, `results/v88x_diag_chain_fixed_raw.jsonl`) :
+Arm : `OpexAI[probe_portfolio=1,probe_events=1,v88_goods_chain=1,v88_all_inputs=1,v88_chain_step1_finance=1,v88_step2_rail_prio=1,v88_step2_cash_reserve=1,v88_step2_plan_immediate=1]`
+
+| Graine | Chaînes choisies | Chaînes terminées | Chaînes livrant | Échecs | Délais décision→ét. 2 (j) |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| **7** | 1 | 1 | **1** | 0 | 881 |
+| **42** | 3 | 2 | **2** | 0 | 379, 913 |
+| **100** | 2 | 2 | **2** | 0 | 106, 318 |
+| **999** | 1 | 1 | **1** | 0 | 976 |
+| **12345** | 2 | 1 | **1** | 1 (`ABND`) | 675 |
+| **Total** | **9** | **7** | **7 (5/5 graines)** | **1** | **médiane : 675 j (1,85 an)** |
+
+- **Attentes mesurées** : **0 attente** (ni `rail_search`, ni `cash`).
+- **Délais médians** :
+  - Recherche étape 1 : **18,0 jours** (contre 153 j le 25 sept, −88 %)
+  - Recherche étape 2 : **44,0 jours** (contre 300,5 j le 25 sept, −85 %)
+  - Mise en service étape 1 : **95,0 jours**
+  - Mise en service étape 2 : **496,0 jours**
+  - Étape 2 → première livraison : **217,0 jours**
+- **Premières livraisons de biens par graine** :
+  - Graine 100 : 1972-05-20 (ligne 15, rev 6 689 £)
+  - Graine 12345 : 1973-04-10 (ligne 24, rev 6 868 £)
+  - Graine 42 : 1973-06-27 (ligne 16, rev 14 522 £)
+  - Graine 999 : 1974-01-20 (ligne 27, rev 11 611 £)
+  - Graine 7 : 1977-09-30 (ligne 76, rev 7 009 £)
+
+**Verdict :** Le seuil d'accès au duel ($\ge 3/5$ graines livrant une chaîne complète) est **pleinement atteint avec 5/5 graines (100 %)**. Le duel causal apparié 5×6 peut être lancé par l'orchestrateur.
+
+### 5.7 Duels 5×6 et enquête — 2026-09-26 : la qualification solo ne se traduit pas en gain
+
+La qualification solo de §5.6 ne tient pas en duel contre AAAHogEx (5 graines 42/100/999/1234/5678 ×
+6 ans, variante − référence `v88_goods_chain=0`, arbre non commité, bundles gelés) :
+
+| Variante | `profit_year` | V/D | IC95 | Valeur |
+|---|---:|---:|---|---:|
+| 4 correctifs (`v88_unlocked_vs_default_5x6_20260926`) | −286,6 k£/an | 0/5 | [−372,5 ; −200,7] k£ | −15,1 % |
+| sans réserve ni priorité rail (`v88_noreserve_noprio_vs_default_5x6_20260926`) | −234,2 k£/an | 1/4 | [−442,0 ; −26,4] k£ | −15,4 % |
+| chaînes seules (`v88_chainonly_vs_default_5x6_20260926`) | −117,1 k£/an (médiane −235,3) | 2/3 | [−421,0 ; +186,7] k£ | −10,0 % |
+
+Symptôme commun : effondrement de la flotte aérienne (graine 5678 : 109 → 31 avions ; 999 : 84–89 →
+32–33), le rail ne gagnant que 0 à +7 trains.
+
+**Enquête solo** (`sweeps/diag_v88_investigation.py`, `results/v88inv_*`, graines 100/999/5678 × 6 ans) :
+les chaînes seules ne font pas s'effondrer l'aérien en solo (337 contre 342 avions, profit en hausse) ;
+avec les correctifs, −34 % d'avions. La perte « chaînes seules » du duel n'est donc pas reproduite en solo.
+
+**Défauts confirmés par lecture de code** :
+1. `v88_chain_step1_finance` fixe `budgetCapital` au capital de l'étape 1 (`projects.nut:452`), mais
+   `fundScore` = profit (des deux étapes) ÷ `OpexProjectFinanceCapital` (`projects.nut:1037`) : le score
+   est environ doublé et la chaîne passe en tête du classement.
+2. `_tryBuildGoodsChainStep2` renvoie `true` quand l'étape 2 ne fait que lancer son A*
+   (`if (start.pending) return true;`, `task_rail.nut` ~424 sur `master`) : `_tryBuildProjects`
+   incrémente `builtCount` sans construction et applique `k_pass` aux projets suivants.
+
+Aggravant (comportement existant, pas propre à V88) : une passe `projects` qui lance un A* s'arrête
+(`task_projects.nut` ~1164-1195) ; tous les projets derrière la chaîne, aériens compris, sont sautés.
+En duel, AAAHogEx occupe pendant ces gels les places d'aéroport des villes (deux par ville), et
+OpexAI échoue ensuite sur ces paires.
+
+**Décision** : V88 est suspendu jusqu'à la cible « A\* dans les workers, projets rail éligibles
+seulement à tracé prêt » ([note 36](36_astar_workers_conception.md), étape 4 : les étapes d'une chaîne
+deviennent des demandes de tracé prioritaires). Les deux défauts sont à corriger à ce moment-là ;
+ne pas relancer de duel V88 avant.

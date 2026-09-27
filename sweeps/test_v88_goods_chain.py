@@ -163,6 +163,51 @@ class V88GoodsChainContractTest(unittest.TestCase):
         self.assertIn('OpexV88Log("CHAIN_DELIVERY"', task_report)
         self.assertIn("AICargo.TE_GOODS", task_report)
 
+    def test_v88_exposure_settings_and_mechanisms_contract(self):
+        """Vérifie la déclaration, chargement et câblage des réglages de déverrouillage de V88."""
+        info = _read("ai/OpexAI/info.nut")
+        globals_pre = _read("ai/OpexAI/globals_pre.nut")
+        settings = _read("ai/OpexAI/settings.nut")
+
+        for setting_name, global_var in [
+            ("v88_all_inputs", "V88_ALL_INPUTS"),
+            ("v88_chain_step1_finance", "V88_CHAIN_STEP1_FINANCE"),
+            ("v88_step2_rail_prio", "V88_STEP2_RAIL_PRIO"),
+            ("v88_step2_cash_reserve", "V88_STEP2_CASH_RESERVE"),
+        ]:
+            self.assertIn(f'name = "{setting_name}"', info)
+            block = info[info.index(f'name = "{setting_name}"'):]
+            block = block[:block.index("});")]
+            self.assertIn("flags = AICONFIG_BOOLEAN", block)
+            self.assertIn("custom_value = 0", block)
+
+            self.assertIn(f"{global_var} <- false;", globals_pre)
+            self.assertIn(f'{global_var} = V88_GOODS_CHAIN && (AIController.GetSetting("{setting_name}") != 0);', settings)
+
+        self.assertIn("V88_STEP2_RESERVE_AMOUNT <- 0;", globals_pre)
+
+        # Vérification des sites d'utilisation
+        candidates = _read("ai/OpexAI/candidates.nut")
+        self.assertIn("V88_ALL_INPUTS", candidates)
+
+        projects = _read("ai/OpexAI/projects.nut")
+        self.assertIn("V88_CHAIN_STEP1_FINANCE", projects)
+
+        capital = _read("ai/OpexAI/capital.nut")
+        self.assertIn("V88_STEP2_CASH_RESERVE", capital)
+        self.assertIn("V88_STEP2_RESERVE_AMOUNT", capital)
+
+        task_rail = _read("ai/OpexAI/task_rail.nut")
+        self.assertIn("V88_STEP2_RAIL_PRIO", task_rail)
+        self.assertIn("chain_step2_prio", task_rail)
+        self.assertIn("function OpexAI::_setActiveGoodsChain(chain)", task_rail)
+
+        scheduler = _read("ai/OpexAI/scheduler.nut")
+        self.assertIn("V88_STEP2_RAIL_PRIO", scheduler)
+
+        persist = _read("ai/OpexAI/persist.nut")
+        self.assertIn("this._setActiveGoodsChain(", persist)
+
 
 if __name__ == "__main__":
     unittest.main()
