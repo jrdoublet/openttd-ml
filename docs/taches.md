@@ -166,7 +166,7 @@ r4 est en revanche mauvaise : `profit_year` **−393,9 k£/an**,
 Après r4, C120 a été corrigé pour comparer `newTowns` uniquement entre
 projets AIR et le calcul territorial a été remis explicitement sur le catchment
 réel demandé. Le runner/analyseur suivant
-(`smoke_c120_territorial_1x3_20260928_r7`) est préparé mais **non lancé**.
+(`smoke_c120_territorial_1x3_20260928_r8`) est préparé mais **non lancé**.
 Décision : **geler C120 et ne pas lancer de 5×6**. Reprendre seulement après
 correction du modèle de prédiction de la production et des revenus AIR ; à ce
 moment-là, refaire d'abord le smoke causal seed42 sur la version corrigée, puis

@@ -8,8 +8,8 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_JSONL = ROOT / "results" / "smoke_c120_territorial_1x3_20260928_r7.jsonl"
-DEFAULT_RESULT = ROOT / "results" / "smoke_c120_territorial_1x3_20260928_r7.json"
+DEFAULT_JSONL = ROOT / "results" / "smoke_c120_territorial_1x3_20260928_r8.jsonl"
+DEFAULT_RESULT = ROOT / "results" / "smoke_c120_territorial_1x3_20260928_r8.json"
 
 
 def load_jsonl(path):
