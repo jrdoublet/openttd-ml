@@ -386,6 +386,34 @@ C116_AIR_PROJECT_PROBE_COUNT <- 0;
 C116_AIR_PROJECT_PROBE_YEAR <- -1;
 C116_AIR_PROJECT_PROBE_YEAR_COUNT <- 0;
 C116_AIR_PROJECT_PROBE_SEEN <- {};
+/* C117 : sonde passive du debit AIR reel. */
+C117_AIR_THROUGHPUT_PROBE <- false;
+C117_AIR_SAMPLE_DAYS <- 2;
+C117_AIR_LAST_DATE <- -1;
+C117_AIR_LINE_STATE <- {};
+C117_AIR_VEHICLE_STATE <- {};
+/* C119 : corrige uniquement les entrees du paiement AIR pre-construction :
+ * distance Manhattan de livraison et temps de livraison separe du cycle. */
+C119_AIR_INCOME_MODEL <- false;
+/* C118 : expansion AIR orientee couverture territoriale. Le portefeuille
+ * classe les projets expansifs sur le nombre reel de villes nouvelles puis
+ * sur le temps estime jusqu'au prochain projet expansif. Le choix moteur
+ * minimise la meme grandeur, avec C68 comme departage economique. */
+C118_AIR_TERRITORIAL_EXPANSION <- false;
+/* Sonde passive separee : permet de mesurer la courbe de couverture du temoin
+ * C115 sans activer la politique C118. */
+C118_AIR_COVERAGE_PROBE <- false;
+C118_AIR_PROJECT_SNAPSHOT <- null;
+C118_AIR_DECISION_SEQ <- 0;
+/* C120 : experience isolee de classement territorial ADMINISTRATIF. Elle ne
+ * modifie ni moteur, ni economie, ni generation AIR : seulement l'ordre des
+ * projets C115 deja admis/financables, par nouvelles villes portant physiquement
+ * un aeroport (ville de slot) puis ordre economique existant. */
+C120_AIR_TERRITORIAL_RANKING <- false;
+C120_AIR_SELECTION_SNAPSHOT <- null;
+C120_AIR_FILTER_SNAPSHOT <- null;
+C120_AIR_SELECT_SEQ <- 0;
+C120_AIR_LAST_TRACE_KEY <- "";
 /* C116.2 : snapshot tres bon marche du portefeuille AIR deja classe. Il est
  * rempli uniquement pour la sonde C104/C116 (ou C116 actif) a partir de la
  * liste `affordable` deja triee : aucune recherche de route supplementaire. */

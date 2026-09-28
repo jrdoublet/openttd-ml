@@ -27,13 +27,14 @@ class C115CapitalReplayTests(unittest.TestCase):
         body = AIR[start:end]
         self.assertIn("local decision = scan != null ? scan.decision", body)
         self.assertIn(": OpexC104BestAirEngine(catalog, airport, distance, monthlyPax,", body)
-        self.assertIn("newAirportCount, opcodePadding, 0)", body)
+        self.assertIn("newAirportCount, opcodePadding, 0, paymentDistance)", body)
         self.assertIn("local kDec = OpexC69CachedKDec();", body)
         self.assertIn("if (kDec >= decision.economics.capital)", body)
-        self.assertIn("return { plane = decision.plane, economics = decision.economics };", body)
+        self.assertIn("plane = decision.plane, economics = decision.economics", body)
         self.assertIn("OpexC104BestAirEngine(catalog, airport, distance, monthlyPax,", body)
-        self.assertIn("newAirportCount, opcodePadding, 1)", body)
-        self.assertIn("return { plane = replay.plane, economics = replay.economics };", body)
+        self.assertIn("newAirportCount, opcodePadding, 1, paymentDistance)", body)
+        self.assertIn("plane = replay.plane, economics = replay.economics", body)
+        self.assertIn("c118C68Plane = decision.plane", body)
 
     def test_c115_isolated_from_c114_global_replay(self):
         start = AIR.index("if (C115_AIR_C100_CAPITAL_REPLAY")

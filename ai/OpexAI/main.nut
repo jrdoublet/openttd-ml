@@ -673,6 +673,7 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
+    if (C117_AIR_THROUGHPUT_PROBE) OpexC117AirThroughputStep(this._lines, this._catalog);
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     if (C80_DOUBLE_REGISTER) {
       this._runOrchestratorTick();

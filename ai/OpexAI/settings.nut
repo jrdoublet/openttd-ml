@@ -258,11 +258,27 @@ function OpexLoadSettings()
   C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
   C116_AIR_MARGINAL_CAPITAL = AIController.GetSetting("c116_air_marginal_capital") != 0;
   C116_AIR_PROJECT_PROBE = AIController.GetSetting("c116_air_project_probe") != 0;
+  C117_AIR_THROUGHPUT_PROBE = AIController.GetSetting("c117_air_throughput_probe") != 0;
+  C118_AIR_TERRITORIAL_EXPANSION = AIController.GetSetting("c118_air_territorial_expansion") != 0;
+  C118_AIR_COVERAGE_PROBE = AIController.GetSetting("c118_air_coverage_probe") != 0;
+  C119_AIR_INCOME_MODEL = AIController.GetSetting("c119_air_income_model") != 0;
+  C118_AIR_PROJECT_SNAPSHOT = null;
+  C118_AIR_DECISION_SEQ = 0;
+  C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;
+  C120_AIR_SELECTION_SNAPSHOT = null;
+  C120_AIR_FILTER_SNAPSHOT = null;
+  C120_AIR_SELECT_SEQ = 0;
+  C120_AIR_LAST_TRACE_KEY = "";
   if (C116_AIR_PROJECT_PROBE) {
     C116_AIR_PROJECT_PROBE_COUNT = 0;
     C116_AIR_PROJECT_PROBE_YEAR = -1;
     C116_AIR_PROJECT_PROBE_YEAR_COUNT = 0;
     C116_AIR_PROJECT_PROBE_SEEN = {};
+  }
+  if (C117_AIR_THROUGHPUT_PROBE) {
+    C117_AIR_LAST_DATE = -1;
+    C117_AIR_LINE_STATE = {};
+    C117_AIR_VEHICLE_STATE = {};
   }
   /* C113 etend C111 : reutiliser ses branches shadow/memo sans dupliquer le hot path. */
   if (C113_AIR_C100_FULL_DECISION_SHADOW) C111_AIR_C100_DECISION_SHADOW = true;

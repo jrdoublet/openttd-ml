@@ -63,7 +63,7 @@ class C116IncrementalProbeTests(unittest.TestCase):
 
     def test_active_build_choice_uses_exact_pending_project_gap(self):
         start = AIR.index("function OpexC116BestPendingAirProject()")
-        end = AIR.index("function OpexAirChooseRoutePlaneFull(", start)
+        end = AIR.index("function OpexC118ChooseBuildPlan(", start)
         body = AIR[start:end]
         self.assertIn("C116_AIR_PROJECT_SNAPSHOT.unlockable", body)
         self.assertIn("point.hurdle > best.hurdle", body)
@@ -82,7 +82,7 @@ class C116IncrementalProbeTests(unittest.TestCase):
 
     def test_build_choice_keeps_ranked_plan_immutable_and_retargets_c84(self):
         start = AIR.index("function OpexC116ChooseBuildPlan(")
-        end = AIR.index("function OpexAirChooseRoutePlaneFull(", start)
+        end = AIR.index("function OpexC118ChooseBuildPlan(", start)
         body = AIR[start:end]
         self.assertIn("local buildPlan = {};", body)
         self.assertIn("foreach (k, v in plan) buildPlan[k] <- v;", body)
@@ -98,7 +98,9 @@ class C116IncrementalProbeTests(unittest.TestCase):
         start = TASK_AIR.index("function OpexAI::_tryBuildAirProject(")
         end = TASK_AIR.index("function OpexAirFleetRefusal", start)
         body = TASK_AIR[start:end]
-        choose = body.index("local buildChoice = OpexC116ChooseBuildPlan(this._catalog, plan);")
+        choose = body.index("local buildChoice = C118_AIR_TERRITORIAL_EXPANSION")
+        self.assertIn("OpexC118ChooseBuildPlan(this._catalog, plan, project)", body[choose:])
+        self.assertIn("OpexC116ChooseBuildPlan(this._catalog, plan)", body[choose:])
         cash = body.index("local money = AICompany.GetBankBalance", choose)
         build = body.index("OpexBuildAirRoute(this._catalog, this._budget, buildPlan", cash)
         self.assertLess(choose, cash)

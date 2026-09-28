@@ -412,6 +412,46 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c117_air_throughput_probe",
+      description = "C117 passive AIR throughput probe: completed-leg passengers, offered seats, cadence, waiting/rating and realised vehicle economics in 30-day line-age windows; no decision change",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c119_air_income_model",
+      description = "C119: AIR pre-build income uses Manhattan payment distance and delivery-only time while keeping legacy cycle, demand and fleet sizing unchanged; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c118_air_territorial_expansion",
+      description = "C118: rank viable AIR expansion by real new-town catchment coverage and choose the engine minimizing time to the next territorial AIR project; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c118_air_coverage_probe",
+      description = "C118 passive probe: log actual AIR catchment town coverage and territorial decision diagnostics without enabling the C118 policy; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c120_air_territorial_ranking",
+      description = "C120: rank already-generated viable AIR projects by new administrative airport towns (physical slot town), then keep the existing C115 economic order; engine/economics unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c102_air_station_rating_probe",
       description = "C102 passive probe: compare line-headway rating with station-wide AIR pickup rating and raw catchment production; no decision change",
       easy_value = 0, medium_value = 0, hard_value = 0,
