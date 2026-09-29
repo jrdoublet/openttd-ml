@@ -1,6 +1,6 @@
 # Tâches — réduire l'écart avec AAAHogEx
 
-État courant actualisé le **2026-09-27**. Ce fichier est la **seule liste autoritaire du
+État courant actualisé le **2026-09-29**. Ce fichier est la **seule liste autoritaire du
 travail restant**. Les travaux terminés, résultats et décisions sont dans les journaux ;
 une ancienne mention « à faire » ne remet pas un chantier dans cette liste.
 
@@ -69,6 +69,7 @@ avant d'en prendre un, vérifier qu'aucun C ni V ne le porte déjà.
 | **C81 — chargement complet AIR** | Priorité basse | Éventuel duel après examen des résultats solo défavorables ; protocole dans la [fiche nuit](journaux/20_nuit_2026-09-22.md). Le simple achèvement du banc C82 n'impose pas ce lancement. |
 | **Revue du code** | Nouvelle revue fractionnée préparée le 26 ; aucun lot exécuté | [Plan du 26](revue_code_2026-09-26_plan.md) : un seul lot par demande, lecture bornée, rapport et arrêt ; prochain lot **01 — chargement et réglages**. La [revue réconciliée du 22](revue_code_2026-09-22_reconciliation_courante.md) fournit les constats historiques à confronter au code courant, sans les présumer encore ouverts. |
 | **V86 — cannibalisation hub→hub (AIR)** | **Clos : cannibalisation réelle, corrections perdantes** | Étape 1 (solo 5×10) : voisines −6,4 M£ pour +9,6 M£ de nouvelles lignes. Étape 2, duels 20×10 : `air_hubhub_marginal` −153 k£/an 4/16, garde de valeur franchie ; `air_hub_max_routes=6` −50 k£/an 8/12 ; −50 à −57 véhicules dans les deux cas ([nuit du 24](journaux/24_nuit_2026-09-24.md) §1, §4). Réglages laissés à 0. Ne pas freiner hub→hub sans meilleur placement du capital. |
+| **C122 — stratégie AIR par régime / menace locale** | **C122.1–.3 rejetés ; C122.4 local causal mais non qualifié ; défauts 0** | `c122_air_threat_probe` suit uniquement un TownID C83 à `remaining=1`, sans présence Opex, jusqu'au projet AIR vivant/finançable, sa tentative puis `opex_claimed`/`competitor_monopoly`, sans nouveau scan. Smoke passif seed42×3 : **4 menaces**, 3 prises, 1 perdue ; TownID 18 était déjà rang 0 mais `siteA_unbuildable`, puis monopole AAA à J+228. `c122_air_threat_retry` réarme une fois C77 sur cet endpoint exact ; smoke causal : **1 retry réel**, TownID 18 devient `opex_claimed` à J+39. Opex **+194,3 k£/an**, valeur **+16,24 %**, AAA `2-0` **5→2**, partagé **12→14**, mais gap Opex-AAAHogEx **−294,4 k£/an**, slots/villes Opex **17→16**, véhicules **43→37**. **Stop : aucun 5×6, aucun 20×10.** Sonde et retry restent défaut 0. [Fiche](44_c122_air_regime_priority_20260929.md). |
 | **C61 AIR** | En pause | Mesurer rotations, attente, demande et occupation avant modification des délais/capacités d'aéroport. |
 | **C61 Route / croissance urbaine** | Travail séparé en cours | Réconcilier le reliquat sur les stations actives avec la session concernée avant intervention. |
 | **C61 Rail** | Conditionnel | Examiner les `NOSPOT`/`TRACKFAIL` sur lignes rentables demandant réellement un second train avant un chantier de géométrie. |
@@ -95,7 +96,13 @@ avant d'en prendre un, vérifier qu'aucun C ni V ne le porte déjà.
 | **C115 — replay C100 conditionné par le goulot de capital C69** | **20×10 terminé ; défaut 1 temporaire par décision utilisateur du 2026-09-27** | L'audit a corrigé un bug avant mesure : le premier branchement comparait `K_dec` au capital de l'appareil d'entrée, pas au vrai gagnant C68 ; C115 recalcule désormais explicitement l'argmax C68 avant le gate. Smoke corrigé seed42×3 **+262,6 k£/an**, valeur +25,4 %. 5×6 **+167,5 k£/an**, 4/1, valeur +13,6 %. **20×10** `c115_c100_capital_replay_20x10_20260927_corrected` : **+154,9 k£/an** moyen, médiane **+141,8 k£**, **13/7**, `p=0,263176`, IC95 **[-92,2 ; +402,0] k£/an**, valeur **+18,29 %**, verdict `fail_primary`. Sur les 8 pertes C114, moyenne **−241,1→−57,8 k£/an**, **4/4**, flotte AIR moyenne **+4** et capacité pax seulement ~−7 % au lieu de −28 % ; C115 conserve ~**61 %** du gain moyen des 12 anciennes graines gagnantes. Le gate sur le **capital total** reste trop grossier et doit être remplacé si C116 donne une règle marginale plus propre, mais **C115 est activé temporairement par défaut** pour conserver son gain pendant cette recherche. [Fiche](39_c100_c101_air_physical_engine_choice.md). |
 | **C116 — coût d'opportunité marginal du capital AIR** | **Règles locales testées ; rejet causal 5×6, défaut 0 ; conserver C115** | Sonde strictement C68/legacy : runner = meilleur profit parmi les moteurs moins capitalistiques. Passif canonique **20×4, 11 916 contextes** : runner disponible **99,74 %** ; gate `ΔC>K_dec` **26,15 %** ; marginal `ΔC>K_dec`, `ΔP>0`, `(ΔP/ΔC)<P_runner/max(C_runner,K_dec)` **26,13 %** (seulement 2 bascules du gate éliminées) ; score direct C69 `P/max(C,K_dec)` **32,29 %**. Anciennes pertes C114 **27,3 %** de bascules marginales contre **25,4 %** chez les anciennes gagnantes : ces grandeurs locales ne discriminent pas la maturité réseau. Une quatrième formulation endogène, `ΔP/ΔC < P_C68/max(C_C68,K_dec)` (« self-hurdle »), a aussi été évaluée passivement : elle reproduit **exactement les 3 116 bascules du gate**, donc n'ajoute aucune information. **Marginal/gate actif** : smoke seed42×3 **+111,5 k£/an**, valeur +2,48 %, puis 5×6 contre C115=1 **−176,5 k£/an** moyen, médiane **−277,3 k£**, **2/3**, `p=1,0`, IC95 **[−506,7 ; +153,7] k£/an**, valeur **−18,0 %**. Structure finale : **−16,6 avions AIR**, **−3,2 aéroports** ; mix plus capacitaire, engine 223 **6,1→13,3 %**, mais fortes pertes de capacité sur 999 et 5678. **Score C69 direct actif** : smoke **+82,8 k£/an**, valeur **−0,98 %**, mais 5×6 **−234,4 k£/an**, médiane **−252,6 k£**, **1/4**, `p=0,375`, IC95 normale **[−447,2 ; −21,5] k£/an**, valeur **−20,19 %**, **−11,6 avions AIR** et **−3,4 slots aéroport Opex** en moyenne. **C116.2 projet AIR débloquable** : passif 20×4, opportunité réellement débloquable dans **35,1 %** des contextes et bascule potentielle **31,7 %** ; en 1971, **46 %** contre ~92 % pour C116.1. Causal 5×6 c116_project_opp_5x6_20260927_r1 : **−330,0 k£/an** moyen, médiane **−598,5 k£**, **1/4**, p=0,375, valeur moyenne **−1,418 M£** et ratio des moyennes **−22,90 %** ; structure **−19,4 avions AIR**, **−4,2 aéroports**, **−1 308** de capacité pax. **Exception à analyser en priorité : graine 100**, seule victoire nette, avec **+623,7 k£/an**, **+2,604 M£** de valeur, **+16 avions AIR**, **+1 aéroport** et **+3 005** de capacité pax malgré le statut final earning_without_expansion. Objectif : comparer sa chronologie de décisions/cash/projets AIR au 999/1234/5678 pour comprendre dans quel état macro/réseau le coût d'opportunité C116.2 devient réellement bénéfique. Aucun C116 ne justifie un 20×10. Le défaut observé est structurel : choisir le runner avec son économie legacy réduit aussi la valeur/admission des projets et coupe l'expansion que le vieux replay C100 favorisait accidentellement. **C116.3 gap exact du meilleur projet AIR en attente** : r?gle minimale `?C >= gap`, puis choix du moteur qui conserve le plus de profit. Smoke seed42?3 **+126,2 k?/an**, valeur **+16,49 %**. Mais causal 5?6 `c116_exact_gap_5x6_20260927_r1` : **?283,0 k?/an** moyen, m?diane **?318,5 k?**, **1/4**, `p=0,375`, IC95 **[?542,6 ; ?23,3] k?/an**, ratio de valeur **?18,05 %**. La structure s'am?liore par rapport ? C116.2 mais reste d?grad?e : **?13,8 avions AIR**, **?2,2 a?roports**, **?381** de capacit? pax en moyenne. La graine 100 ne reproduit plus son gain C116.2 : seulement **+4,4 k?/an**, **+357 k?** de valeur, **?3 avions**, **?4 a?roports**, **+500 pax**. La graine 5678 reste catastrophique (**?707,7 k?/an**, **?38 avions**, **?8 a?roports**). |
 | **C118 — expansion AIR par vitesse de couverture territoriale** | **Smoke seed42×3 rejeté ; défaut 0 ; pas de 5×6** | Objectif commun projet+moteur : villes réellement nouvelles dans le catchment, puis temps estimé jusqu'au prochain projet territorial (`cashAfter`, flux C69 + profit moteur, `K_next` issu du portefeuille courant), avec C68 comme départage économique et retour naturel à C115 lorsqu'aucun projet `newTowns>0` ne subsiste. Tests ciblés **41/41 OK**. Smoke autoritaire `smoke_c118_territorial_1x3_20260927_r2` : couverture **plus lente** (1970 : **7 vs 10** aéroports/villes ; 1971 : **17 vs 21** aéroports et **17 vs 20** villes), puis rattrapage final à 23 aéroports. `profit_year` **1,458 M→0,725 M£/an (−50,3 %)** ; valeur **2,974→1,283 M£ (−56,9 %)** ; flotte AIR **69→25**, capacité pax AIR **7 295→3 300**. Le retard existe déjà avec le même moteur 223 et ~210 k£ de caisse : premier défaut **portefeuille/classement/rafraîchissement post-build**, avant le choix moteur. **Ne pas lancer le 5×6.** Analyse : `sweeps/analyse_c118_territorial_smoke.py`. |
-| **C119 — modèle de revenu AIR inspiré d'AAAHogEx** | **Flag défaut 0 ; 5×6 positif mais non significatif** | Audit : AAAHogEx sépare temps de paiement, cycle, distance de paiement, production/flotte et soute mail. Le premier shadow montre que temps+mail seuls ne ferment pas le biais, mais le rerun enrichi isole la différence décisive : `paymentDistance/flightDistance` médian **~1,24×**. Sur **436 lignes matures exploitables**, réel/yield prédit passe **2,035×→1,426×** avec **distance Manhattan de paiement + temps AAA-like** ; revenu réel/prédit médian **1,383×→0,979×**. Le mail moteur seul dégrade (**2,098×**) et n'est pas retenu. Charges pax par sens ~**0,300 / 0,292** ; seulement **1/431** ligne est ≥90 % dans les deux sens. `c119_air_income_model` modifie uniquement les entrées de `GetCargoIncome` ; cycle/flotte/demande inchangés. Tests C117/C119 **26/26 OK** ; smoke API **88/88**, 0 mismatch ; smoke causal seed42 **+119,0 k£/an**, valeur **+162,6 k£**. Causal 5×6 vs C115 : **+91,0 k£/an** moyen, **+130,5 k£** médian, **4/1**, `p=0,375`, IC95 **[-183 ; +365] k£/an** ; valeur **+285,8 k£**, **4/1**, ratio des moyennes **+5,10 %**. Verdict **`diagnostic_only`** ; pas de 20×10 automatique. [Fiche](42_c119_air_income_model_20260928.md). |
+| **C119 — modèle de revenu AIR inspiré d'AAAHogEx** | **20×10 non qualifié ; défaut 0** | Audit : AAAHogEx sépare temps de paiement, cycle et distance de paiement. Le rerun enrichi isole `paymentDistance/flightDistance` médian **~1,24×** ; sur **436 lignes matures**, réel/yield prédit passe **2,035×→1,426×** et revenu réel/prédit **1,383×→0,979×** avec distance Manhattan + temps AAA-like. Mail moteur non retenu ; cycle/flotte/demande inchangés. 5×6 : **+91,0 k£/an**, **4/1**, `p=0,375`. Qualification 20×10 vs C115 : `profit_year` **+70,9 k£/an** moyen, **+76,2 k£** médian, **11/9**, `p=0,823803`, IC95 normale **[-51,3 ; +193,2] k£/an**, ratio des moyennes **+3,42 %** ; valeur **+504,5 k£**, **11/9**, **+4,45 %** en ratio des moyennes. `primary_mean_pass=true`, `value_guard_pass=true`, mais `sign_pass=false` ; verdict **`fail_primary`**. C119 reste désactivé mais demeure un composant mécaniste candidat du futur modèle AIR unifié. [Fiche](42_c119_air_income_model_20260928.md). |
+| **C121 — modèle AIR physique unifié** | **Causal stabilisé ; non adopté, défaut 0 ; C115 reste témoin** | C121 revient dans le garde de valeur sur le 5×6 courant, mais aucune variante ne passe à la fois rattrapage AAA, soutenabilité et anti-monopole. Le classifieur `race/efficiency` est conservé comme signal diagnostique ; prochaine piste = ordonner les types de projets AIR sans déformer leur économie. **Pas de 20×10.** [Fiche](43_c121_air_economics_shadow_20260928.md). |
+| **Revue transversale — estimateurs low-opcode par cold start + moyenne glissante** | **À faire après stabilisation C121** | Revue de code demandée le 2026-09-28. Chercher les endroits où l'IA dépense beaucoup d'opcodes ou utilise un proxy fragile faute d'estimateur fiable. Motif prioritaire : **calcul physique/exact une fois au démarrage ou lors d'un changement structurel, puis état incrémental par moyenne glissante sur observations réelles, lecture O(1) dans les décisions**. Chaque usage doit définir sa source d'observation, sa fenêtre, son invalidation et son coût mesuré. C121 `hubDelay` est le cas de référence. |
+
+### C121 — état courant
+
+La mise à jour autoritaire est le bloc **« C121 — mise à jour finale du 2026-09-29 »** plus bas dans ce fichier. Les états intermédiaires ont été retirés pour éviter de conserver des chiffres devenus obsolètes. Voir aussi `docs/43_c121_air_economics_shadow_20260928.md` et `docs/journaux/journal_2026-09-29.md`.
 
 **C116.4 — découplage complet admission/équipement.** Le portefeuille est désormais strictement C68 : génération, `profitAnnual`, `capital`, `roi`, `fundScore`, admission et classement ne voient jamais le moteur C116. Après sélection/revalidation dans `_tryBuildAirProject`, `OpexC116ChooseBuildPlan` clone seulement le plan d'exécution et peut remplacer le moteur C68 par le moteur moins cher au meilleur profit qui couvre le `gap` du meilleur projet AIR non finançable du snapshot. Aucun nouveau scan de route/site ; un seul scan moteur au build. Le projet classé reste immuable. C84 recalcule sa cible de flotte sur l'appareil réellement acheté ; C85/V92/C82 et les autres politiques de choix moteur sont explicitement laissées hors de C116.4 ; renforts et remplacement de crash repartent ensuite du moteur réellement présent. Tests statiques ciblés : C116 **12/12**, C115 **5/5**, C84 **6/6**, C85/V92/campaign-freeze OK, `git diff --check` propre. Smoke causal seed42×3 `smoke_c116_decoupled_1x3_20260927_r1` contre C115 courant : `profit_year` **−166,6 k£/an (−12,0 %)**, `company_value` **−326,3 k£ (−11,55 %)**, garde valeur **échouée** ; AIR **61→58**, aéroports Opex **23→22**, capacité pax **7 335→7 030 (−305)**. Chronologie : dès 1970 **−12,7 k£/an et −1 aéroport** ; en 1971 **−72,3 k£/an** avec un retard transitoire majeur **12 contre 22 aéroports** ; en 1972 l'infrastructure revient à **22 contre 23**, mais le profit reste nettement inférieur. Le bundle du smoke est textuellement identique au `builder_air.nut` courant modulo fins de ligne, et `task_air.nut` a le même SHA-256. **Contrôle d'isolement C68 pur** `smoke_c116_decoupled_vs_c68_1x3_20260927_r1` : le même choix post-sélection donne au contraire **+204,2 k£/an**, **+418,9 k£ de valeur (+22,08 %)**, **+2 aéroports** et **+4 véhicules**. Donc la règle post-sélection est prometteuse face à C68 ; ce qu'elle ne remplace pas est le bénéfice supplémentaire de l'économie C115 dans le portefeuille. Conclusion de qualification : **pas de 5×6 ni de 20×10 contre C115** sous cette forme. L'hypothèse « toute la perte C116.3 vient de la contamination du `fundScore` » est trop forte, mais le découplage a bien isolé un signal positif propre ; la prochaine piste doit expliquer/conserver le bénéfice portefeuille de C115 sans réintroduire la physique C100 erronée. C115 reste à **1 temporaire**, C116 à **0**.
 
@@ -138,9 +145,14 @@ inchangés. Le flag `c119_air_income_model` existe, défaut **0**.
 Validation : tests ciblés **26/26 OK**, smoke API seed42 **88/88** sans mismatch,
 smoke causal **+119,0 k£/an** et **+162,6 k£** de valeur. Causal 5×6 contre
 C115 : `profit_year` **+91,0 k£/an** moyen, médiane **+130,5 k£**, **4/1**,
-`p=0,375`, IC95 **[-183 ; +365] k£/an** ; valeur **+285,8 k£**, **4/1**.
-Le signal est positif mais non significatif ; verdict **`diagnostic_only`**,
-aucun 20×10 automatique. C115 reste le témoin courant.
+`p=0,375`. Qualification 20×10 ensuite demandée : **20/20 paires complètes**,
+`profit_year` **+70,9 k£/an** moyen, médiane **+76,2 k£**, **11/9**,
+`p=0,823803`, IC95 normale **[-51,3 ; +193,2] k£/an**, ratio des moyennes
+**+3,42 %**. Valeur **+504,5 k£** en moyenne, **11/9**, ratio des moyennes
+**+4,45 %**. Le seuil moyen primaire et le garde-fou valeur passent, mais le
+critère directionnel échoue : verdict **`fail_primary`**. C119 reste défaut 0 et
+C115 reste le témoin courant ; la correction de paiement reste à réutiliser dans
+le futur modèle AIR unifié plutôt qu'à adopter seule.
 [Fiche détaillée](42_c119_air_income_model_20260928.md).
 
 **C120 — classement territorial AIR seul, mis de côté (2026-09-28).**
@@ -175,6 +187,178 @@ Décision : **geler C120 et ne pas lancer de 5×6**. Reprendre seulement après
 correction du modèle de prédiction de la production et des revenus AIR ; à ce
 moment-là, refaire d'abord le smoke causal seed42 sur la version corrigée, puis
 un 5×6 seulement si le compromis couverture/économie reste intéressant.
+
+**C121 — shadow physique AIR unifié (2026-09-28).** Le 5×6 demandé est terminé :
+`c121_air_economics_stationcomp_covcache_5x6_20260928`, seeds 42/100/999/1234/5678,
+6 ans, **5/5 sains**, 529 builds et 458 lignes matures. Le rating et la flotte
+sont stables (médianes actual/pred **0,941** et **1,00**) ; revenu/profit valent
+**0,912/0,864**, PASS/MAIL **0,656/1,013**. Le défaut de `leg_days` est réel mais
+non constant : **0,928×** aux mois 1–3, **1,235×** aux mois 4–6, **1,537×** à
+7+ mois. La croissance ultérieure des hubs confond fortement le shadow mature :
+pour croissance endpoint `0/1/2+`, le total vaut **1,124/0,922/0,726** et le
+revenu **1,536/1,199/0,899** ; **439/458** lignes sont en `2+`. Le replay du
+cycle timetable mesuré à flotte fixe recentre le revenu de **0,912 à 1,008**,
+donc le timing est matériel pour revenu/profit/score, mais la flotte médiane reste
+1,00. Le choix moteur n'est pas encore identifiable sans appliquer illégitimement
+le résidu du moteur construit aux moteurs concurrents. **Décision : C121 reste
+shadow, C115 reste témoin historique, aucun 20×10 causal.** Prochaine étape :
+modéliser/mesurer physiquement la contention FTA/RunwayInOut des hubs existants au
+moment de la décision, puis rejouer moteur/flotte/revenu/score. Détails :
+`docs/43_c121_air_economics_shadow_20260928.md`.
+
+Le diagnostic `hubDelay` qui a suivi remplace la recherche d'une formule statique
+par le motif **cold start physique + moyenne glissante récente**. Sa version
+batchée est maintenant revalidée en 5×6 : le ratio leg live adapté est **1,039**
+aux mois 4–6 et **1,034** à 7+ mois, contre **1,100/1,374** avec la prédiction
+figée au build. La fusion station coûte **128,5 ops/leg** sur 9 912 observations.
+Le replay au même moteur confirme la matérialité économique (**186/466**
+changements de flotte, profit médian ×**0,879**). Un replay inter-moteurs 5×6 a
+également été exécuté, mais ne connaît qu'environ **50 %** des moteurs candidats
+en médiane et **0/461** build n'a le catalogue complet ; il coûte en outre
+**13 ticks/build** en médiane. Les **385/461** bascules de meilleur score
+observées ne qualifient donc rien : elles portent sur un sous-catalogue. Prochaine
+étape : constituer une fois un cache PASS/MAIL exhaustif et générique des
+moteurs/refits, puis traiter séparément le biais cargo des hubs `2+` avant tout
+causal.
+
+**Principe d'architecture à revoir ailleurs après C121.** Quand un estimateur
+fiable est difficile ou coûteux à recalculer, essayer systématiquement le schéma
+suivant avant d'ajouter des constantes : estimation physique/exacte initiale,
+puis mise à jour incrémentale par moyenne glissante des observations réelles,
+avec invalidation seulement sur changement structurel. Une revue transversale du
+code devra identifier les candidats, mesurer leur coût actuel et vérifier que les
+observations nécessaires sont disponibles sans créer un nouveau coût caché.
+
+**C121 — mise à jour causale du 2026-09-28 (remplace les formulations plus haut
+qui indiquent encore « aucun causal » ou proposent un cache PASS/MAIL exhaustif).**
+Le chemin causal moteur -> flotte -> économie -> projet -> admission -> build est
+maintenant raccordé ; C116/C118 ne peuvent plus substituer un moteur legacy après
+le classement C121. Le cold start PASS-only puis apprentissage exact PASS/MAIL est
+validé en jeu et reste la règle ; **ne pas revenir à un catalogue exhaustif à
+froid**. Smoke `c121_causal_smoke_seed42_2y_20260928_r6` :
+`profit_year` **836 526 -> 317 606 £/an**, valeur **1 129 884 -> 320 527 £**,
+véhicules **37 -> 16**, slots aéroport Opex **18 -> 4**, villes AIR **17 -> 4**.
+5x6 `c121_causal_5x6_20260928_r1` (42/100/999/1234/5678, 6 ans, 6 workers) :
+**10/10 parties terminées**, `profit_year` delta moyen **-395,7 k£/an**, médiane
+**-471,3 k£**, **1/4**, `p=0,375`, IC95 **[-700,8 ; -90,6] k£/an** ; ratio des
+moyennes de valeur **-25,67 %**, garde -5 % échouée. **Pas de 20x10.** Le défaut
+à traiter est désormais la sous-expansion induite par l'économie/score C121 :
+auditer les premiers candidats identiques C115/C121 et comparer revenu, profit,
+flotte, capital, `decisionScore`, `fundScore`, motif de rejet et chronologie de
+cash. Refaire un smoke seed42 après correction avant tout nouveau 5x6.
+
+**C121 — mise à jour finale du 2026-09-29 (remplace les états C121 ci-dessus).**
+Le causal est maintenant stabilisé : chantier initial **1 avion**, renforts via
+projets flotte, économie post-build C121, pas d'exemption C69 pour les renforts,
+et marge observée démarrant à `c121MarginalSamples=0`. Le 5x6 courant
+`c121_current_5x6_jr5_20260929` revient dans le garde de valeur (~**+1,6 %**),
+même si `profit_year` reste dispersé face à C115 (~**-116 k£/an** moyen,
+médiane **+19 k£**, 3/2).
+
+La probe passive C83 `C121_PRESSURE` réutilise uniquement les villes déjà
+consultées par le cache de slots, sans scan de carte supplémentaire. Le
+classifieur causal retenu observe **2 années complètes**, puis verrouille le
+régime pour éviter que la politique modifie ensuite son propre signal :
+`efficiency` si `pressured>=3`, part contestable >=**65 %** et part encore
+totalement ouverte <=**20 %** ; sinon `race`. Aucun seed, EngineID, montant de
+cash ou année absolue n'est codé en dur.
+
+La version adaptative à 50 % de l'écart de réalisation appris améliore fortement
+le gap `profit_year` face à AAAHogEx (**+651,8 k£/an** moyen, **+334,4 k£**
+médian, 3/5) mais perd **-8,32 %** de valeur Opex : trop agressif. La version
+**soft25** (`0,75 + 0,25 * learned` seulement en régime `efficiency`, économie
+brute en `race`) est le meilleur compromis interne mesuré : 5x6
+`c121_projectreal_adaptive_pressure_soft25_5x6_20260929`, **10/10 sain**,
+`profit_year` **-77,9 k£/an** vs C121 courant, valeur **-3,32 %** (garde -5 %
+tenue), mais gap Opex-AAAHogEx amélioré de **+451,5 k£/an** en moyenne,
+médiane **+176,6 k£**, 3/5.
+
+La comparaison décisive contre **C115** reste toutefois négative :
+`c121_soft25_vs_c115_5x6_20260929`, **10/10 sain**, gap `profit_year` face à
+AAAHogEx amélioré de **+342,2 k£/an** moyen (médiane **+558,7 k£**, 3/5), mais
+`profit_year` Opex **-287,0 k£/an** moyen, ratio des moyennes **-17,55 %**,
+`company_value` **-15,81 %**, véhicules primaires **-13,8**, slots Opex **-4,2**,
+villes Opex présentes **-4,4** et monopoles AAA `2-0` **+1,2** en moyenne.
+Le rattrapage économique est donc acheté par une sous-expansion trop forte.
+
+Dernière combinaison testée :
+`c121_projectreal_adaptive_pressure_soft25_defeff_5x6_20260929`, **10/10 sain**,
+avec `defensive_floor` prudent seulement en régime `efficiency`. Elle améliore le
+gap AAA de **+578,8 k£/an** moyen (3/5) mais échoue plus fortement encore :
+`profit_year` Opex **-200,8 k£/an**, **0/5**, valeur **-11,27 %**, **-2,0 slots
+Opex**, **-2,6 villes Opex** et **+2,0 monopoles AAA 2-0**. **Rejetée.**
+
+**Décision : pas de 20x10 ; C115 reste le témoin temporaire ; C121 et tous ses
+toggles `project_realization`, `engine_realization`, adaptatif, pressure probe,
+defensive floor restent OFF par défaut.** Conserver le classifieur
+`race/efficiency` comme signal diagnostique de phase/carte. La prochaine piste
+doit l'utiliser pour **choisir/ordonner les types de projets AIR** (course
+territoriale vs rendement) sans modifier l'économie intrinsèque du projet.
+Détails : `docs/43_c121_air_economics_shadow_20260928.md`.
+
+**C122 — stratégie AIR par régime (2026-09-29).** C122.1 (`race` :
+`newpair > hubsite > hubhub`) a été rejeté au smoke : `profit_year` **-340,7
+k£/an**, valeur **-20,52 %**, gap AAA **-343,8 k£/an**, slots **19->16** et
+monopoles AAA `2-0` **4->6**. L'audit C122.2 confirme que C77 couvre déjà les
+prises réellement périssables (`defensiveCompetitorClaims`/`preemptClaims` tier 2,
+`defensiveOwnClaims` tier 1) et que `earlySlotClaims` est déjà injecté dans
+`OpexProjectSelectionScore`. La formulation finale ajoute donc, sans nouveau scan,
+`defensiveNewTownClaims` dans `OpexProjectRefreshDefensiveSlot` en croisant les
+TownID physiques déjà connus avec `state.servedTowns`. En `race`, à tier C77 égal,
+seuls les AIR ouvrant une ville de slot absente d'Opex passent devant ;
+`efficiency` reste strictement économique. Tests finaux **58/58 OK**. Smoke propre seed42x3
+`c122_2_regime_priority_smoke_seed42_1x3_20260929_r4` : Opex **+56,4 k£/an**,
+valeur **+1,97 %**, mais gap Opex-AAAHogEx **-273,0 k£/an**, slots **18->16**,
+villes **17->16**, monopoles AAA `2-0` **3->5**, partagées **14->16**.
+Avec la télémétrie autonome finale, **0 `C122_PROMOTE`** : aucun ordre économique
+n'a été inversé par `defensiveNewTownClaims` sur seed42. **C122.2 non qualifié ; pas
+de 5x6 ni de 20x10.** Conserver le classifieur et C77 ; avant C122.3, mesurer
+l'exposition de ce signal dans le portefeuille financé ou trouver un signal causal
+plus directement lié à une perte de territoire au profit d'AAA.
+
+**C122.3 — exposition mesurée.** Sonde passive sans nouveau scan, branchée sur
+`c121_air_pressure_probe`. Sur
+`c122_3_exposure_probe_seed42_1x3_20260929_r2`, le signal apparaît dans **32/36**
+sélections ; **23/36** ont au moins une inversion potentielle et, en 1972, les
+candidats territoriaux présents sont derrière **1 à 16** AIR de même tier. Le
+signal est donc fréquent mais une priorité dure implique de grands sauts de rang.
+Le protocole a ensuite été symétrisé : classifieur/annotation/exposure identiques
+dans les deux bras, chemin pré-lock identique, trace de promotion bornée. Le r2
+intermédiaire avait produit **1 364** logs de promotion et est écarté comme mesure
+causale à cause de ce coût de trace. Le r3 final
+`c122_3_shadow_control_smoke_seed42_1x3_20260929_r3` verrouille le même `race`
+(`pressured=3`, contestable=100 %, open=25 %) dans les deux bras et retrouve les
+mêmes agrégats d'exposition (**17** snapshots avec nouvelle ville, **11** avec
+inversion potentielle, **632/83** occurrences cumulées), mais **0 promotion réelle**.
+Les deltas finaux (+29,1 k£/an, +3,16 % valeur, gap +8,1 k£/an, slots 19->20,
+villes 18->19, AAA 2-0 5->2) ne sont donc pas attribuables à une décision C122 :
+ils reflètent la sensibilité timing/opcodes du chemin actif. **Pas de 5x6/20x10.**
+Pour C122.4, viser une décision territoriale bornée réellement menacée plutôt qu'un
+renforcement global de `defensiveNewTownClaims`.
+[Confirmation shadow exact] `c122_air_regime_shadow` (défaut 0) reproduit le
+classifieur, l'annotation et la comparaison C122 sans réordonner. Sur
+`c122_3_exact_shadow_seed42_1x3_20260929`, verrou `race` (`pressured=2`,
+contestable=50 %, open=50 %) et **0 `C122_SHADOW`** : aucune inversion C122.2
+réellement disponible après lock. Instrumentation finale **59/59 tests OK**,
+`git diff --check` OK. Toujours **pas de 5x6/20x10**.
+[Fiche](44_c122_air_regime_priority_20260929.md).
+
+**C122.4 — menace locale au point de construction.** La sonde
+`c122_air_threat_probe` (défaut 0) suit uniquement une ville C83 avec un slot
+restant, absente d'Opex, et son projet AIR physique déjà vivant/finançable. Smoke
+passif `c122_4_threat_probe_seed42_1x3_20260929_r2` : **4** menaces, **3** prises
+par Opex ; Town 18 est perdue après **228 j** alors que son projet est déjà rank 0,
+finançable et tenté immédiatement. Motif causal : `siteA_unbuildable`, puis aucun
+nouveau site n'est régénéré pour cette ville. L'intervention minimale
+`c122_air_threat_retry` (défaut 0) ne change aucun score : après ce seul type de
+rejet sur un endpoint menacé, elle enfile au plus une fois le C77 ciblé sur le
+TownID exact. Smoke matched `c122_4_threat_retry_smoke_seed42_1x3_20260929` :
+**1 retry réel** (`queued=1`), Town 18 est sauvée et `opex_claimed` en 39 j. Mais
+le bilan global ne qualifie pas la politique : Opex `profit_year` **+194,3 k£/an**,
+valeur **+16,24 %**, tandis que le gap Opex-AAAHogEx se dégrade de **-294,4 k£/an** ;
+slots/villes Opex **17->16**, monopoles AAA `2-0` **5->2**, partagées **12->14**,
+véhicules primaires **43->37**. **Arrêt au smoke : pas de 5x6, aucun 20x10.**
+Tests **60/60 OK**, `git diff --check` OK. [Fiche](44_c122_air_regime_priority_20260929.md).
 
 <a id="c76-c77"></a>
 ### C76/C77 — limites du reliquat

@@ -1329,7 +1329,8 @@ function OpexC121PressureAdvanceYear()
         + " open_permille=" + openPermille
         + " samples=" + C121_AIR_PRESSURE_PREV.samples);
   }
-  if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE) {
+  if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE || C122_AIR_REGIME_PRIORITY
+      || C122_AIR_REGIME_SHADOW) {
     if (C121_AIR_PROJECT_REALIZATION_REGIME < 0
         && C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED
             >= C121_AIR_PROJECT_REALIZATION_CLASSIFY_YEARS) {
@@ -1362,7 +1363,8 @@ function OpexC121PressureAdvanceYear()
  * participe a aucune decision. */
 function OpexC121RecordPressureSnapshot(state)
 {
-  if ((!C121_AIR_PRESSURE_PROBE && !C121_AIR_PROJECT_REALIZATION_ADAPTIVE)
+  if ((!C121_AIR_PRESSURE_PROBE && !C121_AIR_PROJECT_REALIZATION_ADAPTIVE
+      && !C122_AIR_REGIME_PRIORITY && !C122_AIR_REGIME_SHADOW)
       || state == null || !("slotRemaining" in state)) return;
   OpexC121PressureAdvanceYear();
   local open = 0;
@@ -1495,6 +1497,9 @@ function OpexProjectRefreshDefensiveSlot(project, state)
   local claims = 0;
   local competitorClaims = 0;
   local ownClaims = 0;
+  local newTownClaims = 0;
+  local observeNewTowns = C121_AIR_PRESSURE_PROBE || C122_AIR_REGIME_PRIORITY
+      || C122_AIR_REGIME_SHADOW;
   local townA = -1;
   local townB = -1;
   if (("mode" in project) && project.mode == "air"
@@ -1505,6 +1510,7 @@ function OpexProjectRefreshDefensiveSlot(project, state)
     local ownSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
     local ownSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
     local claimedTowns = {};
+    local newTowns = observeNewTowns ? {} : null;
 
     if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
       if (("anchor" in plan.siteA) && AIMap.IsValidTile(plan.siteA.anchor)) {
@@ -1514,6 +1520,11 @@ function OpexProjectRefreshDefensiveSlot(project, state)
       if (!reuseA && townA >= 0 && AITown.IsValidTown(townA)
           && AITown.GetPopulation(townA) >= AIR_EARLY_SLOT_MIN_POP
           && !(townA in claimedTowns)) {
+        if (observeNewTowns
+            && !(townA in state.servedTowns) && !(townA in newTowns)) {
+          newTowns.rawset(townA, true);
+          newTownClaims++;
+        }
         if (ownSecondA && (townA in state.servedTowns)
             && OpexC83TownSlotsRemaining(townA, state) == 1) {
           claimedTowns.rawset(townA, true);
@@ -1536,6 +1547,11 @@ function OpexProjectRefreshDefensiveSlot(project, state)
       if (!reuseB && townB >= 0 && AITown.IsValidTown(townB)
           && AITown.GetPopulation(townB) >= AIR_EARLY_SLOT_MIN_POP
           && !(townB in claimedTowns)) {
+        if (observeNewTowns
+            && !(townB in state.servedTowns) && !(townB in newTowns)) {
+          newTowns.rawset(townB, true);
+          newTownClaims++;
+        }
         if (ownSecondB && (townB in state.servedTowns)
             && OpexC83TownSlotsRemaining(townB, state) == 1) {
           claimedTowns.rawset(townB, true);
@@ -1567,6 +1583,9 @@ function OpexProjectRefreshDefensiveSlot(project, state)
   OpexProjectSetEarlySlotField(project, "defensiveSlotClaims", claims);
   OpexProjectSetEarlySlotField(project, "defensiveCompetitorClaims", competitorClaims);
   OpexProjectSetEarlySlotField(project, "defensiveOwnClaims", ownClaims);
+  if (observeNewTowns) {
+    OpexProjectSetEarlySlotField(project, "defensiveNewTownClaims", newTownClaims);
+  }
   OpexProjectSetEarlySlotField(project, "defensiveSlotTownA", townA);
   OpexProjectSetEarlySlotField(project, "defensiveSlotTownB", townB);
 }
@@ -1591,6 +1610,156 @@ function OpexProjectDefensiveAirPriority(project)
   local ownClaims = ("defensiveOwnClaims" in project) ? project.defensiveOwnClaims : 0;
   if (ownClaims > 0) return 1;
   return 0;
+}
+
+/* C122.2 : strategie AIR par regime, strictement comme cle d'ordre entre
+ * projets AIR deja viables/financables. Aucun champ economique n'est modifie.
+ *
+ * C77 porte deja le vrai signal perissable de second slot concurrent et reste
+ * compare avant C122. En race, C122 ne rajoute donc qu'un signal distinct :
+ * une extremite neuve dans une ville que l'etat defensif deja calcule marque
+ * comme encore non servie par Opex. Cette annotation reste disponible apres la
+ * fenetre early-slot et ne demande aucun scan/appel API supplementaire. En
+ * observation / efficiency, l'ordre economique C121 reste brut. Aucun arm
+ * topologique n'est favorise en soi.
+ *
+ * L'appelant ne compare cette priorite que pour AIR<->AIR afin de ne jamais
+ * promouvoir AIR devant rail/route/eau sur un simple choix de regime. */
+function OpexC122AirRegimeTier(project)
+{
+  if (C121_AIR_PROJECT_REALIZATION_REGIME != 0) return 0;
+  if (project == null || !("mode" in project) || project.mode != "air") return 0;
+  local newTownClaims = ("defensiveNewTownClaims" in project) ? project.defensiveNewTownClaims : 0;
+  if (newTownClaims > 0) return 1;
+  return 0;
+}
+
+function OpexC122AirRegimePriority(project)
+{
+  if (!C122_AIR_REGIME_PRIORITY) return 0;
+  return OpexC122AirRegimeTier(project);
+}
+
+/* Trace seulement un departage C122 qui inverse l'ordre economique brut. Cela
+ * repond a "quel projet territorial a ete promu devant quel projet" sans loguer
+ * chaque comparaison de candidats. */
+function OpexC122TracePromotion(winner, project, prior, projectC77Tier, priorC77Tier,
+                                projectRegimeTier, priorRegimeTier, field)
+{
+  if (!C122_AIR_REGIME_PRIORITY || field != "fundScore") return;
+  ::C122_AIR_PROMOTION_COUNT = C122_AIR_PROMOTION_COUNT + 1;
+  if (C122_AIR_PROMOTION_LOG_COUNT >= C122_AIR_PROMOTION_LOG_MAX) return;
+  ::C122_AIR_PROMOTION_LOG_COUNT = C122_AIR_PROMOTION_LOG_COUNT + 1;
+  local projectArm = (("payload" in project) && project.payload != null
+      && ("arm" in project.payload)) ? project.payload.arm : "none";
+  local priorArm = (("payload" in prior) && prior.payload != null
+      && ("arm" in prior.payload)) ? prior.payload.arm : "none";
+  AILog.Info("C122_PROMOTE regime=race reason=new_opex_slot_town winner=" + winner
+      + " project_arm=" + projectArm + " prior_arm=" + priorArm
+      + " c77_project=" + projectC77Tier + " c77_prior=" + priorC77Tier
+      + " c122_project=" + projectRegimeTier + " c122_prior=" + priorRegimeTier
+      + " project_early=" + (("earlySlotClaims" in project) ? project.earlySlotClaims : 0)
+      + " prior_early=" + (("earlySlotClaims" in prior) ? prior.earlySlotClaims : 0)
+      + " project_new=" + (("defensiveNewTownClaims" in project) ? project.defensiveNewTownClaims : 0)
+      + " prior_new=" + (("defensiveNewTownClaims" in prior) ? prior.defensiveNewTownClaims : 0)
+      + " project_comp=" + (("defensiveCompetitorClaims" in project) ? project.defensiveCompetitorClaims : 0)
+      + " prior_comp=" + (("defensiveCompetitorClaims" in prior) ? prior.defensiveCompetitorClaims : 0)
+      + " project_own=" + (("defensiveOwnClaims" in project) ? project.defensiveOwnClaims : 0)
+      + " prior_own=" + (("defensiveOwnClaims" in prior) ? prior.defensiveOwnClaims : 0)
+      + " project_preempt=" + (("preemptClaims" in project) ? project.preemptClaims : 0)
+      + " prior_preempt=" + (("preemptClaims" in prior) ? prior.preemptClaims : 0)
+      + " project_score=" + project[field] + " prior_score=" + prior[field]);
+}
+
+function OpexC122TraceShadow(winner, project, prior, projectC77Tier, priorC77Tier,
+                             projectRegimeTier, priorRegimeTier, field)
+{
+  if (!C122_AIR_REGIME_SHADOW || C122_AIR_REGIME_PRIORITY || field != "fundScore") return;
+  local projectArm = (("payload" in project) && project.payload != null
+      && ("arm" in project.payload)) ? project.payload.arm : "none";
+  local priorArm = (("payload" in prior) && prior.payload != null
+      && ("arm" in prior.payload)) ? prior.payload.arm : "none";
+  AILog.Info("C122_SHADOW regime=race reason=new_opex_slot_town winner=" + winner
+      + " project_arm=" + projectArm + " prior_arm=" + priorArm
+      + " c77_project=" + projectC77Tier + " c77_prior=" + priorC77Tier
+      + " c122_project=" + projectRegimeTier + " c122_prior=" + priorRegimeTier
+      + " project_new=" + (("defensiveNewTownClaims" in project) ? project.defensiveNewTownClaims : 0)
+      + " prior_new=" + (("defensiveNewTownClaims" in prior) ? prior.defensiveNewTownClaims : 0)
+      + " project_score=" + project[field] + " prior_score=" + prior[field]);
+}
+
+/* C122.3 diagnostic : mesurer l'exposition de defensiveNewTownClaims dans le
+ * portefeuille deja finance/classe. La sonde reutilise c121_air_pressure_probe :
+ * meme etat territorial, aucun nouveau scan. Elle tourne dans les deux bras des
+ * smokes matched-shadow afin de ne pas creer un cout de mesure asymetrique.
+ * `same_tier_blockers` compte les projets AIR sans nouvelle ville, deja devant le
+ * meilleur candidat territorial dans la meme classe lexicographique C77/V88 ;
+ * c'est exactement la population que C122 devrait depasser pour changer un choix. */
+function OpexC122ProbeExposure(affordable)
+{
+  if (!C121_AIR_PRESSURE_PROBE || affordable == null) return;
+
+  local airCount = 0;
+  local newCount = 0;
+  local potentialInversions = 0;
+  local topAirGlobalRank = -1;
+  local topAirScore = 0.0;
+  local bestNewGlobalRank = -1;
+  local bestNewAirRank = -1;
+  local bestNewClaims = 0;
+  local bestNewScore = 0.0;
+  local bestNewTier = -1;
+  local bestNewBlockers = 0;
+  local plainAheadByTier = {};
+
+  for (local i = 0; i < affordable.len(); i++) {
+    local project = affordable[i];
+    if (project == null || !("mode" in project) || project.mode != "air") continue;
+    local airRank = airCount;
+    airCount++;
+    local tier = OpexProjectDefensiveAirPriority(project)
+        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+    local score = AIR_EARLY_SLOT ? OpexProjectSelectionScore(project, "fundScore")
+        : project.fundScore;
+    local newClaims = ("defensiveNewTownClaims" in project)
+        ? project.defensiveNewTownClaims : 0;
+
+    if (topAirGlobalRank < 0) {
+      topAirGlobalRank = i;
+      topAirScore = score;
+    }
+
+    if (newClaims > 0) {
+      newCount++;
+      local blockers = (tier in plainAheadByTier) ? plainAheadByTier[tier] : 0;
+      if (blockers > 0) potentialInversions++;
+      if (bestNewGlobalRank < 0) {
+        bestNewGlobalRank = i;
+        bestNewAirRank = airRank;
+        bestNewClaims = newClaims;
+        bestNewScore = score;
+        bestNewTier = tier;
+        bestNewBlockers = blockers;
+      }
+    } else {
+      if (tier in plainAheadByTier) plainAheadByTier[tier]++;
+      else plainAheadByTier.rawset(tier, 1);
+    }
+  }
+
+  if (airCount <= 0) return;
+  AILog.Info("C122_EXPOSURE date=" + AIDate.GetCurrentDate()
+      + " air=" + airCount + " new=" + newCount
+      + " potential_inversions=" + potentialInversions
+      + " top_air_global_rank=" + topAirGlobalRank
+      + " top_air_score=" + topAirScore
+      + " best_new_global_rank=" + bestNewGlobalRank
+      + " best_new_air_rank=" + bestNewAirRank
+      + " best_new_claims=" + bestNewClaims
+      + " best_new_score=" + bestNewScore
+      + " best_new_tier=" + bestNewTier
+      + " same_tier_blockers=" + bestNewBlockers
+      + " promotions=" + C122_AIR_PROMOTION_COUNT);
 }
 
 /* Villes de slot d'un projet aerien pour les extremites neuves seulement.
@@ -1898,6 +2067,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
   }
+  OpexC122ProbeExposure(affordable);
   OpexC120ReorderAffordableAir(affordable);
   if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);
   if (C69_BOTTLENECK_PROBE) {
@@ -1950,13 +2120,15 @@ function OpexProjectIsForcedChain(project)
 /* Insertion bornee et stable avec classe defensive C77 permanente. */
 function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false)
 {
-  local projectTier = OpexProjectDefensiveAirPriority(project)
+  local projectC77Tier = OpexProjectDefensiveAirPriority(project);
+  local projectTier = projectC77Tier
       + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
   local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
   local pos = best.len();
   while (pos > 0) {
     local prior = best[pos - 1];
-    local priorTier = OpexProjectDefensiveAirPriority(prior)
+    local priorC77Tier = OpexProjectDefensiveAirPriority(prior);
+    local priorTier = priorC77Tier
         + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
     local c118Active = C118_AIR_TERRITORIAL_EXPANSION
         && C118_AIR_PROJECT_SNAPSHOT != null
@@ -2008,6 +2180,39 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot 
       continue;
     }
     local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
+    local projectAir = ("mode" in project) && project.mode == "air";
+    local priorAir = ("mode" in prior) && prior.mode == "air";
+    /* Ne payer/comparer C122 qu'une fois le regime race verrouille. Le shadow
+     * execute la meme comparaison mais laisse ensuite l'ordre economique intact. */
+    if ((C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW)
+        && C121_AIR_PROJECT_REALIZATION_REGIME == 0 && projectAir && priorAir) {
+      local projectRegimeTier = OpexC122AirRegimeTier(project);
+      local priorRegimeTier = OpexC122AirRegimeTier(prior);
+      local economicKeepsPrior = priorScore > projectScore
+          || (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual);
+      if (C122_AIR_REGIME_SHADOW && !C122_AIR_REGIME_PRIORITY) {
+        if (priorRegimeTier > projectRegimeTier && !economicKeepsPrior) {
+          OpexC122TraceShadow("prior", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        } else if (priorRegimeTier < projectRegimeTier && economicKeepsPrior) {
+          OpexC122TraceShadow("project", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        }
+      } else if (priorRegimeTier > projectRegimeTier) {
+        if (!economicKeepsPrior) {
+          OpexC122TracePromotion("prior", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        }
+        break;
+      } else if (priorRegimeTier < projectRegimeTier) {
+        if (economicKeepsPrior) {
+          OpexC122TracePromotion("project", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        }
+        pos--;
+        continue;
+      }
+    }
     if (priorScore > projectScore) break;
     if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;
     pos--;

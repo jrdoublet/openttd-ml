@@ -435,6 +435,19 @@ C121_AIR_PRESSURE_ACCUM <- null;
 C121_AIR_PRESSURE_PREV <- null;
 C121_AIR_DEFENSIVE_FLOOR <- false;
 C121_AIR_INITIAL_PROJECT_ECONOMICS <- false;
+C122_AIR_REGIME_PRIORITY <- false;
+C122_AIR_REGIME_SHADOW <- false;
+C122_AIR_PROMOTION_COUNT <- 0;
+C122_AIR_PROMOTION_LOG_COUNT <- 0;
+C122_AIR_PROMOTION_LOG_MAX <- 8;
+/* C122.4 : sonde locale de menace territoriale. Elle ne cree aucune politique :
+ * elle relie seulement une transition C83 remaining=1 a un projet AIR deja
+ * vivant/finance, puis suit le meme TownID jusqu'a claimed/lost. */
+C122_AIR_THREAT_PROBE <- false;
+C122_AIR_THREAT_WATCH <- {};
+C122_AIR_THREAT_SEQ <- 0;
+C122_AIR_THREAT_RETRY <- false;
+C122_AIR_THREAT_RETRY_COUNT <- 0;
 /* Replay moteur C121 strictement passif. La table de capacites ne contient que
  * des couples PASS/MAIL effectivement observes sur un avion construit : on ne
  * fabrique pas la soute MAIL secondaire des moteurs alternatifs. */

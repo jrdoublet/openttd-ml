@@ -524,6 +524,38 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c122_air_regime_priority",
+      description = "C122 experimental AIR regime strategy: after the locked C121 pressure classification, race prioritizes viable AIR projects whose already-computed defensive annotation opens an unserved Opex slot town within the same C77 tier; efficiency keeps raw economic order; economics/engine/finance unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c122_air_regime_shadow",
+      description = "C122 passive shadow: run the same pressure lock, unserved-town annotation and AIR-vs-AIR comparison as C122, but never reorder projects; logs only would-be economic inversions; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c122_air_threat_probe",
+      description = "C122.4 passive territorial-threat probe: when C83 sees one slot remaining in an unserved watched town, record the exact live/fundable AIR project, rank and blocker, then follow the same TownID until Opex claims it or the competitor closes it; no decision change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c122_air_threat_retry",
+      description = "C122.4 experimental local retry: if an exact C83 threatened AIR project reaches build but its threatened endpoint site became unbuildable, enqueue one targeted C77 regeneration for that TownID; implies the passive threat probe; no scoring/economics/engine/finance change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c102_air_station_rating_probe",
       description = "C102 passive probe: compare line-headway rating with station-wide AIR pickup rating and raw catchment production; no decision change",
       easy_value = 0, medium_value = 0, hard_value = 0,

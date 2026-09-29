@@ -318,11 +318,268 @@ function OpexAirC83FundedRaceCoversTown(projects, lines, townId)
   return false;
 }
 
+/* C122.4 shadow : meme filtre que OpexAirC83FundedRaceCoversTown, mais uniquement
+ * sous la sonde et en retournant le projet/rang pour expliquer la decision locale.
+ * Aucun scan carte : au plus PROJECT_TOP_K projets deja finances et leurs ancres
+ * physiques deja calculees. */
+function OpexC122ThreatFundedMatch(projects, lines, townId)
+{
+  if (!C122_AIR_THREAT_PROBE || projects == null || !("best" in projects)
+      || projects.best == null || lines == null) return null;
+  local limit = projects.best.len() < PROJECT_TOP_K ? projects.best.len() : PROJECT_TOP_K;
+  for (local i = 0; i < limit; i++) {
+    local project = projects.best[i];
+    if (project == null || !("mode" in project) || project.mode != "air") continue;
+    if (!("profitAnnual" in project) || project.profitAnnual <= 0) continue;
+    if (OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;
+    if (!("payload" in project) || project.payload == null) continue;
+    local plan = project.payload;
+    if (!("siteA" in plan) || plan.siteA == null || !("siteB" in plan) || plan.siteB == null) continue;
+    if (!OpexAirBatchPlanStillLive(plan, lines)) continue;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local hits = (!reuseA && ("anchor" in plan.siteA)
+        && OpexAirSlotTownId(plan.siteA.anchor) == townId)
+        || (!reuseB && ("anchor" in plan.siteB)
+        && OpexAirSlotTownId(plan.siteB.anchor) == townId);
+    if (hits) return { project = project, rank = i };
+  }
+  return null;
+}
+
+function OpexC122ThreatLog(fields)
+{
+  if (!C122_AIR_THREAT_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("C1224_THREAT date=" + date + " " + fields);
+}
+
+function OpexC122ThreatRegister(ai, townId, previous)
+{
+  if (!C122_AIR_THREAT_PROBE || ai == null || townId < 0) return;
+  if (townId in C122_AIR_THREAT_WATCH) return;
+  local match = OpexC122ThreatFundedMatch(ai._projects, ai._lines, townId);
+  local head = (ai._projects != null && ("best" in ai._projects)
+      && ai._projects.best != null && ai._projects.best.len() > 0)
+      ? ai._projects.best[0] : null;
+  local rank = match != null ? match.rank : -1;
+  local project = match != null ? match.project : null;
+  local projectKey = project != null ? OpexProjectAttemptKey(project) : "none";
+  local blocker = (rank > 0) ? head : null;
+  local blockerKey = blocker != null ? OpexProjectAttemptKey(blocker) : "none";
+  local blockerMode = (blocker != null && ("mode" in blocker)) ? blocker.mode : "none";
+  local projectScore = (project != null && ("fundScore" in project)) ? project.fundScore : 0.0;
+  local blockerScore = (blocker != null && ("fundScore" in blocker)) ? blocker.fundScore : 0.0;
+  local finance = project != null ? OpexProjectFinanceCapital(project) : -1;
+  local today = AIDate.GetCurrentDate();
+  C122_AIR_THREAT_SEQ++;
+  C122_AIR_THREAT_WATCH.rawset(townId, {
+    seq = C122_AIR_THREAT_SEQ,
+    detected = today,
+    rank = rank,
+    projectKey = projectKey,
+    blockerKey = blockerKey,
+    blockerMode = blockerMode,
+    funded = match != null,
+    attempts = 0,
+    retries = 0,
+  });
+  OpexC122ThreatLog("phase=detected seq=" + C122_AIR_THREAT_SEQ
+      + " town=" + townId + " previous=" + previous + " remaining=1"
+      + " funded=" + (match != null ? 1 : 0) + " rank=" + rank
+      + " project=" + projectKey + " finance=" + finance
+      + " available=" + OpexAvailableCapital() + " project_score=" + projectScore
+      + " blocker_mode=" + blockerMode + " blocker=" + blockerKey
+      + " blocker_score=" + blockerScore);
+}
+
+/* La menace peut preceder la regeneration C77 qui cree le projet actionnable.
+ * Rejouer seulement PROJECT_TOP_K permet de dater cette transition sans scan
+ * carte/site/moteur et sans modifier l'ordre du portefeuille. */
+function OpexC122ThreatRefreshFunded(ai, townId)
+{
+  if (!C122_AIR_THREAT_PROBE || ai == null || !(townId in C122_AIR_THREAT_WATCH)) return;
+  local watch = C122_AIR_THREAT_WATCH[townId];
+  if (watch.funded) return;
+  local match = OpexC122ThreatFundedMatch(ai._projects, ai._lines, townId);
+  if (match == null) return;
+  local project = match.project;
+  local head = (ai._projects != null && ("best" in ai._projects)
+      && ai._projects.best != null && ai._projects.best.len() > 0)
+      ? ai._projects.best[0] : null;
+  local blocker = match.rank > 0 ? head : null;
+  watch.funded = true;
+  watch.rank = match.rank;
+  watch.projectKey = OpexProjectAttemptKey(project);
+  watch.blockerKey = blocker != null ? OpexProjectAttemptKey(blocker) : "none";
+  watch.blockerMode = (blocker != null && ("mode" in blocker)) ? blocker.mode : "none";
+  local today = AIDate.GetCurrentDate();
+  OpexC122ThreatLog("phase=funded seq=" + watch.seq + " town=" + townId
+      + " days=" + (today - watch.detected) + " rank=" + match.rank
+      + " project=" + watch.projectKey + " finance=" + OpexProjectFinanceCapital(project)
+      + " available=" + OpexAvailableCapital()
+      + " project_score=" + (("fundScore" in project) ? project.fundScore : 0.0)
+      + " blocker_mode=" + watch.blockerMode + " blocker=" + watch.blockerKey
+      + " blocker_score=" + ((blocker != null && ("fundScore" in blocker)) ? blocker.fundScore : 0.0));
+}
+
+function OpexC122ThreatClose(townId, previous, ownPresent, ownCount)
+{
+  if (!C122_AIR_THREAT_PROBE || !(townId in C122_AIR_THREAT_WATCH)) return;
+  local watch = C122_AIR_THREAT_WATCH[townId];
+  local today = AIDate.GetCurrentDate();
+  local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
+  OpexC122ThreatLog("phase=closed seq=" + watch.seq + " town=" + townId
+      + " result=" + (claimed ? "opex_claimed" : "competitor_monopoly")
+      + " previous=" + previous + " remaining=0 own=" + (ownPresent ? 1 : 0)
+      + " days=" + (today - watch.detected) + " funded=" + (watch.funded ? 1 : 0)
+      + " rank=" + watch.rank + " project=" + watch.projectKey
+      + " attempts=" + watch.attempts + " retries=" + watch.retries
+      + " blocker_mode=" + watch.blockerMode + " blocker=" + watch.blockerKey);
+  delete C122_AIR_THREAT_WATCH[townId];
+}
+
+function OpexC122ThreatCancel(townId, reason)
+{
+  if (!C122_AIR_THREAT_PROBE || !(townId in C122_AIR_THREAT_WATCH)) return;
+  local watch = C122_AIR_THREAT_WATCH[townId];
+  local today = AIDate.GetCurrentDate();
+  OpexC122ThreatLog("phase=closed seq=" + watch.seq + " town=" + townId
+      + " result=" + reason + " days=" + (today - watch.detected)
+      + " funded=" + (watch.funded ? 1 : 0) + " rank=" + watch.rank
+      + " attempts=" + watch.attempts + " retries=" + watch.retries + " project=" + watch.projectKey
+      + " blocker_mode=" + watch.blockerMode + " blocker=" + watch.blockerKey);
+  delete C122_AIR_THREAT_WATCH[townId];
+}
+
+function OpexC122ThreatProjectTowns(project)
+{
+  local towns = [];
+  if (!C122_AIR_THREAT_PROBE || project == null || !("mode" in project)
+      || project.mode != "air" || !("payload" in project) || project.payload == null) return towns;
+  local plan = project.payload;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (("siteA" in plan) && plan.siteA != null && !reuseA
+      && ("anchor" in plan.siteA)) {
+    local townA = OpexAirSlotTownId(plan.siteA.anchor);
+    if (townA in C122_AIR_THREAT_WATCH) towns.append(townA);
+  }
+  if (("siteB" in plan) && plan.siteB != null && !reuseB
+      && ("anchor" in plan.siteB)) {
+    local townB = OpexAirSlotTownId(plan.siteB.anchor);
+    if (townB in C122_AIR_THREAT_WATCH) {
+      local duplicate = false;
+      foreach (id in towns) if (id == townB) duplicate = true;
+      if (!duplicate) towns.append(townB);
+    }
+  }
+  return towns;
+}
+
+function OpexC122ThreatNoteAttempt(project, rank, builtBefore)
+{
+  if (!C122_AIR_THREAT_PROBE) return;
+  local towns = OpexC122ThreatProjectTowns(project);
+  foreach (townId in towns) {
+    local watch = C122_AIR_THREAT_WATCH[townId];
+    watch.attempts++;
+    OpexC122ThreatLog("phase=attempt seq=" + watch.seq + " town=" + townId
+        + " rank=" + rank + " built_before=" + builtBefore
+        + " attempt=" + watch.attempts + " project=" + OpexProjectAttemptKey(project)
+        + " finance=" + OpexProjectFinanceCapital(project)
+        + " available=" + OpexAvailableCapital());
+  }
+}
+
+function OpexC122ThreatNoteOutcome(project, rank, attempt)
+{
+  if (!C122_AIR_THREAT_PROBE) return;
+  local reason = "none";
+  local detail = "";
+  local error = 0;
+  if (("discards" in attempt) && attempt.discards != null) {
+    for (local i = attempt.discards.len() - 1; i >= 0; i--) {
+      local discard = attempt.discards[i];
+      if (discard == null || !("mode" in discard) || discard.mode != "air"
+          || !("rank" in discard) || discard.rank != rank) continue;
+      reason = ("reason" in discard) ? discard.reason : "unknown";
+      detail = ("detail" in discard) ? discard.detail : "";
+      error = ("error" in discard) ? discard.error : 0;
+      break;
+    }
+  }
+  local towns = OpexC122ThreatProjectTowns(project);
+  foreach (townId in towns) {
+    local watch = C122_AIR_THREAT_WATCH[townId];
+    OpexC122ThreatLog("phase=outcome seq=" + watch.seq + " town=" + townId
+      + " rank=" + rank + " outcome=" + attempt.outcome
+        + " reason=" + reason + " detail=" + detail + " error=" + error
+        + " project=" + OpexProjectAttemptKey(project)
+        + " available=" + OpexAvailableCapital());
+  }
+}
+
+/* C122.4 actif : le seul trou causal observe est un projet menace deja rang 0
+ * dont un endpoint devient physiquement non constructible entre selection et
+ * tentative. Ne pas changer le score : relancer une fois le C77 cible sur le
+ * TownID exact de l'endpoint invalide afin de chercher un nouveau site. */
+function OpexC122ThreatRetryUnbuildable(ai, project, rank, attempt)
+{
+  if (!C122_AIR_THREAT_RETRY || ai == null || project == null || attempt == null
+      || !("outcome" in attempt) || attempt.outcome != "rejected"
+      || !("discards" in attempt) || attempt.discards == null
+      || !("payload" in project) || project.payload == null) return false;
+
+  local reason = null;
+  for (local i = attempt.discards.len() - 1; i >= 0; i--) {
+    local discard = attempt.discards[i];
+    if (discard == null || !("mode" in discard) || discard.mode != "air"
+        || !("rank" in discard) || discard.rank != rank || !("reason" in discard)) continue;
+    if (discard.reason == "siteA_unbuildable" || discard.reason == "siteB_unbuildable") {
+      reason = discard.reason;
+    }
+    break;
+  }
+  if (reason == null) return false;
+
+  local plan = project.payload;
+  local site = reason == "siteA_unbuildable" ? plan.siteA : plan.siteB;
+  local reuse = reason == "siteA_unbuildable"
+      ? (("reuseA" in plan) && plan.reuseA)
+      : (("reuseB" in plan) && plan.reuseB);
+  if (reuse || site == null || !("anchor" in site)) return false;
+  local townId = OpexAirSlotTownId(site.anchor);
+  if (!(townId in C122_AIR_THREAT_WATCH)) return false;
+  local watch = C122_AIR_THREAT_WATCH[townId];
+  if (watch.retries >= 1) return false;
+
+  local key = "c77|town|" + townId + "|air";
+  local alreadyQueued = ai._reactiveQueue != null && ai._reactiveQueue.has(key);
+  local queued = false;
+  if (!alreadyQueued) {
+    queued = ai._c77EnqueueEntity(["air"], "town", townId, true, "c122_threat_retry");
+  }
+  if (queued) {
+    watch.retries++;
+    C122_AIR_THREAT_RETRY_COUNT++;
+    ai._c83SlotRace.rawset(townId, AIDate.GetCurrentDate());
+  }
+  OpexC122ThreatLog("phase=retry seq=" + watch.seq + " town=" + townId
+      + " reason=" + reason + " queued=" + (queued ? 1 : 0)
+      + " coalesced=" + (alreadyQueued ? 1 : 0)
+      + " count=" + C122_AIR_THREAT_RETRY_COUNT
+      + " project=" + OpexProjectAttemptKey(project));
+  return queued;
+}
+
 function OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount)
 {
-  if (!C78_SLOT_INTERCEPT_PROBE || remaining != 0) return;
+  if (remaining != 0) return;
   if (previous != 1 && previous != 11 && previous != 2) return;
   local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
+  OpexC122ThreatClose(townId, previous, ownPresent, ownCount);
+  if (!C78_SLOT_INTERCEPT_PROBE) return;
   local fields = "phase=" + (claimed ? "c83_slot_claimed" : "c83_slot_lost")
       + " town=" + townId + " previous=" + previous + " remaining=0 own=" + (ownPresent ? 1 : 0);
   if (previous == 2) fields += " jump=1";
@@ -344,6 +601,8 @@ function OpexC83WatchDroppedTown(ai, townId, ownCounts)
   local state = remaining + (ownPresent ? 10 : 0);
   local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
   OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
+  if (previous == 1 && remaining > 1) OpexC122ThreatCancel(townId, "threat_cleared");
+  else if (previous == 1 && ownPresent && remaining > 0) OpexC122ThreatCancel(townId, "opex_served");
   if (remaining == 0) {
     delete ai._c83SlotWatch[townId];
     if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
@@ -364,6 +623,8 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
   local state = remaining + (ownPresent ? 10 : 0);
   local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
   OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
+  if (previous == 1 && remaining > 1) OpexC122ThreatCancel(townId, "threat_cleared");
+  else if (previous == 1 && ownPresent && remaining > 0) OpexC122ThreatCancel(townId, "opex_served");
 
   if (ownPresent || remaining != 1) {
     ai._c83SlotWatch.rawset(townId, state);
@@ -372,6 +633,9 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
     if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
     return 0;
   }
+
+  OpexC122ThreatRegister(ai, townId, previous);
+  OpexC122ThreatRefreshFunded(ai, townId);
 
   /* Etat 1 sans aeroport Opex : la course reste armee. Le recu d'enqueue
    * (_c83SlotRace) n'est ecrit qu'apres un enqueue reussi. */
@@ -570,6 +834,9 @@ function OpexAI::_c83WatchAirSlotTransitions()
     local previous = (town.id in this._c83SlotWatch) ? this._c83SlotWatch[town.id] : 2;
     this._c83SlotWatch.rawset(town.id, state);
 
+    if (previous == 1 && remaining > 1) OpexC122ThreatCancel(town.id, "threat_cleared");
+    else if (previous == 1 && ownPresent && remaining > 0) OpexC122ThreatCancel(town.id, "opex_served");
+
     if (previous == 1 && remaining == 0 && C78_SLOT_INTERCEPT_PROBE) {
       OpexC78SlotLog("phase=" + (ownPresent ? "c83_slot_claimed" : "c83_slot_lost")
           + " town=" + town.id + " previous=1 remaining=0 own=" + (ownPresent ? 1 : 0));
@@ -585,6 +852,19 @@ function OpexAI::_c83WatchAirSlotTransitions()
           + " town=" + town.id + " previous=" + previous + " remaining=0 own=" + (ownPresent ? 1 : 0) + jump);
     }
 
+    if (remaining == 0 && (previous == 1 || previous == 11 || previous == 2)) {
+      local ownCountForThreat = ownPresent ? 1 : 0;
+      if (previous == 11) {
+        local threatClosureCounts = OpexAirOwnSlotTownCounts();
+        ownCountForThreat = (town.id in threatClosureCounts) ? threatClosureCounts[town.id] : 0;
+      }
+      OpexC122ThreatClose(town.id, previous, ownPresent, ownCountForThreat);
+    }
+
+    if (state == 1) {
+      OpexC122ThreatRegister(this, town.id, previous);
+      OpexC122ThreatRefreshFunded(this, town.id);
+    }
     if (state != 1 || previous == 1) continue;
     local alreadyFunded = false;
     if (this._projects != null && ("best" in this._projects) && this._projects.best != null) {
@@ -1065,8 +1345,11 @@ function OpexAI::_tryBuildProjects(year)
             + " finance=" + OpexProjectFinanceCapital(project)
             + " available=" + OpexAvailableCapital() + " built_before=" + liveBuiltCount);
       }
+      OpexC122ThreatNoteAttempt(project, i, liveBuiltCount);
       local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                 anchor, yy);
+      OpexC122ThreatNoteOutcome(project, i, attempt);
+      OpexC122ThreatRetryUnbuildable(this, project, i, attempt);
       passDiscards = attempt.discards;
       if (C120_AIR_TERRITORIAL_RANKING) {
         if (attempt.outcome == "built") {

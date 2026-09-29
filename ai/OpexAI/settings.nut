@@ -280,6 +280,13 @@ function OpexLoadSettings()
   C121_AIR_DEFENSIVE_FLOOR = AIController.GetSetting("c121_air_defensive_floor") != 0;
   C121_AIR_INITIAL_PROJECT_ECONOMICS = AIController.GetSetting("c121_air_initial_project_economics") != 0;
   C121_AIR_ENGINE_REPLAY_SHADOW = AIController.GetSetting("c121_air_engine_replay_shadow") != 0;
+  C122_AIR_REGIME_PRIORITY = AIController.GetSetting("c122_air_regime_priority") != 0;
+  C122_AIR_REGIME_SHADOW = AIController.GetSetting("c122_air_regime_shadow") != 0;
+  C122_AIR_THREAT_RETRY = AIController.GetSetting("c122_air_threat_retry") != 0;
+  C122_AIR_THREAT_PROBE = AIController.GetSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;
+  C122_AIR_THREAT_WATCH.clear();
+  C122_AIR_THREAT_SEQ = 0;
+  C122_AIR_THREAT_RETRY_COUNT = 0;
   C121_AIR_ENGINE_CAPACITY_OBS.clear();
   C121_AIR_REALIZATION_FACTOR.newpair = 1.0;
   C121_AIR_REALIZATION_FACTOR.hubsite = 1.0;

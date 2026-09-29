@@ -109,7 +109,9 @@ class C83FixesContractTests(unittest.TestCase):
         self.assertIn("!reuseB", funded)
 
         closure = body(self.task_projects, "function OpexC83LogSlotClosure(")
-        self.assertIn("if (!C78_SLOT_INTERCEPT_PROBE || remaining != 0) return;", closure)
+        self.assertIn("if (remaining != 0) return;", closure)
+        self.assertIn("if (!C78_SLOT_INTERCEPT_PROBE) return;", closure)
+        self.assertIn("OpexC122ThreatClose(townId, previous, ownPresent, ownCount);", closure)
         self.assertIn("previous != 11", closure)
         self.assertIn("previous != 2", closure)
         self.assertIn('fields += " jump=1";', closure)
