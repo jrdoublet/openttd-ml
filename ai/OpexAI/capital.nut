@@ -34,6 +34,7 @@ function OpexAvailableCapital()
       ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
   if (borrowable < 0) borrowable = 0;
   local available = cash + borrowable - OpexCashReserve();
+  if (V88_STEP2_CASH_RESERVE) available -= V88_STEP2_RESERVE_AMOUNT;
   return available > 0 ? available : 0;
 }
 /* Remboursement annuel : une fois la tresorerie confortablement au-dessus du plancher, on

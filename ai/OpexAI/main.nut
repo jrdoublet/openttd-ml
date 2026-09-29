@@ -438,6 +438,7 @@ class OpexAI extends AIController {
   function Start();
   function _tooClose(candidate);
   function _tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
+  function _setActiveGoodsChain(chain);
   function _tryBuildAir(year);
   function _tryBuildProjects(year);
   function _c39StampFinanceable(capital = null, isProjectsTurn = false);
@@ -699,6 +700,9 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
+    if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+      OpexC117AirThroughputStep(this._lines, this._catalog);
+    }
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     if (C80_DOUBLE_REGISTER) {
       this._runOrchestratorTick();

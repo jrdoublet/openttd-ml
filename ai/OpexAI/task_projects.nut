@@ -178,6 +178,13 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   local plannedFull = ("capital" in project && project.capital > 0)
       ? project.capital : (entry.planePrice * entry.want);
   local costs = C63_INVEST_PROBE ? AIAccounting() : null;
+  local c121HaveBefore = ("vehCount" in line) ? line.vehCount
+      : (("vehicles" in line) ? line.vehicles.len() : 0);
+  local c121TrackMarginal = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+      && line.targetAirPlanes > c121HaveBefore
+      && ("lastProfit" in line) && ("lastRevenue" in line);
+  local c121BaselineProfit = c121TrackMarginal ? line.lastProfit : 0;
+  local c121BaselineRevenue = c121TrackMarginal ? line.lastRevenue : 0;
   local added = 0;
   for (local k = 0; k < entry.want; k++) {
     local grown = OpexAirAddPlane(line, this._catalog);
@@ -214,6 +221,15 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 
   line.lastAirFleetYear <- year;
   line.lastAirFleetDate <- AIDate.GetCurrentDate();
+  if (c121TrackMarginal && line.vehCount > c121HaveBefore) {
+    line.c121MarginalBaselineProfit <- c121BaselineProfit;
+    line.c121MarginalBaselineRevenue <- c121BaselineRevenue;
+    line.c121MarginalBaselineVehicles <- c121HaveBefore;
+    /* task_report(year) publie le profit de year-1. Un renfort pose pendant
+     * year ne dispose donc d'une annee civile complete post-renfort qu'au
+     * report year+2. */
+    line.c121MarginalObserveYear <- year + 2;
+  }
   if (C50_CHRONOLOGY_PROBE) {
     OpexC50ChronologyLog("phase=fleet_built mode=air line=" + line.lineId
         + " added=" + added + " total=" + line.vehCount + " want=" + entry.want
@@ -695,6 +711,10 @@ function OpexAI::_tryBuildProjects(year)
   local builtCount = 0;
   local funnelAttempted = 0;
   local passDiscards = [];
+  local c120AirAttempts = 0;
+  local c120AirBuilt = false;
+  local c120AirLastReason = null;
+  local c120AirLastReject = null;
   local c69BuiltProjects = C69_TRACK_BUILDS ? [] : null;
   local c69PassProjects = null;
   if (C69_BOTTLENECK_PROBE && this._projects != null) {
@@ -1024,6 +1044,8 @@ function OpexAI::_tryBuildProjects(year)
         continue;
       }
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      local c120DiscardStart = C120_AIR_TERRITORIAL_RANKING ? passDiscards.len() : 0;
+      if (C120_AIR_TERRITORIAL_RANKING) c120AirAttempts++;
       local c78DiscardStart = C78_SLOT_INTERCEPT_PROBE ? passDiscards.len() : 0;
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       if (C78_SLOT_INTERCEPT_PROBE) {
@@ -1046,6 +1068,22 @@ function OpexAI::_tryBuildProjects(year)
       local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                 anchor, yy);
       passDiscards = attempt.discards;
+      if (C120_AIR_TERRITORIAL_RANKING) {
+        if (attempt.outcome == "built") {
+          c120AirBuilt = true;
+          c120AirLastReason = "built";
+        } else {
+          c120AirLastReason = attempt.outcome;
+          for (local c120k = c120DiscardStart; c120k < passDiscards.len(); c120k++) {
+            local c120d = passDiscards[c120k];
+            if (c120d != null && ("mode" in c120d) && c120d.mode == "air"
+                && ("rank" in c120d) && c120d.rank == i && ("reason" in c120d)) {
+              c120AirLastReason = c120d.reason;
+            }
+          }
+          c120AirLastReject = c120AirLastReason;
+        }
+      }
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C78_SLOT_INTERCEPT_PROBE) {
         local c78Reason = (attempt.outcome == "built") ? "built" : "unknown";
@@ -1276,6 +1314,18 @@ function OpexAI::_tryBuildProjects(year)
       OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
     }
   }
+  }
+
+  if (C120_AIR_TERRITORIAL_RANKING) {
+    local c120StopReason = null;
+    if (c120AirBuilt) c120StopReason = "built";
+    else if (c120AirAttempts > 0 && c120AirLastReason != null) c120StopReason = c120AirLastReason;
+    else if (c75StopReason != null) c120StopReason = c75StopReason;
+    else if (builtCount > 0) c120StopReason = "other_mode_built";
+    else if (C120_AIR_SELECTION_SNAPSHOT != null) c120StopReason = C120_AIR_SELECTION_SNAPSHOT.selectionReason;
+    else c120StopReason = "no_snapshot";
+    OpexC120TracePass(c120StopReason, c120AirAttempts, c120AirBuilt,
+        c120AirLastReject, c75StopReason);
   }
 
   if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);

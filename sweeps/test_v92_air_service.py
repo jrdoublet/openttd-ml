@@ -58,7 +58,7 @@ class V92AirServiceChoiceTests(unittest.TestCase):
             choose.index("OpexAirChooseRoutePlaneFull("),
         )
         service = function_body(BUILDER, "function OpexAirChooseRouteService(")
-        self.assertIn("false, true)", service)
+        self.assertIn("0, false, true, false, false, paymentDistance)", service)
         self.assertIn("choice.alternate <-", service)
         self.assertIn("plane.price <= cheapLimit", service)
         self.assertIn("infrastructureMaintenance, maxCapital, newAirportCount", service)

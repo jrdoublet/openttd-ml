@@ -1302,7 +1302,7 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
       local acceptedList = catalog._cargoArray(acceptedCargos);
 
       foreach (cargoIn in acceptedList) {
-        if (freightCargo != null && cargoIn != freightCargo) continue;
+        if (!V88_ALL_INPUTS && freightCargo != null && cargoIn != freightCargo) continue;
         if (!(cargoIn in catalog.producers)) continue;
         local sourceIndices = catalog.producers[cargoIn];
 

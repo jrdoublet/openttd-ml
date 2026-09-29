@@ -176,6 +176,11 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           return { outcome = "rejected", discards = passDiscards };
         }
       }
+      if (V88_STEP2_RAIL_PRIO && this._activeGoodsChain != null && this._activeGoodsChain.step == 2
+          && !(("isChainStep2" in candidate) && candidate.isChainStep2)) {
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "chain_step2_prio", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
       local abandonedKey = OpexAbandonedPairKey(candidate);
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
@@ -264,7 +269,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         local recorded = this._recordRailAttempt(inputCand, result, posPacked, year);
         if (recorded) {
           local inputLine = this._lines[this._lines.len() - 1];
-          this._activeGoodsChain = {
+          this._setActiveGoodsChain({
             step = 2,
             factoryId = candidate.factoryId,
             townId = candidate.dstTown,
@@ -278,7 +283,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             },
             goodsCandidate = candidate.goodsCandidate,
             year = year
-          };
+          });
           OpexV88Log("CHAIN_STEP1", "line=" + inputLine.lineId + " fact=" + candidate.factoryId);
           OpexSign(anchor, "C1|" + yy + "|" + inputLine.lineId + "|" + candidate.factoryId);
           local step2Need = candidate.goodsCandidate.capital + OpexCashReserve();
@@ -287,7 +292,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           }
           return { outcome = "built", discards = passDiscards };
         }
-        this._activeGoodsChain = null;
+        this._setActiveGoodsChain(null);
         OpexV88Log("CHAIN_FAIL", "step=1 reason=" + result.reason);
         OpexSign(anchor, "CF|" + yy + "|1|" + OpexAttemptReasonCode(result.reason));
         local failReason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
@@ -469,6 +474,13 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       return { outcome = recorded ? "built" : "rejected", discards = passDiscards };
 
 }
+/* V88 : Mutateur centralise de _activeGoodsChain pour synchroniser la reserve de tresorerie */
+function OpexAI::_setActiveGoodsChain(chain)
+{
+  this._activeGoodsChain = chain;
+  V88_STEP2_RESERVE_AMOUNT = (chain != null && chain.step == 2 && ("goodsCandidate" in chain) && chain.goodsCandidate != null && ("capital" in chain.goodsCandidate)) ? chain.goodsCandidate.capital : 0;
+}
+
 /* V88 : Construction de l'etape 2 d'une chaine de biens (troncon usine -> ville avec quai joint) */
 function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
 {
@@ -477,13 +489,13 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
   local goodsCand = chain.goodsCandidate;
   if (goodsCand == null) {
     OpexV88Log("CHAIN_FAIL", "step=2 reason=no_goods_candidate");
-    this._activeGoodsChain = null;
+    this._setActiveGoodsChain(null);
     return false;
   }
 
   if (!AIIndustry.IsValidIndustry(chain.factoryId)) {
     OpexV88Log("CHAIN_FAIL", "step=2 reason=factory_gone");
-    this._activeGoodsChain = null;
+    this._setActiveGoodsChain(null);
     return false;
   }
 
@@ -493,7 +505,7 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
   }
   if (inputLine == null) {
     OpexV88Log("CHAIN_FAIL", "step=2 reason=input_line_gone line=" + chain.inputLineId);
-    this._activeGoodsChain = null;
+    this._setActiveGoodsChain(null);
     return false;
   }
 
@@ -507,7 +519,7 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
   local abandonedKey = OpexAbandonedPairKey(goodsCand);
   if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
     OpexV88Log("CHAIN_FAIL", "step=2 reason=abandoned_pair");
-    this._activeGoodsChain = null;
+    this._setActiveGoodsChain(null);
     return false;
   }
 
@@ -515,7 +527,7 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
   if (close.hard >= 0 || close.blocking >= 0) {
     OpexV88Log("CHAIN_FAIL", "step=2 reason=too_close");
     this._markPairAbandoned(abandonedKey);
-    this._activeGoodsChain = null;
+    this._setActiveGoodsChain(null);
     return false;
   }
 
@@ -555,14 +567,14 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
     local goodsLine = this._lines[this._lines.len() - 1];
     OpexV88Log("CHAIN_STEP2", "line=" + goodsLine.lineId + " town=" + chain.townId);
     OpexSign(anchor, "C2|" + yy + "|" + goodsLine.lineId + "|" + chain.townId);
-    this._activeGoodsChain = null;
+    this._setActiveGoodsChain(null);
     return true;
   } else {
     local failReason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
     OpexV88Log("CHAIN_FAIL", "step=2 reason=" + failReason);
     OpexSign(anchor, "CF|" + yy + "|2|" + OpexAttemptReasonCode(failReason));
     this._markPairAbandoned(abandonedKey);
-    this._activeGoodsChain = null;
+    this._setActiveGoodsChain(null);
     return false;
   }
 }
@@ -1298,7 +1310,7 @@ function OpexAI::_consumeRailSearch(year)
     if (built) {
       local inputLine = this._lines[this._lines.len() - 1];
       local chainParent = candidate.chainParent;
-      this._activeGoodsChain = {
+      this._setActiveGoodsChain({
         step = 2,
         factoryId = chainParent.factoryId,
         townId = chainParent.dstTown,
@@ -1312,11 +1324,11 @@ function OpexAI::_consumeRailSearch(year)
         },
         goodsCandidate = chainParent.goodsCandidate,
         year = year
-      };
+      });
       OpexV88Log("CHAIN_STEP1", "line=" + inputLine.lineId + " fact=" + chainParent.factoryId);
       OpexSign(anchor, "C1|" + yy + "|" + inputLine.lineId + "|" + chainParent.factoryId);
     } else {
-      this._activeGoodsChain = null;
+      this._setActiveGoodsChain(null);
       OpexV88Log("CHAIN_FAIL", "step=1 reason=" + result.reason);
       OpexSign(anchor, "CF|" + yy + "|1|" + OpexAttemptReasonCode(result.reason));
     }
@@ -1327,12 +1339,12 @@ function OpexAI::_consumeRailSearch(year)
       local goodsLine = this._lines[this._lines.len() - 1];
       OpexV88Log("CHAIN_STEP2", "line=" + goodsLine.lineId + " town=" + candidate.townId);
       OpexSign(anchor, "C2|" + yy + "|" + goodsLine.lineId + "|" + candidate.townId);
-      this._activeGoodsChain = null;
+      this._setActiveGoodsChain(null);
     } else {
       OpexV88Log("CHAIN_FAIL", "step=2 reason=" + result.reason);
       OpexSign(anchor, "CF|" + yy + "|2|" + OpexAttemptReasonCode(result.reason));
       this._markPairAbandoned(OpexAbandonedPairKey(candidate));
-      this._activeGoodsChain = null;
+      this._setActiveGoodsChain(null);
     }
   }
   return { outcome = built ? "built" : "failed", reason = reason, error = error };

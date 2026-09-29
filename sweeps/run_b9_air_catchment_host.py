@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 999, 1234, 5678])
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--out", default="results/review_b9_air_catchment_5x6.json")
+    parser.add_argument("--demand-shadow", action="store_true")
     args = parser.parse_args()
     if not 1 <= args.cpus <= 6:
         parser.error("--cpus doit etre entre 1 et 6")
@@ -35,6 +36,8 @@ def main():
         "--workers", str(args.workers),
         "--out", args.out,
     ]
+    if args.demand_shadow:
+        command.append("--demand-shadow")
     completed = subprocess.run(command, cwd=ROOT)
     raise SystemExit(completed.returncode)
 

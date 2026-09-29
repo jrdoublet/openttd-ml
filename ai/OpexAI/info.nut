@@ -252,6 +252,286 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c96_air_site_catchment",
+      description = "C96: choose among a bounded set of buildable AIR anchors by passenger-producing catchment tiles, without changing route demand/economics; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c97_air_c69_engine_probe",
+      description = "C97 passive probe: direct argmax over compatible AIR engine x fleet depth using calibrated P/max(portfolio capital, K_dec); no decision change",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c98_air_realized_probe",
+      description = "C98 passive probe: compare predicted versus realised AIR profit/revenue per aircraft, ratings and utilisation by engine/line; no decision change",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c99_air_speed_api_fix",
+      description = "C99: use AIEngine.GetMaxSpeed directly in AIR economics because NoAI already applies vehicle.plane_speed; 1 = corrected, 0 = legacy extra /4 (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c100_air_trip_physical",
+      description = "C100: AIR trip time uses NoAI engine speed directly plus physical airport taxi/runway/vertical maneuver time; 1 = enabled, 0 = legacy (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c101_air_physical_engine_choice",
+      description = "C101: among AIR engines using no more legacy capital than the C68 winner, rank by C100.1 physical profit, then return legacy route economics for admission/project scoring; 1 = enabled, 0 = legacy (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c103_air_c100_rank_replay",
+      description = "C103: replay the first positive C100 engine ranking only, while returning legacy route economics for admission/project scoring; 1 = enabled, 0 = legacy (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c104_air_c100_compare_probe",
+      description = "C104 passive probe: compare legacy, first positive C100 replay and C100.1 AIR engine economics on identical route contexts; no decision change",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c105_air_replay_choice_physical_economics",
+      description = "C105: C100.1 physical AIR economics everywhere, but rank route engines with the first positive C100 replay objective; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c106_air_marginal_physical_engine_choice",
+      description = "C106: choose AIR engine by relative marginal return under C100.1 timing, while keeping legacy route economics for portfolio scoring; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c108_air_onestep_physical_economics",
+      description = "C108: C100.1 physical AIR economics everywhere, with one-step relative marginal-return engine choice; no cash or EngineID threshold; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c109_air_speed_elasticity_physical",
+      description = "C109: C100.1 physical AIR economics plus relative speed-profit elasticity engine choice (threshold 0.5); 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c110_air_engine_calibration_choice_only",
+      description = "C110: learn C82 realised/predicted factors per AIR engine and use them only for route engine choice; keep C70 project scoring unchanged; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c111_air_c100_decision_shadow",
+      description = "C111 diagnostic: replay first positive C100 engine ranking, keep C68 decision economics/score, but finance/build the actually selected engine; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c112_air_speed_elasticity_e75_physical",
+      description = "C112: C100.1 physical AIR economics plus relative speed-profit elasticity engine choice (threshold 0.75); no cash or EngineID threshold; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c113_air_c100_full_decision_shadow",
+      description = "C113 diagnostic: C111 plus C68 shadow for AIR pre-admission; selected C100-replay engine still supplies real capital/fleet/build feasibility; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c114_air_c100_full_replay",
+      description = "C114 diagnostic: replay the first positive C100 globally (NoAI direct speed plus historical maneuver helper) in AIR route economics and engine choice; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c115_air_c100_capital_replay",
+      description = "C115: use first-C100 replay AIR economics only while the normal C68 route capital exceeds endogenous C69 K_dec; otherwise keep C68; 1 = enabled (temporary default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c116_air_marginal_capital",
+      description = "C116.4: keep strict C68 economics for AIR portfolio ranking/admission, then after selection buy the highest-profit cheaper engine that saves enough capital to cover the cached gap of the best pending AIR project; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c116_air_project_probe",
+      description = "C116 passive lightweight probe: reuse C115/C68 engine scan to measure AIR/global/self project unlock opportunity; no decision change; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c117_air_throughput_probe",
+      description = "C117 passive AIR throughput probe: completed-leg passengers, offered seats, cadence, waiting/rating and realised vehicle economics in 30-day line-age windows; no decision change",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c119_air_income_model",
+      description = "C119: AIR pre-build income uses Manhattan payment distance and delivery-only time while keeping legacy cycle, demand and fleet sizing unchanged; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c118_air_territorial_expansion",
+      description = "C118: rank viable AIR expansion by real new-town catchment coverage and choose the engine minimizing time to the next territorial AIR project; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c118_air_coverage_probe",
+      description = "C118 passive probe: log actual AIR catchment town coverage and territorial decision diagnostics without enabling the C118 policy; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c120_air_territorial_ranking",
+      description = "C120: rank already-generated viable AIR projects by new administrative airport towns (physical slot town), then keep the existing C115 economic order; engine/economics unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_economics_shadow",
+      description = "C121 passive AIR economics shadow: B9 cargo-specific PASS/MAIL demand, directional carried volume, physical cycle and C119 payment; no decision change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_economics",
+      description = "C121 experimental unified AIR economics for engine/project decisions; supersedes the C115 economic replay when enabled; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_engine_realization",
+      description = "C121 experimental engine-only realization correction by AIR arm; project economics unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_project_realization",
+      description = "C121 experimental conservative project realization correction for reused-hub AIR arms only; newpair unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_project_realization_adaptive",
+      description = "C121 experimental adaptive AIR strategy: use reused-hub realization correction only when last year's C83 pressure stayed mostly contestable; otherwise keep raw C121 race economics; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_pressure_probe",
+      description = "C121 passive AIR competition-pressure probe over already-inspected slot towns; no map scan and no decision change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_defensive_floor",
+      description = "C121 experimental anti-monopoly policy: defensive AIR projects use a softened relative profit floor (50% competitor-slot, 75% own-slot); 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_initial_project_economics",
+      description = "C121 experimental: rank a new AIR project on the one-plane economy actually built; future fleet remains a separate marginal project; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_engine_replay_shadow",
+      description = "C121 passive engine/fleet economics replay using only observed exact PASS/MAIL capacities; no decision change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c102_air_station_rating_probe",
+      description = "C102 passive probe: compare line-headway rating with station-wide AIR pickup rating and raw catchment production; no decision change",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v88_goods_chain",
       description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -270,6 +550,38 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "v88_step2_plan_immediate",
       description = "V88: allow goods chain step 2 to build when railPlan is already computed, without waiting for railSearch to be idle: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_all_inputs",
+      description = "V88: evaluate all transformer input cargos regardless of freight rotation: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_chain_step1_finance",
+      description = "V88: finance capital of goods chain candidate based on step 1 only: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_step2_rail_prio",
+      description = "V88: priority for chain rail searches: block new rail searches while step 2 is pending, and throughput slice cap: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v88_step2_cash_reserve",
+      description = "V88: reserve capital for goods chain step 2 when step 1 is built: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -315,6 +627,22 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "probe_events",
       description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "b9_air_catchment_probe",
+      description = "B9/G4 passive AIR catchment/placement probe only; no decision change; 1 = enabled, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "b9_air_demand_shadow",
+      description = "B9/G4 passive pre-build AIR demand shadow; logs only, no decision change; 1 = enabled, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

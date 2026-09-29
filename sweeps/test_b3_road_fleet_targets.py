@@ -151,7 +151,11 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         save = function_body(self.persist, "function OpexAI::Save()")
         self.assertIn("local saveLines = this._lines", save)
         self.assertIn("foreach (key, val in line)", save)
-        self.assertIn("serializableLine[key] <- val", save)
+        # C121 : `clone line` conserve tous les champs ; seuls floats, types non
+        # serialisables et diagnostics c121* sont ensuite retouches.
+        self.assertIn("local serializableLine = clone line;", save)
+        self.assertIn("serializableLine[key] = val.tointeger();", save)
+        self.assertIn("delete serializableLine[key];", save)
 
     def test_line_serialization_is_single_pass_under_save_opcode_budget(self):
         save = function_body(self.persist, "function OpexAI::Save()")

@@ -1,5 +1,6 @@
 """Contrat V93.1 : demande aerienne par production, defaut 0."""
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,12 +112,15 @@ class V931AirDemandTests(unittest.TestCase):
         )
         plain = build.index("else OpexAirReconcileActualBuild(catalog, plan, result);")
         self.assertLess(gated, plain)
-        self.assertEqual(TASK_AIR.count(
-            "OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)"
-        ), 2)
-        self.assertEqual(TASK_AIR.count(
-            "OpexBuildAirRoute(this._catalog, this._budget, plan);"
-        ), 2)
+        gated_calls = re.findall(
+            r"V93_AIR_DEMAND_PRODUCTION\s*\?\s*OpexBuildAirRoute\(this\._catalog, this\._budget, (\w+), this\._lines\)"
+            r"\s*:\s*OpexBuildAirRoute\(this\._catalog, this\._budget, (\w+)\);",
+            TASK_AIR,
+        )
+        self.assertEqual(len(gated_calls), 2)
+        for with_lines, plain_call in gated_calls:
+            self.assertEqual(with_lines, plain_call)
+        self.assertEqual(len(re.findall(r"OpexBuildAirRoute\(this\._catalog", TASK_AIR)), 4)
 
     def test_monthly_memo_and_catalog_cargo(self):
         touch = function_body(BUILDER, "function OpexAirDemandTouchMemo(")

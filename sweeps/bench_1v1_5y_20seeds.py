@@ -18,6 +18,28 @@ import re
 import statistics
 import sys
 
+
+def _force_utf8_stdio():
+    """Keep Rich/openttdlab progress output portable on Windows cp1252 consoles.
+
+    openttdlab renders a Unicode check mark when its progress context closes.
+    On Windows hosts whose inherited stdout/stderr are cp1252, that final render
+    can raise UnicodeEncodeError after every OpenTTD job has completed, before
+    run_experiments() returns its rows. Reconfigure only text encoding; the
+    benchmark protocol and Docker execution are unchanged.
+    """
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="backslashreplace")
+            except (OSError, ValueError):
+                pass
+
+
+_force_utf8_stdio()
+
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import (
@@ -337,6 +359,154 @@ def project_build_sign_metrics(chunks):
         "project_builds_sign_total": total,
         "project_build_signs_parsed": parsed,
         "project_builds_sign_by_year": by_year,
+    }
+
+
+def c118_sign_metrics(chunks):
+    """Telemetry C118 durable : couverture catchment reelle et decisions moteur."""
+    signs = (chunks or {}).get("SIGN") or {}
+    records = signs.values() if isinstance(signs, dict) else signs
+    names = [
+        sign.get("name", "")
+        for sign in records
+        if isinstance(sign, dict) and isinstance(sign.get("name", ""), str)
+    ]
+    coverage = []
+    decisions = {}
+    for name in names:
+        parts = name.split("|")
+        try:
+            if name.startswith("C8V|") and len(parts) == 6:
+                coverage.append({
+                    "year": 1900 + int(parts[1]), "month": int(parts[2]), "day": int(parts[3]),
+                    "towns": int(parts[4]), "airports": int(parts[5]),
+                })
+            elif name.startswith("C8D|") and len(parts) == 6:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq, "year": 1900 + int(parts[2]), "month": int(parts[3]),
+                    "day": int(parts[4]), "new_towns": int(parts[5]),
+                })
+            elif name.startswith("C8R|") and len(parts) == 4:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq, "src_town": int(parts[2]), "dst_town": int(parts[3]),
+                })
+            elif name.startswith("C8E|") and len(parts) == 5:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq, "c68_engine": int(parts[2]), "chosen_engine": int(parts[3]),
+                    "next_town": int(parts[4]),
+                })
+            elif name.startswith("C8C|") and len(parts) == 5:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq, "c68_cash_after_k": int(parts[2]), "cash_after_k": int(parts[3]),
+                    "next_capital_k": int(parts[4]),
+                })
+            elif name.startswith("C8F|") and len(parts) == 4:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq, "c68_flow_after": int(parts[2]), "flow_after": int(parts[3]),
+                })
+            elif name.startswith("C8T|") and len(parts) == 4:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq, "c68_time_days": int(parts[2]), "time_days": int(parts[3]),
+                })
+        except ValueError:
+            continue
+    coverage.sort(key=lambda item: (item["year"], item["month"], item["day"], item["towns"], item["airports"]))
+    decision_list = [decisions[key] for key in sorted(decisions)]
+    return {
+        "c118_coverage_events": coverage,
+        "c118_coverage_event_count": len(coverage),
+        "c118_decisions": decision_list,
+        "c118_decision_count": len(decision_list),
+    }
+
+
+def c120_sign_metrics(chunks):
+    """Telemetry C120 durable : selection territoriale et motif d'execution."""
+    signs = (chunks or {}).get("SIGN") or {}
+    records = signs.values() if isinstance(signs, dict) else signs
+    names = [
+        sign.get("name", "")
+        for sign in records
+        if isinstance(sign, dict) and isinstance(sign.get("name", ""), str)
+    ]
+    decisions = {}
+    for name in names:
+        parts = name.split("|")
+        try:
+            if name.startswith("C0S|") and len(parts) == 7:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq,
+                    "year": 1900 + int(parts[2]),
+                    "month": int(parts[3]),
+                    "day": int(parts[4]),
+                    "available_k": int(parts[5]),
+                    "air_candidates": int(parts[6]),
+                })
+            elif name.startswith("C0T|") and len(parts) == 6:
+                seq = int(parts[1])
+                decisions.setdefault(seq, {}).update({
+                    "seq": seq,
+                    "territorial": int(parts[2]),
+                    "funded_territorial": int(parts[3]),
+                    "best_new_towns": int(parts[4]),
+                    "best_cost_k": int(parts[5]),
+                })
+            elif name.startswith("C0P|") and len(parts) in (7, 9):
+                seq = int(parts[1])
+                fields = {
+                    "seq": seq,
+                    "selected_new_towns": int(parts[2]),
+                    "selected_cost_k": int(parts[3]),
+                    "selected_engine": int(parts[4]),
+                    "air_attempts": int(parts[5]),
+                    "air_built": int(parts[6]),
+                }
+                if len(parts) == 9:
+                    fields.update({
+                        "selected_src": int(parts[7]),
+                        "selected_dst": int(parts[8]),
+                    })
+                decisions.setdefault(seq, {}).update(fields)
+            elif name.startswith("C0R|") and len(parts) in (3, 5):
+                seq = int(parts[1])
+                fields = {
+                    "seq": seq,
+                    "stop_reason": parts[2],
+                }
+                if len(parts) == 5:
+                    fields.update({
+                        "reject_reason": parts[3],
+                        "pass_stop_reason": parts[4],
+                    })
+                decisions.setdefault(seq, {}).update(fields)
+            elif name.startswith("C0C|") and len(parts) in (5, 8):
+                seq = int(parts[1])
+                cache_fields = {
+                    "seq": seq,
+                    "coverage_cache_hits": int(parts[2]),
+                    "coverage_cache_misses": int(parts[3]),
+                    "coverage_cache_entries": int(parts[4]),
+                }
+                if len(parts) == 8:
+                    cache_fields.update({
+                        "station_coverage_cache_hits": int(parts[5]),
+                        "station_coverage_cache_misses": int(parts[6]),
+                        "station_coverage_cache_entries": int(parts[7]),
+                    })
+                decisions.setdefault(seq, {}).update(cache_fields)
+        except ValueError:
+            continue
+    decision_list = [decisions[key] for key in sorted(decisions)]
+    return {
+        "c120_decisions": decision_list,
+        "c120_decision_count": len(decision_list),
     }
 
 
@@ -779,6 +949,8 @@ def keep(row):
     structural.update(early_slot_sign_metrics(chunks))
     structural.update(c75_bypass_sign_metrics(chunks))
     structural.update(project_build_sign_metrics(chunks))
+    structural.update(c118_sign_metrics(chunks))
+    structural.update(c120_sign_metrics(chunks))
     rec0.update(structural)
     rec1.update(structural)
     shared_identity = {
@@ -1406,6 +1578,10 @@ def main():
         help="Diagnostic passif annuel: reconstruit les lignes depuis VEHS + ORDL/ORDR + STNN",
     )
     parser.add_argument(
+        "--script-debug", action="store_true",
+        help="Diagnostic uniquement: force OpenTTD -d script=4 pour conserver la stack NoAI complete",
+    )
+    parser.add_argument(
         "--engine-timeout", type=int, default=DEFAULT_ENGINE_TIMEOUT_SEC,
         help="Timeout subprocess OpenTTD par partie, en secondes (0 = aucun)",
     )
@@ -1420,6 +1596,17 @@ def main():
     import openttdlab
     from openttdlab import run_experiments
     from bench_v2 import enable_savegame_cleanup, write_json_atomically
+
+    if args.script_debug:
+        real_check_output = openttdlab.subprocess.check_output
+
+        def check_output_with_script_debug(command, *rest, **kwargs):
+            command = tuple(command)
+            if any(str(part).startswith("-vnull") for part in command):
+                command = command[:1] + ("-d", "script=4") + command[1:]
+            return real_check_output(command, *rest, **kwargs)
+
+        openttdlab.subprocess.check_output = check_output_with_script_debug
 
     global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY
     LINE_TELEMETRY = bool(args.line_telemetry)

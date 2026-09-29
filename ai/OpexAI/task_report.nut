@@ -1,3 +1,39 @@
+
+/* C102 : reconstruction passive du rating AIR au niveau gare+cargo.
+ * OpenTTD 15.3 calcule la note par gare+cargo, pas par ligne. */
+function OpexC102WaitingRatingPoints(waiting)
+{
+  if (waiting < 0) return 0;
+  local points = 0;
+  if (waiting <= 1500) points += 55;
+  if (waiting <= 1000) points += 35;
+  if (waiting <= 600) points += 10;
+  if (waiting <= 300) points += 20;
+  if (waiting <= 100) points += 10;
+  return points;
+}
+
+function OpexC102AgeRatingPoints(ageDays)
+{
+  if (ageDays < 0) return 0;
+  local ageYears = ageDays / 365;
+  local points = 0;
+  if (ageYears < 3) points += 10;
+  if (ageYears < 2) points += 10;
+  if (ageYears < 1) points += 13;
+  return points;
+}
+
+function OpexC102SpeedRatingPoints(engineId)
+{
+  if (!AIEngine.IsValidEngine(engineId)) return 0;
+  local oldSpeed = (AIEngine.GetMaxSpeed(engineId).tofloat()
+      * OpexPlaneSpeedDivisor() * 10.0 / 128.0).tointeger();
+  if (oldSpeed > 255) oldSpeed = 255;
+  local b = oldSpeed - 85;
+  return b >= 0 ? (b / 4) : 0;
+}
+
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
 /* Le releve qui permet de calibrer l'etage 1 : pour chaque ligne, la note de gare REELLE (on
  * suppose STATION_RATING_PCT = 75) et le profit REEL des vehicules (on a predit profitAnnual).
@@ -7,7 +43,8 @@ function OpexAI::_reportLines(year)
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
-  local c82Sums = C82_ENGINE_CALIBRATION ? {} : null;
+  local c82Sums = (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) ? {} : null;
+  local c121RealizationSums = C121_AIR_ECONOMICS ? OpexC121RealizationSums() : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
@@ -150,11 +187,78 @@ function OpexAI::_reportLines(year)
                                + moving.len() + "|" + (roadRealSpeed >= 0 ? roadRealSpeed : 0) + "|"
                                + pred + "|" + cat);
     }
+    local currentRevenue = profit + runCost;
+    if (c121RealizationSums != null && ("mode" in line) && line.mode == "air"
+        && ("c121Arm" in line) && (line.c121Arm in c121RealizationSums)
+        && ("c121RawRevenueAnnual" in line) && line.c121RawRevenueAnnual > 0) {
+      local c121Age = ("year" in line) ? year - line.year : -1;
+      local c121N0 = ("trains0" in line) ? line.trains0 : 0;
+      /* Calibrer une NOUVELLE ligne sur des lignes restees a leur flotte de
+       * construction. Une ligne deja renforcee porte de la saturation/marge
+       * decroissante : la rabattre artificiellement par N0/N sous-estime alors
+       * la realisation d'un projet neuf a N0. */
+      if (c121Age >= 2 && c121N0 > 0 && vehCount == c121N0) {
+        local normalizedRevenue = currentRevenue.tofloat() * c121N0.tofloat() / vehCount.tofloat();
+        if (normalizedRevenue < 0.0) normalizedRevenue = 0.0;
+        local ratioPm = (normalizedRevenue * 1000.0 / line.c121RawRevenueAnnual.tofloat()).tointeger();
+        line.c121RealizationPm <- ratioPm;
+        line.c121RealizationYear <- year;
+        if (C121_AIR_ENGINE_REPLAY_SHADOW && ("c121EngineId" in line)) {
+          AILog.Info("C121_ENGINE_REALIZATION line=" + line.lineId
+              + " year=" + year + " engine=" + line.c121EngineId
+              + " arm=" + line.c121Arm + " n0=" + c121N0 + " n=" + vehCount
+              + " raw_revenue=" + line.c121RawRevenueAnnual
+              + " observed_revenue=" + normalizedRevenue.tointeger()
+              + " ratio_pm=" + ratioPm);
+        }
+        c121RealizationSums[line.c121Arm][0] += ratioPm;
+        c121RealizationSums[line.c121Arm][1]++;
+      }
+    }
+    if (C121_AIR_ECONOMICS && ("mode" in line) && line.mode == "air"
+        && ("c121MarginalObserveYear" in line) && year >= line.c121MarginalObserveYear
+        && ("c121MarginalBaselineProfit" in line) && ("c121MarginalBaselineRevenue" in line)
+        && ("c121MarginalBaselineVehicles" in line) && vehCount > line.c121MarginalBaselineVehicles) {
+      local addedObserved = vehCount - line.c121MarginalBaselineVehicles;
+      local observedProfit = profit - line.c121MarginalBaselineProfit;
+      if (("c121VehicleAmortPerPlane" in line) && line.c121VehicleAmortPerPlane > 0) {
+        observedProfit -= line.c121VehicleAmortPerPlane * addedObserved;
+      }
+      local observedRevenue = currentRevenue - line.c121MarginalBaselineRevenue;
+      /* Publier une marge PAR avion. C121 construit normalement un seul renfort
+       * a la fois, mais cette normalisation garde le contrat exact apres crash,
+       * reconstitution ou ancien savegame portant plusieurs ajouts. */
+      if (addedObserved > 1) {
+        observedProfit /= addedObserved;
+        observedRevenue /= addedObserved;
+      }
+      local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+      local avgProfit = samples > 0 && ("c121MarginalProfit" in line)
+          ? (line.c121MarginalProfit * samples + observedProfit) / (samples + 1)
+          : observedProfit;
+      local avgRevenue = samples > 0 && ("c121MarginalRevenue" in line)
+          ? (line.c121MarginalRevenue * samples + observedRevenue) / (samples + 1)
+          : observedRevenue;
+      if ("c121MarginalProfit" in line) line.c121MarginalProfit = avgProfit;
+      else line.c121MarginalProfit <- avgProfit;
+      if ("c121MarginalRevenue" in line) line.c121MarginalRevenue = avgRevenue;
+      else line.c121MarginalRevenue <- avgRevenue;
+      if ("c121MarginalSamples" in line) line.c121MarginalSamples = samples + 1;
+      else line.c121MarginalSamples <- samples + 1;
+      AILog.Info("C121_FLEET_MARGINAL line=" + line.lineId + " year=" + year
+          + " added=" + addedObserved + " obs_profit=" + observedProfit
+          + " obs_revenue=" + observedRevenue + " avg_profit=" + avgProfit
+          + " avg_revenue=" + avgRevenue + " samples=" + (samples + 1));
+      delete line.c121MarginalBaselineProfit;
+      delete line.c121MarginalBaselineRevenue;
+      delete line.c121MarginalBaselineVehicles;
+      delete line.c121MarginalObserveYear;
+    }
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
      * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
-    line.lastRevenue <- profit + runCost;
+    line.lastRevenue <- currentRevenue;
     if (V88_GOODS_CHAIN && vehicleType == AIVehicle.VT_RAIL && AICargo.GetTownEffect(line.cargo) == AICargo.TE_GOODS) {
       if (!("goodsDeliveredLogged" in line) && (profit + runCost > 0)) {
         line.goodsDeliveredLogged <- true;
@@ -183,7 +287,7 @@ function OpexAI::_reportLines(year)
     /* C70 / C82 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
      * construction est partielle). Par convoi initial, amortissement predit retire du realise
      * (GetProfitLastYear n'amortit rien). Ratio de sommes : une annee aberrante pese son poids. */
-    if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION) {
+    if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
       local cMode = ("mode" in line) ? line.mode : "unknown";
       local cAge = ("year" in line) ? (year - line.year) : -1;
       local cPred = ("predicted" in line) ? line.predicted : 0;
@@ -202,7 +306,9 @@ function OpexAI::_reportLines(year)
         c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
         c70Sums[cMode][1]++;
       }
-      if (C82_ENGINE_CALIBRATION && cMode == "air" && ("planeId" in line) && line.planeId >= 0 && ("c70Pred" in line) && line.c70Pred > 0) {
+      if ((C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY)
+          && cMode == "air" && ("planeId" in line) && line.planeId >= 0
+          && ("c70Pred" in line) && line.c70Pred > 0) {
         local e = line.planeId;
         if (!(e in c82Sums)) c82Sums[e] <- [0.0, 0];
         c82Sums[e][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
@@ -294,6 +400,100 @@ function OpexAI::_reportLines(year)
               + " prod_b=" + prodB + " wait_a=" + waitA + " wait_b=" + waitB + " cap=" + cap;
       }
       OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose + extra);
+
+      /* C98 : vue AIR au meme instant annuel que C70/C82, mais sans agregation.
+       * Le profit/revenu viennent de l'annee ecoulee ; rating, charge et vitesse sont
+       * des instantanes au jour du rapport. NoAI n'expose pas le nombre annuel de
+       * rotations par ligne : moving/load sont donc des indices d'utilisation, pas une
+       * mesure de cadence annuelle. Le bloc reste sous DECISION_LOG afin que le chemin
+       * default (decision_log=0, c98=0) n'execute aucun opcode supplementaire par ligne. */
+      if (C98_AIR_REALIZED_PROBE && lMode == "air") {
+        local predN = ("predTrains" in line) ? line.predTrains : 0;
+        local predDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
+        local predCarried = ("predCarried" in line) ? line.predCarried : 0;
+        local predAmort = ("predAmort" in line) ? line.predAmort : 0;
+        local predHeadway = (predN > 0 && predDays > 0) ? (2.0 * predDays.tofloat()) / predN.tofloat() : 0.0;
+        local predRating = predHeadway > 0 ? OpexStationRatingForHeadway(predHeadway) : -1;
+        local predTripsPerMonth = predDays > 0 ? 30.4 / predDays.tofloat() : 0.0;
+
+        local paxLoad = 0;
+        local paxCap = 0;
+        local mailLoad = 0;
+        local mailCap = 0;
+        local moving = 0;
+        local depot = 0;
+        local speedSum = 0;
+        local speedN = 0;
+        local currentEngine = ("planeId" in line) ? line.planeId : -1;
+        foreach (v in vehicles) {
+          if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+          currentEngine = AIVehicle.GetEngineType(v);
+          local pCap = AIVehicle.GetCapacity(v, line.cargo);
+          if (pCap > 0) {
+            paxCap += pCap;
+            paxLoad += AIVehicle.GetCargoLoad(v, line.cargo);
+          }
+          if (("mailCargo" in this._catalog) && this._catalog.mailCargo >= 0
+              && AICargo.IsValidCargo(this._catalog.mailCargo)) {
+            local mCap = AIVehicle.GetCapacity(v, this._catalog.mailCargo);
+            if (mCap > 0) {
+              mailCap += mCap;
+              mailLoad += AIVehicle.GetCargoLoad(v, this._catalog.mailCargo);
+            }
+          }
+          if (AIVehicle.IsStoppedInDepot(v)) depot++;
+          local curSpeed = AIVehicle.GetCurrentSpeed(v);
+          if (curSpeed > 0) {
+            moving++;
+            speedSum += curSpeed;
+            speedN++;
+          }
+        }
+        local enginePrice = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetPrice(currentEngine) : -1;
+        local engineSpeed = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetMaxSpeed(currentEngine) : -1;
+        local engineCapacity = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetCapacity(currentEngine) : -1;
+        local engineRunning = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetRunningCost(currentEngine) : -1;
+        local planeSpeedDiv = OpexPlaneSpeedDivisor();
+        local stationIdA = OpexAirLineStationId(line, 0);
+        local stationIdB = OpexAirLineStationId(line, 1);
+        local liveRoutesA = OpexAirLiveRoutesAtAirport(line.stationA, this._lines);
+        local liveRoutesB = OpexAirLiveRoutesAtAirport(line.stationB, this._lines);
+        local paxWaitingA = AIStation.IsValidStation(stationIdA) ? AIStation.GetCargoWaiting(stationIdA, line.cargo) : -1;
+        local paxWaitingB = AIStation.IsValidStation(stationIdB) ? AIStation.GetCargoWaiting(stationIdB, line.cargo) : -1;
+        local mailWaitingA = -1;
+        local mailWaitingB = -1;
+        if (("mailCargo" in this._catalog) && this._catalog.mailCargo >= 0
+            && AICargo.IsValidCargo(this._catalog.mailCargo)) {
+          if (AIStation.IsValidStation(stationIdA)) mailWaitingA = AIStation.GetCargoWaiting(stationIdA, this._catalog.mailCargo);
+          if (AIStation.IsValidStation(stationIdB)) mailWaitingB = AIStation.GetCargoWaiting(stationIdB, this._catalog.mailCargo);
+        }
+        AILog.Info("C98_AIR_REALIZED year=" + year + " profit_year=" + (year - 1)
+            + " line=" + line.lineId + " age=" + lAge
+            + " arm=" + (("c98Arm" in line) ? line.c98Arm : "unknown")
+            + " engine=" + currentEngine + " engine_name=" + OpexPlaneName(currentEngine)
+            + " distance=" + (("distance" in line) ? line.distance : -1)
+            + " monthly_pax=" + (("airMonthlyPax" in line) ? line.airMonthlyPax : -1)
+            + " pred_capacity=" + (("planeCapacity" in line) ? line.planeCapacity : -1)
+            + " pred_n=" + predN + " real_n=" + vehCount
+            + " pred_p=" + predProfit + " real_p=" + profit
+            + " pred_r=" + predRevenue + " real_r=" + realRevenue
+            + " pred_run=" + predRunning + " real_run=" + runCost
+            + " pred_amort=" + predAmort + " pred_carried=" + predCarried
+            + " pred_days=" + predDays + " pred_headway=" + predHeadway
+            + " pred_trips_pm=" + predTripsPerMonth + " pred_rating=" + predRating
+            + " rating_a=" + ratingA + " rating_b=" + ratingB
+            + " station_a=" + stationIdA + " station_b=" + stationIdB
+            + " live_routes_a=" + liveRoutesA + " live_routes_b=" + liveRoutesB
+            + " pax_wait_a=" + paxWaitingA + " pax_wait_b=" + paxWaitingB
+            + " mail_wait_a=" + mailWaitingA + " mail_wait_b=" + mailWaitingB
+            + " pax_load=" + paxLoad + " pax_cap=" + paxCap
+            + " mail_load=" + mailLoad + " mail_cap=" + mailCap
+            + " moving=" + moving + " depot=" + depot
+            + " speed_sum=" + speedSum + " speed_n=" + speedN
+            + " engine_speed=" + engineSpeed + " engine_capacity=" + engineCapacity
+            + " engine_price=" + enginePrice + " engine_running=" + engineRunning
+            + " plane_speed_div=" + planeSpeedDiv);
+      }
     }
     if (vehicleType == AIVehicle.VT_RAIL || vehicleType == AIVehicle.VT_AIR) {
       /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans
@@ -399,7 +599,33 @@ function OpexAI::_reportLines(year)
       }
     }
   }
-  if (C82_ENGINE_CALIBRATION) {
+  if (c121RealizationSums != null) {
+    OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual");
+  }
+  if (C121_AIR_PRESSURE_PROBE) {
+    local phaseNewpair = 0;
+    local phaseHubsite = 0;
+    local phaseHubhub = 0;
+    local phaseUnknown = 0;
+    foreach (l in this._lines) {
+      if (l == null || !("mode" in l) || l.mode != "air") continue;
+      if (!("c121Arm" in l)) {
+        phaseUnknown++;
+        continue;
+      }
+      if (l.c121Arm == "newpair") phaseNewpair++;
+      else if (l.c121Arm == "hubsite") phaseHubsite++;
+      else if (l.c121Arm == "hubhub") phaseHubhub++;
+      else phaseUnknown++;
+    }
+    local phaseKnown = phaseNewpair + phaseHubsite + phaseHubhub;
+    local hubhubPm = phaseKnown > 0 ? phaseHubhub * 1000 / phaseKnown : 0;
+    AILog.Info("C121_PHASE year=" + year
+        + " known=" + phaseKnown + " newpair=" + phaseNewpair
+        + " hubsite=" + phaseHubsite + " hubhub=" + phaseHubhub
+        + " hubhub_pm=" + hubhubPm + " unknown=" + phaseUnknown);
+  }
+  if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
     C82_ENGINE_FACTOR.clear();
     foreach (e, acc in c82Sums) {
       local n = acc[1];

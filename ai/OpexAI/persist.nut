@@ -535,12 +535,12 @@ function OpexSaveC83Preempt(saveObj, ai)
 
 function OpexAI::Save()
 {
-  local abandoned = {};
-  if (this._abandonedPairs != null) {
-    foreach (key, val in this._abandonedPairs) abandoned[key] <- val;
-  }
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
-   * le serialiseur execute Save() sous budget d'opcodes. */
+   * le serialiseur execute Save() sous budget d'opcodes. _abandonedPairs ne contient que des
+   * cles chaine -> { date, count } entiers : le rendre directement conserve exactement le meme
+   * graphe serialisable sans recopier potentiellement des milliers d'entrees en Squirrel avant
+   * le retour. Load() reconstruit deja sa propre table, donc aucune alias mutable ne survit au
+   * rechargement. */
   if (!SAVE_FULL_STATE) {
     local shortSave = {
       version = 1,
@@ -552,7 +552,7 @@ function OpexAI::Save()
       lastCatalogMonth = this._lastCatalogMonth,
       lastReportYear = this._lastReportYear,
       startYear = this._startYear,
-      abandonedPairs = abandoned,
+      abandonedPairs = this._abandonedPairs != null ? this._abandonedPairs : {},
       airBuilt = this._airBuilt,
       waterBuilt = this._waterBuilt,
     };
@@ -564,6 +564,11 @@ function OpexAI::Save()
     }
     if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
     return shortSave;
+  }
+
+  local abandoned = {};
+  if (this._abandonedPairs != null) {
+    foreach (key, val in this._abandonedPairs) abandoned[key] <- val;
   }
 
   local taskDue = {};
@@ -578,22 +583,49 @@ function OpexAI::Save()
    * tables des lignes actuelles ne contiennent que des entiers/booleens/null. */
   local saveLines = this._lines;
   if (this._lines != null) {
+    /* C121 : les snapshots actual/target/capacite/opcodes servent uniquement aux
+     * probes de la partie courante. Les recopier pour 100+ lignes dans Save()
+     * finit par depasser le budget NoAI. Conserver en revanche les petits
+     * scalaires necessaires aux decisions apres reload (marginal*, arm,
+     * rawRevenue, realization, amortissement, targetAirPlanes historique). */
+    local c121SaveSkip = {
+      c121PaxCapacity = true, c121MailCapacity = true,
+      c121DemandOps = true, c121DemandTicks = true,
+      c121EvalOps = true, c121EvalTicks = true,
+      c121ActualCarriedPax = true, c121ActualCarriedMail = true,
+      c121ActualCarried = true, c121ActualRevenueAnnual = true,
+      c121ActualProfitAnnual = true, c121ActualRunningAnnual = true,
+      c121ActualVehicleRunningAnnual = true, c121ActualAmortAnnual = true,
+      c121ActualPlanes = true, c121ActualOneWayDays = true,
+      c121ActualHeadwayDays = true, c121ActualStationRating = true,
+      c121TargetCarriedPax = true, c121TargetCarriedMail = true,
+      c121TargetCarried = true, c121TargetRevenueAnnual = true,
+      c121TargetProfitAnnual = true, c121TargetPlanes = true,
+    };
     local projectedLines = [];
     foreach (line in this._lines) {
       if (line == null || typeof line != "table") {
         projectedLines.append(line);
         continue;
       }
-      local serializableLine = {};
+      /* `clone` copie la table en natif ; ne plus reinsérer chaque champ en
+       * Squirrel. Sur 100+ lignes, cette boucle etait le cout dominant de
+       * Save(). On ne touche ensuite qu'aux exceptions : diagnostics C121,
+       * floats a scalariser et types non serialisables. */
+      local serializableLine = clone line;
       foreach (key, val in line) {
+        if (key in c121SaveSkip) {
+          delete serializableLine[key];
+          continue;
+        }
         local valType = typeof val;
-        if (valType == "integer" || valType == "string" || valType == "bool" ||
-            valType == "null" || valType == "array" || valType == "table") {
-          serializableLine[key] <- val;
-        } else if (valType == "float") {
+        if (valType == "float") {
           /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
            * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
-          serializableLine[key] <- val.tointeger();
+          serializableLine[key] = val.tointeger();
+        } else if (valType != "integer" && valType != "string" && valType != "bool" &&
+                   valType != "null" && valType != "array" && valType != "table") {
+          delete serializableLine[key];
         }
       }
       projectedLines.append(serializableLine);
@@ -796,7 +828,8 @@ function OpexAI::_reconcileAfterLoad()
   /* C70/C82 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
   if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
-  if (C82_ENGINE_CALIBRATION) OpexC82RecomputeFactors(this._lines);
+  if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) OpexC82RecomputeFactors(this._lines);
+  if (C121_AIR_ECONOMICS) OpexC121RecomputeRealizationFactors(this._lines);
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();
 
@@ -880,12 +913,17 @@ function OpexAI::_reconcileAfterLoad()
       if (!AIStation.IsValidStation(this._activeGoodsChain.factoryStationId)) validChain = false;
     }
     if (!validChain) {
-      this._activeGoodsChain = null;
-    } else if (this._activeGoodsChain.goodsCandidate != null && this._activeGoodsChain.goodsCandidate.loco == null && this._catalog != null) {
-      if (this._activeGoodsChain.goodsCandidate.cargo in this._catalog.bestLocoByCargo) {
-        this._activeGoodsChain.goodsCandidate.loco = this._catalog.bestLocoByCargo[this._activeGoodsChain.goodsCandidate.cargo];
+      this._setActiveGoodsChain(null);
+    } else {
+      if (this._activeGoodsChain.goodsCandidate != null && this._activeGoodsChain.goodsCandidate.loco == null && this._catalog != null) {
+        if (this._activeGoodsChain.goodsCandidate.cargo in this._catalog.bestLocoByCargo) {
+          this._activeGoodsChain.goodsCandidate.loco = this._catalog.bestLocoByCargo[this._activeGoodsChain.goodsCandidate.cargo];
+        }
       }
+      this._setActiveGoodsChain(this._activeGoodsChain);
     }
+  } else {
+    this._setActiveGoodsChain(null);
   }
 
   this._purgeUnprofitableStreaks();
