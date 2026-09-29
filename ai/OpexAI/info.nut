@@ -452,6 +452,78 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_air_economics_shadow",
+      description = "C121 passive AIR economics shadow: B9 cargo-specific PASS/MAIL demand, directional carried volume, physical cycle and C119 payment; no decision change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_economics",
+      description = "C121 experimental unified AIR economics for engine/project decisions; supersedes the C115 economic replay when enabled; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_engine_realization",
+      description = "C121 experimental engine-only realization correction by AIR arm; project economics unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_project_realization",
+      description = "C121 experimental conservative project realization correction for reused-hub AIR arms only; newpair unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_project_realization_adaptive",
+      description = "C121 experimental adaptive AIR strategy: use reused-hub realization correction only when last year's C83 pressure stayed mostly contestable; otherwise keep raw C121 race economics; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_pressure_probe",
+      description = "C121 passive AIR competition-pressure probe over already-inspected slot towns; no map scan and no decision change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_defensive_floor",
+      description = "C121 experimental anti-monopoly policy: defensive AIR projects use a softened relative profit floor (50% competitor-slot, 75% own-slot); 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_initial_project_economics",
+      description = "C121 experimental: rank a new AIR project on the one-plane economy actually built; future fleet remains a separate marginal project; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_engine_replay_shadow",
+      description = "C121 passive engine/fleet economics replay using only observed exact PASS/MAIL capacities; no decision change; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c102_air_station_rating_probe",
       description = "C102 passive probe: compare line-headway rating with station-wide AIR pickup rating and raw catchment production; no decision change",
       easy_value = 0, medium_value = 0, hard_value = 0,

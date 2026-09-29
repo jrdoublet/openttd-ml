@@ -192,6 +192,103 @@ function OpexC70RecomputeFactors(lines)
   }
 }
 
+/* C121 : le facteur de realisation corrige le revenu brut du modele physique,
+ * jamais une prediction deja corrigee. Une pseudo-ligne a 1.0 stabilise les
+ * petits echantillons ; sous MIN_LINES on conserve strictement le cold-start. */
+function OpexC121RealizationFactor(plan)
+{
+  /* Les anciens essais r4/r5 appliquaient trop brutalement le facteur appris.
+   * Ce levier reste donc separe et OFF par defaut : il ne corrige que les bras
+   * reutilisant un hub, et ne prend que la moitie de l'ecart mesure a 1.0. */
+  if ((!C121_AIR_PROJECT_REALIZATION && !C121_AIR_PROJECT_REALIZATION_ADAPTIVE)
+      || plan == null || !("arm" in plan)) return 1.0;
+  local arm = plan.arm;
+  if (arm != "hubsite" && arm != "hubhub") return 1.0;
+  if (!(arm in C121_AIR_REALIZATION_FACTOR)) return 1.0;
+  /* Strategie adaptative one-shot : les deux premieres annees restent en C121
+   * brut. La pression C83 classe ensuite la carte une fois pour toutes en mode
+   * race ou efficiency. On evite ainsi la boucle de retroaction ou les decisions
+   * de la politique modifiaient le signal servant a la reclassifier. */
+  if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE) {
+    if (C121_AIR_PROJECT_REALIZATION_REGIME != 1) return 1.0;
+  }
+  local learned = C121_AIR_REALIZATION_FACTOR[arm];
+  if (learned < 0.0 || learned >= 1.0) return 1.0;
+  if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE) {
+    /* Le classifieur porte le signal strategique. Une fois la carte classee
+     * efficiency, n'appliquer que 25 % de l'ecart appris pour preserver la
+     * valeur et la capacite d'expansion. */
+    return 0.75 + 0.25 * learned;
+  }
+  return 0.5 + 0.5 * learned;
+}
+
+/* Variante ciblee : le learner par bras ne corrige que le classement moteur.
+ * Le score projet complet reste sur le facteur physique 1.0. */
+function OpexC121EngineDecisionRealizationFactor(plan)
+{
+  if (!C121_AIR_ENGINE_REALIZATION || plan == null || !("arm" in plan)
+      || !(plan.arm in C121_AIR_REALIZATION_FACTOR)) return 1.0;
+  /* Le facteur appris brut etait trop agressif : il ameliorait le gap AAA
+   * dans C121 courant, mais le 5x6 direct vs C115 faisait perdre ~9 % de
+   * valeur. Garder la direction du learner sans ecraser le modele physique. */
+  local learned = C121_AIR_REALIZATION_FACTOR[plan.arm];
+  if (learned < 0.0 || learned >= 1.0) return 1.0;
+  return 0.5 + 0.5 * learned;
+}
+
+function OpexC121RealizationSums()
+{
+  return { newpair = [0, 0], hubsite = [0, 0], hubhub = [0, 0] };
+}
+
+function OpexC121ApplyRealizationSums(sums, year, phase)
+{
+  foreach (arm, acc in sums) {
+    local n = acc[1];
+    local factor = 1.0;
+    if (n >= C121_AIR_REALIZATION_MIN_LINES) {
+      factor = (acc[0].tofloat() + 1000.0) / ((n + 1).tofloat() * 1000.0);
+    }
+    C121_AIR_REALIZATION_FACTOR[arm] = factor;
+    AILog.Info("C121_REALIZATION phase=" + phase + " year=" + year
+        + " arm=" + arm + " lines=" + n + " factor=" + factor);
+  }
+}
+
+function OpexC121RecomputeRealizationFactors(lines)
+{
+  local sums = OpexC121RealizationSums();
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || line.mode != "air"
+          || !("c121Arm" in line) || !(line.c121Arm in sums)
+          || !("c121RealizationPm" in line) || !("c121RealizationYear" in line)
+          || line.c121RealizationYear < year - 1) continue;
+      sums[line.c121Arm][0] += line.c121RealizationPm;
+      sums[line.c121Arm][1]++;
+    }
+  }
+  OpexC121ApplyRealizationSums(sums, year, "reload");
+}
+
+function OpexC121ProjectHasRealization(project)
+{
+  if (!C121_AIR_ECONOMICS || project == null || !("mode" in project)
+      || !("payload" in project) || project.payload == null) return false;
+  if (project.mode == "air") {
+    return ("economics" in project.payload) && project.payload.economics != null
+        && ("c121RealizationApplied" in project.payload.economics)
+        && project.payload.economics.c121RealizationApplied;
+  }
+  if (project.mode == "fleet" && ("line" in project.payload) && project.payload.line != null) {
+    local line = project.payload.line;
+    return ("c121MarginalProfit" in line) && ("c121MarginalRevenue" in line);
+  }
+  return false;
+}
+
 /* C70 : facteur du mode d'un projet. Un projet de flotte ajoute des avions a une ligne aerienne. */
 function OpexC70Factor(project)
 {
@@ -257,6 +354,11 @@ function OpexC82ProjectEngine(project)
  * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
 function OpexC70Profit(project)
 {
+  /* Le learner de realisation AIR C121 reste en shadow (facteur causal = 1.0),
+   * donc une nouvelle ligne AIR doit continuer a beneficier de la calibration
+   * C70 existante. Seule la flotte C121 porte deja sa propre marge observee. */
+  if (project != null && ("mode" in project) && project.mode == "fleet"
+      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
   if (!C70_MODE_CALIBRATION) return project.profitAnnual;
   return project.profitAnnual * OpexC70Factor(project);
 }
@@ -264,6 +366,8 @@ function OpexC70Profit(project)
 /* C82 : facteur du moteur d'avion s'il est connu, sinon calibration C70 du mode. */
 function OpexC82Profit(project)
 {
+  if (project != null && ("mode" in project) && project.mode == "fleet"
+      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
   local e = OpexC82ProjectEngine(project);
   if (e >= 0) return project.profitAnnual * OpexC82EngineFactor(e);
   return OpexC70Profit(project);
@@ -866,9 +970,36 @@ function OpexProjectFromFleet(entry)
   local profit = 0;
   local revenue = 0;
   local usedTargetMarginal = false;
+  local c121BelowTarget = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+      && line.targetAirPlanes > have;
   local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
       && line.targetAirPlanes > have;
-  if (c84BelowTarget) {
+  if (c121BelowTarget) {
+    /* C121 : score MARGINAL, jamais profit moyen / avion. Le premier palier
+     * vient du modele exact post-build. Tant qu'aucune marge reelle n'a ete
+     * observee, recalibrer ce cold-start avec le facteur de realisation courant
+     * de l'arm. Apres la premiere observation complete, c121Marginal* ne
+     * contient plus que du reel. */
+    if (!("c121MarginalProfit" in line) || !("c121MarginalRevenue" in line)) return null;
+    local perPlaneProfit = line.c121MarginalProfit;
+    local perPlaneRevenue = line.c121MarginalRevenue;
+    local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+    if (samples <= 0 && ("c121Arm" in line) && (line.c121Arm in C121_AIR_REALIZATION_FACTOR)) {
+      local builtFactor = ("c121RealizationPmAtBuild" in line)
+          ? line.c121RealizationPmAtBuild.tofloat() / 1000.0
+          : (("c121RealizationFactor" in line) ? line.c121RealizationFactor : 1.0);
+      local learnedFactor = C121_AIR_REALIZATION_FACTOR[line.c121Arm];
+      if (builtFactor > 0.0 && learnedFactor >= 0.0 && learnedFactor != builtFactor) {
+        local marginalCost = perPlaneRevenue - perPlaneProfit;
+        perPlaneRevenue = (perPlaneRevenue.tofloat() * learnedFactor / builtFactor).tointeger();
+        perPlaneProfit = perPlaneRevenue - marginalCost;
+      }
+    }
+    profit = perPlaneProfit * entry.want;
+    revenue = perPlaneRevenue * entry.want;
+    if (profit <= 0 || revenue <= 0) return null;
+    usedTargetMarginal = true;
+  } else if (c84BelowTarget) {
     /* Une sauvegarde/prototype C84 plus ancien peut porter targetAirPlanes sans airMonthlyPax,
      * donc _resizeAirFleets ne peut pas produire le marginal exact. Ne jamais retomber alors sur
      * la prediction lineaire 1-avion qui a motive ce correctif. */
@@ -942,6 +1073,13 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
   if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
     decisionBudgetCapital += decisionEconomics.immobilise;
   }
+  /* C121 peut isoler strictement l'economie du projet execute maintenant : une
+   * nouvelle ligne construit un seul avion. Les avions suivants sont deja des
+   * projets flotte marginaux concurrents, donc crediter ici la croisiere future
+   * peut compter deux fois la meme valeur. Le mode historique reste le defaut. */
+  local useInitialProjectEconomics = C121_AIR_ECONOMICS && C121_AIR_INITIAL_PROJECT_ECONOMICS;
+  local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;
+  local projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital;
   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
    * que sur les opcodes encore necessaires pour construire le projet. */
   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
@@ -949,12 +1087,12 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
     mode = "air", kind = "pax", cargo = catalog.paxCargo,
     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
     distance = plan.distance, capital = economics.capital,
-    budgetCapital = budgetCapital, decisionFinanceCapital = decisionBudgetCapital,
-    profitAnnual = decisionEconomics.profitAnnual,
-    revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi,
+    budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
+    profitAnnual = projectEconomics.profitAnnual,
+    revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
     expectedOpcodes = expectedOps,
-    budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
-    opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
+    budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital),
+    opcodeScore = OpexProjectScore(projectEconomics.revenueAnnual, expectedOps),
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
@@ -969,8 +1107,12 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   }
   if (plan == null || !("economics" in plan)) return null;
   local economics = plan.economics;
+  local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in plan)
+      && plan.decisionEconomics != null) ? plan.decisionEconomics : economics;
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;
+  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
+      decisionEconomics.capital <= 0) return null;
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
   local airMarginPadding = false;
   local margin = airMarginPadding
@@ -980,6 +1122,15 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   if (("immobilise" in economics) && economics.immobilise > 0) {
     budgetCapital += economics.immobilise;
   }
+  local decisionBudgetCapital = decisionEconomics.capital + margin;
+  if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
+    decisionBudgetCapital += decisionEconomics.immobilise;
+  }
+  /* Option experimentale : classer le projet sur ce qui est construit maintenant
+   * (N=1). Les renforcements futurs restent des projets flotte independants. */
+  local useInitialProjectEconomics = C121_AIR_ECONOMICS && C121_AIR_INITIAL_PROJECT_ECONOMICS;
+  local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;
+  local projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital;
   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
    * que sur les opcodes encore necessaires pour construire le projet. */
   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
@@ -987,11 +1138,12 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     mode = "air", kind = "pax", cargo = catalog.paxCargo,
     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
     distance = plan.distance, capital = economics.capital,
-    budgetCapital = budgetCapital, profitAnnual = economics.profitAnnual,
-    revenueAnnual = economics.revenueAnnual, roi = economics.roi,
+    budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
+    profitAnnual = projectEconomics.profitAnnual,
+    revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
     expectedOpcodes = expectedOps,
-    budgetScore = OpexProjectScore(economics.revenueAnnual, budgetCapital),
-    opcodeScore = OpexProjectScore(economics.revenueAnnual, expectedOps),
+    budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital),
+    opcodeScore = OpexProjectScore(projectEconomics.revenueAnnual, expectedOps),
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
@@ -1115,6 +1267,127 @@ function OpexC83TownSlotsRemaining(townId, state)
     state.slotRemaining.rawset(townId, AITown.GetAllowedNoise(townId));
   }
   return state.slotRemaining[townId];
+}
+
+function OpexC121PressureNewAccum(year)
+{
+  return { year = year, towns = {}, samples = 0 };
+}
+
+/* Cloture l'annee de pression avant le premier scoring de la suivante. Le
+ * classifieur adaptatif lit donc toujours une annee complete et stable. */
+function OpexC121PressureAdvanceYear()
+{
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (C121_AIR_PRESSURE_ACCUM == null) {
+    C121_AIR_PRESSURE_ACCUM = OpexC121PressureNewAccum(year);
+    return;
+  }
+  if (C121_AIR_PRESSURE_ACCUM.year == year) return;
+  local open = 0;
+  local competitor = 0;
+  local locked = 0;
+  local other = 0;
+  foreach (townId, remaining in C121_AIR_PRESSURE_ACCUM.towns) {
+    if (remaining >= 2) open++;
+    else if (remaining == 1) competitor++;
+    else if (remaining == 0) locked++;
+    else other++;
+  }
+  local pressured = competitor + locked;
+  local contestablePermille = pressured > 0
+      ? (competitor * 1000) / pressured : -1;
+  local observedUseful = open + pressured;
+  local openPermille = observedUseful > 0
+      ? (open * 1000) / observedUseful : -1;
+  C121_AIR_PRESSURE_PREV = {
+    year = C121_AIR_PRESSURE_ACCUM.year,
+    open = open,
+    competitor = competitor,
+    locked = locked,
+    other = other,
+    uniqueTowns = C121_AIR_PRESSURE_ACCUM.towns.len(),
+    samples = C121_AIR_PRESSURE_ACCUM.samples,
+    pressured = pressured,
+    contestablePermille = contestablePermille,
+    openPermille = openPermille,
+  };
+  C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED++;
+  if (C121_AIR_PRESSURE_PROBE) {
+    AILog.Info("C121_PRESSURE_YEAR year=" + C121_AIR_PRESSURE_PREV.year
+        + " unique=" + C121_AIR_PRESSURE_PREV.uniqueTowns
+        + " open=" + C121_AIR_PRESSURE_PREV.open
+        + " competitor=" + C121_AIR_PRESSURE_PREV.competitor
+        + " locked=" + C121_AIR_PRESSURE_PREV.locked
+        + " pressured=" + pressured
+        + " contestable_permille=" + contestablePermille
+        + " open_permille=" + openPermille
+        + " samples=" + C121_AIR_PRESSURE_PREV.samples);
+  }
+  if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE) {
+    if (C121_AIR_PROJECT_REALIZATION_REGIME < 0
+        && C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED
+            >= C121_AIR_PROJECT_REALIZATION_CLASSIFY_YEARS) {
+      local efficiency = pressured >= C121_AIR_PROJECT_REALIZATION_MIN_PRESSURED
+          && contestablePermille >= C121_AIR_PROJECT_REALIZATION_MIN_CONTESTABLE_PERMILLE
+          && openPermille >= 0
+          && openPermille <= C121_AIR_PROJECT_REALIZATION_MAX_OPEN_PERMILLE;
+      C121_AIR_PROJECT_REALIZATION_REGIME = efficiency ? 1 : 0;
+      AILog.Info("C121_STRATEGY_LOCK source_year=" + C121_AIR_PRESSURE_PREV.year
+          + " observed_years=" + C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED
+          + " pressured=" + pressured + " contestable_permille=" + contestablePermille
+          + " open_permille=" + openPermille
+          + " regime=" + (efficiency ? "efficiency" : "race"));
+    } else {
+      local regimeName = C121_AIR_PROJECT_REALIZATION_REGIME < 0 ? "observe"
+          : (C121_AIR_PROJECT_REALIZATION_REGIME == 1 ? "efficiency" : "race");
+      AILog.Info("C121_STRATEGY source_year=" + C121_AIR_PRESSURE_PREV.year
+          + " observed_years=" + C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED
+          + " regime=" + regimeName + " locked="
+          + (C121_AIR_PROJECT_REALIZATION_REGIME >= 0 ? 1 : 0));
+    }
+  }
+  C121_AIR_PRESSURE_ACCUM = OpexC121PressureNewAccum(year);
+}
+
+/* Probe passive C121 : resume la pression concurrentielle uniquement sur les
+ * villes que la selection vient deja de consulter via C83. Aucun scan de carte,
+ * aucune lecture API supplementaire du bruit/slot. Le snapshot pourra
+ * servir plus tard a choisir un regime AIR au cycle suivant, mais ici il ne
+ * participe a aucune decision. */
+function OpexC121RecordPressureSnapshot(state)
+{
+  if ((!C121_AIR_PRESSURE_PROBE && !C121_AIR_PROJECT_REALIZATION_ADAPTIVE)
+      || state == null || !("slotRemaining" in state)) return;
+  OpexC121PressureAdvanceYear();
+  local open = 0;
+  local competitor = 0;
+  local locked = 0;
+  local other = 0;
+  foreach (townId, remaining in state.slotRemaining) {
+    if (remaining >= 2) open++;
+    else if (remaining == 1) competitor++;
+    else if (remaining == 0) locked++;
+    else other++;
+    if (!(townId in C121_AIR_PRESSURE_ACCUM.towns)) {
+      C121_AIR_PRESSURE_ACCUM.towns.rawset(townId, remaining);
+    } else if (remaining < C121_AIR_PRESSURE_ACCUM.towns[townId]) {
+      C121_AIR_PRESSURE_ACCUM.towns[townId] = remaining;
+    }
+  }
+  local observed = open + competitor + locked + other;
+  C121_AIR_PRESSURE_ACCUM.samples++;
+  C121_AIR_PRESSURE_SNAPSHOT = {
+    date = AIDate.GetCurrentDate(), observed = observed,
+    open = open, competitor = competitor, locked = locked, other = other,
+    served = ("servedCount" in state) ? state.servedCount : 0,
+  };
+  if (C121_AIR_PRESSURE_PROBE) {
+    AILog.Info("C121_PRESSURE year=" + AIDate.GetYear(C121_AIR_PRESSURE_SNAPSHOT.date)
+        + " observed=" + observed + " open=" + open
+        + " competitor=" + competitor + " locked=" + locked
+        + " served=" + C121_AIR_PRESSURE_SNAPSHOT.served);
+  }
 }
 
 /* C78 / course defensive : avec station_noise_level=0 (configuration du duel),
@@ -1550,15 +1823,39 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       financeCapital = project.c118MinFinance;
     }
     if (financeCapital > capitalBudget) continue;
-    if (project.profitAnnual < floorProfit && !c118Territorial
+    local c121DefensivePrepared = C121_AIR_ECONOMICS && C121_AIR_DEFENSIVE_FLOOR
+        && project.mode == "air";
+    local c121DefensiveTier = 0;
+    local c121DefensiveFloor = floorProfit;
+    if (c121DefensivePrepared) {
+      if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
+      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      c121DefensiveTier = OpexProjectDefensiveAirPriority(project);
+      /* C121 anti-monopole : ne plus supprimer completement le garde-fou de
+       * profit. Une course au second slot concurrent (tier 2) accepte la moitie
+       * du plancher normal ; consolider notre propre slot (tier 1) en exige les
+       * trois quarts. Les projets ordinaires gardent le floor integral. */
+      if (c121DefensiveTier >= 2) c121DefensiveFloor = floorProfit / 2;
+      else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;
+    }
+    if (project.profitAnnual < c121DefensiveFloor && !c118Territorial
         && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) continue;
-    if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-    OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+    if (!c121DefensivePrepared) {
+      if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
+      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+    }
     local decisionFinanceCapital = financeCapital;
-    if (c111DecisionShadow && project.mode == "air" && ("decisionFinanceCapital" in project)
+    if (project.mode == "air" && ("decisionFinanceCapital" in project)
         && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
+    /* C121 : un renfort d'avion est un vrai projet economique concurrent d'une
+     * nouvelle ligne. L'exemption historique C69 lui donnerait un denominateur
+     * ~= prix avion alors que les lignes AIR sont bornees par K_dec, ce qui
+     * surclasse artificiellement les +1 avion. Conserver l'exemption pour les
+     * chemins legacy/C84, mais pas pour une flotte portant une marge C121. */
+    local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
+        && !OpexC121ProjectHasRealization(project);
     project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
-        (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : decisionFinanceCapital);
+        (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital);
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1582,10 +1879,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
       local decisionFinanceCapital = financeCapital;
-      if (c111DecisionShadow && project.mode == "air" && ("decisionFinanceCapital" in project)
+      if (project.mode == "air" && ("decisionFinanceCapital" in project)
           && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
+      local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
+          && !OpexC121ProjectHasRealization(project);
       project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
-          (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : decisionFinanceCapital);
+          (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital);
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1594,8 +1893,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
   }
-  if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);
   OpexC120ReorderAffordableAir(affordable);
+  if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);
   if (C69_BOTTLENECK_PROBE) {
     ::C69_LAST_AFFORDABLE = c69Affordable;
     ::C69_LAST_KDEC_DATA = kDecData;
@@ -1617,6 +1916,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     OpexC73RecordSelection(toSel, aff, sel);
   }
   OpexC120FinalizeSelection(affordable, capitalBudget);
+  OpexC121RecordPressureSnapshot(defensiveSlotState);
   OpexC116RememberAirPortfolioOpportunity(affordable, capitalBudget, c116Snapshot);
   return affordable;
 }

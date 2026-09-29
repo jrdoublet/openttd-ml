@@ -1578,6 +1578,10 @@ def main():
         help="Diagnostic passif annuel: reconstruit les lignes depuis VEHS + ORDL/ORDR + STNN",
     )
     parser.add_argument(
+        "--script-debug", action="store_true",
+        help="Diagnostic uniquement: force OpenTTD -d script=4 pour conserver la stack NoAI complete",
+    )
+    parser.add_argument(
         "--engine-timeout", type=int, default=DEFAULT_ENGINE_TIMEOUT_SEC,
         help="Timeout subprocess OpenTTD par partie, en secondes (0 = aucun)",
     )
@@ -1592,6 +1596,17 @@ def main():
     import openttdlab
     from openttdlab import run_experiments
     from bench_v2 import enable_savegame_cleanup, write_json_atomically
+
+    if args.script_debug:
+        real_check_output = openttdlab.subprocess.check_output
+
+        def check_output_with_script_debug(command, *rest, **kwargs):
+            command = tuple(command)
+            if any(str(part).startswith("-vnull") for part in command):
+                command = command[:1] + ("-d", "script=4") + command[1:]
+            return real_check_output(command, *rest, **kwargs)
+
+        openttdlab.subprocess.check_output = check_output_with_script_debug
 
     global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY
     LINE_TELEMETRY = bool(args.line_telemetry)

@@ -653,7 +653,8 @@ function OpexCatalog::_refreshAir()
   local engines = AIEngineList(AIVehicle.VT_AIR);
   engines.Valuate(AIEngine.IsBuildable);
   engines.KeepValue(1);
-  local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION || C85_AIR_EQUIPMENT_FRONTIER;
+  local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION || C85_AIR_EQUIPMENT_FRONTIER
+      || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS;
 
   // 1. Combo Grand Aeroport + Avion compatible
   foreach (choice in airportLargeTypes) {

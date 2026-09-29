@@ -42,6 +42,11 @@ AIR_TERRITORIAL_COVERAGE_MISSES <- 0;
 AIR_STATION_COVERAGE_TOWN_CACHE <- {};
 AIR_STATION_COVERAGE_HITS <- 0;
 AIR_STATION_COVERAGE_MISSES <- 0;
+/* C121 : topologie exacte station -> catchment. Elle est independante du cargo
+ * et de la ville : la construire une seule fois par station permet aux quatre
+ * evaluations endpoint x PASS/MAIL de reutiliser exactement le meme ensemble
+ * AITileList_StationCoverage. Les ratings ne sont volontairement pas caches. */
+AIR_C121_STATION_COVERAGE_CACHE <- {};
 /* C36.3 : Filtre d'emprise sans AITestMode avant la sonde (defaut 1, banc 20x10). */
 AIR_CHEAP_SITE <- true;
 /* C33.2 : Arrets de bus joints au chantier aeroport */
@@ -54,6 +59,7 @@ function OpexAirResetSiteCache()
   AIR_TERRITORIAL_COVERAGE_HITS = 0;
   AIR_TERRITORIAL_COVERAGE_MISSES = 0;
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
+  AIR_C121_STATION_COVERAGE_CACHE.clear();
   AIR_STATION_COVERAGE_HITS = 0;
   AIR_STATION_COVERAGE_MISSES = 0;
 }
@@ -66,6 +72,7 @@ function OpexAirResetTerritorialCoverageCache()
 function OpexAirResetStationCoverageTownCache()
 {
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
+  AIR_C121_STATION_COVERAGE_CACHE.clear();
 }
 
 /* Un test de site n'est qu'une prediction : si le chantier reel le contredit, ne jamais
@@ -296,7 +303,8 @@ function OpexAirJoinedMarginalProduction(stationId, airportTile, airportType, ca
 function OpexAirB9PredictJoinedStops(site, airport, town, paxCargo)
 {
   local chosen = [];
-  if (!B9_AIR_DEMAND_SHADOW || !AIR_JOINED_STOPS || AIR_JOINED_STOP_LIMIT <= 0
+  if ((!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
+      || !AIR_JOINED_STOPS || AIR_JOINED_STOP_LIMIT <= 0
       || site == null || town == null || paxCargo < 0) return chosen;
 
   local mapX = AIMap.GetMapSizeX();
@@ -325,40 +333,33 @@ function OpexAirB9PredictJoinedStops(site, airport, town, paxCargo)
   ];
   local candidates = [];
 
-  for (local x = minX; x <= maxX; x++) {
-    for (local y = minY; y <= maxY; y++) {
-      local tile = AIMap.GetTileIndex(x, y);
-      if (!AIMap.IsValidTile(tile) || AITile.GetClosestTown(tile) != town.id) continue;
-      if (!AIRoad.IsRoadTile(tile) || AIRoad.IsRoadStationTile(tile)
-          || AIRoad.IsRoadDepotTile(tile) || AITile.IsStationTile(tile)) continue;
-      if (AIMap.DistanceManhattan(tile, center) < 3) continue;
-      if (OpexAirDistanceToRect(tile, airportTile, w, h) <= airportCoverage) continue;
-      local val = AITile.GetCargoProduction(tile, paxCargo, 1, 1, coverage);
-      if (val <= 0) continue;
-
-      local buildable = false;
-      foreach (dir in dirs) {
-        local front = tile + dir;
-        if (!AIMap.IsValidTile(front) || !AIRoad.IsRoadTile(front)) continue;
-        local shield = AIAccounting();
-        local test = AITestMode();
-        local ok = AIRoad.BuildDriveThroughRoadStation(
-            tile, front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
-        test = null;
-        shield = null;
-        if (ok) {
-          buildable = true;
-          break;
-        }
-      }
-      if (buildable) {
-        candidates.append({
-          tile = tile,
-          value = val,
-          dist = AIMap.DistanceManhattan(tile, town.tile)
-        });
-      }
-    }
+  local tiles = AITileList();
+  tiles.AddRectangle(AIMap.GetTileIndex(minX, minY), AIMap.GetTileIndex(maxX, maxY));
+  tiles.Valuate(AIRoad.IsRoadTile);
+  tiles.KeepValue(1);
+  tiles.Valuate(AIRoad.IsRoadStationTile);
+  tiles.KeepValue(0);
+  tiles.Valuate(AIRoad.IsRoadDepotTile);
+  tiles.KeepValue(0);
+  tiles.Valuate(AITile.IsStationTile);
+  tiles.KeepValue(0);
+  tiles.Valuate(AITile.GetCargoProduction, paxCargo, 1, 1, coverage);
+  tiles.KeepAboveValue(0);
+  /* Meme intersection qu'avant, mais GetClosestTown ne tourne plus que sur
+   * les routes productrices. KeepList conserve la valeur cargo de tiles. */
+  local townRoad = AITileList();
+  townRoad.AddList(tiles);
+  townRoad.Valuate(AITile.GetClosestTown);
+  townRoad.KeepValue(town.id);
+  tiles.KeepList(townRoad);
+  foreach (tile, val in tiles) {
+    if (AIMap.DistanceManhattan(tile, center) < 3) continue;
+    if (OpexAirDistanceToRect(tile, airportTile, w, h) <= airportCoverage) continue;
+    candidates.append({
+      tile = tile,
+      value = val,
+      dist = AIMap.DistanceManhattan(tile, town.tile)
+    });
   }
 
   candidates.sort(function(a, b) {
@@ -379,7 +380,24 @@ function OpexAirB9PredictJoinedStops(site, airport, town, paxCargo)
         break;
       }
     }
-    if (!overlaps) chosen.append(cand.tile);
+    if (overlaps) continue;
+    local buildable = false;
+    foreach (dir in dirs) {
+      local front = cand.tile + dir;
+      if (!AIMap.IsValidTile(front) || !AIRoad.IsRoadTile(front)) continue;
+      if (!AIRoad.AreRoadTilesConnected(cand.tile, front)) continue;
+      local shield = AIAccounting();
+      local test = AITestMode();
+      local ok = AIRoad.BuildDriveThroughRoadStation(
+          cand.tile, front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+      test = null;
+      shield = null;
+      if (ok) {
+        buildable = true;
+        break;
+      }
+    }
+    if (buildable) chosen.append(cand.tile);
   }
   return chosen;
 }
@@ -387,9 +405,196 @@ function OpexAirB9PredictJoinedStops(site, airport, town, paxCargo)
 /* Production mensuelle de LA ville couverte par l'union pre-build.
  * stationId >= 0 : union exacte d'un hub existant.
  * stationId < 0  : union geometrique aeroport + stops predicts du site neuf. */
-function OpexAirB9TownUnionMonthly(town, airportTile, airportType, cargo, stopTiles, stationId = -1)
+function OpexAirB9TownCoverageTiles(town, airportTile, airportType, stopTiles, stationId = -1)
 {
-  local out = { monthly = 0, produced = 0, townTiles = 0, coveredTiles = 0 };
+  local coverageTiles = AITileList();
+  if (town == null || !AITown.IsValidTown(town.id)) return coverageTiles;
+  if (stationId >= 0 && AIStation.IsValidStation(stationId)) {
+    coverageTiles.AddList(AITileList_StationCoverage(stationId));
+  } else {
+    if (!AIMap.IsValidTile(airportTile) || !AIAirport.IsValidAirportType(airportType)) return coverageTiles;
+    local w = AIAirport.GetAirportWidth(airportType);
+    local h = AIAirport.GetAirportHeight(airportType);
+    local airportRadius = AIAirport.GetAirportCoverageRadius(airportType);
+    local busRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+    local mapX = AIMap.GetMapSizeX();
+    local mapY = AIMap.GetMapSizeY();
+    local left = AIMap.GetTileX(airportTile) - airportRadius;
+    local right = AIMap.GetTileX(airportTile) + w - 1 + airportRadius;
+    local top = AIMap.GetTileY(airportTile) - airportRadius;
+    local bottom = AIMap.GetTileY(airportTile) + h - 1 + airportRadius;
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+    if (right >= mapX) right = mapX - 1;
+    if (bottom >= mapY) bottom = mapY - 1;
+    coverageTiles.AddRectangle(
+        AIMap.GetTileIndex(left, top), AIMap.GetTileIndex(right, bottom));
+    foreach (stop in stopTiles) {
+      local sx = AIMap.GetTileX(stop);
+      local sy = AIMap.GetTileY(stop);
+      local stopLeft = sx - busRadius;
+      local stopRight = sx + busRadius;
+      local stopTop = sy - busRadius;
+      local stopBottom = sy + busRadius;
+      if (stopLeft < 0) stopLeft = 0;
+      if (stopTop < 0) stopTop = 0;
+      if (stopRight >= mapX) stopRight = mapX - 1;
+      if (stopBottom >= mapY) stopBottom = mapY - 1;
+      coverageTiles.AddRectangle(
+          AIMap.GetTileIndex(stopLeft, stopTop), AIMap.GetTileIndex(stopRight, stopBottom));
+    }
+  }
+  return coverageTiles;
+}
+
+/* NoAI expose le rating gare+cargo en pourcentage via ToPercent8(byte).
+ * Inverser l'intervalle exact et prendre son milieu minimise l'erreur rendue
+ * inevitable par l'API (au plus quelques points sur 255), sans calibration. */
+function OpexC121RatingPercentToByteMid(pct)
+{
+  if (pct < 0) return 0;
+  if (pct > 100) pct = 100;
+  local low = (pct * 256 + 100) / 101;
+  local high = (((pct + 1) * 256 + 100) / 101) - 1;
+  if (low < 0) low = 0;
+  if (high > 255) high = 255;
+  if (high < low) high = low;
+  return (low + high) / 2;
+}
+
+/* Topologie exacte d'une gare existante. Le filtrage ville/cargo est deja fait
+ * sur `weights` par B9 ; refaire GetCargoProduction + GetClosestTown ici serait
+ * redondant et multipliait le cout par endpoint et cargo. */
+function OpexC121StationCoverageTiles(stationId)
+{
+  local empty = [];
+  if (!AIStation.IsValidStation(stationId)) return empty;
+  if (stationId in AIR_C121_STATION_COVERAGE_CACHE) return AIR_C121_STATION_COVERAGE_CACHE[stationId];
+
+  local out = [];
+  local tiles = AITileList_StationCoverage(stationId);
+  foreach (tile, value in tiles) out.append(tile);
+  AIR_C121_STATION_COVERAGE_CACHE.rawset(stationId, out);
+  return out;
+}
+
+/* OpenTTD 15.3 MoveGoodsToStation, cas mono-compagnie du banc C121 :
+ * - le meilleur rating de la compagnie determine la fraction de production
+ *   qui entre dans son reseau ;
+ * - a l'interieur de la compagnie, les gares couvrant la tuile se partagent
+ *   cette production proportionnellement a leur rating.
+ *
+ * B9 groupe ici les tuiles productrices par (somme,max) des ratings des gares
+ * EXISTANTES concurrentes. La gare candidate est exclue si elle est reutilisee
+ * car son rating projete la remplacera dans OpexC121StationAllocatedMonthly(). */
+function OpexC121StationCompetitionBuckets(town, cargo, cargoTiles, candidateStationId = -1)
+{
+  local result = { buckets = [], totalWeight = 0, competingWeight = 0, competingStations = 0 };
+  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
+      || town == null || !AITown.IsValidTown(town.id) || cargo < 0 || cargoTiles == null) return result;
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local minX = mapX;
+  local minY = mapY;
+  local maxX = -1;
+  local maxY = -1;
+  foreach (tile, producedHere in cargoTiles) {
+    if (producedHere <= 0) continue;
+    result.totalWeight += producedHere;
+    local x = AIMap.GetTileX(tile);
+    local y = AIMap.GetTileY(tile);
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  if (result.totalWeight <= 0 || maxX < minX || maxY < minY) return result;
+
+  /* BaseStation::xy est le premier facility tile de la gare. OpenTTD refuse
+   * ensuite toute extension dont le rectangle depasse station_spread. Meme si
+   * ce premier tile est retire plus tard, chaque facility qui subsiste a donc
+   * ete construit a au plus spread-1 cases par axe de xy. En ajoutant le rayon
+   * de catchment reel de la gare, on obtient une borne spatiale conservatrice
+   * exacte avant de materialiser son AITileList_StationCoverage. */
+  local spread = AIGameSettings.GetValue("station.station_spread");
+  if (spread < 1) spread = 1;
+  local sums = {};
+  local maxima = {};
+  local stations = AIStationList(AIStation.STATION_ANY);
+  for (local st = stations.Begin(); !stations.IsEnd(); st = stations.Next()) {
+    if (st == candidateStationId || !AIStation.HasCargoRating(st, cargo)) continue;
+    local pct = AIStation.GetCargoRating(st, cargo);
+    if (pct < 0) continue;
+    local rating = OpexC121RatingPercentToByteMid(pct);
+    if (rating <= 0) continue;
+    local loc = AIStation.GetLocation(st);
+    if (!AIMap.IsValidTile(loc)) continue;
+    local radius = AIStation.GetStationCoverageRadius(st);
+    if (radius < 0) radius = 0;
+    local reach = (spread - 1) + radius;
+    local sx = AIMap.GetTileX(loc);
+    local sy = AIMap.GetTileY(loc);
+    if (sx + reach < minX || sx - reach > maxX || sy + reach < minY || sy - reach > maxY) continue;
+
+    local touched = false;
+    foreach (tile in OpexC121StationCoverageTiles(st)) {
+      if (!cargoTiles.HasItem(tile)) continue;
+      local sum = (tile in sums) ? sums[tile] : 0;
+      sums.rawset(tile, sum + rating);
+      local oldMax = (tile in maxima) ? maxima[tile] : 0;
+      if (rating > oldMax) maxima.rawset(tile, rating);
+      touched = true;
+    }
+    if (touched) result.competingStations++;
+  }
+
+  local grouped = {};
+  foreach (tile, producedHere in cargoTiles) {
+    if (producedHere <= 0) continue;
+    local sum = (tile in sums) ? sums[tile] : 0;
+    local maxRating = (tile in maxima) ? maxima[tile] : 0;
+    if (sum > 0) result.competingWeight += producedHere;
+    local key = sum + "|" + maxRating;
+    if (!(key in grouped)) grouped.rawset(key, { sum = sum, maxRating = maxRating, weight = 0 });
+    grouped[key].weight += producedHere;
+  }
+  foreach (key, bucket in grouped) result.buckets.append(bucket);
+  return result;
+}
+
+/* Fraction mensuelle allouee a la gare candidate par MoveGoodsToStation.
+ * rawMonthly est la production B9 situee dans son catchment avant rating.
+ * Pour une tuile sans autre gare : (r+1)/256.
+ * Avec d'autres gares de la meme compagnie :
+ *   (max(r,m)+1)/256 * r/(r+S).
+ * Aucune constante ajustee aux seeds n'intervient. */
+function OpexC121StationAllocatedMonthly(rawMonthly, rating, competition)
+{
+  if (rawMonthly <= 0.0 || rating <= 0) return 0.0;
+  if (competition == null || !("totalWeight" in competition)
+      || competition.totalWeight <= 0 || !("buckets" in competition)) {
+    return rawMonthly.tofloat() * (rating + 1).tofloat() / 256.0;
+  }
+  local weighted = 0.0;
+  foreach (bucket in competition.buckets) {
+    if (bucket == null || bucket.weight <= 0) continue;
+    local best = rating > bucket.maxRating ? rating : bucket.maxRating;
+    local denom = rating + bucket.sum;
+    if (denom <= 0) continue;
+    local sourceFraction = (best + 1).tofloat() / 256.0;
+    local stationShare = rating.tofloat() / denom.tofloat();
+    weighted += bucket.weight.tofloat() * sourceFraction * stationShare;
+  }
+  return rawMonthly.tofloat() * weighted / competition.totalWeight.tofloat();
+}
+
+function OpexAirB9TownUnionMonthly(town, airportTile, airportType, cargo, stopTiles,
+                                  stationId = -1, sharedCoverageTiles = null)
+{
+  local out = {
+    monthly = 0, produced = 0, townTiles = 0, coveredTiles = 0,
+    competition = null
+  };
   if (town == null || !AITown.IsValidTown(town.id) || cargo < 0) return out;
   local pop = AITown.GetPopulation(town.id);
   local townRadius = 4 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
@@ -400,86 +605,90 @@ function OpexAirB9TownUnionMonthly(town, airportTile, airportType, cargo, stopTi
   out.produced = AITown.GetLastMonthProduction(town.id, cargo);
   if (out.produced < 0) out.produced = 0;
 
-  if (stationId >= 0 && AIStation.IsValidStation(stationId)) {
-    local coverageTiles = AITileList_StationCoverage(stationId);
-    foreach (tile, value in coverageTiles) {
-      if (AITile.GetClosestTown(tile) != town.id) continue;
-      out.coveredTiles += AITile.GetCargoProduction(tile, cargo, 1, 1, 0);
-    }
-  } else {
-    if (!AIMap.IsValidTile(airportTile) || !AIAirport.IsValidAirportType(airportType)) return out;
-    local w = AIAirport.GetAirportWidth(airportType);
-    local h = AIAirport.GetAirportHeight(airportType);
-    local airportRadius = AIAirport.GetAirportCoverageRadius(airportType);
-    local busRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
-    local left = AIMap.GetTileX(airportTile) - airportRadius;
-    local right = AIMap.GetTileX(airportTile) + w - 1 + airportRadius;
-    local top = AIMap.GetTileY(airportTile) - airportRadius;
-    local bottom = AIMap.GetTileY(airportTile) + h - 1 + airportRadius;
-    foreach (stop in stopTiles) {
-      local sx = AIMap.GetTileX(stop);
-      local sy = AIMap.GetTileY(stop);
-      if (sx - busRadius < left) left = sx - busRadius;
-      if (sx + busRadius > right) right = sx + busRadius;
-      if (sy - busRadius < top) top = sy - busRadius;
-      if (sy + busRadius > bottom) bottom = sy + busRadius;
-    }
-    if (left < 0) left = 0;
-    if (top < 0) top = 0;
-    local mapX = AIMap.GetMapSizeX();
-    local mapY = AIMap.GetMapSizeY();
-    if (right >= mapX) right = mapX - 1;
-    if (bottom >= mapY) bottom = mapY - 1;
-    for (local x = left; x <= right; x++) {
-      for (local y = top; y <= bottom; y++) {
-        local tile = AIMap.GetTileIndex(x, y);
-        /* OpenTTD RecomputeCatchment() ajoute, pour chaque tuile de station,
-         * TileArea(tile, 1, 1).Expand(radius) : la metrique est donc carree
-         * (Chebyshev), pas Manhattan. */
-        local covered = OpexAirB9TileInExpandedRect(
-            tile, airportTile, w, h, airportRadius);
-        if (!covered) {
-          foreach (stop in stopTiles) {
-            if (OpexAirB9TileInExpandedRect(tile, stop, 1, 1, busRadius)) {
-              covered = true;
-              break;
-            }
-          }
-        }
-        if (!covered || AITile.GetClosestTown(tile) != town.id) continue;
-        out.coveredTiles += AITile.GetCargoProduction(tile, cargo, 1, 1, 0);
-      }
-    }
+  local geometry = sharedCoverageTiles;
+  if (geometry == null) {
+    geometry = OpexAirB9TownCoverageTiles(
+        town, airportTile, airportType, stopTiles, stationId);
   }
+  local cargoTiles = AITileList();
+  cargoTiles.AddList(geometry);
+  cargoTiles.Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0);
+  cargoTiles.KeepAboveValue(0);
+  /* Ne demander GetClosestTown qu'aux tuiles qui produisent reellement ce
+   * cargo. KeepList conserve les valeurs de production de cargoTiles. Cela
+   * donne exactement geometry ∩ producer ∩ target-town, mais evite de
+   * valoriser toutes les tuiles vides du catchment. */
+  local townOwned = AITileList();
+  townOwned.AddList(cargoTiles);
+  townOwned.Valuate(AITile.GetClosestTown);
+  townOwned.KeepValue(town.id);
+  cargoTiles.KeepList(townOwned);
+  foreach (tile, producedHere in cargoTiles) out.coveredTiles += producedHere;
+  out.competition = OpexC121StationCompetitionBuckets(town, cargo, cargoTiles, stationId);
   local usable = out.coveredTiles;
   if (out.townTiles > 0 && usable > out.townTiles) usable = out.townTiles;
   if (out.townTiles > 0) out.monthly = (out.produced * usable) / out.townTiles;
   return out;
 }
 
-function OpexAirB9DemandShadowEndpoint(catalog, plan, site, reused)
+function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
+                                           stopTiles = null, sharedCoverageTiles = null)
 {
   local result = {
     airportMonthly = 0, unionMonthly = 0, unionAllocated = 0,
     routeDiv = 1, predictedStops = 0, produced = 0,
-    townTiles = 0, unionTiles = 0
+    townTiles = 0, unionTiles = 0, stopTiles = [], coverageTiles = null,
+    competition = null,
+    predictTicks = 0, coverageTicks = 0, unionTicks = 0
   };
-  if (site == null || !("town" in site) || site.town == null) return result;
+  if (site == null || !("town" in site) || site.town == null || cargo < 0) return result;
   local airportType = plan.airport.type;
   if (reused && AIAirport.IsAirportTile(site.anchor)) {
     airportType = AIAirport.GetAirportType(site.anchor);
   }
-  local airportOnly = OpexAirB9TownUnionMonthly(
-      site.town, site.anchor, airportType, catalog.paxCargo, [], -1);
-  local stops = [];
+  local cacheKey = null;
+  if (C121_AIR_ECONOMICS && C121_AIR_ENDPOINT_CACHE != null) {
+    local anchorKey = ("anchor" in site) ? site.anchor : -1;
+    local townKey = ("town" in site) && site.town != null && ("id" in site.town) ? site.town.id : -1;
+    local routesKey = reused && ("routes" in site) ? site.routes : 0;
+    local stationKey = reused && ("stationId" in site) ? site.stationId : -1;
+    cacheKey = cargo + "|" + airportType + "|" + anchorKey + "|" + townKey
+        + "|" + (reused ? 1 : 0) + "|" + routesKey + "|" + stationKey;
+    if (cacheKey in C121_AIR_ENDPOINT_CACHE) {
+      if (C121_AIR_PLAN_PERF != null) C121_AIR_PLAN_PERF.endpointHits++;
+      return C121_AIR_ENDPOINT_CACHE[cacheKey];
+    }
+    if (C121_AIR_PLAN_PERF != null) C121_AIR_PLAN_PERF.endpointMisses++;
+  }
+  /* airportOnly ne sert qu'au log/probe B9. Le recalculer dans le shadow
+   * C121 pur doublait le scan geometrique pour chaque cargo et extremite. */
+  local airportOnly = { monthly = 0 };
+  if (AIR_CATCHMENT_PROBE) {
+    airportOnly = OpexAirB9TownUnionMonthly(
+        site.town, site.anchor, airportType, cargo, [], -1);
+  }
+  local stops = stopTiles == null ? [] : stopTiles;
   local stationId = -1;
   if (reused) {
     if ("stationId" in site) stationId = site.stationId;
-  } else {
+  } else if (stopTiles == null) {
+    /* Les arrets reels sont choisis sur les passagers. Le MAIL doit reutiliser
+     * exactement cette meme geometrie de station, pas choisir ses propres stops. */
+    local tPredict0 = AIController.GetTick();
     stops = OpexAirB9PredictJoinedStops(site, plan.airport, site.town, catalog.paxCargo);
+    result.predictTicks = AIController.GetTick() - tPredict0;
   }
+  local coverageTiles = sharedCoverageTiles;
+  if (coverageTiles == null) {
+    local tCoverage0 = AIController.GetTick();
+    coverageTiles = OpexAirB9TownCoverageTiles(
+        site.town, site.anchor, airportType, stops, stationId);
+    result.coverageTicks = AIController.GetTick() - tCoverage0;
+  }
+  local tUnion0 = AIController.GetTick();
   local union = OpexAirB9TownUnionMonthly(
-      site.town, site.anchor, airportType, catalog.paxCargo, stops, stationId);
+      site.town, site.anchor, airportType, cargo, stops, stationId, coverageTiles);
+  result.unionTicks = AIController.GetTick() - tUnion0;
   local routeDiv = reused && ("routes" in site) ? site.routes + 1 : 1;
   result.airportMonthly = airportOnly.monthly / routeDiv;
   result.unionMonthly = union.monthly;
@@ -489,20 +698,101 @@ function OpexAirB9DemandShadowEndpoint(catalog, plan, site, reused)
   result.produced = union.produced;
   result.townTiles = union.townTiles;
   result.unionTiles = union.coveredTiles;
+  result.competition = union.competition;
+  result.stopTiles = stops;
+  result.coverageTiles = coverageTiles;
+  if (cacheKey != null) C121_AIR_ENDPOINT_CACHE.rawset(cacheKey, result);
   return result;
+}
+
+function OpexAirB9DemandShadowEndpoint(catalog, plan, site, reused)
+{
+  return OpexAirB9DemandShadowEndpointCargo(
+      catalog, plan, site, reused, catalog.paxCargo, null);
+}
+
+/* C121 : observation O(1) du rating gare+cargo deja en place.
+ * Elle ne sert qu'aux hubs reutilises ; une gare neuve n'a pas encore de rating. */
+function OpexC121ExistingStationRating(site, reused, cargo)
+{
+  if (!reused || site == null || cargo < 0) return -1;
+  local stationId = ("stationId" in site) ? site.stationId : -1;
+  if (!AIStation.IsValidStation(stationId) && ("anchor" in site)
+      && AIMap.IsValidTile(site.anchor)) {
+    stationId = AIStation.GetStationID(site.anchor);
+  }
+  if (!AIStation.IsValidStation(stationId)) return -1;
+  return AIStation.GetCargoRating(stationId, cargo);
 }
 
 function OpexAirB9DemandShadow(catalog, plan)
 {
-  if (!B9_AIR_DEMAND_SHADOW || plan == null
+  if ((!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
+      || plan == null
       || !("siteA" in plan) || !("siteB" in plan)) return null;
-  if (!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE) return null;
+  if (!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE
+      && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) return null;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local tA0 = AIController.GetTick();
+  local oA0 = AIController.GetOpsTillSuspend();
   local a = OpexAirB9DemandShadowEndpoint(catalog, plan, plan.siteA, reuseA);
+  local tA1 = AIController.GetTick();
+  local oA1 = AIController.GetOpsTillSuspend();
+  local tB0 = tA1;
+  local oB0 = oA1;
   local b = OpexAirB9DemandShadowEndpoint(catalog, plan, plan.siteB, reuseB);
+  local tB1 = AIController.GetTick();
+  local oB1 = AIController.GetOpsTillSuspend();
   local shadowMonthly = a.unionAllocated + b.unionAllocated;
   plan.b9ShadowMonthly <- shadowMonthly;
+  if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+    local mailCargo = ("mailCargo" in catalog) ? catalog.mailCargo : -1;
+    local tMa0 = tB1;
+    local oMa0 = oB1;
+    local ma = OpexAirB9DemandShadowEndpointCargo(
+        catalog, plan, plan.siteA, reuseA, mailCargo, a.stopTiles, a.coverageTiles);
+    local tMa1 = AIController.GetTick();
+    local oMa1 = AIController.GetOpsTillSuspend();
+    local tMb0 = tMa1;
+    local oMb0 = oMa1;
+    local mb = OpexAirB9DemandShadowEndpointCargo(
+        catalog, plan, plan.siteB, reuseB, mailCargo, b.stopTiles, b.coverageTiles);
+    local tMb1 = AIController.GetTick();
+    local oMb1 = AIController.GetOpsTillSuspend();
+    local currentPaxRatingA = OpexC121ExistingStationRating(plan.siteA, reuseA, catalog.paxCargo);
+    local currentPaxRatingB = OpexC121ExistingStationRating(plan.siteB, reuseB, catalog.paxCargo);
+    local currentMailRatingA = OpexC121ExistingStationRating(plan.siteA, reuseA, mailCargo);
+    local currentMailRatingB = OpexC121ExistingStationRating(plan.siteB, reuseB, mailCargo);
+    plan.c121Demand <- {
+      paxA = a.unionAllocated, paxB = b.unionAllocated,
+      mailA = ma.unionAllocated, mailB = mb.unionAllocated,
+      paxRawA = a.unionMonthly, paxRawB = b.unionMonthly,
+      mailRawA = ma.unionMonthly, mailRawB = mb.unionMonthly,
+      paxProducedA = a.produced, paxProducedB = b.produced,
+      mailProducedA = ma.produced, mailProducedB = mb.produced,
+      routeDivA = a.routeDiv, routeDivB = b.routeDiv,
+      paxTownTilesA = a.townTiles, paxTownTilesB = b.townTiles,
+      mailTownTilesA = ma.townTiles, mailTownTilesB = mb.townTiles,
+      paxUnionTilesA = a.unionTiles, paxUnionTilesB = b.unionTiles,
+      mailUnionTilesA = ma.unionTiles, mailUnionTilesB = mb.unionTiles,
+      predictedStopsA = a.predictedStops, predictedStopsB = b.predictedStops,
+      currentPaxRatingA = currentPaxRatingA, currentPaxRatingB = currentPaxRatingB,
+      currentMailRatingA = currentMailRatingA, currentMailRatingB = currentMailRatingB,
+      paxCompetitionA = a.competition, paxCompetitionB = b.competition,
+      mailCompetitionA = ma.competition, mailCompetitionB = mb.competition,
+      paxPredictTicksA = a.predictTicks, paxPredictTicksB = b.predictTicks,
+      paxCoverageTicksA = a.coverageTicks, paxCoverageTicksB = b.coverageTicks,
+      paxUnionTicksA = a.unionTicks, paxUnionTicksB = b.unionTicks,
+      mailUnionTicksA = ma.unionTicks, mailUnionTicksB = mb.unionTicks,
+      paxTicksA = tA1 - tA0, paxTicksB = tB1 - tB0,
+      mailTicksA = tMa1 - tMa0, mailTicksB = tMb1 - tMb0,
+      paxOpsA = tA1 == tA0 ? oA0 - oA1 : -1,
+      paxOpsB = tB1 == tB0 ? oB0 - oB1 : -1,
+      mailOpsA = tMa1 == tMa0 ? oMa0 - oMa1 : -1,
+      mailOpsB = tMb1 == tMb0 ? oMb0 - oMb1 : -1,
+    };
+  }
   if (AIR_CATCHMENT_PROBE) OpexAirCatchmentLog("AIR_DEMAND_SHADOW",
       "arm=" + (("arm" in plan) ? plan.arm : "unknown")
       + " town_a=" + plan.siteA.town.id + " town_b=" + plan.siteB.town.id
@@ -519,6 +809,32 @@ function OpexAirB9DemandShadow(catalog, plan)
       + " town_tiles_a=" + a.townTiles + " town_tiles_b=" + b.townTiles
       + " union_tiles_a=" + a.unionTiles + " union_tiles_b=" + b.unionTiles);
   return shadowMonthly;
+}
+
+function OpexC121PrepareDemandShadow(catalog, plan, lines = null)
+{
+  if ((!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
+      || plan == null) return null;
+  /* En mode causal, la generation du projet a deja paye ce calcul avant le
+   * choix moteur. Le build doit reutiliser exactement le meme etat, pas rescanner
+   * les catchments/gares quelques ticks plus tard et casser le contrat
+   * moteur -> flotte -> economie -> projet. */
+  if (C121_AIR_ECONOMICS && ("c121Demand" in plan)
+      && ("c121ServiceA" in plan) && ("c121ServiceB" in plan)) {
+    return ("b9ShadowMonthly" in plan) ? plan.b9ShadowMonthly : null;
+  }
+  local tick0 = AIController.GetTick();
+  local ops0 = AIController.GetOpsTillSuspend();
+  local value = OpexAirB9DemandShadow(catalog, plan);
+  if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+    plan.c121ServiceA <- OpexC121ExistingStationService(catalog, plan.siteA, lines);
+    plan.c121ServiceB <- OpexC121ExistingStationService(catalog, plan.siteB, lines);
+    local tick1 = AIController.GetTick();
+    local ops1 = AIController.GetOpsTillSuspend();
+    plan.c121DemandTicks <- tick1 - tick0;
+    plan.c121DemandOps <- OpexAirCalcDeltaOps(tick0, ops0);
+  }
+  return value;
 }
 
 function OpexAirCatchmentProbeEndpoint(catalog, stationId, airportTile, townId,
@@ -1946,13 +2262,1509 @@ function OpexAirFarePerPax(catalog, plane, distance, incomeDays)
 /* C119 : temps de paiement uniquement, separe du cycle AIR. */
 function OpexC119AirIncomeDays(plane, flightDistance)
 {
-  if (plane == null || !("id" in plane) || !AIEngine.IsValidEngine(plane.id)) return 1;
-  local speed = AIEngine.GetMaxSpeed(plane.id);
+  if (plane == null || !("id" in plane)) return 1;
+  local speed = (("speed" in plane) && plane.speed > 0) ? plane.speed : 0;
+  if (speed <= 0) {
+    if (!AIEngine.IsValidEngine(plane.id)) return 1;
+    speed = AIEngine.GetMaxSpeed(plane.id);
+  }
   if (speed < 1) speed = 1;
   local dayLengthFactor = ("GetDayLengthFactor" in AIDate) ? AIDate.GetDayLengthFactor() : 1;
   if (dayLengthFactor < 1) dayLengthFactor = 1;
   local days = ((flightDistance + 30) * 664) / (speed * 24 * dayLengthFactor);
   return days > 0 ? days : 1;
+}
+
+/* C121 : type physique de l'aeroport a une extremite du plan. */
+function OpexC121EndpointAirportType(plan, which)
+{
+  if (plan == null || !("airport" in plan) || plan.airport == null) return AIAirport.AT_SMALL;
+  local site = which == 0 ? plan.siteA : plan.siteB;
+  local reused = which == 0 ? (("reuseA" in plan) && plan.reuseA) : (("reuseB" in plan) && plan.reuseB);
+  if (reused && site != null && ("anchor" in site) && AIAirport.IsAirportTile(site.anchor)) {
+    return AIAirport.GetAirportType(site.anchor);
+  }
+  return plan.airport.type;
+}
+
+/* C121 : socle physique d'un leg. Ce helper est partage avec la sonde C117
+ * afin que le residu appris compare exactement la meme cinematique que celle
+ * utilisee au scoring. Aucun terme appris ne depend du moteur. */
+function OpexC121PhysicalOneWayDaysFromSpeed(distance, speed, typeA, typeB,
+                                             groundTiles = -1.0, ticksPerDay = 0.0)
+{
+  if (distance <= 0 || speed <= 0) return null;
+  local effectiveSpeed = speed.tofloat();
+  if (effectiveSpeed < 1.0) effectiveSpeed = 1.0;
+  local flightDays = distance.tofloat() / (0.036 * effectiveSpeed);
+  local ground = groundTiles;
+  if (ground < 0.0) {
+    ground = 8.0;
+    if (typeA != null && typeB != null && AIAirport.IsValidAirportType(typeA)
+        && AIAirport.IsValidAirportType(typeB)) {
+      ground = (AIAirport.GetAirportWidth(typeA) + AIAirport.GetAirportHeight(typeA)
+                + AIAirport.GetAirportWidth(typeB) + AIAirport.GetAirportHeight(typeB)).tofloat();
+      ground = ground * 2.0 / 3.0;
+    }
+  }
+  local tpd = ticksPerDay > 0.0 ? ticksPerDay : OpexTicksPerDay(null);
+  local taxiSpeed = effectiveSpeed < 50.0 ? effectiveSpeed : 50.0;
+  local maneuverDays = ground * OpexDaysPerTile(taxiSpeed, tpd) + 300.0 / tpd;
+  local oneWayDays = flightDays + maneuverDays;
+  if (oneWayDays < 1.0) oneWayDays = 1.0;
+  return { flightDays = flightDays, maneuverDays = maneuverDays, oneWayDays = oneWayDays };
+}
+
+function OpexC121PhysicalOneWayDays(distance, engineId, typeA, typeB)
+{
+  if (distance <= 0 || !AIEngine.IsValidEngine(engineId)) return null;
+  return OpexC121PhysicalOneWayDaysFromSpeed(
+      distance, AIEngine.GetMaxSpeed(engineId), typeA, typeB);
+}
+
+/* Station reutilisee d'un endpoint de plan. Un site neuf n'a volontairement
+ * aucun delai appris : il reste sur le cold-start physique. */
+function OpexC121HubStationId(site, reused)
+{
+  if (!reused || site == null) return -1;
+  local stationId = ("stationId" in site) ? site.stationId : -1;
+  if (!AIStation.IsValidStation(stationId) && ("anchor" in site)
+      && AIMap.IsValidTile(site.anchor)) {
+    stationId = AIStation.GetStationID(site.anchor);
+  }
+  return AIStation.IsValidStation(stationId) ? stationId : -1;
+}
+
+function OpexC121HubDelayState(stationId)
+{
+  if (!AIStation.IsValidStation(stationId) || !(stationId in C121_AIR_HUB_DELAY_STATE)) return null;
+  local state = C121_AIR_HUB_DELAY_STATE[stationId];
+  if (state == null || !("lastUpdate" in state) || state.lastUpdate < 0
+      || !("lastWindowN" in state) || state.lastWindowN < C121_AIR_HUB_DELAY_MIN_OBS) return null;
+  return state;
+}
+
+function OpexC121HubDelayDays(stationId)
+{
+  local state = OpexC121HubDelayState(stationId);
+  return state != null && ("days" in state) && state.days > 0.0 ? state.days : 0.0;
+}
+
+/* Invariants de projet C121 : calcules une seule fois avant le scan moteur.
+ * Aucun champ ci-dessous ne depend du moteur ni du nombre d'avions. */
+function OpexC121PrepareEngineStatic(catalog, plan)
+{
+  if (catalog == null || plan == null || !("c121Demand" in plan)
+      || !("siteA" in plan) || !("siteB" in plan)
+      || !("airport" in plan) || plan.airport == null) return null;
+  if (("c121EngineStatic" in plan) && plan.c121EngineStatic != null) {
+    return plan.c121EngineStatic;
+  }
+  local typeA = OpexC121EndpointAirportType(plan, 0);
+  local typeB = OpexC121EndpointAirportType(plan, 1);
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local stationA = OpexC121HubStationId(plan.siteA, reuseA);
+  local stationB = OpexC121HubStationId(plan.siteB, reuseB);
+  local delayStateA = OpexC121HubDelayState(stationA);
+  local delayStateB = OpexC121HubDelayState(stationB);
+  local paymentDistance = AIMap.DistanceManhattan(plan.siteA.anchor, plan.siteB.anchor);
+  if (paymentDistance < 1) paymentDistance = plan.distance;
+  local newAirportCount = (reuseA ? 0 : 1) + (reuseB ? 0 : 1);
+  local infrastructureMaintenance = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+  local demand = plan.c121Demand;
+  local decisionKDec = OpexC69CachedKDec();
+  if (decisionKDec < 0) decisionKDec = 0;
+  local runwayServiceDaysA = OpexC121AirportRunwayServiceDays(typeA);
+  local runwayServiceDaysB = OpexC121AirportRunwayServiceDays(typeB);
+  local emptyService = {
+    pickupRate = 0.0, paxRate = 0.0, mailRate = 0.0,
+    paxIncome = 0.0, mailIncome = 0.0, lines = 0, vehicles = 0
+  };
+  local serviceA = ("c121ServiceA" in plan) ? plan.c121ServiceA : emptyService;
+  local serviceB = ("c121ServiceB" in plan) ? plan.c121ServiceB : emptyService;
+  local runwayRateA = runwayServiceDaysA > 0.0 ? 1.0 / runwayServiceDaysA : 0.0;
+  local runwayRateB = runwayServiceDaysB > 0.0 ? 1.0 / runwayServiceDaysB : 0.0;
+  local currentPaxRatingA = ("currentPaxRatingA" in demand) ? demand.currentPaxRatingA : 0;
+  local currentPaxRatingB = ("currentPaxRatingB" in demand) ? demand.currentPaxRatingB : 0;
+  local currentMailRatingA = ("currentMailRatingA" in demand) ? demand.currentMailRatingA : 0;
+  local currentMailRatingB = ("currentMailRatingB" in demand) ? demand.currentMailRatingB : 0;
+  local paxCompetitionA = ("paxCompetitionA" in demand) ? demand.paxCompetitionA : null;
+  local paxCompetitionB = ("paxCompetitionB" in demand) ? demand.paxCompetitionB : null;
+  local mailCompetitionA = ("mailCompetitionA" in demand) ? demand.mailCompetitionA : null;
+  local mailCompetitionB = ("mailCompetitionB" in demand) ? demand.mailCompetitionB : null;
+  local paxRawA = ("paxRawA" in demand) ? demand.paxRawA : demand.paxA;
+  local paxRawB = ("paxRawB" in demand) ? demand.paxRawB : demand.paxB;
+  local mailRawA = ("mailRawA" in demand) ? demand.mailRawA : demand.mailA;
+  local mailRawB = ("mailRawB" in demand) ? demand.mailRawB : demand.mailB;
+  local existingPaxBeforeA = reuseA ? OpexC121ExistingMonthlyBefore(
+      paxRawA, currentPaxRatingA, paxCompetitionA,
+      serviceA.pickupRate, serviceA.paxRate, runwayRateA) : 0.0;
+  local existingPaxBeforeB = reuseB ? OpexC121ExistingMonthlyBefore(
+      paxRawB, currentPaxRatingB, paxCompetitionB,
+      serviceB.pickupRate, serviceB.paxRate, runwayRateB) : 0.0;
+  local existingMailBeforeA = reuseA ? OpexC121ExistingMonthlyBefore(
+      mailRawA, currentMailRatingA, mailCompetitionA,
+      serviceA.pickupRate, serviceA.mailRate, runwayRateA) : 0.0;
+  local existingMailBeforeB = reuseB ? OpexC121ExistingMonthlyBefore(
+      mailRawB, currentMailRatingB, mailCompetitionB,
+      serviceB.pickupRate, serviceB.mailRate, runwayRateB) : 0.0;
+  local maneuverGroundTiles = 8.0;
+  if (AIAirport.IsValidAirportType(typeA) && AIAirport.IsValidAirportType(typeB)) {
+    maneuverGroundTiles = (AIAirport.GetAirportWidth(typeA) + AIAirport.GetAirportHeight(typeA)
+        + AIAirport.GetAirportWidth(typeB) + AIAirport.GetAirportHeight(typeB)).tofloat();
+    maneuverGroundTiles = maneuverGroundTiles * 2.0 / 3.0;
+  }
+  local state = {
+    airportTypeA = typeA, airportTypeB = typeB,
+    hubDelayA = delayStateA != null ? delayStateA.days : 0.0,
+    hubDelayB = delayStateB != null ? delayStateB.days : 0.0,
+    hubDelayObsA = delayStateA != null ? delayStateA.observations : 0,
+    hubDelayObsB = delayStateB != null ? delayStateB.observations : 0,
+    hubDelayWindowObsA = delayStateA != null ? delayStateA.lastWindowN : 0,
+    hubDelayWindowObsB = delayStateB != null ? delayStateB.lastWindowN : 0,
+    hubDelayVarianceA = delayStateA != null ? delayStateA.variance : 0.0,
+    hubDelayVarianceB = delayStateB != null ? delayStateB.variance : 0.0,
+    paymentDistance = paymentDistance,
+    newAirportCount = newAirportCount,
+    airportMaintenanceAnnual = infrastructureMaintenance
+        ? 12 * newAirportCount * plan.airport.maintenance : 0,
+    airportAmortAnnual = (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30,
+    airportCapital = newAirportCount * plan.airport.price,
+    decisionKDec = decisionKDec,
+    statueRatingA = OpexC121StatueRatingPoints(plan.siteA.town),
+    statueRatingB = OpexC121StatueRatingPoints(plan.siteB.town),
+    runwayServiceDaysA = runwayServiceDaysA,
+    runwayServiceDaysB = runwayServiceDaysB,
+    runwayRateA = runwayRateA,
+    runwayRateB = runwayRateB,
+    maneuverGroundTiles = maneuverGroundTiles,
+    ticksPerDay = OpexTicksPerDay(null),
+    paxRawA = paxRawA, paxRawB = paxRawB,
+    mailRawA = mailRawA, mailRawB = mailRawB,
+    existingPaxBeforeA = existingPaxBeforeA, existingPaxBeforeB = existingPaxBeforeB,
+    existingMailBeforeA = existingMailBeforeA, existingMailBeforeB = existingMailBeforeB,
+    existingPaxIncomeA = serviceA.paxIncome, existingPaxIncomeB = serviceB.paxIncome,
+    existingMailIncomeA = serviceA.mailIncome, existingMailIncomeB = serviceB.mailIncome,
+  };
+  plan.c121EngineStatic <- state;
+  return state;
+}
+
+/* C121 : cycle physique + adaptation stationnaire distinct du temps de paiement.
+ * Un tour complet contient deux legs physiques et une contribution de delai
+ * propre a chaque hub. Les deux delais sont identiques pour tous les moteurs. */
+function OpexC121AirTripModel(plan, plane)
+{
+  if (plan == null || plane == null || !("distance" in plan) || plan.distance <= 0
+      || !("id" in plane)) return null;
+  local engineStatic = ("c121EngineStatic" in plan) ? plan.c121EngineStatic : null;
+  local typeA = engineStatic != null ? engineStatic.airportTypeA : OpexC121EndpointAirportType(plan, 0);
+  local typeB = engineStatic != null ? engineStatic.airportTypeB : OpexC121EndpointAirportType(plan, 1);
+  local speed = (("speed" in plane) && plane.speed > 0) ? plane.speed : 0;
+  if (speed <= 0) {
+    if (!AIEngine.IsValidEngine(plane.id)) return null;
+    speed = AIEngine.GetMaxSpeed(plane.id);
+  }
+  local physical = engineStatic != null
+      ? OpexC121PhysicalOneWayDaysFromSpeed(plan.distance, speed, typeA, typeB,
+          engineStatic.maneuverGroundTiles, engineStatic.ticksPerDay)
+      : OpexC121PhysicalOneWayDaysFromSpeed(plan.distance, speed, typeA, typeB);
+  if (physical == null) return null;
+  local delayStateA = null;
+  local delayStateB = null;
+  local hubDelayA = 0.0;
+  local hubDelayB = 0.0;
+  if (engineStatic != null) {
+    hubDelayA = engineStatic.hubDelayA;
+    hubDelayB = engineStatic.hubDelayB;
+  } else {
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local stationA = OpexC121HubStationId(plan.siteA, reuseA);
+    local stationB = OpexC121HubStationId(plan.siteB, reuseB);
+    delayStateA = OpexC121HubDelayState(stationA);
+    delayStateB = OpexC121HubDelayState(stationB);
+    hubDelayA = delayStateA != null ? delayStateA.days : 0.0;
+    hubDelayB = delayStateB != null ? delayStateB.days : 0.0;
+  }
+  local roundTripDays = 2.0 * physical.oneWayDays + hubDelayA + hubDelayB;
+  local oneWayDays = roundTripDays / 2.0;
+  return {
+    flightDays = physical.flightDays, maneuverDays = physical.maneuverDays,
+    physicalOneWayDays = physical.oneWayDays,
+    hubDelayA = hubDelayA, hubDelayB = hubDelayB,
+    hubDelayObsA = engineStatic != null ? engineStatic.hubDelayObsA : (delayStateA != null ? delayStateA.observations : 0),
+    hubDelayObsB = engineStatic != null ? engineStatic.hubDelayObsB : (delayStateB != null ? delayStateB.observations : 0),
+    hubDelayWindowObsA = engineStatic != null ? engineStatic.hubDelayWindowObsA : (delayStateA != null ? delayStateA.lastWindowN : 0),
+    hubDelayWindowObsB = engineStatic != null ? engineStatic.hubDelayWindowObsB : (delayStateB != null ? delayStateB.lastWindowN : 0),
+    hubDelayVarianceA = engineStatic != null ? engineStatic.hubDelayVarianceA : (delayStateA != null ? delayStateA.variance : 0.0),
+    hubDelayVarianceB = engineStatic != null ? engineStatic.hubDelayVarianceB : (delayStateB != null ? delayStateB.variance : 0.0),
+    oneWayDays = oneWayDays, roundTripDays = roundTripDays,
+    airportTypeA = typeA, airportTypeB = typeB,
+  };
+}
+
+/* C121 : temps de service de la ressource piste partagee, derive du source
+ * OpenTTD 15.3. Retour 0 si le type n'est pas encore modele : mieux vaut ne
+ * pas plafonner que fabriquer une capacite d'aeroport.
+ *
+ * AT_LARGE (City Airport) possede un unique bloc RunwayInOut. AirportSetBlocks
+ * reserve le bloc AVANT d'entrer dans la position suivante et AirportClearBlock
+ * le libere des que l'avion atteint la premiere position hors bloc. Le chemin
+ * occupe est donc 8->9->10->11 au decollage et 13->14->15->17 a
+ * l'atterrissage. Les coordonnees airport_movement donnent, par visite
+ * complete, 260 pas pixel axiaux et 30 diagonaux.
+ *
+ * NoAI n'expose pas l'acceleration AIR. Pour rester mecanique et conservateur,
+ * tous les segments occupes sont avances a SPEED_LIMIT_TAXI=50. Dans le vieux
+ * mouvement vehicule, UpdateAircraftSpeed est appele deux fois/tick et
+ * GetOldAdvanceSpeed applique speed*3/4 (division entiere) sur les axes. */
+function OpexC121AirportRunwayServiceDays(airportType)
+{
+  if (airportType != AIAirport.AT_LARGE) return 0.0;
+  local ticksPerDay = OpexTicksPerDay(null).tofloat();
+  if (ticksPerDay <= 0.0) return 0.0;
+  local taxiSpeed = 50;
+  local axialProgress = ((taxiSpeed * 3) / 4).tofloat();
+  local diagonalProgress = taxiSpeed.tofloat();
+  local axialPixelsPerDay = 2.0 * axialProgress * ticksPerDay / 256.0;
+  local diagonalPixelsPerDay = 2.0 * diagonalProgress * ticksPerDay / 256.0;
+  if (axialPixelsPerDay <= 0.0 || diagonalPixelsPerDay <= 0.0) return 0.0;
+  return 260.0 / axialPixelsPerDay + 30.0 / diagonalPixelsPerDay;
+}
+
+/* C121 : service AIR deja present a une gare, exprime en visites/jour et
+ * capacite/jour. Cette photo est calculee une fois par plan puis reutilisee
+ * pour tous les nombres d'avions candidats. */
+function OpexC121ExistingStationService(catalog, site, lines)
+{
+  local out = {
+    pickupRate = 0.0, paxRate = 0.0, mailRate = 0.0,
+    paxIncome = 0.0, mailIncome = 0.0,
+    lines = 0, vehicles = 0
+  };
+  local paxIncomeWeighted = 0.0;
+  local paxIncomeWeight = 0.0;
+  local mailIncomeWeighted = 0.0;
+  local mailIncomeWeight = 0.0;
+  if (catalog == null || site == null || lines == null || !("anchor" in site)
+      || !AIMap.IsValidTile(site.anchor)) return out;
+  local stationId = ("stationId" in site) ? site.stationId : AIStation.GetStationID(site.anchor);
+  if (!AIStation.IsValidStation(stationId)) return out;
+  foreach (line in lines) {
+    if (line == null || !("mode" in line) || line.mode != "air") continue;
+    local sidA = ("stationA" in line) ? OpexAirLineStationId(line, 0) : -1;
+    local sidB = ("stationB" in line) ? OpexAirLineStationId(line, 1) : -1;
+    if (sidA != stationId && sidB != stationId) continue;
+    local distance = ("distance" in line) ? line.distance : 0;
+    if (distance <= 0 && ("stationA" in line) && ("stationB" in line)) {
+      distance = OpexFlightDistance(line.stationA, line.stationB);
+    }
+    if (distance <= 0) continue;
+    local typeA = (("stationA" in line) && AIAirport.IsAirportTile(line.stationA))
+        ? AIAirport.GetAirportType(line.stationA) : AIAirport.AT_SMALL;
+    local typeB = (("stationB" in line) && AIAirport.IsAirportTile(line.stationB))
+        ? AIAirport.GetAirportType(line.stationB) : AIAirport.AT_SMALL;
+    local countedLine = false;
+    local vehicles = ("vehicles" in line) && line.vehicles != null
+        ? line.vehicles : ((("vehicle" in line) && AIVehicle.IsValidVehicle(line.vehicle)) ? [line.vehicle] : []);
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+      local engine = AIVehicle.GetEngineType(v);
+      if (!AIEngine.IsValidEngine(engine)) continue;
+      local physical = OpexC121PhysicalOneWayDays(distance, engine, typeA, typeB);
+      if (physical == null) continue;
+      local hubDelayA = OpexC121HubDelayDays(sidA);
+      local hubDelayB = OpexC121HubDelayDays(sidB);
+      local roundTrip = 2.0 * physical.oneWayDays + hubDelayA + hubDelayB;
+      if (roundTrip <= 0.0) continue;
+      local rate = 1.0 / roundTrip;
+      local paxCap = AIVehicle.GetCapacity(v, catalog.paxCargo);
+      if (paxCap < 0) paxCap = 0;
+      local mailCap = (("mailCargo" in catalog) && catalog.mailCargo >= 0)
+          ? AIVehicle.GetCapacity(v, catalog.mailCargo) : 0;
+      if (mailCap < 0) mailCap = 0;
+      local paymentDistance = distance;
+      if (("stationA" in line) && ("stationB" in line)
+          && AIMap.IsValidTile(line.stationA) && AIMap.IsValidTile(line.stationB)) {
+        paymentDistance = AIMap.DistanceManhattan(line.stationA, line.stationB);
+      }
+      local speed = AIEngine.GetMaxSpeed(engine);
+      if (speed < 1) speed = 1;
+      local dayLengthFactor = ("GetDayLengthFactor" in AIDate) ? AIDate.GetDayLengthFactor() : 1;
+      if (dayLengthFactor < 1) dayLengthFactor = 1;
+      local incomeDays = ((distance + 30) * 664) / (speed * 24 * dayLengthFactor);
+      if (incomeDays < 1) incomeDays = 1;
+      local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
+      local paxFlow = paxCap * rate;
+      if (paxIncome >= 0 && paxFlow > 0.0) {
+        paxIncomeWeighted += paxFlow * paxIncome;
+        paxIncomeWeight += paxFlow;
+      }
+      local mailFlow = mailCap * rate;
+      if (("mailCargo" in catalog) && catalog.mailCargo >= 0 && mailFlow > 0.0) {
+        local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, paymentDistance, incomeDays);
+        if (mailIncome >= 0) {
+          mailIncomeWeighted += mailFlow * mailIncome;
+          mailIncomeWeight += mailFlow;
+        }
+      }
+      out.pickupRate += rate;
+      out.paxRate += paxCap * rate;
+      out.mailRate += mailCap * rate;
+      out.vehicles++;
+      countedLine = true;
+    }
+    if (countedLine) out.lines++;
+  }
+  if (paxIncomeWeight > 0.0) out.paxIncome = paxIncomeWeighted / paxIncomeWeight;
+  if (mailIncomeWeight > 0.0) out.mailIncome = mailIncomeWeighted / mailIncomeWeight;
+  return out;
+}
+
+/* Debit mensuel que les lignes deja presentes peuvent conserver avant l'ajout
+ * du candidat. La demande allouee vient de la note observee de la gare; la
+ * capacite vient du snapshot agrege et de la piste. */
+function OpexC121ExistingMonthlyBefore(rawMonthly, currentRating, competition,
+                                       servicePickupRate, serviceCargoRate, runwayRate)
+{
+  if (rawMonthly <= 0 || servicePickupRate <= 0.0 || serviceCargoRate <= 0.0) return 0.0;
+  local runwayScale = 1.0;
+  if (runwayRate > 0.0 && servicePickupRate > runwayRate) runwayScale = runwayRate / servicePickupRate;
+  local allocated = OpexC121StationAllocatedMonthly(rawMonthly, currentRating, competition);
+  local capacityMonthly = serviceCargoRate * runwayScale * 30.4;
+  return allocated < capacityMonthly ? allocated : capacityMonthly;
+}
+
+/* C121 : points de rating OpenTTD calculables avant construction.
+ * Aucune ancre STATION_RATING_PCT n'entre ici. */
+function OpexC121PickupRatingPoints(headwayDays)
+{
+  if (headwayDays <= 0.0) return 0.0;
+  /* OpenTTD 15.3 met le rating a jour tous les 185 ticks, soit 2,5 jours
+   * avec 74 ticks/jour. time_since_pickup parcourt donc les paliers
+   * 130/95/50/25/0 aux seuils 3/6/12/21 updates entre deux visites.
+   * Le projet a besoin du rating moyen sur le cycle, pas du palier atteint
+   * juste avant la visite suivante : integrer exactement ces marches sur le
+   * headway evite de simuler les updates une par une. */
+  local h = headwayDays.tofloat();
+  if (h <= 7.5) return 130.0;
+  local area = 7.5 * 130.0;
+  if (h <= 15.0) return (area + (h - 7.5) * 95.0) / h;
+  area += 7.5 * 95.0;
+  if (h <= 30.0) return (area + (h - 15.0) * 50.0) / h;
+  area += 15.0 * 50.0;
+  if (h <= 52.5) return (area + (h - 30.0) * 25.0) / h;
+  area += 22.5 * 25.0;
+  return area / h;
+}
+
+function OpexC121StockRatingPoints(waiting)
+{
+  local points = -90;
+  if (waiting <= 1500) points += 55;
+  if (waiting <= 1000) points += 35;
+  if (waiting <= 600) points += 10;
+  if (waiting <= 300) points += 20;
+  if (waiting <= 100) points += 10;
+  return points;
+}
+
+function OpexC121SpeedRatingPoints(plane)
+{
+  if (plane == null || !("id" in plane)) return 0;
+  /* AIEngine.GetMaxSpeed AIR est deja divise par vehicle.plane_speed.
+   * Reconstituer cached_max_speed avant GetSpeedOldUnits() = speed * 10 / 128. */
+  local speed = (("speed" in plane) && plane.speed > 0) ? plane.speed.tofloat() : 0.0;
+  if (speed <= 0.0) {
+    if (!AIEngine.IsValidEngine(plane.id)) return 0;
+    speed = AIEngine.GetMaxSpeed(plane.id).tofloat();
+  }
+  local oldSpeed = (speed
+      * OpexPlaneSpeedDivisor() * 10.0 / 128.0).tointeger();
+  if (oldSpeed > 255) oldSpeed = 255;
+  return oldSpeed > 85 ? (oldSpeed - 85) / 4 : 0;
+}
+
+function OpexC121StatueRatingPoints(town)
+{
+  if (town == null || !("id" in town) || !AITown.IsValidTown(town.id)) return 0;
+  return AITown.HasStatue(town.id) ? 26 : 0;
+}
+
+/* Le rating vise ici l'etat de service d'un vehicule neuf (+33 points d'age).
+ * Pour le stock, si une visite peut vider le cargo produit depuis la visite
+ * precedente, waitingUpper est une borne mecanique du stock. Sinon le backlog
+ * est structurellement croissant et prend la penalite maximale. La recherche
+ * est finie car la note est un entier 0..255. Si deux paliers oscillent autour
+ * de la saturation, l'etat moyen est fixe par conservation du flux
+ * (production offerte = capacite de service), sans coefficient appris. */
+function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capacityPerVisit,
+                             baseWithoutPickup = null, pointsOnly = false)
+{
+  local base = baseWithoutPickup;
+  if (base == null) {
+    base = OpexC121SpeedRatingPoints(plane) + 33 + OpexC121StatueRatingPoints(town);
+  }
+  base += OpexC121PickupRatingPoints(headwayDays);
+  local rating = 175;
+  local previous = null;
+  local cycled = false;
+  /* target(rating) est antitone : plus de rating => plus de stock => un terme
+   * stock qui ne peut qu'empirer. Sur une echelle totalement ordonnee, une
+   * iteration antitone converge vers un point fixe ou un cycle de periode 2 ;
+   * les six paliers de stock bornent en plus strictement le nombre d'etats.
+   * Eviter ici la table `seen` supprime une allocation/hash dans le coeur du
+   * scan flotte (jusqu'a quatre ratings par N). */
+  for (local iter = 0; iter < 8; iter++) {
+    local offered = capturableMonthly > 0
+        ? capturableMonthly * rating.tofloat() / 255.0 : 0.0;
+    local waitingUpper = offered * headwayDays / 30.4;
+    /* OpenTTD 15.3 note le stock via ge->max_waiting_cargo = waiting_avg.
+     * Meme en distribution manuelle, num_dests + 1 vaut au moins 2 :
+     * waiting_avg <= waiting / 2. Garder waitingUpper pour savoir si une
+     * visite vide physiquement la gare, mais appliquer au rating la borne
+     * source waiting/2 plutot que le stock accumule sur tout le headway. */
+    local ratingWaiting = waitingUpper / 2.0;
+    local stockPoints = (capacityPerVisit > 0 && waitingUpper <= capacityPerVisit)
+        ? OpexC121StockRatingPoints(ratingWaiting) : -90;
+    local target = base + stockPoints;
+    if (target < 0) target = 0;
+    if (target > 255) target = 255;
+    if (target == rating) break;
+    if (previous != null && target == previous) {
+      cycled = true;
+      /* Si les paliers oscillent autour de la saturation, la note moyenne est
+       * imposee par la conservation du flux : production offerte = capacite. */
+      if (capturableMonthly > 0 && headwayDays > 0 && capacityPerVisit > 0) {
+        rating = (capacityPerVisit * 30.4 * 255.0
+            / (capturableMonthly * headwayDays)).tointeger();
+        if (rating < 0) rating = 0;
+        if (rating > 255) rating = 255;
+      } else if (target < rating) {
+        rating = target;
+      }
+      break;
+    }
+    previous = rating;
+    rating = target;
+  }
+  local offered = capturableMonthly > 0
+      ? capturableMonthly * rating.tofloat() / 255.0 : 0.0;
+  local waitingUpper = offered * headwayDays / 30.4;
+  if (pointsOnly) return rating;
+  return {
+    points = rating, offered = offered, waitingUpper = waitingUpper,
+    ratingWaiting = waitingUpper / 2.0, cycled = cycled
+  };
+}
+
+/* Nombre maximal de points de flotte qu'il est utile de scanner :
+ * - assez de capacite directionnelle pour toute la production brute ;
+ * - assez de frequence pour atteindre le meilleur palier de ramassage (<7,5 j).
+ * Au-dela, ni la demande brute ni le rating de ramassage ne peuvent augmenter.
+ * Pas de borne globale historique ni de cadence copiee d'un autre AI. */
+function OpexC121AirFleetScanCap(plan, roundTripDays, paxCapacity, mailCapacity)
+{
+  if (plan == null || !("c121Demand" in plan) || roundTripDays <= 0 || paxCapacity <= 0) return 1;
+  local demand = plan.c121Demand;
+  local paxPerPlaneDirection = paxCapacity * 30.4 / roundTripDays;
+  local maxPax = demand.paxA > demand.paxB ? demand.paxA : demand.paxB;
+  local cap = OpexCeilDiv(maxPax, paxPerPlaneDirection);
+  local frequencyPlanes = OpexCeilDiv(roundTripDays, 7.5);
+  if (frequencyPlanes > cap) cap = frequencyPlanes;
+  if (mailCapacity > 0) {
+    local mailPerPlaneDirection = mailCapacity * 30.4 / roundTripDays;
+    local maxMail = demand.mailA > demand.mailB ? demand.mailA : demand.mailB;
+    local mailPlanes = OpexCeilDiv(maxMail, mailPerPlaneDirection);
+    if (mailPlanes > cap) cap = mailPlanes;
+  }
+  return cap > 0 ? cap : 1;
+}
+
+/* C121 : economie PASS/MAIL directionnelle, sans forfait mail ni plein retour. */
+function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes = 0,
+                             decisionOnly = false, decisionScoreFloor = null)
+{
+  if (catalog == null || plan == null || plane == null || !("c121Demand" in plan)) return null;
+  if (paxCapacity <= 0 || mailCapacity < 0 || catalog.paxCargo < 0) return null;
+  /* Cold start C121 : tant que la sous-capacite MAIL exacte du refit PASS n'a
+   * jamais ete observee, mailCapacity=0 signifie explicitement PASS-only. Ne
+   * pas inventer de ratio MAIL et ne pas faire participer le cargo MAIL aux
+   * ratings, parts de route ou bornes de flotte. */
+  local useMail = mailCapacity > 0 && ("mailCargo" in catalog) && catalog.mailCargo >= 0;
+  local trip = OpexC121AirTripModel(plan, plane);
+  if (trip == null || trip.roundTripDays <= 0) return null;
+  local engineStatic = ("c121EngineStatic" in plan) ? plan.c121EngineStatic : null;
+  local paymentDistance = engineStatic != null ? engineStatic.paymentDistance
+      : AIMap.DistanceManhattan(plan.siteA.anchor, plan.siteB.anchor);
+  if (paymentDistance < 1) paymentDistance = plan.distance;
+  local incomeDays = OpexC119AirIncomeDays(plane, plan.distance);
+  local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
+  local mailIncome = useMail ? AICargo.GetCargoIncome(catalog.mailCargo, paymentDistance, incomeDays) : 0;
+  if (paxIncome < 0 || (useMail && mailIncome < 0)) return null;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local newAirportCount = engineStatic != null ? engineStatic.newAirportCount : (reuseA ? 0 : 1) + (reuseB ? 0 : 1);
+  local airportMaintenanceAnnual = engineStatic != null ? engineStatic.airportMaintenanceAnnual
+      : (AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0
+          ? 12 * newAirportCount * plan.airport.maintenance : 0);
+  local airportAmortAnnual = engineStatic != null ? engineStatic.airportAmortAnnual
+      : (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30;
+  local lifeYears = (("ageYears" in plane) && plane.ageYears > 0)
+      ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365);
+  local vehicleAmortPerPlane = lifeYears > 0 ? plane.price / lifeYears : 0;
+  local airportCapital = engineStatic != null ? engineStatic.airportCapital : newAirportCount * plan.airport.price;
+  local fleetScanCap = OpexC121AirFleetScanCap(plan, trip.roundTripDays, paxCapacity, mailCapacity);
+  local maxAllowed = fixedPlanes > 0 ? fixedPlanes : fleetScanCap;
+  local firstPlanes = fixedPlanes > 0 ? fixedPlanes : 1;
+  local best = null;
+  local scoreBest = null;
+  local decisionKDec = engineStatic != null ? engineStatic.decisionKDec : OpexC69CachedKDec();
+  if (decisionKDec < 0) decisionKDec = 0;
+  local demand = plan.c121Demand;
+  local emptyService = { pickupRate = 0.0, paxRate = 0.0, mailRate = 0.0, lines = 0, vehicles = 0 };
+  local serviceA = ("c121ServiceA" in plan) ? plan.c121ServiceA : emptyService;
+  local serviceB = ("c121ServiceB" in plan) ? plan.c121ServiceB : emptyService;
+  local speedRating = OpexC121SpeedRatingPoints(plane);
+  local ratingBaseA = speedRating + 33
+      + (engineStatic != null ? engineStatic.statueRatingA : OpexC121StatueRatingPoints(plan.siteA.town));
+  local ratingBaseB = speedRating + 33
+      + (engineStatic != null ? engineStatic.statueRatingB : OpexC121StatueRatingPoints(plan.siteB.town));
+  local runwayServiceDaysA = engineStatic != null ? engineStatic.runwayServiceDaysA
+      : OpexC121AirportRunwayServiceDays(trip.airportTypeA);
+  local runwayServiceDaysB = engineStatic != null ? engineStatic.runwayServiceDaysB
+      : OpexC121AirportRunwayServiceDays(trip.airportTypeB);
+  local runwayRateA = engineStatic != null ? engineStatic.runwayRateA
+      : (runwayServiceDaysA > 0.0 ? 1.0 / runwayServiceDaysA : 0.0);
+  local runwayRateB = engineStatic != null ? engineStatic.runwayRateB
+      : (runwayServiceDaysB > 0.0 ? 1.0 / runwayServiceDaysB : 0.0);
+  local paxRawA = engineStatic != null ? engineStatic.paxRawA : (("paxRawA" in demand) ? demand.paxRawA : demand.paxA);
+  local paxRawB = engineStatic != null ? engineStatic.paxRawB : (("paxRawB" in demand) ? demand.paxRawB : demand.paxB);
+  local mailRawA = useMail ? (engineStatic != null ? engineStatic.mailRawA
+      : (("mailRawA" in demand) ? demand.mailRawA : demand.mailA)) : 0;
+  local mailRawB = useMail ? (engineStatic != null ? engineStatic.mailRawB
+      : (("mailRawB" in demand) ? demand.mailRawB : demand.mailB)) : 0;
+  local realizationFactor = OpexC121RealizationFactor(plan);
+  local existingPaxBeforeA = engineStatic != null ? engineStatic.existingPaxBeforeA : 0.0;
+  local existingPaxBeforeB = engineStatic != null ? engineStatic.existingPaxBeforeB : 0.0;
+  local existingMailBeforeA = engineStatic != null ? engineStatic.existingMailBeforeA : 0.0;
+  local existingMailBeforeB = engineStatic != null ? engineStatic.existingMailBeforeB : 0.0;
+  local existingPaxIncomeA = engineStatic != null ? engineStatic.existingPaxIncomeA : 0.0;
+  local existingPaxIncomeB = engineStatic != null ? engineStatic.existingPaxIncomeB : 0.0;
+  local existingMailIncomeA = engineStatic != null ? engineStatic.existingMailIncomeA : 0.0;
+  local existingMailIncomeB = engineStatic != null ? engineStatic.existingMailIncomeB : 0.0;
+  local rawMaxRevenueUpper = (12.0 * (paxRawA + paxRawB).tofloat() * paxIncome
+      + 12.0 * (mailRawA + mailRawB).tofloat() * mailIncome).tointeger();
+  local maxRevenueUpper = (rawMaxRevenueUpper.tofloat() * realizationFactor).tointeger();
+  /* Borne exacte pour l'argmax moteur : meme en transportant 100 % de la
+   * production brute, sans perte de rating/partage/capacite, le score ne peut
+   * depasser ce rendement. Les couts et le capital croissent avec N, donc la
+   * borne N=1 domine aussi tous les N suivants. Strict < conserve les egalites,
+   * car le chooser departage alors au profit. */
+  if (decisionOnly && decisionScoreFloor != null && decisionScoreFloor >= 0.0
+      && fixedPlanes <= 0 && plane.price > 0) {
+    local upperProfitOne = maxRevenueUpper - (plane.runningCost + airportMaintenanceAnnual)
+        - (vehicleAmortPerPlane + airportAmortAnnual);
+    local upperCapitalOne = airportCapital + plane.price;
+    local upperScoreOne = upperCapitalOne > 0
+        ? upperProfitOne.tofloat() * 1000.0 / upperCapitalOne.tofloat() : 0.0;
+    if (upperScoreOne < decisionScoreFloor) return null;
+  }
+  local fleetEvaluated = 0;
+  for (local planes = firstPlanes; planes <= maxAllowed; planes++) {
+    fleetEvaluated++;
+    local requestedCandidatePickupRate = planes.tofloat() / trip.roundTripDays;
+    local requestedStationPickupRateA = serviceA.pickupRate + requestedCandidatePickupRate;
+    local requestedStationPickupRateB = serviceB.pickupRate + requestedCandidatePickupRate;
+    local runwayScaleA = 1.0;
+    local runwayScaleB = 1.0;
+    if (runwayRateA > 0.0 && requestedStationPickupRateA > runwayRateA) {
+      runwayScaleA = runwayRateA / requestedStationPickupRateA;
+    }
+    if (runwayRateB > 0.0 && requestedStationPickupRateB > runwayRateB) {
+      runwayScaleB = runwayRateB / requestedStationPickupRateB;
+    }
+    /* Une rotation doit franchir les deux aeroports : sa cadence est bornee par
+     * l'extremite la plus saturee. Les services deja presents partagent, eux,
+     * la ressource locale de leur propre hub. C'est une conservation de debit,
+     * pas une decote empirique de revenu. */
+    local candidateRunwayScale = runwayScaleA < runwayScaleB ? runwayScaleA : runwayScaleB;
+    local candidatePickupRate = requestedCandidatePickupRate * candidateRunwayScale;
+    if (candidatePickupRate <= 0.0) continue;
+    local existingPickupRateA = serviceA.pickupRate * runwayScaleA;
+    local existingPickupRateB = serviceB.pickupRate * runwayScaleB;
+    local existingPaxRateA = serviceA.paxRate * runwayScaleA;
+    local existingPaxRateB = serviceB.paxRate * runwayScaleB;
+    local existingMailRateA = useMail ? serviceA.mailRate * runwayScaleA : 0.0;
+    local existingMailRateB = useMail ? serviceB.mailRate * runwayScaleB : 0.0;
+    local headwayDays = 1.0 / candidatePickupRate;
+    local stationPickupRateA = existingPickupRateA + candidatePickupRate;
+    local stationPickupRateB = existingPickupRateB + candidatePickupRate;
+    local candidatePaxRate = paxCapacity * candidatePickupRate;
+    local candidateMailRate = useMail ? mailCapacity * candidatePickupRate : 0.0;
+    local routeSharePaxA = existingPaxRateA > 0.0
+        ? candidatePaxRate / (existingPaxRateA + candidatePaxRate) : 1.0;
+    local routeSharePaxB = existingPaxRateB > 0.0
+        ? candidatePaxRate / (existingPaxRateB + candidatePaxRate) : 1.0;
+    local routeShareMailA = useMail
+        ? (existingMailRateA > 0.0 ? candidateMailRate / (existingMailRateA + candidateMailRate) : 1.0)
+        : 0.0;
+    local routeShareMailB = useMail
+        ? (existingMailRateB > 0.0 ? candidateMailRate / (existingMailRateB + candidateMailRate) : 1.0)
+        : 0.0;
+    local stationHeadwayA = stationPickupRateA > 0.0 ? 1.0 / stationPickupRateA : headwayDays;
+    local stationHeadwayB = stationPickupRateB > 0.0 ? 1.0 / stationPickupRateB : headwayDays;
+    local paxVisitCapA = stationPickupRateA > 0.0
+        ? (existingPaxRateA + paxCapacity * candidatePickupRate) / stationPickupRateA : paxCapacity;
+    local paxVisitCapB = stationPickupRateB > 0.0
+        ? (existingPaxRateB + paxCapacity * candidatePickupRate) / stationPickupRateB : paxCapacity;
+    local mailVisitCapA = useMail && stationPickupRateA > 0.0
+        ? (existingMailRateA + mailCapacity * candidatePickupRate) / stationPickupRateA : 0.0;
+    local mailVisitCapB = useMail && stationPickupRateB > 0.0
+        ? (existingMailRateB + mailCapacity * candidatePickupRate) / stationPickupRateB : 0.0;
+    local paxRatingA = OpexC121RatingTarget(
+        plane, plan.siteA.town, paxRawA, stationHeadwayA, paxVisitCapA, ratingBaseA, decisionOnly);
+    local paxRatingB = OpexC121RatingTarget(
+        plane, plan.siteB.town, paxRawB, stationHeadwayB, paxVisitCapB, ratingBaseB, decisionOnly);
+    local noMailRating = decisionOnly ? 0
+        : { points = 0, offered = 0.0, waitingUpper = 0.0, ratingWaiting = 0.0, cycled = false };
+    local mailRatingA = useMail ? OpexC121RatingTarget(
+        plane, plan.siteA.town, mailRawA, stationHeadwayA, mailVisitCapA, ratingBaseA, decisionOnly) : noMailRating;
+    local mailRatingB = useMail ? OpexC121RatingTarget(
+        plane, plan.siteB.town, mailRawB, stationHeadwayB, mailVisitCapB, ratingBaseB, decisionOnly) : noMailRating;
+    local paxRatingPointsA = decisionOnly ? paxRatingA : paxRatingA.points;
+    local paxRatingPointsB = decisionOnly ? paxRatingB : paxRatingB.points;
+    local mailRatingPointsA = decisionOnly ? mailRatingA : mailRatingA.points;
+    local mailRatingPointsB = decisionOnly ? mailRatingB : mailRatingB.points;
+    local stationPaxA = OpexC121StationAllocatedMonthly(
+        paxRawA, paxRatingPointsA, ("paxCompetitionA" in demand) ? demand.paxCompetitionA : null);
+    local stationPaxB = OpexC121StationAllocatedMonthly(
+        paxRawB, paxRatingPointsB, ("paxCompetitionB" in demand) ? demand.paxCompetitionB : null);
+    local stationMailA = useMail ? OpexC121StationAllocatedMonthly(
+        mailRawA, mailRatingPointsA, ("mailCompetitionA" in demand) ? demand.mailCompetitionA : null) : 0.0;
+    local stationMailB = useMail ? OpexC121StationAllocatedMonthly(
+        mailRawB, mailRatingPointsB, ("mailCompetitionB" in demand) ? demand.mailCompetitionB : null) : 0.0;
+    local offeredPaxA = stationPaxA * routeSharePaxA;
+    local offeredPaxB = stationPaxB * routeSharePaxB;
+    local offeredMailA = stationMailA * routeShareMailA;
+    local offeredMailB = stationMailB * routeShareMailB;
+    /* La capacite physique doit employer la cadence effectivement admise par
+     * les deux pistes, pas la cadence demandee par N avions. Sinon le cap FTA
+     * reduit le rating/partage mais laisse encore transporter du cargo sur des
+     * rotations qui ne peuvent pas avoir lieu. */
+    local departuresPerDirectionMonth = 30.4 * candidatePickupRate;
+    local paxDirectionCapacity = paxCapacity.tofloat() * departuresPerDirectionMonth;
+    local mailDirectionCapacity = useMail ? mailCapacity.tofloat() * departuresPerDirectionMonth : 0.0;
+    local carriedPaxA = (offeredPaxA < paxDirectionCapacity ? offeredPaxA : paxDirectionCapacity).tointeger();
+    local carriedPaxB = (offeredPaxB < paxDirectionCapacity ? offeredPaxB : paxDirectionCapacity).tointeger();
+    local carriedMailA = (offeredMailA < mailDirectionCapacity ? offeredMailA : mailDirectionCapacity).tointeger();
+    local carriedMailB = (offeredMailB < mailDirectionCapacity ? offeredMailB : mailDirectionCapacity).tointeger();
+    local carriedPax = carriedPaxA + carriedPaxB;
+    local carriedMail = carriedMailA + carriedMailB;
+    /* Externalite C121 : une nouvelle ligne sur une gare existante ne cree pas
+     * tout son trafic. Une partie est detournee des lignes deja presentes et la
+     * congestion de piste peut aussi reduire leur debit. Comparer le trafic
+     * existant avant le candidat a ce qu'il lui reste apres partage, puis
+     * valoriser la perte au revenu moyen par unite DES lignes du hub. */
+    local existingPaxAfterA = stationPaxA * (1.0 - routeSharePaxA);
+    local existingPaxAfterB = stationPaxB * (1.0 - routeSharePaxB);
+    local existingPaxCapacityA = existingPaxRateA * 30.4;
+    local existingPaxCapacityB = existingPaxRateB * 30.4;
+    if (existingPaxAfterA > existingPaxCapacityA) existingPaxAfterA = existingPaxCapacityA;
+    if (existingPaxAfterB > existingPaxCapacityB) existingPaxAfterB = existingPaxCapacityB;
+    local lostPaxA = existingPaxBeforeA > existingPaxAfterA ? existingPaxBeforeA - existingPaxAfterA : 0.0;
+    local lostPaxB = existingPaxBeforeB > existingPaxAfterB ? existingPaxBeforeB - existingPaxAfterB : 0.0;
+    local existingMailAfterA = existingMailBeforeA;
+    local existingMailAfterB = existingMailBeforeB;
+    if (useMail) {
+      existingMailAfterA = stationMailA * (1.0 - routeShareMailA);
+      existingMailAfterB = stationMailB * (1.0 - routeShareMailB);
+      local existingMailCapacityA = existingMailRateA * 30.4;
+      local existingMailCapacityB = existingMailRateB * 30.4;
+      if (existingMailAfterA > existingMailCapacityA) existingMailAfterA = existingMailCapacityA;
+      if (existingMailAfterB > existingMailCapacityB) existingMailAfterB = existingMailCapacityB;
+    }
+    local lostMailA = existingMailBeforeA > existingMailAfterA ? existingMailBeforeA - existingMailAfterA : 0.0;
+    local lostMailB = existingMailBeforeB > existingMailAfterB ? existingMailBeforeB - existingMailAfterB : 0.0;
+    local rawCannibalLossAnnual = (12.0 * (lostPaxA * existingPaxIncomeA
+        + lostPaxB * existingPaxIncomeB + lostMailA * existingMailIncomeA
+        + lostMailB * existingMailIncomeB)).tointeger();
+    local cannibalLossAnnual = rawCannibalLossAnnual > 0
+        ? (rawCannibalLossAnnual.tofloat() * realizationFactor).tointeger() : 0;
+    local rawRevenuePaxAnnual = (12.0 * carriedPax.tofloat() * paxIncome).tointeger();
+    local rawRevenueMailAnnual = (12.0 * carriedMail.tofloat() * mailIncome).tointeger();
+    local rawRevenueAnnual = rawRevenuePaxAnnual + rawRevenueMailAnnual;
+    local revenuePaxAnnual = (rawRevenuePaxAnnual.tofloat() * realizationFactor).tointeger();
+    local revenueMailAnnual = (rawRevenueMailAnnual.tofloat() * realizationFactor).tointeger();
+    local revenueAnnual = revenuePaxAnnual + revenueMailAnnual - cannibalLossAnnual;
+    local vehicleRunningAnnual = planes * plane.runningCost;
+    local runningAnnual = vehicleRunningAnnual + airportMaintenanceAnnual;
+    local vehicleAmortAnnual = planes * vehicleAmortPerPlane;
+    local amortAnnual = vehicleAmortAnnual + airportAmortAnnual;
+    local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+    local capital = airportCapital + planes * plane.price;
+    local immobilise = (TRANSIT_COST_PERMILLE > 0) ? (revenueAnnual * trip.roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+    local totalCapital = capital + immobilise;
+    local roi = totalCapital > 0 ? (profitAnnual * 1000) / totalCapital : 0;
+    /* La profondeur de flotte est une optimisation interne au projet, pas un
+     * arbitrage entre projets concurrents. K_dec mesure le budget d'opportunite
+     * du portefeuille (C69) et ne doit donc pas creer une zone de capital
+     * "gratuit" sous son seuil. Pour la flotte, comparer le rendement du capital
+     * reellement immobilise par le projet. K_dec reste attache au resultat pour
+     * le futur classement portefeuille C121. */
+    local decisionScore = totalCapital > 0
+        ? (profitAnnual.tofloat() * 1000.0) / totalCapital.tofloat() : 0.0;
+    if (scoreBest == null || decisionScore > scoreBest.score
+        || (decisionScore == scoreBest.score && profitAnnual > scoreBest.profitAnnual)) {
+      if (decisionOnly) {
+        /* Le chooser moteur n'a besoin que d'un petit tuple de classement.
+         * L'economie complete du gagnant est reconstruite une seule fois apres
+         * l'argmax : ne pas allouer ici le gros snapshot C121 a chaque moteur. */
+        scoreBest = {
+          planes = planes, targetPlanes = planes, score = decisionScore,
+          profitAnnual = profitAnnual, revenueAnnual = revenueAnnual,
+          capital = capital, immobilise = immobilise, roi = roi,
+          rawRevenueAnnual = rawRevenueAnnual, realizationFactor = realizationFactor,
+          cannibalLossAnnual = cannibalLossAnnual,
+          c121RealizationApplied = C121_AIR_ECONOMICS,
+          fleetScanCap = fleetScanCap,
+        };
+      } else {
+        scoreBest = {
+        planes = planes, targetPlanes = planes, score = decisionScore,
+        profitAnnual = profitAnnual, revenueAnnual = revenueAnnual,
+        revenuePaxAnnual = revenuePaxAnnual, revenueMailAnnual = revenueMailAnnual,
+        rawRevenueAnnual = rawRevenueAnnual, realizationFactor = realizationFactor,
+        cannibalLossAnnual = cannibalLossAnnual,
+        lostPaxA = lostPaxA, lostPaxB = lostPaxB,
+        lostMailA = lostMailA, lostMailB = lostMailB,
+        c121RealizationApplied = C121_AIR_ECONOMICS,
+        runningAnnual = runningAnnual, vehicleRunningAnnual = vehicleRunningAnnual,
+        infraRunningAnnual = airportMaintenanceAnnual,
+        amortAnnual = amortAnnual, vehicleAmortAnnual = vehicleAmortAnnual,
+        infraAmortAnnual = airportAmortAnnual, capital = capital, immobilise = immobilise, roi = roi,
+        planePrice = plane.price, lifeYears = lifeYears,
+        airportCapital = airportCapital, newAirportCount = newAirportCount,
+        ratingBaseA = ratingBaseA, ratingBaseB = ratingBaseB,
+        flightDays = trip.flightDays, maneuverDays = trip.maneuverDays,
+        physicalOneWayDays = trip.physicalOneWayDays,
+        hubDelayA = trip.hubDelayA, hubDelayB = trip.hubDelayB,
+        hubDelayObsA = trip.hubDelayObsA, hubDelayObsB = trip.hubDelayObsB,
+        hubDelayWindowObsA = trip.hubDelayWindowObsA, hubDelayWindowObsB = trip.hubDelayWindowObsB,
+        hubDelayVarianceA = trip.hubDelayVarianceA, hubDelayVarianceB = trip.hubDelayVarianceB,
+        oneWayDays = trip.oneWayDays, roundTripDays = trip.roundTripDays, headwayDays = headwayDays,
+        stationHeadwayA = stationHeadwayA, stationHeadwayB = stationHeadwayB,
+        existingPickupRateA = serviceA.pickupRate, existingPickupRateB = serviceB.pickupRate,
+        existingPaxRateA = serviceA.paxRate, existingPaxRateB = serviceB.paxRate,
+        existingMailRateA = serviceA.mailRate, existingMailRateB = serviceB.mailRate,
+        runwayServiceDaysA = runwayServiceDaysA, runwayServiceDaysB = runwayServiceDaysB,
+        runwayScaleA = runwayScaleA, runwayScaleB = runwayScaleB,
+        requestedPickupRate = requestedCandidatePickupRate, pickupRate = candidatePickupRate,
+        stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),
+        ratingPaxA = paxRatingPointsA, ratingPaxB = paxRatingPointsB,
+        ratingMailA = mailRatingPointsA, ratingMailB = mailRatingPointsB,
+        routeSharePaxA = routeSharePaxA, routeSharePaxB = routeSharePaxB,
+        routeShareMailA = routeShareMailA, routeShareMailB = routeShareMailB,
+        waitingPaxA = paxRatingA.waitingUpper, waitingPaxB = paxRatingB.waitingUpper,
+        waitingMailA = mailRatingA.waitingUpper, waitingMailB = mailRatingB.waitingUpper,
+        ratingCycle = paxRatingA.cycled || paxRatingB.cycled || mailRatingA.cycled || mailRatingB.cycled,
+        paymentDistance = paymentDistance, incomeDays = incomeDays, paxIncome = paxIncome, mailIncome = mailIncome,
+        paxCapacity = paxCapacity, mailCapacity = mailCapacity, mailKnown = useMail,
+        departuresPerDirectionMonth = departuresPerDirectionMonth,
+        paxDirectionCapacity = paxDirectionCapacity, mailDirectionCapacity = mailDirectionCapacity,
+        offeredPaxA = offeredPaxA, offeredPaxB = offeredPaxB, offeredMailA = offeredMailA, offeredMailB = offeredMailB,
+        carriedPaxA = carriedPaxA, carriedPaxB = carriedPaxB, carriedMailA = carriedMailA, carriedMailB = carriedMailB,
+        carriedPax = carriedPax, carriedMail = carriedMail, carried = carriedPax + carriedMail,
+          fleetScanCap = fleetScanCap,
+        };
+      }
+    }
+    if (!decisionOnly && (best == null || profitAnnual > best.profitAnnual || (profitAnnual == best.profitAnnual && roi > best.roi))) {
+      best = {
+        planes = planes, targetPlanes = planes, profitAnnual = profitAnnual, revenueAnnual = revenueAnnual,
+        revenuePaxAnnual = revenuePaxAnnual, revenueMailAnnual = revenueMailAnnual,
+        rawRevenueAnnual = rawRevenueAnnual, realizationFactor = realizationFactor,
+        cannibalLossAnnual = cannibalLossAnnual,
+        lostPaxA = lostPaxA, lostPaxB = lostPaxB,
+        lostMailA = lostMailA, lostMailB = lostMailB,
+        c121RealizationApplied = C121_AIR_ECONOMICS,
+        runningAnnual = runningAnnual, vehicleRunningAnnual = vehicleRunningAnnual,
+        infraRunningAnnual = airportMaintenanceAnnual,
+        amortAnnual = amortAnnual, vehicleAmortAnnual = vehicleAmortAnnual,
+        infraAmortAnnual = airportAmortAnnual, capital = capital, immobilise = immobilise, roi = roi,
+        planePrice = plane.price, lifeYears = lifeYears,
+        airportCapital = airportCapital, newAirportCount = newAirportCount,
+        ratingBaseA = ratingBaseA, ratingBaseB = ratingBaseB,
+        flightDays = trip.flightDays, maneuverDays = trip.maneuverDays,
+        physicalOneWayDays = trip.physicalOneWayDays,
+        hubDelayA = trip.hubDelayA, hubDelayB = trip.hubDelayB,
+        hubDelayObsA = trip.hubDelayObsA, hubDelayObsB = trip.hubDelayObsB,
+        hubDelayWindowObsA = trip.hubDelayWindowObsA, hubDelayWindowObsB = trip.hubDelayWindowObsB,
+        hubDelayVarianceA = trip.hubDelayVarianceA, hubDelayVarianceB = trip.hubDelayVarianceB,
+        oneWayDays = trip.oneWayDays, roundTripDays = trip.roundTripDays, headwayDays = headwayDays,
+        stationHeadwayA = stationHeadwayA, stationHeadwayB = stationHeadwayB,
+        existingPickupRateA = serviceA.pickupRate, existingPickupRateB = serviceB.pickupRate,
+        existingPaxRateA = serviceA.paxRate, existingPaxRateB = serviceB.paxRate,
+        existingMailRateA = serviceA.mailRate, existingMailRateB = serviceB.mailRate,
+        runwayServiceDaysA = runwayServiceDaysA, runwayServiceDaysB = runwayServiceDaysB,
+        runwayScaleA = runwayScaleA, runwayScaleB = runwayScaleB,
+        requestedPickupRate = requestedCandidatePickupRate, pickupRate = candidatePickupRate,
+        stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),
+        ratingPaxA = paxRatingPointsA, ratingPaxB = paxRatingPointsB,
+        ratingMailA = mailRatingPointsA, ratingMailB = mailRatingPointsB,
+        routeSharePaxA = routeSharePaxA, routeSharePaxB = routeSharePaxB,
+        routeShareMailA = routeShareMailA, routeShareMailB = routeShareMailB,
+        waitingPaxA = paxRatingA.waitingUpper, waitingPaxB = paxRatingB.waitingUpper,
+        waitingMailA = mailRatingA.waitingUpper, waitingMailB = mailRatingB.waitingUpper,
+        ratingCycle = paxRatingA.cycled || paxRatingB.cycled || mailRatingA.cycled || mailRatingB.cycled,
+        paymentDistance = paymentDistance, incomeDays = incomeDays, paxIncome = paxIncome, mailIncome = mailIncome,
+        paxCapacity = paxCapacity, mailCapacity = mailCapacity, mailKnown = useMail,
+        departuresPerDirectionMonth = departuresPerDirectionMonth,
+        paxDirectionCapacity = paxDirectionCapacity, mailDirectionCapacity = mailDirectionCapacity,
+        offeredPaxA = offeredPaxA, offeredPaxB = offeredPaxB, offeredMailA = offeredMailA, offeredMailB = offeredMailB,
+        carriedPaxA = carriedPaxA, carriedPaxB = carriedPaxB, carriedMailA = carriedMailA, carriedMailB = carriedMailB,
+        carriedPax = carriedPax, carriedMail = carriedMail, carried = carriedPax + carriedMail,
+        fleetScanCap = fleetScanCap,
+      };
+    }
+    if (decisionOnly && fixedPlanes <= 0 && planes < maxAllowed && scoreBest != null
+        && plane.price > 0 && plane.runningCost >= 0 && vehicleAmortPerPlane >= 0) {
+      local nextPlanes = planes + 1;
+      local upperProfit = maxRevenueUpper
+          - (nextPlanes * plane.runningCost + airportMaintenanceAnnual)
+          - (nextPlanes * vehicleAmortPerPlane + airportAmortAnnual);
+      local nextCapital = airportCapital + nextPlanes * plane.price;
+      local upperScore = nextCapital > 0
+          ? upperProfit.tofloat() * 1000.0 / nextCapital.tofloat() : 0.0;
+      if (upperScore <= scoreBest.score) break;
+    }
+  }
+  if (decisionOnly) {
+    if (scoreBest != null) {
+      scoreBest.fleetEvaluated <- fleetEvaluated;
+      scoreBest.fleetBoundPruned <- fixedPlanes <= 0 && fleetEvaluated < fleetScanCap;
+      scoreBest.decisionKDec <- decisionKDec;
+      scoreBest.decisionPlanes <- scoreBest.planes;
+      scoreBest.decisionScore <- scoreBest.score;
+      scoreBest.decisionProfitAnnual <- scoreBest.profitAnnual;
+      scoreBest.decisionRevenueAnnual <- scoreBest.revenueAnnual;
+      scoreBest.decisionCapital <- scoreBest.capital;
+    }
+    return scoreBest;
+  }
+  if (best != null && scoreBest != null) {
+    scoreBest.fleetEvaluated <- fleetEvaluated;
+    scoreBest.fleetBoundPruned <- decisionOnly && fixedPlanes <= 0 && fleetEvaluated < fleetScanCap;
+    scoreBest.decisionKDec <- decisionKDec;
+    scoreBest.decisionPlanes <- scoreBest.planes;
+    scoreBest.decisionScore <- scoreBest.score;
+    scoreBest.decisionProfitAnnual <- scoreBest.profitAnnual;
+    scoreBest.decisionRevenueAnnual <- scoreBest.revenueAnnual;
+    scoreBest.decisionCapital <- scoreBest.capital;
+    scoreBest.decisionCarriedPax <- scoreBest.carriedPax;
+    scoreBest.decisionCarriedMail <- scoreBest.carriedMail;
+    scoreBest.decisionCarried <- scoreBest.carried;
+    scoreBest.decisionStationRating <- scoreBest.stationRating;
+    scoreBest.decisionHeadwayDays <- scoreBest.headwayDays;
+    scoreBest.decisionRunwayScaleA <- scoreBest.runwayScaleA;
+    scoreBest.decisionRunwayScaleB <- scoreBest.runwayScaleB;
+    scoreBest.decisionRequestedPickupRate <- scoreBest.requestedPickupRate;
+    scoreBest.decisionPickupRate <- scoreBest.pickupRate;
+    best.decisionKDec <- decisionKDec;
+    best.decisionPlanes <- scoreBest.planes;
+    best.decisionScore <- scoreBest.score;
+    best.decisionProfitAnnual <- scoreBest.profitAnnual;
+    best.decisionRevenueAnnual <- scoreBest.revenueAnnual;
+    best.decisionCapital <- scoreBest.capital;
+    best.decisionCarriedPax <- scoreBest.carriedPax;
+    best.decisionCarriedMail <- scoreBest.carriedMail;
+    best.decisionCarried <- scoreBest.carried;
+    best.decisionStationRating <- scoreBest.stationRating;
+    best.decisionHeadwayDays <- scoreBest.headwayDays;
+    best.decisionRunwayScaleA <- scoreBest.runwayScaleA;
+    best.decisionRunwayScaleB <- scoreBest.runwayScaleB;
+    best.decisionRequestedPickupRate <- scoreBest.requestedPickupRate;
+    best.decisionPickupRate <- scoreBest.pickupRate;
+    best.decisionEconomics <- scoreBest;
+  }
+  return best;
+}
+
+/* Evaluation C121 avec l'etat de connaissance courant d'un moteur : le premier
+ * contact utilise la capacite PASS du catalogue et MAIL=0 ; apres la premiere
+ * construction/refit PASS, le couple PASS/MAIL exact observe remplace ce cold
+ * start. Aucun catalogue OpenGFX externe ni pourcentage MAIL n'intervient. */
+function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decisionOnly = false,
+                                 decisionScoreFloor = null)
+{
+  if (plane == null) return null;
+  local paxCapacity = plane.capacity;
+  local mailCapacity = 0;
+  local mailKnown = false;
+  if (plane.id in C121_AIR_ENGINE_CAPACITY_OBS) {
+    local caps = C121_AIR_ENGINE_CAPACITY_OBS[plane.id];
+    if (caps != null && caps.pax > 0 && caps.mail >= 0) {
+      paxCapacity = caps.pax;
+      mailCapacity = caps.mail;
+      mailKnown = true;
+    }
+  }
+  local economics = OpexC121AirEconomics(
+      catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes, decisionOnly, decisionScoreFloor);
+  if (economics != null && decisionOnly && C121_AIR_ENGINE_REALIZATION) {
+    local factor = OpexC121EngineDecisionRealizationFactor(plan);
+    if (factor != 1.0) {
+      local oldRevenue = economics.revenueAnnual;
+      local annualCosts = oldRevenue - economics.profitAnnual;
+      local adjustedRevenue = (oldRevenue.tofloat() * factor).tointeger();
+      local adjustedProfit = adjustedRevenue - annualCosts;
+      local adjustedImmobilise = (economics.immobilise.tofloat() * factor).tointeger();
+      local adjustedTotalCapital = economics.capital + adjustedImmobilise;
+      local adjustedScore = adjustedTotalCapital > 0
+          ? adjustedProfit.tofloat() * 1000.0 / adjustedTotalCapital.tofloat() : 0.0;
+      economics.revenueAnnual = adjustedRevenue;
+      economics.profitAnnual = adjustedProfit;
+      economics.immobilise = adjustedImmobilise;
+      economics.roi = adjustedTotalCapital > 0
+          ? (adjustedProfit * 1000) / adjustedTotalCapital : 0;
+      economics.score = adjustedScore;
+      economics.decisionRevenueAnnual = adjustedRevenue;
+      economics.decisionProfitAnnual = adjustedProfit;
+      economics.decisionScore = adjustedScore;
+      economics.engineDecisionRealizationFactor <- factor;
+    }
+  }
+  if (economics != null) {
+    economics.engineMailKnown <- mailKnown;
+    if (("decisionEconomics" in economics) && economics.decisionEconomics != null) {
+      economics.decisionEconomics.engineMailKnown <- mailKnown;
+    }
+  }
+  return economics;
+}
+
+/* Borne superieure bon marche du score initial C121 a un avion. Elle ignore
+ * rating, partage de route et saturation de piste, mais respecte la capacite
+ * physique d'UN avion a sa cadence de rotation exacte. Elle reste donc
+ * optimiste sans pretendre qu'un petit avion peut transporter 100 % d'une
+ * grosse ville. Utilisee seulement pour ordonner/pruner le scan moteur sans
+ * changer l'argmax exact. */
+function OpexC121InitialEngineUpperScore(catalog, plan, plane)
+{
+  if (catalog == null || plan == null || plane == null || !("c121Demand" in plan)
+      || !("c121EngineStatic" in plan) || plan.c121EngineStatic == null
+      || plane.price <= 0 || plane.runningCost < 0) return null;
+  local st = plan.c121EngineStatic;
+  local paxCapacity = plane.capacity;
+  local mailCapacity = 0;
+  local incomeDays = OpexC119AirIncomeDays(plane, plan.distance);
+  local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
+  if (paxIncome < 0) return null;
+  local useMail = false;
+  if (plane.id in C121_AIR_ENGINE_CAPACITY_OBS) {
+    local caps = C121_AIR_ENGINE_CAPACITY_OBS[plane.id];
+    if (caps != null && caps.pax > 0 && caps.mail >= 0) {
+      paxCapacity = caps.pax;
+      mailCapacity = caps.mail;
+      useMail = mailCapacity > 0 && ("mailCargo" in catalog) && catalog.mailCargo >= 0;
+    }
+  }
+  if (paxCapacity <= 0) return null;
+  local mailIncome = useMail ? AICargo.GetCargoIncome(catalog.mailCargo, st.paymentDistance, incomeDays) : 0;
+  if (useMail && mailIncome < 0) return null;
+  local trip = OpexC121AirTripModel(plan, plane);
+  if (trip == null || trip.roundTripDays <= 0.0) return null;
+  local departuresPerDirectionMonth = 30.4 / trip.roundTripDays;
+  local paxDirectionCapacity = paxCapacity.tofloat() * departuresPerDirectionMonth;
+  local paxUpperA = st.paxRawA.tofloat() < paxDirectionCapacity ? st.paxRawA.tofloat() : paxDirectionCapacity;
+  local paxUpperB = st.paxRawB.tofloat() < paxDirectionCapacity ? st.paxRawB.tofloat() : paxDirectionCapacity;
+  local mailUpperA = 0.0;
+  local mailUpperB = 0.0;
+  if (useMail) {
+    local mailDirectionCapacity = mailCapacity.tofloat() * departuresPerDirectionMonth;
+    mailUpperA = st.mailRawA.tofloat() < mailDirectionCapacity ? st.mailRawA.tofloat() : mailDirectionCapacity;
+    mailUpperB = st.mailRawB.tofloat() < mailDirectionCapacity ? st.mailRawB.tofloat() : mailDirectionCapacity;
+  }
+  local rawRevenueUpper = (12.0 * (paxUpperA + paxUpperB) * paxIncome
+      + 12.0 * (mailUpperA + mailUpperB) * mailIncome).tointeger();
+  local revenueUpper = (rawRevenueUpper.tofloat()
+      * OpexC121EngineDecisionRealizationFactor(plan)).tointeger();
+  local lifeYears = (("ageYears" in plane) && plane.ageYears > 0)
+      ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365);
+  local amort = lifeYears > 0 ? plane.price / lifeYears : 0;
+  local profitUpper = revenueUpper - plane.runningCost - st.airportMaintenanceAnnual
+      - amort - st.airportAmortAnnual;
+  local capital = st.airportCapital + plane.price;
+  return capital > 0 ? profitUpper.tofloat() * 1000.0 / capital.tofloat() : 0.0;
+}
+
+/* Choix causal C121. Les invariants de route sont prepares une seule fois par
+ * projet, puis chaque moteur relit seulement cet etat et le cache de soute. */
+function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
+{
+  if (!C121_AIR_ECONOMICS || catalog == null || plan == null
+      || !("airport" in plan) || plan.airport == null
+      || !("distance" in plan)
+      || catalog.airPlaneChoicesByAirport == null
+      || !(plan.airport.type in catalog.airPlaneChoicesByAirport)) return null;
+  local perf = C121_AIR_PLAN_PERF;
+  if (perf != null) perf.calls++;
+  OpexC121PrepareDemandShadow(catalog, plan, lines);
+  if (perf != null && ("c121DemandOps" in plan)) {
+    if (plan.c121DemandOps >= 0) perf.demandOps += plan.c121DemandOps;
+    perf.demandTicks += ("c121DemandTicks" in plan) ? plan.c121DemandTicks : 0;
+  }
+  if (!("c121Demand" in plan)) return null;
+  local staticTick0 = AIController.GetTick();
+  local staticOps0 = AIController.GetOpsTillSuspend();
+  OpexC121PrepareEngineStatic(catalog, plan);
+  local staticTick1 = AIController.GetTick();
+  plan.c121EngineStaticTicks <- staticTick1 - staticTick0;
+  plan.c121EngineStaticOps <- OpexAirCalcDeltaOps(staticTick0, staticOps0);
+  if (perf != null) {
+    if (plan.c121EngineStaticOps >= 0) perf.staticOps += plan.c121EngineStaticOps;
+    perf.staticTicks += plan.c121EngineStaticTicks;
+  }
+
+  local scanTick0 = AIController.GetTick();
+  local scanOps0 = AIController.GetOpsTillSuspend();
+  local evaluated = 0;
+  local known = 0;
+  local evalOpsTotal = 0;
+  local evalOps = 0;
+  local evalSameTick = 0;
+  local best = null;
+  local candidates = [];
+  foreach (plane in catalog.airPlaneChoicesByAirport[plan.airport.type]) {
+    if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
+    if (!OpexC118EngineFitsPlan(plan, plane)) continue;
+    if (!OpexAirPlaneInRange(plane, plan.distance)) continue;
+    local upperScore = OpexC121InitialEngineUpperScore(catalog, plan, plane);
+    if (upperScore == null) continue;
+    candidates.append({ plane = plane, upperScore = upperScore });
+  }
+  candidates.sort(function(a, b) {
+    if (a.upperScore > b.upperScore) return -1;
+    if (a.upperScore < b.upperScore) return 1;
+    if (a.plane.id < b.plane.id) return -1;
+    if (a.plane.id > b.plane.id) return 1;
+    return 0;
+  });
+  foreach (candidate in candidates) {
+    if (best != null && candidate.upperScore < best.economics.decisionScore) break;
+    local plane = candidate.plane;
+    local tick0 = AIController.GetTick();
+    local ops0 = AIController.GetOpsTillSuspend();
+    local evaluatedEconomics = OpexC121EngineEconomics(catalog, plan, plane, 1, true, null);
+    local tick1 = AIController.GetTick();
+    local ops = OpexAirCalcDeltaOps(tick0, ops0);
+    if (ops >= 0) evalOpsTotal += ops;
+    if (tick1 == tick0 && ops >= 0) {
+      evalOps += ops;
+      evalSameTick++;
+    }
+    if (evaluatedEconomics == null || !("decisionScore" in evaluatedEconomics)) continue;
+    local economics = (("decisionEconomics" in evaluatedEconomics)
+        && evaluatedEconomics.decisionEconomics != null)
+        ? evaluatedEconomics.decisionEconomics : evaluatedEconomics;
+    evaluated++;
+    if (("engineMailKnown" in economics) && economics.engineMailKnown) known++;
+    local item = { plane = plane, economics = economics };
+    if (best == null
+        || economics.decisionScore > best.economics.decisionScore
+        || (economics.decisionScore == best.economics.decisionScore
+            && economics.decisionProfitAnnual > best.economics.decisionProfitAnnual)
+        || (economics.decisionScore == best.economics.decisionScore
+            && economics.decisionProfitAnnual == best.economics.decisionProfitAnnual
+            && plane.id < best.plane.id)) best = item;
+  }
+  local scanTick1 = AIController.GetTick();
+  plan.c121EngineScanTicks <- scanTick1 - scanTick0;
+  plan.c121EngineScanOps <- OpexAirCalcDeltaOps(scanTick0, scanOps0);
+  plan.c121EngineEvalCount <- evaluated;
+  plan.c121EngineKnownCount <- known;
+  plan.c121EngineEvalOpsTotal <- evalOpsTotal;
+  plan.c121EngineEvalOpsSameTick <- evalOps;
+  plan.c121EngineEvalSameTickCount <- evalSameTick;
+  if (perf != null) {
+    if (plan.c121EngineScanOps >= 0) perf.scanOps += plan.c121EngineScanOps;
+    perf.scanTicks += plan.c121EngineScanTicks;
+    perf.engineEvals += evaluated;
+  }
+  if (best == null) {
+    if (perf != null) perf.noWinner++;
+    return null;
+  }
+  /* Le scan decisionOnly choisit le moteur sur le chantier N=1. Pour ne pas
+   * sous-evaluer les lignes dont la valeur vient de leur montee en charge, on
+   * calcule ensuite UNE seule croisiere max-profit pour le moteur gagnant. Elle
+   * sert uniquement au classement economique ; le chantier reste N=1 et la
+   * cible exacte sera recalculee apres construction avec PASS/MAIL observes. */
+  local fullTick0 = AIController.GetTick();
+  local fullOps0 = AIController.GetOpsTillSuspend();
+  local initialEconomics = OpexC121EngineEconomics(catalog, plan, best.plane, 1, false);
+  local decisionEconomics = OpexC121EngineEconomics(catalog, plan, best.plane, 0, false);
+  local fullTick1 = AIController.GetTick();
+  plan.c121WinnerFullTicks <- fullTick1 - fullTick0;
+  plan.c121WinnerFullOps <- OpexAirCalcDeltaOps(fullTick0, fullOps0);
+  if (perf != null) {
+    if (plan.c121WinnerFullOps >= 0) perf.winnerOps += plan.c121WinnerFullOps;
+    perf.winnerTicks += plan.c121WinnerFullTicks;
+  }
+  if (initialEconomics == null) return null;
+  if (decisionEconomics == null) decisionEconomics = initialEconomics;
+  plan.c121ChosenEngine <- best.plane.id;
+  plan.c121ChosenMailKnown <- (("engineMailKnown" in initialEconomics) && initialEconomics.engineMailKnown);
+  return { plane = best.plane, economics = initialEconomics, decisionEconomics = decisionEconomics,
+      targetPlanes = initialEconomics.planes };
+}
+
+/* Shadow de stabilite du classement, execute seulement lorsqu'un nouveau moteur
+ * vient d'apprendre son couple PASS/MAIL. Le classement PASS-only et le
+ * classement PASS+MAIL portent exactement sur le meme sous-ensemble de moteurs
+ * observes ; la couverture partielle est exposee explicitement. */
+function OpexC121ReplayEngineChoice(catalog, plan, result, newlyObserved)
+{
+  if (!C121_AIR_ENGINE_REPLAY_SHADOW || catalog == null || plan == null || result == null
+      || !newlyObserved || !("plane" in plan) || plan.plane == null
+      || !("airport" in plan) || plan.airport == null) return null;
+  if (catalog.airPlaneChoicesByAirport == null
+      || !(plan.airport.type in catalog.airPlaneChoicesByAirport)) return null;
+
+  local tick0 = AIController.GetTick();
+  local ops0 = AIController.GetOpsTillSuspend();
+  local total = 0;
+  local known = 0;
+  local evaluated = 0;
+  local bestPass = null;
+  local bestMail = null;
+  local chosenPass = null;
+  local chosenMail = null;
+  foreach (plane in catalog.airPlaneChoicesByAirport[plan.airport.type]) {
+    /* Le catalogue peut conserver une entree historique apres expiration. */
+    if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
+    if (!OpexC118EngineFitsPlan(plan, plane)) continue;
+    if (!OpexAirPlaneInRange(plane, plan.distance)) continue;
+    total++;
+    if (!(plane.id in C121_AIR_ENGINE_CAPACITY_OBS)) continue;
+    local caps = C121_AIR_ENGINE_CAPACITY_OBS[plane.id];
+    if (caps == null || caps.pax <= 0 || caps.mail < 0) continue;
+    known++;
+    local passEconomics = OpexC121AirEconomics(catalog, plan, plane, caps.pax, 0, 0);
+    local mailEconomics = OpexC121EngineEconomics(catalog, plan, plane, 0);
+    if (passEconomics == null || mailEconomics == null
+        || !("decisionScore" in passEconomics) || !("decisionScore" in mailEconomics)) continue;
+    evaluated++;
+    local passItem = { plane = plane, economics = passEconomics };
+    local mailItem = { plane = plane, economics = mailEconomics };
+    if (plane.id == plan.plane.id) {
+      chosenPass = passItem;
+      chosenMail = mailItem;
+    }
+    if (bestPass == null
+        || passEconomics.decisionScore > bestPass.economics.decisionScore
+        || (passEconomics.decisionScore == bestPass.economics.decisionScore
+            && passEconomics.decisionProfitAnnual > bestPass.economics.decisionProfitAnnual)) {
+      bestPass = passItem;
+    }
+    if (bestMail == null
+        || mailEconomics.decisionScore > bestMail.economics.decisionScore
+        || (mailEconomics.decisionScore == bestMail.economics.decisionScore
+            && mailEconomics.decisionProfitAnnual > bestMail.economics.decisionProfitAnnual)) {
+      bestMail = mailItem;
+    }
+  }
+  local tick1 = AIController.GetTick();
+  return {
+    total = total, known = known, evaluated = evaluated, complete = known == total,
+    bestPass = bestPass, bestMail = bestMail, chosenPass = chosenPass, chosenMail = chosenMail,
+    changed = bestPass != null && bestMail != null && bestPass.plane.id != bestMail.plane.id,
+    ticks = tick1 - tick0, ops = OpexAirCalcDeltaOps(tick0, ops0)
+  };
+}
+
+/* Post-chantier : mesure exacte des deux capacites du vehicule refitte PASS. */
+function OpexC121MeasureBuiltEconomics(catalog, plan, result)
+{
+  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) || plan == null || result == null
+      || !("c121Demand" in plan) || !("vehicle" in result) || !AIVehicle.IsValidVehicle(result.vehicle)) return;
+  local paxCapacity = AIVehicle.GetCapacity(result.vehicle, catalog.paxCargo);
+  local mailCapacity = (("mailCargo" in catalog) && catalog.mailCargo >= 0)
+      ? AIVehicle.GetCapacity(result.vehicle, catalog.mailCargo) : -1;
+  if (paxCapacity <= 0 || mailCapacity < 0) return;
+  local engineId = AIVehicle.GetEngineType(result.vehicle);
+  local newlyObserved = !(engineId in C121_AIR_ENGINE_CAPACITY_OBS);
+  C121_AIR_ENGINE_CAPACITY_OBS.rawset(engineId, { pax = paxCapacity, mail = mailCapacity });
+  local tick0 = AIController.GetTick();
+  local ops0 = AIController.GetOpsTillSuspend();
+  local actualN = ("vehicles" in result) && result.vehicles != null ? result.vehicles.len() : 1;
+  /* Le shadow est descriptif : scanner toute la flotte optimale ne change aucune
+   * decision et peut suspendre le script. Garder ce cout uniquement pour le futur
+   * chemin causal C121 ; le shadow mesure la flotte effectivement construite. */
+  local target = C121_AIR_ECONOMICS
+      ? OpexC121EngineEconomics(catalog, plan, plan.plane, 0)
+      : null;
+  local actual = OpexC121AirEconomics(catalog, plan, plan.plane, paxCapacity, mailCapacity, actualN);
+  local next = null;
+  if (C121_AIR_ECONOMICS && target != null && actual != null && actualN < target.planes) {
+    next = OpexC121AirEconomics(
+        catalog, plan, plan.plane, paxCapacity, mailCapacity, actualN + 1);
+  }
+  local engineReplay = OpexC121ReplayEngineChoice(catalog, plan, result, newlyObserved);
+  local tick1 = AIController.GetTick();
+  local ops1 = AIController.GetOpsTillSuspend();
+  result.c121PaxCapacity <- paxCapacity;
+  result.c121MailCapacity <- mailCapacity;
+  result.c121TargetEconomics <- target;
+  result.c121ActualEconomics <- actual;
+  result.c121MarginalProfit <- (next != null && actual != null)
+      ? next.profitAnnual - actual.profitAnnual : 0;
+  result.c121MarginalRevenue <- (next != null && actual != null)
+      ? next.revenueAnnual - actual.revenueAnnual : 0;
+  result.c121EngineReplay <- engineReplay;
+  result.c121EvalTicks <- tick1 - tick0;
+  result.c121EvalOps <- OpexAirCalcDeltaOps(tick0, ops0);
+}
+
+function OpexC121AttachLineShadow(line, lineId, plan, result)
+{
+  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) || line == null || plan == null
+      || result == null || !("c121Demand" in plan)) return;
+  local paxCapacity = ("c121PaxCapacity" in result) ? result.c121PaxCapacity : -1;
+  local mailCapacity = ("c121MailCapacity" in result) ? result.c121MailCapacity : -1;
+  local demandOps = ("c121DemandOps" in plan) ? plan.c121DemandOps : -1;
+  local demandTicks = ("c121DemandTicks" in plan) ? plan.c121DemandTicks : -1;
+  local evalOps = ("c121EvalOps" in result) ? result.c121EvalOps : -1;
+  local evalTicks = ("c121EvalTicks" in result) ? result.c121EvalTicks : -1;
+  local target = ("c121TargetEconomics" in result) ? result.c121TargetEconomics : null;
+  local actual = ("c121ActualEconomics" in result) ? result.c121ActualEconomics : null;
+  local keepLineDiagnostics = C121_AIR_ECONOMICS_SHADOW || C121_AIR_ENGINE_REPLAY_SHADOW;
+  /* C121 ne garde jamais ses tables riches dans line. SAVE_FULL_STATE projette
+   * seulement les floats top-level : une table c121Demand/economics contenant
+   * des floats imbriques fait refuser le savegame par OpenTTD. Les decisions ne
+   * relisent pas ces tables apres le build ; conserver uniquement les scalaires
+   * necessaires au probe maintient la telemetry et un graphe de sauvegarde plat. */
+  if (C121_AIR_ECONOMICS) {
+    line.c121Arm <- ("arm" in plan) ? plan.arm : "unknown";
+    line.c121MarginalProfit <- ("c121MarginalProfit" in result) ? result.c121MarginalProfit : 0;
+    line.c121MarginalRevenue <- ("c121MarginalRevenue" in result) ? result.c121MarginalRevenue : 0;
+    /* 0 = aucune marge reelle encore observee. Le cold-start physique reste
+     * disponible dans c121Marginal*, mais la premiere observation complete le
+     * remplace ; seules les observations reelles suivantes sont moyennees. */
+    line.c121MarginalSamples <- 0;
+    if (actual != null) {
+      line.c121RawRevenueAnnual <- ("rawRevenueAnnual" in actual) ? actual.rawRevenueAnnual : actual.revenueAnnual;
+      local realization = ("realizationFactor" in actual) ? actual.realizationFactor : 1.0;
+      line.c121RealizationPmAtBuild <- (realization * 1000.0).tointeger();
+      line.c121VehicleAmortPerPlane <- actual.planes > 0
+          ? actual.vehicleAmortAnnual / actual.planes : 0;
+    }
+    if (target != null) {
+      line.c121TargetPlanes <- target.planes;
+    }
+    /* Les scalaires ci-dessous ne pilotent aucune decision. Les garder sur
+     * chaque ligne en causal normal faisait depasser le budget d'opcodes de
+     * Save() vers 100+ lignes AIR. Les shadows peuvent encore les conserver. */
+    if (keepLineDiagnostics) {
+      if (("plane" in plan) && plan.plane != null) line.c121EngineId <- plan.plane.id;
+      line.c121PaxCapacity <- paxCapacity;
+      line.c121MailCapacity <- mailCapacity;
+      line.c121DemandOps <- demandOps;
+      line.c121DemandTicks <- demandTicks;
+      line.c121EvalOps <- evalOps;
+      line.c121EvalTicks <- evalTicks;
+      if (actual != null) {
+        line.c121ActualCarriedPax <- actual.carriedPax;
+        line.c121ActualCarriedMail <- actual.carriedMail;
+        line.c121ActualCarried <- actual.carried;
+        line.c121ActualRevenueAnnual <- actual.revenueAnnual;
+        line.c121ActualProfitAnnual <- actual.profitAnnual;
+        line.c121ActualRunningAnnual <- actual.runningAnnual;
+        line.c121ActualVehicleRunningAnnual <- actual.vehicleRunningAnnual;
+        line.c121ActualAmortAnnual <- actual.amortAnnual;
+        line.c121ActualPlanes <- actual.planes;
+        line.c121ActualOneWayDays <- actual.oneWayDays;
+        line.c121ActualHeadwayDays <- actual.headwayDays;
+        line.c121ActualStationRating <- actual.stationRating;
+      }
+      if (target != null) {
+        line.c121TargetCarriedPax <- target.carriedPax;
+        line.c121TargetCarriedMail <- target.carriedMail;
+        line.c121TargetCarried <- target.carried;
+        line.c121TargetRevenueAnnual <- target.revenueAnnual;
+        line.c121TargetProfitAnnual <- target.profitAnnual;
+      }
+    }
+  }
+  local engineReplay = ("c121EngineReplay" in result) ? result.c121EngineReplay : null;
+  local replayPass = engineReplay != null ? engineReplay.bestPass : null;
+  local replayMail = engineReplay != null ? engineReplay.bestMail : null;
+  local replayChosenPass = engineReplay != null ? engineReplay.chosenPass : null;
+  local replayChosenMail = engineReplay != null ? engineReplay.chosenMail : null;
+  AILog.Info("C121_BUILD line=" + lineId
+      + " arm=" + (("arm" in plan) ? plan.arm : "unknown") + " engine=" + plan.plane.id
+      + " station_id_a=" + AIStation.GetStationID(result.stationA)
+      + " station_id_b=" + AIStation.GetStationID(result.stationB)
+      + " pax_a=" + plan.c121Demand.paxA + " pax_b=" + plan.c121Demand.paxB
+      + " mail_a=" + plan.c121Demand.mailA + " mail_b=" + plan.c121Demand.mailB
+      + " pax_raw_a=" + plan.c121Demand.paxRawA + " pax_raw_b=" + plan.c121Demand.paxRawB
+      + " mail_raw_a=" + plan.c121Demand.mailRawA + " mail_raw_b=" + plan.c121Demand.mailRawB
+      + " route_div_a=" + plan.c121Demand.routeDivA + " route_div_b=" + plan.c121Demand.routeDivB
+      + " current_pax_rating_a=" + plan.c121Demand.currentPaxRatingA
+      + " current_pax_rating_b=" + plan.c121Demand.currentPaxRatingB
+      + " current_mail_rating_a=" + plan.c121Demand.currentMailRatingA
+      + " current_mail_rating_b=" + plan.c121Demand.currentMailRatingB
+      + " pax_ticks_a=" + plan.c121Demand.paxTicksA + " pax_ticks_b=" + plan.c121Demand.paxTicksB
+      + " mail_ticks_a=" + plan.c121Demand.mailTicksA + " mail_ticks_b=" + plan.c121Demand.mailTicksB
+      + " pax_ops_a=" + plan.c121Demand.paxOpsA + " pax_ops_b=" + plan.c121Demand.paxOpsB
+      + " mail_ops_a=" + plan.c121Demand.mailOpsA + " mail_ops_b=" + plan.c121Demand.mailOpsB
+      + " pax_predict_ticks_a=" + plan.c121Demand.paxPredictTicksA
+      + " pax_predict_ticks_b=" + plan.c121Demand.paxPredictTicksB
+      + " pax_coverage_ticks_a=" + plan.c121Demand.paxCoverageTicksA
+      + " pax_coverage_ticks_b=" + plan.c121Demand.paxCoverageTicksB
+      + " pax_union_ticks_a=" + plan.c121Demand.paxUnionTicksA
+      + " pax_union_ticks_b=" + plan.c121Demand.paxUnionTicksB
+      + " mail_union_ticks_a=" + plan.c121Demand.mailUnionTicksA
+      + " mail_union_ticks_b=" + plan.c121Demand.mailUnionTicksB
+      + " pax_cap=" + paxCapacity + " mail_cap=" + mailCapacity
+      + " demand_ops=" + demandOps + " demand_ticks=" + demandTicks
+      + " eval_ops=" + evalOps + " eval_ticks=" + evalTicks
+      + " causal_scan_ops=" + (("c121EngineScanOps" in plan) ? plan.c121EngineScanOps : -1)
+      + " causal_scan_ticks=" + (("c121EngineScanTicks" in plan) ? plan.c121EngineScanTicks : -1)
+      + " causal_static_ops=" + (("c121EngineStaticOps" in plan) ? plan.c121EngineStaticOps : -1)
+      + " causal_static_ticks=" + (("c121EngineStaticTicks" in plan) ? plan.c121EngineStaticTicks : -1)
+      + " causal_engine_evals=" + (("c121EngineEvalCount" in plan) ? plan.c121EngineEvalCount : -1)
+      + " causal_engine_known=" + (("c121EngineKnownCount" in plan) ? plan.c121EngineKnownCount : -1)
+      + " causal_eval_ops_total=" + (("c121EngineEvalOpsTotal" in plan) ? plan.c121EngineEvalOpsTotal : -1)
+      + " causal_eval_ops_same_tick=" + (("c121EngineEvalOpsSameTick" in plan) ? plan.c121EngineEvalOpsSameTick : -1)
+      + " causal_eval_same_tick_count=" + (("c121EngineEvalSameTickCount" in plan) ? plan.c121EngineEvalSameTickCount : -1)
+      + " causal_winner_full_ops=" + (("c121WinnerFullOps" in plan) ? plan.c121WinnerFullOps : -1)
+      + " causal_winner_full_ticks=" + (("c121WinnerFullTicks" in plan) ? plan.c121WinnerFullTicks : -1)
+      + " causal_choice_mail_known=" + (("c121ChosenMailKnown" in plan) && plan.c121ChosenMailKnown ? 1 : 0)
+      + " postbuild_mail_known=" + (target != null && ("engineMailKnown" in target) && target.engineMailKnown ? 1 : 0)
+      + " replay_engine_total=" + (engineReplay != null ? engineReplay.total : -1)
+      + " replay_engine_known=" + (engineReplay != null ? engineReplay.known : -1)
+      + " replay_engine_evaluated=" + (engineReplay != null ? engineReplay.evaluated : -1)
+      + " replay_engine_complete=" + (engineReplay != null && engineReplay.complete ? 1 : 0)
+      + " replay_shadow_ticks=" + (engineReplay != null ? engineReplay.ticks : -1)
+      + " replay_shadow_ops=" + (engineReplay != null ? engineReplay.ops : -1)
+      + " replay_pass_engine=" + (replayPass != null ? replayPass.plane.id : -1)
+      + " replay_pass_n=" + (replayPass != null ? replayPass.economics.decisionPlanes : -1)
+      + " replay_pass_revenue=" + (replayPass != null ? replayPass.economics.decisionRevenueAnnual : -1)
+      + " replay_pass_profit=" + (replayPass != null ? replayPass.economics.decisionProfitAnnual : -1)
+      + " replay_pass_score=" + (replayPass != null ? replayPass.economics.decisionScore : -1)
+      + " replay_mail_engine=" + (replayMail != null ? replayMail.plane.id : -1)
+      + " replay_mail_n=" + (replayMail != null ? replayMail.economics.decisionPlanes : -1)
+      + " replay_mail_revenue=" + (replayMail != null ? replayMail.economics.decisionRevenueAnnual : -1)
+      + " replay_mail_profit=" + (replayMail != null ? replayMail.economics.decisionProfitAnnual : -1)
+      + " replay_mail_score=" + (replayMail != null ? replayMail.economics.decisionScore : -1)
+      + " replay_mail_changed=" + (engineReplay != null ? (engineReplay.changed ? 1 : 0) : -1)
+      + " replay_chosen_pass_score=" + (replayChosenPass != null ? replayChosenPass.economics.decisionScore : -1)
+      + " replay_chosen_mail_score=" + (replayChosenMail != null ? replayChosenMail.economics.decisionScore : -1)
+      /* Alias historiques du meilleur score complet, conserves pour les outils
+       * d'analyse existants ; la nouvelle source de verite est replay_mail_*. */
+      + " replay_score_engine=" + (replayMail != null ? replayMail.plane.id : -1)
+      + " replay_score_n=" + (replayMail != null ? replayMail.economics.decisionPlanes : -1)
+      + " replay_score_revenue=" + (replayMail != null ? replayMail.economics.decisionRevenueAnnual : -1)
+      + " replay_score_profit=" + (replayMail != null ? replayMail.economics.decisionProfitAnnual : -1)
+      + " replay_score_value=" + (replayMail != null ? replayMail.economics.decisionScore : -1)
+      + " replay_chosen_n=" + (replayChosenMail != null ? replayChosenMail.economics.decisionPlanes : -1)
+      + " replay_chosen_revenue=" + (replayChosenMail != null ? replayChosenMail.economics.decisionRevenueAnnual : -1)
+      + " replay_chosen_profit=" + (replayChosenMail != null ? replayChosenMail.economics.decisionProfitAnnual : -1)
+      + " replay_chosen_score=" + (replayChosenMail != null ? replayChosenMail.economics.decisionScore : -1)
+      + " legacy_n=" + (("planes" in plan) ? plan.planes : -1)
+      + " target_n=" + (target != null ? target.planes : -1)
+      + " target_pax=" + (target != null ? target.carriedPax : -1)
+      + " target_mail=" + (target != null ? target.carriedMail : -1)
+      + " target_revenue=" + (target != null ? target.revenueAnnual : -1)
+      + " target_revenue_pax=" + (target != null ? target.revenuePaxAnnual : -1)
+      + " target_revenue_mail=" + (target != null ? target.revenueMailAnnual : -1)
+      + " target_profit=" + (target != null ? target.profitAnnual : -1)
+      + " target_running=" + (target != null ? target.runningAnnual : -1)
+      + " target_vehicle_running=" + (target != null ? target.vehicleRunningAnnual : -1)
+      + " target_amort=" + (target != null ? target.amortAnnual : -1)
+      + " decision_kdec=" + (target != null && ("decisionKDec" in target) ? target.decisionKDec : -1)
+      + " decision_n=" + (target != null && ("decisionPlanes" in target) ? target.decisionPlanes : -1)
+      + " decision_score=" + (target != null && ("decisionScore" in target) ? target.decisionScore : -1)
+      + " decision_pax=" + (target != null && ("decisionCarriedPax" in target) ? target.decisionCarriedPax : -1)
+      + " decision_mail=" + (target != null && ("decisionCarriedMail" in target) ? target.decisionCarriedMail : -1)
+      + " decision_revenue=" + (target != null && ("decisionRevenueAnnual" in target) ? target.decisionRevenueAnnual : -1)
+      + " decision_profit=" + (target != null && ("decisionProfitAnnual" in target) ? target.decisionProfitAnnual : -1)
+      + " decision_capital=" + (target != null && ("decisionCapital" in target) ? target.decisionCapital : -1)
+      + " decision_rating=" + (target != null && ("decisionStationRating" in target) ? target.decisionStationRating : -1)
+      + " decision_headway=" + (target != null && ("decisionHeadwayDays" in target) ? target.decisionHeadwayDays : -1)
+      + " actual_n=" + (actual != null ? actual.planes : -1)
+      + " actual_pax=" + (actual != null ? actual.carriedPax : -1)
+      + " actual_mail=" + (actual != null ? actual.carriedMail : -1)
+      + " actual_revenue=" + (actual != null ? actual.revenueAnnual : -1)
+      + " actual_profit=" + (actual != null ? actual.profitAnnual : -1)
+      + " actual_running=" + (actual != null ? actual.runningAnnual : -1)
+      + " actual_vehicle_running=" + (actual != null ? actual.vehicleRunningAnnual : -1)
+      + " actual_amort=" + (actual != null ? actual.amortAnnual : -1)
+      + " actual_vehicle_amort=" + (actual != null ? actual.vehicleAmortAnnual : -1)
+      + " actual_infra_running=" + (actual != null ? actual.infraRunningAnnual : -1)
+      + " actual_infra_amort=" + (actual != null ? actual.infraAmortAnnual : -1)
+      + " plane_price=" + (actual != null ? actual.planePrice : -1)
+      + " life_years=" + (actual != null ? actual.lifeYears : -1)
+      + " airport_capital=" + (actual != null ? actual.airportCapital : -1)
+      + " new_airports=" + (actual != null ? actual.newAirportCount : -1)
+      + " rating_base_a=" + (actual != null ? actual.ratingBaseA : -1)
+      + " rating_base_b=" + (actual != null ? actual.ratingBaseB : -1)
+      + " model_kdec=" + (actual != null && ("decisionKDec" in actual) ? actual.decisionKDec : -1)
+      + " pax_income=" + (actual != null ? actual.paxIncome : -1)
+      + " mail_income=" + (actual != null ? actual.mailIncome : -1)
+      + " flight_days=" + (actual != null ? actual.flightDays : -1)
+      + " maneuver_days=" + (actual != null ? actual.maneuverDays : -1)
+      + " physical_one_way_days=" + (actual != null ? actual.physicalOneWayDays : -1)
+      + " hub_delay_a=" + (actual != null ? actual.hubDelayA : -1)
+      + " hub_delay_b=" + (actual != null ? actual.hubDelayB : -1)
+      + " hub_delay_obs_a=" + (actual != null ? actual.hubDelayObsA : -1)
+      + " hub_delay_obs_b=" + (actual != null ? actual.hubDelayObsB : -1)
+      + " hub_delay_window_obs_a=" + (actual != null ? actual.hubDelayWindowObsA : -1)
+      + " hub_delay_window_obs_b=" + (actual != null ? actual.hubDelayWindowObsB : -1)
+      + " hub_delay_var_a=" + (actual != null ? actual.hubDelayVarianceA : -1)
+      + " hub_delay_var_b=" + (actual != null ? actual.hubDelayVarianceB : -1)
+      + " one_way_days=" + (actual != null ? actual.oneWayDays : -1)
+      + " round_trip_days=" + (actual != null ? actual.roundTripDays : -1)
+      + " headway_days=" + (actual != null ? actual.headwayDays : -1)
+      + " station_headway_a=" + (actual != null ? actual.stationHeadwayA : -1)
+      + " station_headway_b=" + (actual != null ? actual.stationHeadwayB : -1)
+      + " existing_pickup_a=" + (actual != null ? actual.existingPickupRateA : -1)
+      + " existing_pickup_b=" + (actual != null ? actual.existingPickupRateB : -1)
+      + " existing_pax_rate_a=" + (actual != null ? actual.existingPaxRateA : -1)
+      + " existing_pax_rate_b=" + (actual != null ? actual.existingPaxRateB : -1)
+      + " existing_mail_rate_a=" + (actual != null ? actual.existingMailRateA : -1)
+      + " existing_mail_rate_b=" + (actual != null ? actual.existingMailRateB : -1)
+      + " runway_service_a=" + (actual != null && ("runwayServiceDaysA" in actual) ? actual.runwayServiceDaysA : -1)
+      + " runway_service_b=" + (actual != null && ("runwayServiceDaysB" in actual) ? actual.runwayServiceDaysB : -1)
+      + " runway_scale_a=" + (actual != null && ("runwayScaleA" in actual) ? actual.runwayScaleA : -1)
+      + " runway_scale_b=" + (actual != null && ("runwayScaleB" in actual) ? actual.runwayScaleB : -1)
+      + " requested_pickup=" + (actual != null && ("requestedPickupRate" in actual) ? actual.requestedPickupRate : -1)
+      + " effective_pickup=" + (actual != null && ("pickupRate" in actual) ? actual.pickupRate : -1)
+      + " rating=" + (actual != null ? actual.stationRating : -1)
+      + " rating_pax_a=" + (actual != null ? actual.ratingPaxA : -1)
+      + " rating_pax_b=" + (actual != null ? actual.ratingPaxB : -1)
+      + " rating_mail_a=" + (actual != null ? actual.ratingMailA : -1)
+      + " rating_mail_b=" + (actual != null ? actual.ratingMailB : -1)
+      + " rating_cycle=" + (actual != null && actual.ratingCycle ? 1 : 0)
+      + " fleet_scan_cap=" + (actual != null ? actual.fleetScanCap : -1)
+      + " pax_dir_capacity=" + (actual != null ? actual.paxDirectionCapacity : -1)
+      + " mail_dir_capacity=" + (actual != null ? actual.mailDirectionCapacity : -1)
+      + " payment_distance=" + (actual != null ? actual.paymentDistance : -1)
+      + " income_days=" + (actual != null ? actual.incomeDays : -1));
+  if (C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) {
+    if ("c121Demand" in line) delete line.c121Demand;
+    if ("c121TargetEconomics" in line) delete line.c121TargetEconomics;
+    if ("c121ActualEconomics" in line) delete line.c121ActualEconomics;
+    if ("c121PaxCapacity" in line) delete line.c121PaxCapacity;
+    if ("c121MailCapacity" in line) delete line.c121MailCapacity;
+    if ("c121DemandOps" in line) delete line.c121DemandOps;
+    if ("c121DemandTicks" in line) delete line.c121DemandTicks;
+    if ("c121EvalOps" in line) delete line.c121EvalOps;
+    if ("c121EvalTicks" in line) delete line.c121EvalTicks;
+  }
 }
 
 /* Economie et dimensionnement optimal de flotte selon les caracteristiques du vehicule.
@@ -2209,9 +4021,15 @@ function OpexAirReconcileActualBuild(catalog, plan, result, lines = null)
   }
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
       + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-  local economics = OpexAirEconomics(catalog, plan.airport, plan.plane, plan.distance, monthlyPax,
-                                      AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0,
-                                      0, newAirports, 0, actualPlanes);
+  /* C121 causal ne doit jamais etre reecrit par l'economie AIR legacy apres le
+   * chantier. OpexBuildAirRoute vient de publier la soute PASS/MAIL exacte dans
+   * C121_AIR_ENGINE_CAPACITY_OBS : reutiliser donc le meme modele C121, flotte
+   * figee au nombre effectivement construit. */
+  local economics = (C121_AIR_ECONOMICS && ("c121Demand" in plan))
+      ? OpexC121EngineEconomics(catalog, plan, plan.plane, actualPlanes)
+      : OpexAirEconomics(catalog, plan.airport, plan.plane, plan.distance, monthlyPax,
+          AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0,
+          0, newAirports, 0, actualPlanes);
   if (economics == null) return;
 
   if (("actualCost" in result) && result.actualCost > 0) {
@@ -2680,7 +4498,7 @@ function OpexAirRefleetCrashedPlane(line)
 function OpexAirPlanBetter(plan, bestPlan)
 {
   if (bestPlan == null) return true;
-  if (!C111_AIR_C100_DECISION_SHADOW) {
+  if (!C111_AIR_C100_DECISION_SHADOW && !C121_AIR_ECONOMICS) {
     if (plan.economics.roi > (bestPlan.economics.roi * 1.25).tointeger()) return true;
     if (bestPlan.economics.roi > (plan.economics.roi * 1.25).tointeger()) return false;
     return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
@@ -4216,6 +6034,9 @@ function OpexC116ChooseBuildPlan(catalog, plan)
 {
   local unchanged = { plan = plan, changed = false, target = null,
       deltaCapital = 0, deltaProfit = 0 };
+  /* C121 porte deja un contrat moteur/flotte/economie complet jusqu'au
+   * portefeuille. C121 ne doit pas substituer un moteur legacy apres classement. */
+  if (C121_AIR_ECONOMICS) return unchanged;
   if (!C116_AIR_MARGINAL_CAPITAL || catalog == null || plan == null
       || !("airport" in plan) || plan.airport == null
       || !("plane" in plan) || plan.plane == null
@@ -4318,6 +6139,9 @@ function OpexC118ChooseBuildPlan(catalog, plan, project)
     baselineFlowAfter = 0.0, chosenFlowAfter = 0.0,
     baselineDays = 0.0, chosenDays = 0.0, baselineEngine = -1,
   };
+  /* Conserver C118 comme signal territorial/portfolio, mais pas comme second
+   * chooser d'equipement : sous C121 le plan classe doit etre le plan construit. */
+  if (C121_AIR_ECONOMICS) return unchanged;
   if (!C118_AIR_TERRITORIAL_EXPANSION || project == null
       || !("c118NewTowns" in project) || project.c118NewTowns <= 0
       || C118_AIR_PROJECT_SNAPSHOT == null || !("active" in C118_AIR_PROJECT_SNAPSHOT)
@@ -4923,6 +6747,28 @@ function OpexAirPlansPrepare(ctx)
     if (!("rankSites" in resumeState)) resumeState.rankSites <- [];
     if (!("c83TopTownIds" in resumeState)) resumeState.c83TopTownIds <- null;
   }
+  if (C121_AIR_ECONOMICS) {
+    if (sliced) {
+      if (!("c121PlanPerf" in resumeState)) {
+        resumeState.c121PlanPerf <- { calls = 0, demandOps = 0, demandTicks = 0,
+            staticOps = 0, staticTicks = 0, scanOps = 0, scanTicks = 0,
+            engineEvals = 0, winnerOps = 0, winnerTicks = 0, noWinner = 0,
+            endpointHits = 0, endpointMisses = 0 };
+      }
+      if (!("c121EndpointCache" in resumeState)) resumeState.c121EndpointCache <- {};
+      C121_AIR_PLAN_PERF = resumeState.c121PlanPerf;
+      C121_AIR_ENDPOINT_CACHE = resumeState.c121EndpointCache;
+    } else {
+      C121_AIR_PLAN_PERF = { calls = 0, demandOps = 0, demandTicks = 0,
+          staticOps = 0, staticTicks = 0, scanOps = 0, scanTicks = 0,
+          engineEvals = 0, winnerOps = 0, winnerTicks = 0, noWinner = 0,
+          endpointHits = 0, endpointMisses = 0 };
+      C121_AIR_ENDPOINT_CACHE = {};
+    }
+  } else {
+    C121_AIR_PLAN_PERF = null;
+    C121_AIR_ENDPOINT_CACHE = null;
+  }
   local perfOpsSites = sliced ? resumeState.perfOpsSites : 0;
   local perfOpsEval = sliced ? resumeState.perfOpsEval : 0;
   local perfProbesCount = sliced ? resumeState.perfProbesCount : 0;
@@ -5493,19 +7339,30 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
       }
 
-      local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                  infrastructureMaintenance, maxCapital, 2, opcodePadding,
-                                                  C80_AIR_CHOICE_MEMO ? ("n|" + sites[a].town.id + "|" + sites[b].town.id
-                                                      + "|" + airport.type + "|" + plane.id) : null,
-                                                  C119_AIR_INCOME_MODEL
-                                                      ? AIMap.DistanceManhattan(sites[a].anchor, sites[b].anchor) : 0);
-      local routePlane = routeChoice.plane;
-      local economics = routeChoice.economics;
-      local decisionEconomics = (("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
+      local plan = {
+        siteA = sites[a], siteB = sites[b], distance = flightDistance,
+        orderDistance = orderDistance,
+        airport = airport, plane = plane,
+        monthlyPax = monthlyPax, planes = 1, capital = 0, economics = null,
+        reuseA = false, reuseB = false, hubRoutes = 0, arm = "newpair",
+        c83OwnSecondSlotA = ("c83OwnSecondSlot" in sites[a]) && sites[a].c83OwnSecondSlot,
+        c83OwnSecondSlotB = ("c83OwnSecondSlot" in sites[b]) && sites[b].c83OwnSecondSlot,
+      };
+      local routeChoice = C121_AIR_ECONOMICS
+          ? OpexC121ChooseRoutePlane(catalog, plan, ctx.lines)
+          : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+              infrastructureMaintenance, maxCapital, 2, opcodePadding,
+              C80_AIR_CHOICE_MEMO ? ("n|" + sites[a].town.id + "|" + sites[b].town.id
+                  + "|" + airport.type + "|" + plane.id) : null,
+              C119_AIR_INCOME_MODEL
+                  ? AIMap.DistanceManhattan(sites[a].anchor, sites[b].anchor) : 0);
+      local routePlane = routeChoice != null ? routeChoice.plane : null;
+      local economics = routeChoice != null ? routeChoice.economics : null;
+      local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
           ? routeChoice.decisionEconomics : null;
       local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)
           ? decisionEconomics : economics;
-      if (EQUIPMENT_ROI_PROBE) {
+      if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 2, opcodePadding, economics, "pre_admission_newpair");
       }
@@ -5518,15 +7375,11 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       if (C80_AIR_EVAL_FAST) {
         orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, sites[a].anchor, sites[b].anchor);
       }
-      local plan = {
-        siteA = sites[a], siteB = sites[b], distance = flightDistance,
-        orderDistance = orderDistance,
-        airport = airport, plane = routePlane,
-        monthlyPax = monthlyPax, planes = economics.planes, capital = economics.capital, economics = economics,
-        reuseA = false, hubRoutes = 0, arm = "newpair",
-        c83OwnSecondSlotA = ("c83OwnSecondSlot" in sites[a]) && sites[a].c83OwnSecondSlot,
-        c83OwnSecondSlotB = ("c83OwnSecondSlot" in sites[b]) && sites[b].c83OwnSecondSlot,
-      };
+      plan.orderDistance = orderDistance;
+      plan.plane = routePlane;
+      plan.planes = economics.planes;
+      plan.capital = economics.capital;
+      plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
           && ("c118C68Economics" in routeChoice)) {
@@ -5534,7 +7387,9 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         plan.c118C68Economics <- routeChoice.c118C68Economics;
         if ("c118EngineChoices" in routeChoice) plan.c118EngineChoices <- routeChoice.c118EngineChoices;
       }
-      if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
+      if (C121_AIR_ECONOMICS) {
+        plan.targetPlanes <- routeChoice.targetPlanes;
+      } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
       OpexAirReserveJoinedStops(catalog, plan);
@@ -5868,19 +7723,29 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         monthlyPax = OpexAirTownMonthlyPax(hub.town, hub.anchor, airport, ctx.lines)
             + OpexAirTownMonthlyPax(site.town, site.anchor, airport, ctx.lines);
       }
-      local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                  infrastructureMaintenance, maxCapital, 1, opcodePadding,
-                                                  C80_AIR_CHOICE_MEMO ? ("h|" + hub.stationId + "|" + site.town.id
-                                                      + "|" + airport.type + "|" + plane.id) : null,
-                                                  C119_AIR_INCOME_MODEL
-                                                      ? AIMap.DistanceManhattan(hub.anchor, site.anchor) : 0);
-      local routePlane = routeChoice.plane;
-      local economics = routeChoice.economics;
-      local decisionEconomics = (("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
+      local plan = {
+        siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
+        airport = airport, plane = plane, monthlyPax = monthlyPax, planes = 1,
+        capital = 0, economics = null,
+        reuseA = true, reuseB = false, hubRoutes = hub.routes, arm = "hubsite",
+        c83OwnSecondSlotA = false,
+        c83OwnSecondSlotB = ("c83OwnSecondSlot" in site) && site.c83OwnSecondSlot,
+      };
+      local routeChoice = C121_AIR_ECONOMICS
+          ? OpexC121ChooseRoutePlane(catalog, plan, ctx.lines)
+          : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+              infrastructureMaintenance, maxCapital, 1, opcodePadding,
+              C80_AIR_CHOICE_MEMO ? ("h|" + hub.stationId + "|" + site.town.id
+                  + "|" + airport.type + "|" + plane.id) : null,
+              C119_AIR_INCOME_MODEL
+                  ? AIMap.DistanceManhattan(hub.anchor, site.anchor) : 0);
+      local routePlane = routeChoice != null ? routeChoice.plane : null;
+      local economics = routeChoice != null ? routeChoice.economics : null;
+      local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
           ? routeChoice.decisionEconomics : null;
       local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)
           ? decisionEconomics : economics;
-      if (EQUIPMENT_ROI_PROBE) {
+      if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 1, opcodePadding, economics, "pre_admission_hubsite");
       }
@@ -5901,14 +7766,11 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       if (C80_AIR_EVAL_FAST) {
         orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub.anchor, site.anchor);
       }
-      local plan = {
-        siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
-        airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
-        capital = economics.capital, economics = economics,
-        reuseA = true, hubRoutes = hub.routes, arm = "hubsite",
-        c83OwnSecondSlotA = false,
-        c83OwnSecondSlotB = ("c83OwnSecondSlot" in site) && site.c83OwnSecondSlot,
-      };
+      plan.orderDistance = orderDistance;
+      plan.plane = routePlane;
+      plan.planes = economics.planes;
+      plan.capital = economics.capital;
+      plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
           && ("c118C68Economics" in routeChoice)) {
@@ -5916,7 +7778,9 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         plan.c118C68Economics <- routeChoice.c118C68Economics;
         if ("c118EngineChoices" in routeChoice) plan.c118EngineChoices <- routeChoice.c118EngineChoices;
       }
-      if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
+      if (C121_AIR_ECONOMICS) {
+        plan.targetPlanes <- routeChoice.targetPlanes;
+      } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
       OpexAirReserveJoinedStops(catalog, plan);
@@ -6092,21 +7956,31 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         monthly2 = OpexAirTownMonthlyPax(hub2.town, hub2.anchor, airport, lines);
         monthlyPax = monthly1 + monthly2;
       }
-      local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                  infrastructureMaintenance, maxCapital, 0, opcodePadding,
-                                                  C80_AIR_CHOICE_MEMO ? ("hh|" + hub1.stationId + "|" + hub2.stationId
-                                                      + "|" + airport.type + "|" + plane.id) : null,
-                                                  C119_AIR_INCOME_MODEL
-                                                      ? AIMap.DistanceManhattan(hub1.anchor, hub2.anchor) : 0);
-      local routePlane = routeChoice.plane;
-      local economics = routeChoice.economics;
-      local decisionEconomics = (("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
+      local plan = {
+        siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,
+        airport = airport, plane = plane, monthlyPax = monthlyPax, planes = 1,
+        capital = 0, economics = null,
+        reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
+        arm = "hubhub",
+      };
+      local routeChoice = C121_AIR_ECONOMICS
+          ? OpexC121ChooseRoutePlane(catalog, plan, lines)
+          : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+              infrastructureMaintenance, maxCapital, 0, opcodePadding,
+              C80_AIR_CHOICE_MEMO ? ("hh|" + hub1.stationId + "|" + hub2.stationId
+                  + "|" + airport.type + "|" + plane.id) : null,
+              C119_AIR_INCOME_MODEL
+                  ? AIMap.DistanceManhattan(hub1.anchor, hub2.anchor) : 0);
+      local routePlane = routeChoice != null ? routeChoice.plane : null;
+      local economics = routeChoice != null ? routeChoice.economics : null;
+      local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
           ? routeChoice.decisionEconomics : null;
-      if (EQUIPMENT_ROI_PROBE) {
+      if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 0, opcodePadding, economics, "pre_admission_hubhub");
       }
-      if (AIR_HUBHUB_MARGINAL && economics != null && economics.profitAnnual > 0) {
+      if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS
+          && economics != null && economics.profitAnnual > 0) {
         /* V86 Variante A : retrancher la perte de revenu annuel des lignes aeriennes existantes.
          * Hypothese : CargoDist etant desactive (DT_MANUAL), les passagers montent dans le premier avion
          * quelle que soit sa destination. La nouvelle ligne hub->hub cannibalise les passagers des lignes
@@ -6123,7 +7997,8 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
           economics.roi = totalCapital > 0 ? (economics.profitAnnual * 1000) / totalCapital : 0;
         }
       }
-      if (AIR_HUBHUB_MARGINAL && decisionEconomics != null && decisionEconomics.profitAnnual > 0) {
+      if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS
+          && decisionEconomics != null && decisionEconomics.profitAnnual > 0) {
         local decisionPax1 = (monthlyPax > 0) ? (decisionEconomics.carried.tofloat() * monthly1) / monthlyPax : 0.0;
         if (decisionPax1 > monthly1) decisionPax1 = monthly1.tofloat();
         local decisionPax2 = (monthlyPax > 0) ? (decisionEconomics.carried.tofloat() * monthly2) / monthlyPax : 0.0;
@@ -6157,13 +8032,11 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       if (C80_AIR_EVAL_FAST) {
         orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
       }
-      local plan = {
-        siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,
-        airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
-        capital = economics.capital, economics = economics,
-        reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
-        arm = "hubhub",
-      };
+      plan.orderDistance = orderDistance;
+      plan.plane = routePlane;
+      plan.planes = economics.planes;
+      plan.capital = economics.capital;
+      plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
           && ("c118C68Economics" in routeChoice)) {
@@ -6171,7 +8044,9 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         plan.c118C68Economics <- routeChoice.c118C68Economics;
         if ("c118EngineChoices" in routeChoice) plan.c118EngineChoices <- routeChoice.c118EngineChoices;
       }
-      if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
+      if (C121_AIR_ECONOMICS) {
+        plan.targetPlanes <- routeChoice.targetPlanes;
+      } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
       OpexAirReserveJoinedStops(catalog, plan);
@@ -6522,7 +8397,20 @@ function OpexAirPlansFinalize(ctx)
   AILog.Info("AIR_PLAN_PERF: total_ops=" + totalOps + " ops_sites=" + perfOpsSites
              + " ops_eval=" + perfOpsEval + " ticks=" + elapsedTicks + " days=" + elapsedDays
              + " probes=" + perfProbesCount + " cheap_skip=" + perfCheapSkip
-             + " sites=" + perfSitesFound);
+             + " sites=" + perfSitesFound
+             + " c121_calls=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.calls : 0)
+             + " c121_demand_ops=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.demandOps : 0)
+             + " c121_demand_ticks=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.demandTicks : 0)
+             + " c121_static_ops=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.staticOps : 0)
+             + " c121_static_ticks=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.staticTicks : 0)
+             + " c121_scan_ops=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.scanOps : 0)
+             + " c121_scan_ticks=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.scanTicks : 0)
+             + " c121_engine_evals=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.engineEvals : 0)
+             + " c121_winner_ops=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.winnerOps : 0)
+             + " c121_winner_ticks=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.winnerTicks : 0)
+             + " c121_no_winner=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.noWinner : 0)
+             + " c121_endpoint_hits=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointHits : 0)
+             + " c121_endpoint_misses=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointMisses : 0));
   OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
   if (C69_BOTTLENECK_PROBE) {
     local actualPlans = (projects != null) ? projects.len() : (bestPlan != null ? 1 : 0);
@@ -6809,19 +8697,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
       local val = AITile.GetCargoProduction(tile, paxCargo, 1, 1, coverage);
       if (val <= 0) continue;
 
-      foreach (dir in dirs) {
-        local front = tile + dir;
-        if (!AIMap.IsValidTile(front) || !AIRoad.IsRoadTile(front)) continue;
-        local ok = false;
-        {
-          local test = AITestMode();
-          ok = AIRoad.BuildDriveThroughRoadStation(tile, front, AIRoad.ROADVEHTYPE_BUS, stationId);
-        }
-        if (ok) {
-          candidates.append({ tile = tile, front = front, value = val, dist = AIMap.DistanceManhattan(tile, town.tile) });
-          break;
-        }
-      }
+      candidates.append({ tile = tile, value = val, dist = AIMap.DistanceManhattan(tile, town.tile) });
     }
   }
 
@@ -6853,10 +8729,28 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
     }
     if (tooClose) continue;
 
-    local ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, cand.front, AIRoad.ROADVEHTYPE_BUS, stationId);
+    local front = null;
+    foreach (dir in dirs) {
+      local tryFront = cand.tile + dir;
+      if (!AIMap.IsValidTile(tryFront) || !AIRoad.IsRoadTile(tryFront)) continue;
+      if (!AIRoad.AreRoadTilesConnected(cand.tile, tryFront)) continue;
+      local testOk = false;
+      {
+        local test = AITestMode();
+        testOk = AIRoad.BuildDriveThroughRoadStation(
+            cand.tile, tryFront, AIRoad.ROADVEHTYPE_BUS, stationId);
+      }
+      if (testOk) {
+        front = tryFront;
+        break;
+      }
+    }
+    if (front == null) continue;
+
+    local ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, front, AIRoad.ROADVEHTYPE_BUS, stationId);
     if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
       OpexBoostTownRating(town.id, 800, 40);
-      ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, cand.front, AIRoad.ROADVEHTYPE_BUS, stationId);
+      ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, front, AIRoad.ROADVEHTYPE_BUS, stationId);
     }
 
     if (ok) {
@@ -7093,6 +8987,9 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   result.vehicle = plane;
   result.vehicles = built;
   result.capacity <- AIVehicle.GetCapacity(plane, catalog.paxCargo);
+  if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+    OpexC121MeasureBuiltEconomics(catalog, plan, result);
+  }
   if (V92_AIR_SERVICE_CHOICE && ("mailCargo" in catalog) && catalog.mailCargo >= 0) {
     local builtMail = AIVehicle.GetCapacity(plane, catalog.mailCargo);
     if (builtMail >= 0 && planeChoice != null) AIR_MAIL_CAP.rawset(planeChoice.id, builtMail);

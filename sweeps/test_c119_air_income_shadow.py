@@ -40,7 +40,7 @@ class TestC119AirIncomeShadow(unittest.TestCase):
     def test_c119_payment_time_is_delivery_only(self):
         src = BUILDER_AIR.read_text(encoding="utf-8")
         start = src.index("function OpexC119AirIncomeDays")
-        end = src.index("function OpexAirEconomics", start)
+        end = src.index("function OpexC121EndpointAirportType", start)
         body = src[start:end]
         self.assertIn("AIEngine.GetMaxSpeed(plane.id)", body)
         self.assertIn("(flightDistance + 30) * 664", body)

@@ -44,6 +44,7 @@ function OpexAI::_reportLines(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
   local c82Sums = (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) ? {} : null;
+  local c121RealizationSums = C121_AIR_ECONOMICS ? OpexC121RealizationSums() : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
@@ -186,11 +187,78 @@ function OpexAI::_reportLines(year)
                                + moving.len() + "|" + (roadRealSpeed >= 0 ? roadRealSpeed : 0) + "|"
                                + pred + "|" + cat);
     }
+    local currentRevenue = profit + runCost;
+    if (c121RealizationSums != null && ("mode" in line) && line.mode == "air"
+        && ("c121Arm" in line) && (line.c121Arm in c121RealizationSums)
+        && ("c121RawRevenueAnnual" in line) && line.c121RawRevenueAnnual > 0) {
+      local c121Age = ("year" in line) ? year - line.year : -1;
+      local c121N0 = ("trains0" in line) ? line.trains0 : 0;
+      /* Calibrer une NOUVELLE ligne sur des lignes restees a leur flotte de
+       * construction. Une ligne deja renforcee porte de la saturation/marge
+       * decroissante : la rabattre artificiellement par N0/N sous-estime alors
+       * la realisation d'un projet neuf a N0. */
+      if (c121Age >= 2 && c121N0 > 0 && vehCount == c121N0) {
+        local normalizedRevenue = currentRevenue.tofloat() * c121N0.tofloat() / vehCount.tofloat();
+        if (normalizedRevenue < 0.0) normalizedRevenue = 0.0;
+        local ratioPm = (normalizedRevenue * 1000.0 / line.c121RawRevenueAnnual.tofloat()).tointeger();
+        line.c121RealizationPm <- ratioPm;
+        line.c121RealizationYear <- year;
+        if (C121_AIR_ENGINE_REPLAY_SHADOW && ("c121EngineId" in line)) {
+          AILog.Info("C121_ENGINE_REALIZATION line=" + line.lineId
+              + " year=" + year + " engine=" + line.c121EngineId
+              + " arm=" + line.c121Arm + " n0=" + c121N0 + " n=" + vehCount
+              + " raw_revenue=" + line.c121RawRevenueAnnual
+              + " observed_revenue=" + normalizedRevenue.tointeger()
+              + " ratio_pm=" + ratioPm);
+        }
+        c121RealizationSums[line.c121Arm][0] += ratioPm;
+        c121RealizationSums[line.c121Arm][1]++;
+      }
+    }
+    if (C121_AIR_ECONOMICS && ("mode" in line) && line.mode == "air"
+        && ("c121MarginalObserveYear" in line) && year >= line.c121MarginalObserveYear
+        && ("c121MarginalBaselineProfit" in line) && ("c121MarginalBaselineRevenue" in line)
+        && ("c121MarginalBaselineVehicles" in line) && vehCount > line.c121MarginalBaselineVehicles) {
+      local addedObserved = vehCount - line.c121MarginalBaselineVehicles;
+      local observedProfit = profit - line.c121MarginalBaselineProfit;
+      if (("c121VehicleAmortPerPlane" in line) && line.c121VehicleAmortPerPlane > 0) {
+        observedProfit -= line.c121VehicleAmortPerPlane * addedObserved;
+      }
+      local observedRevenue = currentRevenue - line.c121MarginalBaselineRevenue;
+      /* Publier une marge PAR avion. C121 construit normalement un seul renfort
+       * a la fois, mais cette normalisation garde le contrat exact apres crash,
+       * reconstitution ou ancien savegame portant plusieurs ajouts. */
+      if (addedObserved > 1) {
+        observedProfit /= addedObserved;
+        observedRevenue /= addedObserved;
+      }
+      local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+      local avgProfit = samples > 0 && ("c121MarginalProfit" in line)
+          ? (line.c121MarginalProfit * samples + observedProfit) / (samples + 1)
+          : observedProfit;
+      local avgRevenue = samples > 0 && ("c121MarginalRevenue" in line)
+          ? (line.c121MarginalRevenue * samples + observedRevenue) / (samples + 1)
+          : observedRevenue;
+      if ("c121MarginalProfit" in line) line.c121MarginalProfit = avgProfit;
+      else line.c121MarginalProfit <- avgProfit;
+      if ("c121MarginalRevenue" in line) line.c121MarginalRevenue = avgRevenue;
+      else line.c121MarginalRevenue <- avgRevenue;
+      if ("c121MarginalSamples" in line) line.c121MarginalSamples = samples + 1;
+      else line.c121MarginalSamples <- samples + 1;
+      AILog.Info("C121_FLEET_MARGINAL line=" + line.lineId + " year=" + year
+          + " added=" + addedObserved + " obs_profit=" + observedProfit
+          + " obs_revenue=" + observedRevenue + " avg_profit=" + avgProfit
+          + " avg_revenue=" + avgRevenue + " samples=" + (samples + 1));
+      delete line.c121MarginalBaselineProfit;
+      delete line.c121MarginalBaselineRevenue;
+      delete line.c121MarginalBaselineVehicles;
+      delete line.c121MarginalObserveYear;
+    }
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
      * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
-    line.lastRevenue <- profit + runCost;
+    line.lastRevenue <- currentRevenue;
     if (V88_GOODS_CHAIN && vehicleType == AIVehicle.VT_RAIL && AICargo.GetTownEffect(line.cargo) == AICargo.TE_GOODS) {
       if (!("goodsDeliveredLogged" in line) && (profit + runCost > 0)) {
         line.goodsDeliveredLogged <- true;
@@ -530,6 +598,32 @@ function OpexAI::_reportLines(year)
             + " k=" + C70_MODE_FACTOR[m]);
       }
     }
+  }
+  if (c121RealizationSums != null) {
+    OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual");
+  }
+  if (C121_AIR_PRESSURE_PROBE) {
+    local phaseNewpair = 0;
+    local phaseHubsite = 0;
+    local phaseHubhub = 0;
+    local phaseUnknown = 0;
+    foreach (l in this._lines) {
+      if (l == null || !("mode" in l) || l.mode != "air") continue;
+      if (!("c121Arm" in l)) {
+        phaseUnknown++;
+        continue;
+      }
+      if (l.c121Arm == "newpair") phaseNewpair++;
+      else if (l.c121Arm == "hubsite") phaseHubsite++;
+      else if (l.c121Arm == "hubhub") phaseHubhub++;
+      else phaseUnknown++;
+    }
+    local phaseKnown = phaseNewpair + phaseHubsite + phaseHubhub;
+    local hubhubPm = phaseKnown > 0 ? phaseHubhub * 1000 / phaseKnown : 0;
+    AILog.Info("C121_PHASE year=" + year
+        + " known=" + phaseKnown + " newpair=" + phaseNewpair
+        + " hubsite=" + phaseHubsite + " hubhub=" + phaseHubhub
+        + " hubhub_pm=" + hubhubPm + " unknown=" + phaseUnknown);
   }
   if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
     C82_ENGINE_FACTOR.clear();

@@ -43,24 +43,55 @@ class TestB9AirCatchment(unittest.TestCase):
         builder = BUILDER.read_text(encoding="utf-8")
         task = TASK_AIR.read_text(encoding="utf-8")
         selected = task.index("local buildPlan = buildChoice.plan;")
-        shadow = task.index("OpexAirB9DemandShadow(this._catalog, buildPlan);")
+        shadow = task.index("OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);")
         build = task.index("OpexBuildAirRoute(this._catalog, this._budget, buildPlan")
         self.assertGreater(shadow, selected)
         self.assertLess(shadow, build)
-        self.assertIn("OpexAirB9DemandShadow(this._catalog, plan);", task)
-        self.assertIn("if (!B9_AIR_DEMAND_SHADOW || plan == null", builder)
-        self.assertIn("if (!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE)", builder)
+        self.assertIn("OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);", task)
+        self.assertIn("!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW", builder)
+        self.assertIn("!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE", builder)
         self.assertIn("AIR_DEMAND_SHADOW", builder)
         runner = (ROOT / "sweeps" / "run_b9_air_catchment_5x6.py").read_text(encoding="utf-8")
         self.assertIn('"--demand-shadow"', runner)
 
     def test_demand_shadow_uses_square_station_catchment_geometry(self):
         src = BUILDER.read_text(encoding="utf-8")
-        start = src.index("function OpexAirB9TownUnionMonthly")
+        start = src.index("function OpexAirB9TownCoverageTiles")
         end = src.index("function OpexAirB9DemandShadowEndpoint", start)
         shadow = src[start:end]
-        self.assertIn("OpexAirB9TileInExpandedRect(", shadow)
+        self.assertIn("function OpexAirB9TownCoverageTiles", shadow)
+        self.assertIn("coverageTiles.AddRectangle(", shadow)
+        self.assertIn(
+            "cargoTiles.Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0)",
+            shadow,
+        )
+        self.assertIn("townOwned.Valuate(AITile.GetClosestTown)", shadow)
+        self.assertIn("cargoTiles.KeepList(townOwned)", shadow)
+        self.assertIn("cargoTiles.AddList(geometry)", shadow)
+        self.assertNotIn("for (local x =", shadow)
         self.assertNotIn("AIMap.DistanceManhattan(tile, stop) <= busRadius", shadow)
+
+    def test_joined_stop_shadow_prefilters_with_aitilelist(self):
+        src = BUILDER.read_text(encoding="utf-8")
+        start = src.index("function OpexAirB9PredictJoinedStops")
+        end = src.index("function OpexAirB9TownCoverageTiles", start)
+        shadow = src[start:end]
+        self.assertIn("local tiles = AITileList();", shadow)
+        self.assertIn("tiles.AddRectangle(", shadow)
+        self.assertIn("tiles.Valuate(AIRoad.IsRoadTile)", shadow)
+        self.assertIn(
+            "tiles.Valuate(AITile.GetCargoProduction, paxCargo, 1, 1, coverage)",
+            shadow,
+        )
+        self.assertIn("townRoad.AddList(tiles)", shadow)
+        self.assertIn("townRoad.Valuate(AITile.GetClosestTown)", shadow)
+        self.assertIn("tiles.KeepList(townRoad)", shadow)
+        self.assertNotIn("for (local x = minX;", shadow)
+        self.assertIn("AIRoad.BuildDriveThroughRoadStation(", shadow)
+        self.assertLess(
+            shadow.index("candidates.sort(function(a, b)"),
+            shadow.index("local test = AITestMode();"),
+        )
 
     def test_probe_airport_only_uses_square_catchment_not_manhattan(self):
         src = BUILDER.read_text(encoding="utf-8")

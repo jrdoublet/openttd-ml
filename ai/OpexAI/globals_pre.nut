@@ -413,6 +413,56 @@ C120_AIR_TERRITORIAL_RANKING <- false;
 C120_AIR_SELECTION_SNAPSHOT <- null;
 C120_AIR_FILTER_SNAPSHOT <- null;
 C120_AIR_SELECT_SEQ <- 0;
+C121_AIR_ECONOMICS_SHADOW <- false;
+/* C121 : modele economique AIR unifie. Le flag decisionnel reste eteint tant
+ * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
+C121_AIR_ECONOMICS <- false;
+C121_AIR_ENGINE_REALIZATION <- false;
+C121_AIR_PROJECT_REALIZATION <- false;
+C121_AIR_PROJECT_REALIZATION_ADAPTIVE <- false;
+C121_AIR_PROJECT_REALIZATION_MIN_CONTESTABLE_PERMILLE <- 650;
+C121_AIR_PROJECT_REALIZATION_MAX_OPEN_PERMILLE <- 200;
+C121_AIR_PROJECT_REALIZATION_MIN_PRESSURED <- 3;
+C121_AIR_PROJECT_REALIZATION_CLASSIFY_YEARS <- 2;
+C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED <- 0;
+/* -1 = observation/non classe, 0 = race, 1 = efficiency. Une fois classe,
+ * le regime reste stable pour eviter qu'une politique modifie son propre
+ * signal de classification. */
+C121_AIR_PROJECT_REALIZATION_REGIME <- -1;
+C121_AIR_PRESSURE_PROBE <- false;
+C121_AIR_PRESSURE_SNAPSHOT <- null;
+C121_AIR_PRESSURE_ACCUM <- null;
+C121_AIR_PRESSURE_PREV <- null;
+C121_AIR_DEFENSIVE_FLOOR <- false;
+C121_AIR_INITIAL_PROJECT_ECONOMICS <- false;
+/* Replay moteur C121 strictement passif. La table de capacites ne contient que
+ * des couples PASS/MAIL effectivement observes sur un avion construit : on ne
+ * fabrique pas la soute MAIL secondaire des moteurs alternatifs. */
+C121_AIR_ENGINE_REPLAY_SHADOW <- false;
+C121_AIR_ENGINE_CAPACITY_OBS <- {};
+/* C121 : calibration recente du revenu des NOUVELLES lignes, par bras. Le
+ * cold-start reste 1.0. Le rapport annuel remplace ensuite cette valeur par une
+ * moyenne recente realise/brut, lisible en O(1) pendant le scoring. */
+C121_AIR_REALIZATION_FACTOR <- { newpair = 1.0, hubsite = 1.0, hubhub = 1.0 };
+C121_AIR_REALIZATION_MIN_LINES <- 2;
+/* Diagnostic agrege de cout du chemin causal C121 pendant une passe AIR.
+ * La table est recreee a chaque planification (ou conservee dans resumeState
+ * pour une passe slicee) et ne participe a aucune decision. */
+C121_AIR_PLAN_PERF <- null;
+/* Snapshot endpoint C121 limite a une passe de planification AIR. Un meme site
+ * (ancre/type/cargo/etat de reutilisation) est evalue une fois puis reutilise
+ * pour toutes les paires de cette passe. */
+C121_AIR_ENDPOINT_CACHE <- null;
+/* C121 timing adaptatif : chaque station publie une moyenne du residu
+ * operationnel observe sur une fenetre recente d'environ un trimestre.
+ * Le residu reste signe pendant l'accumulation pour ne pas biaiser la
+ * quantification de C117 (echantillonnage tous les 2 jours) ; seule
+ * l'estimation publiee, interpretee comme un delai, est bornee a >= 0. */
+C121_AIR_HUB_DELAY_STATE <- {};
+C121_AIR_HUB_DELAY_WINDOW_DAYS <- 91;
+C121_AIR_HUB_DELAY_MIN_OBS <- 2;
+C121_AIR_HUB_DELAY_UPDATE_OPS <- 0;
+C121_AIR_HUB_DELAY_UPDATE_SAMPLES <- 0;
 C120_AIR_LAST_TRACE_KEY <- "";
 /* C116.2 : snapshot tres bon marche du portefeuille AIR deja classe. Il est
  * rempli uniquement pour la sonde C104/C116 (ou C116 actif) a partir de la

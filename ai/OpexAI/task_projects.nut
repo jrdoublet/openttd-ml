@@ -178,6 +178,13 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   local plannedFull = ("capital" in project && project.capital > 0)
       ? project.capital : (entry.planePrice * entry.want);
   local costs = C63_INVEST_PROBE ? AIAccounting() : null;
+  local c121HaveBefore = ("vehCount" in line) ? line.vehCount
+      : (("vehicles" in line) ? line.vehicles.len() : 0);
+  local c121TrackMarginal = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+      && line.targetAirPlanes > c121HaveBefore
+      && ("lastProfit" in line) && ("lastRevenue" in line);
+  local c121BaselineProfit = c121TrackMarginal ? line.lastProfit : 0;
+  local c121BaselineRevenue = c121TrackMarginal ? line.lastRevenue : 0;
   local added = 0;
   for (local k = 0; k < entry.want; k++) {
     local grown = OpexAirAddPlane(line, this._catalog);
@@ -214,6 +221,15 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 
   line.lastAirFleetYear <- year;
   line.lastAirFleetDate <- AIDate.GetCurrentDate();
+  if (c121TrackMarginal && line.vehCount > c121HaveBefore) {
+    line.c121MarginalBaselineProfit <- c121BaselineProfit;
+    line.c121MarginalBaselineRevenue <- c121BaselineRevenue;
+    line.c121MarginalBaselineVehicles <- c121HaveBefore;
+    /* task_report(year) publie le profit de year-1. Un renfort pose pendant
+     * year ne dispose donc d'une annee civile complete post-renfort qu'au
+     * report year+2. */
+    line.c121MarginalObserveYear <- year + 2;
+  }
   if (C50_CHRONOLOGY_PROBE) {
     OpexC50ChronologyLog("phase=fleet_built mode=air line=" + line.lineId
         + " added=" + added + " total=" + line.vehCount + " want=" + entry.want

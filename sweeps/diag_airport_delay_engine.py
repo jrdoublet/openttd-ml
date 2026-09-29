@@ -213,6 +213,8 @@ def extract_measurements(chunks, seed, date):
                 "order_index": order_index,
                 "src_station": prev_dest,
                 "dst_station": dest,
+                "src_tile": src["tile"],
+                "dst_tile": dst["tile"],
                 "route_aircraft": route_aircraft.get(order_key, 0),
                 "src_station_aircraft": station_aircraft.get(prev_dest, 0),
                 "dst_station_aircraft": station_aircraft.get(dest, 0),

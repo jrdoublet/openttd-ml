@@ -142,7 +142,9 @@ function OpexAI::_tryBuildAir(year)
       }
     }
 
-    if (B9_AIR_DEMAND_SHADOW) OpexAirB9DemandShadow(this._catalog, plan);
+    if (B9_AIR_DEMAND_SHADOW || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+      OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);
+    }
     local result = V93_AIR_DEMAND_PRODUCTION
         ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
         : OpexBuildAirRoute(this._catalog, this._budget, plan);
@@ -203,11 +205,16 @@ function OpexAI::_tryBuildAir(year)
       isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
       lineId = this._nextLineId,
     });
-    if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE
+    if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+      OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, plan, result);
+    }
+    if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE
         || C117_AIR_THROUGHPUT_PROBE) {
-      if (C84_AIR_TARGET_FLEET) {
-        this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in plan)
-            ? plan.targetPlanes : result.vehicles.len();
+      if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS) {
+        local builtLine = this._lines[this._lines.len() - 1];
+        builtLine.targetAirPlanes <- C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)
+            ? builtLine.c121TargetPlanes
+            : (("targetPlanes" in plan) ? plan.targetPlanes : result.vehicles.len());
       }
       this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
       if (C98_AIR_REALIZED_PROBE) {
@@ -462,7 +469,9 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
-      if (B9_AIR_DEMAND_SHADOW) OpexAirB9DemandShadow(this._catalog, buildPlan);
+      if (B9_AIR_DEMAND_SHADOW || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+        OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);
+      }
       local result = V93_AIR_DEMAND_PRODUCTION
           ? OpexBuildAirRoute(this._catalog, this._budget, buildPlan, this._lines)
           : OpexBuildAirRoute(this._catalog, this._budget, buildPlan);
@@ -564,11 +573,16 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
-        if (C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE
+        if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+          OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, buildPlan, result);
+        }
+        if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE
             || C117_AIR_THROUGHPUT_PROBE) {
-          if (C84_AIR_TARGET_FLEET) {
-            this._lines[this._lines.len() - 1].targetAirPlanes <- ("targetPlanes" in buildPlan)
-                ? buildPlan.targetPlanes : result.vehicles.len();
+          if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS) {
+            local builtLine = this._lines[this._lines.len() - 1];
+            builtLine.targetAirPlanes <- C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)
+                ? builtLine.c121TargetPlanes
+                : (("targetPlanes" in buildPlan) ? buildPlan.targetPlanes : result.vehicles.len());
           }
           this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in buildPlan) ? buildPlan.monthlyPax : 0;
           if (C98_AIR_REALIZED_PROBE) {
@@ -778,6 +792,25 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
+    local c121BelowTarget = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+        && line.targetAirPlanes > have;
+    local belowTarget = c84BelowTarget || c121BelowTarget;
+    if (c121BelowTarget) {
+      /* Une mesure annuelle complete est le premier feedback fiable apres le
+       * cold-start C121. Ne jamais acheter plusieurs renforts sur la meme
+       * observation : une nouvelle annee doit confirmer le palier suivant. */
+      local c121Age = ("year" in line) ? year - line.year : -1;
+      if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0) {
+        OpexAirFleetRefusal(line, year, "O");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "c121_no_full_year_observation", 1);
+        continue;
+      }
+      if (("lastAirFleetYear" in line) && (year - line.lastAirFleetYear) < 2) {
+        OpexAirFleetRefusal(line, year, "Y");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "c121_wait_full_year_after_growth", 1);
+        continue;
+      }
+    }
     if (("deadStreak" in line) && line.deadStreak >= 2) {
       OpexAirFleetRefusal(line, year, "D");
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "dead_line", 1);
@@ -785,7 +818,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
 
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
-    if (!c84BelowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
+    if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
       OpexAirFleetRefusal(line, year, "L");
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
       continue;
@@ -804,8 +837,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "airport_capacity_reached", 1); continue; }
     local maxPlanesForAirport = physicalMaxPlanes;
     if (OPEX_AIR_CAP_PAD) maxPlanesForAirport = maxPlanesForAirport;
-    if (!c84BelowTarget && ("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1); continue; }
-    if (!c84BelowTarget && ("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1); continue; }
+    if (!belowTarget && ("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1); continue; }
+    if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1); continue; }
 
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
     if ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
@@ -827,7 +860,13 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
      * Si buildNum < 1 : refus W (pas assez de cargo au sol).
      * Sinon : autorise jusqu'a buildNum (c69_fleet_demand_batch) ou min(buildNum, 4) par defaut. */
-    if (AIR_FLEET_BUFFER >= 0) {
+    if (c121BelowTarget) {
+      /* C121 dimensionne sur flux + rating : attendre une capacite entiere au
+       * sol cree une boucle morte (faible frequence -> faible rating -> faible
+       * stock). Le portefeuille arbitre donc un seul renfort a la fois jusqu'a
+       * la cible, avec le marginal C121 compact publie sur la ligne. */
+      maxAddedPerPass = 1;
+    } else if (AIR_FLEET_BUFFER >= 0) {
       local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
       if (planeCap <= 0 && ("vehicles" in line)) {
         foreach (v in line.vehicles) {
@@ -856,7 +895,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       }
       maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
     }
-    if (c84BelowTarget) {
+    if (belowTarget) {
       local targetNeed = line.targetAirPlanes - have;
       if (targetNeed > 0 && maxAddedPerPass > targetNeed) maxAddedPerPass = targetNeed;
     }

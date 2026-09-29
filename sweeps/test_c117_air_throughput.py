@@ -31,9 +31,10 @@ class TestC117AirThroughput(unittest.TestCase):
     def test_probe_is_gated_from_main_loop(self):
         src = MAIN.read_text(encoding="utf-8")
         self.assertIn(
-            "if (C117_AIR_THROUGHPUT_PROBE) OpexC117AirThroughputStep(this._lines, this._catalog);",
+            "C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS",
             src,
         )
+        self.assertIn("OpexC117AirThroughputStep(this._lines, this._catalog);", src)
 
     def test_both_air_build_paths_store_probe_context(self):
         src = TASK_AIR.read_text(encoding="utf-8")

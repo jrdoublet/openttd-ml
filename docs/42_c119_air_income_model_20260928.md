@@ -1,4 +1,4 @@
-﻿# C119 — audit du modèle de revenu AIR face à AAAHogEx
+# C119 — audit du modèle de revenu AIR face à AAAHogEx
 
 Date : 2026-09-28.
 
@@ -173,7 +173,22 @@ Causal 5×6, graines 42, 100, 999, 1234, 5678 :
 - station rating médian : **-3,2 points** en moyenne ;
 - évolution moyenne de l'écart de `profit_year` face à AAAHogEx : **+102,2 k£/an**, mais seulement **2/3** graines et forte variance.
 
-Verdict harnais : **`diagnostic_only`**. Le signal est prometteur, mais le 5×6 ne qualifie pas une adoption. Conformément au protocole demandé, **aucun 20×10 n'est lancé automatiquement**.
+Verdict 5×6 : **`diagnostic_only`**. Le signal était prometteur mais ne qualifiait pas une adoption.
+
+Sur instruction ultérieure, C119 a ensuite été qualifié en **20×10** contre le même témoin C115, sur les 20 graines canoniques :
+
+- **20/20 paires complètes** ;
+- `profit_year` : moyenne **+70,9 k£/an**, médiane **+76,2 k£/an** ;
+- W/L : **11/9**, sign-test **`p=0,823803`** ;
+- IC95 normale : **[-51,3 ; +193,2] k£/an** ; IC95 Student : **[-59,6 ; +201,5] k£/an** ;
+- ratio des moyennes `profit_year` : **+3,42 %** ;
+- valeur : moyenne **+504,5 k£**, médiane **+304,3 k£**, **11/9**, ratio des moyennes **+4,45 %** ; le garde-fou valeur passe ;
+- `profit` : moyenne **+26,4 k£**, médiane **+30,6 k£**, **12/8**, `p=0,503445` ;
+- évolution de l'écart `profit_year` face à AAAHogEx : moyenne **+432,3 k£/an**, médiane **+578,3 k£/an**, **12/8**, `p=0,503445` ;
+- `performance_history` : moyenne **-19,65**, **5/15**, `p=0,041389` ;
+- véhicules primaires : **+4,5** en moyenne ; slots aéroport Opex : **-0,4** en moyenne ; villes avec aéroport Opex : **-0,15** en moyenne.
+
+Verdict harnais 20×10 : **`fail_primary`**. Le delta moyen primaire dépasse bien le seuil utile de +50 k£/an (`primary_mean_pass=true`) et la valeur passe (`value_guard_pass=true`), mais le critère directionnel échoue (`sign_pass=false`, seulement 11/20 gains). C119 reste donc **désactivé par défaut**. La correction de paiement reste mécaniquement mieux fondée et peut servir de composant au futur modèle AIR unifié, mais elle n'est pas adoptée seule comme amélioration causale de C115.
 
 ## 8. Artefacts
 
@@ -189,5 +204,6 @@ Verdict harnais : **`diagnostic_only`**. Le signal est prometteur, mais le 5×6 
 - `results/c119_income_api_smoke_seed42_20260928.json`
 - `results/c119_air_income_smoke_seed42_20260928.json`
 - `results/c119_air_income_vs_c115_5x6_20260928.json`
+- `results/c119_air_income_vs_c115_20x10_20260928.json`
 
 Aucun commit/push.
