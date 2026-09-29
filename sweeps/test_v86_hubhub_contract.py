@@ -80,7 +80,8 @@ class V86HubHubContractTest(unittest.TestCase):
 
         # Guarded by AIR_HUBHUB_MARGINAL
         self.assertIn("if (AIR_HUBHUB_MARGINAL)", h2h_body)
-        self.assertIn("if (AIR_HUBHUB_MARGINAL && economics != null && economics.profitAnnual > 0)", h2h_body)
+        self.assertIn("if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS && economics != null && economics.profitAnnual > 0)",
+                      " ".join(h2h_body.split()))
 
         # Precalculation happens BEFORE the hub pair loops
         precalc_pos = h2h_body.index("if (AIR_HUBHUB_MARGINAL)")
@@ -106,7 +107,9 @@ class V86HubHubContractTest(unittest.TestCase):
         self.assertIn("economics.roi = totalCapital > 0 ? (economics.profitAnnual * 1000) / totalCapital : 0;", h2h_body)
 
         # Non-positive profit rejected
-        self.assertIn("if (economics == null || economics.profitAnnual <= 0)", h2h_body)
+        # Hors C113, admissionEconomics == economics.
+        self.assertIn("local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)", h2h_body)
+        self.assertIn("if (economics == null || admissionEconomics == null || admissionEconomics.profitAnnual <= 0)", h2h_body)
 
         # Hypothesis documented in comments
         self.assertIn("CargoDist", h2h_body)

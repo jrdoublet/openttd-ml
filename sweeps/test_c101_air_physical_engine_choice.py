@@ -38,7 +38,7 @@ class C101AirPhysicalEngineChoiceTests(unittest.TestCase):
         self.assertIn("C101_AIR_PHYSICAL_ENGINE_CHOICE && C72_PLANE_CHOICE == 0", full)
         self.assertIn("!C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL", full)
         self.assertIn("!C85_AIR_EQUIPMENT_FRONTIER", full)
-        self.assertIn("if (C82_ENGINE_CALIBRATION)", full)
+        self.assertIn("if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY)", full)
 
     def test_force_physical_timing_has_distinct_memo_key(self):
         self.assertIn('"|pt=" + ((C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS', AIR)

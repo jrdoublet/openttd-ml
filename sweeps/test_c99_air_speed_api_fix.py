@@ -23,14 +23,16 @@ class C99AirSpeedApiFixTests(unittest.TestCase):
 
     def test_fix_is_isolated_to_trip_speed_interpretation(self):
         match = re.search(
-            r"function OpexAirTripModel\(speed, capacity, distance, engineId = -1, airportType = -1,\s*forcePhysicalTiming = false\)(.*?)\n\}",
+            r"function OpexAirTripModel\(speed, capacity, distance, engineId = -1, airportType = -1,\s*forcePhysicalTiming = false, forceC100RankReplay = false\)(.*?)\n\}",
             AIR,
             re.S,
         )
         self.assertIsNotNone(match)
         body = match.group(1)
-        self.assertIn("physicalTiming = C100_AIR_TRIP_PHYSICAL || forcePhysicalTiming", body)
-        self.assertIn("C99_AIR_SPEED_API_FIX || physicalTiming", body)
+        self.assertIn("physicalTiming = C100_AIR_TRIP_PHYSICAL ||", body)
+        self.assertIn("|| forcePhysicalTiming;", body)
+        self.assertIn("local directSpeed = physicalTiming || c100ReplayTiming;", body)
+        self.assertIn("C99_AIR_SPEED_API_FIX || directSpeed", body)
         self.assertIn("? speed.tofloat() : speed / 4.0;", body)
         self.assertIn("local airportDelayDays = 3.0;", body)
         self.assertEqual(body.count("C99_AIR_SPEED_API_FIX"), 1)

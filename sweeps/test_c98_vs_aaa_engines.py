@@ -1,6 +1,9 @@
 import unittest
 
-from sweeps.diag_c98_vs_aaa_engines import summarize
+try:
+    from sweeps.diag_c98_vs_aaa_engines import summarize
+except ImportError as exc:  # openttdlab absent hors du conteneur openttd-lab
+    raise unittest.SkipTest(f"harnais indisponible hors Docker : {exc}")
 
 
 def aircraft(engine, profit, full=True, vehicle_id=1):

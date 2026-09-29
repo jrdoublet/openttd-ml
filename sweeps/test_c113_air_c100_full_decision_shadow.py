@@ -33,7 +33,8 @@ class C113AirC100FullDecisionShadowTests(unittest.TestCase):
     def test_equipment_profit_is_not_an_admission_guard_under_c113(self):
         self.assertIn("(!C113_AIR_C100_FULL_DECISION_SHADOW && equipment.economics.profitAnnual <= 0)", AIR)
         self.assertIn("(!C113_AIR_C100_FULL_DECISION_SHADOW && economics.profitAnnual <= 0)", PROJECTS)
-        self.assertIn("profitAnnual = decisionEconomics.profitAnnual", PROJECTS)
+        self.assertIn("local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;", PROJECTS)
+        self.assertIn("profitAnnual = projectEconomics.profitAnnual", PROJECTS)
         self.assertIn("capital = economics.capital", PROJECTS)
 
 if __name__ == "__main__":

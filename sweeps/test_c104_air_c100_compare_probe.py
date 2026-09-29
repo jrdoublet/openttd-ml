@@ -29,7 +29,8 @@ class C104AirC100CompareProbeTests(unittest.TestCase):
     def test_probe_is_observational(self):
         full = AIR[AIR.index("function OpexAirChooseRoutePlaneFull("):]
         self.assertIn("OpexC104ProbeAirEngineCompare", full)
-        self.assertIn("C104_AIR_C100_COMPARE_PROBE && C72_PLANE_CHOICE == 0", full)
+        self.assertIn("C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0",
+                      " ".join(full.split()))
         probe = re.search(r"function OpexC104ProbeAirEngineCompare\(.*?\)(.*?)\n\}", AIR, re.S)
         self.assertIsNotNone(probe)
         self.assertIn('AILog.Warning("C104_COMPARE', probe.group(1))

@@ -21,8 +21,9 @@ class C103AirC100RankReplayTests(unittest.TestCase):
         trip = re.search(r"function OpexAirTripModel\(.*?\)(.*?)\n\}", AIR, re.S)
         self.assertIsNotNone(trip)
         body = trip.group(1)
-        self.assertIn("physicalTiming || forceC100RankReplay", body)
-        self.assertIn("if (forceC100RankReplay", body)
+        self.assertIn("local c100ReplayTiming = C114_AIR_C100_FULL_REPLAY || forceC100RankReplay;", body)
+        self.assertIn("local directSpeed = physicalTiming || c100ReplayTiming;", body)
+        self.assertIn("if (c100ReplayTiming", body)
         self.assertIn("OpexAirManeuverDays(engineId, airportType, airportType", body)
         self.assertIn("OpexPlaneSpeedDivisor()", body)
 
@@ -44,7 +45,7 @@ class C103AirC100RankReplayTests(unittest.TestCase):
         self.assertIn("!C85_AIR_EQUIPMENT_FRONTIER", full)
 
     def test_replay_has_distinct_memo_keys(self):
-        self.assertIn('"|rr=" + (forceC100RankReplay ? 1 : 0)', AIR)
+        self.assertIn('"|rr=" + ((C114_AIR_C100_FULL_REPLAY || forceC100RankReplay) ? 1 : 0)', AIR)
         self.assertIn('? ("r|" + plane.id + "|" + airport.type + "|" + distance)', AIR)
 
 

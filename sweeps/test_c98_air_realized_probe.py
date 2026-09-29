@@ -53,7 +53,7 @@ class C98AirRealizedProbeTests(unittest.TestCase):
 
     def test_probe_only_persists_extra_line_metadata_when_enabled(self):
         task_air = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn("C84_AIR_TARGET_FLEET || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE", task_air)
+        self.assertIn("C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE", task_air)
         self.assertIn("if (C98_AIR_REALIZED_PROBE) {", task_air)
         self.assertIn(".c98Arm <-", task_air)
 

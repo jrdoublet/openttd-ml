@@ -99,12 +99,13 @@ class TestC84AirTargetFleet(unittest.TestCase):
 
     def test_target_only_relaxes_first_health_gate(self):
         resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
+        self.assertIn("local belowTarget = c84BelowTarget || c121BelowTarget;", resize)
         self.assertIn(
-            'if (!c84BelowTarget && ("lastProfit" in line) && line.lastProfit < 0)',
+            'if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0)',
             resize,
         )
         self.assertIn(
-            'if (!c84BelowTarget && ("deadStreak" in line) && line.deadStreak >= 1)',
+            'if (!belowTarget && ("deadStreak" in line) && line.deadStreak >= 1)',
             resize,
         )
         self.assertIn(
