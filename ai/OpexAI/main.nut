@@ -706,12 +706,49 @@ function OpexAI::Start()
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     if (C80_DOUBLE_REGISTER) {
       this._runOrchestratorTick();
+      if (C121_CATALOG_INCREMENTAL) {
+        local catalogPending = true;
+        while (catalogPending && this._activeWorker == null
+            && this._railSearch == null && this._railExpansion == null
+            && AIController.GetOpsTillSuspend() > 10000) {
+          catalogPending = false;
+          foreach (queuedTask in this._taskQueue) {
+            if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
+                && queuedTask.c78AirRebuild != null) {
+              catalogPending = true;
+              this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+              break;
+            }
+          }
+          if (catalogPending) this._runOrchestratorTick();
+        }
+      }
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
       if (C67_SLACK_HOOK) this._c67SlackHook();
       AIController.Sleep(1);
     } else if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
     } else {
       this._runNextTaskWithSlackLedger();
+      /* C121 : les tranches rendent la main aux taches dues dans la file, mais
+       * ne doivent pas imposer un Sleep entre deux tranches lorsque le tick a
+       * encore des opcodes. La file continue son tour normal a chaque appel. */
+      if (C121_CATALOG_INCREMENTAL) {
+        local catalogPending = true;
+        while (catalogPending && this._activeWorker == null
+            && this._railSearch == null && this._railExpansion == null
+            && AIController.GetOpsTillSuspend() > 10000) {
+          catalogPending = false;
+          foreach (queuedTask in this._taskQueue) {
+            if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
+                && queuedTask.c78AirRebuild != null) {
+              catalogPending = true;
+              this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+              break;
+            }
+          }
+          if (catalogPending) this._runNextTaskWithSlackLedger();
+        }
+      }
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
       if (C67_SLACK_HOOK) this._c67SlackHook();
       AIController.Sleep(1);

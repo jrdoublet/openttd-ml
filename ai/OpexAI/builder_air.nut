@@ -3421,6 +3421,178 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
       targetPlanes = initialEconomics.planes };
 }
 
+/* Le cache est indexe sur la geometrie physique, jamais sur l'ordre du tableau de sites.
+ * Les objets economics restent immuables jusqu'a leur copie dans le plan candidat. */
+function OpexC121CatalogSiteKey(site)
+{
+  return site.town.id + ":" + site.anchor + ":"
+      + (("stationId" in site) ? site.stationId : -1);
+}
+
+/* C76 ne donne que le nom de couche. Comparer les empreintes des stations AIR
+ * une fois au bump permet de garder les plans sans lien avec la ligne modifiee. */
+function OpexC121CatalogRefreshStationLines(lines)
+{
+  local nextLines = {};
+  if (lines != null) foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "air"
+        || !("stationA" in line) || !("stationB" in line)) continue;
+    local a = OpexAirLineStationId(line, 0);
+    local b = OpexAirLineStationId(line, 1);
+    if (a >= 0) nextLines.rawset(a,
+        (a in nextLines ? nextLines[a] : "") + b + ";");
+    if (b >= 0) nextLines.rawset(b,
+        (b in nextLines ? nextLines[b] : "") + a + ";");
+  }
+  foreach (stationId, signature in nextLines) {
+    if (!(stationId in C121_CATALOG_STATION_LINES)
+        || C121_CATALOG_STATION_LINES[stationId] != signature) {
+      C121_CATALOG_STATION_REV.rawset(stationId,
+          (stationId in C121_CATALOG_STATION_REV
+              ? C121_CATALOG_STATION_REV[stationId] : 0) + 1);
+    }
+  }
+  foreach (stationId, signature in C121_CATALOG_STATION_LINES) {
+    if (!(stationId in nextLines)) C121_CATALOG_STATION_REV.rawset(stationId,
+        (stationId in C121_CATALOG_STATION_REV
+            ? C121_CATALOG_STATION_REV[stationId] : 0) + 1);
+  }
+  C121_CATALOG_STATION_LINES = nextLines;
+}
+
+function OpexC121CatalogTownPriorityCompare(a, b)
+{
+  local scoreA = a.id in C121_CATALOG_TOWN_PRIORITY ? C121_CATALOG_TOWN_PRIORITY[a.id] : -1.0;
+  local scoreB = b.id in C121_CATALOG_TOWN_PRIORITY ? C121_CATALOG_TOWN_PRIORITY[b.id] : -1.0;
+  if (scoreA > scoreB) return -1;
+  if (scoreA < scoreB) return 1;
+  if (a.pop > b.pop) return -1;
+  if (a.pop < b.pop) return 1;
+  return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
+}
+
+function OpexC121CatalogRankDirtyTowns()
+{
+  C121_CATALOG_TOWN_PRIORITY.clear();
+  local today = AIDate.GetCurrentDate();
+  foreach (key, entry in C121_CATALOG_CACHE) {
+    local dirty = entry.airportRev != (entry.airportType in C121_CATALOG_AIRPORT_REV
+        ? C121_CATALOG_AIRPORT_REV[entry.airportType] : 0)
+        || entry.townA != (entry.townAId in C121_CATALOG_TOWN_REV
+            ? C121_CATALOG_TOWN_REV[entry.townAId] : 0)
+        || entry.townB != (entry.townBId in C121_CATALOG_TOWN_REV
+            ? C121_CATALOG_TOWN_REV[entry.townBId] : 0)
+        || entry.stationRevA != (entry.stationAId in C121_CATALOG_STATION_REV
+            ? C121_CATALOG_STATION_REV[entry.stationAId] : 0)
+        || entry.stationRevB != (entry.stationBId in C121_CATALOG_STATION_REV
+            ? C121_CATALOG_STATION_REV[entry.stationBId] : 0)
+        || entry.airportLearn != (entry.airportType in C121_CATALOG_AIRPORT_LEARN_REV
+            ? C121_CATALOG_AIRPORT_LEARN_REV[entry.airportType] : 0)
+        || entry.hubLearnA != (entry.stationAId in C121_CATALOG_HUB_LEARN_REV
+            ? C121_CATALOG_HUB_LEARN_REV[entry.stationAId] : 0)
+        || entry.hubLearnB != (entry.stationBId in C121_CATALOG_HUB_LEARN_REV
+            ? C121_CATALOG_HUB_LEARN_REV[entry.stationBId] : 0)
+        || entry.armLearn != (entry.arm in C121_CATALOG_ARM_LEARN_REV
+            ? C121_CATALOG_ARM_LEARN_REV[entry.arm] : 0)
+        || today - entry.date >= 365;
+    if (!dirty) continue;
+    local score = entry.lastScore;
+    if (!(entry.townAId in C121_CATALOG_TOWN_PRIORITY)
+        || C121_CATALOG_TOWN_PRIORITY[entry.townAId] < score)
+      C121_CATALOG_TOWN_PRIORITY.rawset(entry.townAId, score);
+    if (!(entry.townBId in C121_CATALOG_TOWN_PRIORITY)
+        || C121_CATALOG_TOWN_PRIORITY[entry.townBId] < score)
+      C121_CATALOG_TOWN_PRIORITY.rawset(entry.townBId, score);
+  }
+}
+
+function OpexC121CatalogChoice(catalog, plan, lines)
+{
+  local key = plan.arm + "|" + plan.airport.type + "|"
+      + OpexC121CatalogSiteKey(plan.siteA) + "|"
+      + OpexC121CatalogSiteKey(plan.siteB) + "|"
+      + (plan.reuseA ? 1 : 0) + "|" + (plan.reuseB ? 1 : 0);
+  plan.c121CatalogKey <- key;
+  local date = AIDate.GetCurrentDate();
+  local revA = plan.siteA.town.id in C121_CATALOG_TOWN_REV
+      ? C121_CATALOG_TOWN_REV[plan.siteA.town.id] : 0;
+  local revB = plan.siteB.town.id in C121_CATALOG_TOWN_REV
+      ? C121_CATALOG_TOWN_REV[plan.siteB.town.id] : 0;
+  local airportRev = plan.airport.type in C121_CATALOG_AIRPORT_REV
+      ? C121_CATALOG_AIRPORT_REV[plan.airport.type] : 0;
+  local airportLearn = plan.airport.type in C121_CATALOG_AIRPORT_LEARN_REV
+      ? C121_CATALOG_AIRPORT_LEARN_REV[plan.airport.type] : 0;
+  local stationA = OpexC121HubStationId(plan.siteA, plan.reuseA);
+  local stationB = OpexC121HubStationId(plan.siteB, plan.reuseB);
+  local stationRevA = stationA in C121_CATALOG_STATION_REV
+      ? C121_CATALOG_STATION_REV[stationA] : 0;
+  local stationRevB = stationB in C121_CATALOG_STATION_REV
+      ? C121_CATALOG_STATION_REV[stationB] : 0;
+  local hubLearnA = stationA in C121_CATALOG_HUB_LEARN_REV
+      ? C121_CATALOG_HUB_LEARN_REV[stationA] : 0;
+  local hubLearnB = stationB in C121_CATALOG_HUB_LEARN_REV
+      ? C121_CATALOG_HUB_LEARN_REV[stationB] : 0;
+  local armLearn = plan.arm in C121_CATALOG_ARM_LEARN_REV
+      ? C121_CATALOG_ARM_LEARN_REV[plan.arm] : 0;
+  local reason = "new";
+  if (key in C121_CATALOG_CACHE) {
+    local entry = C121_CATALOG_CACHE[key];
+    if (entry.airportRev != airportRev) reason = "engine";
+    else if (entry.townA != revA || entry.townB != revB) reason = "town";
+    else if (entry.stationRevA != stationRevA || entry.stationRevB != stationRevB
+        || entry.routes != plan.hubRoutes) reason = "station";
+    else if (entry.airportLearn != airportLearn || entry.hubLearnA != hubLearnA
+        || entry.hubLearnB != hubLearnB || entry.armLearn != armLearn) reason = "learning";
+    else if (date - entry.date >= 365) reason = "age";
+    else if (entry.distance != plan.distance
+        || (V93_AIR_DEMAND_PRODUCTION && entry.monthlyPax != plan.monthlyPax)
+        || entry.airportPrice != plan.airport.price
+        || entry.airportMaintenance != plan.airport.maintenance) reason = "input";
+    else {
+      if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.c121CacheHits++;
+      if (entry.demand != null) plan.c121Demand <- entry.demand;
+      if (entry.engineStatic != null) plan.c121EngineStatic <- entry.engineStatic;
+      if (entry.choice != null) {
+        plan.c121ChosenEngine <- entry.choice.plane.id;
+        plan.c121ChosenMailKnown <- entry.mailKnown;
+      }
+      return entry.choice;
+    }
+  }
+  if (CATALOG_COST_ACTIVE != null) {
+    CATALOG_COST_ACTIVE.c121Recomputed++;
+    if (reason == "engine") CATALOG_COST_ACTIVE.c121DirtyEngine++;
+    else if (reason == "town") CATALOG_COST_ACTIVE.c121DirtyTown++;
+    else if (reason == "station") CATALOG_COST_ACTIVE.c121DirtyStation++;
+    else if (reason == "learning") CATALOG_COST_ACTIVE.c121DirtyLearning++;
+    else if (reason == "age") CATALOG_COST_ACTIVE.c121DirtyAge++;
+    else if (reason == "input") CATALOG_COST_ACTIVE.c121DirtyInput++;
+    else if (reason == "new") CATALOG_COST_ACTIVE.c121New++;
+  }
+  local choice = OpexC121ChooseRoutePlane(catalog, plan, lines);
+  C121_CATALOG_CACHE.rawset(key, {
+    choice = choice, date = date, airportRev = airportRev,
+    townA = revA, townB = revB, stationRevA = stationRevA,
+    stationRevB = stationRevB, airportLearn = airportLearn,
+    hubLearnA = hubLearnA, hubLearnB = hubLearnB, armLearn = armLearn,
+    airportType = plan.airport.type, arm = plan.arm,
+    townAId = plan.siteA.town.id, townBId = plan.siteB.town.id,
+    stationAId = stationA, stationBId = stationB,
+    lastScore = (key in C121_CATALOG_CACHE)
+        ? C121_CATALOG_CACHE[key].lastScore
+        : (choice != null && choice.economics != null && choice.economics.capital > 0
+            ? choice.economics.profitAnnual.tofloat() / choice.economics.capital : 0.0),
+    routes = plan.hubRoutes,
+    distance = plan.distance, monthlyPax = plan.monthlyPax,
+    airportPrice = plan.airport.price,
+    airportMaintenance = plan.airport.maintenance,
+    demand = ("c121Demand" in plan) ? plan.c121Demand : null,
+    engineStatic = ("c121EngineStatic" in plan) ? plan.c121EngineStatic : null,
+    mailKnown = ("c121ChosenMailKnown" in plan) ? plan.c121ChosenMailKnown : false,
+  });
+  return choice;
+}
+
 /* Shadow de stabilite du classement, execute seulement lorsqu'un nouveau moteur
  * vient d'apprendre son couple PASS/MAIL. Le classement PASS-only et le
  * classement PASS+MAIL portent exactement sur le meme sous-ensemble de moteurs
@@ -3496,7 +3668,20 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
   if (paxCapacity <= 0 || mailCapacity < 0) return;
   local engineId = AIVehicle.GetEngineType(result.vehicle);
   local newlyObserved = !(engineId in C121_AIR_ENGINE_CAPACITY_OBS);
+  local priorMail = newlyObserved ? -1 : C121_AIR_ENGINE_CAPACITY_OBS[engineId].mail;
   C121_AIR_ENGINE_CAPACITY_OBS.rawset(engineId, { pax = paxCapacity, mail = mailCapacity });
+  if (C121_CATALOG_INCREMENTAL && priorMail != mailCapacity
+      && catalog != null && catalog.airPlaneChoicesByAirport != null) {
+    foreach (airportType, choices in catalog.airPlaneChoicesByAirport) {
+      foreach (candidatePlane in choices) {
+        if (candidatePlane.id != engineId) continue;
+        C121_CATALOG_AIRPORT_LEARN_REV.rawset(airportType,
+            (airportType in C121_CATALOG_AIRPORT_LEARN_REV
+                ? C121_CATALOG_AIRPORT_LEARN_REV[airportType] : 0) + 1);
+        break;
+      }
+    }
+  }
   local tick0 = AIController.GetTick();
   local ops0 = AIController.GetOpsTillSuspend();
   local actualN = ("vehicles" in result) && result.vehicles != null ? result.vehicles.len() : 1;
@@ -6874,6 +7059,9 @@ function OpexAirPlansPrepare(ctx)
       foreach (town in towns) if (town.id == targetTownId) targetedTowns.append(town);
       foreach (town in towns) if (town.id != targetTownId) targetedTowns.append(town);
       towns = targetedTowns;
+    } else if (C121_CATALOG_INCREMENTAL && sliced) {
+      OpexC121CatalogRankDirtyTowns();
+      towns.sort(OpexC121CatalogTownPriorityCompare);
     }
     if (sliced) resumeState.towns = towns;
   }
@@ -7270,6 +7458,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
           if (!siteValidity[keyB]) continue;
         }
       }
+      if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airPairs++;
       if (targetTownId >= 0
           && sites[a].town.id != targetTownId && sites[b].town.id != targetTownId) continue;
       if (C83_FIXES && OpexAirTownCentersLinked(sites[a].town.tile, sites[b].town.tile, lines)) {
@@ -7349,7 +7538,9 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         c83OwnSecondSlotB = ("c83OwnSecondSlot" in sites[b]) && sites[b].c83OwnSecondSlot,
       };
       local routeChoice = C121_AIR_ECONOMICS
-          ? OpexC121ChooseRoutePlane(catalog, plan, ctx.lines)
+          ? (C121_CATALOG_INCREMENTAL
+              ? OpexC121CatalogChoice(catalog, plan, ctx.lines)
+              : OpexC121ChooseRoutePlane(catalog, plan, ctx.lines))
           : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 2, opcodePadding,
               C80_AIR_CHOICE_MEMO ? ("n|" + sites[a].town.id + "|" + sites[b].town.id
@@ -7662,11 +7853,31 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
   local targetTownId = ctx.targetTownId;
   local lines = ctx.lines;
 
-  foreach (hub in hubs) {
+  local incrementalSlice = ctx.sliced && C121_CATALOG_INCREMENTAL;
+  local resumeHub = incrementalSlice && ("hubSiteI" in ctx.resumeState)
+      ? ctx.resumeState.hubSiteI : 0;
+  local resumeSite = incrementalSlice && ("hubSiteJ" in ctx.resumeState)
+      ? ctx.resumeState.hubSiteJ : 0;
+  local progressed = false;
+  for (local hi = resumeHub; hi < hubs.len(); hi++) {
+    local hub = hubs[hi];
     local hubMonthlyPre = C80_AIR_EVAL_FAST
         ? (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
         : 0;
-    foreach (site in sites) {
+    for (local sj = hi == resumeHub ? resumeSite : 0; sj < sites.len(); sj++) {
+      if (incrementalSlice) {
+        local used = OpexAirCalcDeltaOps(ctx.t0_all, ctx.l0_all);
+        if (progressed && ((ctx.opsBudget > 0 && used >= ctx.opsBudget)
+            || (ctx.deadlineTick > 0 && AIController.GetTick() >= ctx.deadlineTick))) {
+          ctx.resumeState.hubSiteI <- hi;
+          ctx.resumeState.hubSiteJ <- sj;
+          ctx.bestPlan = bestPlan;
+          return false;
+        }
+        progressed = true;
+      }
+      local site = sites[sj];
+      if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubSitePairs++;
       if (targetTownId >= 0
           && hub.town.id != targetTownId && site.town.id != targetTownId) continue;
       if (C83_FIXES && OpexAirTownCentersLinked(hub.town.tile, site.town.tile, lines)) {
@@ -7732,7 +7943,9 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         c83OwnSecondSlotB = ("c83OwnSecondSlot" in site) && site.c83OwnSecondSlot,
       };
       local routeChoice = C121_AIR_ECONOMICS
-          ? OpexC121ChooseRoutePlane(catalog, plan, ctx.lines)
+          ? (C121_CATALOG_INCREMENTAL
+              ? OpexC121CatalogChoice(catalog, plan, ctx.lines)
+              : OpexC121ChooseRoutePlane(catalog, plan, ctx.lines))
           : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 1, opcodePadding,
               C80_AIR_CHOICE_MEMO ? ("h|" + hub.stationId + "|" + site.town.id
@@ -7800,6 +8013,11 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
     }
   }
   ctx.bestPlan = bestPlan;
+  if (incrementalSlice) {
+    ctx.resumeState.hubSiteI <- hubs.len();
+    ctx.resumeState.hubSiteJ <- 0;
+  }
+  return true;
 }
 
 /* 6. Arm Ãƒâ€šÃ‚Â« hub vers hub Ãƒâ€šÃ‚Â» : liaisons directes entre deux aeroports existants. */
@@ -7878,11 +8096,29 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
     }
   }
 
-  for (local i = 0; i < hubs.len(); i++) {
+  local incrementalSlice = ctx.sliced && C121_CATALOG_INCREMENTAL;
+  local resumeI = incrementalSlice && ("hubHubI" in ctx.resumeState)
+      ? ctx.resumeState.hubHubI : 0;
+  local resumeJ = incrementalSlice && ("hubHubJ" in ctx.resumeState)
+      ? ctx.resumeState.hubHubJ : 1;
+  local progressed = false;
+  for (local i = resumeI; i < hubs.len(); i++) {
     local hub1MonthlyPre = C80_AIR_EVAL_FAST
         ? (((hubs[i].town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hubs[i].routes + 1))
         : 0;
-    for (local j = i + 1; j < hubs.len(); j++) {
+    for (local j = i == resumeI ? resumeJ : i + 1; j < hubs.len(); j++) {
+      if (incrementalSlice) {
+        local used = OpexAirCalcDeltaOps(ctx.t0_all, ctx.l0_all);
+        if (progressed && ((ctx.opsBudget > 0 && used >= ctx.opsBudget)
+            || (ctx.deadlineTick > 0 && AIController.GetTick() >= ctx.deadlineTick))) {
+          ctx.resumeState.hubHubI <- i;
+          ctx.resumeState.hubHubJ <- j;
+          ctx.bestPlan = bestPlan;
+          return false;
+        }
+        progressed = true;
+      }
+      if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubHubPairs++;
       local hub1 = hubs[i];
       local hub2 = hubs[j];
       if (targetTownId >= 0
@@ -7964,7 +8200,9 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         arm = "hubhub",
       };
       local routeChoice = C121_AIR_ECONOMICS
-          ? OpexC121ChooseRoutePlane(catalog, plan, lines)
+          ? (C121_CATALOG_INCREMENTAL
+              ? OpexC121CatalogChoice(catalog, plan, lines)
+              : OpexC121ChooseRoutePlane(catalog, plan, lines))
           : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 0, opcodePadding,
               C80_AIR_CHOICE_MEMO ? ("hh|" + hub1.stationId + "|" + hub2.stationId
@@ -8070,6 +8308,11 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
     }
   }
   ctx.bestPlan = bestPlan;
+  if (incrementalSlice) {
+    ctx.resumeState.hubHubI <- hubs.len();
+    ctx.resumeState.hubHubJ <- 0;
+  }
+  return true;
 }
 
 /* V95 : diagnostic annuel, strictement passif, des occasions que le scan courant
@@ -8368,6 +8611,24 @@ function OpexAirPlansFinalize(ctx)
                + " false_towns_logged=" + servedDiag.loggedFalseCount);
   }
   local totalOps = _calcDeltaOps(t0_all, l0_all);
+  if (CATALOG_COST_ACTIVE != null) {
+    local cost = CATALOG_COST_ACTIVE;
+    cost.airScans++;
+    cost.airTowns += ctx.limit;
+    cost.airCombos += combos.len();
+    cost.airSiteProbes += perfProbesCount;
+    cost.airSites += perfSitesFound;
+    cost.airSiteOps += perfOpsSites;
+    cost.airEvalOps += perfOpsEval;
+    if (C121_AIR_PLAN_PERF != null) {
+      cost.c121Calls += C121_AIR_PLAN_PERF.calls;
+      cost.c121DemandOps += C121_AIR_PLAN_PERF.demandOps;
+      cost.c121StaticOps += C121_AIR_PLAN_PERF.staticOps;
+      cost.c121ScanOps += C121_AIR_PLAN_PERF.scanOps;
+      cost.c121EngineEvals += C121_AIR_PLAN_PERF.engineEvals;
+      cost.c121WinnerOps += C121_AIR_PLAN_PERF.winnerOps;
+    }
+  }
   local elapsedTicks = AIController.GetTick() - t0_all;
   if (sliced) {
     totalOps += resumeState.totalOps;
@@ -8526,12 +8787,16 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_site", "-");
     local tHubEval0 = AIController.GetTick();
     local lHubEval0 = AIController.GetOpsTillSuspend();
-    OpexAirPlansHubToSite(ctx, combo, airport, plane);
+    if (!ctx.sliced || !C121_CATALOG_INCREMENTAL
+        || !("hubPhase" in ctx.resumeState) || ctx.resumeState.hubPhase < 1) {
+      if (!OpexAirPlansHubToSite(ctx, combo, airport, plane)) return ctx.bestPlan;
+      if (ctx.sliced && C121_CATALOG_INCREMENTAL) ctx.resumeState.hubPhase <- 1;
+    }
     local c56PlansMid = (ctx.projects != null) ? ctx.projects.len() : 0;
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_to_site", "-",
         "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len() + " admitted=" + (c56PlansMid - c56PlansBefore));
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_hub", "-");
-    OpexAirPlansHubToHub(ctx, combo, airport, plane);
+    if (!OpexAirPlansHubToHub(ctx, combo, airport, plane)) return ctx.bestPlan;
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_to_hub", "-",
         "hubs=" + ctx.hubs.len() + " admitted=" + (((ctx.projects != null) ? ctx.projects.len() : 0) - c56PlansMid));
     ctx.perfOpsEval += _calcDeltaOps(tHubEval0, lHubEval0);
@@ -8552,6 +8817,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       ctx.resumeState.scanProbes = null;
       ctx.resumeState.rankIndex = 0;
       ctx.resumeState.rankSites = [];
+      if (C121_CATALOG_INCREMENTAL) {
+        ctx.resumeState.hubPhase <- 0;
+        ctx.resumeState.hubSiteI <- 0;
+        ctx.resumeState.hubSiteJ <- 0;
+        ctx.resumeState.hubHubI <- 0;
+        ctx.resumeState.hubHubJ <- 1;
+      }
       ctx.resumeState.bestPlan = ctx.bestPlan;
       ctx.resumeState.stationLimitedTowns = ctx.stationLimitedTowns;
       ctx.resumeState.perfOpsSites = ctx.perfOpsSites;

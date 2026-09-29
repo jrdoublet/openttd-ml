@@ -149,6 +149,7 @@ function OpexLoadSettings()
 
   // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C41_SLICE
   local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
+  CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
   C41_SLACK_LEDGER = probeScheduler;
   C41_MONTHLY_BUSY_LEDGER = probeScheduler;
   C41_STALENESS_LEDGER = probeScheduler;
@@ -270,6 +271,27 @@ function OpexLoadSettings()
   C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;
   C121_AIR_ECONOMICS_SHADOW = AIController.GetSetting("c121_air_economics_shadow") != 0;
   C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
+  C121_CATALOG_INCREMENTAL = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_catalog_incremental") != 0;
+  C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("c121_catalog_air_first_year") != 0;
+  C121_CATALOG_FIRST_YEAR_ACTIVE = false;
+  if (C121_CATALOG_INCREMENTAL) {
+    C121_CATALOG_CACHE.clear();
+    C121_CATALOG_TOWN_REV.clear();
+    C121_CATALOG_TOWN_POP.clear();
+    C121_CATALOG_TOWN_PROD.clear();
+    C121_CATALOG_TOWN_CURSOR = 0;
+    C121_CATALOG_TOWN_BATCH_DATE = -1;
+    C121_CATALOG_AIRPORT_PRICES.clear();
+    C121_CATALOG_AIRPORT_REV.clear();
+    C121_CATALOG_STATION_REV.clear();
+    C121_CATALOG_STATION_LINES.clear();
+    C121_CATALOG_HUB_LEARN_REV.clear();
+    C121_CATALOG_AIRPORT_LEARN_REV.clear();
+    C121_CATALOG_ARM_LEARN_REV.clear();
+    C121_CATALOG_TOWN_PRIORITY.clear();
+  }
   C121_AIR_ENGINE_REALIZATION = AIController.GetSetting("c121_air_engine_realization") != 0;
   C121_AIR_PROJECT_REALIZATION = AIController.GetSetting("c121_air_project_realization") != 0;
   C121_AIR_PROJECT_REALIZATION_ADAPTIVE = AIController.GetSetting("c121_air_project_realization_adaptive") != 0;

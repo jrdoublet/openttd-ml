@@ -331,8 +331,8 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("upperScoreOne < decisionScoreFloor", econ)
 
     def test_causal_generation_wires_all_three_real_air_arms(self):
-        self.assertEqual(self.air.count("? OpexC121ChooseRoutePlane(catalog, plan, ctx.lines)"), 2)
-        self.assertEqual(self.air.count("? OpexC121ChooseRoutePlane(catalog, plan, lines)"), 1)
+        self.assertEqual(self.air.count(": OpexC121ChooseRoutePlane(catalog, plan, ctx.lines)"), 2)
+        self.assertEqual(self.air.count(": OpexC121ChooseRoutePlane(catalog, plan, lines)"), 1)
         self.assertGreaterEqual(self.air.count("plan.targetPlanes <- routeChoice.targetPlanes;"), 3)
         self.assertIn("AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS", self.air)
 
@@ -455,7 +455,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertNotIn("GetBuildWithRefitCapacity", chooser)
 
     def test_causal_generation_wires_three_real_arms_and_keeps_legacy_fallback(self):
-        self.assertEqual(self.air.count("? OpexC121ChooseRoutePlane(catalog, plan,"), 3)
+        self.assertEqual(self.air.count(": OpexC121ChooseRoutePlane(catalog, plan,"), 3)
         self.assertGreaterEqual(self.air.count(": OpexAirChooseRoutePlane(catalog, airport, plane,"), 3)
         for arm in ('arm = "newpair"', 'arm = "hubsite"', 'arm = "hubhub"'):
             self.assertIn(arm, self.air)

@@ -462,6 +462,27 @@ C121_AIR_REALIZATION_MIN_LINES <- 2;
  * La table est recreee a chaque planification (ou conservee dans resumeState
  * pour une passe slicee) et ne participe a aucune decision. */
 C121_AIR_PLAN_PERF <- null;
+/* Telemetrie transitoire du passage catalogue ; jamais utilisee par les decisions. */
+CATALOG_COST_PROBE <- false;
+CATALOG_COST_ACTIVE <- null;
+C121_CATALOG_INCREMENTAL <- false;
+C121_CATALOG_AIR_FIRST_YEAR <- false;
+C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
+/* Derive du monde, volontairement absent de Save(). */
+C121_CATALOG_CACHE <- {};
+C121_CATALOG_AIRPORT_PRICES <- {};
+C121_CATALOG_AIRPORT_REV <- {};
+C121_CATALOG_STATION_REV <- {};
+C121_CATALOG_STATION_LINES <- {};
+C121_CATALOG_HUB_LEARN_REV <- {};
+C121_CATALOG_AIRPORT_LEARN_REV <- {};
+C121_CATALOG_ARM_LEARN_REV <- {};
+C121_CATALOG_TOWN_PRIORITY <- {};
+C121_CATALOG_TOWN_REV <- {};
+C121_CATALOG_TOWN_POP <- {};
+C121_CATALOG_TOWN_PROD <- {};
+C121_CATALOG_TOWN_CURSOR <- 0;
+C121_CATALOG_TOWN_BATCH_DATE <- -1;
 /* Snapshot endpoint C121 limite a une passe de planification AIR. Un meme site
  * (ancre/type/cargo/etat de reutilisation) est evalue une fois puis reutilise
  * pour toutes les paires de cette passe. */

@@ -1390,6 +1390,7 @@ function OpexAI::_c76BumpLayer(layer, isEvent = false)
     this._c76Revisions.industries++;
   } else if (layer == "lines") {
     this._c76Revisions.lines++;
+    if (C121_CATALOG_INCREMENTAL) OpexC121CatalogRefreshStationLines(this._lines);
   } else if (layer == "engines.rail" || layer == "rail") {
     this._c76Revisions.engines.rail++;
   } else if (layer == "engines.road" || layer == "road") {

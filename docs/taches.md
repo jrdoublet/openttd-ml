@@ -38,6 +38,34 @@ avant toute réouverture. Les résultats antérieurs au 9 septembre ne font pas 
 
 ## Travail restant
 
+**Catalogue découpé C121, phase 3 (worktree `.wt_catalog`, 2026-09-29).**
+Prototype sous `c121_catalog_incremental=0` et `c121_catalog_air_first_year=0`
+par défaut : mémo d'économie des plans AIR, reprise C78 bornée à 150 k opcodes,
+production urbaine lue par lots de huit, option AIR seule jusqu'à la deuxième année.
+Diagnostic 1970 de l'orchestrateur (graines 42/100/999) défavorable : premier
+scan très lent, portefeuille partiel ensuite bloqué par l'invalidation C76,
+aucun bilan `CATALOG_COST` terminé. Le worktree corrige le débit entre tranches,
+la publication répétée, le verrou `projects`, l'invalidation locale et la
+télémétrie par tranche. L'ordre priorise les villes des plans sales selon leur
+dernier score connu, sans garantir l'ordre exact de toutes les paires. Le filet
+d'âge agit à la revisite, sans balayage de fond. Le second diagnostic 1970 solo
+retient la direction AIR première année (11/11/12 aéroports), mais révèle des
+recalculs `dirty_town`, aucune tranche enchaînée dans un tick, des passes
+`projects` coûteuses et un arrêt `K_pass` malgré un AIR finançable. La phase 3
+ajuste le seuil de production, enchaîne les tranches et autorise les AIR
+financés à franchir `K_pass` uniquement la première année sous le réglage dédié.
+Correction ultérieure (VPS) : après un chantier AIR, la mise à jour incrémentale
+ne replanifie plus tout l'aérien en bloc (4 à 18 M opcodes par chantier), elle garde
+les plans non touchés et laisse le catalogue découpé ajouter les nouvelles paires.
+**Mesures (2026-09-29/30)** : solo 2 ans, 1971 = 25 à 81 passes `projects` (5 à 9
+avant), trésorerie de fin d'année 42 à 365 k£ (381 à 891 k£ avant). Duel 5×3
+`c121_catalog_air1y_deferred_vs_default_5x3_20260929` contre le défaut : plus
+d'aéroports fin 1970 (+2 en moyenne) et fin 1971, mais **décrochage en 1972** :
+flottes de 26 à 37 avions contre 26 à 76, écart de profit avec AAAHogEx −342 k£/an
+vs référence (diagnostic 5 paires). **Statut : défauts 0, non adoptable ; prochain
+goulot = renforts de flotte C121.** Identité au défaut non exacte (décalage
+d'opcodes seulement). Voir [la note](catalogue_decoupe_phase2_20260929.md).
+
 **Numérotation (décision utilisateur du 2026-09-24).** Les chantiers ouverts depuis la session
 du VPS sont préfixés **V** (V86, V88, V89…), ceux des autres sessions gardent **C** : deux
 sessions parallèles ne peuvent plus prendre le même numéro. Le numéro suit la séquence commune ;

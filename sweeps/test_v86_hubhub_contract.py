@@ -85,7 +85,7 @@ class V86HubHubContractTest(unittest.TestCase):
 
         # Precalculation happens BEFORE the hub pair loops
         precalc_pos = h2h_body.index("if (AIR_HUBHUB_MARGINAL)")
-        loop_i_pos = h2h_body.index("for (local i = 0; i < hubs.len(); i++)")
+        loop_i_pos = h2h_body.index("for (local i = resumeI; i < hubs.len(); i++)")
         self.assertLess(precalc_pos, loop_i_pos)
 
         # Revenue model: uses AICargo.GetCargoIncome on distance and time, mail bonus, calibration
