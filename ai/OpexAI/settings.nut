@@ -237,6 +237,67 @@ function OpexLoadSettings()
   V95_AIR_POST73_YEAR = -1;
   V95_AIR_TARGETED_SECOND = AIController.GetSetting("v95_air_targeted_second") != 0;
   V95_AIR_POST73_TARGETED = AIController.GetSetting("v95_air_post73_targeted") != 0;
+  C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
+  C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;
+  C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
+  C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;
+  C100_AIR_TRIP_PHYSICAL = AIController.GetSetting("c100_air_trip_physical") != 0;
+  C102_AIR_STATION_RATING_PROBE = AIController.GetSetting("c102_air_station_rating_probe") != 0;
+  C101_AIR_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c101_air_physical_engine_choice") != 0;
+  C103_AIR_C100_RANK_REPLAY = AIController.GetSetting("c103_air_c100_rank_replay") != 0;
+  C104_AIR_C100_COMPARE_PROBE = AIController.GetSetting("c104_air_c100_compare_probe") != 0;
+  C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS = AIController.GetSetting("c105_air_replay_choice_physical_economics") != 0;
+  C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c106_air_marginal_physical_engine_choice") != 0;
+  C108_AIR_ONESTEP_PHYSICAL_ECONOMICS = AIController.GetSetting("c108_air_onestep_physical_economics") != 0;
+  C109_AIR_SPEED_ELASTICITY_PHYSICAL = AIController.GetSetting("c109_air_speed_elasticity_physical") != 0;
+  C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
+  C111_AIR_C100_DECISION_SHADOW = AIController.GetSetting("c111_air_c100_decision_shadow") != 0;
+  C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL = AIController.GetSetting("c112_air_speed_elasticity_e75_physical") != 0;
+  C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;
+  C114_AIR_C100_FULL_REPLAY = AIController.GetSetting("c114_air_c100_full_replay") != 0;
+  C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
+  C116_AIR_MARGINAL_CAPITAL = AIController.GetSetting("c116_air_marginal_capital") != 0;
+  C116_AIR_PROJECT_PROBE = AIController.GetSetting("c116_air_project_probe") != 0;
+  C117_AIR_THROUGHPUT_PROBE = AIController.GetSetting("c117_air_throughput_probe") != 0;
+  C118_AIR_TERRITORIAL_EXPANSION = AIController.GetSetting("c118_air_territorial_expansion") != 0;
+  C118_AIR_COVERAGE_PROBE = AIController.GetSetting("c118_air_coverage_probe") != 0;
+  C119_AIR_INCOME_MODEL = AIController.GetSetting("c119_air_income_model") != 0;
+  C118_AIR_PROJECT_SNAPSHOT = null;
+  C118_AIR_DECISION_SEQ = 0;
+  C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;
+  C121_AIR_ECONOMICS_SHADOW = AIController.GetSetting("c121_air_economics_shadow") != 0;
+  C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
+  C121_AIR_ENGINE_REALIZATION = AIController.GetSetting("c121_air_engine_realization") != 0;
+  C121_AIR_PROJECT_REALIZATION = AIController.GetSetting("c121_air_project_realization") != 0;
+  C121_AIR_PROJECT_REALIZATION_ADAPTIVE = AIController.GetSetting("c121_air_project_realization_adaptive") != 0;
+  C121_AIR_PRESSURE_PROBE = AIController.GetSetting("c121_air_pressure_probe") != 0;
+  C121_AIR_PRESSURE_SNAPSHOT = null;
+  C121_AIR_PRESSURE_ACCUM = null;
+  C121_AIR_PRESSURE_PREV = null;
+  C121_AIR_DEFENSIVE_FLOOR = AIController.GetSetting("c121_air_defensive_floor") != 0;
+  C121_AIR_INITIAL_PROJECT_ECONOMICS = AIController.GetSetting("c121_air_initial_project_economics") != 0;
+  C121_AIR_ENGINE_REPLAY_SHADOW = AIController.GetSetting("c121_air_engine_replay_shadow") != 0;
+  C121_AIR_ENGINE_CAPACITY_OBS.clear();
+  C121_AIR_REALIZATION_FACTOR.newpair = 1.0;
+  C121_AIR_REALIZATION_FACTOR.hubsite = 1.0;
+  C121_AIR_REALIZATION_FACTOR.hubhub = 1.0;
+  C120_AIR_SELECTION_SNAPSHOT = null;
+  C120_AIR_FILTER_SNAPSHOT = null;
+  C120_AIR_SELECT_SEQ = 0;
+  C120_AIR_LAST_TRACE_KEY = "";
+  if (C116_AIR_PROJECT_PROBE) {
+    C116_AIR_PROJECT_PROBE_COUNT = 0;
+    C116_AIR_PROJECT_PROBE_YEAR = -1;
+    C116_AIR_PROJECT_PROBE_YEAR_COUNT = 0;
+    C116_AIR_PROJECT_PROBE_SEEN = {};
+  }
+  if (C117_AIR_THROUGHPUT_PROBE) {
+    C117_AIR_LAST_DATE = -1;
+    C117_AIR_LINE_STATE = {};
+    C117_AIR_VEHICLE_STATE = {};
+  }
+  /* C113 etend C111 : reutiliser ses branches shadow/memo sans dupliquer le hot path. */
+  if (C113_AIR_C100_FULL_DECISION_SHADOW) C111_AIR_C100_DECISION_SHADOW = true;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);
@@ -245,7 +306,8 @@ function OpexLoadSettings()
   V88_STEP2_RAIL_PRIO = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_rail_prio") != 0);
   V88_STEP2_CASH_RESERVE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_cash_reserve") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
-  C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
+  C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
+      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY || C116_AIR_MARGINAL_CAPITAL;
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
@@ -313,6 +375,8 @@ function OpexLoadSettings()
 
   // 9. probe_events : C52 autoreplace, exposure, crash, unprofitable, first vehicle, C56 task trace, air fleet/catchment, equipment roi, vehicle orders
   local probeEvents = AIController.GetSetting("probe_events") != 0;
+  local b9CatchmentProbe = AIController.GetSetting("b9_air_catchment_probe") != 0;
+  B9_AIR_DEMAND_SHADOW = AIController.GetSetting("b9_air_demand_shadow") != 0;
   C52_AUTOREPLACE_LOG = probeEvents;
   if (C52_AUTOREPLACE_LOG) {
     C52_AUTOREPLACE_LEDGER = {
@@ -352,7 +416,7 @@ function OpexLoadSettings()
   C56_TASK_TRACE = probeEvents;
   if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
   AIR_FLEET_PROBE = probeEvents;
-  AIR_CATCHMENT_PROBE = probeEvents;
+  AIR_CATCHMENT_PROBE = probeEvents || b9CatchmentProbe;
   EQUIPMENT_ROI_PROBE = probeEvents;
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
   C78_SLOT_INTERCEPT_PROBE = probePort;

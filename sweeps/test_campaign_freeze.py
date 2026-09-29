@@ -186,7 +186,15 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c83_preempt_open", "air_batch_town_reserve",
                      "v93_airport_no_pop_floor", "v93_air_demand_production", "v95_air_post73_probe",
                      "v88_all_inputs", "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve",
-                     "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe"):
+                     "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
+                     "c97_air_c69_engine_probe", "c98_air_realized_probe",
+                     "c99_air_speed_api_fix", "c100_air_trip_physical", "c101_air_physical_engine_choice", "c102_air_station_rating_probe",
+                     "c103_air_c100_rank_replay", "c104_air_c100_compare_probe",
+                     "c105_air_replay_choice_physical_economics", "c106_air_marginal_physical_engine_choice",
+                     "c108_air_onestep_physical_economics",
+                     "c109_air_speed_elasticity_physical", "c110_air_engine_calibration_choice_only",
+                     "c111_air_c100_decision_shadow", "c112_air_speed_elasticity_e75_physical",
+                     "c113_air_c100_full_decision_shadow"):
             self.assertEqual(defaults[name], 0, name)
         self.assertEqual(defaults["rail_finance_bias_pct"], 100)
         self.assertEqual(defaults["v91_astar_weight_pct"], 120)

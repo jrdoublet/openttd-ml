@@ -1,12 +1,14 @@
 """B9/G4 : campagne diagnostique 5 graines x 6 ans, Opex probe vs AAAHogEx.
 
-Ce runner n'est pas une autorite d'adoption. Il active seulement early_slot deja
-adopte + air_catchment_probe default-off et force le niveau de log script requis
-pour capturer les evenements AILog.Info du probe.
+Ce runner n'est pas une autorite d'adoption. Il active seulement le probe B9
+dedie default-off et force le niveau de log script requis pour capturer ses
+evenements AILog.Info, sans allumer le groupe probe_events.
 """
 from __future__ import annotations
 
 import argparse
+from functools import partial
+import importlib
 from pathlib import Path
 import sys
 
@@ -26,7 +28,7 @@ from diag_b9_air_catchment import analyse
 
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
 POLICY_ID = "b9_catchment_probe"
-SETTINGS = (("air_early_slot", 1), ("probe_events", 1))
+SETTINGS = (("b9_air_catchment_probe", 1),)
 
 _real_check_output = openttdlab.subprocess.check_output
 
@@ -41,11 +43,29 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
 
+def keep_diagnostic(row, checkpoint_path, engine_log_dir, monthly_line_telemetry=False):
+    """Configure le processeur dans chaque worker OpenTTDLab (spawn Windows)."""
+    duel.CHECKPOINT_PATH = Path(checkpoint_path)
+    duel.ENGINE_LOG_DIR = Path(engine_log_dir)
+    duel.LINE_TELEMETRY = True
+    if monthly_line_telemetry:
+        duel._annual_line_checkpoint = lambda date: True
+    return duel.keep(row)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--seeds", nargs="+", type=int, default=DEFAULT_SEEDS)
     parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument(
+        "--monthly-line-telemetry", action="store_true",
+        help="diagnostic only: post-process line telemetry at every monthly save instead of December only",
+    )
+    parser.add_argument(
+        "--demand-shadow", action="store_true",
+        help="enable B9 passive pre-build capturable-demand shadow in addition to post-build catchment probe",
+    )
     parser.add_argument(
         "--out", type=Path,
         default=ROOT / "results" / "review_b9_air_catchment_5x6.json",
@@ -64,14 +84,17 @@ def main():
     duel.CHECKPOINT_PATH = checkpoint
     duel.ENGINE_LOG_DIR = engine_dir
     duel.LINE_TELEMETRY = True
+    if args.monthly_line_telemetry:
+        duel._annual_line_checkpoint = lambda date: True
     bench_v2.CHECKPOINT_PATH = checkpoint
     duel.enable_engine_failure_capture()
     enable_savegame_cleanup()
 
+    settings = SETTINGS + ((("b9_air_demand_shadow", 1),) if args.demand_shadow else ())
     policies = ({
         "id": POLICY_ID,
         "role": "diagnostic",
-        "explicit_settings": SETTINGS,
+        "explicit_settings": settings,
     },)
     experiments = duel.make_experiments_plan(
         args.seeds, args.years, repeats=1, campaign=None,
@@ -81,11 +104,18 @@ def main():
         bananas_ai_library(spec["unique_id"], spec["name"])
         for spec in duel.LIBRARY_SPECS
     )
+    processor_module = importlib.import_module("run_b9_air_catchment_5x6")
+    result_processor = partial(
+        processor_module.keep_diagnostic,
+        checkpoint_path=str(checkpoint),
+        engine_log_dir=str(engine_dir),
+        monthly_line_telemetry=args.monthly_line_telemetry,
+    )
     rows = list(run_experiments(
         openttd_version=duel.OPENTTD_VERSION,
         opengfx_version=duel.OPENGFX_VERSION,
         max_workers=args.workers,
-        result_processor=duel.keep,
+        result_processor=result_processor,
         experiments=experiments,
         ai_libraries=libraries,
     ))
@@ -101,6 +131,9 @@ def main():
         "company_value", "profit_year", "performance_history",
         "primary_vehicles", "n_stations",
     )
+    line_telemetry = duel.build_line_telemetry_report(rows)
+    if args.monthly_line_telemetry:
+        line_telemetry["scope"] = "monthly savegame post-processing; no NoAI behavior change"
     payload = {
         "campaign_id": args.out.stem,
         "policy_id": POLICY_ID,
@@ -113,7 +146,7 @@ def main():
         "years": args.years,
         "seeds": args.seeds,
         "workers": args.workers,
-        "settings": dict(SETTINGS),
+        "settings": dict(settings),
         "expected_last_year": expected_last_year,
         "summary": summary,
         "failed_runs": [
@@ -128,7 +161,7 @@ def main():
         },
         "statistics": arm_statistics(summary, list(duel.ARMS), metrics),
         "paired_comparisons": paired_comparisons(summary, list(duel.ARMS), metrics),
-        "line_telemetry": duel.build_line_telemetry_report(rows),
+        "line_telemetry": line_telemetry,
     }
     payload["b9_analysis"] = analyse(
         payload, rows, map_width=args.map_width, engine_dir=engine_dir
