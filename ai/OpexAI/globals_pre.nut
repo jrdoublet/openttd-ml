@@ -471,6 +471,8 @@ C121_CATALOG_AIR_FIRST_YEAR <- false;
 C121_FLEET_STOCK_GROWTH <- false;
 /* C121 : territoire d'abord (reserve de tresorerie pour le prochain AIR qui ouvre une ville). */
 C121_TERRITORY_FIRST <- false;
+/* C121 : ligne a la AAAHogEx (2 avions a l'ouverture, chargement complet aux deux bouts). */
+C121_AAA_LINE <- false;
 C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
 /* Derive du monde, volontairement absent de Save(). */
 C121_CATALOG_CACHE <- {};

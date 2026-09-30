@@ -311,9 +311,9 @@ class TestC121AirEconomics(unittest.TestCase):
             "OpexC121InitialEngineUpperScore(catalog, plan, plane)",
             "candidates.sort(function(a, b)",
             "candidate.upperScore < best.economics.decisionScore",
-            "OpexC121EngineEconomics(catalog, plan, plane, 1, true, null)",
+            "OpexC121EngineEconomics(catalog, plan, plane, C121_AAA_LINE ? 2 : 1, true, null)",
             "economics.decisionScore",
-            "OpexC121EngineEconomics(catalog, plan, best.plane, 1, false)",
+            "OpexC121EngineEconomics(catalog, plan, best.plane, C121_AAA_LINE ? 2 : 1, false)",
             "targetPlanes = initialEconomics.planes",
             "c121EngineScanOps",
             "c121EngineEvalCount",
@@ -439,7 +439,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("OpexC118EngineFitsPlan(plan, plane)", chooser)
         self.assertIn("OpexAirPlaneInRange(plane, plan.distance)", chooser)
         self.assertIn("OpexC121InitialEngineUpperScore(catalog, plan, plane)", chooser)
-        self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, 1, true, null)", chooser)
+        self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, C121_AAA_LINE ? 2 : 1, true, null)", chooser)
         upper = body(self.air, "function OpexC121InitialEngineUpperScore", "function OpexC121ChooseRoutePlane")
         self.assertIn("OpexC121AirTripModel(plan, plane)", upper)
         self.assertIn("paxCapacity.tofloat() * departuresPerDirectionMonth", upper)
@@ -742,6 +742,25 @@ class TestC121TerritoryFirst(unittest.TestCase):
         task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
         self.assertIn("local c121Served = C121_TERRITORY_FIRST ? OpexC121ServedAirTowns() : null;", task)
         self.assertIn('reason = "c121_territory_reserve"', task)
+
+
+
+class TestC121AaaLine(unittest.TestCase):
+    def test_setting_defaults_off_and_requires_c121(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_aaa_line"')
+        self.assertIn("custom_value = 0", info[i:i + 400])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AAA_LINE = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_aaa_line") != 0;', settings)
+        self.assertIn("if (C121_AAA_LINE) AIR_FULL_LOAD = 1;", settings)
+        self.assertLess(settings.index('C121_AAA_LINE = C121_AIR_ECONOMICS'),
+                        settings.index("if (C121_AAA_LINE) AIR_FULL_LOAD = 1;"))
+
+    def test_two_planes_and_second_from_airport_b(self):
+        air = (ROOT / "ai" / "OpexAI" / "builder_air.nut").read_text(encoding="utf-8")
+        self.assertEqual(air.count("C121_AAA_LINE ? 2 : 1"), 2)
+        self.assertIn("AIAirport.GetHangarOfAirport(airportB)", air)
+        self.assertIn("AIOrder.SkipToOrder(extra, 1)", air)
 
 
 if __name__ == "__main__":

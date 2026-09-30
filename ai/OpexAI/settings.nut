@@ -280,6 +280,8 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_fleet_stock_growth") != 0;
   C121_TERRITORY_FIRST = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_territory_first") != 0;
+  C121_AAA_LINE = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_aaa_line") != 0;
   if (C121_CATALOG_INCREMENTAL) {
     C121_CATALOG_CACHE.clear();
     C121_CATALOG_TOWN_REV.clear();
@@ -342,6 +344,8 @@ function OpexLoadSettings()
   V88_STEP2_RAIL_PRIO = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_rail_prio") != 0);
   V88_STEP2_CASH_RESERVE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_cash_reserve") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
+  /* c121_aaa_line : chargement complet aux deux bouts pour toutes les lignes du bras C121. */
+  if (C121_AAA_LINE) AIR_FULL_LOAD = 1;
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
       || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY || C116_AIR_MARGINAL_CAPITAL;
   if (C69_TRACK_BUILDS) {

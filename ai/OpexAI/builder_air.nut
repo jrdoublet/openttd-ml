@@ -3357,7 +3357,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     local plane = candidate.plane;
     local tick0 = AIController.GetTick();
     local ops0 = AIController.GetOpsTillSuspend();
-    local evaluatedEconomics = OpexC121EngineEconomics(catalog, plan, plane, 1, true, null);
+    local evaluatedEconomics = OpexC121EngineEconomics(catalog, plan, plane, C121_AAA_LINE ? 2 : 1, true, null);
     local tick1 = AIController.GetTick();
     local ops = OpexAirCalcDeltaOps(tick0, ops0);
     if (ops >= 0) evalOpsTotal += ops;
@@ -3404,7 +3404,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
    * cible exacte sera recalculee apres construction avec PASS/MAIL observes. */
   local fullTick0 = AIController.GetTick();
   local fullOps0 = AIController.GetOpsTillSuspend();
-  local initialEconomics = OpexC121EngineEconomics(catalog, plan, best.plane, 1, false);
+  local initialEconomics = OpexC121EngineEconomics(catalog, plan, best.plane, C121_AAA_LINE ? 2 : 1, false);
   local decisionEconomics = OpexC121EngineEconomics(catalog, plan, best.plane, 0, false);
   local fullTick1 = AIController.GetTick();
   plan.c121WinnerFullTicks <- fullTick1 - fullTick0;
@@ -9194,8 +9194,14 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   }
   local built = [plane];
   local wanted = ("planes" in plan) ? plan.planes : 1;
+  /* c121_aaa_line : le second avion part du hangar de l'aeroport B et commence par le
+   * trajet retour, comme AAAHogEx (route.nut:2232-2237). */
+  local hangarB = C121_AAA_LINE ? AIAirport.GetHangarOfAirport(airportB) : null;
   for (local i = 1; i < wanted; i++) {
-    local extra = AIVehicle.CloneVehicle(hangar, plane, true);
+    local fromB = (i % 2 == 1) && hangarB != null && AIMap.IsValidTile(hangarB)
+        && AIAirport.IsHangarTile(hangarB);
+    local extra = AIVehicle.CloneVehicle(fromB ? hangarB : hangar, plane, true);
+    if (fromB && AIVehicle.IsValidVehicle(extra)) AIOrder.SkipToOrder(extra, 1);
     if (!AIVehicle.IsValidVehicle(extra)) {
       local engine = AIVehicle.GetEngineType(plane);
       extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, catalog.paxCargo);

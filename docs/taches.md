@@ -65,7 +65,11 @@ flottes de 26 à 37 avions contre 26 à 76, écart de profit avec AAAHogEx −34
 vs référence (diagnostic 5 paires). Renforts au stock (`c121_fleet_stock_growth`) et territoire d'abord
 (`c121_territory_first`), défaut 0 : flottes plus grandes mais moins d'aéroports ; aucune
 variante ne rattrape la référence en duel 5×3 (voir la note). **Statut : défauts 0, non
-adoptable. Décision utilisateur du 2026-09-30 : ne pas toucher à C115.** Identité au défaut non exacte (décalage
+adoptable. Décision utilisateur du 2026-09-30 : ne pas toucher à C115.**
+`c121_aaa_line` (2 avions + chargement complet, défaut 0) : effondrement en duel 5×3
+(−2 446 k£/an vs AAA, référence −822). Essais hors C121 (V93, `air_hub_max_routes=1`, avec ou
+sans chargement complet) tous perdants. L'écart tient au nombre d'aéroports (rendement par
+aéroport égal) ; non isolé : 2 avions sans chargement complet. Identité au défaut non exacte (décalage
 d'opcodes seulement). Voir [la note](catalogue_decoupe_phase2_20260929.md).
 
 **Numérotation (décision utilisateur du 2026-09-24).** Les chantiers ouverts depuis la session

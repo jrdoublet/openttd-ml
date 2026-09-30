@@ -490,6 +490,13 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_aaa_line",
+      description = "With C121, open each AIR line with two aircraft (one per airport, AAAHogEx-style) and full-load orders at both airports; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c121_territory_first",
       description = "With C121, reserve cash for the next AIR project opening a town without an Opex airport: other builds (fleet, hub, rail, road) must leave enough for it; 0 = off",
       easy_value = 0, medium_value = 0, hard_value = 0,

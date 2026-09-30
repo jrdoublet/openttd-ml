@@ -206,3 +206,22 @@ C121 adaptatif + `c121_catalog_incremental=1` (+ `c121_catalog_air_first_year=1`
   `c121_territory_first_vs_default_5x3_20260930` : 16,6 aéroports, écart −1 443 k£/an.
 - Bilan des 4 duels 5×3 : aucune variante C121 ne rattrape la référence C115 sur le
   territoire ni sur l'écart avec AAAHogEx (diagnostics 5 paires, duels non déterministes).
+
+## Ligne à la AAAHogEx sous C121 et essais hors C121 (VPS, 2026-09-30)
+
+- `c121_aaa_line` (défaut 0, C121 seulement) : 2 avions à l'ouverture (le second au hangar B,
+  départ par l'ordre retour), économie C121 du projet calculée à 2 avions, chargement complet
+  aux deux bouts (`AIR_FULL_LOAD = 1` pour tout le bras). Choix moteur C121 inchangé : il
+  prend déjà 223/220/228 (la référence C115 prend surtout le 217).
+  Duel 5×3 `c121_aaa_line_vs_default_5x3_20260930` (pile C121 complète) : **effondrement**,
+  4 à 13 aéroports fin 1972 (référence 9 à 25), profit Opex 279 k£ (1 280 k£), écart O−A
+  −2 446 k£/an (réf. −822), 0/5. En solo le même bras atteignait 20 aéroports : en duel,
+  le chargement complet sur des villes partagées avec AAAHogEx fait attendre les avions.
+- Hors C121, même protocole (depuis `master`) : `v93_airport_no_pop_floor=1` −1 917 k£/an ;
+  `air_hub_max_routes=1` −1 481 k£/an (flottes figées ~2 avions par ligne) ;
+  `air_hub_max_routes=1` + `air_full_load=1` −1 806 k£/an, 0/5.
+- Référence avec télémétrie par ligne (`lineprofit_ref_5x3_20260930`) : profit médian par
+  aéroport identique (~38 k£) chez OpexAI et AAAHogEx en 1971-1972 ; AAAHogEx a 50 à 60 %
+  d'aéroports en plus ; stock en gare bas chez les deux en début de partie. L'écart tient au
+  nombre d'aéroports.
+- Non isolé : 2 avions à l'ouverture **sans** chargement complet.
