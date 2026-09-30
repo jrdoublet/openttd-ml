@@ -276,6 +276,10 @@ function OpexLoadSettings()
   C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("c121_catalog_air_first_year") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
+  C121_FLEET_STOCK_GROWTH = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_fleet_stock_growth") != 0;
+  C121_TERRITORY_FIRST = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_territory_first") != 0;
   if (C121_CATALOG_INCREMENTAL) {
     C121_CATALOG_CACHE.clear();
     C121_CATALOG_TOWN_REV.clear();

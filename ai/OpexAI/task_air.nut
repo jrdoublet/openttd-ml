@@ -717,6 +717,35 @@ function OpexAirFleetPriorityCompare(a, b)
  * gardes sont trop nombreuses et trop calibrees pour etre dupliquees sans divergence silencieuse.
  * Le portefeuille appelle ainsi la meme decision que la tache, puis l'arbitre contre les lignes
  * neuves au lieu de la servir d'office avant elles. */
+/* C121 : nombre d'avions justifies par le stock en gare (0 = aucun). Meme regle
+ * qu'AAAHogEx : (stock - min(50, capacite)) / capacite, ou au moins un avion si plus
+ * d'un quart d'avion attend alors que la note de gare est sous 50 %. */
+function OpexC121FleetStockEvidence(line)
+{
+  local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
+  if (planeCap <= 0 && ("vehicles" in line)) {
+    foreach (v in line.vehicles) {
+      if (AIVehicle.IsValidVehicle(v)) {
+        planeCap = AIVehicle.GetCapacity(v, line.cargo);
+        if (planeCap > 0) { line.planeCapacity <- planeCap; break; }
+      }
+    }
+  }
+  if (planeCap <= 0) return 0;
+  local best = 0;
+  foreach (tile in [line.stationA, ("stationB" in line) ? line.stationB : null]) {
+    if (tile == null) continue;
+    local st = AIStation.GetStationID(tile);
+    if (!AIStation.IsValidStation(st)) continue;
+    local wait = AIStation.GetCargoWaiting(st, line.cargo);
+    local bottom = planeCap < 50 ? planeCap : 50;
+    local n = wait > bottom ? (wait - bottom) / planeCap : 0;
+    if (n < 1 && wait > planeCap / 4 && AIStation.GetCargoRating(st, line.cargo) < 50) n = 1;
+    if (n > best) best = n;
+  }
+  return best;
+}
+
 function OpexAI::_resizeAirFleets(year, plan = null)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -795,7 +824,24 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     local c121BelowTarget = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
     local belowTarget = c84BelowTarget || c121BelowTarget;
-    if (c121BelowTarget) {
+    local c121StockGrowth = 0;
+    if (c121BelowTarget && C121_FLEET_STOCK_GROWTH) {
+      /* Variante AAAHogEx (route.nut:2904-2915) : la preuve d'une demande non servie est
+       * le stock en gare, pas une annee d'observation. Un renfort au plus tous les 60 jours
+       * pour laisser le nouvel avion agir sur le stock. */
+      if (("lastAirFleetDate" in line)
+          && AIDate.GetCurrentDate() - line.lastAirFleetDate < 60) {
+        OpexAirFleetRefusal(line, year, "Y");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "c121_stock_cooldown", 1);
+        continue;
+      }
+      c121StockGrowth = OpexC121FleetStockEvidence(line);
+      if (c121StockGrowth < 1) {
+        OpexAirFleetRefusal(line, year, "W");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "c121_low_stock", 1);
+        continue;
+      }
+    } else if (c121BelowTarget) {
       /* Une mesure annuelle complete est le premier feedback fiable apres le
        * cold-start C121. Ne jamais acheter plusieurs renforts sur la meme
        * observation : une nouvelle annee doit confirmer le palier suivant. */
@@ -865,7 +911,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
        * sol cree une boucle morte (faible frequence -> faible rating -> faible
        * stock). Le portefeuille arbitre donc un seul renfort a la fois jusqu'a
        * la cible, avec le marginal C121 compact publie sur la ligne. */
-      maxAddedPerPass = 1;
+      maxAddedPerPass = c121StockGrowth > 0 ? (c121StockGrowth < 4 ? c121StockGrowth : 4) : 1;
     } else if (AIR_FLEET_BUFFER >= 0) {
       local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
       if (planeCap <= 0 && ("vehicles" in line)) {

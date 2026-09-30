@@ -189,3 +189,20 @@ C121 adaptatif + `c121_catalog_incremental=1` (+ `c121_catalog_air_first_year=1`
   identique, décalage d'opcodes seulement.
 - Non vérifié : aller-retour sauvegarde/chargement ; amorçage par étapes qui régénère encore
   tout le portefeuille à chaque chantier en 1970 (18 à 30 M opcodes).
+
+## Renforts au stock et territoire d'abord (VPS, 2026-09-30)
+
+- Cause des flottes C121 figées : sous sa cible, une ligne C121 n'était renforcée qu'à deux
+  ans d'âge puis tous les deux ans ; en 1970, 97 à 98 % des lignes examinées étaient
+  refusées (`c121_no_full_year_observation`), aucun renfort en deux ans.
+- `c121_fleet_stock_growth` (défaut 0) : renfort sur stock en gare comme AAAHogEx
+  (`route.nut:2904-2915`), délai de 60 jours, jusqu'à 4 par passe sous la cible. Solo 42 fin
+  1971 : 42 avions (21 sans), profit 2,19 M£ (1,32 M£). Duel 5×3
+  `c121_catalog_fleetstock_vs_default_5x3_20260930` : 12,8 aéroports fin 1972 en moyenne
+  (référence 20,4), monopoles AAA 2-0 plus nombreux, écart O−A −1 712 k£/an (réf. −822).
+- `c121_territory_first` (défaut 0) : un projet non territorial doit laisser de quoi financer
+  le prochain AIR qui ouvre une ville sans aéroport Opex. Solo : sans effet (21 aéroports,
+  trésorerie inutilisée ; l'argent ne limite plus). Duel 5×3
+  `c121_territory_first_vs_default_5x3_20260930` : 16,6 aéroports, écart −1 443 k£/an.
+- Bilan des 4 duels 5×3 : aucune variante C121 ne rattrape la référence C115 sur le
+  territoire ni sur l'écart avec AAAHogEx (diagnostics 5 paires, duels non déterministes).

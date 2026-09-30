@@ -62,8 +62,10 @@ avant), trésorerie de fin d'année 42 à 365 k£ (381 à 891 k£ avant). Duel 5
 `c121_catalog_air1y_deferred_vs_default_5x3_20260929` contre le défaut : plus
 d'aéroports fin 1970 (+2 en moyenne) et fin 1971, mais **décrochage en 1972** :
 flottes de 26 à 37 avions contre 26 à 76, écart de profit avec AAAHogEx −342 k£/an
-vs référence (diagnostic 5 paires). **Statut : défauts 0, non adoptable ; prochain
-goulot = renforts de flotte C121.** Identité au défaut non exacte (décalage
+vs référence (diagnostic 5 paires). Renforts au stock (`c121_fleet_stock_growth`) et territoire d'abord
+(`c121_territory_first`), défaut 0 : flottes plus grandes mais moins d'aéroports ; aucune
+variante ne rattrape la référence en duel 5×3 (voir la note). **Statut : défauts 0, non
+adoptable. Décision utilisateur du 2026-09-30 : ne pas toucher à C115.** Identité au défaut non exacte (décalage
 d'opcodes seulement). Voir [la note](catalogue_decoupe_phase2_20260929.md).
 
 **Numérotation (décision utilisateur du 2026-09-24).** Les chantiers ouverts depuis la session

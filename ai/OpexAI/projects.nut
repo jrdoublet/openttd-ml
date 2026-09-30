@@ -1238,6 +1238,33 @@ function OpexEarlySlotSelectionState()
   return state;
 }
 
+/* C121 territoire d'abord : villes ou OpexAI a deja un aeroport (sans seuil de population). */
+function OpexC121ServedAirTowns()
+{
+  local served = {};
+  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+    local townId = AIStation.GetNearestTown(st);
+    if (townId >= 0) served.rawset(townId, true);
+  }
+  return served;
+}
+
+/* Un projet AIR est territorial s'il pose un aeroport neuf dans une ville sans aeroport Opex. */
+function OpexC121ProjectIsTerritorial(project, served)
+{
+  if (project == null || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null) return false;
+  local plan = project.payload;
+  foreach (side in ["A", "B"]) {
+    local site = ("site" + side) in plan ? plan["site" + side] : null;
+    local reused = ("reuse" + side) in plan && plan["reuse" + side];
+    if (site == null || reused || !("town" in site) || site.town == null) continue;
+    if (!(site.town.id in served)) return true;
+  }
+  return false;
+}
+
 function OpexDefensiveSlotSelectionState(earlySlotState = null)
 {
   local state = {

@@ -490,6 +490,20 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_territory_first",
+      description = "With C121, reserve cash for the next AIR project opening a town without an Opex airport: other builds (fleet, hub, rail, road) must leave enough for it; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_fleet_stock_growth",
+      description = "With C121, grow under-target AIR fleets on waiting-cargo evidence (AAAHogEx-like) with a 60-day cooldown instead of the two-year observation rules; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c121_air_engine_realization",
       description = "C121 experimental engine-only realization correction by AIR arm; project economics unchanged; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

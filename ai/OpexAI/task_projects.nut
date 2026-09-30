@@ -1222,9 +1222,30 @@ function OpexAI::_tryBuildProjects(year)
   }
   local airReserveTowns = null;
   if (AIR_BATCH_TOWN_RESERVE) airReserveTowns = {};
+  local c121Served = C121_TERRITORY_FIRST ? OpexC121ServedAirTowns() : null;
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
+    if (c121Served != null && !OpexC121ProjectIsTerritorial(project, c121Served)) {
+      /* Territoire d'abord : reserver le financement du prochain projet territorial
+       * encore a tenter dans cette passe ; les autres chantiers se font sur le reste. */
+      local reserve = 0;
+      for (local j = i + 1; j < this._projects.best.len(); j++) {
+        local next = this._projects.best[j];
+        if (next != null && OpexC121ProjectIsTerritorial(next, c121Served)) {
+          reserve = OpexProjectFinanceCapital(next);
+          break;
+        }
+      }
+      if (reserve > 0 && OpexAvailableCapital() - OpexProjectFinanceCapital(project) < reserve) {
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+          passDiscards.append({ rank = i, mode = project.mode,
+                                src = ("src" in project) ? project.src : -1,
+                                dst = ("dst" in project) ? project.dst : -1,
+                                reason = "c121_territory_reserve", extra = "reserve=" + reserve });
+        continue;
+      }
+    }
 
     if (C75_MULTI_BUILD && (OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
 

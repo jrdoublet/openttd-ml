@@ -467,6 +467,10 @@ CATALOG_COST_PROBE <- false;
 CATALOG_COST_ACTIVE <- null;
 C121_CATALOG_INCREMENTAL <- false;
 C121_CATALOG_AIR_FIRST_YEAR <- false;
+/* C121 : renfort de flotte sur preuve de stock en gare (delai 60 jours). */
+C121_FLEET_STOCK_GROWTH <- false;
+/* C121 : territoire d'abord (reserve de tresorerie pour le prochain AIR qui ouvre une ville). */
+C121_TERRITORY_FIRST <- false;
 C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
 /* Derive du monde, volontairement absent de Save(). */
 C121_CATALOG_CACHE <- {};
