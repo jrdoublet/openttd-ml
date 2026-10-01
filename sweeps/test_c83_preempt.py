@@ -1,6 +1,11 @@
 """Contrats de c83_preempt_open : une ville vide, defaut 0, chemin historique intact."""
 import unittest
 from pathlib import Path
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,8 +35,8 @@ class C83PreemptContractTests(unittest.TestCase):
         cls.info = read("ai/OpexAI/info.nut")
         cls.settings = read("ai/OpexAI/settings.nut")
         cls.globals = read("ai/OpexAI/globals_pre.nut")
-        cls.air = read("ai/OpexAI/builder_air.nut")
-        cls.projects = read("ai/OpexAI/projects.nut")
+        cls.air = read_builder_air()
+        cls.projects = read_projects_source()
         cls.task_projects = read("ai/OpexAI/task_projects.nut")
         cls.persist = read("ai/OpexAI/persist.nut")
         cls.main = read("ai/OpexAI/main.nut")

@@ -1,7 +1,7 @@
 # AGENTS.md — OpenTTD-ML / OpexAI
 
-Guide applicable à tout le dépôt. État vérifié le **2026-09-21** ; repères documentaires et eau
-actualisés le **2026-09-22**.
+Guide applicable à tout le dépôt. Consignes documentaires réconciliées le **2026-09-30**
+par lecture du code ; cette date ne constitue pas une nouvelle qualification économique.
 Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) est la
 **seule liste autoritaire du travail restant**. Les anciennes revues ne sont pas une file active.
 
@@ -38,7 +38,7 @@ Les noms `.nut` ci-dessous sont relatifs à `ai/OpexAI/`.
 | Besoin | Source à consulter |
 |---|---|
 | Priorités et décisions | `docs/taches.md` |
-| Carte des modules | `docs/architecture_opexai.md` ; schéma daté à confronter au code |
+| Carte des modules | `docs/architecture_courante.md` ; anciens schémas dans `docs/architecture_opexai.md` |
 | Protocole et pièges Squirrel | `docs/methode.md` |
 | Entrée et ordre de chargement | `main.nut`, `globals_pre.nut`, `globals_post.nut` |
 | Réglages déclarés et chargés | `info.nut`, `settings.nut` |
@@ -53,7 +53,8 @@ Les noms `.nut` ci-dessous sont relatifs à `ai/OpexAI/`.
 
 La cible OpexAI est **OpenTTD 15.3 / API NoAI 15 / OpenGFX 7.1** ; OpenTTDLab est fixé à
 **0.0.75** dans `requirements.txt`. Les passages Phase 0 du README (13.4, trAIns, calibration)
-sont historiques et ne définissent pas le runtime d'OpexAI.
+sont désormais condensés dans [la synthèse Phase 0](docs/archives/phase0_trainline_synthese.md) ;
+ils sont historiques et ne définissent pas le runtime d'OpexAI.
 
 ### Invariants Squirrel
 
@@ -77,10 +78,12 @@ sont historiques et ne définissent pas le runtime d'OpexAI.
 
 ## 3. Outils, édition et environnement
 
-- Dans cet environnement, lire `C:/Users/jr/.codex/RTK.md` et préfixer les commandes shell par
-  `rtk`. Utiliser `rtk proxy <commande>` si le filtrage n'est pas adapté ; préférer `rg` pour
-  rechercher. Ne pas transposer ce chemin Windows dans un conteneur Linux.
-- Utiliser les outils d'édition disponibles (`apply_patch` ou écriture native du shell), sans
+- Si `rtk` est installé, suivre sa configuration locale et utiliser `rtk proxy <commande>`
+  lorsque son filtrage n'est pas adapté. Sinon, utiliser les outils natifs disponibles ; aucun
+  chemin personnel tel que `C:/Users/jr/.codex/RTK.md` n'est un prérequis du dépôt.
+  Les exemples ci-dessous sont sans wrapper ; adapter l'exécutable Python à l'environnement choisi.
+  Si Git ou le runtime manque, signaler les contrôles non exécutés, sans installation implicite.
+- Utiliser les outils d'édition disponibles (en priorité `apply_patch`), sans
   dépendre d'anciens outils `run_command`, `write_to_file` ou `ArtifactMetadata`.
 - Conserver l'UTF-8. Sous Windows, `python -X utf8` évite les erreurs de console sur les accents ;
   préciser `-Encoding utf8` pour lire avec PowerShell. Ne pas mélanger quoting Bash et PowerShell.
@@ -106,7 +109,7 @@ Ne pas appeler `openttd` directement : utiliser les harnais Python existants.
 Smoke **1 graine × 1 an**, depuis la racine, syntaxe PowerShell :
 
 ```powershell
-rtk proxy docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "${PWD}:/work" -w /work openttd-lab python3 sweeps/bench_v2.py --arms "OpexAI" --seeds 42 --years 1 --max-workers 3 --out results/smoke_identifiant_unique.json
+docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "${PWD}:/work" -w /work openttd-lab python3 sweeps/bench_v2.py --arms "OpexAI" --seeds 42 --years 1 --max-workers 3 --out results/smoke_identifiant_unique.json
 ```
 
 Sous Bash, remplacer uniquement le montage du dépôt par `-v "$PWD":/work`. Choisir un nom de
@@ -116,7 +119,7 @@ Pour un duel reproductible, préférer le lanceur hôte qui enregistre Git, l'im
 limites Docker, puis exécute les copies figées :
 
 ```powershell
-rtk proxy python -X utf8 sweeps/run_c66_reference.py --campaign diag_identifiant_unique --years 6 --seeds 42 100 999 1234 5678 --max-workers 3
+python -X utf8 sweeps/run_c66_reference.py --campaign diag_identifiant_unique --years 6 --seeds 42 100 999 1234 5678 --max-workers 3
 ```
 
 Cette commande mesure une référence. Pour un A/B, ajouter `--reference`, `--variant`,
@@ -128,7 +131,7 @@ Le nom `bench_1v1_5y_20seeds.py` n'impose pas la durée : passer **`--years 10`*
 
 | Changement | Validation requise |
 |---|---|
-| Documentation uniquement | Relire le diff, vérifier chemins/symboles/options cités, `rtk git diff --check` ; aucune partie nécessaire |
+| Documentation uniquement | Relire le diff, vérifier chemins/symboles/options cités, `git diff --check` si Git est disponible ; aucune partie nécessaire |
 | Harnais ou décodeur | Tests ciblés et fixtures ; smoke réel si l'intégration moteur ou le schéma collecté change |
 | Squirrel | Tests de contrat pertinents et smoke 1×1 pour compilation/exécution |
 | Comportement IA | Puis diagnostic apparié **5 graines × 6 ans** pour exposition, sens de l'effet et grandeurs physiques |
@@ -152,10 +155,10 @@ documentaire. Les scripts exposant `--selftest` peuvent être testés sur l'hôt
 Exemples de tests ciblés sans partie (sélectionner ceux du changement) :
 
 ```powershell
-rtk proxy python -X utf8 -m unittest discover -s sweeps -p test_physical_counters.py
-rtk proxy python -X utf8 -m unittest discover -s sweeps -p test_game_health.py
-rtk proxy python -X utf8 -m unittest discover -s sweeps -p test_campaign_freeze.py
-rtk proxy python -X utf8 sweeps/bench_1v1_5y_20seeds.py --selftest
+python -X utf8 -m unittest discover -s sweeps -p test_physical_counters.py
+python -X utf8 -m unittest discover -s sweeps -p test_game_health.py
+python -X utf8 -m unittest discover -s sweeps -p test_campaign_freeze.py
+python -X utf8 sweeps/bench_1v1_5y_20seeds.py --selftest
 ```
 
 Pour C66.4, chaque graine donne **deux parties distinctes** : référence contre AAAHogEx, puis
@@ -163,11 +166,129 @@ variante contre la même AAAHogEx figée, avec mêmes carte/configuration, horiz
 Deux bras solo de `bench_v2.py` ne remplacent pas ce duel.
 
 Fixer métrique primaire, effet minimal utile et garde-fou de valeur **avant** les résultats.
-Utiliser le verdict calculé par le harnais et lire sa règle effective : actuellement 20 paires,
+Utiliser le verdict calculé par le harnais et lire sa règle effective : `signs20` par défaut, 20 paires,
 au moins 15 victoires, test exact des signes bilatéral p < 0,05, effet moyen minimal et garde-fou
 sur la valeur. Publier couverture, deltas par graine, moyenne/médiane des deltas et incertitude.
-Un sous-ensemble favorable ou un réglage hors défaut commun aux deux bras ne prouve pas un gain
+`mean40` est une option distincte, à décider avant la campagne ; les décisions utilisateur
+dérogatoires restent tracées dans `docs/journaux/synthese_decisions_2026-09-30.md` et ne transforment pas un `fail_primary`
+en qualification statistique. Un sous-ensemble favorable ou un réglage hors défaut commun aux deux bras ne prouve pas un gain
 au défaut. Ne pas contourner les audits de réglages pour obtenir un verdict.
+
+### 4.1 Pilotage automatique des bancs par les agents LLM
+
+**Décision utilisateur du 2026-09-30.** Pour une demande de modification ou de
+qualification d'un paramètre par défaut, l'agent doit préparer, déclencher et suivre
+les bancs nécessaires **sans attendre une nouvelle demande de lancement**, lorsque
+les prérequis ci-dessous sont réunis. Ne pas se limiter à donner une commande ou à
+dire « à tester ». Cette consigne ne déclenche aucune campagne pour une simple revue
+ou édition documentaire, ne rouvre pas les pistes abandonnées et ne lève pas une
+interdiction particulière de `docs/taches.md` (réglage protégé, pas de 20×10, etc.).
+
+**Avant tout lancement :**
+
+1. Lire les décisions courantes ; définir une intervention isolée, l'ancien défaut,
+   la valeur candidate et le critère d'exposition du mécanisme. Conserver l'ancien
+   défaut dans `info.nut`/`settings.nut` pendant la qualification. Utiliser les bras
+   explicites `OpexAI[reglage=ancienne_valeur]` et `OpexAI[reglage=valeur_candidate]` ;
+   vérifier déclaration, bornes, chargement et différences effectives. Les autres
+   réglages restent aux défauts courants, pas à un socle commun optimisé hors défaut.
+  Le workflow compare deux réglages du **même arbre de code**, pas deux commits.
+  Sans chemin témoin représentant l'ancien comportement, ou si d'autres changements
+  non qualifiés affectent les deux bras, ne pas présenter ce banc comme qualification
+  de ces changements : isoler l'intervention ou signaler que le protocole est inadapté.
+2. Fixer avant mesure la métrique `profit_year`, l'effet utile **50 000 £/an** et la
+   garde de valeur **5 %**, sauf protocole spécifique déjà décidé. Enregistrer le plan
+   dans le journal du chantier : dépôt, branche, SHA, bras, profils, seuils, exposition,
+   catégorie comportement/opcodes. Aucun changement de seuil après lecture des résultats.
+3. Préférer GitHub Actions quand le moteur local manque. Vérifier dépôt distant,
+   branche publiée contenant exactement le candidat et les harnais, workflow disponible
+   et authentification autorisant le déclenchement/lecture des runs. Utiliser `gh` ou
+   un outil/API GitHub authentifié ; ne jamais afficher de jeton. **Cette autorisation
+   de banc n'autorise pas un commit, push, merge ou une publication implicite.** Si le
+   candidat n'est pas publié, demander sa publication ou l'autorisation correspondante.
+4. Vérifier les runs existants et le budget/quota Actions : pas de doublon du même
+   SHA/protocole, pas de campagnes parallèles du même chantier, pas de relances jusqu'à
+   obtenir un résultat favorable. Pas de dépense au-delà d'un budget utilisateur fixé.
+   Si accès, publication, runtime ou quota manquent : statut **bloqué/non validé**,
+   obstacle précis et paramètres prêts à lancer ; garder le défaut inchangé.
+
+**Séquence GitHub obligatoire pour une qualification ordinaire :** préférer
+`.github/workflows/qualify.yml` (`Qualification de défaut OpenTTD`), avec un plan
+pré-enregistré `qualifications/<chantier>.json`. Ce workflow exécute les contrats
+choisis et enchaîne les trois portes sans nouvelle session d'agent. Contrat exact,
+exposition, budget et limites : [qualifications/README.md](qualifications/README.md).
+L'agent reste responsable des interdictions de chantier, de l'isolation, du choix
+des sondes/contrats et de l'absence de doublon. Aucun défaut n'est changé par le job.
+
+Le parcours manuel reste disponible avec `.github/workflows/bench.yml`
+(`Bancs OpenTTD`), entrées suivantes. Les valeurs des bras sont celles du plan,
+jamais des exemples recopiés sans lecture du code.
+
+| Étape | `mode` | `profile` | Autres entrées |
+|---|---|---|---|
+| Smoke causal, 1 graine × 1 an (2 parties) | `paired` | `smoke` | `reference` ancien défaut, `variant` candidat |
+| Diagnostic causal, 5 graines × 6 ans (10 parties) | `paired` | `diagnostic` | mêmes bras et seuils |
+| Qualification, 20 graines × 10 ans (40 parties) | `paired` | `adoption` | mêmes bras et seuils |
+
+Pour les trois étapes : `years` et `seeds` vides (profils canoniques),
+`min_delta=50000`, `value_guard=5`, `line_telemetry=false` sauf besoin défini avant
+mesure et identique dans les deux bras. `signs20`, une répétition, deux workers et
+les limites Docker sont fixés par le workflow. Exécuter aussi les tests de contrat
+pertinents avant les parties ; le workflow de banc ne teste que son orchestration.
+
+- Après smoke sain et tests réussis, lancer le diagnostic. Après diagnostic complet
+  et sain, vérifier l'exposition, le delta **Opex variante − Opex référence** et la
+  garde de valeur. Pour l'enchaînement automatique ordinaire, exiger effet moyen
+  au moins égal à l'effet utile fixé et garde tenue. C'est un filtre de passage,
+  **pas une preuve statistique à cinq graines**. Sinon arrêter : mécanisme non exposé,
+  candidat non retenu à ce stade ou résultat indécis, sans lancer le coûteux 20×10.
+- Une erreur technique, un timeout ou une collecte incomplète donne **non validé**,
+  pas un rejet économique. Diagnostiquer avant toute relance ; une correction du code
+  ou des bras impose une nouvelle campagne et interdit de réutiliser l'ancien verdict.
+- Pour une optimisation d'opcodes déclarée **avant** les mesures, appliquer la règle
+  de neutralité du §4 au lieu du seuil de gain économique positif, y compris pour
+  interpréter le diagnostic ; mesurer effectivement les opcodes sur le poste visé.
+  `bench.yml` n'encode pas cette règle : son `fail_primary` ne la tranche pas et
+  `min_delta=0` ne transforme pas `signs20` en test de neutralité. Conserver le verdict
+  brut et documenter séparément tous les critères de neutralité ; si la mesure manque,
+  aucune adoption automatique. `qualify.yml` ajoute ce contrôle séparé pour les
+  composants H5 mesurés et comparables selon le contrat pré-enregistré ; toute
+  preuve absente ou comparaison non couverte arrête la séquence `NON_VALIDÉ`.
+  Ne pas reclasser un essai perdant en « opcodes » après coup.
+
+**Suivi et décision :**
+
+- Déclencher sur le dépôt/la branche explicitement identifiés, récupérer l'ID et
+  l'URL du run exact et vérifier son SHA. Suivre ce run, télécharger ses artefacts dans
+  un dossier neuf, contrôler `request.json`, manifeste/bundle et `bench.json`.
+  Ne pas lire arbitrairement « le dernier run ». Si la session s'arrête avant la fin,
+  consigner le run et l'étape suivante ; ne jamais annoncer un verdict à venir.
+- Pour l'adoption ordinaire, exiger absence d'échecs de santé, horizon et métriques
+  complets, **20/20 paires**, `comparison_complete=true`, `adoption_sample_complete=true`,
+  `metric_coverage_complete=true`, couverture annuelle de quatre trimestres valides,
+  et `policy_comparison.verdict=pass`. Contrôler les critères réels : au moins 15
+  victoires, p bilatéral <0,05, delta moyen ≥50 000 £/an, ratio des moyennes de valeur
+  ≥−5 %. Un job vert ne remplace pas ces contrôles.
+- `fail_primary`, `fail_value_guard` ou `fail_primary_and_value_guard` : **ne pas
+  adopter**, conserver l'ancien défaut. `incomplete`, `diagnostic_only`, preuve absente,
+  ambiguë ou issue d'un autre code : **non validé**, même conséquence sur le défaut.
+  Le ratio Opex/AAAHogEx, un duel 3 ans, un solo ou la seule baisse d'AAAHogEx ne sont
+  jamais des critères d'adoption d'un réglage.
+- Si qualifié et que la demande porte sur l'adoption, appliquer uniquement le défaut
+  testé, vérifier les quatre valeurs de difficulté, le chargement et la persistance,
+  exécuter tests ciblés et smoke du défaut livré. Aucun autre changement comportemental
+  ne bénéficie de ce verdict. Si la demande portait seulement sur l'évaluation,
+  rapporter « qualifié » sans changer le défaut. Aucun merge/push automatique.
+- Journaliser l'acceptation/refus/blocage avec SHA, bras, paramètres, URL/run/attempt,
+  chemins d'artefacts, couverture, santé, deltas moyen/médian, IC95, victoires/p,
+  garde de valeur et verdict brut. Mettre à jour le statut dans `docs/taches.md` et
+  conserver les preuves selon §6. Une dérogation utilisateur explicite reste une
+  dérogation tracée, jamais un `pass` statistique fabriqué.
+
+Parcours de déclenchement et limites : [docs/bancs_github.md](docs/bancs_github.md).
+Une consigne LLM n'est pas un service de déclenchement autonome : un agent ou
+l'utilisateur doit lancer le run. Ensuite `qualify.yml` enchaîne les portes seul,
+contrairement à `bench.yml`. Aucun workflow ne modifie les défauts, commits ou merges.
 
 ## 5. Mesure fiable : réutiliser le harnais
 
@@ -244,7 +365,9 @@ sa campagne et ses limites ; distinguer résultat testé et hypothèse.
 Vérifier les **`import` et `require` transitifs**, pas uniquement `main.nut` : l'ancienne
 adaptation MinchinWeb dans `lib_water.nut` (avec `queue.fibonacci_heap` v3) a été retirée le
 21 septembre (`7c194d2`), après désactivation des chemins Lakes. Le chemin eau courant utilise
-`builder_water.nut::OpexWaterFindConnection`, un BFS borné ; C67 n'est pas encore implémenté.
+`builder_water.nut::OpexWaterFindConnection`, un BFS borné. C67.3 à C67.6 sont livrés
+(`terrain_map.nut`, `water_graph.nut`, `task_terrain.nut`), mais sans consommateur métier
+exposé aux décisions économiques ; ne pas confondre implémentation, activation et adoption.
 `main.nut` importe `pathfinder.rail` v1. La présence de
 SuperLib/MinchinWeb/Queue sur disque ne prouve pas un import intégral ni l'absence de réutilisation.
 
@@ -261,8 +384,10 @@ SuperLib/MinchinWeb/Queue sur disque ne prouve pas un import intégral ni l'abse
 - **Rail : rechercher C41 dans `docs/taches.md` et son archive avant de toucher au temps de trajet.**
   `OpexRailEffectiveSpeed` modélise vitesse de croisière et accélération avec cache. Une formule
   SuperLib à vitesse maximale ne constitue pas un remplacement acceptable de ce modèle.
-- **Air :** `OpexAirTripModel` utilise encore `airportDelayDays = 3.0`. La table SuperLib est
-  elle-même estimée : mesurer les délais réels par type avant remplacement. Voir C61 AIR.
+- **Air :** le chemin legacy d'`OpexAirTripModel` initialise `airportDelayDays = 3.0`, mais les
+  chemins physiques/replay peuvent le remplacer. Lire C115/C121 et leurs gates avant toute
+  conclusion sur le modèle effectivement utilisé. La table SuperLib est elle-même estimée :
+  mesurer les délais réels par type avant remplacement.
 - **Route :** `OpexRoadLineEconomics` applique déjà `ROAD_SPEED_EFFICIENCY_PCT` ; son audit ne
   justifie pas de le remplacer par un modèle plus rudimentaire à vitesse maximale.
 - **Note municipale :** le bug enum de `OpexBoostTownRating` est corrigé. Le filtre proactif existe

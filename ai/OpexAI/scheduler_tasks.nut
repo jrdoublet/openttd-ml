@@ -1,5 +1,17 @@
 /* C65 passe 3 : un dispatch par tache de file, corps deplace depuis
  * _runNextTask. */
+/* R4 : seuil d'admission, pas estimation du cout total d'une paire AIR.
+ * Garder 2000 opcodes de marge de dispatch plutot qu'exiger plus qu'un tick
+ * complet (10000). Une tranche peut suspendre la VM : ne pas enchainer alors
+ * sur le budget neuf, rendre la main a la boucle d'evenements. */
+function OpexC121CatalogCanContinue(owner, continuationTick)
+{
+  return C121_CATALOG_INCREMENTAL && owner._activeWorker == null
+      && owner._railSearch == null && owner._railExpansion == null
+      && AIController.GetTick() == continuationTick
+      && AIController.GetOpsTillSuspend() > 2000;
+}
+
 function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason,
                                        c76Full = false, c76Quarter = 0, c76Reason = null)
 {
@@ -794,7 +806,7 @@ function OpexAI::_dispatchReport(task, year)
 }
 function OpexAI::_dispatchScrap(task, year)
 {
-
+  OpexAirProcessRollbacks(this._lines);
   this._scrapDeadLines(year);
   this._scrapRetiredVehicles(year);
   this._purgeUnprofitableStreaks();

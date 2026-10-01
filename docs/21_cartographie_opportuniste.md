@@ -1,5 +1,11 @@
 # C67 — Cartographie par blocs, lazy et opportuniste : plan
 
+**Lecture au 30 septembre : plan initial, pas état courant.** C67.3–.6 sont
+livrés sans consommateur économique adopté ; Lakes a été retiré. Le facteur de
+financement rail est désormais 100, distinct du facteur terrain 170 : l'ancienne
+prémisse ci-dessous ne justifie pas de le rétablir. Contrat et mesures successives :
+[C67](c67_cartographie_contrat.md) ; travail restant : [tâches](taches.md).
+
 **Plan écrit le 2026-09-21, avant tout code.** Reprend la décision de conception du 2026-09-17
 (`docs/taches.md`, section C67 ; `docs/revue_code_2026-09-15_correctifs.md`, section B7) et la
 branche sur l'orchestrateur C80 (`docs/18_orchestrateur_double_registre.md`).

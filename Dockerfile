@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS simulation
 
 ARG UID=1000
 ARG GID=1000
@@ -11,15 +11,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g ${GID} lab && useradd -m -u ${UID} -g ${GID} lab
+# Keep image dependencies outside the persistent /home/lab cache mount.
+RUN python -m venv /opt/venv && chown -R ${UID}:${GID} /opt/venv
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH=/opt/venv/bin:$PATH
+ENV PYTHONNOUSERSITE=1
 USER lab
 WORKDIR /home/lab
 
 COPY --chown=lab:lab requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt
+
+ENV PYTHONUNBUFFERED=1
 
 # Dependances de modelisation, dans une couche separee : requirements.txt (simulation) reste
 # inchange, donc sa couche de cache survit a l'ajout/mise a jour des dependances ML.
+FROM simulation AS ml
 COPY --chown=lab:lab requirements-ml.txt .
-RUN pip install --user --no-cache-dir -r requirements-ml.txt
-
-ENV PATH=/home/lab/.local/bin:$PATH
+RUN python -m pip install --no-cache-dir -r requirements-ml.txt

@@ -150,6 +150,8 @@ function OpexLoadSettings()
   // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C41_SLICE
   local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
   CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
+  FLEET_AMORT_SHADOW_PROBE = AIController.GetSetting("fleet_amort_shadow_probe");
+  R19_FAULT_INJECT = AIController.GetSetting("r19_fault_inject");
   C41_SLACK_LEDGER = probeScheduler;
   C41_MONTHLY_BUSY_LEDGER = probeScheduler;
   C41_STALENESS_LEDGER = probeScheduler;
@@ -232,6 +234,9 @@ function OpexLoadSettings()
   C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;
   C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
+  EXP_C83_WATCH_DAILY = AIController.GetSetting("exp_c83_watch_daily") != 0;
+  EXP_SCHEDULER_SKIP_NOT_DUE = AIController.GetSetting("exp_scheduler_skip_not_due") != 0;
+  EXP_AIR_HUB_PAIR_PREFILTER = AIController.GetSetting("exp_air_hub_pair_prefilter") != 0;
   C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
   AIR_BATCH_TOWN_RESERVE = AIController.GetSetting("air_batch_town_reserve") != 0;
   V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;
@@ -239,6 +244,8 @@ function OpexLoadSettings()
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
+  /* R6 : compatibilite inactive, valeurs lues sans consommateur metier.
+   * Conserver ces lectures ; ne pas confondre avec la sonde V95 ci-dessus. */
   V95_AIR_TARGETED_SECOND = AIController.GetSetting("v95_air_targeted_second") != 0;
   V95_AIR_POST73_TARGETED = AIController.GetSetting("v95_air_post73_targeted") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
@@ -246,6 +253,7 @@ function OpexLoadSettings()
   C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
   C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;
   C100_AIR_TRIP_PHYSICAL = AIController.GetSetting("c100_air_trip_physical") != 0;
+  /* R6 : compatibilite inactive ; stockee sans lecteur, cette valeur n'active aucune sonde. */
   C102_AIR_STATION_RATING_PROBE = AIController.GetSetting("c102_air_station_rating_probe") != 0;
   C101_AIR_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c101_air_physical_engine_choice") != 0;
   C103_AIR_C100_RANK_REPLAY = AIController.GetSetting("c103_air_c100_rank_replay") != 0;
@@ -284,6 +292,8 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_aaa_line") != 0;
   if (C121_CATALOG_INCREMENTAL) {
     C121_CATALOG_CACHE.clear();
+    C121_AIR_ENDPOINT_CACHE = null;
+    OpexC121InvalidateEndpointGeometry();
     C121_CATALOG_TOWN_REV.clear();
     C121_CATALOG_TOWN_POP.clear();
     C121_CATALOG_TOWN_PROD.clear();
@@ -305,6 +315,10 @@ function OpexLoadSettings()
   C121_AIR_PRESSURE_SNAPSHOT = null;
   C121_AIR_PRESSURE_ACCUM = null;
   C121_AIR_PRESSURE_PREV = null;
+  /* R7 : parametre protege, branche conservee. PORTFOLIO_FLOOR_PCT reste force a 0
+   * plus bas : 50% / 75% de ce plancher valent toujours 0, sans neutraliser le
+   * filtre des profits negatifs hors exemptions existantes. Les calculs executes
+   * peuvent changer la cadence d'opcodes ; ne pas supprimer la branche. */
   C121_AIR_DEFENSIVE_FLOOR = AIController.GetSetting("c121_air_defensive_floor") != 0;
   C121_AIR_INITIAL_PROJECT_ECONOMICS = AIController.GetSetting("c121_air_initial_project_economics") != 0;
   C121_AIR_ENGINE_REPLAY_SHADOW = AIController.GetSetting("c121_air_engine_replay_shadow") != 0;
@@ -462,13 +476,16 @@ function OpexLoadSettings()
   C78_SLOT_INTERCEPT_PROBE = probePort;
 
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
+  /* R7 : zero global conserve ; le reglage defensif C121 ne retablit pas de plancher positif. */
   PORTFOLIO_FLOOR_PCT = 0;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
   C67_WATER_EXPOSURE = AIController.GetSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
-  /* C77 corrigé est permanent et repose sur le socle du double registre. */
+  /* C77 corrige est permanent et repose sur le socle du double registre.
+   * R6 : c80_double_register reste public pour compatibilite (defaut declare 0),
+   * mais n'est pas lu : 0 comme 1 laisse ce socle actif. */
   C80_DOUBLE_REGISTER = true;
   C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
   C80_RAIL_STOCK_GATE = AIController.GetSetting("c80_rail_stock_gate") != 0;

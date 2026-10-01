@@ -1405,30 +1405,6 @@ function OpexTryBuildSignalEither(tile, a, b)
   return first;
 }
 
-/* Ancien PBS de capacite sur voie unique : conserve pour la lecture, plus appele.
- * Deux trains sur une voie se rencontrent ; la double voie les separe. */
-function OpexPlaceCapacitySignals(tiles)
-{
-  local acc = { ok = 0, fail = 0, segments = 0, failures = [] };
-  /* Slot 1 is the station throat: on every measured failure it carried two track pieces and
-   * OpenTTD rejected both signal fronts. Keep periodic blocks clear of that approach and begin
-   * one full block from the terminus. A line with no usable slot is rolled back. */
-  for (local i = 8; i < tiles.len() - 1; i += 8) {
-    local built = OpexTryBuildSignalEither(tiles[i], tiles[i - 1], tiles[i + 1]);
-    if (built == -1) continue;
-    acc.segments++;
-    OpexAccountSignal(built, acc);
-    if (built == 0) {
-      /* `SF` is emitted later with the stable line id. Keep raw geometry here: exact path
-       * slot, last API error, track fan-out, and coordinates make every failure reproducible. */
-      acc.failures.append({ slot = i, error = AIError.GetLastError(),
-                            tracks = OpexTileTrackCount(tiles[i]),
-                            x = AIMap.GetTileX(tiles[i]), y = AIMap.GetTileY(tiles[i]) });
-    }
-  }
-  return acc;
-}
-
 /* Cherche un PBS sur une voie simple en s’éloignant d’une gare ou d’un aiguillage.
  * OpenTTD 15.3 refuse structurellement les signaux sur TracksOverlap : le filtre trackCount == 1
  * est donc une precondition moteur, pas une heuristique. */
@@ -1626,7 +1602,20 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap
 
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md §0 tervicies point 8 & C7).
  * Simule la construction des gares et de la voie sans modifier la carte pour mesurer le coût exact. */
-function OpexSimulateRailInfraCost(plan)
+/* R23 : null signifie devis invalide, jamais un cout partiel utilisable.
+ * Capturer le premier motif avant toute autre commande. L'argument diagnostic
+ * est optionnel pour conserver les appelants qui ne demandent que le cout. */
+function OpexRailQuoteFailure(failure, reason, tile, error)
+{
+  if (failure != null) {
+    failure.reason <- reason;
+    failure.tile <- tile;
+    failure.error <- error;
+  }
+  return null;
+}
+
+function OpexSimulateRailInfraCost(plan, failure = null)
 {
   local simulatedInfra = 0;
   {
@@ -1637,20 +1626,27 @@ function OpexSimulateRailInfraCost(plan)
     local planB = plan.planB;
     local tiles = plan.tiles;
     for (local i = 0; i < planA.length; i++) {
-      AITile.DemolishTile(planA.anchor + planA.step * i);
+      local tile = planA.anchor + planA.step * i;
+      if (!AITile.DemolishTile(tile)) return OpexRailQuoteFailure(failure, "STNFAIL", tile, AIError.GetLastError());
     }
     for (local i = 0; i < planB.length; i++) {
-      AITile.DemolishTile(planB.anchor + planB.step * i);
+      local tile = planB.anchor + planB.step * i;
+      if (!AITile.DemolishTile(tile)) return OpexRailQuoteFailure(failure, "STNFAIL", tile, AIError.GetLastError());
     }
     local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
     local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
-    AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
-    AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
+    if (!AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA)) {
+      return OpexRailQuoteFailure(failure, "STNFAIL", planA.anchor, AIError.GetLastError());
+    }
+    if (!AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB)) {
+      return OpexRailQuoteFailure(failure, "STNFAIL", planB.anchor, AIError.GetLastError());
+    }
 
     for (local i = 1; i < tiles.len() - 1; i++) {
       local prev = tiles[i - 1];
       local cur = tiles[i];
       local next = tiles[i + 1];
+      local ok = false;
       if (prev == next) {
         continue;
       } else if (AIMap.DistanceManhattan(prev, cur) > 1) {
@@ -1660,17 +1656,29 @@ function OpexSimulateRailInfraCost(plan)
             (("structures" in plan) ? plan.structures : null), cur, next);
         if (plannedKind == "tunnel" ||
             (plannedKind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
-          AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
+          ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
         } else {
           local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
           bridges.Valuate(AIBridge.GetMaxSpeed);
           bridges.Sort(AIList.SORT_BY_VALUE, false);
-          if (!bridges.IsEmpty()) {
-            AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
+          if (bridges.IsEmpty()) {
+            return OpexRailQuoteFailure(failure, "TRKFAIL", cur, AIError.ERR_PRECONDITION_FAILED);
           }
+          ok = AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
         }
       } else {
-        AIRail.BuildRail(prev, cur, next);
+        ok = AIRail.BuildRail(prev, cur, next);
+      }
+      if (!ok) {
+        local error = AIError.GetLastError();
+        /* Seulement une voie DEJA presente peut etre testee par connectivite.
+         * Ne jamais exiger AreTilesConnected apres une pose seulement simulee. */
+        if (error == AIError.ERR_ALREADY_BUILT &&
+            AIMap.DistanceManhattan(prev, cur) == 1 && AIMap.DistanceManhattan(cur, next) == 1 &&
+            AIRail.IsRailTile(cur) && AITile.GetOwner(cur) == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF) &&
+            AIRail.GetRailType(cur) == AIRail.GetCurrentRailType() &&
+            AIRail.AreTilesConnected(prev, cur, next)) continue;
+        return OpexRailQuoteFailure(failure, "TRKFAIL", cur, error);
       }
     }
     simulatedInfra = accounting.GetCosts();
@@ -1679,9 +1687,10 @@ function OpexSimulateRailInfraCost(plan)
 }
 
 /* Capital total du devis rail utilise par le constructeur avant engagement. */
-function OpexQuoteRailCapital(catalog, candidate, plan)
+function OpexQuoteRailCapital(catalog, candidate, plan, failure = null)
 {
-  local realInfra = OpexSimulateRailInfraCost(plan);
+  local realInfra = OpexSimulateRailInfraCost(plan, failure);
+  if (realInfra == null) return null;
   if (realInfra <= 0) return 0;
   local depotCost = catalog.costRailDepot + 2 * catalog.costTrackPerTile;
   local vehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0;
@@ -1731,7 +1740,14 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local planB = plan.planB;
   local tiles = plan.tiles;
   if (RAIL_DEVIS) {
-    local realCapital = OpexQuoteRailCapital(catalog, candidate, plan);
+    local quoteFailure = {};
+    local realCapital = OpexQuoteRailCapital(catalog, candidate, plan, quoteFailure);
+    if (realCapital == null) {
+      result.error = quoteFailure.error;
+      result.reason = result.error == AIError.ERR_NOT_ENOUGH_CASH ? "CASH" : quoteFailure.reason;
+      result.quoteFailure <- quoteFailure;
+      return result;
+    }
     if (realCapital > 0) {
       result.capital = realCapital;
       /* G3 : le devis est une information economique, pas uniquement un garde de cash. */

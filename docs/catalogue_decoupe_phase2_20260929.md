@@ -1,14 +1,37 @@
 # Catalogue découpé C121 — phases 2 et 3 (2026-09-29)
 
-## État
+## État au 2026-09-30 — revue documentaire statique
 
-Prototype derrière deux réglages à défaut 0. La branche active exige
-`c121_air_economics=1`. Le diagnostic 1970 du 29 septembre a été exécuté par
-l'orchestrateur sur la version précédente du worktree (graines 42/100/999).
-**Les corrections ci-dessous n'ont pas été exécutées en jeu** : leur compilation
-Squirrel, leur débit et leur effet économique restent à vérifier.
+Prototype non adopté ; réglages expérimentaux à **défaut 0**. La branche active
+exige `c121_air_economics=1`. La matrice suivante réconcilie les jalons avec les
+mesures VPS ajoutées plus bas ; elle ne constitue pas une nouvelle exécution ni
+une revalidation locale des résultats. Les anciens « non exécuté » décrivent
+leur date de rédaction, pas le statut final du fichier.
 
-## Phase 3 — cache et trésorerie (29 septembre)
+| Phase / contrôle | État rapporté au 30 septembre | Limite conservée |
+|---|---|---|
+| Phase 2 brute | Diagnostic solo 1970 exécuté, graines 42/100/999 ; aucun scan complet | Goulots de publication/invalidation et de reprise observés |
+| Phase 2 corrigée + AIR première année | Second diagnostic solo exécuté : 11/11/12 aéroports | Faible réutilisation du cache ; pas de qualification économique |
+| Phase 3 + replanification différée | Mesurée ensuite en solo 2 ans et duels 5×3 ; cadence/trésorerie améliorées, décrochage en 1972 | Mesures postérieures aux mentions historiques « non exécuté » ; ne prouvent pas un batching intra-tick correct |
+| Renforts au stock / territoire d'abord / ligne AAA | Variantes mesurées le 30 en duels 5×3 | Aucune ne rattrape la référence C115 ; défauts 0 |
+| Identité au défaut | Contrôle rapporté non exact | Décalage d'opcodes invoqué dans le compte rendu, pas identité binaire démontrée |
+| Save/Load | **Non vérifié** | Aucun aller-retour validé ne découle des mesures solo/duel |
+| Qualification | Diagnostics 5×3 seulement pour ces variantes | Aucun 5×6/20×10 qualifiant rapporté ici ; non adoptable |
+
+**Budget / batching :** l'ancien test de continuation `reliquat > 10 000` a été
+remplacé localement par R4 (`> 2 000`, garde de tick inchangé). Ce correctif et
+son seuil ne sont **pas validés par exécution** ; le budget demandé de 150 k par
+tranche ne prouve pas le respect du quota moteur. Le coût fixe et une paire peuvent
+franchir un tick. Les gains de cadence antérieurs ne valident pas R4 : il faut des traces
+moteur de ticks/reliquats et de `same_tick_slices`. **Save/Load reste non vérifié.**
+Suivi R4/R5 : [journal du 30](journaux/journal_2026-09-30.md) et [tâches](taches.md).
+Décision utilisateur du 2026-09-30 : **ne pas toucher à C115**.
+
+## Phase 3 — cache et trésorerie (29 septembre, historique de conception)
+
+**Historique avant mesures VPS :** les attentes et mentions « non mesuré » de
+cette section sont conservées comme état intermédiaire. Pour les exécutions
+ultérieures, lire la matrice en tête et les sections de mesures du 29/30.
 
 Le second diagnostic solo 1970 (`results/catalog_incr2_c121_1970_20260929.jsonl`
 et `results/catalog_incr2_air1y_c121_1970_20260929.jsonl`, graines
@@ -27,7 +50,9 @@ une économie exacte. Les petits écarts s'accumulent contre la même référenc
 les révisions de population, station, moteur, apprentissage et le filet de
 365 jours restent actifs. `CATALOG_COST_SLICE` publie `reuse_pct` =
 `100*hits/(hits+recalculated)` sur la passe et `chained_slices` avec
-`same_tick_slices`. Le taux **après** correction doit être mesuré en jeu.
+`same_tick_slices`. **À ce jalon historique**, le taux après correction restait
+à mesurer en jeu ; aucune validation détaillée du batching n'est déduite des
+mesures économiques ultérieures.
 
 Le précédent enchaînement vérifiait un reliquat supérieur à **50 k opcodes**
 après chaque dispatch, puis laissait le catalogue attendre son prochain tour
@@ -58,9 +83,11 @@ reste en place. `C121_AIR_CHAIN_PASS` indique `built_air`, `chained_air`
 
 Ces corrections sont derrière les deux réglages expérimentaux à défaut 0.
 Les tests Python contrôlent les gardes et les champs, mais ne compilent pas
-Squirrel. Le nombre de hits, le débit, les chantiers et la trésorerie après
-correction restent non mesurés, conformément à l'interdiction de lancer une
-partie pendant cette phase.
+Squirrel. **Historique au jalon de rédaction :** le nombre de hits, le débit,
+les chantiers et la trésorerie après correction étaient non mesurés, conformément
+à l'interdiction de lancer une partie pendant cette phase. Les mesures VPS
+ultérieures, conservées plus bas, remplacent ce statut pour les éléments mesurés,
+pas pour Save/Load ni pour la preuve de batching intra-tick.
 
 Le cache global transitoire associe une identité physique (bras, type d'aéroport,
 TownID, ancre, StationID et réutilisation de chaque extrémité) au choix de moteur,
@@ -123,13 +150,20 @@ Les révisions globales salissaient chaque entrée de cache après un changement
 local. La part respective de ces causes dans la perte économique n'est pas
 mesurable à partir de ce seul diagnostic.
 
-## Validation disponible
+## Validation disponible au jalon initial — historique
 
 `python3 -m unittest discover -s sweeps -p 'test_*.py'` : 617 tests OK,
 2 ignorés. `git diff --check` : OK. Les tests statiques ne compilent pas Squirrel. La
-validation moteur, Save/Load et le 5×6 restent à faire par l'orchestrateur.
+validation moteur, Save/Load et le 5×6 restaient à faire par l'orchestrateur
+**à ce jalon**. Les exécutions ultérieures sont décrites plus bas ; Save/Load
+reste non vérifié et les duels 5×3 ne valent pas qualification 5×6/20×10.
+Ces comptes de tests sont rapportés, non réexécutés dans la revue du 30.
 
-## Commandes de mesure à lancer après revue
+## Commandes de mesure prévues après revue — protocole historique
+
+**Historique, pas file de lancements courante.** Ces commandes sont conservées
+pour la traçabilité du protocole ; elles ne remplacent pas les campagnes
+effectivement mesurées plus bas et aucune n'est exécutée par cette revue.
 
 Sous Bash, depuis la racine, après contrôle du contexte Docker, de l'image,
 du volume et du montage réel. Chaque sortie doit recevoir un nom neuf.

@@ -17,6 +17,10 @@ import sys
 
 sys.path.insert(0, str(ROOT / "sweeps"))
 from campaign_freeze import parse_ai_settings, parse_ai_setting_specs
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 
 def _read(rel_path: str) -> str:
@@ -127,7 +131,7 @@ class TestV94AirSiteListContract(unittest.TestCase):
             self.assertTrue(specs[setting_name]["boolean"])
 
     def test_native_filters_and_legacy_loop_both_present(self):
-        source = _read("ai/OpexAI/builder_air.nut")
+        source = read_builder_air()
         self.assertNotIn("OpexAirSiteAnchorBefore", source)
         self.assertNotIn("OpexAirFindSiteListAnchors", source)
         ring = source.split("function OpexAirFindSiteRing", 1)[1].split(

@@ -194,6 +194,9 @@ sous C114. Les pertes residuelles fortes sont surtout `314`, `424242` et `867530
 
 En contrepartie, sur les douze anciennes graines gagnantes de C114, C115 conserve
 **+296,7 k£/an** en moyenne, soit environ **61 %** des +485,7 k£/an de C114, avec
-9/3 et +3,58 aeroports. Conclusion : le gate sur le capital total est un vrai pas
-vers le mecanisme recherche, mais il reste trop grossier et C115 ne doit pas etre
-adopte. Analyse reproductible : `sweeps/analyse_c115_seed_split.py`.
+9/3 et +3,58 aeroports. Conclusion statistique : le gate reste trop grossier et
+le banc ne qualifie pas une adoption ordinaire. **Décision utilisateur distincte :
+C115 est néanmoins activé temporairement à 1 depuis le 27 septembre et protégé
+le 30 ; ne pas le désactiver sur la base de cette conclusion historique.**
+Analyse reproductible : `sweeps/analyse_c115_seed_split.py`.
+État et restrictions : [tâches](taches.md).

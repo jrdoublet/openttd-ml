@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 import re
 from diag_c80_projects_gap import extract, analyze_events
+from opex_projects_source import read_projects_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,7 +23,7 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         cls.settings = _read("ai/OpexAI/settings.nut")
         cls.main = _read("ai/OpexAI/main.nut")
         cls.persist = _read("ai/OpexAI/persist.nut")
-        cls.projects = _read("ai/OpexAI/projects.nut")
+        cls.projects = read_projects_source()
         cls.task_projects = _read("ai/OpexAI/task_projects.nut")
         cls.task_rail = _read("ai/OpexAI/task_rail.nut")
         cls.orchestrator = _read("ai/OpexAI/orchestrator.nut")

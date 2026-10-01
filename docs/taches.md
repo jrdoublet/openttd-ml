@@ -1,896 +1,175 @@
-# Tâches — réduire l'écart avec AAAHogEx
+# Tâches — travail restant
 
-État courant actualisé le **2026-09-29**. Ce fichier est la **seule liste autoritaire du
-travail restant**. Les travaux terminés, résultats et décisions sont dans les journaux ;
-une ancienne mention « à faire » ne remet pas un chantier dans cette liste.
+**Mise à jour : 1er octobre 2026. Seule liste autoritaire des actions ouvertes.**
+Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
+et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
+ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
 
 ## État courant
 
-Le défaut comprend C68, C69 bis/C70/C75 et, depuis le 2026-09-23, **C77 corrigé**
-désormais actif en permanence ; ses trois anciens réglages ont été supprimés de `info.nut`/`settings.nut`.
-Depuis le 2026-09-24, `c76_regen_targeted`, `town_growth_plan_memo` et `c80_mode_regen`
-sont **qualifiés et actifs par défaut** ; `c80_air_hub_index` l'est également depuis le 2026-09-23.
-Les travailleurs C80 (`c80_worker_rail`, `c80_worker_town`), C81 et C82 restent expérimentaux à défaut 0.
-Depuis le 2026-09-26, les workers A\* à stock de tracés (`c80_rail_stock_gate`, `c80_rail_stock_worker`) et `homogeneous_preselect` sont implémentés, défaut 0, non adoptés (voir leurs lignes). Branche `astar-workers-e1` resynchronisée avec `master` le 2026-09-29 (AIR C98–C121, V88) ; suite `sweeps` verte.
-Depuis le 2026-09-24, `c83_preempt_open` et `air_batch_town_reserve` sont implémentés, défaut 0 ;
-leurs 5×6 sont défavorables (préemption : profit neutre, valeur −8 % ; réserve : −180 k£/an, 0/5) et
-aucun n'est retenu. Le script `sweeps/analyse_air_demand_vs_realized.py` compare le profit aérien prédit
-au réalisé ; il ne change pas l'IA.
-La version C76 retenue saute la régénération complète sans changement, avec filet annuel.
-Les bancs C77 seul et C82 du 22 septembre sont terminés et non adoptés : ils ne sont plus
-à lancer. Les feeders et Lakes sont retirés. C67.3 à C67.6 sont livrés, mais aucun consommateur
-métier n'est encore exposé : ne pas présenter C67 comme « non implémenté ».
+- Runtime cible : OpenTTD 15.3 / NoAI 15 / OpenGFX 7.1 / OpenTTDLab 0.0.75.
+- Socle adopté : C68, C69 bis/C70/C75, C77 permanent, C76 ciblé, mémo urbain,
+  régénération par mode, index hub, C75 bis, C83.1 (six villes), C87, V89/V90,
+  V91=120, V94 et C96 ; financement rail=100, distinct du facteur terrain 170.
+  Déclarations et chargement exacts : `info.nut`/`settings.nut`.
+- **C115=1 temporaire et protégé : ne pas le modifier.** C116/C118/C119/C120/C121/C122
+  ne sont pas adoptés. Workers rail/ville, stock A* et `homogeneous_preselect` : défaut 0.
+- C67.3–.6 livrés, sans consommateur métier exposé ; Lakes et feeders retirés.
+- **Quatorze findings implémentés localement, sans qualification individuelle** :
+   R1/R2/R3/R4/R5/R18/R19/R20/R21/R22/R23/R24/R25/R26. Aucun run GitHub attesté dans ce suivi.
+  L'arbre local n'est donc pas une nouvelle référence économique qualifiée.
+- **Docker local disponible (30/09)** : smoke 1×1 OK et Save/Load OK sur l'arbre
+  courant (compilation Squirrel et `require` validés), 830/832 tests Python (2 = Git absent).
+  Correctifs de revue OpexAI (`REPLACE`, file réactive, budget imbriqué) inclus.
+  [Journal](journaux/journal_2026-09-30.md#revue-concurrente-opexai-et-premières-exécutions-moteur-locales).
+- **Lots cadence P4/P7/hubs (30/09)** : intégrés derrière trois options OFF ;
+   diagnostic 4 bras × 5 graines × 6 ans complet et sain, aucun gain moyen de
+   profit Opex en 1975. Save/Load combiné technique réussi ; suite finale :
+   896 réussites / 1 erreur Git absent / 1 skip sur 898 tests.
+   [Résultats et limites](cadence_parallel_20260930.md). Aucune adoption.
+- **Audits parallèles intégrés (01/10)** : 95 tests de lecteurs réussis ; suite
+   complète finale 996 réussites / 1 erreur Git absent / 1 skip sur 998 tests.
+   Exposition technique r2 : deux duels sains, sources inchangées ; sondes larges
+   fortement perturbatrices, aucune qualification économique. Dans ce profil,
+   AIR domine le coût catalogue, pas rail pax. Aucun changement Squirrel.
+   [Bilan et protocole](parallel_integration_20261001.md),
+   [journal](journaux/journal_2026-10-01.md).
+- Sources C116/C117/C122 absentes ou corrompues : résultats rapportés, non revalidés.
+  Date récente, code livré et job vert ne remplacent pas une preuve qualifiée.
+- **Trois lots AIR/shadow/R1-R3 intégrés (01/10)** : 1113 réussites /1 erreur
+   Git absent /1 skip sur 1115 tests. Smokes finaux sains, trois Save/Load OK.
+   Sonde légère : 20/20 duels 5×6 sains, filtre de perturbation passé, neutralité
+   non prouvée. Shadow : 48 élections complètes, 369 inversions de paires mais
+   zéro changement de tête ; sonde coûteuse OFF. R3 observé naturellement,
+   huit scénarios dirigés alors non validés. [Bilan](three_lots_integration_20261001.md).
+- **Compléments performances/fixtures (01/10)** : défaut contre AAAHogEx,
+   5×6 complet et sain ; profit moyen1975 1,524 M£ contre4,748 M£, moyenne des
+   ratios31,82 %, aucune victoire finale. Huit fixtures dirigées R1/R3 et
+   matrice VM48+9 validées dans des copies, dont deux frontières Save/Load R1.
+   R3 caducité validé par relecture après correction du lecteur ; verdict brut
+   conservé. Suite complète1124 réussites /1 erreur Git /1 skip, puis136 contrats
+   finaux réussis. Aucune modification de production ni qualification économique.
+   [Résultats, preuves et limites](performance_completion_20261001.md).
+- **C121 cache, lot 1 (01/10)** : snapshots complets et invalidation des caches
+   enfants corrigés ; 61 contrats Python, 32 assertions NoAI et smoke défaut OK.
+   Reload sur scan actif au 1970-02-01 : caches dérivés abandonnés/reconstruits,
+   hits réels `newpair`/`hubsite`, `hubhub` non exposé. Aucun gain/opcode ni
+   qualification économique. [Bilan](c121_cache_coherence_20261001.md).
+- **C121 post-chantier, lot 2 (01/10)** : deux smokes OK ; 20 duels courts
+   récupérés hors moteur après interruption de l'assemblage, couverture/santé
+   complètes. **Rectification : dix témoins contaminés par la sonde**, filtre
+   ON/OFF invalide ; −41,33 % décrit des trajectoires instrumentées, pas un
+   résultat sans sonde. Copies préparées ≠ sources chargées. Lanceur isolé par
+   bras et contrôles négatifs corrigés, 25 tests ciblés OK, correction non
+   exercée moteur. Bootstrap laissé de côté à la demande utilisateur ; reprise
+   sur service valorisé/acheté/réalisé. [Rectification](c121_investments_20261001.md).
 
-Le **2026-09-25**, le **correctif sonde** restaure la pureté stricte du chemin `probe_scheduler=0`
-dans `task_rail.nut` et `task_projects.nut` (identité binaire exacte vérifiée contre `b34e5de` sur
-graines 100 et 999 × 6 ans avec recherches rail, ainsi que smoke 42 1 an). Trois leviers sont
-implémentés/préparés derrière des réglages expérimentaux dont le défaut reproduit strictement le
-comportement actuel : le C75 bis retenu est désormais `c75_kpass_bypass` **défaut 1** ;
-`v89_rail_search_throughput` est désormais **défaut 1** par décision utilisateur du 2026-09-26, car V88 en dépend ;
-`rail_finance_bias_pct` est désormais adopté à **100** par décision utilisateur du 2026-09-26. Les sondes V95 restent observatoires.
+## 1. Priorité immédiate — valider les livraisons locales
 
-Les preuves, limitations et décisions correspondantes sont dans les journaux des
-[20 septembre](journaux/journal_2026-09-20.md), [21 septembre](journaux/journal_2026-09-21.md) et
-[22 septembre](journaux/journal_2026-09-22.md). La [source historique intégrale transférée](journaux/journal_2026-09-22_transfert_historique.md)
-conserve les comptes rendus auparavant empilés ici. Consulter aussi le
-[journal du 13](journaux/journal_2026-09-13.md) et l'[archive du 9](archives/taches_archive_2026-09-09.md)
-avant toute réouverture. Les résultats antérieurs au 9 septembre ne font pas preuve actuelle.
+Ordre de dépendance, pas autorisation de publier ni de modifier un défaut.
 
-## Travail restant
-
-**Catalogue découpé C121, phase 3 (worktree `.wt_catalog`, 2026-09-29).**
-Prototype sous `c121_catalog_incremental=0` et `c121_catalog_air_first_year=0`
-par défaut : mémo d'économie des plans AIR, reprise C78 bornée à 150 k opcodes,
-production urbaine lue par lots de huit, option AIR seule jusqu'à la deuxième année.
-Diagnostic 1970 de l'orchestrateur (graines 42/100/999) défavorable : premier
-scan très lent, portefeuille partiel ensuite bloqué par l'invalidation C76,
-aucun bilan `CATALOG_COST` terminé. Le worktree corrige le débit entre tranches,
-la publication répétée, le verrou `projects`, l'invalidation locale et la
-télémétrie par tranche. L'ordre priorise les villes des plans sales selon leur
-dernier score connu, sans garantir l'ordre exact de toutes les paires. Le filet
-d'âge agit à la revisite, sans balayage de fond. Le second diagnostic 1970 solo
-retient la direction AIR première année (11/11/12 aéroports), mais révèle des
-recalculs `dirty_town`, aucune tranche enchaînée dans un tick, des passes
-`projects` coûteuses et un arrêt `K_pass` malgré un AIR finançable. La phase 3
-ajuste le seuil de production, enchaîne les tranches et autorise les AIR
-financés à franchir `K_pass` uniquement la première année sous le réglage dédié.
-Correction ultérieure (VPS) : après un chantier AIR, la mise à jour incrémentale
-ne replanifie plus tout l'aérien en bloc (4 à 18 M opcodes par chantier), elle garde
-les plans non touchés et laisse le catalogue découpé ajouter les nouvelles paires.
-**Mesures (2026-09-29/30)** : solo 2 ans, 1971 = 25 à 81 passes `projects` (5 à 9
-avant), trésorerie de fin d'année 42 à 365 k£ (381 à 891 k£ avant). Duel 5×3
-`c121_catalog_air1y_deferred_vs_default_5x3_20260929` contre le défaut : plus
-d'aéroports fin 1970 (+2 en moyenne) et fin 1971, mais **décrochage en 1972** :
-flottes de 26 à 37 avions contre 26 à 76, écart de profit avec AAAHogEx −342 k£/an
-vs référence (diagnostic 5 paires). Renforts au stock (`c121_fleet_stock_growth`) et territoire d'abord
-(`c121_territory_first`), défaut 0 : flottes plus grandes mais moins d'aéroports ; aucune
-variante ne rattrape la référence en duel 5×3 (voir la note). **Statut : défauts 0, non
-adoptable. Décision utilisateur du 2026-09-30 : ne pas toucher à C115.**
-`c121_aaa_line` (2 avions + chargement complet, défaut 0) : effondrement en duel 5×3
-(−2 446 k£/an vs AAA, référence −822). Essais hors C121 (V93, `air_hub_max_routes=1`, avec ou
-sans chargement complet) tous perdants. L'écart tient au nombre d'aéroports (rendement par
-aéroport égal) ; non isolé : 2 avions sans chargement complet. Identité au défaut non exacte (décalage
-d'opcodes seulement). Voir [la note](catalogue_decoupe_phase2_20260929.md).
-
-**Numérotation (décision utilisateur du 2026-09-24).** Les chantiers ouverts depuis la session
-du VPS sont préfixés **V** (V86, V88, V89…), ceux des autres sessions gardent **C** : deux
-sessions parallèles ne peuvent plus prendre le même numéro. Le numéro suit la séquence commune ;
-avant d'en prendre un, vérifier qu'aucun C ni V ne le porte déjà.
-
-| Chantier | Statut | Prochaine étape / condition |
+| Action | Statut / blocage | Prochaine étape et critère de sortie |
 |---|---|---|
-| **V88 — chaînes industrielles de biens (goods)** | **duels 5×6 négatifs (2026-09-26) ; deux défauts confirmés ; suspendu jusqu'aux workers A\*** | Chaîne complète intrant (ex. céréales, bétail, acier) vers usine de transformation (`isTransformer`), puis biens vers ville acceptatrice (`AICargo.TE_GOODS`). Étape 1 sur `master` (`ed8fc13` : biais rail 100, V89=1) : 6 chaînes choisies mais **0/5 graines livrant** (goulots d'exposition, rotation fret, trésorerie et slot rail). Étape 2 (levée des verrous sous réglages dédiés défaut 0 : `v88_all_inputs`, `v88_chain_step1_finance`, `v88_step2_rail_prio`, `v88_step2_cash_reserve`, `v88_step2_plan_immediate`) : **5/5 graines livrant des biens** (7 chaînes livrant / 9 choisies, 0 attente rail/cash). Délais médians : recherche ét. 1 **18 j** (−87 %), recherche ét. 2 **44 j** (−85 %), décision→ét. 2 **675 j (1,85 an)**. Identité stricte au défaut 1×1 vérifiée (valeur 427 019, profit 306 642, rating 167), Save/Load roundtrip validé. Seuil d'accès au duel (≥3/5) atteint en solo. **Duels 5×6 contre AAAHogEx (variante − référence `v88_goods_chain=0`, 2026-09-26, arbre non commité)** : 4 correctifs `v88_unlocked_vs_default_5x6_20260926` **−286,6 k£/an, 0/5, IC95 [−372,5 ; −200,7] k£, valeur −15,1 %** ; sans réserve ni priorité rail `v88_noreserve_noprio_vs_default_5x6_20260926` −234,2 k£, 1/4, valeur −15,4 % ; chaînes seules `v88_chainonly_vs_default_5x6_20260926` −117,1 k£ (médiane −235,3 k£), 2/3, IC95 [−421 ; +187] k£, valeur −10,0 %. Symptôme : effondrement de la flotte aérienne (ex. 109 → 31 avions). **Solo (`results/v88inv_*`, 3 graines × 6 ans)** : chaînes seules sans effondrement (337 vs 342 avions, profit en hausse), 4 correctifs −34 % d'avions. **Défauts confirmés par lecture de code** : (1) `v88_chain_step1_finance` ramène le capital de financement à l'étape 1 (`projects.nut:452`) alors que `fundScore` garde le profit des deux étapes (`projects.nut:1037`) → score ≈ doublé, chaîne en tête ; (2) `_tryBuildGoodsChainStep2` renvoie `true` quand l'étape 2 ne fait que lancer son A* (`task_rail.nut` ~424 sur `master`), d'où un `builtCount++` fictif et un `k_pass` appliqué à tort. Aggravant : une passe `projects` qui lance un A* s'arrête (`task_projects.nut` ~1164). En duel, AAAHogEx prend pendant ces gels les places d'aéroport. **Suite** : V88 dépend de la cible « A\* dans les workers, projets rail éligibles seulement à tracé prêt » ([note 36](36_astar_workers_conception.md), étape 4) ; ne pas relancer de duel V88 avant. Les 4 réglages restent défaut 0 ; fusionnés dans `master` le 2026-09-29 (`f29fcc1`). [Fiche](27_v88_chaines_biens.md). |
-| **C87 — bus de croissance urbaine au ROI ; lignes AAAHogEx** | **20×10 terminé ; économiquement neutre, défaut 1 conservé** | Garde-fou : profit prédit > 0 sur les arrêts réels, fermeture après 2 ans pleins en perte, ville mémorisée dans `_abandonedPairs`. Le 5×6 avait montré l'effet mécanique : bus −40 %, lignes en perte 5,6→3,4 par graine, `profit_year` −16 k£/an, valeur −0,76 %. Le **20×10 causal du 2026-09-25** (`c87_town_growth_roi_gate_vs_current_default_20x10_20260925`) confirme la neutralité économique : **−8,5 k£/an** en moyenne, médiane **+5,3 k£**, **10/10**, p=1,0, IC95 **[−132,1 ; +115,1] k£/an**, valeur **+0,86 %**, 20/20 paires complètes. Le verdict brut `fail_primary` vient du seuil +50 k£/an, non de la garde de valeur. Le réglage reste à **1 par défaut** selon la décision utilisateur du 2026-09-24 visant à éviter les bus déficitaires qui dégradent la note. Télémétrie : rail fret ≈ 570 k£/an chez AAAHogEx contre 15 k£ chez OpexAI ; avions courrier seul ≈ 13 % de son profit. [Fiche](26_c87_bus_et_lignes_aaa.md). |
-| **C75 bis — caisse inutilisée 1970–1972** | **adopté par décision utilisateur ; défaut 1** | `c75_kpass_bypass` franchit `K_pass` **au plus une fois par passe**, uniquement pour une nouvelle ligne `air/rail/road/water` déjà finançable ; `fleet` est exclu et les contrôles cash/marge/revalidation/A* restent actifs. Mesures : 5×6 **+148,5 k£/an** (5/0) ; 20×10 r2 **+48,0 k£/an**, 14/6, p=0,115318, valeur +5,85 % ; 20×10 r3 **+24,9 k£/an**, 10/10, p=1,0, valeur −0,77 % ; 40×10 r4 **+52,5 k£/an**, 22/18, p=0,635828, valeur +2,63 %. Agrégat des **80 paires** : **+44,4 k£/an**, médiane **+70,5 k£**, **46/34**, p=**0,218518**, IC95 ≈ **[−25,9 ; +114,8] k£/an**, valeur **+2,48 %**. Le signal agrégé reste non significatif et sous le seuil C66.4 de +50 k£/an, mais l'utilisateur a explicitement décidé le **2026-09-25** de promouvoir le réglage : **`c75_kpass_bypass=1` par défaut**. [Fiche](33_caisse_1970_1972_et_leviers_aaa.md). |
-| **V89 — débit de recherche rail opportuniste** | **adopté à défaut 1 comme dépendance de V88** | Diagnostic solo 3×6 du 2026-09-25 : **6 recherches terminées**, durée médiane **189,5 j**, 4 lignes mises en service. Le 5×6 causal était non favorable : **−62,0 k£/an**, 2/3, p=1,0, valeur +1,48 %. Le **20×10 du 2026-09-26** (`v89_rail_search_throughput_vs_0_20x10_20260926`) confirme l'absence de gain direct : **−7,0 k£/an**, médiane +23,1 k£, 11/9, p=0,8238, valeur −0,96 %. La note de performance baisse de **−12,25 points**, 4/16, p=0,0118. En revanche l'écart de profit face à AAAHogEx s'améliore de **+606 k£/an** en moyenne, principalement parce qu'AAAHogEx est lui-même freiné dans les duels V89. Malgré ce profil, l'utilisateur impose **défaut 1** car V88 nécessite ce débit rail. [Fiche](28_v89_debit_recherche_rail.md), [synthèse](33_caisse_1970_1972_et_leviers_aaa.md). |
-| **V95 — AIR post-1973 : `<600` / seconds slots** | **diagnostic passif terminé ; pas de 5×6 causal** | Sonde `v95_air_post73_probe` défaut 0, aucun effet décisionnel. Solo 42/100/999 ×6 : **366 événements, 290 candidats shadow** ; petites villes : profit médian courant **16,6 k£/an**, mesuré **10,8 k£/an**, 0 cas mesuré ≥50 k£ ; seconds slots Opex : **23,9→8,7 k£/an**, 0 cas strict non-dégradé + incrémental. Duel passif 3×6 : **60 seconds slots concurrents**, mais contribution marginale du nouveau site ≈**3,9 k£/an** en médiane et **0/60** au critère strict. Ne pas réactiver V93 ni benchmarker les gates causaux V95 tant qu'une sonde n'isole pas la demande résiduelle / valeur territoriale du nouveau site. [Fiche](35_v95_air_post1973.md). |
-| **AIR MAIL-only** | analyse terminée, non implémenté | AAAHogEx tire ≈267 k£/an de 4,8 lignes / 10 avions MAIL-only au 5×6. OpexAI connaît `mailCargo` et ajoute le mail comme supplément aux lignes PASS, mais `OpexAirPlans`, `OpexAirEconomics` et `OpexBuildAirRoute` restent passagers et refittent explicitement vers `paxCargo`. Prototype minimal : **MAIL-only entre aéroports Opex déjà existants**, demande MAIL réelle des bassins, avion refitté MAIL, mêmes deux ordres ; aucun nouvel aéroport dans le premier essai. Smoke puis 5×6 par cargo. [Synthèse](33_caisse_1970_1972_et_leviers_aaa.md). |
-| **V90 — A* rail rapide vendorisé** | **défaut 1 (décision utilisateur du 2026-09-24) : équivalence parfaite, gain −8 %** | Réduction par au moins 2 du coût en opcodes d'une itération d'A* rail, à tracé et exploration strictement identiques. Copies vendorisées GPLv2 dans `ai/OpexAI/pathfinder_v90/` (`OpexBinaryHeapV90`, `OpexAyStarV90`, `OpexRailPathFinderV90`). Optimisations : ensemble fermé en table Squirrel native au lieu d'AIList, précalcul des constantes (taille de carte, offsets, coordonnées de buts), mémoïsation par recherche des requêtes invariantes de tuiles (`GetSlope`, `IsBuildable`, `IsCoastTile`, `IsBridgeTile`, `IsTunnelTile`, `HasTransportType`) et types de ponts par longueur. Réglage `v90_fast_pathfinder` (défaut 0) et mode de test parallèle pas à pas `v90_pathfinder_check` (défaut 0, traces `V90_CHECK`). **Mesure (2026-09-24)** : zéro écart sur ≈ 3 300 pas comparés ; 2 821 → 2 583 opcodes/itération (−8 %), car un appel API ne coûte presque rien en opcodes : le coût est dans la logique Squirrel (tas, `Path`, `_Cost`). Un gain ≥ ×2 exige de réduire le nombre d'itérations (heuristique pondérée), donc de changer le tracé. [Fiche](29_v90_pathfinder_rail.md) §9. |
-| **V91 — heuristique pondérée A* rail (weighted A*)** | **poids 120 par défaut (décision utilisateur du 2026-09-24)** : recherches ÷ 5, coût A* +3,6 %, 20×10 neutre (médiane +28 k£/an, 11/9, p = 0,82, valeur −0,8 %) ; poids 150 rejeté (−40,8 k£/an, 7/13) | Réduction forte du nombre d'itérations d'exploration du pathfinder rail (levier direct pour accélérer les recherches par ≥ ×2). Multiplication de l'estimation admissible `_Estimate` par $w = \text{weight\_pct} / 100$ ($w \in [1{,}0 ; 3{,}0]$) dans `OpexRailPathFinderV90`. Réglage `v91_astar_weight_pct` (entier 100-300, pas 10, défaut 100 = V90 strictement inchangé, aucun surcoût d'opcodes au défaut grâce à la sélection de fonction au constructeur). Mode de test `v90_pathfinder_check` adapté (désactivation des alertes pas à pas, publication de la trace de fin `V90_CHECK name=finish_weighted` avec itérations, longueurs via `OpexSegmentTiles`, coûts et ratios). Instrumentation `RAIL_SEARCH_END` étendue sous `C56_TASK_TRACE` (résultat `found`/`none`/`cap`, longueur et poids). Protocole : smoke check 1×1 poids 150, mesure itérations/recherche et longueur des tracés à 100/150/200 sur graines 100/999/1234 × 8 ans avec `probe_events`+`probe_scheduler`, puis duel apparié 20×10 `run_c66_reference.py` contre le défaut (métrique `profit_year`, effet utile +50 k£/an, garde −5 %). [Fiche](30_v91_astar_pondere.md). |
-| **C67 — carte par blocs** | **C67.3 à C67.6 livrés ; aucun consommateur métier exposé** | C67.3 : S=5 retenu provisoirement. C67.4 : service résumable dans le reliquat de tick sous 'c67_terrain_map=0', quasi neutre. C67.5 : graphe/oracle eau exact-ou-inconnu livré. C67.6 : sonde eau appelée 32 fois (6 paires) en 256², jamais en 512² ; côté rail, 16 lignes / 20 parties et capital pré-A* déjà à ~5 % du coût réel, donc aucun consommateur eau/rail suffisamment exposé pour être branché. Les services restent **non branchés aux décisions économiques**. [Contrat](c67_cartographie_contrat.md), journaux du [23](journaux/journal_2026-09-23.md) et du [24](journaux/journal_2026-09-24.md). |
-| **Facteur rail (biasPct)** | **adopté à `rail_finance_bias_pct=100` par décision utilisateur du 2026-09-26** | `candidate.capital` inclut déjà `RAIL_TERRAIN_FACTOR=170` sur la voie ; l'ancien défaut ajoutait encore `biasPct=170` dans `OpexProjectFinanceCapital`. C67.6 mesurait un coût réel ≈0,96× `candidate.capital`. Le 5×6 du 2026-09-25 était fortement positif : **+199,5 k£/an**, 5/0, valeur +12,6 %. Le **20×10 causal du 2026-09-26** (`rail_finance_bias100_vs_170_20x10_20260926`) donne **+47,3 k£/an** en moyenne, médiane **+115,3 k£**, **12/8**, p=0,503445, IC95 **[−130,7 ; +225,2] k£/an**, valeur **−1,87 %**, 20/20 paires ; verdict automatique `fail_primary` car non significatif et juste sous +50 k£/an. L'utilisateur choisit néanmoins l'adoption : **défaut 100**. [Contrat C67 §20](c67_cartographie_contrat.md). |
-| **C67 — lecture de bloc par Valuate** | À mesurer (fixture, sans partie longue) | Comparer le lecteur tuile-par-tuile actuel à AITileList.AddRectangle + Valuate sur blocs 5×5 et 10×10 : opcodes, exactitude des résumés et borne non suspendable. Remplacer _readOne seulement si le gain est net ; ne jamais lancer un Valuate sur une carte entière. |
-| **C78 — occasions présentes chez AAAHogEx, absentes chez OpexAI** | C78.3/C78.4 validés ; C83.1 qualifié | **C78.3/C78.4** restent validés. Le défaut C83.1 résiduel était sémantique : le watcher confondait une ligne AIR commerciale proche avec un aéroport occupant physiquement le slot, et la génération ciblée ne garantissait pas `ClosestTown(anchor)==ville cible`. Correction du 2026-09-24 : état Opex par aéroports physiques, constante C83 distincte, site ciblé contraint au TownID du slot et télémétrie `c83_slot_claimed/lost`. L'ablation 24 villes n'est pas retenue ; le défaut final reste **6 villes**. Son 20×10 donne **+165,3 k£/an**, 15/5, p=0,0414, valeur **+6,78 %** et fait tomber les monopoles AAA fin 1979 **215→178**. [Fiche](22_c78_lignes_vs_aaa.md) §10. |
-| **C83 — empêcher les monopoles aériens d'AAAHogEx** | **C83.1 qualifié (6 villes) ; `c83_fixes`, `c83_preempt_open` et `air_batch_town_reserve` à défaut 0** | Le 20×10 du défaut 6 villes reste qualifié : **+165,3 k£/an**, 15/5, p=0,0414, valeur **+6,78 %**, monopoles AAA fin 1979 **215→178**. Les correctifs de revue restent sous **`c83_fixes` défaut 0**. **`c83_preempt_open`** (défaut 0) garde une seule grande ville encore vide (`GetAllowedNoise()==2`) et lui donne la priorité défensive devant hub→hub, sans sauter le test de profit. **`air_batch_town_reserve`** (défaut 0) ne finance qu'un projet aérien par ville de nouvel aéroport ; les autres restent dans le vivier. **5×6 du 24 :** `c83_preempt_open` −4 k£/an, 3/2, valeur **−8 %** (garde violée) → non retenu ; `air_batch_town_reserve` **−180 k£/an, 0/5**, IC95 entièrement négatif, valeur −6 % → rejeté (réserve appliquée après la sélection sous budget, capital libéré perdu). **C83.2 non retenu.** [Fiche](22_c78_lignes_vs_aaa.md) §11–§13. **`c83_fixes` (défaut 0) non adopté** : 20×10 du 2026-09-24 `fail_primary`, −28,8 k£/an, 10/10, p=1,0, IC95 [−158 ; +100] k, valeur +1,78 % ; créneaux Opex −2,1, villes Opex −1,95, véhicules −13 %, déficit croissant à partir de 1972. Correctif de portée (2026-09-25) : la contrainte `OpexAirSlotTownId` ne vaut plus que pour les sites de course C83 (`c83SlotTown`), plus pour la recherche AIR ordinaire. 5×6 (`c83_slotscope_vs_default_6y_5seeds_20260924b`) : −30 k£/an, 1/4, créneaux −1,4, villes −1,2 : la contrainte globale n'explique pas seule le recul. **Prochaine étape : ne plus mesurer `c83_fixes` en bloc. Le scinder en sous-réglages causaux et tester séparément les corrections de revue. Priorité au watcher `OpexAirC83WatchTowns` : le défaut C83.1 qualifié surveille les 6 plus grandes villes avec `AIR_EARLY_SLOT_MIN_POP=1000`, alors que `c83_fixes=1` passe à 6 villes contestables dès `OpexAirLargeAirportMinPop()=600` ; mesurer isolément ce changement 1000→600 / top-6→contestables avant de conserver ou rejeter les autres correctifs (réarmement/coalescence, identité physique du slot, élimination des paires mortes, scan ciblé).** |
-| **C80 — ordonnanceur** | **Pile complète mesurée ; C80-6 non atteint** | Socle, travailleurs rail/ville, tranches 4-5, pistes C76 1-5 (`c76_lean_invalidation`, horloge C39.6 complète) intégrés. **`c80_air_hub_index` passé à 1 par défaut (décision utilisateur du 2026-09-23)** : décisions exactes, −32 % d'opcodes hub→hub, réservés pour C67 ; 20×10 neutre (−16 k£/an 9/11, valeur +1,3 % ; [nuit du 23](journaux/23_nuit_2026-09-23.md) §9). **Validé par l'utilisateur le 2026-09-24.** Neutralité confirmée par le 40×10 `mean40` du 24 (+11 k£/an, 20/20, IC95 [−67 ; +90], valeur +1,9 % ; [nuit du 24](journaux/24_nuit_2026-09-24.md) §3). Non retenus : `c76_freight_rotation` (20×10 : −59 k£/an 9/11), `c76_lean_invalidation` (20×10 sur le nouveau défaut, avec C76 : 4/16, p = 0,0118, IC95 négatif, garde de valeur dépassée ; [nuit du 23](journaux/23_nuit_2026-09-23.md) §6), `c80_air_choice_memo`, `c80_marginal_floor` (20×10 : −107 k£/an 6/14), `c80_air_eval_fast` (aucun gain). **Adoptés et désormais actifs en permanence** : injection incrémentale de flotte + mise à jour AIR ciblée, auparavant exposées par `c80_fleet_inject`/`c80_air_targeted_update`. Leur 20×10 du 2026-09-23 est neutre (−19,9 k£/an, médiane +2,7 k£/an, 10/10, p=1,0, valeur +1,66 %, 20/20 paires) ; les deux réglages ont donc été supprimés de `info.nut`/`settings.nut`. **`c76_regen_targeted` passé à 1 par défaut (décision utilisateur du 2026-09-24)** : ≈54 % de régénérations complètes évitées, 20×10 neutre (−8,3 k£/an, valeur −2,8 %). **`town_growth_plan_memo` défaut 1** : 20×10 neutre (−4,2 k£/an, 9/11, p=0,8238, valeur −1,43 %). **`c80_mode_regen` défaut 1** : +52,2 k£/an, 11/9, p=0,8238, valeur +3,29 %. **Pile complète workers mesurée le 2026-09-25** sur ce défaut : référence `c80_worker_rail=0,c80_worker_town=0`, variante `1,1`, campagne `c80_full_stack_workers_vs_current_default_20x10_20260925`, **20/20 paires**, `profit_year` **+32,6 k£/an**, médiane **+104,8 k£**, **12/8**, p=0,503445, IC95 **[−162,5 ; +227,7] k£/an**, valeur **+1,76 %**. **C80-6 n'est pas atteint** (15/20, p<0,05 et +50 k£/an requis) : workers rail/ville restent à défaut 0. [Contrat et mesures](18_orchestrateur_double_registre.md), [nuit du 24](journaux/24_nuit_2026-09-24.md) §6-§7. |
-| **C80 — workers A\* rail : stock de tracés prêts** (2026-09-26) | **Implémenté derrière `c80_rail_stock_gate` et `c80_rail_stock_worker` (défaut 0) ; duel 5×6 négatif ; en pause** | Cible utilisateur : toute la recherche A\* dans des workers, seuls les projets rail à tracé prêt éligibles ; conception et décisions (N = 1, tracé valable 180 j, recherche plafonnée à 180 j, étape 1 d'une chaîne d'abord, retrait de V89 après le banc du worker) dans la [note 36](36_astar_workers_conception.md). Livré : porte d'éligibilité (plus aucun arrêt de passe dû à un A\*), worker de stock, fusion par mode avant la sélection (§3.2 bis), seuil `fundScore` avant l'A\* (dernier projet financé à la dernière sélection non vide), réparation par nouvel A\*, re-vérification corrigée (`OpexTestRailTrack` : `OpexBuildTrack` testait `AreTilesConnected` sur la carte réelle après un `BuildRail` en `AITestMode`, d'où un `track_blocked` systématique). Identité au défaut au bit près (42×1, 100 et 999 ×6). Mesures : porte seule, aucun rail, duel 5×6 **−290,7 k£/an, 1/4** ; worker complet (avec `homogeneous_preselect`) solo 3×6 profit −0,7 %, valeur +4,3 %, trains 6,3 → 1,7 ; **duel 5×6 −202,5 k£/an, 0/5, IC95 [−365 ; −40] k£, valeur −10,8 %** (`astar_e2e_vs_default_5x6_20260926`). Cause ouverte : à `fundScore` égal la sélection préfère l'aérien alors qu'en duel le rail du défaut vaut ~300 k£/an. Diagnostic V89 (`results/v89gap_solo_3x6_20260926.json`) : passes `projects` espacées de 1 à 4 mois avec ou sans V89 ; une recherche a occupé le slot rail 1 382 j (graine 999). Branche `astar-workers-e1`. |
-| **Préclassement homogène** (`homogeneous_preselect`, 2026-09-26) | **Défaut 0 (décision utilisateur : option prudente, à combiner au worker)** | Les top-K rail (`ratio` = profit par opcode + ROI bonifié par paliers ×1,30/1,15/1,00/0,60, poids ×15) et route (profit par opcode, `ROAD_TOP_K` = 48) ne classaient pas comme la sélection (`fundScore`). Sous le réglage, tri par le `fundScore` du projet papier (mêmes fonctions que la sélection). Air et eau gardent leurs préférences propres (audit : [note 37](37_preselection_homogene.md)). Solo 3×6 : valeur +7,3 %, profit −4,0 %. **20×10 (`homog_preselect_vs_default_20x10_20260926`, commit `10e7f59`) : −39,2 k£/an, médiane −23,7 k£, 9/11, p = 0,82, IC95 [−192 ; +114] k£, valeur −1,2 % : neutre, `fail_primary`.** Branche `homog-preselect`, reprise dans `astar-workers-e1`. |
-| **Profit réalisé par ligne et par mode** (2026-09-26) | **Réalisé mesuré ; estimé à l'élection non mesuré** | Duel 5×6 au défaut avec `--line-telemetry` (`lineprofit_default_5x6_20260926`, profit VEHS ÷ 256). OpexAI en régime : rail 17 lignes, 28,0 k£/an par ligne (médiane 20,5 k£) ; air 294 lignes, 23,0 k£ (médiane 18,6 k£) ; route 61 lignes, 1,6 k£ (médiane 0,4 k£, 23 % déficitaires). **AAAHogEx air : 95 lignes, médiane 83,7 k£/an par ligne (≈ 4,5× OpexAI), 2,43 avions par ligne** ; rail 623 k£/an au total ; route déficitaire. Estimé à l'élection : sortie de script non capturée en duel ; mesure proposée `OpexAI[probe_cost=1]` (panneaux de devis `DC|`/`AC|`), non lancée (chantier avions en parallèle). [Note 38](38_profit_estime_vs_realise.md) (⚠️ son explication par un facteur rail 170 % est fausse : le défaut est 100). |
-| **`town_growth_plan_memo`** | **Qualifié, défaut 1** | Gain d'opcodes déjà mesuré : coût `town_growth` −70 à −80 %. 20×10 causal `0→1` sur le défaut `dd4058d`, seule différence effective : **−4,2 k£/an**, médiane −10,6 k£, **9/11**, p=0,8238, IC95 [−119,8 ; +111,5] k£/an ; valeur **−1,43 %** ; 20/20 paires, 0 échec. Neutre selon la règle AGENTS.md §4, donc adopté. [Bilan](16_bilan_volume.md) §11 ; [nuit du 24](journaux/24_nuit_2026-09-24.md) §6. |
-| **`c80_mode_regen`** | **Qualifié, défaut 1** | Gain d'opcodes déjà mesuré : régénérations réactives complètes **127 M → 0 opcodes** sur 1976–79. 20×10 causal `0→1` après adoption du mémo : **+52,2 k£/an**, médiane +34,2 k£, **11/9**, p=0,8238, IC95 [−55,3 ; +159,7] k£/an ; valeur **+3,29 %** ; 20/20 paires, 0 échec. Neutre/non régressif selon AGENTS.md §4, donc adopté. [Nuit du 24](journaux/24_nuit_2026-09-24.md) §7. |
-| **C76/C77 — régénération et événements** | **C77 corrigé adopté et intégré au chemin normal** | Le comportement du triplet historique `c77_opportunistic_candidates=1`, `c77_targeted_build=1`, `c77_fixes=1` est désormais permanent ; ces trois réglages ont été supprimés de `info.nut`/`settings.nut` et les branches `0` mortes ont été retirées. La référence 0/0/0 ne subsiste que comme configuration historique des bancs. Qualification appariée en trois lots 20×10, arrêtée après le lot 3 : lot 1 +160,6 k£/an, 12/8, p=0,503445, valeur +6,75 % ; lot 2 +103,2 k£/an, 11/9, p=0,823803, valeur +1,73 % ; lot 3 +135,1 k£/an, 11/9, p=0,823803, valeur +2,47 %. Cumul exploratoire 60 graines : 34/26, p exact bilatéral=0,366294, en baisse par rapport à 0,429591 après 40 graines. La réconciliation locale reste conservée : `_rebuildProjects` retransmet toujours `_activeSubsidies` sans C76 (contrat `test_c45_subsidy_persistence.py`) ; le bornage des régénérations non-AIR reste un reliquat ciblé. [Nuit du 23](journaux/23_nuit_2026-09-23.md), [revue C76-C77](#revue-c76-c77). |
-| **F-RAIL-ECON-01 — coût du dépôt rail** | Neutre, laissé à 0 | `rail_depot_cost` (défaut 0) ajoute le coût d'un dépôt au capital rail. 20×10 : +16 k£/an, 9/11, valeur −0,8 % (`fail_primary`, [nuit du 24](journaux/24_nuit_2026-09-24.md) §2). |
-| **C81 — chargement complet AIR** | Priorité basse | Éventuel duel après examen des résultats solo défavorables ; protocole dans la [fiche nuit](journaux/20_nuit_2026-09-22.md). Le simple achèvement du banc C82 n'impose pas ce lancement. |
-| **Revue du code** | Nouvelle revue fractionnée préparée le 26 ; aucun lot exécuté | [Plan du 26](revue_code_2026-09-26_plan.md) : un seul lot par demande, lecture bornée, rapport et arrêt ; prochain lot **01 — chargement et réglages**. La [revue réconciliée du 22](revue_code_2026-09-22_reconciliation_courante.md) fournit les constats historiques à confronter au code courant, sans les présumer encore ouverts. |
-| **V86 — cannibalisation hub→hub (AIR)** | **Clos : cannibalisation réelle, corrections perdantes** | Étape 1 (solo 5×10) : voisines −6,4 M£ pour +9,6 M£ de nouvelles lignes. Étape 2, duels 20×10 : `air_hubhub_marginal` −153 k£/an 4/16, garde de valeur franchie ; `air_hub_max_routes=6` −50 k£/an 8/12 ; −50 à −57 véhicules dans les deux cas ([nuit du 24](journaux/24_nuit_2026-09-24.md) §1, §4). Réglages laissés à 0. Ne pas freiner hub→hub sans meilleur placement du capital. |
-| **C122 — stratégie AIR par régime / menace locale** | **C122.1–.3 rejetés ; C122.4 local causal mais non qualifié ; défauts 0** | `c122_air_threat_probe` suit uniquement un TownID C83 à `remaining=1`, sans présence Opex, jusqu'au projet AIR vivant/finançable, sa tentative puis `opex_claimed`/`competitor_monopoly`, sans nouveau scan. Smoke passif seed42×3 : **4 menaces**, 3 prises, 1 perdue ; TownID 18 était déjà rang 0 mais `siteA_unbuildable`, puis monopole AAA à J+228. `c122_air_threat_retry` réarme une fois C77 sur cet endpoint exact ; smoke causal : **1 retry réel**, TownID 18 devient `opex_claimed` à J+39. Opex **+194,3 k£/an**, valeur **+16,24 %**, AAA `2-0` **5→2**, partagé **12→14**, mais gap Opex-AAAHogEx **−294,4 k£/an**, slots/villes Opex **17→16**, véhicules **43→37**. **Stop : aucun 5×6, aucun 20×10.** Sonde et retry restent défaut 0. [Fiche](44_c122_air_regime_priority_20260929.md). |
-| **C61 AIR** | En pause | Mesurer rotations, attente, demande et occupation avant modification des délais/capacités d'aéroport. |
-| **C61 Route / croissance urbaine** | Travail séparé en cours | Réconcilier le reliquat sur les stations actives avec la session concernée avant intervention. |
-| **C61 Rail** | Conditionnel | Examiner les `NOSPOT`/`TRACKFAIL` sur lignes rentables demandant réellement un second train avant un chantier de géométrie. |
-| **C59 — ordres contextuels** | Non démarré | Corréler remplissage au départ, attente et profit ; une photographie du chargement ne suffit pas. |
-| **C68 — cinq graines défavorables** | Suivi sans urgence | Analyse causale de 7, 42, 1337, 12345 et 424242 dans le banc d'adoption, graine 7 d'abord ; distinguer géométrie, investissement et pré-filtres catalogue. Historique dans l'annexe, section « clôture C68 » ; ne pas relancer l'adoption. |
-| **Protocole de banc 40×10** | Décision à prendre avant le prochain banc | Bruit mesuré : écart-type de l'écart apparié ~300 k£/an pour des effets cherchés de 100-150 k£ (d ≈ 0,5) ; la règle 15/20 détecte un tel effet ~38 % du temps, 40 graines avec règle sur la moyenne des écarts ~89 %. Garder 10 ans (les effets évoluent entre 4 et 10 ans). **Capacité implémentée** (défaut inchangé `signs20`) : `--decision-rule mean40` dans `bench_1v1_5y_20seeds.py` et `run_c66_reference.py` (40 paires, borne basse de l'IC95 de Student > 0 et moyenne ≥ effet utile, garde de valeur inchangée) ; 20 graines proposées `SEEDS_EXTRA_20` dans `bench_v2.py` (LCG déterministe, graine 20260923, sans chevauchement). **À décider** : valider ces graines et la règle avant le premier banc 40×10. [Nuit du 23](journaux/23_nuit_2026-09-23.md) §5. |
-| **C80 — filtrage des bras hub par ville cible** | Priorité basse (gain d'opcodes seulement) | `targetTownId` d'`OpexAirPlans` ne filtre que les nouvelles paires : une replanification « ciblée » coûte autant qu'une complète (~2,5 M opcodes en fin de partie). Filtrer aussi `OpexAirPlansHubToSite` et `OpexAirPlansHubToHub`, puis rendre réellement partielle la mise à jour AIR ciblée désormais active après chantier aérien. |
-| **C80 — travailleur « rapport annuel »** | Non démarré | `report` pèse ~12 % du temps de file en fin de partie, d'un bloc une fois par an (`_reportLines`, calibrations C70/C82, retraits) : le découper en tranches de quelques lignes. |
-| **C80 — régénération complète en travailleur** | Non démarré | `catalog` pèse ~25 % : génération rail/route d'un bloc ; l'aérien n'est découpé (C78.4) qu'au-delà de 64 villes, donc jamais sur les cartes 256² du banc. Contrat C80 §4.1 (`WorkerRegenCandidates`), jamais livré pour la régénération complète. |
-| **Harnais — aide `--memory` du lanceur** | Fait | `sweeps/run_c66_reference.py` : le texte d'aide indique un pic observé sous 800 Mo même à 10 workers en duel 10 ans ; sur le VPS, 3 workers avec 2 Go suffisent. |
-| **C88 — joueur humain actif et joueur IA actif** | Non démarré ; reconnaissance seule, demandé le 2026-09-24 | Deux booléens, recalculés quand une compagnie apparaît, fait faillite ou fusionne : au moins une compagnie humaine vivante, et au moins une compagnie IA vivante. Actif = compagnie encore dans le pool (`AICompany.ResolveCompanyID` différent de `COMPANY_INVALID`). Un spectateur n'est pas une compagnie. OpexAI compte comme IA. L'API NoAI 15 (`AICompany`, en-tête `script_company.hpp` du master relu le 2026-09-24) n'expose pas `Company::is_ai`, alors que le chunk `PLYR` des sauvegardes le porte. Première étape : le confirmer sur le binaire OpenTTD 15.3. Si l'API ne le donne pas, le constater et s'arrêter ; ne pas classer une compagnie par son nom, son argent ou son activité. Piège déjà mesuré : un rechargement headless crée une compagnie fantôme `is_ai=0` (~100 000 £, jamais mouvementée ; [journal du 13](journaux/journal_2026-09-13.md)). Cache reconstructible, rien à sauver. Aucun changement de décision ni de défaut. |
-| **Améliorer et rendre rentables C85 puis C84** | demandé le 2026-09-24 ; les deux réglages restent à défaut 0 | Ordre imposé : **C85 d'abord**, C84 ensuite. **C85** (`c85_air_equipment_frontier`) : frontière conservatrice d'équipement, non adoptée. 5×6 : −24,5 k£/an, 2/3, garde de valeur tenue (−2,69 %) ; gain d'opcodes réel mais modeste (environ 4–8 % du planning AIR). Une short-list de rôles ou une borne de profit par route changerait le contrat de sûreté et doit être mesurée à part. [Fiche](25_c85_air_equipment_frontier.md). **C84** (`c84_air_target_fleet`) : profondeur de flotte mémorisée, chantier initial toujours à un avion. 5×6 propre : −69,6 k£/an ; le franchissement forcé du premier signal de mauvaise santé n'est pas un levier retenu. [Fiche](24_c84_air_target_fleet.md). Ne pas enchaîner C84 tant que C85 n'a pas un 5×6 au-dessus de +50 k£/an. Ne pas lancer de 20×10 ni changer un défaut avant cette qualification, garde de valeur −5 %. |
-| **V92 — choix d'un service aérien** | **non retenu** (5×6 du 24 : V92 −570 k£/an, V92.1 −865 k, V92.2 −627 k / −86 k) | `v92_air_service_choice`. Pour chaque route : meilleur profit sur (moteur × nombre d'appareils), plus une variante à un appareil dont le prix ne dépasse pas le gros jet le moins cher. Une seule des deux variantes est construite. 5×6 défavorables pour toutes les variantes ; la meilleure (V92.2 critère 1, choix du défaut + départage) reste à −86 k£/an, 2/3. [Fiche](31_v92_choix_service_air.md) « Mesures du 2026-09-24 ». |
-| **V93 — grands aéroports sous 600 habitants** | plancher non adopté ; V93.1 rejeté 20×10 ; V93.2 rejeté 5×6, non fusionné | `v93_airport_no_pop_floor` : 5×6, `profit_year` +33 k£/an mais valeur −15 %, non adopté. V93.1 `v93_air_demand_production` : **−421,5 k£/an**, 3/17, `p=.002577`, valeur **−18,24 %**, créneaux Opex −4,85. V93.2 sur `v93-demand-residual` retire `/ (lignes+1)` et les caps 100/200 : 5×6 **−203,9 k£/an**, 0/5, IC95 entièrement négatif, valeur **−10,98 %**, créneaux −3,6. **Le comportement V93.2 n'est pas fusionné dans `master`** ; le code courant reste V93.1 à défaut 0. Ne pas lancer de nouveau banc sans changer causalement le modèle. [Fiche](32_v93_petits_aeroports.md). |
-| **B9/G4 — demande / catchment AIR, requalification 27/09** | **Diagnostic clos ; shadow physique validé ; aucun traitement ouvert** | Qualification finale `b9_demand_shadow_5x6_20260927` : **10/10**, **468/468 builds réussis appariés**, **936 endpoints**, 0 invariant. Après `routes+1`, `base_monthly / union post-build` reste ≈×2 : newpair **1,930/2,200**, hubsite **2,324/2,000**, hubhub **2,316/2,102** (moyenne/médiane). Shadow / union post-build : **1,062/1,042**, **1,034/1,000**, **0,988/0,990** ; médiane d’erreur relative **+4,23 %**, **0,00 %**, **−1,01 %**. La précédente lecture STNN 34,2 % vs 40,9 % était un artefact Manhattan ; avec le catchment rectangulaire réel, centre couvert **Opex 73,9 % vs AAA 72,8 %**, distance rectangle→centre **6,345 vs 5,952**. Jointures : marginal exact **131/131**, double compte brut **113/131**. Le biais physique de demande est réel mais ne démontre pas un levier économique : V93.1/V93.2 ont détruit expansion/valeur et C98 montre une économie AIR déjà sous-prédictive. **Pas de correction active, pas de 5×6 causal, pas de 20×10.** [Fiche](40_b9_demande_catchment_20260927.md). |
-| **V94 — pré-filtre AITileList des sites aériens** | **défaut 1 (décision utilisateur du 2026-09-25) : 20×10 neutre, décisions identiques** | `OpexAirFindSite` : anneaux paresseux `r = 4..25` (`AddRectangle` / `RemoveRectangle`), filtres natifs (eau, côte, `GetClosestTown` si slot, `GetNearestTown`), ordre `GetTileX` + `Sort` ascendant (à X égal, l'index de tuile donne Y). Sortie au premier site, sans tri Squirrel. Le coin C4, `OpexAirDistanceToRect` et `OpexAirFootprintCheapOk` restent en Squirrel. Réglages `v94_air_site_list` et `v94_air_site_check` (défaut 0). Le check exécute l'ancien scan comme décision et journalise `V94_CHECK`. Gain à lire sur `AIR_PLAN_PERF` `ops_sites` (coût de `Valuate` non connu hors partie). Protocole : smoke 1×1, solo check=1 sans DIFF, puis `ops_sites` v94=0 contre 1, puis 20×10 neutre (AGENTS.md §4, seuil +50 k£ non requis). [Fiche](30_v94_air_site_list.md). 20×10 du 2026-09-25 (`v94_air_site_list_vs_default_10y_20seeds_20260924`) : graine 1024 référence `stagnation_suspect`, verdict `incomplete` ; sur 19 paires −60,7 k£/an (médiane −80,4 k), 9/10, p=1,0, IC95 [−237 ; +115] k, valeur −4,07 %. Reporté sur `c83-fixes` + correctif de portée C83 : 114 `V94_CHECK OK`, 0 `DIFF`. Faux positif de santé sur 1024 (flotte/gares stables 4 mois, valeur 8 M£, caisse en hausse). Relance sur `c83-fixes` + correctif (`v94_on_c83_vs_default_10y_20seeds_20260925`) : **20/20 sains**, `profit_year` +1,3 k£/an (médiane +61,3 k), 13/7, p=0,263, IC95 [−122 ; +124] k, valeur −3,13 % ; véhicules −4,5. Verdict harnais `fail_primary` (seuil +50 k non applicable). |
-| **C96 — placement AIR par qualité de catchment** | **Adopté ; défaut 1 (décision utilisateur du 2026-09-26)** | Isole le placement : mêmes villes/type/demande/C68, mais au lieu du premier site constructible V94, compare jusqu'à **4 sites valides** à partir du premier anneau constructible et au plus **1 anneau supplémentaire**. Score = nombre relatif de **tuiles productrices PASS** dans le catchment physique ; ce score ne devient jamais `monthlyPax`. Égalité → ordre V94 ; V93 reste désactivé. Diagnostic 3×3 : **42/124 (33,9 %) ancres changées**, score PASS moyen **14,58→15,90 (+9,1 %)**, distance centre **6,57→6,22**. 5×6 : **+83,5 k£/an**, 4/1. 20×10 : la campagne initiale a donné 19/20 paires saines, puis la seule paire invalide (seed 12345) a été rejouée sainement sur le **même bundle source**. Agrégat 20 paires : `profit_year` **+211,3 k£/an** moyen, médiane **+262,3 k£**, **15/5**, `p=0,041389`, IC95 Student **[+31,3 ; +391,3] k£/an** ; `company_value` ratio des moyennes **+11,43 %**. Les critères `signs20`, +50 k£/an et garde valeur −5 % sont tous tenus. [Fiche](36_c96_air_site_catchment.md). |
-| **C97 — choix moteur AIR par C69 sur moteur × profondeur** | **Sonde passive terminée ; traitement non ouvert** | Argmax **direct** de `P_calibré/max(C_portefeuille,K_dec)` sur chaque `(moteur,n)` avec `fixedPlanes=n`, donc distinct de V92.2. Diagnostic Docker 3 graines × 1 an : **71,65 %** de désaccords C68/C97, capital médian −55,4 k£ et score C69 +152, mais **99,92 %** des contre-choix sont moins chers et **0/2 570** améliorent le profit prédit par avion (médiane −13,46 k£/an/avion). Le garde d'exposition est satisfait mais pas la plausibilité économique vis-à-vis du problème « faible profit par avion » : ne pas créer `c97_air_c69_engine_choice`, ne pas lancer de 5×6 sous cette forme. [Fiche](37_c97_air_c69_engine_probe.md). |
-| **C98 — biais prédit/réalisé AIR par moteur** | **Sonde passive terminée ; modèle à corriger avant nouveau choix moteur** | `c98_air_realized_probe` défaut 0, greffé au rapport annuel sans effet décisionnel. 3×4 défaut : **66 observations matures**, profit réel/prédit par avion médian **1,376×**, revenu **1,282×**, rating prévu **12,75 %** contre **57 %** réel ; pax instantané médian **14,7 %** chargé contre mail **65 %**. Le biais varie par moteur : FFP Dart **2,15×**, LB-10 **1,66×**, Darwin 200 **1,34×**, Darwin 300 **1,16×**. Un diagnostic physique séparé (200 trajets) confirme que `GetMaxSpeed` ne doit pas être redivisé par 4 : l'ancien calcul exige des délais d'aéroport médians **négatifs de −33 à −63 j**. Mais C99 vitesse seule sur 3×4 sur-prédit fortement (profit réel/prédit médian **0,425×**) : **ne pas l'adopter seul**. AAAHogEx emploie aussi beaucoup plus de capacité mail sur plusieurs moteurs (engine 228 ~221 pax +129 mail contre Opex 300+50 dans le 5×6 historique), cohérent avec mail souvent saturé chez Opex. Suite : modèle AIR cohérent vitesse + temps réel + rating + refit mail, puis seulement requalifier le choix moteur. [Fiche](38_c98_air_realized_probe.md). |
-| **C100 — cinématique AIR physique** | **Rejeté comme comportement ; signal positif historique à expliquer, défaut 0** | C100.1 corrige la vitesse API et le temps de manoeuvre. Diagnostic 3×4 : réel/prédit profit **0,777×**, revenu **0,773×** ; ~**0,99× à 1 avion** mais ~**0,53× à 3 avions**. Causal 5×6 : **−184,4 k£/an**, médiane −244,7 k£, 1/4, valeur **−11,17 %**. L'analyse du bundle du premier C100 positif (~**+233 k£/an**) montre que C68 est identique ; seul le temps de manoeuvre diffère. Sur AT_LARGE 6×6, son ancien helper vaut ~**26,2 j/sens** contre ~**15,1 j/sens** pour C100.1 : cet overhead réduit la valeur marginale de la vitesse et favorise 216/217. Ne pas réduire ce signal à une simple coupure de l'expansion. [Fiche](39_c100_c101_air_physical_engine_choice.md). |
-| **C101 — physique seulement pour le choix moteur** | **Rejeté ; défaut 0, pas de 5×6 final** | Découplage propre : chaque moteur reste évalué historiquement, le timing physique ne sert qu'au classement, puis l'économie historique du gagnant est retournée au portefeuille. **Argmax profit physique** : 2 957 bascules, prix médian **3,95×**, capital **2,61×**, 74 % plus chers ; smoke **−751,9 k£/an**, valeur −56,2 %, flotte AIR 51→25. **ROI relatif >25 % sinon profit** : 4 470 bascules, prix **0,633×**, capital **0,716×**, profit historique **0,529×** ; smoke **−492,2 k£/an**, valeur −40,9 %, flotte 51→41. Ces échecs ne justifient pas de partir sur MAIL : le couplage C100 positif reste à isoler. [Fiche](39_c100_c101_air_physical_engine_choice.md). |
-| **C103 — replay du chooser du premier C100** | **smoke 1×3 rejeté ; défaut 0, pas de 5×6** | Replay exact du **classement moteur** du premier C100 (vitesse NoAI directe + ancien helper de manoeuvre pessimiste), mais économie legacy du moteur choisi retournée au portefeuille. Seed 42 ×3 : `profit_year` **1 110 296→720 540 £/an** (**−389,8 k£/an**), valeur **−27,05 %**, avions AIR **46→42**, aéroports **19→13**, véhicules totaux **75→51**. Le mix va pourtant dans la direction attendue : 216/217 **47,8 %→76,2 %**. Conclusion : le bon mix seul ne reproduit pas le +233 k£ ; il faut décomposer le **couplage classement + économie de route** du premier C100 avant toute nouvelle règle dimensionless. [Fiche](39_c100_c101_air_physical_engine_choice.md). |
-| **C114 — replay complet du premier C100 positif** | **20×10 terminé ; signal économique retrouvé mais non qualifié, défaut 0** | Rejoue globalement l'ancien C100 dans **l'économie de route et le choix moteur**. Smoke seed42×3 : **+333,2 k£/an**, valeur **+37,8 %**. Causal 5×6 : **+170,9 k£/an**, médiane **+187,6 k£**, **4/1**, p=0,375. Causal **20×10** `c114_c100_full_replay_20x10_20260927` : **+195,0 k£/an** moyen, médiane **+223,0 k£**, **12/8**, p=**0,503445**, IC95 **[−11,8 ; +401,8] k£/an**, valeur **+22,70 %** ; verdict **`fail_primary`**. Mix 216/217 **76,1 %→83,1 %**, flotte AIR **119,6→117,1**, aéroports **24,3→26,8**. Les 12 gagnants partent d'un réseau moins mûr (**22,7 aéroports, 1,67 M£/an**) et ajoutent ~**+3,9 aéroports** ; les 8 perdants partent à **26,8 aéroports, 2,25 M£/an**, ajoutent seulement **+0,4 aéroport** mais tombent à **114,8 avions** et ~**−28 %** de capacité pax. [Fiche](39_c100_c101_air_physical_engine_choice.md). |
-| **C115 — replay C100 conditionné par le goulot de capital C69** | **20×10 terminé ; défaut 1 temporaire par décision utilisateur du 2026-09-27** | L'audit a corrigé un bug avant mesure : le premier branchement comparait `K_dec` au capital de l'appareil d'entrée, pas au vrai gagnant C68 ; C115 recalcule désormais explicitement l'argmax C68 avant le gate. Smoke corrigé seed42×3 **+262,6 k£/an**, valeur +25,4 %. 5×6 **+167,5 k£/an**, 4/1, valeur +13,6 %. **20×10** `c115_c100_capital_replay_20x10_20260927_corrected` : **+154,9 k£/an** moyen, médiane **+141,8 k£**, **13/7**, `p=0,263176`, IC95 **[-92,2 ; +402,0] k£/an**, valeur **+18,29 %**, verdict `fail_primary`. Sur les 8 pertes C114, moyenne **−241,1→−57,8 k£/an**, **4/4**, flotte AIR moyenne **+4** et capacité pax seulement ~−7 % au lieu de −28 % ; C115 conserve ~**61 %** du gain moyen des 12 anciennes graines gagnantes. Le gate sur le **capital total** reste trop grossier et doit être remplacé si C116 donne une règle marginale plus propre, mais **C115 est activé temporairement par défaut** pour conserver son gain pendant cette recherche. [Fiche](39_c100_c101_air_physical_engine_choice.md). |
-| **C116 — coût d'opportunité marginal du capital AIR** | **Règles locales testées ; rejet causal 5×6, défaut 0 ; conserver C115** | Sonde strictement C68/legacy : runner = meilleur profit parmi les moteurs moins capitalistiques. Passif canonique **20×4, 11 916 contextes** : runner disponible **99,74 %** ; gate `ΔC>K_dec` **26,15 %** ; marginal `ΔC>K_dec`, `ΔP>0`, `(ΔP/ΔC)<P_runner/max(C_runner,K_dec)` **26,13 %** (seulement 2 bascules du gate éliminées) ; score direct C69 `P/max(C,K_dec)` **32,29 %**. Anciennes pertes C114 **27,3 %** de bascules marginales contre **25,4 %** chez les anciennes gagnantes : ces grandeurs locales ne discriminent pas la maturité réseau. Une quatrième formulation endogène, `ΔP/ΔC < P_C68/max(C_C68,K_dec)` (« self-hurdle »), a aussi été évaluée passivement : elle reproduit **exactement les 3 116 bascules du gate**, donc n'ajoute aucune information. **Marginal/gate actif** : smoke seed42×3 **+111,5 k£/an**, valeur +2,48 %, puis 5×6 contre C115=1 **−176,5 k£/an** moyen, médiane **−277,3 k£**, **2/3**, `p=1,0`, IC95 **[−506,7 ; +153,7] k£/an**, valeur **−18,0 %**. Structure finale : **−16,6 avions AIR**, **−3,2 aéroports** ; mix plus capacitaire, engine 223 **6,1→13,3 %**, mais fortes pertes de capacité sur 999 et 5678. **Score C69 direct actif** : smoke **+82,8 k£/an**, valeur **−0,98 %**, mais 5×6 **−234,4 k£/an**, médiane **−252,6 k£**, **1/4**, `p=0,375`, IC95 normale **[−447,2 ; −21,5] k£/an**, valeur **−20,19 %**, **−11,6 avions AIR** et **−3,4 slots aéroport Opex** en moyenne. **C116.2 projet AIR débloquable** : passif 20×4, opportunité réellement débloquable dans **35,1 %** des contextes et bascule potentielle **31,7 %** ; en 1971, **46 %** contre ~92 % pour C116.1. Causal 5×6 c116_project_opp_5x6_20260927_r1 : **−330,0 k£/an** moyen, médiane **−598,5 k£**, **1/4**, p=0,375, valeur moyenne **−1,418 M£** et ratio des moyennes **−22,90 %** ; structure **−19,4 avions AIR**, **−4,2 aéroports**, **−1 308** de capacité pax. **Exception à analyser en priorité : graine 100**, seule victoire nette, avec **+623,7 k£/an**, **+2,604 M£** de valeur, **+16 avions AIR**, **+1 aéroport** et **+3 005** de capacité pax malgré le statut final earning_without_expansion. Objectif : comparer sa chronologie de décisions/cash/projets AIR au 999/1234/5678 pour comprendre dans quel état macro/réseau le coût d'opportunité C116.2 devient réellement bénéfique. Aucun C116 ne justifie un 20×10. Le défaut observé est structurel : choisir le runner avec son économie legacy réduit aussi la valeur/admission des projets et coupe l'expansion que le vieux replay C100 favorisait accidentellement. **C116.3 gap exact du meilleur projet AIR en attente** : r?gle minimale `?C >= gap`, puis choix du moteur qui conserve le plus de profit. Smoke seed42?3 **+126,2 k?/an**, valeur **+16,49 %**. Mais causal 5?6 `c116_exact_gap_5x6_20260927_r1` : **?283,0 k?/an** moyen, m?diane **?318,5 k?**, **1/4**, `p=0,375`, IC95 **[?542,6 ; ?23,3] k?/an**, ratio de valeur **?18,05 %**. La structure s'am?liore par rapport ? C116.2 mais reste d?grad?e : **?13,8 avions AIR**, **?2,2 a?roports**, **?381** de capacit? pax en moyenne. La graine 100 ne reproduit plus son gain C116.2 : seulement **+4,4 k?/an**, **+357 k?** de valeur, **?3 avions**, **?4 a?roports**, **+500 pax**. La graine 5678 reste catastrophique (**?707,7 k?/an**, **?38 avions**, **?8 a?roports**). |
-| **C118 — expansion AIR par vitesse de couverture territoriale** | **Smoke seed42×3 rejeté ; défaut 0 ; pas de 5×6** | Objectif commun projet+moteur : villes réellement nouvelles dans le catchment, puis temps estimé jusqu'au prochain projet territorial (`cashAfter`, flux C69 + profit moteur, `K_next` issu du portefeuille courant), avec C68 comme départage économique et retour naturel à C115 lorsqu'aucun projet `newTowns>0` ne subsiste. Tests ciblés **41/41 OK**. Smoke autoritaire `smoke_c118_territorial_1x3_20260927_r2` : couverture **plus lente** (1970 : **7 vs 10** aéroports/villes ; 1971 : **17 vs 21** aéroports et **17 vs 20** villes), puis rattrapage final à 23 aéroports. `profit_year` **1,458 M→0,725 M£/an (−50,3 %)** ; valeur **2,974→1,283 M£ (−56,9 %)** ; flotte AIR **69→25**, capacité pax AIR **7 295→3 300**. Le retard existe déjà avec le même moteur 223 et ~210 k£ de caisse : premier défaut **portefeuille/classement/rafraîchissement post-build**, avant le choix moteur. **Ne pas lancer le 5×6.** Analyse : `sweeps/analyse_c118_territorial_smoke.py`. |
-| **C119 — modèle de revenu AIR inspiré d'AAAHogEx** | **20×10 non qualifié ; défaut 0** | Audit : AAAHogEx sépare temps de paiement, cycle et distance de paiement. Le rerun enrichi isole `paymentDistance/flightDistance` médian **~1,24×** ; sur **436 lignes matures**, réel/yield prédit passe **2,035×→1,426×** et revenu réel/prédit **1,383×→0,979×** avec distance Manhattan + temps AAA-like. Mail moteur non retenu ; cycle/flotte/demande inchangés. 5×6 : **+91,0 k£/an**, **4/1**, `p=0,375`. Qualification 20×10 vs C115 : `profit_year` **+70,9 k£/an** moyen, **+76,2 k£** médian, **11/9**, `p=0,823803`, IC95 normale **[-51,3 ; +193,2] k£/an**, ratio des moyennes **+3,42 %** ; valeur **+504,5 k£**, **11/9**, **+4,45 %** en ratio des moyennes. `primary_mean_pass=true`, `value_guard_pass=true`, mais `sign_pass=false` ; verdict **`fail_primary`**. C119 reste désactivé mais demeure un composant mécaniste candidat du futur modèle AIR unifié. [Fiche](42_c119_air_income_model_20260928.md). |
-| **C121 — modèle AIR physique unifié** | **Causal stabilisé ; non adopté, défaut 0 ; C115 reste témoin** | C121 revient dans le garde de valeur sur le 5×6 courant, mais aucune variante ne passe à la fois rattrapage AAA, soutenabilité et anti-monopole. Le classifieur `race/efficiency` est conservé comme signal diagnostique ; prochaine piste = ordonner les types de projets AIR sans déformer leur économie. **Pas de 20×10.** [Fiche](43_c121_air_economics_shadow_20260928.md). |
-| **Revue transversale — estimateurs low-opcode par cold start + moyenne glissante** | **À faire après stabilisation C121** | Revue de code demandée le 2026-09-28. Chercher les endroits où l'IA dépense beaucoup d'opcodes ou utilise un proxy fragile faute d'estimateur fiable. Motif prioritaire : **calcul physique/exact une fois au démarrage ou lors d'un changement structurel, puis état incrémental par moyenne glissante sur observations réelles, lecture O(1) dans les décisions**. Chaque usage doit définir sa source d'observation, sa fenêtre, son invalidation et son coût mesuré. C121 `hubDelay` est le cas de référence. |
+| Publication et accès aux bancs | **Bloqué localement** : copie sans Git, accès Actions non établi | Identifier dépôt, branche et SHA publié avec accord utilisateur ; vérifier authentification, quota et absence de doublon. Aucun push implicite. [Guide GitHub](bancs_github.md). |
+| R24–R26 : admissibilité, couverture du profit, harnais figé | **Implémentés, à valider** | `benchmark-regressions.yml` : fixtures Windows/Linux, OpenTTDLab fixé et selftest ; puis smoke moteur 1×1. Vérifier couverture et provenance du collecteur. [Journal du 30](journaux/journal_2026-09-30.md). |
+| R18/R21/R23 : nivellement AIR, débouché fret, devis rail | **Implémentés, à valider** | Contrats source, injections d'échecs/contre-tests moteur, smoke 1×1 puis diagnostics 5×6 **isolés par lot**. Les contrats textuels ne compilent pas Squirrel. |
+| R2/R3/R22 : profit observé, bypass AIR, retraite | **R2 VM et trois fixtures R3 validés ; qualification économique distincte** | R2 : facteurs observé/prédit0,5/1/1,5 exercés en VM C70/C82. R3 : caducité A–B/A–C/D–E, cash et vrai refus API après bypass validés ; K_pass=0 naturel, portefeuille de test réduit, pas tous les régimes ni gain causal. R22 reste : dépôt >90 j, ordre disparu, entretien, vente/timeout et Save/Load. [Compléments](performance_completion_20261001.md). |
+| R4/R5/R20 : continuation, autotests au chargement, régime persistant | **R5/R20 observés au reload (30/09) ; R4 clos sans effet** | R4 : 167 tranches, `chained_slices=0` ; le budget n'est testé qu'entre paires et une paire (~40 k opcodes médian) dépasse un tick, donc enchaînement intra-tick inatteignable. Décision : garde-fou conservé tel quel, aucun gain attribuable ; points d'arrêt intra-paire = chantier distinct. R5 : `selftest skipped` ×2 ; R20 : `C121_STRATEGY_RELOAD` restauré. Restent : verrou race/efficiency, ancien format, file/worker en cours, options séparées. |
+| R1/R19 : renfort partiel AIR et récupération de chantier | **Cinq fixtures R1 validées ; récupération R19 partielle** | Besoin réel4/budget1, seuil prix +1 000 £ après réserve et contre-test +999, achat réel+1, mutation API, non-duplication et deux frontières Save/Load validés. Pas de gain marginal attribué. Refus R3 à A : pas d'orphelin, mais pas toute la récupération partielle R19. **R19 observé moteur local** (`r19_fault_inject`, défaut0) : PENDING→DONE ; ticket pendant rechargé puis terminé (`results/save_load_r19_inject_mid_20260930.json`). Restent vente refusée, aéroport occupé et hubs réutilisés. [Compléments](performance_completion_20261001.md), [historique R19](journaux/journal_2026-09-30.md#clôture-du-groupe-r1r19). |
+| Bancs manuels GitHub | **Préparés, intégration non validée** | Après publication autorisée : solo/smoke et duel/smoke pour l'intégration ; paired/smoke pour une intervention causale. Contrôler santé, horizon, artefacts et bras réellement différents. |
+| Qualification GitHub enchaînée | **Implémentée, à valider** | `qualify.yml` : contrats puis smoke→diagnostic→adoption, décisions déterministes et preuves d'exposition. [Plan pré-enregistré](../qualifications/README.md). Publication/accès supposés satisfaits pour ce développement selon demande utilisateur ; aucune campagne ni modification de défaut effectuée. Fixtures et intégration réelle restent à exécuter. |
+| Image Docker et audit de preuves | **Fait localement (30/09)** | Image `/opt/venv` construite et exercée (smoke, Save/Load, 5×6) ; proxy TLS via `SSL_CERT_FILE`. `test_review_evidence.py` : 13/13 OK. Limite maintenue : L'intégrité des 57 archives ne prouve pas la couverture de toutes les citations. [Bilan documentaire](revue_documentation_2026-09-30.md). |
+| Récupération des preuves | **Sources absentes (reconfirmé 30/09)** | Recherche locale dans tout `PRV/` : seuls scripts, tests, fiches et archives non autoritaires C116/C117/C122 ; aucun JSON de résultat ni manifeste. Récupération seulement depuis une autre copie/le dépôt distant. Réconcilier capacités C116.4 et identifiant du bundle C122. Auditer les autres citations manquantes sans relancer les campagnes ni inventer de chiffres. |
 
-### C121 — état courant
+**Isolation indispensable :** le workflow A/B compare deux réglages du même arbre.
+Sans chemin témoin représentant l'ancien comportement, un run du cumul ne qualifie
+pas causalement chacun des correctifs. Figer sources et protocole avant mesure.
+Depuis le 30/09 : Python (venv 3.14) et Docker local disponibles ; Git/gh toujours
+absents, donc ni SHA, ni référence de code figée, ni publication/campagne GitHub.
 
-La mise à jour autoritaire est le bloc **« C121 — mise à jour finale du 2026-09-29 »** plus bas dans ce fichier. Les états intermédiaires ont été retirés pour éviter de conserver des chiffres devenus obsolètes. Voir aussi `docs/43_c121_air_economics_shadow_20260928.md` et `docs/journaux/journal_2026-09-29.md`.
+## 2. Revue du code — restant à implémenter ou à décider
 
-**C116.4 — découplage complet admission/équipement.** Le portefeuille est désormais strictement C68 : génération, `profitAnnual`, `capital`, `roi`, `fundScore`, admission et classement ne voient jamais le moteur C116. Après sélection/revalidation dans `_tryBuildAirProject`, `OpexC116ChooseBuildPlan` clone seulement le plan d'exécution et peut remplacer le moteur C68 par le moteur moins cher au meilleur profit qui couvre le `gap` du meilleur projet AIR non finançable du snapshot. Aucun nouveau scan de route/site ; un seul scan moteur au build. Le projet classé reste immuable. C84 recalcule sa cible de flotte sur l'appareil réellement acheté ; C85/V92/C82 et les autres politiques de choix moteur sont explicitement laissées hors de C116.4 ; renforts et remplacement de crash repartent ensuite du moteur réellement présent. Tests statiques ciblés : C116 **12/12**, C115 **5/5**, C84 **6/6**, C85/V92/campaign-freeze OK, `git diff --check` propre. Smoke causal seed42×3 `smoke_c116_decoupled_1x3_20260927_r1` contre C115 courant : `profit_year` **−166,6 k£/an (−12,0 %)**, `company_value` **−326,3 k£ (−11,55 %)**, garde valeur **échouée** ; AIR **61→58**, aéroports Opex **23→22**, capacité pax **7 335→7 030 (−305)**. Chronologie : dès 1970 **−12,7 k£/an et −1 aéroport** ; en 1971 **−72,3 k£/an** avec un retard transitoire majeur **12 contre 22 aéroports** ; en 1972 l'infrastructure revient à **22 contre 23**, mais le profit reste nettement inférieur. Le bundle du smoke est textuellement identique au `builder_air.nut` courant modulo fins de ligne, et `task_air.nut` a le même SHA-256. **Contrôle d'isolement C68 pur** `smoke_c116_decoupled_vs_c68_1x3_20260927_r1` : le même choix post-sélection donne au contraire **+204,2 k£/an**, **+418,9 k£ de valeur (+22,08 %)**, **+2 aéroports** et **+4 véhicules**. Donc la règle post-sélection est prometteuse face à C68 ; ce qu'elle ne remplace pas est le bénéfice supplémentaire de l'économie C115 dans le portefeuille. Conclusion de qualification : **pas de 5×6 ni de 20×10 contre C115** sous cette forme. L'hypothèse « toute la perte C116.3 vient de la contamination du `fundScore` » est trop forte, mais le découplage a bien isolé un signal positif propre ; la prochaine piste doit expliquer/conserver le bénéfice portefeuille de C115 sans réintroduire la physique C100 erronée. C115 reste à **1 temporaire**, C116 à **0**.
+Références : [revue du 30](revue_code_2026-09-30.md). Reconfirmer le constat sur le
+code au moment de l'intervention ; ne pas coder toute la liste d'un bloc.
 
-**C116.4 — découplage complet portefeuille / équipement (2026-09-27).** Le projet AIR reste désormais **strictement C68** pendant la génération, l'admission, `profitAnnual`, `capital`, ROI, `fundScore` et le classement. C116 n'agit qu'après sélection/revalidation dans `_tryBuildAirProject` : `OpexC116ChooseBuildPlan` clone le plan, relit le snapshot portefeuille déjà calculé et scanne une seule fois les moteurs compatibles ; parmi les moteurs moins capitalistiques que C68, il choisit le plus profitable vérifiant `ΔC >= gap` du meilleur projet AIR non finançable. Aucun replay/timing C100, aucune recherche de route/site, constante monétaire, année ou `EngineID`. Le plan classé n'est pas muté ; le cash et le chantier utilisent le clone. C84 recalcule sa cible sur le moteur réellement acheté ; renforts et refleet restent ensuite fondés sur le moteur réellement présent. Tests statiques C115+C116 : **17/17 OK**. Smoke causal seed42×3 `smoke_c116_decoupled_1x3_20260927_r1`, témoin `C115=1,C116=0` vs variante `C115=1,C116=1` : `profit_year` **1 389 335→1 222 717 £/an**, soit **−166,6 k£/an (−11,99 %)** ; `company_value` **2,825→2,499 M£**, soit **−326 k£ / −11,55 %**, donc garde de valeur 5 % **échouée**. Structure finale nettement moins dégradée que C116.3 : flotte AIR **61→58 (−3)**, aéroports **23→22 (−1)**, capacité pax AIR **6 775→6 680 (−95)**. Mix moteur : 217 **31→20**, 216 **5→14**, 223 **9→10**, 227 **10→10** ; apparition de 226=1 et 228=1, disparition de 225=4. La chronologie montre toutefois un retard d'expansion transitoire massif : `profit_year` Δ **−12,7 k£** en 1970, **−72,3 k£** en 1971, **−166,6 k£** en 1972 ; surtout fin 1971 la variante n'a que **12 aéroports contre 22** au témoin, avant de revenir à 22 contre 23 fin 1972. Conclusion : le découplage corrige bien la contamination directe du `fundScore`/admission et évite l'effondrement final de C116.3, mais le choix d'équipement moins rentable perturbe encore assez tôt la trajectoire de cash/expansion pour perdre fortement. **Pas de 5×6 ni 20×10 ; conserver C115=1 et C116=0.**
+| Référence | Action restante | Condition / validation |
+|---|---|---|
+| R6–R10 | **Partiellement traité localement** : clarification interface R6/R7, retrait ciblé R8 (2 fonctions sans appel), contrats R10 consolidés ; R9 : verrouillage figé par contrat (`test_r9_…`), aucun retrait de code car toutes les branches BASIN_SHARE/compat sont évaluées (retrait = changement d'opcodes non mesurable sans moteur) | Exécuter smoke 1×1 et tests moteurs ciblés ; vérifier migration des lecteurs documentaires pointant les deux fonctions retirées ; confirmer absence d'impact cadence/opcodes puis statuer R9 séparément (gardes compat et branches verrouillées). |
+| R11–R17 | Découper les responsabilités et organiser les tests | Lots métier isolés : builder AIR, sélection/exécution, rapport annuel, projets, résultats C121, autotests. Aucun refactoring transversal simultané aux correctifs comportementaux. |
+| F-RAIL-ECON-01 (revue du 22/09) | **Implémenté derrière `rail_depot_cost`, défaut 0, non mesuré** | `economy.nut` ajoute `costRailDepot` si le flag est actif. Mesurer l'effet sur le classement rail (diagnostic 5×6 isolé) avant tout changement de défaut. |
+| F-EVENT-BACKLOG-01 (revue du 22/09) | **Ouvert, faible priorité** | `events.nut::_processEvents` vide toujours la file sans quota. Mesurer d'abord l'exposition (taille des rafales, opcodes) ; corriger seulement si elle est démontrée. |
 
-**Interprétation C100/C116.** Le calcul physique du premier C100 reste faux : son ancien timing surestime fortement le temps de trajet (~26,2 j/sens contre ~15,1 j/sens mesuré avec C100.1). Son gain économique ne vient donc pas d'une meilleure physique. Les résultats C104/C114/C115 indiquent qu'il agit accidentellement comme un **régulariseur de capital** : il pénalise les upgrades moteur très coûteux dont le surprofit marginal est faible, ce qui libère du capital pour construire davantage de lignes/aéroports pendant l'expansion. C116 confirme que cette intuition locale est réelle, mais montre aussi qu'un coût d'opportunité **moteur par moteur** ne suffit pas : gate, rendement marginal, score C69 direct et self-hurdle échouent tous à isoler le régime d'expansion ; C116.2/C116.3 dégradent l'admission elle-même, tandis que C116.4 découplé préserve l'admission C68 mais provoque encore un retard d'expansion intermédiaire. Le signal utile de C115 dépend donc encore d'un état macroéconomique/réseau — ou d'une valorisation distincte de l'option d'expansion — que `ΔC`, `ΔP`, `K_dec` et le seul `gap` d'un projet AIR non finançable ne capturent pas seuls. **Décision courante : conserver C115=1 temporairement ; garder C116 à défaut 0 et ne pas lancer son 20×10 sous ces formulations.**
+Revue du 22/09 revérifiée sur le code le 30/09 et close pour : F-ROAD-TXN-01 (ventes vérifiées, `allSold`), F-RAIL-START-01 (retour de `StartStopVehicle` lu, arrêt des trains déjà démarrés), F-RAIL-TXN-02 (`OpexBuildSecondTrain` appelle `OpexRollback` avec `rollbackVehicles`), F-LIFE-SCRAP-01 (retrait conditionné au retour de `SellVehicle`), F-SIGN-01 (troncature à 31 dans `OpexSign`). F-C80-TOWN-01/F-C77-SLICE-01 sont suivis par les chantiers C80 et régénération (§3). F-TEST-01 : les deux échecs historiques ne ressortent plus, les 2 échecs actuels sont dus à l'absence de Git. Ces fermetures sont des relectures, pas des validations moteur.
 
-**C116.4 — découplage complet portefeuille / équipement (2026-09-27).** Nouvelle architecture : la génération, `profitAnnual`, `capital`, ROI, `fundScore`, admission et classement restent **strictement C68** ; C116 n'agit qu'après sélection et revalidation du projet AIR, juste avant le test de trésorerie et `OpexBuildAirRoute`. `OpexC116ChooseBuildPlan` relit le snapshot portefeuille déjà calculé, scanne une seule fois les moteurs compatibles du type d'aéroport retenu et clone le plan si un moteur moins capitalistique couvre le `gap` du meilleur projet AIR non finançable, en conservant le plus de profit possible. Aucun scan route/site/projet supplémentaire, aucune constante monétaire/année/EngineID, aucun replay C100. Le plan classé reste immuable ; cash, chantier, ligne créée et renouvellement utilisent l'équipement réellement acheté. C84 est retargeté sur ce moteur réel ; C85/V92 et les autres politiques moteur concurrentes restent exclues. Tests statiques : **C116 12/12**, **C115 5/5**.
-
-Validation principale contre le témoin courant C115 : `smoke_c116_decoupled_1x3_20260927_r1`, seed 42 ×3 ans, donne **−166,6 k£/an** de `profit_year`, **−326,3 k£** de valeur (**−11,55 %**), **−3 avions AIR**, **−1 aéroport** et **−95 pax**. Le garde de valeur échoue, donc **pas de 5×6 ni de 20×10**. La première divergence structurelle est immédiate en **1970-02** : C115 a déjà **2 avions / 4 aéroports / 440 pax** contre **1 / 2 / 300** pour C116.4, alors que C116.4 conserve ~**+55,9 k£** de cash. Le découplage économise donc bien du capital, mais la variante abandonne en même temps le signal de classement/admission de C115 et perd une expansion dès le premier mois utile.
-
-Diagnostic d'isolation contre **C68 pur** : `smoke_c116_decoupled_vs_c68_1x3_20260927_r1` donne au contraire **+204,2 k£/an**, **+418,9 k£** de valeur, **+3 avions AIR**, **+2 aéroports** et **+725 pax**. La première divergence de mix moteur apparaît en **1970-03** ; l'avantage de flotte apparaît en **1970-05** et l'avantage d'aéroports en **1970-10**. Conclusion : le découplage corrige bien le défaut structurel de C116.2/C116.3 — l'économie d'équipement ne dégrade plus l'admission du projet courant — et le régulariseur de capital post-sélection est **positif face à C68**. En revanche, il ne remplace pas le bénéfice plus large de C115 sur l'économie utilisée par le portefeuille. **Décision : conserver C115=1 temporairement, C116=0 par défaut ; ne pas poursuivre cette C116.4 en 5×6 sous la règle actuelle.**
-
-**C118 — objectif commun « temps de couverture des villes » (2026-09-27).** Architecture auditée avant intervention : `OpexProjectFromAir` construit l'économie AIR ; `OpexProjectSelectAffordable` assure l'admission et calcule `fundScore` ; `OpexProjectInsertDefensive` ordonne le portefeuille ; `OpexAirChooseRoutePlaneFull`/C115 choisissent l'équipement ; `OpexComputeOperatingCashFlow` fournit le flux et `OpexAvailableCapital` la trésorerie mobilisable. C96/B9 et `AITileList_StationCoverage` fournissent le catchment. C118 compte une ville seulement si une tuile productrice PASS lui appartenant tombe dans le catchment du site/station ; aucun `TownList` global n'est parcouru à chaque décision. Le portefeuille réutilise ses alternatives existantes et le scan moteur C68/C115 ; aucun second scan route/site/portefeuille, replay C100, seuil d'année/argent ou EngineID codé. Lorsque plus aucun projet viable `newTowns>0` n'existe, C115 redevient naturellement la politique normale.
-
-Validation statique : `python -m unittest sweeps.test_c118_air_territorial_expansion sweeps.test_c118_air_territorial_integration sweeps.test_c116_air_incremental_probe sweeps.test_b9_air_catchment` → **41/41 OK**. `r1` est obsolète (figé avant les derniers correctifs). Smoke causal autoritaire : **`smoke_c118_territorial_1x3_20260927_r2`**, seed 42, 3 ans, 1 worker/1 CPU, témoin `C115=1,C116=0,C118=0`, variante identique sauf `C118=1`; jeux complets et sains.
-
-Couverture : au 1970-12-01, témoin **10 aéroports / 10 villes** contre C118 **7/7** ; au 1971-12-01 **21/20** contre **17/17** ; au 1972-12-01 les deux ont **23 aéroports**, C118 seulement **23 villes contre 22**. Jalons mensuels aéroports : témoin 4 au **1970-02-01**, 6 au **1970-03-01**, 10 au **1970-11-01**, 20 au **1971-10-01**, 23 au **1972-09-01** ; C118 2 au **1970-02-01**, 6 au **1970-05-01**, 10 au **1971-04-01**, 20 au **1972-06-01**, 23 au **1972-11-01**. Ces dates sont des bornes d'autosave mensuel.
-
-Économie/structure : `profit_year` **1 458 329→725 395 £/an** (**−50,3 %**) ; valeur **2 973 672→1 283 017 £** (**−56,9 %**) ; flotte AIR **69→25** ; capacité passagers AIR **7 295→3 300**. Mix final témoin `{216:2,217:43,221:4,223:7,225:5,227:8}` ; C118 `{216:6,217:4,218:3,221:1,223:6,225:2,226:2,228:1}`. Mais la première divergence **précède** le changement moteur : au 1970-02-01 les deux utilisent seulement le moteur **223**, le témoin a **2 avions / 4 aéroports / 440 pax** contre **1 / 2 / 220** pour C118. C118 garde alors **210 299 £** de caisse et reste à **1 avion / 2 aéroports** jusqu'au 1970-04-01 avec ~208–209 k£ ; il n'atteint 6 aéroports qu'au 1970-05-01. Le blocage initial n'est donc ni un manque de capital ni un mauvais moteur : il est dans le cycle **classement → revalidation → mise à jour incrémentale/rafraîchissement du portefeuille**. Le choix moteur `timeToNext` dégrade ensuite fortement la capacité et amplifie la perte.
-
-**Décision C118 : rejet de cette formulation active ; aucun 5×6 ni 20×10.** Prochaine expérience : isoler **le classement territorial seul avec moteur C115 strictement inchangé**, et instrumenter chaque resélection post-build (`available`, snapshot actif, meilleur `newTowns`, finance minimale, rang, raison de non-tentative) entre février et mai 1970. C115 reste le témoin courant à défaut 1 temporaire ; C116 et C118 restent à défaut 0. Analyse reproductible : `sweeps/analyse_c118_territorial_smoke.py`, sortie `results/analyse_c118_territorial_smoke_r2.json`.
-
-**C119 — audit revenu AIR vs AAAHogEx (2026-09-28).** Le code local
-`ai/AAAHogEx-115` confirme la séparation entre temps de paiement, cycle,
-distance de paiement et soute mail. Le premier shadow réfute la version trop
-forte « temps + mail expliquent seuls le ×2 », mais le rerun C117 enrichi
-trouve la composante manquante : la distance Manhattan pertinente au paiement
-vaut en médiane ~**1,24×** la distance AIR géométrique.
-
-Sur le rerun mature, réel/yield prédit passe **2,035× → 1,426×** avec
-**distance de paiement + temps AAA-like**, et le revenu réel/prédit médian
-**1,383× → 0,979×**. La capacité mail moteur médiane reste seulement **0,111**
-de la capacité pax ; le mail réellement transporté est élevé parce qu'il est
-presque saturé, alors que les pax ne remplissent qu'environ 30 % de chaque sens.
-C119 retient donc uniquement les deux corrections de paiement et laisse le mail
-legacy, le cycle, le headway, la flotte, `monthlyPax` et `predCarried`
-inchangés. Le flag `c119_air_income_model` existe, défaut **0**.
-
-Validation : tests ciblés **26/26 OK**, smoke API seed42 **88/88** sans mismatch,
-smoke causal **+119,0 k£/an** et **+162,6 k£** de valeur. Causal 5×6 contre
-C115 : `profit_year` **+91,0 k£/an** moyen, médiane **+130,5 k£**, **4/1**,
-`p=0,375`. Qualification 20×10 ensuite demandée : **20/20 paires complètes**,
-`profit_year` **+70,9 k£/an** moyen, médiane **+76,2 k£**, **11/9**,
-`p=0,823803`, IC95 normale **[-51,3 ; +193,2] k£/an**, ratio des moyennes
-**+3,42 %**. Valeur **+504,5 k£** en moyenne, **11/9**, ratio des moyennes
-**+4,45 %**. Le seuil moyen primaire et le garde-fou valeur passent, mais le
-critère directionnel échoue : verdict **`fail_primary`**. C119 reste défaut 0 et
-C115 reste le témoin courant ; la correction de paiement reste à réutiliser dans
-le futur modèle AIR unifié plutôt qu'à adopter seule.
-[Fiche détaillée](42_c119_air_income_model_20260928.md).
-
-**C120 — classement territorial AIR seul, mis de côté (2026-09-28).**
-Objectif : tester séparément le classement territorial des projets AIR sans
-modifier le choix moteur ni l'économie C115. Le toggle
-`c120_air_territorial_ranking` reste à **0 par défaut** et indépendant de
-C118. La version conservée ne change que l'ordre **AIR↔AIR** des projets déjà
-générés/revalidés/finançables : `newTowns` mesuré sur le **catchment réel**
-(helpers/cache C118), puis départage par l'ordre économique C115 existant.
-Elle n'ajoute aucun scan moteur, route ou site et ne touche pas au choix moteur,
-au replay C115, au ROI, à la flotte cible, à la finance ou au cash-flow.
-Télémétrie dédiée : `C120_SELECT` + panneaux `C0*`.
-
-Validation statique de la version stockée : suites C115/C116/B9/C118/C120
-**57/57 OK**. Le smoke `smoke_c120_territorial_1x3_20260928_r4` reste un
-**diagnostic non qualifiant** : il contenait encore une erreur où `newTowns`
-pouvait promouvoir un AIR devant un autre mode. Il montre néanmoins que le trou
-C118 « 2 villes jusqu'en avril » disparaît. En couverture catchment réelle,
-r4 atteint 4 villes le **1970-01-26**, 6 le **1970-03-12**, 10 le
-**1971-02-10**, 15 le **1971-08-09** et 20 le **1971-11-18** ; C115 atteint
-respectivement 4 le **1970-01-27**, 6 le **1970-03-02**, 10 le
-**1971-01-18**, 15 le **1971-08-24** et 20 le **1972-05-07**. L'économie de
-r4 est en revanche mauvaise : `profit_year` **−393,9 k£/an**,
-`company_value` **−840,2 k£**, flotte AIR **56→39**, capacité pax
-**6500→4765**. Ces chiffres ne qualifient donc pas la version corrigée.
-
-Après r4, C120 a été corrigé pour comparer `newTowns` uniquement entre
-projets AIR et le calcul territorial a été remis explicitement sur le catchment
-réel demandé. Le runner/analyseur suivant
-(`smoke_c120_territorial_1x3_20260928_r8`) est préparé mais **non lancé**.
-Décision : **geler C120 et ne pas lancer de 5×6**. Reprendre seulement après
-correction du modèle de prédiction de la production et des revenus AIR ; à ce
-moment-là, refaire d'abord le smoke causal seed42 sur la version corrigée, puis
-un 5×6 seulement si le compromis couverture/économie reste intéressant.
-
-**C121 — shadow physique AIR unifié (2026-09-28).** Le 5×6 demandé est terminé :
-`c121_air_economics_stationcomp_covcache_5x6_20260928`, seeds 42/100/999/1234/5678,
-6 ans, **5/5 sains**, 529 builds et 458 lignes matures. Le rating et la flotte
-sont stables (médianes actual/pred **0,941** et **1,00**) ; revenu/profit valent
-**0,912/0,864**, PASS/MAIL **0,656/1,013**. Le défaut de `leg_days` est réel mais
-non constant : **0,928×** aux mois 1–3, **1,235×** aux mois 4–6, **1,537×** à
-7+ mois. La croissance ultérieure des hubs confond fortement le shadow mature :
-pour croissance endpoint `0/1/2+`, le total vaut **1,124/0,922/0,726** et le
-revenu **1,536/1,199/0,899** ; **439/458** lignes sont en `2+`. Le replay du
-cycle timetable mesuré à flotte fixe recentre le revenu de **0,912 à 1,008**,
-donc le timing est matériel pour revenu/profit/score, mais la flotte médiane reste
-1,00. Le choix moteur n'est pas encore identifiable sans appliquer illégitimement
-le résidu du moteur construit aux moteurs concurrents. **Décision : C121 reste
-shadow, C115 reste témoin historique, aucun 20×10 causal.** Prochaine étape :
-modéliser/mesurer physiquement la contention FTA/RunwayInOut des hubs existants au
-moment de la décision, puis rejouer moteur/flotte/revenu/score. Détails :
-`docs/43_c121_air_economics_shadow_20260928.md`.
-
-Le diagnostic `hubDelay` qui a suivi remplace la recherche d'une formule statique
-par le motif **cold start physique + moyenne glissante récente**. Sa version
-batchée est maintenant revalidée en 5×6 : le ratio leg live adapté est **1,039**
-aux mois 4–6 et **1,034** à 7+ mois, contre **1,100/1,374** avec la prédiction
-figée au build. La fusion station coûte **128,5 ops/leg** sur 9 912 observations.
-Le replay au même moteur confirme la matérialité économique (**186/466**
-changements de flotte, profit médian ×**0,879**). Un replay inter-moteurs 5×6 a
-également été exécuté, mais ne connaît qu'environ **50 %** des moteurs candidats
-en médiane et **0/461** build n'a le catalogue complet ; il coûte en outre
-**13 ticks/build** en médiane. Les **385/461** bascules de meilleur score
-observées ne qualifient donc rien : elles portent sur un sous-catalogue. Prochaine
-étape : constituer une fois un cache PASS/MAIL exhaustif et générique des
-moteurs/refits, puis traiter séparément le biais cargo des hubs `2+` avant tout
-causal.
-
-**Principe d'architecture à revoir ailleurs après C121.** Quand un estimateur
-fiable est difficile ou coûteux à recalculer, essayer systématiquement le schéma
-suivant avant d'ajouter des constantes : estimation physique/exacte initiale,
-puis mise à jour incrémentale par moyenne glissante des observations réelles,
-avec invalidation seulement sur changement structurel. Une revue transversale du
-code devra identifier les candidats, mesurer leur coût actuel et vérifier que les
-observations nécessaires sont disponibles sans créer un nouveau coût caché.
-
-**C121 — mise à jour causale du 2026-09-28 (remplace les formulations plus haut
-qui indiquent encore « aucun causal » ou proposent un cache PASS/MAIL exhaustif).**
-Le chemin causal moteur -> flotte -> économie -> projet -> admission -> build est
-maintenant raccordé ; C116/C118 ne peuvent plus substituer un moteur legacy après
-le classement C121. Le cold start PASS-only puis apprentissage exact PASS/MAIL est
-validé en jeu et reste la règle ; **ne pas revenir à un catalogue exhaustif à
-froid**. Smoke `c121_causal_smoke_seed42_2y_20260928_r6` :
-`profit_year` **836 526 -> 317 606 £/an**, valeur **1 129 884 -> 320 527 £**,
-véhicules **37 -> 16**, slots aéroport Opex **18 -> 4**, villes AIR **17 -> 4**.
-5x6 `c121_causal_5x6_20260928_r1` (42/100/999/1234/5678, 6 ans, 6 workers) :
-**10/10 parties terminées**, `profit_year` delta moyen **-395,7 k£/an**, médiane
-**-471,3 k£**, **1/4**, `p=0,375`, IC95 **[-700,8 ; -90,6] k£/an** ; ratio des
-moyennes de valeur **-25,67 %**, garde -5 % échouée. **Pas de 20x10.** Le défaut
-à traiter est désormais la sous-expansion induite par l'économie/score C121 :
-auditer les premiers candidats identiques C115/C121 et comparer revenu, profit,
-flotte, capital, `decisionScore`, `fundScore`, motif de rejet et chronologie de
-cash. Refaire un smoke seed42 après correction avant tout nouveau 5x6.
-
-**C121 — mise à jour finale du 2026-09-29 (remplace les états C121 ci-dessus).**
-Le causal est maintenant stabilisé : chantier initial **1 avion**, renforts via
-projets flotte, économie post-build C121, pas d'exemption C69 pour les renforts,
-et marge observée démarrant à `c121MarginalSamples=0`. Le 5x6 courant
-`c121_current_5x6_jr5_20260929` revient dans le garde de valeur (~**+1,6 %**),
-même si `profit_year` reste dispersé face à C115 (~**-116 k£/an** moyen,
-médiane **+19 k£**, 3/2).
-
-La probe passive C83 `C121_PRESSURE` réutilise uniquement les villes déjà
-consultées par le cache de slots, sans scan de carte supplémentaire. Le
-classifieur causal retenu observe **2 années complètes**, puis verrouille le
-régime pour éviter que la politique modifie ensuite son propre signal :
-`efficiency` si `pressured>=3`, part contestable >=**65 %** et part encore
-totalement ouverte <=**20 %** ; sinon `race`. Aucun seed, EngineID, montant de
-cash ou année absolue n'est codé en dur.
-
-La version adaptative à 50 % de l'écart de réalisation appris améliore fortement
-le gap `profit_year` face à AAAHogEx (**+651,8 k£/an** moyen, **+334,4 k£**
-médian, 3/5) mais perd **-8,32 %** de valeur Opex : trop agressif. La version
-**soft25** (`0,75 + 0,25 * learned` seulement en régime `efficiency`, économie
-brute en `race`) est le meilleur compromis interne mesuré : 5x6
-`c121_projectreal_adaptive_pressure_soft25_5x6_20260929`, **10/10 sain**,
-`profit_year` **-77,9 k£/an** vs C121 courant, valeur **-3,32 %** (garde -5 %
-tenue), mais gap Opex-AAAHogEx amélioré de **+451,5 k£/an** en moyenne,
-médiane **+176,6 k£**, 3/5.
-
-La comparaison décisive contre **C115** reste toutefois négative :
-`c121_soft25_vs_c115_5x6_20260929`, **10/10 sain**, gap `profit_year` face à
-AAAHogEx amélioré de **+342,2 k£/an** moyen (médiane **+558,7 k£**, 3/5), mais
-`profit_year` Opex **-287,0 k£/an** moyen, ratio des moyennes **-17,55 %**,
-`company_value` **-15,81 %**, véhicules primaires **-13,8**, slots Opex **-4,2**,
-villes Opex présentes **-4,4** et monopoles AAA `2-0` **+1,2** en moyenne.
-Le rattrapage économique est donc acheté par une sous-expansion trop forte.
-
-Dernière combinaison testée :
-`c121_projectreal_adaptive_pressure_soft25_defeff_5x6_20260929`, **10/10 sain**,
-avec `defensive_floor` prudent seulement en régime `efficiency`. Elle améliore le
-gap AAA de **+578,8 k£/an** moyen (3/5) mais échoue plus fortement encore :
-`profit_year` Opex **-200,8 k£/an**, **0/5**, valeur **-11,27 %**, **-2,0 slots
-Opex**, **-2,6 villes Opex** et **+2,0 monopoles AAA 2-0**. **Rejetée.**
-
-**Décision : pas de 20x10 ; C115 reste le témoin temporaire ; C121 et tous ses
-toggles `project_realization`, `engine_realization`, adaptatif, pressure probe,
-defensive floor restent OFF par défaut.** Conserver le classifieur
-`race/efficiency` comme signal diagnostique de phase/carte. La prochaine piste
-doit l'utiliser pour **choisir/ordonner les types de projets AIR** (course
-territoriale vs rendement) sans modifier l'économie intrinsèque du projet.
-Détails : `docs/43_c121_air_economics_shadow_20260928.md`.
-
-**C122 — stratégie AIR par régime (2026-09-29).** C122.1 (`race` :
-`newpair > hubsite > hubhub`) a été rejeté au smoke : `profit_year` **-340,7
-k£/an**, valeur **-20,52 %**, gap AAA **-343,8 k£/an**, slots **19->16** et
-monopoles AAA `2-0` **4->6**. L'audit C122.2 confirme que C77 couvre déjà les
-prises réellement périssables (`defensiveCompetitorClaims`/`preemptClaims` tier 2,
-`defensiveOwnClaims` tier 1) et que `earlySlotClaims` est déjà injecté dans
-`OpexProjectSelectionScore`. La formulation finale ajoute donc, sans nouveau scan,
-`defensiveNewTownClaims` dans `OpexProjectRefreshDefensiveSlot` en croisant les
-TownID physiques déjà connus avec `state.servedTowns`. En `race`, à tier C77 égal,
-seuls les AIR ouvrant une ville de slot absente d'Opex passent devant ;
-`efficiency` reste strictement économique. Tests finaux **58/58 OK**. Smoke propre seed42x3
-`c122_2_regime_priority_smoke_seed42_1x3_20260929_r4` : Opex **+56,4 k£/an**,
-valeur **+1,97 %**, mais gap Opex-AAAHogEx **-273,0 k£/an**, slots **18->16**,
-villes **17->16**, monopoles AAA `2-0` **3->5**, partagées **14->16**.
-Avec la télémétrie autonome finale, **0 `C122_PROMOTE`** : aucun ordre économique
-n'a été inversé par `defensiveNewTownClaims` sur seed42. **C122.2 non qualifié ; pas
-de 5x6 ni de 20x10.** Conserver le classifieur et C77 ; avant C122.3, mesurer
-l'exposition de ce signal dans le portefeuille financé ou trouver un signal causal
-plus directement lié à une perte de territoire au profit d'AAA.
-
-**C122.3 — exposition mesurée.** Sonde passive sans nouveau scan, branchée sur
-`c121_air_pressure_probe`. Sur
-`c122_3_exposure_probe_seed42_1x3_20260929_r2`, le signal apparaît dans **32/36**
-sélections ; **23/36** ont au moins une inversion potentielle et, en 1972, les
-candidats territoriaux présents sont derrière **1 à 16** AIR de même tier. Le
-signal est donc fréquent mais une priorité dure implique de grands sauts de rang.
-Le protocole a ensuite été symétrisé : classifieur/annotation/exposure identiques
-dans les deux bras, chemin pré-lock identique, trace de promotion bornée. Le r2
-intermédiaire avait produit **1 364** logs de promotion et est écarté comme mesure
-causale à cause de ce coût de trace. Le r3 final
-`c122_3_shadow_control_smoke_seed42_1x3_20260929_r3` verrouille le même `race`
-(`pressured=3`, contestable=100 %, open=25 %) dans les deux bras et retrouve les
-mêmes agrégats d'exposition (**17** snapshots avec nouvelle ville, **11** avec
-inversion potentielle, **632/83** occurrences cumulées), mais **0 promotion réelle**.
-Les deltas finaux (+29,1 k£/an, +3,16 % valeur, gap +8,1 k£/an, slots 19->20,
-villes 18->19, AAA 2-0 5->2) ne sont donc pas attribuables à une décision C122 :
-ils reflètent la sensibilité timing/opcodes du chemin actif. **Pas de 5x6/20x10.**
-Pour C122.4, viser une décision territoriale bornée réellement menacée plutôt qu'un
-renforcement global de `defensiveNewTownClaims`.
-[Confirmation shadow exact] `c122_air_regime_shadow` (défaut 0) reproduit le
-classifieur, l'annotation et la comparaison C122 sans réordonner. Sur
-`c122_3_exact_shadow_seed42_1x3_20260929`, verrou `race` (`pressured=2`,
-contestable=50 %, open=50 %) et **0 `C122_SHADOW`** : aucune inversion C122.2
-réellement disponible après lock. Instrumentation finale **59/59 tests OK**,
-`git diff --check` OK. Toujours **pas de 5x6/20x10**.
-[Fiche](44_c122_air_regime_priority_20260929.md).
-
-**C122.4 — menace locale au point de construction.** La sonde
-`c122_air_threat_probe` (défaut 0) suit uniquement une ville C83 avec un slot
-restant, absente d'Opex, et son projet AIR physique déjà vivant/finançable. Smoke
-passif `c122_4_threat_probe_seed42_1x3_20260929_r2` : **4** menaces, **3** prises
-par Opex ; Town 18 est perdue après **228 j** alors que son projet est déjà rank 0,
-finançable et tenté immédiatement. Motif causal : `siteA_unbuildable`, puis aucun
-nouveau site n'est régénéré pour cette ville. L'intervention minimale
-`c122_air_threat_retry` (défaut 0) ne change aucun score : après ce seul type de
-rejet sur un endpoint menacé, elle enfile au plus une fois le C77 ciblé sur le
-TownID exact. Smoke matched `c122_4_threat_retry_smoke_seed42_1x3_20260929` :
-**1 retry réel** (`queued=1`), Town 18 est sauvée et `opex_claimed` en 39 j. Mais
-le bilan global ne qualifie pas la politique : Opex `profit_year` **+194,3 k£/an**,
-valeur **+16,24 %**, tandis que le gap Opex-AAAHogEx se dégrade de **-294,4 k£/an** ;
-slots/villes Opex **17->16**, monopoles AAA `2-0` **5->2**, partagées **12->14**,
-véhicules primaires **43->37**. **Arrêt au smoke : pas de 5x6, aucun 20x10.**
-Tests **60/60 OK**, `git diff --check` OK. [Fiche](44_c122_air_regime_priority_20260929.md).
+## 3. Chantiers ouverts — prochaine intervention bornée
 
 <a id="c76-c77"></a>
-### C76/C77 — limites du reliquat
-
-L'implémentation et son intégration sont journalisées le 22. Les anciens contrats de
-régénération par mode ne décrivent pas nécessairement la version C76 retenue. Pour le
-reliquat des candidats injectés, vérifier la conservation du vivier et les contrats de
-Save/Load sur cette version avant de proposer un correctif. La prise opportuniste de slots
-adverses est désormais exposée passivement par C78. Sur le 5×6 sain du 22 septembre
-trouve un passage `projects` avant le second aéroport AAA dans 43/43 cas, 10/43 avec un candidat
-AIR finançable et 8/43 avec ce candidat déjà dans le portefeuille financé, mais 0/43 aéroport Opex
-posé avant le second AAA. La tranche 2 explique les huit cas financés : quatre `k_pass`, trois
-`cash` après des constructions antérieures de la passe, un `build_failed` (`AFAIL`, erreur 263).
-La corrélation tentative/outcome est close ; aucune règle de décision n'est retenue sur cette seule
-mesure. Un rerun effectué pendant l'intégration concurrente de C78.4 était invalide (missing_emitter,
-zéro gare/véhicule Opex). Le correctif reprenable l'a remplacé par un smoke sain puis un 1024²
-10×1 complet ; voir la fiche C78. L'ancien run reste seulement un témoin du défaut intermédiaire.
-Depuis cette mesure passive, la demande utilisateur a retenu une règle distincte de **course
-défensive au second créneau** sous C77 : quand `station_noise_level=0`, OpenTTD 15.3 expose via
-`AITown.GetAllowedNoise()` le nombre de slots aéroportuaires restants (`2`, `1`, `0`). Une ville
-sans aéroport Opex avec la valeur `1` a donc exactement un premier slot déjà occupé par un tiers.
-Le projet AIR rentable/finançable qui touche cette ville reçoit une priorité lexicographique avant
-`k_pass` et les autres dépenses ; un A* rail déjà terminé lui cède au plus une passe. Le premier
-prototype par scan de tuiles a été rejeté après un smoke à 0 véhicule / 0 gare ; la version O(1)
-est saine en smoke. La qualification économique 5×6 reste due.
-Le renfort déclenché par attente durable reste une possibilité distincte.
-
-### Plan ordonnanceur début de partie — admission, priorité et réactivité C83 (2026-09-25)
-
-La cible plus générale — séparation producteurs d'information / registre commun d'opportunités /
-urgence / score économique / exécution, avec intégration future des slots, de la concurrence et du
-coût de calcul — est documentée dans [34_arbitrage_economique_unifie.md](34_arbitrage_economique_unifie.md).
-Le chantier immédiat reste volontairement plus étroit : assainir les tâches existantes et le débit
-de décision avant de raffiner la fonction objectif.
-
-Constat de départ : la file de fond reste un round-robin presque plat. En régime courant, `projects`
-attend les passages de `expand`, `refleet`, `town_growth`, `repay`, puis le cycle suivant
-`catalog`, `report`, `scrap`, `air`/`air_fleet` avant de revenir. Plusieurs de ces tâches prennent
-leur tour avant de constater dans leur dispatcher qu'elles ne sont pas réellement dues : `report`
-sort si l'année n'a pas changé, `repay` si le mois n'a pas changé, `catalog` si le portefeuille est
-encore frais. Ce coût est particulièrement mal placé au démarrage, où la valeur vient surtout de la
-construction rapide de nouvelles lignes. En revanche, **ne pas réintroduire `fleet_before_new`** :
-la priorité générale « flotte avant nouvelles lignes » a déjà perdu **−20,4 % de `profit_year` à
-3 ans** et reste mauvaise à 10 ans. De même, ne pas rouvrir `portfolio_max_batch > 1` comme substitut
-à un meilleur ordonnanceur.
-
-Objectif : conserver les décisions économiques actuelles autant que possible, mais cesser de brûler
-des tours sur des tâches non dues et faire de la file réactive un vrai chemin d'urgence. Procéder par
-étapes séparées et mesurables selon la nouvelle priorité convenue :
-- **P1** : instrumentation scheduler (fait)
-- **P2** : cycle de vie du portefeuille post-build (fait, voir ci-dessous)
-- **P3** : C75 bis / allocation de capital (retenu d'après P2 : 100 % `all_unaffordable`)
-- **P4** : watcher C83 réellement réactif
-- **P5** : reliquat opcodes → workers
-- **P6** : arbitre simple des workers
-- **P7** : maintenance conditionnelle / skip-not-due seulement comme nettoyage secondaire
-
-1. **Mesurer les tours réellement inutiles avant de changer l'ordre (V95 item 1 / P1 — instrumenté, résultats v3 corrigés).**
-   Instrumentation passive sous `probe_scheduler=1` greffée sur l'enveloppe `_runNextTaskWithSlackLedger()` (aucun code ni opcode ajouté aux chemins exécutés à `probe_scheduler=0`).
-   Émission d'un enregistrement compact `SCHED_IDLE` par sélection individuelle, permettant des distributions réelles (sans agrégation mensuelle tronquée), le coût unitaire de chaque couple (tâche, raison) et la vérification stricte de l'invariant `did_work == true ⇔ skip_class == "work"`.
-   Tests de contrat Python étendus (`sweeps/test_sched_idle.py`, 16 tests validés avec succès), analyseur réécrit (`sweeps/analyse_sched_idle.py`) et diagnostic 4 ans (`sweeps/diag_sched_idle.py` / `results/diag_v95c_idle_4y_s42_100_999.json`).
-   - **Définitions de `did_work == true` par dispatcher** :
-     - `catalog` : resélection, régénération, ou tranche AIR C78 appliquée (`ran == true`).
-     - `report` : publication annuelle de début d'année (`_lastReportYear != year`).
-     - `repay` : remboursement partiel ou total du prêt (`curLoan < preLoan`).
-     - `scrap` : véhicule vendu ou ligne fermée/retirée (`curVehs < preVehs || curLines < preLines`).
-     - `expand` : 2e train ou wagon ajouté, expansion ou recherche A* démarrée (`curVehs > preVehs || railExp || railSearch`).
-     - `refleet` : nouveau véhicule acheté et ajouté à une ligne existante (`curVehs > preVehs`).
-     - `town_growth` : travailleur urbain démarré, véhicule/gare/ligne urbaine construite.
-     - `air_fleet` : injection de projets de flotte dans le vivier ou achat de nouvel avion.
-     - `projects` : `projects_useful` (construction lancée/achevée, A* démarré/consommé, réactif C83 consommé, abandon traité). Seul `projects_useful` réinitialise les compteurs de cadence.
-     - `air` : construction aérienne hors portefeuille (auto-désactivée sous AIR_PORTFOLIO).
-     - Invariant vérifié : pour chaque tâche, `did_work + noop == selected`, et pour chaque événement, `classe == "work" ⇔ did_work == 1`.
-   - **Perturbation mesurée (horizon 4 ans 1970–1973, graines 100, 42, 999, probe0 vs probe1)** :
-     - graine 100 : valeur 2 759 363 £ → 4 191 113 £ (+51,9 %) ; profit_year 1 225 260 £ → 1 611 261 £ (+31,5 %) ; veh 81 → 110 (+29) ; st 35 → 46 (+11).
-     - graine 42 : valeur 6 506 622 £ → 6 034 738 £ (−7,3 %) ; profit_year 2 798 372 £ → 2 595 595 £ (−7,2 %) ; veh 117 → 97 (−20) ; st 60 → 57 (−3).
-     - graine 999 : valeur 5 420 465 £ → 5 464 179 £ (+0,8 %) ; profit_year 2 440 715 £ → 2 428 276 £ (−0,5 %) ; veh 85 → 82 (−3) ; st 63 → 57 (−6).
-     - Moyenne deltas : valeur +15,1 %, profit_year +7,9 %. La mesure est prise sous la perturbation induite par le décalage des points de suspension NoAI sous sonde.
-     - À `probe_scheduler=0`, conformité bit-à-bit stricte avec la référence solo (smoke 1 an graine 42 : valeur 393164, profit 302818, veh 24, st 22).
-   - **Résultats par tâche (années complètes 1970–1972, couverture 12/12 sur les 3 graines, total = 3 860 sélections)** :
-     | tâche | sel | work | noop | noop% | pred | after | ops tot | ops moy | ops med | jours tot | jours moy | age d med | age d p90 | age tk med |
-     |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-     | air | 3 | 0 | 3 | 100,0 % | 3 | 0 | 1 098 | 366 | 366 | 0 | 0,00 | — | — | — |
-     | air_fleet | 429 | 0 | 429 | 100,0 % | 0 | 429 | 52 003 230 | 121 220 | 23 259 | 285 | 0,66 | — | — | — |
-     | catalog | 430 | 102 | 328 | 76,3 % | 328 | 0 | 161 813 095 | 376 310 | 1 742 | 877 | 2,04 | 31,0 | 50,2 | 575 |
-     | expand | 428 | 1 | 427 | 99,8 % | 0 | 427 | 4 318 152 | 10 089 | 10 004 | 38 | 0,09 | — | — | — |
-     | projects | 428 | 102 | 326 | 76,2 % | 0 | 326 | 251 993 142 | 588 769 | 5 605 | 1 356 | 3,17 | 29,0 | 52,6 | 530 |
-     | refleet | 428 | 12 | 416 | 97,2 % | 0 | 416 | 1 359 827 | 3 177 | 2 194 | 8 | 0,02 | 119,0 | 492,4 | 2 198 |
-     | repay | 427 | 13 | 414 | 97,0 % | 338 | 76 | 1 237 321 | 2 898 | 391 | 15 | 0,04 | 43,5 | 178,8 | 801 |
-     | report | 430 | 9 | 421 | 97,9 % | 421 | 0 | 10 003 297 | 23 263 | 459 | 58 | 0,13 | 380,5 | 388,0 | 7 047 |
-     | scrap | 430 | 0 | 430 | 100,0 % | 0 | 430 | 304 310 | 708 | 659 | 7 | 0,02 | — | — | — |
-     | town_growth | 427 | 17 | 410 | 96,0 % | 0 | 410 | 31 258 932 | 73 206 | 2 654 | 170 | 0,40 | 155,0 | 381,8 | 2 869 |
-     | **Total** | **3 860** | **256** | **3 604** | **93,4 %** | **1 090** | **2 514** | **514 292 404** | **133 236** | **1 127** | **2 814** | **0,73** | — | — | — |
-   - **Coût unitaire par couple (tâche, raison) (années complètes 1970–1972)** :
-     | tâche | raison | classe | n | % tâche | ops tot | ops moy | ops med | ops p90 | jours moy | ticks moy | ticks med |
-     |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-     | scrap | scrap_no_work | after | 430 | 100,0 % | 304 310 | 708 | 659 | 875 | 0,02 | 0,3 | 0 |
-     | air_fleet | air_fleet_no_work | after | 429 | 100,0 % | 52 003 230 | 121 220 | 23 259 | 322 211 | 0,66 | 11,8 | 2 |
-     | expand | expand_no_work | after | 427 | 99,8 % | 4 172 001 | 9 770 | 10 004 | 10 117 | 0,09 | 1,3 | 1 |
-     | report | report_same_year | pred | 421 | 97,9 % | 194 079 | 461 | 459 | 459 | 0,01 | 0,3 | 0 |
-     | refleet | refleet_no_work | after | 416 | 97,2 % | 993 026 | 2 387 | 2 193 | 3 228 | 0,02 | 0,3 | 0 |
-     | town_growth | town_growth_no_work | after | 410 | 96,0 % | 21 858 892 | 53 314 | 2 529 | 169 491 | 0,28 | 5,2 | 0 |
-     | repay | repay_same_month | pred | 338 | 79,2 % | 132 263 | 391 | 391 | 391 | 0,00 | 0,0 | 0 |
-     | catalog | catalog_fresh | pred | 328 | 76,3 % | 544 048 | 1 659 | 1 598 | 2 066 | 0,00 | 0,0 | 0 |
-     | projects | projects_empty | after | 312 | 72,9 % | 1 488 997 | 4 772 | 4 474 | 6 515 | 0,00 | 0,0 | 0 |
-     | catalog | catalog_refresh | work | 102 | 23,7 % | 161 269 047 | 1 581 069 | 1 149 919 | 3 655 919 | 8,60 | 159,4 | 115 |
-     | projects | projects_useful | work | 102 | 23,8 % | 238 798 905 | 2 341 166 | 2 359 918 | 3 424 939 | 12,69 | 235,1 | 238 |
-     | repay | repay_no_work | after | 76 | 17,8 % | 716 694 | 9 430 | 9 928 | 9 928 | 0,16 | 2,4 | 1 |
-     | town_growth | town_growth_work | work | 17 | 4,0 % | 9 400 040 | 552 944 | 380 074 | 979 288 | 3,18 | 59,1 | 40 |
-     | projects | projects_examined_no_effect | after | 14 | 3,3 % | 11 705 240 | 836 089 | 438 676 | 1 846 921 | 4,43 | 83,3 | 44 |
-     | repay | repay_work | work | 13 | 3,0 % | 388 364 | 29 874 | 29 923 | 29 923 | 0,15 | 3,0 | 3 |
-     | refleet | refleet_work | work | 12 | 2,8 % | 366 801 | 30 567 | 30 520 | 31 107 | 0,08 | 3,0 | 3 |
-     | report | report_work | work | 9 | 2,1 % | 9 809 218 | 1 089 913 | 1 100 019 | 1 847 597 | 5,78 | 109,0 | 110 |
-     | air | air_disabled | pred | 3 | 100,0 % | 1 098 | 366 | 366 | 366 | 0,00 | 0,0 | 0 |
-     | expand | expand_work | work | 1 | 0,2 % | 146 151 | 146 151 | 146 151 | 146 151 | 1,00 | 14,0 | 14 |
-   - **Couverture et répartition par graine × année** :
-     - Graine 42 : 1970 12/12 (464 sel, 33 work, 431 noop, 92,9 %, 130 pred, 301 after) ; 1971 12/12 (104 sel, 29 work, 75 noop, 72,1 %, 12 pred, 63 after) ; 1972 12/12 (58 sel, 18 work, 40 noop, 69,0 %, 6 pred, 34 after) ; 1973 10/12 (50 sel, 12 work, 38 noop, 76,0 %, 6 pred, 32 after, partiel). Total 1970–1972 = 626 sel.
-     - Graine 100 : 1970 12/12 (1 887 sel, 34 work, 1 853 noop, 98,2 %, 601 pred, 1 252 after) ; 1971 12/12 (526 sel, 34 work, 492 noop, 93,5 %, 149 pred, 343 after) ; 1972 12/12 (97 sel, 33 work, 64 noop, 66,0 %, 10 pred, 54 after) ; 1973 12/12 (69 sel, 18 work, 51 noop, 73,9 %, 8 pred, 43 after). Total 1970–1972 = 2 510 sel.
-     - Graine 999 : 1970 12/12 (536 sel, 26 work, 510 noop, 95,1 %, 158 pred, 352 after) ; 1971 12/12 (125 sel, 29 work, 96 noop, 76,8 %, 17 pred, 79 after) ; 1972 12/12 (63 sel, 20 work, 43 noop, 68,3 %, 7 pred, 36 after) ; 1973 10/12 (33 sel, 14 work, 19 noop, 57,6 %, 2 pred, 17 after, partiel). Total 1970–1972 = 724 sel.
-     - **Vérification de cohérence exacte des totaux** : 626 (s42) + 2 510 (s100) + 724 (s999) = **3 860 sélections**. La somme par graine coïncide à l'unité près avec la somme par année (2 887 en 1970 + 755 en 1971 + 218 en 1972 = 3 860), la somme par tâche (3 860) et la somme par raison (3 860). L'analyseur intègre une assertion de cohérence stricte qui échoue bruyamment en cas de divergence.
-   - **Cadence `projects` utile (distributions réelles, n = 99 intervalles)** :
-     - Tâches d'arrière-plan traversées entre deux passages utiles : moyenne = 37,6 tâches, médiane = 8 tâches, p90 = 80,0 tâches.
-     - ~~Délai calendaire entre deux passages utiles : médiane 29,0 j~~ — **chiffre faux** : la réconciliation P2 bis (`results/diag_p2bis_reconciliation_4y_s42_100_999.*`) mesure ≈ 4 j médian entre passages utiles en phase de construction ; les passages vides sont concentrés dans 32 épisodes d'attente de capital (459 passages, ~0,1 j par tour de file).
-     - Délai en ticks moteur : moyenne = 589,4 ticks, médiane = 530 ticks, p90 = 970,8 ticks.
-   - **Candidats `skip-not-due` justifiés (cls=pred), classés par enjeu réel** :
-     - `report_same_year` (421 tours, 461 ops moy, 459 ops med, 0,01 j moy, 0,3 tk moy, 194 079 ops tot, 6 jours totaux) : garde d'éligibilité annuelle évidente, consomme inutilement 11 mois sur 12.
-     - `repay_same_month` (338 tours, 391 ops moy, 391 ops med, 0,00 j moy, 0,0 tk moy, 132 263 ops tot, 1 jour total) : garde calendaire mensuelle simple, supprime ~340 tours à vide.
-     - `catalog_fresh` (328 tours, 1 659 ops moy, 1 598 ops med, 0,00 j moy, 0,0 tk moy, 544 048 ops tot, 0 jour total) : enjeu exclusivement en opcodes (~1 600 ops par tour gaspillé, soit un demi-million d'opcodes au total sans aucun tick moteur consommé).
-     - `air_disabled` (3 tours, 366 ops moy, 366 ops med, 0,00 j moy, 0,0 tk moy, 1 098 ops tot) : inerte sous `AIR_PORTFOLIO`.
-   - **Constat sur `projects_empty` et goulot de `projects`** :
-     - Sur les 428 sélections de `projects`, 312 tours (72,9 %) sont des no-ops `projects_empty` (vivier vide). Ils constituent **95,7 % des 326 no-ops de la tâche** (les 14 restants étant `projects_examined_no_effect` où des projets existent mais ne sont pas finançables/faisables).
-     - La comparaison avec `catalog` montre une symétrie parfaite : `catalog_refresh` a produit du travail exactement **102 fois**, et `projects_useful` a consommé ce travail exactement **102 fois**.
-     - Dès qu'un projet est construit, l'hypothèse initiale postulait que « le vivier est vidé et projects tourne à vide » : cette hypothèse a été rigoureusement testée et réfutée par le diagnostic P2 ci-dessous.
-     - **Conclusion P1** : le goulot de `projects` n'est pas sa fréquence de passage dans l'ordonnanceur (qui passe déjà largement assez souvent, tous les 8 tours de file en médiane), mais le cycle de réapprovisionnement et de financement du vivier.
-
-2. **Cycle de vie du portefeuille post-build (V95 item 2 / P2 — instrumenté et mesuré).**
-   Instrumentation légère sous `probe_scheduler=1` (`P2_BUILD` et `P2_RESOLVE`) greffée sur `_schedIdlePostDispatch()` dans `ai/OpexAI/ledgers.nut` (aucun surcoût ni opcode à `probe_scheduler=0`, conformité bit-à-bit vérifiée : smoke 1 an graine 42 = 393164 / 24 / 22 / 302818).
-   Tests déterministes Python (`sweeps/test_p2_lifecycle.py`, 6 tests couvrant toutes les causes et raisons, 25/25 avec P1), décodeur/analyseur (`sweeps/analyse_p2_lifecycle.py`), diagnostic 4 ans (1970–1972 complets, graines 42, 100, 999 : `results/diag_p2_lifecycle_4y_s42_100_999.json` et `.md`).
-   - **Réfutation de l'hypothèse de vidage systématique** :
-     - Sur 102 constructions observées, le portefeuille **reste immédiatement non vide dans 70 cas (68,6 %)** (`cause=none`, `funded > 0` après `OpexIncrementalUpdateProjects`).
-     - Dans seulement **32 cas (31,4 %)**, la construction vide le portefeuille (`funded == 0`).
-   - **Répartition des causes de vide (`emptyCause`, n = 32)** :
-     - `all_unaffordable` : **32 / 32 (100,0 % des cas de vide, 31,4 % du total)**. Des projets alternatifs sont toujours présents dans le vivier (médiane 383 alternatives scannées, 236 retenues), mais tous dépassent le capital restant.
-     - `cache_exhausted` : **0 / 32 (0,0 %)**. Le vivier incrémental n'est jamais épuisé.
-     - `empty_pool` / `stage_empty` / `abandon_filtered` / `selection_empty` : **0 / 32 (0,0 %)**.
-   - **Délai de réapparition d'un portefeuille non vide (n = 32)** :
-     - Min = 2 j, Médiane = **15,0 jours** (290,5 ticks moteur), Moyenne = 15,3 j, p90 = 28 j, Max = 47 j.
-   - **Déclencheurs du retour à non-vide (`ret_reason`, n = 32)** :
-     - `immediate` : 70 / 102 (68,6 %).
-     - `air_fleet` : **16 / 32 (50,0 %)**. L'injection incrémentale de flotte aérienne introduit des appareils bon marché (~15–20 k£) immédiatement finançables sans attendre le mois suivant.
-     - `month` : **8 / 32 (25,0 %)**. Nouveau mois calendaire forçant le rafraîchissement global.
-     - `capital` : **4 / 32 (12,5 %)**. Hausse de trésorerie (>2× ou +50 k£).
-     - Autres tâches (`expand`, `scrap`, `catalog_other`) : **4 / 32 (12,5 %)**.
-   - **Analyse financière post-build (`all_unaffordable`, n = 32)** :
-     - Capital restant médian après build : 23 567 £.
-     - Capital requis médian pour le projet suivant (`next_k`) : 32 812 £.
-     - Déficit médian : **seulement 5 475 £**.
-   - **Conclusion causale et décision P3** :
-     - Le vide n'est ni un manque réel d'opportunités, ni un vivier épuisé, ni un défaut de diversité du pool. Le blocage est **100 % financier** (`all_unaffordable`).
-     - Selon la grille d'arbitrage convenue (`cache_exhausted` → refresh ciblé, `all_unaffordable` → C75 bis / allocation de capital, `stage_empty` → diversité), le résultat impose **C75 bis / allocation de capital** comme priorité P3 (déblocage caisse / contournement `k_pass` pour nouvelles lignes finançables).
-3. **Priorité P3 : C75 bis / allocation de capital (levier issu de P2, désormais adopté sous `c75_kpass_bypass`, défaut 1).**
-   Le diagnostic P2 ayant démontré que 100 % des vidages de vivier post-build sont de type `all_unaffordable`
-   (déficit médian minime de 5 475 £), le contournement de `k_pass` est implémenté : au plus une fois par passe
-   et uniquement pour une nouvelle ligne (`air`, `rail`, `road`, `water`) dont le capital est réellement disponible
-   (`projCap <= availCap`), jamais pour `fleet`. Aucun état persistant nouveau (compteur local à la passe).
-   Aucune réservation d'argent pour un A* rail simplement présent dans le vivier (une recherche rail en vol garde ses règles).
-   Smokes 1y et solo 3y validés (divergence nette : +5 avions en 3 ans). Commandes 5×6 et 20×10 prêtes. Voir fiche C75 bis.
-4. **Watcher C83 réellement réactif (P4).** Aujourd'hui la transition est détectée seulement
-   dans `_tryBuildProjects()` via `_c83WatchAirSlotTransitions()` : une ville surveillée passe de
-   `AITown.GetAllowedNoise()==2` à `==1`, sans aéroport Opex, puis seulement alors
-   `_c77EnqueueEntity(["air"], "town", townId, true, "c83_slot_race")` alimente la file réactive.
-   Comme NoAI ne fournit pas d'événement « concurrent vient de poser un aéroport », conserver le
-   sondage O(1) `GetAllowedNoise`, mais le faire comme **producteur réactif léger indépendant de
-   `projects`**, avant le dépilage réactif de `_runOrchestratorTick` (ou à une cadence courte bornée).
-   Le watcher ne construit rien : il détecte/coalesce/enqueue seulement. Tester explicitement les
-   transitions `2→1`, `11→1` après disparition Opex, `1→0`, réarmement et Save/Load.
-   Faire viser l'occasion par le réactif : transporter l'identité de la ville et construire de manière
-   ciblée si le créneau est encore libre.
-5. **Mesure de pré-planification A* rail pendant l'attente de capital (P5 bis — corrigé, mesuré sous défaut et V89).**
-   Instrumentation sous `probe_scheduler=1` (`P5_WAIT_START`, `P5_WAIT_END`, `P5_RAIL_PASS`, `P5_RAIL_SEARCH_START`, `P5_RAIL_SEARCH_END`, `P5_BUILD_LINE`) greffée dans `ledgers.nut` (le correctif sonde du 2026-09-25 a retiré toute garde V95 et restructuration de `task_rail.nut` et `task_projects.nut`, restaurant une pureté stricte du chemin `probe_scheduler=0` : identité bit-à-bit exacte vérifiée contre `b34e5de` sur graines 100 et 999 × 6 ans avec recherches rail, et smoke 42 1 an).
-   Tests déterministes Python (`sweeps/test_p5_preplan.py`, 31 tests unitaires), analyseur (`sweeps/analyse_p5_preplan.py`), diagnostic étendu 6 ans (graines 42, 100, 999, horizon 1970–1975) sous deux bras : défaut (`v89_rail_search_throughput=0`) et V89 (`v89_rail_search_throughput=1`). Sorties : `results/diag_p5b_defaut_probe1_6y.json` et `results/diag_p5b_v89_probe1_6y.json`.
-   - **Correction de l'artefact P5 et issues réelles de l'A*** :
-     - Le constat P5 initial « 0/5 succès, 5/5 NOPA » était un pur artefact de mesure (`ledgers.nut` testait `plan.path`, or un tracé réussi remplit `plan.tiles` et `plan.ok`, jamais `path`). La détection au terme effectif de recherche via `plan.ok` / `plan.reason` montre **100 % de succès réels** :
-       - Bras défaut : **16 / 16 recherches réussies (100,0 % OK)**, 0 NOPA, 0 plafond itérations, 0 SHORT/NOMATCH.
-       - Bras V89 : **13 / 13 recherches réussies (100,0 % OK)**, 0 NOPA, 0 plafond itérations, 0 SHORT/NOMATCH.
-   - **Coût A*, débit et durée calendaire (défaut vs V89)** :
-     - Bras défaut : itérations médiane = **860,5** (p90 = 2 237) ; opcodes médiane = **2 525 197** (p90 = 6 174 037) ; durée calendaire médiane = **118,5 jours** (2 189 ticks, p90 = 288 j) ; débit A* = **1 556 opcodes/tick** (moyenne = 2 157).
-     - Bras V89 : itérations médiane = **529** (p90 = 2 232) ; opcodes médiane = **1 451 465** (p90 = 6 151 267) ; durée calendaire médiane = **32,0 jours** (585 ticks, p90 = 242 j) ; débit A* = **1 210 opcodes/tick** (moyenne = 1 794). V89 divise par près de 4 la durée calendaire d'une recherche rail (−73 % en jours et en ticks).
-   - **Exposition en attente de capital (`all_unaffordable`)** :
-     - Épisodes d'attente observés : **41** sous défaut, **36** sous V89. Présence d'alternatives rail dans le vivier : **100,0 % des épisodes** (41/41 et 36/36).
-     - Durée médiane d'un épisode : **15,0 jours** (277 ticks).
-     - Opcodes inutilisés par tick d'attente : médiane = **1 391 ops/tk** (défaut) / **1 414 ops/tk** (V89), p90 = 3 100 à 3 700 ops/tk, cumul = 23,5 M opcodes gaspillés.
-     - *Explication des écarts d'opcodes libres (450 à 4 500+ ops/tk)* : l'ordonnanceur dispose de 10 000 ops/tick alloués par le moteur. Lors des ticks actifs (reconstruction de catalogue, tri de projets, maintenance), une part du quota est consommée. Lors des ticks d'attente passive pure, 9 500+ opcodes sont relâchés.
-   - **Impact quantifié du facteur 1,70 (double application vérifiée dans le code)** :
-     - Le code applique `RAIL_TERRAIN_FACTOR = 170` (+70 % sur la voie, `economy.nut`), puis `RAIL_FINANCE_CAPITAL_BIAS_PCT = 170` (+70 % sur tout le projet, `projects.nut`), imposant un multiplicateur combiné de ~1,77 alors que le coût réel (C67.6) vaut 0,96×.
-     - Contrefactuel calculé hors jeu (capital à 0,96/1,70 du modélisé, sans changer le code de décision) :
-       - Capital requis médian : 82 552 £ → **46 617 £** (−43,5 %).
-       - Déficit médian vs caisse : 54 029 £ → **18 317 £** (−35 712 £).
-       - Rang médian vivier : 139 → **49** (+90 places !).
-       - Épisodes finançables : 1/41 → **5/41** (+4).
-       - Dans le Top 1 (meilleur ROI) : 0 → **2** ; Top 3 : 0 → **9 (22,0 %)** ; Top 5 : 0 → **10 (24,4 %)**.
-     - Le facteur 1,70 masque lourdement le rail en refoulant ses projets du Top 3/5 vers les rangs 130–140.
-   - **Avance mesurable et devenir des candidats** :
-     - La recherche étant reprenable, le gain n'est pas binaire mais progressif :
-     - Bras défaut : avance médiane disponible = **15,0 jours** (12,7 % de l'A*). Avance théorique totale = **628 jours**, dont **133 jours** sur des candidats effectivement construits plus tard dans la partie (`built_later` = 14 épisodes, 34,1 %). 26 épisodes dépassés par un autre mode (`superseded_by_other_mode`), 1 jamais construit (`never_built`).
-     - Bras V89 : avance médiane disponible = **15,0 jours**, mais couvrant **46,9 % de l'A*** (durée réduite à 32 j).
-   - **Perturbation sous sonde (`probe_scheduler=1` vs `probe_scheduler=0`)** :
-     - Bras défaut : s100 (valeur +0,0 %, profit −14,0 %), s42 (valeur −4,3 %, profit +4,7 %), s999 (valeur +0,7 %, profit +2,1 %).
-     - Bras V89 : s100 (valeur +10,0 %, profit +2,0 %), s42 (valeur +7,6 %, profit +6,0 %), s999 (valeur +2,1 %, profit +2,2 %).
-   - **Synthèse et décision P5** :
-     - La pré-planification A* n'est **pas réfutée techniquement** : le taux de succès est de 100 %, les opcodes d'attente sont amplement suffisants et 133 jours de chantier sont récupérables sur des lignes réelles.
-     - Cependant, deux contraintes structurelles modifient l'arbitrage :
-       1. Sans correction préalable du facteur 1,70, les candidats rail restent relégués au rang 139 et sont supplantés par d'autres modes dès que la caisse remonte (63 % des épisodes).
-       2. L'activation de V89 règle déjà l'essentiel de la latence de recherche (118 j → 32 j) sans complexité d'anticipation.
-     - **Recommandation et livrables** : C75 bis est adopté sous `c75_kpass_bypass=1`. Le facteur rail est adopté à `rail_finance_bias_pct=100`. V89 est désormais **défaut 1** par décision utilisateur afin de servir de dépendance à V88, malgré son 20×10 direct neutre sur le profit et négatif sur la note de performance. La pré-planification en reliquat (P5/P6) reste un levier complémentaire.
-6. **Arbitre simple des workers (P6).** Sélection tranche par tranche selon le travail déjà prêt et ce qui bloque
-   réellement l'aval (`rail_search`, `town_growth`, puis C67). Avec `FLEET_PORTFOLIO`, `air_fleet` doit surtout
-   produire/injecter un candidat ; c'est le portefeuille qui arbitre renfort contre nouvelle ligne.
-7. **Maintenance conditionnelle et admission `skip-not-due` comme nettoyage secondaire (P7).**
-   Déplacer les gardes calendaires et états sûrs (`report_same_year`, `repay_same_month`, `catalog_fresh`,
-   drapeaux `needs*` pour `refleet`/`expand`/`scrap`) dans un prédicat d'éligibilité du scheduler pour délester
-   les no-ops prédictibles. Une tâche non due est sautée dans le même scan, pas élue puis consommée pour rien.
-8. **Ne pas transformer `projects` en boucle chaude générale.** Après `k_pass`, ne pas faire
-   systématiquement `projects → projects` ni augmenter le batch : les essais historiques de débit
-   supplémentaire du portefeuille ont été négatifs. Les seules reprises accélérées admises sont une
-   intention réactive identifiée (C83/crash/urgence réelle) ou la continuation ciblée d'un travail
-   déjà commencé.
-9. **Validation.** Pour chaque étape : tests scheduler déterministes (ordre, skip, anti-famine), smoke
-   1×1, puis 5×6 sur les graines usuelles avec métriques de cadence (`projects` utiles/jour, délai
-   `financeable→attempt`, délai `slot 2→1→enqueue→attempt`), économie (`profit_year`, valeur), nombre
-   de lignes/aéroports/véhicules et part de tours no-op. Ne combiner les étapes qu'après avoir isolé
-   leur effet ; toute variante qui améliore seulement les opcodes mais dégrade l'économie reste non
-   adoptée.
-
-Ordre d'implémentation (nouvelle séquence P1–P7 convenue le 2026-09-25) : **P1 instrumentation scheduler (fait) → P2 cycle de vie portefeuille (fait) → P3 C75 bis / allocation de capital (priorité décidée d'après P2) → P4 watcher C83 réactif → P5 reliquat opcodes workers → P6 arbitre workers → P7 maintenance conditionnelle / skip-not-due comme nettoyage secondaire**.
-
 <a id="revue-c76-c77"></a>
-### Revue du code C76-C77 — pistes (2026-09-22)
+<a id="plan-ordonnanceur-début-de-partie--admission-priorité-et-réactivité-c83-2026-09-25"></a>
 
-Revue en lecture seule du commit `06b5227` (branche `c80-suite`) par trois agents agy (C76, C77,
-transverse orchestrateur et persistance), recoupée par Claude dans le code. **Mise à jour du
-2026-09-23 : points 1 à 5 et les trois selftests codés** (branche `c76-pistes-a`, par agy, relus
-et corrigés par Claude) : points 1-3 sous le réglage `c76_lean_invalidation` (défaut 0, effectif
-sous `c76_regen_targeted`), point 4 sans réglage (sans effet de décision), point 5 sous
-`probe_scheduler` (clés `reactive|<kind>` et `worker|<kind>`). Smokes sains (2 × 3 ans, défaut et
-pile + `c76_lean_invalidation` : 0 régénération « budget », 57 évitées). **Première lecture de
-l'horloge complète : sous C77, `reactive|c77_build` pèse 136 jours de jeu sur 2 ans** (point 6).
-Aucun banc : effet non mesuré. Mesures citées : solo 3 graines × 10 ans, `docs/18_orchestrateur_double_registre.md` §14.
+| Chantier | Statut | Prochaine étape / condition de passage |
+|---|---|---|
+| C121 catalogue / économie | **Prototype non adoptable ; témoins du lot2 contaminés, interprétation corrigée** | Demande « essaie autre chose » : bootstrap de côté. Cohorte instrumentée95 achats N=1, six écarts avec `decision_n` ; `actual_profit` prédit, pas réalisé. Relier service valorisé→achat→renfort→année réalisée avant modification économique ; manque de preuves par ligne, ne pas réarmer stock-growth. Lanceur isolé corrigé/testé, smoke d'isolation encore non exécuté ; pas de rejeu automatique ni20×10, C115 protégé. [Lot cache](c121_cache_coherence_20261001.md), [rectification et piste](c121_investments_20261001.md). |
+| C83 watcher / corrections (P4) | **Prototype OFF ; diagnostic défavorable** | `exp_c83_watch_daily` : 5×6, Δ profit Opex 1975 −114,3 k£/an, valeur −8,16 %. Exposition : 0 enqueue, intervalles jusqu'à 38 jours ; Save/Load technique réussi. Diagnostiquer blocages et détection→action avant variante ; aucune relance identique. Top-six et politique C83 conservés, `c83_fixes` non activé. Réarmement/coalescence et changement de villes restent séparés. [Bilan](cadence_parallel_20260930.md), [fiche C83](22_c78_lignes_vs_aaa.md). |
+| C76/C77 reliquat | **À réconcilier** | Vérifier vivier injecté, invalidation non-AIR, intention mutatrice pendant worker, cycle de subvention et Save/Load. Points 1–5, horloge et premiers selftests déjà codés : ne pas les refaire. Réévaluation légère du vivier reste une piste distincte, pas retour à `lean`/rotation rejetés. |
+| C80 workers / P5–P6 | **Piste mesurée, pas adoptée** | Réutiliser P1/P2/P5 ; arbitrage tranche par tranche selon travail prêt et blocage aval, sans famine ni boucle chaude `projects`. Stock A* en pause : expliquer l'éviction du rail avant relance. C67 s'intègre au futur arbitre, pas par multiplication de hooks. [Conception](36_astar_workers_conception.md). |
+| Scheduler P7 | **Prototype OFF ; gain propre non démontré** | 5×6 : Δ profit Opex 1975 −17,2 k£/an malgré ratio +1,08 pt ; valeur +4,85 %. Exposition 7 sauts, Save/Load réussi ; mesurer coût net et délai vers tâche utile avant suite. `report_same_year`/`repay_same_month` seulement ; **`catalog_fresh` exclu** (effets avant garde), pas de batch accru ni `fleet_before_new`. [Bilan](cadence_parallel_20260930.md). |
+| C80 rapport / catalogue / hubs | **Préfiltre OFF ; mesure légère intégrée et exercée** | 2×5×6 sondes : filtre pratique passé, IC95 du Δprofit inclut zéro, neutralité non prouvée. 939/942 invocations AIR appariées, 1564 sélections valides. Scope synchrone général : hub→hub premier 3/5, hub→site 2/5 ; aucun bloc premier ≥4/5. Choisir une intervention isolée sans mélanger bootstrap/ciblé ; pas de découpage automatique, pas de retour au préfiltre défavorable sur 42. Préserver C115/C121. [Trois lots](three_lots_integration_20261001.md). |
+| C67 lecteur par Valuate | **Mesure à faire** | Fixture 5×5/10×10 : exactitude, opcodes, borne non suspendable ; pas de carte entière ni partie longue. Consommateur économique seulement après exposition démontrée. [Contrat](c67_cartographie_contrat.md). |
+| Estimé à l'élection / réalisé par ligne | **Shadow OFF ; VM calibrations/V92 validée ; réalisé non raccordé** | 48 élections complètes, 20 mixtes, 61 occurrences fleet : 369 inversions fleet↔nouvelle liaison, zéro changement de tête. VM48+9 et achat dirigé4→1 validés ; aucun gain marginal démontré. Restent copie/tri diagnostic coûteux à alléger, identité élection→achat→année réalisée complète et qualification isolée avant changement de score. R2 conservé, C84/C121 exclus ; finance rail=100. [Trois lots](three_lots_integration_20261001.md), [compléments](performance_completion_20261001.md). |
+| C116 graine 100 | **Conditionné aux preuves** | Chronologie cash/projets face à 999/1234/5678 dans C116.2 ; aucune nouvelle règle ni 20×10 sous les formulations rejetées. |
+| C85 puis C84 | **Reprise conditionnelle** | C85 d'abord ; changement de sûreté mesuré séparément. C84 seulement après 5×6 C85 >+50 k£/an et garde valeur tenue ; pas de 20×10 avant ces portes. [C85](25_c85_air_equipment_frontier.md), [C84](24_c84_air_target_fleet.md). |
+| C88 compagnies humaines/IA | **Reconnaissance seule** | Confirmer API NoAI 15.3 ; si `is_ai` inaccessible, constater et arrêter. Aucune heuristique nom/argent/activité, aucune décision changée. |
+| Estimateurs low-opcode | **Après stabilisation C121** | Revue cold start physique + moyenne glissante : observations, fenêtre, invalidation, coût mesuré ; pas de constantes ajoutées sans modèle. |
+| Protocole `mean40` | **Choix avant campagne** | Déjà implémenté et utilisé : décider sa généralisation, règle et graines avant mesure. `signs20` reste le défaut, aucun changement après résultats. |
 
-**C76 — coût des régénérations** (vérifié dans le code) :
+## 4. En pause ou sous condition — pas de lancement automatique
 
-1. **Raison « budget » → resélection.** Un doublement du capital relance une régénération complète
-   (`scheduler_tasks.nut`, `_dispatchCatalog`, variable `stale`), alors que la génération des
-   candidats ne dépend pas du capital (seule `OpexProjectSelectAffordable` le lit ;
-   `builder_air.nut:1172` n'est qu'un champ de sonde). `OpexReselectProjects` suffit. Trivial ;
-   8 régénérations complètes sur 3 parties.
-2. **Couche `lines` relevée sans nécessité.** Elle invalide tous les modes. Or une ligne de bus de
-   `town_growth` (`task_town.nut:214`) ne touche que les bus de sa ville ; un retrait de ligne
-   déficitaire (`task_report.nut:534`) ne rend aucun candidat invalide ; un abandon de paire hors
-   passe (`lines.nut:267`) est déjà filtré en mémoire (`OpexCandidateIsAbandoned`). Traitement
-   local à la place. Principale source des régénérations « layers » (34 sur 3 parties).
-3. **Subvention perdue → régénération complète redondante** (`task_road.nut:30` pose
-   `_portfolioInvalidated` juste après la purge locale `_purgeSubsidyFromProjects`).
-4. **Matrice de dépendances fausse pour l'eau** (`_c76GetModeDeps`) : l'eau dépend des villes, pas
-   des industries (elle ne planifie que des passagers). `c80_mode_regen` l'exclut déjà ; reste la
-   matrice et `_c76RunSelfTest`.
+<a id="c61"></a><a id="c59"></a><a id="c64"></a><a id="c63"></a>
+<a id="c58"></a><a id="c39"></a><a id="c41"></a><a id="c44"></a>
 
-**Mesure (à traiter avant toute nouvelle optimisation de C80).** 5. L'horloge C39.6 n'impute ni
-les intentions réactives ni les tranches de travailleurs (elles s'exécutent dans
-`_runOrchestratorTick`, hors de `_runNextTaskWithSlackLedger`) : sous la pile C80, ~280 jours
-imputés par an contre ~363 au défaut. Toute durée de tour mesurée sous C80 est biaisée.
-
-**C77 — valeur** :
-
-6. **La construction déclenchée ne vise pas l'occasion.** `c77_build` appelle `_tryBuildProjects`,
-   qui bâtit le premier rang du vivier entier, pas le candidat de l'entité touchée ; et les
-   occasions produites valent peu (ville fondée ~100 habitants, industrie neuve à faible
-   production). Explication la plus plausible du 10/10 au 20×10 (hypothèse). Piste : ne construire
-   que si le candidat de l'événement entre en tête du classement.
-7. **Le déclencheur « AAAHogEx pose un aéroport → prendre le second créneau » n'existe pas**
-   (aucun handler ne regarde les stations concurrentes). Seul déclencheur à valeur démontrée
-   (`docs/22_c78_lignes_vs_aaa.md` §7) : relève de **C83**. Pas d'événement NoAI : scan périodique
-   `AIStationList(AIStation.STATION_AIRPORT)` filtré par propriétaire. *Note d'intégration :* la
-   course défensive C78 (ci-dessus) couvre depuis ce cas sans scan, via `AITown.GetAllowedNoise()==1`.
-
-**Corrections mineures** (vérifiées) : au rechargement, une intention `c77_build` est perdue si le
-vivier est vide (`orchestrator.nut:427`) ; sous C77 sans C76, l'invalidation historique est coupée
-(`event_handlers.nut:563`, 600, 639) sans relais pour une fermeture d'industrie ; clé de coalescence
-`c77|build|<raison>` qui fusionne deux événements de même nature (impact faible) ; une intention
-`c77_entity` attend la fin de tout travailleur, y compris un A\* rail long (latence) ; double
-tranche d'A\* dans un même tick par la récursion de `town_growth_skip_noop` (réglage à 0).
-
-**Écarté** : « une régénération réactive corrompt l'A\* en cours » (faux : le chemin historique
-régénère déjà pendant une recherche, qui porte son propre candidat) ; quota anti-famine de la file
-réactive (hypothèse non mesurée, décision ouverte §3.1.3 de la fiche C80).
-
-**Pistes C76 après le rejet de `lean` (2026-09-23, deux analyses agy recoupées par Claude dans le
-code).** Mécanisme commun, vérifié dans le code, effet non mesuré : **chaque régénération complète
-ne génère le fret que pour UN cargo** et fait tourner `_lastFreightCargo`
-(`task_projects.nut:1062-1100`). `OpexReselectProjects` (`projects.nut:1151`) et la mise à jour
-post-construction (`OpexIncrementalUpdateProjects`, qui acquitte la couche `lines`) ne font pas
-tourner ce cargo. Au défaut (régénération mensuelle), le fret parcourt tous ses cargos en quelques
-mois ; sous C76, il reste figé entre deux régénérations complètes, et la demande des candidats
-(population, production, tarifs) aussi. `lean` retire encore des déclencheurs, dont
-**chaque abandon de paire** (`lines.nut:266`, fréquent en AIR), ce qui cadre avec −143 k£/an
-(hypothèse). Pistes, dans l'ordre :
-
-1. ~~Mesurer l'exposition~~ **fait** ([nuit du 23](journaux/23_nuit_2026-09-23.md) §7) : le défaut ne
-   régénère qu'à chaque tour de file (~86 j) ; C76 seul garde la même cadence grâce aux
-   régénérations réactives ; `lean` retire ~40 % des changements de cargo fret.
-2. **Rotation fret mensuelle légère** : implémentée (`c76_freight_rotation`, défaut 0,
-   `3618073`). **Non retenu** : 20×10 contre le défaut −59 k£/an, 9/11, p = 0,82, valeur −1,5 %
-   (`fail_primary`), malgré un 5×6 favorable ([nuit du 23](journaux/23_nuit_2026-09-23.md) §8). La
-   rotation du fret n'est pas un levier démontré ; ne pas la reproposer sans nouvelle mesure.
-3. **Réévaluation légère du vivier** (demande et profit des candidats existants, sans recherche
-   spatiale), mensuelle ou trimestrielle.
-
-Écarté à la vérification : « `fleetPlan` perdu quand la régénération est évitée » (la tâche
-`air_fleet` l'injecte à chaque cycle, `scheduler_tasks.nut:690-697`) ; « subvention offerte ignorée
-jusqu'au filet » (C77 permanent l'injecte, `event_handlers.nut:335`).
-
-**Selftests à ajouter** (proposés par l'audit) : aller-retour Save/Load de la file réactive et d'un
-travailleur `regen_candidates` réel ; intention mutatrice pendant un travailleur actif ; cycle de
-vie d'une subvention C77 (`_c77InjectSubsidy`, purge).
-
-<a id="c61"></a>
-<a id="c59"></a>
-### Exploitation des lignes — contraintes de mesure
-
-AIR : `airportDelayDays = 3.0` est une hypothèse à mesurer ; une table estimée par type
-ne suffit pas à la remplacer. Route : séparer fret, passagers interurbains et croissance
-urbaine ; ne pas rouvrir les feeders retirés. Rail : conserver le modèle d'accélération
-`OpexRailEffectiveSpeed` (C41). C59 : longue distance ne signifie pas automatiquement
-que le chargement complet est supérieur ; intégrer demande, attente et congestion.
-
-<a id="c64"></a>
-<a id="c63"></a>
-<a id="c58"></a>
-<a id="c39"></a>
-<a id="c41"></a>
-<a id="c44"></a>
-## Suites conditionnelles, sans lancement automatique
-
-| Sujet | Condition de reprise |
+| Sujet | Condition indispensable avant reprise |
 |---|---|
-| C63/C58 — investissement et recettes | Partir d'une erreur de coût/recette ou d'une occasion actuelle identifiée, en tenant compte du ledger C63 corrigé. Ne pas reprendre la conclusion historique « capital exclu » ni réintroduire les prédevis retirés. |
-| C39/C41/C44 — calcul et fraîcheur | Occasion finançable retardée par un coût mesuré ; articuler avec C76/C77/C80, sans rouvrir les optimisations rejetées sur la seule foi d'un ancien profil. |
-| C64 — politique adaptative | Mécanisme établi, règle pré-enregistrée et graines nouvelles ; pas de nouvelle recherche de seuil sur les graines ayant servi à le découvrir. |
-| C43/E3 — constantes | Réserve, `pax_near` ou seuil de rebut impliqué dans une erreur mesurée ; aucun balayage général. |
-| C42 bis — subventions | Exposition et rendement du producteur C77 courant ; ne pas restaurer les anciens drapeaux C42 supprimés. |
-| C55 — bassins de demande | Sur-service ou partage de flux concurrents effectivement observé ; ne pas rouvrir le filtre d'origine. |
-| Compatibilité NewGRF / M3 | Le diagnostic vanilla ne qualifie pas les choix de refit ni leurs capacités ; qualification dédiée si ce runtime entre dans le périmètre. |
-| M2, M5/G2, M6, M7/11.3, B6/06.12 | Risques historiquement dormants : vérifier que leur chemin existe encore et devient exposé avant tout lot. |
-| Placement/catchment, bruit aéroport, extension de gare, `station_join`, RAM Squirrel | Besoin démontré dans le code courant ; pas de reprise automatique depuis une ancienne liste de revue. |
+| V88 goods | Workers A* prêts et régression résolue ; corriger financement étape 1/profit global et faux compteur après simple lancement A*. **Pas de duel V88 avant.** |
+| C121 économie / C122 stratégie | Aucun 20×10 C121 ; aucun nouveau 5×6/20×10 C122 actuel. Classifieur diagnostique seulement ; hypothèse nouvelle distincte des formulations rejetées. Cold start PASS-only puis apprentissage PASS/MAIL, pas retour au catalogue exhaustif à froid. |
+| C116 / C118 / C120 | Formulations C116/C118 rejetées ; C120 gelé jusqu'à correction du modèle. R8 préparé n'est pas un lancement dû. |
+| V93 / V95 AIR / C97 / B9 | Pas de réactivation globale V93 ni de chooser C97 ; demande résiduelle/valeur marginale à démontrer. B9 diagnostic clos, aucun traitement ouvert. |
+| C61 AIR / Route / Rail | AIR : audit flotte intégré, aucun avant/après complet ni profit marginal démontré ; identifier renforts/ventes et mesurer rotations, attente, demande et occupation avant capacités. Pas de plafond arbitraire. [Audit](parallel_fleet_audit.md). Route : réconcilier l'autre session ; Rail : exposition rentable `NOSPOT`/`TRACKFAIL` avant géométrie, conserver modèle d'accélération C41. |
+| C59 / C81 | Corréler attente, chargement au départ et profit ; examen des solos défavorables avant éventuel duel C81. Fin du banc C82 ≠ autorisation. |
+| C68 pertes historiques | Suivi sans urgence graines 7,42,1337,12345,424242, graine 7 d'abord ; pas de nouvelle adoption. |
+| MAIL-only | Analyse disponible, prototype non implémenté ; si repris, aéroports existants seulement, demande/refit MAIL mesurés, aucune infrastructure initiale. Pas un substitut automatique aux pistes AIR rejetées. |
+| C63/C58 ; C39/C41/C44 ; C43/E3 ; C42 bis ; C55 | Erreur ou exposition actuelle mesurée ; préserver ledger corrigé, producteurs C77 et politiques abandonnées. Pas de balayage général ni restauration de prédevis/anciens flags. |
+| C64 adaptatif | Mécanisme établi, règle pré-enregistrée et nouvelles graines ; aucun réglage sur les graines de découverte. |
+| NewGRF/M3 ; risques M2/M5/G2/M6/M7/B6 | Chemin/runtime exposé et validation dédiée ; vanilla ne qualifie pas les refits NewGRF. |
+| Eau, jointures, RAM et implantation | Besoin actuel démontré ; accord explicite avant nouveau diagnostic maritime. Pas de Lakes/feeders. |
+| Réseau rail partagé | **À la toute fin**, hors file active : exposition passive du raccord au réseau, trains directs, capacité/signalisation avant chantier ; aucun transbordement. |
 
-## Chantiers à part — à mener à la toute fin
+## 5. Tenue du suivi
 
-Hors de la file courante, par décision utilisateur : gros chantiers à n'ouvrir qu'une fois les priorités
-actuelles closes. Ne pas les démarrer ni les instrumenter d'office.
+1. Une action restante a un statut, une condition de sortie et une source. À la clôture,
+   consigner au journal demande, code/branche, changements, tests réellement exécutés,
+   artefacts, verdict et limites ; retirer l'action terminée, garder son éventuelle validation.
+2. Ne pas importer une ancienne revue comme backlog sans réconciliation. La revue du 30
+   remplace pour le suivi courant le « prochain lot 01 » proposé le 26.
+3. Dérogations d'activation : [synthèse](journaux/synthese_decisions_2026-09-30.md).
+   Elles ne transforment jamais `fail_primary` en succès statistique.
+4. Numérotation commune C/V : vérifier les deux préfixes avant allocation. Alias :
+   **C88 compagnies ≠ V88 goods ; V95 AIR ≠ V95 scheduler P1/P2/P5**.
+   Ne pas renommer les artefacts historiques.
+5. Appliquer les validations d'AGENTS.md : contrat et smoke ≠ rentabilité ; diagnostic
+   ≠ adoption ; Save/Load si nécessaire. Ne retirer aucune graine historique du banc.
 
-| Chantier | Idée | Points à traiter le moment venu |
-|---|---|---|
-| **Réseau rail en toile d'araignée** (idée utilisateur, 2026-09-26) | Commencer par des lignes courtes, puis raccorder chaque nouvelle route au réseau existant plutôt que construire des tracés complets de bout en bout : A\* courts (raccord vers « n'importe quelle tuile du réseau », le pathfinder accepte une liste de cibles), moins de capital par ligne. | Revenu : l'intérêt n'existe que si des **trains directs** parcourent de longues distances sur la voie partagée — surtout pas de transbordement (les feeders sont retirés, ne pas les rouvrir). À construire : embranchement en pleine voie (`c41_rail_junction` ne répare qu'un raccord de double voie), signalisation et capacité des tronçons partagés, ordres traversant le réseau, modèle de revenu sur le trajet réel. Relire la mesure `station_join` (inerte). Premier pas le moment venu : mesure d'exposition sans construire (distance des extrémités des candidats rail au réseau existant vs longueur du tracé complet, gain en capital et en itérations A\*). Liens : workers A\* ([note 36](36_astar_workers_conception.md)), cartographie C67. |
+**Dernière mise à jour : 01/10, performances et compléments** : défaut5×6 mesuré,
+huit scénarios dirigés R1/R3 et VM48+9 exécutés/validés, deux frontières R1
+rechargées. Sources de production inchangées ; année réalisée par ligne et scan
+AIR suspendu restent ouverts. Deux répétitions du profil léger passent le filtre
+pratique, pas preuve de neutralité. Aucune qualification économique nouvelle.
+Les expériences ont leur témoin dans le même arbre, sans bundle immuable ni SHA.
+Git/gh absents : publication et qualification GitHub toujours bloquées.
+Aucun réglage C115/C121/C122 modifié, aucun commit ni publication.
 
-## C67 — carte par blocs et connectivité
-
-Le chemin actuel est le BFS borné de `builder_water.nut::OpexWaterFindConnection`.
-`lib_water.nut` et les réglages Lakes ont été supprimés le 21 septembre, **avant C67**.
-Voir le [journal du 21](journaux/journal_2026-09-21.md) pour la décision et le commit ; l'analyse
-du code est dans le [journal du 22](journaux/journal_2026-09-22.md). Ne pas programmer un second retrait.
-La consigne d'accord explicite avant un nouveau diagnostic de découverte maritime est conservée.
-
-### Étapes et critères de passage
-
-Les étapes sont séquentielles ; l’analyse initiale est consignée au journal du 22 septembre, sans qualification runtime.
-Le [contrat initial C67.1](c67_cartographie_contrat.md) fixe les API proposées et le protocole ;
-sa livraison est consignée au journal du 22.
-
-| Étape | Livrable et périmètre | Validation avant passage |
-|---|---|---|
-| **C67.3 — qualification 5×5 / 10×10** | **Livré.** Matrice v2 complète ; S=5 retenu provisoirement après mesures mémoire/opcodes/précision jusqu'à 2048². | Revenir sur la granularité seulement si un consommateur réel démontre un autre compromis. |
-| **C67.4 — cycle de vie et ordonnanceur** | **Livré.** c67_terrain_map défaut 0 ; calcul résumable, invalidation locale, reprise/annulation et remplissage opportuniste avant Sleep(1). | Le crochet est quasi neutre, pas strictement neutre : l'intégrer ensuite au futur arbitre commun de workers plutôt que multiplier les hooks spécialisés. |
-| **C67.5 — graphe et oracle de connectivité** | **Livré.** water_graph.nut fournit un oracle exact-ou-inconnu borné ; aucun connecté/déconnecté faux admis sur les fixtures. | Ne le brancher qu'après exposition métier démontrée. |
-| **C67.6 — sondes d'exposition** | **Livré ; aucun consommateur eau/rail retenu.** Eau : 6 paires en 256², aucune en 512². Rail : capital pré-A* déjà très proche du réel et un seul abandon A*. | Ne rien brancher par défaut. Conserver C67 comme infrastructure prête pour le futur pool de workers et chercher un usage AIR/cartographie seulement sur besoin démontré. |
-| **C67.7 — adoption puis extensions conditionnelles** | Fixer avant le banc métrique primaire, effet minimal utile et garde-fou de valeur. Qualifier le consommateur retenu ; ouvrir séparément coûts/ROI, choix du mode, implantation et régions naturelles seulement si leur besoin est démontré. | Banc officiel apparié 20 graines × 10 ans complet et sain, verdict effectif du harnais et preuves figées. Adoption du défaut seulement après succès ; un gain de mémoire/opcodes seul ne prouve pas un gain économique. |
-
-**État après C67.6.** Les briques de cartographie, cycle de vie et connectivité sont disponibles,
-mais aucun consommateur eau/rail n'a démontré assez d'exposition pour justifier un branchement.
-La suite n'est donc pas un « C67.7 automatique » : mesurer d'abord le lecteur de blocs par
-AITileList + Valuate, puis intégrer C67 au futur arbitre de workers consommant le reliquat
-d'opcodes. Un usage AIR/cartographie ne sera ouvert que lorsqu'un besoin métier concret sera
-mesuré.
-
-### Contraintes de conception
-
-**Contrat de conception retenu.** Construire une représentation de carte propre à
-OpexAI, commune à l’analyse du terrain et à la future connectivité hiérarchique. La carte
-est découpée en blocs carrés réguliers ; deux granularités candidates sont à mesurer, **5×5** et
-**10×10 tuiles**. La taille n'est pas fixée par intuition : le premier livrable de C67 doit comparer
-coût mémoire/opcodes, précision et utilité pour les décisions.
-
-Chaque bloc porte un résumé compact calculé depuis ses tuiles, au minimum : part eau/terre,
-altitudes min/max/moyenne, amplitude de relief, proportion de terrain plat et indicateur de
-pente/irrégularité. À partir de ces mesures, le bloc reçoit un type principal tel que **eau**,
-**côte/mixte**, **plat**, **vallonné** ou **montagne**. Les seuils exacts et l'éventuel typage
-secondaire sont à calibrer sur cartes réelles ; ils ne doivent pas devenir des constantes métier
-avant mesure.
-
-Les blocs forment ensuite un graphe spatial léger de voisinage. Ce niveau grossier doit pouvoir
-servir à plusieurs consommateurs sans dupliquer des scans de carte : présélection de corridors,
-coût/complexité de terrain, détection de grandes zones d'eau et connectivité grossière. Les tests
-fins restent au niveau tuile lorsque la construction l'exige ; C67 n'a pas vocation à remplacer un
-pathfinder exact par une classification grossière.
-
-**Principe d'exécution : cartographie lazy et opportuniste.** C67 ne doit jamais lancer une grosse
-tâche monolithique de cartographie complète au démarrage. Un bloc est calculé lorsqu'un projet a
-besoin de l'étudier ; son résultat est ensuite mis en cache et réutilisé. En dehors de ces demandes,
-la couverture de la carte peut progresser en tâche de fond par petits lots uniquement quand le
-contrôleur dispose d'un budget d'opcodes réellement libre — par exemple lorsqu'aucun projet utile
-n'est constructible faute de trésorerie — sans retarder les tâches métier prioritaires. Le scheduler
-doit donc pouvoir interrompre/reprendre ce remplissage, lui imposer un budget strict par tranche et
-abandonner immédiatement la cartographie de fond dès qu'un travail plus prioritaire apparaît.
-
-La carte peut ainsi rester **partielle** pendant longtemps : les zones pertinentes pour les projets
-réels seront naturellement cartographiées en premier. Aucune décision ne doit supposer que 100 % de
-la carte est déjà connue ; une donnée de bloc absente signifie « à calculer si nécessaire », pas
-« terrain neutre ». Le remplissage opportuniste est un bonus de temps mort, jamais une condition de
-démarrage de l'IA ni un motif pour immobiliser des opcodes qui pourraient servir à une décision ou
-une construction immédiatement utile.
-
-Usages visés au-delà de la connectivité maritime :
-
-- **prévision économique par projet** : utiliser le corridor de blocs pour estimer plus tôt le coût
-  réel probable de construction, le délai avant mise en service et donc un ROI plus réaliste que les
-  facteurs fixes actuels ;
-- **prévision du coût de décision** : estimer avant le pathfinding exact le nombre d'opcodes et le
-  temps/ticks nécessaires pour étudier puis construire un projet, afin d'ordonner les candidats par
-  valeur attendue mais aussi par coût de calcul ;
-- **pré-pathfinding hiérarchique** : chercher d'abord un corridor grossier dans le graphe de blocs,
-  puis limiter l'A* exact aux zones plausibles au lieu d'explorer la carte sans information globale ;
-- **risque de faisabilité** : dériver un indicateur de difficulté/échec probable à partir du relief,
-  de l'eau, des pentes, de la constructibilité et de la fragmentation du corridor ;
-- **choix du mode de transport** : comparer rail/route/eau/air à partir de la structure physique du
-  corridor avant de lancer des devis lourds pour chaque famille ;
-- **implantation et extensibilité** : repérer les zones adaptées aux gares, dépôts, quais et axes
-  d'approche, ainsi que la place disponible pour double voie, allongement ou branches futures ;
-- **détection de régions naturelles** : agréger les blocs en plaines, massifs, bassins, îles,
-  péninsules ou corridors côtiers pour améliorer la génération même des candidats.
-
-Le **type principal** d'un bloc est seulement une vue simplifiée. La représentation doit conserver
-un vecteur de caractéristiques réutilisable, par exemple `water_ratio`, `buildable_ratio`,
-`height_min/max/mean`, amplitude de relief, densité de pente, bords côtiers et densité
-d'infrastructure. Le typage `eau/plat/montagne/...` est dérivé de ces mesures et ne doit pas faire
-perdre l'information brute nécessaire aux modèles de coût, ROI ou temps.
-
-La carte est conceptuellement séparée en deux couches : une **couche physique** relativement stable
-(eau, altitude, pente, constructibilité) et une **couche dynamique** (villes, industries,
-infrastructures Opex/adverses, gares, voies, routes). Les modifications locales de carte doivent
-invalider seulement les blocs concernés. La cible architecturale devient donc :
-`candidat -> corridor de blocs -> prévision £ / ROI / opcodes / durée / risque -> portefeuille ->
-pathfinding exact seulement pour les candidats retenus`.
-
-Contraintes de conception :
-
-- **aucune structure persistante à une entrée par tuile de la carte entière**, contrairement à
-  Lakes ; à 2048², une grille 5×5 représente au plus ~168 100 blocs et une grille 10×10 ~42 025,
-  contre 4 194 304 tuiles ;
-- construction interruptible/mesurable en opcodes et mémoire, compatible avec les grandes cartes ;
-- représentation indépendante de MinchinWeb, réutilisable par eau **et** analyse générale du
-  terrain ;
-- stratégie explicite de rafraîchissement/invalidation des blocs affectés par les modifications de
-  carte, plutôt qu'une reconstruction globale aveugle ;
-- migration en deux temps : valider la représentation et ses oracles, puis seulement brancher les
-  consommateurs sur le code courant.
-
-Premier protocole attendu : construire les deux grilles sur 256²/512²/1024²/2048², mesurer
-RAM/opcodes/temps, comparer 5×5 et 10×10, puis vérifier le typage sur un échantillon de blocs et la
-connectivité eau contre un oracle BFS borné/exact. **Aucun default de jeu ou de politique n'est à
-changer avant cette qualification.**
-
-## Validation et clôture d'une tâche
-
-Appliquer [AGENTS.md](../AGENTS.md) : documentation seule → diff et liens ; Squirrel →
-tests pertinents et smoke 1×1 ; comportement → diagnostic apparié 5×6 ; adoption →
-20×10 complet et sain, avec métrique, effet minimal et garde-fou fixés avant les résultats.
-Ajouter la validation Save/Load quand nécessaire. Figer les entrées, conserver les limites
-et ne pas confondre absence de significativité et équivalence.
-
-**Graines du banc.** Il n'y a plus de graine morte connue : 2026, 1337 et 1024 gelaient dans la
-phase eau (C56) jusqu'au correctif `water_lakes_ops_budget` du 2026-09-11. Vérifié sur les 20×10
-duel du 2026-09-23 (bras défaut) : 2026 = 65 gares / 136 véhicules, 1337 = 57 / 164, 1024 = 91 /
-191, pour une médiane d'environ 68 gares. Les 20 graines de `bench_v2.py` comptent donc toutes ;
-ne pas en retirer. Un gel reste détecté par le harnais (`last_year` < `expected_last_year` →
-`incomplete_run`), jamais moyenné en silence.
-
-Docker : `--cpus=3 --memory=2g --memory-swap=2g`, volume `openttd-lab-home:/home/lab`,
-dépôt réellement monté dans `/work`, trois workers maximum et une seule campagne VPS à la fois.
-
-À la clôture, transférer le compte rendu dans `journal_YYYY-MM-DD.md` avec les preuves,
-la décision et les réserves ; retirer l'action terminée de cette liste. Pour un chantier
-partiellement livré, ne conserver ici que son reliquat et un lien vers le journal.
+**Complément 01/10 — lot cache C121** : trois sources de production modifiées,
+modèle et défauts inchangés ; cohérence et reconstruction du cache testées dans
+le périmètre décrit ci-dessus. Le scan suspendu n'est plus entièrement non
+vérifié, mais son état dérivé est jeté au reload ; aucune continuité économique
+ni persistance d'apprentissage nouvelle attestée. Suite complète non réexécutée.

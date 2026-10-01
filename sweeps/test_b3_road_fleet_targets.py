@@ -2,6 +2,7 @@
 from pathlib import Path
 import re
 import unittest
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,7 +31,7 @@ class TestB3RoadFleetTargets(unittest.TestCase):
     def setUp(self):
         self.economy = source("economy.nut")
         self.candidates = source("candidates.nut")
-        self.projects = source("projects.nut")
+        self.projects = read_projects_source()
         self.road = source("task_road.nut")
         self.report = source("task_report.nut")
         self.info = source("info.nut")

@@ -7,6 +7,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 
 from campaign_freeze import parse_ai_settings
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 GLOBALS = ROOT / "ai" / "OpexAI" / "globals_pre.nut"
@@ -43,7 +47,7 @@ class TestC117AirThroughput(unittest.TestCase):
         self.assertGreaterEqual(src.count("C117_AIR_THROUGHPUT_PROBE"), 2)
 
     def test_shadow_is_reused_without_enabling_postbuild_catchment_probe(self):
-        src = BUILDER_AIR.read_text(encoding="utf-8")
+        src = read_builder_air()
         start = src.index("function OpexAirB9DemandShadow")
         end = src.index("function OpexAirCatchmentProbeEndpoint", start)
         block = src[start:end]

@@ -75,6 +75,10 @@ AIR_C83_TARGET_TOWNS <- 6;
 /* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
+/* Lots de cadence independants, jamais actives implicitement par C83/C121. */
+EXP_C83_WATCH_DAILY <- false;
+EXP_SCHEDULER_SKIP_NOT_DUE <- false;
+EXP_AIR_HUB_PAIR_PREFILTER <- false;
 /* C83 : une seule grande ville encore vide (deux slots libres), avant que le
  * maillage ne se fige. 0 = aucun effet. La cible et l'arret sont des globales
  * restaurees apres Load quand le reglage est arme. */
@@ -464,6 +468,11 @@ C121_AIR_REALIZATION_MIN_LINES <- 2;
 C121_AIR_PLAN_PERF <- null;
 /* Telemetrie transitoire du passage catalogue ; jamais utilisee par les decisions. */
 CATALOG_COST_PROBE <- false;
+FLEET_AMORT_SHADOW_PROBE <- 0; // 0 OFF, 1 calcul seul, 2 instantanes ; jamais une politique
+/* R19 : injection de panne TEST ONLY (0 = off). Rang de la route AIR neuve
+ * annulee apres demarrage de ses avions ; compteur non sauvegarde. */
+R19_FAULT_INJECT <- 0;
+R19_FAULT_ROUTE_SEQ <- 0;
 CATALOG_COST_ACTIVE <- null;
 C121_CATALOG_INCREMENTAL <- false;
 C121_CATALOG_AIR_FIRST_YEAR <- false;

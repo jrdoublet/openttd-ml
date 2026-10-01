@@ -2,6 +2,7 @@
 from pathlib import Path
 import re
 import unittest
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,7 +80,7 @@ class TestC45SubsidyPersistence(unittest.TestCase):
         self.assertIn("function OpexAI::_c77RemoveSubsidy(subId)", handlers)
         self.assertIn("function _c77InjectSubsidy(subId);", main)
         self.assertIn("function _c77RemoveSubsidy(subId);", main)
-        self.assertIn('entityKind == "subsidy"', source("projects.nut"))
+        self.assertIn('entityKind == "subsidy"', read_projects_source())
 
     def test_retired_scrap_state_is_ignored_on_save_and_load(self):
         self.assertNotIn("vehiclesToScrap", self.persist)

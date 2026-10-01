@@ -72,7 +72,7 @@ Left*), filtrée contre l'état réel du code avant d'en tirer des tâches (voir
 **Priorité retenue (décision utilisateur, 2026-09-09) : reconstruire `builder_water.nut` sur une
 bibliothèque externe déjà vendorisée, plutôt que corriger le BFS maison à la pièce.**
 `ai/library/MinchinWeb_s_MetaLibrary-11/Lakes.nut` et `Marine.nut` ciblent des défauts confirmés
-dans [`docs/01_opex_builder_water_review.md`](01_opex_builder_water_review.md), revérifiés dans le
+dans [`docs/01_opex_builder_water_review.md`](../01_opex_builder_water_review.md), revérifiés dans le
 code livré aujourd'hui (pas une version antérieure) — **avec une correction : le premier point
 listé par la revue externe est FAUX, `WATER_CAPITAL_MARGIN` n'est pas un slot mort.** C'est un
 `<-` global visible depuis tout `ai/OpexAI/` : la revue (et ma première reprise de son contenu)

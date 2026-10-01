@@ -1,5 +1,14 @@
 # C80 — Orchestrateur à double registre (intentions / exécution)
 
+**Lecture au 30 septembre : contrat et journal d'implémentations successives.**
+Index hub, régénération ciblée/modes et injection permanente ne sont plus des travaux
+à livrer ; workers rail/ville/stock restent expérimentaux. Reliquat : [tâches](taches.md).
+Décisions : [synthèse](journaux/synthese_decisions_2026-09-30.md).
+Les références de lignes ci-dessous décrivent l'ancien worktree `.wt_c69` ; les
+liens portables ouvrent les fichiers, pas une reconstruction de cet ancien arbre.
+Les résultats cités restent soumis à récupération et audit de provenance.
+
+
 > **Relecture du 2026-09-21 (Claude).** Contrat rédigé par agy ; références au code vérifiées par
 > échantillon (`task_rail.nut:814-826`, `main.nut:297`, `main.nut:541`, `task_town.nut:63-75`,
 > `persist.nut:8-17` : justes). Corrigés en place : rythme des événements (source erronée),
@@ -18,11 +27,11 @@ Premier client de l'architecture : **C76 étape 2** (régénération ciblée du 
 
 | Axe | Constat / Décision | Source |
 |---|---|---|
-| **Problème mesuré** | Un tour de file dure **45 à 52 jours** (et jusqu'à **120 jours** avec C75) ; l'IA ne prend que **4 à 9 décisions de construction par an** pendant que sa trésorerie monte à **11,5 M£**. | [`docs/16_bilan_volume.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md) §6-§7 |
-| **Goulot d'exécution** | Trois tâches monolithiques de 2,2 à 2,8 Mop chacune remplissent le tour : `catalog` (31 % du temps), `town_growth` (28 %), `projects` (23 %). | [`docs/16_bilan_volume.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md) §7 |
-| **Gaspillage mesuré** | **53 à 76 %** des régénérations du vivier s'exécutent sans aucun changement de dépendance, consommant **~145 à 180 jours de jeu par an** à recalculer l'identique. | [`docs/17_evenements_regeneration.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/17_evenements_regeneration.md) §6 |
+| **Problème mesuré** | Un tour de file dure **45 à 52 jours** (et jusqu'à **120 jours** avec C75) ; l'IA ne prend que **4 à 9 décisions de construction par an** pendant que sa trésorerie monte à **11,5 M£**. | [`docs/16_bilan_volume.md`](../docs/16_bilan_volume.md) §6-§7 |
+| **Goulot d'exécution** | Trois tâches monolithiques de 2,2 à 2,8 Mop chacune remplissent le tour : `catalog` (31 % du temps), `town_growth` (28 %), `projects` (23 %). | [`docs/16_bilan_volume.md`](../docs/16_bilan_volume.md) §7 |
+| **Gaspillage mesuré** | **53 à 76 %** des régénérations du vivier s'exécutent sans aucun changement de dépendance, consommant **~145 à 180 jours de jeu par an** à recalculer l'identique. | [`docs/17_evenements_regeneration.md`](../docs/17_evenements_regeneration.md) §6 |
 | **Option retenue** | **Option 2 : Double registre** (Séparation stricte entre le choix de la décision et le moteur d'exécution). | Décision utilisateur du 2026-09-21 |
-| **Premier client** | **C76 étape 2** : révisions par sous-catalogue, régénération ciblée par mode, filet périodique de réconciliation. | [`docs/17_evenements_regeneration.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/17_evenements_regeneration.md) §6 |
+| **Premier client** | **C76 étape 2** : révisions par sous-catalogue, régénération ciblée par mode, filet périodique de réconciliation. | [`docs/17_evenements_regeneration.md`](../docs/17_evenements_regeneration.md) §6 |
 | **Règle absolue** | **Aucun changement du score de classement.** `ROI` ou `P / max(C, F·τ)` reste rigoureusement intact. Tout nouveau code est gardé derrière un réglage à défaut 0 (`c80_double_register = 0`). | Mandat C80 |
 
 ---
@@ -31,20 +40,24 @@ Premier client de l'architecture : **C76 étape 2** (régénération ciblée du 
 
 ### 1.1 Le goulot du volume : décisions rares et caisse oisive
 
-La comparaison directe contre l'adversaire de référence AAAHogEx (duel 20 graines × 5 ans sur carte partagée, [`results/bench_1v1_5y_20seeds_reference.json`](file:///home/deploy/projects/openttd-ml/.wt_c69/results/bench_1v1_5y_20seeds_reference.json), consigné dans [`ai/OpexAI/CLAUDE.md:15-20`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/CLAUDE.md#L15-L20)) montre une défaite à 0/20 pour OpexAI sur toutes les métriques :
+La comparaison historique contre AAAHogEx (duel 20 graines × 5 ans sur carte partagée, [`results/bench_1v1_5y_20seeds_reference.json`](../results/bench_1v1_5y_20seeds_reference.json), désormais contextualisée dans la [synthèse](journaux/synthese_decisions_2026-09-30.md)) rapportait une défaite à 0/20 pour OpexAI sur les métriques suivantes ; ce n'est pas une mesure du défaut courant :
 - Valeur de compagnie : −71,6 % ;
 - Profit annuel : −83,1 % ;
 - Flotte active : 102 véhicules contre 564 pour AAAHogEx (à 10 ans : 158 contre 1 077).
 
-Pourtant, le rendement économique par véhicule en service atteint 93 % de celui d'AAAHogEx ([`ai/OpexAI/CLAUDE.md:19`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/CLAUDE.md#L19)). **L'écart est presque intégralement un déficit de volume.**
+**Rectification documentaire :** l'ancien ratio « rendement par véhicule à 93 % »
+est erroné et retiré comme preuve. Les comptes `VEHS` bruts ne sont pas des comptes
+de véhicules physiques. On ne peut donc pas déduire de cette comparaison que
+l'écart serait presque intégralement un déficit de volume ; les mesures de cadence
+ci-dessous décrivent leur campagne propre, pas une explication économique universelle.
 
-Les mesures instrumentées du 2026-09-21 établissent la cause exacte de ce déficit :
-1. **La caisse dort sans blocage de capital** ([`docs/16_bilan_volume.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md) §6, sonde C73 sur 3 graines × 10 ans) :
+Les mesures instrumentées du 2026-09-21 décrivent les contraintes de cadence suivantes :
+1. **La caisse dort sans blocage de capital** ([`docs/16_bilan_volume.md`](../docs/16_bilan_volume.md) §6, sonde C73 sur 3 graines × 10 ans) :
    - À partir de 1971, aucune passe du portefeuille ne trouve de vivier vide, tous les candidats sont finançables, et chaque passe construit.
    - La trésorerie disponible s'accumule sans emploi : **0,08 M£ en 1970**, **1,0 M£ en 1972**, **5,5 M£ en 1975**, et **11,5 M£ en 1978**.
    - Pourtant, l'IA ne réalise que **4 à 9 passes de construction par an et par partie** (11,7 en 1970 ; 8,7 en 1972 ; 7,7 en 1975 ; 6,0 en 1978 ; 5,3 en 1979). Chaque renfort de flotte aérienne (`FLEET_PORTFOLIO`) consomme l'une de ces rares opportunités.
 
-2. **Où passe le temps de l'année de jeu** ([`docs/16_bilan_volume.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md) §7, sonde C74 / `C39_PASS_CLOCK` sur 3 graines × 10 ans) :
+2. **Où passe le temps de l'année de jeu** ([`docs/16_bilan_volume.md`](../docs/16_bilan_volume.md) §7, sonde C74 / `C39_PASS_CLOCK` sur 3 graines × 10 ans) :
    - Le nombre de tours de la file d'ordonnancement par an s'effondre : **31 tours en 1971**, **8 en 1975**, **7 en 1979**.
    - Un tour complet dure **45 à 52 jours de jeu** à partir de 1975, absorbé par trois blocs monolithiques :
      - `catalog` : **108 à 111 jours/an** (30 à 32 % du temps, **2,76 Mop** par passe) pour rafraîchir en bloc tout le catalogue et reconstruire entièrement le vivier ;
@@ -52,11 +65,11 @@ Les mesures instrumentées du 2026-09-21 établissent la cause exacte de ce déf
      - `projects` : **81 à 95 jours/an** (23 à 27 % du temps, **2,21 Mop** par passe) pour la mise à jour incrémentale, la sélection et l'érection d'un seul chantier ;
      - `air_fleet` : **45 à 46 jours/an** (12 à 13 % du temps, **1,18 Mop** par passe).
 
-3. **L'échec de la multiplication brute des chantiers sans nouvel ordonnanceur** ([`docs/16_bilan_volume.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md) §8, sonde C75 sur 3 graines × 10 ans) :
+3. **L'échec de la multiplication brute des chantiers sans nouvel ordonnanceur** ([`docs/16_bilan_volume.md`](../docs/16_bilan_volume.md) §8, sonde C75 sur 3 graines × 10 ans) :
    - Construire plusieurs projets par passe sous `K_pass` accélère le démarrage (×3 à ×3,5 chantiers en 1972-1973), mais **allonge la durée du tour $\tau_{\text{pass}}$ de 30 jours à 91-122 jours**.
-   - Chaque ligne possédée alourdit le coût de régénération (~38 k opcodes par ligne, [`docs/11_goulot_decision.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/11_goulot_decision.md) §1). Dès 1976, la fréquence tombe à 1 à 4 passes par an, et la liste classée s'épuise par manque de rafraîchissement opportuniste.
+   - Chaque ligne possédée alourdit le coût de régénération (~38 k opcodes par ligne, [`docs/11_goulot_decision.md`](../docs/11_goulot_decision.md) §1). Dès 1976, la fréquence tombe à 1 à 4 passes par an, et la liste classée s'épuise par manque de rafraîchissement opportuniste.
 
-4. **Le constat d'invalidation C76 étape 1** ([`docs/17_evenements_regeneration.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/17_evenements_regeneration.md) §6, 3 graines × 10 ans) :
+4. **Le constat d'invalidation C76 étape 1** ([`docs/17_evenements_regeneration.md`](../docs/17_evenements_regeneration.md) §6, 3 graines × 10 ans) :
    - **53 à 76 %** des régénérations du vivier ne font suite à aucun événement ni modification de dépendance structurelle (ville, industrie, moteur, ligne).
    - Les clés de candidats sont stables à 99,5–100 % en mode aérien et 86–96 % en rail.
    - Ce calcul redondant coûte **81 à 100 M opcodes par an** (27 à 33 M par partie), soit **~145 à 180 jours de jeu par an** gaspillés.
@@ -89,35 +102,35 @@ L'audit exhaustif du code au 2026-09-21 établit l'état de l'ordonnanceur exist
 
 | Composant | Fichier et lignes | Comportement constaté |
 |---|---|---|
-| **Boucle principale** | [`main.nut:532-566`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/main.nut#L532-L566) | Exécute à chaque itération : (1) `this._processEvents()`, puis (2) `this._runNextTaskWithSlackLedger()` sous `LOOP_BUDGET=0` (défaut), suivi de (3) `AIController.Sleep(1)`. |
-| **File statique historique** | [`main.nut:297-332`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/main.nut#L297-L332) | Déclare `this._taskQueue` sous forme d'un tableau plat de 13 tables `{ name, dueCycle, enabled }`. Ordre : `catalog`, `c41_water`, `c41_road`, `c41_rail_signals`, `c41_rail_junction`, `report`, `scrap`, `air`, `air_fleet`, `projects`, `expand`, `refleet`, `town_growth`, `repay`. |
-| **Ordonnanceur round-robin** | [`scheduler.nut:101-203`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler.nut#L101-L203) | `_runNextTask` scanne `_taskQueue` à partir de `_taskCursor`. Si une tâche a `enabled == true` et `dueCycle <= _taskCycle`, elle est sélectionnée, `task.dueCycle` est incrémenté de 1 ([`scheduler.nut:206`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler.nut#L206)), et `_taskCursor` avance. Si aucune tâche n'est due, `_taskCycle` s'incrémente et le curseur repart à 0. |
-| **Interposition prioritaire A* rail** | [`scheduler.nut:140-177`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler.nut#L140-L177) | Avant de scanner `_taskQueue`, `_runNextTask` exécute obligatoirement `_continueRailExpansion()` (si non nul) puis `_continueRailSearch()` (si non nul). Ce travail s'exécute dans la *même* passe de scheduler que la tâche de file suivante. |
-| **Dispatch des tâches** | [`scheduler.nut:214-239`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler.nut#L214-L239) | Route par comparaison de chaînes vers les handlers de [`scheduler_tasks.nut`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut). |
-| **Catalogue monolithique** | [`scheduler_tasks.nut:35-66`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L35-L66) | `_dispatchCatalog` vérifie si le mois a changé ou si `_portfolioInvalidated == true`. Il appelle `this._catalog.refresh(this._budget, year)` ([`catalog.nut:932-986`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/catalog.nut#L932-L986)) qui rafraîchit toutes les couches en bloc, puis `this._rebuildProjects(fleetPlan)` ([`task_projects.nut:1058-1127`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_projects.nut#L1058-L1127)). |
-| **Génération vivier (complet)** | [`projects.nut:2088-2589`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/projects.nut#L2088-L2589) | `OpexBuildProjects` scanne séquentiellement tous les modes : rail (`:2159`), route (`:2256`), air (`:2280`), eau (`:2336`), puis assemble `candidateGroups` et exécute la sélection sous capital (`:2378-2550`). Coût : ~2,8 Mop par passe. |
-| **Croissance urbaine bloquante** | [`task_town.nut:53-220`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_town.nut#L53-L220) | `_tryTownGrowth` énumère toutes les villes desservies ([`task_town.nut:63-68`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_town.nut#L63-L68)), calcule un plan routier (`:126-128`) et tente de bâtir une ligne de bus à profit nul. Coût : 2,73 Mop d'un seul bloc, sans fractionnement. |
-| **Travailleur A* rail existant** | [`task_rail.nut:751-899`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_rail.nut#L751-L899) | `_railSearch` est un état résumable (`{ kind, phase, pathfinder, segmented, spent, iterationBudget, safetyDeadline, plan, candidate, ... }`). Découpé en tranches de `RAIL_SEARCH_SLICE = 50` itérations ([`builder_rail.nut:39`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/builder_rail.nut#L39)) avec échéance locale `rail_micro_deadline` ([`task_rail.nut:814-819`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_rail.nut#L814-L819)). Consommé ensuite dans `_tryBuildProjects` via `_consumeRailSearch` ([`task_projects.nut:477`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_projects.nut#L477)). |
-| **Routage d'événements** | [`events.nut:280-357`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/events.nut#L280-L357) | `_processEvents` lit la file NoAI. Handlers dans [`event_handlers.nut:690-785`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/event_handlers.nut#L690-L785). L'état passif `_markDirty` ([`events.nut:40-142`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/events.nut#L40-L142)) n'est consommé par aucune tâche. Le seul impact réel est `_portfolioInvalidated = true` et `dueCycle = 0`, qui forcent des régénérations complètes au lieu d'en éviter. |
-| **Persistance et exclusions** | [`persist.nut:302-407`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/persist.nut#L302-L407) | `Save()` et `Load()` sérialisent l'état sous `SAVE_FULL_STATE=1`. `_railSearch` et `_dynamicBatch` sont **explicitement abandonnés au chargement** ([`persist.nut:518-538`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/persist.nut#L518-L538)) car les objets natifs C++ AYSTAR ne peuvent être sauvés ; `catalog` est alors réarmé au cycle courant. |
+| **Boucle principale** | [`main.nut:532-566`](../ai/OpexAI/main.nut#L532-L566) | Exécute à chaque itération : (1) `this._processEvents()`, puis (2) `this._runNextTaskWithSlackLedger()` sous `LOOP_BUDGET=0` (défaut), suivi de (3) `AIController.Sleep(1)`. |
+| **File statique historique** | [`main.nut:297-332`](../ai/OpexAI/main.nut#L297-L332) | Déclare `this._taskQueue` sous forme d'un tableau plat de 13 tables `{ name, dueCycle, enabled }`. Ordre : `catalog`, `c41_water`, `c41_road`, `c41_rail_signals`, `c41_rail_junction`, `report`, `scrap`, `air`, `air_fleet`, `projects`, `expand`, `refleet`, `town_growth`, `repay`. |
+| **Ordonnanceur round-robin** | [`scheduler.nut:101-203`](../ai/OpexAI/scheduler.nut#L101-L203) | `_runNextTask` scanne `_taskQueue` à partir de `_taskCursor`. Si une tâche a `enabled == true` et `dueCycle <= _taskCycle`, elle est sélectionnée, `task.dueCycle` est incrémenté de 1 ([`scheduler.nut:206`](../ai/OpexAI/scheduler.nut#L206)), et `_taskCursor` avance. Si aucune tâche n'est due, `_taskCycle` s'incrémente et le curseur repart à 0. |
+| **Interposition prioritaire A* rail** | [`scheduler.nut:140-177`](../ai/OpexAI/scheduler.nut#L140-L177) | Avant de scanner `_taskQueue`, `_runNextTask` exécute obligatoirement `_continueRailExpansion()` (si non nul) puis `_continueRailSearch()` (si non nul). Ce travail s'exécute dans la *même* passe de scheduler que la tâche de file suivante. |
+| **Dispatch des tâches** | [`scheduler.nut:214-239`](../ai/OpexAI/scheduler.nut#L214-L239) | Route par comparaison de chaînes vers les handlers de [`scheduler_tasks.nut`](../ai/OpexAI/scheduler_tasks.nut). |
+| **Catalogue monolithique** | [`scheduler_tasks.nut:35-66`](../ai/OpexAI/scheduler_tasks.nut#L35-L66) | `_dispatchCatalog` vérifie si le mois a changé ou si `_portfolioInvalidated == true`. Il appelle `this._catalog.refresh(this._budget, year)` ([`catalog.nut:932-986`](../ai/OpexAI/catalog.nut#L932-L986)) qui rafraîchit toutes les couches en bloc, puis `this._rebuildProjects(fleetPlan)` ([`task_projects.nut:1058-1127`](../ai/OpexAI/task_projects.nut#L1058-L1127)). |
+| **Génération vivier (complet)** | [`projects.nut:2088-2589`](../ai/OpexAI/projects.nut#L2088-L2589) | `OpexBuildProjects` scanne séquentiellement tous les modes : rail (`:2159`), route (`:2256`), air (`:2280`), eau (`:2336`), puis assemble `candidateGroups` et exécute la sélection sous capital (`:2378-2550`). Coût : ~2,8 Mop par passe. |
+| **Croissance urbaine bloquante** | [`task_town.nut:53-220`](../ai/OpexAI/task_town.nut#L53-L220) | `_tryTownGrowth` énumère toutes les villes desservies ([`task_town.nut:63-68`](../ai/OpexAI/task_town.nut#L63-L68)), calcule un plan routier (`:126-128`) et tente de bâtir une ligne de bus à profit nul. Coût : 2,73 Mop d'un seul bloc, sans fractionnement. |
+| **Travailleur A* rail existant** | [`task_rail.nut:751-899`](../ai/OpexAI/task_rail.nut#L751-L899) | `_railSearch` est un état résumable (`{ kind, phase, pathfinder, segmented, spent, iterationBudget, safetyDeadline, plan, candidate, ... }`). Découpé en tranches de `RAIL_SEARCH_SLICE = 50` itérations ([`builder_rail.nut:39`](../ai/OpexAI/builder_rail.nut#L39)) avec échéance locale `rail_micro_deadline` ([`task_rail.nut:814-819`](../ai/OpexAI/task_rail.nut#L814-L819)). Consommé ensuite dans `_tryBuildProjects` via `_consumeRailSearch` ([`task_projects.nut:477`](../ai/OpexAI/task_projects.nut#L477)). |
+| **Routage d'événements** | [`events.nut:280-357`](../ai/OpexAI/events.nut#L280-L357) | `_processEvents` lit la file NoAI. Handlers dans [`event_handlers.nut:690-785`](../ai/OpexAI/event_handlers.nut#L690-L785). L'état passif `_markDirty` ([`events.nut:40-142`](../ai/OpexAI/events.nut#L40-L142)) n'est consommé par aucune tâche. Le seul impact réel est `_portfolioInvalidated = true` et `dueCycle = 0`, qui forcent des régénérations complètes au lieu d'en éviter. |
+| **Persistance et exclusions** | [`persist.nut:302-407`](../ai/OpexAI/persist.nut#L302-L407) | `Save()` et `Load()` sérialisent l'état sous `SAVE_FULL_STATE=1`. `_railSearch` et `_dynamicBatch` sont **explicitement abandonnés au chargement** ([`persist.nut:518-538`](../ai/OpexAI/persist.nut#L518-L538)) car les objets natifs C++ AYSTAR ne peuvent être sauvés ; `catalog` est alors réarmé au cycle courant. |
 
 ### 2.1 Les précédents d'ordonnancement (tentés, adoptés ou refusés)
 
 Il est capital de documenter ce qui a déjà été expérimenté afin de ne pas répéter d'erreurs passées :
 
 1. **`loop_budget` (drainage continu de tick sans sleep)** :
-   - Déclaré dans [`info.nut:1923`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/info.nut#L1923), implémenté dans [`main.nut:541-562`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/main.nut#L541-L562).
+   - Déclaré dans [`info.nut:1923`](../ai/OpexAI/info.nut#L1923), implémenté dans [`main.nut:541-562`](../ai/OpexAI/main.nut#L541-L562).
    - Tentative de vider les opcodes résiduels d'un tick en enchaînant plusieurs tâches de file sans `Sleep(1)`.
-   - **Résultat : CLOS / NON ADOPTÉ** ([`docs/taches.md:655-661`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/taches.md#L655-L661), [`docs/taches.md:1213`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/taches.md#L1213)). Rejoué sur [`results/review_h5_loop_budget_5x6.json`](file:///home/deploy/projects/openttd-ml/.wt_c69/results/review_h5_loop_budget_5x6.json) (5 graines × 6 ans) : 5/5 égalités exactes sur valeur, profit, score, flotte et opcodes. Le drainage continu brûlait du CPU sans faire progresser le jeu et créait un risque de famine NoAI. Défaut 0 conservé.
+  - **Résultat rapporté : CLOS / NON ADOPTÉ** ([registre historique](journaux/journal_2026-09-22_transfert_historique.md)). Rejoué sur `results/review_h5_loop_budget_5x6.json` (source absente du checkout au 30 septembre ; 5 graines × 6 ans) : 5/5 égalités exactes sur valeur, profit, score, flotte et opcodes. Le drainage continu brûlait du CPU sans faire progresser le jeu et créait un risque de famine NoAI. Défaut 0 conservé.
 2. **Admission opportuniste sur reliquat de tick (C41.11–C41.14)** :
-   - Profilé dans [`docs/cible.md:532-538`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/cible.md#L532-L538) et [`docs/journaux/journal_2026-09-13.md:306-317`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/journaux/journal_2026-09-13.md#L306-L317).
+  - Profilé dans [la cible historique](cible.md) et le [journal du 13 septembre](journaux/journal_2026-09-13.md).
    - Les ledgers passifs C41.11/C41.12 avaient mesuré 28,1 % d'opcodes initiaux non utilisés. Mais C41.13/C41.14 ont établi que ce slack n'était **jamais disponible dans le même tick** que les 56 fenêtres où une micro-tâche ciblée devait être admise (0 admission sur 56 fenêtres).
    - **Conclusion de conception gravée** : Ne jamais bâtir un ordonnanceur sur « utiliser le reliquat ». Une micro-tâche doit posséder son propre tour de scheduler et une échéance locale propre.
 3. **Multi-construction brute (`portfolio_max_batch` / `portfolio_dynamic_batch`)** :
-   - Évalué le 2026-09-02 ([`docs/16_bilan_volume.md:171-173`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md#L171-L173), [`docs/taches.md:1194`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/taches.md#L1194)).
+  - Évalué le 2026-09-02 ([bilan de volume](16_bilan_volume.md), [registre historique](journaux/journal_2026-09-22_transfert_historique.md)).
    - Échec historique (banc de 3 ans, avant le 2026-09-09) : un succès régénérait le vivier et fusionnait deux cycles en un, et la caisse était vide pendant la phase pauvre de 1970-1972 (le 1er chantier la vidait). Jamais testé en phase riche avant C75.
 4. **Saut de passe `town_growth_skip_noop`** :
-   - Banc officiel 20×10 ([`docs/journaux/journal_2026-09-13.md:318-327`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/journaux/journal_2026-09-13.md#L318-L327), [`results/bench_town_growth_skip_noop_correct_10y_20seeds.json`](file:///home/deploy/projects/openttd-ml/.wt_c69/results/bench_town_growth_skip_noop_correct_10y_20seeds.json)).
+  - Banc officiel 20×10 rapporté dans le [journal du 13](journaux/journal_2026-09-13.md) : `results/bench_town_growth_skip_noop_correct_10y_20seeds.json` (source absente du checkout au 30 septembre).
    - Résultat neutre (valeur −233 k£, 12/20 non significatif). Le skip ne supprimait pas le coût des recherches de voirie `OpexRoadPlanFor` déjà consommées dans l'appel : seul un découpage de la tâche en micro-tranches peut amortir son impact.
 
 ---
@@ -191,12 +204,12 @@ L'architecture repose sur la séparation stricte de deux responsabilités :
 
 #### 3.1.2 File de FOND (périodique / maintenance)
 - **Rôle** : Assurer l'entretien du réseau, les scans périodiques et la réconciliation économique.
-- **Structure** : Reprend le mécanisme robuste de `dueCycle` et de round-robin existant dans [`scheduler.nut:181-202`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler.nut#L181-L202), mais allégé de ses tâches événementielles.
+- **Structure** : Reprend le mécanisme robuste de `dueCycle` et de round-robin existant dans [`scheduler.nut:181-202`](../ai/OpexAI/scheduler.nut#L181-L202), mais allégé de ses tâches événementielles.
 - **Tâches hébergées** :
   - `reconciliation_net` : filet périodique (annuel/semestriel) de mise à jour des populations et productions ;
-  - `report` : bilan comptable annuel ([`scheduler_tasks.nut:500`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L500)) ;
-  - `scrap` : purge des lignes déficitaires et matériels obsolètes ([`scheduler_tasks.nut:555`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L555)) ;
-  - `repay` : remboursement mensuel d'emprunt ([`scheduler_tasks.nut:676`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L676)) ;
+  - `report` : bilan comptable annuel ([`scheduler_tasks.nut:500`](../ai/OpexAI/scheduler_tasks.nut#L500)) ;
+  - `scrap` : purge des lignes déficitaires et matériels obsolètes ([`scheduler_tasks.nut:555`](../ai/OpexAI/scheduler_tasks.nut#L555)) ;
+  - `repay` : remboursement mensuel d'emprunt ([`scheduler_tasks.nut:676`](../ai/OpexAI/scheduler_tasks.nut#L676)) ;
   - `town_growth` : balayage de fond pour la croissance urbaine (instancie un travailleur découpé) ;
   - `catalog_background` : audit périodique des prix et bornes d'époques.
 - **Invariance des compteurs** : Les insertions dans la file réactive n'altèrent ni `_taskCycle`, ni `dueCycle`, ni les compteurs temporels de la file de fond.
@@ -251,17 +264,17 @@ class OpexWorker
 ```
 
 #### 3.2.2 Échéance locale propre (`local_deadline`)
-L'un des échecs majeurs des tentatives antérieures de fractionnement était l'usage d'un timeout global partagé avec le scheduler, qui provoquait des abandons intempestifs si d'autres tâches avaient consommé du temps auparavant ([`docs/cible.md:560`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/cible.md#L560)).
+L'un des échecs majeurs des tentatives antérieures de fractionnement était l'usage d'un timeout global partagé avec le scheduler, qui provoquait des abandons intempestifs si d'autres tâches avaient consommé du temps auparavant ([cible historique](cible.md)).
 
 Dans C80, chaque appel à `worker.step()` calcule son échéance locale sur le tick courant :
 $$\text{deadlineTick} = \text{AIController.GetTick()} + \text{SliceTicks} + \text{BUILD\_TICK\_MARGIN}$$
-Ce modèle reprend la solution validée de `RAIL_MICRO_DEADLINE` ([`task_rail.nut:814-819`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_rail.nut#L814-L819)) : la micro-étape dispose d'une marge de sécurité contre les blocages locaux sans jamais subir le temps passé par la file d'attente.
+Ce modèle reprend la solution validée de `RAIL_MICRO_DEADLINE` ([`task_rail.nut:814-819`](../ai/OpexAI/task_rail.nut#L814-L819)) : la micro-étape dispose d'une marge de sécurité contre les blocages locaux sans jamais subir le temps passé par la file d'attente.
 
 ---
 
 ### 3.3 La boucle principale ordonnancée et l'intercalation d'une micro-action
 
-La boucle principale de [`main.nut`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/main.nut#L532-L566) devient :
+La boucle principale de [`main.nut`](../ai/OpexAI/main.nut#L532-L566) devient :
 
 ```squirrel
 while (true) {
@@ -322,10 +335,10 @@ while (true) {
 
 #### 3.3.1 Mécanisme de l'intercalation pendant un long A*
 Lorsqu'une recherche ferroviaire de 2 000 itérations est en cours :
-1. Au tick $T$, `this._activeWorker` (de type `WorkerRailSearch`) exécute sa tranche de 50 itérations ([`task_rail.nut:818-826`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_rail.nut#L818-L826)).
+1. Au tick $T$, `this._activeWorker` (de type `WorkerRailSearch`) exécute sa tranche de 50 itérations ([`task_rail.nut:818-826`](../ai/OpexAI/task_rail.nut#L818-L826)).
 2. Un événement `AIEvent.ET_INDUSTRY_CLOSE` ou `AIEvent.ET_VEHICLE_LOST` arrive pendant le tick.
 3. Au tick $T+1$, `_processEvents()` l'enregistre et pousse une micro-action dans `_reactiveQueue`.
-4. L'étape 2 détecte cette micro-action d'un tick (ex. pose de signal PBS [`scheduler_tasks.nut:436`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L436) ou purge d'une industrie fermée du vivier) et l'exécute immédiatement.
+4. L'étape 2 détecte cette micro-action d'un tick (ex. pose de signal PBS [`scheduler_tasks.nut:436`](../ai/OpexAI/scheduler_tasks.nut#L436) ou purge d'une industrie fermée du vivier) et l'exécute immédiatement.
 5. Au tick $T+2$, le registre actif `_activeWorker` reprend exactement son A* à l'itération 51.
 6. **Bénéfice** : L'A* n'a été ni annulé, ni réinitialisé, et l'événement n'a pas attendu 50 jours de jeu.
 
@@ -333,31 +346,31 @@ Lorsqu'une recherche ferroviaire de 2 000 itérations est en cours :
 
 ## 4. Inventaire des tâches actuelles et leur destin
 
-Chacune des 13 tâches de [`main.nut:297-332`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/main.nut#L297-L332) et les continuations rail de [`scheduler.nut:140-177`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler.nut#L140-L177) reçoit une affectation nette :
+Chacune des 13 tâches de [`main.nut:297-332`](../ai/OpexAI/main.nut#L297-L332) et les continuations rail de [`scheduler.nut:140-177`](../ai/OpexAI/scheduler.nut#L140-L177) reçoit une affectation nette :
 
 | Tâche actuelle | Fichier et lignes | Rôle actuel | Destin dans C80 | Nature et découpage proposé |
 |---|---|---|---|---|
-| `railSearch` | [`task_rail.nut:751-899`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_rail.nut#L751-L899) | A* ferroviaire reprenable | **Travailleur résumable actif** (`WorkerRailSearch`) | Devient un travailleur de premier rang dans le registre actif. Conserve ses tranches de 50 itérations (`RAIL_SEARCH_SLICE`) et `rail_micro_deadline`. |
-| `railExpansion` | [`scheduler.nut:140`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler.nut#L140), [`task_rail.nut:366`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_rail.nut#L366) | Extension de rame en dépôt | **Travailleur résumable actif** (`WorkerRailExpansion`) | Travailleur multi-étapes réutilisant la machine d'état déjà persistée dans `persist.nut:8-30`. |
-| `catalog` | [`scheduler_tasks.nut:3-81`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L3-L81) | Rafraîchissement total + rebuild vivier | **Éclaté en intentions ciblées + travailleurs** | (1) Sous-catalogues rafraîchis à la demande en 1 tick ; (2) Rebuild remplacé par `WorkerRegen<Mode>` ; (3) Filet périodique en file de fond. |
-| `projects` | [`scheduler_tasks.nut:603-639`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L603-L639) | Sélection et construction d'un chantier | **Intention réactive ou de fond** | Quand élue : si le meilleur projet est routier/aérien, construction en 1 tick ; si ferroviaire, instanciation de `WorkerRailSearch`. |
-| `town_growth` | [`task_town.nut:53-220`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_town.nut#L53-L220) | Croissance urbaine (2,73 Mop d'un coup) | **Travailleur résumable de fond** (`WorkerTownGrowth`) | Découpé en étapes : **1 ville traitée par tranche** (tranche de ~80–120 k opcodes) avec relâchement de la main entre deux villes. |
-| `air` | [`scheduler_tasks.nut:564-575`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L564-L575) | Construction aérienne hors portefeuille | **Supprimé / Fusionné** | Déjà désactivé sous `AIR_PORTFOLIO=1` ([`scheduler_tasks.nut:573`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L573)). Intégré aux intentions de construction du vivier. |
-| `air_fleet` | [`scheduler_tasks.nut:576-602`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L576-L602) | Redimensionnement de flotte aérienne | **Intention de fond périodique** | Audit mensuel léger. Si renforts mûrs : injection directe dans le portefeuille via micro-action. |
-| `c41_water` | [`scheduler_tasks.nut:315-386`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L315-L386) | Rafraîchissement catalogue eau ciblé | **Intention réactive (1 tick)** | Retiré de la file statique ; inséré dans `_reactiveQueue` uniquement sur `EngineAvailable` eau. |
-| `c41_road` | [`scheduler_tasks.nut:387-416`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L387-L416) | Rafraîchissement catalogue route ciblé | **Intention réactive (1 tick)** | Retiré de la file statique ; inséré dans `_reactiveQueue` uniquement sur `EngineAvailable` route. |
-| `c41_rail_signals` | [`scheduler_tasks.nut:417-448`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L417-L448) | Réparation signaux PBS sur véhicule perdu | **Micro-action réactive (1 tick)** | Retiré de la file statique ; exécuté immédiatement en intercalaire à la réception de l'alerte. |
-| `c41_rail_junction` | [`scheduler_tasks.nut:449-499`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L449-L499) | Réparation raccord double voie | **Micro-action réactive (1 tick)** | Idem `c41_rail_signals`. |
-| `report` | [`scheduler_tasks.nut:500-554`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L500-L554) | Rapport annuel comptable | **Intention de fond périodique** | Exécutée une fois par an en début d'exercice (1 tick). |
-| `scrap` | [`scheduler_tasks.nut:555-563`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L555-L563) | Purge véhicules obsolètes et déficitaires | **Intention de fond + micro-action** | Scan annuel de fond + micro-action réactive sur `VEHICLE_WAITING_IN_DEPOT`. |
-| `expand` | [`scheduler_tasks.nut:640-651`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L640-L651) | Doublement voie / second train rail | **Intention de fond périodique** | Scan périodique trimestriel. Si opportunité : instancie `WorkerRailExpansion`. |
-| `refleet` | [`scheduler_tasks.nut:652-659`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L652-L659) | Renouvellement flotte route/eau | **Intention de fond périodique** | Maintenance trimestrielle de fond (1 tick). |
-| `repay` | [`scheduler_tasks.nut:676-686`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L676-L686) | Remboursement d'emprunt mensuel | **Intention de fond périodique** | Micro-action mensuelle (1 tick). |
+| `railSearch` | [`task_rail.nut:751-899`](../ai/OpexAI/task_rail.nut#L751-L899) | A* ferroviaire reprenable | **Travailleur résumable actif** (`WorkerRailSearch`) | Devient un travailleur de premier rang dans le registre actif. Conserve ses tranches de 50 itérations (`RAIL_SEARCH_SLICE`) et `rail_micro_deadline`. |
+| `railExpansion` | [`scheduler.nut:140`](../ai/OpexAI/scheduler.nut#L140), [`task_rail.nut:366`](../ai/OpexAI/task_rail.nut#L366) | Extension de rame en dépôt | **Travailleur résumable actif** (`WorkerRailExpansion`) | Travailleur multi-étapes réutilisant la machine d'état déjà persistée dans `persist.nut:8-30`. |
+| `catalog` | [`scheduler_tasks.nut:3-81`](../ai/OpexAI/scheduler_tasks.nut#L3-L81) | Rafraîchissement total + rebuild vivier | **Éclaté en intentions ciblées + travailleurs** | (1) Sous-catalogues rafraîchis à la demande en 1 tick ; (2) Rebuild remplacé par `WorkerRegen<Mode>` ; (3) Filet périodique en file de fond. |
+| `projects` | [`scheduler_tasks.nut:603-639`](../ai/OpexAI/scheduler_tasks.nut#L603-L639) | Sélection et construction d'un chantier | **Intention réactive ou de fond** | Quand élue : si le meilleur projet est routier/aérien, construction en 1 tick ; si ferroviaire, instanciation de `WorkerRailSearch`. |
+| `town_growth` | [`task_town.nut:53-220`](../ai/OpexAI/task_town.nut#L53-L220) | Croissance urbaine (2,73 Mop d'un coup) | **Travailleur résumable de fond** (`WorkerTownGrowth`) | Découpé en étapes : **1 ville traitée par tranche** (tranche de ~80–120 k opcodes) avec relâchement de la main entre deux villes. |
+| `air` | [`scheduler_tasks.nut:564-575`](../ai/OpexAI/scheduler_tasks.nut#L564-L575) | Construction aérienne hors portefeuille | **Supprimé / Fusionné** | Déjà désactivé sous `AIR_PORTFOLIO=1` ([`scheduler_tasks.nut:573`](../ai/OpexAI/scheduler_tasks.nut#L573)). Intégré aux intentions de construction du vivier. |
+| `air_fleet` | [`scheduler_tasks.nut:576-602`](../ai/OpexAI/scheduler_tasks.nut#L576-L602) | Redimensionnement de flotte aérienne | **Intention de fond périodique** | Audit mensuel léger. Si renforts mûrs : injection directe dans le portefeuille via micro-action. |
+| `c41_water` | [`scheduler_tasks.nut:315-386`](../ai/OpexAI/scheduler_tasks.nut#L315-L386) | Rafraîchissement catalogue eau ciblé | **Intention réactive (1 tick)** | Retiré de la file statique ; inséré dans `_reactiveQueue` uniquement sur `EngineAvailable` eau. |
+| `c41_road` | [`scheduler_tasks.nut:387-416`](../ai/OpexAI/scheduler_tasks.nut#L387-L416) | Rafraîchissement catalogue route ciblé | **Intention réactive (1 tick)** | Retiré de la file statique ; inséré dans `_reactiveQueue` uniquement sur `EngineAvailable` route. |
+| `c41_rail_signals` | [`scheduler_tasks.nut:417-448`](../ai/OpexAI/scheduler_tasks.nut#L417-L448) | Réparation signaux PBS sur véhicule perdu | **Micro-action réactive (1 tick)** | Retiré de la file statique ; exécuté immédiatement en intercalaire à la réception de l'alerte. |
+| `c41_rail_junction` | [`scheduler_tasks.nut:449-499`](../ai/OpexAI/scheduler_tasks.nut#L449-L499) | Réparation raccord double voie | **Micro-action réactive (1 tick)** | Idem `c41_rail_signals`. |
+| `report` | [`scheduler_tasks.nut:500-554`](../ai/OpexAI/scheduler_tasks.nut#L500-L554) | Rapport annuel comptable | **Intention de fond périodique** | Exécutée une fois par an en début d'exercice (1 tick). |
+| `scrap` | [`scheduler_tasks.nut:555-563`](../ai/OpexAI/scheduler_tasks.nut#L555-L563) | Purge véhicules obsolètes et déficitaires | **Intention de fond + micro-action** | Scan annuel de fond + micro-action réactive sur `VEHICLE_WAITING_IN_DEPOT`. |
+| `expand` | [`scheduler_tasks.nut:640-651`](../ai/OpexAI/scheduler_tasks.nut#L640-L651) | Doublement voie / second train rail | **Intention de fond périodique** | Scan périodique trimestriel. Si opportunité : instancie `WorkerRailExpansion`. |
+| `refleet` | [`scheduler_tasks.nut:652-659`](../ai/OpexAI/scheduler_tasks.nut#L652-L659) | Renouvellement flotte route/eau | **Intention de fond périodique** | Maintenance trimestrielle de fond (1 tick). |
+| `repay` | [`scheduler_tasks.nut:676-686`](../ai/OpexAI/scheduler_tasks.nut#L676-L686) | Remboursement d'emprunt mensuel | **Intention de fond périodique** | Micro-action mensuelle (1 tick). |
 
 ### 4.1 Découpage détaillé des quatre travailleurs résumables critiques
 
 #### 1. `WorkerRailSearch` (A* ferroviaire)
-- **Point de départ** : Structure existante `_railSearch` ([`task_rail.nut:773`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_rail.nut#L773)).
+- **Point de départ** : Structure existante `_railSearch` ([`task_rail.nut:773`](../ai/OpexAI/task_rail.nut#L773)).
 - **Étape 1 (Préparation)** : `OpexPrepareRailRoute` (1 tick).
 - **Étape 2 (Recherche A*)** : Tranches de 50 itérations (`RAIL_SEARCH_SLICE`) avec `rail_micro_deadline`. À chaque tranche, vérification de complétion ou de timeout local.
 - **Étape 3 (Finalisation)** : `OpexCompleteRailRouteAfterSearch`. Le plan complet est transmis pour érection.
@@ -367,7 +380,7 @@ Chacune des 13 tâches de [`main.nut:297-332`](file:///home/deploy/projects/open
 - **État sérialisable** : `{ cursorTownIndex, servedTownsList, year }`.
 - **Étape par pas (`step`)** :
   - Dépile **1 seule ville** de la liste des villes desservies.
-  - Exécute les filtres de présence et de station ([`task_town.nut:69-75`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_town.nut#L69-L75)).
+  - Exécute les filtres de présence et de station ([`task_town.nut:69-75`](../ai/OpexAI/task_town.nut#L69-L75)).
   - Si éligible : exécute `OpexRoadPlanFor` et `OpexBuildRoadRoute`.
   - Si construction réussie ou fin de liste : passe à l'état `done`. Sinon, incrémente le curseur et rend la main pour le tick suivant.
 
@@ -392,7 +405,7 @@ Chacune des 13 tâches de [`main.nut:297-332`](file:///home/deploy/projects/open
 Le chantier **C76 étape 2** est le premier bénéficiaire direct de l'orchestrateur à double registre.
 
 ### 5.1 Architecture des sous-catalogues et révisions C76
-Au lieu d'un appel global `OpexCatalog::refresh` ([`catalog.nut:932`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/catalog.nut#L932)), chaque couche conserve son couple de révisions sérialisables : `revision` (incrémenté sur modification du monde) et `acknowledgedRevision` (mis à jour lors de la régénération effective) :
+Au lieu d'un appel global `OpexCatalog::refresh` ([`catalog.nut:932`](../ai/OpexAI/catalog.nut#L932)), chaque couche conserve son couple de révisions sérialisables : `revision` (incrémenté sur modification du monde) et `acknowledgedRevision` (mis à jour lors de la régénération effective) :
 
 ```squirrel
 this._staleness = {
@@ -436,7 +449,7 @@ Le filet périodique s'exécute en **file de fond** à cadence semestrielle ou a
 
 ### 5.4 Ce que C77 réutilisera directement
 
-Le chantier **C77** (« déclenchement des candidats opportunistes », [`docs/taches.md:84-98`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/taches.md#L84-L98)) s'appuiera nativement sur le double registre de C80 :
+Le chantier **C77** (« déclenchement des candidats opportunistes », [reliquat courant](taches.md#c76-c77)) devait, dans ce contrat initial, s'appuyer nativement sur le double registre de C80 :
 - Dès qu'un événement survient (ex. `IndustryOpen` ou ouverture d'un second aéroport dans une ville par AAAHogEx), C77 ne réveillera même pas le régénérateur complet du mode : il créera directement une **intention réactive unitaire** ciblant l'entité touchée.
 - Cette intention unitaire générera immédiatement les candidats de la nouvelle entité, les injectera dans `candidateGroups`, et déclenchera une tentative de construction sous 1 tick.
 
@@ -445,11 +458,11 @@ Le chantier **C77** (« déclenchement des candidats opportunistes », [`docs/ta
 ## 6. Sérialisation et persistance
 
 La persistance sous NoAI obéit à des contraintes physiques absolues imposées par le moteur C++ d'OpenTTD :
-- **Interdiction des flottants** : Le format de sauvegarde NoAI rejette les floats (`Save()` échoue). Toutes les valeurs doivent être en entiers ou milli-unités ([`persist.nut:16-17`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/persist.nut#L16-L17)).
+- **Interdiction des flottants** : Le format de sauvegarde NoAI rejette les floats (`Save()` échoue). Toutes les valeurs doivent être en entiers ou milli-unités ([`persist.nut:16-17`](../ai/OpexAI/persist.nut#L16-L17)).
 - **Interdiction formelle des coroutines natives Squirrel** : Les coroutines (`newthread` / `yield`) ne peuvent pas être sérialisées par le moteur d'OpenTTD, créent des fuites mémoires silencieuses et peuvent geler la VM. Toute tâche longue doit être un **objet d'état plat** sérialisable.
 
 ### 6.1 Ce qui est persisté dans `Save()`
-Dans [`persist.nut:302-407`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/persist.nut#L302-L407), les structures C80 suivantes sont sauvegardées :
+Dans [`persist.nut:302-407`](../ai/OpexAI/persist.nut#L302-L407), les structures C80 suivantes sont sauvegardées :
 1. `reactiveQueue` : liste des intentions réactives non traitées (tableaux de dictionnaires d'entiers et chaînes).
 2. `backgroundQueue` : états de `dueCycle`, `taskCursor` et `taskCycle`.
 3. `revisions` et `acknowledged` : registres d'invalidation C76.
@@ -461,14 +474,14 @@ Dans [`persist.nut:302-407`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/
 |---|---|---|
 | `WorkerTownGrowth` | **Restauré et repris** | État 100 % Squirrel (curseur d'entier, liste d'IDs de villes). Reprend à la ville suivante. |
 | `WorkerRegenCandidates` | **Restauré ou relancé** | État 100 % Squirrel. Peut reprendre ou régénérer le mode propre. |
-| `WorkerRailSearch` | **ABANDONNÉ PROPREMENT** | Contient des objets natifs C++ AYSTAR non sérialisables. Conformément au comportement éprouvé de [`persist.nut:518-538`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/persist.nut#L518-L538), l'état est annulé proprement (`cancel()`), `_railSearch = null`, et l'intention ferroviaire est réinjectée dans la file pour reprise propre sans fuite de mémoire. |
+| `WorkerRailSearch` | **ABANDONNÉ PROPREMENT** | Contient des objets natifs C++ AYSTAR non sérialisables. Conformément au comportement éprouvé de [`persist.nut:518-538`](../ai/OpexAI/persist.nut#L518-L538), l'état est annulé proprement (`cancel()`), `_railSearch = null`, et l'intention ferroviaire est réinjectée dans la file pour reprise propre sans fuite de mémoire. |
 | `File d'événements NoAI` | **Vide à la reprise** | OpenTTD vide la file d'événements. `_reconcileAfterLoad()` force une révision complète du filet périodique pour réconcilier l'état du monde avec la mémoire de l'IA. |
 
 ---
 
 ## 7. Plan de livraison par morceaux et protocole de banc
 
-Chaque morceau est développé et livré de façon incrémentale, isolé derrière un réglage d'expérience à **défaut 0** dans [`info.nut`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/info.nut).
+Chaque morceau est développé et livré de façon incrémentale, isolé derrière un réglage d'expérience à **défaut 0** dans [`info.nut`](../ai/OpexAI/info.nut).
 
 ### 7.1 Découpage des tranches de livraison
 
@@ -499,9 +512,9 @@ Tranche 3 : C76 étape 2 sur double registre (c76_regen_targeted = 0)
 
 ### 7.2 Le banc d'autorité officiel : 20×10 en duel
 
-⚠️ **Rappel méthodologique fondamental de la fiche C66** ([`docs/taches.md:116-117`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/taches.md#L116-L117), [`docs/17_evenements_regeneration.md:116-117`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/17_evenements_regeneration.md#L116-L117)) :
+⚠️ **Rappel méthodologique fondamental de la fiche C66** ([protocole courant](../AGENTS.md#4-validation-proportionnée-puis-adoption), [fiche événements](17_evenements_regeneration.md)) :
 - **Le 5×6 solo ne prédit pas le duel.**
-  Les retours d'expérience C49 (scarcity), C69 (goulot de décision) et C72 (choix d'avion) ont prouvé que des gains solo de +100 k£ à +290 k£ s'annulent ou deviennent négatifs en duel. En solo, le foncier abonde et la caisse ne subit aucune concurrence. En duel, AAAHogEx sature les aéroports municipaux (limités à 2 par ville, erreur 771, [`docs/16_bilan_volume.md`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md) §3) et capte le trafic si le rythme décisionnel n'est pas coordonné.
+  Les retours d'expérience C49 (scarcity), C69 (goulot de décision) et C72 (choix d'avion) ont prouvé que des gains solo de +100 k£ à +290 k£ s'annulent ou deviennent négatifs en duel. En solo, le foncier abonde et la caisse ne subit aucune concurrence. En duel, AAAHogEx sature les aéroports municipaux (limités à 2 par ville, erreur 771, [`docs/16_bilan_volume.md`](../docs/16_bilan_volume.md) §3) et capte le trafic si le rythme décisionnel n'est pas coordonné.
 - **Le duel n'est pas déterministe.**
   Les interactions asynchrones et les micro-variations de calendrier modifient la trajectoire.
 - **Protocole d'arbitrage** :
@@ -533,7 +546,7 @@ Chaque étape dispose de seuils de passage quantitatifs vérifiables par les son
    - *Garde-fou* : Règle structurelle (§3.1.3) accordant le tour à la file de fond après au plus 5 ticks réactifs consécutifs, et coalescence stricte des clés.
 2. **Risque d'asynchronisme et de désynchronisation multimodale** :
    - Si un mode est régénéré avec des coûts récents pendant qu'un autre conserve des estimations anciennes, le sac à dos peut subir un biais d'âge.
-   - *Garde-fou* : Le filet périodique de fond réévalue périodiquement tous les candidats retenus en mémoire sur la même base de capital et d'amortissement.
+   - *Garde-fou* : Le filet périodique réévalue périodiquement tous les candidats retenus en mémoire sur la même base de capital et d'amortissement.
 3. **Risque de corruption à la sauvegarde d'un travailleur en cours** :
    - *Garde-fou* : Interdiction formelle des coroutines natives. Seules des tables plates d'entiers sont sérialisées. Si un travailleur porte des pointeurs C++ (`WorkerRailSearch`), il est proprement annulé à la sauvegarde et réinstancié à la reprise.
 
@@ -546,13 +559,15 @@ Chaque étape dispose de seuils de passage quantitatifs vérifiables par les son
 
 ### 9.3 Levée explicite de l'ancienne consigne de `taches.md`
 
-Dans [`docs/taches.md:228-230`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/taches.md#L228-L230) et [`docs/taches.md:1194-1200`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/taches.md#L1194-L1200), figurait la consigne suivante :
+Dans l'ancien registre des tâches (références originales : lignes 228–230 et
+1194–1200 ; [transfert historique](journaux/journal_2026-09-22_transfert_historique.md)),
+figurait la consigne suivante :
 > *« Ne pas lancer simultanément une nouvelle famille de plafonds, un nouveau score et un orchestrateur général [...] sur la seule foi d'anciens profils. »*
 
 Cette consigne est **formellement levée ce 2026-09-21**, sur la base des preuves expérimentales fraîches obtenues sur le code courant :
-1. **La prémisse de l'interdiction est réfutée** : La clôture de C39.5 reposait sur l'observation que le vivier était vide dans 58,6 % des tours ([`docs/16_bilan_volume.md:162-167`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/16_bilan_volume.md#L162-L167)) ; accélérer le scheduler semblait donc inutile. Or la sonde C73 démontre que sur le code actuel (sans feeders, post-C68), le vivier n'est **jamais vide après 1970**, tous les projets sont finançables, et chaque passe construit.
+1. **La prémisse de l'interdiction est réfutée dans ce diagnostic** : La clôture de C39.5 reposait sur l'observation que le vivier était vide dans 58,6 % des tours ([bilan de volume](16_bilan_volume.md)) ; accélérer le scheduler semblait donc inutile. Or la sonde C73 montre que sur le code alors mesuré (sans feeders, post-C68), le vivier n'est **jamais vide après 1970**, tous les projets sont finançables, et chaque passe construit.
 2. **Le goulot physique mesuré est le tour de file** : La sonde C74 prouve que le tour de file dure 45 à 52 jours (7 à 8 chantiers/an) pendant que la caisse dort à 11,5 M£.
-3. **Le gaspillage est quantifié et validé** : La sonde C76 étape 1 mesure que 53 à 76 % des régénérations sont redondantes (~145 à 180 jours de jeu/an gaspillés), et l'utilisateur a expressément validé C76 pour entrer en étape 2 ([`docs/17_evenements_regeneration.md:197-200`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/17_evenements_regeneration.md#L197-L200)).
+3. **Le gaspillage est quantifié dans cette campagne** : La sonde C76 étape 1 mesure que 53 à 76 % des régénérations sont redondantes (~145 à 180 jours de jeu/an gaspillés), et l'utilisateur a expressément validé C76 pour entrer en étape 2 ([fiche événements](17_evenements_regeneration.md)).
 4. **Conclusion** : L'orchestrateur général n'est plus une spéculation abstraite basée sur d'anciens profils périmés, mais la **réponse causale directe, mesurée et exigée** pour débloquer le volume décisionnel d'OpexAI face à AAAHogEx.
 
 ---

@@ -6,6 +6,11 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +22,7 @@ def _read(rel: str) -> str:
 
 class ReviewResidualContractsTest(unittest.TestCase):
     def test_c77_targeted_rail_carries_fallback_cargo_into_next_mode(self):
-        src = _read("ai/OpexAI/projects.nut")
+        src = read_projects_source()
         start = src.index("function OpexGenerateModeProjects(")
         end = src.index("function OpexRegenerateModeProjects(", start)
         body = src[start:end]
@@ -55,7 +60,7 @@ class ReviewResidualContractsTest(unittest.TestCase):
         self.assertIn("error = !okB ? AIError.GetLastError() : 0", body[second_failure:second_failure + 260])
 
     def test_air_reused_hub_failure_does_not_read_stale_aierror(self):
-        src = _read("ai/OpexAI/builder_air.nut")
+        src = read_builder_air()
         start = src.index("function OpexBuildAirRoute(")
         body = src[start:]
         fail_a = body[body.index("if (airportA == null) {"):body.index("if (reuseB) {")]
@@ -71,13 +76,13 @@ class ReviewResidualContractsTest(unittest.TestCase):
             self.assertNotIn("AIError.GetLastError()", block)
             self.assertNotIn("AIError.GetLastErrorString()", block)
 
-        build_a = body[body.index("local okA = AIAirport.BuildAirport"):body.index("if (airportA == null) {")]
-        build_b = body[body.index("local okB = AIAirport.BuildAirport"):body.index("result.opcodes += budget.end", body.index("local okB = AIAirport.BuildAirport"))]
+        build_a = body[body.index("local okA = levelA.ok && AIAirport.BuildAirport"):body.index("if (airportA == null) {")]
+        build_b = body[body.index("local okB = levelB.ok && AIAirport.BuildAirport"):body.index("result.opcodes += budget.end", body.index("local okB = levelB.ok && AIAirport.BuildAirport"))]
         self.assertIn("airportErrorA = AIError.GetLastError();", build_a)
         self.assertIn("airportErrorB = AIError.GetLastError();", build_b)
 
     def test_air_share_orders_failure_never_starts_unordered_plane(self):
-        src = _read("ai/OpexAI/builder_air.nut")
+        src = read_builder_air()
 
         add_start = src.index("function OpexAirAddPlane(")
         add_end = src.index("function OpexAirRefleetCrashedPlane(", add_start)
@@ -96,7 +101,8 @@ class ReviewResidualContractsTest(unittest.TestCase):
         share_fail = fleet.index("if (AIVehicle.IsValidVehicle(extra) && !AIOrder.ShareOrders(extra, plane)) {")
         failure = fleet[share_fail:]
         self.assertIn("built.append(extra);", failure)
-        self.assertIn("OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built);", failure)
+        self.assertRegex(failure, r"OpexAirRollback\(reuseA \? null : airportA, reuseB \? null : airportB, built,\s*"
+                      r"OpexAirPairKey\(plan.siteA, plan.siteB\)\);")
         self.assertIn('result.reason = "ORDFAIL";', failure)
         self.assertIn("return result;", failure)
 

@@ -323,6 +323,8 @@ class OpexAI extends AIController {
    * _c83SlotRace : date du dernier enqueue reussi (c83_fixes). Meme regime. */
   _c83SlotWatch = null;
   _c83SlotRace = null;
+  /* Horloge et mesures P4 reconstructibles, jamais serialisees. */
+  _expC83WatchDaily = null;
   /* c83_preempt_open : date de rearm par ville, ville deja demandee, et
    * nombre d'enqueues de la passe. Non lus quand le reglage est a 0. */
   _c83PreemptRace = null;
@@ -563,6 +565,7 @@ class OpexAI extends AIController {
   function _c77RemoveSubsidy(subId);
   function _c77RegenEntitySync(payload);
   function _c83WatchAirSlotTransitions();
+  function _expC83PollAirSlots(source = "main");
   function enqueue(key, kind, payload);
   function pop();
   function _advanceRailSearchThroughput(maxSlices = -1);
@@ -597,6 +600,7 @@ require("task_road.nut");
 require("task_terrain.nut");
 require("task_town.nut");
 require("task_water.nut");
+require("selftests.nut");
 
 function OpexAI::Start()
 {
@@ -639,6 +643,7 @@ function OpexAI::Start()
     /* Branche de compatibilite volontairement vide : l'ancien flag etait force false. */
   }
   if (this._loadedFromSave) this._reconcileAfterLoad();
+  OpexExpC83ResetWatchDaily(this);
   if (DECISION_LOG) {
     OpexDecide("SETTINGS", "road_pax_build=" + ROAD_PAX_BUILD_ENABLED
                + " road_pax_voirie=" + ROAD_PAX_VOIRIE
@@ -700,6 +705,7 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
+    if (EXP_C83_WATCH_DAILY) this._expC83PollAirSlots();
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       OpexC117AirThroughputStep(this._lines, this._catalog);
     }
@@ -708,9 +714,8 @@ function OpexAI::Start()
       this._runOrchestratorTick();
       if (C121_CATALOG_INCREMENTAL) {
         local catalogPending = true;
-        while (catalogPending && this._activeWorker == null
-            && this._railSearch == null && this._railExpansion == null
-            && AIController.GetOpsTillSuspend() > 10000) {
+        local continuationTick = AIController.GetTick();
+        while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
           catalogPending = false;
           foreach (queuedTask in this._taskQueue) {
             if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
@@ -734,9 +739,8 @@ function OpexAI::Start()
        * encore des opcodes. La file continue son tour normal a chaque appel. */
       if (C121_CATALOG_INCREMENTAL) {
         local catalogPending = true;
-        while (catalogPending && this._activeWorker == null
-            && this._railSearch == null && this._railExpansion == null
-            && AIController.GetOpsTillSuspend() > 10000) {
+        local continuationTick = AIController.GetTick();
+        while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
           catalogPending = false;
           foreach (queuedTask in this._taskQueue) {
             if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)

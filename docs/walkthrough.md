@@ -1,5 +1,18 @@
 # Walkthrough — Redimensionnement Dynamique par Télémétrie Physique & Nouveau Cap Historique (> 600 k£)
 
+> **Archive historique, source unique du walkthrough ; pas un contrat courant.** Aucun
+> fichier de résultats, identifiant de campagne ou bundle n'est identifié ici pour les
+> chiffres ci-dessous : tableaux, pourcentages et conclusions ne sont **pas des preuves
+> actuelles**, ni une validation du code courant. Ils sont conservés pour mémoire, sans
+> leur attribuer une provenance non établie. Voir [AGENTS.md](../AGENTS.md) et
+> [taches.md](taches.md) pour les règles de preuve et l'état courant.
+
+**Repères courants (relecture du 30 septembre 2026).** Le portefeuille de
+[`projects.nut`](../ai/OpexAI/projects.nut) utilise le **profit calibré** et `fundScore` C69,
+pas le revenu. [`persist.nut`](../ai/OpexAI/persist.nut) implémente `Save`, `Load` et
+`_reconcileAfterLoad`. Le récit et les seuils ci-dessous ne décrivent pas nécessairement
+les politiques actuelles.
+
 ## 1. Diagnostic Approfondi : Pourquoi se baser sur `lastProfit` était insuffisant
 
 1. **L'aveuglement de la première année** : `AIVehicle.GetProfitLastYear` ne renvoie aucune donnée durant toute la première année (1970). Conditionner le redimensionnement à `lastProfit > 0` paralysait l'expansion des lignes neuves au moment le plus critique de l'amorce.
@@ -12,7 +25,11 @@
 
 ## 2. Nouveau Moteur de Redimensionnement par Télémétrie Physique
 
-Dans [`main.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/main.nut#L2288-L2320) :
+Le récit ci-dessous concernait l'ancien `main.nut` monolithique. Pour retrouver les fonctions
+aujourd'hui, consulter [`task_road.nut`](../ai/OpexAI/task_road.nut) (`_refleetRoadLines`),
+[`task_air.nut`](../ai/OpexAI/task_air.nut) (`_resizeAirFleets`) et
+[`task_rail.nut`](../ai/OpexAI/task_rail.nut) (`_expandRailLines`). Ces liens donnent des points
+d'entrée, pas une confirmation de chacun des mécanismes historiques suivants :
 1. **Inspection de la vitesse temps réel des véhicules (`AIVehicle.GetCurrentSpeed`)** :
    - Si un véhicule est déjà à l'arrêt au terminus en attendant des passagers (`speed == 0`), interdiction d'injecter un véhicule supplémentaire pour éviter l'engorgement.
    - Si tous les véhicules roulent (`speed > 0`) et que la marchandise s'accumule (`waiting >= capacity`), injection immédiate de véhicules pour évacuer le surplus.

@@ -1,0 +1,91 @@
+name: Qualification de défaut OpenTTD
+run-name: "Qualification — ${{ inputs.plan }} — ${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: "Plan pré-enregistré et publié : qualifications/<chantier>.json"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Same lock as manual benchmarks: no simultaneous qualification/bench on a branch.
+concurrency:
+  group: openttd-bench-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      QUALIFICATION_PLAN: ${{ inputs.plan }}
+      RESULT_DIR: results/qualification-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Freeze request before any download or game
+        run: python sweeps/github_qualification.py init
+      - name: Offline orchestration and qualification fixtures
+        timeout-minutes: 10
+        run: |
+          python -m unittest discover -s sweeps -p test_github_bench.py -v
+          python -m unittest discover -s sweeps -p test_qualification.py -v
+      - name: Record runner
+        id: runner
+        run: |
+          git rev-parse HEAD > "$RESULT_DIR/git-sha.txt"
+          git status --porcelain=v1 > "$RESULT_DIR/git-status.txt"
+          docker context show > "$RESULT_DIR/docker-context.txt"
+          docker info > "$RESULT_DIR/docker-info.txt"
+          echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
+          echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build one identical runtime for all three stages
+        uses: docker/build-push-action@v6
+        timeout-minutes: 30
+        with:
+          context: .
+          target: simulation
+          load: true
+          tags: openttd-lab:github
+          build-args: |
+            UID=${{ steps.runner.outputs.uid }}
+            GID=${{ steps.runner.outputs.gid }}
+          cache-from: type=gha,scope=openttd-simulation
+          cache-to: type=gha,scope=openttd-simulation,mode=max
+      - name: Pinned opponent and fresh runtime volume
+        timeout-minutes: 5
+        run: |
+          python sweeps/github_qualification.py prepare
+          docker image inspect openttd-lab:github > "$RESULT_DIR/docker-image.json"
+          docker volume create openttd-lab-home
+      - name: Preregistered targeted contracts (no games)
+        timeout-minutes: 12
+        run: python sweeps/github_qualification.py contracts
+      - name: Smoke then diagnostic then adoption, with stop gates and total budget
+        timeout-minutes: 280
+        run: python sweeps/github_qualification.py run
+      - name: Decision and readable summary, including interruption
+        if: always()
+        run: python sweeps/github_qualification.py summary
+      - name: Preserve all available evidence, never just successful seeds
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.RESULT_DIR }}/
+          if-no-files-found: error
+          retention-days: 30

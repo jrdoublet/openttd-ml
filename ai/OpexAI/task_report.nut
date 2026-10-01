@@ -1,37 +1,224 @@
 
-/* C102 : reconstruction passive du rating AIR au niveau gare+cargo.
- * OpenTTD 15.3 calcule la note par gare+cargo, pas par ligne. */
-function OpexC102WaitingRatingPoints(waiting)
+/* R13 : effets de bord metier de _reportLines, extraits en fonctions nommees.
+ * Corps deplaces a l'identique ; les gardes restent a l'appelant pour que le
+ * chemin par defaut n'execute aucun appel supplementaire quand la branche est
+ * inactive. Ordre d'appel dans _reportLines inchange. */
+
+/* C121 : echantillon de realisation (ligne a flotte de construction). Mutation de
+ * la ligne + accumulation dans les sommes publiees en fin de rapport. */
+function OpexC121ObserveLineRealization(line, year, vehCount, currentRevenue, c121RealizationSums)
 {
-  if (waiting < 0) return 0;
-  local points = 0;
-  if (waiting <= 1500) points += 55;
-  if (waiting <= 1000) points += 35;
-  if (waiting <= 600) points += 10;
-  if (waiting <= 300) points += 20;
-  if (waiting <= 100) points += 10;
-  return points;
+  local c121Age = ("year" in line) ? year - line.year : -1;
+  local c121N0 = ("trains0" in line) ? line.trains0 : 0;
+  /* Calibrer une NOUVELLE ligne sur des lignes restees a leur flotte de
+   * construction. Une ligne deja renforcee porte de la saturation/marge
+   * decroissante : la rabattre artificiellement par N0/N sous-estime alors
+   * la realisation d'un projet neuf a N0. */
+  if (c121Age >= 2 && c121N0 > 0 && vehCount == c121N0) {
+    local normalizedRevenue = currentRevenue.tofloat() * c121N0.tofloat() / vehCount.tofloat();
+    if (normalizedRevenue < 0.0) normalizedRevenue = 0.0;
+    local ratioPm = (normalizedRevenue * 1000.0 / line.c121RawRevenueAnnual.tofloat()).tointeger();
+    line.c121RealizationPm <- ratioPm;
+    line.c121RealizationYear <- year;
+    if (C121_AIR_ENGINE_REPLAY_SHADOW && ("c121EngineId" in line)) {
+      AILog.Info("C121_ENGINE_REALIZATION line=" + line.lineId
+          + " year=" + year + " engine=" + line.c121EngineId
+          + " arm=" + line.c121Arm + " n0=" + c121N0 + " n=" + vehCount
+          + " raw_revenue=" + line.c121RawRevenueAnnual
+          + " observed_revenue=" + normalizedRevenue.tointeger()
+          + " ratio_pm=" + ratioPm);
+    }
+    c121RealizationSums[line.c121Arm][0] += ratioPm;
+    c121RealizationSums[line.c121Arm][1]++;
+  }
 }
 
-function OpexC102AgeRatingPoints(ageDays)
+/* C121 : marge observee d'un renfort de flotte (moyenne glissante persistee sur la ligne). */
+function OpexC121ObserveLineMarginal(line, year, vehCount, profit, currentRevenue)
 {
-  if (ageDays < 0) return 0;
-  local ageYears = ageDays / 365;
-  local points = 0;
-  if (ageYears < 3) points += 10;
-  if (ageYears < 2) points += 10;
-  if (ageYears < 1) points += 13;
-  return points;
+  local addedObserved = vehCount - line.c121MarginalBaselineVehicles;
+  local observedProfit = profit - line.c121MarginalBaselineProfit;
+  if (("c121VehicleAmortPerPlane" in line) && line.c121VehicleAmortPerPlane > 0) {
+    observedProfit -= line.c121VehicleAmortPerPlane * addedObserved;
+  }
+  local observedRevenue = currentRevenue - line.c121MarginalBaselineRevenue;
+  /* Publier une marge PAR avion. C121 construit normalement un seul renfort
+   * a la fois, mais cette normalisation garde le contrat exact apres crash,
+   * reconstitution ou ancien savegame portant plusieurs ajouts. */
+  if (addedObserved > 1) {
+    observedProfit /= addedObserved;
+    observedRevenue /= addedObserved;
+  }
+  local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+  local avgProfit = samples > 0 && ("c121MarginalProfit" in line)
+      ? (line.c121MarginalProfit * samples + observedProfit) / (samples + 1)
+      : observedProfit;
+  local avgRevenue = samples > 0 && ("c121MarginalRevenue" in line)
+      ? (line.c121MarginalRevenue * samples + observedRevenue) / (samples + 1)
+      : observedRevenue;
+  if ("c121MarginalProfit" in line) line.c121MarginalProfit = avgProfit;
+  else line.c121MarginalProfit <- avgProfit;
+  if ("c121MarginalRevenue" in line) line.c121MarginalRevenue = avgRevenue;
+  else line.c121MarginalRevenue <- avgRevenue;
+  if ("c121MarginalSamples" in line) line.c121MarginalSamples = samples + 1;
+  else line.c121MarginalSamples <- samples + 1;
+  AILog.Info("C121_FLEET_MARGINAL line=" + line.lineId + " year=" + year
+      + " added=" + addedObserved + " obs_profit=" + observedProfit
+      + " obs_revenue=" + observedRevenue + " avg_profit=" + avgProfit
+      + " avg_revenue=" + avgRevenue + " samples=" + (samples + 1));
+  delete line.c121MarginalBaselineProfit;
+  delete line.c121MarginalBaselineRevenue;
+  delete line.c121MarginalBaselineVehicles;
+  delete line.c121MarginalObserveYear;
 }
 
-function OpexC102SpeedRatingPoints(engineId)
+/* C70 / C82 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
+ * construction est partielle). Par convoi initial, amortissement predit retire du realise
+ * (GetProfitLastYear n'amortit rien). Ratio de sommes : une annee aberrante pese son poids.
+ * Mutation persistante (c70Real/c70Pred) + accumulation dans c70Sums/c82Sums. */
+function OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums, c82Sums)
 {
-  if (!AIEngine.IsValidEngine(engineId)) return 0;
-  local oldSpeed = (AIEngine.GetMaxSpeed(engineId).tofloat()
-      * OpexPlaneSpeedDivisor() * 10.0 / 128.0).tointeger();
-  if (oldSpeed > 255) oldSpeed = 255;
-  local b = oldSpeed - 85;
-  return b >= 0 ? (b / 4) : 0;
+  local cMode = ("mode" in line) ? line.mode : "unknown";
+  local cAge = ("year" in line) ? (year - line.year) : -1;
+  local cPred = ("predicted" in line) ? line.predicted : 0;
+  local cN0 = ("trains0" in line) ? line.trains0 : 0;
+  local modeOk = (c70Sums != null && (cMode in c70Sums)) || (cMode == "air");
+  if (cAge >= 2 && cPred > 0 && cN0 > 0 && vehCount > 0 && modeOk) {
+    local cAmort = ("predAmort" in line) ? line.predAmort : 0;
+    local real = profit.tofloat() * cN0 / vehCount - cAmort;
+    if (!("c70Real" in line)) { line.c70Real <- 0.0; line.c70Pred <- 0.0; }
+    line.c70Real += real;
+    line.c70Pred += cPred.tofloat();
+  }
+  if (C70_MODE_CALIBRATION && ("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
+    /* tofloat : apres chargement, les cumuls sont des entiers (la sauvegarde arrondit les
+     * flottants) et une division entiere fausserait le ratio. */
+    c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
+    c70Sums[cMode][1]++;
+  }
+  if ((C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY)
+      && cMode == "air" && ("planeId" in line) && line.planeId >= 0
+      && ("c70Pred" in line) && line.c70Pred > 0) {
+    local e = line.planeId;
+    if (!(e in c82Sums)) c82Sums[e] <- [0.0, 0];
+    c82Sums[e][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
+    c82Sums[e][1]++;
+  }
+}
+
+/* C70 : publication des facteurs par mode (etat global lu par l'economie). */
+function OpexC70PublishModeFactors(c70Sums, year)
+{
+  /* Pseudo-ligne a 1 : k = (somme des ratios + 1) / (n + 1). Sans ligne mure, k = 1 ; la premiere
+   * ligne ne pese que la moitie ; l'effet s'efface a mesure que les lignes s'accumulent. */
+  foreach (m, acc in c70Sums) {
+    C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+    if (C69_BOTTLENECK_PROBE) {
+      OpexC69Log("phase=c70_factor year=" + year + " mode=" + m + " lines=" + acc[1]
+          + " k=" + C70_MODE_FACTOR[m]);
+    }
+  }
+}
+
+/* C82 / C110 : publication des facteurs par moteur (etat global lu par le choix d'avion). */
+function OpexC82PublishEngineFactors(c82Sums, year)
+{
+  C82_ENGINE_FACTOR.clear();
+  foreach (e, acc in c82Sums) {
+    local n = acc[1];
+    local k = (acc[0] + 1.0) / (n + 1).tofloat();
+    C82_ENGINE_FACTOR[e] <- k;
+    if (C69_BOTTLENECK_PROBE) {
+      OpexC69Log("phase=c82_factor year=" + year + " engine=" + e + " name=" + OpexPlaneName(e)
+          + " lines=" + n + " k=" + k);
+    }
+  }
+  if (C69_BOTTLENECK_PROBE) {
+    OpexC69Log("phase=c82_choice_summary year=" + year
+        + " calls=" + C82_CHOICE_CALLS + " differ=" + C82_CHOICE_DIFFER);
+    C82_CHOICE_CALLS = 0;
+    C82_CHOICE_DIFFER = 0;
+  }
+}
+
+/* R13 : sante annuelle d'une ligne fret (compteur deadStreak lu par _scrapDeadLines).
+ * Appelee apres le signe IA, dans la meme branche isFreight qu'avant l'extraction. */
+function OpexUpdateFreightLineHealth(line, year, anchor, stationB, profit, runCost, srcAlive, srcProd)
+{
+  /* Detection ligne morte : srcAlive=0 seul ne suffit PAS (cf. commentaire DEAD_STREAK_THRESHOLD
+   * -- une gare peut recuperer une industrie voisine). srcSuffering couvre aussi l'industrie
+   * encore ouverte mais a production nulle, meme consequence pour la ligne qu'une fermeture.
+   * collapsed exige EN PLUS la preuve REELLE, mesuree ici meme : note de gare a -1 (aucun
+   * cargo jamais vu) ET revenu implicite (profit + cout de fonctionnement) nul ou negatif,
+   * c'est-a-dire rien transporte du tout cette annee. deadStreak ne compte que les annees
+   * CONSECUTIVES ou les trois tiennent ensemble ; un seul manque et le compteur retombe a 0. */
+  /* 🔴 CORRIGE LE 2026-08-29. La condition exigeait AUSSI ratingA <= 0, et cette clause etait
+   * fausse : une gare CONSERVE sa derniere note quand plus rien n'y passe. Mesure, campagne
+   * 20 ans graine 42 : la ligne routiere OIL_ a perdu son industrie source en 1979 et a roule
+   * ONZE ANS a -842 par an sans jamais etre mise au rebut, note de gare figee a 67 tout du
+   * long. Le revenu implicite (profit + cout de fonctionnement) suffit et ne ment pas : a zero,
+   * la ligne n'a rien transporte de l'annee, quelle que soit la note affichee. La prudence
+   * reste assuree par les deux autres conditions -- l'industrie source en souffrance, et
+   * DEAD_STREAK_THRESHOLD annees CONSECUTIVES.
+   * ⚠️ Comme le renouvellement automatique, ce correctif touche AUSSI les lignes rail. */
+  local srcSuffering = (!srcAlive) || (srcProd == 0);
+  /* R21 : l'IndustryID n'est pas le debouche effectif. La gare peut encore
+   * accepter via une industrie voisine ou une ville ; interroger son bassin
+   * reel seulement en l'absence de recettes. Garder l'hysteresis existante. */
+  local dstSuffering = false;
+  if (!srcSuffering && (profit + runCost) <= 0) {
+    if (!AIStation.IsValidStation(stationB)) {
+      dstSuffering = true;
+    } else if (AICargo.IsValidCargo(line.cargo)) {
+      local accepting = AICargoList_StationAccepting(stationB);
+      dstSuffering = !accepting.HasItem(line.cargo);
+    }
+  }
+  local collapsed = (srcSuffering || dstSuffering) && (profit + runCost) <= 0;
+  line.deadStreak = collapsed ? line.deadStreak + 1 : 0;
+  if (line.deadStreak > 0) {
+    OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + line.deadStreak);
+  }
+}
+
+/* R13 : sante annuelle d'une ligne air (G10). */
+function OpexUpdateAirLineHealth(line, year, anchor, profit)
+{
+  /* G10 : une ligne air n'a pas de signal industrie. Son bilan annuel est donc la mesure
+   * directe de sa viabilite. Deux pertes consecutives, comme le seuil fret, evitent de
+   * vendre un appareil sur une seule annee de mise en route ou de fluctuation du trafic. */
+  local priorStreak = ("deadStreak" in line) ? line.deadStreak : 0;
+  local nextStreak = profit < 0 ? priorStreak + 1 : 0;
+  if ("deadStreak" in line) line.deadStreak = nextStreak;
+  else line.deadStreak <- nextStreak;
+  if (!("scrapping" in line)) line.scrapping <- false;
+  if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
+  if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
+}
+
+/* R13 : sante annuelle d'une ligne de croissance urbaine (C87) ; peut rejeter la ville.
+ * Fonction libre recevant l'instance : main.nut (non modifie ici) declare les methodes
+ * de OpexAI dans le corps de classe. */
+function OpexUpdateTownGrowthLineHealth(ai, line, year, anchor, profit)
+{
+  /* C87 : une ligne de croissance urbaine n'a pas d'autre justification que son bilan. Comme
+   * l'air (G10), deux annees deficitaires consecutives la ferment via _scrapDeadLines ; seules
+   * comptent les annees pleines (ligne construite avant le 1er janvier de l'annee rapportee). */
+  local fullYear = ("year" in line) && line.year <= year - 2;
+  local priorStreak = ("deadStreak" in line) ? line.deadStreak : 0;
+  local nextStreak = (fullYear && profit < 0) ? priorStreak + 1 : 0;
+  if ("deadStreak" in line) line.deadStreak = nextStreak;
+  else line.deadStreak <- nextStreak;
+  if (!("scrapping" in line)) line.scrapping <- false;
+  if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
+  if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
+  if (nextStreak >= DEAD_STREAK_THRESHOLD && !line.scrapping && ("srcTown" in line)) {
+    ai._markTownGrowthRejected(line.srcTown);
+    if (DECISION_LOG) {
+      OpexDecide("TOWN_GROWTH", "action=close town=" + line.srcTown + " line=" + line.lineId
+                 + " profit=" + profit + " streak=" + nextStreak);
+    }
+  }
 }
 
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
@@ -191,68 +378,13 @@ function OpexAI::_reportLines(year)
     if (c121RealizationSums != null && ("mode" in line) && line.mode == "air"
         && ("c121Arm" in line) && (line.c121Arm in c121RealizationSums)
         && ("c121RawRevenueAnnual" in line) && line.c121RawRevenueAnnual > 0) {
-      local c121Age = ("year" in line) ? year - line.year : -1;
-      local c121N0 = ("trains0" in line) ? line.trains0 : 0;
-      /* Calibrer une NOUVELLE ligne sur des lignes restees a leur flotte de
-       * construction. Une ligne deja renforcee porte de la saturation/marge
-       * decroissante : la rabattre artificiellement par N0/N sous-estime alors
-       * la realisation d'un projet neuf a N0. */
-      if (c121Age >= 2 && c121N0 > 0 && vehCount == c121N0) {
-        local normalizedRevenue = currentRevenue.tofloat() * c121N0.tofloat() / vehCount.tofloat();
-        if (normalizedRevenue < 0.0) normalizedRevenue = 0.0;
-        local ratioPm = (normalizedRevenue * 1000.0 / line.c121RawRevenueAnnual.tofloat()).tointeger();
-        line.c121RealizationPm <- ratioPm;
-        line.c121RealizationYear <- year;
-        if (C121_AIR_ENGINE_REPLAY_SHADOW && ("c121EngineId" in line)) {
-          AILog.Info("C121_ENGINE_REALIZATION line=" + line.lineId
-              + " year=" + year + " engine=" + line.c121EngineId
-              + " arm=" + line.c121Arm + " n0=" + c121N0 + " n=" + vehCount
-              + " raw_revenue=" + line.c121RawRevenueAnnual
-              + " observed_revenue=" + normalizedRevenue.tointeger()
-              + " ratio_pm=" + ratioPm);
-        }
-        c121RealizationSums[line.c121Arm][0] += ratioPm;
-        c121RealizationSums[line.c121Arm][1]++;
-      }
+      OpexC121ObserveLineRealization(line, year, vehCount, currentRevenue, c121RealizationSums);
     }
     if (C121_AIR_ECONOMICS && ("mode" in line) && line.mode == "air"
         && ("c121MarginalObserveYear" in line) && year >= line.c121MarginalObserveYear
         && ("c121MarginalBaselineProfit" in line) && ("c121MarginalBaselineRevenue" in line)
         && ("c121MarginalBaselineVehicles" in line) && vehCount > line.c121MarginalBaselineVehicles) {
-      local addedObserved = vehCount - line.c121MarginalBaselineVehicles;
-      local observedProfit = profit - line.c121MarginalBaselineProfit;
-      if (("c121VehicleAmortPerPlane" in line) && line.c121VehicleAmortPerPlane > 0) {
-        observedProfit -= line.c121VehicleAmortPerPlane * addedObserved;
-      }
-      local observedRevenue = currentRevenue - line.c121MarginalBaselineRevenue;
-      /* Publier une marge PAR avion. C121 construit normalement un seul renfort
-       * a la fois, mais cette normalisation garde le contrat exact apres crash,
-       * reconstitution ou ancien savegame portant plusieurs ajouts. */
-      if (addedObserved > 1) {
-        observedProfit /= addedObserved;
-        observedRevenue /= addedObserved;
-      }
-      local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
-      local avgProfit = samples > 0 && ("c121MarginalProfit" in line)
-          ? (line.c121MarginalProfit * samples + observedProfit) / (samples + 1)
-          : observedProfit;
-      local avgRevenue = samples > 0 && ("c121MarginalRevenue" in line)
-          ? (line.c121MarginalRevenue * samples + observedRevenue) / (samples + 1)
-          : observedRevenue;
-      if ("c121MarginalProfit" in line) line.c121MarginalProfit = avgProfit;
-      else line.c121MarginalProfit <- avgProfit;
-      if ("c121MarginalRevenue" in line) line.c121MarginalRevenue = avgRevenue;
-      else line.c121MarginalRevenue <- avgRevenue;
-      if ("c121MarginalSamples" in line) line.c121MarginalSamples = samples + 1;
-      else line.c121MarginalSamples <- samples + 1;
-      AILog.Info("C121_FLEET_MARGINAL line=" + line.lineId + " year=" + year
-          + " added=" + addedObserved + " obs_profit=" + observedProfit
-          + " obs_revenue=" + observedRevenue + " avg_profit=" + avgProfit
-          + " avg_revenue=" + avgRevenue + " samples=" + (samples + 1));
-      delete line.c121MarginalBaselineProfit;
-      delete line.c121MarginalBaselineRevenue;
-      delete line.c121MarginalBaselineVehicles;
-      delete line.c121MarginalObserveYear;
+      OpexC121ObserveLineMarginal(line, year, vehCount, profit, currentRevenue);
     }
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
      * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */
@@ -284,36 +416,9 @@ function OpexAI::_reportLines(year)
       OpexC63RecordLine(lMode, lAge, predProfit, profit, predRev, profit + runCost,
                         vehCount, line.lineId, year - 1);
     }
-    /* C70 / C82 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
-     * construction est partielle). Par convoi initial, amortissement predit retire du realise
-     * (GetProfitLastYear n'amortit rien). Ratio de sommes : une annee aberrante pese son poids. */
+    /* C70 / C82 : accumulation de calibration (effet metier, cf. OpexC70C82AccumulateLine). */
     if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
-      local cMode = ("mode" in line) ? line.mode : "unknown";
-      local cAge = ("year" in line) ? (year - line.year) : -1;
-      local cPred = ("predicted" in line) ? line.predicted : 0;
-      local cN0 = ("trains0" in line) ? line.trains0 : 0;
-      local modeOk = (c70Sums != null && (cMode in c70Sums)) || (cMode == "air");
-      if (cAge >= 2 && cPred > 0 && cN0 > 0 && vehCount > 0 && modeOk) {
-        local cAmort = ("predAmort" in line) ? line.predAmort : 0;
-        local real = profit.tofloat() * cN0 / vehCount - cAmort;
-        if (!("c70Real" in line)) { line.c70Real <- 0.0; line.c70Pred <- 0.0; }
-        line.c70Real += real;
-        line.c70Pred += cPred.tofloat();
-      }
-      if (C70_MODE_CALIBRATION && ("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
-        /* tofloat : apres chargement, les cumuls sont des entiers (la sauvegarde arrondit les
-         * flottants) et une division entiere fausserait le ratio. */
-        c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
-        c70Sums[cMode][1]++;
-      }
-      if ((C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY)
-          && cMode == "air" && ("planeId" in line) && line.planeId >= 0
-          && ("c70Pred" in line) && line.c70Pred > 0) {
-        local e = line.planeId;
-        if (!(e in c82Sums)) c82Sums[e] <- [0.0, 0];
-        c82Sums[e][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
-        c82Sums[e][1]++;
-      }
+      OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums, c82Sums);
     }
     if (C69_BOTTLENECK_PROBE) {
       local lMode = ("mode" in line) ? line.mode : "unknown";
@@ -515,59 +620,11 @@ function OpexAI::_reportLines(year)
       local dstAlive = AIIndustry.IsValidIndustry(line.dstIndustry) ? 1 : 0;
       local srcProd = srcAlive ? AIIndustry.GetLastMonthProduction(line.srcIndustry, line.cargo) : -1;
       OpexSign(anchor, "IA|" + line.lineId + "|" + year + "|" + srcAlive + "|" + dstAlive + "|" + srcProd);
-
-      /* Detection ligne morte : srcAlive=0 seul ne suffit PAS (cf. commentaire DEAD_STREAK_THRESHOLD
-       * -- une gare peut recuperer une industrie voisine). srcSuffering couvre aussi l'industrie
-       * encore ouverte mais a production nulle, meme consequence pour la ligne qu'une fermeture.
-       * collapsed exige EN PLUS la preuve REELLE, mesuree ici meme : note de gare a -1 (aucun
-       * cargo jamais vu) ET revenu implicite (profit + cout de fonctionnement) nul ou negatif,
-       * c'est-a-dire rien transporte du tout cette annee. deadStreak ne compte que les annees
-       * CONSECUTIVES ou les trois tiennent ensemble ; un seul manque et le compteur retombe a 0. */
-      /* 🔴 CORRIGE LE 2026-08-29. La condition exigeait AUSSI ratingA <= 0, et cette clause etait
-       * fausse : une gare CONSERVE sa derniere note quand plus rien n'y passe. Mesure, campagne
-       * 20 ans graine 42 : la ligne routiere OIL_ a perdu son industrie source en 1979 et a roule
-       * ONZE ANS a -842 par an sans jamais etre mise au rebut, note de gare figee a 67 tout du
-       * long. Le revenu implicite (profit + cout de fonctionnement) suffit et ne ment pas : a zero,
-       * la ligne n'a rien transporte de l'annee, quelle que soit la note affichee. La prudence
-       * reste assuree par les deux autres conditions -- l'industrie source en souffrance, et
-       * DEAD_STREAK_THRESHOLD annees CONSECUTIVES.
-       * ⚠️ Comme le renouvellement automatique, ce correctif touche AUSSI les lignes rail. */
-      local srcSuffering = (!srcAlive) || (srcProd == 0);
-      local collapsed = srcSuffering && (profit + runCost) <= 0;
-      line.deadStreak = collapsed ? line.deadStreak + 1 : 0;
-      if (line.deadStreak > 0) {
-        OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + line.deadStreak);
-      }
+      OpexUpdateFreightLineHealth(line, year, anchor, stationB, profit, runCost, srcAlive, srcProd);
     } else if (vehicleType == AIVehicle.VT_AIR) {
-      /* G10 : une ligne air n'a pas de signal industrie. Son bilan annuel est donc la mesure
-       * directe de sa viabilite. Deux pertes consecutives, comme le seuil fret, evitent de
-       * vendre un appareil sur une seule annee de mise en route ou de fluctuation du trafic. */
-      local priorStreak = ("deadStreak" in line) ? line.deadStreak : 0;
-      local nextStreak = profit < 0 ? priorStreak + 1 : 0;
-      if ("deadStreak" in line) line.deadStreak = nextStreak;
-      else line.deadStreak <- nextStreak;
-      if (!("scrapping" in line)) line.scrapping <- false;
-      if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
-      if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
+      OpexUpdateAirLineHealth(line, year, anchor, profit);
     } else if (TOWN_GROWTH_ROI_GATE && ("purpose" in line) && line.purpose == "town_growth") {
-      /* C87 : une ligne de croissance urbaine n'a pas d'autre justification que son bilan. Comme
-       * l'air (G10), deux annees deficitaires consecutives la ferment via _scrapDeadLines ; seules
-       * comptent les annees pleines (ligne construite avant le 1er janvier de l'annee rapportee). */
-      local fullYear = ("year" in line) && line.year <= year - 2;
-      local priorStreak = ("deadStreak" in line) ? line.deadStreak : 0;
-      local nextStreak = (fullYear && profit < 0) ? priorStreak + 1 : 0;
-      if ("deadStreak" in line) line.deadStreak = nextStreak;
-      else line.deadStreak <- nextStreak;
-      if (!("scrapping" in line)) line.scrapping <- false;
-      if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
-      if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
-      if (nextStreak >= DEAD_STREAK_THRESHOLD && !line.scrapping && ("srcTown" in line)) {
-        this._markTownGrowthRejected(line.srcTown);
-        if (DECISION_LOG) {
-          OpexDecide("TOWN_GROWTH", "action=close town=" + line.srcTown + " line=" + line.lineId
-                     + " profit=" + profit + " streak=" + nextStreak);
-        }
-      }
+      OpexUpdateTownGrowthLineHealth(this, line, year, anchor, profit);
     }
   }
   if (C50_CHRONOLOGY_PROBE) {
@@ -589,15 +646,7 @@ function OpexAI::_reportLines(year)
         + " prof_lines=" + profCount + " loss_lines=" + lossCount);
   }
   if (C70_MODE_CALIBRATION) {
-    /* Pseudo-ligne a 1 : k = (somme des ratios + 1) / (n + 1). Sans ligne mure, k = 1 ; la premiere
-     * ligne ne pese que la moitie ; l'effet s'efface a mesure que les lignes s'accumulent. */
-    foreach (m, acc in c70Sums) {
-      C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
-      if (C69_BOTTLENECK_PROBE) {
-        OpexC69Log("phase=c70_factor year=" + year + " mode=" + m + " lines=" + acc[1]
-            + " k=" + C70_MODE_FACTOR[m]);
-      }
-    }
+    OpexC70PublishModeFactors(c70Sums, year);
   }
   if (c121RealizationSums != null) {
     OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual");
@@ -626,22 +675,7 @@ function OpexAI::_reportLines(year)
         + " hubhub_pm=" + hubhubPm + " unknown=" + phaseUnknown);
   }
   if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
-    C82_ENGINE_FACTOR.clear();
-    foreach (e, acc in c82Sums) {
-      local n = acc[1];
-      local k = (acc[0] + 1.0) / (n + 1).tofloat();
-      C82_ENGINE_FACTOR[e] <- k;
-      if (C69_BOTTLENECK_PROBE) {
-        OpexC69Log("phase=c82_factor year=" + year + " engine=" + e + " name=" + OpexPlaneName(e)
-            + " lines=" + n + " k=" + k);
-      }
-    }
-    if (C69_BOTTLENECK_PROBE) {
-      OpexC69Log("phase=c82_choice_summary year=" + year
-          + " calls=" + C82_CHOICE_CALLS + " differ=" + C82_CHOICE_DIFFER);
-      C82_CHOICE_CALLS = 0;
-      C82_CHOICE_DIFFER = 0;
-    }
+    OpexC82PublishEngineFactors(c82Sums, year);
   }
   if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {
     foreach (item in C69_PENDING_FOLLOWUPS) {
@@ -901,9 +935,16 @@ function OpexAI::_scrapRetiredVehicles(year)
 
     local lastSend = ("lastSendDate" in ticket) ? ticket.lastSendDate : -1;
     if (lastSend < 0 || now - lastSend >= 90) {
+      /* R22 : SendVehicleToDepot annule un ordre d'arret au depot deja actif.
+       * Lire ORDER_CURRENT directement : l'envoi manuel est hors liste.
+       * Un simple entretien peut en revanche etre converti en arret. */
+      if (AIOrder.IsGotoDepotOrder(vehicle, AIOrder.ORDER_CURRENT)) {
+        local flags = AIOrder.GetOrderFlags(vehicle, AIOrder.ORDER_CURRENT);
+        if (flags == AIOrder.OF_INVALID || (flags & AIOrder.OF_STOP_IN_DEPOT) != 0) continue;
+      }
       if (AIVehicle.SendVehicleToDepot(vehicle)) {
-        ticket.lastSendDate = now;
-        ticket.attempts = ("attempts" in ticket) ? ticket.attempts + 1 : 1;
+        ticket.rawset("lastSendDate", now);
+        ticket.rawset("attempts", ("attempts" in ticket) ? ticket.attempts + 1 : 1);
       }
     }
   }

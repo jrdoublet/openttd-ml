@@ -6,17 +6,20 @@ Les passages couvrent plusieurs journées et contiennent des décisions successi
 de ce transfert n'est pas celle des travaux ou mesures. Les mentions « courant », « reste »,
 « à faire » et les commandes ci-dessous décrivent leur contexte d'origine.
 
-Pour le travail restant, consulter [taches.md](taches.md). Les comptes rendus récents sont
+Pour le travail restant, consulter [taches.md](../taches.md). Les comptes rendus récents sont
 extraits dans les journaux des [20](journal_2026-09-20.md), [21](journal_2026-09-21.md) et
 [22 septembre](journal_2026-09-22.md). Les journaux antérieurs sont conservés sans réécriture.
 
-Corrections de lecture indispensables :
+Corrections de lecture actualisées au 30 septembre (corps historique inchangé) :
 
 - Lakes a été abandonné le 17 septembre puis retiré le 21 (`7c194d2`), après désactivation.
-  Les passages disant que `lib_water.nut` reste chargé sont périmés. C67 n'est pas implémenté.
+  Les passages disant que `lib_water.nut` reste chargé sont périmés. C67.3–.6 sont
+  livrés sans consommateur métier exposé ; leur implémentation n'est plus à refaire.
 - C76/C77 et les travailleurs C80 rail/ville sont intégrés ; les anciennes demandes
-  d'implémentation ne constituent pas de nouveaux travaux.
-- Les 20×10 C77 et C82 du 22 septembre sont terminés et non adoptés.
+  d'implémentation ne constituent pas de nouveaux travaux. Workers rail/ville : défaut 0.
+- Les 20×10 C77 et C82 du 22 septembre sont terminés et non adoptés sous leurs
+  formulations testées. C77 permanent a ensuite été retenu ; voir la
+  [synthèse des décisions](synthese_decisions_2026-09-30.md).
 - Les anciennes références à 6 CPU ne changent pas les limites VPS actuelles : 3 CPU,
   2g de mémoire, 2g de memory-swap, cache lab et trois workers au maximum.
 - Le défaut actuel inclut C69 bis/C70/C75 ; `b68fafb` est un repère historique, pas une
@@ -313,7 +316,7 @@ conséquent **abandonné comme refactor neutre** et n'est pas conservé sur la b
 
 **Le retard économique est établi ; sa cause dominante ne l'est pas encore.** Le duel partagé
 20 graines × 5 ans du 13 septembre donne les résultats suivants, recalculés depuis les
-20 paires de [la référence](../results/bench_1v1_5y_20seeds_reference.json) :
+20 paires de [la référence](../../results/bench_1v1_5y_20seeds_reference.json) :
 
 | Dernier checkpoint : 1974-12-01 | OpexAI, moyenne | AAAHogEx, moyenne | Écart des moyennes Opex/AAAHogEx | Victoires Opex |
 |---|---:|---:|---:|---:|
@@ -331,7 +334,7 @@ Il ne renseigne toutefois pas `expected_last_year` et ne transmet pas la sortie 
 contrôle d'échec d'AAAHogEx : sa validation automatique reste à compléter (P0).
 
 **Retrait du diagnostic « 93 % de rendement par véhicule, donc presque uniquement du volume ».**
-Le harnais [du duel](../sweeps/bench_1v1_5y_20seeds.py), dans `extract_company_record`, compte
+Le harnais [du duel](../../sweeps/bench_1v1_5y_20seeds.py), dans `extract_company_record`, compte
 les entrées `VEHS` par propriétaire sans filtrer les composants. Les 102,4 contre 564,35 sont
 ces entrées ; C54 a déjà identifié le piège wagons/ombres/rotors. Les décodeurs
 `vehicle_breakdown` et `physical_telemetry`, malgré le nom `primary_vehicles_by_mode` de ce dernier,
@@ -344,7 +347,7 @@ La dette élevée et la caisse positive d'OpexAI ne suffisent pas non plus à d�
 ou le contrôleur comme goulot : il faut observer les occasions réellement disponibles et leur
 financement au moment du refus. Les relevés économiques restent utiles malgré le problème de flotte.
 
-La [chronologie C50](../results/diag_1v1_chronology_6y_5seeds.json) situe une rupture à examiner
+La chronologie C50 (`results/diag_1v1_chronology_6y_5seeds.json`, source absente du checkout au 30 septembre) situe une rupture à examiner
 dès **1971** : sur cinq graines, les créations nettes de gares passent de 148 contre 72 en 1970
 à 57 contre 241 en 1971. Ce sont des sommes sur cinq parties, et des variations nettes de stock,
 pas un comptage des chantiers. Le volet véhicules reste soumis à la réserve ci-dessus.
@@ -400,7 +403,7 @@ Cette fiche porte sur le harnais et ses preuves ; elle ne change aucune stratég
 ### C66.1 — Corriger et qualifier les compteurs physiques
 
 **Défaut localisé :** `extract_company_record` dans
-[`bench_1v1_5y_20seeds.py`](../sweeps/bench_1v1_5y_20seeds.py) compte les entrées `VEHS`
+[`bench_1v1_5y_20seeds.py`](../../sweeps/bench_1v1_5y_20seeds.py) compte les entrées `VEHS`
 possédées. `vehicle_breakdown` dans `diag_1v1_monthly.py` et `physical_telemetry` dans
 `bench_c50b_physical.py` ne filtrent pas davantage les composants internes. Le champ `type`
 distingue les modes, pas nécessairement la tête d'un véhicule de ses composants.
@@ -475,7 +478,7 @@ cherche des marqueurs fatals sans attribution de compagnie. Une erreur d'AAAHogE
 - [x] Journal moteur **une seule fois par partie** : `keep` écrit
   `{out}_engine/seed{S}_r{R}.log` et pose le même `engine_log_path` sur les deux
   compagnies ; plus de stdout recopié dans le JSON. Parseur
-  [`sweeps/game_health.py`](../sweeps/game_health.py) : `[script:N] [company]`
+  [`sweeps/game_health.py`](../../sweeps/game_health.py) : `[script:N] [company]`
   confronté au manifeste des places (script 0 → OpexAI / compagnie 0, script 1 →
   AAAHogEx / compagnie 1). Script inconnu, company id contradictoire ou marqueur
   sans identifiant → `unattributed`, jamais joueur 0 par défaut.
@@ -493,9 +496,9 @@ cherche des marqueurs fatals sans attribution de compagnie. Une erreur d'AAAHogE
   bouge ≠ gel. `no_signal` sur un horizon complet → `stagnation_suspect`, **pas**
   une exclusion des moyennes.
 
-**Preuve :** [`sweeps/test_game_health.py`](../sweeps/test_game_health.py) (20/20
+**Preuve :** [`sweeps/test_game_health.py`](../../sweeps/test_game_health.py) (20/20
 sur l'hôte) avec les journaux
-[`sweeps/fixtures/c66_health/`](../sweeps/fixtures/c66_health/) — erreur OpexAI
+[`sweeps/fixtures/c66_health/`](../../sweeps/fixtures/c66_health/) — erreur OpexAI
 seule, erreur AAAHogEx seule (Opex reste `complete`), log ambigu non attribué,
 compagnie absente, janvier de dernière année tronqué, décembre complet, faillite
 conservée dans les stats, earning sans expansion, suspicion sans exclusion,
@@ -884,7 +887,7 @@ concurrence. Le coût de construction n'est qu'une explication possible ; une re
 optimiste, un mauvais captage ou une occasion non traitée peuvent produire le même symptôme.
 
 **Correction de C63.** Le devis anticipé rail existe :
-[`OpexPrequoteRailCandidates`](../ai/OpexAI/projects.nut), `rail_prequote` et
+[`OpexPrequoteRailCandidates`](../../ai/OpexAI/projects.nut), `rail_prequote` et
 `rail_prequote_keep_plan`, tous deux à défaut 0 dans `info.nut` et lus dans `settings.nut`.
 P1.1/P1.3 ont été implémentés et rejetés avant le 09/09 ; leur histoire est dans l'archive,
 **leurs anciens chiffres ne sont pas une preuve actuelle**. Ne pas réécrire ce mécanisme ni
@@ -992,12 +995,12 @@ journalisés (`considered`, `min_cap`, `avail_cap`, compteurs d'étape, cache, a
 aucune métrique du joueur 1 : `n_stations` était le total de la carte, les sauvegardes
 étaient nettoyées, `n_ok` comptait une construction réussie plutôt que le tunnel
 candidats → acceptés → financés → tentés → construits. Harnais :
-[`sweeps/diag_1v1_monthly.py --shared`](../sweeps/diag_1v1_monthly.py), sonde
+[`sweeps/diag_1v1_monthly.py --shared`](../../sweeps/diag_1v1_monthly.py), sonde
 `monthly_funnel=1` (un AILog par passe projects, défaut 0). Chunks VEHS/STNN/PLYR des
 deux compagnies ; waypoints STNN sans `normal` exclus sans invalider le mois ; notes
 filtrées `status & 1` (plus la valeur par défaut 175) ; attente = paquets `goods.cargo`.
 
-[`results/diag_1v1_shared_monthly_6y_5seeds.json`](../results/diag_1v1_shared_monthly_6y_5seeds.json)
+`results/diag_1v1_shared_monthly_6y_5seeds.json` (source absente du checkout au 30 septembre)
 : 5/5 jusqu'au 1975-12-01, 720 lignes, 0 mois physique `FAIL`. Valeurs OpexAI proches
 du C63 absent (moyenne 2,578 M£, médiane 2,923 M£, 1,639–3,215) : la sonde mensuelle
 ne rejoue pas le −38 % du smoke C63 ON/OFF. **Pas un banc officiel.**
@@ -1129,7 +1132,7 @@ des villes qu'OpexAI sécurise, puis AAA se redéploie ailleurs.** Cela explique
 profit OpexAI persiste alors que les compteurs finaux d'aéroports/monopoles se rapprochent. Le détail,
 la méthode de reconstruction VEHS/ORDL/STNN et les limites (`profit_this_year` des véhicules encore
 présents, `group_id` local, pas de revenue/running_cost inventé) sont figés dans
-[`07_air_early_slot_causal_analysis.md`](07_air_early_slot_causal_analysis.md).
+[`07_air_early_slot_causal_analysis.md`](../07_air_early_slot_causal_analysis.md).
 
 **Correctif feeders bus — ordres unidirectionnels ville → hub (2026-09-15).**
 Bug confirmé dans `builder_road.nut` : les feeders passagers utilisaient `OF_NONE` à la ville et
@@ -1302,7 +1305,7 @@ de second levier.
 <a id="c59"></a>
 ## P2 — C61/C59 : mieux exploiter les lignes, si P1 le justifie
 
-**Acquis causal C50b**, [banc consolidé](../results/bench_c50b_levers_10y_40seeds.json) :
+**Acquis causal C50b**, banc consolidé `results/bench_c50b_levers_10y_40seeds.json` (source absente du checkout au 30 septembre) :
 supprimer la réserve de demande aérienne détruit de la valeur sur 20/20 graines ; relever le
 plafond routier perd 27 paires sur 40 en valeur ; supprimer le cap de cadence aérien est
 inconclusif à 21/40. Ajouter des véhicules n'est donc pas en soi le chantier prioritaire.
@@ -1339,7 +1342,7 @@ inconclusif à 21/40. Ajouter des véhicules n'est donc pas en soi le chantier p
 
 Les profils C39/C48 du 10 septembre montrent une augmentation du coût de génération avec
 la maturité du réseau. Ils ne prouvent pas à eux seuls le gain d'une optimisation aujourd'hui.
-Le [banc C48 final](../results/bench_c48_indexed_regeneration_10y_20seeds.json) donne
+Le banc C48 final `results/bench_c48_indexed_regeneration_10y_20seeds.json` (source absente du checkout au 30 septembre) donne
 **10 victoires / 10 défaites en valeur**, +0,53 % en moyenne : gain économique non démontré,
 `c48_indexed_regeneration=0` conservé. C46 reste également à 0 malgré un coût fret réduit en 1024².
 
@@ -1378,7 +1381,7 @@ actuels : `diag_c52_events.py` compare `probe_events=1` à
 `probe_events=1`. Les trois selftests de sonde passent, ainsi que **12/12 tests lifecycle ciblés**
 sur crash, retraite, autoreplace et refleet. Le smoke 1×1 est complet et identique entre les deux
 bras. Le diagnostic apparié
-[`diag_c52_revalidate_6y_5seeds.json`](../results/diag_c52_revalidate_6y_5seeds.json) est complet
+`results/diag_c52_revalidate_6y_5seeds.json` (source absente du checkout au 30 septembre) est complet
 **10/10, 0 erreur** : politique active contre désarmée = valeur moyenne **4 902 664 £ vs
 4 824 164 £** (+78 501 £, +1,63 %) et profit annuel **1 328 934 £ vs 1 294 921 £**
 (+34 013 £/an, +2,63 %), avec **2 gains / 2 pertes / 1 égalité** sur les deux métriques.
@@ -1391,7 +1394,7 @@ forcé à 1 reste sans retraite, cohérent avec la garde de jeunesse `age >= 365
 service n'étant observé, la sonde `ET_STATION_FIRST_VEHICLE` n'a pas été utilisée pour décider.
 Le contrôle supplémentaire 10×5 destiné seulement à forcer l'exposition non rentable a finalement
 été relancé après rétablissement de Docker :
-[`diag_c52_unprofitable_exposure_10y_5seeds.json`](../results/diag_c52_unprofitable_exposure_10y_5seeds.json)
+`results/diag_c52_unprofitable_exposure_10y_5seeds.json` (source absente du checkout au 30 septembre)
 est complet **5/5, 0 erreur** sous `policy_vehicle_events=1,probe_events=1` avec
 `unprofitable_streak_threshold=1`. Il enregistre **69 `VEHICLE_UNPROFITABLE`**, dont **6
 `UNPROFITABLE_RETIRE` et 2 `UNPROFITABLE_SCRAP`** ; le même banc voit aussi **19
@@ -1634,7 +1637,7 @@ présenter leur conservation comme un nouveau gain mesuré.
 
 **Portée de cette revue :** lecture du code courant et des archives, recomptage hors ligne des
 JSON récents, réorganisation documentaire. Aucun changement de comportement IA, aucun défaut
-modifié, aucun nouveau banc lancé. L'[architecture après C65](architecture_opexai.md) donne les
+modifié, aucun nouveau banc lancé. L'[architecture après C65](../architecture_opexai.md) donne les
 nouveaux emplacements des fonctions.
 
 
@@ -1650,7 +1653,7 @@ Priorité immédiate après cette décision : comparer OpexAI et AAAHogEx ligne 
 
 Comparaison terminée sur la télémétrie passive 20×10 déjà disponible, sous la politique
 early_slot adoptée. Analyse :
-[08_opex_vs_aaahogex_same_markets.md](08_opex_vs_aaahogex_same_markets.md).
+[08_opex_vs_aaahogex_same_markets.md](../08_opex_vs_aaahogex_same_markets.md).
 
 Fait principal AIR en 1979 :
 
@@ -1687,7 +1690,7 @@ seuil n'est poursuivi.
 
 Extension passive terminée : chaque endpoint/cargo de ligne expose désormais rating,
 time_since_pickup et max_waiting_cargo. Analyse complète :
-[09_air_service_quality.md](09_air_service_quality.md).
+[09_air_service_quality.md](../09_air_service_quality.md).
 
 Conclusion :
 
@@ -1711,7 +1714,7 @@ renforcement malgré W lorsque le deuxième avion faisait franchir un palier du 
 OpexPickupRatingPoints(headwayDays). Tous les caps physiques et l'arbitrage ROI restaient actifs.
 
 Résultats complets :
-[10_air_frequency_variant.md](10_air_frequency_variant.md).
+[10_air_frequency_variant.md](../10_air_frequency_variant.md).
 
 Smoke seed 42 × 3 ans :
 
@@ -2060,7 +2063,7 @@ sur 42/100, avec horizons complets pour OpexAI et AAAHogEx et les réglages de r
 
 ## Revue 2026-09-17 — relecture du regroupement des sondes (`probe_*`)
 
-Voir [`docs/walkthrough_regroupement_probes.md`](walkthrough_regroupement_probes.md) §5 pour le
+Voir [`docs/walkthrough_regroupement_probes.md`](../walkthrough_regroupement_probes.md) §5 pour le
 détail. Deux problèmes trouvés et corrigés dans le même chantier : 17 scripts `sweeps/*.py`
 (dont les trois runners de banc) qui passaient encore les 70 anciens noms de sonde, et une garde
 `C41_WATER_PRECHECK` perdue sur les sondes eau (`probe_catalogue=1` sans précontrôle exécutait
@@ -2075,7 +2078,7 @@ réellement `OpexWaterPlans()` au lieu de rester passif). Les deux sont réglés
 
 ## Revue 2026-09-17 — regroupement des politiques et suppression des pistes abandonnées
 
-Voir [`docs/walkthrough_regroupement_parametres.md`](walkthrough_regroupement_parametres.md) pour le compte rendu détaillé du chantier.
+Voir [`docs/walkthrough_regroupement_parametres.md`](../walkthrough_regroupement_parametres.md) pour le compte rendu détaillé du chantier.
 
 Suite logique du regroupement des sondes :
 - **66 pistes formellement abandonnées / rejetées retirées de `info.nut`** et figées à `false`/neutre dans `settings.nut` (pas de régression ni de code cassé).

@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 import re
+from opex_projects_source import read_projects_source
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
@@ -20,7 +21,7 @@ class TestLeverContracts(unittest.TestCase):
         cls.info = _read("ai/OpexAI/info.nut")
         cls.globals = _read("ai/OpexAI/globals_pre.nut")
         cls.settings = _read("ai/OpexAI/settings.nut")
-        cls.projects = _read("ai/OpexAI/projects.nut")
+        cls.projects = read_projects_source()
         cls.task_projects = _read("ai/OpexAI/task_projects.nut")
         cls.task_rail = _read("ai/OpexAI/task_rail.nut")
         cls.scheduler = _read("ai/OpexAI/scheduler.nut")

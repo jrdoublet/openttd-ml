@@ -1,6 +1,12 @@
 # C122 — stratégie AIR par régime : priorité de projets
 
-Date : 2026-09-29.
+Date des travaux : 2026-09-29. Revue documentaire statique : **2026-09-30**.
+
+**Provenance :** résultats locaux C122 et index de preuves absents. Tous les
+chiffres, comptes de tests et identités de bundles ci-dessous sont des éléments
+historiques **rapportés, non revalidés** lors de cette revue. Aucune partie ni
+suite de tests n'a été exécutée ici. L'empreinte du smoke passif C122.4 est
+contradictoire aux deux occurrences : aucune des deux formes n'est authentifiée.
 
 ## Objectif
 
@@ -264,8 +270,13 @@ finançable exact, son rang, son bloqueur éventuel, les tentatives réelles
 `opex_claimed` ou `competitor_monopoly`, avec le délai détection→fermeture.
 
 Smoke passif : `results/c122_4_threat_probe_seed42_1x3_20260929_r2.json`, seed42
-×3 ans, 1 worker / 1 CPU, complet et sain. Bundle :
-`e13491db599923e4234c7d8e9dff19e12354b5d910b4dbb26b9847a79dbaf35`.
+×3 ans, 1 worker / 1 CPU, rapporté complet et sain. **Bundle non authentifié** :
+la transcription `e13491db599923e4234c7d8e9dff19e12354b5d910b4dbb26b9847a79dbaf35`
+compte **63 caractères**, contre **64** pour la forme terminée par `baf35c`
+plus bas. La longueur correcte ne suffit pas à authentifier cette autre forme.
+**Empreinte exacte inconnue : consulter le manifest du bundle de cette campagne
+passive**, non disponible localement ; ne choisir ni compléter arbitrairement
+l'une des transcriptions. Le bundle du smoke causal retry est distinct.
 
 - **4** menaces réelles observées ; toutes deviennent finançables ;
 - **3** sont finalement prises par Opex ;
@@ -331,9 +342,14 @@ rang, la finance, le bloqueur économique, le motif de rejet et la fenêtre en j
 
 ### Smoke passif seed42 x3
 
-Campagne : `results/c122_4_threat_probe_seed42_1x3_20260929_r2.json`, bundle
-`e13491db599923e4234c7d8e9dff19e12354b5d910b4dbb26b9847a79dbaf35c`.
-Partie complète, 1 worker / 1 CPU.
+Campagne : `results/c122_4_threat_probe_seed42_1x3_20260929_r2.json`.
+**Bundle non authentifié** : la transcription
+`e13491db599923e4234c7d8e9dff19e12354b5d910b4dbb26b9847a79dbaf35c`
+compte **64 caractères**, mais l'autre occurrence se termine par `baf35`
+et n'en compte que **63**. **Empreinte exacte inconnue : seule la consultation
+du manifest du bundle passif permettra de trancher** ; ce manifest est absent
+localement et aucune forme n'est retenue ici. Ne pas lui substituer le hash
+du smoke causal retry ci-dessous. Partie rapportée complète, 1 worker / 1 CPU.
 
 - **4** menaces réelles ; toutes deviennent finançables/sélectionnables ;
 - **3/4** sont sécurisées par Opex ;

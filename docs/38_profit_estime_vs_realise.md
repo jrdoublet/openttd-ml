@@ -6,7 +6,7 @@
 **Date :** 2026-09-26  
 **Branche / Worktree :** `astar-workers-e1` (`.wt_astar`, commit `0b060d6`)  
 **Données analysées :** `results/lineprofit_default_5x6_20260926.{json,jsonl}` (duel 1v1 carte partagée OpexAI vs AAAHogEx, graines 42, 100, 999, 1234, 5678 × 6 ans, 1970–1975)  
-**Règles appliquées :** [AGENTS.md](file:///home/deploy/projects/openttd-ml/.wt_astar/AGENTS.md) §1 (contexte courant), §5 (mesure fiable, extracteurs, échelle ×256, `None` ≠ 0), §6 (preuves post-09/09). Aucune partie lancée ; analyse passive et outillage de mesure.
+**Règles appliquées :** [AGENTS.md](../AGENTS.md) §1 (contexte courant), §5 (mesure fiable, extracteurs, échelle ×256, `None` ≠ 0), §6 (preuves post-09/09). Aucune partie lancée ; analyse passive et outillage de mesure.
 
 ---
 
@@ -54,7 +54,7 @@ Pourtant, en duel face à AAAHogEx :
 
 ### 2.3 Piège d'échelle vérifié
 
-Conformément à la mise en garde d'[AGENTS.md](file:///home/deploy/projects/openttd-ml/.wt_astar/AGENTS.md) §5 :
+Conformément à la mise en garde d'[AGENTS.md](../AGENTS.md) §5 :
 - Les champs bruts `common.profit_this_year` et `common.profit_last_year` du chunk `VEHS` d'OpenTTD 15.3 sont stockés en `currency_fract` (1 £ = 256 unités internes).
 - L'extracteur `extract_line_telemetry` applique rigoureusement `line["profit_last_year_gbp"] += raw_last / 256.0`.
 - **Contrôle de cohérence :** La somme de `profit_last_year_gbp` sur l'ensemble des lignes OpexAI en 1975 donne par exemple 1 265 124 £ (graine 42), en accord parfait avec le `profit_year` de la compagnie (1 418 510 £ dans `summary`, qui intègre les intérêts bancaires et les frais hors véhicules). Sans cette division par 256, le chiffre aurait été aberrant (~324 M£).
@@ -74,7 +74,7 @@ Conformément à la mise en garde d'[AGENTS.md](file:///home/deploy/projects/ope
 
 ## 3. Mesure : Profit réalisé par ligne et par mode (OpexAI au défaut)
 
-Les lignes ont été suivies individuellement sur les 6 snapshots de décembre (1970 à 1975) via le module [sweeps/line_profit_analysis.py](file:///home/deploy/projects/openttd-ml/.wt_astar/sweeps/line_profit_analysis.py).
+Les lignes ont été suivies individuellement sur les 6 snapshots de décembre (1970 à 1975) via le module [sweeps/line_profit_analysis.py](../sweeps/line_profit_analysis.py).
 
 On distingue rigoureusement :
 - **Année de montée en charge :** Première année civile suivant l'ouverture ($y_0 + 1$), reflétant la mise en place du trafic (et les mois partiels de $y_0$).
@@ -215,7 +215,7 @@ Pour capturer à la fois le capital planifié et le coût réel de construction 
   - `DC|<lineId>|<plannedCapital>|<actualCost>|...` pour le rail.
   - `AC|<lineId>|<plannedCapital>|<actualCost>|...` pour l'air.
 - Associés aux panneaux posés par défaut (`AF|`, `AH|`, `OF|`, `OJ|`, `OK|`), 100 % des prédictions (profit estimé, capital estimé, coût réel) sont consignés dans le chunk `SIGN`.
-- L'extracteur [sweeps/line_profit_analysis.py](file:///home/deploy/projects/openttd-ml/.wt_astar/sweeps/line_profit_analysis.py) implémente déjà le décodeur `extract_estimates_from_signs` validé par les tests unitaires [sweeps/test_line_profit_analysis.py](file:///home/deploy/projects/openttd-ml/.wt_astar/sweeps/test_line_profit_analysis.py).
+- L'extracteur [sweeps/line_profit_analysis.py](../sweeps/line_profit_analysis.py) implémente déjà le décodeur `extract_estimates_from_signs` validé par les tests unitaires [sweeps/test_line_profit_analysis.py](../sweeps/test_line_profit_analysis.py).
 
 ### 6.3 Commande exacte à lancer par l'orchestrateur
 

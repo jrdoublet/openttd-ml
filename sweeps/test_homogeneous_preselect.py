@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 class HomogeneousPreselectContract(unittest.TestCase):
     def test_setting_default_and_dispatch(self):
-        info = (ROOT / "info.nut").read_text()
-        settings = (ROOT / "settings.nut").read_text()
+        info = (ROOT / "info.nut").read_text(encoding="utf-8")
+        settings = (ROOT / "settings.nut").read_text(encoding="utf-8")
         block = re.search(r'name = "homogeneous_preselect"[\s\S]*?flags = AICONFIG_BOOLEAN', info)
         self.assertIsNotNone(block)
         for level in ("easy", "medium", "hard", "custom"):
@@ -20,7 +20,7 @@ class HomogeneousPreselectContract(unittest.TestCase):
         self.assertIn('? OpexTopKFund : OpexTopKLegacy', settings)
 
     def test_paper_project_uses_selection_score(self):
-        source = (ROOT / "candidates.nut").read_text()
+        source = (ROOT / "candidates.nut").read_text(encoding="utf-8")
         block = source.split('function OpexTopKFund(', 1)[1].split('\n}', 1)[0]
         for symbol in ('OpexProjectFromCandidate(candidate)',
                        'OpexProjectFinanceCapital(project)',
@@ -31,7 +31,7 @@ class HomogeneousPreselectContract(unittest.TestCase):
         self.assertNotIn('candidate.ratio', block)
 
     def test_legacy_body_unchanged_by_dispatch(self):
-        source = (ROOT / "candidates.nut").read_text()
+        source = (ROOT / "candidates.nut").read_text(encoding="utf-8")
         legacy = source.split('function OpexTopK(', 1)[1].split('\n}', 1)[0]
         self.assertIn('candidate.ratio <= floor', legacy)
         self.assertIn('best[pos - 1].ratio < candidate.ratio', legacy)

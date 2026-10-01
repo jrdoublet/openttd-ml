@@ -19,6 +19,10 @@ from analyse_c119_air_income_shadow import (
     script_air_speed,
 )
 from campaign_freeze import parse_ai_settings
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 
 INFO = ROOT / "ai" / "OpexAI" / "info.nut"
@@ -38,7 +42,7 @@ class TestC119AirIncomeShadow(unittest.TestCase):
         )
 
     def test_c119_payment_time_is_delivery_only(self):
-        src = BUILDER_AIR.read_text(encoding="utf-8")
+        src = read_builder_air()
         start = src.index("function OpexC119AirIncomeDays")
         end = src.index("function OpexC121EndpointAirportType", start)
         body = src[start:end]
@@ -48,7 +52,7 @@ class TestC119AirIncomeShadow(unittest.TestCase):
         self.assertNotIn("roundTripDays", body)
 
     def test_c119_changes_payment_inputs_not_cycle_or_fleet(self):
-        src = BUILDER_AIR.read_text(encoding="utf-8")
+        src = read_builder_air()
         start = src.index("function OpexAirEconomics")
         end = src.index("function OpexAirTargetEconomics", start)
         body = src[start:end]
@@ -59,7 +63,7 @@ class TestC119AirIncomeShadow(unittest.TestCase):
         self.assertNotIn("mailCapacity =", body)
 
     def test_all_three_prebuild_arms_supply_manhattan_payment_distance(self):
-        src = BUILDER_AIR.read_text(encoding="utf-8")
+        src = read_builder_air()
         for token in (
             "AIMap.DistanceManhattan(sites[a].anchor, sites[b].anchor)",
             "AIMap.DistanceManhattan(hub.anchor, site.anchor)",

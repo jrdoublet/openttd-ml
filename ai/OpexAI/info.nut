@@ -76,6 +76,24 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "fleet_amort_shadow_probe",
+      description = "Diagnostic only: 0 off, 1 added-aircraft amortisation shadow calculation, 2 full election snapshots; never changes decisions",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "r19_fault_inject",
+      description = "TEST ONLY: force a rollback of the Nth new AIR route after its planes started (R19 recovery); 0 = off (default)",
+      min_value = 0, max_value = 20,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "probe_candidates_road",
       description = "Enable road candidate generation opcode profiling (pax, freight, town, feeder); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -190,6 +208,30 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "exp_c83_watch_daily",
+      description = "Experimental P4: poll existing C83 airport-slot watcher once per available game day before arbitration; default off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_scheduler_skip_not_due",
+      description = "Experimental P7: skip already completed report/repay tasks within one bounded scheduler scan; default off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_air_hub_pair_prefilter",
+      description = "Experimental: skip hub pairs already linked by an AIR line before expensive route evaluation; default off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c83_preempt_open",
       description = "C83: keep one empty large town (both airport slots free) as a defensive new-airport target ahead of hub-to-hub, still subject to the profit test: 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -245,7 +287,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v95_air_targeted_second",
-      description = "V95.1: post-1973 targeted second airport only where Opex already owns one slot and measured site demand/cost plus C68 profit pass fixed gates; 1 = enabled, 0 = disabled (default)",
+      description = "V95.1 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables targeted second airports",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -253,7 +295,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v95_air_post73_targeted",
-      description = "V95 causal: after 1973, allow only sub-600 AIR sites where a competitor owns the first physical slot and measured catchment economics do not degrade C68 profit; 1 = on, 0 = off (default)",
+      description = "V95 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables post-1973 targeted sites; v95_air_post73_probe remains a separate active probe",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -544,7 +586,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_air_defensive_floor",
-      description = "C121 experimental anti-monopoly policy: defensive AIR projects use a softened relative profit floor (50% competitor-slot, 75% own-slot); 0 = off (default)",
+      description = "C121 protected experimental setting: defensive AIR floor uses 50% competitor-slot / 75% own-slot, currently neutralized by the global zero floor; branch still runs with C121 enabled and may affect opcode cadence; 0 = off (default), 1 = on",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -600,7 +642,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c102_air_station_rating_probe",
-      description = "C102 passive probe: compare line-headway rating with station-wide AIR pickup rating and raw catchment production; no decision change",
+      description = "C102 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables station-rating probe output",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -1031,7 +1073,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c80_double_register",
-      description = "C80 tranche 0: double-register orchestrator (reactive queue + execution register): 1 = enabled, 0 = disabled (default)",
+      description = "C80 compatibility setting, ignored: the double-register orchestrator is permanently on for C77; both 0 (declared default) and 1 keep it enabled",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

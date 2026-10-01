@@ -2,7 +2,7 @@
 
 > **Date** : 2026-09-17  
 > **Chantiers réalisés** :
-> 1. Remplacement de 70 paramètres individuels de diagnostic passifs par **9 macro-paramètres unifiés** `probe_*` dans [`info.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/info.nut) et [`settings.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/settings.nut).
+> 1. Remplacement de 70 paramètres individuels de diagnostic passifs par **9 macro-paramètres unifiés** `probe_*` dans [`info.nut`](../ai/OpexAI/info.nut) et [`settings.nut`](../ai/OpexAI/settings.nut).
 > 2. Libération massive de **30 Go d'espace disque** sur le VPS (occupation passée de 81% à 41%).
 
 ---
@@ -10,16 +10,16 @@
 ## 1. Regroupement des Sondes dans `info.nut`
 
 ### Fichiers modifiés
-- [`ai/OpexAI/info.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/info.nut) :
+- [`ai/OpexAI/info.nut`](../ai/OpexAI/info.nut) :
   - **-70** `AddSetting` de sondes individuelles supprimées.
   - **+9** `AddSetting` unifiés ajoutés (`probe_cost`, `probe_scheduler`, `probe_candidates_road`, `probe_candidates_rail`, `probe_catalogue`, `probe_rail_search`, `probe_vehicle_lost`, `probe_portfolio`, `probe_events`).
   - Nettoyage de ~550 lignes de déclarations et commentaires verbeux.
   - Total des paramètres dans `info.nut` réduit de **230 à 169** (-61 paramètres exposés).
-- [`ai/OpexAI/settings.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/settings.nut) :
+- [`ai/OpexAI/settings.nut`](../ai/OpexAI/settings.nut) :
   - Les 9 réglages sont lus une seule fois dans `OpexLoadSettings()`.
   - Toutes les variables globales internes (`globals_pre.nut`) et les structures de ledgers continuent d'être initialisées exactement comme avant.
   - Le reste du code Squirrel (`candidates.nut`, `main.nut`, `builder_*.nut`, etc.) n'a pas eu besoin d'être touché.
-- [`sweeps/test_campaign_freeze.py`](file:///home/deploy/projects/openttd-ml/sweeps/test_campaign_freeze.py), [`sweeps/test_b9_air_catchment.py`](file:///home/deploy/projects/openttd-ml/sweeps/test_b9_air_catchment.py), [`sweeps/test_m3_equipment_roi.py`](file:///home/deploy/projects/openttd-ml/sweeps/test_m3_equipment_roi.py) :
+- [`sweeps/test_campaign_freeze.py`](../sweeps/test_campaign_freeze.py), [`sweeps/test_b9_air_catchment.py`](../sweeps/test_b9_air_catchment.py), [`sweeps/test_m3_equipment_roi.py`](../sweeps/test_m3_equipment_roi.py) :
   - Adaptés pour tester les nouveaux noms et le compte de 169 paramètres.
 
 ---

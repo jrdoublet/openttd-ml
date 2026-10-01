@@ -119,6 +119,86 @@ function OpexAI::_runNextTaskWithSlackLedger()
   this._railWorkerSteppedThisTick = false;
   return ran;
 }
+/* P7 experimental, raccordement globals_pre/settings/info :
+ * globals_pre : EXP_SCHEDULER_SKIP_NOT_DUE <- false;
+ * settings : exp_scheduler_skip_not_due != 0 (reglage bool, quatre defauts 0).
+ * Helpers libres : aucune declaration de methode/etat dans main, aucun nouvel etat Save/Load.
+ * Liste blanche volontairement minimale, verifiee contre scheduler_tasks.nut.
+ * catalog_fresh est EXCLU : avant sa garde, C121 met a jour son etat et le lot de production,
+ * un rebuild C78 peut avancer/publier, et les sondes de capital ont des effets observables.
+ * projects_null, air/expand disabled, town_growth et les workers ne sont pas des filtres P7. */
+function OpexExpSchedulerSkipReason(owner, candidate, year)
+{
+  if (owner._projects == null) return null;
+  if (candidate.name == "report" && owner._lastReportYear == year) return "report_same_year";
+  if (candidate.name == "repay") {
+    /* Meme cle que _dispatchRepay : annee du dispatch, mois lu au moment du predicat.
+     * Aucun test de cash/dette : meme un essai sans remboursement consomme son mois. */
+    local date = AIDate.GetCurrentDate();
+    local ym = year * 12 + AIDate.GetMonth(date);
+    if (owner._lastRepayMonth == ym) return "repay_same_month";
+  }
+  return null;
+}
+
+function OpexExpSchedulerSelectTask(owner, year)
+{
+  local count = owner._taskQueue.len();
+  local index = owner._taskCursor;
+  local startCursor = index;
+  local startCycle = owner._taskCycle;
+  local selected = -1;
+  local scanned = 0;
+  local reportSkips = 0;
+  local repaySkips = 0;
+  /* Au plus UN tour de la file, pas un tour de dispatchs ni une recursion.
+   * Le suffixe est lu au cycle courant, le prefixe au suivant. A la borne, les entrees
+   * du suffixe devenues dues attendent l'appel suivant : ne jamais les relire ici.
+   * Cela peut rendre false une fois avant une echeance, mais ne peut affamer une entree. */
+  for (local visited = 0; visited < count; visited++) {
+    if (index >= count) {
+      owner._taskCycle++;
+      index = 0;
+    }
+    local candidate = owner._taskQueue[index];
+    scanned++;
+    if (candidate.enabled && candidate.dueCycle <= owner._taskCycle) {
+      local reason = OpexExpSchedulerSkipReason(owner, candidate, year);
+      if (reason == null) {
+        selected = index;
+        break;
+      }
+      /* Consommer exactement l'echeance du dispatch no-op, sans toucher son horloge
+       * metier (_lastReportYear/_lastRepayMonth), enabled, ni les autres echeances. */
+      owner._taskCursor = (index + 1) % count;
+      candidate.dueCycle = owner._taskCycle + 1;
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_ENTER", candidate.name, owner._taskCycle);
+      if (C50_CHRONOLOGY_PROBE) owner._checkC50MonthlyTreasury(year);
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", candidate.name, owner._taskCycle);
+      if (reason == "report_same_year") reportSkips++;
+      else repaySkips++;
+    }
+    index++;
+  }
+  if (index >= count) {
+    owner._taskCycle++;
+    index = 0;
+  }
+  owner._taskCursor = index;
+  /* Une seule ligne agregee par scan avec skips, aucun scan de vehicules/villes/projets.
+   * SCHED_IDLE conserve son peek historique (avant continuations) ; cette preuve P7
+   * explicite les skips reels et la selection finale, sans modifier les mesures P5. */
+  if ((V95_SCHED_IDLE_LEDGER || DECISION_LOG) && reportSkips + repaySkips > 0) {
+    local fields = "report_same_year=" + reportSkips + " repay_same_month=" + repaySkips
+        + " scanned=" + scanned + " limit=" + count + " cursor_from=" + startCursor
+        + " cycle_from=" + startCycle + " cycle=" + owner._taskCycle
+        + " next=" + (selected >= 0 ? owner._taskQueue[selected].name : "idle");
+    if (V95_SCHED_IDLE_LEDGER) OpexSchedIdleLog("P7_SCHED_SKIP", fields);
+    else OpexDecide("P7_SCHED_SKIP", fields);
+  }
+  return selected;
+}
+
 /* File CONTINUE : le scan reprend apres la derniere tache choisie, meme si un A* a franchi le
  * changement d'annee. Le calendrier ne decide plus RIEN : quand le suffixe de la table est fini,
  * _taskCycle avance et le scan repart a zero. Chaque tache se reporte par dueCycle, donc aucun
@@ -182,23 +262,29 @@ function OpexAI::_runNextTask()
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local task = null;
   local taskIndex = -1;
-  for (local index = this._taskCursor; index < this._taskQueue.len(); index++) {
-    local candidate = this._taskQueue[index];
-    if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
-      task = candidate;
-      taskIndex = index;
-      break;
-    }
-  }
-  if (task == null) {
-    this._taskCycle++;
-    this._taskCursor = 0;
-    for (local index = 0; index < this._taskQueue.len(); index++) {
+  if (EXP_SCHEDULER_SKIP_NOT_DUE) {
+    taskIndex = OpexExpSchedulerSelectTask(this, year);
+    if (taskIndex >= 0) task = this._taskQueue[taskIndex];
+  } else {
+    /* Chemin temoin conserve : meme scan suffixe puis file entiere au cycle suivant. */
+    for (local index = this._taskCursor; index < this._taskQueue.len(); index++) {
       local candidate = this._taskQueue[index];
       if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
         task = candidate;
         taskIndex = index;
         break;
+      }
+    }
+    if (task == null) {
+      this._taskCycle++;
+      this._taskCursor = 0;
+      for (local index = 0; index < this._taskQueue.len(); index++) {
+        local candidate = this._taskQueue[index];
+        if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
+          task = candidate;
+          taskIndex = index;
+          break;
+        }
       }
     }
   }

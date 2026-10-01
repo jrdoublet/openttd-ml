@@ -39,6 +39,8 @@ from bench_v2 import (
 )
 from bench_1v1_5y_20seeds import (
     build_policy_comparison,
+    frozen_execution_inputs,
+    make_experiments_plan,
     project_build_sign_metrics,
     student_t_ci95_critical_value,
 )
@@ -57,6 +59,62 @@ INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 
 
 class TestCampaignFreeze(unittest.TestCase):
+    def test_frozen_execution_inputs_reject_protocol_drift(self):
+        manifest = {
+            "execution": {"options": {"seeds": [42], "years": 1, "repeats": 1,
+                                      "policy_id": "ref", "variant_policy_id": None}},
+            "configuration": {"seeds": [42], "years": 1, "repeats": 1, "starting_year": 1970},
+            "versions": {"openttd": "15.3", "opengfx": "7.1"},
+            "policy": {"id": "ref"}, "comparison": None,
+            "policies": [{"id": "ref", "role": "reference",
+                          "settings": {"explicit": {"sample": 1}}}],
+        }
+        campaign = types.SimpleNamespace(manifest=manifest)
+        args, policies = frozen_execution_inputs(campaign)
+        self.assertEqual(args.seeds, [42])
+        self.assertEqual(policies[0]["explicit_settings"], (("sample", 1),))
+        for field, wrong in (("seeds", [100]), ("years", 10), ("repeats", 2),
+                             ("policy_id", "other"), ("variant_policy_id", "undeclared")):
+            with self.subTest(field=field), mock.patch.dict(manifest["execution"]["options"], {field: wrong}):
+                with self.assertRaises(ValueError):
+                    frozen_execution_inputs(campaign)
+
+        manifest["execution"]["options"].update({
+            "variant_policy_id": "var", "decision_rule": "signs20", "primary_metric": "profit_year",
+            "min_useful_primary_delta": 5, "value_guard_max_loss_pct": 5,
+        })
+        manifest["comparison"] = {
+            "variant_policy_id": "var", "decision_rule": {
+                "rule": "signs20", "primary_metric": "profit_year",
+                "min_useful_primary_delta": 5, "value_guard_max_loss_pct": 5,
+            },
+        }
+        manifest["policies"].append({"id": "var", "role": "variant",
+                                     "settings": {"explicit": {"sample": 0}}})
+        _, policies = frozen_execution_inputs(campaign)
+        self.assertEqual(policies[1]["explicit_settings"], (("sample", 0),))
+        for field, wrong in (("variant_policy_id", "other"), ("decision_rule", "mean40"),
+                             ("primary_metric", "company_value"), ("min_useful_primary_delta", 0),
+                             ("value_guard_max_loss_pct", 100)):
+            with self.subTest(field=field), mock.patch.dict(manifest["execution"]["options"], {field: wrong}):
+                with self.assertRaises(ValueError):
+                    frozen_execution_inputs(campaign)
+
+    def test_frozen_experiment_plan_uses_manifest_config_and_frozen_ais(self):
+        campaign = types.SimpleNamespace(
+            manifest={"configuration": {"raw": "[fixture]\nsetting=unchanged\n"}},
+            opex_dir=Path("frozen/ai/OpexAI"), aaahogex_dir=Path("frozen/ai/AAAHogEx-115"),
+            campaign_id="fixture", bundle_sha256="hash",
+        )
+        with mock.patch("openttdlab.local_folder", side_effect=lambda *args: args):
+            plan = make_experiments_plan([42], 1, campaign=campaign, policies=[
+                {"id": "ref", "explicit_settings": (("sample", 1),)},
+            ])
+        self.assertEqual(plan[0]["openttd_config"], campaign.manifest["configuration"]["raw"])
+        self.assertEqual(plan[0]["ais"][0], (str(campaign.opex_dir), "OpexAI", (("sample", 1),)))
+        self.assertEqual(plan[0]["ais"][1][0], str(campaign.aaahogex_dir))
+        self.assertEqual(plan[0]["game_id"], "fixture:policy=ref:s42:r0")
+
     def test_prepare_frozen_campaign_copies_ai_harness_and_libraries(self):
         """Couvre le gel complet sans réseau avec une bibliothèque BaNaNaS synthétique."""
         library_bytes = b"synthetic-library-tar\n"
@@ -505,7 +563,7 @@ class TestCampaignFreeze(unittest.TestCase):
                             "median_station_rating": 100,
                         }
                         summary.append(rec)
-                        rows.append({**rec, "run": [arm, seed, 0], "date": "1970-12-01"})
+                        rows.append({**rec, "run": [arm, seed, 0], "date": "1979-12-01"})
             return build_policy_comparison(
                 summary,
                 rows,
@@ -517,7 +575,7 @@ class TestCampaignFreeze(unittest.TestCase):
                 min_useful_primary_delta=5.0,
                 value_guard_max_loss_pct=5.0,
                 starting_year=1970,
-                years=1,
+                years=10,
                 decision_rule=decision_rule,
             )
 

@@ -489,7 +489,11 @@ def failures_logged_as_waiting_compute(spend, opp, leftover_days):
 
 
 def discard_append_conditions(path, reason):
-    text = _ai(path)
+    return discard_append_conditions_from_source(_ai(path), reason)
+
+
+def discard_append_conditions_from_source(text, reason):
+    """Lit le garde direct de chaque append, sans fenêtre arbitraire de caractères."""
     needle = f'reason = "{reason}"'
     found = []
     start = 0
@@ -497,8 +501,12 @@ def discard_append_conditions(path, reason):
         idx = text.find(needle, start)
         if idx < 0:
             break
-        window = text[max(0, idx - 220):idx]
-        found.append(window)
+        guard = re.search(
+            r'\bif\s*\(([^;{}]*?)\)\s*passDiscards\.append\s*\(\s*\{[^{};]*$',
+            text[:idx],
+        )
+        # Un garde absent/non reconnu reste un échec du contrat, jamais un skip.
+        found.append(guard.group(1) if guard else "")
         start = idx + len(needle)
     return found
 

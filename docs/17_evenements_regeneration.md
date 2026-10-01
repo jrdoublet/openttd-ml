@@ -1,7 +1,13 @@
 # C76 — Routeur d'événements et régénération ciblée du vivier
 
-**Contrat écrit avant code, 2026-09-21. Aucun code de décision, aucun banc, aucun diagnostic dans ce document.**
-Les références de code visent la branche `c69-goulot-decision` au commit courant.
+**Lecture au 30 septembre : contrat initial puis résultats historiques.** C76 ciblé
+et C77 sont depuis intégrés ; voir [tâches](taches.md) et [synthèse](journaux/synthese_decisions_2026-09-30.md).
+Les numéros de ligne sont ceux de la branche étudiée ; les liens ouvrent les modules
+courants sans prétendre retrouver ces anciennes lignes. Le « futur » ci-dessous
+appartient à la conception du 21 septembre.
+
+**Contrat initial du 2026-09-21, suivi des résultats de l'étape 1.**
+Les références de code visent historiquement la branche `c69-goulot-decision`.
 
 ---
 
@@ -22,15 +28,15 @@ L'inspection exhaustive du code au 2026-09-21 établit l'état suivant :
 
 | Composant | Fichier et lignes | Comportement actuel constaté |
 |---|---|---|
-| **Cadence catalogue** | [`scheduler_tasks.nut:35-66`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/scheduler_tasks.nut#L35-L66) | `_dispatchCatalog` ne saute que dans le même mois (`_lastCatalogMonth == ym`). Dès qu'un tour de file prend plus de 30 jours, `catalog.refresh` et `_rebuildProjects` s'exécutent **systématiquement**. |
-| **Catalogue global** | [`catalog.nut:932-986`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/catalog.nut#L932-L986) | `OpexCatalog::refresh` appelle en bloc `_refreshCargos`, `_refreshRail`, `_refreshTowns`, `_refreshIndustries`, `_refreshRoad`, `_refreshAirport`, `_refreshWater`. Aucun sous-catalogue n'est rafraîchi isolément. |
-| **Génération vivier (complet)** | [`projects.nut:2088-2589`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/projects.nut#L2088-L2589) | `OpexBuildProjects` scanne l'ensemble des modes (`rail`, `road`, `air`, `water`, `fleet`), génère tous les candidats, exécute le knapsack/sélection et assemble `candidateGroups` et `best`. Coût : ~2,8 M opcodes par passe. |
-| **Rebuild appelant** | [`task_projects.nut:1038-1075`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_projects.nut#L1038-L1075) | `_rebuildProjects(fleetPlan)` recalcule l'ordre des frets et appelle `OpexBuildProjects`. |
-| **Mise à jour post-chantier** | [`task_projects.nut:980-998`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/task_projects.nut#L980-L998) | Après un chantier réussi, `OpexIncrementalUpdateProjects` filtre les candidats en mémoire (< 1 tick, < 500 opcodes), mais replie sur `_rebuildProjects` complet si le cache est désarmé ou au bootstrap. |
-| **Réception d'événements** | [`events.nut:280-357`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/events.nut#L280-L357) | `_processEvents` dépile la boucle d'événements NoAI 15.3 (`AIEventController.GetNextEvent`) et route vers les handlers. |
-| **Marquage d'invalidation** | [`events.nut:40-142`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/events.nut#L40-L142) | `_markDirty` est purement passif sous `C39_INVALIDATION_PROBE`. Il incrémente des révisions de diagnostic sous `C41_REVISION_PROBE`, mais **aucun état n'est consommé par les générateurs**. |
-| **Handlers d'événements** | [`event_handlers.nut:690-785`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/event_handlers.nut#L690-L785) | `_onIndustryOpen`, `_onIndustryClose`, `_onTownFounded`, `_onEngineAvailable` appellent `_markDirty`. Le seul impact réel est `_portfolioInvalidated = true`, qui **avance** une régénération complète au lieu d'en éviter une. |
-| **Garde de sonde** | [`settings.nut:184-188`](file:///home/deploy/projects/openttd-ml/.wt_c69/ai/OpexAI/settings.nut#L184-L188) | Le réglage `probe_catalogue` (défaut 0) contrôle `C39_INVALIDATION_PROBE` et `C41_REVISION_PROBE`. Au défaut, le routeur passif ne fait aucun travail. |
+| **Cadence catalogue** | [`scheduler_tasks.nut:35-66`](../ai/OpexAI/scheduler_tasks.nut#L35-L66) | `_dispatchCatalog` ne saute que dans le même mois (`_lastCatalogMonth == ym`). Dès qu'un tour de file prend plus de 30 jours, `catalog.refresh` et `_rebuildProjects` s'exécutent **systématiquement**. |
+| **Catalogue global** | [`catalog.nut:932-986`](../ai/OpexAI/catalog.nut#L932-L986) | `OpexCatalog::refresh` appelle en bloc `_refreshCargos`, `_refreshRail`, `_refreshTowns`, `_refreshIndustries`, `_refreshRoad`, `_refreshAirport`, `_refreshWater`. Aucun sous-catalogue n'est rafraîchi isolément. |
+| **Génération vivier (complet)** | [`projects.nut:2088-2589`](../ai/OpexAI/projects.nut#L2088-L2589) | `OpexBuildProjects` scanne l'ensemble des modes (`rail`, `road`, `air`, `water`, `fleet`), génère tous les candidats, exécute le knapsack/sélection et assemble `candidateGroups` et `best`. Coût : ~2,8 M opcodes par passe. |
+| **Rebuild appelant** | [`task_projects.nut:1038-1075`](../ai/OpexAI/task_projects.nut#L1038-L1075) | `_rebuildProjects(fleetPlan)` recalcule l'ordre des frets et appelle `OpexBuildProjects`. |
+| **Mise à jour post-chantier** | [`task_projects.nut:980-998`](../ai/OpexAI/task_projects.nut#L980-L998) | Après un chantier réussi, `OpexIncrementalUpdateProjects` filtre les candidats en mémoire (< 1 tick, < 500 opcodes), mais replie sur `_rebuildProjects` complet si le cache est désarmé ou au bootstrap. |
+| **Réception d'événements** | [`events.nut:280-357`](../ai/OpexAI/events.nut#L280-L357) | `_processEvents` dépile la boucle d'événements NoAI 15.3 (`AIEventController.GetNextEvent`) et route vers les handlers. |
+| **Marquage d'invalidation** | [`events.nut:40-142`](../ai/OpexAI/events.nut#L40-L142) | `_markDirty` est purement passif sous `C39_INVALIDATION_PROBE`. Il incrémente des révisions de diagnostic sous `C41_REVISION_PROBE`, mais **aucun état n'est consommé par les générateurs**. |
+| **Handlers d'événements** | [`event_handlers.nut:690-785`](../ai/OpexAI/event_handlers.nut#L690-L785) | `_onIndustryOpen`, `_onIndustryClose`, `_onTownFounded`, `_onEngineAvailable` appellent `_markDirty`. Le seul impact réel est `_portfolioInvalidated = true`, qui **avance** une régénération complète au lieu d'en éviter une. |
+| **Garde de sonde** | [`settings.nut:184-188`](../ai/OpexAI/settings.nut#L184-L188) | Le réglage `probe_catalogue` (défaut 0) contrôle `C39_INVALIDATION_PROBE` et `C41_REVISION_PROBE`. Au défaut, le routeur passif ne fait aucun travail. |
 
 ---
 

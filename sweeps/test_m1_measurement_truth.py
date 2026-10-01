@@ -2,6 +2,7 @@
 from pathlib import Path
 import re
 import unittest
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,7 +33,7 @@ class TestM1MeasurementTruth(unittest.TestCase):
     def setUpClass(cls):
         cls.ledgers = source(AI / "ledgers.nut")
         cls.candidates = source(AI / "candidates.nut")
-        cls.projects = source(AI / "projects.nut")
+        cls.projects = read_projects_source()
         cls.probes = source(AI / "probes.nut")
         cls.task_projects = source(AI / "task_projects.nut")
         cls.scheduler = source(AI / "scheduler_tasks.nut")

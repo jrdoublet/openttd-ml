@@ -26,7 +26,7 @@ import subprocess
 import sys
 
 
-MANIFEST_SCHEMA_VERSION = "1.1.0"
+MANIFEST_SCHEMA_VERSION = "1.2.0"
 CAMPAIGN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 SETTING_BLOCK_RE = re.compile(r"AddSetting\s*\(\s*\{(.*?)\}\s*\)\s*;", re.DOTALL)
 SETTING_NAME_RE = re.compile(r'\bname\s*=\s*"([^"]+)"')
@@ -373,6 +373,7 @@ def prepare_frozen_campaign(
     policy_definitions=None,
     intervention_settings=(),
     decision_rule=None,
+    execution_options=None,
 ) -> FrozenCampaign:
     """Create every immutable campaign input before the first OpenTTD process starts."""
     root = Path(root).resolve()
@@ -502,6 +503,10 @@ def prepare_frozen_campaign(
             "openttdlab": runtime["openttdlab"],
         },
         "runtime": runtime,
+        "execution": {
+            "mode": "frozen-subprocess",
+            "options": execution_options,
+        } if execution_options is not None else None,
         "configuration": {
             "raw": config_text,
             "sha256": _sha256_bytes(config_text.encode("utf-8")),

@@ -2,6 +2,12 @@
 
 Fiche de conception et protocole de qualification pour le chantier **V88**.
 
+> **Statut courant : V88 suspendu, ne pas relancer.** Les duels négatifs et défauts confirmés
+> (§5.7) priment sur les anciens feux verts de cette fiche. Attendre la cible workers A*
+> de la [note 36](36_astar_workers_conception.md) et une décision explicite dans
+> [taches.md](taches.md). Les commandes ci-dessous sont des références documentaires, pas
+> des instructions de lancement. Appliquer [AGENTS.md](../AGENTS.md) avant toute reprise.
+
 ---
 
 ## 1. Contexte et objectif
@@ -108,7 +114,9 @@ Pour OpexAI, cette optimisation fera l'objet d'un chantier séparé (étape 2 fu
 
 ## 4. Protocole de validation prévu
 
-Conformément à la consigne, les smokes et diagnostics en partie réelle seront exécutés dans un environnement dédié après la livraison du code.
+Protocole initial conservé pour mémoire ; **suspendu selon §5.7**. Aucune exécution n'est
+autorisée par cette fiche. Une éventuelle reprise doit respecter [AGENTS.md](../AGENTS.md)
+(gel des entrées, contrôles de santé, limites Docker et cache persistant).
 
 ### 4.1. Smoke 1×1 puis 2×3
 - **Configuration** : `OpexAI[v88_goods_chain=1]`
@@ -119,13 +127,21 @@ Conformément à la consigne, les smokes et diagnostics en partie réelle seront
   4. **Biens réellement livrés** : confirmation dans `PLYR old_economy delivered_cargo` que le volume de biens livré est strictement supérieur à zéro (`delivered_cargo[goods] > 0`).
 
 ### 4.2. Diagnostic apparié 5 graines × 6 ans
-- **Commande** :
-  ```bash
-  python3 sweeps/run_c66_reference.py --line-telemetry \
-    --ref "OpexAI[v88_goods_chain=0]" \
-    --var "OpexAI[v88_goods_chain=1]" \
-    --seeds 5 --years 6
+- **Gabarit complet, non exécuté — ne pas relancer V88** (PowerShell, depuis la racine,
+  lanceur hôte décrit dans [AGENTS.md](../AGENTS.md)) :
+  ```powershell
+  python -X utf8 sweeps/run_c66_reference.py --campaign "v88_diag_IDENTIFIANT_UNIQUE_A_REMPLACER" --line-telemetry `
+    --reference "OpexAI[v88_goods_chain=0]" `
+    --variant "OpexAI[v88_goods_chain=1]" `
+    --variant-policy-id "v88_goods_chain_only" `
+    --primary-metric profit_year --min-useful-primary-delta 50000 `
+    --value-guard-max-loss-pct 5 --seeds 42 100 999 1234 5678 `
+    --years 6 --max-workers 3
   ```
+- Après levée explicite de la suspension seulement, remplacer le placeholder de campagne par
+  un identifiant neuf, jamais réutilisé, et fixer les bras/politique avant les mesures. Le
+  lanceur impose par défaut 3 CPU, 2 Go de RAM sans swap et le volume `openttd-lab-home`.
+  Ce 5×6 est diagnostique, pas un banc d'adoption.
 - **Métrique principale** : `profit_year` (gain annuel d'exploitation).
 - **Seuils d'arbitrage** :
   - **Effet utile** : `+50 k£/an`
@@ -166,7 +182,7 @@ Depuis le **2026-09-24**, les optimisations V90 (−8 % opcodes/itération) et V
    - `task_projects.nut:616` imposait `this._railSearch == null` pour reprendre l'étape 2. Si l'étape 2 avait déjà calculé son `railPlan` mais avait été différée pour trésorerie insuffisante (`C41_RAIL_CASH_RELEASE`), elle restait bloquée si un autre projet rail lançait une recherche.
    - Le nouveau réglage `v88_step2_plan_immediate` (défaut 0, booléen) autorise la construction de l'étape 2 dès que son `railPlan` est prêt, sans attendre que `_railSearch` redevienne inactif.
 
-### 5.3 Protocole de mesure opérationnel
+### 5.3 Ancien protocole de mesure — suspendu, ne pas exécuter
 1. **Diagnostic solo 5 graines × 8 ans** :
    ```bash
    python3 sweeps/diag_c69_bottleneck_probe.py \
@@ -274,7 +290,9 @@ Arm : `OpexAI[probe_portfolio=1,probe_events=1,v88_goods_chain=1,v88_all_inputs=
   - Graine 999 : 1974-01-20 (ligne 27, rev 11 611 £)
   - Graine 7 : 1977-09-30 (ligne 76, rev 7 009 £)
 
-**Verdict :** Le seuil d'accès au duel ($\ge 3/5$ graines livrant une chaîne complète) est **pleinement atteint avec 5/5 graines (100 %)**. Le duel causal apparié 5×6 peut être lancé par l'orchestrateur.
+**Verdict historique avant les duels :** Le seuil d'accès au duel ($\ge 3/5$ graines livrant une
+chaîne complète) était atteint avec **5/5 graines (100 %)**. Ce feu vert est **supplanté par
+la suspension en §5.7** : ne pas relancer de duel V88.
 
 ### 5.7 Duels 5×6 et enquête — 2026-09-26 : la qualification solo ne se traduit pas en gain
 

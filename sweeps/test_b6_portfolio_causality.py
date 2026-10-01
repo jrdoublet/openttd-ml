@@ -1,6 +1,7 @@
 """Contrats B6: instrumentation passive du classement/capital/cache, sans politique."""
 from pathlib import Path
 import unittest
+from opex_projects_source import read_projects_source
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
@@ -24,7 +25,7 @@ def body(text, signature):
 class TestB6PortfolioCausality(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.projects = read("projects.nut")
+        cls.projects = read_projects_source()
         cls.globals = read("globals_post.nut")
 
     def test_current_policy_is_observed_not_changed(self):

@@ -533,6 +533,110 @@ function OpexSaveC83Preempt(saveObj, ai)
   saveObj.c83PreemptRace <- race;
 }
 
+/* R20 : Load precede les reglages. Tampon prive a la persistance, consomme
+ * par _reconcileAfterLoad ; ni cache catalogue ni nouveau reglage public. */
+OPEX_RELOAD_C121_STRATEGY <- null;
+
+function OpexC121StrategyStateEnabled()
+{
+  return C121_AIR_PRESSURE_PROBE || C121_AIR_PROJECT_REALIZATION_ADAPTIVE
+      || C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW;
+}
+
+function OpexSaveC121Strategy(saveObj)
+{
+  if (!OpexC121StrategyStateEnabled()) return;
+  local accum = null;
+  if (C121_AIR_PRESSURE_ACCUM != null) {
+    /* Copie native du seul historique utile : TownID -> minimum de slots.
+     * Toutes les valeurs produites par le collecteur sont entieres. */
+    accum = {
+      year = C121_AIR_PRESSURE_ACCUM.year,
+      samples = C121_AIR_PRESSURE_ACCUM.samples,
+      towns = clone C121_AIR_PRESSURE_ACCUM.towns,
+    };
+  }
+  saveObj.c121Strategy <- {
+    version = 1,
+    regime = C121_AIR_PROJECT_REALIZATION_REGIME,
+    yearsObserved = C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED,
+    accum = accum,
+    previous = C121_AIR_PRESSURE_PREV != null ? clone C121_AIR_PRESSURE_PREV : null,
+  };
+}
+
+/* Validation sans API monde ni drapeaux runtime (Load est trop tot).
+ * Refuser le bloc entier si incomplet/incompatible, sans demi-restauration. */
+function OpexLoadC121Strategy(data)
+{
+  if (data == null || typeof data != "table") return null;
+  foreach (key in ["version", "regime", "yearsObserved"]) {
+    if (!(key in data) || typeof data[key] != "integer") return null;
+  }
+  if (data.version != 1 || data.regime < -1 || data.regime > 1
+      || data.yearsObserved < 0 || !("accum" in data) || !("previous" in data)) return null;
+  local accum = null;
+  if (data.accum != null) {
+    local a = data.accum;
+    if (typeof a != "table") return null;
+    foreach (key in ["year", "samples"]) {
+      if (!(key in a) || typeof a[key] != "integer" || a[key] < 0) return null;
+    }
+    if (!("towns" in a) || typeof a.towns != "table") return null;
+    local towns = {};
+    foreach (townId, remaining in a.towns) {
+      if (typeof townId != "integer" || townId < 0
+          || typeof remaining != "integer" || remaining < -1) return null;
+      /* Un TownID historique n'est pas filtre selon le monde actuel : il fait
+       * partie de l'observation deja utilisee par le classifieur. */
+      towns.rawset(townId, remaining);
+    }
+    accum = { year = a.year, samples = a.samples, towns = towns };
+  }
+  local previous = null;
+  if (data.previous != null) {
+    local p = data.previous;
+    if (typeof p != "table") return null;
+    previous = {};
+    foreach (key in ["year", "open", "competitor", "locked", "other",
+                    "uniqueTowns", "samples", "pressured"]) {
+      if (!(key in p) || typeof p[key] != "integer" || p[key] < 0) return null;
+      previous.rawset(key, p[key]);
+    }
+    foreach (key in ["contestablePermille", "openPermille"]) {
+      if (!(key in p) || typeof p[key] != "integer" || p[key] < -1 || p[key] > 1000) return null;
+      previous.rawset(key, p[key]);
+    }
+  }
+  return { version = 1, regime = data.regime, yearsObserved = data.yearsObserved,
+           accum = accum, previous = previous };
+}
+
+function OpexRestoreC121Strategy(data)
+{
+  /* Migration ancienne sauvegarde : nouvelle observation, jamais un verrou
+   * invente a partir de la carte actuelle. Les caches restent reconstructibles. */
+  C121_AIR_PROJECT_REALIZATION_REGIME = -1;
+  C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED = 0;
+  C121_AIR_PRESSURE_ACCUM = null;
+  C121_AIR_PRESSURE_PREV = null;
+  C121_AIR_PRESSURE_SNAPSHOT = null;
+  if (!OpexC121StrategyStateEnabled()) return;
+  if (data == null) {
+    AILog.Info("C121_STRATEGY_RELOAD observation_restart: missing_or_invalid_state");
+    return;
+  }
+  C121_AIR_PROJECT_REALIZATION_REGIME = data.regime;
+  C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED = data.yearsObserved;
+  C121_AIR_PRESSURE_ACCUM = data.accum;
+  C121_AIR_PRESSURE_PREV = data.previous;
+  AILog.Info("C121_STRATEGY_RELOAD regime=" + data.regime
+      + " observed_years=" + data.yearsObserved
+      + " accum_year=" + (data.accum != null ? data.accum.year : -1));
+  /* Ne pas appeler PressureAdvanceYear ici : le prochain scoring cloture
+   * normalement l'annee et respecte un regime deja verrouille. */
+}
+
 function OpexAI::Save()
 {
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
@@ -563,6 +667,8 @@ function OpexAI::Save()
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
     if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
+    if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
+    if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     return shortSave;
   }
 
@@ -673,12 +779,18 @@ function OpexAI::Save()
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
+  if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
+  if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   return saveObj;
 }
 function OpexAI::Load(version, data)
 {
   this._loadedFromSave = true;
+  OPEX_RELOAD_C121_STRATEGY = null;
+  OPEX_AIR_ROLLBACKS = [];
   if (data == null) return;
+  if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
+  if ("c121Strategy" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;
   this._reloadC75PassDates = ("c75PassDates" in data) ? data.c75PassDates : null;
   if ("generationStage" in data) this._generationStage = data.generationStage;
@@ -749,6 +861,10 @@ function OpexAI::Load(version, data)
  * ici, apres les reglages. Les stationA/stationB sont des TUILES, jamais des StationID. */
 function OpexAI::_reconcileAfterLoad()
 {
+  /* R20 : appliquer seulement apres OpexLoadSettings, qui efface la pression. */
+  OpexRestoreC121Strategy(OPEX_RELOAD_C121_STRATEGY);
+  OPEX_RELOAD_C121_STRATEGY = null;
+  OpexAirReconcileRollbacks();
   /* C69/C75/C70 : restaurer APRES OpexLoadSettings() et les remises a zero de Start(). */
   if (C69_TRACK_BUILDS && this._reloadC69BuildDates != null && typeof this._reloadC69BuildDates == "array") {
     C69_BUILD_DATES = this._reloadC69BuildDates;

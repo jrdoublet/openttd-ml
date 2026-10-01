@@ -25,6 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", required=True)
     parser.add_argument("--image", default="openttd-lab:latest")
+    parser.add_argument("--container-name", help="Nom optionnel pour nettoyage borné par l'orchestrateur")
     parser.add_argument("--policy-id", default="reference")
     parser.add_argument("--reference")
     parser.add_argument("--variant")
@@ -93,6 +94,7 @@ def main():
 
     command = [
         "docker", "run", "--rm",
+        *(["--name", args.container_name] if args.container_name else []),
         f"--cpus={args.cpus}", f"--memory={args.memory}", f"--memory-swap={args.memory}",
         "-e", f"C66_DOCKER_IMAGE={args.image}",
         "-e", f"C66_DOCKER_IMAGE_ID={image_id}",

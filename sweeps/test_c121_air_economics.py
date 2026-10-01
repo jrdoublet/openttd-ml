@@ -6,6 +6,11 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from campaign_freeze import parse_ai_settings
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 GLOBALS = ROOT / "ai" / "OpexAI" / "globals_pre.nut"
@@ -27,11 +32,11 @@ def body(text: str, start: str, end: str) -> str:
 class TestC121AirEconomics(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.air = AIR.read_text(encoding="utf-8")
+        cls.air = read_builder_air()
         cls.task = TASK_AIR.read_text(encoding="utf-8")
         cls.task_projects = TASK_PROJECTS.read_text(encoding="utf-8")
         cls.task_report = TASK_REPORT.read_text(encoding="utf-8")
-        cls.projects = PROJECTS.read_text(encoding="utf-8")
+        cls.projects = read_projects_source()
         cls.persist = PERSIST.read_text(encoding="utf-8")
         cls.probes = PROBES.read_text(encoding="utf-8")
 
@@ -234,6 +239,28 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("OpexC121StationAllocatedMonthly", econ)
         self.assertIn("local offeredPaxA = stationPaxA * routeSharePaxA", econ)
         self.assertIn("local offeredMailA = stationMailA * routeShareMailA", econ)
+
+    def test_r15_score_and_profit_snapshots_share_one_schema(self):
+        """R15 : les snapshots complets meilleur score / meilleur profit
+        doivent garder les memes champs et valeurs ; seul `score` les distingue.
+        Le tuple compact decisionOnly reste volontairement plus petit."""
+        import re
+        econ = body(self.air, "function OpexC121AirEconomics", "function OpexC121EngineEconomics")
+
+        def fields(block):
+            flat = " ".join(block.split())
+            pairs = re.findall(r"(\w+) = (.+?)(?:, (?=\w+ = )|,\s*$)", flat)
+            return dict(pairs)
+
+        score_full = econ.split("} else {\n        scoreBest = {", 1)[1].split("};", 1)[0]
+        profit = econ.split("\n      best = {", 1)[1].split("};", 1)[0]
+        a, b = fields(score_full), fields(profit)
+        self.assertGreater(len(b), 80)
+        self.assertEqual(a.pop("score"), "decisionScore")
+        self.assertEqual(a, b)
+        for key in ("c121RealizationApplied", "realizationFactor", "cannibalLossAnnual",
+                    "fleetScanCap", "requestedPickupRate", "stationRating"):
+            self.assertIn(key, b)
 
     def test_station_generation_share_follows_openttd_move_goods(self):
         alloc = body(
@@ -757,7 +784,7 @@ class TestC121AaaLine(unittest.TestCase):
                         settings.index("if (C121_AAA_LINE) AIR_FULL_LOAD = 1;"))
 
     def test_two_planes_and_second_from_airport_b(self):
-        air = (ROOT / "ai" / "OpexAI" / "builder_air.nut").read_text(encoding="utf-8")
+        air = read_builder_air()
         self.assertEqual(air.count("C121_AAA_LINE ? 2 : 1"), 2)
         self.assertIn("AIAirport.GetHangarOfAirport(airportB)", air)
         self.assertIn("AIOrder.SkipToOrder(extra, 1)", air)

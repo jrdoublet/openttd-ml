@@ -123,10 +123,7 @@ function OpexAI::_tryBuildAir(year)
 
     local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
     if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected");
-    local airMarginPadding = false;
-    local requiredMargin = airMarginPadding
-          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
-          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
+    local requiredMargin = OpexAirRequiredMargin(newAirports);
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
     if (money < need) {
@@ -274,6 +271,7 @@ function OpexAirBatchHubHasCapacity(anchor, plane, lines)
  * revalider l'etat vivant : une autre construction ou le monde peut avoir rendu le plan caduc. */
 function OpexAirBatchPlanStillLive(plan, lines)
 {
+  if (OpexAirRecoveryBlocksPlan(plan)) return false;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
   local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
@@ -431,10 +429,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
       if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
-      local airMarginPadding = false;
-      local requiredMargin = airMarginPadding
-          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
-          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
+      local requiredMargin = OpexAirRequiredMargin(newAirports);
       local capital = ("capital" in buildPlan) ? buildPlan.capital
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
@@ -898,8 +893,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
      * cette marge doive couvrir. 88 refus insufficient_cash pour 3 acceptations mesures
      * sur 3 parties x 2 ans (results/diag_1v1_decisions.json). */
-    local airMarginPadding = false;
-    local need = planePrice + OpexCashReserve() + (airMarginPadding ? 0 : 2000);
+    local need = planePrice + OpexCashReserve() + 2000;
     local addedThisPass = 0;
     local maxAddedPerPass = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : 4;
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
@@ -951,8 +945,12 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local room = maxPlanesForAirport - have;
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
-        local fleetEntry = { line = line, want = want, planePrice = planePrice };
+        local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
         if (c84BelowTarget) {
+          /* R1 : seuls les cargos sont lus par le modele marginal. Cette
+           * petite vue transitoire permet de recalculer une tranche finançable. */
+          fleetEntry.c84Catalog <- { paxCargo = this._catalog.paxCargo,
+              mailCargo = ("mailCargo" in this._catalog) ? this._catalog.mailCargo : -1 };
           local marginal = OpexAirExistingLineMarginalEconomics(this._catalog, line, have, want);
           if (marginal != null) {
             fleetEntry.c84MarginalProfit <- marginal.profitAnnual;

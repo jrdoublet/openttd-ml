@@ -40,7 +40,7 @@ def _force_utf8_stdio():
 
 _force_utf8_stdio()
 
-ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import (
     OPENGFX_VERSION,
@@ -56,7 +56,7 @@ from bench_v2 import (
     quarter_profit,
     station_ratings,
     summarise,
-    year_profit,
+    year_profit_metrics,
 )
 from physical_counters import decode_vehicles, decode_stations
 from game_health import (
@@ -71,6 +71,7 @@ from game_health import (
     write_engine_log,
 )
 import bench_v2
+from frozen_harness import launch_frozen_campaign
 from campaign_freeze import (
     default_campaign_id,
     fingerprint_tree,
@@ -130,6 +131,7 @@ CAMPAIGN_HARNESS_FILES = (
     "sweeps/bench_1v1_5y_20seeds.py",
     "sweeps/bench_v2.py",
     "sweeps/campaign_freeze.py",
+    "sweeps/frozen_harness.py",
     "sweeps/game_health.py",
     "sweeps/physical_counters.py",
     "sweeps/run_c66_reference.py",
@@ -841,8 +843,11 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         player = players.get(str(owner))
     company_present = isinstance(player, dict) and bool(player)
     player = player or {}
-    closed = player.get("old_economy") or []
-    last_closed = closed[0] if closed else {}
+    closed = player.get("old_economy")
+    last_closed = (
+        closed[0] if isinstance(closed, (list, tuple)) and closed
+        and isinstance(closed[0], dict) else {}
+    )
     ratings = station_ratings(chunks, owner=owner)
     veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=owner)
     stn_dec = decode_stations(chunks.get("STNN"), target_owner=owner)
@@ -878,7 +883,7 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "income_last_year": last_closed.get("income", 0),
         "expenses_last_year": last_closed.get("expenses", 0),
         "profit": quarter_profit(last_closed),
-        "profit_year": year_profit(closed),
+        **year_profit_metrics(closed),
         "median_station_rating": (statistics.median(ratings) if ratings else None),
         "n_station_ratings": len(ratings),
         "money": player.get("money", 0),
@@ -976,7 +981,7 @@ def keep(row):
 
 def make_experiments_plan(seeds, years, repeats=1, campaign=None, policy_id="reference", policies=None):
     from openttdlab import local_folder
-    cfg = make_cfg(STARTING_YEAR)
+    cfg = campaign.manifest["configuration"]["raw"] if campaign is not None else make_cfg(STARTING_YEAR)
     days = 365 * years
     opex_dir = campaign.opex_dir if campaign is not None else ROOT / "ai" / "OpexAI"
     aaahogex_dir = campaign.aaahogex_dir if campaign is not None else ROOT / "ai" / AAAHOGEX_DIR
@@ -1230,6 +1235,40 @@ def _stamp_structural_metrics(summary_records, raw_records):
     return summary_records
 
 
+def policy_adoption_eligibility(seeds, repeats, years, decision_rule):
+    """Sépare le protocole d'adoption des statistiques diagnostiques par paire.
+
+    Les répétitions d'une même carte ne sont pas des graines indépendantes.
+    Elles restent descriptives tant qu'aucune inférence regroupée par graine
+    n'est définie. Le protocole courant impose exactement dix ans.
+    """
+    required_seeds = {"signs20": 20, "mean40": 40}
+    if decision_rule not in required_seeds:
+        raise ValueError(f"règle d'adoption inconnue: {decision_rule}")
+    required = required_seeds[decision_rule]
+    distinct_seeds = len(set(seeds))
+    reasons = []
+    if distinct_seeds != len(seeds):
+        reasons.append("duplicate_seeds")
+    if distinct_seeds != required:
+        reasons.append("distinct_seed_count")
+    if repeats != 1:
+        reasons.append("repeated_seeds")
+    if years != 10:
+        reasons.append("horizon_not_10_years")
+    return {
+        "eligible": not reasons,
+        "reasons": reasons,
+        "required_distinct_seeds": required,
+        "distinct_seeds": distinct_seeds,
+        "required_years": 10,
+        "years": years,
+        "required_repeats": 1,
+        "repeats": repeats,
+        "independent_seed_sample": distinct_seeds == len(seeds) and repeats == 1,
+    }
+
+
 def build_policy_comparison(
     summary,
     rows,
@@ -1246,6 +1285,8 @@ def build_policy_comparison(
     decision_rule="signs20",
 ):
     """Rapport C66.4 fail-closed pour deux politiques jouant chacune contre AAAHogEx."""
+    adoption_protocol = policy_adoption_eligibility(seeds, repeats, years, decision_rule)
+    adoption_sample_complete = adoption_protocol["eligible"]
     index = {}
     for record in summary:
         key = (
@@ -1413,7 +1454,6 @@ def build_policy_comparison(
         and metric_coverage_complete
     )
     if decision_rule == "mean40":
-        adoption_sample_complete = planned == 40
         primary_ci95 = primary_stats.get("mean_student_t_95pct_ci")
         ci_lower_positive = (
             primary_ci95 is not None
@@ -1452,7 +1492,6 @@ def build_policy_comparison(
             "all_planned_pairs_required_for_verdict": True,
         }
     else:
-        adoption_sample_complete = planned == 20
         sign_pass = (
             primary_stats["wins"] >= 15
             and primary_stats["sign_test_p"] is not None
@@ -1515,6 +1554,7 @@ def build_policy_comparison(
         "complete_pairs": len(complete_pairs),
         "comparison_complete": comparison_complete,
         "adoption_sample_complete": adoption_sample_complete,
+        "adoption_protocol": adoption_protocol,
         "metric_coverage_complete": metric_coverage_complete,
         "incomplete_pairs": incomplete_pairs,
         "statistical_incompleteness": {
@@ -1549,8 +1589,9 @@ def main():
         "--decision-rule",
         choices=["signs20", "mean40"],
         default="signs20",
-        help="Règle d'adoption C66.4 : 'signs20' (20 paires, test des signes bilatéral 15/20) "
-             "ou 'mean40' (40 paires, IC95 Student-t > 0 et moyenne >= min_useful_primary_delta)",
+           help="Règle d'adoption C66.4 : 'signs20' (20 graines, test des signes bilatéral 15/20) "
+               "ou 'mean40' (40 graines, IC95 Student-t > 0 et moyenne >= min_useful_primary_delta). "
+               "Adoption uniquement sur graines distinctes, 10 ans et une répétition ; sinon diagnostic.",
     )
     parser.add_argument(
         "--seeds",
@@ -1593,23 +1634,6 @@ def main():
         selftest()
         return
 
-    import openttdlab
-    from openttdlab import run_experiments
-    from bench_v2 import enable_savegame_cleanup, write_json_atomically
-
-    if args.script_debug:
-        real_check_output = openttdlab.subprocess.check_output
-
-        def check_output_with_script_debug(command, *rest, **kwargs):
-            command = tuple(command)
-            if any(str(part).startswith("-vnull") for part in command):
-                command = command[:1] + ("-d", "script=4") + command[1:]
-            return real_check_output(command, *rest, **kwargs)
-
-        openttdlab.subprocess.check_output = check_output_with_script_debug
-
-    global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY
-    LINE_TELEMETRY = bool(args.line_telemetry)
     if args.repeats < 1:
         parser.error("--repeats doit etre >= 1")
     reference_settings = ()
@@ -1685,7 +1709,72 @@ def main():
         policy_definitions=policies,
         intervention_settings=intervention_settings,
         decision_rule=decision_rule,
+        execution_options={key: str(value) if isinstance(value, Path) else value
+                           for key, value in vars(args).items()},
     )
+    returncode = launch_frozen_campaign(campaign)
+    if returncode:
+        raise SystemExit(returncode)
+
+
+def frozen_execution_inputs(campaign):
+    """Read hashed options/policies and reject inconsistent protocol metadata."""
+    manifest = campaign.manifest
+    args = argparse.Namespace(**manifest["execution"]["options"])
+    config = manifest["configuration"]
+    for key in ("seeds", "years", "repeats"):
+        if getattr(args, key) != config[key]:
+            raise ValueError(f"frozen execution option mismatch: {key}")
+    if (config["starting_year"] != STARTING_YEAR
+            or manifest["versions"]["openttd"] != OPENTTD_VERSION
+            or manifest["versions"]["opengfx"] != OPENGFX_VERSION):
+        raise ValueError("frozen runtime constants differ from manifest")
+    if args.policy_id != manifest["policy"]["id"]:
+        raise ValueError("frozen reference policy mismatch")
+    comparison = manifest.get("comparison")
+    if comparison:
+        if args.variant_policy_id != comparison["variant_policy_id"]:
+            raise ValueError("frozen variant policy mismatch")
+        rule = comparison["decision_rule"]
+        for option, field in (("decision_rule", "rule"), ("primary_metric", "primary_metric"),
+                              ("min_useful_primary_delta", "min_useful_primary_delta"),
+                              ("value_guard_max_loss_pct", "value_guard_max_loss_pct")):
+            if getattr(args, option) != rule[field]:
+                raise ValueError(f"frozen decision rule mismatch: {option}")
+    elif args.variant_policy_id is not None:
+        raise ValueError("frozen variant missing from manifest")
+    policies = [
+        {"id": policy["id"], "role": policy["role"],
+         "explicit_settings": tuple(policy["settings"]["explicit"].items())}
+        for policy in manifest["policies"]
+    ]
+    return args, policies
+
+
+def execute_frozen_campaign(campaign):
+    """Called only by the verified bundle's isolated bootstrap, not live main()."""
+    import openttdlab
+    from openttdlab import run_experiments
+    from bench_v2 import enable_savegame_cleanup, write_json_atomically
+    from frozen_harness import verify_manifest_bundle
+
+    expected_source = campaign.bundle_dir / "harness" / "sweeps" / Path(__file__).name
+    if Path(__file__).resolve() != expected_source.resolve():
+        raise RuntimeError("campaign executor must originate from the frozen bundle")
+    args, policies = frozen_execution_inputs(campaign)
+    if args.script_debug:
+        real_check_output = openttdlab.subprocess.check_output
+
+        def check_output_with_script_debug(command, *rest, **kwargs):
+            command = tuple(command)
+            if any(str(part).startswith("-vnull") for part in command):
+                command = command[:1] + ("-d", "script=4") + command[1:]
+            return real_check_output(command, *rest, **kwargs)
+
+        openttdlab.subprocess.check_output = check_output_with_script_debug
+
+    global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY
+    LINE_TELEMETRY = bool(args.line_telemetry)
     out = campaign.out_path
     CHECKPOINT_PATH = campaign.checkpoint_path
     ENGINE_LOG_DIR = campaign.engine_log_dir
@@ -1721,20 +1810,11 @@ def main():
     )
     print(f"Workers: {args.max_workers} | Sortie: {out}")
 
-    result_processor = keep
-    if getattr(keep, "__module__", None) == "__main__":
-        import importlib
-        processor_module = importlib.import_module("bench_1v1_5y_20seeds")
-        processor_module.CHECKPOINT_PATH = CHECKPOINT_PATH
-        processor_module.ENGINE_LOG_DIR = ENGINE_LOG_DIR
-        processor_module.LINE_TELEMETRY = LINE_TELEMETRY
-        result_processor = processor_module.keep
-
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers,
-        result_processor=result_processor,
+        result_processor=keep,
         experiments=exps,
         ai_libraries=campaign.ai_libraries,
     ))
@@ -1962,6 +2042,8 @@ def main():
         "policy_comparison": policy_comparison,
         "line_telemetry": build_line_telemetry_report(rows) if LINE_TELEMETRY else None,
     }
+    # A modified bundle cannot receive a final campaign report claiming its old hash.
+    verify_manifest_bundle(campaign.manifest_path, campaign.manifest_sha256)
     write_json_atomically(out, payload)
 
     print("\n" + "=" * 115)
@@ -2455,7 +2537,7 @@ def selftest():
                     case_rows.append({
                         **record,
                         "run": [arm, seed, 0],
-                        "date": "1970-12-01",
+                        "date": "1979-12-01",
                     })
         return build_policy_comparison(
             case_summary,
@@ -2468,7 +2550,7 @@ def selftest():
             min_useful_primary_delta=5,
             value_guard_max_loss_pct=5,
             starting_year=1970,
-            years=1,
+            years=10,
             decision_rule=decision_rule,
         )
 

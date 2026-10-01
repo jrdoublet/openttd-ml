@@ -1,8 +1,10 @@
 # C67.1 — contrat de cartographie et protocole initial
 
-Spécification du 22 septembre 2026, branche `feat/c67-cartographie`, base `de6e48e`.
-Ce document fixe le premier prototype ; il ne rapporte aucune mesure runtime et ne
-choisit pas encore entre 5×5 et 10×10. Le travail restant est dans [taches.md](taches.md).
+Spécification initiale du 22 septembre 2026, branche `feat/c67-cartographie`, base `de6e48e`,
+**complétée ensuite par les mesures et livraisons C67.3–.6**. S=5 retenu provisoirement,
+service et oracle livrés ; aucun consommateur métier adopté. Les sections initiales
+au futur décrivent le plan d'origine, pas le travail restant : voir [taches.md](taches.md)
+et [synthèse](journaux/synthese_decisions_2026-09-30.md).
 
 ## 1. Périmètre du premier prototype
 

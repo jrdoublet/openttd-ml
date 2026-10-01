@@ -1,0 +1,80 @@
+name: Benchmark regressions (no games)
+
+on:
+  push:
+    paths:
+      - 'sweeps/**'
+      - 'ai/OpexAI/info.nut'
+      - 'requirements*.txt'
+      - '.github/workflows/benchmark-regressions.yml'
+  pull_request:
+    paths:
+      - 'sweeps/**'
+      - 'ai/OpexAI/info.nut'
+      - 'requirements*.txt'
+      - '.github/workflows/benchmark-regressions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualification-fixtures:
+    name: Qualification gates (no games)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s sweeps -p test_qualification.py -v
+
+  fixtures:
+    name: Fixtures (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      PYTHONPATH: sweeps
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: R24-R26 and collection/health fixtures (standard library only)
+        run: >-
+          python -m unittest -v
+          test_benchmark_adoption test_profit_coverage test_campaign_freeze
+          test_frozen_harness test_game_health test_physical_counters
+          test_review_evidence
+
+  pinned-runtime:
+    name: Pinned OpenTTDLab imports and selftest (no games)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: sweeps
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install only the benchmark runtime
+        run: python -m pip install OpenTTDLab==0.0.75
+      - name: Regression fixtures with the real Python dependency
+        run: >-
+          python -m unittest -v
+          test_benchmark_adoption test_profit_coverage test_campaign_freeze
+          test_frozen_harness test_game_health test_physical_counters
+          test_review_evidence
+      - name: Duel selftest (synthetic data; no OpenTTD launch)
+        run: python sweeps/bench_1v1_5y_20seeds.py --selftest

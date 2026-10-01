@@ -6,6 +6,11 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from campaign_freeze import parse_ai_settings
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 AI = ROOT / "ai" / "OpexAI"
 
@@ -21,8 +26,8 @@ class TestCatalogCostProbe(unittest.TestCase):
 
     def test_log_and_measurements_are_guarded(self):
         task = (AI / "scheduler_tasks.nut").read_text(encoding="utf-8")
-        projects = (AI / "projects.nut").read_text(encoding="utf-8")
-        air = (AI / "builder_air.nut").read_text(encoding="utf-8")
+        projects = read_projects_source()
+        air = read_builder_air()
         probes = (AI / "probes.nut").read_text(encoding="utf-8")
         self.assertIn("if (CATALOG_COST_PROBE) {\n    task.catalogCost", task)
         self.assertIn("if (CATALOG_COST_ACTIVE != null) {\n    OpexCatalogCostLog", task)

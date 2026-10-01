@@ -5,6 +5,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from campaign_freeze import parse_ai_settings
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 GLOBALS = ROOT / "ai" / "OpexAI" / "globals_pre.nut"
@@ -48,7 +52,7 @@ class TestM3EquipmentRoi(unittest.TestCase):
         for token in ("phase=post_refit", "catalog_capacity=", "actual_capacity="):
             self.assertIn(token, build)
     def test_air_probe_is_fixed_airport_and_same_fleet(self):
-        src = AIR.read_text(encoding="utf-8")
+        src = read_builder_air()
         for token in ("function OpexM3ProbeAirEquipment", "catalog.airPlaneChoicesByAirport[plan.airport.type]", "fixedPlanes", "phase=post_refit"):
             self.assertIn(token, src)
         task = TASK_AIR.read_text(encoding="utf-8")
@@ -58,7 +62,7 @@ class TestM3EquipmentRoi(unittest.TestCase):
         for phase in ("pre_admission_newpair", "pre_admission_hubsite", "pre_admission_hubhub"):
             self.assertIn(phase, src)
     def test_air_route_plane_selection_reuses_m3_choices_and_economics(self):
-        src = AIR.read_text(encoding="utf-8")
+        src = read_builder_air()
         catalog = CATALOG.read_text(encoding="utf-8")
         self.assertIn("function OpexAirChooseRoutePlane", src)
         self.assertIn("if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport))", src)
@@ -67,12 +71,12 @@ class TestM3EquipmentRoi(unittest.TestCase):
         self.assertEqual(src.count("OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,"), 3)
         self.assertIn('"AV|" + routePlane.speed + "|" + routePlane.capacity', src)
     def test_proxy_labels_and_airport_policy(self):
-        probe_src = ECONOMY.read_text(encoding="utf-8") + AIR.read_text(encoding="utf-8")
+        probe_src = ECONOMY.read_text(encoding="utf-8") + read_builder_air()
         self.assertIn("refit_proxy_choices=", probe_src)
         self.assertIn("native_choices=", probe_src)
         self.assertIn('economics, "post_route"', TASK_ROAD.read_text(encoding="utf-8"))
         # V93 : le break apres un plan grand reste le chemin par defaut (reglage a 0).
-        air_src = AIR.read_text(encoding="utf-8")
+        air_src = read_builder_air()
         self.assertIn("if (bestPlan != null && bestPlan.airport.allowBig) {", air_src)
         self.assertIn("if (!V93_AIRPORT_NO_POP_FLOOR) break;", air_src)
 

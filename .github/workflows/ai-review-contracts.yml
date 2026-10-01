@@ -1,0 +1,87 @@
+name: AI review source contracts (not engine tests)
+
+on:
+  push:
+    paths:
+      - 'ai/OpexAI/**'
+      - 'sweeps/test_r1_partial_fleet.py'
+      - 'sweeps/test_r19_air_recovery.py'
+      - 'sweeps/test_c84_air_target_fleet.py'
+      - 'sweeps/test_b6_portfolio_causality.py'
+      - 'sweeps/test_review_residual_contracts.py'
+      - 'sweeps/test_r2_fleet_profit_calibration.py'
+      - 'sweeps/test_r3_air_bypass.py'
+      - 'sweeps/test_r4_catalog_continuation.py'
+      - 'sweeps/test_r5_reload_selftests.py'
+      - 'sweeps/test_r20_strategy_persistence.py'
+      - 'sweeps/test_c121_catalog_incremental.py'
+      - 'sweeps/test_r22_retirement_retry.py'
+      - 'sweeps/test_r18_air_level_failure.py'
+      - 'sweeps/test_r21_freight_destination.py'
+      - 'sweeps/test_r23_rail_quote_failure.py'
+      - '.github/workflows/ai-review-contracts.yml'
+  pull_request:
+    paths:
+      - 'ai/OpexAI/**'
+      - 'sweeps/test_r1_partial_fleet.py'
+      - 'sweeps/test_r19_air_recovery.py'
+      - 'sweeps/test_c84_air_target_fleet.py'
+      - 'sweeps/test_b6_portfolio_causality.py'
+      - 'sweeps/test_review_residual_contracts.py'
+      - 'sweeps/test_r2_fleet_profit_calibration.py'
+      - 'sweeps/test_r3_air_bypass.py'
+      - 'sweeps/test_r4_catalog_continuation.py'
+      - 'sweeps/test_r5_reload_selftests.py'
+      - 'sweeps/test_r20_strategy_persistence.py'
+      - 'sweeps/test_c121_catalog_incremental.py'
+      - 'sweeps/test_r22_retirement_retry.py'
+      - 'sweeps/test_r18_air_level_failure.py'
+      - 'sweeps/test_r21_freight_destination.py'
+      - 'sweeps/test_r23_rail_quote_failure.py'
+      - '.github/workflows/ai-review-contracts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: ${{ matrix.item }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        item:
+          - test_r1_partial_fleet
+          - test_r19_air_recovery
+          - test_r2_fleet_profit_calibration
+          - test_r3_air_bypass
+          - test_r4_catalog_continuation
+          - test_r5_reload_selftests
+          - test_r20_strategy_persistence
+          - test_c121_catalog_incremental
+          - test_r22_retirement_retry
+          - test_r18_air_level_failure
+          - test_r21_freight_destination
+          - test_r23_rail_quote_failure
+    env:
+      PYTHONPATH: sweeps
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Source contracts only (no Squirrel compilation or game)
+        run: python -m unittest -v ${{ matrix.item }}
+      - name: Existing fleet economics and portfolio contracts
+        if: matrix.item == 'test_r1_partial_fleet'
+        run: python -m unittest -v test_c84_air_target_fleet test_b6_portfolio_causality
+      - name: Existing AIR error and order contracts (focused methods only)
+        if: matrix.item == 'test_r19_air_recovery'
+        run: >-
+          python -m unittest -v
+          test_review_residual_contracts.ReviewResidualContractsTest.test_air_reused_hub_failure_does_not_read_stale_aierror
+          test_review_residual_contracts.ReviewResidualContractsTest.test_air_share_orders_failure_never_starts_unordered_plane

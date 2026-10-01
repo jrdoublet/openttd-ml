@@ -7,12 +7,23 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from campaign_freeze import parse_ai_settings
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 AI = ROOT / "ai" / "OpexAI"
 
 
 def source(name):
     return (AI / name).read_text(encoding="utf-8")
+
+
+def squirrel_code(text):
+    """Mask literals/comments, not identifiers; preserve line boundaries."""
+    return re.sub(r'@"(?:""|[^"])*"|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//[^\n]*|/\*.*?\*/',
+                  lambda m: re.sub(r'[^\n]', ' ', m.group()), text, flags=re.S)
 
 
 class TestC121CatalogIncremental(unittest.TestCase):
@@ -26,7 +37,7 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn('C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL\n', settings)
 
     def test_default_chooses_original_function_without_cache_call(self):
-        air = source("builder_air.nut")
+        air = read_builder_air()
         self.assertEqual(air.count("? OpexC121CatalogChoice(catalog, plan,"), 3)
         self.assertEqual(air.count(": OpexC121ChooseRoutePlane(catalog, plan,"), 3)
         self.assertIn("if (C121_CATALOG_INCREMENTAL)", source("catalog.nut"))
@@ -39,13 +50,13 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn('layer == "lines"', source("orchestrator.nut"))
         self.assertIn("C121_CATALOG_TOWN_REV.rawset", source("catalog.nut"))
         self.assertIn("C121_CATALOG_HUB_LEARN_REV.rawset(stationId", source("probes.nut"))
-        self.assertIn("C121_CATALOG_AIRPORT_LEARN_REV.rawset(airportType", source("builder_air.nut"))
-        self.assertIn("C121_CATALOG_ARM_LEARN_REV.rawset(arm", source("projects.nut"))
+        self.assertIn("C121_CATALOG_AIRPORT_LEARN_REV.rawset(airportType", read_builder_air())
+        self.assertIn("C121_CATALOG_ARM_LEARN_REV.rawset(arm", read_projects_source())
         self.assertIn("OpexC121CatalogRefreshStationLines(this._lines)", source("orchestrator.nut"))
         self.assertIn("C121_CATALOG_AIRPORT_REV.rawset(airportType", source("catalog.nut"))
-        self.assertNotIn("C121_CATALOG_LINES_REV", source("builder_air.nut"))
-        self.assertNotIn("C121_CATALOG_LEARN_REV", source("builder_air.nut"))
-        self.assertIn("date - entry.date >= 365", source("builder_air.nut"))
+        self.assertNotIn("C121_CATALOG_LINES_REV", read_builder_air())
+        self.assertNotIn("C121_CATALOG_LEARN_REV", read_builder_air())
+        self.assertIn("date - entry.date >= 365", read_builder_air())
         save = source("persist.nut").split("function OpexAI::Save()", 1)[1].split(
             "function OpexAI::Load(", 1)[0]
         self.assertNotIn("C121_CATALOG_CACHE", save)
@@ -59,12 +70,14 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn("OpexCatalogCostSliceLog", scheduler)
         self.assertIn("C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()", scheduler)
         self.assertIn("this._runOrchestratorTick();", source("main.nut"))
-        self.assertIn("while (catalogPending && this._activeWorker == null", source("main.nut"))
-        self.assertEqual(source("main.nut").count("AIController.GetOpsTillSuspend() > 10000)"), 2)
+        self.assertEqual(source("main.nut").count(
+            "while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 2)
+        self.assertNotIn("AIController.GetOpsTillSuspend() > 10000", source("main.nut"))
+        self.assertIn("AIController.GetTick() == continuationTick", scheduler)
         self.assertEqual(source("main.nut").count("this._dispatchCatalog(queuedTask,"), 2)
         self.assertNotIn("OpexC121CatalogTownProductionBatch(this._catalog)) this._portfolioInvalidated", scheduler)
-        self.assertIn("C121_CATALOG_AIR_FIRST_YEAR", source("projects.nut"))
-        self.assertIn("doFreight = false;", source("projects.nut"))
+        self.assertIn("C121_CATALOG_AIR_FIRST_YEAR", read_projects_source())
+        self.assertIn("doFreight = false;", read_projects_source())
 
     def test_material_town_change_and_first_year_cash_gate(self):
         catalog = source("catalog.nut")
@@ -84,7 +97,7 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn("chained_slices=", source("probes.nut"))
 
     def test_added_cache_fields_avoid_squirrel_keywords(self):
-        air = source("builder_air.nut")
+        air = read_builder_air()
         block = air.split("function OpexC121CatalogChoice(", 1)[1].split(
             "function OpexC121ReplayEngineChoice(", 1)[0]
         reserved = ("static", "class", "base", "delegate", "clone", "resume",
@@ -98,10 +111,17 @@ class TestC121CatalogIncremental(unittest.TestCase):
         reserved = ("static", "class", "base", "clone", "resume", "yield", "const",
                     "enum", "delegate", "in", "typeof", "instanceof")
         for name in ("catalog.nut", "main.nut", "task_projects.nut", "probes.nut"):
-            src = source(name)
+            src = squirrel_code(source(name))
             for word in reserved:
                 self.assertNotRegex(src, rf"\blocal\s+{word}\b")
                 self.assertNotRegex(src, rf"(?<![\w]){word}\s*(?:=|<-)")
+
+    def test_keyword_check_ignores_logs_but_keeps_real_identifiers(self):
+        text = 'AILog.Info(" base=1 \\\" clone=2"); /* local base = 3 */\nlocal base = 4;'
+        code = squirrel_code(text)
+        self.assertEqual(code.count("base"), 1)
+        self.assertRegex(code, r"\blocal\s+base\s*=")
+        self.assertEqual(code.count("\n"), text.count("\n"))
 
 
 if __name__ == "__main__":
