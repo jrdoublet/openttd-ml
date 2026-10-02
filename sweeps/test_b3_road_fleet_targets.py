@@ -151,18 +151,30 @@ class TestB3RoadFleetTargets(unittest.TestCase):
     def test_line_fields_survive_generic_serialization(self):
         save = function_body(self.persist, "function OpexAI::Save()")
         self.assertIn("local saveLines = this._lines", save)
-        self.assertIn("foreach (key, val in line)", save)
+        self.assertIn("projectedLines.append(OpexSaveProjectLine(line));", save)
         # C121 : `clone line` conserve tous les champs ; seuls floats, types non
-        # serialisables et diagnostics c121* sont ensuite retouches.
-        self.assertIn("local serializableLine = clone line;", save)
-        self.assertIn("serializableLine[key] = val.tointeger();", save)
-        self.assertIn("delete serializableLine[key];", save)
+        # serialisables et diagnostics c121* sont ensuite retouches (projection
+        # partagee par Save() et le cache mensuel, 910bb68).
+        project = function_body(self.persist, "function OpexSaveProjectLine(")
+        self.assertIn("foreach (key, val in line)", project)
+        self.assertIn("local serializableLine = clone line;", project)
+        self.assertIn("serializableLine[key] = val.tointeger();", project)
+        self.assertIn("delete serializableLine[key];", project)
 
     def test_line_serialization_is_single_pass_under_save_opcode_budget(self):
         save = function_body(self.persist, "function OpexAI::Save()")
         self.assertIn("foreach (line in this._lines)", save)
-        self.assertEqual(save.count("foreach (key, val in line)"), 1)
+        self.assertNotIn("foreach (key, val in line)", save)
         self.assertNotIn("needsProjection", save)
+        project = function_body(self.persist, "function OpexSaveProjectLine(")
+        self.assertEqual(project.count("foreach (key, val in line)"), 1)
+        # Au-dela de SAVE_PROJECTION_MIN_LINES, Save() relit la projection
+        # mensuelle au lieu de reprojeter chaque ligne sous le plafond de Save.
+        self.assertIn("local cache = this._saveProjection;", save)
+        self.assertIn("projectedLines.append(cache[line]);", save)
+        refresh = function_body(self.persist, "function OpexAI::_refreshSaveProjection(")
+        self.assertIn("this._lines.len() < SAVE_PROJECTION_MIN_LINES", refresh)
+        self.assertIn("if (month == this._saveProjectionMonth) return;", refresh)
 
 
 if __name__ == "__main__":

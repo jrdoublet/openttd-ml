@@ -637,6 +637,75 @@ function OpexRestoreC121Strategy(data)
    * normalement l'annee et respecte un regime deja verrouille. */
 }
 
+/* C121 : les snapshots actual/target/capacite/opcodes servent uniquement aux
+ * probes de la partie courante. Les recopier pour 100+ lignes dans Save()
+ * finit par depasser le budget NoAI. Conserver en revanche les petits
+ * scalaires necessaires aux decisions apres reload (marginal*, arm,
+ * rawRevenue, realization, amortissement, targetAirPlanes historique). */
+OPEX_SAVE_LINE_SKIP <- {
+  c121PaxCapacity = true, c121MailCapacity = true,
+  c121DemandOps = true, c121DemandTicks = true,
+  c121EvalOps = true, c121EvalTicks = true,
+  c121ActualCarriedPax = true, c121ActualCarriedMail = true,
+  c121ActualCarried = true, c121ActualRevenueAnnual = true,
+  c121ActualProfitAnnual = true, c121ActualRunningAnnual = true,
+  c121ActualVehicleRunningAnnual = true, c121ActualAmortAnnual = true,
+  c121ActualPlanes = true, c121ActualOneWayDays = true,
+  c121ActualHeadwayDays = true, c121ActualStationRating = true,
+  c121TargetCarriedPax = true, c121TargetCarriedMail = true,
+  c121TargetCarried = true, c121TargetRevenueAnnual = true,
+  c121TargetProfitAnnual = true, c121TargetPlanes = true,
+};
+
+/* Copie serialisable d'une ligne. `clone` copie la table en natif ; on ne
+ * touche ensuite qu'aux exceptions : diagnostics C121, floats a scalariser et
+ * types non serialisables. La copie est superficielle : tableaux et tables
+ * imbriques restent partages avec la ligne vivante. */
+function OpexSaveProjectLine(line)
+{
+  local serializableLine = clone line;
+  foreach (key, val in line) {
+    if (key in OPEX_SAVE_LINE_SKIP) {
+      delete serializableLine[key];
+      continue;
+    }
+    local valType = typeof val;
+    if (valType == "float") {
+      /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
+       * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
+      serializableLine[key] = val.tointeger();
+    } else if (valType != "integer" && valType != "string" && valType != "bool" &&
+               valType != "null" && valType != "array" && valType != "table") {
+      delete serializableLine[key];
+    }
+  }
+  return serializableLine;
+}
+
+/* Projection mensuelle des lignes hors de Save(). Save() s'execute sous un
+ * plafond fixe de 100k opcodes ; recopier champ par champ ~150 lignes l'a
+ * depasse (graine 314, mi-1978 : "This script took too long to Save", script
+ * tue). Ici, dans la boucle principale, le cout n'est pas plafonne. Sous
+ * SAVE_PROJECTION_MIN_LINES lignes, rien ne change : Save() projette tout. Les
+ * scalaires d'une ligne peuvent dater d'au plus un mois au rechargement. */
+SAVE_PROJECTION_MIN_LINES <- 64;
+function OpexAI::_refreshSaveProjection()
+{
+  if (!SAVE_FULL_STATE || this._lines == null || this._lines.len() < SAVE_PROJECTION_MIN_LINES) {
+    this._saveProjection = null;
+    return;
+  }
+  local today = AIDate.GetCurrentDate();
+  local month = AIDate.GetYear(today) * 12 + AIDate.GetMonth(today);
+  if (month == this._saveProjectionMonth) return;
+  this._saveProjectionMonth = month;
+  local cache = {};
+  foreach (line in this._lines) {
+    if (line != null && typeof line == "table") cache[line] <- OpexSaveProjectLine(line);
+  }
+  this._saveProjection = cache;
+}
+
 function OpexAI::Save()
 {
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
@@ -689,52 +758,21 @@ function OpexAI::Save()
    * tables des lignes actuelles ne contiennent que des entiers/booleens/null. */
   local saveLines = this._lines;
   if (this._lines != null) {
-    /* C121 : les snapshots actual/target/capacite/opcodes servent uniquement aux
-     * probes de la partie courante. Les recopier pour 100+ lignes dans Save()
-     * finit par depasser le budget NoAI. Conserver en revanche les petits
-     * scalaires necessaires aux decisions apres reload (marginal*, arm,
-     * rawRevenue, realization, amortissement, targetAirPlanes historique). */
-    local c121SaveSkip = {
-      c121PaxCapacity = true, c121MailCapacity = true,
-      c121DemandOps = true, c121DemandTicks = true,
-      c121EvalOps = true, c121EvalTicks = true,
-      c121ActualCarriedPax = true, c121ActualCarriedMail = true,
-      c121ActualCarried = true, c121ActualRevenueAnnual = true,
-      c121ActualProfitAnnual = true, c121ActualRunningAnnual = true,
-      c121ActualVehicleRunningAnnual = true, c121ActualAmortAnnual = true,
-      c121ActualPlanes = true, c121ActualOneWayDays = true,
-      c121ActualHeadwayDays = true, c121ActualStationRating = true,
-      c121TargetCarriedPax = true, c121TargetCarriedMail = true,
-      c121TargetCarried = true, c121TargetRevenueAnnual = true,
-      c121TargetProfitAnnual = true, c121TargetPlanes = true,
-    };
+    /* Les lignes deja projetees par _refreshSaveProjection sont reprises telles
+     * quelles : Save() ne fait plus qu'une recherche par ligne. Seules les lignes
+     * apparues depuis le dernier passage sont projetees ici. */
+    local cache = this._saveProjection;
     local projectedLines = [];
     foreach (line in this._lines) {
       if (line == null || typeof line != "table") {
         projectedLines.append(line);
         continue;
       }
-      /* `clone` copie la table en natif ; ne plus reinsérer chaque champ en
-       * Squirrel. Sur 100+ lignes, cette boucle etait le cout dominant de
-       * Save(). On ne touche ensuite qu'aux exceptions : diagnostics C121,
-       * floats a scalariser et types non serialisables. */
-      local serializableLine = clone line;
-      foreach (key, val in line) {
-        if (key in c121SaveSkip) {
-          delete serializableLine[key];
-          continue;
-        }
-        local valType = typeof val;
-        if (valType == "float") {
-          /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
-           * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
-          serializableLine[key] = val.tointeger();
-        } else if (valType != "integer" && valType != "string" && valType != "bool" &&
-                   valType != "null" && valType != "array" && valType != "table") {
-          delete serializableLine[key];
-        }
+      if (cache != null && (line in cache)) {
+        projectedLines.append(cache[line]);
+        continue;
       }
-      projectedLines.append(serializableLine);
+      projectedLines.append(OpexSaveProjectLine(line));
     }
     saveLines = projectedLines;
   }

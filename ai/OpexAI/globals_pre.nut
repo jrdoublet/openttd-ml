@@ -473,6 +473,22 @@ C121_AIR_REALIZATION_MIN_LINES <- 2;
 C121_AIR_PLAN_PERF <- null;
 /* Telemetrie transitoire du passage catalogue ; jamais utilisee par les decisions. */
 CATALOG_COST_PROBE <- false;
+/* Sonde probe_loop_ops : agregats annuels d'opcodes de la boucle principale (diagnostic). */
+PROBE_LOOP_OPS <- false;
+OPEX_LOOP_PROF <- null;
+OPEX_LOOP_PROF_YEAR <- -1;
+OPEX_LOOP_PROF_TICK0 <- 0;
+/* Chemins opcode exacts : defaut historique. Le mode check compare et garde l'ancien resultat. */
+EXP_OPCODE_EXACT <- false;
+EXP_OPCODE_EXACT_CHECK <- false;
+EXP_OPCODE_EXACT_ON <- false;
+OPCODE_EXACT_STATS <- null;
+OPCODE_EXACT_BREAK <- null;
+OPCODE_EXACT_MISMATCHES <- null;
+OPCODE_EXACT_CAL_YEAR <- -1;
+OPCODE_EXACT_LATE_DATE <- -1;
+OPCODE_EXACT_SITE_NAME <- null;
+OPCODE_EXACT_PLAN_ONCE <- null;
 FLEET_AMORT_SHADOW_PROBE <- 0; // 0 OFF, 1 calcul seul, 2 instantanes ; jamais une politique
 /* R19 : injection de panne TEST ONLY (0 = off). Rang de la route AIR neuve
  * annulee apres demarrage de ses avions ; compteur non sauvegarde. */

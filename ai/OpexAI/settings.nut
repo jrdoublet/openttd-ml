@@ -151,6 +151,19 @@ function OpexLoadSettings()
   // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C41_SLICE
   local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
   CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
+  PROBE_LOOP_OPS = AIController.GetSetting("probe_loop_ops") != 0;
+  EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;
+  EXP_OPCODE_EXACT_CHECK = AIController.GetSetting("exp_opcode_exact_check") != 0;
+  EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;
+  if (EXP_OPCODE_EXACT_ON) {
+    OPCODE_EXACT_STATS = null;
+    OPCODE_EXACT_BREAK = null;
+    OPCODE_EXACT_MISMATCHES = null;
+    OPCODE_EXACT_CAL_YEAR = -1;
+    OPCODE_EXACT_LATE_DATE = -1;
+    OPCODE_EXACT_SITE_NAME = null;
+    OPCODE_EXACT_PLAN_ONCE = null;
+  }
   FLEET_AMORT_SHADOW_PROBE = AIController.GetSetting("fleet_amort_shadow_probe");
   R19_FAULT_INJECT = AIController.GetSetting("r19_fault_inject");
   C41_SLACK_LEDGER = probeScheduler;

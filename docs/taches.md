@@ -86,6 +86,15 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   **Rejeté ; aucun 20×10.** Ne plus empiler de profondeur statique ; prochaine
   hypothèse à définir : valeur de continuation marginale N=1→N+1, revalorisée
   après observation, sans réarmer les variantes C121/C122 rejetées.
+- **Opcodes exacts (02/10) : `exp_opcode_exact=1` par défaut** (règle opcodes) ;
+  `exp_opcode_exact_check` reste à 0. Chemins route (liste d'exclusion bornée), tri
+  des flottes, catchment et arrêts joints ; préfiltre de ville et cache C117 non
+  livrés. Contrôle solo 3×6 `mismatch=0`. 20×10 duel sous C121 (deux bras) :
+  20/20, `profit_year` +74 k£/an (15/5, p=0,041, IC95 [−115 k ; +263 k]),
+  valeur +6,8 %. Correctif Save au-delà de 64 lignes (`910bb68`) requis par la
+  graine 314. Contrôle 20×10 au défaut C115 : 20/20, −50 k£/an (6/14,
+  p=0,115, IC95 [−190 k ; +89 k]), valeur −2,1 % : pas de perte établie, sens
+  défavorable. [Mesures](opcode_exact_20261002.md).
 
 ## 1. Priorité immédiate — valider les livraisons locales
 

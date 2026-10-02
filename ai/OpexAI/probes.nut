@@ -2454,3 +2454,114 @@ function OpexC76FlushYear(year)
              + " top1_unchanged=" + rec.top1_unchanged
              + reasonsStr);
 }
+
+/* Sonde probe_loop_ops (diagnostic, defaut 0) : agregats annuels de la boucle principale.
+ * ops = formule OpexOpsMeasureEnd : un tick traverse compte 10 000 opcodes, y compris un tick
+ * passe a attendre une commande de construction. tk = ticks traverses, pour le distinguer.
+ * sleep_left = opcodes restants du tick au moment du Sleep(1), donc perdus. */
+function OpexLoopProfAddRaw(post, ops, ticks)
+{
+  if (OPEX_LOOP_PROF == null) OPEX_LOOP_PROF = {};
+  local e = (post in OPEX_LOOP_PROF) ? OPEX_LOOP_PROF[post] : null;
+  if (e == null) {
+    e = { n = 0, ops = 0, ticks = 0, max = 0 };
+    OPEX_LOOP_PROF.rawset(post, e);
+  }
+  e.n++;
+  e.ops += ops;
+  e.ticks += ticks;
+  if (ops > e.max) e.max = ops;
+}
+
+function OpexLoopProfAdd(post, mark)
+{
+  OpexLoopProfAddRaw(post, OpexOpsMeasureEnd(mark), AIController.GetTick() - mark.tick);
+}
+
+function OpexLoopProfFlushIfNewYear()
+{
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (OPEX_LOOP_PROF_YEAR < 0) {
+    OPEX_LOOP_PROF_YEAR = year;
+    OPEX_LOOP_PROF_TICK0 = AIController.GetTick();
+    return;
+  }
+  if (year == OPEX_LOOP_PROF_YEAR) return;
+  local tick = AIController.GetTick();
+  AILog.Info("LOOP_OPS y=" + OPEX_LOOP_PROF_YEAR + " post=_year n=1 ops=0 tk="
+      + (tick - OPEX_LOOP_PROF_TICK0) + " max=0");
+  if (OPEX_LOOP_PROF != null) {
+    foreach (post, e in OPEX_LOOP_PROF) {
+      AILog.Info("LOOP_OPS y=" + OPEX_LOOP_PROF_YEAR + " post=" + post + " n=" + e.n
+          + " ops=" + e.ops + " tk=" + e.ticks + " max=" + e.max);
+    }
+  }
+  OPEX_LOOP_PROF = {};
+  OPEX_LOOP_PROF_YEAR = year;
+  OPEX_LOOP_PROF_TICK0 = tick;
+}
+
+/* Copie instrumentee de la branche C80_DOUBLE_REGISTER de la boucle de main.nut, appelee
+ * uniquement sous probe_loop_ops=1 : le chemin par defaut reste celui de main.nut. */
+function OpexAI::_mainLoopProfiled()
+{
+  while (true) {
+    OpexLoopProfFlushIfNewYear();
+    if (C56_TASK_TRACE) {
+      C56_LOOP_TICK_COUNT++;
+      if (C56_LOOP_TICK_COUNT % 200 == 0) {
+        OpexC56TaskLog("LOOP_TICK", "-", this._taskCycle);
+      }
+    }
+    local mark = OpexOpsMeasureBegin();
+    this._processEvents();
+    OpexLoopProfAdd("events", mark);
+    if (EXP_C83_WATCH_DAILY) {
+      mark = OpexOpsMeasureBegin();
+      this._expC83PollAirSlots();
+      OpexLoopProfAdd("c83_watch_daily", mark);
+    }
+    if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+      local before = C117_AIR_LAST_DATE;
+      mark = OpexOpsMeasureBegin();
+      OpexC117AirThroughputStep(this._lines, this._catalog);
+      OpexLoopProfAdd(C117_AIR_LAST_DATE != before ? "c117_sample" : "c117_skip", mark);
+    }
+    if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
+    mark = OpexOpsMeasureBegin();
+    this._runOrchestratorTick();
+    OpexLoopProfAdd("orchestrator", mark);
+    if (C121_CATALOG_INCREMENTAL) {
+      mark = OpexOpsMeasureBegin();
+      local continued = false;
+      local catalogPending = true;
+      local continuationTick = AIController.GetTick();
+      while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
+        catalogPending = false;
+        foreach (queuedTask in this._taskQueue) {
+          if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
+              && queuedTask.c78AirRebuild != null) {
+            catalogPending = true;
+            continued = true;
+            this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            break;
+          }
+        }
+        if (catalogPending) this._runOrchestratorTick();
+      }
+      OpexLoopProfAdd(continued ? "catalog_continuation" : "catalog_continuation_check", mark);
+    }
+    if (V89_RAIL_SEARCH_THROUGHPUT) {
+      mark = OpexOpsMeasureBegin();
+      this._advanceRailSearchThroughput();
+      OpexLoopProfAdd("rail_throughput", mark);
+    }
+    if (C67_SLACK_HOOK) {
+      mark = OpexOpsMeasureBegin();
+      this._c67SlackHook();
+      OpexLoopProfAdd("c67_hook", mark);
+    }
+    OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
+    AIController.Sleep(1);
+  }
+}

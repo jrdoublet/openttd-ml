@@ -77,7 +77,10 @@ class C111AirC100DecisionShadowTests(unittest.TestCase):
         self.assertIn("if (financeCapital > capitalBudget) continue;", body)
         self.assertIn("local decisionFinanceCapital = financeCapital;", body)
         self.assertIn("project.decisionFinanceCapital", body)
-        self.assertIn("kDec > decisionFinanceCapital", body)
+        # 9e29951 : le capital de classement est scoreDecisionFinanceCapital,
+        # egal a decisionFinanceCapital hors split C121 (defaut 0).
+        self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", body)
+        self.assertIn("kDec > scoreDecisionFinanceCapital", body)
 
     def test_shadow_is_propagated_to_all_air_plan_families(self):
         self.assertGreaterEqual(AIR.count("plan.decisionEconomics <-"), 3)

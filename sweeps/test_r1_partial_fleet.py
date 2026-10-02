@@ -112,9 +112,18 @@ class TestPartialFleet(unittest.TestCase):
     def test_c121_and_c69_scoring_stay_in_common_selector(self):
         self.assertIn("local c121BelowTarget = C121_AIR_ECONOMICS", self.fit)
         self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.select)
-        self.assertIn("OpexCalibratedProfit(project) : project.profitAnnual", self.select)
-        self.assertIn("!fleetExemptDecision) ? kDec : decisionFinanceCapital", self.select)
-        self.assertNotIn("fundScore", self.fit)
+        # 9e29951 : profit et capital de classement passent par le split C121
+        # (defaut 0), qui retombe sur l'expression historique hors split.
+        self.assertIn("OpexProjectScore(OpexProjectFundProfit(project),", self.select)
+        flat = " ".join(self.select.split())
+        self.assertIn("!fleetExemptDecision) ? kDec : scoreDecisionFinanceCapital", flat)
+        self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", self.select)
+        fund = function(self.projects, "OpexProjectFundProfit")
+        self.assertIn("C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual", fund)
+        self.assertIn("if (!C121_AIR_PORTFOLIO_SPLIT_ECONOMICS", fund)
+        # Corps seul : le commentaire d'en-tete de la fonction suivante
+        # (OpexProjectFundProfit, 9e29951) cite fundScore.
+        self.assertNotIn("fundScore", self.fit.split("\n}\n", 1)[0])
 
 
 if __name__ == "__main__":

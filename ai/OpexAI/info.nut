@@ -68,6 +68,30 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "probe_loop_ops",
+      description = "Log yearly opcode aggregates of the main loop (events, C117 sampler, orchestrator, Sleep leftover); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_opcode_exact",
+      description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_opcode_exact_check",
+      description = "Run historical and exact opcode paths, log mismatches and opcode sums, keep the historical result; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "catalog_cost_probe",
       description = "Log catalog refresh and project generation costs; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

@@ -57,6 +57,7 @@ require("builder_rail.nut");
 require("builder_air.nut");
 require("builder_water.nut");
 require("builder_road.nut");
+require("opcode_exact.nut");
 require("globals_post.nut");
 
 /* Filet physique : deux gares reellement posees trop pres l'une de l'autre partagent leur bassin
@@ -132,6 +133,8 @@ class OpexAI extends AIController {
   _lastFreightCargo = -1;
   _bootstrapFreightCargo = -1;
   _loadedFromSave = false;
+  _saveProjection = null;       // {line -> copie serialisable}, voir _refreshSaveProjection
+  _saveProjectionMonth = -1;
   _recomputeEpochBounds = false;
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
@@ -696,6 +699,7 @@ function OpexAI::Start()
     this._tryStartRailStockWorker();
   }
 
+  if (PROBE_LOOP_OPS && C80_DOUBLE_REGISTER) this._mainLoopProfiled();
   while (true) {
     if (C56_TASK_TRACE) {
       /* C56 : une trace tous les 200 tours pour ne pas noyer le journal. */
@@ -705,6 +709,8 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
+    if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) this._refreshSaveProjection();
+    else if (this._saveProjection != null) this._saveProjection = null;
     if (EXP_C83_WATCH_DAILY) this._expC83PollAirSlots();
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       OpexC117AirThroughputStep(this._lines, this._catalog);
