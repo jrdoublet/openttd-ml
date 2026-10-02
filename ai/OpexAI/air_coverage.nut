@@ -240,6 +240,7 @@ function OpexC118OwnCoveredTownSet(cargo)
 function OpexAirStationCatchmentProduction(stationId, cargo)
 {
   if (!AIStation.IsValidStation(stationId) || cargo < 0) return 0;
+  if (EXP_OPCODE_EXACT_ON) return OpexAirStationCatchmentProductionActive(stationId, cargo);
   local total = 0;
   local coverageTiles = AITileList_StationCoverage(stationId);
   foreach (coverageTile, value in coverageTiles) {

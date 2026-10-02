@@ -1,6 +1,6 @@
 # Tâches — travail restant
 
-**Mise à jour : 1er octobre 2026. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 2 octobre 2026. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
@@ -63,6 +63,12 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
    bras et contrôles négatifs corrigés, 25 tests ciblés OK, correction non
    exercée moteur. Bootstrap laissé de côté à la demande utilisateur ; reprise
    sur service valorisé/acheté/réalisé. [Rectification](c121_investments_20261001.md).
+- **Opcodes exacts C121 (02/10), non adoptés** : `exp_opcode_exact` et
+  `exp_opcode_exact_check` à 0. Chemins route (liste d'exclusion bornée), tri
+  des flottes, catchment et arrêts joints. Le préfiltre de ville et le cache
+  C117 ne sont pas livrés. Contrôle solo 3×6 : `mismatch=0` sur les sites
+  livrés. Aucun 5×6, aucun 20×10, aucune qualification économique.
+  [Mesures](opcode_exact_20261002.md).
 
 ## 1. Priorité immédiate — valider les livraisons locales
 

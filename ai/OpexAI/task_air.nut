@@ -751,7 +751,10 @@ function OpexAI::_resizeAirFleets(year, plan = null)
   foreach (line in this._lines) {
     if (("mode" in line) && line.mode == "air") airLines.append(line);
   }
-  if (AIR_ROI_ORDER) airLines.sort(OpexAirFleetPriorityCompare);
+  if (AIR_ROI_ORDER) {
+    if (EXP_OPCODE_EXACT_ON) airLines = OpexAirFleetSortSelect(airLines);
+    else airLines.sort(OpexAirFleetPriorityCompare);
+  }
   foreach (line in airLines) {
     if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordExamined("fleet", 1);
     /* B8 / G10 : une ligne en liquidation ne peut recevoir aucun appareil neuf, y compris une

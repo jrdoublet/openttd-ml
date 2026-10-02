@@ -57,6 +57,7 @@ require("builder_rail.nut");
 require("builder_air.nut");
 require("builder_water.nut");
 require("builder_road.nut");
+require("opcode_exact.nut");
 require("globals_post.nut");
 
 /* Filet physique : deux gares reellement posees trop pres l'une de l'autre partagent leur bassin
@@ -696,6 +697,7 @@ function OpexAI::Start()
     this._tryStartRailStockWorker();
   }
 
+  if (PROBE_LOOP_OPS && C80_DOUBLE_REGISTER) this._mainLoopProfiled();
   while (true) {
     if (C56_TASK_TRACE) {
       /* C56 : une trace tous les 200 tours pour ne pas noyer le journal. */
