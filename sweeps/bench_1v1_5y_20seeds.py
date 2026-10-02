@@ -113,6 +113,11 @@ AIR_EARLY_SLOT_DIAG_METRICS = (
     "early_slot_build_claims",
 )
 AIR_STRUCTURAL_METRICS = AIR_SLOT_METRICS + AIR_EARLY_SLOT_DIAG_METRICS
+TOWN_GROWTH_SUMMARY_METRICS = (
+    "town_growth_builds_sign_total",
+    "town_growth_builds_sign_by_year",
+    "town_growth_signs_invalid",
+)
 C75_BYPASS_SUMMARY_METRICS = (
     "c75_bypass_events",
     "c75_bypass_consumed_signs",
@@ -264,6 +269,65 @@ def early_slot_sign_metrics(chunks):
         "early_slot_select_signs": sum(name.startswith("SK|") for name in names),
         "early_slot_build_signs": sum(name.startswith("SB|") for name in names),
         "early_slot_build_claims": build_claims,
+    }
+
+
+def town_growth_sign_metrics(chunks, *, current_year=STARTING_YEAR, target_owner=0):
+    """One durable TG|yy|town|before|after sign per successful growth build.
+
+    Missing SIGN stays unknown; an available empty chunk is an observed zero.
+    The two-digit year is resolved in the century ending at current_year.
+    Counts describe retained signs, not station increments or repeated snapshots.
+    """
+    signs = (chunks or {}).get("SIGN")
+    if not isinstance(signs, (dict, list)):
+        return {metric: None for metric in TOWN_GROWTH_SUMMARY_METRICS}
+    records = signs.values() if isinstance(signs, dict) else signs
+    by_year = {}
+    invalid = 0
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        if "owner" in sign and str(sign["owner"]) != str(target_owner):
+            continue
+        name = sign.get("name")
+        if not isinstance(name, str) or not name.startswith("TG|"):
+            continue
+        match = re.fullmatch(r"TG\|([0-9]{1,2})\|[0-9]+\|[0-9]+\|[0-9]+", name)
+        if match is None:
+            invalid += 1
+            continue
+        year = int(current_year) // 100 * 100 + int(match[1])
+        if year > int(current_year):
+            year -= 100
+        key = str(year)
+        by_year[key] = by_year.get(key, 0) + 1
+    return {
+        "town_growth_builds_sign_total": sum(by_year.values()),
+        "town_growth_builds_sign_by_year": dict(sorted(by_year.items())),
+        "town_growth_signs_invalid": invalid,
+    }
+
+
+def _town_growth_policy_metrics(reference, variant, starting_year, years):
+    def pair(ref, var):
+        return {"reference": ref, "variant": var,
+                "policy_delta": var - ref if ref is not None and var is not None else None}
+
+    reference = reference or {}
+    variant = variant or {}
+    ref_years = reference.get("town_growth_builds_sign_by_year")
+    var_years = variant.get("town_growth_builds_sign_by_year")
+    return {
+        "builds_total": pair(reference.get("town_growth_builds_sign_total"),
+                            variant.get("town_growth_builds_sign_total")),
+        "invalid_signs": pair(reference.get("town_growth_signs_invalid"),
+                             variant.get("town_growth_signs_invalid")),
+        "builds_by_year": {
+            str(year): pair(ref_years.get(str(year), 0) if ref_years is not None else None,
+                            var_years.get(str(year), 0) if var_years is not None else None)
+            for year in range(int(starting_year), int(starting_year) + int(years))
+        },
     }
 
 
@@ -952,6 +1016,8 @@ def keep(row):
     structural = {}
     structural.update(airport_slot_metrics(chunks))
     structural.update(early_slot_sign_metrics(chunks))
+    sign_year = int(date[:4]) if str(date)[:4].isdigit() else STARTING_YEAR
+    structural.update(town_growth_sign_metrics(chunks, current_year=sign_year))
     structural.update(c75_bypass_sign_metrics(chunks))
     structural.update(project_build_sign_metrics(chunks))
     structural.update(c118_sign_metrics(chunks))
@@ -1232,6 +1298,8 @@ def _stamp_structural_metrics(summary_records, raw_records):
             record[metric] = source.get(metric)
         for metric in C75_BYPASS_SUMMARY_METRICS:
             record[metric] = source.get(metric)
+        for metric in TOWN_GROWTH_SUMMARY_METRICS:
+            record[metric] = source.get(metric)
     return summary_records
 
 
@@ -1363,6 +1431,9 @@ def build_policy_comparison(
                     ),
                 }
 
+            town_growth_payload = _town_growth_policy_metrics(
+                records["reference_opex"], records["variant_opex"], starting_year, years
+            )
             trajectory = []
             for year in range(int(starting_year), int(starting_year) + int(years)):
                 def annual_value(policy, arm, metric):
@@ -1396,6 +1467,7 @@ def build_policy_comparison(
                     "reference_duel_gap": ref_o - ref_a if ref_o is not None and ref_a is not None else None,
                     "variant_duel_gap": var_o - var_a if var_o is not None and var_a is not None else None,
                     "air_structural_metrics": annual_structural,
+                    "town_growth_builds": town_growth_payload["builds_by_year"][str(year)],
                 })
 
             pair = {
@@ -1405,6 +1477,7 @@ def build_policy_comparison(
                 "statuses": statuses,
                 "metrics": metric_payload,
                 "air_structural_metrics": structural_payload,
+                "town_growth_metrics": town_growth_payload,
                 "annual_trajectory": trajectory,
             }
             pairs.append(pair)
@@ -1565,6 +1638,18 @@ def build_policy_comparison(
         "per_pair": pairs,
         "aggregates": aggregates,
         "air_structural_aggregates": structural_aggregates,
+        "town_growth_aggregates": {
+            "builds_total": delta_statistics([
+                pair["town_growth_metrics"]["builds_total"]["policy_delta"]
+                for pair in complete_pairs
+            ]),
+            "builds_by_year": {
+                str(year): delta_statistics([
+                    pair["town_growth_metrics"]["builds_by_year"][str(year)]["policy_delta"]
+                    for pair in complete_pairs
+                ]) for year in range(int(starting_year), int(starting_year) + int(years))
+            },
+        },
         "sign_pass": sign_pass,
         "ci_pass": ci_pass,
         "primary_mean_pass": primary_mean_pass,
