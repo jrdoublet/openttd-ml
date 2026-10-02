@@ -42,6 +42,31 @@ function PBOutcome(project, rank, outcome)
       + " outcome=" + outcome);
 }
 
+function PBKPassStop(owner, project, rank, finance, kPass, availCap)
+{
+  if (project == null) return;
+  local available = availCap >= 0 ? availCap : OpexAvailableCapital();
+  local lineId = -1;
+  if (("mode" in project) && project.mode == "fleet"
+      && ("payload" in project) && project.payload != null
+      && ("line" in project.payload) && project.payload.line != null
+      && ("lineId" in project.payload.line)) {
+    lineId = project.payload.line.lineId;
+  }
+  PBLog("kpass_stop", " next_mode=" + project.mode + " rank=" + rank
+      + " line_id=" + lineId + " finance=" + finance + " k_pass=" + kPass
+      + " available=" + available);
+  if (project.mode != "fleet" || owner._projects == null || owner._projects.best == null) return;
+  for (local j = rank + 1; j < owner._projects.best.len(); j++) {
+    local tail = owner._projects.best[j];
+    if (tail == null) continue;
+    local tailFinance = OpexProjectFinanceCapital(tail);
+    PBLog("kpass_tail", " stop_rank=" + rank + " rank=" + j + " mode=" + tail.mode
+        + " finance=" + tailFinance + " affordable=" + (tailFinance <= available ? 1 : 0)
+        + " below_kpass=" + (tailFinance < kPass ? 1 : 0));
+  }
+}
+
 function PBPhaseBegin(kind)
 {
   PBLog("phase_begin", " kind=" + kind);

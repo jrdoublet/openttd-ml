@@ -48,7 +48,8 @@ def instrument(target):
         ('          c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";',
          '          c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";\n'
          '          PBLog("stop", "reason=" + c75StopReason + " mode=" + project.mode + " rank=" + i\n'
-         '              + " finance=" + projCap + " available=" + availCap + " threshold=" + c75KPass);'),
+         '              + " finance=" + projCap + " available=" + availCap + " threshold=" + c75KPass);\n'
+         '          if (c75StopReason == "k_pass") PBKPassStop(this, project, i, projCap, c75KPass, availCap);'),
         ('    local mode = project.mode;', '    PBLog("attempt", " mode=" + project.mode + " rank=" + i);\n    local mode = project.mode;'),
         ('    if (railBuilt) builtCount++;', '    if (railBuilt) { PBOutcome({ mode = "rail" }, -1, "built"); builtCount++; }'),
         ('        return true;', '        PBEnd("rail_pending");\n        return true;'),
@@ -93,7 +94,7 @@ def audit(text):
     """
     groups = defaultdict(list)
     sessions = defaultdict(int)
-    issues, windows, gaps, stops = [], [], [], []
+    issues, windows, gaps, stops, kpass_stops, kpass_tails = [], [], [], [], [], []
     for line_no, raw in enumerate(text.splitlines(), 1):
         if "LOAD_RECONCILE" in raw:
             match = re.search(r"\[script:\d+\]\s*\[(\d+)\]", raw)
@@ -164,6 +165,14 @@ def audit(text):
                 stops.append({**e, "financeable_at_stop":
                     number(f, "finance") <= number(f, "available")
                     if number(f, "finance") is not None and number(f, "available") is not None else None})
+            elif edge == "kpass_stop":
+                kpass_stops.append({**e, "financeable_at_stop":
+                    number(f, "finance") <= number(f, "available")
+                    if number(f, "finance") is not None and number(f, "available") is not None else None})
+            elif edge == "kpass_tail":
+                kpass_tails.append({**e,
+                    "affordable": number(f, "affordable") == 1 if number(f, "affordable") is not None else None,
+                    "below_kpass": number(f, "below_kpass") == 1 if number(f, "below_kpass") is not None else None})
             built = edge == "outcome" and f.get("outcome") == "built"
             metric = "built" if built else edge
             if metric in {"dispatch", "attempt", "built"}:
@@ -202,6 +211,7 @@ def audit(text):
                         for unit in ("days", "ticks", "ops")}
                 for label in sorted({r[key] for r in records})}
     return {"counts": dict(counts), "windows": windows, "gaps": gaps, "stops": stops,
+            "kpass_stops": kpass_stops, "kpass_tails": kpass_tails,
             "issues": issues, "phase_summary": summaries(windows, "kind"),
             "gap_summary": summaries(gaps, "metric"),
             "continuous_affordable_wait": None,
@@ -245,7 +255,9 @@ def main(argv=None):
     fixture_hash = hashlib.sha256(fixture.read_bytes()).hexdigest()
     seeds = [42] if args.stage == "smoke" else [42, 100, 999, 1234, 5678]
     years = 1 if args.stage == "smoke" else 3
-    names = ["c115_trace", "c121_trace"] if args.stage == "smoke" else ["c115", "c115_trace", "c121", "c121_trace"]
+    # Le smoke doit prouver la source chargee, pas seulement la presence de la
+    # sonde : chaque modele a donc un controle negatif et un controle positif.
+    names = ["c115", "c115_trace", "c121", "c121_trace"]
     copies, arms, resolved = {}, {}, {}
     for name in names:
         target = folder / "copies" / name / "OpexAI"

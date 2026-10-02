@@ -279,6 +279,16 @@ function OpexLoadSettings()
   C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;
   C121_AIR_ECONOMICS_SHADOW = AIController.GetSetting("c121_air_economics_shadow") != 0;
   C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
+  C121_AIR_WINNER_FUSION = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_winner_fusion") != 0;
+  C121_AIR_ENGINE_CONTEXT = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_engine_context") != 0;
+  C121_AIR_DECISION_DEPTH_ECONOMICS = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_decision_depth_economics") != 0;
+  C121_AIR_PORTFOLIO_DEPTH_ECONOMICS = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_portfolio_depth_economics") != 0;
+  C121_AIR_PORTFOLIO_SPLIT_ECONOMICS = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_portfolio_split_economics") != 0;
   C121_CATALOG_INCREMENTAL = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_catalog_incremental") != 0;
   C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
@@ -310,6 +320,8 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_kpass_shadow") != 0;
   C121_KPASS_AIR_CONTINUE = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_kpass_air_continue") != 0;
+  C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_kdec_cold_shadow") != 0;
   C121_AIR_FIRST_LIVE_STATE = {};
   C121_AIR_FIRST_LIVE_OPS = 0;
   C121_AIR_FIRST_LIVE_SAMPLES = 0;

@@ -543,7 +543,8 @@ function OpexC121AirFleetScanCap(plan, roundTripDays, paxCapacity, mailCapacity)
 
 /* C121 : economie PASS/MAIL directionnelle, sans forfait mail ni plein retour. */
 function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes = 0,
-                             decisionOnly = false, decisionScoreFloor = null)
+                             decisionOnly = false, decisionScoreFloor = null, openingOut = null,
+                             engineContext = null)
 {
   if (catalog == null || plan == null || plane == null || !("c121Demand" in plan)) return null;
   if (paxCapacity <= 0 || mailCapacity < 0 || catalog.paxCargo < 0) return null;
@@ -552,15 +553,21 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
    * pas inventer de ratio MAIL et ne pas faire participer le cargo MAIL aux
    * ratings, parts de route ou bornes de flotte. */
   local useMail = mailCapacity > 0 && ("mailCargo" in catalog) && catalog.mailCargo >= 0;
-  local trip = OpexC121AirTripModel(plan, plane);
+  if (engineContext != null
+      && !OpexC121EngineContextMatches(engineContext, catalog, plan, plane, paxCapacity, mailCapacity)) {
+    engineContext = null;
+  }
+  local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
   if (trip == null || trip.roundTripDays <= 0) return null;
   local engineStatic = ("c121EngineStatic" in plan) ? plan.c121EngineStatic : null;
   local paymentDistance = engineStatic != null ? engineStatic.paymentDistance
       : AIMap.DistanceManhattan(plan.siteA.anchor, plan.siteB.anchor);
   if (paymentDistance < 1) paymentDistance = plan.distance;
-  local incomeDays = OpexC119AirIncomeDays(plane, plan.distance);
-  local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
-  local mailIncome = useMail ? AICargo.GetCargoIncome(catalog.mailCargo, paymentDistance, incomeDays) : 0;
+  local incomeDays = engineContext != null ? engineContext.incomeDays : OpexC119AirIncomeDays(plane, plan.distance);
+  local paxIncome = engineContext != null ? engineContext.paxIncome
+      : AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
+  local mailIncome = engineContext != null ? engineContext.mailIncome
+      : (useMail ? AICargo.GetCargoIncome(catalog.mailCargo, paymentDistance, incomeDays) : 0);
   if (paxIncome < 0 || (useMail && mailIncome < 0)) return null;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
@@ -570,9 +577,10 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
           ? 12 * newAirportCount * plan.airport.maintenance : 0);
   local airportAmortAnnual = engineStatic != null ? engineStatic.airportAmortAnnual
       : (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30;
-  local lifeYears = (("ageYears" in plane) && plane.ageYears > 0)
-      ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365);
-  local vehicleAmortPerPlane = lifeYears > 0 ? plane.price / lifeYears : 0;
+  local lifeYears = engineContext != null ? engineContext.lifeYears : ((("ageYears" in plane) && plane.ageYears > 0)
+      ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365));
+  local vehicleAmortPerPlane = engineContext != null ? engineContext.amort
+      : (lifeYears > 0 ? plane.price / lifeYears : 0);
   local airportCapital = engineStatic != null ? engineStatic.airportCapital : newAirportCount * plan.airport.price;
   local fleetScanCap = OpexC121AirFleetScanCap(plan, trip.roundTripDays, paxCapacity, mailCapacity);
   local maxAllowed = fixedPlanes > 0 ? fixedPlanes : fleetScanCap;
@@ -772,10 +780,26 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
      * "gratuit" sous son seuil. Pour la flotte, comparer le rendement du capital
      * reellement immobilise par le projet. K_dec reste attache au resultat pour
      * le futur classement portefeuille C121. */
-    local decisionScore = totalCapital > 0
-        ? (profitAnnual.tofloat() * 1000.0) / totalCapital.tofloat() : 0.0;
-    if (scoreBest == null || decisionScore > scoreBest.score
-        || (decisionScore == scoreBest.score && profitAnnual > scoreBest.profitAnnual)) {
+    /* La profondeur locale historique maximise P/C. Le prototype portfolio-depth
+     * ne change PAS le scan moteur (decisionOnly=true) : une fois le moteur choisi,
+     * son scan complet maximise exactement le score que C69 appliquera au projet
+     * AIR, soit P / max(C_decision, K_dec). C_decision inclut immobilisation et
+     * marge de chantier, comme OpexProjectFromAir. */
+    local decisionCapital = totalCapital;
+    local portfolioDepth = (C121_AIR_PORTFOLIO_DEPTH_ECONOMICS
+        || C121_AIR_PORTFOLIO_SPLIT_ECONOMICS) && !decisionOnly;
+    if (portfolioDepth) {
+      decisionCapital += OpexAirRequiredMargin(newAirportCount);
+      if (C69_DECISION_BOTTLENECK && decisionKDec > decisionCapital) {
+        decisionCapital = decisionKDec;
+      }
+    }
+    local decisionScore = decisionCapital > 0
+        ? (profitAnnual.tofloat() * 1000.0) / decisionCapital.tofloat() : 0.0;
+    local decisionTieBetter = scoreBest != null && decisionScore == scoreBest.score
+        && (portfolioDepth ? revenueAnnual > scoreBest.revenueAnnual
+                           : profitAnnual > scoreBest.profitAnnual);
+    if (scoreBest == null || decisionScore > scoreBest.score || decisionTieBetter) {
       if (decisionOnly) {
         /* Le chooser moteur n'a besoin que d'un petit tuple de classement.
          * L'economie complete du gagnant est reconstruite une seule fois apres
@@ -886,6 +910,9 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
         carriedPax = carriedPax, carriedMail = carriedMail, carried = carriedPax + carriedMail,
         fleetScanCap = fleetScanCap,
       };
+      if (openingOut != null && fixedPlanes <= 0 && planes == 1 && scoreBest != null) {
+        openingOut.initial = OpexC121OpeningEconomics(clone best, clone scoreBest, decisionKDec);
+      }
     }
     if (decisionOnly && fixedPlanes <= 0 && planes < maxAllowed && scoreBest != null
         && plane.price > 0 && plane.runningCost >= 0 && vehicleAmortPerPlane >= 0) {
@@ -950,13 +977,54 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
   return best;
 }
 
+/* The captured N=1 snapshots must receive fixed-N annotations before the
+ * full scan can overwrite its decision depth. Both inputs are independent. */
+function OpexC121OpeningEconomics(best, scoreBest, decisionKDec)
+{
+  scoreBest.fleetEvaluated <- 1;
+  scoreBest.fleetBoundPruned <- false;
+  scoreBest.decisionKDec <- decisionKDec;
+  scoreBest.decisionPlanes <- scoreBest.planes;
+  scoreBest.decisionScore <- scoreBest.score;
+  scoreBest.decisionProfitAnnual <- scoreBest.profitAnnual;
+  scoreBest.decisionRevenueAnnual <- scoreBest.revenueAnnual;
+  scoreBest.decisionCapital <- scoreBest.capital;
+  scoreBest.decisionCarriedPax <- scoreBest.carriedPax;
+  scoreBest.decisionCarriedMail <- scoreBest.carriedMail;
+  scoreBest.decisionCarried <- scoreBest.carried;
+  scoreBest.decisionStationRating <- scoreBest.stationRating;
+  scoreBest.decisionHeadwayDays <- scoreBest.headwayDays;
+  scoreBest.decisionRunwayScaleA <- scoreBest.runwayScaleA;
+  scoreBest.decisionRunwayScaleB <- scoreBest.runwayScaleB;
+  scoreBest.decisionRequestedPickupRate <- scoreBest.requestedPickupRate;
+  scoreBest.decisionPickupRate <- scoreBest.pickupRate;
+  best.decisionKDec <- decisionKDec;
+  best.decisionPlanes <- scoreBest.planes;
+  best.decisionScore <- scoreBest.score;
+  best.decisionProfitAnnual <- scoreBest.profitAnnual;
+  best.decisionRevenueAnnual <- scoreBest.revenueAnnual;
+  best.decisionCapital <- scoreBest.capital;
+  best.decisionCarriedPax <- scoreBest.carriedPax;
+  best.decisionCarriedMail <- scoreBest.carriedMail;
+  best.decisionCarried <- scoreBest.carried;
+  best.decisionStationRating <- scoreBest.stationRating;
+  best.decisionHeadwayDays <- scoreBest.headwayDays;
+  best.decisionRunwayScaleA <- scoreBest.runwayScaleA;
+  best.decisionRunwayScaleB <- scoreBest.runwayScaleB;
+  best.decisionRequestedPickupRate <- scoreBest.requestedPickupRate;
+  best.decisionPickupRate <- scoreBest.pickupRate;
+  best.decisionEconomics <- scoreBest;
+  return best;
+}
+
 /* Evaluation C121 avec l'etat de connaissance courant d'un moteur : le premier
  * contact utilise la capacite PASS du catalogue et MAIL=0 ; apres la premiere
  * construction/refit PASS, le couple PASS/MAIL exact observe remplace ce cold
  * start. Aucun catalogue OpenGFX externe ni pourcentage MAIL n'intervient. */
 function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decisionOnly = false,
-                                 decisionScoreFloor = null)
+                                 decisionScoreFloor = null, openingOut = null, engineContext = null)
 {
+  if (openingOut != null) openingOut.initial = null;
   if (plane == null) return null;
   local paxCapacity = plane.capacity;
   local mailCapacity = 0;
@@ -970,7 +1038,7 @@ function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decision
     }
   }
   local economics = OpexC121AirEconomics(
-      catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes, decisionOnly, decisionScoreFloor);
+      catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes, decisionOnly, decisionScoreFloor, openingOut, engineContext);
   if (economics != null && decisionOnly && C121_AIR_ENGINE_REALIZATION) {
     local factor = OpexC121EngineDecisionRealizationFactor(plan);
     if (factor != 1.0) {
@@ -1000,7 +1068,115 @@ function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decision
       economics.decisionEconomics.engineMailKnown <- mailKnown;
     }
   }
+  if (openingOut != null && openingOut.initial != null) {
+    openingOut.initial.engineMailKnown <- mailKnown;
+    openingOut.initial.decisionEconomics.engineMailKnown <- mailKnown;
+  }
   return economics;
+}
+
+/* Tariffs can change with monthly inflation. Keep the opening snapshot,
+ * but refresh full-fleet economics if the fused scan crossed that boundary.
+ * No persistent cache: these objects belong to this winner evaluation only. */
+function OpexC121WinnerTariffEpoch()
+{
+  local date = AIDate.GetCurrentDate();
+  return AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+}
+
+function OpexC121WinnerEconomics(catalog, plan, plane, fusion, engineContext = null)
+{
+  if (!fusion || C121_AAA_LINE) {
+    local openingPlanes = C121_AAA_LINE ? 2 : 1;
+    local initial = engineContext == null
+        ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, false)
+        : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, false, null, null, engineContext);
+    local full = engineContext == null ? OpexC121EngineEconomics(catalog, plan, plane, 0, false)
+        : OpexC121EngineEconomics(catalog, plan, plane, 0, false, null, null, engineContext);
+    return { initial = initial, full = full };
+  }
+  local epoch = OpexC121WinnerTariffEpoch();
+  local opening = { initial = null };
+  local full = engineContext == null ? OpexC121EngineEconomics(catalog, plan, plane, 0, false, null, opening)
+      : OpexC121EngineEconomics(catalog, plan, plane, 0, false, null, opening, engineContext);
+  if (opening.initial == null) {
+    return { initial = engineContext == null ? OpexC121EngineEconomics(catalog, plan, plane, 1, false)
+        : OpexC121EngineEconomics(catalog, plan, plane, 1, false, null, null, engineContext), full = full };
+  }
+  if (epoch != OpexC121WinnerTariffEpoch()) {
+    full = OpexC121EngineEconomics(catalog, plan, plane, 0, false);
+  }
+  return { initial = opening.initial, full = full };
+}
+
+/* Invocation-local candidate context: never attached to plan, saved, or shared
+ * between pairs. It extends the sortable candidate rather than adding a cache.
+ * The pair's existing static snapshot remains the owner of route invariants. */
+function OpexC121PrepareEngineContext(catalog, plan, plane)
+{
+  if (catalog == null || plan == null || plane == null || !("c121Demand" in plan)
+      || !("c121EngineStatic" in plan) || plan.c121EngineStatic == null
+      || plane.price <= 0 || plane.runningCost < 0) return null;
+  local date = AIDate.GetCurrentDate();
+  local st = plan.c121EngineStatic;
+  local paxCapacity = plane.capacity;
+  local mailCapacity = 0;
+  local mailKnown = false;
+  local incomeDays = OpexC119AirIncomeDays(plane, plan.distance);
+  local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
+  if (paxIncome < 0) return null;
+  if (plane.id in C121_AIR_ENGINE_CAPACITY_OBS) {
+    local caps = C121_AIR_ENGINE_CAPACITY_OBS[plane.id];
+    if (caps != null && caps.pax > 0 && caps.mail >= 0) {
+      paxCapacity = caps.pax;
+      mailCapacity = caps.mail;
+      mailKnown = true;
+    }
+  }
+  if (paxCapacity <= 0) return null;
+  local useMail = mailCapacity > 0 && ("mailCargo" in catalog) && catalog.mailCargo >= 0;
+  local mailIncome = useMail ? AICargo.GetCargoIncome(catalog.mailCargo, st.paymentDistance, incomeDays) : 0;
+  if (useMail && mailIncome < 0) return null;
+  local trip = OpexC121AirTripModel(plan, plane);
+  if (trip == null || trip.roundTripDays <= 0.0) return null;
+  local lifeYears = (("ageYears" in plane) && plane.ageYears > 0)
+      ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365);
+  return { plane = plane, upperScore = null,
+      catalog = catalog, plan = plan, engineStatic = st, demand = plan.c121Demand,
+      date = date == AIDate.GetCurrentDate() ? date : -1,
+      distance = plan.distance, price = plane.price,
+      speed = ("speed" in plane) ? plane.speed : null,
+      ageYears = ("ageYears" in plane) ? plane.ageYears : null,
+      paxCargo = catalog.paxCargo, mailCargo = ("mailCargo" in catalog) ? catalog.mailCargo : -1,
+      paxCapacity = paxCapacity, mailCapacity = mailCapacity, mailKnown = mailKnown,
+      incomeDays = incomeDays, paxIncome = paxIncome, mailIncome = mailIncome,
+      trip = trip, lifeYears = lifeYears, amort = lifeYears > 0 ? plane.price / lifeYears : 0 };
+}
+
+function OpexC121EngineContextMatches(ctx, catalog, plan, plane, paxCapacity = null, mailCapacity = null)
+{
+  if (ctx == null || ctx.catalog != catalog || ctx.plan != plan || ctx.plane != plane
+      || ctx.date != AIDate.GetCurrentDate()
+      || !("c121EngineStatic" in plan) || !("c121Demand" in plan)
+      || ctx.engineStatic != plan.c121EngineStatic || ctx.demand != plan.c121Demand
+      || ctx.distance != plan.distance || ctx.price != plane.price
+      || ctx.speed != (("speed" in plane) ? plane.speed : null)
+      || ctx.ageYears != (("ageYears" in plane) ? plane.ageYears : null)
+      || ctx.paxCargo != catalog.paxCargo
+      || ctx.mailCargo != (("mailCargo" in catalog) ? catalog.mailCargo : -1)
+      || ctx.incomeDays != OpexC119AirIncomeDays(plane, plan.distance)) return false;
+  local known = false;
+  local pax = plane.capacity;
+  local mail = 0;
+  if (plane.id in C121_AIR_ENGINE_CAPACITY_OBS) {
+    local caps = C121_AIR_ENGINE_CAPACITY_OBS[plane.id];
+    if (caps != null && caps.pax > 0 && caps.mail >= 0) {
+      pax = caps.pax; mail = caps.mail; known = true;
+    }
+  }
+  return ctx.mailKnown == known && ctx.paxCapacity == pax && ctx.mailCapacity == mail
+      && (paxCapacity == null || paxCapacity == pax)
+      && (mailCapacity == null || mailCapacity == mail);
 }
 
 /* Borne superieure bon marche du score initial C121 a un avion. Elle ignore
@@ -1009,16 +1185,20 @@ function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decision
  * optimiste sans pretendre qu'un petit avion peut transporter 100 % d'une
  * grosse ville. Utilisee seulement pour ordonner/pruner le scan moteur sans
  * changer l'argmax exact. */
-function OpexC121InitialEngineUpperScore(catalog, plan, plane)
+function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = null)
 {
   if (catalog == null || plan == null || plane == null || !("c121Demand" in plan)
       || !("c121EngineStatic" in plan) || plan.c121EngineStatic == null
       || plane.price <= 0 || plane.runningCost < 0) return null;
   local st = plan.c121EngineStatic;
+  if (engineContext != null && !OpexC121EngineContextMatches(engineContext, catalog, plan, plane)) {
+    engineContext = null;
+  }
   local paxCapacity = plane.capacity;
   local mailCapacity = 0;
-  local incomeDays = OpexC119AirIncomeDays(plane, plan.distance);
-  local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
+  local incomeDays = engineContext != null ? engineContext.incomeDays : OpexC119AirIncomeDays(plane, plan.distance);
+  local paxIncome = engineContext != null ? engineContext.paxIncome
+      : AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
   if (paxIncome < 0) return null;
   local useMail = false;
   if (plane.id in C121_AIR_ENGINE_CAPACITY_OBS) {
@@ -1030,9 +1210,10 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane)
     }
   }
   if (paxCapacity <= 0) return null;
-  local mailIncome = useMail ? AICargo.GetCargoIncome(catalog.mailCargo, st.paymentDistance, incomeDays) : 0;
+  local mailIncome = engineContext != null ? engineContext.mailIncome
+      : (useMail ? AICargo.GetCargoIncome(catalog.mailCargo, st.paymentDistance, incomeDays) : 0);
   if (useMail && mailIncome < 0) return null;
-  local trip = OpexC121AirTripModel(plan, plane);
+  local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
   if (trip == null || trip.roundTripDays <= 0.0) return null;
   local departuresPerDirectionMonth = 30.4 / trip.roundTripDays;
   local paxDirectionCapacity = paxCapacity.tofloat() * departuresPerDirectionMonth;
@@ -1049,9 +1230,9 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane)
       + 12.0 * (mailUpperA + mailUpperB) * mailIncome).tointeger();
   local revenueUpper = (rawRevenueUpper.tofloat()
       * OpexC121EngineDecisionRealizationFactor(plan)).tointeger();
-  local lifeYears = (("ageYears" in plane) && plane.ageYears > 0)
-      ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365);
-  local amort = lifeYears > 0 ? plane.price / lifeYears : 0;
+  local lifeYears = engineContext != null ? engineContext.lifeYears : ((("ageYears" in plane) && plane.ageYears > 0)
+      ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365));
+  local amort = engineContext != null ? engineContext.amort : (lifeYears > 0 ? plane.price / lifeYears : 0);
   local profitUpper = revenueUpper - plane.runningCost - st.airportMaintenanceAnnual
       - amort - st.airportAmortAnnual;
   local capital = st.airportCapital + plane.price;
@@ -1099,9 +1280,14 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
     if (!OpexC118EngineFitsPlan(plan, plane)) continue;
     if (!OpexAirPlaneInRange(plane, plan.distance)) continue;
-    local upperScore = OpexC121InitialEngineUpperScore(catalog, plan, plane);
+    local context = C121_AIR_ENGINE_CONTEXT ? OpexC121PrepareEngineContext(catalog, plan, plane) : null;
+    local upperScore = context == null ? OpexC121InitialEngineUpperScore(catalog, plan, plane)
+        : OpexC121InitialEngineUpperScore(catalog, plan, plane, context);
     if (upperScore == null) continue;
-    candidates.append({ plane = plane, upperScore = upperScore });
+    if (context != null) {
+      context.upperScore = upperScore;
+      candidates.append(context);
+    } else candidates.append({ plane = plane, upperScore = upperScore });
   }
   candidates.sort(function(a, b) {
     if (a.upperScore > b.upperScore) return -1;
@@ -1115,7 +1301,11 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     local plane = candidate.plane;
     local tick0 = AIController.GetTick();
     local ops0 = AIController.GetOpsTillSuspend();
-    local evaluatedEconomics = OpexC121EngineEconomics(catalog, plan, plane, C121_AAA_LINE ? 2 : 1, true, null);
+    local context = ("trip" in candidate) ? candidate : null;
+    local openingPlanes = C121_AAA_LINE ? 2 : 1;
+    local evaluatedEconomics = context == null
+        ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null)
+        : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null, null, context);
     local tick1 = AIController.GetTick();
     local ops = OpexAirCalcDeltaOps(tick0, ops0);
     if (ops >= 0) evalOpsTotal += ops;
@@ -1129,7 +1319,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
         ? evaluatedEconomics.decisionEconomics : evaluatedEconomics;
     evaluated++;
     if (("engineMailKnown" in economics) && economics.engineMailKnown) known++;
-    local item = { plane = plane, economics = economics };
+    local item = { plane = plane, economics = economics, context = context };
     if (best == null
         || economics.decisionScore > best.economics.decisionScore
         || (economics.decisionScore == best.economics.decisionScore
@@ -1162,8 +1352,11 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
    * cible exacte sera recalculee apres construction avec PASS/MAIL observes. */
   local fullTick0 = AIController.GetTick();
   local fullOps0 = AIController.GetOpsTillSuspend();
-  local initialEconomics = OpexC121EngineEconomics(catalog, plan, best.plane, C121_AAA_LINE ? 2 : 1, false);
-  local decisionEconomics = OpexC121EngineEconomics(catalog, plan, best.plane, 0, false);
+  local winnerEconomics = best.context == null
+      ? OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION)
+      : OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION, best.context);
+  local initialEconomics = winnerEconomics.initial;
+  local fullBest = winnerEconomics.full;
   local fullTick1 = AIController.GetTick();
   plan.c121WinnerFullTicks <- fullTick1 - fullTick0;
   plan.c121WinnerFullOps <- OpexAirCalcDeltaOps(fullTick0, fullOps0);
@@ -1172,9 +1365,29 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     perf.winnerTicks += plan.c121WinnerFullTicks;
   }
   if (initialEconomics == null) return null;
-  if (decisionEconomics == null) decisionEconomics = initialEconomics;
+  if (fullBest == null) fullBest = initialEconomics;
+  local decisionEconomics = fullBest;
+  local portfolioEconomics = null;
+  /* C121 decision-depth experiment: OpexC121AirEconomics exposes both the
+   * max-profit full-fleet result (`fullBest`) and the score-maximising depth
+   * nested in `decisionEconomics`.  The engine has already been chosen from
+   * the N=1 scan above; selecting the nested depth here only changes the
+   * economics propagated to the portfolio.  The built economics stays N=1
+   * and OpexC121MeasureBuiltEconomics still recomputes the post-build target
+   * from observed PASS/MAIL capacities. */
+  if ((C121_AIR_DECISION_DEPTH_ECONOMICS || C121_AIR_PORTFOLIO_DEPTH_ECONOMICS)
+      && ("decisionEconomics" in fullBest) && fullBest.decisionEconomics != null) {
+    decisionEconomics = fullBest.decisionEconomics;
+  }
+  /* Variante split : le max-profit reste l'economie de qualification du projet
+   * (notamment le plancher absolu du portefeuille). La profondeur P/max(C,K_dec)
+   * est exposee separement et ne doit servir qu'au classement fundScore. */
+  if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS
+      && ("decisionEconomics" in fullBest) && fullBest.decisionEconomics != null) {
+    portfolioEconomics = fullBest.decisionEconomics;
+  }
   plan.c121ChosenEngine <- best.plane.id;
   plan.c121ChosenMailKnown <- (("engineMailKnown" in initialEconomics) && initialEconomics.engineMailKnown);
   return { plane = best.plane, economics = initialEconomics, decisionEconomics = decisionEconomics,
-      targetPlanes = initialEconomics.planes };
+      portfolioEconomics = portfolioEconomics, targetPlanes = initialEconomics.planes };
 }

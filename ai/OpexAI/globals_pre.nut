@@ -421,6 +421,11 @@ C121_AIR_ECONOMICS_SHADOW <- false;
 /* C121 : modele economique AIR unifie. Le flag decisionnel reste eteint tant
  * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
 C121_AIR_ECONOMICS <- false;
+C121_AIR_WINNER_FUSION <- false;
+C121_AIR_ENGINE_CONTEXT <- false;
+C121_AIR_DECISION_DEPTH_ECONOMICS <- false;
+C121_AIR_PORTFOLIO_DEPTH_ECONOMICS <- false;
+C121_AIR_PORTFOLIO_SPLIT_ECONOMICS <- false;
 C121_AIR_ENGINE_REALIZATION <- false;
 C121_AIR_PROJECT_REALIZATION <- false;
 C121_AIR_PROJECT_REALIZATION_ADAPTIVE <- false;
@@ -505,6 +510,9 @@ C121_KPASS_SHADOW <- false;
 /* C121 cadence : laisse le portefeuille depasser un bloqueur fleet/K_pass uniquement
  * lorsqu'un projet AIR finançable existe dans les cinq rangs suivants. */
 C121_KPASS_AIR_CONTINUE <- false;
+/* C121 cadence : shadow du cold-start K_dec. Mesure le classement contrefactuel
+ * si un renfort fleet sans observation reelle conservait l'exemption C69. */
+C121_KDEC_COLD_SHADOW <- false;
 /* C121 : territoire d'abord (reserve de tresorerie pour le prochain AIR qui ouvre une ville). */
 C121_TERRITORY_FIRST <- false;
 /* C121 : ligne a la AAAHogEx (2 avions a l'ouverture, chargement complet aux deux bouts). */

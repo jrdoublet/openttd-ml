@@ -518,6 +518,46 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_air_winner_fusion",
+      description = "C121 opcode optimization: retain opening N=1 during the winner fleet scan; monthly tariff changes and AAA_LINE fall back; requires C121 economics; 1 = on (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_engine_context",
+      description = "C121 opcode experiment: reuse pair/engine trip, fares and amortisation during one chooser call; refresh on input/date changes; 0 = off pending qualification",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_decision_depth_economics",
+      description = "C121 experimental: rank a new AIR project on the full-fleet depth selected by C121 decision score; initial build and post-build target stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_portfolio_depth_economics",
+      description = "C121 experimental: choose AIR decision depth with the same P/max(C,K_dec) economics used by the portfolio; engine, initial N=1 build and post-build target stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_portfolio_split_economics",
+      description = "C121 experimental: keep max-profit long-run economics for project qualification, but rank AIR with a separate P/max(C,K_dec) depth; engine, initial N=1 build and post-build target stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c121_catalog_incremental",
       description = "Experimental incremental C121 AIR plan economics and bounded catalog slices; requires c121_air_economics; 0 = off",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -645,6 +685,13 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c121_kpass_air_continue",
       description = "C121 cadence experiment: when a fleet reinforcement would stop the pass on K_pass but a live AIR new-line project is fundable in the next five ranks, skip only that fleet blocker and keep scanning under the normal C75 bypass rules; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_kdec_cold_shadow",
+      description = "C121 cadence shadow: for fleet projects with zero real marginal samples, log current K_dec rank versus the counterfactual C69 fleet exemption; never changes decisions; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = AICONFIG_BOOLEAN
     });

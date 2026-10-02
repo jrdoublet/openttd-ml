@@ -850,6 +850,8 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
           ? routeChoice.decisionEconomics : null;
+      local portfolioEconomics = (routeChoice != null && ("portfolioEconomics" in routeChoice) && routeChoice.portfolioEconomics != null)
+          ? routeChoice.portfolioEconomics : null;
       local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)
           ? decisionEconomics : economics;
       if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
@@ -871,6 +873,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       plan.capital = economics.capital;
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
+      if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
       if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
           && ("c118C68Economics" in routeChoice)) {
         plan.c118C68Plane <- routeChoice.c118C68Plane;
@@ -1267,6 +1270,8 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
           ? routeChoice.decisionEconomics : null;
+      local portfolioEconomics = (routeChoice != null && ("portfolioEconomics" in routeChoice) && routeChoice.portfolioEconomics != null)
+          ? routeChoice.portfolioEconomics : null;
       local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)
           ? decisionEconomics : economics;
       if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
@@ -1296,6 +1301,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       plan.capital = economics.capital;
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
+      if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
       if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
           && ("c118C68Economics" in routeChoice)) {
         plan.c118C68Plane <- routeChoice.c118C68Plane;
@@ -1533,6 +1539,8 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
           ? routeChoice.decisionEconomics : null;
+      local portfolioEconomics = (routeChoice != null && ("portfolioEconomics" in routeChoice) && routeChoice.portfolioEconomics != null)
+          ? routeChoice.portfolioEconomics : null;
       if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 0, opcodePadding, economics, "pre_admission_hubhub");
@@ -1596,6 +1604,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       plan.capital = economics.capital;
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
+      if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
       if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
           && ("c118C68Economics" in routeChoice)) {
         plan.c118C68Plane <- routeChoice.c118C68Plane;

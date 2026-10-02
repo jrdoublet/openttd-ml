@@ -13,7 +13,8 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from campaign_freeze import fingerprint_tree, prepare_frozen_campaign
 from frozen_harness import (
-    frozen_command, launch_frozen_campaign, restore_campaign, verify_manifest_bundle,
+    frozen_command, launch_frozen_campaign, restore_campaign, restore_installed_user_site,
+    verify_manifest_bundle,
 )
 
 
@@ -155,6 +156,19 @@ class TestFrozenHarness(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["cwd"], self.campaign.bundle_dir / "harness")
             self.assertIn("-I", run.call_args.args[0])
             self.assertIn("-B", run.call_args.args[0])
+
+    def test_restore_installed_user_site_readds_existing_directory_under_isolation(self):
+        user_site = self.root / "python-user-site"
+        user_site.mkdir()
+        original = list(sys.path)
+        try:
+            with mock.patch("frozen_harness.site.getusersitepackages", return_value=str(user_site)):
+                added = restore_installed_user_site()
+                self.assertEqual(added, [str(user_site)])
+                self.assertIn(str(user_site), sys.path)
+                self.assertEqual(restore_installed_user_site(), [])
+        finally:
+            sys.path[:] = original
 
     def test_child_failure_is_not_hidden(self):
         # Prepare a second, deliberately failing snapshot (never rewrite a frozen bundle).

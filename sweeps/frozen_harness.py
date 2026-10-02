@@ -8,6 +8,7 @@ do not. This is source provenance, not a sandbox against hostile bundle writers.
 import hashlib
 import json
 from pathlib import Path
+import site
 import subprocess
 import sys
 
@@ -39,6 +40,28 @@ def verify_manifest_bundle(manifest_path, expected_sha256):
     if (manifest.get("execution") or {}).get("mode") != "frozen-subprocess":
         raise ValueError("manifest does not declare frozen execution")
     return manifest
+
+
+def restore_installed_user_site():
+    """Re-expose third-party packages installed in the mounted user site under ``-I``.
+
+    The frozen child intentionally ignores cwd and PYTHONPATH, but the Docker runtime
+    installs OpenTTDLab in ``/home/lab/.local``.  Python ``-I`` disables that user site
+    entirely, contradicting this module's contract that installed third-party packages
+    remain available.  Add only Python's own resolved user-site directory after the
+    manifest/bundle verification; frozen harness paths still stay ahead of it.
+    """
+    locations = site.getusersitepackages()
+    if isinstance(locations, str):
+        locations = [locations]
+    added = []
+    for location in locations:
+        path = Path(location)
+        text = str(path)
+        if path.is_dir() and text not in sys.path:
+            sys.path.append(text)
+            added.append(text)
+    return added
 
 
 def frozen_command(campaign):
@@ -89,6 +112,7 @@ def main():
         raise ValueError("expected manifest path and SHA256")
     manifest_path, expected_sha256 = sys.argv[1:]
     manifest = verify_manifest_bundle(manifest_path, expected_sha256)
+    restore_installed_user_site()
     harness = Path(manifest["source_bundle"]["path"]) / "harness" / "sweeps"
     if Path(__file__).resolve() != (harness / "frozen_harness.py").resolve():
         raise ValueError("bootstrap is not inside the declared frozen bundle")

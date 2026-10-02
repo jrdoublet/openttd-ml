@@ -71,6 +71,22 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual([s["financeable_at_stop"] for s in a["stops"]], [None, True])
         self.assertIsNone(a["continuous_affordable_wait"])
 
+    def test_kpass_fleet_tail_is_parsed_without_simulating_policy(self):
+        lines = [
+            log(1, "kpass_stop", next_mode="fleet", rank=2, line_id=7,
+                finance=50000, k_pass=40000, available=80000),
+            log(2, "kpass_tail", stop_rank=2, rank=3, mode="air",
+                finance=30000, affordable=1, below_kpass=1),
+            log(3, "kpass_tail", stop_rank=2, rank=4, mode="rail",
+                finance=90000, affordable=0, below_kpass=0),
+        ]
+        a = audit("\n".join(lines))
+        self.assertEqual(len(a["kpass_stops"]), 1)
+        self.assertTrue(a["kpass_stops"][0]["financeable_at_stop"])
+        self.assertEqual([t["fields"]["mode"] for t in a["kpass_tails"]], ["air", "rail"])
+        self.assertEqual([t["affordable"] for t in a["kpass_tails"]], [True, False])
+        self.assertEqual([t["below_kpass"] for t in a["kpass_tails"]], [True, False])
+
     def test_empty_trace_is_not_exposure(self):
         a = audit("AIR_PLAN_PERF total_ops=9000 days=3")
         self.assertEqual(a["counts"], {})
@@ -119,6 +135,7 @@ class StagingTests(unittest.TestCase):
                           "OpexAirBatchPlanStillLive(", "OpexAvailableCapital(", "return true;", "return false;"):
                 self.assertEqual(after.count(token), original.count(token), token)
             self.assertEqual(after.count("PBOutcome(project, i, attempt.outcome);"), 5)
+            self.assertIn("PBKPassStop(this, project, i, projCap, c75KPass, availCap);", after)
             self.assertIn('PBEnd("watcher_regen")', after)
             self.assertIn('PBEnd("rail_pending")', after)
             self.assertEqual(before["info.nut"], (target / "info.nut").read_bytes())

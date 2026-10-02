@@ -850,9 +850,117 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
   return fitted;
 }
 
+/* C121 split : le plancher absolu continue de lire project.profitAnnual, qui
+ * represente la valeur long terme max-profit. Seul le classement fundScore peut
+ * consommer la profondeur portfolio. La calibration C70/C82 est multiplicative
+ * pour un meme projet/moteur : appliquer au profit portfolio le meme facteur que
+ * celui mesure sur le profit long terme preserve exactement ce calibrage. */
+function OpexProjectFundProfit(project)
+{
+  local calibrated = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual;
+  if (!C121_AIR_PORTFOLIO_SPLIT_ECONOMICS || project == null
+      || !("mode" in project) || project.mode != "air"
+      || !("portfolioProfitAnnual" in project)) return calibrated;
+  local portfolioProfit = project.portfolioProfitAnnual;
+  if (!C70_PROFIT_CALIBRATED || project.profitAnnual <= 0) return portfolioProfit;
+  return portfolioProfit.tofloat() * calibrated.tofloat() / project.profitAnnual.tofloat();
+}
+
+/* C121 cadence : mesurer le biais de cold-start K_dec sans toucher au projet
+ * vivant. Le builder marque explicitement samples<=0 comme non observe ; la
+ * presence de c121MarginalProfit/Revenue seule ne constitue donc pas une
+ * realisation. On capture ici le score contrefactuel qui conserverait
+ * l'exemption C69 jusqu'au premier sample reel. */
+function OpexC121KDecColdShadowCandidate(rows, project, financeCapital, kDec)
+{
+  if (rows == null || project == null || !("mode" in project) || project.mode != "fleet"
+      || !("payload" in project) || project.payload == null || !("line" in project.payload)
+      || project.payload.line == null) return;
+  local line = project.payload.line;
+  if (!("c121MarginalProfit" in line) || !("c121MarginalRevenue" in line)) return;
+
+  local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+  local currentExempt = C69_FLEET_EXEMPT && !OpexC121ProjectHasRealization(project);
+  local currentDenom = (C69_DECISION_BOTTLENECK && kDec > financeCapital && !currentExempt)
+      ? kDec : financeCapital;
+  local coldExempt = C69_FLEET_EXEMPT && samples <= 0;
+  local coldDenom = (C69_DECISION_BOTTLENECK && kDec > financeCapital && !coldExempt)
+      ? kDec : financeCapital;
+  local profit = OpexProjectFundProfit(project);
+  local currentScore = ("fundScore" in project) ? project.fundScore
+      : OpexProjectScore(profit, currentDenom);
+  local coldScore = samples <= 0 ? OpexProjectScore(profit, coldDenom) : currentScore;
+  rows.append({ project = project, samples = samples, finance = financeCapital,
+      currentDenom = currentDenom, coldDenom = coldDenom,
+      currentScore = currentScore, coldScore = coldScore });
+}
+
+/* Reutilise l'ordre deja trie et ne reinserre que le seul candidat cold dans une
+ * copie superficielle bornee a PROJECT_TOP_K. Ce n'est pas un second tri du
+ * catalogue et aucun champ du portefeuille vivant n'est modifie. */
+function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
+{
+  if (!C121_KDEC_COLD_SHADOW || rows == null) return;
+  local cold = 0;
+  local warm = 0;
+  local affected = 0;
+  local rankUp = 0;
+  local entered = 0;
+  local headFlip = 0;
+  local headMode = (affordable != null && affordable.len() > 0 && ("mode" in affordable[0]))
+      ? affordable[0].mode : "none";
+
+  foreach (row in rows) {
+    local project = row.project;
+    local currentRank = -1;
+    if (affordable != null) {
+      for (local i = 0; i < affordable.len(); i++) {
+        if (affordable[i] == project) { currentRank = i; break; }
+      }
+    }
+    local coldRank = currentRank;
+    local changed = row.samples <= 0 && row.coldDenom != row.currentDenom;
+    if (row.samples <= 0) cold++;
+    else warm++;
+
+    if (changed && affordable != null) {
+      affected++;
+      local shadowOrder = [];
+      for (local i = 0; i < affordable.len(); i++) {
+        if (i != currentRank) shadowOrder.append(affordable[i]);
+      }
+      local shadowProject = clone project;
+      shadowProject.fundScore = row.coldScore;
+      OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, AIR_EARLY_SLOT);
+      coldRank = -1;
+      for (local i = 0; i < shadowOrder.len(); i++) {
+        if (shadowOrder[i] == shadowProject) { coldRank = i; break; }
+      }
+      if (coldRank >= 0 && (currentRank < 0 || coldRank < currentRank)) rankUp++;
+      if (currentRank < 0 && coldRank >= 0) entered++;
+      if (currentRank != 0 && coldRank == 0) headFlip++;
+    }
+
+    local line = project.payload.line;
+    local lineId = ("lineId" in line) ? line.lineId : -1;
+    AILog.Info("C121_KDEC_COLD_SHADOW state=" + (row.samples <= 0 ? "cold" : "warm")
+        + " line=" + lineId + " samples=" + row.samples
+        + " finance=" + row.finance + " k_dec=" + kDec
+        + " denom=" + row.currentDenom + " cold_denom=" + row.coldDenom
+        + " score=" + row.currentScore + " cold_score=" + row.coldScore
+        + " rank=" + currentRank + " cold_rank=" + coldRank
+        + " affected=" + (changed ? 1 : 0)
+        + " head_flip=" + ((currentRank != 0 && coldRank == 0) ? 1 : 0));
+  }
+  AILog.Info("C121_KDEC_COLD_SUMMARY cold=" + cold + " warm=" + warm
+      + " affected=" + affected + " rank_up=" + rankUp + " entered=" + entered
+      + " head_flip=" + headFlip + " head_mode=" + headMode + " k_dec=" + kDec);
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
+  local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
    * les modes. Le budget fourni a deja soustrait la reserve de tresorerie. */
   local fittedAlternatives = [];
@@ -943,6 +1051,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     local decisionFinanceCapital = financeCapital;
     if (project.mode == "air" && ("decisionFinanceCapital" in project)
         && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
+    local scoreDecisionFinanceCapital = decisionFinanceCapital;
+    if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS && project.mode == "air"
+        && ("portfolioDecisionFinanceCapital" in project)
+        && project.portfolioDecisionFinanceCapital > 0) {
+      scoreDecisionFinanceCapital = project.portfolioDecisionFinanceCapital;
+    }
     /* C121 : un renfort d'avion est un vrai projet economique concurrent d'une
      * nouvelle ligne. L'exemption historique C69 lui donnerait un denominateur
      * ~= prix avion alors que les lignes AIR sont bornees par K_dec, ce qui
@@ -950,8 +1064,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
      * chemins legacy/C84, mais pas pour une flotte portant une marge C121. */
     local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
         && !OpexC121ProjectHasRealization(project);
-    project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
-        (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital);
+    project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
+        (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+            ? kDec : scoreDecisionFinanceCapital);
+    OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
     if (C121_CATALOG_INCREMENTAL && project.mode == "air"
         && ("payload" in project) && project.payload != null
         && ("c121CatalogKey" in project.payload)
@@ -963,7 +1079,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
     }
     if (amortProbe != null) OpexAmortProbeCandidate(amortProbe, project, financeCapital,
-      (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital);
+      (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+          ? kDec : scoreDecisionFinanceCapital);
     OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
@@ -973,6 +1090,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   if (affordable.len() == 0 && floorProfit > 0) {
     if (amortProbe != null) amortProbe.rows = [];
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
+    if (c121KDecColdRows != null) c121KDecColdRows.clear();
     foreach (project in alternatives) {
       local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
           && (("c118NewTowns") in project) && project.c118NewTowns > 0;
@@ -985,21 +1103,31 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       local decisionFinanceCapital = financeCapital;
       if (project.mode == "air" && ("decisionFinanceCapital" in project)
           && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
+      local scoreDecisionFinanceCapital = decisionFinanceCapital;
+      if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS && project.mode == "air"
+          && ("portfolioDecisionFinanceCapital" in project)
+          && project.portfolioDecisionFinanceCapital > 0) {
+        scoreDecisionFinanceCapital = project.portfolioDecisionFinanceCapital;
+      }
       local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
-      project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
-          (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital);
+      project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
+          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+              ? kDec : scoreDecisionFinanceCapital);
+      OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
         OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
       }
         if (amortProbe != null) OpexAmortProbeCandidate(amortProbe, project, financeCapital,
-          (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital);
+          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+              ? kDec : scoreDecisionFinanceCapital);
         OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
   }
   if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
+  OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
   OpexC120ReorderAffordableAir(affordable);
   if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);
