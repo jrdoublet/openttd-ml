@@ -675,7 +675,13 @@ OPEX_AIR_PLAN_PAD <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
-AIR_FLEET_COOLDOWN_PREFILTER <- false;
+AIR_FLEET_COOLDOWN_PREFILTER <- true;
+/* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
+ * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
+AIR_EFFICIENCY_BATCH <- false;
+AIR_EFFICIENCY_PREFLIGHT <- false;
+AIR_EFFICIENCY_DEDUPE <- false;
+AIR_EFFICIENCY_RESELECT <- false;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;

@@ -339,23 +339,30 @@ function OpexAI::_schedIdlePreDispatch()
       if (this._projects != null) {
         local budgetNow = OpexAvailableCapital();
         local budgetThen = this._projects.capitalBudget;
-        local gainOk = budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN;
-        local doubleOk = budgetNow > budgetThen * 2;
-        if (gainOk && doubleOk) stale = true;
+        local nextCap = ("stats" in this._projects) && this._projects.stats != null
+            && ("nextProjectCapital" in this._projects.stats) && this._projects.stats.nextProjectCapital > 0
+            ? this._projects.stats.nextProjectCapital : 0;
+        if (AIR_EFFICIENCY_RESELECT) {
+          if (nextCap > 0 && budgetThen < nextCap && budgetNow >= nextCap) stale = true;
+        } else {
+          local gainOk = budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN;
+          local doubleOk = budgetNow > budgetThen * 2;
+          if (gainOk && doubleOk) stale = true;
+        }
       }
       local isFresh = false;
       if (C76_REGEN_TARGETED) {
         local c76LayerChanged = this._c76AnyLayerChanged();
         local c76PeriodicDue = (this._c76LastRegenQuarter < 0 || curYear > this._c76LastRegenQuarter);
         local c76ReloadDue = this._c76ForceReloadRegen;
-        if (this._lastCatalogMonth == curYm && this._projects != null && !stale &&
+        if ((AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == curYm) && this._projects != null && !stale &&
             !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
           this._schedIdlePredReason = "catalog_fresh";
           this._schedIdlePredClass = "pred";
           isFresh = true;
         }
       } else {
-        if (this._lastCatalogMonth == curYm && this._projects != null && !stale && !this._portfolioInvalidated) {
+        if ((AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == curYm) && this._projects != null && !stale && !this._portfolioInvalidated) {
           this._schedIdlePredReason = "catalog_fresh";
           this._schedIdlePredClass = "pred";
           isFresh = true;
