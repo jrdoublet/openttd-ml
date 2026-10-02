@@ -224,6 +224,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c83_slot_reaction",
+      description = "C83: regenerate AIR candidates when a watched town has one airport slot left; 1 = current behavior (default), 0 = continue the projects pass without this reactive regeneration",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c83_local_repair",
+      description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c83_fixes",
       description = "C83 review fixes (contestable watch towns, slot-town identity, rearmable race, skip dead air pairs, targeted site scan): 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

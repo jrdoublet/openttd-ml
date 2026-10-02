@@ -437,7 +437,8 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
       }
       local airSlice = OpexRegenerateAirProjectsSlice(owner._projects, owner._catalog, owner._budget,
           owner._lines, owner._abandonedPairs, s.airState, opsBudget, deadlineTick,
-          entityKind, entityId);
+          entityKind, entityId,
+          targeted && entityKind == "town" && ("reason" in s) && s.reason == "c83_slot_race");
       if (!airSlice.done) return "running";
       owner._projects = airSlice.projects;
       delete s.airState;

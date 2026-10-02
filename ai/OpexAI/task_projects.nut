@@ -828,6 +828,17 @@ function OpexC83WatchDroppedTown(ai, townId, ownCounts)
   }
 }
 
+/* Trace rare, commune aux deux bras, independante des sondes portefeuille
+ * couteuses. --script-debug permet au banc de collecter les intentions et les
+ * suppressions ; aucune nouvelle horloge, file ou donnee de Save/Load. */
+function OpexC83ReactionLog(townId, action)
+{
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " C83_REACTION enabled=" + (C83_SLOT_REACTION ? 1 : 0)
+      + " town=" + townId + " action=" + action);
+}
+
 function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
 {
   local remaining = AITown.GetAllowedNoise(townId);
@@ -862,6 +873,12 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
     return 0;
   }
 
+  if (!C83_SLOT_REACTION) {
+    ai._c83SlotWatch.rawset(townId, state);
+    if (previous != 1) OpexC83ReactionLog(townId, "suppressed");
+    return 0;
+  }
+
   local raceKey = "c77|town|" + townId + "|air";
   if (ai._reactiveQueue != null && ai._reactiveQueue.has(raceKey)) {
     if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
@@ -883,6 +900,7 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
   }
 
   if (ai._c77EnqueueEntity(["air"], "town", townId, true, "c83_slot_race")) {
+    OpexC83ReactionLog(townId, "enqueued");
     ai._c83SlotRace.rawset(townId, today);
     ai._c83SlotWatch.rawset(townId, state);
     if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
@@ -891,6 +909,7 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
     }
     return 1;
   }
+  OpexC83ReactionLog(townId, "enqueue_failed");
   if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
     OpexExpC83WatchActionLog(ai, townId, "enqueue_failed", "phase=c83_slot_watch town=" + townId
         + " previous=" + previous + " remaining=1 action=enqueue_failed");
@@ -1159,15 +1178,23 @@ function OpexAI::_c83WatchAirSlotTransitions()
       }
       continue;
     }
+    if (!C83_SLOT_REACTION) {
+      OpexC83ReactionLog(town.id, "suppressed");
+      continue;
+    }
     if (this._c77EnqueueEntity(["air"], "town", town.id, true, "c83_slot_race")) {
+      OpexC83ReactionLog(town.id, "enqueued");
       enqueued++;
       if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
         OpexExpC83WatchActionLog(this, town.id, "targeted_regen", "phase=c83_slot_watch town=" + town.id
             + " previous=" + previous + " remaining=1 action=targeted_regen");
       }
-    } else if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-      OpexExpC83WatchActionLog(this, town.id, "enqueue_failed", "phase=c83_slot_watch town=" + town.id
-          + " previous=" + previous + " remaining=1 action=enqueue_failed");
+    } else {
+      OpexC83ReactionLog(town.id, "enqueue_failed");
+      if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
+        OpexExpC83WatchActionLog(this, town.id, "enqueue_failed", "phase=c83_slot_watch town=" + town.id
+            + " previous=" + previous + " remaining=1 action=enqueue_failed");
+      }
     }
   }
   return enqueued;

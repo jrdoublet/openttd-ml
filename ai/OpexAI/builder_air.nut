@@ -61,6 +61,7 @@ require("air_towns.nut");
 require("air_trip.nut");
 
 require("air_sites.nut");
+require("air_c83_repair.nut");
 
 require("air_economics_c121.nut");
 

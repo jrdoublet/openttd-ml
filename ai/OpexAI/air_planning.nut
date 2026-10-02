@@ -441,6 +441,10 @@ function OpexAirPlansPrepare(ctx)
 /* 2. Recherche des sites : sondage des villes candidates et revalidation avant classement. */
 function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo)
 {
+  if (ctx.sliced && ("c83Repair" in ctx.resumeState)) {
+    local repaired = OpexC83RepairFindSites(ctx, comboIndex, combo, airport, plane);
+    if (repaired.handled) return repaired.done;
+  }
   local sliced = ctx.sliced;
   local resumeState = ctx.resumeState;
   local opsBudget = ctx.opsBudget;
@@ -962,7 +966,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
   local _calcDeltaOps = OpexAirCalcDeltaOps;
 
   if (AIR_HUB && lines != null) {
-    if (sites.len() < AIR_HUB_NEW_SITE_POOL) {
+    if (!ctx.c83RepairCombo && sites.len() < AIR_HUB_NEW_SITE_POOL) {
       local hubProbes = {
         left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0, cheapSkip = 0,
         stationLimitedTowns = stationLimitedTowns
@@ -2072,7 +2076,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     perfCheapSkip = 0,
     perfSitesFound = 0,
     sites = [],
-    hubs = []
+    hubs = [],
+    c83RepairCombo = false,
   };
 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_prepare", "-");

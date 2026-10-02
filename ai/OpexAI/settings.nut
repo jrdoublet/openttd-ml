@@ -252,6 +252,8 @@ function OpexLoadSettings()
   C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;
   C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
+  C83_SLOT_REACTION = AIController.GetSetting("c83_slot_reaction") != 0;
+  C83_LOCAL_REPAIR = AIController.GetSetting("c83_local_repair") != 0;
   EXP_C83_WATCH_DAILY = AIController.GetSetting("exp_c83_watch_daily") != 0;
   EXP_SCHEDULER_SKIP_NOT_DUE = AIController.GetSetting("exp_scheduler_skip_not_due") != 0;
   EXP_AIR_HUB_PAIR_PREFILTER = AIController.GetSetting("exp_air_hub_pair_prefilter") != 0;

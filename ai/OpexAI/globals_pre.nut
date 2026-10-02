@@ -72,6 +72,12 @@ AIR_EARLY_SLOT_BONUS_PCT <- 50;
  * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
  * pas requalifie. */
 AIR_C83_TARGET_TOWNS <- 6;
+/* Ablation C83 : conserver l'observation des slots et les gardes physiques,
+ * mais pouvoir supprimer l'enqueue AIR cible qui interrompt projects. */
+C83_SLOT_REACTION <- true;
+/* C83 : revalider les sites connus ; chercher seulement dans la ville cible.
+ * Intervention comportementale experimentale, ancien parcours conserve a 0. */
+C83_LOCAL_REPAIR <- false;
 /* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;

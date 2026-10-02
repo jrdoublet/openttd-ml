@@ -1,0 +1,50 @@
+{
+  "schema": "opex-review-evidence-v1",
+  "description": "Scoped C83 reaction evidence; global historical index unchanged.",
+  "documents": [
+    "docs/c83_slot_reaction_20261002.md"
+  ],
+  "artifacts": [
+    {
+      "source": "results/c83_reaction_off_smoke_20261002_r1.json",
+      "evidence": "evidence/review/c83_slot_reaction_20261002/results/c83_reaction_off_smoke_20261002_r1.json.gz",
+      "raw_bytes": 60961,
+      "raw_sha256": "b411608c6afae0b4564a1d4a3b00b82351edee6b34b99597168a4240edc48994",
+      "gzip_bytes": 4759,
+      "gzip_sha256": "87e8b1e5c3cfb64039e2dd643aad9c0c24144cfcc9450c01b97830a30204ab68"
+    },
+    {
+      "source": "results/c83_reaction_off_smoke_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c83_slot_reaction_20261002/results/c83_reaction_off_smoke_20261002_r1.manifest.json.gz",
+      "raw_bytes": 66479,
+      "raw_sha256": "5d960e20d72abbf1a6441f1107c4c8dd38735c405dac9bf8d56ea6aed55fea36",
+      "gzip_bytes": 10962,
+      "gzip_sha256": "02d0db5709492bae1be73efdaf767d36517429dacc2c91a67f13e641bf0d85a5"
+    },
+    {
+      "source": "results/c83_reaction_off_diag_20261002_r1.json",
+      "evidence": "evidence/review/c83_slot_reaction_20261002/results/c83_reaction_off_diag_20261002_r1.json.gz",
+      "raw_bytes": 263167,
+      "raw_sha256": "d9503be0d34f39f120120ce241e8a24bb529dec36d8b988aa17e1b5b7acc1063",
+      "gzip_bytes": 19017,
+      "gzip_sha256": "232a1e9734d363093b5b0c2af989cdcf00d1a7b9917fe9f0c0a2032519e6920e"
+    },
+    {
+      "source": "results/c83_reaction_off_diag_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c83_slot_reaction_20261002/results/c83_reaction_off_diag_20261002_r1.manifest.json.gz",
+      "raw_bytes": 69468,
+      "raw_sha256": "7f94cdbbc1d8867f4bdeab16a2f7b797fee706b7f6ad4f320c2ef38ed29a692a",
+      "gzip_bytes": 11104,
+      "gzip_sha256": "fa34c9c70b5c107bb69615513f05a2c10e32619f7874c9ef3154b89a4905bf67"
+    },
+    {
+      "source": "results/c83_slot_reaction_20261002_summary.json",
+      "evidence": "evidence/review/c83_slot_reaction_20261002/results/c83_slot_reaction_20261002_summary.json.gz",
+      "raw_bytes": 109002,
+      "raw_sha256": "dedacabcdb5d23bcadb170c12d16057883b2da4982567d981b5ad7bb21c2528a",
+      "gzip_bytes": 9409,
+      "gzip_sha256": "77e5308708476a3781221b1e1c9c77dda6dfe1388283dbb166b7c031a575e770"
+    }
+  ],
+  "missing": []
+}

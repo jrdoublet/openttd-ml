@@ -163,7 +163,7 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
  * opsBudget/deadlineTick et reprend exactement au curseur combo/a/b. */
 function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abandonedPairs,
                                         sliceState, opsBudget, deadlineTick,
-                                        entityKind = null, entityId = -1)
+                                        entityKind = null, entityId = -1, c83Race = false)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return { done = true, projects = projects };
@@ -176,6 +176,12 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   if (!("ops" in sliceState)) sliceState.ops <- 0;
 
   local mark = OpexOpsMeasureBegin();
+  if (c83Race && !("c83StartTick" in sliceState)) {
+    sliceState.c83StartTick <- AIController.GetTick();
+    if (C83_LOCAL_REPAIR) {
+      sliceState.airCursor.c83Repair <- OpexC83RepairSnapshot(projects);
+    }
+  }
   if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
   local best = OpexAirPlans(catalog, lines, 0, sliceState.plans, abandonedPairs, PAX_BAND_ALL,
                             entityKind == "town" ? entityId : -1,
@@ -198,6 +204,16 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   foreach (plan in sliceState.plans) {
     local p = OpexProjectFromAir(catalog, plan, perPlan);
     if (p != null) generated.projects.append(p);
+  }
+  if (c83Race) {
+    local repair = ("c83Repair" in sliceState.airCursor) ? sliceState.airCursor.c83Repair : null;
+    AILog.Info("C83_LOCAL_REPAIR enabled=" + (C83_LOCAL_REPAIR ? 1 : 0)
+        + " town=" + entityId + " local=" + (repair != null ? repair.localCombos : 0)
+        + " fallback=" + (repair != null ? repair.fallbackCombos : 0)
+        + " kept=" + (repair != null ? repair.targetKept : 0)
+        + " searched=" + (repair != null ? repair.targetSearched : 0)
+        + " partners=" + (repair != null ? repair.partners : 0)
+        + " ops=" + sliceState.ops + " ticks=" + (AIController.GetTick() - sliceState.c83StartTick));
   }
   return {
     done = true,
