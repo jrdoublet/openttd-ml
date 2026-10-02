@@ -1,0 +1,122 @@
+{
+  "schema": "opex-review-evidence-v1",
+  "description": "Scoped C121 K_dec evidence produced by package_review_evidence.main(--write); global index unchanged.",
+  "documents": [
+    "docs/c121_kdec_cold_20261002.md"
+  ],
+  "artifacts": [
+    {
+      "source": "results/c121_kdec_cold_20261002_summary.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_20261002_summary.json.gz",
+      "raw_bytes": 1208774,
+      "raw_sha256": "807fb6764946e0ec06f845d52ba72841167941b888209f0c9f91c7304bb0c7a8",
+      "gzip_bytes": 75046,
+      "gzip_sha256": "53967a8d585fd516bbd74d5ffbf190124c42700cd2f40710cfedee716a241ae8"
+    },
+    {
+      "source": "results/c121_kdec_cold_contracts/vm_20261002_r1/plan.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_contracts/vm_20261002_r1/plan.json.gz",
+      "raw_bytes": 153638,
+      "raw_sha256": "fe2fb75cec29be864c40c5d435c2a22c652e655e8c7f1b5d95420a4e5ff180b9",
+      "gzip_bytes": 61294,
+      "gzip_sha256": "71c713eed8d33d077e4b2eb243bc2247c79213738edd37738f6fafdad1525888"
+    },
+    {
+      "source": "results/c121_kdec_cold_contracts/vm_20261002_r1/report.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_contracts/vm_20261002_r1/report.json.gz",
+      "raw_bytes": 34840,
+      "raw_sha256": "9714895f1fac12e8de1a4b9e8c37d0d101f92d9304e00604116fe87bc9ae654f",
+      "gzip_bytes": 2896,
+      "gzip_sha256": "ec1cdc250b4ed999a4e17aaf4965e724e5ad66d61af306ab762791f28d3bc5f1"
+    },
+    {
+      "source": "results/c121_kdec_cold_exempt_20x10_20261002_r1.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_exempt_20x10_20261002_r1.json.gz",
+      "raw_bytes": 1467579,
+      "raw_sha256": "95c517ed05f21f68910636ee19891cc5d84829c02bacabd2f61aa491e7d84e11",
+      "gzip_bytes": 70071,
+      "gzip_sha256": "3d7ecc2ea5975046b817698c30fa1725e18bbc406c97d76d0d388b8d5c7127a1"
+    },
+    {
+      "source": "results/c121_kdec_cold_exempt_20x10_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_exempt_20x10_20261002_r1.manifest.json.gz",
+      "raw_bytes": 82180,
+      "raw_sha256": "aa23b01fa623115ab70a679ed4f6d96c68cf4448a395b98ff78d0dcb40d8f612",
+      "gzip_bytes": 11410,
+      "gzip_sha256": "839b7d197d59221043aad449663987fbbb52bd8567da27d348e4383768c6a46d"
+    },
+    {
+      "source": "results/c121_kdec_cold_exempt_5x6_20261002_r1.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_exempt_5x6_20261002_r1.json.gz",
+      "raw_bytes": 311047,
+      "raw_sha256": "fdbf470fc75508216a432784837a2d3bd37672c8980c363893f6719fa74b9d0b",
+      "gzip_bytes": 20253,
+      "gzip_sha256": "7621c1c33ea6d8298cf7dac1cbccfc6aafc032840bc671bfa4d101ba675a17db"
+    },
+    {
+      "source": "results/c121_kdec_cold_exempt_5x6_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_exempt_5x6_20261002_r1.manifest.json.gz",
+      "raw_bytes": 69914,
+      "raw_sha256": "332f0f498bf1614716194f3dfac071a070dce85ad240e9334c516d0d5bf22962",
+      "gzip_bytes": 10926,
+      "gzip_sha256": "9c51c202f892a7c1fc38213fce46763d7c3b1414b3caebdeeea72fe931cf82cc"
+    },
+    {
+      "source": "results/c121_kdec_cold_exempt_smoke_20261002_r1.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_exempt_smoke_20261002_r1.json.gz",
+      "raw_bytes": 62303,
+      "raw_sha256": "d4608e54416a25d16ae032599a32ad048bf6f6fb685ce62b2569a0d792a9f856",
+      "gzip_bytes": 4864,
+      "gzip_sha256": "377570af01cc67fba5d63c171685a821603075b9b64a4035d7bcc0bbe7ae69d0"
+    },
+    {
+      "source": "results/c121_kdec_cold_exempt_smoke_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_exempt_smoke_20261002_r1.manifest.json.gz",
+      "raw_bytes": 66698,
+      "raw_sha256": "890d744a132e6ed34c2ebebef318b438483b6dede95a8ccbe9f28ca7917b3e5b",
+      "gzip_bytes": 10779,
+      "gzip_sha256": "b4b028003631e52d97f90dff5c5261829305abfc347e982baefdd06836d100b1"
+    },
+    {
+      "source": "results/c121_kdec_cold_shadow_5x6_20261002_r1.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_shadow_5x6_20261002_r1.json.gz",
+      "raw_bytes": 306488,
+      "raw_sha256": "a4b9f93bba15ea64ab00497c3aea8463d64030644e2273dba5f488b569f80019",
+      "gzip_bytes": 20742,
+      "gzip_sha256": "243a2b6a30bfd20723d9ab7f76e8b9877c23ddb17fe0552b18aa1cd1b9393b73"
+    },
+    {
+      "source": "results/c121_kdec_cold_shadow_5x6_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_shadow_5x6_20261002_r1.manifest.json.gz",
+      "raw_bytes": 69366,
+      "raw_sha256": "6d08c8ac31e4cc12a754d4ce1d401958bc9ab69fd5e4e6dc1de3d9f79be8318e",
+      "gzip_bytes": 10853,
+      "gzip_sha256": "391af25e376d20b7318f07447072d1ee7b4480dcad8685883fd8afc2e9200898"
+    },
+    {
+      "source": "results/c121_kdec_cold_shadow_5x6_20261002_r1_analysis.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_shadow_5x6_20261002_r1_analysis.json.gz",
+      "raw_bytes": 58250,
+      "raw_sha256": "95fb56fdfb401a8d6236b766ade47aae7d56e07a33b227c94e2428e179c920d2",
+      "gzip_bytes": 5532,
+      "gzip_sha256": "3e6c0194bc591b9dea1b35242e0763b1a6f58a64a75257c92aea21dde29b6768"
+    },
+    {
+      "source": "results/c121_kdec_cold_smoke_20261002_r1.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_smoke_20261002_r1.json.gz",
+      "raw_bytes": 23514,
+      "raw_sha256": "4bac04646ea4bf68c30f46e0fec5320f6bd22ef3831b00f68f02554730ff254d",
+      "gzip_bytes": 3073,
+      "gzip_sha256": "103a704b3ed60a33b3e2967c671f1ed15ea2fa6c2f1874c0535c1b05259b55b0"
+    },
+    {
+      "source": "results/c121_kdec_cold_smoke_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c121_kdec_cold_20261002/results/c121_kdec_cold_smoke_20261002_r1.manifest.json.gz",
+      "raw_bytes": 51209,
+      "raw_sha256": "698088c5c094555d82b2c29b9c177857c7e8cf68f2300c06d132acefef034b31",
+      "gzip_bytes": 10249,
+      "gzip_sha256": "4f2f2ba5ab6a99756d32a5d5d5d4b3117498e4c30995c32654cfba365845a4a6"
+    }
+  ],
+  "missing": []
+}

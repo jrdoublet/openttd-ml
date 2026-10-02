@@ -877,6 +877,7 @@ function OpexC121KDecColdShadowCandidate(rows, project, financeCapital, kDec)
       || !("payload" in project) || project.payload == null || !("line" in project.payload)
       || project.payload.line == null) return;
   local line = project.payload.line;
+  if (!("mode" in line) || line.mode != "air") return;
   if (!("c121MarginalProfit" in line) || !("c121MarginalRevenue" in line)) return;
 
   local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
@@ -907,6 +908,11 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
   local rankUp = 0;
   local entered = 0;
   local headFlip = 0;
+  /* Date de la passe, commune aux candidats et au resume. L'horodatage moteur
+   * est celui du PC, pas celui de la partie. Aucun OpexDecide (etat TASK). */
+  local date = AIDate.GetCurrentDate();
+  local stamp = " year=" + AIDate.GetYear(date) + " month=" + AIDate.GetMonth(date)
+      + " day=" + AIDate.GetDayOfMonth(date);
   local headMode = (affordable != null && affordable.len() > 0 && ("mode" in affordable[0]))
       ? affordable[0].mode : "none";
 
@@ -950,11 +956,11 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
         + " score=" + row.currentScore + " cold_score=" + row.coldScore
         + " rank=" + currentRank + " cold_rank=" + coldRank
         + " affected=" + (changed ? 1 : 0)
-        + " head_flip=" + ((currentRank != 0 && coldRank == 0) ? 1 : 0));
+        + " head_flip=" + ((currentRank != 0 && coldRank == 0) ? 1 : 0) + stamp);
   }
   AILog.Info("C121_KDEC_COLD_SUMMARY cold=" + cold + " warm=" + warm
       + " affected=" + affected + " rank_up=" + rankUp + " entered=" + entered
-      + " head_flip=" + headFlip + " head_mode=" + headMode + " k_dec=" + kDec);
+      + " head_flip=" + headFlip + " head_mode=" + headMode + " k_dec=" + kDec + stamp);
 }
 
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)

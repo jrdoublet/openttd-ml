@@ -314,6 +314,12 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
                + " profit=" + project.profitAnnual + " roi=" + project.roi);
   }
   AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added + " replaced=" + replaced);
+  if (C121_KDEC_COLD_SHADOW && added > 0 && ("c121MarginalSamples" in line)) {
+    local date = AIDate.GetCurrentDate();
+    AILog.Info("C121_KDEC_COLD_FUNDED line=" + line.lineId + " added=" + added
+        + " samples=" + line.c121MarginalSamples + " year=" + AIDate.GetYear(date)
+        + " month=" + AIDate.GetMonth(date) + " day=" + AIDate.GetDayOfMonth(date));
+  }
   return { outcome = "built", discards = passDiscards };
 }
 
