@@ -82,7 +82,19 @@ et `git diff --check` réussis. Runtime conteneur pré-vérifié ; smoke à exé
 
 ## Résultats
 
-En attente. Rapporter couverture/santé, verdict brut, deltas par graine,
+Smoke défaut terminé sur `496639f` : 1/1 partie, `run_ok=true`, compteurs
+physiques valides, 13 checkpoints jusqu'au 01/01/1971. La première année de
+profit conserve sa couverture partielle (3 trimestres) ; smoke technique seulement.
+
+Première tentative diagnostic `tg_off_default_5x6_20261002_r1`, même SHA :
+échec de collecte avant résultat, `TypeError: 'datetime.date' object is not
+subscriptable`. OpenTTDLab fournit un objet date ; conversion en chaîne corrigée
+dans le décodeur, contre-test du type réel ajouté. Ancien bundle conservé,
+aucun verdict économique ni réemploi des résultats. Nouvelle campagne
+`tg_off_default_5x6_20261002_r2` après validation (8 tests TG + selftest).
+Les bras, seuils, graines et règle restent ceux du plan initial.
+
+Résultats comparatifs en attente. Rapporter couverture/santé, verdict brut, deltas par graine,
 moyenne/médiane/IC95, signes recomptés, évolution du gap, slots 2-0/1-1,
 véhicules primaires décodés et constructions TG annuelles.
 

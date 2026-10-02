@@ -1,5 +1,6 @@
 """TG exposure: real sign format, ownership, snapshot and policy propagation."""
 import json
+from datetime import date
 from pathlib import Path
 import tempfile
 import unittest
@@ -52,6 +53,12 @@ class TownGrowthSignMetricsTests(unittest.TestCase):
         for record in persisted:
             self.assertEqual(record["town_growth_builds_sign_total"], 4)
             self.assertEqual(record["town_growth_builds_sign_by_year"], {"1970": 2, "1971": 2})
+
+    def test_keep_accepts_openttdlab_date_object(self):
+        with mock.patch.object(bench, "append_checkpoint"):
+            rows = bench.keep({"chunks": self.chunks, "date": date(1971, 12, 1),
+                               "experiment": {"seed": 42, "policy_id": "reference"}})
+        self.assertEqual(rows[0]["town_growth_builds_sign_by_year"], {"1970": 2, "1971": 2})
 
     def test_summary_uses_last_snapshot_without_summing_durable_signs(self):
         metrics = bench.town_growth_sign_metrics(self.chunks, current_year=1971)

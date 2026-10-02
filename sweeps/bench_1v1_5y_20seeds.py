@@ -1016,7 +1016,8 @@ def keep(row):
     structural = {}
     structural.update(airport_slot_metrics(chunks))
     structural.update(early_slot_sign_metrics(chunks))
-    sign_year = int(date[:4]) if str(date)[:4].isdigit() else STARTING_YEAR
+    date_text = str(date)
+    sign_year = int(date_text[:4]) if date_text[:4].isdigit() else STARTING_YEAR
     structural.update(town_growth_sign_metrics(chunks, current_year=sign_year))
     structural.update(c75_bypass_sign_metrics(chunks))
     structural.update(project_build_sign_metrics(chunks))
