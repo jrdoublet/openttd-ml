@@ -1,0 +1,306 @@
+{
+  "scope": "context optimization in C121 profile; not C121 model adoption",
+  "opcode": {
+    "fixture": {
+      "path": "results\\c121_winner_integration\\20261002_context_fixture42_r3\\report.json",
+      "same_input_old_ops": 12802796,
+      "same_input_new_ops": 14067928,
+      "percent": 9.881685219384885,
+      "checked_count": 399
+    },
+    "comparisons": [
+      {
+        "seed": 42,
+        "checks": {
+          "both_reports_pass": true,
+          "measure_profiles": true,
+          "same_seed": true,
+          "same_configuration": true,
+          "same_sources": true,
+          "same_libraries": true,
+          "same_image": true,
+          "only_selected_setting_differs": true,
+          "off_on": true,
+          "adopted_fusion_common": true,
+          "c121_exposed_profile": true
+        },
+        "comparable": true,
+        "differences": [
+          "c121_air_engine_context"
+        ],
+        "annual_deltas": {
+          "c121_scan_ops": {
+            "reference": 7836021,
+            "variant": 18166356,
+            "delta": 10330335,
+            "percent": 131.83138483166394
+          },
+          "c121_winner_ops": {
+            "reference": 7623973,
+            "variant": 14380630,
+            "delta": 6756657,
+            "percent": 88.62383169510176
+          },
+          "air_ops": {
+            "reference": 19190506,
+            "variant": 38305148,
+            "delta": 19114642,
+            "percent": 99.6046795222596
+          },
+          "total_ops": {
+            "reference": 25457053,
+            "variant": 43358539,
+            "delta": 17901486,
+            "percent": 70.32033912173574
+          },
+          "c121_calls": {
+            "reference": 494,
+            "variant": 879,
+            "delta": 385,
+            "percent": 77.93522267206478
+          }
+        },
+        "winner_ops_per_call": [
+          15433.143724696356,
+          16360.216154721275
+        ],
+        "limit": "Annual work and per-call route mix may differ; not a pure matched-input speedup or economic verdict"
+      },
+      {
+        "seed": 100,
+        "checks": {
+          "both_reports_pass": true,
+          "measure_profiles": true,
+          "same_seed": true,
+          "same_configuration": true,
+          "same_sources": true,
+          "same_libraries": true,
+          "same_image": true,
+          "only_selected_setting_differs": true,
+          "off_on": true,
+          "adopted_fusion_common": true,
+          "c121_exposed_profile": true
+        },
+        "comparable": true,
+        "differences": [
+          "c121_air_engine_context"
+        ],
+        "annual_deltas": {
+          "c121_scan_ops": {
+            "reference": 12266600,
+            "variant": 12557232,
+            "delta": 290632,
+            "percent": 2.369295485301559
+          },
+          "c121_winner_ops": {
+            "reference": 11269316,
+            "variant": 9586379,
+            "delta": -1682937,
+            "percent": -14.93379899898095
+          },
+          "air_ops": {
+            "reference": 28276064,
+            "variant": 26300631,
+            "delta": -1975433,
+            "percent": -6.986237547064544
+          },
+          "total_ops": {
+            "reference": 34022991,
+            "variant": 33260785,
+            "delta": -762206,
+            "percent": -2.2402674708993153
+          },
+          "c121_calls": {
+            "reference": 692,
+            "variant": 599,
+            "delta": -93,
+            "percent": -13.439306358381497
+          }
+        },
+        "winner_ops_per_call": [
+          16285.1387283237,
+          16003.97161936561
+        ],
+        "limit": "Annual work and per-call route mix may differ; not a pure matched-input speedup or economic verdict"
+      }
+    ],
+    "gain_confirmed": false
+  },
+  "economic": {
+    "stage": "5 seeds x 6 years",
+    "neutrality": {
+      "pass": false,
+      "checks": {
+        "healthy": true,
+        "complete": true,
+        "coverage": true,
+        "pairs": true,
+        "adoption_sample": true,
+        "profit_ci_not_entirely_negative": true,
+        "no_significant_defeat": true,
+        "value_guard": false
+      },
+      "raw_verdict": "diagnostic_only",
+      "profit_delta": {
+        "n": 5,
+        "mean": -49336.6,
+        "median": -52907.0,
+        "standard_deviation": 82111.562805,
+        "standard_error": 36721.407234,
+        "mean_normal_95pct_ci": [
+          -121309.235641,
+          22636.035641
+        ],
+        "mean_student_t_95pct_ci": [
+          -151291.567508,
+          52618.367508
+        ],
+        "wins": 2,
+        "losses": 3,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 5,
+        "sign_test_p": 1.0
+      },
+      "value": {
+        "policy_delta": {
+          "n": 5,
+          "mean": -295676.6,
+          "median": -63705.0,
+          "standard_deviation": 492845.933155,
+          "standard_error": 220407.401794,
+          "mean_normal_95pct_ci": [
+            -727667.169442,
+            136313.969442
+          ],
+          "mean_student_t_95pct_ci": [
+            -907625.628673,
+            316272.428673
+          ],
+          "wins": 0,
+          "losses": 5,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 5,
+          "sign_test_p": 0.0625
+        },
+        "policy_ratio": {
+          "n_positive_denominator": 5,
+          "excluded_nonpositive_or_missing_denominator": 0,
+          "ratio_of_means": 0.942267,
+          "ratio_of_means_percent_change": -5.773329,
+          "mean_of_ratios": 0.951356,
+          "mean_of_ratios_percent_change": -4.864408
+        },
+        "reference_opex_minus_aaahogex": {
+          "n": 5,
+          "mean": -5487022.2,
+          "median": -4198153.0,
+          "standard_deviation": 4728955.310016,
+          "standard_error": 2114853.107151,
+          "mean_normal_95pct_ci": [
+            -9632058.122609,
+            -1341986.277391
+          ],
+          "mean_student_t_95pct_ci": [
+            -11358795.535084,
+            384751.135084
+          ],
+          "wins": 0,
+          "losses": 5,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 5,
+          "sign_test_p": 0.0625
+        },
+        "variant_opex_minus_aaahogex": {
+          "n": 5,
+          "mean": -5293518.8,
+          "median": -4704708.0,
+          "standard_deviation": 2521941.139186,
+          "standard_error": 1127846.364495,
+          "mean_normal_95pct_ci": [
+            -7504057.054504,
+            -3082980.545496
+          ],
+          "mean_student_t_95pct_ci": [
+            -8424922.199469,
+            -2162115.400531
+          ],
+          "wins": 0,
+          "losses": 5,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 5,
+          "sign_test_p": 0.0625
+        },
+        "duel_gap_evolution": {
+          "n": 5,
+          "mean": 193503.4,
+          "median": -506555.0,
+          "standard_deviation": 2361096.759555,
+          "standard_error": 1055914.571164,
+          "mean_normal_95pct_ci": [
+            -1876051.130232,
+            2263057.930232
+          ],
+          "mean_student_t_95pct_ci": [
+            -2738185.331535,
+            3125192.131535
+          ],
+          "wins": 2,
+          "losses": 3,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 5,
+          "sign_test_p": 1.0
+        }
+      },
+      "sign_p": 1.0
+    },
+    "failed_runs": [],
+    "complete_pairs": 5,
+    "metric_coverage_complete": true,
+    "last_checkpoint": "1975-12-01",
+    "last_quarters_available_and_valid": [
+      4,
+      4
+    ],
+    "per_seed": [
+      {
+        "seed": 42,
+        "profit_delta": -92921,
+        "value_delta": -1161479
+      },
+      {
+        "seed": 100,
+        "profit_delta": 8050,
+        "value_delta": -63705
+      },
+      {
+        "seed": 999,
+        "profit_delta": 49738,
+        "value_delta": -235425
+      },
+      {
+        "seed": 1234,
+        "profit_delta": -158643,
+        "value_delta": -13190
+      },
+      {
+        "seed": 5678,
+        "profit_delta": -52907,
+        "value_delta": -4584
+      }
+    ]
+  },
+  "decision": "Rejected at diagnostic value guard; 20x10 not launched; default remains OFF",
+  "effective_setting_differences": [
+    "c121_air_engine_context"
+  ],
+  "source_bundle_sha256": "9a545b60323baf74d847e26c52f9ed7fc67aa8e74fc16d68e81e2f865fb31214",
+  "manifest_sha256": "b11185e2b75cbcccd204d1c3e39e75736a664060c340957af84460a208852566",
+  "raw_artifacts": {
+    "results\\c121_winner_integration\\20261002_context_summary_r1\\report.json": "7d00bdb6648160e157d2aba0c5a08dbe2afa160d99e51dbdf58cdabf6f4460dc",
+    "results\\c121_context_economics\\20261002_context_neutrality_r1\\inputs\\results\\20261002_context_neutrality_r1_diagnostic.json": "78235d759ce8cee19cb9fd2283e5aafb18ef798c7f660c6e5e53a72b69a0caaf",
+    "results\\c121_context_economics\\20261002_context_neutrality_r1\\inputs\\results\\20261002_context_neutrality_r1_diagnostic.manifest.json": "b11185e2b75cbcccd204d1c3e39e75736a664060c340957af84460a208852566",
+    "results\\c121_context_economics\\20261002_context_neutrality_r1\\plan.json": "0d3e678f821d4d142eb0bd952a40a299ca3b0b11f480e27bd9c99d997feeb116",
+    "results\\c121_context_economics\\20261002_context_neutrality_r1\\diagnostic_gate.json": "509b4edf25127d65847cc1ba26c9362705c63a49d3645bfcfd1573a7a2cef945",
+    "results\\c121_context_economics\\20261002_context_neutrality_r1\\outcome.json": "67121ec728366575ef743dfc14e1d88ec4d5ee13d796cc0e378985a32e1f58ed"
+  }
+}

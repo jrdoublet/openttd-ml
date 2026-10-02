@@ -63,6 +63,29 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
    bras et contrôles négatifs corrigés, 25 tests ciblés OK, correction non
    exercée moteur. Bootstrap laissé de côté à la demande utilisateur ; reprise
    sur service valorisé/acheté/réalisé. [Rectification](c121_investments_20261001.md).
+- **C121 profondeur de décision (01/10)** : incohérence exposée entre économie
+  full-fleet propagée au classement et profondeur déjà choisie par le score C121.
+  Correctif minimal `c121_air_decision_depth_economics`, défaut 0 : moteur,
+  achat initial N=1 et cible post-build inchangés. Isolation A/B/C/D exercée au
+  moteur dans des copies ; B reste impossible en production car le catalogue est
+  volontairement dépendant de C121. La sonde décision→réalisé est perturbatrice
+  en 5×3 (+85,3 k£/an trace−témoin en moyenne), donc exclue de la preuve
+  économique. Pilote non instrumenté 5×6 candidat vs C115 : Δ `profit_year`
+  **−493,1 k£/an** moyen, médiane −717,4 k£, 1/4, IC95 Student-t
+  [−991,4 ; +5,2] k£/an ; valeur ratio-des-moyennes **−29,34 %**, garde 5 %
+  échouée. **Verdict : rejeté ; aucun 20×10.**
+- **C121 profondeur portefeuille / split (01/10)** : le socle courant C121 est
+  déjà très déficitaire contre C115 (−459,1 k£/an, valeur −33,30 %, −5,4 slots
+  Opex). L'isolation `portfolio_depth` sur le même bundle ne rajoute que
+  −61,6 k£/an : le couplage du profit de profondeur au plancher absolu est réel,
+  mais secondaire. Le correctif distinct `c121_air_portfolio_split_economics=0`
+  sépare max-profit long terme (qualification) et profondeur `P/max(C,K_dec)`
+  (seul `fundScore`) sans changer moteur/N=1/cible post-build. Son 5×6 contre
+  C115 perd **−684,5 k£/an**, 0/5, IC95 Student-t
+  [−1 109,1 ; −260,0] k£/an, valeur **−35,36 %**, slots/villes Opex −9,6.
+  **Rejeté ; aucun 20×10.** Ne plus empiler de profondeur statique ; prochaine
+  hypothèse à définir : valeur de continuation marginale N=1→N+1, revalorisée
+  après observation, sans réarmer les variantes C121/C122 rejetées.
 
 ## 1. Priorité immédiate — valider les livraisons locales
 
@@ -122,6 +145,8 @@ Revue du 22/09 revérifiée sur le code le 30/09 et close pour : F-ROAD-TXN-01 (
 | C85 puis C84 | **Reprise conditionnelle** | C85 d'abord ; changement de sûreté mesuré séparément. C84 seulement après 5×6 C85 >+50 k£/an et garde valeur tenue ; pas de 20×10 avant ces portes. [C85](25_c85_air_equipment_frontier.md), [C84](24_c84_air_target_fleet.md). |
 | C88 compagnies humaines/IA | **Reconnaissance seule** | Confirmer API NoAI 15.3 ; si `is_ai` inaccessible, constater et arrêter. Aucune heuristique nom/argent/activité, aucune décision changée. |
 | Estimateurs low-opcode | **Après stabilisation C121** | Revue cold start physique + moyenne glissante : observations, fenêtre, invalidation, coût mesuré ; pas de constantes ajoutées sans modèle. |
+| C121 calcul du gagnant AIR — opcodes | **Adopté : fusion=1 quand C121 est utilisé** | 20×10 complet et sain, 40/40 duels, neutralité selon règle pré-enregistrée : moyenne −68,5 k£/an, IC95 Student [−243,6 ; +106,6] k£/an, 7/20, p=0,263176, valeur −3,52 % (garde −5 % tenue). Verdict brut `fail_primary` conservé, pas de gain économique démontré. Pilote AIR −5,93 %/−6,61 %. Quatre difficultés à1, 109 tests et smoke du défaut livré sain. Économie C121=0 et C115 inchangés ; aucune adoption des autres changements. [Bilan et preuves](c121_air_winner_economic_validation_20261002.md). |
+| C121 contexte commun paire/avion — opcodes (item 1) | **Non retenu ; défaut OFF** | Fixture saine, 72 cas/399 choix égaux, mais scan+gagnant +9,88 % à entrées identiques. Évaluation économique 5×6 complète et saine, 5/5 paires : profit moyen −49,34 k£/an, IC95 Student [−151,29 ; +52,62] k£/an, 2/5 victoires, p=1. Garde de valeur échouée : −5,7733 % (limite −5 %). Neutralité non validée, verdict brut `diagnostic_only`. Arrêt sans 20×10, aucune adoption ni relance. [Bilan et preuves](c121_air_engine_context_20261002.md). |
 | Protocole `mean40` | **Choix avant campagne** | Déjà implémenté et utilisé : décider sa généralisation, règle et graines avant mesure. `signs20` reste le défaut, aucun changement après résultats. |
 
 ## 4. En pause ou sous condition — pas de lancement automatique
@@ -132,7 +157,7 @@ Revue du 22/09 revérifiée sur le code le 30/09 et close pour : F-ROAD-TXN-01 (
 | Sujet | Condition indispensable avant reprise |
 |---|---|
 | V88 goods | Workers A* prêts et régression résolue ; corriger financement étape 1/profit global et faux compteur après simple lancement A*. **Pas de duel V88 avant.** |
-| C121 économie / C122 stratégie | Aucun 20×10 C121 ; aucun nouveau 5×6/20×10 C122 actuel. Classifieur diagnostique seulement ; hypothèse nouvelle distincte des formulations rejetées. Cold start PASS-only puis apprentissage PASS/MAIL, pas retour au catalogue exhaustif à froid. |
+| C121 économie / C122 stratégie | Aucun 20×10 pour qualifier l'économie C121 ; exceptions utilisateur limitées à la neutralité de `c121_air_winner_fusion` et à l'évaluation du contexte paire/avion (02/10), voir leurs plans. Aucun nouveau 5×6/20×10 C122 actuel. Classifieur diagnostique seulement ; hypothèse nouvelle distincte des formulations rejetées. Cold start PASS-only puis apprentissage PASS/MAIL, pas retour au catalogue exhaustif à froid. |
 | C116 / C118 / C120 | Formulations C116/C118 rejetées ; C120 gelé jusqu'à correction du modèle. R8 préparé n'est pas un lancement dû. |
 | V93 / V95 AIR / C97 / B9 | Pas de réactivation globale V93 ni de chooser C97 ; demande résiduelle/valeur marginale à démontrer. B9 diagnostic clos, aucun traitement ouvert. |
 | C61 AIR / Route / Rail | AIR : audit flotte intégré, aucun avant/après complet ni profit marginal démontré ; identifier renforts/ventes et mesurer rotations, attente, demande et occupation avant capacités. Pas de plafond arbitraire. [Audit](parallel_fleet_audit.md). Route : réconcilier l'autre session ; Rail : exposition rentable `NOSPOT`/`TRACKFAIL` avant géométrie, conserver modèle d'accélération C41. |
