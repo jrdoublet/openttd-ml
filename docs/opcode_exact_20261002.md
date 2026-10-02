@@ -380,6 +380,23 @@ déterministe.
 au défaut : `results/smoke_opcode_exact_default_1y42_20261002.json`, OK, le
 harnais résout `exp_opcode_exact=1`. Suite Python : 1 143 tests, OK, 1 skip.
 
-Limite : les deux bras portaient la configuration C121, qui n'est pas encore le
-défaut de la branche (C115=1). L'effet sous la configuration C115 n'est pas
-mesuré par ce banc.
+**Contrôle au défaut C115 (`results/opcode_exact_default_c115_20x10_20261002.*`)** :
+les deux bras de ce premier banc portaient C121, qui n'est pas le défaut de la
+branche. Même protocole et mêmes graines, bras `OpexAI[exp_opcode_exact=0]`
+contre `OpexAI[exp_opcode_exact=1]` au défaut livré (C115=1, C121=0) ; code
+`020c77a` (même IA que `e4312cb` après rebase), image `venv-20261001`.
+
+- Couverture : 20/20 paires, `failed_runs=[]` ; verdict brut `fail_primary`
+  (attendu : la règle signs20 cherche un gain, pas une neutralité).
+- `profit_year` : moyenne **−50 299 £/an**, médiane −61 051 ; **6 victoires /
+  14 défaites**, test des signes p = 0,115 ; IC95 (t) [−189 942 ; +89 343].
+- `company_value` : ratio des moyennes −2,14 % (7/13) ; garde −5 % tenue.
+- `performance_history` : +3,7 (12/8). Écart au duel (`profit_year`) : +10 k£
+  en moyenne, médiane −81 k£ (9/11).
+
+Lecture selon la règle opcodes : pas de perte établie (IC95 non entièrement
+négatif, p ≥ 0,05, garde tenue), donc le défaut 1 reste conforme. Le sens est
+toutefois défavorable sous C115 (14 défaites sur 20), à l'inverse du banc C121
+(15 victoires) ; le duel n'étant pas déterministe, aucun des deux sens n'est
+établi. Smoke 1×1 de l'arbre fusionné `652dac9` :
+`results/smoke_merged_652dac9_1y42_20261002.json`, OK.

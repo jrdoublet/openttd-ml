@@ -92,7 +92,9 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   livrés. Contrôle solo 3×6 `mismatch=0`. 20×10 duel sous C121 (deux bras) :
   20/20, `profit_year` +74 k£/an (15/5, p=0,041, IC95 [−115 k ; +263 k]),
   valeur +6,8 %. Correctif Save au-delà de 64 lignes (`910bb68`) requis par la
-  graine 314. Effet sous C115 non mesuré. [Mesures](opcode_exact_20261002.md).
+  graine 314. Contrôle 20×10 au défaut C115 : 20/20, −50 k£/an (6/14,
+  p=0,115, IC95 [−190 k ; +89 k]), valeur −2,1 % : pas de perte établie, sens
+  défavorable. [Mesures](opcode_exact_20261002.md).
 
 ## 1. Priorité immédiate — valider les livraisons locales
 
