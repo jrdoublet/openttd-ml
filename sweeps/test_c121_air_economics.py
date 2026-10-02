@@ -757,6 +757,253 @@ class TestC121FleetStockGrowth(unittest.TestCase):
 
 
 
+class TestC121ObservationGrowth(unittest.TestCase):
+    def test_setting_defaults_off_and_requires_c121(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_observation_growth"')
+        self.assertIn("custom_value = 0", info[i:i + 500])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_OBSERVATION_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_observation_growth") != 0;', settings)
+
+    def test_one_reinforcement_per_positive_annual_observation(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn("c121BelowTarget && C121_AIR_OBSERVATION_GROWTH", task)
+        self.assertIn("reportYear != year || c121Age < 1", task)
+        self.assertIn('!("lastProfit" in line) || line.lastProfit <= 0', task)
+        self.assertIn('line.c121GrowthReportYear == reportYear', task)
+        self.assertIn('"c121_observation_already_consumed"', task)
+        self.assertIn("maxAddedPerPass = c121StockGrowth > 0 ? (c121StockGrowth < 4 ? c121StockGrowth : 4) : 1;", task)
+
+    def test_success_consumes_report_and_scalar_is_persisted(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        projects = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
+        persist = (ROOT / "ai" / "OpexAI" / "persist.nut").read_text(encoding="utf-8")
+        self.assertIn("line.c121GrowthReportYear <- this._lastReportYear;", task)
+        self.assertIn("line.c121GrowthReportYear <- this._lastReportYear;", projects)
+        save_skip = persist[persist.index("local c121SaveSkip = {"):persist.index("local projectedLines = [];")]
+        self.assertNotIn("c121GrowthReportYear", save_skip)
+
+    def test_default_two_year_rules_are_preserved_when_flag_is_off(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn("} else if (c121BelowTarget) {", task)
+        self.assertIn('c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0', task)
+        self.assertIn('(year - line.lastAirFleetYear) < 2', task)
+
+
+class TestC121FirstObservationGrowth(unittest.TestCase):
+    def test_setting_defaults_off_and_requires_c121(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_first_observation_growth"')
+        self.assertIn("custom_value = 0", info[i:i + 600])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_OBSERVATION_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_first_observation_growth") != 0;', settings)
+
+    def test_only_first_one_to_two_reinforcement_is_advanced(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn("c121BelowTarget && C121_AIR_FIRST_OBSERVATION_GROWTH", task)
+        self.assertIn('have == 1 && !("lastAirFleetYear" in line)', task)
+        self.assertIn("reportYear != year || c121Age < 1", task)
+        self.assertIn('!("lastProfit" in line) || line.lastProfit <= 0', task)
+        self.assertIn('"c121_first_growth_no_positive_observation"', task)
+        self.assertIn('(year - line.lastAirFleetYear) < 2', task)
+
+    def test_optional_day_floor_is_off_by_default_and_scoped_to_first_growth(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_first_growth_min_days"')
+        self.assertIn("custom_value = 0", info[i:i + 700])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_GROWTH_MIN_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn('AIDate.GetCurrentDate() - line.buildDate', task)
+        self.assertIn('local c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_MIN_DAYS;', task)
+        self.assertIn('c121AgeDays < c121FirstGrowthMinDays', task)
+        self.assertIn('"c121_first_growth_too_young"', task)
+
+    def test_optional_phase_split_is_off_by_default_and_switches_only_first_growth_age_floor(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        phase_i = info.index('name = "c121_air_first_growth_phase_years"')
+        late_i = info.index('name = "c121_air_first_growth_late_days"')
+        self.assertIn("custom_value = 0", info[phase_i:phase_i + 700])
+        self.assertIn("custom_value = 0", info[late_i:late_i + 700])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_GROWTH_PHASE_YEARS = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
+        self.assertIn('C121_AIR_FIRST_GROWTH_LATE_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn("local c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_MIN_DAYS;", task)
+        self.assertIn("year - OPEX_START_YEAR >= C121_AIR_FIRST_GROWTH_PHASE_YEARS", task)
+        self.assertIn("c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_LATE_DAYS;", task)
+        self.assertIn("c121AgeDays < c121FirstGrowthMinDays", task)
+
+    def test_optional_wait_floor_is_off_by_default_and_scoped_to_first_growth(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_first_growth_min_wait_pct"')
+        self.assertIn("custom_value = 0", info[i:i + 700])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn('maxWait * 100 < firstCap * C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT', task)
+        self.assertIn('"c121_first_growth_low_wait"', task)
+
+    def test_first_live_shadow_defaults_off_and_never_enters_air_decision(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_first_live_shadow"')
+        self.assertIn("custom_value = 0", info[i:i + 600])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_first_live_shadow") != 0;', settings)
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertNotIn("C121_AIR_FIRST_LIVE_SHADOW", task)
+
+    def test_first_live_shadow_reuses_bounded_c117_windows(self):
+        probes = (ROOT / "ai" / "OpexAI" / "probes.nut").read_text(encoding="utf-8")
+        self.assertIn("OpexC121FirstLiveObserve(line, state, ageDays);", probes)
+        self.assertIn("while (holder.history.len() > 3) holder.history.remove(0);", probes)
+        self.assertIn("state.lastLive != 1", probes)
+        self.assertIn("ageDays > 365", probes)
+        self.assertIn("r90.tripsA >= 1 && r90.tripsB >= 1", probes)
+        self.assertIn('" C121_FIRST_LIVE "', probes)
+
+    def test_first_live_growth_defaults_off_and_requires_c121(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_first_live_growth"')
+        self.assertIn("custom_value = 0", info[i:i + 600])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_LIVE_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_first_live_growth") != 0;', settings)
+
+    def test_first_live_growth_phase_defaults_unlimited_and_falls_back_to_standard(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_first_live_growth_phase_years"')
+        self.assertIn("custom_value = 0", info[i:i + 700])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH', settings)
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn("C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0", task)
+        self.assertIn("year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS", task)
+        live_i = task.index("c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH")
+        standard_i = task.index("} else if (c121BelowTarget) {", live_i)
+        self.assertGreater(standard_i, live_i)
+
+    def test_first_live_growth_changes_only_first_one_to_two_admission(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn("c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH", task)
+        self.assertIn('have == 1 && !("lastAirFleetYear" in line)', task)
+        self.assertIn("!OpexC121FirstLiveBalanced90(line)", task)
+        self.assertIn('local c121Age = ("year" in line) ? year - line.year : -1;', task)
+        self.assertIn('if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0)', task)
+        self.assertIn('"c121_first_live_not_ready"', task)
+        self.assertIn('(year - line.lastAirFleetYear) < 2', task)
+        self.assertIn("maxAddedPerPass = c121StockGrowth > 0 ? (c121StockGrowth < 4 ? c121StockGrowth : 4) : 1;", task)
+
+    def test_first_live_growth_is_early_override_not_a_late_gate(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        start = task.index("c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH")
+        end = task.index("} else if (c121BelowTarget && C121_AIR_FIRST_OBSERVATION_GROWTH", start)
+        block = task[start:end]
+        self.assertIn("if (!OpexC121FirstLiveBalanced90(line))", block)
+        self.assertIn("c121Age < 2", block)
+        self.assertIn("line.lastProfit <= 0", block)
+        self.assertNotIn("c121_first_live_not_ready\", 1);\n        continue;\n      }\n    }", block)
+
+    def test_first_live_growth_reuses_same_shadow_evidence_state(self):
+        probes = (ROOT / "ai" / "OpexAI" / "probes.nut").read_text(encoding="utf-8")
+        self.assertIn("(!C121_AIR_FIRST_LIVE_SHADOW && !C121_AIR_FIRST_LIVE_GROWTH)", probes)
+        self.assertIn("function OpexC121FirstLiveBalanced90(line)", probes)
+        self.assertIn('("balanced90" in holder) && holder.balanced90', probes)
+
+    def test_first_live_growth_tags_only_its_fleet_entry(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+        self.assertIn("local c121FirstLiveEntry = false;", task)
+        self.assertIn("c121FirstLiveEntry = true;", task)
+        self.assertIn("if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;", task)
+
+    def test_first_live_opportunity_probe_is_passive(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
+        self.assertIn("function OpexC121FirstLiveAirOpportunity(projects, project, rank, lines)", task)
+        self.assertIn("airCap <= available && fleetCap + airCap > available", task)
+        self.assertIn('AILog.Info("C121_FIRST_LIVE_PRIORITY line="', task)
+        probe = task[task.index("if ((C121_AIR_FIRST_LIVE_SHADOW || C121_AIR_FIRST_LIVE_AIR_PRIORITY)"):]
+        probe = probe[:probe.index("if (c121LiveShouldDefer) {")]
+        self.assertNotIn("continue;", probe)
+        self.assertNotIn("break;", probe)
+
+    def test_first_live_air_priority_defaults_off_and_is_growth_scoped(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_air_first_live_air_priority"')
+        self.assertIn("custom_value = 0", info[i:i + 700])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_AIR_FIRST_LIVE_AIR_PRIORITY = C121_AIR_FIRST_LIVE_GROWTH\n      && AIController.GetSetting("c121_air_first_live_air_priority") != 0;', settings)
+
+    def test_first_live_air_priority_defers_only_direct_displacement(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
+        self.assertIn("local c121LiveShouldDefer = false;", task)
+        self.assertIn("c121LiveShouldDefer = c121LiveOpp != null && c121LiveOpp.displaced", task)
+        self.assertIn("c121LiveOpp.nextRank == i + 1 && builtCount == 0", task)
+        self.assertIn("if (c121LiveShouldDefer) {", task)
+        self.assertIn("if (C121_AIR_FIRST_LIVE_AIR_PRIORITY) {", task)
+        self.assertIn('AILog.Info("C121_FIRST_LIVE_PRIORITY_DEFER line="', task)
+        self.assertIn('reason = "c121_first_live_air_priority"', task)
+        self.assertIn("airCap <= available && fleetCap + airCap > available", task)
+        self.assertIn('" immediate=" + (c121LiveOpp.nextRank == i + 1 ? 1 : 0)', task)
+        self.assertIn('" built_before=" + builtCount', task)
+
+    def test_first_live_air_priority_is_opcode_parity_until_real_defer(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
+        start = task.index("local c121LiveShouldDefer = false;")
+        end = task.index("if (c121Served != null", start)
+        block = task[start:end]
+        compute = block.index("c121LiveShouldDefer = c121LiveOpp != null")
+        gate = block.index("if (c121LiveShouldDefer) {")
+        toggle = block.index("if (C121_AIR_FIRST_LIVE_AIR_PRIORITY) {", gate)
+        self.assertLess(compute, gate)
+        self.assertLess(gate, toggle)
+
+    def test_c121_kpass_shadow_defaults_off_and_is_passive(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_kpass_shadow"')
+        self.assertIn("custom_value = 0", info[i:i + 700])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_KPASS_SHADOW = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_kpass_shadow") != 0;', settings)
+        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
+        self.assertIn("function OpexC121KPassShadow(projects, project, rank, projCap, kPass, available, reason)", task)
+        self.assertIn('AILog.Info("C121_KPASS_SHADOW reason="', task)
+        self.assertIn('tail += " p" + j + "=" + next.mode + ":" + cap + ":" + (cap <= available ? 1 : 0);', task)
+        block = task[task.index("function OpexC121KPassShadow"):task.index("/* C39.5", task.index("function OpexC121KPassShadow"))]
+        self.assertNotIn("break;", block)
+        self.assertNotIn("projects.best.remove", block)
+        self.assertNotIn("projects.best.append", block)
+
+    def test_c121_kpass_air_continue_defaults_off_and_is_c121_scoped(self):
+        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
+        i = info.index('name = "c121_kpass_air_continue"')
+        self.assertIn("custom_value = 0", info[i:i + 900])
+        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
+        self.assertIn('C121_KPASS_AIR_CONTINUE = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_kpass_air_continue") != 0;', settings)
+
+    def test_c121_kpass_air_continue_only_skips_fleet_with_fundable_air_ahead(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
+        helper = task[task.index("function OpexC121KPassFundableAirAhead"):]
+        helper = helper[:helper.index("/* C39.5")]
+        self.assertIn("local end = rank + 6;", helper)
+        self.assertIn('next.mode != "air"', helper)
+        self.assertIn("OpexAirBatchPlanStillLive(next.payload, lines)", helper)
+        self.assertIn("cap > 0 && cap <= available", helper)
+        start = task.index("local c121KPassAirAhead = null;")
+        block = task[start:task.index("break;", start) + len("break;")]
+        self.assertIn('c75StopReason == "k_pass" && project.mode == "fleet"', block)
+        self.assertIn("c121KPassAirAhead = OpexC121KPassFundableAirAhead", block)
+        self.assertIn("if (c121KPassAirAhead != null && C121_KPASS_AIR_CONTINUE)", block)
+        self.assertIn("continue;", block)
+
+    def test_c121_kpass_air_continue_keeps_opcode_parity_before_action(self):
+        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
+        start = task.index("local c121KPassAirAhead = null;")
+        block = task[start:task.index("break;", start) + len("break;")]
+        compute = block.index("c121KPassAirAhead = OpexC121KPassFundableAirAhead")
+        gate = block.index("if (c121KPassAirAhead != null && C121_KPASS_AIR_CONTINUE)")
+        action = block.index("continue;", gate)
+        self.assertLess(compute, gate)
+        self.assertLess(gate, action)
+
+
 class TestC121TerritoryFirst(unittest.TestCase):
     def test_setting_defaults_off_and_requires_c121(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")

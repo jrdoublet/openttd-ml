@@ -290,6 +290,10 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 
   line.lastAirFleetYear <- year;
   line.lastAirFleetDate <- AIDate.GetCurrentDate();
+  if (C121_AIR_OBSERVATION_GROWTH && C121_AIR_ECONOMICS && added > 0
+      && ("targetAirPlanes" in line) && line.targetAirPlanes >= line.vehCount) {
+    line.c121GrowthReportYear <- this._lastReportYear;
+  }
   if (c121TrackMarginal && line.vehCount > c121HaveBefore) {
     line.c121MarginalBaselineProfit <- c121BaselineProfit;
     line.c121MarginalBaselineRevenue <- c121BaselineRevenue;
@@ -311,6 +315,80 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   }
   AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added + " replaced=" + replaced);
   return { outcome = "built", discards = passDiscards };
+}
+
+/* C121 cadence : mesure l'opportunity cost d'un premier renfort live.
+ * La sonde garde la premiere nouvelle ligne AIR encore classee APRES la flotte. La garde
+ * causale, elle, ne consomme ce signal que lorsque cette ligne est IMMEDIATEMENT suivante
+ * et qu'aucun chantier n'a encore ete construit dans la passe : on protege ainsi une
+ * substitution réellement atteignable, pas un AIR distant qui pourrait etre bloque par
+ * un projet intermediaire ou K_pass. */
+function OpexC121FirstLiveAirOpportunity(projects, project, rank, lines)
+{
+  if (projects == null || !("best" in projects) || project == null
+      || !("payload" in project) || project.payload == null
+      || !("c121FirstLive" in project.payload) || !project.payload.c121FirstLive) return null;
+  local available = OpexAvailableCapital();
+  local fleetCap = OpexProjectFinanceCapital(project);
+  for (local j = rank + 1; j < projects.best.len(); j++) {
+    local next = projects.best[j];
+    if (next == null || !("mode" in next) || next.mode != "air") continue;
+    if (!("payload" in next) || next.payload == null
+        || !OpexAirBatchPlanStillLive(next.payload, lines)) continue;
+    local airCap = OpexProjectFinanceCapital(next);
+    if (airCap <= 0) continue;
+    return {
+      nextRank = j, available = available, fleetCap = fleetCap, airCap = airCap,
+      airFundableNow = airCap <= available,
+      displaced = airCap <= available && fleetCap + airCap > available,
+    };
+  }
+  return { nextRank = -1, available = available, fleetCap = fleetCap, airCap = 0,
+           airFundableNow = false, displaced = false };
+}
+
+/* C121 cadence : shadow borné du premier arrêt de passe C75/K_pass.
+ * Le journal montre ce qui bloque maintenant et ce que la boucle aurait vu ensuite
+ * si elle n'avait pas break. Aucun tri, aucune mutation, aucun changement de décision. */
+function OpexC121KPassShadow(projects, project, rank, projCap, kPass, available, reason)
+{
+  if (!C121_KPASS_SHADOW || projects == null || !("best" in projects)
+      || project == null) return;
+  local lineId = -1;
+  if (project.mode == "fleet" && ("payload" in project) && project.payload != null
+      && ("line" in project.payload) && project.payload.line != null
+      && ("lineId" in project.payload.line)) lineId = project.payload.line.lineId;
+  local tail = "";
+  local end = rank + 6;
+  if (end > projects.best.len()) end = projects.best.len();
+  for (local j = rank + 1; j < end; j++) {
+    local next = projects.best[j];
+    if (next == null) continue;
+    local cap = OpexProjectFinanceCapital(next);
+    tail += " p" + j + "=" + next.mode + ":" + cap + ":" + (cap <= available ? 1 : 0);
+  }
+  AILog.Info("C121_KPASS_SHADOW reason=" + reason + " next_mode=" + project.mode
+      + " rank=" + rank + " line=" + lineId + " finance=" + projCap
+      + " k_pass=" + kPass + " available=" + available + tail);
+}
+
+/* C121 cadence : look-ahead pur et borne pour le causal K_pass. Il ne reordonne rien :
+ * il dit seulement si, dans les cinq rangs qui suivent un bloqueur fleet, une nouvelle
+ * ligne AIR encore vivante est deja finançable avec la caisse courante. */
+function OpexC121KPassFundableAirAhead(projects, rank, available, lines)
+{
+  if (projects == null || !("best" in projects) || projects.best == null || available < 0) return null;
+  local end = rank + 6;
+  if (end > projects.best.len()) end = projects.best.len();
+  for (local j = rank + 1; j < end; j++) {
+    local next = projects.best[j];
+    if (next == null || !("mode" in next) || next.mode != "air") continue;
+    if (!("payload" in next) || next.payload == null
+        || !OpexAirBatchPlanStillLive(next.payload, lines)) continue;
+    local cap = OpexProjectFinanceCapital(next);
+    if (cap > 0 && cap <= available) return { rank = j, cap = cap };
+  }
+  return null;
 }
 /* C39.5 : conserve, par cle stable, le premier jour de la fenetre courante ou un projet du
  * vivier est finançable. La table neuve purge les projets sortis du vivier et borne la memoire.
@@ -1541,6 +1619,54 @@ function OpexAI::_tryBuildProjects(year)
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
+    local c121LiveOpp = null;
+    local c121LiveShouldDefer = false;
+    if ((C121_AIR_FIRST_LIVE_SHADOW || C121_AIR_FIRST_LIVE_AIR_PRIORITY)
+        && project.mode == "fleet"
+        && ("payload" in project) && project.payload != null
+        && ("c121FirstLive" in project.payload) && project.payload.c121FirstLive) {
+      c121LiveOpp = OpexC121FirstLiveAirOpportunity(this._projects, project, i, this._lines);
+      /* Calculer la condition complete dans les DEUX bras quand le shadow est actif.
+       * Sinon le simple toggle ON paie davantage d'opcodes avant toute defer réelle et
+       * peut déplacer la cadence du scheduler. Le seul chemin divergent doit commencer
+       * au moment où une substitution immédiate est effectivement disponible. */
+      c121LiveShouldDefer = c121LiveOpp != null && c121LiveOpp.displaced
+          && c121LiveOpp.nextRank == i + 1 && builtCount == 0;
+      if (C121_AIR_FIRST_LIVE_SHADOW && c121LiveOpp != null) {
+        local liveLine = project.payload.line;
+        local liveLineId = (liveLine != null && ("lineId" in liveLine)) ? liveLine.lineId : -1;
+        local liveSig = c121LiveOpp.nextRank + ":" + (c121LiveOpp.airFundableNow ? 1 : 0)
+            + ":" + (c121LiveOpp.displaced ? 1 : 0);
+        if (!(liveLineId in C121_AIR_FIRST_LIVE_PRIORITY_STATE)
+            || C121_AIR_FIRST_LIVE_PRIORITY_STATE[liveLineId] != liveSig) {
+          C121_AIR_FIRST_LIVE_PRIORITY_STATE.rawset(liveLineId, liveSig);
+          AILog.Info("C121_FIRST_LIVE_PRIORITY line=" + liveLineId + " rank=" + i
+              + " fleet_cap=" + c121LiveOpp.fleetCap + " available=" + c121LiveOpp.available
+              + " next_air_rank=" + c121LiveOpp.nextRank + " air_cap=" + c121LiveOpp.airCap
+              + " air_fundable=" + (c121LiveOpp.airFundableNow ? 1 : 0)
+              + " displaced=" + (c121LiveOpp.displaced ? 1 : 0)
+              + " immediate=" + (c121LiveOpp.nextRank == i + 1 ? 1 : 0)
+              + " built_before=" + builtCount);
+        }
+      }
+      if (c121LiveShouldDefer) {
+        if (C121_AIR_FIRST_LIVE_AIR_PRIORITY) {
+          AILog.Info("C121_FIRST_LIVE_PRIORITY_DEFER line="
+              + (("payload" in project) && project.payload != null
+                  && ("line" in project.payload) && project.payload.line != null
+                  && ("lineId" in project.payload.line) ? project.payload.line.lineId : -1)
+              + " rank=" + i + " next_air_rank=" + c121LiveOpp.nextRank
+              + " fleet_cap=" + c121LiveOpp.fleetCap + " air_cap=" + c121LiveOpp.airCap
+              + " available=" + c121LiveOpp.available + " built_before=" + builtCount);
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                                  reason = "c121_first_live_air_priority",
+                                  extra = "next_air_rank=" + c121LiveOpp.nextRank
+                                      + " air_cap=" + c121LiveOpp.airCap });
+          continue;
+        }
+      }
+    }
     if (c121Served != null && !OpexC121ProjectIsTerritorial(project, c121Served)) {
       /* Territoire d'abord : reserver le financement du prochain projet territorial
        * encore a tenter dans cette passe ; les autres chantiers se font sur le reste. */
@@ -1629,6 +1755,26 @@ function OpexAI::_tryBuildProjects(year)
                 + " reason=" + c75StopReason + " next_rank=" + i + " next_mode=" + project.mode
                 + " finance=" + projCap + " threshold=" + c75KPass
                 + (availCap >= 0 ? " available=" + availCap : ""));
+          }
+          local c121KPassAirAhead = null;
+          local c121StopAvailable = -1;
+          if (C121_KPASS_SHADOW || C121_KPASS_AIR_CONTINUE) {
+            c121StopAvailable = availCap >= 0 ? availCap : OpexAvailableCapital();
+            if (c75StopReason == "k_pass" && project.mode == "fleet") {
+              c121KPassAirAhead = OpexC121KPassFundableAirAhead(
+                  this._projects, i, c121StopAvailable, this._lines);
+            }
+          }
+          if (C121_KPASS_SHADOW) {
+            OpexC121KPassShadow(this._projects, project, i, projCap, c75KPass,
+                               c121StopAvailable, c75StopReason);
+          }
+          if (c121KPassAirAhead != null && C121_KPASS_AIR_CONTINUE) {
+            AILog.Info("C121_KPASS_AIR_CONTINUE fleet_rank=" + i
+                + " air_rank=" + c121KPassAirAhead.rank + " fleet_cap=" + projCap
+                + " air_cap=" + c121KPassAirAhead.cap + " k_pass=" + c75KPass
+                + " available=" + c121StopAvailable);
+            continue;
           }
           break;
         }

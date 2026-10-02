@@ -478,6 +478,33 @@ C121_CATALOG_INCREMENTAL <- false;
 C121_CATALOG_AIR_FIRST_YEAR <- false;
 /* C121 : renfort de flotte sur preuve de stock en gare (delai 60 jours). */
 C121_FLEET_STOCK_GROWTH <- false;
+/* C121 : au plus un renfort par nouveau rapport annuel positif, toujours arbitre
+ * par le portefeuille et borne par la cible C121. Distinct du stock-growth. */
+C121_AIR_OBSERVATION_GROWTH <- false;
+/* C121 cadence : avance seulement le premier renfort 1->2 a la premiere
+ * observation annuelle positive. Les paliers suivants gardent les gardes
+ * standard C121 (deux ans entre renforts). */
+C121_AIR_FIRST_OBSERVATION_GROWTH <- false;
+C121_AIR_FIRST_GROWTH_MIN_DAYS <- 0;
+C121_AIR_FIRST_GROWTH_PHASE_YEARS <- 0;
+C121_AIR_FIRST_GROWTH_LATE_DAYS <- 0;
+C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT <- 0;
+/* C121 cadence : shadow live du premier renfort 1->2. Reutilise les fenetres
+ * C117 deja calculees et ne participe a aucune decision. */
+C121_AIR_FIRST_LIVE_SHADOW <- false;
+C121_AIR_FIRST_LIVE_GROWTH <- false;
+C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <- 0;
+C121_AIR_FIRST_LIVE_AIR_PRIORITY <- false;
+C121_AIR_FIRST_LIVE_STATE <- {};
+C121_AIR_FIRST_LIVE_OPS <- 0;
+C121_AIR_FIRST_LIVE_SAMPLES <- 0;
+C121_AIR_FIRST_LIVE_PRIORITY_STATE <- {};
+/* C121 cadence : shadow pass-stop/K_pass. Journalise le projet bloquant et
+ * les projets suivants sans modifier l'arbitrage ni la poursuite de passe. */
+C121_KPASS_SHADOW <- false;
+/* C121 cadence : laisse le portefeuille depasser un bloqueur fleet/K_pass uniquement
+ * lorsqu'un projet AIR finançable existe dans les cinq rangs suivants. */
+C121_KPASS_AIR_CONTINUE <- false;
 /* C121 : territoire d'abord (reserve de tresorerie pour le prochain AIR qui ouvre une ville). */
 C121_TERRITORY_FIRST <- false;
 /* C121 : ligne a la AAAHogEx (2 avions a l'ouverture, chargement complet aux deux bouts). */

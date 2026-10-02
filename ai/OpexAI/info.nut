@@ -553,6 +553,103 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_air_observation_growth",
+      description = "C121 experimental: allow at most one +1 AIR reinforcement per new positive annual report while under target; portfolio arbitration and target bound stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_observation_growth",
+      description = "C121 cadence experiment: advance only the first AIR reinforcement 1->2 to the first positive annual observation; later reinforcements keep the standard two-year C121 cadence; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_min_days",
+      description = "With c121_air_first_observation_growth, minimum line age in days before the first 1->2 AIR reinforcement; 0 = no extra age floor",
+      min_value = 0, max_value = 365,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 15,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_phase_years",
+      description = "Cadence experiment: for this many game years use c121_air_first_growth_min_days, then switch first 1->2 reinforcements to c121_air_first_growth_late_days; 0 = disabled",
+      min_value = 0, max_value = 20,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_late_days",
+      description = "With phased first-growth cadence, minimum line age after the early phase; 0 = no extra late age floor",
+      min_value = 0, max_value = 365,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 15,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_min_wait_pct",
+      description = "With first-observation growth, require current max waiting cargo to reach this percentage of one plane capacity before 1->2; 0 = disabled",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_shadow",
+      description = "C121 cadence shadow: log passive 60/90-day live evidence for AIR lines still at one plane; never changes reinforcement decisions; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_growth",
+      description = "C121 cadence experiment: advance only AIR 1->2 when balanced 90-day live evidence is positive; target, portfolio arbitration and later reinforcements stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_growth_phase_years",
+      description = "With first-live growth, use the live 1->2 early override only during this many opening game years; 0 = all years",
+      min_value = 0, max_value = 20,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, step_size = 1, flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_air_priority",
+      description = "With C121 first-live growth, defer a live 1->2 only when the immediately following project is a fundable new AIR line, the pass has built nothing yet, and buying the plane would make that AIR line unaffordable; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_kpass_shadow",
+      description = "C121 cadence shadow: log each portfolio pass stop with blocking project and a bounded look-ahead of following project modes/finance; never changes decisions; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_kpass_air_continue",
+      description = "C121 cadence experiment: when a fleet reinforcement would stop the pass on K_pass but a live AIR new-line project is fundable in the next five ranks, skip only that fleet blocker and keep scanning under the normal C75 bypass rules; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c121_air_engine_realization",
       description = "C121 experimental engine-only realization correction by AIR arm; project economics unchanged; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

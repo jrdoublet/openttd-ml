@@ -79,6 +79,14 @@ function OpexC117Log(fields)
       + AIDate.GetDayOfMonth(date) + " C117_AIR_THROUGHPUT " + fields);
 }
 
+function OpexC121FirstLiveLog(fields)
+{
+  if (!C121_AIR_FIRST_LIVE_SHADOW) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " C121_FIRST_LIVE " + fields);
+}
+
 function OpexC121HubDelayLog(fields)
 {
   if (!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) return;
@@ -208,6 +216,145 @@ function OpexC117NewLineState(bucket, startDate)
   };
 }
 
+function OpexC121FirstLiveAggregate(history, count)
+{
+  if (history == null || count <= 0 || history.len() < count) return null;
+  local start = history.len() - count;
+  local days = 0;
+  local trips = 0;
+  local tripsA = 0;
+  local tripsB = 0;
+  local profit = 0;
+  local pax = 0;
+  local seats = 0;
+  local waitASum = 0;
+  local waitAN = 0;
+  local waitBSum = 0;
+  local waitBN = 0;
+  for (local i = start; i < history.len(); i++) {
+    local w = history[i];
+    days += w.days;
+    trips += w.trips;
+    tripsA += w.tripsA;
+    tripsB += w.tripsB;
+    profit += w.profit;
+    pax += w.pax;
+    seats += w.seats;
+    waitASum += w.waitASum;
+    waitAN += w.waitAN;
+    waitBSum += w.waitBSum;
+    waitBN += w.waitBN;
+  }
+  local load = seats > 0 ? pax.tofloat() / seats.tofloat() : -1.0;
+  local waitA = waitAN > 0 ? waitASum.tofloat() / waitAN.tofloat() : -1.0;
+  local waitB = waitBN > 0 ? waitBSum.tofloat() / waitBN.tofloat() : -1.0;
+  local cap = history[history.len() - 1].cap;
+  local maxWait = waitA > waitB ? waitA : waitB;
+  local waitNorm = cap > 0 && maxWait >= 0.0 ? maxWait / cap.tofloat() : -1.0;
+  return {
+    days = days, trips = trips, tripsA = tripsA, tripsB = tripsB,
+    profit = profit,
+    profitPm = days > 0 ? profit.tofloat() * 30.4 / days.tofloat() : 0.0,
+    load = load, waitA = waitA, waitB = waitB, waitNorm = waitNorm,
+    cap = cap,
+  };
+}
+
+/* C121 cadence : reutilise les fenetres mensuelles deja produites par C117.
+ * Aucun scan vehicule supplementaire, aucune lecture par le portefeuille et
+ * aucune mutation de ligne : uniquement trois petits snapshots par LineID. */
+function OpexC121FirstLiveObserve(line, state, ageDays)
+{
+  if ((!C121_AIR_FIRST_LIVE_SHADOW && !C121_AIR_FIRST_LIVE_GROWTH)
+      || line == null || state == null
+      || !("lineId" in line)) return;
+  local tick0 = AIController.GetTick();
+  local ops0 = AIController.GetOpsTillSuspend();
+  local key = line.lineId;
+  if (state.lastLive != 1 || ageDays < 0 || ageDays > 365
+      || ("lastAirFleetYear" in line)) {
+    if (key in C121_AIR_FIRST_LIVE_STATE) delete C121_AIR_FIRST_LIVE_STATE[key];
+    return;
+  }
+  local targetN = ("c121TargetPlanes" in line) ? line.c121TargetPlanes : -1;
+  if (targetN >= 0 && targetN <= 1) {
+    if (key in C121_AIR_FIRST_LIVE_STATE) delete C121_AIR_FIRST_LIVE_STATE[key];
+    return;
+  }
+
+  local holder = (key in C121_AIR_FIRST_LIVE_STATE)
+      ? C121_AIR_FIRST_LIVE_STATE[key] : { history = [] };
+  holder.history.append({
+    date = state.lastDate,
+    days = state.lastDate - state.startDate > 0 ? state.lastDate - state.startDate : 1,
+    trips = state.trips, tripsA = state.tripsA, tripsB = state.tripsB,
+    profit = state.profit, pax = state.pax, seats = state.seatLegs,
+    waitASum = state.waitASum, waitAN = state.waitAN,
+    waitBSum = state.waitBSum, waitBN = state.waitBN,
+    cap = state.lastCap,
+  });
+  while (holder.history.len() > 3) holder.history.remove(0);
+  C121_AIR_FIRST_LIVE_STATE.rawset(key, holder);
+
+  if (ageDays < 60) return;
+  local r60 = OpexC121FirstLiveAggregate(holder.history, 2);
+  local r90 = OpexC121FirstLiveAggregate(holder.history, 3);
+  local balanced60 = r60 != null && r60.days >= 45 && r60.trips >= 2
+      && r60.profit > 0 && (r60.load >= 0.40 || r60.waitNorm >= 0.50);
+  local balanced90 = r90 != null && r90.days >= 50 && r90.trips >= 2
+      && r90.profit > 0 && (r90.load >= 0.40 || r90.waitNorm >= 0.50);
+  local strict90 = ageDays >= 75 && r90 != null && r90.days >= 60 && r90.trips >= 2
+      && r90.tripsA >= 1 && r90.tripsB >= 1 && r90.profit > 0
+      && (r90.load >= 0.55 || r90.waitNorm >= 0.75);
+  local dual90 = r90 != null && r90.days >= 50 && r90.trips >= 2
+      && r90.profit > 0 && r90.load >= 0.30 && r90.waitNorm >= 0.25;
+  if ("balanced90" in holder) holder.balanced90 = balanced90;
+  else holder.balanced90 <- balanced90;
+  if ("lastEvidenceDate" in holder) holder.lastEvidenceDate = state.lastDate;
+  else holder.lastEvidenceDate <- state.lastDate;
+  C121_AIR_FIRST_LIVE_STATE.rawset(key, holder);
+  local shadowOps = OpexAirCalcDeltaOps(tick0, ops0);
+  C121_AIR_FIRST_LIVE_OPS += shadowOps;
+  C121_AIR_FIRST_LIVE_SAMPLES++;
+
+  OpexC121FirstLiveLog("line=" + line.lineId
+      + " arm=" + (("c117Arm" in line) ? line.c117Arm : "unknown")
+      + " age_days=" + ageDays + " target_n=" + targetN
+      + " cold_marginal_profit=" + (("c121MarginalProfit" in line) ? line.c121MarginalProfit : -1)
+      + " marginal_samples=" + (("c121MarginalSamples" in line) ? line.c121MarginalSamples : -1)
+      + " last_profit=" + (("lastProfit" in line) ? line.lastProfit : -1)
+      + " r60_days=" + (r60 != null ? r60.days : 0)
+      + " r60_trips=" + (r60 != null ? r60.trips : 0)
+      + " r60_profit_pm=" + (r60 != null ? r60.profitPm : 0.0)
+      + " r60_load=" + (r60 != null ? r60.load : -1.0)
+      + " r60_wait_norm=" + (r60 != null ? r60.waitNorm : -1.0)
+      + " r90_days=" + (r90 != null ? r90.days : 0)
+      + " r90_trips=" + (r90 != null ? r90.trips : 0)
+      + " r90_trips_a=" + (r90 != null ? r90.tripsA : 0)
+      + " r90_trips_b=" + (r90 != null ? r90.tripsB : 0)
+      + " r90_profit_pm=" + (r90 != null ? r90.profitPm : 0.0)
+      + " r90_load=" + (r90 != null ? r90.load : -1.0)
+      + " r90_wait_norm=" + (r90 != null ? r90.waitNorm : -1.0)
+      + " rule_bal60=" + (balanced60 ? 1 : 0)
+      + " rule_bal90=" + (balanced90 ? 1 : 0)
+      + " rule_strict90=" + (strict90 ? 1 : 0)
+      + " rule_dual90=" + (dual90 ? 1 : 0)
+      + " shadow_ops=" + shadowOps
+      + " shadow_ops_total=" + C121_AIR_FIRST_LIVE_OPS
+      + " shadow_samples=" + C121_AIR_FIRST_LIVE_SAMPLES
+      + " shadow_ops_mean=" + (C121_AIR_FIRST_LIVE_SAMPLES > 0
+          ? C121_AIR_FIRST_LIVE_OPS.tofloat() / C121_AIR_FIRST_LIVE_SAMPLES.tofloat() : 0.0));
+}
+
+function OpexC121FirstLiveBalanced90(line)
+{
+  if (line == null || !("lineId" in line)) return false;
+  local key = line.lineId;
+  if (!(key in C121_AIR_FIRST_LIVE_STATE)) return false;
+  local holder = C121_AIR_FIRST_LIVE_STATE[key];
+  return ("balanced90" in holder) && holder.balanced90;
+}
+
 function OpexC117FlushLine(line, state)
 {
   if (state == null || state.samples <= 0) return;
@@ -234,6 +381,7 @@ function OpexC117FlushLine(line, state)
   local ageDays = ("buildDate" in line) ? (state.lastDate - line.buildDate) : -1;
   local capital = ("actualCapital" in line) ? line.actualCapital : -1;
   local profitCapitalPm = capital > 0 ? profitPm / capital.tofloat() : -1.0;
+  OpexC121FirstLiveObserve(line, state, ageDays);
   /* C119 diagnostic passif : distance Manhattan disponible avant toute decision. */
   local paymentDistance = -1;
   local airportTypeA = -1;

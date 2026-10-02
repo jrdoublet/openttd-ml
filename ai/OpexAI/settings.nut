@@ -286,6 +286,34 @@ function OpexLoadSettings()
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
   C121_FLEET_STOCK_GROWTH = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_fleet_stock_growth") != 0;
+  C121_AIR_OBSERVATION_GROWTH = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_observation_growth") != 0;
+  C121_AIR_FIRST_OBSERVATION_GROWTH = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_first_observation_growth") != 0;
+  C121_AIR_FIRST_GROWTH_MIN_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH
+      ? AIController.GetSetting("c121_air_first_growth_min_days") : 0;
+  C121_AIR_FIRST_GROWTH_PHASE_YEARS = C121_AIR_FIRST_OBSERVATION_GROWTH
+      ? AIController.GetSetting("c121_air_first_growth_phase_years") : 0;
+  C121_AIR_FIRST_GROWTH_LATE_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH
+      ? AIController.GetSetting("c121_air_first_growth_late_days") : 0;
+  C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT = C121_AIR_FIRST_OBSERVATION_GROWTH
+      ? AIController.GetSetting("c121_air_first_growth_min_wait_pct") : 0;
+  C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_first_live_shadow") != 0;
+  C121_AIR_FIRST_LIVE_GROWTH = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_first_live_growth") != 0;
+  C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH
+      ? AIController.GetSetting("c121_air_first_live_growth_phase_years") : 0;
+  C121_AIR_FIRST_LIVE_AIR_PRIORITY = C121_AIR_FIRST_LIVE_GROWTH
+      && AIController.GetSetting("c121_air_first_live_air_priority") != 0;
+  C121_KPASS_SHADOW = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_kpass_shadow") != 0;
+  C121_KPASS_AIR_CONTINUE = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_kpass_air_continue") != 0;
+  C121_AIR_FIRST_LIVE_STATE = {};
+  C121_AIR_FIRST_LIVE_OPS = 0;
+  C121_AIR_FIRST_LIVE_SAMPLES = 0;
+  C121_AIR_FIRST_LIVE_PRIORITY_STATE = {};
   C121_TERRITORY_FIRST = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_territory_first") != 0;
   C121_AAA_LINE = C121_AIR_ECONOMICS

@@ -820,6 +820,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         && line.targetAirPlanes > have;
     local belowTarget = c84BelowTarget || c121BelowTarget;
     local c121StockGrowth = 0;
+    local c121FirstLiveEntry = false;
     if (c121BelowTarget && C121_FLEET_STOCK_GROWTH) {
       /* Variante AAAHogEx (route.nut:2904-2915) : la preuve d'une demande non servie est
        * le stock en gare, pas une annee d'observation. Un renfort au plus tous les 60 jours
@@ -835,6 +836,96 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         OpexAirFleetRefusal(line, year, "W");
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "c121_low_stock", 1);
         continue;
+      }
+    } else if (c121BelowTarget && C121_AIR_OBSERVATION_GROWTH) {
+      /* Variante distincte du stock-growth : la cible reste seulement une borne
+       * et le portefeuille continue d'arbitrer le +1. On accepte le dernier
+       * rapport annuel reel des que la ligne a traverse un changement d'annee,
+       * mais une meme observation ne peut financer qu'un seul renfort. La cadence
+       * AIR_FLEET_CADENCE_DAYS ci-dessus reste applicable. */
+      local c121Age = ("year" in line) ? year - line.year : -1;
+      local reportYear = this._lastReportYear;
+      if (reportYear != year || c121Age < 1
+          || !("lastProfit" in line) || line.lastProfit <= 0) {
+        OpexAirFleetRefusal(line, year, "O");
+        if (plan != null && C69_BOTTLENECK_PROBE)
+          OpexC73RecordRejection("fleet", "c121_no_positive_annual_observation", 1);
+        continue;
+      }
+      if (("c121GrowthReportYear" in line) && line.c121GrowthReportYear == reportYear) {
+        OpexAirFleetRefusal(line, year, "Y");
+        if (plan != null && C69_BOTTLENECK_PROBE)
+          OpexC73RecordRejection("fleet", "c121_observation_already_consumed", 1);
+        continue;
+      }
+    } else if (c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH
+        && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
+            || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS)
+        && have == 1 && !("lastAirFleetYear" in line)) {
+      /* C121 cadence live : seul 1->2 est avance, sur preuve d'exploitation
+       * recente deja agregee passivement par C117. Le projet reste un +1 normal
+       * et passe ensuite par exactement le meme portefeuille/financement.
+       * IMPORTANT : le signal live est uniquement un raccourci. S'il n'est pas
+       * pret, la garde C121 historique reprend la main a deux ans ; cette
+       * experience ne doit jamais retarder un 1->2 que le baseline accepterait. */
+      if (!OpexC121FirstLiveBalanced90(line)) {
+        local c121Age = ("year" in line) ? year - line.year : -1;
+        if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0) {
+          OpexAirFleetRefusal(line, year, "O");
+          if (plan != null && C69_BOTTLENECK_PROBE)
+            OpexC73RecordRejection("fleet", "c121_first_live_not_ready", 1);
+          continue;
+        }
+      }
+      c121FirstLiveEntry = true;
+    } else if (c121BelowTarget && C121_AIR_FIRST_OBSERVATION_GROWTH
+        && have == 1 && !("lastAirFleetYear" in line)) {
+      /* Experience cadence isolee : seul le passage 1->2 est avance. Le projet
+       * reste un +1 C121 normal et passe par le meme portefeuille ; aucun autre
+       * renfort n'utilise cette garde. */
+      local c121Age = ("year" in line) ? year - line.year : -1;
+      local reportYear = this._lastReportYear;
+      local c121AgeDays = ("buildDate" in line) ? AIDate.GetCurrentDate() - line.buildDate : -1;
+      local c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_MIN_DAYS;
+      if (C121_AIR_FIRST_GROWTH_PHASE_YEARS > 0
+          && year - OPEX_START_YEAR >= C121_AIR_FIRST_GROWTH_PHASE_YEARS) {
+        c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_LATE_DAYS;
+      }
+      if (c121FirstGrowthMinDays > 0
+          && (c121AgeDays < 0 || c121AgeDays < c121FirstGrowthMinDays)) {
+        OpexAirFleetRefusal(line, year, "Y");
+        if (plan != null && C69_BOTTLENECK_PROBE)
+          OpexC73RecordRejection("fleet", "c121_first_growth_too_young", 1);
+        continue;
+      }
+      if (reportYear != year || c121Age < 1
+          || !("lastProfit" in line) || line.lastProfit <= 0) {
+        OpexAirFleetRefusal(line, year, "O");
+        if (plan != null && C69_BOTTLENECK_PROBE)
+          OpexC73RecordRejection("fleet", "c121_first_growth_no_positive_observation", 1);
+        continue;
+      }
+      if (C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT > 0) {
+        local firstCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
+        if (firstCap <= 0 && ("vehicles" in line)) {
+          foreach (v in line.vehicles) {
+            if (!AIVehicle.IsValidVehicle(v)) continue;
+            firstCap = AIVehicle.GetCapacity(v, line.cargo);
+            if (firstCap > 0) break;
+          }
+        }
+        local stA = AIStation.GetStationID(line.stationA);
+        local hasB = ("stationB" in line) && line.stationB != null;
+        local stB = hasB ? AIStation.GetStationID(line.stationB) : -1;
+        local waitA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : 0;
+        local waitB = (hasB && AIStation.IsValidStation(stB)) ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
+        local maxWait = waitA > waitB ? waitA : waitB;
+        if (firstCap <= 0 || maxWait * 100 < firstCap * C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT) {
+          OpexAirFleetRefusal(line, year, "W");
+          if (plan != null && C69_BOTTLENECK_PROBE)
+            OpexC73RecordRejection("fleet", "c121_first_growth_low_wait", 1);
+          continue;
+        }
       }
     } else if (c121BelowTarget) {
       /* Une mesure annuelle complete est le premier feedback fiable apres le
@@ -946,6 +1037,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
         local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
+        if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
         if (c84BelowTarget) {
           /* R1 : seuls les cargos sont lus par le modele marginal. Cette
            * petite vue transitoire permet de recalculer une tranche finançable. */
@@ -991,6 +1083,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (addedThisPass > 0) {
       line.lastAirFleetYear <- year;
       line.lastAirFleetDate <- AIDate.GetCurrentDate();
+      if (C121_AIR_OBSERVATION_GROWTH && c121BelowTarget) {
+        line.c121GrowthReportYear <- this._lastReportYear;
+      }
       if (DECISION_LOG) {
         local yieldVal = OpexAirFleetYield(line);
         OpexDecide("AIR_FLEET", "action=grow line=" + line.lineId + " yield=" + yieldVal + " planes_before=" + (have - addedThisPass) + " planes_after=" + have + " added=" + addedThisPass);
