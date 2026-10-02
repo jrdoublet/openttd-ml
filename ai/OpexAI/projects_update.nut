@@ -59,6 +59,7 @@ function OpexC121PlanTouchesTowns(project, towns)
 
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null, railReadyStock = null)
 {
+  local spIncr = PROBE_SPAN_TRACE ? OpexSpanBegin("select.incremental") : null;
   if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
     railReadyStock = projects.railReadyStock;
   }
@@ -173,6 +174,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (project in list) alternatives.push(project);
   }
   if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
+  if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
+      railReadyStock = projects.railReadyStock;
+    alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
+  }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
@@ -230,5 +236,10 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
   if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
+  else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) {
+    if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
+    else projects.railReadyStock <- railReadyStock;
+  }
+  if (spIncr != null) OpexSpanEnd(spIncr);
   return projects;
 }

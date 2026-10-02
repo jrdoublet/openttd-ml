@@ -290,78 +290,37 @@ function OpexAI::_processEvents()
     if (C52_EVENT_EXPOSURE_PROBE) OpexC52EventExposureObserve(event, eventType);
     if (C39_INVALIDATION_PROBE) OpexC76ObserveEvent(eventType);
 
+    local spEv = PROBE_SPAN_TRACE ? OpexSpanBegin(OpexSpanEventKind(eventType)) : null;
     if (eventType == AIEvent.ET_VEHICLE_CRASHED) {
       this._onVehicleCrashed(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) {
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) {
+    } else if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) {
+    } else if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) {
       this._onVehicleAutoreplaced(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) {
+    } else if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) {
       this._onVehicleUnprofitable(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_INDUSTRY_CLOSE) {
+    } else if (eventType == AIEvent.ET_INDUSTRY_CLOSE) {
       this._onIndustryClose(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_OFFER) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_OFFER) {
       this._onSubsidyOffer(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) {
       this._onSubsidyOfferExpired(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_AWARDED) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_AWARDED) {
       this._onSubsidyAwarded(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) {
       this._onSubsidyExpired(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_LOST) {
+    } else if (eventType == AIEvent.ET_VEHICLE_LOST) {
       this._onVehicleLost(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_INDUSTRY_OPEN) {
+    } else if (eventType == AIEvent.ET_INDUSTRY_OPEN) {
       this._onIndustryOpen(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_TOWN_FOUNDED) {
+    } else if (eventType == AIEvent.ET_TOWN_FOUNDED) {
       this._onTownFounded(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_ENGINE_AVAILABLE) {
+    } else if (eventType == AIEvent.ET_ENGINE_AVAILABLE) {
       this._onEngineAvailable(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_ENGINE_PREVIEW && C121_CATALOG_INCREMENTAL) {
+    } else if (eventType == AIEvent.ET_ENGINE_PREVIEW && C121_CATALOG_INCREMENTAL) {
       /* Le prochain refresh compare les listes de moteurs par type d'aeroport. */
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) {
+    } else if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) {
       this._onStationFirstVehicle(event);
-      continue;
     }
+    if (spEv != null) OpexSpanEnd(spEv);
   }
 }

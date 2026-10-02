@@ -145,6 +145,13 @@ function OpexAI::_tryBuildAir(year)
     local result = V93_AIR_DEMAND_PRODUCTION
         ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
         : OpexBuildAirRoute(this._catalog, this._budget, plan);
+    if (PROBE_SPAN_TRACE) {
+      local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
+      local evtPlanes = result.ok ? result.vehicles.len() : 0;
+      local evtCap = ("capital" in plan) ? plan.capital : 0;
+      if (result.ok) OpexSpanEvent("line_built", "mode=air towns=" + evtTowns + " capital=" + evtCap + " planes=" + evtPlanes);
+      else OpexSpanEvent("build_fail", "mode=air towns=" + evtTowns + " capital=" + evtCap + " planes=" + evtPlanes + " reason=" + result.reason);
+    }
     if (C63_INVEST_PROBE) OpexC63RecordSpendResult("air", result, plan.capital);
     local anchor = AIMap.GetTileIndex(1, 1);
     OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
@@ -361,9 +368,11 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         return { outcome = "rejected", discards = passDiscards };
       }
 
+      local spChoose = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.choose_plan") : null;
       local buildChoice = C118_AIR_TERRITORIAL_EXPANSION
           ? OpexC118ChooseBuildPlan(this._catalog, plan, project)
           : OpexC116ChooseBuildPlan(this._catalog, plan);
+      if (spChoose != null) OpexSpanEnd(spChoose);
       local buildPlan = buildChoice.plan;
       if (C118_AIR_TERRITORIAL_EXPANSION && (C118_AIR_COVERAGE_PROBE || DECISION_LOG)) {
         local c118Now = AIDate.GetCurrentDate();
@@ -426,6 +435,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                     + " base_P=" + buildPlan.c116BaselineProfit + " P=" + buildPlan.economics.profitAnnual));
       }
 
+      local spCash = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.cash") : null;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
       if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
@@ -433,6 +443,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local capital = ("capital" in buildPlan) ? buildPlan.capital
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
+      if (spCash != null) OpexSpanEnd(spCash);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
@@ -470,6 +481,13 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local result = V93_AIR_DEMAND_PRODUCTION
           ? OpexBuildAirRoute(this._catalog, this._budget, buildPlan, this._lines)
           : OpexBuildAirRoute(this._catalog, this._budget, buildPlan);
+      if (PROBE_SPAN_TRACE) {
+        local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
+        local evtPlanes = result.ok ? result.vehicles.len() : 0;
+        local evtCap = ("capital" in buildPlan) ? buildPlan.capital : 0;
+        if (result.ok) OpexSpanEvent("line_built", "mode=air towns=" + evtTowns + " capital=" + evtCap + " planes=" + evtPlanes);
+        else OpexSpanEvent("build_fail", "mode=air towns=" + evtTowns + " capital=" + evtCap + " planes=" + evtPlanes + " reason=" + result.reason);
+      }
       if (C63_INVEST_PROBE) OpexC63RecordSpendResult("air", result, buildPlan.capital);
       OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
       if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
@@ -743,6 +761,7 @@ function OpexC121FleetStockEvidence(line)
 
 function OpexAI::_resizeAirFleets(year, plan = null)
 {
+  local spFleet = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.resize") : null;
   local anchor = AIMap.GetTileIndex(1, 1);
   /* air_roi_order : servir la ligne qui rembourse le plus vite, pas la plus ancienne. Le tri
    * porte sur une COPIE de references : _lines garde son ordre, dont depend l'indexation de
@@ -1126,5 +1145,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|K");
     }
   }
+  if (spFleet != null) OpexSpanEnd(spFleet);
   return true;
 }

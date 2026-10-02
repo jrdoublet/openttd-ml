@@ -1018,6 +1018,12 @@ function OpexAI::_reconcileAfterLoad()
   this._railReadyStock = {};
   /* C80 étape 2 : la table de retrait temporaire des paires est reconstructible. */
   this._railStockCooldown = {};
+  /* C121 : la liste de preparation et l'A* en cours ne sont pas sauves. On recalcule. */
+  this._c121RailPrepCandidates = null;
+  this._c121RailPrepMonth = -1;
+  this._c121RailPrepHold = false;
+  this._c121RailPrepYieldLogged = false;
+  this._c121RailPrepMinAirCap = -1;
 
   /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
   if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {

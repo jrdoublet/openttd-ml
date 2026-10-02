@@ -129,7 +129,8 @@ class TestC89RailThroughputContract(unittest.TestCase):
 
         # _advanceRailSearchThroughput does not impose a global deadline, it calls _advanceRailSearchSliceWithLedgers
         adv_start = scheduler.index("function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)")
-        adv_body = scheduler[adv_start:adv_start + 1200]
+        adv_end = scheduler.find("\nfunction ", adv_start + 1)
+        adv_body = scheduler[adv_start:adv_end if adv_end > 0 else len(scheduler)]
         self.assertIn("this._advanceRailSearchSliceWithLedgers();", adv_body)
         self.assertNotIn("safetyDeadline", adv_body)
 

@@ -152,6 +152,7 @@ function OpexLoadSettings()
   local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
   CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
   PROBE_LOOP_OPS = AIController.GetSetting("probe_loop_ops") != 0;
+  PROBE_SPAN_TRACE = AIController.GetSetting("probe_span_trace") != 0;
   EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;
   EXP_OPCODE_EXACT_CHECK = AIController.GetSetting("exp_opcode_exact_check") != 0;
   EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;
@@ -307,6 +308,15 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_catalog_incremental") != 0;
   C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("c121_catalog_air_first_year") != 0;
+  /* Amorcage plat : sans etapes, chaque regeneration apres chantier prend le
+   * chemin incremental C121 au lieu d'un OpexBuildProjects complet synchrone. */
+  C121_FLAT_BOOTSTRAP = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("c121_flat_bootstrap") != 0;
+  if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;
+  C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR
+      && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;
+  C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
   C121_FLEET_STOCK_GROWTH = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_fleet_stock_growth") != 0;

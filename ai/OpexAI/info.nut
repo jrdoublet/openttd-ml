@@ -76,6 +76,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "probe_span_trace",
+      description = "Log dated nested spans of OpexAI micro-tasks (ticks and opcodes); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "exp_opcode_exact",
       description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -593,6 +601,27 @@ class OpexAIInfo extends AIInfo {
       description = "With incremental C121, generate only AIR candidates through the first game year; 0 = off",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_flat_bootstrap",
+      description = "With incremental C121, skip the staged bootstrap: start in the complete stage so every post-build regeneration is the incremental C121 update instead of a synchronous full rebuild; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_year_rail_prep",
+      description = "With air-only first year, when no living AIR project is fundable and no rail search is running, prepare up to 3 rail routes (catalog through segmented A*) without building them; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_one_or_two_planes",
+      description = "With C121 economics, score only fleet depths N=1 and N=2 and build the better one; N=2 starts the second aircraft from airport B toward A, without changing full-load orders; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({

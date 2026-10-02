@@ -96,7 +96,9 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       airPlans = s.plans,
       airOps = s.airOps,
     };
+    local spPartial = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
     owner._rebuildProjects(s.fleetPlan, partialAir, false);
+    if (spPartial != null) OpexSpanEnd(spPartial);
     owner._ranked = owner._projects != null ? owner._projects.rail : null;
     if (C121_CATALOG_INCREMENTAL) owner._portfolioInvalidated = false;
     s.published = true;
@@ -116,7 +118,9 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       airOps = s.airOps,
     };
     local rebuildMark = OpexOpsMeasureBegin();
+    local spApply = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
     owner._rebuildProjects(s.fleetPlan, airOverride);
+    if (spApply != null) OpexSpanEnd(spApply);
     s.regenOps += OpexOpsMeasureEnd(rebuildMark);
     if (C39_INVALIDATION_PROBE) {
       local reason = s.c76Full && s.c76Reason != null ? s.c76Reason : s.refreshReason;
@@ -195,7 +199,9 @@ function OpexAI::_dispatchCatalog(task, year)
   if (C121_CATALOG_INCREMENTAL
       && C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()) {
     C121_CATALOG_TOWN_BATCH_DATE = AIDate.GetCurrentDate();
+    local spTownBatch = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.town_batch") : null;
     OpexC121CatalogTownProductionBatch(this._catalog);
+    if (spTownBatch != null) OpexSpanEnd(spTownBatch);
   }
   local refreshReason = "month";
   if (("c78AirRebuild" in task) && task.c78AirRebuild != null) {
@@ -208,12 +214,16 @@ function OpexAI::_dispatchCatalog(task, year)
       refreshReason = task.c78AirRebuild.refreshReason;
     }
     if (CATALOG_COST_PROBE && ("catalogCost" in task)) CATALOG_COST_ACTIVE = task.catalogCost;
-    if (!OpexC78ContinueCatalogAirRebuild(this, task, year)) {
+    local spSlice = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.slice") : null;
+    local sliceDone = OpexC78ContinueCatalogAirRebuild(this, task, year);
+    if (spSlice != null) OpexSpanEnd(spSlice);
+    if (!sliceDone) {
       CATALOG_COST_ACTIVE = null;
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
   } else {
+  local spGuard = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.guard") : null;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   /* portfolio_v2 : le portefeuille n'etait regenere qu'au CHANGEMENT DE MOIS ou apres une
@@ -225,7 +235,9 @@ function OpexAI::_dispatchCatalog(task, year)
    * mobilisable a materiellement grandi depuis la derniere generation. */
   local stale = false;
   if (this._projects != null) {
+    local spCapital = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.capital") : null;
     local budgetNow = OpexAvailableCapital();
+    if (spCapital != null) OpexSpanEnd(spCapital);
     local budgetThen = this._projects.capitalBudget;
     /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
      * mais un doublement du capital mobilisable rouvre le vivier. */
@@ -254,6 +266,7 @@ function OpexAI::_dispatchCatalog(task, year)
     c76ReloadDue = this._c76ForceReloadRegen;
     if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
         !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+      if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
@@ -262,10 +275,12 @@ function OpexAI::_dispatchCatalog(task, year)
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
     if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
         !this._portfolioInvalidated) {
+      if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
   }
+  if (spGuard != null) OpexSpanEnd(spGuard);
   refreshReason = this._portfolioInvalidated ? "event"
       : (stale ? "capital" : "month");
   if (CATALOG_COST_PROBE) {
@@ -314,7 +329,9 @@ function OpexAI::_dispatchCatalog(task, year)
     }
     if (c80Modes != null) {
       local modeMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
+      local spModeRegen = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.mode_regen") : null;
       this._c80DoModeRegen(c80Modes, "layers", year);
+      if (spModeRegen != null) OpexSpanEnd(spModeRegen);
       if (CATALOG_COST_ACTIVE != null) {
         CATALOG_COST_ACTIVE.path = "mode";
         CATALOG_COST_ACTIVE.modeRegenOps += OpexOpsMeasureEnd(modeMark);
@@ -332,7 +349,9 @@ function OpexAI::_dispatchCatalog(task, year)
         return false;
       }
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+      local spRebuild = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
       this._rebuildProjects(fleetPlan);
+      if (spRebuild != null) OpexSpanEnd(spRebuild);
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
@@ -370,7 +389,9 @@ function OpexAI::_dispatchCatalog(task, year)
       return false;
     }
     local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+    local spRebuildLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
     this._rebuildProjects(fleetPlan);
+    if (spRebuildLeg != null) OpexSpanEnd(spRebuildLeg);
     if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
     if (C39_INVALIDATION_PROBE) {
       local c76Ops = OpexOpsMeasureEnd(c76Mark);
@@ -789,7 +810,9 @@ function OpexAI::_dispatchReport(task, year)
   if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
   if (C60_TOWN_RATING_PROBE) this._logC60TownRatingLedger(year);
   if (C50_CHRONOLOGY_PROBE) this._logC50AnnualReport(year);
+  local spReportYear = PROBE_SPAN_TRACE ? OpexSpanBegin("report.year") : null;
   this._reportYear(year, this._ranked);
+  if (spReportYear != null) OpexSpanEnd(spReportYear);
   if (V88_GOODS_CHAIN) {
     local rs = this._railSearch;
     local own = (rs != null && ("candidate" in rs) && rs.candidate != null
@@ -799,17 +822,27 @@ function OpexAI::_dispatchReport(task, year)
         + " spent=" + ((rs != null && "spent" in rs) ? rs.spent : -1)
         + " budget=" + ((rs != null && "iterationBudget" in rs) ? rs.iterationBudget : -1));
   }
+  local spReportLines = PROBE_SPAN_TRACE ? OpexSpanBegin("report.lines") : null;
   this._reportLines(year);
+  if (spReportLines != null) OpexSpanEnd(spReportLines);
   if (C63_INVEST_PROBE) OpexC63EnsureYear(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }
 function OpexAI::_dispatchScrap(task, year)
 {
+  local spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.rollback") : null;
   OpexAirProcessRollbacks(this._lines);
+  if (spScrap != null) OpexSpanEnd(spScrap);
+  spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.lines") : null;
   this._scrapDeadLines(year);
+  if (spScrap != null) OpexSpanEnd(spScrap);
+  spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.vehicles") : null;
   this._scrapRetiredVehicles(year);
+  if (spScrap != null) OpexSpanEnd(spScrap);
+  spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.streaks") : null;
   this._purgeUnprofitableStreaks();
+  if (spScrap != null) OpexSpanEnd(spScrap);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }
@@ -838,7 +871,9 @@ function OpexAI::_dispatchAirFleet(task, year)
       this._resizeAirFleets(year, fleetPlan);
       if (fleetPlan.len() > 0) {
         local budgetNow = OpexAvailableCapital();
+        local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
         this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow, this._lines);
+        if (spInject != null) OpexSpanEnd(spInject);
         if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
         this._ranked = this._projects.rail;
       }

@@ -108,6 +108,7 @@ function OpexC121CatalogClearPlanSnapshot(plan)
 
 function OpexC121CatalogChoice(catalog, plan, lines)
 {
+  local cacheMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local key = plan.arm + "|" + plan.airport.type + "|"
       + OpexC121CatalogSiteKey(plan.siteA) + "|"
       + OpexC121CatalogSiteKey(plan.siteB) + "|"
@@ -160,9 +161,11 @@ function OpexC121CatalogChoice(catalog, plan, lines)
         plan.c121ChosenEngine <- entry.choice.plane.id;
         plan.c121ChosenMailKnown <- entry.mailKnown;
       }
+      if (cacheMark != null) OpexSpanAgg("air.c121.cache", cacheMark);
       return entry.choice;
     }
   }
+  if (cacheMark != null) OpexSpanAgg("air.c121.cache", cacheMark);
   if (CATALOG_COST_ACTIVE != null) {
     CATALOG_COST_ACTIVE.c121Recomputed++;
     if (reason == "engine") CATALOG_COST_ACTIVE.c121DirtyEngine++;
