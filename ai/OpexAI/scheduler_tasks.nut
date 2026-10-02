@@ -203,7 +203,7 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexC121CatalogTownProductionBatch(this._catalog);
     if (spTownBatch != null) OpexSpanEnd(spTownBatch);
   }
-  local refreshReason = "month";
+  local refreshReason = "event";
   if (("c78AirRebuild" in task) && task.c78AirRebuild != null) {
     /* Un chantier peut marquer C76 invalide pendant le scan. Le portefeuille
      * partiel est revalide a l'execution et le scan continue sans redemarrer. */
@@ -226,21 +226,18 @@ function OpexAI::_dispatchCatalog(task, year)
   local spGuard = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.guard") : null;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
-  /* portfolio_v2 : le portefeuille n'etait regenere qu'au CHANGEMENT DE MOIS ou apres une
-   * construction reussie, et son capitalBudget etait fige a la generation. Un mois qui s'ouvrait
-   * a 60 k£ sans projet finançable rendait donc un portefeuille vide, et _tryBuildProjects
-   * sortait des sa premiere ligne POUR TOUT LE MOIS -- meme si la tresorerie montait ensuite a
-   * 400 k£. C'est la mesure « 4,15 mois en moyenne avec >= 100 k£ et aucune croissance »
-   * (docs/taches.md S0 septies, trouvaille A). On regenere donc aussi des que le capital
-   * mobilisable a materiellement grandi depuis la derniere generation. */
+  /* Le classement est rejoue uniquement quand son entree change : invalidation
+   * evenementielle ou franchissement du cout du prochain projet connu. */
   local stale = false;
   if (this._projects != null) {
     local spCapital = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.capital") : null;
     local budgetNow = OpexAvailableCapital();
     if (spCapital != null) OpexSpanEnd(spCapital);
     local budgetThen = this._projects.capitalBudget;
-    /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
-     * mais un doublement du capital mobilisable rouvre le vivier. */
+    local nextCap = ("stats" in this._projects) && this._projects.stats != null
+        && ("nextProjectCapital" in this._projects.stats) && this._projects.stats.nextProjectCapital > 0
+        ? this._projects.stats.nextProjectCapital : 0;
+    local crossedNext = nextCap > 0 && budgetThen < nextCap && budgetNow >= nextCap;
     local gainOk = budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN;
     local doubleOk = budgetNow > budgetThen * 2;
     if (PORTFOLIO_REFRESH_PROBE) {
@@ -251,7 +248,7 @@ function OpexAI::_dispatchCatalog(task, year)
        * que le doublement aurait seul autorise -- utile seulement si budgetThen < MIN_GAIN. */
       if (doubleOk && !gainOk) PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY++;
     }
-    if (gainOk && doubleOk) stale = true;
+    stale = AIR_EFFICIENCY_RESELECT ? crossedNext : (gainOk && doubleOk);
   }
   local c76LayerChanged = false;
   local c76PeriodicDue = false;
@@ -259,13 +256,12 @@ function OpexAI::_dispatchCatalog(task, year)
   local c76CurQuarter = 0;
   if (C76_REGEN_TARGETED) {
     c76LayerChanged = this._c76AnyLayerChanged();
-    /* Filet periodique ANNUEL (decision utilisateur du 2026-09-21) : une regeneration complete au
-     * moins une fois par annee de jeu. La variable garde son nom historique ; elle porte l'annee. */
     c76CurQuarter = year;
     c76PeriodicDue = (this._c76LastRegenQuarter < 0 || c76CurQuarter > this._c76LastRegenQuarter);
     c76ReloadDue = this._c76ForceReloadRegen;
-    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
-        !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+    local cadenceFresh = AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == ym;
+    if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated
+        && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
       if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
@@ -273,8 +269,8 @@ function OpexAI::_dispatchCatalog(task, year)
   } else {
     /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
-    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
-        !this._portfolioInvalidated) {
+    local cadenceFresh = AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == ym;
+    if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated) {
       if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
@@ -282,7 +278,25 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   if (spGuard != null) OpexSpanEnd(spGuard);
   refreshReason = this._portfolioInvalidated ? "event"
-      : (stale ? "capital" : "month");
+      : (stale ? "capital" : (c76ReloadDue ? "reload" : (c76LayerChanged ? "layers" : "event")));
+  if (AIR_EFFICIENCY_RESELECT && stale && !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue
+      && this._projects != null) {
+    local reselectMark = CATALOG_COST_PROBE ? OpexOpsMeasureBegin() : null;
+    local budgetNow = OpexAvailableCapital();
+    this._projects = OpexReselectProjects(this._projects, budgetNow, this._abandonedPairs, this._lines);
+    this._ranked = this._projects.rail;
+    if (CATALOG_COST_PROBE) {
+      task.catalogCost <- OpexCatalogCostNew("capital");
+      task.catalogCost.path = "reselect";
+      task.catalogCost.reselectOps += OpexOpsMeasureEnd(reselectMark);
+      task.catalogCost.considered = this._projects.stats.budgetConsidered;
+      task.catalogCost.selected = this._projects.best.len();
+      OpexCatalogCostLog(task.catalogCost);
+      delete task.catalogCost;
+    }
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+    return true;
+  }
   if (CATALOG_COST_PROBE) {
     task.catalogCost <- OpexCatalogCostNew(refreshReason);
     CATALOG_COST_ACTIVE = task.catalogCost;
@@ -318,8 +332,7 @@ function OpexAI::_dispatchCatalog(task, year)
     this._recomputeEpochBounds = false;
   }
   if (C76_REGEN_TARGETED) {
-    /* C76 lean invalidation : le doublement de capital ne necessite qu'une reselection locale. */
-    local budgetStale = stale && !C76_LEAN_INVALIDATION;
+    local budgetStale = stale && !AIR_EFFICIENCY_RESELECT && !C76_LEAN_INVALIDATION;
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
     local c80Modes = null;
