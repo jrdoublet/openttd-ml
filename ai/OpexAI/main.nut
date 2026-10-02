@@ -133,6 +133,8 @@ class OpexAI extends AIController {
   _lastFreightCargo = -1;
   _bootstrapFreightCargo = -1;
   _loadedFromSave = false;
+  _saveProjection = null;       // {line -> copie serialisable}, voir _refreshSaveProjection
+  _saveProjectionMonth = -1;
   _recomputeEpochBounds = false;
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
@@ -707,6 +709,8 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
+    if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) this._refreshSaveProjection();
+    else if (this._saveProjection != null) this._saveProjection = null;
     if (EXP_C83_WATCH_DAILY) this._expC83PollAirSlots();
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       OpexC117AirThroughputStep(this._lines, this._catalog);
