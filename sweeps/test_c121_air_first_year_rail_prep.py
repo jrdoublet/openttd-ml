@@ -47,7 +47,8 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
     def test_defaults_and_dependencies(self):
         # Decision utilisateur du 2026-10-02 : prepa rail et 1 ou 2 avions a 1
         # par defaut sur la branche C121 (derogation, sans banc de qualification).
-        # Ils restent inertes sans c121_catalog_air_first_year / c121_air_economics.
+        # Ils restent inertes hors bras C121 (c121_air_economics et
+        # c121_catalog_incremental a 0 par defaut).
         defaults = parse_ai_settings(AI / "info.nut")
         for name in ("c121_air_first_year_rail_prep", "c121_air_one_or_two_planes"):
             self.assertEqual(defaults[name], 1, name)

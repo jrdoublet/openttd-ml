@@ -598,9 +598,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_catalog_air_first_year",
-      description = "With incremental C121, generate only AIR candidates through the first game year; 0 = off",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
+      description = "With incremental C121, generate only AIR candidates through the first game year; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({

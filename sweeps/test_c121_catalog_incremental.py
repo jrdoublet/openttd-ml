@@ -30,7 +30,8 @@ class TestC121CatalogIncremental(unittest.TestCase):
     def test_settings_default_off_and_c121_gate(self):
         defaults = parse_ai_settings(AI / "info.nut")
         self.assertEqual(defaults["c121_catalog_incremental"], 0)
-        self.assertEqual(defaults["c121_catalog_air_first_year"], 0)
+        # Decision utilisateur du 2026-10-02 : 1 par defaut, inerte hors C121 incremental.
+        self.assertEqual(defaults["c121_catalog_air_first_year"], 1)
         settings = source("settings.nut")
         self.assertIn('C121_CATALOG_INCREMENTAL = C121_AIR_ECONOMICS\n', settings)
         self.assertIn('AIController.GetSetting("c121_catalog_incremental")', settings)
