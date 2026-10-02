@@ -617,7 +617,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("project.mode == \"fleet\"", own)
         self.assertIn("c121MarginalProfit", own)
         self.assertIn('project.mode == "fleet"', c70)
-        self.assertIn("&& OpexC121ProjectHasRealization(project)) return project.profitAnnual;", c70)
+        self.assertIn("&& OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;", c70)
         self.assertIn("return project.profitAnnual * OpexC70Factor(project);", c70)
         self.assertIn("OpexC121RecomputeRealizationFactors(this._lines)", persist)
         self.assertIn("C121_AIR_REALIZATION_FACTOR.newpair = 1.0;", settings)

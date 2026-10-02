@@ -750,6 +750,13 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_kdec_cold_exempt",
+      description = "C121 experiment: preserve the C69 fleet K_dec exemption until a real marginal sample exists; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c121_air_engine_realization",
       description = "C121 experimental engine-only realization correction by AIR arm; project economics unchanged; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

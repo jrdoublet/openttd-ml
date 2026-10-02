@@ -69,7 +69,7 @@ class TestFleetProfitCalibration(unittest.TestCase):
         self.assertIn("profit = perPlaneProfit * entry.want;", marginal)
         for calibrated in (self.c70, self.c82):
             self.assertIn('project.mode == "fleet"', calibrated)
-            self.assertIn("&& OpexC121ProjectHasRealization(project)) return project.profitAnnual;", calibrated)
+            self.assertIn("&& OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;", calibrated)
 
 
 if __name__ == "__main__":

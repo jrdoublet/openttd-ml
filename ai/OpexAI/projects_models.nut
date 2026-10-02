@@ -146,7 +146,7 @@ function OpexC121RecomputeRealizationFactors(lines)
   OpexC121ApplyRealizationSums(sums, year, "reload");
 }
 
-function OpexC121ProjectHasRealization(project)
+function OpexC121ProjectHasRealization(project, requireObservedMarginal = true)
 {
   if (!C121_AIR_ECONOMICS || project == null || !("mode" in project)
       || !("payload" in project) || project.payload == null) return false;
@@ -157,6 +157,11 @@ function OpexC121ProjectHasRealization(project)
   }
   if (project.mode == "fleet" && ("line" in project.payload) && project.payload.line != null) {
     local line = project.payload.line;
+    /* OFF conserve exactement le test historique ci-dessous. Le classement
+     * K_dec exige une observation dans l'experience ; C70/C82 passent false
+     * pour conserver leur numerateur historique, meme a froid. */
+    if (C121_KDEC_COLD_EXEMPT && requireObservedMarginal
+        && (!("c121MarginalSamples" in line) || line.c121MarginalSamples <= 0)) return false;
     return ("c121MarginalProfit" in line) && ("c121MarginalRevenue" in line);
   }
   return false;
@@ -235,7 +240,7 @@ function OpexC70Profit(project)
    * donc une nouvelle ligne AIR doit continuer a beneficier de la calibration
    * C70 existante. Seule la flotte C121 porte deja sa propre marge observee. */
   if (project != null && ("mode" in project) && project.mode == "fleet"
-      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
+      && OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;
   if (!C70_MODE_CALIBRATION) return project.profitAnnual;
   return project.profitAnnual * OpexC70Factor(project);
 }
@@ -246,7 +251,7 @@ function OpexC82Profit(project)
   if (project != null && ("profitIsObserved" in project) && project.profitIsObserved)
     return project.profitAnnual;
   if (project != null && ("mode" in project) && project.mode == "fleet"
-      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
+      && OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;
   local e = OpexC82ProjectEngine(project);
   if (e >= 0) return project.profitAnnual * OpexC82EngineFactor(e);
   return OpexC70Profit(project);

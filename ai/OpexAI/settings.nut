@@ -346,6 +346,8 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_kpass_air_continue") != 0;
   C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_kdec_cold_shadow") != 0;
+  C121_KDEC_COLD_EXEMPT = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_kdec_cold_exempt") != 0;
   C121_AIR_FIRST_LIVE_STATE = {};
   C121_AIR_FIRST_LIVE_OPS = 0;
   C121_AIR_FIRST_LIVE_SAMPLES = 0;

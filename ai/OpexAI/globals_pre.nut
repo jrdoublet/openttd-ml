@@ -545,6 +545,7 @@ C121_KPASS_AIR_CONTINUE <- false;
 /* C121 cadence : shadow du cold-start K_dec. Mesure le classement contrefactuel
  * si un renfort fleet sans observation reelle conservait l'exemption C69. */
 C121_KDEC_COLD_SHADOW <- false;
+C121_KDEC_COLD_EXEMPT <- false;
 /* C121 : territoire d'abord (reserve de tresorerie pour le prochain AIR qui ouvre une ville). */
 C121_TERRITORY_FIRST <- false;
 /* C121 : ligne a la AAAHogEx (2 avions a l'ouverture, chargement complet aux deux bouts). */
