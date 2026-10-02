@@ -1,0 +1,107 @@
+{
+  "schema": "opex-review-evidence-v1",
+  "description": "Scoped TG evidence produced with package_review_evidence.main(--write); independent from the unchanged global historical index.",
+  "documents": [
+    "docs/town_growth_off_20261002.md"
+  ],
+  "artifacts": [
+    {
+      "source": "results/tg_default_smoke_1x1_20261002_r1.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_default_smoke_1x1_20261002_r1.json.gz",
+      "raw_bytes": 58983,
+      "raw_sha256": "c74726f2ed67f82f946924aa3dae3baa0c40e655fe969aaea1b7f00d2c906fa6",
+      "gzip_bytes": 5677,
+      "gzip_sha256": "28c5139ede1bcd8043d5967058a9265de99e711983dfa4ed9f271eb837957871"
+    },
+    {
+      "source": "results/tg_off_c121_20x10_20261002_r1.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_c121_20x10_20261002_r1.json.gz",
+      "raw_bytes": 1406661,
+      "raw_sha256": "a2d64015256ff21d4755088e1dec587c36c34d2627f02be9600b435af32a67aa",
+      "gzip_bytes": 72608,
+      "gzip_sha256": "c120bb6a6b8f3d67644f46ca8723bfd6ba1c314c487b9ffa1a9758823d60ac55"
+    },
+    {
+      "source": "results/tg_off_c121_20x10_20261002_r1.manifest.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_c121_20x10_20261002_r1.manifest.json.gz",
+      "raw_bytes": 79886,
+      "raw_sha256": "150ca251286d8ca32d2821e588085fbdb88e4964a723cf96d2e144ce965e9e28",
+      "gzip_bytes": 11425,
+      "gzip_sha256": "c3a9ce8a42cdff056bd62e2829e3772ee49619f0becffe8075acfd233ee51551"
+    },
+    {
+      "source": "results/tg_off_c121_20x10_20261002_r1_audit.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_c121_20x10_20261002_r1_audit.json.gz",
+      "raw_bytes": 617460,
+      "raw_sha256": "01ea8d1eb9c3185f2d456a3e26ecd872718e875ca6648f13e277414ac9685ba0",
+      "gzip_bytes": 33718,
+      "gzip_sha256": "bfcc08e4367c552925eba6834f7660d7c1519106fa692aa828270eaeead2b354"
+    },
+    {
+      "source": "results/tg_off_default_20x10_20261002_r1.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_default_20x10_20261002_r1.json.gz",
+      "raw_bytes": 1136096,
+      "raw_sha256": "d8c5b11e158990033cdc5ee0392e7b0d74065c0ad9137037e50e343bedb15c87",
+      "gzip_bytes": 59878,
+      "gzip_sha256": "e582347d64d668f48cb58b6f8f5ddc8391e1d053b1916bd588261f05fb6c0481"
+    },
+    {
+      "source": "results/tg_off_default_20x10_20261002_r1.manifest.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_default_20x10_20261002_r1.manifest.json.gz",
+      "raw_bytes": 79710,
+      "raw_sha256": "8d7844ee122d86ea94e71c98bb890c5246fea444db8fdda49141f5d09bf44ac5",
+      "gzip_bytes": 11381,
+      "gzip_sha256": "7f623c40a7fb8a61a6601192e6442ca9de3b9e6d8fda6d248fb9535f9f9c545c"
+    },
+    {
+      "source": "results/tg_off_default_20x10_20261002_r1_audit.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_default_20x10_20261002_r1_audit.json.gz",
+      "raw_bytes": 617556,
+      "raw_sha256": "4dea4c22e31d9d5084b753a20371aa4003364e464970e788def12249650b1736",
+      "gzip_bytes": 33352,
+      "gzip_sha256": "51e99c712478ca9186a91539b3cd6da69815fcc87f433942d8d90209d8785bb6"
+    },
+    {
+      "source": "results/tg_off_default_5x6_20261002_r1.manifest.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_default_5x6_20261002_r1.manifest.json.gz",
+      "raw_bytes": 68329,
+      "raw_sha256": "1e4b784382cd9acd73e3aeafec13e39840c1d1de887ce4b06cc4f110e670f9c8",
+      "gzip_bytes": 10878,
+      "gzip_sha256": "fe6b339735347c6239134d90c91a904a20ab8606bb2278470e612b16f6621383"
+    },
+    {
+      "source": "results/tg_off_default_5x6_20261002_r2.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_default_5x6_20261002_r2.json.gz",
+      "raw_bytes": 252951,
+      "raw_sha256": "d6f87b5cc7d0a073862ce0301ed5e0ef5b9994494661e9681c8462fd9cc25a25",
+      "gzip_bytes": 19137,
+      "gzip_sha256": "edf5a3acf6b9b167ae506fee425cda157330179ceb711dac8293352e6ce569fc"
+    },
+    {
+      "source": "results/tg_off_default_5x6_20261002_r2.manifest.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_default_5x6_20261002_r2.manifest.json.gz",
+      "raw_bytes": 68329,
+      "raw_sha256": "3875d0bdeba32066d47cfdd81513fc5c10a83bf087f70a7a6ee39db48c91238c",
+      "gzip_bytes": 10878,
+      "gzip_sha256": "7bf7348ca8bec0e5f3d80389c8400879c8df6cb2d3d632fd680bc01fa1d6290b"
+    },
+    {
+      "source": "results/tg_off_default_5x6_20261002_r2_audit.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/tg_off_default_5x6_20261002_r2_audit.json.gz",
+      "raw_bytes": 127966,
+      "raw_sha256": "b467398e2d3a7607594b7843cc29b64a3c45dd732e21fc3341a744860c4fdbc2",
+      "gzip_bytes": 13692,
+      "gzip_sha256": "fbfb5baa1febe8588942bfa1ef620e61662d3fcff3538ebe47cc1408575e6ce4"
+    },
+    {
+      "source": "results/town_growth_off_20261002_summary.json",
+      "evidence": "evidence/review/town_growth_off_20261002/results/town_growth_off_20261002_summary.json.gz",
+      "raw_bytes": 1544122,
+      "raw_sha256": "2f1ff9400dcdb23d8a6f8568602a94ce889e02a81b043880791416a5f94ecb95",
+      "gzip_bytes": 82168,
+      "gzip_sha256": "1ac59255ccd57c40c9c06e26267036feea09cdf0971dec6b432a7717be23b857"
+    }
+  ],
+  "missing": [],
+  "scope": "Only the enumerated TG inputs; no claim of global documentation coverage."
+}

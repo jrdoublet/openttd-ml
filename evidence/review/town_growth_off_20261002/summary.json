@@ -1,0 +1,1523 @@
+{
+  "schema": "town-growth-off-compact-review-v1",
+  "date": "2026-10-02",
+  "branch": "c121-catalog",
+  "code_sha": "1f07b4e3ed3d655bcd457b4c2a1ebedf4ed123d7",
+  "default_changed": false,
+  "category": "predeclared opcode opportunity; economic A/B only, no new direct TG opcode measurement",
+  "tests": {
+    "TG_fixture_tests": 8,
+    "C66_selftest": "pass",
+    "health_physical_freeze_coverage_tests": 62,
+    "packager_tests": 13
+  },
+  "invalid_attempt": {
+    "campaign_id": "tg_off_default_5x6_20261002_r1",
+    "code_sha": "496639f339ffdd84a8e5a2d2b1a9e41929e350c7",
+    "error": "TypeError: datetime.date object is not subscriptable",
+    "economic_verdict": null,
+    "correction": "normalize the date supplied by openttdlab, regression test added; new campaign r2"
+  },
+  "smoke": {
+    "path": "results/tg_default_smoke_1x1_20261002_r1.json",
+    "code_sha": "496639f339ffdd84a8e5a2d2b1a9e41929e350c7",
+    "games_expected": 1,
+    "games_obtained": 1,
+    "run_ok": true,
+    "scope": "Squirrel compilation and default execution; partial initial annual profit"
+  },
+  "limitations": [
+    "single paired execution per seed, duel trajectories nondeterministic",
+    "final rolling annual profit at the December checkpoint, not total 10-year profit",
+    "TG signs retained in saves, possible unobserved BuildSign failure",
+    "C121 secondary common nondefault profile does not qualify C121 against C115",
+    "C121 JSONL contains 9598/9600 rows: two intermediate AAA rows absent; returned summaries each have 120 saves, final metrics complete; raw journal preserved without reconstruction",
+    "global historical evidence citation coverage remains incomplete"
+  ],
+  "full_summary_archive": "results/town_growth_off_20261002_summary.json.gz",
+  "campaigns": [
+    {
+      "campaign_id": "tg_off_default_5x6_20261002_r2",
+      "source_sha": {
+        "dirty": false,
+        "sha": "1f07b4e3ed3d655bcd457b4c2a1ebedf4ed123d7",
+        "source": "host_environment",
+        "status_porcelain": []
+      },
+      "runtime": {
+        "build_context_files": {
+          "Dockerfile": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+          "requirements-ml.txt": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+          "requirements.txt": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6"
+        },
+        "container_detected": true,
+        "docker_cpus": 10,
+        "docker_image": "openttd-lab:latest",
+        "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+        "docker_image_id_verified": true,
+        "docker_memory": "2g",
+        "docker_memory_swap": "2g",
+        "openttdlab": "0.0.75",
+        "platform": "Linux-7.0.12-linuxkit-x86_64-with-glibc2.41",
+        "python": "3.12.14",
+        "python_executable": "/usr/local/bin/python3",
+        "runtime_fingerprint_sha256": "7fb6f6507b65d9359d1bb8e0ec6c04deb25b83da6ad5a45b4b5f417ed79c7f77"
+      },
+      "policy_settings": [
+        {
+          "id": "reference",
+          "explicit": {
+            "town_growth": 1
+          }
+        },
+        {
+          "id": "tg_off",
+          "explicit": {
+            "town_growth": 0
+          }
+        }
+      ],
+      "effective_differences": {
+        "town_growth": {
+          "candidate": 0,
+          "reference": 1
+        }
+      },
+      "provenance": {
+        "result": {
+          "path": "results/tg_off_default_5x6_20261002_r2.json",
+          "sha256": "d6f87b5cc7d0a073862ce0301ed5e0ef5b9994494661e9681c8462fd9cc25a25"
+        },
+        "manifest": {
+          "path": "results/tg_off_default_5x6_20261002_r2.manifest.json",
+          "sha256": "3875d0bdeba32066d47cfdd81513fc5c10a83bf087f70a7a6ee39db48c91238c"
+        },
+        "checkpoint": {
+          "path": "results/tg_off_default_5x6_20261002_r2.jsonl",
+          "sha256": "27b9a36cd2401b82733a4e61e4b0408e4359eacad3d8960114f541436d19d224"
+        },
+        "bundle_sha256": "c8d11b37ef893831711d713315793eee35de85a545dd031c90c37da3046b2552",
+        "bundle_verified": true,
+        "engine_logs": {
+          "reference_seed100_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed1234_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed42_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed5678_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed999_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed100_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed1234_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed42_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed5678_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed999_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "coverage": {
+        "games_expected": 10,
+        "games_obtained": 10,
+        "company_summaries_expected": 20,
+        "company_summaries_obtained": 20,
+        "checkpoint_rows_obtained": 1440,
+        "planned_pairs": 5,
+        "checkpoint_rows_expected": 1440,
+        "checkpoint_archive_complete": true,
+        "missing_archive_rows": [],
+        "returned_company_rows_from_summaries": 1440,
+        "complete_pairs": 5,
+        "comparison_complete": true,
+        "adoption_sample_complete": false,
+        "metric_coverage_complete": true
+      },
+      "years": 6,
+      "seeds": [
+        42,
+        100,
+        999,
+        1234,
+        5678
+      ],
+      "decision_rule": {
+        "required_pairs": 20,
+        "required_wins": 15,
+        "max_sign_test_p_exclusive": 0.05,
+        "min_useful_primary_delta": 0.0,
+        "value_guard_max_loss_pct": 5.0,
+        "primary_rule": "first wins>=15/20 and exact two-sided sign-test p<0.05; then mean(variant-reference) >= min_useful_primary_delta",
+        "value_guard_rule": "all 20 reference denominators must be positive; then ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct",
+        "all_planned_pairs_required_for_verdict": true
+      },
+      "raw_verdict": "diagnostic_only",
+      "primary_recomputed": {
+        "n": 5,
+        "mean": 96568.4,
+        "median": 114674.0,
+        "standard_deviation": 168450.793163,
+        "standard_error": 75333.484875,
+        "mean_normal_95pct_ci": [
+          -51082.517186,
+          244219.317186
+        ],
+        "mean_student_t_95pct_ci": [
+          -112590.877415,
+          305727.677415
+        ],
+        "wins": 3,
+        "losses": 2,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 5,
+        "sign_test_p": 1.0
+      },
+      "duel_gap_evolution": {
+        "n": 5,
+        "mean": 405640.8,
+        "median": 39819.0,
+        "standard_deviation": 771791.730305,
+        "standard_error": 345155.754687,
+        "mean_normal_95pct_ci": [
+          -270852.048243,
+          1082133.648243
+        ],
+        "mean_student_t_95pct_ci": [
+          -552665.169321,
+          1363946.769321
+        ],
+        "wins": 3,
+        "losses": 2,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 5,
+        "sign_test_p": 1.0
+      },
+      "value_ratio_of_means_pct": 12.955798,
+      "value_guard_pass": true,
+      "signs20_primary_gain": null,
+      "reading": "diagnostic_only_continue",
+      "tg": {
+        "totals": {
+          "reference": 53,
+          "variant": 0
+        },
+        "invalid_signs": {
+          "reference": 0,
+          "variant": 0
+        },
+        "exposed": true,
+        "by_year": {
+          "1970": {
+            "reference": 15,
+            "variant": 0
+          },
+          "1971": {
+            "reference": 12,
+            "variant": 0
+          },
+          "1972": {
+            "reference": 10,
+            "variant": 0
+          },
+          "1973": {
+            "reference": 6,
+            "variant": 0
+          },
+          "1974": {
+            "reference": 8,
+            "variant": 0
+          },
+          "1975": {
+            "reference": 2,
+            "variant": 0
+          }
+        }
+      },
+      "vehicles_delta": {
+        "n": 5,
+        "mean": 12.0,
+        "median": 12.0,
+        "standard_deviation": 14.611639,
+        "standard_error": 6.534524,
+        "mean_normal_95pct_ci": [
+          -0.807431,
+          24.807431
+        ],
+        "mean_student_t_95pct_ci": [
+          -6.142746,
+          30.142746
+        ],
+        "wins": 4,
+        "losses": 1,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 5,
+        "sign_test_p": 0.375
+      },
+      "source_fingerprints": {
+        "AAAHogEx": {
+          "sha256": "eaec19151d118daad80eddab437180402764e1c919f48904cc22cbf71cb80bc7",
+          "file_count": 17
+        },
+        "OpexAI": {
+          "sha256": "eafbff7af32570eef24460f24c2f7aeac7bd4007cf448333b7d4f74ad00d9eef",
+          "file_count": 64
+        },
+        "ai_libraries": {
+          "sha256": "c6be0dd91e4543c7f26a7c4a832c754931a2f338db9d7c2021ccbb85db244f41",
+          "file_count": 4
+        },
+        "harness": {
+          "sha256": "8871915358e104325eea40fd7f118008d643666062e5a9f23419f92ec752c93e",
+          "file_count": 11
+        }
+      },
+      "health": {
+        "healthy": true,
+        "failed_runs": [],
+        "game_status_counts": {
+          "complete": 10
+        }
+      },
+      "airport_slot_means": {
+        "airport_slots_opex": {
+          "reference": 25.2,
+          "variant": 26.4
+        },
+        "airport_slots_aaahogex": {
+          "reference": 42.2,
+          "variant": 40.4
+        },
+        "airport_towns_opex_present": {
+          "reference": 23.6,
+          "variant": 25.2
+        },
+        "airport_towns_aaahogex_present": {
+          "reference": 34.4,
+          "variant": 34
+        },
+        "airport_towns_aaahogex_2_opex_0": {
+          "reference": 7.8,
+          "variant": 6.4
+        },
+        "airport_towns_opex_2_aaahogex_0": {
+          "reference": 1.6,
+          "variant": 1.2
+        },
+        "airport_towns_shared_1_1": {
+          "reference": 20.4,
+          "variant": 22.2
+        }
+      },
+      "vehicle_means_by_mode": {
+        "reference": {
+          "rail": 1.4,
+          "road": 17.6,
+          "air": 106.4,
+          "water": 0
+        },
+        "variant": {
+          "rail": 2.4,
+          "road": 4.8,
+          "air": 130.2,
+          "water": 0
+        }
+      },
+      "per_seed": [
+        {
+          "seed": 42,
+          "complete": true,
+          "profit_on": 1465949,
+          "profit_off": 1580623,
+          "profit_delta": 114674,
+          "gap_delta": -446703,
+          "value_delta_pct": 6.199645186003067,
+          "tg_on": 11,
+          "tg_off": 0
+        },
+        {
+          "seed": 100,
+          "complete": true,
+          "profit_on": 524761,
+          "profit_off": 846670,
+          "profit_delta": 321909,
+          "gap_delta": 39819,
+          "value_delta_pct": 56.845380927603294,
+          "tg_on": 4,
+          "tg_off": 0
+        },
+        {
+          "seed": 999,
+          "complete": true,
+          "profit_on": 1939566,
+          "profit_off": 1847184,
+          "profit_delta": -92382,
+          "gap_delta": 1226942,
+          "value_delta_pct": -1.5513515725071647,
+          "tg_on": 12,
+          "tg_off": 0
+        },
+        {
+          "seed": 1234,
+          "complete": true,
+          "profit_on": 1649853,
+          "profit_off": 1606903,
+          "profit_delta": -42950,
+          "gap_delta": -16027,
+          "value_delta_pct": 15.383416231529278,
+          "tg_on": 13,
+          "tg_off": 0
+        },
+        {
+          "seed": 5678,
+          "complete": true,
+          "profit_on": 1766227,
+          "profit_off": 1947818,
+          "profit_delta": 181591,
+          "gap_delta": 1224173,
+          "value_delta_pct": 20.35454994245316,
+          "tg_on": 13,
+          "tg_off": 0
+        }
+      ]
+    },
+    {
+      "campaign_id": "tg_off_default_20x10_20261002_r1",
+      "source_sha": {
+        "dirty": false,
+        "sha": "1f07b4e3ed3d655bcd457b4c2a1ebedf4ed123d7",
+        "source": "host_environment",
+        "status_porcelain": []
+      },
+      "runtime": {
+        "build_context_files": {
+          "Dockerfile": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+          "requirements-ml.txt": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+          "requirements.txt": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6"
+        },
+        "container_detected": true,
+        "docker_cpus": 10,
+        "docker_image": "openttd-lab:latest",
+        "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+        "docker_image_id_verified": true,
+        "docker_memory": "2g",
+        "docker_memory_swap": "2g",
+        "openttdlab": "0.0.75",
+        "platform": "Linux-7.0.12-linuxkit-x86_64-with-glibc2.41",
+        "python": "3.12.14",
+        "python_executable": "/usr/local/bin/python3",
+        "runtime_fingerprint_sha256": "7fb6f6507b65d9359d1bb8e0ec6c04deb25b83da6ad5a45b4b5f417ed79c7f77"
+      },
+      "policy_settings": [
+        {
+          "id": "reference",
+          "explicit": {
+            "town_growth": 1
+          }
+        },
+        {
+          "id": "tg_off",
+          "explicit": {
+            "town_growth": 0
+          }
+        }
+      ],
+      "effective_differences": {
+        "town_growth": {
+          "candidate": 0,
+          "reference": 1
+        }
+      },
+      "provenance": {
+        "result": {
+          "path": "results/tg_off_default_20x10_20261002_r1.json",
+          "sha256": "d8c5b11e158990033cdc5ee0392e7b0d74065c0ad9137037e50e343bedb15c87"
+        },
+        "manifest": {
+          "path": "results/tg_off_default_20x10_20261002_r1.manifest.json",
+          "sha256": "8d7844ee122d86ea94e71c98bb890c5246fea444db8fdda49141f5d09bf44ac5"
+        },
+        "checkpoint": {
+          "path": "results/tg_off_default_20x10_20261002_r1.jsonl",
+          "sha256": "f5d82751c587d8ce3155fd72dc8fa86014e38fc6097ef4f270ea728873b6c258"
+        },
+        "bundle_sha256": "c8d11b37ef893831711d713315793eee35de85a545dd031c90c37da3046b2552",
+        "bundle_verified": true,
+        "engine_logs": {
+          "reference_seed100_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed1024_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed123456_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed12345_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed1337_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed17_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed1_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed2026_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed314_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed4096_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed424242_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed42_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed512_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed54321_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed65537_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed73_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed7_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed8191_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed8675309_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed999_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed100_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed1024_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed123456_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed12345_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed1337_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed17_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed1_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed2026_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed314_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed4096_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed424242_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed42_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed512_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed54321_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed65537_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed73_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed7_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed8191_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed8675309_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed999_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "coverage": {
+        "games_expected": 40,
+        "games_obtained": 40,
+        "company_summaries_expected": 80,
+        "company_summaries_obtained": 80,
+        "checkpoint_rows_obtained": 9600,
+        "planned_pairs": 20,
+        "checkpoint_rows_expected": 9600,
+        "checkpoint_archive_complete": true,
+        "missing_archive_rows": [],
+        "returned_company_rows_from_summaries": 9600,
+        "complete_pairs": 20,
+        "comparison_complete": true,
+        "adoption_sample_complete": true,
+        "metric_coverage_complete": true
+      },
+      "years": 10,
+      "seeds": [
+        42,
+        100,
+        7,
+        999,
+        2026,
+        1,
+        17,
+        73,
+        314,
+        512,
+        1024,
+        1337,
+        4096,
+        8191,
+        12345,
+        54321,
+        65537,
+        123456,
+        424242,
+        8675309
+      ],
+      "decision_rule": {
+        "required_pairs": 20,
+        "required_wins": 15,
+        "max_sign_test_p_exclusive": 0.05,
+        "min_useful_primary_delta": 0.0,
+        "value_guard_max_loss_pct": 5.0,
+        "primary_rule": "first wins>=15/20 and exact two-sided sign-test p<0.05; then mean(variant-reference) >= min_useful_primary_delta",
+        "value_guard_rule": "all 20 reference denominators must be positive; then ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct",
+        "all_planned_pairs_required_for_verdict": true
+      },
+      "raw_verdict": "fail_primary",
+      "primary_recomputed": {
+        "n": 20,
+        "mean": -21803.6,
+        "median": -5797.0,
+        "standard_deviation": 235140.564782,
+        "standard_error": 52579.028712,
+        "mean_normal_95pct_ci": [
+          -124856.602618,
+          81249.402618
+        ],
+        "mean_student_t_95pct_ci": [
+          -131852.768991,
+          88245.568991
+        ],
+        "wins": 10,
+        "losses": 10,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 20,
+        "sign_test_p": 1.0
+      },
+      "duel_gap_evolution": {
+        "n": 20,
+        "mean": 38118.55,
+        "median": -58587.5,
+        "standard_deviation": 1184586.195109,
+        "standard_error": 264881.525747,
+        "mean_normal_95pct_ci": [
+          -481039.700634,
+          557276.800634
+        ],
+        "mean_student_t_95pct_ci": [
+          -516284.840545,
+          592521.940545
+        ],
+        "wins": 10,
+        "losses": 10,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 20,
+        "sign_test_p": 1.0
+      },
+      "value_ratio_of_means_pct": 2.046361,
+      "value_guard_pass": true,
+      "signs20_primary_gain": false,
+      "reading": "no_loss_by_preregistered_rule",
+      "tg": {
+        "totals": {
+          "reference": 246,
+          "variant": 0
+        },
+        "invalid_signs": {
+          "reference": 0,
+          "variant": 0
+        },
+        "exposed": true,
+        "by_year": {
+          "1970": {
+            "reference": 37,
+            "variant": 0
+          },
+          "1971": {
+            "reference": 38,
+            "variant": 0
+          },
+          "1972": {
+            "reference": 34,
+            "variant": 0
+          },
+          "1973": {
+            "reference": 29,
+            "variant": 0
+          },
+          "1974": {
+            "reference": 26,
+            "variant": 0
+          },
+          "1975": {
+            "reference": 21,
+            "variant": 0
+          },
+          "1976": {
+            "reference": 17,
+            "variant": 0
+          },
+          "1977": {
+            "reference": 16,
+            "variant": 0
+          },
+          "1978": {
+            "reference": 16,
+            "variant": 0
+          },
+          "1979": {
+            "reference": 12,
+            "variant": 0
+          }
+        }
+      },
+      "vehicles_delta": {
+        "n": 20,
+        "mean": 2.85,
+        "median": 3.0,
+        "standard_deviation": 19.567091,
+        "standard_error": 4.375335,
+        "mean_normal_95pct_ci": [
+          -5.725498,
+          11.425498
+        ],
+        "mean_student_t_95pct_ci": [
+          -6.30768,
+          12.00768
+        ],
+        "wins": 12,
+        "losses": 8,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 20,
+        "sign_test_p": 0.503445
+      },
+      "source_fingerprints": {
+        "AAAHogEx": {
+          "sha256": "eaec19151d118daad80eddab437180402764e1c919f48904cc22cbf71cb80bc7",
+          "file_count": 17
+        },
+        "OpexAI": {
+          "sha256": "eafbff7af32570eef24460f24c2f7aeac7bd4007cf448333b7d4f74ad00d9eef",
+          "file_count": 64
+        },
+        "ai_libraries": {
+          "sha256": "c6be0dd91e4543c7f26a7c4a832c754931a2f338db9d7c2021ccbb85db244f41",
+          "file_count": 4
+        },
+        "harness": {
+          "sha256": "8871915358e104325eea40fd7f118008d643666062e5a9f23419f92ec752c93e",
+          "file_count": 11
+        }
+      },
+      "health": {
+        "healthy": true,
+        "failed_runs": [],
+        "game_status_counts": {
+          "complete": 40
+        }
+      },
+      "airport_slot_means": {
+        "airport_slots_opex": {
+          "reference": 27.6,
+          "variant": 27.05
+        },
+        "airport_slots_aaahogex": {
+          "reference": 42.4,
+          "variant": 42.3
+        },
+        "airport_towns_opex_present": {
+          "reference": 26.6,
+          "variant": 26.2
+        },
+        "airport_towns_aaahogex_present": {
+          "reference": 35.3,
+          "variant": 35.45
+        },
+        "airport_towns_aaahogex_2_opex_0": {
+          "reference": 7.1,
+          "variant": 6.85
+        },
+        "airport_towns_opex_2_aaahogex_0": {
+          "reference": 1,
+          "variant": 0.85
+        },
+        "airport_towns_shared_1_1": {
+          "reference": 23.55,
+          "variant": 23
+        }
+      },
+      "vehicle_means_by_mode": {
+        "reference": {
+          "rail": 2.2,
+          "road": 19.5,
+          "air": 140.85,
+          "water": 0.2
+        },
+        "variant": {
+          "rail": 2.8,
+          "road": 5.75,
+          "air": 156.85,
+          "water": 0.2
+        }
+      },
+      "per_seed": [
+        {
+          "seed": 42,
+          "complete": true,
+          "profit_on": 1943430,
+          "profit_off": 2212992,
+          "profit_delta": 269562,
+          "gap_delta": -509178,
+          "value_delta_pct": 11.816742251119216,
+          "tg_on": 14,
+          "tg_off": 0
+        },
+        {
+          "seed": 100,
+          "complete": true,
+          "profit_on": 931636,
+          "profit_off": 977398,
+          "profit_delta": 45762,
+          "gap_delta": -583958,
+          "value_delta_pct": 19.76504536603074,
+          "tg_on": 7,
+          "tg_off": 0
+        },
+        {
+          "seed": 7,
+          "complete": true,
+          "profit_on": 2430319,
+          "profit_off": 2503196,
+          "profit_delta": 72877,
+          "gap_delta": 2169661,
+          "value_delta_pct": 5.815931286990184,
+          "tg_on": 13,
+          "tg_off": 0
+        },
+        {
+          "seed": 999,
+          "complete": true,
+          "profit_on": 2966874,
+          "profit_off": 2641542,
+          "profit_delta": -325332,
+          "gap_delta": 39992,
+          "value_delta_pct": -3.7580864054479357,
+          "tg_on": 19,
+          "tg_off": 0
+        },
+        {
+          "seed": 2026,
+          "complete": true,
+          "profit_on": 1812210,
+          "profit_off": 1736612,
+          "profit_delta": -75598,
+          "gap_delta": 772955,
+          "value_delta_pct": 12.47310553233656,
+          "tg_on": 11,
+          "tg_off": 0
+        },
+        {
+          "seed": 1,
+          "complete": true,
+          "profit_on": 1971138,
+          "profit_off": 2228430,
+          "profit_delta": 257292,
+          "gap_delta": 1207782,
+          "value_delta_pct": 14.687498476094296,
+          "tg_on": 9,
+          "tg_off": 0
+        },
+        {
+          "seed": 17,
+          "complete": true,
+          "profit_on": 1639595,
+          "profit_off": 1737167,
+          "profit_delta": 97572,
+          "gap_delta": -664793,
+          "value_delta_pct": 11.76065421873227,
+          "tg_on": 8,
+          "tg_off": 0
+        },
+        {
+          "seed": 73,
+          "complete": true,
+          "profit_on": 2982045,
+          "profit_off": 3305143,
+          "profit_delta": 323098,
+          "gap_delta": 1219859,
+          "value_delta_pct": -1.9377644618917667,
+          "tg_on": 13,
+          "tg_off": 0
+        },
+        {
+          "seed": 314,
+          "complete": true,
+          "profit_on": 1953081,
+          "profit_off": 2087379,
+          "profit_delta": 134298,
+          "gap_delta": -643452,
+          "value_delta_pct": -0.5834619732866031,
+          "tg_on": 21,
+          "tg_off": 0
+        },
+        {
+          "seed": 512,
+          "complete": true,
+          "profit_on": 1002713,
+          "profit_off": 945357,
+          "profit_delta": -57356,
+          "gap_delta": -150503,
+          "value_delta_pct": -2.6737229153081077,
+          "tg_on": 6,
+          "tg_off": 0
+        },
+        {
+          "seed": 1024,
+          "complete": true,
+          "profit_on": 1701626,
+          "profit_off": 1996814,
+          "profit_delta": 295188,
+          "gap_delta": 1054912,
+          "value_delta_pct": 18.011327184294636,
+          "tg_on": 15,
+          "tg_off": 0
+        },
+        {
+          "seed": 1337,
+          "complete": true,
+          "profit_on": 1986960,
+          "profit_off": 2059752,
+          "profit_delta": 72792,
+          "gap_delta": 1100772,
+          "value_delta_pct": 25.442504661503417,
+          "tg_on": 9,
+          "tg_off": 0
+        },
+        {
+          "seed": 4096,
+          "complete": true,
+          "profit_on": 2650288,
+          "profit_off": 2384721,
+          "profit_delta": -265567,
+          "gap_delta": -2605831,
+          "value_delta_pct": 3.2950910340485473,
+          "tg_on": 16,
+          "tg_off": 0
+        },
+        {
+          "seed": 8191,
+          "complete": true,
+          "profit_on": 2484797,
+          "profit_off": 2395756,
+          "profit_delta": -89041,
+          "gap_delta": -178503,
+          "value_delta_pct": -14.555169321934747,
+          "tg_on": 11,
+          "tg_off": 0
+        },
+        {
+          "seed": 12345,
+          "complete": true,
+          "profit_on": 2064326,
+          "profit_off": 2204526,
+          "profit_delta": 140200,
+          "gap_delta": 33328,
+          "value_delta_pct": 9.74954044061176,
+          "tg_on": 16,
+          "tg_off": 0
+        },
+        {
+          "seed": 54321,
+          "complete": true,
+          "profit_on": 2356267,
+          "profit_off": 1922530,
+          "profit_delta": -433737,
+          "gap_delta": 1131567,
+          "value_delta_pct": -8.054793871465193,
+          "tg_on": 12,
+          "tg_off": 0
+        },
+        {
+          "seed": 65537,
+          "complete": true,
+          "profit_on": 1410916,
+          "profit_off": 1303066,
+          "profit_delta": -107850,
+          "gap_delta": -875186,
+          "value_delta_pct": -20.78525573823641,
+          "tg_on": 7,
+          "tg_off": 0
+        },
+        {
+          "seed": 123456,
+          "complete": true,
+          "profit_on": 2218543,
+          "profit_off": 1997904,
+          "profit_delta": -220639,
+          "gap_delta": 907321,
+          "value_delta_pct": 2.5472337442882242,
+          "tg_on": 13,
+          "tg_off": 0
+        },
+        {
+          "seed": 424242,
+          "complete": true,
+          "profit_on": 3109373,
+          "profit_off": 3005922,
+          "profit_delta": -103451,
+          "gap_delta": -2166329,
+          "value_delta_pct": -1.9766994572175678,
+          "tg_on": 15,
+          "tg_off": 0
+        },
+        {
+          "seed": 8675309,
+          "complete": true,
+          "profit_on": 2698221,
+          "profit_off": 2232079,
+          "profit_delta": -466142,
+          "gap_delta": -498045,
+          "value_delta_pct": -12.613461012135518,
+          "tg_on": 11,
+          "tg_off": 0
+        }
+      ]
+    },
+    {
+      "campaign_id": "tg_off_c121_20x10_20261002_r1",
+      "source_sha": {
+        "dirty": false,
+        "sha": "1f07b4e3ed3d655bcd457b4c2a1ebedf4ed123d7",
+        "source": "host_environment",
+        "status_porcelain": []
+      },
+      "runtime": {
+        "build_context_files": {
+          "Dockerfile": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+          "requirements-ml.txt": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+          "requirements.txt": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6"
+        },
+        "container_detected": true,
+        "docker_cpus": 10,
+        "docker_image": "openttd-lab:latest",
+        "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+        "docker_image_id_verified": true,
+        "docker_memory": "2g",
+        "docker_memory_swap": "2g",
+        "openttdlab": "0.0.75",
+        "platform": "Linux-7.0.12-linuxkit-x86_64-with-glibc2.41",
+        "python": "3.12.14",
+        "python_executable": "/usr/local/bin/python3",
+        "runtime_fingerprint_sha256": "7fb6f6507b65d9359d1bb8e0ec6c04deb25b83da6ad5a45b4b5f417ed79c7f77"
+      },
+      "policy_settings": [
+        {
+          "id": "reference",
+          "explicit": {
+            "c121_air_economics": 1,
+            "c121_catalog_incremental": 1,
+            "town_growth": 1
+          }
+        },
+        {
+          "id": "tg_off",
+          "explicit": {
+            "c121_air_economics": 1,
+            "c121_catalog_incremental": 1,
+            "town_growth": 0
+          }
+        }
+      ],
+      "effective_differences": {
+        "town_growth": {
+          "candidate": 0,
+          "reference": 1
+        }
+      },
+      "provenance": {
+        "result": {
+          "path": "results/tg_off_c121_20x10_20261002_r1.json",
+          "sha256": "a2d64015256ff21d4755088e1dec587c36c34d2627f02be9600b435af32a67aa"
+        },
+        "manifest": {
+          "path": "results/tg_off_c121_20x10_20261002_r1.manifest.json",
+          "sha256": "150ca251286d8ca32d2821e588085fbdb88e4964a723cf96d2e144ce965e9e28"
+        },
+        "checkpoint": {
+          "path": "results/tg_off_c121_20x10_20261002_r1.jsonl",
+          "sha256": "682f19ccf3da8c7f5fa3d02018372377ed7c57606aee145def6eb88baa574b68"
+        },
+        "bundle_sha256": "c8d11b37ef893831711d713315793eee35de85a545dd031c90c37da3046b2552",
+        "bundle_verified": true,
+        "engine_logs": {
+          "reference_seed100_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed1024_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed123456_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed12345_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed1337_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed17_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed1_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed2026_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed314_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed4096_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed424242_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed42_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed512_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed54321_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed65537_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed73_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed7_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed8191_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed8675309_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "reference_seed999_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed100_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed1024_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed123456_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed12345_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed1337_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed17_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed1_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed2026_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed314_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed4096_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed424242_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed42_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed512_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed54321_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed65537_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed73_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed7_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed8191_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed8675309_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tg_off_seed999_r0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "coverage": {
+        "games_expected": 40,
+        "games_obtained": 40,
+        "company_summaries_expected": 80,
+        "company_summaries_obtained": 80,
+        "checkpoint_rows_obtained": 9598,
+        "planned_pairs": 20,
+        "checkpoint_rows_expected": 9600,
+        "checkpoint_archive_complete": false,
+        "missing_archive_rows": [
+          {
+            "policy_id": "reference",
+            "arm": "AAAHogEx",
+            "seed": 8675309,
+            "date": "1972-02-01"
+          },
+          {
+            "policy_id": "tg_off",
+            "arm": "AAAHogEx",
+            "seed": 8675309,
+            "date": "1972-12-01"
+          }
+        ],
+        "returned_company_rows_from_summaries": 9600,
+        "complete_pairs": 20,
+        "comparison_complete": true,
+        "adoption_sample_complete": true,
+        "metric_coverage_complete": true
+      },
+      "years": 10,
+      "seeds": [
+        42,
+        100,
+        7,
+        999,
+        2026,
+        1,
+        17,
+        73,
+        314,
+        512,
+        1024,
+        1337,
+        4096,
+        8191,
+        12345,
+        54321,
+        65537,
+        123456,
+        424242,
+        8675309
+      ],
+      "decision_rule": {
+        "required_pairs": 20,
+        "required_wins": 15,
+        "max_sign_test_p_exclusive": 0.05,
+        "min_useful_primary_delta": 0.0,
+        "value_guard_max_loss_pct": 5.0,
+        "primary_rule": "first wins>=15/20 and exact two-sided sign-test p<0.05; then mean(variant-reference) >= min_useful_primary_delta",
+        "value_guard_rule": "all 20 reference denominators must be positive; then ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct",
+        "all_planned_pairs_required_for_verdict": true
+      },
+      "raw_verdict": "fail_primary",
+      "primary_recomputed": {
+        "n": 20,
+        "mean": 131752.6,
+        "median": 134433.0,
+        "standard_deviation": 239098.465717,
+        "standard_error": 53464.042266,
+        "mean_normal_95pct_ci": [
+          26965.002691,
+          236540.197309
+        ],
+        "mean_student_t_95pct_ci": [
+          19851.076401,
+          243654.123599
+        ],
+        "wins": 13,
+        "losses": 7,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 20,
+        "sign_test_p": 0.263176
+      },
+      "duel_gap_evolution": {
+        "n": 20,
+        "mean": 244641.8,
+        "median": 335560.5,
+        "standard_deviation": 1362225.082275,
+        "standard_error": 304602.788462,
+        "mean_normal_95pct_ci": [
+          -352368.694977,
+          841652.294977
+        ],
+        "mean_student_t_95pct_ci": [
+          -392899.146719,
+          882182.746719
+        ],
+        "wins": 13,
+        "losses": 7,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 20,
+        "sign_test_p": 0.263176
+      },
+      "value_ratio_of_means_pct": 9.483734,
+      "value_guard_pass": true,
+      "signs20_primary_gain": false,
+      "reading": "no_loss_by_preregistered_rule",
+      "tg": {
+        "totals": {
+          "reference": 237,
+          "variant": 0
+        },
+        "invalid_signs": {
+          "reference": 0,
+          "variant": 0
+        },
+        "exposed": true,
+        "by_year": {
+          "1970": {
+            "reference": 43,
+            "variant": 0
+          },
+          "1971": {
+            "reference": 45,
+            "variant": 0
+          },
+          "1972": {
+            "reference": 27,
+            "variant": 0
+          },
+          "1973": {
+            "reference": 21,
+            "variant": 0
+          },
+          "1974": {
+            "reference": 15,
+            "variant": 0
+          },
+          "1975": {
+            "reference": 31,
+            "variant": 0
+          },
+          "1976": {
+            "reference": 13,
+            "variant": 0
+          },
+          "1977": {
+            "reference": 19,
+            "variant": 0
+          },
+          "1978": {
+            "reference": 15,
+            "variant": 0
+          },
+          "1979": {
+            "reference": 8,
+            "variant": 0
+          }
+        }
+      },
+      "vehicles_delta": {
+        "n": 20,
+        "mean": 0.15,
+        "median": -9.5,
+        "standard_deviation": 36.224846,
+        "standard_error": 8.100122,
+        "mean_normal_95pct_ci": [
+          -15.725947,
+          16.025947
+        ],
+        "mean_student_t_95pct_ci": [
+          -16.803749,
+          17.103749
+        ],
+        "wins": 9,
+        "losses": 11,
+        "ties": 0,
+        "sign_test_n_excluding_ties": 20,
+        "sign_test_p": 0.823803
+      },
+      "source_fingerprints": {
+        "AAAHogEx": {
+          "sha256": "eaec19151d118daad80eddab437180402764e1c919f48904cc22cbf71cb80bc7",
+          "file_count": 17
+        },
+        "OpexAI": {
+          "sha256": "eafbff7af32570eef24460f24c2f7aeac7bd4007cf448333b7d4f74ad00d9eef",
+          "file_count": 64
+        },
+        "ai_libraries": {
+          "sha256": "c6be0dd91e4543c7f26a7c4a832c754931a2f338db9d7c2021ccbb85db244f41",
+          "file_count": 4
+        },
+        "harness": {
+          "sha256": "8871915358e104325eea40fd7f118008d643666062e5a9f23419f92ec752c93e",
+          "file_count": 11
+        }
+      },
+      "health": {
+        "healthy": true,
+        "failed_runs": [],
+        "game_status_counts": {
+          "complete": 40
+        }
+      },
+      "airport_slot_means": {
+        "airport_slots_opex": {
+          "reference": 20.75,
+          "variant": 22.3
+        },
+        "airport_slots_aaahogex": {
+          "reference": 48.35,
+          "variant": 47.15
+        },
+        "airport_towns_opex_present": {
+          "reference": 20.2,
+          "variant": 21.75
+        },
+        "airport_towns_aaahogex_present": {
+          "reference": 35.8,
+          "variant": 36.55
+        },
+        "airport_towns_aaahogex_2_opex_0": {
+          "reference": 12.55,
+          "variant": 10.6
+        },
+        "airport_towns_opex_2_aaahogex_0": {
+          "reference": 0.55,
+          "variant": 0.55
+        },
+        "airport_towns_shared_1_1": {
+          "reference": 17.25,
+          "variant": 19.1
+        }
+      },
+      "vehicle_means_by_mode": {
+        "reference": {
+          "rail": 9.5,
+          "road": 24.5,
+          "air": 143.05,
+          "water": 0.15
+        },
+        "variant": {
+          "rail": 11.95,
+          "road": 10.6,
+          "air": 154.65,
+          "water": 0.15
+        }
+      },
+      "per_seed": [
+        {
+          "seed": 42,
+          "complete": true,
+          "profit_on": 1117934,
+          "profit_off": 1037344,
+          "profit_delta": -80590,
+          "gap_delta": 1193699,
+          "value_delta_pct": -5.254902902430192,
+          "tg_on": 16,
+          "tg_off": 0
+        },
+        {
+          "seed": 100,
+          "complete": true,
+          "profit_on": 796204,
+          "profit_off": 980978,
+          "profit_delta": 184774,
+          "gap_delta": 1459082,
+          "value_delta_pct": 34.24694633064755,
+          "tg_on": 9,
+          "tg_off": 0
+        },
+        {
+          "seed": 7,
+          "complete": true,
+          "profit_on": 1993462,
+          "profit_off": 2216524,
+          "profit_delta": 223062,
+          "gap_delta": -2709767,
+          "value_delta_pct": 17.373927615872553,
+          "tg_on": 14,
+          "tg_off": 0
+        },
+        {
+          "seed": 999,
+          "complete": true,
+          "profit_on": 1562577,
+          "profit_off": 1646669,
+          "profit_delta": 84092,
+          "gap_delta": 1369119,
+          "value_delta_pct": 3.2420855022952333,
+          "tg_on": 12,
+          "tg_off": 0
+        },
+        {
+          "seed": 2026,
+          "complete": true,
+          "profit_on": 1248849,
+          "profit_off": 1083184,
+          "profit_delta": -165665,
+          "gap_delta": -137725,
+          "value_delta_pct": -17.017226433467624,
+          "tg_on": 20,
+          "tg_off": 0
+        },
+        {
+          "seed": 1,
+          "complete": true,
+          "profit_on": 1345273,
+          "profit_off": 1362149,
+          "profit_delta": 16876,
+          "gap_delta": -341458,
+          "value_delta_pct": -7.193516424065893,
+          "tg_on": 13,
+          "tg_off": 0
+        },
+        {
+          "seed": 17,
+          "complete": true,
+          "profit_on": 1269390,
+          "profit_off": 1212244,
+          "profit_delta": -57146,
+          "gap_delta": 310619,
+          "value_delta_pct": 0.9730782368666313,
+          "tg_on": 7,
+          "tg_off": 0
+        },
+        {
+          "seed": 73,
+          "complete": true,
+          "profit_on": 1552922,
+          "profit_off": 2041133,
+          "profit_delta": 488211,
+          "gap_delta": 704065,
+          "value_delta_pct": 27.62256282048876,
+          "tg_on": 10,
+          "tg_off": 0
+        },
+        {
+          "seed": 314,
+          "complete": true,
+          "profit_on": 1240679,
+          "profit_off": 1614089,
+          "profit_delta": 373410,
+          "gap_delta": 416213,
+          "value_delta_pct": 37.36076666252075,
+          "tg_on": 9,
+          "tg_off": 0
+        },
+        {
+          "seed": 512,
+          "complete": true,
+          "profit_on": 762666,
+          "profit_off": 968558,
+          "profit_delta": 205892,
+          "gap_delta": -339810,
+          "value_delta_pct": 39.0658711361878,
+          "tg_on": 10,
+          "tg_off": 0
+        },
+        {
+          "seed": 1024,
+          "complete": true,
+          "profit_on": 1005196,
+          "profit_off": 955289,
+          "profit_delta": -49907,
+          "gap_delta": -1199026,
+          "value_delta_pct": -16.538547246494815,
+          "tg_on": 13,
+          "tg_off": 0
+        },
+        {
+          "seed": 1337,
+          "complete": true,
+          "profit_on": 1418165,
+          "profit_off": 1299957,
+          "profit_delta": -118208,
+          "gap_delta": 29061,
+          "value_delta_pct": 2.8057246172731753,
+          "tg_on": 15,
+          "tg_off": 0
+        },
+        {
+          "seed": 4096,
+          "complete": true,
+          "profit_on": 1908377,
+          "profit_off": 1941865,
+          "profit_delta": 33488,
+          "gap_delta": 791771,
+          "value_delta_pct": -3.068715773181896,
+          "tg_on": 9,
+          "tg_off": 0
+        },
+        {
+          "seed": 8191,
+          "complete": true,
+          "profit_on": 1923306,
+          "profit_off": 1749319,
+          "profit_delta": -173987,
+          "gap_delta": 3227139,
+          "value_delta_pct": -1.6509506028735021,
+          "tg_on": 14,
+          "tg_off": 0
+        },
+        {
+          "seed": 12345,
+          "complete": true,
+          "profit_on": 981096,
+          "profit_off": 1312064,
+          "profit_delta": 330968,
+          "gap_delta": 2031171,
+          "value_delta_pct": 27.151799898362494,
+          "tg_on": 9,
+          "tg_off": 0
+        },
+        {
+          "seed": 54321,
+          "complete": true,
+          "profit_on": 1425399,
+          "profit_off": 1706271,
+          "profit_delta": 280872,
+          "gap_delta": -2266482,
+          "value_delta_pct": 3.2041492317209874,
+          "tg_on": 11,
+          "tg_off": 0
+        },
+        {
+          "seed": 65537,
+          "complete": true,
+          "profit_on": 652663,
+          "profit_off": 1323722,
+          "profit_delta": 671059,
+          "gap_delta": 576898,
+          "value_delta_pct": 125.43614312685665,
+          "tg_on": 7,
+          "tg_off": 0
+        },
+        {
+          "seed": 123456,
+          "complete": true,
+          "profit_on": 1220336,
+          "profit_off": 1505397,
+          "profit_delta": 285061,
+          "gap_delta": 360502,
+          "value_delta_pct": 24.160903623197804,
+          "tg_on": 15,
+          "tg_off": 0
+        },
+        {
+          "seed": 424242,
+          "complete": true,
+          "profit_on": 2202281,
+          "profit_off": 2017473,
+          "profit_delta": -184808,
+          "gap_delta": 91084,
+          "value_delta_pct": -9.922949230417311,
+          "tg_on": 14,
+          "tg_off": 0
+        },
+        {
+          "seed": 8675309,
+          "complete": true,
+          "profit_on": 1446870,
+          "profit_off": 1734468,
+          "profit_delta": 287598,
+          "gap_delta": -673319,
+          "value_delta_pct": 19.03362135097244,
+          "tg_on": 10,
+          "tg_off": 0
+        }
+      ]
+    }
+  ]
+}
