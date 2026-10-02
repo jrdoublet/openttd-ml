@@ -95,7 +95,10 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
   ];
 
   local candidates = [];
-  for (local x = minX; x <= maxX; x++) {
+  if (EXP_OPCODE_EXACT_ON) {
+    candidates = OpexAirJoinedCandidatesSelect(minX, maxX, minY, maxY, town, paxCargo, coverage,
+                                               airportCoverage, ax, ay, w, h, center);
+  } else for (local x = minX; x <= maxX; x++) {
     for (local y = minY; y <= maxY; y++) {
       local tile = AIMap.GetTileIndex(x, y);
       if (!AIMap.IsValidTile(tile)) continue;

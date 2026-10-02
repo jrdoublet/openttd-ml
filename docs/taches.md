@@ -86,6 +86,12 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   **Rejeté ; aucun 20×10.** Ne plus empiler de profondeur statique ; prochaine
   hypothèse à définir : valeur de continuation marginale N=1→N+1, revalorisée
   après observation, sans réarmer les variantes C121/C122 rejetées.
+- **Opcodes exacts C121 (02/10), non adoptés** : `exp_opcode_exact` et
+  `exp_opcode_exact_check` à 0. Chemins route (liste d'exclusion bornée), tri
+  des flottes, catchment et arrêts joints. Le préfiltre de ville et le cache
+  C117 ne sont pas livrés. Contrôle solo 3×6 : `mismatch=0` sur les sites
+  livrés. Aucun 5×6, aucun 20×10, aucune qualification économique.
+  [Mesures](opcode_exact_20261002.md).
 
 ## 1. Priorité immédiate — valider les livraisons locales
 
