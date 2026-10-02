@@ -1202,9 +1202,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "town_growth",
-      description = "Boost served town growth with one base bus line per town: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "Boost served town growth with one base bus line per town: 1 = enabled, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

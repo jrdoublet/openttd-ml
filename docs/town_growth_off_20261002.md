@@ -1,6 +1,6 @@
 # Town growth OFF — A/B PC du 2 octobre 2026
 
-Au défaut C115, OFF satisfait la règle d'absence de perte pré-enregistrée : −21,8 k£/an, IC95 Student [−131,9 ; +88,2] k£/an, 10/10/0, p=1, valeur +2,05 %. Le verdict brut reste `fail_primary` : aucun gain positif démontré, aucun défaut changé. La future version ciblée doit battre OFF. Sous C121 (secondaire), Δprofit +131,8 k£/an, 13/7/0, p=0,263176, verdict brut `fail_primary`. Voir sa lecture séparée ci-dessous.
+Au défaut C115, OFF satisfait la règle d'absence de perte pré-enregistrée : −21,8 k£/an, IC95 Student [−131,9 ; +88,2] k£/an, 10/10/0, p=1, valeur +2,05 %. Le verdict brut reste `fail_primary` : aucun gain positif démontré. Après remise du bilan, l'utilisateur décide de passer le défaut à 0 sur `c121-catalog` ; décision et validation ci-dessous. La future version ciblée doit battre OFF. Sous C121 (secondaire), Δprofit +131,8 k£/an, 13/7/0, p=0,263176, verdict brut `fail_primary`. Voir sa lecture séparée ci-dessous.
 
 ## Plan pré-enregistré avant mesure (13 h 45, Europe/Paris)
 
@@ -9,7 +9,7 @@ Le profil [C121 du 2 octobre, §3](opcode_profile_c121_20261002.md) motive l'ess
 (15 % des opcodes, 95 % en planification infructueuse) ; ce profil instrumenté
 est une mesure de coût sous C121, pas une preuve causale du bénéfice économique.
 La version ciblée aux monopoles aéroportuaires Opex 2-0 relève du chantier C83.1
-mené ailleurs ; aucune implémentation ici. Aucun défaut ni merge autorisé.
+mené ailleurs ; aucune implémentation ici. Au lancement du banc, aucun défaut ni merge autorisé.
 
 - Dépôt : `jrdoublet/openttd-ml`, branche `c121-catalog` ; base propre après
   `git pull --ff-only` : `c9905d84d99a1b715546d94897fb4609eb461820`, contenant `652dac9`.
@@ -21,7 +21,7 @@ mené ailleurs ; aucune implémentation ici. Aucun défaut ni merge autorisé.
   `ai/AAAHogEx-115/main.nut` présents. Adversaire ignoré par Git.
 - Limites utilisateur : 10 CPU, 2 Go, `--memory-swap=2g` (sans swap),
   10 workers maximum, cache `openttd-lab-home`. Une campagne à la fois.
-- Défaut conservé : `town_growth=1`, quatre difficultés à 1 ; chargement
+- Défaut conservé pendant les campagnes : `town_growth=1`, quatre difficultés à 1 ; chargement
   `settings.nut::TOWN_GROWTH_ENABLED`. La garde de `_dispatchTownGrowth`
   coupe cette tâche, sans supprimer les bus interurbains.
 - Métrique primaire : `profit_year`, delta **Opex OFF − Opex ON**.
@@ -313,11 +313,43 @@ Les comptes 2-0 sont ceux du décodeur existant : ≥2 aéroports contre 0.
 - **C115 20×10** : absence de perte selon la règle opcodes pré-enregistrée ; town growth actuel ne paie pas ses opcodes selon cette règle. Future version ciblée à comparer à OFF. Cette lecture n'est pas une preuve d'équivalence ; le gain signs20 reste un critère séparé. Gain primaire signs20 : False ; garde valeur : True.
 - **C121 secondaire 20×10** : absence de perte selon la règle opcodes pré-enregistrée ; town growth actuel ne paie pas ses opcodes selon cette règle. Future version ciblée à comparer à OFF. Cette lecture n'est pas une preuve d'équivalence ; le gain signs20 reste un critère séparé. Gain primaire signs20 : False ; garde valeur : True.
 
-Aucun défaut modifié. Le comparateur de la future version ciblée découle de
+Aucun défaut modifié pendant les campagnes. Le comparateur de la future version ciblée découle de
 cette lecture pour chaque socle ; C121 reste un résultat secondaire et ne
 qualifie pas son économie face à C115. Les opcodes TG économisés n'ont pas
 été remesurés ON/OFF ici : le coût motivant l'essai vient du profil C121
 instrumenté antérieur. Aucune adoption opcode automatique n'est revendiquée.
+
+## Décision utilisateur après bilan — défaut 0 sur la branche
+
+Le 2 octobre 2026, après remise des résultats, instruction explicite :
+« Mets town growth a zéro par defaut sur cette branche. Committe et pousse ».
+Le défaut passe donc de 1 à 0 sur `c121-catalog`, aux quatre niveaux de difficulté
+dans `info.nut`, avec repli `TOWN_GROWTH_ENABLED=false` dans `globals_post.nut`.
+Le chargement par `AIController.GetSetting("town_growth") != 0` est conservé :
+un réglage explicite à 1 continue d'activer le mécanisme. Aucun état de
+persistance n'est modifié ; la lecture du réglage dans `Start()` reste inchangée.
+
+Cette adoption est une **décision utilisateur**, pas un `pass` signs20 ni une
+adoption opcode automatique. Les verdicts, SHA et bundles des campagnes restent
+inchangés ; les économies d'opcodes ON/OFF ne sont pas remesurées. Le futur
+ciblage aux monopoles 2-0 reste hors de cette modification.
+
+Validation du défaut livré sur l'arbre modifié issu de
+`e330bced8336ad4ba9ccb043452cdf7623ea23d6` : **44 tests ciblés réussis**
+(`test_campaign_freeze`, `test_scheduler_task_contract`, `test_sched_idle`,
+`test_town_growth_sign_metrics`), `--selftest` C66 réussi et `git diff --check` OK.
+Contrôle des quatre valeurs à 0, du repli, du chargement et du réglage explicite
+à 1 ; seul `town_growth` change parmi les déclarations de réglages.
+
+Smoke solo **1/1 partie saine**, bras `OpexAI`, graine 42, un an : 13 sauvegardes
+jusqu'au 1971-01-01, `run_ok=true`, `physical_ok=true`, aucune erreur ni partie
+manquante ; réglages effectifs `town_growth=0`, C115=1, C121 économie/catalogue=0.
+Sortie neuve : `results/tg_default_off_smoke_1x1_20261002_r1.json`, SHA-256
+`478d5d0e9256c13e537613fdb185ab79f96f827bf345133e1510e82efc88f661`.
+Compilation/exécution Squirrel validées ; année économique initiale partielle
+(trois trimestres), sans nouvelle conclusion de rentabilité.
+Limites PC inchangées : Docker `desktop-linux`, 10 CPU, 2 Go sans swap,
+10 workers et cache `openttd-lab-home`, même image `f4b2b9b3…` que les A/B.
 
 ## Provenance des campagnes retenues
 
