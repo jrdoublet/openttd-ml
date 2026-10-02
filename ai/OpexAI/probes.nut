@@ -2506,6 +2506,10 @@ function OpexLoopProfFlushIfNewYear()
 function OpexAI::_mainLoopProfiled()
 {
   while (true) {
+    if (PROBE_SPAN_TRACE) {
+      OpexSpanRescueOrphans();
+      OpexSpanYearRoll();
+    }
     OpexLoopProfFlushIfNewYear();
     if (C56_TASK_TRACE) {
       C56_LOOP_TICK_COUNT++;
@@ -2514,26 +2518,35 @@ function OpexAI::_mainLoopProfiled()
       }
     }
     local mark = OpexOpsMeasureBegin();
+    local spEvents = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.events") : null;
     this._processEvents();
+    if (spEvents != null) OpexSpanEnd(spEvents);
     OpexLoopProfAdd("events", mark);
     if (EXP_C83_WATCH_DAILY) {
       mark = OpexOpsMeasureBegin();
+      local spC83 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c83") : null;
       this._expC83PollAirSlots();
+      if (spC83 != null) OpexSpanEnd(spC83);
       OpexLoopProfAdd("c83_watch_daily", mark);
     }
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       local before = C117_AIR_LAST_DATE;
       mark = OpexOpsMeasureBegin();
+      local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
       OpexC117AirThroughputStep(this._lines, this._catalog);
+      if (spC117 != null) OpexSpanEnd(spC117);
       OpexLoopProfAdd(C117_AIR_LAST_DATE != before ? "c117_sample" : "c117_skip", mark);
     }
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     mark = OpexOpsMeasureBegin();
+    local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
     this._runOrchestratorTick();
+    if (spOrch != null) OpexSpanEnd(spOrch);
     OpexLoopProfAdd("orchestrator", mark);
     if (C121_CATALOG_INCREMENTAL) {
       mark = OpexOpsMeasureBegin();
       local continued = false;
+      local spResume = null;
       local catalogPending = true;
       local continuationTick = AIController.GetTick();
       while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
@@ -2541,27 +2554,218 @@ function OpexAI::_mainLoopProfiled()
         foreach (queuedTask in this._taskQueue) {
           if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
               && queuedTask.c78AirRebuild != null) {
+            if (spResume == null && PROBE_SPAN_TRACE) spResume = OpexSpanBegin("loop.c121_catalog_resume");
             catalogPending = true;
             continued = true;
+            local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
             this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            if (spCat != null) OpexSpanEnd(spCat);
             break;
           }
         }
-        if (catalogPending) this._runOrchestratorTick();
+        if (catalogPending) {
+          local spMid = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
+          this._runOrchestratorTick();
+          if (spMid != null) OpexSpanEnd(spMid);
+        }
       }
+      if (spResume != null) OpexSpanEnd(spResume);
       OpexLoopProfAdd(continued ? "catalog_continuation" : "catalog_continuation_check", mark);
     }
     if (V89_RAIL_SEARCH_THROUGHPUT) {
       mark = OpexOpsMeasureBegin();
+      local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
       this._advanceRailSearchThroughput();
+      if (spAstar != null) OpexSpanEnd(spAstar);
       OpexLoopProfAdd("rail_throughput", mark);
     }
     if (C67_SLACK_HOOK) {
       mark = OpexOpsMeasureBegin();
+      local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
       this._c67SlackHook();
+      if (spC67 != null) OpexSpanEnd(spC67);
       OpexLoopProfAdd("c67_hook", mark);
     }
     OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
+    local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
+    if (spSleep != null) OpexSpanEnd(spSleep);
   }
+}
+
+/* probe_span_trace (defaut 0). Jeton = entier >= 1, jamais un objet : pas de
+ * destructeur Squirrel. Le parent inclut les opcodes des enfants, y compris
+ * les ticks passes a attendre une commande. Eteint : les sites lisent seulement
+ * le global. Les tables ne sont pas sauvees sur l'instance. */
+function OpexSpanDateText(date)
+{
+  return AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-" + AIDate.GetDayOfMonth(date);
+}
+
+function OpexSpanEventKind(eventType)
+{
+  if (eventType == AIEvent.ET_VEHICLE_CRASHED) return "event.vehicle_crashed";
+  if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) return "event.vehicle_waiting";
+  if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) return "event.vehicle_autoreplaced";
+  if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) return "event.vehicle_unprofitable";
+  if (eventType == AIEvent.ET_INDUSTRY_CLOSE) return "event.industry_close";
+  if (eventType == AIEvent.ET_SUBSIDY_OFFER) return "event.subsidy_offer";
+  if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) return "event.subsidy_offer_expired";
+  if (eventType == AIEvent.ET_SUBSIDY_AWARDED) return "event.subsidy_awarded";
+  if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) return "event.subsidy_expired";
+  if (eventType == AIEvent.ET_VEHICLE_LOST) return "event.vehicle_lost";
+  if (eventType == AIEvent.ET_INDUSTRY_OPEN) return "event.industry_open";
+  if (eventType == AIEvent.ET_TOWN_FOUNDED) return "event.town_founded";
+  if (eventType == AIEvent.ET_ENGINE_AVAILABLE) return "event.engine_available";
+  if (eventType == AIEvent.ET_ENGINE_PREVIEW) return "event.engine_preview";
+  if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) return "event.station_first_vehicle";
+  return "event.type_" + eventType;
+}
+
+function OpexSpanFlushAgg(rec)
+{
+  if (rec == null || rec.agg == null) return;
+  local date = AIDate.GetCurrentDate();
+  local head = "OPEX " + OpexSpanDateText(date) + " SPAN_AGG par=" + rec.id + " ";
+  foreach (name, bucket in rec.agg) {
+    AILog.Info(head + "n=" + name + " cnt=" + bucket.cnt + " tk=" + bucket.tk + " op=" + bucket.op);
+    SPAN_AGG_LINES = SPAN_AGG_LINES + 1;
+  }
+  rec.agg = null;
+}
+
+function OpexSpanEmit(rec, extra)
+{
+  local op = OpexOpsMeasureEnd(rec.mark);
+  local tk = AIController.GetTick() - rec.tick;
+  local line = "OPEX " + OpexSpanDateText(AIDate.GetCurrentDate())
+      + " SPAN id=" + rec.id
+      + " par=" + rec.parentId
+      + " dep=" + rec.depth
+      + " n=" + rec.name
+      + " ds=" + OpexSpanDateText(rec.date)
+      + " t0=" + rec.tick
+      + " tk=" + tk
+      + " op=" + op;
+  if (extra != null && extra != "") line = line + " " + extra;
+  AILog.Info(line);
+  SPAN_LINES = SPAN_LINES + 1;
+  OpexSpanFlushAgg(rec);
+}
+
+function OpexSpanBegin(name)
+{
+  if (SPAN_STACK == null) SPAN_STACK = [];
+  if (SPAN_BY_ID == null) SPAN_BY_ID = {};
+  local parentId = 0;
+  local depth = 0;
+  if (SPAN_STACK.len() > 0) {
+    local top = SPAN_STACK[SPAN_STACK.len() - 1];
+    parentId = top.id;
+    depth = top.depth + 1;
+  }
+  local id = SPAN_NEXT_ID;
+  SPAN_NEXT_ID = id + 1;
+  if (SPAN_NEXT_ID < 1) SPAN_NEXT_ID = 1;
+  local rec = {
+    id = id,
+    parentId = parentId,
+    depth = depth,
+    name = name,
+    date = AIDate.GetCurrentDate(),
+    tick = AIController.GetTick(),
+    mark = OpexOpsMeasureBegin(),
+    agg = null,
+    closed = false
+  };
+  SPAN_STACK.append(rec);
+  SPAN_BY_ID.rawset(id, rec);
+  return id;
+}
+
+function OpexSpanEnd(token, extra = "")
+{
+  if (token == null || SPAN_BY_ID == null || !(token in SPAN_BY_ID)) return;
+  local rec = SPAN_BY_ID[token];
+  if (rec.closed) return;
+  if (SPAN_STACK != null) {
+    while (SPAN_STACK.len() > 0) {
+      local top = SPAN_STACK[SPAN_STACK.len() - 1];
+      if (top.id == token) break;
+      SPAN_STACK.pop();
+      if (!top.closed) {
+        top.closed = true;
+        OpexSpanEmit(top, "orphan=1");
+      }
+      delete SPAN_BY_ID[top.id];
+    }
+    if (SPAN_STACK.len() > 0 && SPAN_STACK[SPAN_STACK.len() - 1].id == token) SPAN_STACK.pop();
+  }
+  rec.closed = true;
+  OpexSpanEmit(rec, extra);
+  delete SPAN_BY_ID[token];
+}
+
+function OpexSpanRescueOrphans()
+{
+  if (!PROBE_SPAN_TRACE) return;
+  if (SPAN_STACK != null) {
+    while (SPAN_STACK.len() > 0) {
+      local top = SPAN_STACK[SPAN_STACK.len() - 1];
+      OpexSpanEnd(top.id, "orphan=1");
+    }
+  }
+  if (SPAN_ROOT_AGG != null) {
+    OpexSpanFlushAgg({ id = 0, agg = SPAN_ROOT_AGG });
+    SPAN_ROOT_AGG = null;
+  }
+}
+
+function OpexSpanAgg(name, mark)
+{
+  if (!PROBE_SPAN_TRACE || mark == null) return;
+  local ops = OpexOpsMeasureEnd(mark);
+  local tk = AIController.GetTick() - mark.tick;
+  local ownerAgg = null;
+  if (SPAN_STACK != null && SPAN_STACK.len() > 0) {
+    local top = SPAN_STACK[SPAN_STACK.len() - 1];
+    if (top.agg == null) top.agg = {};
+    ownerAgg = top.agg;
+  } else {
+    if (SPAN_ROOT_AGG == null) SPAN_ROOT_AGG = {};
+    ownerAgg = SPAN_ROOT_AGG;
+  }
+  local bucket = (name in ownerAgg) ? ownerAgg[name] : null;
+  if (bucket == null) {
+    bucket = { cnt = 0, tk = 0, op = 0 };
+    ownerAgg.rawset(name, bucket);
+  }
+  bucket.cnt = bucket.cnt + 1;
+  bucket.tk = bucket.tk + tk;
+  bucket.op = bucket.op + ops;
+}
+
+function OpexSpanEvent(kind, fields)
+{
+  if (!PROBE_SPAN_TRACE) return;
+  local line = "OPEX " + OpexSpanDateText(AIDate.GetCurrentDate())
+      + " EVT k=" + kind + " t0=" + AIController.GetTick();
+  if (fields != null && fields != "") line = line + " " + fields;
+  AILog.Info(line);
+}
+
+function OpexSpanYearRoll()
+{
+  if (!PROBE_SPAN_TRACE) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (SPAN_YEAR < 0) {
+    SPAN_YEAR = year;
+    return;
+  }
+  if (year == SPAN_YEAR) return;
+  AILog.Info("OPEX " + OpexSpanDateText(AIDate.GetCurrentDate())
+      + " SPAN_SELF lines=" + SPAN_LINES + " agg_lines=" + SPAN_AGG_LINES);
+  SPAN_LINES = 0;
+  SPAN_AGG_LINES = 0;
+  SPAN_YEAR = year;
 }

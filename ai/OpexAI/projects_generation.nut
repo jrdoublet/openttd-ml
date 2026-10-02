@@ -152,10 +152,13 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
   }
+  local spMode = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.mode") : null;
   local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
                                              mode, waterSiteCatalog, entityKind, entityId);
-  return OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
+  local applied = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
                                         entityKind, entityId, lines);
+  if (spMode != null) OpexSpanEnd(spMode);
+  return applied;
 }
 
 /* C78.4 : variante reprenable du seul mode AIR pour le worker C77. Le scan de sites
@@ -171,6 +174,7 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   if (sliceState == null || typeof sliceState != "table") {
     return { done = true, projects = projects };
   }
+  local spAirSlice = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.air_slice") : null;
   if (!("plans" in sliceState)) sliceState.plans <- [];
   if (!("airCursor" in sliceState)) sliceState.airCursor <- {};
   if (!("ops" in sliceState)) sliceState.ops <- 0;
@@ -189,6 +193,7 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   AIR_CHOICE_MEMO_STATE = 0;
   sliceState.ops += OpexOpsMeasureEnd(mark);
   if (!("done" in sliceState.airCursor) || !sliceState.airCursor.done) {
+    if (spAirSlice != null) OpexSpanEnd(spAirSlice);
     return { done = false, projects = projects };
   }
 
@@ -215,10 +220,12 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
         + " partners=" + (repair != null ? repair.partners : 0)
         + " ops=" + sliceState.ops + " ticks=" + (AIController.GetTick() - sliceState.c83StartTick));
   }
+  local appliedAir = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, "air",
+                                              entityKind, entityId, lines);
+  if (spAirSlice != null) OpexSpanEnd(spAirSlice);
   return {
     done = true,
-    projects = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, "air",
-                                              entityKind, entityId, lines),
+    projects = appliedAir,
   };
 }
 
@@ -488,6 +495,43 @@ function OpexFilterRailStockGate(alternatives, railReadyStock)
     }
   }
   return kept;
+}
+
+/* Preparation C121 : attache le trace pret aux alternatives rail deja elues
+ * et ajoute les projets du stock absents du vivier. Ne retire aucun rail
+ * (contrairement a OpexFilterRailStockGate). Inerte pendant l'annee AIR. */
+function OpexRailPrepMergeAlternatives(alternatives, railReadyStock)
+{
+  if (!C121_AIR_FIRST_YEAR_RAIL_PREP || C121_CATALOG_FIRST_YEAR_ACTIVE) return alternatives;
+  if (railReadyStock == null || alternatives == null) return alternatives;
+  if (railReadyStock.len() == 0) return alternatives;
+  local seen = {};
+  foreach (project in alternatives) {
+    if (project == null || !("mode" in project) || project.mode != "rail") continue;
+    if (!("kind" in project) || !("cargo" in project) || !("src" in project) || !("dst" in project)) continue;
+    local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+    seen[pairKey] <- true;
+    if (!(pairKey in railReadyStock)) continue;
+    local entry = railReadyStock[pairKey];
+    if (entry == null || !("plan" in entry) || entry.plan == null) continue;
+    if (("ok" in entry.plan) && !entry.plan.ok) continue;
+    if (("payload" in project) && project.payload != null) {
+      project.payload.rawset("railPlan", entry.plan);
+      project.payload.rawset("c121PrepStock", true);
+    }
+  }
+  foreach (pairKey, entry in railReadyStock) {
+    if (pairKey in seen) continue;
+    if (entry == null || !("project" in entry) || entry.project == null) continue;
+    if (!("plan" in entry) || entry.plan == null) continue;
+    if (("ok" in entry.plan) && !entry.plan.ok) continue;
+    if (("payload" in entry.project) && entry.project.payload != null) {
+      entry.project.payload.rawset("railPlan", entry.plan);
+      entry.project.payload.rawset("c121PrepStock", true);
+    }
+    alternatives.push(entry.project);
+  }
+  return alternatives;
 }
 
 /* Meme sonde d'opcodes que la selection, limitee a la fusion par passe. */

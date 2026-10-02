@@ -88,7 +88,10 @@ class V92AirServiceChoiceTests(unittest.TestCase):
         self.assertEqual(replace.count("OpexAirRebuildFleet(line, hangar, oldEngine, oldCount, cargo)"), 2)
         self.assertIn("line.vehicles = []", replace)
         resize = function_body(TASK_AIR, "function OpexAI::_resizeAirFleets(")
-        self.assertLess(resize.index("OpexAirLineReequipPending(line)"), resize.index("lastAirFleetYear"))
+        # Le prefiltre de cooldown (opcodes) est saute sous V92 ; l'ordre se lit sur le garde historique.
+        self.assertIn("AIR_FLEET_COOLDOWN_PREFILTER && !V92_AIR_SERVICE_CHOICE", resize)
+        self.assertLess(resize.index("OpexAirLineReequipPending(line)"),
+                        resize.index('if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) {'))
         report = (ROOT / "ai" / "OpexAI" / "task_report.nut").read_text(encoding="utf-8")
         scrap = function_body(report, "function OpexAI::_triggerScrapLine(")
         self.assertIn("if (!reequipPending) AIVehicle.SendVehicleToDepot(v);", scrap)

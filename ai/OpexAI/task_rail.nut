@@ -139,6 +139,25 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       local candidate = project.payload;
+      /* Trace prepare pendant l'annee AIR : il n'est pas dans best. S'il y
+       * reapparait quand meme, on refuse sans lancer d'A* et sans stopper la passe. */
+      local c121PrepPlan = false;
+      if (C121_AIR_FIRST_YEAR_RAIL_PREP && candidate != null
+          && ("c121PrepStock" in candidate) && candidate.c121PrepStock
+          && ("railPlan" in candidate) && candidate.railPlan != null) {
+        local stillFirstYear = C121_CATALOG_FIRST_YEAR_ACTIVE;
+        if (!stillFirstYear && this._generationStageMonth >= 0
+            && AIDate.GetYear(AIDate.GetCurrentDate()) == this._generationStageMonth / 12) {
+          stillFirstYear = true;
+        }
+        if (stillFirstYear) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                  reason = "rail_prep_held", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        c121PrepPlan = true;
+      }
       if (C80_RAIL_STOCK_GATE) {
         local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
         if (C80_RAIL_STOCK_WORKER && (this._railReadyStock == null
@@ -163,17 +182,42 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if (builtCount > 0 && ("railPlan" in candidate)) {
+        if (!c121PrepPlan && builtCount > 0 && ("railPlan" in candidate)) {
           /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
            * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
-           * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure. */
+           * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure.
+           * Un trace de preparation C121 est revalide plus bas au lieu d'etre jete. */
           candidate.railPlan = null;
         }
         /* Une recherche est deja en cours (autre candidat, ou upgrade) : ne pas en lancer une
-         * seconde, et laisser air/route du portefeuille tourner. */
-        if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
+         * seconde, et laisser air/route du portefeuille tourner. Un trace de preparation
+         * deja depose a son railPlan : on le pose sans nouvel A*, meme si une autre
+         * recherche occupe le slot. */
+        if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !c121PrepPlan) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
+        }
+      }
+      if (c121PrepPlan) {
+        local prepMark = OpexOpsMeasureBegin();
+        local reval = this._revalidateRailStockPlan(candidate, candidate.railPlan);
+        local prepOps = OpexOpsMeasureEnd(prepMark);
+        local prepTicks = AIController.GetTick() - prepMark.tick;
+        if (!reval.ok) {
+          if (reval.reason == "cash" || reval.reason == "no_vehicle_slot") {
+            if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+              passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                    reason = "rail_prep_" + reval.reason, extra = "" });
+            return { outcome = "rejected", discards = passDiscards };
+          }
+          this._c121RailPrepDropStock(candidate, reval.reason, prepOps, prepTicks);
+          c121PrepPlan = false;
+          if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
+            if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+              passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                    reason = "search_in_progress", extra = "prep_dropped" });
+            return { outcome = "rejected", discards = passDiscards };
+          }
         }
       }
       if (V88_STEP2_RAIL_PRIO && this._activeGoodsChain != null && this._activeGoodsChain.step == 2
@@ -440,6 +484,15 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
       }
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year);
+      if (c121PrepPlan && candidate != null && this._railReadyStock != null
+          && ("kind" in candidate) && ("cargo" in candidate)
+          && ("src" in candidate) && ("dst" in candidate)) {
+        local prepKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
+        if (prepKey in this._railReadyStock) delete this._railReadyStock[prepKey];
+        if (recorded) OpexC121RailPrepLog(this, "stock_used", 0, 0);
+        else OpexC121RailPrepLog(this, "stock_dropped", 0, 0);
+        this._c121RailPrepRememberStock();
+      }
       if (C80_RAIL_STOCK_GATE) {
         local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
         if (recorded) {
@@ -1047,6 +1100,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     if (!("v89SelectedTick" in candidate)) candidate.v89SelectedTick <- curTick;
     else candidate.v89SelectedTick = curTick;
   }
+  local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.start") : null;
   this._railSearch = {
     kind = "primary",
     phase = "search",
@@ -1080,7 +1134,13 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
       };
     }
   }
+  if (spAstar != null) OpexSpanEnd(spAstar);
+  local astarSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   this._continueRailSearch();
+  if (astarSlice != null) OpexSpanAgg("astar.slice", astarSlice);
+  if (PROBE_SPAN_TRACE && this._railSearch != null && this._railSearch.phase == "build") {
+    OpexSpanEvent("astar_ready", "kind=primary");
+  }
   if (this._railSearch == null) {
     if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL && this._activeWorker != null && this._activeWorker.kind == "rail_search") {
       this._activeWorker = null;
@@ -1513,6 +1573,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
       return;
     }
   }
+  local spUpgrade = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.start") : null;
   this._railSearch = {
     kind = "upgrade",
     phase = "search",
@@ -1535,7 +1596,13 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
       };
     }
   }
+  if (spUpgrade != null) OpexSpanEnd(spUpgrade);
+  local upgradeSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   this._continueRailSearch();
+  if (upgradeSlice != null) OpexSpanAgg("astar.slice", upgradeSlice);
+  if (PROBE_SPAN_TRACE && this._railSearch != null && this._railSearch.phase == "build") {
+    OpexSpanEvent("astar_ready", "kind=upgrade");
+  }
   if (this._railSearch == null || this._railSearch.phase != "search") {
     if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL && this._activeWorker != null && this._activeWorker.kind == "rail_search") {
       this._activeWorker = null;
@@ -1832,6 +1899,8 @@ function OpexAI::_handleRailStockSearchCompleted()
 {
   if (this._railSearch == null) return;
   local state = this._railSearch;
+  local prepSearch = C121_AIR_FIRST_YEAR_RAIL_PREP
+      && ("isC121RailPrep" in state) && state.isC121RailPrep;
   local candidate = state.candidate;
   local plan = ("railPlan" in candidate && candidate.railPlan != null) ? candidate.railPlan : state.plan;
   local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
@@ -1891,6 +1960,12 @@ function OpexAI::_handleRailStockSearchCompleted()
 
   if (readyProject == null && "railPlan" in candidate) candidate.railPlan = null;
   this._railSearch = null;
+  if (prepSearch) {
+    OpexC121RailPrepLog(this, readyProject != null ? "astar_done" : "astar_fail", opcodes, ticks);
+    this._c121RailPrepHold = false;
+    this._c121RailPrepYieldLogged = false;
+    this._c121RailPrepRememberStock();
+  }
 }
 
 /* C80 étape 2 : contrôle de la durée de vie (TTL = 180 jours de jeu) des tracés prêts non financés. */
@@ -1938,7 +2013,8 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
   if (!OpexRailVehicleSlotAvailable()) return { ok = false, reason = "no_vehicle_slot" };
 
   if (candidate.kind != "pax") {
-    if (!AIIndustry.IsValidIndustry(candidate.src) || !AIIndustry.IsValidIndustry(candidate.dst)) {
+    /* src/dst sont des tuiles (OpexMakeCandidate), pas des IndustryID. */
+    if (!AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.src)) || !AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.dst))) {
       return { ok = false, reason = "industry_closed" };
     }
   }

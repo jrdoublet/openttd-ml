@@ -263,13 +263,44 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
   local ai = ("ai" in worker.state) ? worker.state.ai : null;
   if (ai == null || ai._railSearch == null) return "done";
 
+  /* Preparation C121, annee AIR seulement : ceder le tick si le cache de la
+   * derniere passe dit qu'un AIR vivant est finançable. Le hold deja pose ne
+   * rescanne pas le portefeuille. Apres l'annee, le trace en vol finit. */
+  local prepSearch = C121_AIR_FIRST_YEAR_RAIL_PREP
+      && ("isC121RailPrep" in ai._railSearch) && ai._railSearch.isC121RailPrep;
+  if (prepSearch && ai._railSearch.phase == "search" && C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    if (ai._c121RailPrepCashBelowAir()) {
+      if (ai._c121RailPrepHold) {
+        ai._c121RailPrepHold = false;
+        ai._c121RailPrepYieldLogged = false;
+      }
+    } else if (ai._c121RailPrepHold) {
+      return "running";
+    } else {
+      local yieldMark = OpexOpsMeasureBegin();
+      local yieldNow = ai._c121RailPrepAirFundableCheap();
+      local yieldOps = OpexOpsMeasureEnd(yieldMark);
+      local yieldTicks = AIController.GetTick() - yieldMark.tick;
+      if (yieldNow) {
+        ai._c121RailPrepHold = true;
+        ai._c121RailPrepYieldLogged = true;
+        OpexC121RailPrepLog(ai, "yield_to_air", yieldOps, yieldTicks);
+        return "running";
+      }
+    }
+  }
+  if (prepSearch && ai._c121RailPrepHold) {
+    ai._c121RailPrepHold = false;
+    ai._c121RailPrepYieldLogged = false;
+  }
+
   // 0. Expiration éventuelle du stock existant
   ai._checkRailStockExpiry();
 
-  // 1. Durée maximale d'une recherche : 180 jours de jeu
+  // 1. Durée maximale d'une recherche : 180 jours de jeu (stock C80 seulement)
   local curDate = AIDate.GetCurrentDate();
   local startDate = ("startDate" in ai._railSearch) ? ai._railSearch.startDate : curDate;
-  if (curDate - startDate > 180) {
+  if (!prepSearch && curDate - startDate > 180) {
     ai._handleRailStockSearchTimeout();
     return "done";
   }
@@ -281,10 +312,12 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
   local minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
   while (ai._railSearch != null && ai._railSearch.phase == "search"
          && AIController.GetOpsTillSuspend() >= minThreshold) {
-    curDate = AIDate.GetCurrentDate();
-    if (curDate - startDate > 180) {
-      ai._handleRailStockSearchTimeout();
-      return "done";
+    if (!prepSearch) {
+      curDate = AIDate.GetCurrentDate();
+      if (curDate - startDate > 180) {
+        ai._handleRailStockSearchTimeout();
+        return "done";
+      }
     }
     ai._advanceRailSearchSliceWithLedgers();
     minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
@@ -419,6 +452,7 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
   if (!("modes" in s) || s.modes == null || typeof s.modes != "array") return "cancelled";
   if (!("cursor" in s)) s.cursor <- 0;
   if (s.cursor >= s.modes.len()) return "done";
+  local spRegen = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.step") : null;
   local mode = s.modes[s.cursor];
   if (!("preparedCursor" in s) || s.preparedCursor != s.cursor) {
     owner._c77RefreshModeCatalog(mode);
@@ -439,6 +473,7 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
           owner._lines, owner._abandonedPairs, s.airState, opsBudget, deadlineTick,
           entityKind, entityId,
           targeted && entityKind == "town" && ("reason" in s) && s.reason == "c83_slot_race");
+      if (spRegen != null && !airSlice.done) OpexSpanEnd(spRegen);
       if (!airSlice.done) return "running";
       owner._projects = airSlice.projects;
       delete s.airState;
@@ -452,8 +487,10 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
   s.cursor++;
   if (s.cursor >= s.modes.len()) {
     OpexFinishRegenEntity(owner, s);
+    if (spRegen != null) OpexSpanEnd(spRegen);
     return "done";
   }
+  if (spRegen != null) OpexSpanEnd(spRegen);
   return "running";
 }
 
@@ -532,8 +569,10 @@ function OpexAI::pop()
 function OpexAI::_dispatchReactiveIntention(intention)
 {
   if (intention == null) return false;
+  local sp = null;
   if (intention.key == "regen" || intention.kind == "regen") {
     if (C76_REGEN_TARGETED) {
+      sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.regen") : null;
       local date = AIDate.GetCurrentDate();
       local year = AIDate.GetYear(date);
       local modes = (this._projects != null) ? this._c80ModeRegenModes() : null;
@@ -542,6 +581,7 @@ function OpexAI::_dispatchReactiveIntention(intention)
       } else if (modes.len() > 0) {
         this._c80DoModeRegen(modes, "reactive", year);
       }
+      if (sp != null) OpexSpanEnd(sp);
       return true;
     }
   }
@@ -550,25 +590,34 @@ function OpexAI::_dispatchReactiveIntention(intention)
    * besoin (ou qui muterait le vivier en cours) attend en file sans en ecraser un autre. */
   if (this._activeWorker != null) {
     if (this._activeWorker.kind == "regen_candidates") {
+      sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.defer") : null;
       this._enqueueReactive(intention.key, intention.kind, intention.payload);
+      if (sp != null) OpexSpanEnd(sp);
       return false;
     }
     if (intention.kind == "c77_entity") {
       /* Si le travailleur actif est rail_search ou town_growth, exécuter la
        * régénération ciblée de l'entité de façon synchrone au lieu d'attendre. */
       if (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "town_growth") {
+        sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.c77_entity") : null;
         OpexRegenEntitySync(this, intention.payload);
+        if (sp != null) OpexSpanEnd(sp);
         return true;
       }
+      sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.defer") : null;
       this._enqueueReactive(intention.key, intention.kind, intention.payload);
+      if (sp != null) OpexSpanEnd(sp);
       return false;
     }
   }
   if (intention.kind == "c77_entity") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.c77_entity") : null;
     this._activeWorker = { kind = "regen_candidates", state = intention.payload, ai = this };
+    if (sp != null) OpexSpanEnd(sp);
     return true;
   }
   if (intention.kind == "c77_subsidy") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.c77_subsidy") : null;
     if (intention.payload != null && ("subsidyId" in intention.payload)) {
       local injected = this._c77InjectSubsidy(intention.payload.subsidyId);
       /* Au rechargement, une intention c77_subsidy échoue si
@@ -581,13 +630,16 @@ function OpexAI::_dispatchReactiveIntention(intention)
           local retryPayload = clone intention.payload;
           retryPayload.retries <- retries + 1;
           this._enqueueReactive(intention.key, intention.kind, retryPayload);
+          if (sp != null) OpexSpanEnd(sp);
           return false;
         }
       }
     }
+    if (sp != null) OpexSpanEnd(sp);
     return true;
   }
   if (intention.kind == "c77_build") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.c77_build") : null;
     /* Au rechargement, une intention c77_build est perdue si
      * this._projects == null. Ré-enfiler l'intention jusqu'à 3 fois (N=3) pour laisser la file
      * de fond réinitialiser le vivier, puis abandonner si le vivier n'est toujours pas disponible. */
@@ -597,11 +649,14 @@ function OpexAI::_dispatchReactiveIntention(intention)
       if (retries < 3) {
         payload.retries <- retries + 1;
         this._enqueueReactive(intention.key, intention.kind, payload);
+        if (sp != null) OpexSpanEnd(sp);
         return false;
       }
+      if (sp != null) OpexSpanEnd(sp);
       return true;
     }
     if (this._portfolioInvalidated) {
+      if (sp != null) OpexSpanEnd(sp);
       return true;
     }
     /* Ne lancer la construction que si le premier projet financé
@@ -609,6 +664,7 @@ function OpexAI::_dispatchReactiveIntention(intention)
      * une subvention, le projet isSubsidy de ce subsidyId) ; sinon abandonner l'intention
      * (la passe normale décidera). */
     if (this._projects.best == null || this._projects.best.len() == 0) {
+      if (sp != null) OpexSpanEnd(sp);
       return true;
     }
     OpexPromoteLiveDefensiveAir(this._projects, OpexAvailableCapital());
@@ -627,9 +683,11 @@ function OpexAI::_dispatchReactiveIntention(intention)
       }
     }
     if (!touches) {
+      if (sp != null) OpexSpanEnd(sp);
       return true;
     }
     this._tryBuildProjects(AIDate.GetYear(AIDate.GetCurrentDate()));
+    if (sp != null) OpexSpanEnd(sp);
     return true;
   }
   return true;
@@ -662,24 +720,50 @@ function OpexAI::_c77RefreshModeCatalog(mode)
 {
   if (this._catalog == null) return;
   this._catalog.year = AIDate.GetYear(AIDate.GetCurrentDate());
+  local sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.cargos") : null;
   this._catalog._refreshCargos();
+  if (sp != null) OpexSpanEnd(sp);
   if (mode == "air") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.towns") : null;
     this._catalog._refreshTowns();
+    if (sp != null) OpexSpanEnd(sp);
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.air") : null;
     this._catalog._refreshAir();
+    if (sp != null) OpexSpanEnd(sp);
   } else if (mode == "rail") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.towns") : null;
     this._catalog._refreshTowns();
+    if (sp != null) OpexSpanEnd(sp);
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.industries") : null;
     this._catalog._refreshIndustries();
+    if (sp != null) OpexSpanEnd(sp);
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.rail") : null;
     this._catalog._refreshRail();
+    if (sp != null) OpexSpanEnd(sp);
   } else if (mode == "road") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.towns") : null;
     this._catalog._refreshTowns();
+    if (sp != null) OpexSpanEnd(sp);
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.industries") : null;
     this._catalog._refreshIndustries();
-    if (ROAD_BUILD_ENABLED) this._catalog._refreshRoad();
+    if (sp != null) OpexSpanEnd(sp);
+    if (ROAD_BUILD_ENABLED) {
+      sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.road") : null;
+      this._catalog._refreshRoad();
+      if (sp != null) OpexSpanEnd(sp);
+    }
   } else if (mode == "water") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.towns") : null;
     this._catalog._refreshTowns();
+    if (sp != null) OpexSpanEnd(sp);
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.water") : null;
     this._catalog._refreshWater();
+    if (sp != null) OpexSpanEnd(sp);
   }
   if (this._recomputeEpochBounds) {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.bounds") : null;
     OpexRefreshEpochBounds(this._catalog);
+    if (sp != null) OpexSpanEnd(sp);
     this._recomputeEpochBounds = false;
   }
 }
@@ -688,6 +772,9 @@ function OpexAI::_c77InjectSubsidy(subId)
 {
   if (this._projects == null
       || !(("candidateGroups" in this._projects)) || this._projects.candidateGroups == null) return false;
+  /* Annee AIR seule : les candidats de subvention sont tous routiers. L'offre
+   * reste suivie et la regeneration complete d'apres l'annee la recree. */
+  if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
   local winners = {};
   local scratch = { modeCandidates = 0, modeAlternatives = 0 };
   foreach (key, entry in this._projects.candidateGroups) {
@@ -793,6 +880,10 @@ function OpexAI::_runOrchestratorTick()
       }
       if (outcome == "done" || outcome == "cancelled") {
         this._activeWorker = null;
+        /* Pas d'enchainement ici : _startRailStockSearch est synchrone
+         * (OpexPrepareRailRoute) et cette etape precede la file projects.
+         * Le candidat suivant part dans _c121RailPrepAfterProjectsPass,
+         * apres que l'AIR a eu la passe. */
       }
     } else if (this._activeWorker.kind == "town_growth") {
       local opsBudget = AIController.GetOpsTillSuspend();
@@ -1265,4 +1356,3 @@ function OpexAI::_c76LoadRevisions(data)
   // Point 4 : forcer la régénération au chargement
   this._c76ForceReloadRegen = true;
 }
-

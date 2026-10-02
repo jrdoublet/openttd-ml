@@ -481,6 +481,15 @@ C121_AIR_PLAN_PERF <- null;
 CATALOG_COST_PROBE <- false;
 /* Sonde probe_loop_ops : agregats annuels d'opcodes de la boucle principale (diagnostic). */
 PROBE_LOOP_OPS <- false;
+/* Sonde probe_span_trace : intervalles dates des micro-taches. Defaut 0, aucun effet. */
+PROBE_SPAN_TRACE <- false;
+SPAN_STACK <- null;
+SPAN_BY_ID <- null;
+SPAN_NEXT_ID <- 1;
+SPAN_LINES <- 0;
+SPAN_AGG_LINES <- 0;
+SPAN_YEAR <- -1;
+SPAN_ROOT_AGG <- null;
 OPEX_LOOP_PROF <- null;
 OPEX_LOOP_PROF_YEAR <- -1;
 OPEX_LOOP_PROF_TICK0 <- 0;
@@ -503,6 +512,13 @@ R19_FAULT_ROUTE_SEQ <- 0;
 CATALOG_COST_ACTIVE <- null;
 C121_CATALOG_INCREMENTAL <- false;
 C121_CATALOG_AIR_FIRST_YEAR <- false;
+C121_FLAT_BOOTSTRAP <- false;
+/* Premiere annee AIR : preparer le rail (catalogue + A* stock) sans le construire.
+ * Exige c121_catalog_air_first_year. Defaut 0 : aucun calcul hors du test. */
+C121_AIR_FIRST_YEAR_RAIL_PREP <- false;
+/* Economie C121 : n'evaluer que N=1 et N=2. N'exige pas aaa_line et ne touche
+ * pas AIR_FULL_LOAD. Defaut 0. */
+C121_AIR_ONE_OR_TWO_PLANES <- false;
 /* C121 : renfort de flotte sur preuve de stock en gare (delai 60 jours). */
 C121_FLEET_STOCK_GROWTH <- false;
 /* C121 : au plus un renfort par nouveau rapport annuel positif, toujours arbitre

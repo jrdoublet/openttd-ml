@@ -247,6 +247,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.reason = "RECOVERY";
     return result;
   }
+  local spBuild = null;
   local airportA = null;
   local airportB = null;
   local plane = null;
@@ -292,13 +293,18 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   budget.begin();
 
   if (reuseA) {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_a") : null;
     if (AIAirport.IsAirportTile(plan.siteA.anchor) &&
         OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteA.anchor),
                                    planeChoice.planeType)) {
       airportA = plan.siteA.anchor;
     }
+    if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_a") : null;
     local levelA = OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
+    if (spBuild != null) OpexSpanEnd(spBuild);
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_a") : null;
     local okA = levelA.ok && AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
     if (!levelA.ok) {
       airportErrorA = levelA.error;
@@ -318,6 +324,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
+    if (spBuild != null) OpexSpanEnd(spBuild);
   }
   if (airportA == null) {
     if (!reuseA) {
@@ -332,13 +339,18 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   }
 
   if (reuseB) {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;
     if (AIAirport.IsAirportTile(plan.siteB.anchor) &&
         OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteB.anchor),
                                    planeChoice.planeType)) {
       airportB = plan.siteB.anchor;
     }
+    if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_b") : null;
     local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
+    if (spBuild != null) OpexSpanEnd(spBuild);
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;
     local okB = levelB.ok && AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
     if (!levelB.ok) {
       airportErrorB = levelB.error;
@@ -358,6 +370,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
+    if (spBuild != null) OpexSpanEnd(spBuild);
   }
   result.opcodes += budget.end("build_airports");
   if (airportB == null) {
@@ -392,8 +405,10 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   }
 
   budget.begin();
+  spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.plane") : null;
   plane = AIVehicle.BuildVehicleWithRefit(hangar, planeChoice.id, catalog.paxCargo);
   if (!AIVehicle.IsValidVehicle(plane)) {
+    if (spBuild != null) OpexSpanEnd(spBuild);
     result.error = AIError.GetLastError();
     result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
@@ -402,8 +417,10 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.reason = "PLANE";
     return result;
   }
+  if (spBuild != null) OpexSpanEnd(spBuild);
 
   local airFlagsA = (AIR_FULL_LOAD == 1 || AIR_FULL_LOAD == 2) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.orders") : null;
   local airFlagsB = (AIR_FULL_LOAD == 1) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlagsA);
   local errorA = okOrderA ? 0 : AIError.GetLastError();
@@ -411,6 +428,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local errorB = okOrderB ? 0 : AIError.GetLastError();
   local ordersOk = okOrderA && okOrderB && AIOrder.GetOrderCount(plane) == 2;
   if (!ordersOk) {
+    if (spBuild != null) OpexSpanEnd(spBuild);
     result.error = !okOrderA ? errorA : errorB;
     result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
@@ -420,11 +438,17 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.reason = "ORDFAIL";
     return result;
   }
+  if (spBuild != null) OpexSpanEnd(spBuild);
   local built = [plane];
+  spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.plane") : null;
   local wanted = ("planes" in plan) ? plan.planes : 1;
   /* c121_aaa_line : le second avion part du hangar de l'aeroport B et commence par le
-   * trajet retour, comme AAAHogEx (route.nut:2232-2237). */
-  local hangarB = C121_AAA_LINE ? AIAirport.GetHangarOfAirport(airportB) : null;
+   * trajet retour, comme AAAHogEx (route.nut:2232-2237).
+   * c121_air_one_or_two_planes : meme depart oppose quand le plan retient N=2,
+   * sans forcer AIR_FULL_LOAD. Hangar B invalide : fromB reste faux, le clone
+   * ou la construction de repli partent du hangar A, sans SkipToOrder. */
+  local hangarB = (C121_AAA_LINE || (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2))
+      ? AIAirport.GetHangarOfAirport(airportB) : null;
   for (local i = 1; i < wanted; i++) {
     local fromB = (i % 2 == 1) && hangarB != null && AIMap.IsValidTile(hangarB)
         && AIAirport.IsHangarTile(hangarB);
@@ -434,6 +458,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       local engine = AIVehicle.GetEngineType(plane);
       extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, catalog.paxCargo);
       if (AIVehicle.IsValidVehicle(extra) && !AIOrder.ShareOrders(extra, plane)) {
+        if (spBuild != null) OpexSpanEnd(spBuild);
         result.error = AIError.GetLastError();
         result.errorText = AIError.GetLastErrorString();
         built.append(extra);
@@ -450,6 +475,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   }
   foreach (aircraft in built) {
     if (!AIVehicle.StartStopVehicle(aircraft)) {
+      if (spBuild != null) OpexSpanEnd(spBuild);
       result.error = AIError.GetLastError();
       result.errorText = AIError.GetLastErrorString();
       result.opcodes += budget.end("build_aircraft");
@@ -465,6 +491,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (R19_FAULT_ROUTE_SEQ == R19_FAULT_INJECT) {
       AILog.Warning("R19_FAULT_INJECT route=" + R19_FAULT_ROUTE_SEQ
           + " planes=" + built.len() + " pair=" + OpexAirPairKey(plan.siteA, plan.siteB));
+      if (spBuild != null) OpexSpanEnd(spBuild);
       result.error = -1;
       result.errorText = "R19_FAULT_INJECT";
       result.opcodes += budget.end("build_aircraft");
@@ -475,9 +502,11 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       return result;
     }
   }
+  if (spBuild != null) OpexSpanEnd(spBuild);
   result.opcodes += budget.end("build_aircraft");
 
   if (AIR_JOINED_STOPS) {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.joined") : null;
     local beforeStops = costs != null ? costs.GetCosts() : 0;
     if (!reuseA) {
       local joinedA = OpexAirBuildJoinedStops(airportA, stationA, airport, plan.siteA.town, catalog.paxCargo);
@@ -500,6 +529,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     local afterStops = costs != null ? costs.GetCosts() : beforeStops;
     result.joinedStopCost = afterStops - beforeStops;
     if (result.joinedStopCost < 0) result.joinedStopCost = 0;
+    if (spBuild != null) OpexSpanEnd(spBuild);
   }
 
   result.actualCost = costs != null ? costs.GetCosts() : 0;

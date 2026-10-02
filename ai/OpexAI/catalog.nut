@@ -894,6 +894,7 @@ function OpexCatalog::_refreshTowns()
   this.townAcceptors = {};
   local list = AITownList();
   for (local t = list.Begin(); !list.IsEnd(); t = list.Next()) {
+    local townMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local tile = AITown.GetLocation(t);
     local pop = AITown.GetPopulation(t);
     local houses = AITown.GetHouseCount(t);
@@ -914,6 +915,7 @@ function OpexCatalog::_refreshTowns()
         this.townAcceptors[cargo].append(townObj);
       }
     }
+    if (townMark != null) OpexSpanAgg("catalog.town", townMark);
   }
   /* Hors de la boucle : au defaut, un seul test par rafraichissement (identite des opcodes). */
   if (C121_CATALOG_INCREMENTAL) OpexC121CatalogSeedTownPopulations(this.towns);
@@ -1002,6 +1004,7 @@ function OpexCatalog::_refreshIndustries()
   local producedByType = {};
   local acceptedByType = {};
   for (local k = 0; k < this.industries.len(); k++) {
+    local industryMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local type = this.industries[k].type;
     if (!(type in producedByType)) {
       local prodList = AIIndustryType.IsValidIndustryType(type) ? AIIndustryType.GetProducedCargo(type) : null;
@@ -1019,6 +1022,7 @@ function OpexCatalog::_refreshIndustries()
       if (!(cargo in this.acceptors)) this.acceptors.rawset(cargo, []);
       this.acceptors[cargo].append(k);
     }
+    if (industryMark != null) OpexSpanAgg("catalog.industry", industryMark);
   }
 }
 
@@ -1032,23 +1036,33 @@ function OpexCatalog::_cargoArray(list)
 
 function OpexCatalog::refresh(budget, year)
 {
+  local spRefresh = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh") : null;
+  local spStep = null;
   this.year = year;
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.cargos") : null;
   this._refreshCargos();
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_cargos");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.rail") : null;
   this._refreshRail();
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_rail");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.towns") : null;
   this._refreshTowns();
+  if (spStep != null) OpexSpanEnd(spStep);
   if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.catalogTowns = this.towns.len();
   budget.end("cat_towns");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.industries") : null;
   this._refreshIndustries();
+  if (spStep != null) OpexSpanEnd(spStep);
   if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.catalogIndustries = this.industries.len();
   budget.end("cat_industries");
 
@@ -1068,6 +1082,7 @@ function OpexCatalog::refresh(budget, year)
 
   budget.begin();
   local airRefreshMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.air") : null;
   this._refreshAir();
   if (C121_CATALOG_INCREMENTAL) {
     foreach (airportType, choices in this.airPlaneChoicesByAirport) {
@@ -1088,10 +1103,13 @@ function OpexCatalog::refresh(budget, year)
     foreach (airportType, choices in this.airPlaneChoicesByAirport)
       CATALOG_COST_ACTIVE.engineChoices += choices.len();
   }
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_air");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.water") : null;
   this._refreshWater();
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_water");
 
   /* Le catalogue route n'est rafraichi que si le mode est actif : a road_mode = 0, le chemin
@@ -1099,11 +1117,16 @@ function OpexCatalog::refresh(budget, year)
    * banc apparie lisible (une trajectoire ne diverge que par une decision, pas par un debit). */
   if (ROAD_BUILD_ENABLED) {
     budget.begin();
+    spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.road") : null;
     this._refreshRoad();
+    if (spStep != null) OpexSpanEnd(spStep);
     budget.end("cat_road");
   }
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.bounds") : null;
   OpexRefreshEpochBounds(this);
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_bounds");
+  if (spRefresh != null) OpexSpanEnd(spRefresh);
 }

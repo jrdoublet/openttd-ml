@@ -198,7 +198,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local railFreightCruiseCache = C41_RAIL_FREIGHT_CRUISE_CACHE ? {} : null;
   local rail;
   if (doPaxRail || doFreight) {
+    local spRail = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
     rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache, doPaxRail, doFreight, paxBand, freightCargo);
+    if (spRail != null) OpexSpanEnd(spRail);
     if (priorProjects != null && ("rail" in priorProjects)
         && priorProjects.rail != null && ("candidates" in priorProjects.rail)) {
       local merged = [];
@@ -248,9 +250,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       for (local offset = 1; offset < freightCargoOrder.len(); offset++) {
         local idx = start >= 0 ? (start + offset) % freightCargoOrder.len() : offset - 1;
         local nextCargo = freightCargoOrder[idx];
+        local spRailFb = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
         local extraFreight = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
             railCandidateProfile, null, null, null, railFreightCruiseCache,
             false, true, PAX_BAND_ALL, nextCargo);
+        if (spRailFb != null) OpexSpanEnd(spRailFb);
         tried++;
         if (extraFreight.candidates.len() == 0) continue;
         local previousCargo = freightCargo;
@@ -290,7 +294,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
           freightTownAcceptanceOps = 0, freightTownAcceptedPairs = 0, freightTownCandidateOps = 0 } : null;
   local road;
   if (doRoad && ROAD_BUILD_ENABLED) {
+    local spRoad = PROBE_SPAN_TRACE ? OpexSpanBegin("build.road") : null;
     road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile, freightCargo);
+    if (spRoad != null) OpexSpanEnd(spRoad);
   } else if (priorProjects != null && ("road" in priorProjects) && priorProjects.road != null) {
     road = priorProjects.road;
     local liveRoad = [];
@@ -310,7 +316,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     costMark = OpexOpsMeasureBegin();
   }
 
+  local spCapital = PROBE_SPAN_TRACE ? OpexSpanBegin("build.capital") : null;
   local capitalBudget = OpexAvailableCapital();
+  if (spCapital != null) OpexSpanEnd(spCapital);
   local capitalBudgetDate = AIDate.GetCurrentDate();
 
   local airPlan = null;
@@ -363,9 +371,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, PAX_BAND_AIR_RAIL);
       airOps += budget.end("project_air_overlap_fallback");
     }
+    local spPaxFb = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
     local paxFallback = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
         railCandidateProfile, railPaxProfile, railPaxCandidateProfile,
         railPaxCruiseCache, railFreightCruiseCache, true, false, PAX_BAND_AIR_RAIL);
+    if (spPaxFb != null) OpexSpanEnd(spPaxFb);
     rail = OpexMergeRailCandidateSet(rail, paxFallback);
     if (railProfile != null) {
       railProfile.generationCandidates = rail.candidates.len();
@@ -388,7 +398,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_water", "-");
   if (doWater && catalog.ships.len() > 0 && catalog.paxCargo >= 0) {
     budget.begin();
+    local spWater = PROBE_SPAN_TRACE ? OpexSpanBegin("build.water") : null;
     waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null, WATER_OPCODE_COMPAT_FALSE ? null : null);
+    if (spWater != null) OpexSpanEnd(spWater);
     waterOps = budget.end("project_water");
   } else if (!doWater && priorProjects != null) {
     waterPlan = ("waterPlan" in priorProjects) ? priorProjects.waterPlan : null;
@@ -428,6 +440,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local waterOpsPerPlan = (waterPlans.len() > 0) ? waterOps / waterPlans.len() : waterOps;
 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_assembly", "-");
+  local spAssembly = PROBE_SPAN_TRACE ? OpexSpanBegin("build.assembly") : null;
   local winners = {};
   local abandonFiltered = 0;
     local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
@@ -470,7 +483,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     /* C77 : une regeneration complete (celle de C76 comprise) recree les candidats des offres de
      * subvention suivies, sinon elle effacerait ceux que l'offre avait injectes. L'appelant ne
      * transmet activeSubsidies que sous C77. */
-    if (activeSubsidies != null && activeSubsidies.len() > 0) {
+    if (activeSubsidies != null && activeSubsidies.len() > 0
+        && !(C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE)) {
       foreach (candidate in OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs)) {
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
           abandonFiltered++;
@@ -479,6 +493,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
       }
     }
+  if (spAssembly != null) OpexSpanEnd(spAssembly);
 
   local funded = null;
   if (cost != null) {
@@ -497,6 +512,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (C80_RAIL_STOCK_GATE) {
     alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
     if (C80_RAIL_STOCK_WORKER) winners = OpexRailStockStripCandidateGroups(winners);
+  }
+  if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
@@ -560,6 +578,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     freightCargo = freightCargo,
   };
   if (C80_RAIL_STOCK_GATE) ret.railReadyStock <- railReadyStock;
+  else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) ret.railReadyStock <- railReadyStock;
   if (C69_BOTTLENECK_PROBE) {
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;

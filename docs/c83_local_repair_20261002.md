@@ -267,3 +267,33 @@ dans le worktree ignoré, avec empreintes conservées dans le résumé. Les six
 fichiers comportementaux C83 du checkout ont été vérifiés identiques au candidat
 testé ; les autres réglages et chantiers ne bénéficient d'aucune qualification.
 Aucun défaut modifié, aucun commit/push.
+
+## Publication demandée après le bilan
+
+Demande utilisateur suivante : committer et pousser. Commit C83 `dfa84ba`
+(code, contrats, trois paquets de preuves et bilans) ; modifications concurrentes
+d'autopsie C121 et de télémétrie mensuelle laissées hors de ce commit.
+La branche distante ayant avancé jusqu'à `78f642a`, intégration réalisée dans
+le worktree `results/c83_publish_20261002`, sans réécrire les commits distants.
+Les conflits réunissent les paramètres/traces C83 avec les spans publiés et
+conservent les deux ajouts du journal. Aucun réglage C83 n'est changé.
+
+Validation de cette intégration : **52 contrats ciblés réussis** (C83 29,
+montage 3, harnais figé 11, préparation C121 déjà publiée 9), selftest C66 réussi,
+diff sans erreur. Smoke technique `c83_publish_smoke_20261002_r2`, graine 42,
+un an contre AAAHogEx, bras `OpexAI[c83_local_repair=0]` : **1/1 duel sain**,
+deux compagnies actives, horizon complet, dernier checkpoint 1971-01-01.
+Trois trimestres valides, année initiale partielle. Premier appel r1 refusé
+avant toute partie car `--reference OpexAI` exige un réglage explicite ; r2
+corrige uniquement cette syntaxe. Docker 3 CPU/2 Go/swap 2 Go, cache nommé,
+un worker, même image ; aucune campagne parallèle.
+
+Bundle technique
+`84db5bd9f46f285e504e9b89c20a5b13e13f0db85cbcfb107995432d35733363`,
+manifeste `36a273edf488ebf700cfe13aa2a618ee385964544979a108fe0d6dbce883f80b`.
+Réglages effectifs vérifiés : réaction C83=1, réparation locale=0,
+fixes/préemption ouverte/watcher quotidien=0, C115=1, économie C121=0.
+[Preuves du smoke d'intégration](../evidence/review/c83_publication_smoke_20261002/summary.json),
+[archives et empreintes](../evidence/review/c83_publication_smoke_20261002/index.json).
+Les résultats économiques du 20×10 restent attachés au bundle `6a431e25…` ;
+ce smoke ne qualifie pas économiquement le nouvel arbre combiné.

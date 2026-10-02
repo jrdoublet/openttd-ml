@@ -965,6 +965,7 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
 
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
+  local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
   local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
@@ -1212,6 +1213,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           + " finance=" + OpexProjectFinanceCapital(project) + " budget=" + capitalBudget);
     }
   }
+  if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;
 }
 
@@ -1598,6 +1600,7 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
 function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null)
 {
+  local spReselect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.reselect") : null;
   if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
     railReadyStock = projects.railReadyStock;
   }
@@ -1611,6 +1614,11 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     foreach (project in list) alternatives.push(project);
   }
   if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, projects.stats);
+  if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
+      railReadyStock = projects.railReadyStock;
+    alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
+  }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   considered = alternatives.len();
@@ -1647,6 +1655,10 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
 
   projects.best = funded;
   if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
+  else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) {
+    if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
+    else projects.railReadyStock <- railReadyStock;
+  }
   if (C69_BOTTLENECK_PROBE) {
     projects.c69Best <- ::C69_LAST_AFFORDABLE;
     projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
@@ -1662,6 +1674,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
   }
 
+  if (spReselect != null) OpexSpanEnd(spReselect);
   return projects;
 }
 

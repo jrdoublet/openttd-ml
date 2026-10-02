@@ -35,9 +35,12 @@ class CacheSourceContracts(unittest.TestCase):
 
     def test_no_default_or_persistence_extension(self):
         settings = parse_ai_settings(AI / "info.nut")
-        for name in ("c121_air_economics", "c121_catalog_incremental", "c121_catalog_air_first_year",
+        for name in ("c121_air_economics", "c121_catalog_incremental",
                      "c121_fleet_stock_growth", "c121_territory_first", "c121_aaa_line"):
             self.assertEqual(settings[name], 0, name)
+        # Decision utilisateur du 2026-10-02 : aerien seul la premiere annee a 1
+        # (inerte sans c121_catalog_incremental).
+        self.assertEqual(settings["c121_catalog_air_first_year"], 1)
         self.assertEqual(settings["c115_air_c100_capital_replay"], 1)
         persist = (AI / "persist.nut").read_text(encoding="utf-8")
         for field in ("C121_CATALOG_ENDPOINT_EPOCH", "catalogStamp", "c121CatalogRefreshEndpoints"):

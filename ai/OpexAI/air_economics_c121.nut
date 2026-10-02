@@ -1084,8 +1084,39 @@ function OpexC121WinnerTariffEpoch()
   return AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
 }
 
+/* Deux evaluations seulement, N=1 puis N=2. Le meilleur score de decision
+ * gagne ; a score egal, le profit de decision ; a profit egal, N=1.
+ * initial et full decrivent le meme N, pour que le chantier, le classement
+ * et le financement lisent la meme profondeur. Le choix du moteur reste
+ * celui du scan N d'ouverture dans OpexC121ChooseRoutePlane. */
+function OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext)
+{
+  local econ1 = engineContext == null
+      ? OpexC121EngineEconomics(catalog, plan, plane, 1, false)
+      : OpexC121EngineEconomics(catalog, plan, plane, 1, false, null, null, engineContext);
+  local econ2 = engineContext == null
+      ? OpexC121EngineEconomics(catalog, plan, plane, 2, false)
+      : OpexC121EngineEconomics(catalog, plan, plane, 2, false, null, null, engineContext);
+  local chosen = econ1;
+  if (econ2 != null) {
+    if (chosen == null) {
+      chosen = econ2;
+    } else {
+      local score1 = ("decisionScore" in econ1) ? econ1.decisionScore : econ1.score;
+      local score2 = ("decisionScore" in econ2) ? econ2.decisionScore : econ2.score;
+      local profit1 = ("decisionProfitAnnual" in econ1) ? econ1.decisionProfitAnnual : econ1.profitAnnual;
+      local profit2 = ("decisionProfitAnnual" in econ2) ? econ2.decisionProfitAnnual : econ2.profitAnnual;
+      if (score2 > score1 || (score2 == score1 && profit2 > profit1)) chosen = econ2;
+    }
+  }
+  return { initial = chosen, full = chosen };
+}
+
 function OpexC121WinnerEconomics(catalog, plan, plane, fusion, engineContext = null)
 {
+  if (C121_AIR_ONE_OR_TWO_PLANES) {
+    return OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext);
+  }
   if (!fusion || C121_AAA_LINE) {
     local openingPlanes = C121_AAA_LINE ? 2 : 1;
     local initial = engineContext == null
@@ -1250,7 +1281,9 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
       || !(plan.airport.type in catalog.airPlaneChoicesByAirport)) return null;
   local perf = C121_AIR_PLAN_PERF;
   if (perf != null) perf.calls++;
+  local demandMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   OpexC121PrepareDemandShadow(catalog, plan, lines);
+  if (demandMark != null) OpexSpanAgg("air.c121.demand", demandMark);
   if (perf != null && ("c121DemandOps" in plan)) {
     if (plan.c121DemandOps >= 0) perf.demandOps += plan.c121DemandOps;
     perf.demandTicks += ("c121DemandTicks" in plan) ? plan.c121DemandTicks : 0;
@@ -1258,7 +1291,9 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
   if (!("c121Demand" in plan)) return null;
   local staticTick0 = AIController.GetTick();
   local staticOps0 = AIController.GetOpsTillSuspend();
+  local staticMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   OpexC121PrepareEngineStatic(catalog, plan);
+  if (staticMark != null) OpexSpanAgg("air.c121.static", staticMark);
   local staticTick1 = AIController.GetTick();
   plan.c121EngineStaticTicks <- staticTick1 - staticTick0;
   plan.c121EngineStaticOps <- OpexAirCalcDeltaOps(staticTick0, staticOps0);
@@ -1269,6 +1304,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
 
   local scanTick0 = AIController.GetTick();
   local scanOps0 = AIController.GetOpsTillSuspend();
+  local scanMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local evaluated = 0;
   local known = 0;
   local evalOpsTotal = 0;
@@ -1296,9 +1332,11 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     if (a.plane.id > b.plane.id) return 1;
     return 0;
   });
+  if (scanMark != null) OpexSpanAgg("air.c121.scan", scanMark);
   foreach (candidate in candidates) {
     if (best != null && candidate.upperScore < best.economics.decisionScore) break;
     local plane = candidate.plane;
+    local engineMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local tick0 = AIController.GetTick();
     local ops0 = AIController.GetOpsTillSuspend();
     local context = ("trip" in candidate) ? candidate : null;
@@ -1313,6 +1351,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
       evalOps += ops;
       evalSameTick++;
     }
+    if (engineMark != null) OpexSpanAgg("air.c121.engine", engineMark);
     if (evaluatedEconomics == null || !("decisionScore" in evaluatedEconomics)) continue;
     local economics = (("decisionEconomics" in evaluatedEconomics)
         && evaluatedEconomics.decisionEconomics != null)
@@ -1352,6 +1391,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
    * cible exacte sera recalculee apres construction avec PASS/MAIL observes. */
   local fullTick0 = AIController.GetTick();
   local fullOps0 = AIController.GetOpsTillSuspend();
+  local winnerMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local winnerEconomics = best.context == null
       ? OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION)
       : OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION, best.context);
@@ -1364,7 +1404,10 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     if (plan.c121WinnerFullOps >= 0) perf.winnerOps += plan.c121WinnerFullOps;
     perf.winnerTicks += plan.c121WinnerFullTicks;
   }
-  if (initialEconomics == null) return null;
+  if (initialEconomics == null) {
+    if (winnerMark != null) OpexSpanAgg("air.c121.winner", winnerMark);
+    return null;
+  }
   if (fullBest == null) fullBest = initialEconomics;
   local decisionEconomics = fullBest;
   local portfolioEconomics = null;
@@ -1388,6 +1431,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
   }
   plan.c121ChosenEngine <- best.plane.id;
   plan.c121ChosenMailKnown <- (("engineMailKnown" in initialEconomics) && initialEconomics.engineMailKnown);
+  if (winnerMark != null) OpexSpanAgg("air.c121.winner", winnerMark);
   return { plane = best.plane, economics = initialEconomics, decisionEconomics = decisionEconomics,
       portfolioEconomics = portfolioEconomics, targetPlanes = initialEconomics.planes };
 }
