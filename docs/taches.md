@@ -109,6 +109,9 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   C70/C82 préservés, C115 inchangé. 138 assertions NoAI +129 contrats Python.
   JSONL 5×6 1439/1440 et 20×10 9599/9600 : une ligne AAA intermédiaire manque
   dans chaque campagne, primaires finaux complets ; limites et preuves archivées.
+  **Décision utilisateur : piste conservée pour une reprise ultérieure**, pas
+  abandonnée définitivement. Résultat actuel non qualifié, défaut OFF ; aucun
+  gain d'opcodes mesuré. Aucun nouveau banc lancé par cette décision.
   [Plan, audit et résultats](c121_kdec_cold_20261002.md).
 
 ## 1. Priorité immédiate — valider les livraisons locales
