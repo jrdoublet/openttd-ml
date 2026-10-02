@@ -125,6 +125,7 @@ function OpexLoadSettings()
 
   local afcd = AIController.GetSetting("air_fleet_cadence_days");
   if (afcd >= 0) AIR_FLEET_CADENCE_DAYS = afcd;
+  AIR_FLEET_COOLDOWN_PREFILTER = AIController.GetSetting("air_fleet_cooldown_prefilter") != 0;
 
   local ajsl = AIController.GetSetting("air_joined_stop_limit");
   if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;

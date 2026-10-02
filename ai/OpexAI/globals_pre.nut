@@ -657,6 +657,8 @@ OPEX_AIR_CAP_PAD <- false;
 OPEX_AIR_PLAN_PAD <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
+/* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
+AIR_FLEET_COOLDOWN_PREFILTER <- false;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;

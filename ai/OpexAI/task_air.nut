@@ -749,7 +749,36 @@ function OpexAI::_resizeAirFleets(year, plan = null)
    * _scrapDeadLines (retrait par position). */
   local airLines = [];
   foreach (line in this._lines) {
-    if (("mode" in line) && line.mode == "air") airLines.append(line);
+    if (!("mode" in line) || line.mode != "air") continue;
+    /* Opcode optimisation: a line still inside the growth cooldown cannot
+     * contribute a fleet project and used to pay the ROI sort cost anyway.
+     * Keep the three pre-cadence priority paths in the list: scrapping must
+     * reject before refleet, V92 may need to resume a reequipment, and a crash
+     * refleet explicitly bypasses the growth cadence. */
+    /* V92 pending is not a cheap flag: discovering it scans live vehicles.
+     * Do not pay that scan once here and again in the historical guard below.
+     * V92 is OFF in the current defaults; if explicitly enabled, keep the
+     * historical path rather than changing its priority semantics. */
+    local priorityPath = (("scrapping" in line) && line.scrapping)
+        || (("needsRefleet" in line) && line.needsRefleet);
+    if (AIR_FLEET_COOLDOWN_PREFILTER && !V92_AIR_SERVICE_CHOICE && !priorityPath) {
+      local cooldown = false;
+      if (AIR_FLEET_CADENCE_DAYS >= 365) {
+        cooldown = ("lastAirFleetYear" in line) && line.lastAirFleetYear == year;
+      } else {
+        local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate
+            : (("buildDate" in line) ? line.buildDate : 0);
+        cooldown = lastDate > 0
+            && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS;
+      }
+      if (cooldown) {
+        OpexAirFleetRefusal(line, year, "Y");
+        if (plan != null && C69_BOTTLENECK_PROBE)
+          OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
+        continue;
+      }
+    }
+    airLines.append(line);
   }
   if (AIR_ROI_ORDER) airLines.sort(OpexAirFleetPriorityCompare);
   foreach (line in airLines) {
