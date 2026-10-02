@@ -1,9 +1,11 @@
 # Opcodes exacts sous C121 — 2 octobre 2026
 
-Chantier local du worktree `codex/opcode-exact-c121` (base `52ab555`). Les deux
-réglages restent à **0**. Aucun défaut n'est changé. Aucun 5×6, aucun 20×10,
-aucune qualification économique. La sonde `probe_loop_ops` déjà présente et non
-committée n'est pas modifiée.
+Chantier du worktree `codex/opcode-exact-c121` (base `52ab555`), intégré sur
+`c121-catalog` (`1c20c56`). **Mise à jour du 2 octobre : `exp_opcode_exact` passe
+à 1 par défaut** après un 20×10 duel neutre au sens de la règle opcodes
+(§ [Qualification 20×10](#qualification-20×10-et-défaut)) ; `exp_opcode_exact_check`
+reste à 0. Les sections suivantes décrivent le chantier tel que livré, avant cette
+qualification.
 
 `exp_opcode_exact=1` exécute les chemins neufs. `exp_opcode_exact_check=1`
 exécute l'ancien et le neuf sur les mêmes entrées, **rend le résultat ancien**,
@@ -13,7 +15,8 @@ et publie une fois par année close :
 
 Les cinq premières divergences d'un site dans une partie sont des lignes
 `OPCODE_EXACT_MISMATCH`. Les deux réglages sont déclarés dans `info.nut`
-(lignes 79 et 87, booléens, quatre difficultés à 0), initialisés dans
+(lignes 79 et 87, booléens ; quatre difficultés à 0 à la livraison, à 1 pour
+`exp_opcode_exact` depuis le 2 octobre), initialisés dans
 `globals_pre.nut` et chargés dans `settings.nut`. À 0, chaque site lit le
 booléen une fois puis exécute le corps historique.
 
@@ -325,3 +328,58 @@ peut décaler la trajectoire solo par rapport à `exp_opcode_exact=1` : le
 critère exigé est `mismatch=0` à l'intérieur du contrôle. La neutralité
 économique du §4 (20 graines × 10 ans) n'est pas mesurée. Les défauts restent
 à 0.
+
+## Qualification 20×10 et défaut
+
+Règle appliquée : optimisation d'opcodes (`AGENTS.md` §4, décision du 24/09),
+fixée avant le banc : métrique `profit_year`, effet utile minimal 0, garde de
+valeur −5 %. Gain d'opcodes : contrôle `mismatch=0` ci-dessus (route −62 % et
+−60 %, voirie −11 %).
+
+**Premier 20×10 (`opcode_exact_c121_20x10_20261002`, worktree) : incomplet.**
+Graine 314, bras variante : arrêt du script par « This script took too long to
+Save » (`Save()` plafonné à 100 k opcodes ; chaque ligne y était projetée champ
+par champ). `Save()` ne dépend pas de `exp_opcode_exact` : le défaut est latent
+dans les deux bras dès que le portefeuille est grand. Diagnostics :
+`diag_opcode_exact_crash_s314_20261002*`.
+
+**Correctif `910bb68`** (`persist.nut`, `main.nut`) : la projection d'une ligne
+est factorisée dans `OpexSaveProjectLine` (même liste d'exclusion
+`OPEX_SAVE_LINE_SKIP`, mêmes conversions) ; à partir de
+`SAVE_PROJECTION_MIN_LINES` = 64 lignes, la boucle principale rafraîchit une
+fois par mois un cache de projections, que `Save()` relit ; une ligne absente du
+cache est projetée dans `Save()` comme avant. Sous 64 lignes, chemin inchangé.
+Vérifié sur la graine 314 (`diag_opcode_exact_savefix_s314_20261002`, partie
+complète) et par deux allers-retours `sweeps/save_load_roundtrip.py`, dont un
+rechargement en 1979 avec 96 lignes, cache exercé
+(`save_load_savefix_s314_late_20261002.json`). Les tests de contrat de `Save()`
+(`test_b3_road_fleet_targets.py`, `test_c121_air_economics.py`) ont été
+alignés sur cette structure.
+
+**Banc d'adoption (`results/opcode_exact_savefix_c121_20x10_20261002.*`)** :
+code `910bb68` (arbre sale seulement par des fichiers non suivis hors IA), image
+`openttd-lab:venv-20261001` (`sha256:5af51ac5…`), 3 CPU, 2 Go sans swap,
+3 workers. Duel C66.4 contre AAAHogEx-115, 20 graines × 10 ans, deux bras
+C121 (`c121_air_economics=1,c121_catalog_incremental=1`), `exp_opcode_exact`
+0 contre 1.
+
+- Couverture : 20/20 paires complètes, `failed_runs=[]`, verdict du harnais
+  `pass`.
+- `profit_year` (variante − référence) : moyenne **+74 039 £/an**, médiane
+  +82 974 ; **15 victoires / 5 défaites**, test des signes p = 0,041 ;
+  IC95 (t) [−114 850 ; +262 928].
+- `company_value` : ratio des moyennes **+6,76 %** (12/8) ; garde −5 % tenue.
+- `performance_history` : +14,05 en moyenne (11/9).
+
+Lecture : aucune perte (IC95 non entièrement négatif, majorité de victoires,
+garde tenue) ; la règle opcodes est satisfaite. Le +74 k£/an n'est pas
+présenté comme un gain établi : l'IC95 contient 0 et le duel n'est pas
+déterministe.
+
+**Défaut : `exp_opcode_exact=1`** (`info.nut`, quatre difficultés). Smoke 1×1
+au défaut : `results/smoke_opcode_exact_default_1y42_20261002.json`, OK, le
+harnais résout `exp_opcode_exact=1`. Suite Python : 1 143 tests, OK, 1 skip.
+
+Limite : les deux bras portaient la configuration C121, qui n'est pas encore le
+défaut de la branche (C115=1). L'effet sous la configuration C115 n'est pas
+mesuré par ce banc.

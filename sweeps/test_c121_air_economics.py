@@ -637,14 +637,14 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("postbuild_mail_known=", self.air)
 
     def test_c121_save_drops_probe_only_line_state_but_keeps_decision_state(self):
-        self.assertIn("local c121SaveSkip = {", self.persist)
+        self.assertIn("OPEX_SAVE_LINE_SKIP <- {", self.persist)
         for token in (
             "c121PaxCapacity = true",
             "c121DemandOps = true",
             "c121ActualProfitAnnual = true",
             "c121TargetProfitAnnual = true",
             "c121TargetPlanes = true",
-            "if (key in c121SaveSkip) {",
+            "if (key in OPEX_SAVE_LINE_SKIP) {",
         ):
             self.assertIn(token, self.persist)
         for token in (

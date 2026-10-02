@@ -77,9 +77,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "exp_opcode_exact",
-      description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on, 0 = historical (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

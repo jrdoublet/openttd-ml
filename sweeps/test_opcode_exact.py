@@ -1,4 +1,4 @@
-"""Contrats exp_opcode_exact : defaut historique, bornes, et preuve de Manhattan."""
+"""Contrats exp_opcode_exact : defauts, bornes, et preuve de Manhattan."""
 import unittest
 from pathlib import Path
 
@@ -43,13 +43,15 @@ class OpcodeExactContractTests(unittest.TestCase):
         cls.construction = read("ai/OpexAI/air_construction.nut")
         cls.probes = read("ai/OpexAI/probes.nut")
 
-    def test_settings_default_off(self):
-        for name in ("exp_opcode_exact", "exp_opcode_exact_check"):
+    def test_settings_defaults(self):
+        # exp_opcode_exact adopte le 2026-10-02 (20x10 neutre, regle opcodes) ;
+        # le controle double chemin reste un outil de mesure, defaut 0.
+        for name, value in (("exp_opcode_exact", 1), ("exp_opcode_exact_check", 0)):
             block = setting_block(self.info, name)
-            self.assertIn("easy_value = 0", block)
-            self.assertIn("medium_value = 0", block)
-            self.assertIn("hard_value = 0", block)
-            self.assertIn("custom_value = 0", block)
+            self.assertIn(f"easy_value = {value}", block)
+            self.assertIn(f"medium_value = {value}", block)
+            self.assertIn(f"hard_value = {value}", block)
+            self.assertIn(f"custom_value = {value}", block)
             self.assertIn("flags = AICONFIG_BOOLEAN", block)
             self.assertEqual(self.info.count(f'name = "{name}"'), 1)
         self.assertIn("EXP_OPCODE_EXACT <- false;", self.globals)
