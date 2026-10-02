@@ -21,6 +21,7 @@ Actions courantes : [taches.md](../taches.md). Navigation : [index des journaux]
 | C83.1 | Six villes surveillées ; ne pas confondre avec `c83_fixes` | [C78/C83](../22_c78_lignes_vs_aaa.md) ; +165,3 k£/an, 15/5, valeur +6,78 % |
 | C87 / V94 / C96 | Garde de rentabilité des bus, préfiltre de sites AIR et placement catchment actifs | [C87](../26_c87_bus_et_lignes_aaa.md), [V94](../30_v94_air_site_list.md), [C96](../36_c96_air_site_catchment.md) ; C96 20 paires saines après reprise d'une paire sur même bundle, +211,3 k£/an, 15/5 |
 | C115 | Défaut 1 **temporaire**, décision utilisateur du 27 ; protégé le 30 | [C100–C115](../39_c100_c101_air_physical_engine_choice.md) ; +154,9 k£/an, 13/7, p=0,263176, valeur +18,29 %, verdict `fail_primary` : activation n'est pas qualification statistique |
+| C121 prépa rail / 1 ou 2 avions | `c121_air_first_year_rail_prep=1` et `c121_air_one_or_two_planes=1` par défaut, **décision utilisateur du 2 octobre** sur la branche `c121-catalog`, sans banc de qualification ; inertes hors bras C121 (exigent respectivement `c121_catalog_air_first_year` et `c121_air_economics`, à 0 par défaut) | [Journal du 2](journal_2026-10-02.md), [tâches](../taches.md) ligne « Construire plus vite en 1970 » ; diags locaux non qualifiants : prépa rail 3 tracés sur 15 servis sur 5×2, 1 ou 2 avions Δ `profit_year` +112 k£ en 1970 (4/5) mais −53 k£ en 1975 (2/5) sur 5×6 |
 
 ## 2. Diagnostics terminés et pistes non retenues
 
