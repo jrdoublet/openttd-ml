@@ -52,9 +52,12 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertEqual(defaults["c121_air_pressure_probe"], 0)
         self.assertEqual(defaults["c121_air_defensive_floor"], 0)
         self.assertEqual(defaults["c121_air_engine_replay_shadow"], 0)
+        # Optimisation d'opcodes adoptee le 2026-10-03, inerte hors C121.
+        self.assertEqual(defaults["c121_air_game_engine"], 1)
         globals_src = GLOBALS.read_text(encoding="utf-8")
         self.assertIn("C121_AIR_ECONOMICS_SHADOW <- false;", globals_src)
         self.assertIn("C121_AIR_ECONOMICS <- false;", globals_src)
+        self.assertIn("C121_AIR_GAME_ENGINE <- false;", globals_src)
         self.assertIn("C121_AIR_DECISION_DEPTH_ECONOMICS <- false;", globals_src)
         self.assertIn("C121_AIR_PORTFOLIO_DEPTH_ECONOMICS <- false;", globals_src)
         self.assertIn("C121_AIR_PORTFOLIO_SPLIT_ECONOMICS <- false;", globals_src)
@@ -80,6 +83,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('AIController.GetSetting("c121_air_defensive_floor")', settings)
         self.assertIn('AIController.GetSetting("c121_air_initial_project_economics")', settings)
         self.assertIn('AIController.GetSetting("c121_air_engine_replay_shadow")', settings)
+        self.assertIn('AIController.GetSetting("c121_air_game_engine")', settings)
 
     def test_realization_toggles_are_scoped(self):
         project_factor = body(
@@ -1106,7 +1110,7 @@ class TestC121AaaLine(unittest.TestCase):
 
     def test_two_planes_and_second_from_airport_b(self):
         air = read_builder_air()
-        self.assertEqual(air.count("C121_AAA_LINE ? 2 : 1"), 2)
+        self.assertEqual(air.count("C121_AAA_LINE ? 2 : 1"), 3)
         self.assertIn("AIAirport.GetHangarOfAirport(airportB)", air)
         self.assertIn("AIOrder.SkipToOrder(extra, 1)", air)
 

@@ -1109,6 +1109,10 @@ function OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext)
       if (score2 > score1 || (score2 == score1 && profit2 > profit1)) chosen = econ2;
     }
   }
+  if (PROBE_C121_ENGINE_TABLE) {
+    C121_ENGTAB_N1 = econ1;
+    C121_ENGTAB_N2 = econ2;
+  }
   return { initial = chosen, full = chosen };
 }
 
@@ -1270,38 +1274,136 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = n
   return capital > 0 ? profitUpper.tofloat() * 1000.0 / capital.tofloat() : 0.0;
 }
 
-/* Choix causal C121. Les invariants de route sont prepares une seule fois par
- * projet, puis chaque moteur relit seulement cet etat et le cache de soute. */
-function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
-{
-  if (!C121_AIR_ECONOMICS || catalog == null || plan == null
-      || !("airport" in plan) || plan.airport == null
-      || !("distance" in plan)
-      || catalog.airPlaneChoicesByAirport == null
-      || !(plan.airport.type in catalog.airPlaneChoicesByAirport)) return null;
-  local perf = C121_AIR_PLAN_PERF;
-  if (perf != null) perf.calls++;
-  local demandMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-  OpexC121PrepareDemandShadow(catalog, plan, lines);
-  if (demandMark != null) OpexSpanAgg("air.c121.demand", demandMark);
-  if (perf != null && ("c121DemandOps" in plan)) {
-    if (plan.c121DemandOps >= 0) perf.demandOps += plan.c121DemandOps;
-    perf.demandTicks += ("c121DemandTicks" in plan) ? plan.c121DemandTicks : 0;
-  }
-  if (!("c121Demand" in plan)) return null;
-  local staticTick0 = AIController.GetTick();
-  local staticOps0 = AIController.GetOpsTillSuspend();
-  local staticMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-  OpexC121PrepareEngineStatic(catalog, plan);
-  if (staticMark != null) OpexSpanAgg("air.c121.static", staticMark);
-  local staticTick1 = AIController.GetTick();
-  plan.c121EngineStaticTicks <- staticTick1 - staticTick0;
-  plan.c121EngineStaticOps <- OpexAirCalcDeltaOps(staticTick0, staticOps0);
-  if (perf != null) {
-    if (plan.c121EngineStaticOps >= 0) perf.staticOps += plan.c121EngineStaticOps;
-    perf.staticTicks += plan.c121EngineStaticTicks;
-  }
+const C121_GAME_ENGINE_STREAK = 8;
+const C121_GAME_ENGINE_CHECK_EVERY = 32;
 
+function OpexC121GameEngineDate()
+{
+  local date = AIDate.GetCurrentDate();
+  local month = AIDate.GetMonth(date);
+  local day = AIDate.GetDayOfMonth(date);
+  return AIDate.GetYear(date) + "-"
+      + (month < 10 ? "0" + month : "" + month) + "-"
+      + (day < 10 ? "0" + day : "" + day);
+}
+
+function OpexC121GameEngineLog(event, airportType, engineId, prevId, streak, reason = null)
+{
+  /* C121_GE event=<establish|check_ok|check_miss|reset|fallback> type=<t>
+   * eng=<id> prev=<id> streak=<n> date=<AAAA-MM-JJ> ; reset porte
+   * reason=engine_rev|learn_rev. */
+  if (!C121_AIR_GAME_ENGINE) return;
+  local line = "C121_GE event=" + event
+      + " type=" + airportType
+      + " eng=" + engineId
+      + " prev=" + prevId
+      + " streak=" + streak
+      + " date=" + OpexC121GameEngineDate();
+  if (reason != null) line += " reason=" + reason;
+  AILog.Info(line);
+}
+
+function OpexC121GameEngineState(airportType)
+{
+  if (!(airportType in C121_GAME_ENGINE_STATE)) {
+    C121_GAME_ENGINE_STATE.rawset(airportType, {
+      engine = -1,
+      streak = 0,
+      established = false,
+      sinceCheck = 0,
+      engineRev = airportType in C121_CATALOG_AIRPORT_REV
+          ? C121_CATALOG_AIRPORT_REV[airportType] : 0,
+      learnRev = airportType in C121_CATALOG_AIRPORT_LEARN_REV
+          ? C121_CATALOG_AIRPORT_LEARN_REV[airportType] : 0
+    });
+  }
+  return C121_GAME_ENGINE_STATE[airportType];
+}
+
+function OpexC121GameEngineSyncRevs(state, airportType)
+{
+  local engineRev = airportType in C121_CATALOG_AIRPORT_REV
+      ? C121_CATALOG_AIRPORT_REV[airportType] : 0;
+  local learnRev = airportType in C121_CATALOG_AIRPORT_LEARN_REV
+      ? C121_CATALOG_AIRPORT_LEARN_REV[airportType] : 0;
+  if (state.engineRev == engineRev && state.learnRev == learnRev) return false;
+  local reason = state.engineRev != engineRev ? "engine_rev" : "learn_rev";
+  local prev = state.engine;
+  state.engine = -1;
+  state.streak = 0;
+  state.established = false;
+  state.sinceCheck = 0;
+  state.engineRev = engineRev;
+  state.learnRev = learnRev;
+  OpexC121GameEngineLog("reset", airportType, -1, prev, 0, reason);
+  return true;
+}
+
+function OpexC121GameEngineFindPlane(catalog, airportType, engineId)
+{
+  if (catalog == null || catalog.airPlaneChoicesByAirport == null
+      || !(airportType in catalog.airPlaneChoicesByAirport)) return null;
+  foreach (plane in catalog.airPlaneChoicesByAirport[airportType]) {
+    if (plane != null && ("id" in plane) && plane.id == engineId) return plane;
+  }
+  return null;
+}
+
+function OpexC121GameEngineAfterScan(airportType, best, geMode)
+{
+  if (best == null) return;
+  local state = OpexC121GameEngineState(airportType);
+  local winnerId = best.plane.id;
+  local prev = state.engine;
+  if (geMode == 2) {
+    if (winnerId != state.engine) {
+      state.established = false;
+      state.engine = winnerId;
+      state.streak = 1;
+      OpexC121GameEngineLog("check_miss", airportType, winnerId, prev, 1);
+    } else {
+      state.streak = state.streak + 1;
+      OpexC121GameEngineLog("check_ok", airportType, winnerId, prev, state.streak);
+    }
+    return;
+  }
+  if (state.engine == winnerId) {
+    state.streak = state.streak + 1;
+  } else {
+    state.engine = winnerId;
+    state.streak = 1;
+    state.established = false;
+  }
+  if (!state.established && state.streak >= C121_GAME_ENGINE_STREAK) {
+    state.established = true;
+    state.sinceCheck = 0;
+    OpexC121GameEngineLog("establish", airportType, winnerId, prev, state.streak);
+  }
+}
+
+function OpexC121GameEngineTryShortcut(catalog, plan, engineId)
+{
+  local airportType = plan.airport.type;
+  local plane = OpexC121GameEngineFindPlane(catalog, airportType, engineId);
+  if (plane == null) return null;
+  if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) return null;
+  if (!OpexC118EngineFitsPlan(plan, plane)) return null;
+  if (!OpexAirPlaneInRange(plane, plan.distance)) return null;
+  local context = C121_AIR_ENGINE_CONTEXT ? OpexC121PrepareEngineContext(catalog, plan, plane) : null;
+  local upperScore = context == null
+      ? OpexC121InitialEngineUpperScore(catalog, plan, plane)
+      : OpexC121InitialEngineUpperScore(catalog, plan, plane, context);
+  if (upperScore == null) return null;
+  if (context != null) context.upperScore = upperScore;
+  return { plane = plane, context = context, upperScore = upperScore };
+}
+
+/* Scan moteur C121. Utilise seulement pour un repli du raccourci « avion de
+ * la partie » : le chemin par defaut reste le scan inligne de
+ * OpexC121ChooseRoutePlane. */
+function OpexC121ScanRoutePlaneEngines(catalog, plan)
+{
+  local perf = C121_AIR_PLAN_PERF;
   local scanTick0 = AIController.GetTick();
   local scanOps0 = AIController.GetOpsTillSuspend();
   local scanMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
@@ -1333,8 +1435,10 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     return 0;
   });
   if (scanMark != null) OpexSpanAgg("air.c121.scan", scanMark);
+  local engTabSeen = 0;
   foreach (candidate in candidates) {
     if (best != null && candidate.upperScore < best.economics.decisionScore) break;
+    if (PROBE_C121_ENGINE_TABLE) engTabSeen = engTabSeen + 1;
     local plane = candidate.plane;
     local engineMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local tick0 = AIController.GetTick();
@@ -1352,7 +1456,10 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
       evalSameTick++;
     }
     if (engineMark != null) OpexSpanAgg("air.c121.engine", engineMark);
-    if (evaluatedEconomics == null || !("decisionScore" in evaluatedEconomics)) continue;
+    if (evaluatedEconomics == null || !("decisionScore" in evaluatedEconomics)) {
+      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitEng(plan, plane.id, candidate.upperScore, 1, null);
+      continue;
+    }
     local economics = (("decisionEconomics" in evaluatedEconomics)
         && evaluatedEconomics.decisionEconomics != null)
         ? evaluatedEconomics.decisionEconomics : evaluatedEconomics;
@@ -1366,7 +1473,9 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
         || (economics.decisionScore == best.economics.decisionScore
             && economics.decisionProfitAnnual == best.economics.decisionProfitAnnual
             && plane.id < best.plane.id)) best = item;
+    if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitEng(plan, plane.id, candidate.upperScore, 1, economics);
   }
+  if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitPruned(plan, candidates, engTabSeen);
   local scanTick1 = AIController.GetTick();
   plan.c121EngineScanTicks <- scanTick1 - scanTick0;
   plan.c121EngineScanOps <- OpexAirCalcDeltaOps(scanTick0, scanOps0);
@@ -1379,6 +1488,185 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     if (plan.c121EngineScanOps >= 0) perf.scanOps += plan.c121EngineScanOps;
     perf.scanTicks += plan.c121EngineScanTicks;
     perf.engineEvals += evaluated;
+  }
+  return best;
+}
+
+/* Choix causal C121. Les invariants de route sont prepares une seule fois par
+ * projet, puis chaque moteur relit seulement cet etat et le cache de soute. */
+function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
+{
+  if (PROBE_C121_ENGINE_TABLE && plan != null) {
+    plan.c121EngTabReal <- true;
+    C121_ENGTAB_N1 = null;
+    C121_ENGTAB_N2 = null;
+  }
+  if (!C121_AIR_ECONOMICS || catalog == null || plan == null
+      || !("airport" in plan) || plan.airport == null
+      || !("distance" in plan)
+      || catalog.airPlaneChoicesByAirport == null
+      || !(plan.airport.type in catalog.airPlaneChoicesByAirport)) return null;
+  local perf = C121_AIR_PLAN_PERF;
+  if (perf != null) perf.calls++;
+  local demandMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+  OpexC121PrepareDemandShadow(catalog, plan, lines);
+  if (demandMark != null) OpexSpanAgg("air.c121.demand", demandMark);
+  if (perf != null && ("c121DemandOps" in plan)) {
+    if (plan.c121DemandOps >= 0) perf.demandOps += plan.c121DemandOps;
+    perf.demandTicks += ("c121DemandTicks" in plan) ? plan.c121DemandTicks : 0;
+  }
+  if (!("c121Demand" in plan)) return null;
+  local staticTick0 = AIController.GetTick();
+  local staticOps0 = AIController.GetOpsTillSuspend();
+  local staticMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+  OpexC121PrepareEngineStatic(catalog, plan);
+  if (staticMark != null) OpexSpanAgg("air.c121.static", staticMark);
+  local staticTick1 = AIController.GetTick();
+  plan.c121EngineStaticTicks <- staticTick1 - staticTick0;
+  plan.c121EngineStaticOps <- OpexAirCalcDeltaOps(staticTick0, staticOps0);
+  if (perf != null) {
+    if (plan.c121EngineStaticOps >= 0) perf.staticOps += plan.c121EngineStaticOps;
+    perf.staticTicks += plan.c121EngineStaticTicks;
+  }
+
+  local geMode = 0;
+  local geEst = -1;
+  local best = null;
+  local geState = null;
+  if (C121_AIR_GAME_ENGINE) {
+    local airportType = plan.airport.type;
+    geState = OpexC121GameEngineState(airportType);
+    OpexC121GameEngineSyncRevs(geState, airportType);
+    if (geState.established) {
+      geEst = geState.engine;
+      geState.sinceCheck = geState.sinceCheck + 1;
+      if (geState.sinceCheck >= C121_GAME_ENGINE_CHECK_EVERY) {
+        geState.sinceCheck = 0;
+        geMode = 2;
+      } else {
+        local geScanTick0 = AIController.GetTick();
+        local geScanOps0 = AIController.GetOpsTillSuspend();
+        local geScanMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+        local shortcut = OpexC121GameEngineTryShortcut(catalog, plan, geState.engine);
+        if (geScanMark != null) OpexSpanAgg("air.c121.scan", geScanMark);
+        if (shortcut != null) {
+          /* ge=1 : aucune ligne ENG ; E seul, sans decisionOnly. */
+          geMode = 1;
+          best = { plane = shortcut.plane, economics = null, context = shortcut.context };
+          local geScanTick1 = AIController.GetTick();
+          plan.c121EngineScanTicks <- geScanTick1 - geScanTick0;
+          plan.c121EngineScanOps <- OpexAirCalcDeltaOps(geScanTick0, geScanOps0);
+          plan.c121EngineEvalCount <- 0;
+          plan.c121EngineKnownCount <- 0;
+          plan.c121EngineEvalOpsTotal <- 0;
+          plan.c121EngineEvalOpsSameTick <- 0;
+          plan.c121EngineEvalSameTickCount <- 0;
+          if (perf != null) {
+            if (plan.c121EngineScanOps >= 0) perf.scanOps += plan.c121EngineScanOps;
+            perf.scanTicks += plan.c121EngineScanTicks;
+          }
+        } else {
+          geMode = 3;
+          OpexC121GameEngineLog("fallback", airportType, geState.engine, geState.engine, geState.streak);
+        }
+      }
+    }
+  }
+
+  if (geMode != 1) {
+  local scanTick0 = AIController.GetTick();
+  local scanOps0 = AIController.GetOpsTillSuspend();
+  local scanMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+  local evaluated = 0;
+  local known = 0;
+  local evalOpsTotal = 0;
+  local evalOps = 0;
+  local evalSameTick = 0;
+  local candidates = [];
+  foreach (plane in catalog.airPlaneChoicesByAirport[plan.airport.type]) {
+    if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
+    if (!OpexC118EngineFitsPlan(plan, plane)) continue;
+    if (!OpexAirPlaneInRange(plane, plan.distance)) continue;
+    local context = C121_AIR_ENGINE_CONTEXT ? OpexC121PrepareEngineContext(catalog, plan, plane) : null;
+    local upperScore = context == null ? OpexC121InitialEngineUpperScore(catalog, plan, plane)
+        : OpexC121InitialEngineUpperScore(catalog, plan, plane, context);
+    if (upperScore == null) continue;
+    if (context != null) {
+      context.upperScore = upperScore;
+      candidates.append(context);
+    } else candidates.append({ plane = plane, upperScore = upperScore });
+  }
+  candidates.sort(function(a, b) {
+    if (a.upperScore > b.upperScore) return -1;
+    if (a.upperScore < b.upperScore) return 1;
+    if (a.plane.id < b.plane.id) return -1;
+    if (a.plane.id > b.plane.id) return 1;
+    return 0;
+  });
+  if (scanMark != null) OpexSpanAgg("air.c121.scan", scanMark);
+  local engTabSeen = 0;
+  foreach (candidate in candidates) {
+    if (best != null && candidate.upperScore < best.economics.decisionScore) break;
+    if (PROBE_C121_ENGINE_TABLE) engTabSeen = engTabSeen + 1;
+    local plane = candidate.plane;
+    local engineMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    local tick0 = AIController.GetTick();
+    local ops0 = AIController.GetOpsTillSuspend();
+    local context = ("trip" in candidate) ? candidate : null;
+    local openingPlanes = C121_AAA_LINE ? 2 : 1;
+    local evaluatedEconomics = context == null
+        ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null)
+        : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null, null, context);
+    local tick1 = AIController.GetTick();
+    local ops = OpexAirCalcDeltaOps(tick0, ops0);
+    if (ops >= 0) evalOpsTotal += ops;
+    if (tick1 == tick0 && ops >= 0) {
+      evalOps += ops;
+      evalSameTick++;
+    }
+    if (engineMark != null) OpexSpanAgg("air.c121.engine", engineMark);
+    if (evaluatedEconomics == null || !("decisionScore" in evaluatedEconomics)) {
+      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitEng(plan, plane.id, candidate.upperScore, 1, null);
+      continue;
+    }
+    local economics = (("decisionEconomics" in evaluatedEconomics)
+        && evaluatedEconomics.decisionEconomics != null)
+        ? evaluatedEconomics.decisionEconomics : evaluatedEconomics;
+    evaluated++;
+    if (("engineMailKnown" in economics) && economics.engineMailKnown) known++;
+    local item = { plane = plane, economics = economics, context = context };
+    if (best == null
+        || economics.decisionScore > best.economics.decisionScore
+        || (economics.decisionScore == best.economics.decisionScore
+            && economics.decisionProfitAnnual > best.economics.decisionProfitAnnual)
+        || (economics.decisionScore == best.economics.decisionScore
+            && economics.decisionProfitAnnual == best.economics.decisionProfitAnnual
+            && plane.id < best.plane.id)) best = item;
+    if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitEng(plan, plane.id, candidate.upperScore, 1, economics);
+  }
+  if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitPruned(plan, candidates, engTabSeen);
+  local scanTick1 = AIController.GetTick();
+  plan.c121EngineScanTicks <- scanTick1 - scanTick0;
+  plan.c121EngineScanOps <- OpexAirCalcDeltaOps(scanTick0, scanOps0);
+  plan.c121EngineEvalCount <- evaluated;
+  plan.c121EngineKnownCount <- known;
+  plan.c121EngineEvalOpsTotal <- evalOpsTotal;
+  plan.c121EngineEvalOpsSameTick <- evalOps;
+  plan.c121EngineEvalSameTickCount <- evalSameTick;
+  if (perf != null) {
+    if (plan.c121EngineScanOps >= 0) perf.scanOps += plan.c121EngineScanOps;
+    perf.scanTicks += plan.c121EngineScanTicks;
+    perf.engineEvals += evaluated;
+  }
+  if (C121_AIR_GAME_ENGINE) {
+    OpexC121GameEngineAfterScan(plan.airport.type, best, geMode);
+    geState = OpexC121GameEngineState(plan.airport.type);
+    geEst = geState.established ? geState.engine : -1;
+  }
+  }
+  if (PROBE_C121_ENGINE_TABLE) {
+    plan.c121GeMode <- geMode;
+    plan.c121GeEst <- geEst;
   }
   if (best == null) {
     if (perf != null) perf.noWinner++;
@@ -1405,8 +1693,46 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     perf.winnerTicks += plan.c121WinnerFullTicks;
   }
   if (initialEconomics == null) {
-    if (winnerMark != null) OpexSpanAgg("air.c121.winner", winnerMark);
-    return null;
+    if (C121_AIR_GAME_ENGINE && geMode == 1) {
+      OpexC121GameEngineLog("fallback", plan.airport.type, best.plane.id, best.plane.id,
+          OpexC121GameEngineState(plan.airport.type).streak);
+      geMode = 3;
+      if (PROBE_C121_ENGINE_TABLE) plan.c121GeMode <- 3;
+      best = OpexC121ScanRoutePlaneEngines(catalog, plan);
+      if (C121_AIR_GAME_ENGINE) {
+        OpexC121GameEngineAfterScan(plan.airport.type, best, geMode);
+        geState = OpexC121GameEngineState(plan.airport.type);
+        geEst = geState.established ? geState.engine : -1;
+        if (PROBE_C121_ENGINE_TABLE) plan.c121GeEst <- geEst;
+      }
+      if (best == null) {
+        if (perf != null) perf.noWinner++;
+        if (winnerMark != null) OpexSpanAgg("air.c121.winner", winnerMark);
+        return null;
+      }
+      local retryTick0 = AIController.GetTick();
+      local retryOps0 = AIController.GetOpsTillSuspend();
+      winnerEconomics = best.context == null
+          ? OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION)
+          : OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION, best.context);
+      initialEconomics = winnerEconomics.initial;
+      fullBest = winnerEconomics.full;
+      local retryTick1 = AIController.GetTick();
+      plan.c121WinnerFullTicks <- plan.c121WinnerFullTicks + (retryTick1 - retryTick0);
+      local retryOps = OpexAirCalcDeltaOps(retryTick0, retryOps0);
+      if (retryOps >= 0) {
+        if (plan.c121WinnerFullOps >= 0) plan.c121WinnerFullOps += retryOps;
+        else plan.c121WinnerFullOps <- retryOps;
+      }
+      if (perf != null) {
+        if (retryOps >= 0) perf.winnerOps += retryOps;
+        perf.winnerTicks += retryTick1 - retryTick0;
+      }
+    }
+    if (initialEconomics == null) {
+      if (winnerMark != null) OpexSpanAgg("air.c121.winner", winnerMark);
+      return null;
+    }
   }
   if (fullBest == null) fullBest = initialEconomics;
   local decisionEconomics = fullBest;

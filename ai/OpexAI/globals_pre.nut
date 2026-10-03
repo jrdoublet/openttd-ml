@@ -423,6 +423,11 @@ C121_AIR_ECONOMICS_SHADOW <- false;
 C121_AIR_ECONOMICS <- false;
 C121_AIR_WINNER_FUSION <- false;
 C121_AIR_ENGINE_CONTEXT <- false;
+C121_AIR_GAME_ENGINE <- false;
+/* Etat transitoire « avion de la partie » par type d'aeroport. Non
+ * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
+ * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */
+C121_GAME_ENGINE_STATE <- {};
 C121_AIR_DECISION_DEPTH_ECONOMICS <- false;
 C121_AIR_PORTFOLIO_DEPTH_ECONOMICS <- false;
 C121_AIR_PORTFOLIO_SPLIT_ECONOMICS <- false;
@@ -477,6 +482,12 @@ CATALOG_COST_PROBE <- false;
 PROBE_LOOP_OPS <- false;
 /* Sonde probe_span_trace : intervalles dates des micro-taches. Defaut 0, aucun effet. */
 PROBE_SPAN_TRACE <- false;
+/* Sonde passive de la table de moteurs C121. Defaut 0 : aucun log, aucune ecriture. */
+PROBE_C121_ENGINE_TABLE <- false;
+C121_ENGTAB_PASS <- 0;
+C121_ENGTAB_NEXT <- 0;
+C121_ENGTAB_N1 <- null;
+C121_ENGTAB_N2 <- null;
 SPAN_STACK <- null;
 SPAN_BY_ID <- null;
 SPAN_NEXT_ID <- 1;

@@ -13,6 +13,7 @@ Les autres mesures exigent toujours bundle, protocole et santé vérifiables.
 
 | Journal | Contenu / portée |
 |---|---|
+| [3 octobre](journal_2026-10-03.md) | V96 « avion de la partie » (C121) adopté à défaut 1 sous règle de neutralité des opcodes après 20×10 sain (−0,5 k£/an, 7/13, valeur +4,1 %) |
 | [2 octobre](journal_2026-10-02.md) | Fusion du gagnant AIR adoptée sous règle de neutralité après 20×10 sain ; contexte paire/avion non retenu (+9,88 % d'opcodes, garde valeur échouée en 5×6) ; blocage/reprise Docker ; lot cadence/K_pass distinct, aucun modèle C121 adopté |
 | [1er octobre](journal_2026-10-01.md) | Audits/intégrations puis défaut5×6 contre AAA ; huit fixtures dirigées R1/R3, VM48+9 et frontières Save/Load validées ; 1124 tests complets puis136 contrats finaux réussis, aucune adoption |
 | [30 septembre](journal_2026-09-30.md) | Correctifs R et bancs GitHub : lire les groupes successifs ; implémentation locale ≠ validation par exécution |

@@ -84,6 +84,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "probe_c121_engine_table",
+      description = "Log already-computed C121 engine scans and plan context for an offline engine table; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "exp_opcode_exact",
       description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -562,6 +570,14 @@ class OpexAIInfo extends AIInfo {
       description = "C121 opcode experiment: reuse pair/engine trip, fares and amortisation during one chooser call; refresh on input/date changes; 0 = off pending qualification",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_game_engine",
+      description = "C121 opcode optimization: reuse the established aircraft of the current game per airport type and skip the engine scan; 1 = on (default since 2026-10-03, opcode neutrality rule), 0 = full engine scan",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

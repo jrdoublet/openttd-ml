@@ -117,7 +117,7 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
             "\nfunction ", 1)[0]
         self.assertIn("local openingPlanes = C121_AAA_LINE ? 2 : 1;", chooser)
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", chooser)
-        self.assertEqual(econ.count("C121_AAA_LINE ? 2 : 1"), 2)
+        self.assertEqual(econ.count("C121_AAA_LINE ? 2 : 1"), 3)
         air_econ = econ.split("function OpexC121AirEconomics(", 1)[1].split(
             "\nfunction ", 1)[0]
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", air_econ)
