@@ -637,9 +637,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_flat_bootstrap",
-      description = "With incremental C121, skip the staged bootstrap: start in the complete stage so every post-build regeneration is the incremental C121 update instead of a synchronous full rebuild; 0 = off",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
+      description = "With incremental C121, skip the staged bootstrap: start in the complete stage so every post-build regeneration is the incremental C121 update instead of a synchronous full rebuild; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({

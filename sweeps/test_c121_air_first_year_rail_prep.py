@@ -52,9 +52,16 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         defaults = parse_ai_settings(AI / "info.nut")
         for name in ("c121_air_first_year_rail_prep", "c121_air_one_or_two_planes"):
             self.assertEqual(defaults[name], 1, name)
-        self.assertEqual(defaults["c121_flat_bootstrap"], 0)
+        # V110, 2026-10-03 : c121_flat_bootstrap passe a 1 sur QUALIFICATION, pas
+        # sur derogation. Porte A (gain_short, 40 graines x 3 ans, seuils fixes
+        # avant lancement) : +135 997 £/an, 25/15/0, p_wilcoxon = 0,01154, IC95
+        # bootstrap [+39 461 ; +231 092], valeur +19,13 % -> pass. Porte B
+        # (non_erosion, 20 graines x 10 ans) : IC95 [-19 052 ; +307 787], borne
+        # haute > 0 -> pass. Il reste inerte hors bras C121.
+        self.assertEqual(defaults["c121_flat_bootstrap"], 1)
         info = source("info.nut")
-        for name in ("c121_air_first_year_rail_prep", "c121_air_one_or_two_planes"):
+        for name in ("c121_air_first_year_rail_prep", "c121_air_one_or_two_planes",
+                     "c121_flat_bootstrap"):
             i = info.index('name = "%s"' % name)
             window = info[i:i + 500]
             for key in ("easy_value = 1", "medium_value = 1", "hard_value = 1",
