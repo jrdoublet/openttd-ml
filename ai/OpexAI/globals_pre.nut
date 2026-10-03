@@ -725,6 +725,9 @@ COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
+/* V107 : densification rail classee par le portefeuille. 0 = depense directe
+ * sur la tresorerie residuelle (comportement historique). */
+V107_DENSIFY_PORTFOLIO <- false;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
@@ -766,6 +769,13 @@ CASH_RESERVE_PROBE_MAX_BINDS <- 0;
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
 HARD_ITERATION_CAP <- 10000;
+/* Jours max de detention du creneau unique _railSearch. 0 = borne inactive :
+ * aucun calcul de date, les recherches suivent le budget d'iterations. */
+RAIL_SEARCH_DAY_CAP <- 0;
+/* V100 : memoire d'echec des doublements de voie (defaut 0). */
+RAIL_UPGRADE_FAILURE_MEMORY <- false;
+/* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
+RAIL_TERRAIN_PROBE <- false;
 
 /* C80 tranche 0 : socle de l'orchestrateur à double registre (intentions / exécution).
  * 0 = ordonnanceur historique (défaut), 1 = orchestrateur à double registre actif. */

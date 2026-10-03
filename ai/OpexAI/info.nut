@@ -1090,6 +1090,36 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "rail_search_day_cap",
+      description = "max days a single rail A* search may hold the one search slot before being abandoned and the slot released; 0 = off (default)",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 10,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "rail_upgrade_failure_memory",
+      description = "remember a failed double-track A* search per line and do not retry it until the abandon cooldown expires; 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_rail_terrain",
+      description = "log a cheap terrain-roughness summary of the straight line between both stations when a rail A* search starts, to test whether terrain predicts iteration-cap abandons; 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "abandon_cooldown_days",
       description = "Delai de reprise en jours sur la memoire d'abandon (365 = defaut adopte, docs/taches.md C33.3)",
       min_value = 0, max_value = 5000,
@@ -1531,6 +1561,14 @@ class OpexAIInfo extends AIInfo {
     AddSetting({ name = "air_efficiency_preflight", description = "AIR efficiency A/B: preflight both airport endpoints before spending", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "air_efficiency_dedupe", description = "AIR efficiency A/B: keep one ranked AIR plan per OD pair in top K", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "air_efficiency_reselect", description = "AIR efficiency A/B: event-driven catalog plus cash-threshold local reselection", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+
+    AddSetting({
+      name = "v107_densify_portfolio",
+      description = "V107: price a second rail train or a double-track upgrade as a fleet project and let the portfolio rank it; 1 = on, 0 = spend from residual cash (default). Road refleet is unchanged.",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

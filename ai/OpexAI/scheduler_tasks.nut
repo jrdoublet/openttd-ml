@@ -327,6 +327,7 @@ function OpexAI::_dispatchCatalog(task, year)
     fleetPlan = [];
     this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
   }
+  if (V107_DENSIFY_PORTFOLIO) fleetPlan = this._v107AttachRailDensify(fleetPlan);
   if (this._recomputeEpochBounds) {
     OpexRefreshEpochBounds(this._catalog);
     this._recomputeEpochBounds = false;
@@ -882,10 +883,22 @@ function OpexAI::_dispatchAirFleet(task, year)
     if (PORTFOLIO_CACHE && this._projects != null) {
       local fleetPlan = [];
       this._resizeAirFleets(year, fleetPlan);
-      if (fleetPlan.len() > 0) {
+      local airCount = fleetPlan.len();
+      local densifyPlan = V107_DENSIFY_PORTFOLIO ? this._v107RailDensifyPlan() : null;
+      if (densifyPlan != null) {
+        foreach (densifyEntry in densifyPlan) fleetPlan.append(densifyEntry);
+      }
+      if (airCount > 0) {
         local budgetNow = OpexAvailableCapital();
         local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
         this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow, this._lines);
+        if (spInject != null) OpexSpanEnd(spInject);
+        if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
+        this._ranked = this._projects.rail;
+      } else if (densifyPlan != null) {
+        local budgetNow = OpexAvailableCapital();
+        local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
+        this._projects = OpexInjectFleetProjects(this._projects, densifyPlan, this._abandonedPairs, budgetNow, this._lines, true);
         if (spInject != null) OpexSpanEnd(spInject);
         if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
         this._ranked = this._projects.rail;
@@ -946,6 +959,17 @@ function OpexAI::_dispatchExpand(task, year)
    * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1.
    * Desormais inconditionnel : on ne desactive que si les DEUX sont eteints. */
   if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+  if (V107_DENSIFY_PORTFOLIO && RAIL_REFLEET && PORTFOLIO_CACHE && this._projects != null) {
+    local densifyPlan = this._v107RailDensifyPlan();
+    if (densifyPlan != null) {
+      local budgetNow = OpexAvailableCapital();
+      local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
+      this._projects = OpexInjectFleetProjects(this._projects, densifyPlan, this._abandonedPairs, budgetNow, this._lines, true);
+      if (spInject != null) OpexSpanEnd(spInject);
+      if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
+      this._ranked = this._projects.rail;
+    }
+  }
   this._expandRailLines(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;

@@ -1043,8 +1043,15 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
 /* Pose la voie sur les cases intermediaires. Les extremites sont les sorties de quai.
  * `structures` propage le kind retenu sous AITestMode : GetOtherTunnelEnd sur une paire
  * eloignee a pris un tunnel naturel a la place d'un pont (TRKFAIL, prototype 4/9 -> 7/9).
- * Tableau vide ou null = deduction classique, A* inchange. */
-function OpexBuildTrack(tiles, structures = null)
+ * Tableau vide ou null = deduction classique, A* inchange.
+ * `failure` optionnel : null (defaut) n'ecrit rien. Sinon, au premier segment refuse
+ * seulement (cles neuves en <-) : index, tile, kind (rail|bridge|tunnel|connect),
+ * error, manh_prev, manh_next, puis l'etat de `cur` apres l'echec
+ * (is_buildable, is_rail, is_station, is_road, is_water, owner_self, slope,
+ * dup_index). Ces lectures restent dans le `if` deja garde : sonde eteinte ou
+ * echec deja enregistre, aucun appel. connect = BuildRail vrai mais
+ * AreTilesConnected faux. */
+function OpexBuildTrack(tiles, structures = null, failure = null)
 {
   local failed = 0;
   for (local i = 1; i < tiles.len() - 1; i++) {
@@ -1075,9 +1082,79 @@ function OpexBuildTrack(tiles, structures = null)
        * (precondition de voisinage) et restent controles par les deux segments voisins. */
       if (ok && AIMap.DistanceManhattan(prev, cur) == 1 &&
           AIMap.DistanceManhattan(cur, next) == 1 &&
-          !AIRail.AreTilesConnected(prev, cur, next)) ok = false;
+          !AIRail.AreTilesConnected(prev, cur, next)) {
+        ok = false;
+        /* failure null : un test, aucun appel en plus. L'erreur est lue avant Manhattan. */
+        if (failure != null && !("index" in failure)) {
+          local err = AIError.GetLastError();
+          local manhPrev = AIMap.DistanceManhattan(prev, cur);
+          local manhNext = AIMap.DistanceManhattan(cur, next);
+          failure.index <- i;
+          failure.tile <- cur;
+          failure.kind <- "connect";
+          failure.error <- err;
+          failure.manh_prev <- manhPrev;
+          failure.manh_next <- manhNext;
+          /* Apres GetLastError : les lectures suivantes ne doivent pas ecraser err. */
+          failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;
+          failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;
+          failure.is_station <- AIRail.IsRailStationTile(cur) ? 1 : 0;
+          failure.is_road <- AIRoad.IsRoadTile(cur) ? 1 : 0;
+          failure.is_water <- AITile.IsWaterTile(cur) ? 1 : 0;
+          failure.owner_self <- (AITile.GetOwner(cur) == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) ? 1 : 0;
+          failure.slope <- AITile.GetSlope(cur);
+          local dupIndex = -1;
+          for (local j = 0; j < i; j++) {
+            if (tiles[j] == cur) {
+              dupIndex = j;
+              break;
+            }
+          }
+          failure.dup_index <- dupIndex;
+        }
+      }
     }
-    if (!ok) failed++;
+    if (!ok) {
+      failed++;
+      if (failure != null && !("index" in failure)) {
+        local err = AIError.GetLastError();
+        local manhPrev = AIMap.DistanceManhattan(prev, cur);
+        local manhNext = AIMap.DistanceManhattan(cur, next);
+        /* Meme predicat que la branche de pose, apres la capture de l'erreur. */
+        local segmentKind = "rail";
+        if (manhNext > 1) {
+          local gapKind = OpexPlannedStructureKind(structures, cur, next);
+          if (gapKind == "tunnel" ||
+              (gapKind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
+            segmentKind = "tunnel";
+          } else {
+            segmentKind = "bridge";
+          }
+        }
+        failure.index <- i;
+        failure.tile <- cur;
+        failure.kind <- segmentKind;
+        failure.error <- err;
+        failure.manh_prev <- manhPrev;
+        failure.manh_next <- manhNext;
+        /* Apres GetLastError : les lectures suivantes ne doivent pas ecraser err. */
+        failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;
+        failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;
+        failure.is_station <- AIRail.IsRailStationTile(cur) ? 1 : 0;
+        failure.is_road <- AIRoad.IsRoadTile(cur) ? 1 : 0;
+        failure.is_water <- AITile.IsWaterTile(cur) ? 1 : 0;
+        failure.owner_self <- (AITile.GetOwner(cur) == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) ? 1 : 0;
+        failure.slope <- AITile.GetSlope(cur);
+        local dupIndex = -1;
+        for (local j = 0; j < i; j++) {
+          if (tiles[j] == cur) {
+            dupIndex = j;
+            break;
+          }
+        }
+        failure.dup_index <- dupIndex;
+      }
+    }
   }
   return failed;
 }
@@ -1739,6 +1816,21 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local planA = plan.planA;
   local planB = plan.planB;
   local tiles = plan.tiles;
+  /* Franchissement colle a une sortie de gare. Deux entiers sur result, lus par
+   * RAIL_ATTEMPT. -1 si le trace est absent ou trop court pour l'index. Nul au defaut. */
+  if (DECISION_LOG) {
+    local crossStart = -1;
+    local crossEnd = -1;
+    if (tiles != null && tiles.len() >= 2) {
+      crossStart = (AIMap.DistanceManhattan(tiles[0], tiles[1]) > 1) ? 1 : 0;
+    }
+    if (tiles != null && tiles.len() >= 3) {
+      local tail = tiles.len() - 1;
+      crossEnd = (AIMap.DistanceManhattan(tiles[tail - 2], tiles[tail - 1]) > 1) ? 1 : 0;
+    }
+    result.startx <- crossStart;
+    result.endx <- crossEnd;
+  }
   if (RAIL_DEVIS) {
     local quoteFailure = {};
     local realCapital = OpexQuoteRailCapital(catalog, candidate, plan, quoteFailure);
@@ -1782,17 +1874,81 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
   local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
   if (!okA || !okB) {
+    /* Avant rollback : DemolishTile ecraserait GetLastError. decision_log=0 n'entre pas. */
+    if (DECISION_LOG) {
+      local err = AIError.GetLastError();
+      OpexDecide("RAIL_STN_FAIL", "ok_a=" + (okA ? 1 : 0)
+          + " ok_b=" + (okB ? 1 : 0)
+          + " anchor_a=" + planA.anchor
+          + " anchor_b=" + planB.anchor
+          + " len_a=" + planA.length
+          + " len_b=" + planB.length
+          + " err=" + err);
+    }
     OpexRollback(null, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.opcodes += budget.end("build_stations"); result.reason = "STNFAIL"; return result;
   }
 
-  local trackFailed = OpexBuildTrack(tiles, plan.structures);
+  /* Table seulement sous decision_log : null au defaut, aucune allocation. */
+  local trackFailure = null;
+  if (DECISION_LOG) trackFailure = {};
+  local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
       AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&
       AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);
   if (!connected) {
+    /* Avant rollback, et seulement ici : `connected` court-circuite les deux
+     * AreTilesConnected quand trackFailed > 0. Memes indices. len < 3 : -1. */
+    if (DECISION_LOG) {
+      local exitA = -1;
+      local exitB = -1;
+      if (tiles.len() >= 3) {
+        exitA = AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) ? 1 : 0;
+        exitB = AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit) ? 1 : 0;
+      }
+      local fields = "cause=" + (trackFailed > 0 ? "track" : "connect")
+          + " failed=" + trackFailed
+          + " tiles=" + tiles.len()
+          + " exit_a=" + exitA
+          + " exit_b=" + exitB;
+      if (trackFailed > 0 && trackFailure != null && ("index" in trackFailure)) {
+        fields += " idx=" + trackFailure.index
+            + " tile=" + trackFailure.tile
+            + " kind=" + trackFailure.kind
+            + " err=" + trackFailure.error
+            + " mprev=" + trackFailure.manh_prev
+            + " mnext=" + trackFailure.manh_next;
+        /* Cles optionnelles : une cle absente leve en Squirrel. */
+        if ("is_buildable" in trackFailure) fields += " bld=" + trackFailure.is_buildable;
+        if ("is_rail" in trackFailure) fields += " rail=" + trackFailure.is_rail;
+        if ("is_station" in trackFailure) fields += " stn=" + trackFailure.is_station;
+        if ("is_road" in trackFailure) fields += " road=" + trackFailure.is_road;
+        if ("is_water" in trackFailure) fields += " watr=" + trackFailure.is_water;
+        if ("owner_self" in trackFailure) fields += " own=" + trackFailure.owner_self;
+        if ("slope" in trackFailure) fields += " slp=" + trackFailure.slope;
+        if ("dup_index" in trackFailure) fields += " dup=" + trackFailure.dup_index;
+      }
+      /* Identite planifiee de la gare B, toujours sous DECISION_LOG. */
+      if ("lead" in planB) fields += " leadb=" + planB.lead;
+      if ("station_exit" in planB) fields += " exitb=" + planB.station_exit;
+      /* Deux bouts du trace, y compris quand failed=0 (table failure vide).
+       * len < 3 : aucun index, ces champs sont absents. */
+      if (tiles.len() >= 3) {
+        fields += " h0=" + tiles[0]
+            + " h1=" + tiles[1]
+            + " h2=" + tiles[2]
+            + " d01=" + AIMap.DistanceManhattan(tiles[0], tiles[1])
+            + " d12=" + AIMap.DistanceManhattan(tiles[1], tiles[2])
+            + " t2=" + tiles[last - 2]
+            + " t1=" + tiles[last - 1]
+            + " t0=" + tiles[last]
+            + " d21=" + AIMap.DistanceManhattan(tiles[last - 2], tiles[last - 1])
+            + " d10=" + AIMap.DistanceManhattan(tiles[last - 1], tiles[last]);
+      }
+      OpexDecide("RAIL_TRACK_FAIL", fields);
+    }
     OpexRollback(tiles, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;

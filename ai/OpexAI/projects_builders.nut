@@ -205,6 +205,16 @@ function OpexProjectFromFleet(entry)
     if (revenue <= 0) revenue = profit;
     usedTargetMarginal = true;
   }
+  if (!usedTargetMarginal && ("v107Densify" in entry)) {
+    /* Densification rail. La marge est deja la difference 1 train -> 2.
+     * Champ absent ou non positif : refus, sans repli sur le profit de la ligne. */
+    if (entry.v107Densify != "rail"
+        || !("v107MarginalProfit" in entry) || !("v107MarginalRevenue" in entry)) return null;
+    profit = entry.v107MarginalProfit;
+    revenue = entry.v107MarginalRevenue;
+    if (profit <= 0 || revenue <= 0) return null;
+    usedTargetMarginal = true;
+  }
 
   if (!usedTargetMarginal) {
     local perPlaneProfit = 0;

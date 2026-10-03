@@ -191,6 +191,126 @@ function OpexAI::_purgeSubsidyFromProjects(subId)
   }
 }
 /* C38 etape 2 : une croissance de flotte est une tentative synchrone de portefeuille. */
+function OpexAI::_v107FleetDiscard(passDiscards, rank, project, reason)
+{
+  if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+    passDiscards.append({ rank = rank, mode = "fleet", src = project.src, dst = project.dst,
+                          reason = reason, extra = "" });
+  }
+  if (DECISION_LOG) {
+    local lineId = -1;
+    if (("payload" in project) && project.payload != null && ("line" in project.payload)
+        && project.payload.line != null && ("lineId" in project.payload.line)) {
+      lineId = project.payload.line.lineId;
+    }
+    OpexDecide("FLEET_PROJECT", "action=refuse line=" + lineId + " reason=" + reason);
+  }
+  return { outcome = "rejected", discards = passDiscards };
+}
+
+/* Execute une densification rail deja prixee. Le second train achete tout de suite.
+ * Le doublement reprenable occupe le creneau de recherche et rend pending. */
+function OpexAI::_tryBuildRailDensifyProject(year, project, rank, passDiscards)
+{
+  local entry = project.payload;
+  local line = entry.line;
+  if (line == null || !("vehicles" in line) || !("v107Action" in entry)
+      || (entry.v107Action != "second" && entry.v107Action != "upgrade")) {
+    return this._v107FleetDiscard(passDiscards, rank, project, "densify_stale");
+  }
+  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
+    return this._v107FleetDiscard(passDiscards, rank, project, "search_in_progress");
+  }
+  local need = entry.planePrice + OpexCashReserve();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < need) {
+    if (C50_CHRONOLOGY_PROBE) {
+      this._logC50CashRefusal("rail_densify", rank, project.capital, project.profitAnnual,
+                              project.roi, project.src, project.dst, need, money);
+      if (C50_NON_EXPANSION_LEDGER != null) {
+        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+        if (!("c50_rail_cash_ym" in line) || line.c50_rail_cash_ym != ym) {
+          line.c50_rail_cash_ym <- ym;
+          C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
+        }
+      }
+    }
+    return this._v107FleetDiscard(passDiscards, rank, project, "insufficient_cash");
+  }
+  if (entry.v107Action == "second") {
+    if (!(("doubleTrack" in line) && line.doubleTrack == 1 && ("depot2" in line) && line.depot2 != null)) {
+      return this._v107FleetDiscard(passDiscards, rank, project, "densify_stale");
+    }
+    local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
+    if (!secondTrain.ok) {
+      return this._v107FleetDiscard(passDiscards, rank, project, "densify_failed");
+    }
+    line.vehicles.append(secondTrain.train);
+    line.trains = line.vehicles.len();
+    line.vehCount <- line.vehicles.len();
+    if (C50_CHRONOLOGY_PROBE) {
+      if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.second_built++;
+      OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+    }
+    OpexSign(AIMap.GetTileIndex(1, 1), "RD|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
+    if (DECISION_LOG) {
+      OpexDecide("FLEET_PROJECT", "action=second_train line=" + line.lineId + " trains=" + line.trains);
+    }
+    return { outcome = "built", discards = passDiscards };
+  }
+  if (RAIL_UPGRADE_FAILURE_MEMORY && ABANDON_MEMORY && this._abandonedPairs != null
+      && ("lineId" in line)
+      && (OpexRailUpgradeRejectKey(line.lineId) in this._abandonedPairs)) {
+    return this._v107FleetDiscard(passDiscards, rank, project, "abandoned_pair");
+  }
+  if ((("doubleTrack" in line) && line.doubleTrack == 1)
+      || !("platformA" in line) || !("platformB" in line)
+      || line.platformA == null || line.platformB == null) {
+    return this._v107FleetDiscard(passDiscards, rank, project, "densify_stale");
+  }
+  if (RAIL_SEARCH_RESUMABLE) {
+    local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
+    local anchor = AIMap.GetTileIndex(1, 1);
+    if (!prep.ok) {
+      if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
+        C50_NON_EXPANSION_LEDGER.rail.prep_failed++;
+      }
+      OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + prep.reason);
+      return this._v107FleetDiscard(passDiscards, rank, project, "densify_prep");
+    }
+    this._startRailUpgradeSearch(line, prep);
+    if (this._railSearch != null) return { outcome = "pending", discards = passDiscards };
+    return this._v107FleetDiscard(passDiscards, rank, project, "densify_failed");
+  }
+  local upgrade = OpexUpgradeRailLineToDoubleTrack(this._catalog, this._budget, line, OpexCashReserve(), HARD_ITERATION_CAP);
+  local anchor = AIMap.GetTileIndex(1, 1);
+  OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + upgrade.reason);
+  if (DECISION_LOG) {
+    OpexDecide("FLEET_PROJECT", "action=double_track line=" + line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
+  }
+  if (!upgrade.ok) {
+    if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
+      if (upgrade.reason == "CASH") C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
+      else C50_NON_EXPANSION_LEDGER.rail.upgrade_failed++;
+    }
+    return this._v107FleetDiscard(passDiscards, rank, project, "densify_failed");
+  }
+  line.rawset("doubleTrack", 1);
+  line.rawset("depot2", upgrade.depot2);
+  line.rawset("stationA2", upgrade.stationA2);
+  line.rawset("stationB2", upgrade.stationB2);
+  line.rawset("platformA2", upgrade.platformA2);
+  line.rawset("platformB2", upgrade.platformB2);
+  line.vehicles.append(upgrade.train);
+  line.trains = line.vehicles.len();
+  line.vehCount <- line.vehicles.len();
+  if (C50_CHRONOLOGY_PROBE) {
+    if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.double_built++;
+    OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+  }
+  return { outcome = "built", discards = passDiscards };
+}
+
 function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 {
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
@@ -225,6 +345,9 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
                             reason = "fleet_stale", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
+  }
+  if (V107_DENSIFY_PORTFOLIO && ("v107Densify" in entry) && entry.v107Densify == "rail") {
+    return this._tryBuildRailDensifyProject(year, project, i, passDiscards);
   }
   local need = entry.planePrice + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1900,6 +2023,36 @@ function OpexAI::_tryBuildProjects(year)
         fallthroughAttempted++;
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
+      if (attempt.outcome == "pending") {
+        if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
+          this._c49ScarcityLedger.stop_rail_search++;
+        }
+        if (C78_SLOT_INTERCEPT_PROBE) {
+          OpexC78SlotLog("phase=pass_stop pass=" + C78_SLOT_PASS_COUNTER
+              + " cycle=" + this._taskCycle + " tick=" + AIController.GetTick()
+              + " reason=rail_search blocker_rank=" + i + " blocker_mode=fleet"
+              + " built_before=" + builtCount);
+        }
+        /* Le creneau de recherche est pris. Une passe deja productive regenere
+         * d'abord ; sinon on rend la main tout de suite, comme une ligne neuve. */
+        if (builtCount > 0) {
+          if (C75_TRACK_PASSES) c75StopReason = "rail_search";
+          break;
+        }
+        this._finalizeProjectsPassDiagnostics(builtCount, c49Best, c49BuiltRanks,
+            c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, false,
+            c75StopReason);
+        if (C75_TRACK_PASSES && builtCount > 0) {
+          if (C75_KPASS_BYPASS) OpexC75BypassRecordStop("rail_search");
+          OpexC75RecordPassOutcome(year, builtCount, c75KPassData, "rail_search");
+        }
+        if (spPass != null) {
+          OpexSpanEvent("projects_stop", "reason=rail_search");
+          OpexSpanEnd(spPass);
+        }
+        /* Parentheses : le diagnostic post-build ancre l'unique retour rail. */
+        return (true);
+      }
       if (attempt.outcome == "built") {
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
@@ -2145,6 +2298,7 @@ function OpexAI::_tryBuildProjects(year)
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
+    if (V107_DENSIFY_PORTFOLIO) fleetPlan = this._v107AttachRailDensify(fleetPlan);
     if (pcost != null) {
       pcost.fleetOps = OpexOpsMeasureEnd(pcost.mark);
       pcost.mark = OpexOpsMeasureBegin();

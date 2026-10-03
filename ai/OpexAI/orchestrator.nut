@@ -1073,6 +1073,7 @@ function OpexAI::_c76DoFullRegen(reason, year)
     fleetPlan = [];
     this._resizeAirFleets(AIDate.GetYear(date), fleetPlan);
   }
+  if (V107_DENSIFY_PORTFOLIO) fleetPlan = this._v107AttachRailDensify(fleetPlan);
 
   if (this._recomputeEpochBounds) {
     OpexRefreshEpochBounds(this._catalog);

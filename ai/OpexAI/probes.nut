@@ -2769,3 +2769,55 @@ function OpexSpanYearRoll()
   SPAN_AGG_LINES = 0;
   SPAN_YEAR = year;
 }
+
+/* V101 : rugosite du segment droit entre deux tuiles, au demarrage d'une recherche
+ * rail. Mesure seule, aucun seuil et aucun rejet. Inerte si probe_rail_terrain = 0 :
+ * retour avant tout appel d'API. Les tuiles invalides ne comptent pas ; steps et
+ * rough comparent les points valides consecutifs dans l'ordre du segment. */
+function OpexRailTerrainProbe(src, dst)
+{
+  if (!RAIL_TERRAIN_PROBE) return;
+  local srcX = AIMap.GetTileX(src);
+  local srcY = AIMap.GetTileY(src);
+  local dstX = AIMap.GetTileX(dst);
+  local dstY = AIMap.GetTileY(dst);
+  local n = 0;
+  local flat = 0;
+  local water = 0;
+  local bld = 0;
+  local hmin = 0;
+  local hmax = 0;
+  local steps = 0;
+  local rough = 0;
+  local prevH = null;
+  /* 16 points, i = 0 et i = 15 inclus : les deux extremites du segment. */
+  for (local i = 0; i < 16; i++) {
+    local x = (srcX * (15 - i) + dstX * i) / 15;
+    local y = (srcY * (15 - i) + dstY * i) / 15;
+    local t = AIMap.GetTileIndex(x, y);
+    if (!AIMap.IsValidTile(t)) continue;
+    local h = AITile.GetMinHeight(t);
+    n++;
+    if (AITile.GetSlope(t) == AITile.SLOPE_FLAT) flat++;
+    if (AITile.IsWaterTile(t)) water++;
+    if (AITile.IsBuildable(t)) bld++;
+    if (n == 1) {
+      hmin = h;
+      hmax = h;
+    } else {
+      if (h < hmin) hmin = h;
+      if (h > hmax) hmax = h;
+    }
+    if (prevH != null) {
+      local dh = h - prevH;
+      if (dh != 0) steps++;
+      if (dh < 0) dh = -dh;
+      rough += dh;
+    }
+    prevH = h;
+  }
+  OpexDecide("RAIL_TERRAIN", "src=" + src + " dst=" + dst + " n=" + n
+     + " flat=" + flat + " water=" + water + " bld=" + bld
+     + " hmin=" + hmin + " hmax=" + hmax + " hspread=" + (hmax - hmin)
+     + " steps=" + steps + " rough=" + rough);
+}

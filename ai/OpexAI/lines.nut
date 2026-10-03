@@ -260,6 +260,12 @@ function OpexAbandonedPairKey(candidate)
   }
   return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;
 }
+/* V100 : cle d'echec de doublement de voie d'une ligne dans _abandonedPairs (sauvegardee,
+ * purgee par _pruneAbandonedPairs au meme delai que les paires de lignes neuves). */
+function OpexRailUpgradeRejectKey(lineId)
+{
+  return "rail_upgrade|" + lineId;
+}
 /* C33.3 : Enregistre un échec de construction avec horodatage et compteur d'échecs cumulés. */
 function OpexAI::_markPairAbandoned(key)
 {

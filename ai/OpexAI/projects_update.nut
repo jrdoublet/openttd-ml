@@ -1,8 +1,21 @@
 /* Extrait de projects.nut (R14) : Mise a jour incrementale du cache de candidats et injection flotte. Requis depuis projects.nut. */
 
+function OpexV107RailDensifyEntry(entry)
+{
+  return entry != null && ("v107Densify" in entry) && entry.v107Densify == "rail";
+}
+
+function OpexV107RailDensifyProject(project)
+{
+  return project != null && ("mode" in project) && project.mode == "fleet"
+      && ("payload" in project) && OpexV107RailDensifyEntry(project.payload);
+}
+
 /* C80 fleet inject : injecte les opportunites mures de flotte directement dans
- * candidateGroups, sans recalculer les plans aeriens. */
-function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null, lines = null)
+ * candidateGroups, sans recalculer les plans aeriens.
+ * densifyOnly ne retire et ne repose que les densifications rail : la flotte
+ * aerienne deja classee reste en place. */
+function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null, lines = null, densifyOnly = false)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
@@ -17,14 +30,29 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
     local list = (typeof entry == "array") ? entry : [entry];
     foreach (project in list) {
       if (project == null) continue;
-      if (project.mode == "fleet") continue;
+      if (densifyOnly) {
+        if (OpexV107RailDensifyProject(project)) continue;
+      } else if (project.mode == "fleet") continue;
       if (abandonedPairs != null && OpexCandidateIsAbandoned(project, abandonedPairs)) continue;
       OpexProjectRememberAll(winners, project, scratch);
     }
   }
 
   /* 2. Injecter les opportunites de flotte fraiches */
-  if (FLEET_PORTFOLIO && fleetPlan != null) {
+  if (densifyOnly) {
+    if (fleetPlan != null) {
+      foreach (entry in fleetPlan) {
+        if (!OpexV107RailDensifyEntry(entry)) continue;
+        local p = OpexProjectFromFleet(entry);
+        if (p != null) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
+          OpexProjectRememberAll(winners, p, scratch);
+        } else if (C69_BOTTLENECK_PROBE) {
+          OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
+        }
+      }
+    }
+  } else if (FLEET_PORTFOLIO && fleetPlan != null) {
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry);
       if (p != null) {
@@ -97,6 +125,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         if (p == null) continue;
         /* La flotte est regeneree fraiche ci-dessous. */
         if (p.mode == "fleet" && FLEET_PORTFOLIO && fleetPlan != null) continue;
+        if (p.mode == "fleet" && V107_DENSIFY_PORTFOLIO && !FLEET_PORTFOLIO
+            && fleetPlan != null && OpexV107RailDensifyProject(p)) continue;
         /* Early-slot est une priorite transitoire. Apres chaque chantier, le
          * nombre de villes deja securisees peut changer ; un ancien plan air ne
          * doit donc jamais conserver un bonus devenu perime. Les plans air sont
@@ -128,8 +158,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   }
 
   /* 2. Injection des projets de croissance de flotte (refleet) frais */
-  if (FLEET_PORTFOLIO && fleetPlan != null) {
+  if (fleetPlan != null && (FLEET_PORTFOLIO || V107_DENSIFY_PORTFOLIO)) {
     foreach (entry in fleetPlan) {
+      if (!FLEET_PORTFOLIO && !OpexV107RailDensifyEntry(entry)) continue;
       local p = OpexProjectFromFleet(entry);
       if (p != null) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);

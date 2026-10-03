@@ -90,6 +90,9 @@ function OpexLoadSettings()
 
   LOAN_REPAY_FLOOR = AIController.GetSetting("loan_repay_floor_k") * 1000;
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
+  RAIL_SEARCH_DAY_CAP = AIController.GetSetting("rail_search_day_cap");
+  RAIL_UPGRADE_FAILURE_MEMORY = AIController.GetSetting("rail_upgrade_failure_memory") != 0;
+  RAIL_TERRAIN_PROBE = AIController.GetSetting("probe_rail_terrain") != 0;
 
   local acd = AIController.GetSetting("abandon_cooldown_days");
   if (acd >= 0) ABANDON_COOLDOWN_DAYS = acd;
@@ -579,6 +582,7 @@ function OpexLoadSettings()
   JOIN_MAX_DISTANCE = 0;
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
+  V107_DENSIFY_PORTFOLIO = AIController.GetSetting("v107_densify_portfolio") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
