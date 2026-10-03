@@ -162,6 +162,7 @@ function OpexC121CatalogChoice(catalog, plan, lines)
         plan.c121ChosenMailKnown <- entry.mailKnown;
       }
       if (cacheMark != null) OpexSpanAgg("air.c121.cache", cacheMark);
+      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitHit(plan);
       return entry.choice;
     }
   }

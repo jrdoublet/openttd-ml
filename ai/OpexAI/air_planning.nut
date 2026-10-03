@@ -407,6 +407,7 @@ function OpexAirPlansPrepare(ctx)
       resumeState.c78Gen <- c78Gen;
     }
   }
+  if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabBeginPass(sliced, resumeState, catalog, targetTownId);
   local stationLimitedTowns = sliced ? resumeState.stationLimitedTowns : {};
   local bestPlan = sliced ? resumeState.bestPlan : null;
   /* GetMonthlyMaintenanceCost expose le tarif potentiel, pas une depense toujours active.
@@ -851,6 +852,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
                   + "|" + airport.type + "|" + plane.id) : null,
               C119_AIR_INCOME_MODEL
                   ? AIMap.DistanceManhattan(sites[a].anchor, sites[b].anchor) : 0);
+      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
@@ -1273,6 +1275,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
                   + "|" + airport.type + "|" + plane.id) : null,
               C119_AIR_INCOME_MODEL
                   ? AIMap.DistanceManhattan(hub.anchor, site.anchor) : 0);
+      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
@@ -1548,6 +1551,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
                   + "|" + airport.type + "|" + plane.id) : null,
               C119_AIR_INCOME_MODEL
                   ? AIMap.DistanceManhattan(hub1.anchor, hub2.anchor) : 0);
+      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
@@ -2252,4 +2256,251 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   if (light != null) OpexAirLightEnd(light, true, "done");
   if (spPlans != null) OpexSpanEnd(spPlans);
   return finalPlan;
+}
+
+/* Sonde passive probe_c121_engine_table. Chaque emetteur retourne avant tout
+ * travail quand le reglage est a 0. Aucun appel economique : on journalise
+ * des valeurs deja calculees. Une reprise de tranche relit c121EngTabPass
+ * dans resumeState et n'ouvre pas une nouvelle passe.
+ * PLAN porte ge=0 scan normal, 1 raccourci avion-de-la-partie (aucune ligne
+ * ENG : seul E est retenu, sans decisionOnly), 2 controle, 3 repli, et
+ * ge_est=moteur etabli ou -1. Absents : 0 / -1. */
+function OpexC121EngTabPad2(n)
+{
+  if (n < 10) return "0" + n;
+  return "" + n;
+}
+
+function OpexC121EngTabDate()
+{
+  local date = AIDate.GetCurrentDate();
+  return AIDate.GetYear(date) + "-"
+      + OpexC121EngTabPad2(AIDate.GetMonth(date)) + "-"
+      + OpexC121EngTabPad2(AIDate.GetDayOfMonth(date));
+}
+
+function OpexC121EngTabKey(plan)
+{
+  local townA = -1;
+  local townB = -1;
+  if (plan != null && ("siteA" in plan) && plan.siteA != null
+      && ("town" in plan.siteA) && plan.siteA.town != null) townA = plan.siteA.town.id;
+  if (plan != null && ("siteB" in plan) && plan.siteB != null
+      && ("town" in plan.siteB) && plan.siteB.town != null) townB = plan.siteB.town.id;
+  local ap = -1;
+  if (plan != null && ("airport" in plan) && plan.airport != null
+      && ("type" in plan.airport)) ap = plan.airport.type;
+  local arm = (plan != null && ("arm" in plan) && plan.arm != null) ? plan.arm : "na";
+  return townA + "-" + townB + "-" + ap + "-" + arm;
+}
+
+function OpexC121EngTabEngineSignature(catalog)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return "none";
+  if (catalog == null || !("airPlaneChoicesByAirport" in catalog)
+      || catalog.airPlaneChoicesByAirport == null) return "none";
+  local types = [];
+  local byType = {};
+  foreach (airportType, choices in catalog.airPlaneChoicesByAirport) {
+    local ids = [];
+    if (choices != null) {
+      foreach (plane in choices) {
+        if (plane == null || !("id" in plane)) continue;
+        if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
+        ids.append(plane.id);
+      }
+    }
+    ids.sort();
+    local idText = "";
+    foreach (engineId in ids) {
+      if (idText != "") idText += ",";
+      idText += engineId;
+    }
+    types.append(airportType);
+    byType.rawset(airportType, idText);
+  }
+  if (types.len() == 0) return "none";
+  types.sort();
+  local text = "";
+  foreach (sortedType in types) {
+    if (text != "") text += ";";
+    text += sortedType + ":" + byType[sortedType];
+  }
+  return text;
+}
+
+function OpexC121EngTabBeginPass(sliced, resumeState, catalog, targetTownId)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return;
+  /* Une tranche reprise restaure l'identifiant de SA passe sans toucher au
+   * compteur : un etat reprenable ancien peut etre repris entre deux passes
+   * neuves, et ne doit pas faire reculer la numerotation. */
+  if (sliced && resumeState != null && ("c121EngTabPass" in resumeState)) {
+    C121_ENGTAB_PASS = resumeState.c121EngTabPass;
+    return;
+  }
+  C121_ENGTAB_NEXT = C121_ENGTAB_NEXT + 1;
+  C121_ENGTAB_PASS = C121_ENGTAB_NEXT;
+  if (sliced && resumeState != null) resumeState.c121EngTabPass <- C121_ENGTAB_PASS;
+  OpexC121EngTabEmitPass(catalog, sliced, targetTownId);
+}
+
+function OpexC121EngTabEmitPass(catalog, sliced, targetTownId)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return;
+  AILog.Info("C121_ENGTAB_PASS pass=" + C121_ENGTAB_PASS
+      + " date=" + OpexC121EngTabDate()
+      + " sliced=" + (sliced ? 1 : 0)
+      + " target=" + targetTownId
+      + " engines=" + OpexC121EngTabEngineSignature(catalog));
+}
+
+function OpexC121EngTabEmitEng(plan, engineId, upperScore, evaluated, economics)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return;
+  local score = -1;
+  local profit = -1;
+  local capital = -1;
+  if (evaluated && economics != null) {
+    if ("decisionScore" in economics) score = economics.decisionScore;
+    else if ("score" in economics) score = economics.score;
+    if ("decisionProfitAnnual" in economics) profit = economics.decisionProfitAnnual;
+    else if ("profitAnnual" in economics) profit = economics.profitAnnual;
+    if ("capital" in economics) capital = economics.capital;
+  }
+  AILog.Info("C121_ENGTAB_ENG pass=" + C121_ENGTAB_PASS
+      + " key=" + OpexC121EngTabKey(plan)
+      + " eng=" + engineId
+      + " upper=" + upperScore
+      + " eval=" + evaluated
+      + " score=" + score
+      + " P=" + profit
+      + " C=" + capital);
+}
+
+function OpexC121EngTabEmitPruned(plan, candidates, seen)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return;
+  if (candidates == null) return;
+  for (local i = seen; i < candidates.len(); i = i + 1) {
+    local candidate = candidates[i];
+    OpexC121EngTabEmitEng(plan, candidate.plane.id, candidate.upperScore, 0, null);
+  }
+}
+
+function OpexC121EngTabEmitHit(plan)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return;
+  AILog.Info("C121_ENGTAB_HIT pass=" + C121_ENGTAB_PASS
+      + " key=" + OpexC121EngTabKey(plan));
+}
+
+function OpexC121EngTabNum(obj, name)
+{
+  if (obj == null || !(name in obj) || obj[name] == null) return -1;
+  return obj[name];
+}
+
+function OpexC121EngTabScoreOf(obj, preferDecision)
+{
+  if (obj == null) return -1;
+  if (preferDecision && ("decisionScore" in obj) && obj.decisionScore != null) return obj.decisionScore;
+  if ("score" in obj && obj.score != null) return obj.score;
+  return -1;
+}
+
+function OpexC121EngTabDemand(plan, name)
+{
+  if (plan == null || !("c121Demand" in plan) || plan.c121Demand == null) return -1;
+  if (!(name in plan.c121Demand) || plan.c121Demand[name] == null) return -1;
+  return plan.c121Demand[name];
+}
+
+function OpexC121EngTabEmitPlan(plan, routeChoice)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return;
+  local opening = (routeChoice != null && ("economics" in routeChoice)) ? routeChoice.economics : null;
+  local decision = (routeChoice != null && ("decisionEconomics" in routeChoice)
+      && routeChoice.decisionEconomics != null) ? routeChoice.decisionEconomics : null;
+  local portfolio = (routeChoice != null && ("portfolioEconomics" in routeChoice)
+      && routeChoice.portfolioEconomics != null) ? routeChoice.portfolioEconomics : null;
+  local rankObj = opening;
+  if (!C121_AIR_INITIAL_PROJECT_ECONOMICS) {
+    if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS && portfolio != null) rankObj = portfolio;
+    else if (decision != null) rankObj = decision;
+  }
+  local eng = -1;
+  if (routeChoice != null && ("plane" in routeChoice) && routeChoice.plane != null
+      && ("id" in routeChoice.plane)) eng = routeChoice.plane.id;
+  local planes = -1;
+  if (routeChoice != null && ("targetPlanes" in routeChoice) && routeChoice.targetPlanes != null)
+    planes = routeChoice.targetPlanes;
+  else if (opening != null && ("planes" in opening) && opening.planes != null)
+    planes = opening.planes;
+  local dist = (plan != null && ("distance" in plan) && plan.distance != null) ? plan.distance : -1;
+  local ap = -1;
+  if (plan != null && ("airport" in plan) && plan.airport != null && ("type" in plan.airport))
+    ap = plan.airport.type;
+  local arm = (plan != null && ("arm" in plan) && plan.arm != null) ? plan.arm : "na";
+  local n1P = -1;
+  local n1C = -1;
+  local n2P = -1;
+  local n2C = -1;
+  if (C121_ENGTAB_N1 != null) {
+    n1P = OpexC121EngTabNum(C121_ENGTAB_N1, "profitAnnual");
+    n1C = OpexC121EngTabNum(C121_ENGTAB_N1, "capital");
+  }
+  if (C121_ENGTAB_N2 != null) {
+    n2P = OpexC121EngTabNum(C121_ENGTAB_N2, "profitAnnual");
+    n2C = OpexC121EngTabNum(C121_ENGTAB_N2, "capital");
+  }
+  local initFlag = C121_AIR_INITIAL_PROJECT_ECONOMICS ? 1 : 0;
+  local splitFlag = C121_AIR_PORTFOLIO_SPLIT_ECONOMICS ? 1 : 0;
+  local ge = 0;
+  local geEst = -1;
+  if (plan != null && ("c121GeMode" in plan) && plan.c121GeMode != null) ge = plan.c121GeMode;
+  if (plan != null && ("c121GeEst" in plan) && plan.c121GeEst != null) geEst = plan.c121GeEst;
+  AILog.Info("C121_ENGTAB_PLAN pass=" + C121_ENGTAB_PASS
+      + " date=" + OpexC121EngTabDate()
+      + " key=" + OpexC121EngTabKey(plan)
+      + " arm=" + arm
+      + " ap=" + ap
+      + " dist=" + dist
+      + " paxRawA=" + OpexC121EngTabDemand(plan, "paxRawA")
+      + " paxRawB=" + OpexC121EngTabDemand(plan, "paxRawB")
+      + " paxA=" + OpexC121EngTabDemand(plan, "paxA")
+      + " paxB=" + OpexC121EngTabDemand(plan, "paxB")
+      + " mailRawA=" + OpexC121EngTabDemand(plan, "mailRawA")
+      + " mailRawB=" + OpexC121EngTabDemand(plan, "mailRawB")
+      + " eng=" + eng
+      + " score=" + OpexC121EngTabScoreOf(opening, false)
+      + " P=" + OpexC121EngTabNum(opening, "profitAnnual")
+      + " C=" + OpexC121EngTabNum(opening, "capital")
+      + " dScore=" + OpexC121EngTabScoreOf(decision, true)
+      + " dP=" + OpexC121EngTabNum(decision, "profitAnnual")
+      + " dC=" + OpexC121EngTabNum(decision, "capital")
+      + " pfScore=" + OpexC121EngTabScoreOf(portfolio, true)
+      + " pfP=" + OpexC121EngTabNum(portfolio, "profitAnnual")
+      + " pfC=" + OpexC121EngTabNum(portfolio, "capital")
+      + " n=" + planes
+      + " P_n1=" + n1P
+      + " C_n1=" + n1C
+      + " P_n2=" + n2P
+      + " C_n2=" + n2C
+      + " imm=" + OpexC121EngTabNum(rankObj, "immobilise")
+      + " kdec=" + OpexC121EngTabNum(rankObj, "decisionKDec")
+      + " init=" + initFlag
+      + " split=" + splitFlag
+      + " ge=" + ge
+      + " ge_est=" + geEst);
+}
+
+function OpexC121EngTabAfterChoice(plan, routeChoice)
+{
+  if (!PROBE_C121_ENGINE_TABLE) return;
+  if (plan == null || !("c121EngTabReal" in plan)) return;
+  OpexC121EngTabEmitPlan(plan, routeChoice);
+  if ("c121EngTabReal" in plan) delete plan.c121EngTabReal;
+  C121_ENGTAB_N1 = null;
+  C121_ENGTAB_N2 = null;
 }

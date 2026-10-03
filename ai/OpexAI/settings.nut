@@ -157,6 +157,7 @@ function OpexLoadSettings()
   CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
   PROBE_LOOP_OPS = AIController.GetSetting("probe_loop_ops") != 0;
   PROBE_SPAN_TRACE = AIController.GetSetting("probe_span_trace") != 0;
+  PROBE_C121_ENGINE_TABLE = AIController.GetSetting("probe_c121_engine_table") != 0;
   EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;
   EXP_OPCODE_EXACT_CHECK = AIController.GetSetting("exp_opcode_exact_check") != 0;
   EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;
@@ -304,6 +305,8 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_air_winner_fusion") != 0;
   C121_AIR_ENGINE_CONTEXT = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_engine_context") != 0;
+  C121_AIR_GAME_ENGINE = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_game_engine") != 0;
   C121_AIR_DECISION_DEPTH_ECONOMICS = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_decision_depth_economics") != 0;
   C121_AIR_PORTFOLIO_DEPTH_ECONOMICS = C121_AIR_ECONOMICS

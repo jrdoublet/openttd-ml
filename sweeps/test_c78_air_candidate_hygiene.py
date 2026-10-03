@@ -160,7 +160,8 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
 
     def test_catalog_refresh_reason_survives_c78_resume_scope(self):
         dispatch = body(self.scheduler_tasks, "function OpexAI::_dispatchCatalog(")
-        self.assertIn('local refreshReason = "month";', dispatch)
+        # Raison par defaut renommee "month" -> "event" par f8a96f3 (catalogue evenementiel).
+        self.assertIn('local refreshReason = "event";', dispatch)
         self.assertIn("refreshReason = task.c78AirRebuild.refreshReason;", dispatch)
         self.assertIn("refreshReason = this._portfolioInvalidated ?", dispatch)
         self.assertNotIn("local refreshReason = this._portfolioInvalidated ?", dispatch)

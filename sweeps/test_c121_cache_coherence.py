@@ -38,6 +38,8 @@ class CacheSourceContracts(unittest.TestCase):
         for name in ("c121_air_economics", "c121_catalog_incremental",
                      "c121_fleet_stock_growth", "c121_territory_first", "c121_aaa_line"):
             self.assertEqual(settings[name], 0, name)
+        # Optimisation d'opcodes adoptee le 2026-10-03 (inerte sans C121).
+        self.assertEqual(settings["c121_air_game_engine"], 1)
         # Decision utilisateur du 2026-10-02 : aerien seul la premiere annee a 1
         # (inerte sans c121_catalog_incremental).
         self.assertEqual(settings["c121_catalog_air_first_year"], 1)
