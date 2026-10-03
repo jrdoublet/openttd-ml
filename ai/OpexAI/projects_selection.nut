@@ -1019,6 +1019,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   local kDec = 0;
   local kDecData = null;
   local c69Affordable = null;
+  local airPairBest = {};
   if (C69_TRACK_BUILDS) {
     kDecData = OpexC69ComputeKDec();
     kDec = kDecData.K_dec;
@@ -1088,7 +1089,26 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (amortProbe != null) OpexAmortProbeCandidate(amortProbe, project, financeCapital,
       (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
           ? kDec : scoreDecisionFinanceCapital);
-    OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+    if (AIR_EFFICIENCY_DEDUPE && project.mode == "air") {
+      local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+      if (pairKey in airPairBest) {
+        local prior = airPairBest[pairKey];
+        local pairBest = [prior];
+        OpexProjectInsertDefensive(pairBest, project, scoreKey, 1, AIR_EARLY_SLOT);
+        if (pairBest[0] != prior) {
+          airPairBest[pairKey] = pairBest[0];
+          for (local ai = affordable.len() - 1; ai >= 0; ai--) {
+            if (affordable[ai] == prior) { affordable.remove(ai); break; }
+          }
+          OpexProjectInsertDefensive(affordable, pairBest[0], scoreKey, limit, AIR_EARLY_SLOT);
+        }
+      } else {
+        airPairBest.rawset(pairKey, project);
+        OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+      }
+    } else {
+      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+    }
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
@@ -1097,6 +1117,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   if (affordable.len() == 0 && floorProfit > 0) {
     if (amortProbe != null) amortProbe.rows = [];
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
+    airPairBest = {};
     if (c121KDecColdRows != null) c121KDecColdRows.clear();
     foreach (project in alternatives) {
       local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
@@ -1130,7 +1151,26 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         if (amortProbe != null) OpexAmortProbeCandidate(amortProbe, project, financeCapital,
           (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);
-        OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+        if (AIR_EFFICIENCY_DEDUPE && project.mode == "air") {
+          local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+          if (pairKey in airPairBest) {
+            local prior = airPairBest[pairKey];
+            local pairBest = [prior];
+            OpexProjectInsertDefensive(pairBest, project, scoreKey, 1, AIR_EARLY_SLOT);
+            if (pairBest[0] != prior) {
+              airPairBest[pairKey] = pairBest[0];
+              for (local ai = affordable.len() - 1; ai >= 0; ai--) {
+                if (affordable[ai] == prior) { affordable.remove(ai); break; }
+              }
+              OpexProjectInsertDefensive(affordable, pairBest[0], scoreKey, limit, AIR_EARLY_SLOT);
+            }
+          } else {
+            airPairBest.rawset(pairKey, project);
+            OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+          }
+        } else {
+          OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+        }
     }
   }
   if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
@@ -1487,6 +1527,23 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, extras)
 {
   local minCap = -1;
+  local nextCap = -1;
+  foreach (p in alternatives) {
+    local cap = OpexProjectFinanceCapital(p);
+    if (("mode" in p) && p.mode == "fleet" && ("payload" in p) && p.payload != null
+        && ("planePrice" in p.payload) && p.payload.planePrice > 0) {
+      local planePrice = p.payload.planePrice;
+      local want = ("want" in p.payload) ? p.payload.want : 1;
+      local fitQty = ((capitalBudget - 1000) / planePrice).tointeger();
+      if (fitQty < 0) fitQty = 0;
+      if (fitQty < want) cap = (fitQty + 1) * planePrice + 1000;
+    } else if (C118_AIR_TERRITORIAL_EXPANSION && ("mode" in p) && p.mode == "air"
+        && ("c118MinFinance" in p) && p.c118MinFinance > 0) {
+      cap = p.c118MinFinance;
+    }
+    if (cap > capitalBudget && (nextCap < 0 || cap < nextCap)) nextCap = cap;
+  }
+  stats.nextProjectCapital = nextCap;
   /* minCapital ne sert qu'a expliquer une selection vide. Eviter de
    * rescanner tout le vivier quand un projet financable existe deja. */
   if (funded.len() == 0) {

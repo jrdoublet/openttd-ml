@@ -59,6 +59,7 @@ from bench_v2 import (
     year_profit_metrics,
 )
 from physical_counters import decode_vehicles, decode_stations
+from c83_reaction import parse_c83_reactions, parse_c83_repairs
 from game_health import (
     DEFAULT_ENGINE_TIMEOUT_SEC,
     assess_game,
@@ -134,6 +135,7 @@ LIBRARY_SPECS = (
 
 CAMPAIGN_HARNESS_FILES = (
     "sweeps/bench_1v1_5y_20seeds.py",
+    "sweeps/c83_reaction.py",
     "sweeps/bench_v2.py",
     "sweeps/campaign_freeze.py",
     "sweeps/frozen_harness.py",
@@ -1965,7 +1967,16 @@ def execute_frozen_campaign(campaign):
         part = summarise(recs, expected_last_year=last_year, expected_savegames=args.years * 12)
         part = _stamp_structural_metrics(part, recs)
         part_annotated = annotate_summary(part, recs, assessment)
+        # Parse the final cumulative log once per game, not once per snapshot.
+        # Absence remains unknown; only OpexAI owns this branch's exposure.
+        c83_reaction = parse_c83_reactions(
+            Path(log_path).read_text(encoding="utf-8") if log_path and Path(log_path).is_file() else None
+        )
         for record in part_annotated:
+            if record["arm"] == "OpexAI":
+                record["c83_reaction"] = c83_reaction
+                record["c83_local_repair"] = parse_c83_repairs(
+                    Path(log_path).read_text(encoding="utf-8") if log_path is not None else None)
             if record.get("status") == "bankrupt":
                 for metric in SUCCESS_METRICS:
                     if record.get(metric) is None:

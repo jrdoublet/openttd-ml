@@ -17,6 +17,14 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def docker_workspace(mount_root=None):
+    """Allow an isolated worktree inside an already shared Docker parent."""
+    root = Path(mount_root).resolve() if mount_root is not None else ROOT
+    relative = ROOT.relative_to(root)  # Reject unrelated mounts before Docker.
+    workdir = "/work" if relative == Path(".") else "/work/" + relative.as_posix()
+    return root, workdir
+
+
 def _output(args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
 
@@ -25,6 +33,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", required=True)
     parser.add_argument("--image", default="openttd-lab:latest")
+    parser.add_argument("--mount-root", type=Path, help="Shared ancestor containing this worktree; default is the worktree itself")
     parser.add_argument("--container-name", help="Nom optionnel pour nettoyage borné par l'orchestrateur")
     parser.add_argument("--policy-id", default="reference")
     parser.add_argument("--reference")
@@ -49,6 +58,7 @@ def main():
                              "sur le VPS, 3 workers avec 2 Go suffisent.")
     parser.add_argument("--out")
     args = parser.parse_args()
+    mount_root, container_workdir = docker_workspace(args.mount_root)
 
     git_sha = _output(["git", "rev-parse", "HEAD"])
     git_status = _output(["git", "status", "--porcelain=v1", "--untracked-files=all"])
@@ -105,8 +115,8 @@ def main():
         "-e", f"C66_GIT_DIRTY={git_dirty}",
         "-e", f"C66_GIT_STATUS_B64={git_status_b64}",
         "-v", "openttd-lab-home:/home/lab",
-        "-v", f"{ROOT}:/work",
-        "-w", "/work",
+        "-v", f"{mount_root}:/work",
+        "-w", container_workdir,
         args.image,
         *benchmark,
     ]

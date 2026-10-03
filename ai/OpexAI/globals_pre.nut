@@ -72,6 +72,12 @@ AIR_EARLY_SLOT_BONUS_PCT <- 50;
  * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
  * pas requalifie. */
 AIR_C83_TARGET_TOWNS <- 6;
+/* Ablation C83 : conserver l'observation des slots et les gardes physiques,
+ * mais pouvoir supprimer l'enqueue AIR cible qui interrompt projects. */
+C83_SLOT_REACTION <- true;
+/* C83 : revalider les sites connus ; chercher seulement dans la ville cible.
+ * Intervention comportementale experimentale, ancien parcours conserve a 0. */
+C83_LOCAL_REPAIR <- false;
 /* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
@@ -702,7 +708,13 @@ OPEX_AIR_PLAN_PAD <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
-AIR_FLEET_COOLDOWN_PREFILTER <- false;
+AIR_FLEET_COOLDOWN_PREFILTER <- true;
+/* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
+ * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
+AIR_EFFICIENCY_BATCH <- false;
+AIR_EFFICIENCY_PREFLIGHT <- false;
+AIR_EFFICIENCY_DEDUPE <- false;
+AIR_EFFICIENCY_RESELECT <- false;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;

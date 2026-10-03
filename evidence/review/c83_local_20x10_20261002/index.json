@@ -1,0 +1,41 @@
+{
+  "schema": "opex-review-evidence-v1",
+  "documents": [
+    "docs/c83_local_repair_20261002.md"
+  ],
+  "artifacts": [
+    {
+      "source": "results/c83_local_worktree_20261002/results/c83_local_20x10_20261002_r1.json",
+      "evidence": "evidence/review/c83_local_20x10_20261002/results/c83_local_20x10_20261002_r1.json.gz",
+      "raw_bytes": 1166919,
+      "raw_sha256": "4ea9891d1282f4e9074553dc8a2119b259e8759cd449c9dd89b7f181c5e1c8c5",
+      "gzip_bytes": 61113,
+      "gzip_sha256": "2e28b5399d0359efa0d525302884065b05b3ddf87fd8a4a50087dafd40ce7d1b"
+    },
+    {
+      "source": "results/c83_local_worktree_20261002/results/c83_local_20x10_20261002_r1.manifest.json",
+      "evidence": "evidence/review/c83_local_20x10_20261002/results/c83_local_20x10_20261002_r1.manifest.json.gz",
+      "raw_bytes": 81664,
+      "raw_sha256": "e87fcfc284ad70da65335a9066f2e072dfdf01ea7cbe6e1591d5b77e5e3ea610",
+      "gzip_bytes": 11829,
+      "gzip_sha256": "8d50c4d53d67a6af39a31e06d8d5a3ad2d887094c86c2b4f212c4623ae48b393"
+    },
+    {
+      "source": "results/c83_local_opcode_estimate_20261002.json",
+      "evidence": "evidence/review/c83_local_20x10_20261002/results/c83_local_opcode_estimate_20261002.json.gz",
+      "raw_bytes": 2570,
+      "raw_sha256": "d04733f1388aaeef326303ed441858c0251d6d1351afa69cff4d9d88d248020c",
+      "gzip_bytes": 719,
+      "gzip_sha256": "858c56fd1f2cee30afe7734f0e48166f3df5b730f771344376093f8a7421ad59"
+    },
+    {
+      "source": "results/c83_local_opcode_20x10_estimate_20261002.json",
+      "evidence": "evidence/review/c83_local_20x10_20261002/results/c83_local_opcode_20x10_estimate_20261002.json.gz",
+      "raw_bytes": 10227,
+      "raw_sha256": "c0c9adca46159027e44877da6022f14e72141a98f569419031f78cdabc33b55a",
+      "gzip_bytes": 2838,
+      "gzip_sha256": "e1d835977e0e35cf8a564675984bb5c6f02cd5c0a0b451f4b9f15fa818bfade6"
+    }
+  ],
+  "missing": []
+}

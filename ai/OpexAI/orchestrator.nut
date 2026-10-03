@@ -471,7 +471,8 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
       }
       local airSlice = OpexRegenerateAirProjectsSlice(owner._projects, owner._catalog, owner._budget,
           owner._lines, owner._abandonedPairs, s.airState, opsBudget, deadlineTick,
-          entityKind, entityId);
+          entityKind, entityId,
+          targeted && entityKind == "town" && ("reason" in s) && s.reason == "c83_slot_race");
       if (spRegen != null && !airSlice.done) OpexSpanEnd(spRegen);
       if (!airSlice.done) return "running";
       owner._projects = airSlice.projects;
@@ -1355,4 +1356,3 @@ function OpexAI::_c76LoadRevisions(data)
   // Point 4 : forcer la régénération au chargement
   this._c76ForceReloadRegen = true;
 }
-

@@ -1,0 +1,126 @@
+{
+  "purpose": "technical integration smoke, no economic qualification",
+  "c83_commit": "dfa84ba5b48dc809f5aa755f1c0e95aea5eb9a93",
+  "upstream": "78f642a",
+  "campaign": "c83_publish_smoke_20261002_r2",
+  "bundle": {
+    "file_count": 99,
+    "path": "/work/results/c83_publish_20261002/results/c83_publish_smoke_20261002_r2_bundle",
+    "sha256": "84db5bd9f46f285e504e9b89c20a5b13e13f0db85cbcfb107995432d35733363"
+  },
+  "manifest_sha256": "36a273edf488ebf700cfe13aa2a618ee385964544979a108fe0d6dbce883f80b",
+  "git": {
+    "dirty": true,
+    "sha": "dfa84ba5b48dc809f5aa755f1c0e95aea5eb9a93",
+    "source": "host_environment",
+    "status_porcelain": [
+      "M  ai/OpexAI/air_catalog_c121.nut",
+      "M  ai/OpexAI/air_construction.nut",
+      "M  ai/OpexAI/air_economics_c121.nut",
+      "M  ai/OpexAI/air_planning.nut",
+      "M  ai/OpexAI/catalog.nut",
+      "M  ai/OpexAI/events.nut",
+      "M  ai/OpexAI/globals_pre.nut",
+      "M  ai/OpexAI/info.nut",
+      "M  ai/OpexAI/main.nut",
+      "M  ai/OpexAI/orchestrator.nut",
+      "M  ai/OpexAI/persist.nut",
+      "M  ai/OpexAI/probes.nut",
+      "M  ai/OpexAI/projects.nut",
+      "M  ai/OpexAI/projects_generation.nut",
+      "M  ai/OpexAI/projects_selection.nut",
+      "M  ai/OpexAI/projects_update.nut",
+      "A  ai/OpexAI/rail_prep_c121.nut",
+      "M  ai/OpexAI/scheduler.nut",
+      "M  ai/OpexAI/scheduler_tasks.nut",
+      "M  ai/OpexAI/settings.nut",
+      "M  ai/OpexAI/task_air.nut",
+      "M  ai/OpexAI/task_projects.nut",
+      "M  ai/OpexAI/task_rail.nut",
+      "A  docs/air_engine_choice_aaa_vs_opex_20261002.md",
+      "AM docs/chronologie_1970_c121_20261002.md",
+      "A  docs/chronologie_1970_opexai_20261002.md",
+      "M  docs/journaux/journal_2026-10-02.md",
+      "M  docs/journaux/synthese_decisions_2026-09-30.md",
+      "M  docs/taches.md",
+      "A  sweeps/analyse_air_engine_choice.py",
+      "A  sweeps/analyse_span_trace.py",
+      "A  sweeps/diag_first_year_chrono.py",
+      "A  sweeps/diag_first_year_chrono_c121.py",
+      "A  sweeps/test_analyse_air_engine_choice.py",
+      "A  sweeps/test_analyse_span_trace.py",
+      "A  sweeps/test_c121_air_first_year_rail_prep.py",
+      "M  sweeps/test_c121_cache_coherence.py",
+      "M  sweeps/test_c121_catalog_incremental.py",
+      "M  sweeps/test_v89_rail_throughput.py",
+      "M  sweeps/test_v92_air_service.py"
+    ]
+  },
+  "runtime": {
+    "build_context_files": {
+      "Dockerfile": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+      "requirements-ml.txt": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+      "requirements.txt": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6"
+    },
+    "container_detected": true,
+    "docker_cpus": 3,
+    "docker_image": "openttd-lab:latest",
+    "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+    "docker_image_id_verified": true,
+    "docker_memory": "2g",
+    "docker_memory_swap": "2g",
+    "openttdlab": "0.0.75",
+    "platform": "Linux-7.0.12-linuxkit-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "python_executable": "/usr/local/bin/python3",
+    "runtime_fingerprint_sha256": "5ce39f1c0542cb0391dbd8999636cc4321ae850e82e4f7e95693f5e6a0a99887"
+  },
+  "protected_settings": {
+    "c83_slot_reaction": 1,
+    "c83_local_repair": 0,
+    "c83_fixes": 0,
+    "c83_preempt_open": 0,
+    "exp_c83_watch_daily": 0,
+    "c115_air_c100_capital_replay": 1,
+    "c121_air_economics": 0
+  },
+  "games": [
+    {
+      "campaign_id": "c83_publish_smoke_20261002_r2",
+      "policy_id": "reference",
+      "game_id": "c83_publish_smoke_20261002_r2:policy=reference:s42:r0",
+      "source_bundle_sha256": "84db5bd9f46f285e504e9b89c20a5b13e13f0db85cbcfb107995432d35733363",
+      "seed": 42,
+      "repeat": 0,
+      "game_ok": true,
+      "game_status": "complete",
+      "engine_log_path": "/work/results/c83_publish_20261002/results/c83_publish_smoke_20261002_r2_engine/reference_seed42_r0.log",
+      "expected_last_checkpoint": "1970-12-01",
+      "unattributed_errors": [],
+      "companies": {
+        "OpexAI": {
+          "status": "complete",
+          "run_ok": true,
+          "failure_reason": null,
+          "horizon_complete": true,
+          "activity": "active"
+        },
+        "AAAHogEx": {
+          "status": "complete",
+          "run_ok": true,
+          "failure_reason": null,
+          "horizon_complete": true,
+          "activity": "active"
+        }
+      }
+    }
+  ],
+  "opex": [
+    {
+      "game_ok": true,
+      "run_ok": true,
+      "last_date": "1971-01-01",
+      "profit_year_quarters_valid": 3
+    }
+  ]
+}

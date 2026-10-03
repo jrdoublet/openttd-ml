@@ -41,6 +41,46 @@ function OpexAirSiteRefusal(site, airportType)
   return OpexAirProbeSite(site, airportType);
 }
 
+/* Valide les DEUX extremites avant toute depense reelle. Pour un nouvel aeroport,
+ * on ne peut pas appeler OpexAirProbeSite tant que le terrain n'est pas plat :
+ * BuildAirport retournerait ERR_FLAT_LAND_REQUIRED meme si LevelTiles reussirait.
+ * Cette phase teste donc d'abord la possibilite de nivellement en AITestMode, puis
+ * sonde directement les emprises deja plates. Les refus municipaux restent
+ * rattrapables au moment de la construction reelle. */
+function OpexAirPreflightEndpoint(site, airport, planeChoice, reuse)
+{
+  if (site == null || airport == null || planeChoice == null || !AIMap.IsValidTile(site.anchor)) {
+    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
+             errorText = "invalid airport preflight" };
+  }
+  if (OpexAirRecoveryOwnsAirport(site.anchor)) {
+    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
+             errorText = "airport recovery in progress" };
+  }
+  if (reuse) {
+    local okReuse = AIAirport.IsAirportTile(site.anchor)
+        && OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(site.anchor), planeChoice.planeType);
+    return { ok = okReuse, error = okReuse ? 0 : AIError.ERR_PRECONDITION_FAILED,
+             errorText = okReuse ? "" : "invalid airport hub" };
+  }
+  if (!("town" in site) || site.town == null || !("id" in site.town)
+      || AIAirport.GetNearestTown(site.anchor, airport.type) != site.town.id
+      || (AIR_CHEAP_SITE && !OpexAirFootprintCheapOk(site.anchor, airport))) {
+    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
+             errorText = "airport site preflight failed" };
+  }
+  local err = OpexAirProbeSite(site, airport.type);
+  if (err == 0) return { ok = true, error = 0, errorText = "" };
+  if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+    return { ok = true, error = err, errorText = "airport preflight deferred authority" };
+  }
+  if (err == AIError.ERR_FLAT_LAND_REQUIRED
+      && OpexAirCanLevelFootprint(site.anchor, airport, site.town.id)) {
+    return { ok = true, error = err, errorText = "airport preflight deferred level" };
+  }
+  return { ok = false, error = err, errorText = "airport preflight error " + err };
+}
+
 function OpexAirRollback(airportA, airportB, planes, pairKey = "")
 {
   local airports = [];
@@ -220,6 +260,29 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local planeChoice = ("plane" in plan) ? plan.plane : catalog.plane;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
+
+  /* Tester A et B ensemble avant AIAccounting/LevelTiles/BuildAirport : un site B
+   * devenu impossible ne doit plus laisser les frais de terrassement/aeroport A. */
+  local preA = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteA, airport, planeChoice, reuseA) : null;
+  if (preA != null && !preA.ok) {
+    if (!reuseA) {
+      OpexAirInvalidateCachedSite(plan.siteA, airport);
+      result.error = preA.error;
+      result.errorText = preA.errorText;
+    }
+    result.reason = reuseA ? "HUB" : "PREA";
+    return result;
+  }
+  local preB = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, reuseB) : null;
+  if (preB != null && !preB.ok) {
+    if (!reuseB) {
+      OpexAirInvalidateCachedSite(plan.siteB, airport);
+      result.error = preB.error;
+      result.errorText = preB.errorText;
+    }
+    result.reason = reuseB ? "HUBB" : "PREB";
+    return result;
+  }
 
   /* air_cost_probe : le cout REEL de la ligne aerienne, nivellement, aeroports, avions et
    * demolitions de repli compris. Symetrique du `costs` de builder_rail.nut. Le seul

@@ -240,6 +240,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c83_slot_reaction",
+      description = "C83: regenerate AIR candidates when a watched town has one airport slot left; 1 = current behavior (default), 0 = continue the projects pass without this reactive regeneration",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c83_local_repair",
+      description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c83_fixes",
       description = "C83 review fixes (contestable watch towns, slot-town identity, rearmable race, skip dead air pairs, targeted site scan): 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -1225,10 +1241,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "air_fleet_cooldown_prefilter",
-      description = "Experimental: filter AIR lines still under fleet-growth cooldown before ROI sorting",
+      description = "Filter AIR lines still under fleet-growth cooldown before ROI sorting",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
 
@@ -1505,6 +1521,16 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "air_efficiency_batch",
+      description = "AIR 2026-10-02 A/B: preflight both sites, one top64 plan per OD pair, event/cash portfolio reselection; 1 = candidate, 0 = previous behavior (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({ name = "air_efficiency_preflight", description = "AIR efficiency A/B: preflight both airport endpoints before spending", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "air_efficiency_dedupe", description = "AIR efficiency A/B: keep one ranked AIR plan per OD pair in top K", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "air_efficiency_reselect", description = "AIR efficiency A/B: event-driven catalog plus cash-threshold local reselection", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
   }
 }
 
