@@ -50,6 +50,7 @@ def main():
     parser.add_argument("--max-workers", type=int)
     parser.add_argument("--engine-timeout", type=int)
     parser.add_argument("--line-telemetry", action="store_true")
+    parser.add_argument("--line-telemetry-monthly", action="store_true")
     parser.add_argument("--script-debug", action="store_true")
     parser.add_argument("--cpus", type=int, default=3)
     parser.add_argument("--memory", default="2g",
@@ -83,6 +84,8 @@ def main():
         benchmark += ["--engine-timeout", str(args.engine_timeout)]
     if args.line_telemetry:
         benchmark += ["--line-telemetry"]
+    if args.line_telemetry_monthly:
+        benchmark += ["--line-telemetry-monthly"]
     if args.script_debug:
         benchmark += ["--script-debug"]
     if args.variant is not None:

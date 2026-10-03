@@ -87,6 +87,7 @@ AAAHOGEX_DIR = "AAAHogEx-115"
 CHECKPOINT_PATH = None
 ENGINE_LOG_DIR = None
 LINE_TELEMETRY = False
+LINE_TELEMETRY_MONTHLY = False
 PROFIT_RAW_UNITS_PER_GBP = 256.0
 VEHICLE_VARIANT_BY_MODE = {
     "rail": "train",
@@ -869,7 +870,7 @@ def _annual_line_checkpoint(date):
 
 
 def build_line_telemetry_report(rows):
-    """Rassemble les snapshots annuels de lignes sans modifier le jeu."""
+    """Rassemble les snapshots de lignes sans modifier le jeu."""
     snapshots = []
     for row in rows:
         telemetry = row.get("line_telemetry")
@@ -891,7 +892,11 @@ def build_line_telemetry_report(rows):
         })
     return {
         "schema_version": 1,
-        "scope": "annual December savegame post-processing; no NoAI behavior change",
+        "scope": (
+            "monthly savegame post-processing; no NoAI behavior change"
+            if LINE_TELEMETRY_MONTHLY else
+            "annual December savegame post-processing; no NoAI behavior change"
+        ),
         "observed_fields": [
             "mode", "station_ids", "town_ids", "vehicles", "capacity_by_cargo",
             "profit_this_year_gbp", "profit_last_year_gbp", "vehicle_value",
@@ -1012,7 +1017,7 @@ def keep(row):
 
     rec0 = extract_company_record(chunks, 0, ["OpexAI", seed, repeat], date)
     rec1 = extract_company_record(chunks, 1, ["AAAHogEx", seed, repeat], date)
-    if LINE_TELEMETRY and _annual_line_checkpoint(date):
+    if LINE_TELEMETRY and (LINE_TELEMETRY_MONTHLY or _annual_line_checkpoint(date)):
         rec0["line_telemetry"] = extract_line_telemetry(chunks, 0)
         rec1["line_telemetry"] = extract_line_telemetry(chunks, 1)
     structural = {}
@@ -1707,6 +1712,10 @@ def main():
         help="Diagnostic passif annuel: reconstruit les lignes depuis VEHS + ORDL/ORDR + STNN",
     )
     parser.add_argument(
+        "--line-telemetry-monthly", action="store_true",
+        help="Avec --line-telemetry, reconstruit les lignes a chaque checkpoint mensuel (post-traitement savegame uniquement)",
+    )
+    parser.add_argument(
         "--script-debug", action="store_true",
         help="Diagnostic uniquement: force OpenTTD -d script=4 pour conserver la stack NoAI complete",
     )
@@ -1861,8 +1870,9 @@ def execute_frozen_campaign(campaign):
 
         openttdlab.subprocess.check_output = check_output_with_script_debug
 
-    global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY
+    global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY, LINE_TELEMETRY_MONTHLY
     LINE_TELEMETRY = bool(args.line_telemetry)
+    LINE_TELEMETRY_MONTHLY = bool(getattr(args, "line_telemetry_monthly", False))
     out = campaign.out_path
     CHECKPOINT_PATH = campaign.checkpoint_path
     ENGINE_LOG_DIR = campaign.engine_log_dir

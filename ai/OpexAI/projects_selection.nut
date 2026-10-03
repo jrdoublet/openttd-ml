@@ -7,6 +7,13 @@ const R1_R3_TEST_ONLY = 0;
 R1_R3_TEST_SEQ <- 0;
 R1_R3_TEST_PASS <- 0;
 
+/* C121 autopsie causale : sonde compile-time uniquement, jamais un reglage de
+ * politique. Elle serialise exclusivement l'etat deja calcule par le selecteur ;
+ * pas de second tri, pas de nouveau modele economique, pas de scan de carte. */
+const C121_AUTOPSY_TEST_ONLY = 0;
+C121_AUTOPSY_SELECTION_SEQ <- 0;
+C121_AUTOPSY_DONE <- false;
+
 require("selection_diagnostics.nut");
 
 function OpexR1R3Log(fields)
@@ -14,6 +21,114 @@ function OpexR1R3Log(fields)
   if (!R1_R3_TEST_ONLY) return;
   AILog.Info("R1R3 test_only=1 date=" + AIDate.GetCurrentDate()
       + " tick=" + AIController.GetTick() + " " + fields);
+}
+
+function OpexC121AutopsyLog(kind, fields)
+{
+  if (!C121_AUTOPSY_TEST_ONLY) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("C121_AUTOPSY kind=" + kind + " date=" + date
+      + " y=" + AIDate.GetYear(date) + " m=" + AIDate.GetMonth(date)
+      + " d=" + AIDate.GetDayOfMonth(date) + " tick=" + AIController.GetTick()
+      + " " + fields);
+}
+
+function OpexC121AutopsyIsAirRelated(project)
+{
+  if (project == null || !("mode" in project)) return false;
+  if (project.mode == "air") return true;
+  if (project.mode != "fleet" || !("payload" in project) || project.payload == null
+      || !("line" in project.payload) || project.payload.line == null) return false;
+  local line = project.payload.line;
+  return ("mode" in line) && line.mode == "air";
+}
+
+function OpexC121AutopsyProjectFields(project, rank, seq)
+{
+  if (project == null || !("mode" in project)) return "seq=" + seq + " rank=" + rank + " mode=unknown";
+  local mode = project.mode;
+  local fields = "seq=" + seq + " rank=" + rank + " mode=" + mode
+      + " key=" + OpexProjectAttemptKey(project)
+      + " profit=" + (("profitAnnual" in project) ? project.profitAnnual : 0)
+      + " revenue=" + (("revenueAnnual" in project) ? project.revenueAnnual : 0)
+      + " finance=" + OpexProjectFinanceCapital(project)
+      + " decision_finance=" + (("decisionFinanceCapital" in project) ? project.decisionFinanceCapital : -1)
+      + " portfolio_finance=" + (("portfolioDecisionFinanceCapital" in project) ? project.portfolioDecisionFinanceCapital : -1)
+      + " portfolio_profit=" + (("portfolioProfitAnnual" in project) ? project.portfolioProfitAnnual : -1)
+      + " fund_score=" + (("fundScore" in project) ? project.fundScore : 0)
+      + " early_bonus=" + (("earlySlotBonusPct" in project) ? project.earlySlotBonusPct : 0)
+      + " defensive_comp=" + (("defensiveCompetitorClaims" in project) ? project.defensiveCompetitorClaims : 0)
+      + " defensive_own=" + (("defensiveOwnClaims" in project) ? project.defensiveOwnClaims : 0)
+      + " defensive_new=" + (("defensiveNewTownClaims" in project) ? project.defensiveNewTownClaims : 0);
+
+  if (mode == "air" && ("payload" in project) && project.payload != null) {
+    local plan = project.payload;
+    local econ = ("economics" in plan) ? plan.economics : null;
+    local dec = ("decisionEconomics" in plan) ? plan.decisionEconomics : null;
+    local port = ("portfolioEconomics" in plan) ? plan.portfolioEconomics : null;
+    local demand = ("c121Demand" in plan) ? plan.c121Demand : null;
+    local townA = ("siteA" in plan && plan.siteA != null && "town" in plan.siteA
+        && plan.siteA.town != null && "id" in plan.siteA.town) ? plan.siteA.town.id : -1;
+    local townB = ("siteB" in plan && plan.siteB != null && "town" in plan.siteB
+        && plan.siteB.town != null && "id" in plan.siteB.town) ? plan.siteB.town.id : -1;
+    fields += " arm=" + (("arm" in plan) ? plan.arm : "unknown")
+        + " town_a=" + townA + " town_b=" + townB
+        + " distance=" + (("distance" in plan) ? plan.distance : (("distance" in project) ? project.distance : -1))
+        + " monthly_pax=" + (("monthlyPax" in plan) ? plan.monthlyPax : -1)
+        + " demand_pax_a=" + (demand != null && ("paxA" in demand) ? demand.paxA : -1)
+        + " demand_pax_b=" + (demand != null && ("paxB" in demand) ? demand.paxB : -1)
+        + " demand_mail_a=" + (demand != null && ("mailA" in demand) ? demand.mailA : -1)
+        + " demand_mail_b=" + (demand != null && ("mailB" in demand) ? demand.mailB : -1)
+        + " econ_profit=" + (econ != null && ("profitAnnual" in econ) ? econ.profitAnnual : -1)
+        + " econ_capital=" + (econ != null && ("capital" in econ) ? econ.capital : -1)
+        + " econ_planes=" + (econ != null && ("planes" in econ) ? econ.planes : -1)
+        + " decision_profit=" + (dec != null && ("profitAnnual" in dec) ? dec.profitAnnual : -1)
+        + " decision_capital=" + (dec != null && ("capital" in dec) ? dec.capital : -1)
+        + " decision_planes=" + (dec != null && ("planes" in dec) ? dec.planes : -1)
+        + " portfolio_econ_profit=" + (port != null && ("profitAnnual" in port) ? port.profitAnnual : -1)
+        + " portfolio_econ_capital=" + (port != null && ("capital" in port) ? port.capital : -1)
+        + " target_planes=" + (("targetPlanes" in plan) ? plan.targetPlanes : -1)
+        + " plane_price=" + (("plane" in plan) && plan.plane != null && ("price" in plan.plane) ? plan.plane.price : -1)
+        + " airport_price=" + (("airport" in plan) && plan.airport != null && ("price" in plan.airport) ? plan.airport.price : -1)
+        + " reuse_a=" + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0)
+        + " reuse_b=" + ((("reuseB" in plan) && plan.reuseB) ? 1 : 0)
+        + " defensive_town_a=" + (("defensiveSlotTownA" in project) ? project.defensiveSlotTownA : -1)
+        + " defensive_town_b=" + (("defensiveSlotTownB" in project) ? project.defensiveSlotTownB : -1);
+  } else if (mode == "fleet" && OpexC121AutopsyIsAirRelated(project)) {
+    local entry = project.payload;
+    local line = entry.line;
+    fields += " line=" + (("lineId" in line) ? line.lineId : -1)
+        + " want=" + (("want" in entry) ? entry.want : -1)
+        + " have=" + (("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : -1))
+        + " target_planes=" + (("targetAirPlanes" in line) ? line.targetAirPlanes : -1)
+        + " marginal_samples=" + (("c121MarginalSamples" in line) ? line.c121MarginalSamples : -1)
+        + " marginal_profit=" + (("c121MarginalProfit" in line) ? line.c121MarginalProfit : -1)
+        + " marginal_revenue=" + (("c121MarginalRevenue" in line) ? line.c121MarginalRevenue : -1)
+        + " plane_price=" + (("planePrice" in entry) ? entry.planePrice : -1);
+  }
+  return fields;
+}
+
+function OpexC121AutopsySelection(affordable, capitalBudget, kDec, kDecData, floorProfit)
+{
+  if (!C121_AUTOPSY_TEST_ONLY || affordable == null || affordable.len() == 0) return;
+  local n = affordable.len() < 8 ? affordable.len() : 8;
+  local interesting = false;
+  for (local i = 0; i < n; i++) {
+    if (OpexC121AutopsyIsAirRelated(affordable[i])) { interesting = true; break; }
+  }
+  if (!interesting) return;
+
+  C121_AUTOPSY_SELECTION_SEQ++;
+  local seq = C121_AUTOPSY_SELECTION_SEQ;
+  OpexC121AutopsyLog("SEL", "seq=" + seq + " budget=" + capitalBudget
+      + " k_dec=" + kDec + " floor=" + floorProfit + " affordable=" + affordable.len()
+      + " F=" + (kDecData != null && ("F" in kDecData) ? kDecData.F : -1)
+      + " tau=" + (kDecData != null && ("tau" in kDecData) ? kDecData.tau : -1)
+      + " N=" + (kDecData != null && ("N" in kDecData) ? kDecData.N : -1));
+  for (local i = 0; i < n; i++) {
+    OpexC121AutopsyLog("CAND", OpexC121AutopsyProjectFields(affordable[i], i, seq));
+  }
 }
 
 /* Observation du retour EXISTANT du fit, pas de seconde evaluation. Ne touche

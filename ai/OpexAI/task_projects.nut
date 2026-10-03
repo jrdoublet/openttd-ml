@@ -1278,6 +1278,28 @@ function OpexAI::_c39LogProjectBuilt(key, mode, rank, railSearchFlag)
  * boucle appelante (break/continue non deplaces). Appele une fois par construction. */
 function OpexAI::_recordPortfolioProjectBuilt(project, rank, c75BuiltKeys, c69BuiltProjects)
 {
+  /* Autopsie C115/C121 : tracer UNE premiere construction de nouvelle ligne AIR,
+   * uniquement APRES son succes physique. Ainsi aucune allocation, boucle ou chaine de
+   * diagnostic ne peut modifier la decision que ce snapshot cherche a expliquer. Les
+   * consequences futures sont mesurees dans le jumeau non instrumente. */
+  if (C121_AUTOPSY_TEST_ONLY && !C121_AUTOPSY_DONE && project != null && project.mode == "air") {
+    C121_AUTOPSY_DONE = true;
+    C121_AUTOPSY_SELECTION_SEQ++;
+    local autopsySeq = C121_AUTOPSY_SELECTION_SEQ;
+    OpexC121AutopsyLog("BUILD_SNAPSHOT", "seq=" + autopsySeq + " rank=" + rank
+        + " key=" + OpexProjectAttemptKey(project) + " line=" + (this._nextLineId - 1)
+        + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+        + " available_after=" + OpexAvailableCapital()
+        + " portfolio_len=" + ((this._projects != null && "best" in this._projects)
+            ? this._projects.best.len() : -1));
+    if (this._projects != null && "best" in this._projects && this._projects.best != null) {
+      local autopsyN = this._projects.best.len() < 8 ? this._projects.best.len() : 8;
+      for (local autopsyI = 0; autopsyI < autopsyN; autopsyI++) {
+        OpexC121AutopsyLog("POST_CAND",
+            OpexC121AutopsyProjectFields(this._projects.best[autopsyI], autopsyI, autopsySeq));
+      }
+    }
+  }
   if (C39_PROJECTS_CADENCE_PROBE) {
     this._c39LogProjectBuilt(OpexProjectAttemptKey(project), project.mode, rank,
                              this._railSearch != null ? 1 : 0);
@@ -1803,9 +1825,9 @@ function OpexAI::_tryBuildProjects(year)
             }
           }
         }
-        if (!c75BypassThisProject) {
-          c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";
-          if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
+          if (!c75BypassThisProject) {
+            c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";
+            if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
               "stop", c75StopReason, c75BypassConsumed, c75BypassConsumed,
               builtCount, c75KPass, projCap, availCap >= 0 ? availCap : null);
           if (C78_SLOT_INTERCEPT_PROBE) {
