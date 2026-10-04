@@ -126,6 +126,8 @@ function OpexAI::_tryBuildAir(year)
     local requiredMargin = OpexAirRequiredMargin(newAirports);
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
+    if (PROBE_AIR0310_N1_FALLBACK && money < need)
+      OpexAir0310N1FallbackProbe(plan, money, "finance", "deferred");
     if (money < need) {
       if (money < need) {
         if (DECISION_LOG) {
@@ -444,6 +446,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (spCash != null) OpexSpanEnd(spCash);
+      if (PROBE_AIR0310_N1_FALLBACK && money < need)
+        OpexAir0310N1FallbackProbe(plan, money, "finance", "deferred");
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });

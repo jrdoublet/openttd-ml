@@ -274,3 +274,244 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   if (spIncr != null) OpexSpanEnd(spIncr);
   return projects;
 }
+
+/* Eau et flotte sont memorises apres l'air. Une subvention a souvent le mode
+ * route, mais sa cle n'est creee qu'apres l'air : la traiter comme la route
+ * la ferait passer devant les plans neufs au departage. */
+function OpexAir0310KeyIsLate(key)
+{
+  if (typeof key != "string") return false;
+  return (key.len() >= 8 && key.slice(0, 8) == "subsidy|")
+      || (key.len() >= 6 && key.slice(0, 6) == "fleet|");
+}
+
+function OpexAir0310ModeIsLate(project)
+{
+  if (project == null || !("mode" in project)) return false;
+  return project.mode == "water" || project.mode == "fleet";
+}
+
+/* OpexProjectInsertDefensive garde le projet deja present quand le score est
+ * egal et que son revenu est >= (`prior.revenueAnnual >= project.revenueAnnual`).
+ * L'ordre d'emission doit donc suivre OpexBuildProjects : rail, route, air deja
+ * publie, air neuf, puis eau et flotte. */
+function OpexAir0310InsertAirBlock(others, airBlock)
+{
+  local out = [];
+  local inserted = false;
+  foreach (project in others) {
+    if (!inserted && OpexAir0310ModeIsLate(project)) {
+      foreach (airProject in airBlock) out.append(airProject);
+      inserted = true;
+    }
+    out.append(project);
+  }
+  if (!inserted) {
+    foreach (airProject in airBlock) out.append(airProject);
+  }
+  return out;
+}
+
+function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
+{
+  if (payload == null || priorRaw == null || priorRaw.len() == 0) return false;
+  local found = false;
+  foreach (plan in priorRaw) {
+    if (plan == payload) { found = true; break; }
+  }
+  if (!found) return false;
+  foreach (plan in priorKept) {
+    if (plan == payload) return false;
+  }
+  return true;
+}
+
+/* Publication partielle AIR 03/10 1. Ne reconvertit que les plans neufs et
+ * reecrit les projets air deja materialises la ou OpexProjectFromAir depend
+ * de l'etat courant :
+ * - planningOpcodes = airOps / nombre TOTAL de plans (change a chaque lot ;
+ *   ce n'est pas opcodeScore) ;
+ * - economicsDate = date courante ;
+ * - cargo = catalog.paxCargo, et c118TownIds si C118 est actif ;
+ * - budgetScore et opcodeScore sont recalcules par le meme appel. Ils ne
+ *   dependent pas de airOpsPerPlan : expectedOpcodes vaut
+ *   PROJECT_AIR_TRANSACTION_OPS et le score budget vient de l'economie du
+ *   plan. La caisse n'est pas lue ici.
+ * La selection (filtre de validite, plancher, K_dec, slots defensifs, top-K)
+ * est rejouee par OpexReselectProjects. Rail, route, eau, flotte et
+ * subventions ne sont pas regeneres ici : ils restent ceux du dernier
+ * rebuild complet, jusqu'a la phase apply. Retourne null si le portefeuille
+ * ne peut pas etre complete : l'appelant reconstruit alors tout. */
+function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps, bestPlan)
+{
+  if (owner == null || scanPlans == null || publishedCount <= 0) return null;
+  if (owner._projects == null || owner._catalog == null) return null;
+  local projects = owner._projects;
+  if (!("candidateGroups" in projects) || projects.candidateGroups == null) return null;
+  if (!("stats" in projects) || projects.stats == null) return null;
+
+  local catalog = owner._catalog;
+  local stage = OPEX_STAGE_COMPLETE;
+  if (STAGED_BOOTSTRAP && owner._generationStage < OPEX_STAGE_COMPLETE) {
+    stage = owner._generationStage;
+  }
+  local hadAirPlans = ("airPlans" in projects) && projects.airPlans != null;
+
+  /* Queue heritee du bootstrap AIR_RAIL seulement. Le prefixe deja publie
+   * de ce scan est dans scanPlans : le rebuild complet, lui, re-ajoute aussi
+   * ce prefixe s'il est encore dans airPlans, et le compte deux fois. Ecart
+   * assume, limite a cette etape. */
+  local priorRaw = [];
+  local priorKept = [];
+  if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans
+      && projects.airPlans.len() > publishedCount) {
+    for (local i = publishedCount; i < projects.airPlans.len(); i++) {
+      local priorPlan = projects.airPlans[i];
+      priorRaw.append(priorPlan);
+      if (OpexStagedAirPlanStillValid(catalog, priorPlan, owner._lines, owner._abandonedPairs)) {
+        priorKept.append(priorPlan);
+      }
+    }
+  }
+
+  /* Meme denominateur que OpexBuildProjects : tous les plans du lot, y compris
+   * ceux que OpexProjectFromAir refusera, plus les plans herites encore valides. */
+  local planCount = scanPlans.len() + priorKept.len();
+  local airOpsPerPlan = (planCount > 0) ? airOps / planCount : airOps;
+  local added = 0;
+  local reconverted = 0;
+  local invalidated = 0;
+  local pendingNew = {};
+  local newKeyOrder = [];
+  local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount) : [];
+  foreach (plan in newPlans) {
+    local created = OpexProjectFromAir(catalog, plan, airOpsPerPlan);
+    if (created == null) {
+      invalidated++;
+      continue;
+    }
+    local createdKey = OpexProjectKeyFor(created);
+    if (!(createdKey in pendingNew)) {
+      pendingNew.rawset(createdKey, []);
+      newKeyOrder.append(createdKey);
+    }
+    pendingNew[createdKey].append(created);
+    added++;
+  }
+
+  local keptAir = {};
+  local movedAir = {};
+  local othersByKey = {};
+  foreach (slotKey, entry in projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    local others = [];
+    local kept = [];
+    foreach (project in list) {
+      if (project == null) continue;
+      if (!(("mode" in project) && project.mode == "air")) {
+        others.append(project);
+        continue;
+      }
+      local payload = ("payload" in project) ? project.payload : null;
+      if (OpexAir0310PriorDropped(payload, priorRaw, priorKept)) {
+        invalidated++;
+        continue;
+      }
+      /* Pas un plan aerien : le laisser en place plutot que d'appeler
+       * OpexProjectFromAir sur un payload sans sites. */
+      if (payload == null || !("economics" in payload) || !("siteA" in payload)
+          || !("siteB" in payload) || payload.siteA == null || payload.siteB == null) {
+        kept.append(project);
+        continue;
+      }
+      local refreshed = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
+      if (refreshed == null) {
+        invalidated++;
+        continue;
+      }
+      reconverted++;
+      local freshKey = OpexProjectKeyFor(refreshed);
+      if (freshKey == slotKey) {
+        kept.append(refreshed);
+      } else {
+        if (!(freshKey in movedAir)) movedAir.rawset(freshKey, []);
+        movedAir[freshKey].append(refreshed);
+      }
+    }
+    othersByKey.rawset(slotKey, others);
+    if (kept.len() > 0) keptAir.rawset(slotKey, kept);
+  }
+
+  local preKeys = [];
+  local postKeys = [];
+  local preMark = {};
+  foreach (slotKey, entry in projects.candidateGroups) {
+    local hasRailRoad = false;
+    local lane = othersByKey[slotKey];
+    foreach (project in lane) {
+      if (("mode" in project) && (project.mode == "rail" || project.mode == "road")) {
+        hasRailRoad = true;
+        break;
+      }
+    }
+    local hasKept = (slotKey in keptAir);
+    local hasIncoming = (slotKey in pendingNew) || (slotKey in movedAir);
+    if (!OpexAir0310KeyIsLate(slotKey) && (hasRailRoad || hasKept)) {
+      preKeys.append(slotKey);
+      preMark.rawset(slotKey, true);
+    } else if (!hasIncoming && (lane.len() > 0 || hasKept)) {
+      postKeys.append(slotKey);
+    }
+  }
+
+  local deferred = [];
+  foreach (addedKey in newKeyOrder) {
+    if (addedKey in preMark) continue;
+    deferred.append(addedKey);
+  }
+  foreach (movedKey, movedList in movedAir) {
+    if (movedKey in preMark) continue;
+    if (movedKey in pendingNew) continue;
+    if (movedList == null) continue;
+    deferred.append(movedKey);
+  }
+
+  local rebuilt = {};
+  local emitOrder = [];
+  foreach (slotKey in preKeys) emitOrder.append(slotKey);
+  foreach (slotKey in deferred) emitOrder.append(slotKey);
+  foreach (slotKey in postKeys) emitOrder.append(slotKey);
+  foreach (slotKey in emitOrder) {
+    local row = (slotKey in othersByKey) ? othersByKey[slotKey] : [];
+    local airBlock = [];
+    if (slotKey in keptAir) {
+      foreach (project in keptAir[slotKey]) airBlock.append(project);
+    }
+    if (slotKey in movedAir) {
+      foreach (project in movedAir[slotKey]) airBlock.append(project);
+    }
+    if (slotKey in pendingNew) {
+      foreach (project in pendingNew[slotKey]) airBlock.append(project);
+    }
+    local spliced = OpexAir0310InsertAirBlock(row, airBlock);
+    if (spliced.len() > 0) rebuilt.rawset(slotKey, spliced);
+  }
+
+  local storedPlans = [];
+  foreach (plan in scanPlans) storedPlans.append(plan);
+  foreach (plan in priorKept) storedPlans.append(plan);
+  projects.candidateGroups = rebuilt;
+  projects.airPlans = storedPlans;
+  projects.airPlanningOpcodes = airOps;
+  if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans && storedPlans.len() > 0) {
+    projects.airPlan = storedPlans[0];
+  } else if ("airPlan" in projects) {
+    projects.airPlan = bestPlan;
+  } else {
+    projects.airPlan <- bestPlan;
+  }
+  OpexProjectsRecountGroups(projects);
+  OpexReselectProjects(projects, OpexAvailableCapital(), owner._abandonedPairs, owner._lines,
+      owner._railReadyStock);
+  return { added = added, reconverted = reconverted, invalidated = invalidated };
+}

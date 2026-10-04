@@ -2821,3 +2821,91 @@ function OpexRailTerrainProbe(src, dst)
      + " hmin=" + hmin + " hmax=" + hmax + " hspread=" + (hmax - hmin)
      + " steps=" + steps + " rough=" + rough);
 }
+
+/* AIR 03/10 4 : conserver les deux economies N=1/N=2 deja calculees, sans
+ * recalcul. Inerte si probe_air0310_n1_fallback = 0 : retour avant toute
+ * ecriture. La date de premiere publication n'est pas ecrasee. */
+function OpexAir0310KeepN1N2(plan, econ1, econ2, chosen)
+{
+  if (!PROBE_AIR0310_N1_FALLBACK || plan == null) return;
+  plan.c121N1C <- (econ1 != null && ("capital" in econ1) && econ1.capital != null) ? econ1.capital : -1;
+  plan.c121N1P <- (econ1 != null && ("profitAnnual" in econ1) && econ1.profitAnnual != null) ? econ1.profitAnnual : -1;
+  plan.c121N2C <- (econ2 != null && ("capital" in econ2) && econ2.capital != null) ? econ2.capital : -1;
+  plan.c121N2P <- (econ2 != null && ("profitAnnual" in econ2) && econ2.profitAnnual != null) ? econ2.profitAnnual : -1;
+  plan.c121NChosen <- (chosen != null && ("planes" in chosen) && chosen.planes == 2) ? 2 : 1;
+  if (!("c121N1Date" in plan)) plan.c121N1Date <- AIDate.GetCurrentDate();
+}
+
+/* Copie les scalaires N=1/N=2 du plan vers le choix (cache catalogue) ou
+ * l'inverse. Aucun recalcul. */
+function OpexAir0310CopyN1N2(from, to)
+{
+  if (!PROBE_AIR0310_N1_FALLBACK || from == null || to == null) return;
+  if (!("c121N1C" in from)) return;
+  to.c121N1C <- from.c121N1C;
+  to.c121N1P <- from.c121N1P;
+  to.c121N2C <- from.c121N2C;
+  to.c121N2P <- from.c121N2P;
+  to.c121NChosen <- from.c121NChosen;
+  if ("c121N1Date" in from) to.c121N1Date <- from.c121N1Date;
+}
+
+/* AIR 03/10 4 : garder les tables N=1 et N=2 deja calculees. Inerte si
+ * air0310_n1_fallback = 0, meme quand la sonde est allumee : la sonde
+ * continue d'ecrire ses scalaires de son cote. Aucun recalcul. */
+function OpexAir0310RetainN1N2(plan, econ1, econ2)
+{
+  if (!AIR0310_N1_FALLBACK || plan == null) return;
+  plan.rawset("c121EconN1", econ1);
+  plan.rawset("c121EconN2", econ2);
+}
+
+/* Copie les references, pas un clone. Le cache catalogue ne transporte
+ * que le routeChoice : sans cette copie un hit perdrait les deux tables. */
+function OpexAir0310CopyRetained(from, to)
+{
+  if (!AIR0310_N1_FALLBACK || from == null || to == null) return;
+  if (!("c121EconN1" in from) && !("c121EconN2" in from)) return;
+  if ("c121EconN1" in from) to.rawset("c121EconN1", from.c121EconN1);
+  if ("c121EconN2" in from) to.rawset("c121EconN2", from.c121EconN2);
+}
+
+/* Une ligne parsable seulement si C1 <= budget < C2. source = projet air
+ * (payload = plan) ou plan. stage = select|finance|build. */
+function OpexAir0310N1FallbackProbe(source, budget, stage, outcome)
+{
+  if (!PROBE_AIR0310_N1_FALLBACK) return;
+  local plan = source;
+  if (source != null && ("mode" in source) && source.mode == "air"
+      && ("payload" in source) && source.payload != null) plan = source.payload;
+  if (plan == null || !("c121N1C" in plan) || !("c121N2C" in plan)) return;
+  local c1 = plan.c121N1C;
+  local c2 = plan.c121N2C;
+  if (c1 < 0 || c2 < 0 || budget == null) return;
+  if (!(c1 <= budget && budget < c2)) return;
+  local p1 = ("c121N1P" in plan) ? plan.c121N1P : -1;
+  local p2 = ("c121N2P" in plan) ? plan.c121N2P : -1;
+  local n = ("c121NChosen" in plan) ? plan.c121NChosen : 1;
+  if (n != 2) n = 1;
+  local planId = "na";
+  if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)
+      && plan.siteA.town != null && ("id" in plan.siteA.town)
+      && ("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)
+      && plan.siteB.town != null && ("id" in plan.siteB.town)) {
+    planId = plan.siteA.town.id + "-" + plan.siteB.town.id;
+  }
+  local date = AIDate.GetCurrentDate();
+  local wait = -1;
+  if ("c121N1Date" in plan && plan.c121N1Date != null) wait = date - plan.c121N1Date;
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " AIR_N1_FALLBACK plan=" + planId
+      + " n_chosen=" + n
+      + " c1=" + c1
+      + " c2=" + c2
+      + " budget=" + budget
+      + " p1=" + p1
+      + " p2=" + p2
+      + " stage=" + stage
+      + " outcome=" + outcome
+      + " wait=" + wait);
+}

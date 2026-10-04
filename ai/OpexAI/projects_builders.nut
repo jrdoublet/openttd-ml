@@ -314,8 +314,140 @@ function OpexAirRequiredMargin(newAirports)
   return (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
 }
 
+/* Capital de financement d'une economie AIR deja calculee : capital + marge
+ * d'aeroports neufs + immobilise. C'est budgetCapital, la grandeur que
+ * OpexProjectFinanceCapital compare au budget. Pas un recalcul de trajet. */
+function OpexAir0310EconomyFinance(plan, economics)
+{
+  if (plan == null || economics == null) return -1;
+  if (!("capital" in economics) || economics.capital <= 0) return -1;
+  if (!("profitAnnual" in economics) || economics.profitAnnual <= 0) return -1;
+  if (!("revenueAnnual" in economics) || economics.revenueAnnual <= 0) return -1;
+  local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
+      + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+  local finance = economics.capital + OpexAirRequiredMargin(newAirports);
+  if (("immobilise" in economics) && economics.immobilise > 0) finance += economics.immobilise;
+  return finance;
+}
+
+/* Pose l'economie complete (la table deja calculee, pas un melange de
+ * champs) sur le plan, comme le ferait le vainqueur N=1 ou N=2. */
+function OpexAir0310WritePlan(plan, economics, asN1)
+{
+  if (plan == null || economics == null) return false;
+  if (!("planes" in economics) || economics.planes <= 0) return false;
+  if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 || economics.capital <= 0) return false;
+  local decisionEconomics = economics;
+  if ((C121_AIR_DECISION_DEPTH_ECONOMICS || C121_AIR_PORTFOLIO_DEPTH_ECONOMICS)
+      && ("decisionEconomics" in economics) && economics.decisionEconomics != null) {
+    decisionEconomics = economics.decisionEconomics;
+  }
+  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0
+      || decisionEconomics.capital <= 0) return false;
+  plan.planes = economics.planes;
+  plan.capital = economics.capital;
+  plan.economics = economics;
+  if ("decisionEconomics" in plan) plan.decisionEconomics = decisionEconomics;
+  else plan.decisionEconomics <- decisionEconomics;
+  local portfolioEconomics = null;
+  if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS
+      && ("decisionEconomics" in economics) && economics.decisionEconomics != null
+      && economics.decisionEconomics.profitAnnual > 0
+      && economics.decisionEconomics.revenueAnnual > 0
+      && economics.decisionEconomics.capital > 0) {
+    portfolioEconomics = economics.decisionEconomics;
+  }
+  if (portfolioEconomics != null) {
+    if ("portfolioEconomics" in plan) plan.portfolioEconomics = portfolioEconomics;
+    else plan.portfolioEconomics <- portfolioEconomics;
+  } else if ("portfolioEconomics" in plan) {
+    delete plan.portfolioEconomics;
+  }
+  if (C121_AIR_ECONOMICS) {
+    if ("targetPlanes" in plan) plan.targetPlanes = economics.planes;
+    else plan.targetPlanes <- economics.planes;
+  }
+  if ("c121Air0310N1" in plan) plan.c121Air0310N1 = asN1;
+  else plan.c121Air0310N1 <- asN1;
+  return true;
+}
+
+/* Reecrit le projet deja publie a partir du plan. Meme formules que
+ * OpexProjectFromAir : profit, capital et marge viennent d'une seule
+ * economie. L'objet projet reste le meme, donc une seule place au top-K. */
+function OpexAir0310WriteProject(project)
+{
+  if (project == null || !("payload" in project) || project.payload == null) return false;
+  local plan = project.payload;
+  if (!("economics" in plan) || plan.economics == null) return false;
+  local economics = plan.economics;
+  local decisionEconomics = (("decisionEconomics" in plan) && plan.decisionEconomics != null)
+      ? plan.decisionEconomics : economics;
+  if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 || economics.capital <= 0) return false;
+  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0
+      || decisionEconomics.capital <= 0) return false;
+  local portfolioEconomics = (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS
+      && ("portfolioEconomics" in plan) && plan.portfolioEconomics != null)
+      ? plan.portfolioEconomics : null;
+  local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
+      + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+  local margin = OpexAirRequiredMargin(newAirports);
+  local budgetCapital = economics.capital + margin;
+  if (("immobilise" in economics) && economics.immobilise > 0) budgetCapital += economics.immobilise;
+  local decisionBudgetCapital = decisionEconomics.capital + margin;
+  if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
+    decisionBudgetCapital += decisionEconomics.immobilise;
+  }
+  local portfolioDecisionBudgetCapital = 0;
+  if (portfolioEconomics != null && portfolioEconomics.profitAnnual > 0
+      && portfolioEconomics.revenueAnnual > 0 && portfolioEconomics.capital > 0) {
+    portfolioDecisionBudgetCapital = portfolioEconomics.capital + margin;
+    if (("immobilise" in portfolioEconomics) && portfolioEconomics.immobilise > 0) {
+      portfolioDecisionBudgetCapital += portfolioEconomics.immobilise;
+    }
+  } else {
+    portfolioEconomics = null;
+  }
+  local useInitialProjectEconomics = C121_AIR_ECONOMICS && C121_AIR_INITIAL_PROJECT_ECONOMICS;
+  local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;
+  local projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital;
+  project.capital = economics.capital;
+  project.budgetCapital = budgetCapital;
+  project.decisionFinanceCapital = projectDecisionBudgetCapital;
+  project.profitAnnual = projectEconomics.profitAnnual;
+  project.revenueAnnual = projectEconomics.revenueAnnual;
+  project.roi = projectEconomics.roi;
+  local expectedOps = ("expectedOpcodes" in project) ? project.expectedOpcodes : PROJECT_AIR_TRANSACTION_OPS;
+  project.budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital);
+  project.opcodeScore = OpexProjectScore(projectEconomics.revenueAnnual, expectedOps);
+  if (portfolioEconomics != null) {
+    if ("portfolioProfitAnnual" in project) project.portfolioProfitAnnual = portfolioEconomics.profitAnnual;
+    else project.portfolioProfitAnnual <- portfolioEconomics.profitAnnual;
+    if ("portfolioRevenueAnnual" in project) project.portfolioRevenueAnnual = portfolioEconomics.revenueAnnual;
+    else project.portfolioRevenueAnnual <- portfolioEconomics.revenueAnnual;
+    if ("portfolioDecisionFinanceCapital" in project) project.portfolioDecisionFinanceCapital = portfolioDecisionBudgetCapital;
+    else project.portfolioDecisionFinanceCapital <- portfolioDecisionBudgetCapital;
+  } else {
+    if ("portfolioProfitAnnual" in project) delete project.portfolioProfitAnnual;
+    if ("portfolioRevenueAnnual" in project) delete project.portfolioRevenueAnnual;
+    if ("portfolioDecisionFinanceCapital" in project) delete project.portfolioDecisionFinanceCapital;
+  }
+  return true;
+}
+
+/* Une reconversion (publication partielle) doit revoir le vainqueur N=2.
+ * La selection redecide ensuite avec le budget du moment. */
+function OpexAir0310RestoreWinner(plan)
+{
+  if (!AIR0310_N1_FALLBACK || plan == null) return;
+  if (!("c121Air0310N1" in plan) || !plan.c121Air0310N1) return;
+  if (!("c121EconN2" in plan) || plan.c121EconN2 == null) return;
+  OpexAir0310WritePlan(plan, plan.c121EconN2, false);
+}
+
 function OpexProjectFromAir(catalog, plan, planningOps)
 {
+  if (AIR0310_N1_FALLBACK) OpexAir0310RestoreWinner(plan);
   if (C111_AIR_C100_DECISION_SHADOW && plan != null
       && ("decisionEconomics" in plan) && plan.decisionEconomics != null) {
     return OpexC111ProjectFromAir(catalog, plan, planningOps);
