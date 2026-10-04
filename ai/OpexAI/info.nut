@@ -740,17 +740,17 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_air_first_live_growth",
-      description = "C121 cadence experiment: advance only AIR 1->2 when balanced 90-day live evidence is positive; target, portfolio arbitration and later reinforcements stay unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
+      description = "C121 cadence: advance only AIR 1->2 when balanced 90-day live evidence is positive; target, portfolio arbitration and later reinforcements stay unchanged; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
       name = "c121_air_first_live_growth_phase_years",
-      description = "With first-live growth, use the live 1->2 early override only during this many opening game years; 0 = all years",
+      description = "With first-live growth, use the live 1->2 early override only during this many opening game years; 4 = default, 0 = all years",
       min_value = 0, max_value = 20,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, step_size = 1, flags = 0
+      easy_value = 4, medium_value = 4, hard_value = 4,
+      custom_value = 4, step_size = 1, flags = 0
     });
 
     AddSetting({
@@ -806,9 +806,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_air_project_realization_adaptive",
-      description = "C121 experimental adaptive AIR strategy: use reused-hub realization correction only when last year's C83 pressure stayed mostly contestable; otherwise keep raw C121 race economics; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C121 adaptive AIR strategy: use reused-hub realization correction only when the locked pressure regime is efficiency; otherwise keep raw C121 race economics; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1468,9 +1468,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "air_hubhub_marginal",
-      description = "V86: Deduct cannibalised revenue from existing hub lines when evaluating hub-to-hub air routes: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "V86: Deduct cannibalised revenue from existing hub lines for legacy hub-to-hub economics; deduction bypassed under C121: 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

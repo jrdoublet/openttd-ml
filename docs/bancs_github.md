@@ -17,6 +17,26 @@ Il faut les droits permettant de déclencher Actions, et Actions doit être acti
 dans le dépôt. Aucun secret spécifique, OpenTTDLab, Python ou Docker n'est requis
 sur le PC. **Les changements locaux non publiés ne sont pas testés.**
 
+## Protocole courant et limite des workflows (03/10/2026)
+
+La validation comportementale courante suit **V102**, définie dans
+[AGENTS.md §4/§4.1](../AGENTS.md#4-validation-proportionnée-puis-adoption) : contrats,
+smoke 1×1, porte A `gain_short` **40×3** (Wilcoxon exact p<0,05, borne basse
+IC95 bootstrap >0, gain moyen ≥4 % du profit de référence terminal), puis porte B
+`non_erosion` **20×10** (borne haute IC95 bootstrap ≥0). Garde de valeur −5 %
+aux deux portes ; le 5×6 n'est plus obligatoire. La règle opcodes reste distincte.
+
+**`bench.yml` et `qualify.yml` ne sont pas encore compatibles avec V102.**
+`github_bench.py` impose `signs20` et au plus 20 graines ; `qualification.py`
+vérifie l'ancienne règle +50 k£/15 victoires après un diagnostic 5×6. Ni un profil
+`custom` trois ans, ni `paired/adoption`, ni un plan JSON de schéma 1 ne suffisent.
+Utiliser `sweeps/run_c66_reference.py` avec les options explicites du §4.1 ; si
+ce runtime manque, signaler l'absence de chemin V102 disponible. La migration est
+suivie dans `taches.md`, sans substitution silencieuse de l'ancien protocole.
+
+Les modes, champs et commandes GitHub ci-dessous décrivent leurs capacités
+actuelles pour les smokes, diagnostics et protocoles historiques.
+
 ## Modes et profils
 
 | Mode | Parties exécutées |
@@ -35,7 +55,7 @@ sur le PC. **Les changements locaux non publiés ne sont pas testés.**
 Les champs `years` et `seeds` restent **vides** hors profil `custom` ; ils ne sont
 pas ignorés silencieusement. `seeds` accepte espaces ou virgules. Les graines
 doivent être des entiers non signés sur 32 bits. La règle statistique reste
-`signs20` ; ce workflow ne propose pas implicitement la règle expérimentale 40×10.
+`signs20` ; ce workflow ne propose ni `mean40`, ni `gain_short`, ni `non_erosion`.
 
 Le solo utilise toujours le harnais de smoke : même en 5×6, il ne constitue
 ni un duel, ni une preuve causale comparative, ni un bundle C66 gelé.
@@ -66,7 +86,8 @@ une santé invalide ou une couverture annuelle incomplète donne `n/d`, pas zér
 Un profit AAA nul/négatif ne reçoit pas de pourcentage ; une perte Opex reste
 visible. Le ratio global n'est publié que si toutes les graines sont exploitables
 et sans échec de campagne, jamais sur le seul sous-ensemble favorable.
-En A/B, chaque politique reçoit son tableau séparé. Un duel 3 ans reste diagnostique.
+En A/B, chaque politique reçoit son tableau séparé. Ce duel 3 ans via le workflow
+reste diagnostique ; il ne constitue pas la porte A V102 du lanceur hôte.
 
 ## Paramètres A/B
 
@@ -131,7 +152,7 @@ la couverture, la santé, les deltas et garde-fous dans `bench.json`.
 
 Simulation limitée à **300 minutes**, job à **360 minutes**, pour laisser du
 temps aux artefacts. Aucun engagement de durée pour un 20×10 : commencer par
-un smoke puis un diagnostic. Timeout moteur duel : 1 800 secondes par partie.
+un smoke avant les campagnes autorisées. Timeout moteur duel : 1 800 secondes par partie.
 Coûts et quotas dépendent du dépôt et du runner. Aucune reprise automatique.
 
 Un lancement sur la même branche attend le banc en cours au lieu de l'annuler.
@@ -147,7 +168,8 @@ publie désormais JSON, JSONL et log console pendant 14 jours.
 La consigne commune est **AGENTS.md §4.1**, relayée dans `CLAUDE.md`,
 `ai/OpexAI/CLAUDE.md` et `.github/copilot-instructions.md`. Pour une demande de
 changement de défaut, l'agent enchaîne les étapes autorisées sans nouvelle demande
-de lancement, mais seulement sur le candidat publié et avec accès/quota disponibles.
+de lancement. Sur GitHub, cela exige candidat publié, accès/quota disponibles et
+workflow compatible avec le protocole demandé ; V102 reste à migrer.
 Il ne publie pas le code implicitement et ne déclenche rien pour une édition documentaire.
 
 Avec GitHub CLI authentifié, les opérations à utiliser sont `gh auth status`,
@@ -165,7 +187,7 @@ selon le §4.1. Conserver SHA, ID, URL, tentative et inputs de chaque étape dan
 journal. Aucune boucle de relances sur résultat économique négatif. Les arrêts ou
 quotas dépassés donnent « non validé », pas un défaut promu sans preuve.
 
-### Enchaînement autonome après déclenchement
+### Enchaînement autonome historique après déclenchement (hors V102)
 
 Le workflow distinct **Qualification de défaut OpenTTD** (`qualify.yml`) prend
 un seul input `plan=qualifications/<chantier>.json`, publié sur la branche testée.

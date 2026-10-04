@@ -1,4 +1,15 @@
-# Plans de qualification pré-enregistrés
+# Plans GitHub de schéma 1 — protocole historique
+
+**Mise à jour du 03/10/2026 : ce workflow n'implémente pas V102.** La consigne
+courante est [AGENTS.md §4/§4.1](../AGENTS.md#4-validation-proportionnée-puis-adoption) :
+smoke, porte A `gain_short` 40×3, puis porte B `non_erosion` 20×10 ; le filtre
+5×6 n'est plus obligatoire. Utiliser le lanceur hôte et les options de ce guide
+commun tant que les workflows ne sont pas migrés. La règle opcodes reste distincte.
+
+Ce document décrit les capacités **actuelles de `qualify.yml`**, conservées pour
+les protocoles historiques : `signs20`, seuil absolu 50 k£ et séquence 1×1→5×6→20×10.
+Ajouter des champs V102 à un plan de schéma 1 ne rend pas le workflow compatible.
+Un statut `ACCEPTÉ` de ce workflow n'atteste pas le passage des deux portes V102.
 
 Le workflow **Qualification de défaut OpenTTD** (`.github/workflows/qualify.yml`)
 reçoit un seul input : `plan`, chemin d'un JSON **publié sur la branche testée**,
@@ -6,7 +17,7 @@ dans ce dossier. Il exécute les contrats choisis, puis automatiquement le smoke
 apparié 1×1, le diagnostic 5×6 et, uniquement après passage des portes, le 20×10.
 Maximum : **52 parties** ; aucune relance automatique, modification de défaut ou fusion.
 
-## Préparer un plan
+## Préparer un plan historique de schéma 1
 
 Créer un fichier `<chantier>.json` avec les champs suivants. Les noms de réglage,
 compteur et contrat ci-dessous sont **des placeholders, pas un essai autorisé**.
@@ -58,7 +69,7 @@ Ne pas publier ce modèle tel quel comme plan exploitable.
   Un 20×10 peut dépasser le budget : arrêt `NON_VALIDÉ`, jamais réduction des graines.
   Ce plafond n'est ni une estimation de coût ni une garantie de finir sur runner partagé.
 
-## Portes déterministes
+## Portes déterministes historiques (hors V102)
 
 | Étape | Passage |
 |---|---|

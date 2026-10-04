@@ -1,12 +1,85 @@
 # Tâches — travail restant
 
-**Mise à jour : 3 octobre 2026. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 4 octobre 2026. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
 
 ## État courant
 
+- **Adoption explicite des trois réglages (04/10)** : `air_hubhub_marginal=1`,
+  `c121_air_project_realization_adaptive=1`, live growth=1 avec fenêtre globale
+  `c121_air_first_live_growth_phase_years=4`, aux quatre difficultés. Décision
+  utilisateur malgré les A échouées, **pas qualification V102 complète**.
+  C115 reste à 1 ; C121 economics et catalogue incrémental restent à 0.
+  Les B concernent le profil C121 ; le cumul et l'effet legacy du hub-hub ne
+  sont pas qualifiés économiquement. [Analyse des pertes et pistes](analyse_perdantes_c121_B_20261004.md).
+  102 contrats réussis ; smoke combiné puis smoke des défauts chargés sains
+  (deux duels chacun), Save/Load technique OK, profil C121 uniquement.
+
+- **Pistes issues des graines perdantes**, ordre proposé, sans correction ni
+  nouveau banc économique déclenché :
+  1. Attribution/cadence : adaptatif 1024/8191 et live 42 ; témoin de collecte à
+     facteur 1, fixture opcodes et première décision/date divergente ; contrôle
+     de perturbation avant instrumentation large. Adaptatif : 20/20 régimes race,
+     aucune correction de revenu exposée. Hub-hub : déduction neutralisée sous C121.
+  2. Productivité/allocation : hub 65537 et live 999, puis 73/1 ; profits réalisés
+     par ligne, trafic par sens, capital et géographie. Distinguer expansion
+     insuffisante et capacité supplémentaire peu productive ; congestion non prouvée.
+  3. Intervention isolée après exposition : scan hub inutilisé (fixture puis
+     neutralité opcodes), admission 1→2 étayée ou classifieur shadow mieux exposé
+     (contrats/smoke puis A/B V102). Pré-enregistrer séparément, conserver les rejets.
+
+- **Trois B demandées explicitement le 04/10 après échec de A** :
+  hub-hub marginal 0→1, fenêtre live 0→4 sous live=1 commun, réalisation
+  adaptative 0→1. Plans prêts à 20 graines ×10 ans, `non_erosion`,
+  garde valeur 5 %, mêmes sources/bras que les essais nocturnes.
+  **Terminées le 04/10 à 11:08 Paris, trois `pass non_erosion`**, 20/20
+  paires saines chacune : hub-hub +116,94 k£/an, fenêtre live +46,70 k£/an,
+  réalisation adaptative +41,23 k£/an ; gardes valeur tenues. Les A échouées
+  restent inchangées ; adoption utilisateur ultérieure ci-dessus, non qualifiée V102.
+  File `c121_B3_20261004_075644`, 10 CPU / 8 Go / 10 workers.
+  [Résultats et limites](journaux/journal_2026-10-04.md#résultats-des-trois-b).
+
+- **File de nuit C121 autorisée et pré-enregistrée (03/10)** : 27 comparaisons
+  indépendantes, budget mural maximal 8 heures, copie isolée figée à `a848df8`.
+  Première file 3 CPU / 2 Go annulée sur demande utilisateur. **Reprise depuis
+  le début autorisée à 10 CPU / 8 Go / 10 workers sur Docker local**, nouveau
+  budget maximal huit heures. La porte A K_pass initiale `fail_primary` reste
+  conservée ; K_dec A interrompue est non validée.
+  **Reprise terminée le 04/10 à 02:37 Paris, en 3 h 30 min** : 27/27
+  comparaisons saines, 40/40 paires chacune ; 22 `fail_primary`, 5
+  `fail_primary_and_value_guard`, aucun passage ni B. Aucun défaut modifié.
+  [Bilan des 27 essais](resultats_retests_c121_nuit_20261004.md).
+  K_pass puis K_dec : contrats, smoke, exposition, porte A ; B uniquement pour
+  K_dec si A sain/pass. Les 25 autres essais sont des comparaisons exploratoires
+  40 graines appariées, pas des qualifications automatiques. Un rejet économique
+  passe au candidat suivant ; une erreur technique arrête la file. Aucun défaut
+  changé, aucun essai C83 local répété, aucun banc hors profil C121.
+  Nouvel identifiant `c121_nuit10_20261003_210612` ; suivi local
+  `results/c121_nuit10_20261003_210612/status.json`. L'ancien suivi reste conservé.
+  [Pré-enregistrement et limites](journaux/journal_2026-10-03.md#file-c121-pour-la-nuit).
+
+- **Validation V102 adoptée (03/10)** : contrats → smoke 1×1 → porte A
+  `gain_short` 40×3 (Wilcoxon p<0,05, borne basse IC95 bootstrap >0, gain ≥4 %)
+  → porte B `non_erosion` 20×10 (borne haute IC95 bootstrap ≥0), garde de valeur
+  −5 % aux deux portes. Le 5×6 n'est plus obligatoire ; règle opcodes distincte.
+  [Consignes courantes](../AGENTS.md#4-validation-proportionnée-puis-adoption).
+  Les propositions anciennes de V102 ci-dessous sont remplacées par cette décision
+  et l'application V110 ; conserver leurs constats et les verdicts historiques.
+- **Migration GitHub V102 à faire** : les CLI livrées exposent les deux règles,
+  mais `bench.yml`/`qualify.yml` imposent encore l'ancien protocole. Utiliser le
+  lanceur hôte explicite ; un job vert de ces workflows ne qualifie pas V102.
+- **Retests V102 — C121 uniquement, premier banc autorisé** :
+  [plan proposé et inventaire des 190 réglages](plan_retests_v102_20261003.md).
+  Décision utilisateur suivante : ignorer les profils non-C121 et commencer
+  `c83_local_repair=0→1`, C121 et catalogue incrémental communs. Les autres
+  candidats restent en attente ; aucun défaut modifié avant qualification.
+  **Smoke sain et exposé ; porte A 40×3 terminée, `fail_primary`** :
+  40/40 paires saines, delta moyen −8 493,5 £/an, IC95 bootstrap traversant
+  zéro ; garde de valeur tenue. Pas de porte B, `c83_local_repair=0` conservé.
+  Campagne
+  `retest_c83_local_c121_porteA_20261003_201134`. [Suivi exact](journaux/journal_2026-10-03.md#retests-v102--premier-banc-c121--réparation-locale-c83).
 - Runtime cible : OpenTTD 15.3 / NoAI 15 / OpenGFX 7.1 / OpenTTDLab 0.0.75.
 - Socle adopté : C68, C69 bis/C70/C75, C77 permanent, C76 ciblé, mémo urbain,
   régénération par mode, index hub, C75 bis, C83.1 (six villes), C87, V89/V90,
@@ -16,8 +89,9 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   décision utilisateur après les A/B ON/OFF ; futur ciblage aux monopoles à
   comparer à OFF. Verdicts bruts `fail_primary`, aucun gain d'opcodes ON/OFF
   remesuré. [Bilan et décision](town_growth_off_20261002.md).
-- **C115=1 temporaire et protégé : ne pas le modifier.** C116/C118/C119/C120/C121/C122
-  ne sont pas adoptés. Workers rail/ville, stock A* et `homogeneous_preselect` : défaut 0.
+- **C115=1 temporaire et protégé : ne pas le modifier.** Les modèles
+  C116/C118/C119/C120/C121/C122 ne sont pas adoptés ; les trois options ci-dessus
+  ne changent pas cette décision. Workers rail/ville, stock A* et `homogeneous_preselect` : défaut 0.
 - C67.3–.6 livrés, sans consommateur métier exposé ; Lakes et feeders retirés.
 - **Quatorze findings implémentés localement, sans qualification individuelle** :
    R1/R2/R3/R4/R5/R18/R19/R20/R21/R22/R23/R24/R25/R26. Aucun run GitHub attesté dans ce suivi.
@@ -127,7 +201,7 @@ Ordre de dépendance, pas autorisation de publier ni de modifier un défaut.
 | R4/R5/R20 : continuation, autotests au chargement, régime persistant | **R5/R20 observés au reload (30/09) ; R4 clos sans effet** | R4 : 167 tranches, `chained_slices=0` ; le budget n'est testé qu'entre paires et une paire (~40 k opcodes médian) dépasse un tick, donc enchaînement intra-tick inatteignable. Décision : garde-fou conservé tel quel, aucun gain attribuable ; points d'arrêt intra-paire = chantier distinct. R5 : `selftest skipped` ×2 ; R20 : `C121_STRATEGY_RELOAD` restauré. Restent : verrou race/efficiency, ancien format, file/worker en cours, options séparées. |
 | R1/R19 : renfort partiel AIR et récupération de chantier | **Cinq fixtures R1 validées ; récupération R19 partielle** | Besoin réel4/budget1, seuil prix +1 000 £ après réserve et contre-test +999, achat réel+1, mutation API, non-duplication et deux frontières Save/Load validés. Pas de gain marginal attribué. Refus R3 à A : pas d'orphelin, mais pas toute la récupération partielle R19. **R19 observé moteur local** (`r19_fault_inject`, défaut0) : PENDING→DONE ; ticket pendant rechargé puis terminé (`results/save_load_r19_inject_mid_20260930.json`). Restent vente refusée, aéroport occupé et hubs réutilisés. [Compléments](performance_completion_20261001.md), [historique R19](journaux/journal_2026-09-30.md#clôture-du-groupe-r1r19). |
 | Bancs manuels GitHub | **Préparés, intégration non validée** | Après publication autorisée : solo/smoke et duel/smoke pour l'intégration ; paired/smoke pour une intervention causale. Contrôler santé, horizon, artefacts et bras réellement différents. |
-| Qualification GitHub enchaînée | **Implémentée, à valider** | `qualify.yml` : contrats puis smoke→diagnostic→adoption, décisions déterministes et preuves d'exposition. [Plan pré-enregistré](../qualifications/README.md). Publication/accès supposés satisfaits pour ce développement selon demande utilisateur ; aucune campagne ni modification de défaut effectuée. Fixtures et intégration réelle restent à exécuter. |
+| Qualification GitHub enchaînée | **Ancien protocole implémenté ; migration V102 à faire** | Migrer les entrées, plans, lanceurs et validateurs `bench.yml`/`qualify.yml` vers smoke→`gain_short` 40×3→`non_erosion` 20×10, seuil relatif et critères du §4. Tester contrats/fixtures et intégration réelle avant de recommander le parcours. Le [schéma 1](../qualifications/README.md) reste historique ; aucun code de workflow modifié lors de la synchronisation documentaire du 03/10. |
 | Image Docker et audit de preuves | **Fait localement (30/09)** | Image `/opt/venv` construite et exercée (smoke, Save/Load, 5×6) ; proxy TLS via `SSL_CERT_FILE`. `test_review_evidence.py` : 13/13 OK. Limite maintenue : L'intégrité des 57 archives ne prouve pas la couverture de toutes les citations. [Bilan documentaire](revue_documentation_2026-09-30.md). |
 | Récupération des preuves | **Sources absentes (reconfirmé 30/09)** | Recherche locale dans tout `PRV/` : seuls scripts, tests, fiches et archives non autoritaires C116/C117/C122 ; aucun JSON de résultat ni manifeste. Récupération seulement depuis une autre copie/le dépôt distant. Réconcilier capacités C116.4 et identifiant du bundle C122. Auditer les autres citations manquantes sans relancer les campagnes ni inventer de chiffres. |
 
@@ -207,7 +281,7 @@ année à 0 : ses deltas ne qualifient pas le profil courant.
 | Estimateurs low-opcode | **Après stabilisation C121** | Revue cold start physique + moyenne glissante : observations, fenêtre, invalidation, coût mesuré ; pas de constantes ajoutées sans modèle. |
 | C121 calcul du gagnant AIR — opcodes | **Adopté : fusion=1 quand C121 est utilisé** | 20×10 complet et sain, 40/40 duels, neutralité selon règle pré-enregistrée : moyenne −68,5 k£/an, IC95 Student [−243,6 ; +106,6] k£/an, 7/20, p=0,263176, valeur −3,52 % (garde −5 % tenue). Verdict brut `fail_primary` conservé, pas de gain économique démontré. Pilote AIR −5,93 %/−6,61 %. Quatre difficultés à1, 109 tests et smoke du défaut livré sain. Économie C121=0 et C115 inchangés ; aucune adoption des autres changements. [Bilan et preuves](c121_air_winner_economic_validation_20261002.md). |
 | C121 contexte commun paire/avion — opcodes (item 1) | **Non retenu ; défaut OFF** | Fixture saine, 72 cas/399 choix égaux, mais scan+gagnant +9,88 % à entrées identiques. Évaluation économique 5×6 complète et saine, 5/5 paires : profit moyen −49,34 k£/an, IC95 Student [−151,29 ; +52,62] k£/an, 2/5 victoires, p=1. Garde de valeur échouée : −5,7733 % (limite −5 %). Neutralité non validée, verdict brut `diagnostic_only`. Arrêt sans 20×10, aucune adoption ni relance. [Bilan et preuves](c121_air_engine_context_20261002.md). |
-| Protocole `mean40` | **Choix avant campagne** | Déjà implémenté et utilisé : décider sa généralisation, règle et graines avant mesure. `signs20` reste le défaut, aucun changement après résultats. |
+| Protocoles de validation | **V102 courant ; `signs20`/`mean40` conservés pour reproduction historique** | Pré-enregistrer les portes `gain_short` puis `non_erosion` selon AGENTS §4/§4.1 ; règle opcodes distincte. `signs20` reste uniquement le défaut CLI de compatibilité : passer la règle explicitement, aucun changement après résultats. Migration GitHub suivie au §1. |
 
 ## 4. En pause ou sous condition — pas de lancement automatique
 

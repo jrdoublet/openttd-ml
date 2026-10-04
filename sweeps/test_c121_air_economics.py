@@ -40,7 +40,7 @@ class TestC121AirEconomics(unittest.TestCase):
         cls.persist = PERSIST.read_text(encoding="utf-8")
         cls.probes = PROBES.read_text(encoding="utf-8")
 
-    def test_flags_default_off_and_loaded(self):
+    def test_declared_defaults_and_loaded(self):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["c121_air_economics_shadow"], 0)
         self.assertEqual(defaults["c121_air_economics"], 0)
@@ -48,7 +48,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertEqual(defaults["c121_air_portfolio_depth_economics"], 0)
         self.assertEqual(defaults["c121_air_portfolio_split_economics"], 0)
         self.assertEqual(defaults["c121_air_engine_realization"], 0)
-        self.assertEqual(defaults["c121_air_project_realization_adaptive"], 0)
+        self.assertEqual(defaults["c121_air_project_realization_adaptive"], 1)
         self.assertEqual(defaults["c121_air_pressure_probe"], 0)
         self.assertEqual(defaults["c121_air_defensive_floor"], 0)
         self.assertEqual(defaults["c121_air_engine_replay_shadow"], 0)
@@ -901,17 +901,17 @@ class TestC121FirstObservationGrowth(unittest.TestCase):
         self.assertIn("r90.tripsA >= 1 && r90.tripsB >= 1", probes)
         self.assertIn('" C121_FIRST_LIVE "', probes)
 
-    def test_first_live_growth_defaults_off_and_requires_c121(self):
+    def test_first_live_growth_defaults_on_and_requires_c121(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
         i = info.index('name = "c121_air_first_live_growth"')
-        self.assertIn("custom_value = 0", info[i:i + 600])
+        self.assertIn("custom_value = 1", info[i:i + 600])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
         self.assertIn('C121_AIR_FIRST_LIVE_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_first_live_growth") != 0;', settings)
 
-    def test_first_live_growth_phase_defaults_unlimited_and_falls_back_to_standard(self):
+    def test_first_live_growth_phase_defaults_four_years_and_falls_back_to_standard(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
         i = info.index('name = "c121_air_first_live_growth_phase_years"')
-        self.assertIn("custom_value = 0", info[i:i + 700])
+        self.assertIn("custom_value = 4", info[i:i + 700])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
         self.assertIn('C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH', settings)
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")

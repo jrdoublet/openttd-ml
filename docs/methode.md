@@ -5,6 +5,10 @@ de construction, sans simuler la partie ?
 L'IA de production actuelle, `OpexAI`, cible OpenTTD 15.3 / API NoAI 15 et n'est pas définie ici —
 voir l'[architecture courante](architecture_courante.md) et le [README](../README.md).*
 
+Pour la validation OpexAI courante, appliquer [AGENTS.md §4/§4.1](../AGENTS.md#4-validation-proportionnée-puis-adoption) :
+V102 depuis le 03/10/2026 (smoke, porte A 40×3, porte B 20×10 ; règle opcodes distincte).
+Les protocoles de calibration ci-dessous ne sont pas des critères d'adoption OpexAI.
+
 **Unité d'observation.** Une tentative de ligne (couple villes × cargo × matériel × nombre de
 rames) — construite ou non. Les tentatives ratées ne sont pas jetées : voir modèle hurdle ci-dessous.
 

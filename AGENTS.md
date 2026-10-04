@@ -1,7 +1,8 @@
 # AGENTS.md — OpenTTD-ML / OpexAI
 
-Guide applicable à tout le dépôt. Consignes documentaires réconciliées le **2026-09-30**
-par lecture du code ; cette date ne constitue pas une nouvelle qualification économique.
+Guide applicable à tout le dépôt. Consignes documentaires réconciliées le **2026-09-30** ;
+validation mise à jour le **2026-10-03** selon V102/V110 et le harnais livré.
+Ces mises à jour ne constituent pas une nouvelle qualification économique.
 Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) est la
 **seule liste autoritaire du travail restant**. Les anciennes revues ne sont pas une file active.
 
@@ -119,13 +120,13 @@ Pour un duel reproductible, préférer le lanceur hôte qui enregistre Git, l'im
 limites Docker, puis exécute les copies figées :
 
 ```powershell
-python -X utf8 sweeps/run_c66_reference.py --campaign diag_identifiant_unique --years 6 --seeds 42 100 999 1234 5678 --max-workers 3
+python -X utf8 sweeps/run_c66_reference.py --campaign diag_identifiant_unique --years 6 --seeds 42 100 999 1234 5678 --max-workers 3 --min-useful-primary-delta 50000
 ```
 
-Cette commande mesure une référence. Pour un A/B, ajouter `--reference`, `--variant`,
-`--variant-policy-id`, `--primary-metric`, `--min-useful-primary-delta` et
-`--value-guard-max-loss-pct` avec les valeurs décidées avant le banc. Consulter `--help`.
-Le nom `bench_1v1_5y_20seeds.py` n'impose pas la durée : passer **`--years 10`** pour l'adoption.
+Cette commande mesure une référence ; le lanceur exige un seuil même pour ce diagnostic.
+Pour un A/B, ajouter les bras et critères pré-enregistrés du §4.1. Consulter `--help`.
+Le nom `bench_1v1_5y_20seeds.py` n'impose ni durée ni nombre de graines : les passer
+selon la porte choisie. Le défaut CLI reste `signs20` ; V102 exige une règle explicite.
 
 ## 4. Validation proportionnée, puis adoption
 
@@ -134,22 +135,25 @@ Le nom `bench_1v1_5y_20seeds.py` n'impose pas la durée : passer **`--years 10`*
 | Documentation uniquement | Relire le diff, vérifier chemins/symboles/options cités, `git diff --check` si Git est disponible ; aucune partie nécessaire |
 | Harnais ou décodeur | Tests ciblés et fixtures ; smoke réel si l'intégration moteur ou le schéma collecté change |
 | Squirrel | Tests de contrat pertinents et smoke 1×1 pour compilation/exécution |
-| Comportement IA | Puis diagnostic apparié **5 graines × 6 ans** pour exposition, sens de l'effet et grandeurs physiques |
-| Adoption par défaut | Banc officiel apparié **20 graines × 10 ans**, complet et sain, avant changement du défaut |
+| Comportement IA | Exposition du mécanisme, puis protocole V102 : porte A **40 graines × 3 ans**, porte B **20 graines × 10 ans** pour les survivants |
+| Adoption par défaut | Les **deux portes V102** complètes et saines avant changement du défaut ; règle opcodes distincte ci-dessous |
 | Persistance | En plus, validation adaptée de Save/Load, notamment `sweeps/save_load_roundtrip.py` |
 
 **Optimisations d'opcodes (décision utilisateur du 2026-09-24).** Un changement dont le but est
 d'économiser des opcodes est **adopté par défaut s'il est neutre** : gain d'opcodes mesuré sur le
 poste visé (sonde existante, même protocole des deux côtés), puis 20×10 apparié complet et sain
-qui ne montre **pas de perte** — IC95 du delta `profit_year` non entièrement négatif, pas de
+qui ne montre **pas de perte** — IC95 Student du delta `profit_year` non entièrement négatif, pas de
 défaite significative au test des signes (p ≥ 0,05 ou majorité de victoires) et garde de valeur
-−5 % tenue. Le seuil d'effet utile positif (+50 k£/an, 15/20) ne s'applique pas : les opcodes
+−5 % tenue. Cette règle spécifique est conservée ; la porte A de gain V102 et les
+anciens seuils de gain (+50 k£/an, 15/20) ne s'appliquent pas : les opcodes
 libérés sont une ressource réservée à d'autres chantiers (C67…). Un changement qui modifie aussi
 les décisions reste soumis à cette même absence de perte ; « même tracé / mêmes décisions »
 dispense seulement de chercher la cause d'une dérive de trajectoire.
 
 Les tests Python ne compilent pas Squirrel. Un smoke ne valide pas la rentabilité ; le banc CI
-20×3 ne remplace pas le 20×10 d'adoption. Ne pas lancer un banc coûteux pour une simple édition
+20×3 ne remplace pas les deux portes V102. Le **5×6 n'est plus une porte obligatoire**
+de qualification comportementale ; un diagnostic ciblé reste possible pour comprendre
+un mécanisme, sans constituer une preuve d'adoption. Ne pas lancer un banc coûteux pour une simple édition
 documentaire. Les scripts exposant `--selftest` peuvent être testés sur l'hôte.
 
 Exemples de tests ciblés sans partie (sélectionner ceux du changement) :
@@ -165,130 +169,152 @@ Pour C66.4, chaque graine donne **deux parties distinctes** : référence contre
 variante contre la même AAAHogEx figée, avec mêmes carte/configuration, horizon et places.
 Deux bras solo de `bench_v2.py` ne remplacent pas ce duel.
 
-Fixer métrique primaire, effet minimal utile et garde-fou de valeur **avant** les résultats.
-Utiliser le verdict calculé par le harnais et lire sa règle effective : `signs20` par défaut, 20 paires,
-au moins 15 victoires, test exact des signes bilatéral p < 0,05, effet moyen minimal et garde-fou
-sur la valeur. Publier couverture, deltas par graine, moyenne/médiane des deltas et incertitude.
-`mean40` est une option distincte, à décider avant la campagne ; les décisions utilisateur
-dérogatoires restent tracées dans `docs/journaux/synthese_decisions_2026-09-30.md` et ne transforment pas un `fail_primary`
-en qualification statistique. Un sous-ensemble favorable ou un réglage hors défaut commun aux deux bras ne prouve pas un gain
-au défaut. Ne pas contourner les audits de réglages pour obtenir un verdict.
+**Protocole comportemental V102 (décision utilisateur du 03/10, application V110).**
+La métrique primaire est le delta `profit_year` **Opex variante − Opex référence**
+à l'année terminale, pas le profit cumulé ni le ratio Opex/AAAHogEx.
+
+| Porte | Protocole et critères de passage |
+|---|---|
+| A — gain (`gain_short`) | **40 graines × 3 ans**, une répétition, 80 parties ; Wilcoxon exact bilatéral **p < 0,05**, borne basse de l'**IC95 bootstrap de la moyenne > 0**, delta moyen **≥ 4 %** du profit moyen de référence de l'année terminale ; garde de valeur **−5 %** |
+| B — non-érosion (`non_erosion`) | Après A, **20 graines × 10 ans**, une répétition, 40 parties ; borne haute de l'**IC95 bootstrap ≥ 0**, garde de valeur **−5 %** ; aucun gain positif minimal ni quota de victoires exigé |
+
+La garde utilise le **ratio des moyennes de `company_value`**, avec tous les
+dénominateurs de référence strictement positifs. Sous B, une borne haute < 0
+signale une perte ; un intervalle traversant zéro passe ce critère. Ce passage
+ne prouve ni équivalence ni gain à dix ans. Un intervalle absent reste non validé.
+Le bootstrap livré utilise 20 000 rééchantillonnages et la graine 0 ; conserver
+ses paramètres avec les résultats. Le test des signes et V/D/E restent descriptifs
+pour V102, sans exigence de 15/20. `signs20` et `mean40` restent disponibles pour
+reproduire les protocoles historiques, pas comme consigne courante implicite.
+
+Pré-enregistrer règle, seuil, graines, horizon, exposition et budget **avant** mesure.
+Un autre horizon `gain_short` (par exemple six ans) doit être décidé avant lancement ;
+aucune porte six ans automatique ni sélection du meilleur horizon après résultats.
+Conserver les verdicts historiques : une réanalyse est identifiée séparément et ne
+remplace pas la mesure initiale. V110 documente une nouvelle porte A et une porte B
+réanalysée ; cela n'autorise pas à requalifier automatiquement d'anciens rejets.
+Un sous-ensemble favorable ou un réglage hors défaut commun aux deux bras ne prouve
+pas un gain au défaut. Ne pas contourner les audits de réglages pour obtenir un verdict.
 
 ### 4.1 Pilotage automatique des bancs par les agents LLM
 
-**Décision utilisateur du 2026-09-30.** Pour une demande de modification ou de
-qualification d'un paramètre par défaut, l'agent doit préparer, déclencher et suivre
-les bancs nécessaires **sans attendre une nouvelle demande de lancement**, lorsque
-les prérequis ci-dessous sont réunis. Ne pas se limiter à donner une commande ou à
-dire « à tester ». Cette consigne ne déclenche aucune campagne pour une simple revue
-ou édition documentaire, ne rouvre pas les pistes abandonnées et ne lève pas une
-interdiction particulière de `docs/taches.md` (réglage protégé, pas de 20×10, etc.).
+**Décision utilisateur du 30/09, protocole actualisé le 03/10.** Pour une demande
+de modification ou de qualification d'un paramètre par défaut, préparer, déclencher
+et suivre les bancs nécessaires sans nouvelle demande de lancement lorsque les
+prérequis sont réunis. Aucune campagne pour une simple revue ou édition documentaire.
+Les interdictions de `docs/taches.md` (réglage protégé, pas de 20×10, piste abandonnée)
+restent applicables.
 
 **Avant tout lancement :**
 
-1. Lire les décisions courantes ; définir une intervention isolée, l'ancien défaut,
-   la valeur candidate et le critère d'exposition du mécanisme. Conserver l'ancien
-   défaut dans `info.nut`/`settings.nut` pendant la qualification. Utiliser les bras
-   explicites `OpexAI[reglage=ancienne_valeur]` et `OpexAI[reglage=valeur_candidate]` ;
-   vérifier déclaration, bornes, chargement et différences effectives. Les autres
-   réglages restent aux défauts courants, pas à un socle commun optimisé hors défaut.
-  Le workflow compare deux réglages du **même arbre de code**, pas deux commits.
-  Sans chemin témoin représentant l'ancien comportement, ou si d'autres changements
-  non qualifiés affectent les deux bras, ne pas présenter ce banc comme qualification
-  de ces changements : isoler l'intervention ou signaler que le protocole est inadapté.
-2. Fixer avant mesure la métrique `profit_year`, l'effet utile **50 000 £/an** et la
-   garde de valeur **5 %**, sauf protocole spécifique déjà décidé. Enregistrer le plan
-   dans le journal du chantier : dépôt, branche, SHA, bras, profils, seuils, exposition,
-   catégorie comportement/opcodes. Aucun changement de seuil après lecture des résultats.
-3. Préférer GitHub Actions quand le moteur local manque. Vérifier dépôt distant,
-   branche publiée contenant exactement le candidat et les harnais, workflow disponible
-   et authentification autorisant le déclenchement/lecture des runs. Utiliser `gh` ou
-   un outil/API GitHub authentifié ; ne jamais afficher de jeton. **Cette autorisation
-   de banc n'autorise pas un commit, push, merge ou une publication implicite.** Si le
-   candidat n'est pas publié, demander sa publication ou l'autorisation correspondante.
-4. Vérifier les runs existants et le budget/quota Actions : pas de doublon du même
-   SHA/protocole, pas de campagnes parallèles du même chantier, pas de relances jusqu'à
-   obtenir un résultat favorable. Pas de dépense au-delà d'un budget utilisateur fixé.
-   Si accès, publication, runtime ou quota manquent : statut **bloqué/non validé**,
-   obstacle précis et paramètres prêts à lancer ; garder le défaut inchangé.
+1. Lire les décisions courantes ; définir l'intervention isolée, l'ancien défaut,
+   la valeur candidate et une preuve d'exposition réelle du mécanisme. Conserver
+   l'ancien défaut dans `info.nut`/`settings.nut` pendant la qualification. Les bras
+   `OpexAI[reglage=ancienne_valeur]` et `OpexAI[reglage=valeur_candidate]` partagent
+   le **même arbre de code**, avec les autres réglages aux défauts courants.
+   Vérifier déclaration, bornes, chargement, usages, persistance et différences
+   effectives. Sans chemin témoin, ou avec d'autres changements non qualifiés
+   dans les deux bras, ne pas attribuer au candidat la qualification du cumul.
+2. Pré-enregistrer dans le journal du chantier : dépôt, branche, SHA et état local,
+   bras, catégorie comportement/opcodes, exposition, graines, horizons, règles,
+   seuils et budget. Pour le comportement : `profit_year`, porte A `gain_short`
+   **40×3**, seuil relatif **4 %**, puis porte B `non_erosion` **20×10**, garde
+   de valeur **5 %** aux deux portes. Toute variante de protocole se décide avant
+   les résultats. Les snapshots répétés d'une partie ne sont pas des graines.
+3. Vérifier runtime, image exacte, cache, montage et ressources du §3, campagnes
+   existantes et budget : aucun doublon du même code/protocole, une seule campagne
+   à la fois sur le VPS, aucune relance jusqu'à obtenir un résultat favorable.
+   Figer le code réellement exécuté avec le harnais courant avant chaque campagne.
+4. Si le moteur local manque, vérifier l'accès et les capacités réelles de GitHub
+   Actions : dépôt, branche publiée contenant le candidat et les harnais, SHA,
+   workflow, authentification, quota. **L'autorisation de banc n'autorise aucun
+   commit, push, merge ou publication implicite.** Si le candidat n'est pas publié,
+   demander la publication ou l'autorisation correspondante. Si runtime, accès,
+   budget ou workflow compatible manque : **bloqué/non validé**, obstacle précis,
+   paramètres prêts et défaut inchangé.
 
-**Séquence GitHub obligatoire pour une qualification ordinaire :** préférer
-`.github/workflows/qualify.yml` (`Qualification de défaut OpenTTD`), avec un plan
-pré-enregistré `qualifications/<chantier>.json`. Ce workflow exécute les contrats
-choisis et enchaîne les trois portes sans nouvelle session d'agent. Contrat exact,
-exposition, budget et limites : [qualifications/README.md](qualifications/README.md).
-L'agent reste responsable des interdictions de chantier, de l'isolation, du choix
-des sondes/contrats et de l'absence de doublon. Aucun défaut n'est changé par le job.
+**Parcours courant V102 : contrats → smoke → porte A → porte B.**
 
-Le parcours manuel reste disponible avec `.github/workflows/bench.yml`
-(`Bancs OpenTTD`), entrées suivantes. Les valeurs des bras sont celles du plan,
-jamais des exemples recopiés sans lecture du code.
+Après les tests ciblés, exécuter un smoke causal **1 graine × 1 an** (deux duels).
+Il valide compilation/exécution et santé, sans conclusion économique ; la première
+année peut n'avoir que trois trimestres clos. Après smoke sain et exposition
+établie, lancer A ; après A complet, sain et `pass`, lancer B. Un diagnostic
+ciblé peut aider à établir l'exposition ; **ne plus imposer le filtre 5×6 / +50 k£**
+du protocole précédent. Toute porte échouée ou preuve absente arrête la séquence.
 
-| Étape | `mode` | `profile` | Autres entrées |
-|---|---|---|---|
-| Smoke causal, 1 graine × 1 an (2 parties) | `paired` | `smoke` | `reference` ancien défaut, `variant` candidat |
-| Diagnostic causal, 5 graines × 6 ans (10 parties) | `paired` | `diagnostic` | mêmes bras et seuils |
-| Qualification, 20 graines × 10 ans (40 parties) | `paired` | `adoption` | mêmes bras et seuils |
+Utiliser `sweeps/run_c66_reference.py` avec les options communes suivantes,
+remplacées par les valeurs du plan : `--campaign <identifiant_neuf>`,
+`--reference "OpexAI[reglage=ancien]"`, `--variant "OpexAI[reglage=candidat]"`,
+`--variant-policy-id <chantier>`, `--primary-metric profit_year`,
+`--value-guard-max-loss-pct 5`, `--repeats 1`, `--cpus 3 --memory 2g --max-workers 3`.
+Le lanceur ajoute le plafond swap égal à la RAM et le volume de cache.
 
-Pour les trois étapes : `years` et `seeds` vides (profils canoniques),
-`min_delta=50000`, `value_guard=5`, `line_telemetry=false` sauf besoin défini avant
-mesure et identique dans les deux bras. `signs20`, une répétition, deux workers et
-les limites Docker sont fixés par le workflow. Exécuter aussi les tests de contrat
-pertinents avant les parties ; le workflow de banc ne teste que son orchestration.
+| Étape | Options supplémentaires explicites |
+|---|---|
+| Smoke | `--decision-rule gain_short --min-useful-primary-delta-pct 4 --required-seeds 40 --required-years 3 --years 1 --seeds 42` ; hors échantillon d'adoption, juger la santé et la couverture attendue à un an |
+| A | `--decision-rule gain_short --min-useful-primary-delta-pct 4 --required-seeds 40 --required-years 3 --years 3` ; omettre `--seeds` pour les 40 graines canoniques |
+| B | `--decision-rule non_erosion --min-useful-primary-delta-pct 4 --years 10` ; omettre `--seeds` pour les 20 graines canoniques |
 
-- Après smoke sain et tests réussis, lancer le diagnostic. Après diagnostic complet
-  et sain, vérifier l'exposition, le delta **Opex variante − Opex référence** et la
-  garde de valeur. Pour l'enchaînement automatique ordinaire, exiger effet moyen
-  au moins égal à l'effet utile fixé et garde tenue. C'est un filtre de passage,
-  **pas une preuve statistique à cinq graines**. Sinon arrêter : mécanisme non exposé,
-  candidat non retenu à ce stade ou résultat indécis, sans lancer le coûteux 20×10.
-- Une erreur technique, un timeout ou une collecte incomplète donne **non validé**,
-  pas un rejet économique. Diagnostiquer avant toute relance ; une correction du code
-  ou des bras impose une nouvelle campagne et interdit de réutiliser l'ancien verdict.
-- Pour une optimisation d'opcodes déclarée **avant** les mesures, appliquer la règle
-  de neutralité du §4 au lieu du seuil de gain économique positif, y compris pour
-  interpréter le diagnostic ; mesurer effectivement les opcodes sur le poste visé.
-  `bench.yml` n'encode pas cette règle : son `fail_primary` ne la tranche pas et
-  `min_delta=0` ne transforme pas `signs20` en test de neutralité. Conserver le verdict
-  brut et documenter séparément tous les critères de neutralité ; si la mesure manque,
-  aucune adoption automatique. `qualify.yml` ajoute ce contrôle séparé pour les
-  composants H5 mesurés et comparables selon le contrat pré-enregistré ; toute
-  preuve absente ou comparaison non couverte arrête la séquence `NON_VALIDÉ`.
-  Ne pas reclasser un essai perdant en « opcodes » après coup.
+Le lanceur exige **exactement un** seuil absolu `--min-useful-primary-delta`
+**ou** relatif `--min-useful-primary-delta-pct` sous V102. Sous B, ce seuil est
+enregistré mais **n'est pas une porte**. `--required-seeds`/`--required-years`
+ne concernent que `gain_short` ; ils ne remplacent pas `--years`, qui fixe la
+durée réellement simulée. Le défaut CLI `signs20` est conservé pour compatibilité :
+toujours nommer la règle. Télémétrie OFF sauf besoin pré-enregistré et identique
+dans les deux bras ; distinguer exposition instrumentée et résultat sans sonde.
+
+**Limite GitHub vérifiée le 03/10 :** `bench.yml` / `github_bench.py` imposent
+encore `signs20` et au plus 20 graines ; `qualify.yml` /
+`github_qualification.py` / `qualification.py` enchaînent encore
+smoke→5×6→20×10 avec +50 k£ et 15/20. **Ils n'implémentent pas V102.**
+Ne pas présenter un job vert ou un plan JSON de schéma 1 comme qualification A/B
+V102, ni substituer l'ancien protocole quand V102 est demandé. Le lanceur hôte
+ci-dessus est le parcours disponible ; la migration des workflows est suivie
+dans `docs/taches.md`. Contrats et limites historiques :
+[guide GitHub](docs/bancs_github.md), [plans](qualifications/README.md).
+
+**Optimisations d'opcodes :** appliquer la règle dédiée du §4, déclarée avant
+mesure : gain d'opcodes mesuré sur le poste visé à entrées/protocoles comparables,
+puis absence de perte selon les critères conservés. Aucun gain économique positif
+ni porte A imposés. Un `fail_primary` sous `signs20` ne tranche pas la neutralité ;
+`min_delta=0` ne transforme pas cette règle en test de neutralité. Garder le verdict
+brut et documenter séparément chaque critère. Ne pas remplacer cette règle par le
+seul `pass non_erosion`, ni reclasser un essai perdant en « opcodes » après coup.
+Le validateur GitHub historique ajoute une comparaison H5 par échantillon seulement
+pour les composants couverts ; son absence de preuve arrête sa séquence.
 
 **Suivi et décision :**
 
-- Déclencher sur le dépôt/la branche explicitement identifiés, récupérer l'ID et
-  l'URL du run exact et vérifier son SHA. Suivre ce run, télécharger ses artefacts dans
-  un dossier neuf, contrôler `request.json`, manifeste/bundle et `bench.json`.
-  Ne pas lire arbitrairement « le dernier run ». Si la session s'arrête avant la fin,
-  consigner le run et l'étape suivante ; ne jamais annoncer un verdict à venir.
-- Pour l'adoption ordinaire, exiger absence d'échecs de santé, horizon et métriques
-  complets, **20/20 paires**, `comparison_complete=true`, `adoption_sample_complete=true`,
-  `metric_coverage_complete=true`, couverture annuelle de quatre trimestres valides,
-  et `policy_comparison.verdict=pass`. Contrôler les critères réels : au moins 15
-  victoires, p bilatéral <0,05, delta moyen ≥50 000 £/an, ratio des moyennes de valeur
-  ≥−5 %. Un job vert ne remplace pas ces contrôles.
-- `fail_primary`, `fail_value_guard` ou `fail_primary_and_value_guard` : **ne pas
-  adopter**, conserver l'ancien défaut. `incomplete`, `diagnostic_only`, preuve absente,
-  ambiguë ou issue d'un autre code : **non validé**, même conséquence sur le défaut.
-  Le ratio Opex/AAAHogEx, un duel 3 ans, un solo ou la seule baisse d'AAAHogEx ne sont
-  jamais des critères d'adoption d'un réglage.
-- Si qualifié et que la demande porte sur l'adoption, appliquer uniquement le défaut
-  testé, vérifier les quatre valeurs de difficulté, le chargement et la persistance,
-  exécuter tests ciblés et smoke du défaut livré. Aucun autre changement comportemental
-  ne bénéficie de ce verdict. Si la demande portait seulement sur l'évaluation,
-  rapporter « qualifié » sans changer le défaut. Aucun merge/push automatique.
-- Journaliser l'acceptation/refus/blocage avec SHA, bras, paramètres, URL/run/attempt,
-  chemins d'artefacts, couverture, santé, deltas moyen/médian, IC95, victoires/p,
-  garde de valeur et verdict brut. Mettre à jour le statut dans `docs/taches.md` et
-  conserver les preuves selon §6. Une dérogation utilisateur explicite reste une
-  dérogation tracée, jamais un `pass` statistique fabriqué.
-
-Parcours de déclenchement et limites : [docs/bancs_github.md](docs/bancs_github.md).
-Une consigne LLM n'est pas un service de déclenchement autonome : un agent ou
-l'utilisateur doit lancer le run. Ensuite `qualify.yml` enchaîne les portes seul,
-contrairement à `bench.yml`. Aucun workflow ne modifie les défauts, commits ou merges.
+- Suivre la campagne exacte et, sur GitHub, son ID, URL, tentative et SHA ; récupérer
+  les artefacts dans un dossier neuf, contrôler requête, manifeste/bundle et JSON
+  final. Ne pas lire arbitrairement « le dernier run ». Si la session s'arrête,
+  consigner l'identifiant et l'étape suivante, jamais un verdict à venir.
+- Pour chaque porte V102 : santé et horizon complets, **40/40 paires pour A,
+  20/20 pour B**, `comparison_complete=true`, `adoption_sample_complete=true`,
+  `metric_coverage_complete=true`, couverture annuelle de quatre trimestres valides
+  et `policy_comparison.verdict=pass` sous la **règle attendue**. Contrôler les
+  critères réels du §4, l'exposition et la comparabilité des deux portes.
+  Le `pass` d'une seule porte n'autorise pas l'adoption.
+- `fail_primary`, `fail_value_guard` ou `fail_primary_and_value_guard` sous le
+  protocole pré-enregistré : ne pas adopter. Erreur technique, timeout, collecte
+  incomplète, `incomplete`, `diagnostic_only` hors smoke ou preuve ambiguë :
+  **non validé**, pas rejet économique. Diagnostiquer avant relance ; une correction
+  du code ou des bras impose une nouvelle campagne, sans réutiliser l'ancien verdict.
+- Le ratio Opex/AAAHogEx, un duel trois ans non apparié, un solo ou la seule baisse
+  d'AAAHogEx ne sont pas des critères d'adoption. Un A/B 40×3 satisfaisant A reste
+  une preuve de gain à cet horizon, soumise à B pour l'adoption.
+- Si les deux portes sont qualifiées et que la demande porte sur l'adoption,
+  appliquer uniquement le défaut testé aux quatre difficultés, vérifier chargement
+  et persistance, exécuter tests ciblés et smoke du défaut livré. Si la demande
+  porte seulement sur l'évaluation, rapporter « qualifié » sans changer le défaut.
+  Aucun autre changement comportemental ne bénéficie du verdict ; aucun push/merge
+  automatique.
+- Journaliser décision, SHA/arbre figé, bras, paramètres, campagne ou URL/run/attempt,
+  chemins d'artefacts, couverture, santé, deltas par graine, moyenne/médiane,
+  Wilcoxon p, IC95 **bootstrap**, V/D/E, garde de valeur et verdict brut de chaque
+  porte. Pour les opcodes, ajouter les mesures et critères spécifiques. Mettre à
+  jour `docs/taches.md` et conserver les preuves selon §6. Une dérogation explicite
+  reste tracée, sans fabriquer de `pass` statistique.
 
 ## 5. Mesure fiable : réutiliser le harnais
 

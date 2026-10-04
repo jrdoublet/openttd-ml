@@ -30,17 +30,22 @@ pas une preuve de rentabilité. Les tâches exécutent et entretiennent les lign
 Les défauts et expériences protégés sont suivis dans `docs/taches.md` ; vérifier
 ensemble `info.nut`, `settings.nut` et les usages avant toute modification.
 
-## Bancs GitHub — sans installation locale
+## Validation et bancs GitHub
 
-Pour une qualification de défaut, préférer **Actions → Qualification de défaut OpenTTD**
-(`qualify.yml`) avec un [plan pré-enregistré](qualifications/README.md) : contrats,
-smoke, diagnostic puis adoption seulement si chaque porte est franchie. Aucun
-réglage n'est modifié automatiquement ; le workflow reste à valider en exécution.
+Depuis le 03/10/2026, la qualification comportementale suit **V102** : contrats,
+smoke 1×1, porte A **40×3 `gain_short`**, puis porte B **20×10 `non_erosion`**.
+Le 5×6 n'est plus obligatoire ; la règle opcodes reste distincte.
+[AGENTS.md §4/§4.1](AGENTS.md#4-validation-proportionnée-puis-adoption) définit
+les critères et les options explicites de `sweeps/run_c66_reference.py`.
+
+**Les workflows GitHub ne sont pas encore migrés vers V102.** `qualify.yml`
+et son [plan de schéma 1](qualifications/README.md) conservent l'ancien parcours
+smoke→5×6→20×10 sous `signs20`. Ne pas les utiliser comme substitut aux deux portes.
 
 **Actions → Bancs OpenTTD → Run workflow** : choisir branche, mode (`solo`, `duel`,
 `paired`) et profil (`smoke`, `diagnostic`, `adoption`, `custom`). Pour vérifier
-l'installation : `solo/smoke`. Parcours manuel de qualification : progression causale
-`paired/smoke` → `paired/diagnostic` → `paired/adoption`, selon AGENTS.md §4.1.
+l'installation : `solo/smoke`. Les profils actuels restent disponibles pour les
+diagnostics et protocoles historiques ; `paired/adoption` applique encore `signs20`.
 
 Le workflow doit être publié ; **seul le code de la branche choisie est exécuté**,
 pas les fichiers locaux non envoyés. Aucun commit/push implicite. Lire santé,

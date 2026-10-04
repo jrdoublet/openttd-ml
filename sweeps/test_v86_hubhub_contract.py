@@ -26,7 +26,7 @@ class V86HubHubContractTest(unittest.TestCase):
         marginal_block = info[info.index('name = "air_hubhub_marginal"'):]
         marginal_block = marginal_block[:marginal_block.index("});")]
         self.assertIn("flags = AICONFIG_BOOLEAN", marginal_block)
-        self.assertIn("custom_value = 0", marginal_block)
+        self.assertIn("custom_value = 1", marginal_block)
 
         # air_hub_max_routes
         self.assertIn('name = "air_hub_max_routes"', info)

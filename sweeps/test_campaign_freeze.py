@@ -233,13 +233,14 @@ class TestCampaignFreeze(unittest.TestCase):
         )
         for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build", "c75_kpass_bypass",
                      "c80_air_hub_index", "town_growth_roi_gate", "c76_regen_targeted",
-                     "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder", "v94_air_site_list"):
+                     "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder", "v94_air_site_list",
+                     "air_hubhub_marginal", "c121_air_project_realization_adaptive", "c121_air_first_live_growth"):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c84_air_target_fleet", "c85_air_equipment_frontier", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate", "c80_double_register",
                      "c76_lean_invalidation", "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "c80_marginal_floor", "rail_depot_cost",
-                     "air_hubhub_marginal", "air_hub_max_routes",
+                     "air_hub_max_routes",
                      "v90_pathfinder_check", "v92_air_service_choice", "c83_fixes",
                      "c83_preempt_open", "air_batch_town_reserve",
                      "v93_airport_no_pop_floor", "v93_air_demand_production", "v95_air_post73_probe",
@@ -256,6 +257,7 @@ class TestCampaignFreeze(unittest.TestCase):
             self.assertEqual(defaults[name], 0, name)
         self.assertEqual(defaults["rail_finance_bias_pct"], 100)
         self.assertEqual(defaults["v91_astar_weight_pct"], 120)
+        self.assertEqual(defaults["c121_air_first_live_growth_phase_years"], 4)
         self.assertNotIn("c80_fleet_inject", defaults)
         self.assertNotIn("c80_air_targeted_update", defaults)
         self.assertNotIn("c77_opportunistic_candidates", defaults)

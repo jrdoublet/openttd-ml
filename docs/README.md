@@ -1,6 +1,7 @@
 # Documentation — index et statut des documents
 
-**Réconcilié le 30 septembre 2026 ; lecture documentaire, pas nouvelle validation.**
+**Réconcilié le 30 septembre 2026 ; validation V102 actualisée le 3 octobre.
+Lecture documentaire, pas nouvelle validation économique.**
 
 ## Commencer ici
 
@@ -10,7 +11,7 @@
 | [AGENTS.md](../AGENTS.md) | Invariants, environnement, mesure et protocole de qualification ; prime sur les anciens exemples |
 | [Architecture courante](architecture_courante.md) | Carte de lecture du code et ordre de chargement |
 | [Bancs GitHub](bancs_github.md) | Parcours opérationnel ; publication et accès requis |
-| [Qualification enchaînée](../qualifications/README.md) | Plan pré-enregistré, portes et limites de `qualify.yml` ; intégration à valider |
+| [Qualification enchaînée](../qualifications/README.md) | Schéma 1 et ancien protocole de `qualify.yml` ; migration V102 à faire, protocole courant dans AGENTS §4/§4.1 |
 | [Journaux](journaux/README.md) | Chronologie, décisions et résultats ; pas un second backlog |
 | [Synthèse des décisions](journaux/synthese_decisions_2026-09-30.md) | Défauts adoptés, exceptions et rejets, avec sources |
 | [Preuves](../evidence/review/README.md) | Audit, archives et limites de couverture |
