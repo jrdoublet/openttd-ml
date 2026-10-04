@@ -955,6 +955,220 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
   return true;
 }
 
+/* AIR 03/10 2 : signature topologique bon marche. Le nombre de lignes
+ * aeriennes vivantes reprend le filtre de la decouverte (deadStreak < 2).
+ * Le nombre de gares aeroport est celui de la compagnie. Deux topologies
+ * distinctes de memes effectifs partagent donc la signature. */
+function OpexAir0310HubTopologySignature(lines)
+{
+  local live = 0;
+  if (lines != null) {
+    foreach (line in lines) {
+      if (!("mode" in line) || line.mode != "air") continue;
+      if (("deadStreak" in line) && line.deadStreak >= 2) continue;
+      live++;
+    }
+  }
+  local stations = 0;
+  local stationList = AIStationList(AIStation.STATION_AIRPORT);
+  if (stationList != null) stations = stationList.Count();
+  return live + ":" + stations;
+}
+
+function OpexAir0310NoteHubOrigin(ctx, orphan)
+{
+  if (!("air0310HubOrphan" in ctx)) ctx.air0310HubOrphan <- [];
+  ctx.air0310HubOrphan.append(orphan);
+}
+
+function OpexAir0310CopyHubList(hubs)
+{
+  local copy = [];
+  if (hubs == null) return copy;
+  foreach (hub in hubs) {
+    copy.append({
+      town = hub.town,
+      anchor = hub.anchor,
+      stationId = hub.stationId,
+      routes = hub.routes,
+    });
+  }
+  return copy;
+}
+
+function OpexAir0310CopySiteList(sites)
+{
+  local copy = [];
+  if (sites == null) return copy;
+  foreach (site in sites) copy.append(site);
+  return copy;
+}
+
+/* Meme resolution que la decouverte des hubs issus d'une ligne. Les orphelins
+ * gardent routes = 0 : la decouverte ne consulte pas l'index pour eux. */
+function OpexAir0310CountStationRoutes(ctx, stationId)
+{
+  local hubIndex = ctx.hubIndex;
+  if (hubIndex != null) {
+    if (stationId in hubIndex.routes) return hubIndex.routes[stationId];
+    return 0;
+  }
+  local routeCount = 0;
+  local lines = ctx.lines;
+  if (lines == null) return 0;
+  foreach (other in lines) {
+    if (!("mode" in other) || other.mode != "air") continue;
+    local otherA = AIR_HUB_FIX ? OpexAirLineStationId(other, 0)
+        : (AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA));
+    local otherB = AIR_HUB_FIX ? OpexAirLineStationId(other, 1)
+        : (AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB));
+    if (otherA == stationId || otherB == stationId) routeCount++;
+  }
+  return routeCount;
+}
+
+function OpexAir0310RefreshHubRoutes(ctx, orphan)
+{
+  local hubs = ctx.hubs;
+  if (hubs == null) return;
+  for (local i = 0; i < hubs.len(); i++) {
+    local isOrphan = orphan != null && i < orphan.len() && orphan[i];
+    if (isOrphan) continue;
+    hubs[i].routes = OpexAir0310CountStationRoutes(ctx, hubs[i].stationId);
+  }
+}
+
+function OpexAir0310RestoredHubUsable(ctx, hub)
+{
+  if (hub == null || !("stationId" in hub)) return false;
+  if (!("air0310HubLive" in ctx)) ctx.air0310HubLive <- {};
+  local key = hub.stationId;
+  if (key in ctx.air0310HubLive) return ctx.air0310HubLive[key];
+  local ok = AIMap.IsValidTile(hub.anchor) && AIAirport.IsAirportTile(hub.anchor)
+      && AIStation.IsValidStation(hub.stationId);
+  if (ok && hub.routes >= OpexAirAirportMaxRoutes(AIAirport.GetAirportType(hub.anchor))) ok = false;
+  ctx.air0310HubLive.rawset(key, ok);
+  return ok;
+}
+
+function OpexAir0310RestoredSiteUsable(ctx, site, airport, plane)
+{
+  if (site == null || !("anchor" in site)) return false;
+  if (!("air0310SiteLive" in ctx)) ctx.air0310SiteLive <- {};
+  local key = site.anchor;
+  if (key in ctx.air0310SiteLive) return ctx.air0310SiteLive[key];
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, false, ctx.stationLimitedTowns);
+  ctx.air0310SiteLive.rawset(key, ok);
+  return ok;
+}
+
+/* Paires deja admises dans ce scan pour cet aeroport. Le moteur choisi peut
+ * differer de l'avion du combo : la cle est le bras, le type d'aeroport et
+ * la paire de villes. hubHubJ repart a 1, pas a 0 : 0 evaluerait un hub
+ * contre lui-meme. */
+function OpexAir0310RememberPublishedHubPairs(ctx, airport)
+{
+  local skip = {};
+  local projects = ctx.projects;
+  if (projects != null && airport != null && ("type" in airport)) {
+    local airportType = airport.type;
+    foreach (plan in projects) {
+      if (plan == null) continue;
+      if (!("arm" in plan) || (plan.arm != "hubsite" && plan.arm != "hubhub")) continue;
+      if (!("airport" in plan) || plan.airport == null || !("type" in plan.airport)
+          || plan.airport.type != airportType) continue;
+      if (!("siteA" in plan) || !("siteB" in plan) || plan.siteA == null || plan.siteB == null) continue;
+      if (!("town" in plan.siteA) || plan.siteA.town == null || !("tile" in plan.siteA.town)) continue;
+      if (!("town" in plan.siteB) || plan.siteB.town == null || !("tile" in plan.siteB.town)) continue;
+      skip.rawset(plan.arm + "|" + airportType + "|" + OpexAirPairKey(plan.siteA, plan.siteB), true);
+    }
+  }
+  ctx.resumeState.air0310HubSkip <- skip;
+  ctx.air0310HubSkip = skip;
+}
+
+function OpexAir0310SkipRestoredPair(ctx, airport, arm, hubA, hubB, site, plane)
+{
+  if (ctx.air0310HubSkip != null && airport != null && hubA != null) {
+    local other = site != null ? site : hubB;
+    if (other != null) {
+      local key = arm + "|" + airport.type + "|" + OpexAirPairKey(hubA, other);
+      if (key in ctx.air0310HubSkip) return true;
+    }
+  }
+  if (!ctx.air0310HubRestored) return false;
+  if (hubA != null && !OpexAir0310RestoredHubUsable(ctx, hubA)) return true;
+  if (hubB != null && !OpexAir0310RestoredHubUsable(ctx, hubB)) return true;
+  if (site != null && !OpexAir0310RestoredSiteUsable(ctx, site, airport, plane)) return true;
+  return false;
+}
+
+/* "reuse" : meme combo, meme signature. "invalidate" : meme combo, signature
+ * differente, curseurs remis au depart. "discover" : pas de snapshot
+ * utilisable. Les compteurs vivent dans le curseur du scan. */
+function OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane)
+{
+  local resumeState = ctx.resumeState;
+  local sig = OpexAir0310HubTopologySignature(ctx.lines);
+  ctx.air0310HubSig <- sig;
+  ctx.air0310HubRestored = false;
+  ctx.air0310HubSkip = ("air0310HubSkip" in resumeState) ? resumeState.air0310HubSkip : null;
+  ctx.air0310HubLive <- {};
+  ctx.air0310SiteLive <- {};
+  local snap = ("air0310HubSnap" in resumeState) ? resumeState.air0310HubSnap : null;
+  if (snap != null && snap.combo == comboIndex && snap.sig == sig) {
+    ctx.hubs = OpexAir0310CopyHubList(snap.hubs);
+    ctx.sites = OpexAir0310CopySiteList(snap.sites);
+    OpexAir0310RefreshHubRoutes(ctx, ("orphan" in snap) ? snap.orphan : null);
+    ctx.air0310HubRestored = true;
+    return "reuse";
+  }
+  if (snap != null && snap.combo == comboIndex) {
+    delete resumeState.air0310HubSnap;
+    resumeState.hubPhase <- 0;
+    resumeState.hubSiteI <- 0;
+    resumeState.hubSiteJ <- 0;
+    resumeState.hubHubI <- 0;
+    resumeState.hubHubJ <- 1;
+    OpexAir0310RememberPublishedHubPairs(ctx, airport);
+    return "invalidate";
+  }
+  return "discover";
+}
+
+function OpexAir0310HubSnapshotStore(ctx, comboIndex)
+{
+  local orphan = ("air0310HubOrphan" in ctx) ? ctx.air0310HubOrphan : [];
+  local orphanCopy = [];
+  foreach (flag in orphan) orphanCopy.append(flag ? 1 : 0);
+  local sig = ("air0310HubSig" in ctx) ? ctx.air0310HubSig
+      : OpexAir0310HubTopologySignature(ctx.lines);
+  ctx.resumeState.air0310HubSnap <- {
+    combo = comboIndex,
+    sig = sig,
+    hubs = OpexAir0310CopyHubList(ctx.hubs),
+    sites = OpexAir0310CopySiteList(ctx.sites),
+    orphan = orphanCopy,
+  };
+}
+
+function OpexAir0310HubSnapshotCount(ctx, kind)
+{
+  local resumeState = ctx.resumeState;
+  if (!("air0310HubCounts" in resumeState)) {
+    resumeState.air0310HubCounts <- { discover = 0, reuse = 0, invalidate = 0 };
+  }
+  local counts = resumeState.air0310HubCounts;
+  if (kind == "discover") counts.discover++;
+  else if (kind == "reuse") counts.reuse++;
+  else if (kind == "invalidate") counts.invalidate++;
+  if (PROBE_SPAN_TRACE || C56_TASK_TRACE) {
+    OpexDecide("AIR0310_HUB_SNAPSHOT", "discover=" + counts.discover
+        + " reuse=" + counts.reuse
+        + " invalidate=" + counts.invalidate);
+  }
+}
+
 /* 4. Decouverte des hubs : lignes existantes et aeroports orphelins. */
 function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
 {
@@ -1088,6 +1302,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
         }
         seenStations.rawset(station, true);
         hubs.append({ town = hubTown, anchor = end.anchor, stationId = station, routes = routeCount });
+        if (AIR0310_HUB_SNAPSHOT) OpexAir0310NoteHubOrigin(ctx, 0);
       }
     }
     /* AÃƒÆ’Ã‚Â©roports orphelins : aÃƒÆ’Ã‚Â©roports bÃƒÆ’Ã‚Â¢tis sans ligne active (ex: issu d'un BFAIL conservÃƒÆ’Ã‚Â©). */
@@ -1109,6 +1324,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
       }
       seenStations.rawset(st, true);
       hubs.append({ town = hubTown, anchor = loc, stationId = st, routes = 0 });
+      if (AIR0310_HUB_SNAPSHOT) OpexAir0310NoteHubOrigin(ctx, 1);
     }
   }
 
@@ -1190,6 +1406,8 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       }
       local hubSiteMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local site = sites[sj];
+      if (AIR0310_HUB_SNAPSHOT && (ctx.air0310HubRestored || ctx.air0310HubSkip != null)
+          && OpexAir0310SkipRestoredPair(ctx, airport, "hubsite", hub, null, site, plane)) continue;
       if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubSitePairs++;
       if (targetTownId >= 0
           && hub.town.id != targetTownId && site.town.id != targetTownId) continue;
@@ -1455,9 +1673,11 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         progressed = true;
       }
       local hubHubMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubHubPairs++;
       local hub1 = hubs[i];
       local hub2 = hubs[j];
+      if (AIR0310_HUB_SNAPSHOT && (ctx.air0310HubRestored || ctx.air0310HubSkip != null)
+          && OpexAir0310SkipRestoredPair(ctx, airport, "hubhub", hub1, hub2, null, plane)) continue;
+      if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubHubPairs++;
       if (targetTownId >= 0
           && hub1.town.id != targetTownId && hub2.town.id != targetTownId) continue;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
@@ -2103,6 +2323,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     sites = [],
     hubs = [],
     c83RepairCombo = false,
+    air0310HubRestored = false,
+    air0310HubSkip = null,
   };
 
   local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;
@@ -2158,11 +2380,21 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
 
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hubs", "-");
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_discover", "-");
-    if (light != null) lightMark = OpexAirLightPhaseBegin();
-    local spDisc = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_discover") : null;
-    OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);
-    if (spDisc != null) OpexSpanEnd(spDisc);
-    if (light != null) OpexAirLightPhaseEnd(light, "hub_discover", lightMark);
+    local reuseHubs = false;
+    if (AIR0310_HUB_SNAPSHOT && ctx.sliced) {
+      local hubSnapAction = OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);
+      OpexAir0310HubSnapshotCount(ctx, hubSnapAction);
+      reuseHubs = hubSnapAction == "reuse";
+    }
+    if (!reuseHubs) {
+      if (AIR0310_HUB_SNAPSHOT) ctx.air0310HubOrphan <- [];
+      if (light != null) lightMark = OpexAirLightPhaseBegin();
+      local spDisc = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_discover") : null;
+      OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);
+      if (spDisc != null) OpexSpanEnd(spDisc);
+      if (light != null) OpexAirLightPhaseEnd(light, "hub_discover", lightMark);
+      if (AIR0310_HUB_SNAPSHOT && ctx.sliced) OpexAir0310HubSnapshotStore(ctx, comboIndex);
+    }
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_discover", "-",
         "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len());
     OpexAirV95Post73Probe(ctx, combo, airport, plane);
@@ -2228,6 +2460,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         ctx.resumeState.hubSiteJ <- 0;
         ctx.resumeState.hubHubI <- 0;
         ctx.resumeState.hubHubJ <- 1;
+      }
+      if (AIR0310_HUB_SNAPSHOT) {
+        if ("air0310HubSnap" in ctx.resumeState) delete ctx.resumeState.air0310HubSnap;
+        if ("air0310HubSkip" in ctx.resumeState) delete ctx.resumeState.air0310HubSkip;
       }
       ctx.resumeState.bestPlan = ctx.bestPlan;
       ctx.resumeState.stationLimitedTowns = ctx.stationLimitedTowns;

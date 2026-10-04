@@ -742,6 +742,10 @@ AIR0310_N1_FALLBACK <- false;
  * 0 = rebuild complet a chaque lot (comportement historique). Le chargement
  * reel est en plus barre par C121_CATALOG_INCREMENTAL. */
 AIR0310_INCREMENTAL_PUBLISH <- false;
+/* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
+ * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
+ * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
+AIR0310_HUB_SNAPSHOT <- false;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
