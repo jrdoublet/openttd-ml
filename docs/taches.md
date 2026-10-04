@@ -7,6 +7,30 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **Nouvelle série de cinq candidats C121 autorisée (04/10)** : fallback N=1,
+  plafond hubs=3, priorité AIR live, évaluation rapide, plancher marginal ;
+  référence fixe `a855906`, C121 economics/catalogue=1, autres réglages aux
+  défauts adoptés. Contrats/smoke/exposition, puis A40×3 (plancher : A40×6)
+  et B20×10 pour les survivants. Règle opcodes distincte pour l'évaluation rapide.
+  Sources économiques isolées, diagnostics instrumentés en copie séparée,
+  10 CPU / 8 Go / 10 workers locaux, une campagne à la fois, budget huit heures.
+  File `c121_suite5_20261004_112415`,
+  suivi `results/c121_suite5_20261004_112415/status.json`.
+  Trois A40×3 complètes et saines : N=1 et priorité live `fail_primary` ;
+  hubs=3 `fail_primary_and_value_guard`. Évaluation rapide non validée faute
+  de gain opcodes établi. Arrêt technique Windows du suivi à 13:50 Paris ;
+  reprise du seul plancher restant dans `c121_suite5_resume_20261004_131458`,
+  mêmes copies figées et A40×6 pré-enregistrée, échéance vers 21:29 Paris.
+  Reprise lancée à 15:15 Paris : smoke/exposition sains, **plancher A40×6 pass**
+  (+8,89 % profit annuel terminal, valeur +2,01 %), puis **B20×10 pass**
+  (+5,15 % en moyenne, IC95 traversant zéro, valeur +13,98 %).
+  File terminée à 16:01 Paris : plancher qualifié sur ce profil C121 avec A
+  à six ans pré-enregistrée ; **adoption utilisateur ensuite demandée :
+  `c80_marginal_floor=1` aux quatre difficultés**. 80 contrats réussis,
+  smoke livré sain (deux duels 1×1), défaut effectif 1 vérifié dans le manifeste.
+  La preuve économique concerne le profil C121 ; pas de preuve legacy nouvelle.
+  [Plan et suivi](journaux/journal_2026-10-04.md#nouvelle-série-de-cinq-candidats-c121).
+
 - **Adoption explicite des trois réglages (04/10)** : `air_hubhub_marginal=1`,
   `c121_air_project_realization_adaptive=1`, live growth=1 avec fenêtre globale
   `c121_air_first_live_growth_phase_years=4`, aux quatre difficultés. Décision

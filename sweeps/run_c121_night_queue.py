@@ -19,7 +19,15 @@ from datetime import datetime, timezone
 def save(path, data):
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    tmp.replace(path)
+    # Windows readers or antivirus can briefly lock the destination.
+    for attempt in range(21):
+        try:
+            tmp.replace(path)
+            return
+        except PermissionError:
+            if attempt == 20:
+                raise
+            time.sleep(0.25)
 
 
 def resource_args(plan):
@@ -65,15 +73,23 @@ def snapshot(root):
 def exposed(data, root, kind):
     hits = []
     for g in data["games"]:
+        if kind in ("n1", "hubcap", "priority", "marginal") and g["policy_id"] == "reference":
+            continue
         if kind == "kpass" and g["policy_id"] == "reference":
             continue
         if kind == "kdec" and g["policy_id"] != "reference":
             continue
         log = root / g["engine_log_path"].removeprefix("/work/")
         text = log.read_text(encoding="utf-8", errors="replace")
-        regex = (r"C121_KPASS_AIR_CONTINUE fleet_rank=" if kind == "kpass" else
-                 r"C121_KDEC_COLD_SHADOW state=cold[^\n]*affected=1")
-        count = len(re.findall(regex, text))
+        patterns = {
+            "kpass": r"C121_KPASS_AIR_CONTINUE fleet_rank=",
+            "kdec": r"C121_KDEC_COLD_SHADOW state=cold[^\n]*affected=1",
+            "n1": r"QUAL_EXPOSURE mechanism=n1 applied=1",
+            "hubcap": r"QUAL_EXPOSURE mechanism=hubcap rejected=1",
+            "priority": r"C121_FIRST_LIVE_PRIORITY_DEFER line=",
+            "marginal": r"QUAL_EXPOSURE mechanism=marginal rejected=1",
+        }
+        count = len(re.findall(r"\[script:\d+\]\s*\[0\].*?" + patterns[kind], text))
         if count:
             hits.append({"seed": g["seed"], "events": count, "log": str(log)})
     return hits
@@ -92,6 +108,8 @@ def main():
     with (out / "started.lock").open("x", encoding="utf-8") as lock:
         lock.write(str(os.getpid()))
     initial = snapshot(root)
+    diagnostic_root = Path(plan.get("exposure_worktree", str(root)))
+    diagnostic_initial = snapshot(diagnostic_root)
     deadline = time.monotonic() + plan["budget_seconds"]
     state = {"started_utc": datetime.now(timezone.utc).isoformat(),
              "deadline_utc": datetime.fromtimestamp(time.time() + plan["budget_seconds"],
@@ -104,14 +122,19 @@ def main():
     env["PYTHONUTF8"] = "1"
 
     def run(entry, step, *, years, pairs, seeds=None, probe=False):
+        run_root = diagnostic_root if probe and entry.get("exposure") in ("n1", "hubcap", "priority", "marginal") else root
         running = subprocess.check_output(["docker", "ps", "-q"], env=env, text=True).strip()
         if running:
             raise RuntimeError("Another Docker container is running; queue stopped.")
         if snapshot(root) != initial:
             raise RuntimeError("Frozen worktree sources changed; queue stopped.")
+        if snapshot(diagnostic_root) != diagnostic_initial:
+            raise RuntimeError("Frozen exposure sources changed; queue stopped.")
         if time.monotonic() >= deadline:
             raise TimeoutError("Eight-hour budget exhausted before next stage.")
         other = dict(entry.get("common", {}))
+        if probe:
+            other.update(entry.get("exposure_common", {}))
         if probe and entry["exposure"] == "kdec":
             other["c121_kdec_cold_shadow"] = 1
         def arm(value):
@@ -120,11 +143,11 @@ def main():
             return "OpexAI[" + ",".join(f"{k}={v}" for k, v in settings.items()) + "]"
         cid = f'{plan["id"]}_{entry["id"]}_{step}'
         container = cid.lower().replace("_", "-")
-        result = root / "results" / (cid + ".json")
+        result = run_root / "results" / (cid + ".json")
         if result.exists() or result.with_suffix(".jsonl").exists():
             raise RuntimeError("Campaign already exists; never overwrite or repeat.")
         rule = "non_erosion" if step == "B" else "gain_short"
-        cmd = [sys.executable, "-X", "utf8", str(root / "sweeps/run_c66_reference.py"),
+        cmd = [sys.executable, "-X", "utf8", str(run_root / "sweeps/run_c66_reference.py"),
                "--mount-root", str(mount),
                "--campaign", cid, "--container-name", container,
                "--image", plan["image"], "--reference", arm(entry["old"]),
@@ -140,7 +163,7 @@ def main():
                             "result": str(result), "command": cmd}
         save(status_path, state)
         with (out / (cid + ".launcher.log")).open("x", encoding="utf-8") as log:
-            proc = subprocess.Popen(cmd, cwd=root, env=env, stdout=log,
+            proc = subprocess.Popen(cmd, cwd=run_root, env=env, stdout=log,
                                     stderr=subprocess.STDOUT)
             try:
                 rc = proc.wait(timeout=max(1, deadline - time.monotonic()))
@@ -172,6 +195,26 @@ def main():
 
     try:
         for entry in plan["entries"]:
+            if entry["kind"] == "opcode":
+                receipt_path = Path(entry["opcode_receipt"])
+                if (entry.get("opcode_receipt_sha256")
+                        and hashlib.sha256(receipt_path.read_bytes()).hexdigest() != entry["opcode_receipt_sha256"]):
+                    raise RuntimeError("Opcode prerequisite receipt changed; queue stopped.")
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                if not receipt.get("opcode_gain_measured"):
+                    state["results"].append({"kind": "opcode", "setting": entry["setting"],
+                        "qualification_complete": False, "stop_reason": "matched_opcode_gain_absent",
+                        "opcode_receipt": str(receipt_path)})
+                    save(status_path, state)
+                    continue
+                run(entry, "smoke", years=1, pairs=1, seeds=[42])
+                data, summary = run(entry, "B", years=10, pairs=20)
+                from run_c121_winner_economic_validation import neutral_gate
+                summary["opcode_neutrality"] = neutral_gate(data, 20, adoption=True)
+                summary["opcode_receipt"] = str(receipt_path)
+                summary["qualification_complete"] = summary["opcode_neutrality"]["pass"]
+                save(status_path, state)
+                continue
             if entry["kind"] == "user_requested_B":
                 if plan.get("user_authorized_direct_B") is not True:
                     raise ValueError("Direct B requires explicit recorded user authorization")
@@ -183,7 +226,7 @@ def main():
                 continue
             run(entry, "smoke", years=1, pairs=1, seeds=[42])
             if entry["kind"] == "qualification":
-                data, summary = run(entry, "exposure", years=3, pairs=5,
+                data, summary = run(entry, "exposure", years=entry.get("exposure_years", 3), pairs=5,
                                     seeds=[42, 100, 999, 1234, 5678], probe=True)
                 hits = exposed(data, mount, entry["exposure"])
                 summary["exposure"] = hits

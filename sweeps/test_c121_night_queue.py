@@ -1,9 +1,39 @@
 import copy
 import unittest
-from run_c121_night_queue import healthy, gate_pass, resource_args
+import tempfile
+import json
+from unittest.mock import patch
+from pathlib import Path
+from run_c121_night_queue import healthy, gate_pass, resource_args, exposed, save
 
 
 class GateTests(unittest.TestCase):
+    def test_status_save_recovers_transient_destination_lock(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "status.json"
+            target.write_text('{"old": true}', encoding="utf-8")
+            replace = Path.replace
+            calls = []
+            def locked_once(source, destination):
+                calls.append(destination)
+                if len(calls) == 1:
+                    self.assertEqual(json.loads(target.read_text()), {"old": True})
+                    raise PermissionError("locked")
+                return replace(source, destination)
+            with patch.object(Path, "replace", locked_once), patch("run_c121_night_queue.time.sleep"):
+                save(target, {"state": "running"})
+            self.assertEqual(json.loads(target.read_text()), {"state": "running"})
+            self.assertEqual(len(calls), 2)
+            self.assertFalse(target.with_suffix(".tmp").exists())
+
+    def test_status_save_persistent_lock_is_not_silenced(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "status.json"
+            with patch.object(Path, "replace", side_effect=PermissionError("locked")) as replace, patch("run_c121_night_queue.time.sleep"):
+                with self.assertRaises(PermissionError):
+                    save(target, {"state": "running"})
+            self.assertEqual(replace.call_count, 21)
+
     def test_resource_override_is_explicit_and_bounded(self):
         self.assertEqual(resource_args({}),
                          ["--cpus", "3", "--memory", "2g", "--max-workers", "3"])
@@ -49,6 +79,23 @@ class GateTests(unittest.TestCase):
             else:
                 data["games"].pop()
             self.assertFalse(healthy(data, 40))
+
+    def test_exposure_is_owned_and_effective_not_a_control_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "engine.log"
+            log.write_text("\n".join([
+                "[script:4] [1] [I] QUAL_EXPOSURE mechanism=n1 applied=1",
+                "[script:4] [0] [I] QUAL_EXPOSURE mechanism=n1 applied=0",
+                "[script:4] [0] [I] QUAL_EXPOSURE mechanism=n1 applied=1",
+                "[script:4] [0] [I] C121_FIRST_LIVE_PRIORITY_DEFER line=2",
+            ]), encoding="utf-8")
+            data = {"games": [{"seed": 42, "policy_id": "reference", "engine_log_path": "/work/engine.log"},
+                              {"seed": 42, "policy_id": "candidate", "engine_log_path": "/work/engine.log"}]}
+            self.assertEqual(exposed(data, root, "n1")[0]["events"], 1)
+            self.assertEqual(len(exposed(data, root, "n1")), 1)
+            self.assertEqual(exposed(data, root, "priority")[0]["events"], 1)
+            self.assertEqual(exposed(data, root, "hubcap"), [])
 
 
 if __name__ == "__main__":
