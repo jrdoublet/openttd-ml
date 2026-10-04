@@ -96,4 +96,3 @@ for suffix, data in report.items():
     if data["strategy_locks"]:
         print("locks",Counter(r.get("regime") for r in data["strategy_locks"]))
 print(out)
-
