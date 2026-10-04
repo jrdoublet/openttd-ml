@@ -1078,6 +1078,41 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
       + " head_flip=" + headFlip + " head_mode=" + headMode + " k_dec=" + kDec + stamp);
 }
 
+/* AIR 03/10 4. Les pertes mesurees sont le `continue` de cette selection :
+ * le plan a deja ete choisi a N=2, converti, puis jete parce que son capital
+ * de financement depasse le budget alors que N=1 tiendrait. On reecrit CE
+ * projet, avant le plancher et le filtre, pour que le classement et le
+ * chantier lisent l'economie N=1. Pas de second projet. Si le budget couvre
+ * N=2, aucun ecrit ; un repli anterieur est annule. */
+function OpexAir0310SelectN1(project, capitalBudget)
+{
+  if (!AIR0310_N1_FALLBACK || project == null || capitalBudget == null) return;
+  if (!("mode" in project) || project.mode != "air") return;
+  if (!("payload" in project) || project.payload == null) return;
+  local plan = project.payload;
+  if (!("c121EconN1" in plan) || !("c121EconN2" in plan)) return;
+  local econ1 = plan.c121EconN1;
+  local econ2 = plan.c121EconN2;
+  if (econ1 == null || econ2 == null) return;
+  if (!("planes" in econ1) || econ1.planes != 1) return;
+  if (!("planes" in econ2) || econ2.planes != 2) return;
+  local fellBack = ("c121Air0310N1" in plan) && plan.c121Air0310N1;
+  local published2 = ("economics" in plan) && plan.economics == econ2;
+  if (!fellBack && !published2) return;
+  local finance2 = OpexAir0310EconomyFinance(plan, econ2);
+  local finance1 = OpexAir0310EconomyFinance(plan, econ1);
+  if (finance2 <= 0 || finance1 <= 0) return;
+  if (finance2 <= capitalBudget) {
+    if (fellBack) {
+      if (OpexAir0310WritePlan(plan, econ2, false)) OpexAir0310WriteProject(project);
+    }
+    return;
+  }
+  if (finance1 <= capitalBudget && !fellBack) {
+    if (OpexAir0310WritePlan(plan, econ1, true)) OpexAir0310WriteProject(project);
+  }
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
@@ -1094,6 +1129,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (fitted != null) fittedAlternatives.append(fitted);
   }
   alternatives = fittedAlternatives;
+  /* Avant plancher, preparation territoriale et filtre : le budget de cette
+   * passe est celui qui a produit les select/lost mesures. */
+  if (AIR0310_N1_FALLBACK) {
+    foreach (project in alternatives) OpexAir0310SelectN1(project, capitalBudget);
+  }
   OpexC118PrepareSelection(alternatives, capitalBudget);
   OpexC120PrepareSelection(alternatives, capitalBudget);
   /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,
@@ -1149,6 +1189,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (c118Territorial && ("c118MinFinance" in project) && project.c118MinFinance > 0) {
       financeCapital = project.c118MinFinance;
     }
+    if (PROBE_AIR0310_N1_FALLBACK && financeCapital > capitalBudget)
+      OpexAir0310N1FallbackProbe(project, capitalBudget, "select", "lost");
     if (financeCapital > capitalBudget) continue;
     local c121DefensivePrepared = C121_AIR_ECONOMICS && C121_AIR_DEFENSIVE_FLOOR
         && project.mode == "air";

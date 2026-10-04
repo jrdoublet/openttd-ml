@@ -245,9 +245,10 @@ class SourceTests(unittest.TestCase):
         original = re.sub(r"\n/\* FLEET_AMORT_SHADOW_BEGIN.*?/\* FLEET_AMORT_SHADOW_END \*/\n?", "", self.source, flags=re.S)
         # Empreinte reprise apres 9e29951 (champs portfolio* du split C121,
         # defaut 0), puis V107 : refus de densification rail dans
-        # OpexProjectFromFleet, derriere v107_densify_portfolio a defaut 0.
+        # OpexProjectFromFleet, derriere v107_densify_portfolio a defaut 0,
+        # puis AIR 03/10 4 : repli N=1 dans OpexProjectFromAir, air0310_n1_fallback a 0.
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
-                         "05f7bf1e9cd138ca59386b968a6e9b7d36aa4ee456aa2f9a83cdf551e6a1c1ef")
+                         "a9b862a7a6f1fbe45016df4d4b556accdd20d93452cfc067893be302ce8b5f95")
 
     def test_integrated_caller_is_diagnostic_helper_stays_explicit_opt_in(self):
         occurrences = sum(p.read_text(encoding="utf-8").count("OpexFleetAmortShadow(")

@@ -1589,6 +1589,36 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "probe_air0310_n1_fallback",
+      description = "AIR 03/10 4 probe: log C121 air plans lost or deferred when C1 <= budget < C2 after N=2 wins; 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_n1_fallback",
+      description = "AIR 03/10 4 A/B: if the chosen N=2 opening is not fundable and the already computed N=1 opening is, publish that N=1 economy; 1 = on, 0 = drop the plan (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_incremental_publish",
+      description = "AIR 03/10 1 A/B: a partial air publish inserts only the new plans and reselects; 1 = on (default), 0 = full portfolio rebuild",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

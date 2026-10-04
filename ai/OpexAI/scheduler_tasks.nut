@@ -97,8 +97,43 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       airOps = s.airOps,
     };
     local spPartial = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
-    owner._rebuildProjects(s.fleetPlan, partialAir, false);
+    /* AIR 03/10 1 : seulement le lot partiel. La phase apply plus bas garde
+     * le rebuild complet. Premiere publication (aucun projet de ce scan) :
+     * rebuild, il n'y a pas encore de groupes a completer. */
+    local publishCounts = null;
+    if (AIR0310_INCREMENTAL_PUBLISH && owner._projects != null
+        && ("lastPublishedCount" in s) && s.lastPublishedCount > 0) {
+      publishCounts = OpexAir0310PublishIncremental(owner, s.plans, s.lastPublishedCount,
+          s.airOps, partialAir.airPlan);
+    }
+    if (publishCounts == null) {
+      owner._rebuildProjects(s.fleetPlan, partialAir, false);
+    }
     if (spPartial != null) OpexSpanEnd(spPartial);
+    if (PROBE_SPAN_TRACE) {
+      local publishMode = "full";
+      local publishAdded = 0;
+      local publishReconverted = 0;
+      local publishInvalidated = 0;
+      if (publishCounts != null) {
+        publishMode = "incr";
+        publishAdded = publishCounts.added;
+        publishReconverted = publishCounts.reconverted;
+        publishInvalidated = publishCounts.invalidated;
+      } else {
+        /* Plans soumis au rebuild, pas les projets gardes : FromAir peut
+         * encore en refuser, et ce chemin ne les compte pas. */
+        publishAdded = s.plans.len() - s.lastPublishedCount;
+        if (publishAdded < 0) publishAdded = 0;
+        publishReconverted = s.lastPublishedCount;
+        if (publishReconverted < 0) publishReconverted = 0;
+      }
+      OpexDecide("AIR0310_PUBLISH", "mode=" + publishMode
+          + " added=" + publishAdded
+          + " reconverted=" + publishReconverted
+          + " invalidated=" + publishInvalidated
+          + " total_plans=" + s.plans.len());
+    }
     owner._ranked = owner._projects != null ? owner._projects.rail : null;
     if (C121_CATALOG_INCREMENTAL) owner._portfolioInvalidated = false;
     s.published = true;

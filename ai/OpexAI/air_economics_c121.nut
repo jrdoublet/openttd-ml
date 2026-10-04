@@ -1500,6 +1500,8 @@ function OpexC121OneOrTwoFused(catalog, plan, plane)
     C121_ENGTAB_N1 = econ1;
     C121_ENGTAB_N2 = econ2;
   }
+  if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310KeepN1N2(plan, econ1, econ2, chosen);
+  if (AIR0310_N1_FALLBACK) OpexAir0310RetainN1N2(plan, econ1, econ2);
   return { initial = chosen, full = chosen };
 }
 
@@ -1537,6 +1539,8 @@ function OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext)
     C121_ENGTAB_N1 = econ1;
     C121_ENGTAB_N2 = econ2;
   }
+  if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310KeepN1N2(plan, econ1, econ2, chosen);
+  if (AIR0310_N1_FALLBACK) OpexAir0310RetainN1N2(plan, econ1, econ2);
   return { initial = chosen, full = chosen };
 }
 
@@ -2224,6 +2228,9 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
   plan.c121ChosenEngine <- best.plane.id;
   plan.c121ChosenMailKnown <- (("engineMailKnown" in initialEconomics) && initialEconomics.engineMailKnown);
   if (winnerMark != null) OpexSpanAgg("air.c121.winner", winnerMark);
-  return { plane = best.plane, economics = initialEconomics, decisionEconomics = decisionEconomics,
+  local routeChoice = { plane = best.plane, economics = initialEconomics, decisionEconomics = decisionEconomics,
       portfolioEconomics = portfolioEconomics, targetPlanes = initialEconomics.planes };
+  if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310CopyN1N2(plan, routeChoice);
+  if (AIR0310_N1_FALLBACK) OpexAir0310CopyRetained(plan, routeChoice);
+  return routeChoice;
 }

@@ -585,6 +585,10 @@ function OpexLoadSettings()
   V107_DENSIFY_PORTFOLIO = AIController.GetSetting("v107_densify_portfolio") != 0;
   AIR0310_V96_SHORTCUT_LEAN = AIController.GetSetting("air0310_v96_shortcut_lean") != 0;
   AIR0310_ONE_TWO_FUSED = AIController.GetSetting("air0310_one_two_fused") != 0;
+  PROBE_AIR0310_N1_FALLBACK = AIController.GetSetting("probe_air0310_n1_fallback") != 0;
+  AIR0310_N1_FALLBACK = AIController.GetSetting("air0310_n1_fallback") != 0;
+  AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("air0310_incremental_publish") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");

@@ -411,6 +411,8 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (spBuild != null) OpexSpanEnd(spBuild);
     result.error = AIError.GetLastError();
     result.errorText = AIError.GetLastErrorString();
+    if (PROBE_AIR0310_N1_FALLBACK && result.error == AIError.ERR_NOT_ENOUGH_CASH)
+      OpexAir0310N1FallbackProbe(plan, AICompany.GetBankBalance(AICompany.COMPANY_SELF), "build", "lost");
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -470,7 +472,11 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
         return result;
       }
     }
-    if (!AIVehicle.IsValidVehicle(extra)) break;
+    if (!AIVehicle.IsValidVehicle(extra)) {
+      if (PROBE_AIR0310_N1_FALLBACK)
+        OpexAir0310N1FallbackProbe(plan, AICompany.GetBankBalance(AICompany.COMPANY_SELF), "build", "built");
+      break;
+    }
     built.append(extra);
   }
   foreach (aircraft in built) {
