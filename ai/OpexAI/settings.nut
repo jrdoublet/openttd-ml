@@ -589,6 +589,8 @@ function OpexLoadSettings()
   AIR0310_N1_FALLBACK = AIController.GetSetting("air0310_n1_fallback") != 0;
   AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_incremental_publish") != 0;
+  AIR0310_HUB_SNAPSHOT = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("air0310_hub_snapshot") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");

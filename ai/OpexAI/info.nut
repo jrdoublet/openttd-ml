@@ -1619,6 +1619,16 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "air0310_hub_snapshot",
+      description = "AIR 03/10 2 A/B: reuse the ordered hub and site snapshot across slices of the same combo while the air topology signature matches; 1 = on (default), 0 = rediscover every slice",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 
