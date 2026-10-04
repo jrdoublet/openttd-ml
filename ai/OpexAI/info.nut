@@ -1569,6 +1569,26 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "air0310_v96_shortcut_lean",
+      description = "AIR 03/10 3a A/B: V96 shortcut keeps null guards and drops the unused upper score; 1 = on (default), 0 = previous bound",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_one_two_fused",
+      description = "AIR 03/10 3b A/B: prepare one aircraft's fares, trip, amortisation, capacities and airport costs, then score N=1 and N=2; 1 = on (default), 0 = two full economics calls",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

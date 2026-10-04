@@ -728,6 +728,11 @@ RAIL_REFLEET <- true;
 /* V107 : densification rail classee par le portefeuille. 0 = depense directe
  * sur la tresorerie residuelle (comportement historique). */
 V107_DENSIFY_PORTFOLIO <- false;
+/* AIR 03/10 3a : raccourci V96 sans la borne jetee. 0 = calcul historique. */
+AIR0310_V96_SHORTCUT_LEAN <- false;
+/* AIR 03/10 3b : N=1 et N=2 du meme avion partagent leurs invariants.
+ * 0 = deux economies completes (comportement historique). */
+AIR0310_ONE_TWO_FUSED <- false;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
