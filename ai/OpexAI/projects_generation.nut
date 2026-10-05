@@ -403,6 +403,8 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
  * site/type/reuse suffit pour toute la selection. */
 function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null, lines = null)
 {
+  if (AIR0310_SITE_VALIDITY_CACHE)
+    return OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   local live = [];
   local siteValidity = {};
   local stationLimitedTowns = {};
@@ -443,6 +445,61 @@ function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null
             plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns));
       }
       if (!siteValidity[keyB]) {
+        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
+        continue;
+      }
+    }
+    live.append(project);
+  }
+  if (C120_AIR_TERRITORIAL_RANKING) {
+    C120_AIR_FILTER_SNAPSHOT = {
+      date = AIDate.GetCurrentDate(), inputAir = c120InputAir,
+      filteredAir = c120FilteredAir, liveAir = c120InputAir - c120FilteredAir,
+    };
+  }
+  return live;
+}
+
+/* V122 : meme filtre, avec le cache global de validite. Le chemin a 0
+ * n'entre pas ici. La cle reste celle de keyA/keyB. stationLimitedTowns
+ * est amorce depuis les villes deja plafonnees, puis complete par les
+ * misses ; une entree deja stockee n'est pas recalculee. */
+function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs = null, lines = null)
+{
+  local live = [];
+  local stationLimitedTowns = {};
+  local validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+  local c120InputAir = 0;
+  local c120FilteredAir = 0;
+  foreach (project in alternatives) {
+    if (project != null && ("mode" in project) && project.mode == "air") {
+      if (C120_AIR_TERRITORIAL_RANKING) c120InputAir++;
+      if (!("payload" in project) || project.payload == null
+          || OpexCandidateIsAbandoned(project, abandonedPairs)) {
+        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
+        continue;
+      }
+      local plan = project.payload;
+      if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
+        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
+        continue;
+      }
+      if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
+        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
+        continue;
+      }
+
+      local reuseA = ("reuseA" in plan) && plan.reuseA;
+      local reuseB = ("reuseB" in plan) && plan.reuseB;
+      local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
+      local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
+      if (!OpexAir0310SiteValidityOk(validity, keyA,
+            plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns)) {
+        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
+        continue;
+      }
+      if (!OpexAir0310SiteValidityOk(validity, keyB,
+            plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns)) {
         if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }

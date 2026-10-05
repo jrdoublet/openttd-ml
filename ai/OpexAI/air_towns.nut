@@ -163,6 +163,7 @@ function OpexAirPreemptPickTown(towns, ownCounts)
  * (CmdBuildAirport), pas GetNearestTown ni la ville commerciale du site. */
 function OpexAirSlotTownId(anchor)
 {
+  if (AIR0310_SELECT_MEMO != null) return OpexAir0310SlotTownId(anchor);
   if (anchor == null || !AIMap.IsValidTile(anchor)) return -1;
   local townId = AITile.GetClosestTown(anchor);
   if (townId >= 0 && AITown.IsValidTown(townId)) return townId;

@@ -999,6 +999,7 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   }
 
   local costs = AIAccounting();
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
   for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
   local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stationIdA);
@@ -1286,6 +1287,7 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   if (planB != null) {
     for (local i = 0; i < planB.length; i++) AITile.DemolishTile(planB.anchor + planB.step * i);
   }
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   if (tiles == null) return;
   for (local i = 1; i < tiles.len() - 1; i++) {
     AITile.DemolishTile(tiles[i]);
@@ -1863,6 +1865,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local costs = AIAccounting();
 
   budget.begin();
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA.length; i++) {
     AITile.DemolishTile(planA.anchor + planA.step * i);
   }
@@ -2221,6 +2224,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
   }
 
   local costs = AIAccounting();
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
   for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
   local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, prep.stationIdA);

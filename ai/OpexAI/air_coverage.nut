@@ -21,6 +21,7 @@ function OpexAirResetSiteCache()
   if (C121_CATALOG_INCREMENTAL) OpexC121InvalidateEndpointGeometry();
   AIR_STATION_COVERAGE_HITS = 0;
   AIR_STATION_COVERAGE_MISSES = 0;
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
 }
 
 function OpexAirResetTerritorialCoverageCache()
@@ -33,6 +34,101 @@ function OpexAirResetStationCoverageTownCache()
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
   AIR_C121_STATION_COVERAGE_CACHE.clear();
   if (C121_CATALOG_INCREMENTAL) OpexC121InvalidateEndpointGeometry();
+}
+
+/* V122 : validite OpexAirSiteStillBuildable par cle keyA/keyB.
+ * month = annee * 12 + mois. entries[cle] = bool. limited = villes deja
+ * au plafond ERR_STATION_TOO_MANY_STATIONS_IN_TOWN. Ce plafond est une
+ * propriete de ville, mutee pendant le filtre : on le rejoue seulement
+ * pour les cles absentes. Une reponse deja stockee, vraie ou fausse,
+ * reste jusqu'au mois suivant ou jusqu'a un chantier/demolition d'OpexAI.
+ * Un concurrent qui occupe ou libere la tuile n'est pas vu avant. Le
+ * chantier sur un true perime passe par OpexAirLevelFootprint (depense
+ * reelle possible) puis BuildAirport : echec AFAIL/BFAIL, sans aeroport
+ * laisse par l'echec de pose ; rollback de A si B echoue ensuite, sauf
+ * infrastructure_maintenance a 0. */
+function OpexAir0310SiteValidityMonth()
+{
+  local date = AIDate.GetCurrentDate();
+  return AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+}
+
+function OpexAir0310InvalidateSiteValidity()
+{
+  if (!AIR0310_SITE_VALIDITY_CACHE) return;
+  AIR0310_SITE_VALIDITY_STATE = null;
+}
+
+function OpexAir0310SiteValidityBegin(stationLimitedTowns)
+{
+  local month = OpexAir0310SiteValidityMonth();
+  local state = AIR0310_SITE_VALIDITY_STATE;
+  if (state == null || state.month != month) {
+    state = { month = month, entries = {}, limited = {} };
+    AIR0310_SITE_VALIDITY_STATE = state;
+  }
+  foreach (townId, ignored in state.limited) stationLimitedTowns.rawset(townId, true);
+  return state;
+}
+
+function OpexAir0310SiteValidityOk(state, key, site, airport, plane, reuse, stationLimitedTowns)
+{
+  if (key in state.entries) return state.entries[key];
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTowns);
+  state.entries.rawset(key, ok);
+  if (!reuse && !ok && site != null && ("town" in site) && site.town != null
+      && ("id" in site.town) && (site.town.id in stationLimitedTowns)) {
+    state.limited.rawset(site.town.id, true);
+  }
+  return ok;
+}
+
+/* V123 : sonde a frais, jamais un hit cache. Ecrit le resultat, y compris
+ * un false qui remplace un true perime, et rejoue le plafond ville comme
+ * OpexAir0310SiteValidityOk sur un miss. */
+function OpexAir0310RecheckOneSite(state, key, site, airport, plane, reuse, stationLimitedTowns)
+{
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTowns);
+  state.entries.rawset(key, ok);
+  if (!reuse && !ok && site != null && ("town" in site) && site.town != null
+      && ("id" in site.town) && (site.town.id in stationLimitedTowns)) {
+    state.limited.rawset(site.town.id, true);
+  }
+  return ok;
+}
+
+function OpexAir0310NoteSiteRecheck(failed)
+{
+  if (AIR0310_SITE_RECHECK_STATS == null) {
+    AIR0310_SITE_RECHECK_STATS = { rechecks = 0, rechecks_failed = 0 };
+  }
+  local stats = AIR0310_SITE_RECHECK_STATS;
+  stats.rechecks++;
+  if (failed) stats.rechecks_failed++;
+  if (PROBE_SPAN_TRACE || DECISION_LOG) {
+    OpexDecide("AIR0310_SITE_RECHECK", "rechecks=" + stats.rechecks
+        + " rechecks_failed=" + stats.rechecks_failed);
+  }
+}
+
+/* V123 : si le cache V122 est actif, rejouer StillBuildable pour A et B
+ * juste avant le chantier. Sans V122, aucun effet. stationLimitedTowns
+ * est amorce comme le filtre. Un false est stocke ; la paire n'est pas
+ * abandonnee. Le filtre suivant exclut la cle. */
+function OpexAir0310RecheckSitesBeforeBuild(plan, airport, plane, reuseA, reuseB)
+{
+  if (!AIR0310_SITE_VALIDITY_CACHE || !AIR0310_SITE_RECHECK_BEFORE_BUILD) return true;
+  if (plan == null || airport == null || plane == null) return true;
+  if (!("siteA" in plan) || !("siteB" in plan)) return true;
+  local stationLimitedTowns = {};
+  local state = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+  local keyA = (reuseA ? "R|" : "N|") + airport.type + "|" + plane.planeType + "|" + plan.siteA.anchor;
+  local keyB = (reuseB ? "R|" : "N|") + airport.type + "|" + plane.planeType + "|" + plan.siteB.anchor;
+  local okA = OpexAir0310RecheckOneSite(state, keyA, plan.siteA, airport, plane, reuseA, stationLimitedTowns);
+  local okB = OpexAir0310RecheckOneSite(state, keyB, plan.siteB, airport, plane, reuseB, stationLimitedTowns);
+  local failed = !okA || !okB;
+  OpexAir0310NoteSiteRecheck(failed);
+  return !failed;
 }
 
 /* Un test de site n'est qu'une prediction : si le chantier reel le contredit, ne jamais
@@ -613,6 +709,77 @@ function OpexC121EndpointCacheFresh(result, stamp)
       && stamp.date - old.date < 365;
 }
 
+/* Tuiles reutilisables : meme estampille ville/gare/geometrie, moins de 365 j.
+ * Le prix d'aeroport n'entre pas dans cette estampille. */
+function OpexAir0310EndpointGeometryFresh(cached, cacheStamp)
+{
+  if (cached == null || cacheStamp == null) return false;
+  if (!("stopTiles" in cached) || !("coverageTiles" in cached)) return false;
+  if (cached.stopTiles == null || cached.coverageTiles == null) return false;
+  return OpexC121EndpointCacheFresh(cached, cacheStamp);
+}
+
+function OpexC121EndpointGeomMissCause(cached, stamp)
+{
+  if (cached == null || stamp == null || !("catalogStamp" in cached)) return "absent";
+  if (!("stopTiles" in cached) || !("coverageTiles" in cached)
+      || cached.stopTiles == null || cached.coverageTiles == null) return "absent";
+  local old = cached.catalogStamp;
+  if (old.town != stamp.town) return "town";
+  if (old.station != stamp.station) return "station";
+  if (old.geometry != stamp.geometry) return "geometry";
+  if (stamp.date < old.date) return "date";
+  if (stamp.date - old.date >= 365) return "age";
+  return "fresh";
+}
+
+function OpexAir0310EndpointSplitNote(kind, cause)
+{
+  if (!AIR0310_ENDPOINT_SPLIT) return;
+  if (AIR0310_ENDPOINT_STATS == null) {
+    AIR0310_ENDPOINT_STATS = {
+      endpointGeomHits = 0, endpointGeomMisses = 0, econRecomputes = 0,
+      byCause = {}
+    };
+  }
+  local stats = AIR0310_ENDPOINT_STATS;
+  if (kind == "geom_hit") stats.endpointGeomHits++;
+  else if (kind == "geom_miss") {
+    stats.endpointGeomMisses++;
+    local n = (cause in stats.byCause) ? stats.byCause[cause] : 0;
+    stats.byCause.rawset(cause, n + 1);
+  } else if (kind == "econ") stats.econRecomputes++;
+  /* DECISION_LOG seulement : PROBE_SPAN_TRACE mesure air.c121.demand et
+   * ne doit pas payer un AILog par extremite. Le resume est hors de ce span. */
+  if (!DECISION_LOG || kind != "geom_miss") return;
+  OpexDecide("ENDPOINT_MISS", "cause=" + cause
+      + " geomHits=" + stats.endpointGeomHits
+      + " geomMisses=" + stats.endpointGeomMisses
+      + " econ=" + stats.econRecomputes);
+}
+
+function OpexAir0310EndpointSplitReport()
+{
+  local hits = 0;
+  local misses = 0;
+  local econ = 0;
+  local causes = "none";
+  if (AIR0310_ENDPOINT_STATS != null) {
+    local stats = AIR0310_ENDPOINT_STATS;
+    hits = stats.endpointGeomHits;
+    misses = stats.endpointGeomMisses;
+    econ = stats.econRecomputes;
+    if (("byCause" in stats) && stats.byCause.len() > 0) {
+      causes = "";
+      foreach (cause, count in stats.byCause) {
+        causes += (causes == "" ? "" : ",") + cause + ":" + count;
+      }
+    }
+  }
+  OpexDecide("ENDPOINT_MISS", "cause=" + causes
+      + " geomHits=" + hits + " geomMisses=" + misses + " econ=" + econ);
+}
+
 function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
                                            stopTiles = null, sharedCoverageTiles = null)
 {
@@ -630,6 +797,11 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
   }
   local cacheKey = null;
   local cacheStamp = null;
+  local cached = null;
+  local forceRefresh = false;
+  /* A 0, econRefresh est faux des le global : le hit ci-dessous est celui d'avant. */
+  local econRefresh = AIR0310_ENDPOINT_SPLIT && C121_CATALOG_INCREMENTAL
+      && ("c121CatalogRefreshEndpointEcon" in plan) && plan.c121CatalogRefreshEndpointEcon;
   if (C121_AIR_ECONOMICS && C121_AIR_ENDPOINT_CACHE != null) {
     local anchorKey = ("anchor" in site) ? site.anchor : -1;
     local townKey = ("town" in site) && site.town != null && ("id" in site.town) ? site.town.id : -1;
@@ -638,12 +810,13 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
     cacheKey = cargo + "|" + airportType + "|" + anchorKey + "|" + townKey
         + "|" + (reused ? 1 : 0) + "|" + routesKey + "|" + stationKey;
     if (C121_CATALOG_INCREMENTAL) cacheStamp = OpexC121EndpointCacheStamp(townKey, stationKey);
-    local forceRefresh = C121_CATALOG_INCREMENTAL
+    forceRefresh = C121_CATALOG_INCREMENTAL
       && ("c121CatalogRefreshEndpoints" in plan) && plan.c121CatalogRefreshEndpoints;
-    if (!forceRefresh && cacheKey in C121_AIR_ENDPOINT_CACHE
-      && (cacheStamp == null || OpexC121EndpointCacheFresh(C121_AIR_ENDPOINT_CACHE[cacheKey], cacheStamp))) {
+    if (cacheKey in C121_AIR_ENDPOINT_CACHE) cached = C121_AIR_ENDPOINT_CACHE[cacheKey];
+    if (!forceRefresh && !econRefresh && cached != null
+      && (cacheStamp == null || OpexC121EndpointCacheFresh(cached, cacheStamp))) {
       if (C121_AIR_PLAN_PERF != null) C121_AIR_PLAN_PERF.endpointHits++;
-      return C121_AIR_ENDPOINT_CACHE[cacheKey];
+      return cached;
     }
     if (C121_AIR_PLAN_PERF != null) C121_AIR_PLAN_PERF.endpointMisses++;
   }
@@ -656,9 +829,13 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
   }
   local stops = stopTiles == null ? [] : stopTiles;
   local stationId = -1;
+  local decidingGeometry = stopTiles == null && sharedCoverageTiles == null;
+  local geomFromCache = econRefresh && decidingGeometry
+      && OpexAir0310EndpointGeometryFresh(cached, cacheStamp);
+  if (geomFromCache) stops = cached.stopTiles;
   if (reused) {
     if ("stationId" in site) stationId = site.stationId;
-  } else if (stopTiles == null) {
+  } else if (stopTiles == null && !geomFromCache) {
     /* Les arrets reels sont choisis sur les passagers. Le MAIL doit reutiliser
      * exactement cette meme geometrie de station, pas choisir ses propres stops. */
     local tPredict0 = AIController.GetTick();
@@ -666,16 +843,26 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
     result.predictTicks = AIController.GetTick() - tPredict0;
   }
   local coverageTiles = sharedCoverageTiles;
+  if (geomFromCache) coverageTiles = cached.coverageTiles;
   if (coverageTiles == null) {
     local tCoverage0 = AIController.GetTick();
     coverageTiles = OpexAirB9TownCoverageTiles(
         site.town, site.anchor, airportType, stops, stationId);
     result.coverageTicks = AIController.GetTick() - tCoverage0;
   }
+  if (econRefresh && decidingGeometry) {
+    if (geomFromCache) OpexAir0310EndpointSplitNote("geom_hit", null);
+    else OpexAir0310EndpointSplitNote("geom_miss", OpexC121EndpointGeomMissCause(cached, cacheStamp));
+  } else if (AIR0310_ENDPOINT_SPLIT && forceRefresh && decidingGeometry) {
+    local keptCause = ("c121CatalogEndpointMissCause" in plan)
+        ? plan.c121CatalogEndpointMissCause : "input";
+    OpexAir0310EndpointSplitNote("geom_miss", keptCause);
+  }
   local tUnion0 = AIController.GetTick();
   local union = OpexAirB9TownUnionMonthly(
       site.town, site.anchor, airportType, cargo, stops, stationId, coverageTiles);
   result.unionTicks = AIController.GetTick() - tUnion0;
+  if (econRefresh) OpexAir0310EndpointSplitNote("econ", null);
   local routeDiv = reused && ("routes" in site) ? site.routes + 1 : 1;
   result.airportMonthly = airportOnly.monthly / routeDiv;
   result.unionMonthly = union.monthly;
@@ -689,7 +876,10 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
   result.stopTiles = stops;
   result.coverageTiles = coverageTiles;
   if (cacheStamp != null) result.catalogStamp <- cacheStamp;
-  if (cacheKey != null) C121_AIR_ENDPOINT_CACHE.rawset(cacheKey, result);
+  /* Ne pas ecraser l'entree partagee quand on a seulement rafraichi
+   * l'economie de CE plan : les autres plans relisent le meme objet. */
+  local keepShared = econRefresh && (geomFromCache || stopTiles != null || sharedCoverageTiles != null);
+  if (cacheKey != null && !keepShared) C121_AIR_ENDPOINT_CACHE.rawset(cacheKey, result);
   return result;
 }
 

@@ -175,8 +175,8 @@ function OpexEarlySlotSelectionState()
       local slotTown = OpexAirSlotTownId(AIStation.GetLocation(st));
       if (slotTown >= 0) townId = slotTown;
     }
-    if (townId < 0 || !AITown.IsValidTown(townId)) continue;
-    if (AITown.GetPopulation(townId) < AIR_EARLY_SLOT_MIN_POP) continue;
+    if (townId < 0 || !(AIR0310_SELECT_MEMO != null ? OpexAir0310TownValid(townId) : AITown.IsValidTown(townId))) continue;
+    if ((AIR0310_SELECT_MEMO != null ? OpexAir0310TownPop(townId) : AITown.GetPopulation(townId)) < AIR_EARLY_SLOT_MIN_POP) continue;
     if (townId in state.servedTowns) continue;
     state.servedTowns.rawset(townId, true);
     state.servedCount++;
@@ -229,8 +229,8 @@ function OpexDefensiveSlotSelectionState(earlySlotState = null)
         local slotTown = OpexAirSlotTownId(AIStation.GetLocation(st));
         if (slotTown >= 0) townId = slotTown;
       }
-      if (townId < 0 || !AITown.IsValidTown(townId)) continue;
-      if (AITown.GetPopulation(townId) < AIR_EARLY_SLOT_MIN_POP) continue;
+      if (townId < 0 || !(AIR0310_SELECT_MEMO != null ? OpexAir0310TownValid(townId) : AITown.IsValidTown(townId))) continue;
+      if ((AIR0310_SELECT_MEMO != null ? OpexAir0310TownPop(townId) : AITown.GetPopulation(townId)) < AIR_EARLY_SLOT_MIN_POP) continue;
       if (townId in state.servedTowns) continue;
       state.servedTowns.rawset(townId, true);
       state.servedCount++;
@@ -243,7 +243,7 @@ function OpexDefensiveSlotSelectionState(earlySlotState = null)
 
 function OpexC83TownSlotsRemaining(townId, state)
 {
-  if (state == null || townId < 0 || !AITown.IsValidTown(townId)) return -1;
+  if (state == null || townId < 0 || !(AIR0310_SELECT_MEMO != null ? OpexAir0310TownValid(townId) : AITown.IsValidTown(townId))) return -1;
   if (!("defensiveSlotSignal" in state) || !state.defensiveSlotSignal) return -1;
   if (!(townId in state.slotRemaining)) {
     state.slotRemaining.rawset(townId, AITown.GetAllowedNoise(townId));
@@ -400,12 +400,351 @@ function OpexProjectSetEarlySlotField(project, field, value)
   else project[field] <- value;
 }
 
+/* V124 : memo d'UNE passe de selection. Table a part, jamais un champ du
+ * projet (le clone du cold shadow et la sauvegarde ne doivent pas la voir).
+ * Villes : GetClosestTown par ancre, IsValidTown et GetPopulation par ville.
+ * Une ville peut apparaitre en cours de partie : on ne garde ces trois cartes
+ * que pour la passe, et on les vide quand la date change. Le tick est lu
+ * d'abord ; GetCurrentDate n'est appele que si le tick a change. Le cache de
+ * rang et de finance n'est pas vide avec la date : il est estampille par les
+ * champs lus.
+ * Tier C77 : mode, profitAnnual, defensiveCompetitorClaims, defensiveOwnClaims,
+ * preemptClaims. slotRemaining et GetAllowedNoise n'y entrent pas : la priorite
+ * ne les lit pas, et le cache state.slotRemaining couvre deja le bruit.
+ * Le +1000 de chaine, C118 et C122 restent calcules a chaque comparaison.
+ * Score : un paquet early et un paquet brut, parce que le meme projet est
+ * insere sur c69Score puis sur fundScore dans la meme passe. */
+function OpexAir0310SelectMemoNew()
+{
+  return {
+    tick = -1, date = -1,
+    townByAnchor = {}, townValid = {}, townPop = {},
+    rank = {}, finance = {},
+  };
+}
+
+function OpexAir0310MemoTowns()
+{
+  local memo = AIR0310_SELECT_MEMO;
+  local tick = AIController.GetTick();
+  if (tick == memo.tick) return;
+  local date = AIDate.GetCurrentDate();
+  if (date != memo.date) {
+    memo.townByAnchor = {};
+    memo.townValid = {};
+    memo.townPop = {};
+    memo.date = date;
+  }
+  memo.tick = tick;
+}
+
+function OpexAir0310ClosestTown(anchor)
+{
+  if (anchor == null) return AITile.GetClosestTown(anchor);
+  OpexAir0310MemoTowns();
+  local memo = AIR0310_SELECT_MEMO;
+  if (anchor in memo.townByAnchor) return memo.townByAnchor[anchor];
+  local townId = AITile.GetClosestTown(anchor);
+  memo.townByAnchor.rawset(anchor, townId);
+  return townId;
+}
+
+function OpexAir0310TownValid(townId)
+{
+  OpexAir0310MemoTowns();
+  local memo = AIR0310_SELECT_MEMO;
+  if (townId in memo.townValid) return memo.townValid[townId];
+  local ok = AITown.IsValidTown(townId);
+  memo.townValid.rawset(townId, ok);
+  return ok;
+}
+
+function OpexAir0310TownPop(townId)
+{
+  OpexAir0310MemoTowns();
+  local memo = AIR0310_SELECT_MEMO;
+  if (townId in memo.townPop) return memo.townPop[townId];
+  local pop = AITown.GetPopulation(townId);
+  memo.townPop.rawset(townId, pop);
+  return pop;
+}
+
+function OpexAir0310SlotTownId(anchor)
+{
+  if (anchor == null || !AIMap.IsValidTile(anchor)) return -1;
+  local townId = OpexAir0310ClosestTown(anchor);
+  if (townId >= 0 && OpexAir0310TownValid(townId)) return townId;
+  return -1;
+}
+
+function OpexAir0310RankSlot(memo, project)
+{
+  if (project in memo.rank) return memo.rank[project];
+  local slot = {
+    tierStored = false, tier = 0,
+    mode = null, profit = 0, comp = 0, own = 0, preempt = 0,
+    packEarly = null, packRaw = null,
+  };
+  memo.rank.rawset(project, slot);
+  return slot;
+}
+
+function OpexAir0310CachedTier(project)
+{
+  if (project == null) return OpexProjectDefensiveAirPriority(project);
+  local memo = AIR0310_SELECT_MEMO;
+  local mode = ("mode" in project) ? project.mode : null;
+  local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
+  local comp = ("defensiveCompetitorClaims" in project) ? project.defensiveCompetitorClaims : 0;
+  local own = ("defensiveOwnClaims" in project) ? project.defensiveOwnClaims : 0;
+  local preempt = ("preemptClaims" in project) ? project.preemptClaims : 0;
+  local slot = (project in memo.rank) ? memo.rank[project] : null;
+  if (slot != null && slot.tierStored && slot.mode == mode && slot.profit == profit
+      && slot.comp == comp && slot.own == own && slot.preempt == preempt) {
+    return slot.tier;
+  }
+  local tier = OpexProjectDefensiveAirPriority(project);
+  if (slot == null) slot = OpexAir0310RankSlot(memo, project);
+  slot.mode = mode;
+  slot.profit = profit;
+  slot.comp = comp;
+  slot.own = own;
+  slot.preempt = preempt;
+  slot.tier = tier;
+  slot.tierStored = true;
+  return tier;
+}
+
+function OpexAir0310CachedScore(project, field, applyEarlySlot)
+{
+  if (project == null) {
+    return applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
+  }
+  local memo = AIR0310_SELECT_MEMO;
+  local slot = OpexAir0310RankSlot(memo, project);
+  local pack = applyEarlySlot ? slot.packEarly : slot.packRaw;
+  local raw = project[field];
+  local mode = ("mode" in project) ? project.mode : null;
+  local hasBonus = ("earlySlotBonusPct" in project);
+  local bonus = hasBonus ? project.earlySlotBonusPct : 0;
+  if (pack != null && pack.field == field && pack.raw == raw && pack.mode == mode
+      && pack.hasBonus == hasBonus && pack.bonus == bonus) {
+    return pack.score;
+  }
+  local score = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
+  pack = {
+    field = field, raw = raw, mode = mode,
+    hasBonus = hasBonus, bonus = bonus, score = score,
+  };
+  if (applyEarlySlot) slot.packEarly = pack;
+  else slot.packRaw = pack;
+  return score;
+}
+
+/* Air, eau, flotte : FinanceCapital rend budgetCapital des que le champ existe,
+ * calibration ou non. Rail et route gardent le calcul, estampille par les
+ * entrees lues. N'est appele que lorsque le memo de passe est en place. */
+function OpexAir0310FinanceCapital(project)
+{
+  if (project != null && ("budgetCapital" in project) && ("mode" in project)
+      && project.mode != "rail" && project.mode != "road") {
+    return project.budgetCapital;
+  }
+  if (project == null) return OpexProjectFinanceCapital(project);
+  local memo = AIR0310_SELECT_MEMO;
+  local budget = ("budgetCapital" in project) ? project.budgetCapital : null;
+  local mode = ("mode" in project) ? project.mode : null;
+  local capital = ("capital" in project) ? project.capital : null;
+  local actual = ("capitalIsActual" in project) && project.capitalIsActual;
+  local payload = ("payload" in project) ? project.payload : null;
+  local payloadCapital = (payload != null && ("capital" in payload)) ? payload.capital : null;
+  local payloadActual = (payload != null && ("capitalIsActual" in payload)) && payload.capitalIsActual;
+  local slot = (project in memo.finance) ? memo.finance[project] : null;
+  if (slot != null && slot.budget == budget && slot.mode == mode && slot.capital == capital
+      && slot.actual == actual && slot.payload == payload
+      && slot.payloadCapital == payloadCapital && slot.payloadActual == payloadActual
+      && slot.calibration == CAPITAL_CALIBRATION && slot.railBias == RAIL_FINANCE_BIAS_PCT) {
+    return slot.value;
+  }
+  local value = OpexProjectFinanceCapital(project);
+  memo.finance.rawset(project, {
+    budget = budget, mode = mode, capital = capital, actual = actual,
+    payload = payload, payloadCapital = payloadCapital, payloadActual = payloadActual,
+    calibration = CAPITAL_CALIBRATION, railBias = RAIL_FINANCE_BIAS_PCT,
+    value = value,
+  });
+  return value;
+}
+
+function OpexAir0310RefreshEarlySlot(project, state)
+{
+  if (project == null || state == null) return;
+
+  local physicalClaims = 0;
+  local bonusClaims = 0;
+  local claimPopulation = 0;
+  local townA = -1;
+  local townB = -1;
+  local popA = -1;
+  local popB = -1;
+
+  if (AIR_EARLY_SLOT && ("mode" in project) && project.mode == "air"
+      && ("payload" in project) && project.payload != null
+      && state.servedCount < AIR_EARLY_SLOT_TARGET_TOWNS) {
+    local plan = project.payload;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local claimedTowns = {};
+
+    if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
+      townA = OpexAir0310ClosestTown(plan.siteA.anchor);
+      if (townA < 0) townA = plan.siteA.town.id;
+      if (townA >= 0 && OpexAir0310TownValid(townA)) popA = OpexAir0310TownPop(townA);
+      if (!reuseA && popA >= AIR_EARLY_SLOT_MIN_POP
+          && !(townA in state.servedTowns) && !(townA in claimedTowns)) {
+        claimedTowns.rawset(townA, true);
+        physicalClaims++;
+        claimPopulation += popA;
+      }
+    }
+
+    if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
+      townB = OpexAir0310ClosestTown(plan.siteB.anchor);
+      if (townB < 0) townB = plan.siteB.town.id;
+      if (townB >= 0 && OpexAir0310TownValid(townB)) popB = OpexAir0310TownPop(townB);
+      if (!reuseB && popB >= AIR_EARLY_SLOT_MIN_POP
+          && !(townB in state.servedTowns) && !(townB in claimedTowns)) {
+        claimedTowns.rawset(townB, true);
+        physicalClaims++;
+        claimPopulation += popB;
+      }
+    }
+
+    local remaining = AIR_EARLY_SLOT_TARGET_TOWNS - state.servedCount;
+    bonusClaims = physicalClaims;
+    if (bonusClaims > remaining) bonusClaims = remaining;
+  }
+
+  /* Les claims physiques decrivent ce que le chantier securisera reellement.
+   * Les bonus claims sont bornes par la cible et seuls eux pilotent la prime. */
+  OpexProjectSetEarlySlotField(project, "earlySlotClaims", physicalClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotBonusClaims", bonusClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotClaimPopulation", claimPopulation);
+  OpexProjectSetEarlySlotField(project, "earlySlotServedBefore", state.servedCount);
+  OpexProjectSetEarlySlotField(project, "earlySlotBonusPct", AIR_EARLY_SLOT_BONUS_PCT * bonusClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotTownA", townA);
+  OpexProjectSetEarlySlotField(project, "earlySlotTownB", townB);
+  OpexProjectSetEarlySlotField(project, "earlySlotPopA", popA);
+  OpexProjectSetEarlySlotField(project, "earlySlotPopB", popB);
+}
+
+function OpexAir0310RefreshDefensiveSlot(project, state)
+{
+  if (project == null || state == null) return;
+
+  local claims = 0;
+  local competitorClaims = 0;
+  local ownClaims = 0;
+  local newTownClaims = 0;
+  local observeNewTowns = C121_AIR_PRESSURE_PROBE || C122_AIR_REGIME_PRIORITY
+      || C122_AIR_REGIME_SHADOW;
+  local townA = -1;
+  local townB = -1;
+  if (("mode" in project) && project.mode == "air"
+      && ("payload" in project) && project.payload != null) {
+    local plan = project.payload;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local ownSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
+    local ownSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
+    local claimedTowns = {};
+    local newTowns = observeNewTowns ? {} : null;
+
+    if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
+      if (("anchor" in plan.siteA) && AIMap.IsValidTile(plan.siteA.anchor)) {
+        townA = OpexAir0310ClosestTown(plan.siteA.anchor);
+      }
+      if (townA < 0) townA = plan.siteA.town.id;
+      if (!reuseA && townA >= 0 && OpexAir0310TownValid(townA)
+          && OpexAir0310TownPop(townA) >= AIR_EARLY_SLOT_MIN_POP
+          && !(townA in claimedTowns)) {
+        if (observeNewTowns
+            && !(townA in state.servedTowns) && !(townA in newTowns)) {
+          newTowns.rawset(townA, true);
+          newTownClaims++;
+        }
+        if (ownSecondA && (townA in state.servedTowns)
+            && OpexC83TownSlotsRemaining(townA, state) == 1) {
+          claimedTowns.rawset(townA, true);
+          claims++;
+          ownClaims++;
+        } else if (!(townA in state.servedTowns)
+            && OpexC78TownHasCompetitorAirport(townA, state)) {
+          claimedTowns.rawset(townA, true);
+          claims++;
+          competitorClaims++;
+        }
+      }
+    }
+
+    if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
+      if (("anchor" in plan.siteB) && AIMap.IsValidTile(plan.siteB.anchor)) {
+        townB = OpexAir0310ClosestTown(plan.siteB.anchor);
+      }
+      if (townB < 0) townB = plan.siteB.town.id;
+      if (!reuseB && townB >= 0 && OpexAir0310TownValid(townB)
+          && OpexAir0310TownPop(townB) >= AIR_EARLY_SLOT_MIN_POP
+          && !(townB in claimedTowns)) {
+        if (observeNewTowns
+            && !(townB in state.servedTowns) && !(townB in newTowns)) {
+          newTowns.rawset(townB, true);
+          newTownClaims++;
+        }
+        if (ownSecondB && (townB in state.servedTowns)
+            && OpexC83TownSlotsRemaining(townB, state) == 1) {
+          claimedTowns.rawset(townB, true);
+          claims++;
+          ownClaims++;
+        } else if (!(townB in state.servedTowns)
+            && OpexC78TownHasCompetitorAirport(townB, state)) {
+          claimedTowns.rawset(townB, true);
+          claims++;
+          competitorClaims++;
+        }
+      }
+    }
+
+    /* Ville de slot = ClosestTown(ancre), pas la ville commerciale. Seule une
+     * extremite neuve (pas un hub reutilise) peut preempter. */
+    if (C83_PREEMPT_OPEN && C83_PREEMPT_TOWN >= 0) {
+      local preemptClaims = 0;
+      if (!reuseA && ("siteA" in plan) && plan.siteA != null && ("anchor" in plan.siteA)
+          && OpexAirSlotTownId(plan.siteA.anchor) == C83_PREEMPT_TOWN) preemptClaims++;
+      if (!reuseB && ("siteB" in plan) && plan.siteB != null && ("anchor" in plan.siteB)
+          && OpexAirSlotTownId(plan.siteB.anchor) == C83_PREEMPT_TOWN) {
+        if (preemptClaims == 0) preemptClaims++;
+      }
+      if (preemptClaims > 0) OpexProjectSetEarlySlotField(project, "preemptClaims", preemptClaims);
+    }
+  }
+
+  OpexProjectSetEarlySlotField(project, "defensiveSlotClaims", claims);
+  OpexProjectSetEarlySlotField(project, "defensiveCompetitorClaims", competitorClaims);
+  OpexProjectSetEarlySlotField(project, "defensiveOwnClaims", ownClaims);
+  if (observeNewTowns) {
+    OpexProjectSetEarlySlotField(project, "defensiveNewTownClaims", newTownClaims);
+  }
+  OpexProjectSetEarlySlotField(project, "defensiveSlotTownA", townA);
+  OpexProjectSetEarlySlotField(project, "defensiveSlotTownB", townB);
+}
+
 /* Classe uniquement les projets air DEJA rentables. Le town associe au slot est
  * derive du site physique (meme convention que le diagnostic 771), ce qui evite
  * de confondre la ville cible commerciale avec la ville qui porte réellement la
  * limite des deux aeroports. Aucun champ economique n'est modifie. */
 function OpexProjectRefreshEarlySlot(project, state)
 {
+  if (AIR0310_SELECT_MEMO != null) return OpexAir0310RefreshEarlySlot(project, state);
   if (project == null || state == null) return;
 
   local physicalClaims = 0;
@@ -471,6 +810,7 @@ function OpexProjectRefreshEarlySlot(project, state)
  * defaut air_early_slot=1. */
 function OpexProjectRefreshDefensiveSlot(project, state)
 {
+  if (AIR0310_SELECT_MEMO != null) return OpexAir0310RefreshDefensiveSlot(project, state);
   if (project == null || state == null) return;
 
   local claims = 0;
@@ -972,7 +1312,9 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
  * celui mesure sur le profit long terme preserve exactement ce calibrage. */
 function OpexProjectFundProfit(project)
 {
+  local calibMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local calibrated = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual;
+  if (calibMark != null) OpexSpanAgg("pub.select.calibrate", calibMark);
   if (!C121_AIR_PORTFOLIO_SPLIT_ECONOMICS || project == null
       || !("mode" in project) || project.mode != "air"
       || !("portfolioProfitAnnual" in project)) return calibrated;
@@ -1116,19 +1458,24 @@ function OpexAir0310SelectN1(project, capitalBudget)
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
+  AIR0310_SELECT_MEMO = AIR0310_SELECT_EXACT_MEMO ? OpexAir0310SelectMemoNew() : null;
+  try {
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
   local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
    * les modes. Le budget fourni a deja soustrait la reserve de tresorerie. */
   local fittedAlternatives = [];
   foreach (project in alternatives) {
-    local fitted = OpexProjectFitFleetToBudget(project, capitalBudget);
+    local fitMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    local fitted = (AIR0310_SELECT_EXACT_MEMO && project != null && ("mode" in project) && project.mode != "fleet") ? project : OpexProjectFitFleetToBudget(project, capitalBudget);
     if (R1_R3_TEST_ONLY) fitted = OpexR1R3FitTrace(project, fitted, capitalBudget);
     if (amortProbe != null && fitted != null && project.mode == "fleet")
       amortProbe.originals.append({ project = fitted, quantity = project.payload.want });
     if (fitted != null) fittedAlternatives.append(fitted);
+    if (fitMark != null) OpexSpanAgg("pub.select.score.fit", fitMark);
   }
   alternatives = fittedAlternatives;
+  local spStates = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.states") : null;
   /* Avant plancher, preparation territoriale et filtre : le budget de cette
    * passe est celui qui a produit les select/lost mesures. */
   if (AIR0310_N1_FALLBACK) {
@@ -1154,7 +1501,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   if (PORTFOLIO_FLOOR_PCT > 0) {
     local bestProfit = 0;
     foreach (project in alternatives) {
-      local financeCapital = OpexProjectFinanceCapital(project);
+      local financeCapital = AIR0310_SELECT_MEMO != null ? OpexAir0310FinanceCapital(project) : OpexProjectFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
       if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
     }
@@ -1180,14 +1527,22 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     kDec = kDecData.K_dec;
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
   }
+  if (spStates != null) OpexSpanEnd(spStates);
 
   foreach (project in alternatives) {
-    local financeCapital = OpexProjectFinanceCapital(project);
+    local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    local slotMark = null;
+    local insertMark = null;
+    local financeCapital = AIR0310_SELECT_MEMO != null ? OpexAir0310FinanceCapital(project) : OpexProjectFinanceCapital(project);
     OpexC116ObserveAirPortfolioOpportunity(c116Snapshot, project, financeCapital, capitalBudget);
     local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
         && (("c118NewTowns") in project) && project.c118NewTowns > 0;
     if (c118Territorial && ("c118MinFinance" in project) && project.c118MinFinance > 0) {
       financeCapital = project.c118MinFinance;
+    }
+    if (fundMark != null) {
+      OpexSpanAgg("pub.select.score.fund_score", fundMark);
+      fundMark = null;
     }
     if (PROBE_AIR0310_N1_FALLBACK && financeCapital > capitalBudget)
       OpexAir0310N1FallbackProbe(project, capitalBudget, "select", "lost");
@@ -1197,8 +1552,14 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     local c121DefensiveTier = 0;
     local c121DefensiveFloor = floorProfit;
     if (c121DefensivePrepared) {
+      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      if (slotMark != null) {
+        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
+        slotMark = null;
+      }
+      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       c121DefensiveTier = OpexProjectDefensiveAirPriority(project);
       /* C121 anti-monopole : ne plus supprimer completement le garde-fou de
        * profit. Une course au second slot concurrent (tier 2) accepte la moitie
@@ -1208,10 +1569,22 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;
     }
     if (project.profitAnnual < c121DefensiveFloor && !c118Territorial
-        && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) continue;
+        && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) {
+      if (fundMark != null) {
+        OpexSpanAgg("pub.select.score.fund_score", fundMark);
+        fundMark = null;
+      }
+      continue;
+    }
     if (!c121DefensivePrepared) {
+      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      if (slotMark != null) {
+        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
+        slotMark = null;
+      }
+      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     }
     local decisionFinanceCapital = financeCapital;
     if (project.mode == "air" && ("decisionFinanceCapital" in project)
@@ -1238,6 +1611,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         && ("c121CatalogKey" in project.payload)
         && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
       C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
+    if (fundMark != null) {
+      OpexSpanAgg("pub.select.score.fund_score", fundMark);
+      fundMark = null;
+    }
+    insertMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1266,6 +1644,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     } else {
       OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
+    if (insertMark != null) {
+      OpexSpanAgg("pub.select.score.insert", insertMark);
+      insertMark = null;
+    }
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
@@ -1277,14 +1659,27 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     airPairBest = {};
     if (c121KDecColdRows != null) c121KDecColdRows.clear();
     foreach (project in alternatives) {
+      local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      local slotMark = null;
+      local insertMark = null;
       local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
           && (("c118NewTowns") in project) && project.c118NewTowns > 0;
-      local normalFinanceCapital = OpexProjectFinanceCapital(project);
+      local normalFinanceCapital = AIR0310_SELECT_MEMO != null ? OpexAir0310FinanceCapital(project) : OpexProjectFinanceCapital(project);
       local financeCapital = (c118Territorial && ("c118MinFinance" in project)
           && project.c118MinFinance > 0) ? project.c118MinFinance : normalFinanceCapital;
+      if (fundMark != null) {
+        OpexSpanAgg("pub.select.score.fund_score", fundMark);
+        fundMark = null;
+      }
       if (financeCapital > capitalBudget) continue;
+      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      if (slotMark != null) {
+        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
+        slotMark = null;
+      }
+      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local decisionFinanceCapital = financeCapital;
       if (project.mode == "air" && ("decisionFinanceCapital" in project)
           && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
@@ -1300,6 +1695,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);
       OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
+      if (fundMark != null) {
+        OpexSpanAgg("pub.select.score.fund_score", fundMark);
+        fundMark = null;
+      }
+      insertMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1328,8 +1728,13 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         } else {
           OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
         }
+      if (insertMark != null) {
+        OpexSpanAgg("pub.select.score.insert", insertMark);
+        insertMark = null;
+      }
     }
   }
+  local spEpilogue = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.epilogue") : null;
   if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
   OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
@@ -1344,7 +1749,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     foreach (p in alternatives) {
       local m = ("mode" in p) ? p.mode : "unknown";
       if (m in toSel) toSel[m]++;
-      local fc = OpexProjectFinanceCapital(p);
+      local fc = AIR0310_SELECT_MEMO != null ? OpexAir0310FinanceCapital(p) : OpexProjectFinanceCapital(p);
       if (fc <= capitalBudget && (floorProfit <= 0 || p.profitAnnual >= floorProfit)) {
         if (m in aff) aff[m]++;
       }
@@ -1367,11 +1772,17 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       }
       OpexR1R3Log("mechanism=R1 phase=rank id=" + project.r1r3Id
           + " rank=" + rank + " score=" + (("fundScore" in project) ? project.fundScore : "unknown")
-          + " finance=" + OpexProjectFinanceCapital(project) + " budget=" + capitalBudget);
+          + " finance=" + (AIR0310_SELECT_MEMO != null ? OpexAir0310FinanceCapital(project) : OpexProjectFinanceCapital(project)) + " budget=" + capitalBudget);
     }
   }
+  if (spEpilogue != null) OpexSpanEnd(spEpilogue);
+  AIR0310_SELECT_MEMO = null;
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;
+  } catch (err) {
+    AIR0310_SELECT_MEMO = null;
+    throw err;
+  }
 }
 
 /* Early-slot ne falsifie ni profitAnnual ni revenueAnnual. Le bonus n'existe
@@ -1395,9 +1806,113 @@ function OpexProjectIsForcedChain(project)
   return V88_CHAIN_FORCE && project != null && ("isChain" in project) && project.isChain;
 }
 
+function OpexAir0310InsertDefensive(best, project, field, limit, applyEarlySlot = false)
+{
+  local projectC77Tier = OpexAir0310CachedTier(project);
+  local projectTier = projectC77Tier
+      + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+  local projectScore = OpexAir0310CachedScore(project, field, applyEarlySlot);
+  local pos = best.len();
+  while (pos > 0) {
+    local prior = best[pos - 1];
+    local priorC77Tier = OpexAir0310CachedTier(prior);
+    local priorTier = priorC77Tier
+        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
+    local c118Active = C118_AIR_TERRITORIAL_EXPANSION
+        && C118_AIR_PROJECT_SNAPSHOT != null
+        && ("active" in C118_AIR_PROJECT_SNAPSHOT) && C118_AIR_PROJECT_SNAPSHOT.active;
+    if (c118Active) {
+      local projectAir = ("mode" in project) && project.mode == "air";
+      local priorAir = ("mode" in prior) && prior.mode == "air";
+      local projectNew = ("c118NewTowns" in project) ? project.c118NewTowns : 0;
+      local priorNew = ("c118NewTowns" in prior) ? prior.c118NewTowns : 0;
+      if (projectNew > 0 || priorNew > 0) {
+        if (priorNew > projectNew) break;
+        if (priorNew < projectNew) {
+          pos--;
+          continue;
+        }
+      }
+      if (projectAir && priorAir) {
+        local projectDays = ("c118NextDays" in project) ? project.c118NextDays : -1.0;
+        local priorDays = ("c118NextDays" in prior) ? prior.c118NextDays : -1.0;
+        if (projectDays >= 0 && priorDays >= 0 && priorDays != projectDays) {
+          if (priorDays < projectDays) break;
+          pos--;
+          continue;
+        }
+        if (priorDays >= 0 && projectDays < 0) break;
+        if (priorDays < 0 && projectDays >= 0) {
+          pos--;
+          continue;
+        }
+        local projectProfit = ("c118C68Profit" in project) ? project.c118C68Profit : project.profitAnnual;
+        local priorProfit = ("c118C68Profit" in prior) ? prior.c118C68Profit : prior.profitAnnual;
+        if (priorProfit > projectProfit) break;
+        if (priorProfit < projectProfit) {
+          pos--;
+          continue;
+        }
+        local projectRoi = ("c118C68Roi" in project) ? project.c118C68Roi : project.roi;
+        local priorRoi = ("c118C68Roi" in prior) ? prior.c118C68Roi : prior.roi;
+        if (priorRoi > projectRoi) break;
+        if (priorRoi < projectRoi) {
+          pos--;
+          continue;
+        }
+      }
+    }
+    if (priorTier > projectTier) break;
+    if (priorTier < projectTier) {
+      pos--;
+      continue;
+    }
+    local priorScore = OpexAir0310CachedScore(prior, field, applyEarlySlot);
+    local projectAir = ("mode" in project) && project.mode == "air";
+    local priorAir = ("mode" in prior) && prior.mode == "air";
+    /* Ne payer/comparer C122 qu'une fois le regime race verrouille. Le shadow
+     * execute la meme comparaison mais laisse ensuite l'ordre economique intact. */
+    if ((C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW)
+        && C121_AIR_PROJECT_REALIZATION_REGIME == 0 && projectAir && priorAir) {
+      local projectRegimeTier = OpexC122AirRegimeTier(project);
+      local priorRegimeTier = OpexC122AirRegimeTier(prior);
+      local economicKeepsPrior = priorScore > projectScore
+          || (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual);
+      if (C122_AIR_REGIME_SHADOW && !C122_AIR_REGIME_PRIORITY) {
+        if (priorRegimeTier > projectRegimeTier && !economicKeepsPrior) {
+          OpexC122TraceShadow("prior", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        } else if (priorRegimeTier < projectRegimeTier && economicKeepsPrior) {
+          OpexC122TraceShadow("project", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        }
+      } else if (priorRegimeTier > projectRegimeTier) {
+        if (!economicKeepsPrior) {
+          OpexC122TracePromotion("prior", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        }
+        break;
+      } else if (priorRegimeTier < projectRegimeTier) {
+        if (economicKeepsPrior) {
+          OpexC122TracePromotion("project", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        }
+        pos--;
+        continue;
+      }
+    }
+    if (priorScore > projectScore) break;
+    if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;
+    pos--;
+  }
+  best.insert(pos, project);
+  if (best.len() > limit) best.pop();
+}
+
 /* Insertion bornee et stable avec classe defensive C77 permanente. */
 function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false)
 {
+  if (AIR0310_SELECT_MEMO != null) return OpexAir0310InsertDefensive(best, project, field, limit, applyEarlySlot);
   local projectC77Tier = OpexProjectDefensiveAirPriority(project);
   local projectTier = projectC77Tier
       + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
@@ -1767,25 +2282,36 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   local selectionLight = CATALOG_COST_PROBE ? OpexSelectionLightBegin() : null;
   local opsMark = OpexOpsMeasureBegin();
   local alternatives = [];
+  local spPubFlat = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.flatten") : null;
   foreach (key, list in projects.candidateGroups) {
     foreach (project in list) alternatives.push(project);
   }
+  if (spPubFlat != null) OpexSpanEnd(spPubFlat);
+  local spPubMerge = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.merge") : null;
   if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, projects.stats);
   if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
       railReadyStock = projects.railReadyStock;
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
+  if (spPubMerge != null) OpexSpanEnd(spPubMerge);
+  local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  if (spPubFilt != null) OpexSpanEnd(spPubFilt);
+  local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  if (spPubScore != null) OpexSpanEnd(spPubScore);
   considered = alternatives.len();
   projects.stats.knapsackNodes = 0;
   projects.stats.knapsackExact = false;
   projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
   if (selectionLight != null) OpexSelectionLightEnd(selectionLight, "reselect",
       projects.stats.selectionOpcodes, considered, funded.len());
+  local spPubLog = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.log") : null;
   OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate);
+  if (spPubLog != null) OpexSpanEnd(spPubLog);
 
+  local spPubStats = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.stats") : null;
   projects.stats.budgetConsidered = considered;
   projects.stats.budgetSelected = funded.len();
   projects.stats.budgetRejected = considered - funded.len();
@@ -1820,7 +2346,9 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     projects.c69Best <- ::C69_LAST_AFFORDABLE;
     projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
   }
+  if (spPubStats != null) OpexSpanEnd(spPubStats);
 
+  local spPubVivier = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.vivier") : null;
   if (DECISION_LOG) {
     local vivierPool = [];
     if (("candidateGroups" in projects) && projects.candidateGroups != null) {
@@ -1830,6 +2358,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     }
     OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
   }
+  if (spPubVivier != null) OpexSpanEnd(spPubVivier);
 
   if (spReselect != null) OpexSpanEnd(spReselect);
   return projects;

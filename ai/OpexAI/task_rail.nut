@@ -187,7 +187,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
            * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
            * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure.
            * Un trace de preparation C121 est revalide plus bas au lieu d'etre jete. */
-          /* `ok` peut manquer a un railPlan (cf. :173, projects_generation.nut:467) : en Squirrel,
+          /* `ok` peut manquer a un railPlan (cf. :173, projects_generation.nut:525) : en Squirrel,
            * lire une cle absente leve une exception, et ce journal ne tourne que sous sonde. */
           if (DECISION_LOG && candidate.railPlan != null) OpexDecide("RAIL_PLAN_DROP", "src=" + candidate.src + " dst=" + candidate.dst + " kind=" + candidate.kind + " rank=" + rank + " builtCount=" + builtCount + " ok=" + ((!("ok" in candidate.railPlan) || candidate.railPlan.ok) ? 1 : 0));
           candidate.railPlan = null;
@@ -1653,6 +1653,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
     }
     if (isPaxNear) OpexSign(anchor, "PY|" + idx);
 
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
       originA = candidate.src, originB = candidate.dst,

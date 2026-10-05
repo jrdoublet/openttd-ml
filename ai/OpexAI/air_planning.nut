@@ -2250,6 +2250,9 @@ function OpexAirPlansFinalize(ctx)
              + " c121_no_winner=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.noWinner : 0)
              + " c121_endpoint_hits=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointHits : 0)
              + " c121_endpoint_misses=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointMisses : 0));
+  /* Hors du span air.c121.demand : une ligne par scan, pas par extremite. */
+  if ((DECISION_LOG || PROBE_SPAN_TRACE) && AIR0310_ENDPOINT_SPLIT)
+    OpexAir0310EndpointSplitReport();
   OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
   if (C69_BOTTLENECK_PROBE) {
     local actualPlans = (projects != null) ? projects.len() : (bestPlan != null ? 1 : 0);

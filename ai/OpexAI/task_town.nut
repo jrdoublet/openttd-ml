@@ -245,6 +245,7 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
     OpexDecide("TOWN_GROWTH", "action=build town=" + townId + " stations_before=" + currentCount + " stations_after=" + newCount + " cost=" + candidate.capital);
   }
 
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   this._lines.append({
     stationA = result.stopA, stationB = result.stopB,
     originA = candidate.src, originB = candidate.dst,

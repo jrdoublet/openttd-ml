@@ -90,6 +90,7 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
       pairKey = pairKey, nextDate = 0 };
   /* Enregistrer AVANT toute commande susceptible de suspendre / sauvegarder. */
   OPEX_AIR_ROLLBACKS.append(ticket);
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   if (OpexAirContinueRollback(ticket)) {
     OPEX_AIR_ROLLBACKS.pop();
     AILog.Info("AIR_ROLLBACK_DONE pair=" + pairKey + " immediate=1");
@@ -218,6 +219,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
     }
 
     if (ok) {
+      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
       builtStops.append(cand.tile);
       summary.count++;
       summary.monthlyPax += cand.value;
@@ -261,6 +263,15 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
 
+  /* V123 : un true V122 perime ne doit plus atteindre LevelTiles. Sans cache
+   * V122, le drapeau est inerte. A 0, le corps historique suit. */
+  if (AIR0310_SITE_VALIDITY_CACHE && AIR0310_SITE_RECHECK_BEFORE_BUILD) {
+    if (!OpexAir0310RecheckSitesBeforeBuild(plan, airport, planeChoice, reuseA, reuseB)) {
+      result.reason = "RECHECK";
+      return result;
+    }
+  }
+
   /* Tester A et B ensemble avant AIAccounting/LevelTiles/BuildAirport : un site B
    * devenu impossible ne doit plus laisser les frais de terrassement/aeroport A. */
   local preA = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteA, airport, planeChoice, reuseA) : null;
@@ -302,6 +313,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_a") : null;
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelA = OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
     if (spBuild != null) OpexSpanEnd(spBuild);
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_a") : null;
@@ -348,6 +360,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_b") : null;
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
     if (spBuild != null) OpexSpanEnd(spBuild);
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;

@@ -242,6 +242,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                        "line=" + idx + " cost=" + candidate.capital + " dist=" + candidate.distance
                        + " veh=" + result.vehicles.len() + " profit=" + candidate.profitAnnual);
       }
+      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
       this._lines.append({
         stationA = result.stopA, stationB = result.stopB,
         originA = candidate.src, originB = candidate.dst,

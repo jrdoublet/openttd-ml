@@ -772,6 +772,7 @@ function OpexRoadRollback(stopA, stopB, depot, vehicles, added)
   if (added != null) {
     for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
   }
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
 }
 
 /* Un arret de plus, meme facade, tuile cardinale voisine, joint au StationID deja pose.
@@ -909,6 +910,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   }
 
   budget.begin();
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   if (!OpexRoadBuildTrace(plan.trace, added)) {
     result.error = AIError.GetLastError();
     result.opcodes = budget.end("build_roads");

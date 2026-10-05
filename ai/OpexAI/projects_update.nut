@@ -326,6 +326,59 @@ function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
   return true;
 }
 
+/* Champs d'OpexProjectFromAir qui changent d'une publication a l'autre
+ * alors que le plan est le meme objet :
+ * - planningOpcodes = planningOps (airOps / N du lot courant) ;
+ * - economicsDate = AIDate.GetCurrentDate() ;
+ * - cargo = catalog.paxCargo.
+ * Les autres champs viennent du plan inchange : mode, kind, src, dst,
+ * payload, distance, capital, budgetCapital, decisionFinanceCapital,
+ * profitAnnual, revenueAnnual, roi, expectedOpcodes (= PROJECT_AIR_TRANSACTION_OPS),
+ * budgetScore, opcodeScore, portfolio*. La caisse n'est pas lue.
+ * Reconversion obligatoire si un champ depend d'un calcul non trivial :
+ * c118TownIds (C118), OpexC111ProjectFromAir, RestoreWinner N=1, ou une
+ * cle OpexProjectKeyFor qui bougerait (cargo / tuiles). */
+function OpexAir0310PublishedAirNeedsReconvert(project, catalog, payload, slotKey)
+{
+  if (C118_AIR_TERRITORIAL_EXPANSION) return true;
+  if (C111_AIR_C100_DECISION_SHADOW && ("decisionEconomics" in payload)
+      && payload.decisionEconomics != null) return true;
+  if (AIR0310_N1_FALLBACK && ("c121Air0310N1" in payload) && payload.c121Air0310N1) {
+    return true;
+  }
+  if (!("town" in payload.siteA) || payload.siteA.town == null) return true;
+  if (!("town" in payload.siteB) || payload.siteB.town == null) return true;
+  local src = payload.siteA.town.tile;
+  local dst = payload.siteB.town.tile;
+  local expected = OpexProjectPairKey("pax", catalog.paxCargo, src, dst);
+  if (expected != slotKey) return true;
+  if (OpexProjectKeyFor(project) != expected) return true;
+  return false;
+}
+
+/* Meme gardes que OpexProjectFromAir apres RestoreWinner / C111, qui
+ * forcent deja la reconversion. Un plan refuse ici est invalide au meme
+ * titre que FromAir == null. */
+function OpexAir0310PublishedAirStillValid(plan)
+{
+  if (plan == null || !("economics" in plan)) return false;
+  local economics = plan.economics;
+  local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in plan)
+      && plan.decisionEconomics != null) ? plan.decisionEconomics : economics;
+  if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
+      economics.capital <= 0) return false;
+  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
+      decisionEconomics.capital <= 0) return false;
+  return true;
+}
+
+function OpexAir0310RefreshPublishedAir(project, catalog, planningOps)
+{
+  project.planningOpcodes = planningOps;
+  project.economicsDate = AIDate.GetCurrentDate();
+  project.cargo = catalog.paxCargo;
+}
+
 /* Publication partielle AIR 03/10 1. Ne reconvertit que les plans neufs et
  * reecrit les projets air deja materialises la ou OpexProjectFromAir depend
  * de l'etat courant :
@@ -337,6 +390,9 @@ function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
  *   dependent pas de airOpsPerPlan : expectedOpcodes vaut
  *   PROJECT_AIR_TRANSACTION_OPS et le score budget vient de l'economie du
  *   plan. La caisse n'est pas lue ici.
+ * AIR 03/10 1b : si AIR0310_INCREMENTAL_REFRESH, ces trois champs d'etat
+ * sont ecrits en place sur l'objet existant. C118, C111+decisionEconomics,
+ * RestoreWinner N=1 et un changement de cle de groupe gardent FromAir.
  * La selection (filtre de validite, plancher, K_dec, slots defensifs, top-K)
  * est rejouee par OpexReselectProjects. Rail, route, eau, flotte et
  * subventions ne sont pas regeneres ici : ils restent ceux du dernier
@@ -361,6 +417,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
    * de ce scan est dans scanPlans : le rebuild complet, lui, re-ajoute aussi
    * ce prefixe s'il est encore dans airPlans, et le compte deux fois. Ecart
    * assume, limite a cette etape. */
+  local spPubPrior = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.prior") : null;
   local priorRaw = [];
   local priorKept = [];
   if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans
@@ -373,14 +430,17 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
       }
     }
   }
+  if (spPubPrior != null) OpexSpanEnd(spPubPrior);
 
   /* Meme denominateur que OpexBuildProjects : tous les plans du lot, y compris
    * ceux que OpexProjectFromAir refusera, plus les plans herites encore valides. */
+  local spPubNew = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.new_plans") : null;
   local planCount = scanPlans.len() + priorKept.len();
   local airOpsPerPlan = (planCount > 0) ? airOps / planCount : airOps;
   local added = 0;
   local reconverted = 0;
   local invalidated = 0;
+  local refreshedCount = 0;
   local pendingNew = {};
   local newKeyOrder = [];
   local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount) : [];
@@ -398,7 +458,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     pendingNew[createdKey].append(created);
     added++;
   }
+  if (spPubNew != null) OpexSpanEnd(spPubNew);
 
+  local spPubFilter = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.filter") : null;
   local keptAir = {};
   local movedAir = {};
   local othersByKey = {};
@@ -424,6 +486,17 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
         kept.append(project);
         continue;
       }
+      if (AIR0310_INCREMENTAL_REFRESH
+          && !OpexAir0310PublishedAirNeedsReconvert(project, catalog, payload, slotKey)) {
+        if (!OpexAir0310PublishedAirStillValid(payload)) {
+          invalidated++;
+          continue;
+        }
+        OpexAir0310RefreshPublishedAir(project, catalog, airOpsPerPlan);
+        refreshedCount++;
+        kept.append(project);
+        continue;
+      }
       local refreshed = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
       if (refreshed == null) {
         invalidated++;
@@ -441,7 +514,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     othersByKey.rawset(slotKey, others);
     if (kept.len() > 0) keptAir.rawset(slotKey, kept);
   }
+  if (spPubFilter != null) OpexSpanEnd(spPubFilter);
 
+  local spPubPart = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.partition") : null;
   local preKeys = [];
   local postKeys = [];
   local preMark = {};
@@ -475,7 +550,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     if (movedList == null) continue;
     deferred.append(movedKey);
   }
+  if (spPubPart != null) OpexSpanEnd(spPubPart);
 
+  local spPubInsert = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.insert") : null;
   local rebuilt = {};
   local emitOrder = [];
   foreach (slotKey in preKeys) emitOrder.append(slotKey);
@@ -496,7 +573,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     local spliced = OpexAir0310InsertAirBlock(row, airBlock);
     if (spliced.len() > 0) rebuilt.rawset(slotKey, spliced);
   }
+  if (spPubInsert != null) OpexSpanEnd(spPubInsert);
 
+  local spPubStore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.store") : null;
   local storedPlans = [];
   foreach (plan in scanPlans) storedPlans.append(plan);
   foreach (plan in priorKept) storedPlans.append(plan);
@@ -510,8 +589,18 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   } else {
     projects.airPlan <- bestPlan;
   }
+  if (spPubStore != null) OpexSpanEnd(spPubStore);
+  local spPubRecount = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.recount") : null;
   OpexProjectsRecountGroups(projects);
-  OpexReselectProjects(projects, OpexAvailableCapital(), owner._abandonedPairs, owner._lines,
+  if (spPubRecount != null) OpexSpanEnd(spPubRecount);
+  /* La caisse est lue ici, juste avant la reelection, pas pendant FromAir. */
+  local spPubCap = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.capital") : null;
+  local publishCapital = OpexAvailableCapital();
+  if (spPubCap != null) OpexSpanEnd(spPubCap);
+  local spPubSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select") : null;
+  OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, owner._lines,
       owner._railReadyStock);
-  return { added = added, reconverted = reconverted, invalidated = invalidated };
+  if (spPubSelect != null) OpexSpanEnd(spPubSelect);
+  return { added = added, reconverted = reconverted, invalidated = invalidated,
+      refreshed = refreshedCount };
 }

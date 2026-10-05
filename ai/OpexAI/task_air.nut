@@ -165,6 +165,12 @@ function OpexAI::_tryBuildAir(year)
                              + (result.ok ? result.vehicles.len() : 0));
     }
     if (!result.ok) {
+      if (result.reason == "RECHECK") {
+        if (DECISION_LOG) {
+          OpexDecide("AIR_REFUSE", "reason=site_recheck dist=" + plan.distance);
+        }
+        break;
+      }
       if (DECISION_LOG) {
         OpexDecide("AIR_REFUSE", "reason=build_failed detail=" + result.reason + " error=" + result.error + " error_text=" + result.errorText + " dist=" + plan.distance + " cost=" + result.actualCost);
       }
@@ -185,6 +191,7 @@ function OpexAI::_tryBuildAir(year)
     if (DECISION_LOG) {
       OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
     }
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
       originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
@@ -502,6 +509,10 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
+        if (result.reason == "RECHECK") {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "site_recheck", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
         local errorAnchor = null;
         if ((result.reason == "PREA" || result.reason == "AFAIL") && plan.siteA != null) {
           errorAnchor = plan.siteA.anchor;
@@ -564,6 +575,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             "line=" + this._nextLineId + " profit=" + buildPlan.economics.profitAnnual + " cost=" + buildPlan.capital
             + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
         this._airBuilt = true;
+        if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
           originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
