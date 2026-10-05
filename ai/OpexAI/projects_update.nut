@@ -326,59 +326,6 @@ function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
   return true;
 }
 
-/* Champs d'OpexProjectFromAir qui changent d'une publication a l'autre
- * alors que le plan est le meme objet :
- * - planningOpcodes = planningOps (airOps / N du lot courant) ;
- * - economicsDate = AIDate.GetCurrentDate() ;
- * - cargo = catalog.paxCargo.
- * Les autres champs viennent du plan inchange : mode, kind, src, dst,
- * payload, distance, capital, budgetCapital, decisionFinanceCapital,
- * profitAnnual, revenueAnnual, roi, expectedOpcodes (= PROJECT_AIR_TRANSACTION_OPS),
- * budgetScore, opcodeScore, portfolio*. La caisse n'est pas lue.
- * Reconversion obligatoire si un champ depend d'un calcul non trivial :
- * c118TownIds (C118), OpexC111ProjectFromAir, RestoreWinner N=1, ou une
- * cle OpexProjectKeyFor qui bougerait (cargo / tuiles). */
-function OpexAir0310PublishedAirNeedsReconvert(project, catalog, payload, slotKey)
-{
-  if (C118_AIR_TERRITORIAL_EXPANSION) return true;
-  if (C111_AIR_C100_DECISION_SHADOW && ("decisionEconomics" in payload)
-      && payload.decisionEconomics != null) return true;
-  if (AIR0310_N1_FALLBACK && ("c121Air0310N1" in payload) && payload.c121Air0310N1) {
-    return true;
-  }
-  if (!("town" in payload.siteA) || payload.siteA.town == null) return true;
-  if (!("town" in payload.siteB) || payload.siteB.town == null) return true;
-  local src = payload.siteA.town.tile;
-  local dst = payload.siteB.town.tile;
-  local expected = OpexProjectPairKey("pax", catalog.paxCargo, src, dst);
-  if (expected != slotKey) return true;
-  if (OpexProjectKeyFor(project) != expected) return true;
-  return false;
-}
-
-/* Meme gardes que OpexProjectFromAir apres RestoreWinner / C111, qui
- * forcent deja la reconversion. Un plan refuse ici est invalide au meme
- * titre que FromAir == null. */
-function OpexAir0310PublishedAirStillValid(plan)
-{
-  if (plan == null || !("economics" in plan)) return false;
-  local economics = plan.economics;
-  local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in plan)
-      && plan.decisionEconomics != null) ? plan.decisionEconomics : economics;
-  if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
-      economics.capital <= 0) return false;
-  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
-      decisionEconomics.capital <= 0) return false;
-  return true;
-}
-
-function OpexAir0310RefreshPublishedAir(project, catalog, planningOps)
-{
-  project.planningOpcodes = planningOps;
-  project.economicsDate = AIDate.GetCurrentDate();
-  project.cargo = catalog.paxCargo;
-}
-
 /* Publication partielle AIR 03/10 1. Ne reconvertit que les plans neufs et
  * reecrit les projets air deja materialises la ou OpexProjectFromAir depend
  * de l'etat courant :
@@ -390,9 +337,6 @@ function OpexAir0310RefreshPublishedAir(project, catalog, planningOps)
  *   dependent pas de airOpsPerPlan : expectedOpcodes vaut
  *   PROJECT_AIR_TRANSACTION_OPS et le score budget vient de l'economie du
  *   plan. La caisse n'est pas lue ici.
- * AIR 03/10 1b : si AIR0310_INCREMENTAL_REFRESH, ces trois champs d'etat
- * sont ecrits en place sur l'objet existant. C118, C111+decisionEconomics,
- * RestoreWinner N=1 et un changement de cle de groupe gardent FromAir.
  * La selection (filtre de validite, plancher, K_dec, slots defensifs, top-K)
  * est rejouee par OpexReselectProjects. Rail, route, eau, flotte et
  * subventions ne sont pas regeneres ici : ils restent ceux du dernier
@@ -483,17 +427,6 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
        * OpexProjectFromAir sur un payload sans sites. */
       if (payload == null || !("economics" in payload) || !("siteA" in payload)
           || !("siteB" in payload) || payload.siteA == null || payload.siteB == null) {
-        kept.append(project);
-        continue;
-      }
-      if (AIR0310_INCREMENTAL_REFRESH
-          && !OpexAir0310PublishedAirNeedsReconvert(project, catalog, payload, slotKey)) {
-        if (!OpexAir0310PublishedAirStillValid(payload)) {
-          invalidated++;
-          continue;
-        }
-        OpexAir0310RefreshPublishedAir(project, catalog, airOpsPerPlan);
-        refreshedCount++;
         kept.append(project);
         continue;
       }

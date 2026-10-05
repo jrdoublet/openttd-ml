@@ -1591,41 +1591,11 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "probe_air0310_n1_fallback",
-      description = "AIR 03/10 4 probe: log C121 air plans lost or deferred when C1 <= budget < C2 after N=2 wins; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air0310_n1_fallback",
-      description = "AIR 03/10 4 A/B: if the chosen N=2 opening is not fundable and the already computed N=1 opening is, publish that N=1 economy; 1 = on, 0 = drop the plan (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "air0310_incremental_publish",
       description = "AIR 03/10 1 A/B: a partial air publish inserts only the new plans and reselects; 1 = on (default), 0 = full portfolio rebuild",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air0310_incremental_refresh",
-      description = "AIR 03/10 1b A/B: a partial air publish updates planningOpcodes, economicsDate and cargo in place on already published air projects; 1 = on, 0 = reconvert each old air project via OpexProjectFromAir (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
@@ -1641,41 +1611,11 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "air0310_endpoint_split",
-      description = "AIR 03/10 5 A/B: an age or price/maintenance catalog miss refreshes one plan's production and competition but keeps fresh endpoint tiles; 1 = on, 0 = bump the global endpoint epoch (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "air0310_site_validity_cache",
       description = "AIR 03/10 V122 A/B: remember whether each air site is still buildable across reselections until the month changes or OpexAI builds or removes a station, airport or line; 1 = on (default), 0 = probe every unique site on every filter",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air0310_site_recheck_before_build",
-      description = "AIR 03/10 V123 A/B: when the V122 site-validity cache is on, re-probe both air sites at cost just before leveling or spending; 1 = on, 0 = a stale cached true may still reach OpexAirLevelFootprint (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air0310_select_exact_memo",
-      description = "AIR 03/10 V124 A/B: during one selection, reuse closest town, town validity, population, an unchanged defensive tier and selection score, and the trivial fleet and finance reads; 1 = on, 0 = historical selection (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });

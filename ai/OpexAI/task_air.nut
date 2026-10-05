@@ -126,8 +126,6 @@ function OpexAI::_tryBuildAir(year)
     local requiredMargin = OpexAirRequiredMargin(newAirports);
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
-    if (PROBE_AIR0310_N1_FALLBACK && money < need)
-      OpexAir0310N1FallbackProbe(plan, money, "finance", "deferred");
     if (money < need) {
       if (money < need) {
         if (DECISION_LOG) {
@@ -165,12 +163,6 @@ function OpexAI::_tryBuildAir(year)
                              + (result.ok ? result.vehicles.len() : 0));
     }
     if (!result.ok) {
-      if (result.reason == "RECHECK") {
-        if (DECISION_LOG) {
-          OpexDecide("AIR_REFUSE", "reason=site_recheck dist=" + plan.distance);
-        }
-        break;
-      }
       if (DECISION_LOG) {
         OpexDecide("AIR_REFUSE", "reason=build_failed detail=" + result.reason + " error=" + result.error + " error_text=" + result.errorText + " dist=" + plan.distance + " cost=" + result.actualCost);
       }
@@ -453,8 +445,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (spCash != null) OpexSpanEnd(spCash);
-      if (PROBE_AIR0310_N1_FALLBACK && money < need)
-        OpexAir0310N1FallbackProbe(plan, money, "finance", "deferred");
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
@@ -509,10 +499,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
-        if (result.reason == "RECHECK") {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "site_recheck", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-        }
         local errorAnchor = null;
         if ((result.reason == "PREA" || result.reason == "AFAIL") && plan.siteA != null) {
           errorAnchor = plan.siteA.anchor;

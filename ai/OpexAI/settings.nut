@@ -585,26 +585,13 @@ function OpexLoadSettings()
   V107_DENSIFY_PORTFOLIO = AIController.GetSetting("v107_densify_portfolio") != 0;
   AIR0310_V96_SHORTCUT_LEAN = AIController.GetSetting("air0310_v96_shortcut_lean") != 0;
   AIR0310_ONE_TWO_FUSED = AIController.GetSetting("air0310_one_two_fused") != 0;
-  PROBE_AIR0310_N1_FALLBACK = AIController.GetSetting("probe_air0310_n1_fallback") != 0;
-  AIR0310_N1_FALLBACK = AIController.GetSetting("air0310_n1_fallback") != 0;
   AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_incremental_publish") != 0;
-  AIR0310_INCREMENTAL_REFRESH = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("air0310_incremental_refresh") != 0;
   AIR0310_HUB_SNAPSHOT = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_hub_snapshot") != 0;
-  AIR0310_ENDPOINT_SPLIT = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("air0310_endpoint_split") != 0;
-  AIR0310_ENDPOINT_STATS = null;
   AIR0310_SITE_VALIDITY_CACHE = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_site_validity_cache") != 0;
   AIR0310_SITE_VALIDITY_STATE = null;
-  AIR0310_SITE_RECHECK_BEFORE_BUILD = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("air0310_site_recheck_before_build") != 0;
-  AIR0310_SITE_RECHECK_STATS = null;
-  /* V124 est global, comme air0310_n1_fallback : pas de porte C121. */
-  AIR0310_SELECT_EXACT_MEMO = AIController.GetSetting("air0310_select_exact_memo") != 0;
-  AIR0310_SELECT_MEMO = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");

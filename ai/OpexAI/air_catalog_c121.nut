@@ -92,26 +92,6 @@ function OpexC121CatalogRankDirtyTowns()
   }
 }
 
-/* null = le miss ne concerne que l'age ou le prix/maintenance : ne pas
- * incrementer l'epoque globale. Toute autre valeur est la cause d'un
- * ENDPOINT_MISS qui garde l'invalidation de geometrie. */
-function OpexC121EndpointSplitGeometryCause(reason, key, plan)
-{
-  if (reason == "age") return null;
-  if (reason != "input") return "input";
-  if (!(key in C121_CATALOG_CACHE)) return "input";
-  local entry = C121_CATALOG_CACHE[key];
-  if (entry.distance != plan.distance) return "distance";
-  if (V93_AIR_DEMAND_PRODUCTION && entry.monthlyPax != plan.monthlyPax) return "monthlyPax";
-  return null;
-}
-
-function OpexAir0310EndpointSplitClear(plan)
-{
-  if ("c121CatalogRefreshEndpointEcon" in plan) delete plan.c121CatalogRefreshEndpointEcon;
-  if ("c121CatalogEndpointMissCause" in plan) delete plan.c121CatalogEndpointMissCause;
-}
-
 /* Le snapshot appartient a une election. Ne jamais recalculer une moitie
  * avec les services/invariants de l'election precedente sur le meme objet. */
 function OpexC121CatalogClearPlanSnapshot(plan)
@@ -200,31 +180,17 @@ function OpexC121CatalogChoice(catalog, plan, lines)
   OpexC121CatalogClearPlanSnapshot(plan);
   /* Les revisions locales suffisent pour ville/station. Pour un changement
    * d'entrees ou l'expiration, ne pas laisser le cache enfant annuler le miss.
-   * Le flag reste local au calcul, jamais dans le snapshot publie.
-   * A AIR0310_ENDPOINT_SPLIT = 0 le second if est le chemin historique.
-   * A 1, age ou input prix/maintenance ne bumpe pas l'epoque : le plan
-   * recalcule production et concurrence, et reutilise les tuiles fraiches. */
+   * Le flag reste local au calcul, jamais dans le snapshot publie. */
   plan.c121CatalogRefreshEndpoints <- reason == "input" || reason == "age";
-  if (AIR0310_ENDPOINT_SPLIT && plan.c121CatalogRefreshEndpoints) {
-    local splitCause = OpexC121EndpointSplitGeometryCause(reason, key, plan);
-    if (splitCause == null) {
-      plan.c121CatalogRefreshEndpoints = false;
-      plan.c121CatalogRefreshEndpointEcon <- true;
-    } else {
-      plan.c121CatalogEndpointMissCause <- splitCause;
-    }
-  }
   if (plan.c121CatalogRefreshEndpoints) OpexC121InvalidateEndpointGeometry();
   local choice = null;
   try {
     choice = OpexC121ChooseRoutePlane(catalog, plan, lines);
   } catch (error) {
     delete plan.c121CatalogRefreshEndpoints;
-    if (AIR0310_ENDPOINT_SPLIT) OpexAir0310EndpointSplitClear(plan);
     throw error;
   }
   delete plan.c121CatalogRefreshEndpoints;
-  if (AIR0310_ENDPOINT_SPLIT) OpexAir0310EndpointSplitClear(plan);
   C121_CATALOG_CACHE.rawset(key, {
     choice = choice, date = date, airportRev = airportRev,
     townA = revA, townB = revB, stationRevA = stationRevA,

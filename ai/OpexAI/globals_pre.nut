@@ -733,46 +733,19 @@ AIR0310_V96_SHORTCUT_LEAN <- false;
 /* AIR 03/10 3b : N=1 et N=2 du meme avion partagent leurs invariants.
  * 0 = deux economies completes (comportement historique). */
 AIR0310_ONE_TWO_FUSED <- false;
-/* AIR 03/10 4 : sonde C1 <= budget < C2. 0 = aucune emission. */
-PROBE_AIR0310_N1_FALLBACK <- false;
-/* AIR 03/10 4 : si N=2 n'est pas finançable et N=1 l'est, publier N=1.
- * 0 = le projet N=2 reste ecarte (comportement historique). */
-AIR0310_N1_FALLBACK <- false;
 /* AIR 03/10 1 : publication partielle sans reconstruire tout le portefeuille.
  * 0 = rebuild complet a chaque lot (comportement historique). Le chargement
  * reel est en plus barre par C121_CATALOG_INCREMENTAL. */
 AIR0310_INCREMENTAL_PUBLISH <- false;
-/* AIR 03/10 1b : rafraichir en place les projets air deja publies au lieu
- * de les reconvertir. 0 = OpexProjectFromAir sur chaque ancien projet
- * (comportement historique de la publication partielle). Le chargement
- * reel est en plus barre par C121_CATALOG_INCREMENTAL. */
-AIR0310_INCREMENTAL_REFRESH <- false;
 /* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
  * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
  * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
 AIR0310_HUB_SNAPSHOT <- false;
-/* AIR 03/10 5 : un miss catalogue age ou input prix/maintenance ne perime
- * plus la geometrie de toutes les extremites. 0 = epoque globale incrementee
- * (comportement historique). Le chargement reel est en plus barre par
- * C121_CATALOG_INCREMENTAL. */
-AIR0310_ENDPOINT_SPLIT <- false;
-AIR0310_ENDPOINT_STATS <- null;
 /* AIR 03/10 V122 : validite des sites air partagee entre reelections.
  * 0 = sonde locale a chaque filtre (comportement historique). Le
  * chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
 AIR0310_SITE_VALIDITY_CACHE <- false;
 AIR0310_SITE_VALIDITY_STATE <- null;
-/* AIR 03/10 V123 : recontrole OpexAirSiteStillBuildable a frais juste
- * avant le chantier, hors cache. 0 = le true V122 part au nivellement
- * (comportement historique). Sans AIR0310_SITE_VALIDITY_CACHE, inerte.
- * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
-AIR0310_SITE_RECHECK_BEFORE_BUILD <- false;
-AIR0310_SITE_RECHECK_STATS <- null;
-/* AIR 03/10 V124 : memo de selection a resultat identique. 0 = corps
- * historique (pas de table, pas de lecture de cache). Independant de
- * C121_CATALOG_INCREMENTAL. La table de passe n'est pas un reglage. */
-AIR0310_SELECT_EXACT_MEMO <- false;
-AIR0310_SELECT_MEMO <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */

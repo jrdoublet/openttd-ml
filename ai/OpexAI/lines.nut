@@ -38,9 +38,6 @@ function OpexBuildFailureIsAbandonable(result)
   if (result == null) return false;
   /* Attente de liquidation R19 : ni impossibilite geometrique ni nouvel echec. */
   if (("reason" in result) && result.reason == "RECOVERY") return false;
-  /* V123 : un true V122 perime refuse au recontrole, sans depense. La paire
-   * reste eligible ; le cache a false l'exclut au filtre suivant. */
-  if (("reason" in result) && result.reason == "RECHECK") return false;
   if (!ABANDON_MEMORY_TRANSIENT_GUARD) return true;
   if (("reason" in result) && result.reason == "CASH") return false;
   if (("error" in result) && result.error == AIError.ERR_NOT_ENOUGH_CASH) return false;

@@ -892,8 +892,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
-      if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310CopyN1N2(routeChoice, plan);
-      if (AIR0310_N1_FALLBACK) OpexAir0310CopyRetained(routeChoice, plan);
       OpexAirReserveJoinedStops(catalog, plan);
 
       if (a == 0 && b == 1) {
@@ -1544,8 +1542,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
-      if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310CopyN1N2(routeChoice, plan);
-      if (AIR0310_N1_FALLBACK) OpexAir0310CopyRetained(routeChoice, plan);
       OpexAirReserveJoinedStops(catalog, plan);
       if (admissionEconomics.profitAnnual <= 0) {
         if (hubSiteMark != null) OpexSpanAgg("air.hub_site_pair", hubSiteMark);
@@ -1861,8 +1857,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
-      if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310CopyN1N2(routeChoice, plan);
-      if (AIR0310_N1_FALLBACK) OpexAir0310CopyRetained(routeChoice, plan);
       OpexAirReserveJoinedStops(catalog, plan);
       /* C113 : l'admission a deja ete arbitree sur le shadow C68. Le profit
        * legacy du moteur replay peut etre negatif sans invalider le marche de
@@ -2250,9 +2244,6 @@ function OpexAirPlansFinalize(ctx)
              + " c121_no_winner=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.noWinner : 0)
              + " c121_endpoint_hits=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointHits : 0)
              + " c121_endpoint_misses=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointMisses : 0));
-  /* Hors du span air.c121.demand : une ligne par scan, pas par extremite. */
-  if ((DECISION_LOG || PROBE_SPAN_TRACE) && AIR0310_ENDPOINT_SPLIT)
-    OpexAir0310EndpointSplitReport();
   OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
   if (C69_BOTTLENECK_PROBE) {
     local actualPlans = (projects != null) ? projects.len() : (bestPlan != null ? 1 : 0);

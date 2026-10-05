@@ -263,15 +263,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
 
-  /* V123 : un true V122 perime ne doit plus atteindre LevelTiles. Sans cache
-   * V122, le drapeau est inerte. A 0, le corps historique suit. */
-  if (AIR0310_SITE_VALIDITY_CACHE && AIR0310_SITE_RECHECK_BEFORE_BUILD) {
-    if (!OpexAir0310RecheckSitesBeforeBuild(plan, airport, planeChoice, reuseA, reuseB)) {
-      result.reason = "RECHECK";
-      return result;
-    }
-  }
-
   /* Tester A et B ensemble avant AIAccounting/LevelTiles/BuildAirport : un site B
    * devenu impossible ne doit plus laisser les frais de terrassement/aeroport A. */
   local preA = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteA, airport, planeChoice, reuseA) : null;
@@ -424,8 +415,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (spBuild != null) OpexSpanEnd(spBuild);
     result.error = AIError.GetLastError();
     result.errorText = AIError.GetLastErrorString();
-    if (PROBE_AIR0310_N1_FALLBACK && result.error == AIError.ERR_NOT_ENOUGH_CASH)
-      OpexAir0310N1FallbackProbe(plan, AICompany.GetBankBalance(AICompany.COMPANY_SELF), "build", "lost");
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -486,8 +475,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (!AIVehicle.IsValidVehicle(extra)) {
-      if (PROBE_AIR0310_N1_FALLBACK)
-        OpexAir0310N1FallbackProbe(plan, AICompany.GetBankBalance(AICompany.COMPANY_SELF), "build", "built");
       break;
     }
     built.append(extra);
