@@ -278,14 +278,58 @@ function OpexAI::_logStalenessRefresh(reason)
     candidates = { rail = -1, road = -1, air = -1, water = -1 }, portfolio = -1, selection = -1,
   };
 }
+/* probe_event_backlog (F-EVENT-BACKLOG-01) : date YYYY-MM-DD avec zero padding */
+function OpexEventBacklogDateText(date)
+{
+  local month = AIDate.GetMonth(date);
+  local day = AIDate.GetDayOfMonth(date);
+  return AIDate.GetYear(date) + "-"
+      + (month < 10 ? "0" + month : "" + month) + "-"
+      + (day < 10 ? "0" + day : "" + day);
+}
+
+function OpexEventBacklogFlush(curDate)
+{
+  local dateText = OpexEventBacklogDateText(curDate);
+  AILog.Info("EVENT_BACKLOG date=" + dateText
+      + " calls=" + EVENT_BACKLOG_CALLS
+      + " events=" + EVENT_BACKLOG_EVENTS
+      + " max_burst=" + EVENT_BACKLOG_MAX_BURST
+      + " ops_total=" + EVENT_BACKLOG_OPS_TOTAL
+      + " ops_max=" + EVENT_BACKLOG_OPS_MAX);
+  EVENT_BACKLOG_CALLS = 0;
+  EVENT_BACKLOG_EVENTS = 0;
+  EVENT_BACKLOG_MAX_BURST = 0;
+  EVENT_BACKLOG_OPS_TOTAL = 0;
+  EVENT_BACKLOG_OPS_MAX = 0;
+  EVENT_BACKLOG_MONTH = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+}
+
 /* Event moteur exact : CRASH_TRAIN est emis dans train_cmd.cpp au moment ou deux trains
  * entrent en collision. XC garde la ligne, le vehicule, la tuile et les victimes ; RX reste le
- * filet annuel pour toute disparition sans evenement reconnu. */
+ * filet annuel pour toute disparition sans evenement reconnu.
+ * probe_event_backlog : une seule boucle. Flag eteint, le dispatch est celui d'origine ;
+ * la sonde ne fait que tester `backlog` (avant, dans, et apres la boucle). */
 function OpexAI::_processEvents()
 {
+  local backlog = PROBE_EVENT_BACKLOG;
+  local eventCount = 0;
+  local mark = null;
+  if (backlog) {
+    local curDate = AIDate.GetCurrentDate();
+    local ym = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+    if (EVENT_BACKLOG_MONTH >= 0 && ym != EVENT_BACKLOG_MONTH) {
+      OpexEventBacklogFlush(curDate);
+    }
+    if (EVENT_BACKLOG_MONTH < 0) {
+      EVENT_BACKLOG_MONTH = ym;
+    }
+    mark = OpexOpsMeasureBegin();
+  }
   while (AIEventController.IsEventWaiting()) {
     local event = AIEventController.GetNextEvent();
     if (event == null) continue;
+    if (backlog) eventCount++;
     local eventType = event.GetEventType();
     if (C52_EVENT_EXPOSURE_PROBE) OpexC52EventExposureObserve(event, eventType);
     if (C39_INVALIDATION_PROBE) OpexC76ObserveEvent(eventType);
@@ -322,5 +366,14 @@ function OpexAI::_processEvents()
       this._onStationFirstVehicle(event);
     }
     if (spEv != null) OpexSpanEnd(spEv);
+  }
+  if (backlog) {
+    local ops = OpexOpsMeasureEnd(mark);
+    if (ops < 0) ops = 0;
+    EVENT_BACKLOG_CALLS++;
+    EVENT_BACKLOG_EVENTS += eventCount;
+    if (eventCount > EVENT_BACKLOG_MAX_BURST) EVENT_BACKLOG_MAX_BURST = eventCount;
+    EVENT_BACKLOG_OPS_TOTAL += ops;
+    if (ops > EVENT_BACKLOG_OPS_MAX) EVENT_BACKLOG_OPS_MAX = ops;
   }
 }

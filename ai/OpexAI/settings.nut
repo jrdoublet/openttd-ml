@@ -162,6 +162,15 @@ function OpexLoadSettings()
   PROBE_SPAN_TRACE = AIController.GetSetting("probe_span_trace") != 0;
   PROBE_C121_ENGINE_TABLE = AIController.GetSetting("probe_c121_engine_table") != 0;
   PROBE_AIR_ENGINE_DEPTH = AIController.GetSetting("probe_air_engine_depth") != 0;
+  PROBE_EVENT_BACKLOG = AIController.GetSetting("probe_event_backlog") != 0;
+  if (PROBE_EVENT_BACKLOG) {
+    EVENT_BACKLOG_CALLS = 0;
+    EVENT_BACKLOG_EVENTS = 0;
+    EVENT_BACKLOG_MAX_BURST = 0;
+    EVENT_BACKLOG_OPS_TOTAL = 0;
+    EVENT_BACKLOG_OPS_MAX = 0;
+    EVENT_BACKLOG_MONTH = -1;
+  }
   EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;
   EXP_OPCODE_EXACT_CHECK = AIController.GetSetting("exp_opcode_exact_check") != 0;
   EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;
