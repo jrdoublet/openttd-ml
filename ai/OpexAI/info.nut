@@ -92,6 +92,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "probe_air_engine_depth",
+      description = "Shadow only: on C121 full engine scans, score the N=1 runner-up at N=1 and N=2 with the fused kernel and log AIR_ENGINE_DEPTH; the V96 shortcut is unchanged; decisions unchanged; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "exp_opcode_exact",
       description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,

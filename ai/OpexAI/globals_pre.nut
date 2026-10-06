@@ -494,6 +494,10 @@ C121_ENGTAB_PASS <- 0;
 C121_ENGTAB_NEXT <- 0;
 C121_ENGTAB_N1 <- null;
 C121_ENGTAB_N2 <- null;
+/* Piste 6 : sonde shadow. Defaut 0. Jamais lue par un choix, jamais sauvee. */
+PROBE_AIR_ENGINE_DEPTH <- false;
+AIR_ENGINE_DEPTH_SCAN <- 0;
+AIR_ENGINE_DEPTH_CHALLENGER <- null;
 SPAN_STACK <- null;
 SPAN_BY_ID <- null;
 SPAN_NEXT_ID <- 1;

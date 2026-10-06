@@ -1864,11 +1864,224 @@ function OpexC121GameEngineTryShortcut(catalog, plan, engineId)
   return { plane = plane, context = context, upperScore = upperScore };
 }
 
+/* Piste 6, sonde shadow. Le caller ne l'invoque que si probe_air_engine_depth
+ * est deja vrai. Le departage est celui du scan N=1 : score, puis profit,
+ * puis plus petit id. Aucune ecriture dans le plan ni dans le choix. */
+function OpexAirEngineDepthClear()
+{
+  AIR_ENGINE_DEPTH_SCAN = 0;
+  AIR_ENGINE_DEPTH_CHALLENGER = null;
+}
+
+function OpexAirEngineDepthConsider(item)
+{
+  local challenger = AIR_ENGINE_DEPTH_CHALLENGER;
+  if (challenger == null
+      || item.economics.decisionScore > challenger.economics.decisionScore
+      || (item.economics.decisionScore == challenger.economics.decisionScore
+          && item.economics.decisionProfitAnnual > challenger.economics.decisionProfitAnnual)
+      || (item.economics.decisionScore == challenger.economics.decisionScore
+          && item.economics.decisionProfitAnnual == challenger.economics.decisionProfitAnnual
+          && item.plane.id < challenger.plane.id)) {
+    AIR_ENGINE_DEPTH_CHALLENGER = item;
+  }
+}
+
+function OpexAirEngineDepthNum(value)
+{
+  if (value == null) return "na";
+  return "" + value;
+}
+
+function OpexAirEngineDepthScoreOf(econ)
+{
+  if (econ == null) return null;
+  if (("decisionScore" in econ) && econ.decisionScore != null) return econ.decisionScore;
+  if (("score" in econ) && econ.score != null) return econ.score;
+  return null;
+}
+
+function OpexAirEngineDepthPlanesOf(econ)
+{
+  if (econ == null) return -1;
+  if (("planes" in econ) && econ.planes != null) return econ.planes;
+  if (("targetPlanes" in econ) && econ.targetPlanes != null) return econ.targetPlanes;
+  return -1;
+}
+
+function OpexAirEngineDepthTownId(plan, siteName)
+{
+  if (plan == null || !(siteName in plan) || plan[siteName] == null) return -1;
+  local site = plan[siteName];
+  if (!("town" in site) || site.town == null || !("id" in site.town)) return -1;
+  return site.town.id;
+}
+
+/* Une ligne par decision issue d'un scan complet. loss = (score retenu -
+ * score du meilleur N du challenger) / score retenu. ops ne couvre que
+ * l'evaluation shadow, pas la ligne de log. Le noyau est celui du vainqueur
+ * (fusion AIR0310 si elle est active, sinon les deux economies historiques). */
+function OpexAirEngineDepthEmit(catalog, plan, routeChoice)
+{
+  if (!PROBE_AIR_ENGINE_DEPTH) return;
+  local challenger = AIR_ENGINE_DEPTH_CHALLENGER;
+  OpexAirEngineDepthClear();
+  if (routeChoice == null || !("plane" in routeChoice) || routeChoice.plane == null) return;
+  local incumbent = ("economics" in routeChoice) ? routeChoice.economics : null;
+  local incScore = OpexAirEngineDepthScoreOf(incumbent);
+  local incN = ("targetPlanes" in routeChoice) && routeChoice.targetPlanes != null
+      ? routeChoice.targetPlanes : OpexAirEngineDepthPlanesOf(incumbent);
+  local altId = -1;
+  local altN = -1;
+  local altScore = null;
+  local ops = 0;
+  if (challenger != null && ("plane" in challenger) && challenger.plane != null
+      && challenger.plane.id != routeChoice.plane.id) {
+    local savedN1 = C121_ENGTAB_N1;
+    local savedN2 = C121_ENGTAB_N2;
+    local tick0 = AIController.GetTick();
+    local ops0 = AIController.GetOpsTillSuspend();
+    local ctx = ("context" in challenger) ? challenger.context : null;
+    local shadow = OpexC121OneOrTwoWinner(catalog, plan, challenger.plane, ctx);
+    ops = OpexAirCalcDeltaOps(tick0, ops0);
+    C121_ENGTAB_N1 = savedN1;
+    C121_ENGTAB_N2 = savedN2;
+    altId = challenger.plane.id;
+    local altEcon = shadow != null ? shadow.initial : null;
+    altN = OpexAirEngineDepthPlanesOf(altEcon);
+    altScore = OpexAirEngineDepthScoreOf(altEcon);
+  }
+  local loss = "na";
+  if (incScore != null && altScore != null && incScore != 0) {
+    /* decisionScore est un flottant : + 0.0 evite tofloat() sur un float. */
+    loss = "" + ((incScore - altScore) / (incScore + 0.0));
+  }
+  local ap = -1;
+  if (plan != null && ("airport" in plan) && plan.airport != null && ("type" in plan.airport)) {
+    ap = plan.airport.type;
+  }
+  AILog.Info("AIR_ENGINE_DEPTH date=" + OpexC121GameEngineDate()
+      + " towns=" + OpexAirEngineDepthTownId(plan, "siteA")
+      + "-" + OpexAirEngineDepthTownId(plan, "siteB")
+      + " ap=" + ap
+      + " eng=" + routeChoice.plane.id
+      + " n=" + incN
+      + " score=" + OpexAirEngineDepthNum(incScore)
+      + " alt=" + altId
+      + " alt_n=" + altN
+      + " alt_score=" + OpexAirEngineDepthNum(altScore)
+      + " loss=" + loss
+      + " ops=" + ops);
+}
+
+/* Scan complet reserve a la sonde. Le caller ne l'atteint que si
+ * probe_air_engine_depth est deja vrai. Meme departage N=1 que le scan
+ * historique ; le second moteur est conserve pour le noyau N=1/N=2.
+ * N d'ouverture : 2 si C121_AAA_LINE, sinon 1, sans reprendre le motif
+ * historique des trois corps. */
+function OpexAirEngineDepthFullScan(catalog, plan)
+{
+  AIR_ENGINE_DEPTH_CHALLENGER = null;
+  local perf = C121_AIR_PLAN_PERF;
+  local scanTick0 = AIController.GetTick();
+  local scanOps0 = AIController.GetOpsTillSuspend();
+  local scanMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+  local evaluated = 0;
+  local known = 0;
+  local evalOpsTotal = 0;
+  local evalOps = 0;
+  local evalSameTick = 0;
+  local best = null;
+  local candidates = [];
+  foreach (plane in catalog.airPlaneChoicesByAirport[plan.airport.type]) {
+    if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
+    if (!OpexC118EngineFitsPlan(plan, plane)) continue;
+    if (!OpexAirPlaneInRange(plane, plan.distance)) continue;
+    local context = C121_AIR_ENGINE_CONTEXT ? OpexC121PrepareEngineContext(catalog, plan, plane) : null;
+    local upperScore = context == null ? OpexC121InitialEngineUpperScore(catalog, plan, plane)
+        : OpexC121InitialEngineUpperScore(catalog, plan, plane, context);
+    if (upperScore == null) continue;
+    if (context != null) {
+      context.upperScore = upperScore;
+      candidates.append(context);
+    } else candidates.append({ plane = plane, upperScore = upperScore });
+  }
+  candidates.sort(function(a, b) {
+    if (a.upperScore > b.upperScore) return -1;
+    if (a.upperScore < b.upperScore) return 1;
+    if (a.plane.id < b.plane.id) return -1;
+    if (a.plane.id > b.plane.id) return 1;
+    return 0;
+  });
+  if (scanMark != null) OpexSpanAgg("air.c121.scan", scanMark);
+  local engTabSeen = 0;
+  foreach (candidate in candidates) {
+    if (best != null && candidate.upperScore < best.economics.decisionScore) break;
+    if (PROBE_C121_ENGINE_TABLE) engTabSeen = engTabSeen + 1;
+    local plane = candidate.plane;
+    local engineMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    local tick0 = AIController.GetTick();
+    local ops0 = AIController.GetOpsTillSuspend();
+    local context = ("trip" in candidate) ? candidate : null;
+    local openingPlanes = 1;
+    if (C121_AAA_LINE) openingPlanes = 2;
+    local evaluatedEconomics = context == null
+        ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null)
+        : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null, null, context);
+    local tick1 = AIController.GetTick();
+    local ops = OpexAirCalcDeltaOps(tick0, ops0);
+    if (ops >= 0) evalOpsTotal += ops;
+    if (tick1 == tick0 && ops >= 0) {
+      evalOps += ops;
+      evalSameTick++;
+    }
+    if (engineMark != null) OpexSpanAgg("air.c121.engine", engineMark);
+    if (evaluatedEconomics == null || !("decisionScore" in evaluatedEconomics)) {
+      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitEng(plan, plane.id, candidate.upperScore, 1, null);
+      continue;
+    }
+    local economics = (("decisionEconomics" in evaluatedEconomics)
+        && evaluatedEconomics.decisionEconomics != null)
+        ? evaluatedEconomics.decisionEconomics : evaluatedEconomics;
+    evaluated++;
+    if (("engineMailKnown" in economics) && economics.engineMailKnown) known++;
+    local item = { plane = plane, economics = economics, context = context };
+    if (best == null
+        || economics.decisionScore > best.economics.decisionScore
+        || (economics.decisionScore == best.economics.decisionScore
+            && economics.decisionProfitAnnual > best.economics.decisionProfitAnnual)
+        || (economics.decisionScore == best.economics.decisionScore
+            && economics.decisionProfitAnnual == best.economics.decisionProfitAnnual
+            && plane.id < best.plane.id)) {
+      AIR_ENGINE_DEPTH_CHALLENGER = best;
+      best = item;
+    } else OpexAirEngineDepthConsider(item);
+    if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitEng(plan, plane.id, candidate.upperScore, 1, economics);
+  }
+  if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitPruned(plan, candidates, engTabSeen);
+  local scanTick1 = AIController.GetTick();
+  plan.c121EngineScanTicks <- scanTick1 - scanTick0;
+  plan.c121EngineScanOps <- OpexAirCalcDeltaOps(scanTick0, scanOps0);
+  plan.c121EngineEvalCount <- evaluated;
+  plan.c121EngineKnownCount <- known;
+  plan.c121EngineEvalOpsTotal <- evalOpsTotal;
+  plan.c121EngineEvalOpsSameTick <- evalOps;
+  plan.c121EngineEvalSameTickCount <- evalSameTick;
+  if (perf != null) {
+    if (plan.c121EngineScanOps >= 0) perf.scanOps += plan.c121EngineScanOps;
+    perf.scanTicks += plan.c121EngineScanTicks;
+    perf.engineEvals += evaluated;
+  }
+  return best;
+}
+
 /* Scan moteur C121. Utilise seulement pour un repli du raccourci « avion de
  * la partie » : le chemin par defaut reste le scan inligne de
  * OpexC121ChooseRoutePlane. */
 function OpexC121ScanRoutePlaneEngines(catalog, plan)
 {
+  /* Un test. Le caller n'arme le scan que si la sonde est deja vraie. */
+  if (AIR_ENGINE_DEPTH_SCAN != 0) return OpexAirEngineDepthFullScan(catalog, plan);
   local perf = C121_AIR_PLAN_PERF;
   local scanTick0 = AIController.GetTick();
   local scanOps0 = AIController.GetOpsTillSuspend();
@@ -2039,7 +2252,17 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     }
   }
 
+  /* Un seul test du reglage par choix. A 0, les deux if sont sautes :
+   * le scan complet reste le corps historique, le raccourci ne pose pas
+   * AIR_ENGINE_DEPTH_SCAN. */
+  local depthOn = PROBE_AIR_ENGINE_DEPTH;
+  if (depthOn) OpexAirEngineDepthClear();
+
   if (geMode != 1) {
+  if (depthOn) {
+    AIR_ENGINE_DEPTH_SCAN = 1;
+    best = OpexAirEngineDepthFullScan(catalog, plan);
+  } else {
   local scanTick0 = AIController.GetTick();
   local scanOps0 = AIController.GetOpsTillSuspend();
   local scanMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
@@ -2124,6 +2347,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     perf.scanTicks += plan.c121EngineScanTicks;
     perf.engineEvals += evaluated;
   }
+  }
   if (C121_AIR_GAME_ENGINE) {
     OpexC121GameEngineAfterScan(plan.airport.type, best, geMode);
     geState = OpexC121GameEngineState(plan.airport.type);
@@ -2164,6 +2388,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
           OpexC121GameEngineState(plan.airport.type).streak);
       geMode = 3;
       if (PROBE_C121_ENGINE_TABLE) plan.c121GeMode <- 3;
+      if (depthOn) AIR_ENGINE_DEPTH_SCAN = 1;
       best = OpexC121ScanRoutePlaneEngines(catalog, plan);
       if (C121_AIR_GAME_ENGINE) {
         OpexC121GameEngineAfterScan(plan.airport.type, best, geMode);
@@ -2226,5 +2451,6 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
   if (winnerMark != null) OpexSpanAgg("air.c121.winner", winnerMark);
   local routeChoice = { plane = best.plane, economics = initialEconomics, decisionEconomics = decisionEconomics,
       portfolioEconomics = portfolioEconomics, targetPlanes = initialEconomics.planes };
+  if (depthOn && AIR_ENGINE_DEPTH_SCAN) OpexAirEngineDepthEmit(catalog, plan, routeChoice);
   return routeChoice;
 }

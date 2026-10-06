@@ -266,6 +266,7 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("c77_fixes", defaults)
         self.assertEqual(defaults["probe_events"], 0)
         self.assertEqual(defaults["probe_cost"], 0)
+        self.assertEqual(defaults["probe_air_engine_depth"], 0)
         self.assertEqual(defaults["policy_rail"], 1)
         self.assertEqual(defaults["policy_caches"], 1)
         self.assertEqual(defaults["air_route_plane_selection"], 1)
