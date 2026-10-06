@@ -72,9 +72,19 @@ AIR_EARLY_SLOT_BONUS_PCT <- 50;
  * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
  * pas requalifie. */
 AIR_C83_TARGET_TOWNS <- 6;
+/* Ablation C83 : conserver l'observation des slots et les gardes physiques,
+ * mais pouvoir supprimer l'enqueue AIR cible qui interrompt projects. */
+C83_SLOT_REACTION <- true;
+/* C83 : revalider les sites connus ; chercher seulement dans la ville cible.
+ * Intervention comportementale experimentale, ancien parcours conserve a 0. */
+C83_LOCAL_REPAIR <- false;
 /* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
+/* Lots de cadence independants, jamais actives implicitement par C83/C121. */
+EXP_C83_WATCH_DAILY <- false;
+EXP_SCHEDULER_SKIP_NOT_DUE <- false;
+EXP_AIR_HUB_PAIR_PREFILTER <- false;
 /* C83 : une seule grande ville encore vide (deux slots libres), avant que le
  * maillage ne se fige. 0 = aucun effet. La cible et l'arret sont des globales
  * restaurees apres Load quand le reglage est arme. */
@@ -417,6 +427,16 @@ C121_AIR_ECONOMICS_SHADOW <- false;
 /* C121 : modele economique AIR unifie. Le flag decisionnel reste eteint tant
  * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
 C121_AIR_ECONOMICS <- false;
+C121_AIR_WINNER_FUSION <- false;
+C121_AIR_ENGINE_CONTEXT <- false;
+C121_AIR_GAME_ENGINE <- false;
+/* Etat transitoire « avion de la partie » par type d'aeroport. Non
+ * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
+ * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */
+C121_GAME_ENGINE_STATE <- {};
+C121_AIR_DECISION_DEPTH_ECONOMICS <- false;
+C121_AIR_PORTFOLIO_DEPTH_ECONOMICS <- false;
+C121_AIR_PORTFOLIO_SPLIT_ECONOMICS <- false;
 C121_AIR_ENGINE_REALIZATION <- false;
 C121_AIR_PROJECT_REALIZATION <- false;
 C121_AIR_PROJECT_REALIZATION_ADAPTIVE <- false;
@@ -462,6 +482,122 @@ C121_AIR_REALIZATION_MIN_LINES <- 2;
  * La table est recreee a chaque planification (ou conservee dans resumeState
  * pour une passe slicee) et ne participe a aucune decision. */
 C121_AIR_PLAN_PERF <- null;
+/* Telemetrie transitoire du passage catalogue ; jamais utilisee par les decisions. */
+CATALOG_COST_PROBE <- false;
+/* Sonde probe_loop_ops : agregats annuels d'opcodes de la boucle principale (diagnostic). */
+PROBE_LOOP_OPS <- false;
+/* Sonde probe_span_trace : intervalles dates des micro-taches. Defaut 0, aucun effet. */
+PROBE_SPAN_TRACE <- false;
+/* Sonde passive de la table de moteurs C121. Defaut 0 : aucun log, aucune ecriture. */
+PROBE_C121_ENGINE_TABLE <- false;
+C121_ENGTAB_PASS <- 0;
+C121_ENGTAB_NEXT <- 0;
+C121_ENGTAB_N1 <- null;
+C121_ENGTAB_N2 <- null;
+/* Piste 6 : sonde shadow. Defaut 0. Jamais lue par un choix, jamais sauvee. */
+PROBE_AIR_ENGINE_DEPTH <- false;
+AIR_ENGINE_DEPTH_SCAN <- 0;
+AIR_ENGINE_DEPTH_CHALLENGER <- null;
+/* Exposition only: air finance margin / first-revenue delay. Defaut 0. */
+PROBE_AIR_FINANCE_MARGIN <- false;
+AIR_FINANCE_MARGIN_YEAR <- -1;
+/* F-EVENT-BACKLOG-01 : sonde passive de la file d'evenements. Defaut 0. */
+PROBE_EVENT_BACKLOG <- false;
+EVENT_BACKLOG_CALLS <- 0;
+EVENT_BACKLOG_EVENTS <- 0;
+EVENT_BACKLOG_MAX_BURST <- 0;
+EVENT_BACKLOG_OPS_TOTAL <- 0;
+EVENT_BACKLOG_OPS_MAX <- 0;
+EVENT_BACKLOG_MONTH <- -1;
+SPAN_STACK <- null;
+SPAN_BY_ID <- null;
+SPAN_NEXT_ID <- 1;
+SPAN_LINES <- 0;
+SPAN_AGG_LINES <- 0;
+SPAN_YEAR <- -1;
+SPAN_ROOT_AGG <- null;
+OPEX_LOOP_PROF <- null;
+OPEX_LOOP_PROF_YEAR <- -1;
+OPEX_LOOP_PROF_TICK0 <- 0;
+/* Chemins opcode exacts : defaut historique. Le mode check compare et garde l'ancien resultat. */
+EXP_OPCODE_EXACT <- false;
+EXP_OPCODE_EXACT_CHECK <- false;
+EXP_OPCODE_EXACT_ON <- false;
+OPCODE_EXACT_STATS <- null;
+OPCODE_EXACT_BREAK <- null;
+OPCODE_EXACT_MISMATCHES <- null;
+OPCODE_EXACT_CAL_YEAR <- -1;
+OPCODE_EXACT_LATE_DATE <- -1;
+OPCODE_EXACT_SITE_NAME <- null;
+OPCODE_EXACT_PLAN_ONCE <- null;
+FLEET_AMORT_SHADOW_PROBE <- 0; // 0 OFF, 1 calcul seul, 2 instantanes ; jamais une politique
+/* R19 : injection de panne TEST ONLY (0 = off). Rang de la route AIR neuve
+ * annulee apres demarrage de ses avions ; compteur non sauvegarde. */
+R19_FAULT_INJECT <- 0;
+R19_FAULT_ROUTE_SEQ <- 0;
+CATALOG_COST_ACTIVE <- null;
+C121_CATALOG_INCREMENTAL <- false;
+C121_CATALOG_AIR_FIRST_YEAR <- false;
+C121_FLAT_BOOTSTRAP <- false;
+/* Premiere annee AIR : preparer le rail (catalogue + A* stock) sans le construire.
+ * Exige c121_catalog_air_first_year. Defaut 0 : aucun calcul hors du test. */
+C121_AIR_FIRST_YEAR_RAIL_PREP <- false;
+/* Economie C121 : n'evaluer que N=1 et N=2. N'exige pas aaa_line et ne touche
+ * pas AIR_FULL_LOAD. Defaut 0. */
+C121_AIR_ONE_OR_TWO_PLANES <- false;
+/* C121 : renfort de flotte sur preuve de stock en gare (delai 60 jours). */
+C121_FLEET_STOCK_GROWTH <- false;
+/* C121 : au plus un renfort par nouveau rapport annuel positif, toujours arbitre
+ * par le portefeuille et borne par la cible C121. Distinct du stock-growth. */
+C121_AIR_OBSERVATION_GROWTH <- false;
+/* C121 cadence : avance seulement le premier renfort 1->2 a la premiere
+ * observation annuelle positive. Les paliers suivants gardent les gardes
+ * standard C121 (deux ans entre renforts). */
+C121_AIR_FIRST_OBSERVATION_GROWTH <- false;
+C121_AIR_FIRST_GROWTH_MIN_DAYS <- 0;
+C121_AIR_FIRST_GROWTH_PHASE_YEARS <- 0;
+C121_AIR_FIRST_GROWTH_LATE_DAYS <- 0;
+C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT <- 0;
+/* C121 cadence : shadow live du premier renfort 1->2. Reutilise les fenetres
+ * C117 deja calculees et ne participe a aucune decision. */
+C121_AIR_FIRST_LIVE_SHADOW <- false;
+C121_AIR_FIRST_LIVE_GROWTH <- false;
+C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <- 0;
+C121_AIR_FIRST_LIVE_AIR_PRIORITY <- false;
+C121_AIR_FIRST_LIVE_STATE <- {};
+C121_AIR_FIRST_LIVE_OPS <- 0;
+C121_AIR_FIRST_LIVE_SAMPLES <- 0;
+C121_AIR_FIRST_LIVE_PRIORITY_STATE <- {};
+/* C121 cadence : shadow pass-stop/K_pass. Journalise le projet bloquant et
+ * les projets suivants sans modifier l'arbitrage ni la poursuite de passe. */
+C121_KPASS_SHADOW <- false;
+/* C121 cadence : laisse le portefeuille depasser un bloqueur fleet/K_pass uniquement
+ * lorsqu'un projet AIR finançable existe dans les cinq rangs suivants. */
+C121_KPASS_AIR_CONTINUE <- false;
+/* C121 cadence : shadow du cold-start K_dec. Mesure le classement contrefactuel
+ * si un renfort fleet sans observation reelle conservait l'exemption C69. */
+C121_KDEC_COLD_SHADOW <- false;
+C121_KDEC_COLD_EXEMPT <- false;
+/* C121 : territoire d'abord (reserve de tresorerie pour le prochain AIR qui ouvre une ville). */
+C121_TERRITORY_FIRST <- false;
+/* C121 : ligne a la AAAHogEx (2 avions a l'ouverture, chargement complet aux deux bouts). */
+C121_AAA_LINE <- false;
+C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
+/* Derive du monde, volontairement absent de Save(). */
+C121_CATALOG_CACHE <- {};
+C121_CATALOG_AIRPORT_PRICES <- {};
+C121_CATALOG_AIRPORT_REV <- {};
+C121_CATALOG_STATION_REV <- {};
+C121_CATALOG_STATION_LINES <- {};
+C121_CATALOG_HUB_LEARN_REV <- {};
+C121_CATALOG_AIRPORT_LEARN_REV <- {};
+C121_CATALOG_ARM_LEARN_REV <- {};
+C121_CATALOG_TOWN_PRIORITY <- {};
+C121_CATALOG_TOWN_REV <- {};
+C121_CATALOG_TOWN_POP <- {};
+C121_CATALOG_TOWN_PROD <- {};
+C121_CATALOG_TOWN_CURSOR <- 0;
+C121_CATALOG_TOWN_BATCH_DATE <- -1;
 /* Snapshot endpoint C121 limite a une passe de planification AIR. Un meme site
  * (ancre/type/cargo/etat de reutilisation) est evalue une fois puis reutilise
  * pour toutes les paires de cette passe. */
@@ -586,6 +722,14 @@ OPEX_AIR_CAP_PAD <- false;
 OPEX_AIR_PLAN_PAD <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
+/* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
+AIR_FLEET_COOLDOWN_PREFILTER <- true;
+/* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
+ * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
+AIR_EFFICIENCY_BATCH <- false;
+AIR_EFFICIENCY_PREFLIGHT <- false;
+AIR_EFFICIENCY_DEDUPE <- false;
+AIR_EFFICIENCY_RESELECT <- false;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
@@ -596,6 +740,27 @@ COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
+/* V107 : densification rail classee par le portefeuille. 0 = depense directe
+ * sur la tresorerie residuelle (comportement historique). */
+V107_DENSIFY_PORTFOLIO <- false;
+/* AIR 03/10 3a : raccourci V96 sans la borne jetee. 0 = calcul historique. */
+AIR0310_V96_SHORTCUT_LEAN <- false;
+/* AIR 03/10 3b : N=1 et N=2 du meme avion partagent leurs invariants.
+ * 0 = deux economies completes (comportement historique). */
+AIR0310_ONE_TWO_FUSED <- false;
+/* AIR 03/10 1 : publication partielle sans reconstruire tout le portefeuille.
+ * 0 = rebuild complet a chaque lot (comportement historique). Le chargement
+ * reel est en plus barre par C121_CATALOG_INCREMENTAL. */
+AIR0310_INCREMENTAL_PUBLISH <- false;
+/* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
+ * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
+ * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
+AIR0310_HUB_SNAPSHOT <- false;
+/* AIR 03/10 V122 : validite des sites air partagee entre reelections.
+ * 0 = sonde locale a chaque filtre (comportement historique). Le
+ * chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
+AIR0310_SITE_VALIDITY_CACHE <- false;
+AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
@@ -637,6 +802,13 @@ CASH_RESERVE_PROBE_MAX_BINDS <- 0;
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
 HARD_ITERATION_CAP <- 10000;
+/* Jours max de detention du creneau unique _railSearch. 0 = borne inactive :
+ * aucun calcul de date, les recherches suivent le budget d'iterations. */
+RAIL_SEARCH_DAY_CAP <- 0;
+/* V100 : memoire d'echec des doublements de voie (defaut 0). */
+RAIL_UPGRADE_FAILURE_MEMORY <- false;
+/* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
+RAIL_TERRAIN_PROBE <- false;
 
 /* C80 tranche 0 : socle de l'orchestrateur à double registre (intentions / exécution).
  * 0 = ordonnanceur historique (défaut), 1 = orchestrateur à double registre actif. */

@@ -46,9 +46,13 @@ class OpexBudget {
     totals = {};
   }
 
+  _depth = 0;
+
   function begin()
   {
-    if (this._open) this.nested++;
+    /* Imbrication : on compte et on conserve la marque externe, afin que le
+     * cout total reste impute a la categorie externe au lieu d'etre perdu. */
+    if (this._open) { this.nested++; this._depth++; return; }
     this._tick = AIController.GetTick();
     this._left = AIController.GetOpsTillSuspend();
     this._open = true;
@@ -58,6 +62,7 @@ class OpexBudget {
   function end(category)
   {
     if (!this._open) return 0;
+    if (this._depth > 0) { this._depth--; return 0; }
     local left = AIController.GetOpsTillSuspend();
     local elapsed = AIController.GetTick() - this._tick;
     local spent = elapsed <= 0

@@ -533,6 +533,179 @@ function OpexSaveC83Preempt(saveObj, ai)
   saveObj.c83PreemptRace <- race;
 }
 
+/* R20 : Load precede les reglages. Tampon prive a la persistance, consomme
+ * par _reconcileAfterLoad ; ni cache catalogue ni nouveau reglage public. */
+OPEX_RELOAD_C121_STRATEGY <- null;
+
+function OpexC121StrategyStateEnabled()
+{
+  return C121_AIR_PRESSURE_PROBE || C121_AIR_PROJECT_REALIZATION_ADAPTIVE
+      || C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW;
+}
+
+function OpexSaveC121Strategy(saveObj)
+{
+  if (!OpexC121StrategyStateEnabled()) return;
+  local accum = null;
+  if (C121_AIR_PRESSURE_ACCUM != null) {
+    /* Copie native du seul historique utile : TownID -> minimum de slots.
+     * Toutes les valeurs produites par le collecteur sont entieres. */
+    accum = {
+      year = C121_AIR_PRESSURE_ACCUM.year,
+      samples = C121_AIR_PRESSURE_ACCUM.samples,
+      towns = clone C121_AIR_PRESSURE_ACCUM.towns,
+    };
+  }
+  saveObj.c121Strategy <- {
+    version = 1,
+    regime = C121_AIR_PROJECT_REALIZATION_REGIME,
+    yearsObserved = C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED,
+    accum = accum,
+    previous = C121_AIR_PRESSURE_PREV != null ? clone C121_AIR_PRESSURE_PREV : null,
+  };
+}
+
+/* Validation sans API monde ni drapeaux runtime (Load est trop tot).
+ * Refuser le bloc entier si incomplet/incompatible, sans demi-restauration. */
+function OpexLoadC121Strategy(data)
+{
+  if (data == null || typeof data != "table") return null;
+  foreach (key in ["version", "regime", "yearsObserved"]) {
+    if (!(key in data) || typeof data[key] != "integer") return null;
+  }
+  if (data.version != 1 || data.regime < -1 || data.regime > 1
+      || data.yearsObserved < 0 || !("accum" in data) || !("previous" in data)) return null;
+  local accum = null;
+  if (data.accum != null) {
+    local a = data.accum;
+    if (typeof a != "table") return null;
+    foreach (key in ["year", "samples"]) {
+      if (!(key in a) || typeof a[key] != "integer" || a[key] < 0) return null;
+    }
+    if (!("towns" in a) || typeof a.towns != "table") return null;
+    local towns = {};
+    foreach (townId, remaining in a.towns) {
+      if (typeof townId != "integer" || townId < 0
+          || typeof remaining != "integer" || remaining < -1) return null;
+      /* Un TownID historique n'est pas filtre selon le monde actuel : il fait
+       * partie de l'observation deja utilisee par le classifieur. */
+      towns.rawset(townId, remaining);
+    }
+    accum = { year = a.year, samples = a.samples, towns = towns };
+  }
+  local previous = null;
+  if (data.previous != null) {
+    local p = data.previous;
+    if (typeof p != "table") return null;
+    previous = {};
+    foreach (key in ["year", "open", "competitor", "locked", "other",
+                    "uniqueTowns", "samples", "pressured"]) {
+      if (!(key in p) || typeof p[key] != "integer" || p[key] < 0) return null;
+      previous.rawset(key, p[key]);
+    }
+    foreach (key in ["contestablePermille", "openPermille"]) {
+      if (!(key in p) || typeof p[key] != "integer" || p[key] < -1 || p[key] > 1000) return null;
+      previous.rawset(key, p[key]);
+    }
+  }
+  return { version = 1, regime = data.regime, yearsObserved = data.yearsObserved,
+           accum = accum, previous = previous };
+}
+
+function OpexRestoreC121Strategy(data)
+{
+  /* Migration ancienne sauvegarde : nouvelle observation, jamais un verrou
+   * invente a partir de la carte actuelle. Les caches restent reconstructibles. */
+  C121_AIR_PROJECT_REALIZATION_REGIME = -1;
+  C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED = 0;
+  C121_AIR_PRESSURE_ACCUM = null;
+  C121_AIR_PRESSURE_PREV = null;
+  C121_AIR_PRESSURE_SNAPSHOT = null;
+  if (!OpexC121StrategyStateEnabled()) return;
+  if (data == null) {
+    AILog.Info("C121_STRATEGY_RELOAD observation_restart: missing_or_invalid_state");
+    return;
+  }
+  C121_AIR_PROJECT_REALIZATION_REGIME = data.regime;
+  C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED = data.yearsObserved;
+  C121_AIR_PRESSURE_ACCUM = data.accum;
+  C121_AIR_PRESSURE_PREV = data.previous;
+  AILog.Info("C121_STRATEGY_RELOAD regime=" + data.regime
+      + " observed_years=" + data.yearsObserved
+      + " accum_year=" + (data.accum != null ? data.accum.year : -1));
+  /* Ne pas appeler PressureAdvanceYear ici : le prochain scoring cloture
+   * normalement l'annee et respecte un regime deja verrouille. */
+}
+
+/* C121 : les snapshots actual/target/capacite/opcodes servent uniquement aux
+ * probes de la partie courante. Les recopier pour 100+ lignes dans Save()
+ * finit par depasser le budget NoAI. Conserver en revanche les petits
+ * scalaires necessaires aux decisions apres reload (marginal*, arm,
+ * rawRevenue, realization, amortissement, targetAirPlanes historique). */
+OPEX_SAVE_LINE_SKIP <- {
+  c121PaxCapacity = true, c121MailCapacity = true,
+  c121DemandOps = true, c121DemandTicks = true,
+  c121EvalOps = true, c121EvalTicks = true,
+  c121ActualCarriedPax = true, c121ActualCarriedMail = true,
+  c121ActualCarried = true, c121ActualRevenueAnnual = true,
+  c121ActualProfitAnnual = true, c121ActualRunningAnnual = true,
+  c121ActualVehicleRunningAnnual = true, c121ActualAmortAnnual = true,
+  c121ActualPlanes = true, c121ActualOneWayDays = true,
+  c121ActualHeadwayDays = true, c121ActualStationRating = true,
+  c121TargetCarriedPax = true, c121TargetCarriedMail = true,
+  c121TargetCarried = true, c121TargetRevenueAnnual = true,
+  c121TargetProfitAnnual = true, c121TargetPlanes = true,
+};
+
+/* Copie serialisable d'une ligne. `clone` copie la table en natif ; on ne
+ * touche ensuite qu'aux exceptions : diagnostics C121, floats a scalariser et
+ * types non serialisables. La copie est superficielle : tableaux et tables
+ * imbriques restent partages avec la ligne vivante. */
+function OpexSaveProjectLine(line)
+{
+  local serializableLine = clone line;
+  foreach (key, val in line) {
+    if (key in OPEX_SAVE_LINE_SKIP) {
+      delete serializableLine[key];
+      continue;
+    }
+    local valType = typeof val;
+    if (valType == "float") {
+      /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
+       * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
+      serializableLine[key] = val.tointeger();
+    } else if (valType != "integer" && valType != "string" && valType != "bool" &&
+               valType != "null" && valType != "array" && valType != "table") {
+      delete serializableLine[key];
+    }
+  }
+  return serializableLine;
+}
+
+/* Projection mensuelle des lignes hors de Save(). Save() s'execute sous un
+ * plafond fixe de 100k opcodes ; recopier champ par champ ~150 lignes l'a
+ * depasse (graine 314, mi-1978 : "This script took too long to Save", script
+ * tue). Ici, dans la boucle principale, le cout n'est pas plafonne. Sous
+ * SAVE_PROJECTION_MIN_LINES lignes, rien ne change : Save() projette tout. Les
+ * scalaires d'une ligne peuvent dater d'au plus un mois au rechargement. */
+SAVE_PROJECTION_MIN_LINES <- 64;
+function OpexAI::_refreshSaveProjection()
+{
+  if (!SAVE_FULL_STATE || this._lines == null || this._lines.len() < SAVE_PROJECTION_MIN_LINES) {
+    this._saveProjection = null;
+    return;
+  }
+  local today = AIDate.GetCurrentDate();
+  local month = AIDate.GetYear(today) * 12 + AIDate.GetMonth(today);
+  if (month == this._saveProjectionMonth) return;
+  this._saveProjectionMonth = month;
+  local cache = {};
+  foreach (line in this._lines) {
+    if (line != null && typeof line == "table") cache[line] <- OpexSaveProjectLine(line);
+  }
+  this._saveProjection = cache;
+}
+
 function OpexAI::Save()
 {
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
@@ -563,6 +736,8 @@ function OpexAI::Save()
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
     if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
+    if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
+    if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     return shortSave;
   }
 
@@ -583,52 +758,21 @@ function OpexAI::Save()
    * tables des lignes actuelles ne contiennent que des entiers/booleens/null. */
   local saveLines = this._lines;
   if (this._lines != null) {
-    /* C121 : les snapshots actual/target/capacite/opcodes servent uniquement aux
-     * probes de la partie courante. Les recopier pour 100+ lignes dans Save()
-     * finit par depasser le budget NoAI. Conserver en revanche les petits
-     * scalaires necessaires aux decisions apres reload (marginal*, arm,
-     * rawRevenue, realization, amortissement, targetAirPlanes historique). */
-    local c121SaveSkip = {
-      c121PaxCapacity = true, c121MailCapacity = true,
-      c121DemandOps = true, c121DemandTicks = true,
-      c121EvalOps = true, c121EvalTicks = true,
-      c121ActualCarriedPax = true, c121ActualCarriedMail = true,
-      c121ActualCarried = true, c121ActualRevenueAnnual = true,
-      c121ActualProfitAnnual = true, c121ActualRunningAnnual = true,
-      c121ActualVehicleRunningAnnual = true, c121ActualAmortAnnual = true,
-      c121ActualPlanes = true, c121ActualOneWayDays = true,
-      c121ActualHeadwayDays = true, c121ActualStationRating = true,
-      c121TargetCarriedPax = true, c121TargetCarriedMail = true,
-      c121TargetCarried = true, c121TargetRevenueAnnual = true,
-      c121TargetProfitAnnual = true, c121TargetPlanes = true,
-    };
+    /* Les lignes deja projetees par _refreshSaveProjection sont reprises telles
+     * quelles : Save() ne fait plus qu'une recherche par ligne. Seules les lignes
+     * apparues depuis le dernier passage sont projetees ici. */
+    local cache = this._saveProjection;
     local projectedLines = [];
     foreach (line in this._lines) {
       if (line == null || typeof line != "table") {
         projectedLines.append(line);
         continue;
       }
-      /* `clone` copie la table en natif ; ne plus reinsérer chaque champ en
-       * Squirrel. Sur 100+ lignes, cette boucle etait le cout dominant de
-       * Save(). On ne touche ensuite qu'aux exceptions : diagnostics C121,
-       * floats a scalariser et types non serialisables. */
-      local serializableLine = clone line;
-      foreach (key, val in line) {
-        if (key in c121SaveSkip) {
-          delete serializableLine[key];
-          continue;
-        }
-        local valType = typeof val;
-        if (valType == "float") {
-          /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
-           * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
-          serializableLine[key] = val.tointeger();
-        } else if (valType != "integer" && valType != "string" && valType != "bool" &&
-                   valType != "null" && valType != "array" && valType != "table") {
-          delete serializableLine[key];
-        }
+      if (cache != null && (line in cache)) {
+        projectedLines.append(cache[line]);
+        continue;
       }
-      projectedLines.append(serializableLine);
+      projectedLines.append(OpexSaveProjectLine(line));
     }
     saveLines = projectedLines;
   }
@@ -673,12 +817,18 @@ function OpexAI::Save()
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
+  if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
+  if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   return saveObj;
 }
 function OpexAI::Load(version, data)
 {
   this._loadedFromSave = true;
+  OPEX_RELOAD_C121_STRATEGY = null;
+  OPEX_AIR_ROLLBACKS = [];
   if (data == null) return;
+  if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
+  if ("c121Strategy" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;
   this._reloadC75PassDates = ("c75PassDates" in data) ? data.c75PassDates : null;
   if ("generationStage" in data) this._generationStage = data.generationStage;
@@ -749,6 +899,10 @@ function OpexAI::Load(version, data)
  * ici, apres les reglages. Les stationA/stationB sont des TUILES, jamais des StationID. */
 function OpexAI::_reconcileAfterLoad()
 {
+  /* R20 : appliquer seulement apres OpexLoadSettings, qui efface la pression. */
+  OpexRestoreC121Strategy(OPEX_RELOAD_C121_STRATEGY);
+  OPEX_RELOAD_C121_STRATEGY = null;
+  OpexAirReconcileRollbacks();
   /* C69/C75/C70 : restaurer APRES OpexLoadSettings() et les remises a zero de Start(). */
   if (C69_TRACK_BUILDS && this._reloadC69BuildDates != null && typeof this._reloadC69BuildDates == "array") {
     C69_BUILD_DATES = this._reloadC69BuildDates;
@@ -864,6 +1018,12 @@ function OpexAI::_reconcileAfterLoad()
   this._railReadyStock = {};
   /* C80 étape 2 : la table de retrait temporaire des paires est reconstructible. */
   this._railStockCooldown = {};
+  /* C121 : la liste de preparation et l'A* en cours ne sont pas sauves. On recalcule. */
+  this._c121RailPrepCandidates = null;
+  this._c121RailPrepMonth = -1;
+  this._c121RailPrepHold = false;
+  this._c121RailPrepYieldLogged = false;
+  this._c121RailPrepMinAirCap = -1;
 
   /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
   if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {

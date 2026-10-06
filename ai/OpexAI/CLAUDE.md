@@ -1,9 +1,16 @@
 # OpexAI — contexte pour la revue de code
 
+Consignes réconciliées le **2026-09-30** par lecture statique ; validation V102
+actualisée le **2026-10-03**. Les chemins ci-dessous sont
+relatifs à la racine du dépôt, sauf les noms de modules `.nut`, relatifs à `ai/OpexAI/`.
+`AGENTS.md` fait autorité pour les méthodes et `docs/taches.md` pour le travail restant.
+Ce fichier ne constitue ni un second backlog ni une qualification économique du code courant.
+
 ## Quoi
 `OpexAI` est une IA de jeu OpenTTD (framework NoAI), multimodale (rail, route, air, eau).
-Objectif du script (`info.nut`) : "meilleur ROI par origine/destination, puis revenu maximisé
-sous contraintes de capital et d'opcodes."
+Le portefeuille courant classe les projets par `fundScore`, fondé sur le profit attendu,
+la calibration par mode et le dénominateur C69, sous contrainte de capital. La description
+historique d'`info.nut` parlant de revenu ne suffit pas à définir ce contrat.
 
 ## Le but : battre AAAHogEx
 AAAHogEx est l'IA adverse utilisée comme arbitre externe de toute décision : en cas de désaccord
@@ -12,69 +19,17 @@ logique de scoring interne (profit/opcode, ROI) n'est qu'une heuristique d'alloc
 métrique qui compte est la comparaison directe (`company_value`, `profit_year`) sur carte
 partagée.
 
-État mesuré le plus récent (duels 20 graines × 10 ans du 2026-09-21, comptes qualifiés C66.1,
-références des bancs C69 et C72) : OpexAI fait **~16 % du profit annuel** d'AAAHogEx et ~23 % de
-sa valeur, avec **~98 véhicules pilotables contre 365**. L'écart se décompose en **volume ×0,27**
-et **rendement par véhicule ×0,60** (16 k£ contre 27 k£ par véhicule et par an). L'avion porte
-l'essentiel : sur les mêmes villes, 1,02 avion par marché contre 3,00, et 60 £ de profit par place
-contre 323 £ (`docs/08_opex_vs_aaahogex_same_markets.md`, `docs/16_bilan_volume.md`).
-⛔ **Ne plus citer « rendement par véhicule à 93 % »** : ce chiffre venait de comptes `VEHS` non
-qualifiés (wagons, ombres, rotors) et a été retiré (`docs/taches.md`, « Référence historique »).
-Ne pas citer de chiffre antérieur au 2026-09-09 : ces résultats sont archivés et ne font plus foi.
+Les mesures historiques et dérogations sont dans
+[la synthèse des décisions](../../docs/journaux/synthese_decisions_2026-09-30.md),
+pas dans ces instructions. Ne pas réutiliser les comptes `VEHS` bruts ni le ratio
+erroné « rendement à 93 % ». Les résultats antérieurs au 9 septembre ne font plus foi.
 
-**Défauts adoptés le 2026-09-21** (banc 20×10 duel : profit +6,3 % 14/6, valeur +6,1 % 14/6,
-véhicules +40 20/0 ; adoptés à 14/20 par décision utilisateur, `docs/16_bilan_volume.md` §10) :
-`c75_multi_build` (plusieurs chantiers par passe tant que le coût < K_pass), `c69_decision_bottleneck`
-(classement P / max(C, K_dec) : ROI quand on est pauvre, profit quand on est riche),
-`c69_fleet_exempt` (les renforts de flotte gardent P/C), `c70_mode_calibration` (facteur
-réalisé/prédit par mode, glissant). Fiches : `docs/11_goulot_decision.md`,
-`docs/12_calibration_par_mode.md`.
+## Carte des modules
 
-## Carte des modules (état 2026-09-13, plus `orchestrator.nut` le 2026-09-21)
-
-C65 (2026-09-13) : découpage complet. Passes 1–2 : déplacement pur, bit-identique.
-Passe 3 : `_processEvents` / `_runNextTask` dispatchent vers un handler par type
-(`event_handlers.nut`, `scheduler_tasks.nut`) — un appel de plus par événement/tâche,
-banc 20×10 : 12 ex æquo, 4/4 sur le reste, moyenne −0,43 %, pas de régression
-systématique. Les `const` restent dans `main.nut`. Les méthodes `function OpexAI::x()`
-sont dans le **second** bloc `require`, après la classe. `globals_pre.nut` avant
-budget/catalog ; `globals_post.nut` après `builder_road.nut`.
-
-| Fichier | Rôle |
-|---|---|
-| `info.nut` (2 643) | `AIInfo` : déclaration de tous les réglages et drapeaux d'expérience |
-| `candidates.nut` (3 282) | Génération des candidats de ligne (rail, route, air, fret) et modèle de coût A* |
-| `builder_rail.nut` (2 144) | Construction ferroviaire, recherche segmentée/reprenable |
-| `projects.nut` (1 914) | Sélection du portefeuille (`portfolio_v2`), financement (`OpexProjectFinanceCapital`) |
-| `builder_air.nut` (1 727) | Aéroports, modèle de rotation (`OpexAirTripModel`), plafond de cadence |
-| `builder_road.nut` (1 388) | Lignes routières, plafond physique de véhicules |
-| `task_rail.nut` (1 102) | Construction / expansion / A* rail, réparation C41 |
-| `catalog.nut` (884) | Catalogue moteurs/cargos/industries |
-| `builder_water.nut` (846), `lib_water.nut` (610) | Mode eau (chantier non fini, voir `docs/taches.md`) |
-| `task_projects.nut` (846) | Sac à dos, batch dynamique, `_tryBuildProjects` |
-| `event_handlers.nut` (822) | Un handler par type d'événement (`_onVehicleCrashed`, …) |
-| `task_air.nut` (737) | Construction et flotte aériennes |
-| `ledgers.nut` (707) | Registres annuels C39/C41/C48/C49/C50/C52/C54/C55/C60 |
-| `economy.nut` (704) | Scoring économique (ROI, projections) |
-| `scheduler_tasks.nut` (703) | Un dispatch par tache de file (`_dispatchCatalog`, …) |
-| `tension.nut` (689) | Score de tension capacité/attente |
-| `task_report.nut` (666) | Rapport annuel, ferraillage |
-| `main.nut` (540) | `const`, classe `OpexAI`, `Start()` (file, emprunt, boucle) |
-| `task_road.nut` (491) | Construction et refleet routiers |
-| `probes.nut` (447) | `OpexSign`, `OpexDecide`, journaux de sondes |
-| `lines.nut` (429) | Identité de ligne, jointure, abandon |
-| `globals_pre.nut` (414) | Globales du bloc avant `require(budget/catalog/…)` |
-| `events.nut` (357) | `_processEvents` (dispatch), `_markDirty`, sonde C52 |
-| `settings.nut` (336) | `OpexLoadSettings()` : lecture unique des 213 `GetSetting` |
-| `globals_post.nut` (269) | Globales du bloc après `builder_road.nut` |
-| `scheduler.nut` (241) | `_runNextTask` (round-robin + dispatch) |
-| `orchestrator.nut` (~1 000) | C80 : double registre (file réactive + file de fond, registre de travailleurs résumables : A\* rail, `town_growth`) et C76 (révisions par couche, régénération ciblée). **Tout est à défaut 0** (`c80_*`, `c76_regen_targeted`). Contrat : `docs/18_orchestrateur_double_registre.md` |
-| `persist.nut` (219) | `Save` / `Load` / `_reconcileAfterLoad` |
-| `task_town.nut` (213) | Croissance urbaine |
-| `spatial.nut` (183) | Grille spatiale pour les candidats fret (C46) |
-| `capital.nut` (136) | `OpexCashReserve`, `OpexAvailableCapital`, emprunt |
-| `task_water.nut` (103) | Construction et refleet eau |
-| `budget.nut` (92) | Réserve de trésorerie |
+Consulter [l'architecture courante](../../docs/architecture_courante.md) : responsabilités
+et ordre de chargement, sans les anciennes tailles de fichiers. `main.nut` reste
+la source de vérité des `import`/`require`. Les méthodes `OpexAI::...` se chargent
+après la classe ; `globals_pre.nut` avant les helpers, `globals_post.nut` après les builders.
 
 ## Architecture : le budget d'opcodes est une ressource de flux, pas un stock
 Chaque tick de jeu accorde un budget d'opcodes fixe avant suspension du script
@@ -86,13 +41,13 @@ Deux implémentations concrètes de ce principe, déjà en production (pas un pl
   construction eau/route/rail/signalisation...) avec `dueCycle` et `enabled` ; `_taskCursor`
   fait tourner l'exécution en round-robin, persisté à la sauvegarde.
 - **Recherche de chemin ferroviaire segmentée et reprenable** (`builder_rail.nut`) :
-  `rail_search_resumable`, `rail_micro_deadline`, `rail_segmented_search` (tous à défaut 1,
-  adoptés) découpent l'A* en tranches de `RAIL_SEARCH_SLICE` itérations avec un point de reprise
-  explicite plutôt qu'un recalcul.
+  les globales `RAIL_SEARCH_RESUMABLE`, `RAIL_MICRO_DEADLINE`, `RAIL_SEGMENTED_SEARCH`,
+  désormais chargées par `policy_rail`, découpent l'A* en tranches avec un point de reprise
+  explicite. Les anciens réglages individuels ne sont plus des options publiques.
 
 Le pipeline de décision (sélection des lignes à construire) : `candidates.nut` génère les
 candidats → `economy.nut` les score en ROI → `projects.nut` sélectionne le portefeuille à
-construire (`portfolio_v2`, seul chemin depuis le 2026-09-11 — le legacy knapsack a été
+construire (portefeuille v2, seul chemin depuis le 2026-09-11 — le legacy knapsack a été
 supprimé, pas de branche morte à unifier).
 
 ## Conventions du code
@@ -103,13 +58,26 @@ supprimé, pas de branche morte à unifier).
 - **Mesure** : les panneaux `OpexSign(...)` (préfixes `AC|`, `RC|`, etc.) sont le canal de mesure
   des bancs ; `OpexDecide(kind, fields)` (`probes.nut`) est le journal de décision structuré, gardé
   par `decision_log` ou une sonde dédiée — coût nul au défaut.
-- **Cycle de validation d'un changement de comportement** : sonde passive → diagnostic 5 graines ×
-  6 ans → banc officiel 20 graines × 10 ans apparié, lu au **test des signes d'abord** (≥ 15/20,
-  p < 0,05), moyennes ensuite. Un défaut ne change jamais sur moins que ça. Deux bras identiques
-  sur une graine (ex æquo) signifient « le drapeau n'a pas joué », pas une victoire.
-- Après toute modification d'un `.nut` : smoke test (2 graines × 3 ans) **avant** commit — une
-  erreur de compilation Squirrel tue l'IA au démarrage presque en silence (`company_value = 1`,
-  zéro panneau).
+- **Validation** : appliquer `AGENTS.md` §4, source unique du protocole. Après une modification
+  `.nut`, smoke de compilation/exécution **1 graine × 1 an**, puis, pour le comportement,
+  porte A **40×3 `gain_short`** (Wilcoxon, IC95 bootstrap, seuil relatif 4 %) et
+  porte B **20×10 `non_erosion`**, garde de valeur 5 % aux deux portes. Le 5×6
+  n'est plus une étape obligatoire ; les deux portes sont requises pour l'adoption.
+  Les optimisations d'opcodes ont une règle de neutralité dédiée ; les dérogations utilisateur
+  restent explicitement tracées et ne changent pas le verdict statistique. Un ex æquo n'est
+  pas une victoire, ni à lui seul la preuve qu'un drapeau n'a pas été exposé.
+- **Défauts et bancs automatiques** : appliquer `AGENTS.md` §4.1. Pour un changement
+  de défaut demandé, pré-enregistrer le plan et utiliser `run_c66_reference.py`
+  avec la règle explicite et les options du §4.1, puis suivre les portes et artefacts.
+  `signs20` reste le défaut CLI historique. `qualify.yml` et `bench.yml` ne sont
+  pas encore migrés vers V102 ; le [schéma de plan 1](../../qualifications/README.md)
+  correspond à leur ancien protocole, pas aux nouvelles portes.
+  Garder l'ancien défaut pendant les essais ; ne pas attendre une nouvelle demande
+  de lancement lorsque accès/publication/budget sont disponibles. Un blocage d'accès
+  ou de publication doit être signalé, jamais contourné par un push implicite.
+  Lire les artefacts et le verdict économique, pas seulement la couleur du job ou
+  le pourcentage Opex/AAAHogEx. La règle opcodes et les interdictions de chantier
+  restent applicables. Guide d'exécution : `docs/bancs_github.md`.
 
 ## Pièges de mesure (bancs)
 - **La ligne `[ai_players]` d'`openttd.cfg` est lue sur ~1 024 caractères.** Un harnais qui passe
@@ -149,9 +117,10 @@ supprimé, pas de branche morte à unifier).
   du code vivant mais volontairement inerte (hypothèse déjà banquée et rejetée, ou pas encore
   banquée). Vérifier la valeur par défaut avant de signaler "code mort" ou "flag jamais activé".
   Exemples : les `*_cost_probe` (mesure seule).
-- `OpexProjectFinanceCapital` (`projects.nut`) applique `biasPct` = 170 (rail) / 121 (route) :
-  ce sont des **surcoûts réels mesurés** (terrain non pricé par le modèle de coût), pas des nombres
-  magiques à supprimer — leur remplacement par un devis physique est un chantier ouvert.
+- `OpexProjectFinanceCapital` (`projects.nut`) lit `rail_finance_bias_pct`, **100 par défaut**
+  depuis la décision du 26 septembre ; la route conserve 121. Ne pas confondre ce facteur de
+  financement avec `RAIL_TERRAIN_FACTOR=170`, déjà inclus dans l'estimation du capital rail.
+  Restaurer 170 en financement réintroduirait une majoration supprimée ; consulter C67.
 - `debug_signs=1` par défaut n'est pas un oubli de debug : c'est la seule source de mesure pour
   tous les bancs `sweeps/*.py`. Il ne doit être mis à 0 que pour une partie réelle avec des
   humains.
@@ -171,30 +140,30 @@ supprimé, pas de branche morte à unifier).
 - `GetAPIVersion()` déclare "15", aligné sur la plateforme de banc OpenTTD 15.3 (C62).
 
 ## Chantiers ouverts à connaître avant de qualifier un finding
-- **C61** : les plafonds de flotte air (`OpexAirCadenceCap`, délai fixe de 3 jours dans
-  `OpexAirTripModel`) et route (`OpexRoadPhysicalVehicleCap = 2 × min(arrêts)`) sont des
+- **C61** : les plafonds de flotte air (`OpexAirCadenceCap`, délai legacy de 3 jours dans
+  `OpexAirTripModel`, distinct des chemins C115/C121) et route (`OpexRoadPhysicalVehicleCap = 2 × min(arrêts)`) sont des
   approximations grossières **connues** ; la cible est un modèle temporel partagé, pas une
   suppression brute (déjà réfutée par C50b).
 - **C56 (clos)** : les graines 2026, 1337 et 1024 gelaient dans la phase eau (`FindPath` de
   MinchinWeb Lakes, budget compté en itérations alors qu'une itération n'est pas bornée). Corrigé
-  le 2026-09-11 par `water_lakes_ops_budget` (budget en opcodes, défaut 1) ; vérifié le 2026-09-23 :
+  le 2026-09-11 par `water_lakes_ops_budget` (réglage historique, retiré avec Lakes le 21) ; vérifié le 2026-09-23 :
   ces graines jouent normalement dans les 20×10 duel. Leçon toujours valable : un arrêt silencieux
   (`run_ok` vrai, aucune erreur NoAI) se cherche par l'année de fin et les jalons de phase.
-- **Goulot du volume** (`docs/16_bilan_volume.md` §6-§11) : un tour de la file de tâches dure 45
-  à 135 jours ; `catalog` (régénération complète du vivier), `projects` et `town_growth` le
-  remplissent. C75 construit plusieurs projets par passe ; C76 (`c76_regen_targeted`, défaut 0)
-  évite 54 % des régénérations ; `town_growth_plan_memo` (défaut 0) supprime 70 à 80 % du coût de
-  `town_growth` (97 % d'échecs de planification répétés sur les mêmes villes). C80 (défaut 0) est
-  l'orchestrateur qui doit porter ces leviers ; la pile est à bancer.
+- **Goulot du volume** : les mesures historiques sont dans `docs/16_bilan_volume.md`.
+  `c76_regen_targeted`, `town_growth_plan_memo`, `c80_mode_regen` et `c80_air_hub_index`
+  sont **actifs par défaut**. Les workers rail/ville et de stock A* restent expérimentaux,
+  défaut 0 ; leur pile a déjà été mesurée. Ne pas relancer leurs qualifications comme si elles
+  n'avaient pas eu lieu : consulter les décisions et conditions de reprise de `docs/taches.md`.
 - **C75 a montré** qu'ajouter du volume ne paie pas si le vivier ne contient pas mieux : +42
   véhicules pour +23 k£/an (`docs/16_bilan_volume.md` §9). La qualité des candidats face à
   AAAHogEx (génération, évaluation, exploitation) reste la question ouverte principale.
-- **Mode eau** : chantier explicitement non fini (`builder_water.nut`, `lib_water.nut`) ; ses
-  incohérences sont listées dans `docs/taches.md`, pas besoin de les redécouvrir.
+- **Mode eau** : le builder courant utilise un BFS borné ; `lib_water.nut` et Lakes ont été
+  retirés. C67.3 à C67.6 sont livrés (`terrain_map.nut`, `water_graph.nut`, `task_terrain.nut`),
+  sans consommateur métier exposé aux décisions. Consulter le reliquat dans `docs/taches.md`.
 
 ## Pour aller plus loin
-L'historique complet des décisions, mesures et fiches techniques vit dans `docs/taches.md`
-(journal continu) — un humain doit le consulter avant d'agir sur un finding, même si cet outil de
-revue ne le lira pas automatiquement. Les schémas d'architecture (couches, ordre de chargement,
+Le travail restant et les décisions courantes sont dans `docs/taches.md` ; l'historique est dans
+les journaux et fiches liés. Les consulter avant d'agir sur un finding. Les schémas d'architecture (couches, ordre de chargement,
 cycle d'exécution, dispatch des tâches et des événements, pipeline de décision, constructeurs,
-matrice des dépendances) sont dans `docs/architecture_opexai.md`.
+matrice des dépendances) historiques sont dans `docs/architecture_opexai.md` ;
+commencer par `docs/architecture_courante.md` et `docs/README.md`.

@@ -62,6 +62,7 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
                          + " profit=0");
         }
         this._waterBuilt = true;
+        if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
         this._lines.append({
           stationA = result.dockA, stationB = result.dockB,
           originA = result.dockA, originB = result.dockB,
