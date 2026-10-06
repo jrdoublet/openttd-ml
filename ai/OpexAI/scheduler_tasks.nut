@@ -3,12 +3,19 @@
 function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason,
                                        c76Full = false, c76Quarter = 0, c76Reason = null)
 {
+  if (C121_CATALOG_AIR_FIRST_YEAR && owner._generationStageMonth < 0)
+    owner._generationStageMonth = ym;
   local stage = OPEX_STAGE_COMPLETE;
   if (STAGED_BOOTSTRAP && owner._generationStage < OPEX_STAGE_COMPLETE) {
     stage = owner._generationStage;
   }
   local doAir = stage == OPEX_STAGE_AIR_ONLY || stage == OPEX_STAGE_AIR_RAIL
       || stage == OPEX_STAGE_COMPLETE;
+  if (C121_CATALOG_AIR_FIRST_YEAR) {
+    local firstYear = owner._generationStageMonth >= 0
+        ? owner._generationStageMonth / 12 : AIDate.GetYear(AIDate.GetCurrentDate());
+    if (AIDate.GetYear(AIDate.GetCurrentDate()) == firstYear) doAir = true;
+  }
   local hasAir = owner._catalog != null
       && ((("airCombos" in owner._catalog) && owner._catalog.airCombos != null
            && owner._catalog.airCombos.len() > 0)
@@ -19,7 +26,8 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
    * historique evite de retarder inutilement la publication du premier
    * portefeuille. */
   if (!("towns" in owner._catalog) || owner._catalog.towns == null
-      || OpexAirTownPoolLimit(owner._catalog.towns) <= 64) return false;
+      || (!C121_CATALOG_INCREMENTAL
+          && OpexAirTownPoolLimit(owner._catalog.towns) <= 64)) return false;
 
   local band = stage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
       : (stage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL : PAX_BAND_ALL);
@@ -35,6 +43,9 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
     published = false,
     partialPending = false,
     partialBestPlan = null,
+    lastPublishedCount = 0,
+    tickSlices = 0,
+    lastSliceTick = -1,
     airOps = 0,
     regenOps = 0,
     refreshReason = refreshReason,
@@ -75,7 +86,9 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
     };
     owner._rebuildProjects(s.fleetPlan, partialAir, false);
     owner._ranked = owner._projects != null ? owner._projects.rail : null;
+    if (C121_CATALOG_INCREMENTAL) owner._portfolioInvalidated = false;
     s.published = true;
+    s.lastPublishedCount = s.plans.len();
     s.partialPending = false;
     s.partialBestPlan = null;
     return false;
@@ -112,6 +125,7 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
   local sliceBudget = liveOps;
   if (sliceBudget <= 0) sliceBudget = 1;
   if (sliceBudget > AIR_PLAN_SLICE_OPS) sliceBudget = AIR_PLAN_SLICE_OPS;
+  if (C121_CATALOG_INCREMENTAL && sliceBudget > 150000) sliceBudget = 150000;
   local mark = OpexOpsMeasureBegin();
   /* C80 tranche 5 : generation complete decoupee, memo remis a zero a la premiere tranche. */
   if (C80_AIR_CHOICE_MEMO) {
@@ -123,10 +137,21 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       sliceBudget, AIController.GetTick() + BUILD_TICK_MARGIN);
   AIR_CHOICE_MEMO_STATE = 0;
   local sliceOps = OpexOpsMeasureEnd(mark);
+  if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airOps += sliceOps;
+  if (CATALOG_COST_ACTIVE != null && C121_CATALOG_INCREMENTAL) {
+    CATALOG_COST_ACTIVE.c121Slices++;
+    CATALOG_COST_ACTIVE.c121LastSliceOps = sliceOps;
+    if (sliceOps > CATALOG_COST_ACTIVE.c121MaxSliceOps)
+      CATALOG_COST_ACTIVE.c121MaxSliceOps = sliceOps;
+    if (s.lastSliceTick == mark.tick) s.tickSlices++;
+    else s.tickSlices = 1;
+    s.lastSliceTick = mark.tick;
+    OpexCatalogCostSliceLog(CATALOG_COST_ACTIVE, s, sliceOps);
+  }
   s.airOps += sliceOps;
   s.regenOps += sliceOps;
   if (!("done" in s.cursor) || !s.cursor.done) {
-    if (!s.published && !s.partialPending && s.plans.len() > 0) {
+    if (!s.partialPending && s.plans.len() > s.lastPublishedCount) {
       s.partialPending = true;
       s.partialBestPlan = best;
     }
@@ -150,13 +175,29 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
 
 function OpexAI::_dispatchCatalog(task, year)
 {
+  if (C121_CATALOG_AIR_FIRST_YEAR) {
+    if (this._generationStageMonth < 0)
+      this._generationStageMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+    C121_CATALOG_FIRST_YEAR_ACTIVE = year == this._generationStageMonth / 12;
+  }
+  if (C121_CATALOG_INCREMENTAL
+      && C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()) {
+    C121_CATALOG_TOWN_BATCH_DATE = AIDate.GetCurrentDate();
+    OpexC121CatalogTownProductionBatch(this._catalog);
+  }
   local refreshReason = "month";
   if (("c78AirRebuild" in task) && task.c78AirRebuild != null) {
+    /* Un chantier peut marquer C76 invalide pendant le scan. Le portefeuille
+     * partiel est revalide a l'execution et le scan continue sans redemarrer. */
+    if (C121_CATALOG_INCREMENTAL && task.c78AirRebuild.published)
+      this._portfolioInvalidated = false;
     if (typeof task.c78AirRebuild == "table"
         && ("refreshReason" in task.c78AirRebuild)) {
       refreshReason = task.c78AirRebuild.refreshReason;
     }
+    if (CATALOG_COST_PROBE && ("catalogCost" in task)) CATALOG_COST_ACTIVE = task.catalogCost;
     if (!OpexC78ContinueCatalogAirRebuild(this, task, year)) {
+      CATALOG_COST_ACTIVE = null;
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
@@ -215,6 +256,10 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   refreshReason = this._portfolioInvalidated ? "event"
       : (stale ? "capital" : "month");
+  if (CATALOG_COST_PROBE) {
+    task.catalogCost <- OpexCatalogCostNew(refreshReason);
+    CATALOG_COST_ACTIVE = task.catalogCost;
+  }
   if (DECISION_LOG) {
     OpexDecide("PORTFOLIO_REFRESH", "reason=" + refreshReason + " budget="
                + OpexAvailableCapital());
@@ -223,10 +268,16 @@ function OpexAI::_dispatchCatalog(task, year)
   if (PORTFOLIO_REFRESH_PROBE) {
     local refreshMark = OpexOpsMeasureBegin();
     this._catalog.refresh(this._budget, year);
-    PORTFOLIO_REFRESH_PROBE_REFRESH_OPS += OpexOpsMeasureEnd(refreshMark);
+    local refreshOps = OpexOpsMeasureEnd(refreshMark);
+    PORTFOLIO_REFRESH_PROBE_REFRESH_OPS += refreshOps;
+    if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.refreshOps += refreshOps;
     PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT++;
   } else {
-    this._catalog.refresh(this._budget, year);
+    if (CATALOG_COST_ACTIVE != null) {
+      local catalogRefreshMark = OpexOpsMeasureBegin();
+      this._catalog.refresh(this._budget, year);
+      CATALOG_COST_ACTIVE.refreshOps += OpexOpsMeasureEnd(catalogRefreshMark);
+    } else this._catalog.refresh(this._budget, year);
   }
   if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
   local fleetPlan = null;
@@ -250,7 +301,12 @@ function OpexAI::_dispatchCatalog(task, year)
       c80Modes = this._c80ModeRegenModes();
     }
     if (c80Modes != null) {
+      local modeMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
       this._c80DoModeRegen(c80Modes, "layers", year);
+      if (CATALOG_COST_ACTIVE != null) {
+        CATALOG_COST_ACTIVE.path = "mode";
+        CATALOG_COST_ACTIVE.modeRegenOps += OpexOpsMeasureEnd(modeMark);
+      }
     } else if (c76NeedFullRegen) {
       local c76Reason = c76ReloadDue ? "reload"
           : (c76LayerChanged ? "layers"
@@ -259,6 +315,7 @@ function OpexAI::_dispatchCatalog(task, year)
           : (c76PeriodicDue ? "periodic" : "initial"))));
       if (OpexC78StartCatalogAirRebuild(this, task, ym, fleetPlan, refreshReason,
                                         true, c76CurQuarter, c76Reason)) {
+        CATALOG_COST_ACTIVE = null;
         if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
         return false;
       }
@@ -275,6 +332,7 @@ function OpexAI::_dispatchCatalog(task, year)
       this._c76ForceReloadRegen = false;
     } else {
       // Régénération évitée : resélection du vivier existant sous capital courant
+      local reselectMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
       /* Cette branche n'est atteinte qu'au changement de mois (_lastCatalogMonth != ym) : la
        * rotation du fret y est donc au plus mensuelle. */
       if (C76_FREIGHT_ROTATION && !(STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE)) {
@@ -286,9 +344,16 @@ function OpexAI::_dispatchCatalog(task, year)
         if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
       }
       this._c76RecordAvoided(year);
+      if (CATALOG_COST_ACTIVE != null) {
+        CATALOG_COST_ACTIVE.path = "reselect";
+        CATALOG_COST_ACTIVE.reselectOps += OpexOpsMeasureEnd(reselectMark);
+        CATALOG_COST_ACTIVE.considered = this._projects.stats.budgetConsidered;
+        CATALOG_COST_ACTIVE.selected = this._projects.best.len();
+      }
     }
   } else {
     if (OpexC78StartCatalogAirRebuild(this, task, ym, fleetPlan, refreshReason)) {
+      CATALOG_COST_ACTIVE = null;
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
@@ -531,6 +596,11 @@ function OpexAI::_dispatchCatalog(task, year)
    * Cette tache ne construit rien elle-meme, donc B0 est exact. */
   OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
            + this._projects.stats.selectedCapital + "|B0");
+  if (CATALOG_COST_ACTIVE != null) {
+    OpexCatalogCostLog(CATALOG_COST_ACTIVE);
+    delete task.catalogCost;
+    CATALOG_COST_ACTIVE = null;
+  }
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }

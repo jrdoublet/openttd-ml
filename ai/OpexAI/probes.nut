@@ -134,6 +134,9 @@ function OpexC121HubDelayObserveBatch(stationId, residualSum, residualSq, residu
       state.variance = variance;
       state.lastWindowN = n;
       state.lastUpdate = now;
+      if (C121_CATALOG_INCREMENTAL) C121_CATALOG_HUB_LEARN_REV.rawset(stationId,
+          (stationId in C121_CATALOG_HUB_LEARN_REV
+              ? C121_CATALOG_HUB_LEARN_REV[stationId] : 0) + 1);
       published = {
         station = stationId, days = state.days, rawDays = mean,
         variance = variance, windowN = n, observations = state.observations,
@@ -544,6 +547,109 @@ function OpexC39Log(kind, fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+/* Une seule ligne par regeneration catalogue terminee. Le record reste sur la tache
+ * pendant C78.4 ; Save/Load abandonne deja ce curseur et recommence la passe. */
+function OpexCatalogCostNew(reason)
+{
+  return { reason = reason, path = "full", refreshOps = 0, engineRefreshOps = 0, engineChoices = 0,
+    catalogTowns = 0, catalogIndustries = 0,
+    modeRegenOps = 0, reselectOps = 0,
+    railOps = 0, roadOps = 0,
+    airOps = 0, waterOps = 0, assemblyOps = 0, selectionOps = 0,
+    railCandidates = 0, roadCandidates = 0, waterPlans = 0,
+    airPlans = 0, modeAlternatives = 0, considered = 0, selected = 0,
+    airScans = 0, airTowns = 0, airCombos = 0, airPairs = 0,
+    airHubSitePairs = 0, airHubHubPairs = 0,
+    airSiteProbes = 0, airSites = 0, airSiteOps = 0, airEvalOps = 0,
+    c121Calls = 0, c121DemandOps = 0, c121StaticOps = 0,
+    c121ScanOps = 0, c121EngineEvals = 0, c121WinnerOps = 0,
+    c121CacheHits = 0, c121Recomputed = 0, c121DirtyEngine = 0,
+    c121DirtyTown = 0, c121DirtyStation = 0, c121DirtyLearning = 0,
+    c121DirtyAge = 0, c121DirtyInput = 0, c121New = 0,
+    c121Slices = 0, c121LastSliceOps = 0,
+    c121MaxSliceOps = 0 };
+}
+
+function OpexProjectsCostLog(pcost, builtCount, stopReason)
+{
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " PROJECTS_COST build_ops=" + pcost.buildOps
+      + " fleet_ops=" + pcost.fleetOps + " regen_ops=" + pcost.regenOps
+      + " regen=" + pcost.regenKind + " built=" + builtCount
+      + " stop=" + (stopReason != null ? stopReason : "none"));
+}
+
+function OpexCatalogCostLog(cost)
+{
+  local date = AIDate.GetCurrentDate();
+  /* Sous-etapes disjointes ; les compteurs AIR/C121 ci-dessous sont inclus dans air_ops. */
+  local total = cost.refreshOps + cost.railOps + cost.roadOps + cost.airOps
+      + cost.waterOps + cost.assemblyOps + cost.selectionOps
+      + cost.modeRegenOps + cost.reselectOps;
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+    + AIDate.GetDayOfMonth(date) + " CATALOG_COST reason=" + cost.reason
+    + " total_ops=" + total
+    + " path=" + cost.path + " mode_regen_ops=" + cost.modeRegenOps
+    + " reselect_ops=" + cost.reselectOps
+    + " refresh_ops=" + cost.refreshOps
+    + " catalog_towns=" + cost.catalogTowns
+    + " catalog_industries=" + cost.catalogIndustries
+    + " engine_refresh_ops=" + cost.engineRefreshOps
+    + " engine_choices=" + cost.engineChoices
+    + " rail_ops=" + cost.railOps + " rail_candidates=" + cost.railCandidates
+    + " road_ops=" + cost.roadOps + " road_candidates=" + cost.roadCandidates
+    + " air_ops=" + cost.airOps + " air_plans=" + cost.airPlans
+    + " water_ops=" + cost.waterOps + " water_plans=" + cost.waterPlans
+    + " assembly_ops=" + cost.assemblyOps + " mode_alternatives=" + cost.modeAlternatives
+    + " selection_ops=" + cost.selectionOps + " considered=" + cost.considered
+    + " selected=" + cost.selected + " air_scans=" + cost.airScans
+    + " air_towns=" + cost.airTowns + " air_combos=" + cost.airCombos
+    + " air_new_pairs=" + cost.airPairs
+    + " air_hub_site_pairs=" + cost.airHubSitePairs
+    + " air_hub_hub_pairs=" + cost.airHubHubPairs
+    + " air_site_probes=" + cost.airSiteProbes
+    + " air_sites=" + cost.airSites + " air_site_ops=" + cost.airSiteOps
+    + " air_eval_ops=" + cost.airEvalOps + " c121_calls=" + cost.c121Calls
+    + " c121_demand_ops=" + cost.c121DemandOps
+    + " c121_static_ops=" + cost.c121StaticOps
+    + " c121_scan_ops=" + cost.c121ScanOps
+    + " c121_engine_evals=" + cost.c121EngineEvals
+    + " c121_winner_ops=" + cost.c121WinnerOps
+    + " c121_cache_hits=" + cost.c121CacheHits
+    + " c121_recomputed=" + cost.c121Recomputed
+    + " c121_dirty_engine=" + cost.c121DirtyEngine
+    + " c121_dirty_town=" + cost.c121DirtyTown
+    + " c121_dirty_station=" + cost.c121DirtyStation
+    + " c121_dirty_learning=" + cost.c121DirtyLearning
+    + " c121_dirty_age=" + cost.c121DirtyAge
+    + " c121_dirty_input=" + cost.c121DirtyInput
+    + " c121_new=" + cost.c121New
+    + " c121_slices=" + cost.c121Slices
+    + " c121_last_slice_ops=" + cost.c121LastSliceOps
+    + " c121_max_slice_ops=" + cost.c121MaxSliceOps);
+}
+function OpexCatalogCostSliceLog(cost, scan, sliceOps)
+{
+  if (!C121_CATALOG_INCREMENTAL || !CATALOG_COST_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  local examined = cost.c121CacheHits + cost.c121Recomputed;
+  local reusePct = examined > 0 ? cost.c121CacheHits * 100 / examined : 0;
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+    + AIDate.GetDayOfMonth(date) + " CATALOG_COST_SLICE"
+    + " cache=" + C121_CATALOG_CACHE.len()
+    + " hits=" + cost.c121CacheHits + " recalculated=" + cost.c121Recomputed
+    + " reuse_pct=" + reusePct
+    + " dirty_engine=" + cost.c121DirtyEngine + " dirty_town=" + cost.c121DirtyTown
+    + " dirty_station=" + cost.c121DirtyStation + " dirty_learning=" + cost.c121DirtyLearning
+    + " dirty_age=" + cost.c121DirtyAge
+    + " dirty_input=" + cost.c121DirtyInput + " new=" + cost.c121New
+    + " same_tick_slices=" + scan.tickSlices
+    + " chained_slices=" + (scan.tickSlices - 1) + " slice_ops=" + sliceOps
+    + " partial=" + (scan.published ? 1 : 0)
+    + " partial_pending=" + (scan.partialPending ? 1 : 0)
+    + " published_plans=" + scan.lastPublishedCount + " evaluated_plans=" + scan.plans.len());
 }
 /* C41.11 reste lisible sans activer le bus C39 : il mesure le scheduler historique lui-meme. */
 function OpexC41SchedulerLog(kind, fields)

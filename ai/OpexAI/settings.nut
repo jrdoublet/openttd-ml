@@ -149,6 +149,7 @@ function OpexLoadSettings()
 
   // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C41_SLICE
   local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
+  CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
   C41_SLACK_LEDGER = probeScheduler;
   C41_MONTHLY_BUSY_LEDGER = probeScheduler;
   C41_STALENESS_LEDGER = probeScheduler;
@@ -270,6 +271,33 @@ function OpexLoadSettings()
   C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;
   C121_AIR_ECONOMICS_SHADOW = AIController.GetSetting("c121_air_economics_shadow") != 0;
   C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
+  C121_CATALOG_INCREMENTAL = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_catalog_incremental") != 0;
+  C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("c121_catalog_air_first_year") != 0;
+  C121_CATALOG_FIRST_YEAR_ACTIVE = false;
+  C121_FLEET_STOCK_GROWTH = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_fleet_stock_growth") != 0;
+  C121_TERRITORY_FIRST = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_territory_first") != 0;
+  C121_AAA_LINE = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_aaa_line") != 0;
+  if (C121_CATALOG_INCREMENTAL) {
+    C121_CATALOG_CACHE.clear();
+    C121_CATALOG_TOWN_REV.clear();
+    C121_CATALOG_TOWN_POP.clear();
+    C121_CATALOG_TOWN_PROD.clear();
+    C121_CATALOG_TOWN_CURSOR = 0;
+    C121_CATALOG_TOWN_BATCH_DATE = -1;
+    C121_CATALOG_AIRPORT_PRICES.clear();
+    C121_CATALOG_AIRPORT_REV.clear();
+    C121_CATALOG_STATION_REV.clear();
+    C121_CATALOG_STATION_LINES.clear();
+    C121_CATALOG_HUB_LEARN_REV.clear();
+    C121_CATALOG_AIRPORT_LEARN_REV.clear();
+    C121_CATALOG_ARM_LEARN_REV.clear();
+    C121_CATALOG_TOWN_PRIORITY.clear();
+  }
   C121_AIR_ENGINE_REALIZATION = AIController.GetSetting("c121_air_engine_realization") != 0;
   C121_AIR_PROJECT_REALIZATION = AIController.GetSetting("c121_air_project_realization") != 0;
   C121_AIR_PROJECT_REALIZATION_ADAPTIVE = AIController.GetSetting("c121_air_project_realization_adaptive") != 0;
@@ -316,6 +344,8 @@ function OpexLoadSettings()
   V88_STEP2_RAIL_PRIO = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_rail_prio") != 0);
   V88_STEP2_CASH_RESERVE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_cash_reserve") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
+  /* c121_aaa_line : chargement complet aux deux bouts pour toutes les lignes du bras C121. */
+  if (C121_AAA_LINE) AIR_FULL_LOAD = 1;
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
       || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY || C116_AIR_MARGINAL_CAPITAL;
   if (C69_TRACK_BUILDS) {

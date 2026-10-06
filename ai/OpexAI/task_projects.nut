@@ -947,6 +947,16 @@ function OpexAI::_tryBuildProjects(year)
   local c75StopReason = null;
   local c75BuiltKeys = {};
   local c75BypassConsumed = false;
+  local c121FirstYearAirBatch = C121_CATALOG_AIR_FIRST_YEAR
+      && this._generationStageMonth >= 0
+      && year == this._generationStageMonth / 12;
+  local c121AirBuilt = 0;
+  local c121AirChained = 0;
+  local c121DeadSkipped = 0;
+  /* Sonde PROJECTS_COST (catalog_cost_probe) : repartition des opcodes d'une passe. */
+  local pcost = CATALOG_COST_PROBE
+      ? { mark = OpexOpsMeasureBegin(), buildOps = 0, fleetOps = 0, regenOps = 0, regenKind = "none" }
+      : null;
   if (C75_KPASS_BYPASS) OpexC75BypassEnsureYear(year);
   if (C75_TRACK_PASSES) {
     local now = AIDate.GetCurrentDate();
@@ -1212,19 +1222,55 @@ function OpexAI::_tryBuildProjects(year)
   }
   local airReserveTowns = null;
   if (AIR_BATCH_TOWN_RESERVE) airReserveTowns = {};
+  local c121Served = C121_TERRITORY_FIRST ? OpexC121ServedAirTowns() : null;
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
+    if (c121Served != null && !OpexC121ProjectIsTerritorial(project, c121Served)) {
+      /* Territoire d'abord : reserver le financement du prochain projet territorial
+       * encore a tenter dans cette passe ; les autres chantiers se font sur le reste. */
+      local reserve = 0;
+      for (local j = i + 1; j < this._projects.best.len(); j++) {
+        local next = this._projects.best[j];
+        if (next != null && OpexC121ProjectIsTerritorial(next, c121Served)) {
+          reserve = OpexProjectFinanceCapital(next);
+          break;
+        }
+      }
+      if (reserve > 0 && OpexAvailableCapital() - OpexProjectFinanceCapital(project) < reserve) {
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+          passDiscards.append({ rank = i, mode = project.mode,
+                                src = ("src" in project) ? project.src : -1,
+                                dst = ("dst" in project) ? project.dst : -1,
+                                reason = "c121_territory_reserve", extra = "reserve=" + reserve });
+        continue;
+      }
+    }
 
     if (C75_MULTI_BUILD && (OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
 
+    /* Un site pris par un chantier precedent rend les autres plans de ce
+     * portefeuille caducs. Les ecarter avant K_pass et avant toute depense. */
+    if (c121FirstYearAirBatch && project.mode == "air"
+        && !OpexAirBatchPlanStillLive(project.payload, this._lines)) {
+      c121DeadSkipped++;
+      continue;
+    }
+
+    local c121ChainAttempt = false;
     if (C75_MULTI_BUILD && builtCount > 0) {
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
       local availCap = -1;
       if (projCap >= c75KPass) {
         local c75BypassThisProject = false;
-        if (C75_KPASS_BYPASS && OpexC75KPassBypassIsNewLine(project)) {
+        if (c121FirstYearAirBatch && project.mode == "air") {
+          availCap = OpexAvailableCapital();
+          if (projCap <= availCap) {
+            c75BypassThisProject = true;
+            c121ChainAttempt = true;
+          }
+        } else if (C75_KPASS_BYPASS && OpexC75KPassBypassIsNewLine(project)) {
           availCap = OpexAvailableCapital();
           if (projCap <= availCap) {
             OpexC75BypassRecordEligible(year, project, projCap, availCap, c75KPass,
@@ -1402,6 +1448,10 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
       if (attempt.outcome == "built") {
+        if (c121FirstYearAirBatch) {
+          c121AirBuilt++;
+          if (c121ChainAttempt) c121AirChained++;
+        }
         if (C39_PROJECTS_CADENCE_PROBE) {
           local key = OpexProjectAttemptKey(project);
           /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
@@ -1637,6 +1687,16 @@ function OpexAI::_tryBuildProjects(year)
     }
   }
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
+  if (c121FirstYearAirBatch && CATALOG_COST_PROBE) {
+    local c121Date = AIDate.GetCurrentDate();
+    AILog.Info("OPEX " + AIDate.GetYear(c121Date) + "-"
+        + AIDate.GetMonth(c121Date) + "-" + AIDate.GetDayOfMonth(c121Date)
+        + " C121_AIR_CHAIN_PASS built_air=" + c121AirBuilt
+        + " chained_air=" + c121AirChained
+        + " dead_skipped=" + c121DeadSkipped
+        + " total_built=" + builtCount
+        + " stop=" + (c75StopReason != null ? c75StopReason : "none"));
+  }
   if (C69_TRACK_BUILDS && builtCount > 0) {
     this._recordC69BuildingPass(year, c69PassProjects != null ? c69PassProjects : this._projects, c69BuiltProjects);
   }
@@ -1664,12 +1724,23 @@ function OpexAI::_tryBuildProjects(year)
    * directement par _markPairAbandoned, couvrant tous les chemins (air, route, rail
    * bloquant et reprenable via _consumeRailSearch). */
   local hadAbandons = this._hadAbandonsThisPass;
+  if (pcost != null) {
+    pcost.buildOps = OpexOpsMeasureEnd(pcost.mark);
+    pcost.mark = OpexOpsMeasureBegin();
+  }
   if (builtCount > 0 || hadAbandons) {
     local fleetPlan = null;
     if (FLEET_PORTFOLIO) {
       /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
+    }
+    if (pcost != null) {
+      pcost.fleetOps = OpexOpsMeasureEnd(pcost.mark);
+      pcost.mark = OpexOpsMeasureBegin();
+      pcost.regenKind = (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) ? "staged_full"
+          : ((PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects))
+              ? "incremental" : "full");
     }
     if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
@@ -1698,7 +1769,8 @@ function OpexAI::_tryBuildProjects(year)
       /* C76 : la mise a jour incrementale vient d'integrer la ligne construite ; acquitter la
        * couche `lines` evite qu'elle declenche a elle seule une regeneration complete au tour
        * suivant (mesure : 109 regenerations "layers" sur 133). Les autres couches restent dues. */
-      if (C76_REGEN_TARGETED && this._c76AckRevisions != null && this._c76Revisions != null) {
+      if (C76_REGEN_TARGETED && this._c76AckRevisions != null && this._c76Revisions != null
+          && !(C121_CATALOG_INCREMENTAL && airTouchedTowns != null && airTouchedTowns.len() > 0)) {
         this._c76AckRevisions.lines = this._c76Revisions.lines;
       }
     } else {
@@ -1710,6 +1782,7 @@ function OpexAI::_tryBuildProjects(year)
         this._c76RecordRegen("full", c76Ops, c76Days, year, "post_build");
       }
     }
+    if (pcost != null) pcost.regenOps = OpexOpsMeasureEnd(pcost.mark);
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
     /* Champ knapsackExact legacy : aucun solveur knapsack/B&B n'existe encore. projects.nut
@@ -1731,8 +1804,10 @@ function OpexAI::_tryBuildProjects(year)
     if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
       this._tryStartRailStockWorker();
     }
+    if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
     return true;
   }
+  if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
   if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
     this._tryStartRailStockWorker();
   }
@@ -1740,6 +1815,12 @@ function OpexAI::_tryBuildProjects(year)
 }
 function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = true)
 {
+  if (C121_CATALOG_AIR_FIRST_YEAR) {
+    local yearNow = AIDate.GetYear(AIDate.GetCurrentDate());
+    if (this._generationStageMonth < 0)
+      this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == this._generationStageMonth / 12;
+  }
   /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
    * rebuild normal reste l'unique producteur du nouveau portefeuille. */
   local b6StaleProjects = (DECISION_LOG && PORTFOLIO_CACHE) ? this._projects : null;

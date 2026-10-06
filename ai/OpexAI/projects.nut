@@ -250,7 +250,11 @@ function OpexC121ApplyRealizationSums(sums, year, phase)
     if (n >= C121_AIR_REALIZATION_MIN_LINES) {
       factor = (acc[0].tofloat() + 1000.0) / ((n + 1).tofloat() * 1000.0);
     }
+    local oldFactor = C121_AIR_REALIZATION_FACTOR[arm];
     C121_AIR_REALIZATION_FACTOR[arm] = factor;
+    if (C121_CATALOG_INCREMENTAL && oldFactor != factor)
+      C121_CATALOG_ARM_LEARN_REV.rawset(arm,
+        (arm in C121_CATALOG_ARM_LEARN_REV ? C121_CATALOG_ARM_LEARN_REV[arm] : 0) + 1);
     AILog.Info("C121_REALIZATION phase=" + phase + " year=" + year
         + " arm=" + arm + " lines=" + n + " factor=" + factor);
   }
@@ -1234,6 +1238,33 @@ function OpexEarlySlotSelectionState()
   return state;
 }
 
+/* C121 territoire d'abord : villes ou OpexAI a deja un aeroport (sans seuil de population). */
+function OpexC121ServedAirTowns()
+{
+  local served = {};
+  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+    local townId = AIStation.GetNearestTown(st);
+    if (townId >= 0) served.rawset(townId, true);
+  }
+  return served;
+}
+
+/* Un projet AIR est territorial s'il pose un aeroport neuf dans une ville sans aeroport Opex. */
+function OpexC121ProjectIsTerritorial(project, served)
+{
+  if (project == null || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null) return false;
+  local plan = project.payload;
+  foreach (side in ["A", "B"]) {
+    local site = ("site" + side) in plan ? plan["site" + side] : null;
+    local reused = ("reuse" + side) in plan && plan["reuse" + side];
+    if (site == null || reused || !("town" in site) || site.town == null) continue;
+    if (!(site.town.id in served)) return true;
+  }
+  return false;
+}
+
 function OpexDefensiveSlotSelectionState(earlySlotState = null)
 {
   local state = {
@@ -1339,6 +1370,8 @@ function OpexC121PressureAdvanceYear()
           && openPermille >= 0
           && openPermille <= C121_AIR_PROJECT_REALIZATION_MAX_OPEN_PERMILLE;
       C121_AIR_PROJECT_REALIZATION_REGIME = efficiency ? 1 : 0;
+      /* Le regime agit sur l'admission au portefeuille, qui est recalculee
+       * lors de la publication, et non sur le choix moteur memoise. */
       AILog.Info("C121_STRATEGY_LOCK source_year=" + C121_AIR_PRESSURE_PREV.year
           + " observed_years=" + C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED
           + " pressured=" + pressured + " contestable_permille=" + contestablePermille
@@ -2030,6 +2063,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         && !OpexC121ProjectHasRealization(project);
     project.fundScore <- OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
         (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital);
+    if (C121_CATALOG_INCREMENTAL && project.mode == "air"
+        && ("payload" in project) && project.payload != null
+        && ("c121CatalogKey" in project.payload)
+        && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
+      C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -3510,6 +3548,17 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
  * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
  * nouvelles opportunites de flotte, et réélit le portefeuille sur le capital restant.
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
+function OpexC121PlanTouchesTowns(project, towns)
+{
+  if (towns == null || !("payload" in project) || project.payload == null) return true;
+  local plan = project.payload;
+  if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)
+      && (plan.siteA.town.id in towns)) return true;
+  if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)
+      && (plan.siteB.town.id in towns)) return true;
+  return false;
+}
+
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null, railReadyStock = null)
 {
   if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
@@ -3556,7 +3605,12 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         /* Sans chantier aerien dans la passe, les plans air sont gardes
          * (le bonus early slot est recalcule a la selection, OpexProjectRefreshEarlySlot) ; apres un
          * chantier aerien, comportement historique : tout jeter puis tout replanifier. */
-        if (airBuilt && AIR_EARLY_SLOT && p.mode == "air") continue;
+        if (airBuilt && AIR_EARLY_SLOT && p.mode == "air") {
+          /* C121 catalogue incremental : ne jeter que les plans qui touchent une ville du
+           * chantier ; les autres restent (bonus early slot recalcule a la selection) et le
+           * catalogue decoupe ajoutera les nouvelles paires par tranches. */
+          if (!C121_CATALOG_INCREMENTAL || OpexC121PlanTouchesTowns(p, airTouchedTowns)) continue;
+        }
 
         if (OpexCandidateIsAbandoned(p, abandonedPairs)) {
           abandonFiltered++;
@@ -3589,7 +3643,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
-    if (airBuilt) {
+    if (airBuilt && C121_CATALOG_INCREMENTAL) {
+      /* Replanification AIR differee au catalogue decoupe (couche C76 lines non acquittee
+       * par l'appelant) : plus de OpexAirPlans synchrone de 4 a 18 M opcodes ici. */
+      if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental("deferred");
+    } else if (airBuilt) {
       if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental("targeted");
       local freshAirPlans = [];
       if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
@@ -3763,12 +3821,21 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                            freightCargoOrder = null, activeSubsidies = null, airOverride = null,
                            railReadyStock = null)
 {
+  local cost = CATALOG_COST_ACTIVE;
+  local costMark = cost != null ? OpexOpsMeasureBegin() : null;
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
   local doPaxRail = (generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_RAIL_ONLY || generationStage == OPEX_STAGE_COMPLETE);
   local doRoad = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
   local doAir = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_COMPLETE);
   local doWater = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    doFreight = false;
+    doPaxRail = false;
+    doRoad = false;
+    doWater = false;
+    doAir = true;
+  }
   local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL
       : (generationStage == OPEX_STAGE_RAIL_ONLY ? PAX_BAND_RAIL_ONLY : PAX_BAND_ALL);
   local airBand = generationStage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
@@ -3906,6 +3973,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     railProfile.topKCandidates = rail.best.len();
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_rail", "-");
+  if (cost != null) {
+    cost.railOps += OpexOpsMeasureEnd(costMark);
+    cost.railCandidates = rail.candidates.len();
+    costMark = OpexOpsMeasureBegin();
+  }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_road", "-");
   /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
   local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE)
@@ -3929,6 +4001,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     road = OpexProjectEmptyRoad();
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_road", "-");
+  if (cost != null) {
+    cost.roadOps += OpexOpsMeasureEnd(costMark);
+    cost.roadCandidates = road.candidates.len();
+    costMark = OpexOpsMeasureBegin();
+  }
 
   local capitalBudget = OpexAvailableCapital();
   local capitalBudgetDate = AIDate.GetCurrentDate();
@@ -3996,6 +4073,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     }
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_air", "-");
+  if (cost != null) {
+    cost.airOps += OpexOpsMeasureEnd(costMark);
+    cost.airPlans = airPlans.len();
+    costMark = OpexOpsMeasureBegin();
+  }
 
   local waterPlan = null;
   local waterPlans = [];
@@ -4016,6 +4098,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     waterOps = ("waterPlanningOpcodes" in priorProjects) ? priorProjects.waterPlanningOpcodes : 0;
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_water", "-");
+  if (cost != null) {
+    cost.waterOps += OpexOpsMeasureEnd(costMark);
+    cost.waterPlans = waterPlans.len();
+    costMark = OpexOpsMeasureBegin();
+  }
 
   local stats = {
     modeCandidates = 0, modeAlternatives = 0, modeReplaced = 0,
@@ -4091,6 +4178,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     }
 
   local funded = null;
+  if (cost != null) {
+    cost.assemblyOps += OpexOpsMeasureEnd(costMark);
+    cost.modeAlternatives = stats.modeCandidates;
+  }
   local opsMark = OpexOpsMeasureBegin();
   /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
    * tranchera, pas une election modale prealable au ratio. */
@@ -4111,6 +4202,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   stats.knapsackNodes = 0;
   stats.knapsackExact = false;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  if (cost != null) {
+    cost.selectionOps += stats.selectionOpcodes;
+    cost.considered = alternatives.len();
+    cost.selected = funded.len();
+  }
   OpexB6LogSelectionCausality("build", alternatives, funded, capitalBudget, capitalBudgetDate);
 
   local selectedRev = 0;

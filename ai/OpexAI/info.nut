@@ -68,6 +68,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "catalog_cost_probe",
+      description = "Log catalog refresh and project generation costs; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "probe_candidates_road",
       description = "Enable road candidate generation opcode profiling (pax, freight, town, feeder); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -465,6 +473,41 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_catalog_incremental",
+      description = "Experimental incremental C121 AIR plan economics and bounded catalog slices; requires c121_air_economics; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_catalog_air_first_year",
+      description = "With incremental C121, generate only AIR candidates through the first game year; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_aaa_line",
+      description = "With C121, open each AIR line with two aircraft (one per airport, AAAHogEx-style) and full-load orders at both airports; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_territory_first",
+      description = "With C121, reserve cash for the next AIR project opening a town without an Opex airport: other builds (fleet, hub, rail, road) must leave enough for it; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_fleet_stock_growth",
+      description = "With C121, grow under-target AIR fleets on waiting-cargo evidence (AAAHogEx-like) with a 60-day cooldown instead of the two-year observation rules; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
