@@ -498,6 +498,9 @@ C121_ENGTAB_N2 <- null;
 PROBE_AIR_ENGINE_DEPTH <- false;
 AIR_ENGINE_DEPTH_SCAN <- 0;
 AIR_ENGINE_DEPTH_CHALLENGER <- null;
+/* Exposition only: air finance margin / first-revenue delay. Defaut 0. */
+PROBE_AIR_FINANCE_MARGIN <- false;
+AIR_FINANCE_MARGIN_YEAR <- -1;
 SPAN_STACK <- null;
 SPAN_BY_ID <- null;
 SPAN_NEXT_ID <- 1;

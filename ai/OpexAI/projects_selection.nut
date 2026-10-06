@@ -1392,6 +1392,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           + " finance=" + OpexProjectFinanceCapital(project) + " budget=" + capitalBudget);
     }
   }
+  if (PROBE_AIR_FINANCE_MARGIN) OpexAirFinanceMarginLogSelect(alternatives, affordable, capitalBudget);
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;
@@ -1937,4 +1938,35 @@ function OpexProjectsRecountGroups(projects)
     projects.stats.modeCandidates = n;
     projects.stats.modeAlternatives = alternatives;
   }
+}
+
+/* Exposition seulement (probe_air_finance_margin) : projets AIR ecartes par la
+ * seule marge de financement (capital + immobilisation finançable, marge non). */
+function OpexAirFinanceMarginLogSelect(alternatives, affordable, capitalBudget)
+{
+  local air = 0, blocked = 0, blockedCapital = 0, bestBlocked = null;
+  foreach (project in alternatives) {
+    if (project == null || !("mode" in project) || project.mode != "air") continue;
+    air++;
+    local finance = OpexProjectFinanceCapital(project);
+    if (finance <= capitalBudget) continue;
+    local plan = ("payload" in project) ? project.payload : null;
+    local newAirports = (plan != null && ("reuseA" in plan) && plan.reuseA ? 0 : 1)
+        + (plan != null && ("reuseB" in plan) && plan.reuseB ? 0 : 1);
+    if (finance - OpexAirRequiredMargin(newAirports) <= capitalBudget) {
+      blocked++;
+      if (bestBlocked == null || project.profitAnnual > bestBlocked.profitAnnual) bestBlocked = project;
+    } else blockedCapital++;
+  }
+  local top = affordable.len() > 0 ? affordable[0] : null;
+  local msg = "AIR_FINANCE_SELECT date=" + OpexAirFinanceMarginDate(AIDate.GetCurrentDate())
+      + " budget=" + capitalBudget + " air=" + air + " blocked_margin=" + blocked
+      + " blocked_capital=" + blockedCapital
+      + " top_mode=" + (top != null ? top.mode : "none")
+      + " top_profit=" + (top != null ? top.profitAnnual : 0)
+      + " top_score=" + (top != null && ("budgetScore" in top) ? top.budgetScore : 0);
+  if (bestBlocked != null) msg += " blk_profit=" + bestBlocked.profitAnnual
+      + " blk_finance=" + OpexProjectFinanceCapital(bestBlocked)
+      + " blk_score=" + (("budgetScore" in bestBlocked) ? bestBlocked.budgetScore : 0);
+  AILog.Info(msg);
 }

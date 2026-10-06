@@ -100,6 +100,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "probe_air_finance_margin",
+      description = "Exposure only: log AIR_FINANCE_TRY at air cash checks and AIR_FINANCE_FIRST_REVENUE/AIR_FINANCE_PENDING on built air lines; decisions unchanged; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "exp_opcode_exact",
       description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
