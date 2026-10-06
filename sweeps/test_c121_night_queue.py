@@ -2,12 +2,44 @@ import copy
 import unittest
 import tempfile
 import json
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from pathlib import Path
-from run_c121_night_queue import healthy, gate_pass, resource_args, exposed, save
+from run_c121_night_queue import healthy, gate_pass, resource_args, exposed, save, wait_artifact, wait_docker_idle
 
 
 class GateTests(unittest.TestCase):
+    def test_recovery_waits_for_exact_live_container_without_relaunch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = Path(directory) / "result.json"
+            result.write_text("{}", encoding="utf-8")
+            running = Mock(returncode=0, stdout=json.dumps([{"Name": "/owned", "State": {"Running": True}}]), stderr="")
+            gone = Mock(returncode=1, stdout="", stderr="error: no such object: owned")
+            with patch("run_c121_night_queue.subprocess.run", side_effect=[running, gone]) as calls, patch("run_c121_night_queue.time.sleep"), patch("run_c121_night_queue.time.monotonic", return_value=0):
+                wait_artifact(result, "owned", {}, 100)
+            self.assertEqual([c.args[0] for c in calls.call_args_list],
+                             [["docker", "inspect", "owned"], ["docker", "inspect", "owned"]])
+
+    def test_wait_for_other_campaign_does_not_stop_it(self):
+        with patch("run_c121_night_queue.subprocess.check_output", side_effect=["other", ""]) as ps, patch("run_c121_night_queue.subprocess.run") as mutation, patch("run_c121_night_queue.time.sleep"), patch("run_c121_night_queue.time.monotonic", return_value=0):
+            wait_docker_idle({}, 100)
+        mutation.assert_not_called()
+        self.assertEqual(ps.call_count, 2)
+
+    def test_wait_for_other_campaign_keeps_original_deadline(self):
+        with patch("run_c121_night_queue.subprocess.check_output", return_value="other"), patch("run_c121_night_queue.subprocess.run") as mutation, patch("run_c121_night_queue.time.monotonic", return_value=100):
+            with self.assertRaises(TimeoutError):
+                wait_docker_idle({}, 100)
+        mutation.assert_not_called()
+
+    def test_recovery_rejects_missing_result_or_unavailable_docker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = Path(directory) / "result.json"
+            for error in ("No such object: owned", "Cannot connect to Docker daemon"):
+                failed = Mock(returncode=1, stdout="", stderr=error)
+                with patch("run_c121_night_queue.subprocess.run", return_value=failed), patch("run_c121_night_queue.time.monotonic", return_value=0):
+                    with self.assertRaises(RuntimeError):
+                        wait_artifact(result, "owned", {}, 100)
+
     def test_status_save_recovers_transient_destination_lock(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / "status.json"
@@ -96,6 +128,21 @@ class GateTests(unittest.TestCase):
             self.assertEqual(len(exposed(data, root, "n1")), 1)
             self.assertEqual(exposed(data, root, "priority")[0]["events"], 1)
             self.assertEqual(exposed(data, root, "hubcap"), [])
+
+    def test_numeric_exposure_requires_affected_variant_and_opex_owner(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "engine.log"
+            for kind in ("num_target", "num_bonus", "num_pop", "num_phase", "num_cadence"):
+                log.write_text("\n".join([
+                    f"[script:4] [1] [I] QUAL_NUMERIC mechanism={kind} affected=1 value=8",
+                    f"[script:4] [0] [I] QUAL_NUMERIC mechanism={kind} affected=0 value=8",
+                    f"[script:4] [0] [I] QUAL_NUMERIC mechanism={kind} affected=1 value=8",
+                ]), encoding="utf-8")
+                data = {"games": [{"seed": 42, "policy_id": policy, "engine_log_path": "/work/engine.log"}
+                                  for policy in ("reference", "candidate")]}
+                self.assertEqual(exposed(data, root, kind)[0]["events"], 1)
+                self.assertEqual(len(exposed(data, root, kind)), 1)
 
 
 if __name__ == "__main__":

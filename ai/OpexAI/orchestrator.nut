@@ -442,6 +442,95 @@ function OpexFinishRegenEntity(owner, s)
   }
 }
 
+/* Shadow strictement structurel des regenerations rail ciblees sur une industrie.
+ * Le catalogue vient d'etre rafraichi par _c77RefreshModeCatalog("rail") : on peut donc savoir,
+ * sans aucune nouvelle lecture API, si l'industrie apparait dans au moins un cartésien fret que
+ * le generateur rail pourrait examiner. Le test est volontairement permissif : il ne cherche pas
+ * a predire les filtres service/economie, seulement a prouver les passes sans aucune paire cible. */
+function OpexRailTargetIndustryHasStructuralPair(catalog, industryId)
+{
+  if (catalog == null || catalog.industries == null || catalog.producers == null) return true;
+  local targetIndex = -1;
+  for (local i = 0; i < catalog.industries.len(); i++) {
+    if (catalog.industries[i].id == industryId) { targetIndex = i; break; }
+  }
+  if (targetIndex < 0) return false;
+
+  local activeCargos = OpexFreightCargoOrder(catalog);
+  foreach (cargo in activeCargos) {
+    if (!(cargo in catalog.producers)) continue;
+    local sources = catalog.producers[cargo];
+    if (sources == null || sources.len() == 0) continue;
+    local targetIsSource = false;
+    foreach (si in sources) {
+      if (si == targetIndex) { targetIsSource = true; break; }
+    }
+    if (targetIsSource) {
+      if (cargo in catalog.acceptors) {
+        foreach (di in catalog.acceptors[cargo]) {
+          if (di != targetIndex) return true;
+        }
+      }
+      if (COMPLEX_CARGO && cargo in catalog.townAcceptors
+          && catalog.townAcceptors[cargo] != null && catalog.townAcceptors[cargo].len() > 0) {
+        return true;
+      }
+    }
+    if (cargo in catalog.acceptors) {
+      local targetIsSink = false;
+      foreach (di in catalog.acceptors[cargo]) {
+        if (di == targetIndex) { targetIsSink = true; break; }
+      }
+      if (targetIsSink) {
+        foreach (si in sources) {
+          if (si != targetIndex) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function OpexRailTargetIndustryHasStructuralPairForCargo(catalog, industryId, cargo)
+{
+  if (catalog == null || catalog.industries == null || catalog.producers == null) return true;
+  if (!(cargo in catalog.producers)) return false;
+  local targetIndex = -1;
+  for (local i = 0; i < catalog.industries.len(); i++) {
+    if (catalog.industries[i].id == industryId) { targetIndex = i; break; }
+  }
+  if (targetIndex < 0) return false;
+
+  local sources = catalog.producers[cargo];
+  local targetIsSource = false;
+  foreach (si in sources) {
+    if (si == targetIndex) { targetIsSource = true; break; }
+  }
+  if (targetIsSource) {
+    if (cargo in catalog.acceptors) {
+      foreach (di in catalog.acceptors[cargo]) {
+        if (di != targetIndex) return true;
+      }
+    }
+    if (COMPLEX_CARGO && cargo in catalog.townAcceptors
+        && catalog.townAcceptors[cargo] != null && catalog.townAcceptors[cargo].len() > 0) {
+      return true;
+    }
+  }
+  if (cargo in catalog.acceptors) {
+    local targetIsSink = false;
+    foreach (di in catalog.acceptors[cargo]) {
+      if (di == targetIndex) { targetIsSink = true; break; }
+    }
+    if (targetIsSink) {
+      foreach (si in sources) {
+        if (si != targetIndex) return true;
+      }
+    }
+  }
+  return false;
+}
+
 function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
 {
   if (worker == null || !("state" in worker) || worker.state == null
@@ -478,8 +567,19 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
       owner._projects = airSlice.projects;
       delete s.airState;
     } else {
+      local irrelevantIndustryRail = DECISION_LOG && mode == "rail"
+          && entityKind == "industry" && entityId >= 0
+          && !OpexRailTargetIndustryHasStructuralPair(owner._catalog, entityId);
+      local irrelevantMark = irrelevantIndustryRail ? OpexOpsMeasureBegin() : null;
       owner._projects = OpexRegenerateModeProjects(owner._projects, owner._catalog, owner._budget,
           owner._lines, owner._abandonedPairs, mode, null, entityKind, entityId);
+      if (irrelevantMark != null) {
+        local wastedOps = OpexOpsMeasureEnd(irrelevantMark);
+        local wastedTicks = AIController.GetTick() - irrelevantMark.tick;
+        OpexDecide("RAIL_TARGET_REGEN_SHADOW", "industry=" + entityId
+                   + " structural_pair=0 ops=" + wastedOps + " ticks=" + wastedTicks
+                   + " reason=" + (("reason" in s) ? s.reason : "event"));
+      }
     }
   }
   if (owner._projects != null) owner._ranked = owner._projects.rail;

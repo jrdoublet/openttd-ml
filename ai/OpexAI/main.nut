@@ -498,6 +498,7 @@ class OpexAI extends AIController {
   function _expandRailLines(year);
   function _continueRailExpansion();
   function _startRailSearch(candidate, alternativeRatio, hardCap, projectIndex);
+  function _maybeSupersedeRailSearchForOriginReuse(project, rank);
   function _continueRailSearch();
   function _consumeRailSearch(year);
   function _recordRailAttempt(candidate, result, posPacked, year);

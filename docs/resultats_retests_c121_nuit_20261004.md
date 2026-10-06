@@ -80,6 +80,72 @@ est commun aux deux bras. Leur résultat est conditionnel à ce parent.
 - K_dec froid : delta −9,13 k£/an, IC95 [−18,09 ; −0,29], p=0,04977.
   Pas de réactivation ni de B. K_pass ne démontre pas de gain utile.
 
+## Pertes importantes à conserver explicitement — décision du 04/10
+
+À la demande de l'utilisateur, les pertes marquées sont distinguées des essais
+simplement inconclusifs. Ce sont les deltas de profit annuel terminal du **40×3
+sur le profil C121 figé à `a848df8`**, pas des mesures du défaut livré actuel.
+Les dix JSON concernés ont été relus : échantillons complets/sains et bundle
+commun inchangé. Les liens vers les preuves brutes figurent dans le tableau ci-dessus.
+
+| Intervention testée | Perte de profit | Perte de valeur | Lecture |
+|---|---:|---:|---|
+| `c121_catalog_air_first_year` **1→0** | **−30,37 %**, −434,31 k£/an | **−39,72 %** | Très forte perte lors de la désactivation |
+| `c83_fixes` **0→1** | **−26,45 %**, −377,94 k£/an | **−25,47 %** | Très forte perte lors de l'activation |
+| `town_growth` **0→1** | **−8,08 %**, −115,65 k£/an | **−8,64 %** | Perte importante hors AIR ; pas un résultat neutre |
+| `c121_air_one_or_two_planes` **1→0** | **−5,82 %**, −83,20 k£/an | **−7,32 %** | Ablation défavorable |
+| `c83_preempt_open` **0→1** | **−5,15 %**, −73,61 k£/an | **−5,19 %** | Perte et garde de valeur échouée |
+| `road_pax_build` **0→1** | **−4,22 %**, −60,36 k£/an | −2,66 % | Perte notable hors AIR ; garde de valeur tenue |
+
+Pour ces six essais, l'IC95 bootstrap de la moyenne est entièrement négatif et
+Wilcoxon p < 0,05 ; cinq échouent aussi la garde de valeur. Les tests ne sont pas
+corrigés pour les comparaisons multiples : conserver cette limite exploratoire.
+Un horizon supérieur n'efface pas ces pertes à trois ans. Aucune relance de ces
+perdants n'est ajoutée au motif de neutralité. K_dec froid est négatif aussi
+(−0,64 %, IC entièrement négatif), mais son amplitude n'est pas classée « très négative ».
+Les neuf A numériques ultérieures ont toutes un IC traversant zéro : aucune
+forte perte établie dans cette série, et aucun gain qualifié.
+
+## Suite proposée hors AIR : exposition puis horizon plus long
+
+L'utilisateur estime que trois ans peuvent être trop courts pour les mécanismes
+hors AIR. **Absence de différence significative ne signifie pas neutralité démontrée.**
+Les résultats suivants restent `fail_primary` à trois ans, sans perte établie :
+
+| Candidat 0→1 | Δ profit à 3 ans | IC95 bootstrap, k£/an | Priorité et condition |
+|---|---:|---|---|
+| `road_loading_fix` | +0,10 % | [−1,59 ; +5,34] | 1 : seulement 3/40 profits différents ; vérifier les épisodes d'attente corrigés et la maturation des lignes |
+| `rail_depot_cost` | −1,72 % | [−53,17 ; +2,68] | 2 : vérifier les changements de classement/construction rail et leur rentabilisation tardive |
+| `road_time_scaled_cap` | −0,41 % | [−31,08 ; +17,75] | 3 : vérifier lignes passagers et dépassements du plafond physique ; fret non concerné |
+| `policy_vehicle_events` | −1,06 % | [−35,14 ; +1,29] | À traiter séparément : multimodal, AIR inclus ; vérifier âge, événements et trois déficits consécutifs |
+
+Le coût du dépôt intervient immédiatement dans le classement rail
+(`economy.nut`, `RAIL_DEPOT_COST`) : une maturation économique tardive reste une
+hypothèse, pas une activation retardée prouvée. `road_time_scaled_cap` ne concerne
+que `kind="pax"` ; `road_pax_build=0` reste le défaut. Vérifier les chemins
+passagers effectivement actifs avant un banc long ; ne pas activer un parent
+perdant dans les deux bras pour prétendre qualifier le défaut commun.
+`policy_vehicle_events` attend notamment un âge ≥365 jours et un seuil de trois
+déficits consécutifs (`event_handlers.nut`) : un horizon long peut augmenter
+l'exposition, mais ce flag n'est pas purement hors AIR.
+
+**Plan proposé, non lancé :** après preuve d'exposition, smoke causal sain, puis
+nouvelle A **40 graines ×6 ans** pour chaque candidat pertinent ; B **20×10**
+uniquement si cette nouvelle A passe. Conserver `gain_short`, seuil relatif 4 %,
+garde de valeur 5 %, bootstrap 20 000/graine 0, puis `non_erosion` sous B.
+Six ans est une proposition de nouvel horizon, pas une qualification acquise
+ni une réécriture des verdicts 40×3 : sélection post-hoc consignée et protocole
+à pré-enregistrer avant toute nouvelle mesure. L'exposition absente arrête la
+séquence ; prolonger seul ne la prouve pas.
+
+Rester sur des duels appariés du profil C121, référence commune figée incluant
+les défauts adoptés au moment du nouveau plan, sans changements concurrents
+non qualifiés. Télémétrie d'exposition en copie séparée, puis mesure économique
+sans sonde ; suivre aussi la trajectoire annuelle sans sélectionner le meilleur
+horizon après mesure. Ressources locales prévues 10 CPU/8 Go, une seule campagne,
+budget et graines à enregistrer dans un nouveau plan. Aucun défaut modifié,
+aucun nouveau banc, commit ou push pour cette mise à jour documentaire.
+
 ## Provenance et limites
 
 Tous les 56 hashes de manifeste ont été contrôlés contre les JSON ;

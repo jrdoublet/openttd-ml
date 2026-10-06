@@ -476,6 +476,35 @@ function OpexC121FirstLiveAirOpportunity(projects, project, rank, lines)
            airFundableNow = false, displaced = false };
 }
 
+/* rail_origin_reuse : cout d'opportunite AIR d'une extension ferroviaire. On reprend le contrat
+ * causal borne de C121 : premier AIR vivant classe apres l'extension, et la branche causale ne
+ * l'utilise que s'il est IMMEDIATEMENT suivant et qu'aucun chantier n'a encore ete construit.
+ * `displaced` signifie : AIR finançable maintenant, mais plus après paiement du rail. */
+function OpexRailOriginReuseAirOpportunity(projects, project, rank, lines)
+{
+  if (projects == null || !("best" in projects) || project == null
+      || !("mode" in project) || project.mode != "rail"
+      || !("payload" in project) || project.payload == null
+      || !("originServed" in project.payload) || !project.payload.originServed) return null;
+  local available = OpexAvailableCapital();
+  local railCap = OpexProjectFinanceCapital(project);
+  for (local j = rank + 1; j < projects.best.len(); j++) {
+    local next = projects.best[j];
+    if (next == null || !("mode" in next) || next.mode != "air") continue;
+    if (!("payload" in next) || next.payload == null
+        || !OpexAirBatchPlanStillLive(next.payload, lines)) continue;
+    local airCap = OpexProjectFinanceCapital(next);
+    if (airCap <= 0) continue;
+    return {
+      nextRank = j, available = available, railCap = railCap, airCap = airCap,
+      airFundableNow = airCap <= available,
+      displaced = railCap <= available && airCap <= available && railCap + airCap > available,
+    };
+  }
+  return { nextRank = -1, available = available, railCap = railCap, airCap = 0,
+           airFundableNow = false, displaced = false };
+}
+
 /* C121 cadence : shadow borné du premier arrêt de passe C75/K_pass.
  * Le journal montre ce qui bloque maintenant et ce que la boucle aurait vu ensuite
  * si elle n'avait pas break. Aucun tri, aucune mutation, aucun changement de décision. */
@@ -1823,6 +1852,37 @@ function OpexAI::_tryBuildProjects(year)
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
+    local railReuseAirOpp = null;
+    local railReuseAirShouldDefer = false;
+    if ((RAIL_ORIGIN_REUSE_AIR_PRIORITY_SHADOW || RAIL_ORIGIN_REUSE_AIR_PRIORITY)
+        && project.mode == "rail"
+        && ("payload" in project) && project.payload != null
+        && ("originServed" in project.payload) && project.payload.originServed) {
+      railReuseAirOpp = OpexRailOriginReuseAirOpportunity(this._projects, project, i, this._lines);
+      railReuseAirShouldDefer = railReuseAirOpp != null && railReuseAirOpp.displaced
+          && railReuseAirOpp.nextRank == i + 1 && builtCount == 0;
+      if (RAIL_ORIGIN_REUSE_AIR_PRIORITY_SHADOW && railReuseAirOpp != null) {
+        AILog.Info("RAIL_ORIGIN_REUSE_AIR_PRIORITY rank=" + i
+            + " rail_cap=" + railReuseAirOpp.railCap + " available=" + railReuseAirOpp.available
+            + " next_air_rank=" + railReuseAirOpp.nextRank + " air_cap=" + railReuseAirOpp.airCap
+            + " air_fundable=" + (railReuseAirOpp.airFundableNow ? 1 : 0)
+            + " displaced=" + (railReuseAirOpp.displaced ? 1 : 0)
+            + " immediate=" + (railReuseAirOpp.nextRank == i + 1 ? 1 : 0)
+            + " built_before=" + builtCount);
+      }
+      if (railReuseAirShouldDefer && RAIL_ORIGIN_REUSE_AIR_PRIORITY) {
+        AILog.Info("RAIL_ORIGIN_REUSE_AIR_PRIORITY_DEFER rank=" + i
+            + " next_air_rank=" + railReuseAirOpp.nextRank
+            + " rail_cap=" + railReuseAirOpp.railCap + " air_cap=" + railReuseAirOpp.airCap
+            + " available=" + railReuseAirOpp.available + " built_before=" + builtCount);
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+          passDiscards.append({ rank = i, mode = "rail", src = project.src, dst = project.dst,
+                                reason = "rail_origin_reuse_air_priority",
+                                extra = "next_air_rank=" + railReuseAirOpp.nextRank
+                                    + " air_cap=" + railReuseAirOpp.airCap });
+        continue;
+      }
+    }
     local c121LiveOpp = null;
     local c121LiveShouldDefer = false;
     if ((C121_AIR_FIRST_LIVE_SHADOW || C121_AIR_FIRST_LIVE_AIR_PRIORITY)
