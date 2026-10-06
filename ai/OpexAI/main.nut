@@ -57,6 +57,7 @@ require("builder_rail.nut");
 require("builder_air.nut");
 require("builder_water.nut");
 require("builder_road.nut");
+require("opcode_exact.nut");
 require("globals_post.nut");
 
 /* Filet physique : deux gares reellement posees trop pres l'une de l'autre partagent leur bassin
@@ -132,6 +133,8 @@ class OpexAI extends AIController {
   _lastFreightCargo = -1;
   _bootstrapFreightCargo = -1;
   _loadedFromSave = false;
+  _saveProjection = null;       // {line -> copie serialisable}, voir _refreshSaveProjection
+  _saveProjectionMonth = -1;
   _recomputeEpochBounds = false;
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
@@ -150,6 +153,14 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
+   * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
+   * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
+  _c121RailPrepCandidates = null;
+  _c121RailPrepMonth = -1;
+  _c121RailPrepHold = false;
+  _c121RailPrepYieldLogged = false;
+  _c121RailPrepMinAirCap = -1;
   /* C80 étape 2 : seuil de score grossier pour le worker rail (score du dernier projet financé
    * lors de la dernière sélection non vide). Mémoire transitoire, réinitialisée à 0 au chargement. */
   _railStockLastFundedScore = 0.0;
@@ -370,6 +381,11 @@ class OpexAI extends AIController {
     this._railStockCooldown = {};
     this._railStockLastFundedScore = 0.0;
     this._railStockLastFundedDate = -1;
+    this._c121RailPrepCandidates = null;
+    this._c121RailPrepMonth = -1;
+    this._c121RailPrepHold = false;
+    this._c121RailPrepYieldLogged = false;
+    this._c121RailPrepMinAirCap = -1;
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};
     this._staleness = {
@@ -578,6 +594,18 @@ class OpexAI extends AIController {
   function _handleRailStockSearchCompleted();
   function _checkRailStockExpiry();
   function _revalidateRailStockPlan(candidate, plan);
+  function _c121CheapestLivingAirCap();
+  function _c121RailPrepAirFundable();
+  function _c121RailPrepAirFundableCheap();
+  function _c121RailPrepCashBelowAir();
+  function _c121RailSearchIsPrep();
+  function _c121RailPrepTrigger();
+  function _c121RailPrepRememberStock();
+  function _c121RailPrepDropStock(candidate, reason, ops, ticks);
+  function _c121RailPrepOnPassStart();
+  function _c121RailPrepAfterProjectsPass();
+  function _c121RailPrepMaybeCatalog();
+  function _tryStartC121RailPrepSearch();
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */
@@ -595,6 +623,7 @@ require("settings.nut");
 require("task_air.nut");
 require("task_projects.nut");
 require("task_rail.nut");
+require("rail_prep_c121.nut");
 require("task_report.nut");
 require("task_road.nut");
 require("task_terrain.nut");
@@ -678,25 +707,34 @@ function OpexAI::Start()
   OPEX_START_YEAR = this._startYear;
   if (!this._loadedFromSave) {
     /* Le reload reprend la dette effectivement choisie : ne pas reemprunter sans decision. */
+    local spLoan = PROBE_SPAN_TRACE ? OpexSpanBegin("start.loan") : null;
     AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
     if (DECISION_LOG) {
       OpexDecide("LOAN", "action=initial_borrow amount=" + AICompany.GetLoanAmount() + " max_loan=" + AICompany.GetMaxLoanAmount());
     }
+    if (spLoan != null) OpexSpanEnd(spLoan);
   }
 
+  local spSelf = PROBE_SPAN_TRACE ? OpexSpanBegin("start.selftest") : null;
   if (C80_DOUBLE_REGISTER) {
     this._c80RunSelfTest();
   }
   if (C76_REGEN_TARGETED) {
     this._c76RunSelfTest();
   }
+  if (spSelf != null) OpexSpanEnd(spSelf);
   if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER) {
     ::OpexPromoteLiveDefensiveAirBase <- ::OpexPromoteLiveDefensiveAir;
     ::OpexPromoteLiveDefensiveAir = ::OpexPromoteLiveDefensiveAirStock;
     this._tryStartRailStockWorker();
   }
 
+  if (PROBE_LOOP_OPS && C80_DOUBLE_REGISTER) this._mainLoopProfiled();
   while (true) {
+    if (PROBE_SPAN_TRACE) {
+      OpexSpanRescueOrphans();
+      OpexSpanYearRoll();
+    }
     if (C56_TASK_TRACE) {
       /* C56 : une trace tous les 200 tours pour ne pas noyer le journal. */
       C56_LOOP_TICK_COUNT++;
@@ -704,15 +742,31 @@ function OpexAI::Start()
         OpexC56TaskLog("LOOP_TICK", "-", this._taskCycle);
       }
     }
+    local spEvents = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.events") : null;
     this._processEvents();
-    if (EXP_C83_WATCH_DAILY) this._expC83PollAirSlots();
+    if (spEvents != null) OpexSpanEnd(spEvents);
+    if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) {
+      local spSave = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.save_projection") : null;
+      this._refreshSaveProjection();
+      if (spSave != null) OpexSpanEnd(spSave);
+    } else if (this._saveProjection != null) this._saveProjection = null;
+    if (EXP_C83_WATCH_DAILY) {
+      local spC83 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c83") : null;
+      this._expC83PollAirSlots();
+      if (spC83 != null) OpexSpanEnd(spC83);
+    }
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+      local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
       OpexC117AirThroughputStep(this._lines, this._catalog);
+      if (spC117 != null) OpexSpanEnd(spC117);
     }
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     if (C80_DOUBLE_REGISTER) {
+      local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
       this._runOrchestratorTick();
+      if (spOrch != null) OpexSpanEnd(spOrch);
       if (C121_CATALOG_INCREMENTAL) {
+        local spResume = null;
         local catalogPending = true;
         local continuationTick = AIController.GetTick();
         while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
@@ -720,24 +774,41 @@ function OpexAI::Start()
           foreach (queuedTask in this._taskQueue) {
             if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
                 && queuedTask.c78AirRebuild != null) {
+              if (spResume == null && PROBE_SPAN_TRACE) spResume = OpexSpanBegin("loop.c121_catalog_resume");
               catalogPending = true;
+              local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
               this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+              if (spCat != null) OpexSpanEnd(spCat);
               break;
             }
           }
+          local spMid = (PROBE_SPAN_TRACE && catalogPending) ? OpexSpanBegin("loop.orch") : null;
           if (catalogPending) this._runOrchestratorTick();
+          if (spMid != null) OpexSpanEnd(spMid);
         }
+        if (spResume != null) OpexSpanEnd(spResume);
       }
+      local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
-      if (C67_SLACK_HOOK) this._c67SlackHook();
+      if (spAstar != null) OpexSpanEnd(spAstar);
+      if (C67_SLACK_HOOK) {
+        local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
+        this._c67SlackHook();
+        if (spC67 != null) OpexSpanEnd(spC67);
+      }
+      local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
       AIController.Sleep(1);
+      if (spSleep != null) OpexSpanEnd(spSleep);
     } else if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
     } else {
+      local spLegacy = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.legacy") : null;
       this._runNextTaskWithSlackLedger();
+      if (spLegacy != null) OpexSpanEnd(spLegacy);
       /* C121 : les tranches rendent la main aux taches dues dans la file, mais
        * ne doivent pas imposer un Sleep entre deux tranches lorsque le tick a
        * encore des opcodes. La file continue son tour normal a chaque appel. */
       if (C121_CATALOG_INCREMENTAL) {
+        local spResumeLeg = null;
         local catalogPending = true;
         local continuationTick = AIController.GetTick();
         while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
@@ -745,17 +816,31 @@ function OpexAI::Start()
           foreach (queuedTask in this._taskQueue) {
             if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
                 && queuedTask.c78AirRebuild != null) {
+              if (spResumeLeg == null && PROBE_SPAN_TRACE) spResumeLeg = OpexSpanBegin("loop.c121_catalog_resume");
               catalogPending = true;
+              local spCatLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
               this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+              if (spCatLeg != null) OpexSpanEnd(spCatLeg);
               break;
             }
           }
+          local spLegMid = (PROBE_SPAN_TRACE && catalogPending) ? OpexSpanBegin("loop.legacy") : null;
           if (catalogPending) this._runNextTaskWithSlackLedger();
+          if (spLegMid != null) OpexSpanEnd(spLegMid);
         }
+        if (spResumeLeg != null) OpexSpanEnd(spResumeLeg);
       }
+      local spAstarLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
-      if (C67_SLACK_HOOK) this._c67SlackHook();
+      if (spAstarLeg != null) OpexSpanEnd(spAstarLeg);
+      if (C67_SLACK_HOOK) {
+        local spC67Leg = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
+        this._c67SlackHook();
+        if (spC67Leg != null) OpexSpanEnd(spC67Leg);
+      }
+      local spSleepLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
       AIController.Sleep(1);
+      if (spSleepLeg != null) OpexSpanEnd(spSleepLeg);
     }
   }
 }

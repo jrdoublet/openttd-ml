@@ -429,6 +429,66 @@ function OpexRailFixedConsist(catalog, cargo, distance, kind, loco, wagons)
   };
 }
 
+/* Revenu annuel d'une rame DEJA choisie, pour un nombre de trains fixe.
+ * Meme headway, note et cargo capte que la boucle de OpexLineEconomics.
+ * La demande est le monthly stocke a la construction. Pas de choix de rame. */
+function OpexRailRevenueAtTrainCount(catalog, line, trains)
+{
+  if (catalog == null || line == null || trains < 1) return null;
+  if (!("monthly" in line) || line.monthly <= 0) return null;
+  if (!("cargo" in line) || !("distance" in line) || !("kind" in line)) return null;
+  if (!("loco" in line) || line.loco == null || !("wagons" in line) || line.wagons < 1) return null;
+  if (!(line.cargo in catalog.wagonByCargo)) return null;
+  local consist = OpexRailFixedConsist(catalog, line.cargo, line.distance, line.kind, line.loco, line.wagons);
+  if (consist == null || consist.tripsPerMonth <= 0) return null;
+  local wagon = catalog.wagonByCargo[line.cargo];
+  local perTrain = line.wagons * wagon.capacity;
+  if (perTrain < 1) return null;
+  local roundTripDays = 2.0 * consist.oneWayDays;
+  local effectiveHeadway = roundTripDays / trains;
+  if (line.kind == "freight") {
+    local loadDays = (perTrain * 30.0) / line.monthly;
+    local absentDays = roundTripDays - loadDays;
+    if (absentDays < 0) absentDays = 0;
+    effectiveHeadway = absentDays / trains;
+  }
+  local stationRating = OpexStationRatingForHeadway(effectiveHeadway);
+  local offered = line.monthly * stationRating / 100.0;
+  local monthlyCapacity = trains * perTrain * consist.tripsPerMonth;
+  local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
+  local incomeDays = OpexCeilDiv(consist.oneWayDays, 1);
+  return (12 * carried * AICargo.GetCargoIncome(line.cargo, line.distance, incomeDays)).tointeger();
+}
+
+/* Ecart de revenu 1 train -> 2 trains sur la rame existante.
+ * Si le revenu observe de la ligne est positif, l'ecart est recale par
+ * lastRevenue / revenu modelise a 1 train (niveau observe, forme du modele).
+ * Revenu modelise nul : refus. Le cout de roulement ajoute est celui d'une
+ * locomotive, comme OpexLineEconomics. L'amortissement d'infra n'est compte
+ * que si infraCapital > 0 ; au defaut INFRA_AMORT_PCT il vaut 0. */
+function OpexRailSecondTrainMarginal(catalog, line, infraCapital)
+{
+  if (line == null || line.loco == null) return null;
+  if (!("price" in line.loco) || !("runningCost" in line.loco)) return null;
+  if (!("wagons" in line) || line.wagons < 1) return null;
+  if (catalog == null || !(line.cargo in catalog.wagonByCargo)) return null;
+  local revenue1 = OpexRailRevenueAtTrainCount(catalog, line, 1);
+  local revenue2 = OpexRailRevenueAtTrainCount(catalog, line, 2);
+  if (revenue1 == null || revenue2 == null || revenue1 <= 0) return null;
+  local revenueDelta = revenue2 - revenue1;
+  if (("lastRevenue" in line) && line.lastRevenue > 0) {
+    revenueDelta = (line.lastRevenue.tofloat() * revenueDelta.tofloat() / revenue1.tofloat()).tointeger();
+  }
+  local wagon = catalog.wagonByCargo[line.cargo];
+  local trainCost = line.loco.price + line.wagons * wagon.price;
+  local locoLife = (("ageYears" in line.loco) && line.loco.ageYears > 0) ? line.loco.ageYears : 20;
+  local vehicleAmort = trainCost / locoLife;
+  local infraAmort = 0;
+  if (infraCapital > 0) infraAmort = (infraCapital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS;
+  local profit = revenueDelta - line.loco.runningCost - vehicleAmort - infraAmort;
+  return { profitAnnual = profit, revenueAnnual = revenueDelta };
+}
+
 /* Le candidat est cree avec l'economie du quai voulu, puis devient le contrat du quai trouve.
  * Cette copie explicite empeche le cas dangereux "quai court, wagons longs, capital long" : tous
  * les champs qui alimentent construction, panneaux, classement local et suivi de ligne changent

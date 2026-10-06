@@ -1,6 +1,7 @@
 # OpexAI — contexte pour la revue de code
 
-Consignes réconciliées le **2026-09-30** par lecture statique. Les chemins ci-dessous sont
+Consignes réconciliées le **2026-09-30** par lecture statique ; validation V102
+actualisée le **2026-10-03**. Les chemins ci-dessous sont
 relatifs à la racine du dépôt, sauf les noms de modules `.nut`, relatifs à `ai/OpexAI/`.
 `AGENTS.md` fait autorité pour les méthodes et `docs/taches.md` pour le travail restant.
 Ce fichier ne constitue ni un second backlog ni une qualification économique du code courant.
@@ -58,16 +59,19 @@ supprimé, pas de branche morte à unifier).
   des bancs ; `OpexDecide(kind, fields)` (`probes.nut`) est le journal de décision structuré, gardé
   par `decision_log` ou une sonde dédiée — coût nul au défaut.
 - **Validation** : appliquer `AGENTS.md` §4, source unique du protocole. Après une modification
-  `.nut`, smoke de compilation/exécution **1 graine × 1 an**, puis diagnostic causal **5×6**
-  si le comportement change, et qualification **20×10** avant adoption ordinaire.
+  `.nut`, smoke de compilation/exécution **1 graine × 1 an**, puis, pour le comportement,
+  porte A **40×3 `gain_short`** (Wilcoxon, IC95 bootstrap, seuil relatif 4 %) et
+  porte B **20×10 `non_erosion`**, garde de valeur 5 % aux deux portes. Le 5×6
+  n'est plus une étape obligatoire ; les deux portes sont requises pour l'adoption.
   Les optimisations d'opcodes ont une règle de neutralité dédiée ; les dérogations utilisateur
   restent explicitement tracées et ne changent pas le verdict statistique. Un ex æquo n'est
   pas une victoire, ni à lui seul la preuve qu'un drapeau n'a pas été exposé.
 - **Défauts et bancs automatiques** : appliquer `AGENTS.md` §4.1. Pour un changement
-  de défaut demandé, préférer `qualify.yml` avec un
-  [plan pré-enregistré](../../qualifications/README.md), puis suivre ses portes et
-  ses artefacts. `bench.yml` reste le parcours manuel `paired/smoke`, puis
-  `paired/diagnostic`, puis `paired/adoption` si les portes précédentes sont franchies.
+  de défaut demandé, pré-enregistrer le plan et utiliser `run_c66_reference.py`
+  avec la règle explicite et les options du §4.1, puis suivre les portes et artefacts.
+  `signs20` reste le défaut CLI historique. `qualify.yml` et `bench.yml` ne sont
+  pas encore migrés vers V102 ; le [schéma de plan 1](../../qualifications/README.md)
+  correspond à leur ancien protocole, pas aux nouvelles portes.
   Garder l'ancien défaut pendant les essais ; ne pas attendre une nouvelle demande
   de lancement lorsque accès/publication/budget sont disponibles. Un blocage d'accès
   ou de publication doit être signalé, jamais contourné par un push implicite.

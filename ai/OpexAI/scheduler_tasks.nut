@@ -96,7 +96,47 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       airPlans = s.plans,
       airOps = s.airOps,
     };
-    owner._rebuildProjects(s.fleetPlan, partialAir, false);
+    local spPartial = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
+    /* AIR 03/10 1 : seulement le lot partiel. La phase apply plus bas garde
+     * le rebuild complet. Premiere publication (aucun projet de ce scan) :
+     * rebuild, il n'y a pas encore de groupes a completer. */
+    local publishCounts = null;
+    if (AIR0310_INCREMENTAL_PUBLISH && owner._projects != null
+        && ("lastPublishedCount" in s) && s.lastPublishedCount > 0) {
+      publishCounts = OpexAir0310PublishIncremental(owner, s.plans, s.lastPublishedCount,
+          s.airOps, partialAir.airPlan);
+    }
+    if (publishCounts == null) {
+      owner._rebuildProjects(s.fleetPlan, partialAir, false);
+    }
+    if (spPartial != null) OpexSpanEnd(spPartial);
+    if (PROBE_SPAN_TRACE) {
+      local publishMode = "full";
+      local publishAdded = 0;
+      local publishReconverted = 0;
+      local publishRefreshed = 0;
+      local publishInvalidated = 0;
+      if (publishCounts != null) {
+        publishMode = "incr";
+        publishAdded = publishCounts.added;
+        publishReconverted = publishCounts.reconverted;
+        publishInvalidated = publishCounts.invalidated;
+        if ("refreshed" in publishCounts) publishRefreshed = publishCounts.refreshed;
+      } else {
+        /* Plans soumis au rebuild, pas les projets gardes : FromAir peut
+         * encore en refuser, et ce chemin ne les compte pas. */
+        publishAdded = s.plans.len() - s.lastPublishedCount;
+        if (publishAdded < 0) publishAdded = 0;
+        publishReconverted = s.lastPublishedCount;
+        if (publishReconverted < 0) publishReconverted = 0;
+      }
+      OpexDecide("AIR0310_PUBLISH", "mode=" + publishMode
+          + " added=" + publishAdded
+          + " reconverted=" + publishReconverted
+          + " refreshed=" + publishRefreshed
+          + " invalidated=" + publishInvalidated
+          + " total_plans=" + s.plans.len());
+    }
     owner._ranked = owner._projects != null ? owner._projects.rail : null;
     if (C121_CATALOG_INCREMENTAL) owner._portfolioInvalidated = false;
     s.published = true;
@@ -116,7 +156,9 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       airOps = s.airOps,
     };
     local rebuildMark = OpexOpsMeasureBegin();
+    local spApply = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
     owner._rebuildProjects(s.fleetPlan, airOverride);
+    if (spApply != null) OpexSpanEnd(spApply);
     s.regenOps += OpexOpsMeasureEnd(rebuildMark);
     if (C39_INVALIDATION_PROBE) {
       local reason = s.c76Full && s.c76Reason != null ? s.c76Reason : s.refreshReason;
@@ -195,9 +237,11 @@ function OpexAI::_dispatchCatalog(task, year)
   if (C121_CATALOG_INCREMENTAL
       && C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()) {
     C121_CATALOG_TOWN_BATCH_DATE = AIDate.GetCurrentDate();
+    local spTownBatch = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.town_batch") : null;
     OpexC121CatalogTownProductionBatch(this._catalog);
+    if (spTownBatch != null) OpexSpanEnd(spTownBatch);
   }
-  local refreshReason = "month";
+  local refreshReason = "event";
   if (("c78AirRebuild" in task) && task.c78AirRebuild != null) {
     /* Un chantier peut marquer C76 invalide pendant le scan. Le portefeuille
      * partiel est revalide a l'execution et le scan continue sans redemarrer. */
@@ -208,27 +252,30 @@ function OpexAI::_dispatchCatalog(task, year)
       refreshReason = task.c78AirRebuild.refreshReason;
     }
     if (CATALOG_COST_PROBE && ("catalogCost" in task)) CATALOG_COST_ACTIVE = task.catalogCost;
-    if (!OpexC78ContinueCatalogAirRebuild(this, task, year)) {
+    local spSlice = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.slice") : null;
+    local sliceDone = OpexC78ContinueCatalogAirRebuild(this, task, year);
+    if (spSlice != null) OpexSpanEnd(spSlice);
+    if (!sliceDone) {
       CATALOG_COST_ACTIVE = null;
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
   } else {
+  local spGuard = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.guard") : null;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
-  /* portfolio_v2 : le portefeuille n'etait regenere qu'au CHANGEMENT DE MOIS ou apres une
-   * construction reussie, et son capitalBudget etait fige a la generation. Un mois qui s'ouvrait
-   * a 60 k£ sans projet finançable rendait donc un portefeuille vide, et _tryBuildProjects
-   * sortait des sa premiere ligne POUR TOUT LE MOIS -- meme si la tresorerie montait ensuite a
-   * 400 k£. C'est la mesure « 4,15 mois en moyenne avec >= 100 k£ et aucune croissance »
-   * (docs/taches.md S0 septies, trouvaille A). On regenere donc aussi des que le capital
-   * mobilisable a materiellement grandi depuis la derniere generation. */
+  /* Le classement est rejoue uniquement quand son entree change : invalidation
+   * evenementielle ou franchissement du cout du prochain projet connu. */
   local stale = false;
   if (this._projects != null) {
+    local spCapital = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.capital") : null;
     local budgetNow = OpexAvailableCapital();
+    if (spCapital != null) OpexSpanEnd(spCapital);
     local budgetThen = this._projects.capitalBudget;
-    /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
-     * mais un doublement du capital mobilisable rouvre le vivier. */
+    local nextCap = ("stats" in this._projects) && this._projects.stats != null
+        && ("nextProjectCapital" in this._projects.stats) && this._projects.stats.nextProjectCapital > 0
+        ? this._projects.stats.nextProjectCapital : 0;
+    local crossedNext = nextCap > 0 && budgetThen < nextCap && budgetNow >= nextCap;
     local gainOk = budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN;
     local doubleOk = budgetNow > budgetThen * 2;
     if (PORTFOLIO_REFRESH_PROBE) {
@@ -239,7 +286,7 @@ function OpexAI::_dispatchCatalog(task, year)
        * que le doublement aurait seul autorise -- utile seulement si budgetThen < MIN_GAIN. */
       if (doubleOk && !gainOk) PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY++;
     }
-    if (gainOk && doubleOk) stale = true;
+    stale = AIR_EFFICIENCY_RESELECT ? crossedNext : (gainOk && doubleOk);
   }
   local c76LayerChanged = false;
   local c76PeriodicDue = false;
@@ -247,27 +294,47 @@ function OpexAI::_dispatchCatalog(task, year)
   local c76CurQuarter = 0;
   if (C76_REGEN_TARGETED) {
     c76LayerChanged = this._c76AnyLayerChanged();
-    /* Filet periodique ANNUEL (decision utilisateur du 2026-09-21) : une regeneration complete au
-     * moins une fois par annee de jeu. La variable garde son nom historique ; elle porte l'annee. */
     c76CurQuarter = year;
     c76PeriodicDue = (this._c76LastRegenQuarter < 0 || c76CurQuarter > this._c76LastRegenQuarter);
     c76ReloadDue = this._c76ForceReloadRegen;
-    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
-        !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+    local cadenceFresh = AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == ym;
+    if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated
+        && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+      if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
   } else {
     /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
-    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
-        !this._portfolioInvalidated) {
+    local cadenceFresh = AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == ym;
+    if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated) {
+      if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
   }
+  if (spGuard != null) OpexSpanEnd(spGuard);
   refreshReason = this._portfolioInvalidated ? "event"
-      : (stale ? "capital" : "month");
+      : (stale ? "capital" : (c76ReloadDue ? "reload" : (c76LayerChanged ? "layers" : "event")));
+  if (AIR_EFFICIENCY_RESELECT && stale && !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue
+      && this._projects != null) {
+    local reselectMark = CATALOG_COST_PROBE ? OpexOpsMeasureBegin() : null;
+    local budgetNow = OpexAvailableCapital();
+    this._projects = OpexReselectProjects(this._projects, budgetNow, this._abandonedPairs, this._lines);
+    this._ranked = this._projects.rail;
+    if (CATALOG_COST_PROBE) {
+      task.catalogCost <- OpexCatalogCostNew("capital");
+      task.catalogCost.path = "reselect";
+      task.catalogCost.reselectOps += OpexOpsMeasureEnd(reselectMark);
+      task.catalogCost.considered = this._projects.stats.budgetConsidered;
+      task.catalogCost.selected = this._projects.best.len();
+      OpexCatalogCostLog(task.catalogCost);
+      delete task.catalogCost;
+    }
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+    return true;
+  }
   if (CATALOG_COST_PROBE) {
     task.catalogCost <- OpexCatalogCostNew(refreshReason);
     CATALOG_COST_ACTIVE = task.catalogCost;
@@ -298,13 +365,13 @@ function OpexAI::_dispatchCatalog(task, year)
     fleetPlan = [];
     this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
   }
+  if (V107_DENSIFY_PORTFOLIO) fleetPlan = this._v107AttachRailDensify(fleetPlan);
   if (this._recomputeEpochBounds) {
     OpexRefreshEpochBounds(this._catalog);
     this._recomputeEpochBounds = false;
   }
   if (C76_REGEN_TARGETED) {
-    /* C76 lean invalidation : le doublement de capital ne necessite qu'une reselection locale. */
-    local budgetStale = stale && !C76_LEAN_INVALIDATION;
+    local budgetStale = stale && !AIR_EFFICIENCY_RESELECT && !C76_LEAN_INVALIDATION;
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
     local c80Modes = null;
@@ -314,7 +381,9 @@ function OpexAI::_dispatchCatalog(task, year)
     }
     if (c80Modes != null) {
       local modeMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
+      local spModeRegen = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.mode_regen") : null;
       this._c80DoModeRegen(c80Modes, "layers", year);
+      if (spModeRegen != null) OpexSpanEnd(spModeRegen);
       if (CATALOG_COST_ACTIVE != null) {
         CATALOG_COST_ACTIVE.path = "mode";
         CATALOG_COST_ACTIVE.modeRegenOps += OpexOpsMeasureEnd(modeMark);
@@ -332,7 +401,9 @@ function OpexAI::_dispatchCatalog(task, year)
         return false;
       }
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+      local spRebuild = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
       this._rebuildProjects(fleetPlan);
+      if (spRebuild != null) OpexSpanEnd(spRebuild);
       if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
@@ -370,7 +441,9 @@ function OpexAI::_dispatchCatalog(task, year)
       return false;
     }
     local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+    local spRebuildLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
     this._rebuildProjects(fleetPlan);
+    if (spRebuildLeg != null) OpexSpanEnd(spRebuildLeg);
     if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
     if (C39_INVALIDATION_PROBE) {
       local c76Ops = OpexOpsMeasureEnd(c76Mark);
@@ -789,7 +862,9 @@ function OpexAI::_dispatchReport(task, year)
   if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
   if (C60_TOWN_RATING_PROBE) this._logC60TownRatingLedger(year);
   if (C50_CHRONOLOGY_PROBE) this._logC50AnnualReport(year);
+  local spReportYear = PROBE_SPAN_TRACE ? OpexSpanBegin("report.year") : null;
   this._reportYear(year, this._ranked);
+  if (spReportYear != null) OpexSpanEnd(spReportYear);
   if (V88_GOODS_CHAIN) {
     local rs = this._railSearch;
     local own = (rs != null && ("candidate" in rs) && rs.candidate != null
@@ -799,17 +874,27 @@ function OpexAI::_dispatchReport(task, year)
         + " spent=" + ((rs != null && "spent" in rs) ? rs.spent : -1)
         + " budget=" + ((rs != null && "iterationBudget" in rs) ? rs.iterationBudget : -1));
   }
+  local spReportLines = PROBE_SPAN_TRACE ? OpexSpanBegin("report.lines") : null;
   this._reportLines(year);
+  if (spReportLines != null) OpexSpanEnd(spReportLines);
   if (C63_INVEST_PROBE) OpexC63EnsureYear(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }
 function OpexAI::_dispatchScrap(task, year)
 {
+  local spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.rollback") : null;
   OpexAirProcessRollbacks(this._lines);
+  if (spScrap != null) OpexSpanEnd(spScrap);
+  spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.lines") : null;
   this._scrapDeadLines(year);
+  if (spScrap != null) OpexSpanEnd(spScrap);
+  spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.vehicles") : null;
   this._scrapRetiredVehicles(year);
+  if (spScrap != null) OpexSpanEnd(spScrap);
+  spScrap = PROBE_SPAN_TRACE ? OpexSpanBegin("scrap.streaks") : null;
   this._purgeUnprofitableStreaks();
+  if (spScrap != null) OpexSpanEnd(spScrap);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }
@@ -836,9 +921,23 @@ function OpexAI::_dispatchAirFleet(task, year)
     if (PORTFOLIO_CACHE && this._projects != null) {
       local fleetPlan = [];
       this._resizeAirFleets(year, fleetPlan);
-      if (fleetPlan.len() > 0) {
+      local airCount = fleetPlan.len();
+      local densifyPlan = V107_DENSIFY_PORTFOLIO ? this._v107RailDensifyPlan() : null;
+      if (densifyPlan != null) {
+        foreach (densifyEntry in densifyPlan) fleetPlan.append(densifyEntry);
+      }
+      if (airCount > 0) {
         local budgetNow = OpexAvailableCapital();
+        local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
         this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow, this._lines);
+        if (spInject != null) OpexSpanEnd(spInject);
+        if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
+        this._ranked = this._projects.rail;
+      } else if (densifyPlan != null) {
+        local budgetNow = OpexAvailableCapital();
+        local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
+        this._projects = OpexInjectFleetProjects(this._projects, densifyPlan, this._abandonedPairs, budgetNow, this._lines, true);
+        if (spInject != null) OpexSpanEnd(spInject);
         if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
         this._ranked = this._projects.rail;
       }
@@ -898,6 +997,17 @@ function OpexAI::_dispatchExpand(task, year)
    * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1.
    * Desormais inconditionnel : on ne desactive que si les DEUX sont eteints. */
   if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+  if (V107_DENSIFY_PORTFOLIO && RAIL_REFLEET && PORTFOLIO_CACHE && this._projects != null) {
+    local densifyPlan = this._v107RailDensifyPlan();
+    if (densifyPlan != null) {
+      local budgetNow = OpexAvailableCapital();
+      local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
+      this._projects = OpexInjectFleetProjects(this._projects, densifyPlan, this._abandonedPairs, budgetNow, this._lines, true);
+      if (spInject != null) OpexSpanEnd(spInject);
+      if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
+      this._ranked = this._projects.rail;
+    }
+  }
   this._expandRailLines(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;

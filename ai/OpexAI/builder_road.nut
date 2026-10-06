@@ -151,6 +151,7 @@ function OpexRoadTraceBuildable(trace)
 function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction, radius,
                        otherCenter, requireCargo = true, excludeTiles = null)
 {
+  if (EXP_OPCODE_EXACT_ON) return OpexRoadSitesGated(center, townId, cargo, vehType, coverage, wantProduction, radius, otherCenter, requireCargo, excludeTiles);
   local out = [];
   local cx = AIMap.GetTileX(center);
   local cy = AIMap.GetTileY(center);
@@ -480,6 +481,7 @@ function OpexRoadBfsPath(src, dst, maxNodes, srcFront = null, dstFront = null)
 function OpexRoadPaxVoirieSites(center, townId, cargo, vehType, coverage, otherCenter,
                                 requireCargo = true, excludeTiles = null)
 {
+  if (EXP_OPCODE_EXACT_ON) return OpexRoadPaxVoirieGated(center, townId, cargo, vehType, coverage, otherCenter, requireCargo, excludeTiles);
   local out = [];
   local cx = AIMap.GetTileX(center);
   local cy = AIMap.GetTileY(center);
@@ -637,6 +639,7 @@ function OpexRoadPlanPaxVoirie(candidate)
  * reste a trouver deux sites d'arret reels et un trace multi-variantes qui les relie. */
 function OpexRoadPlanFor(catalog, candidate)
 {
+  if (EXP_OPCODE_EXACT_ON) return OpexRoadPlanForActive(catalog, candidate);
   if (catalog.roadType < 0) return { plan = null, reason = "NOROAD" };
   AIRoad.SetCurrentRoadType(catalog.roadType);
   if (ROAD_PAX_VOIRIE && candidate.kind == "pax") {
@@ -769,6 +772,7 @@ function OpexRoadRollback(stopA, stopB, depot, vehicles, added)
   if (added != null) {
     for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
   }
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
 }
 
 /* Un arret de plus, meme facade, tuile cardinale voisine, joint au StationID deja pose.
@@ -906,6 +910,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   }
 
   budget.begin();
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   if (!OpexRoadBuildTrace(plan.trace, added)) {
     result.error = AIError.GetLastError();
     result.opcodes = budget.end("build_roads");

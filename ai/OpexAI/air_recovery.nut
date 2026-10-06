@@ -54,6 +54,7 @@ function OpexAirContinueRollback(ticket, lines = null)
   ticket.vehicles = remaining;
   if (remaining.len() > 0) return false;
 
+  local airportCount = ticket.airports.len();
   local airports = [];
   foreach (tile in ticket.airports) {
     if (!AIAirport.IsAirportTile(tile)) continue;
@@ -76,6 +77,8 @@ function OpexAirContinueRollback(ticket, lines = null)
     airports.append(tile);
   }
   ticket.airports = airports;
+  if (AIR0310_SITE_VALIDITY_CACHE && airports.len() != airportCount)
+    OpexAir0310InvalidateSiteValidity();
   return airports.len() == 0;
 }
 

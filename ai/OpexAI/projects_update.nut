@@ -1,8 +1,21 @@
 /* Extrait de projects.nut (R14) : Mise a jour incrementale du cache de candidats et injection flotte. Requis depuis projects.nut. */
 
+function OpexV107RailDensifyEntry(entry)
+{
+  return entry != null && ("v107Densify" in entry) && entry.v107Densify == "rail";
+}
+
+function OpexV107RailDensifyProject(project)
+{
+  return project != null && ("mode" in project) && project.mode == "fleet"
+      && ("payload" in project) && OpexV107RailDensifyEntry(project.payload);
+}
+
 /* C80 fleet inject : injecte les opportunites mures de flotte directement dans
- * candidateGroups, sans recalculer les plans aeriens. */
-function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null, lines = null)
+ * candidateGroups, sans recalculer les plans aeriens.
+ * densifyOnly ne retire et ne repose que les densifications rail : la flotte
+ * aerienne deja classee reste en place. */
+function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, capitalBudget = null, lines = null, densifyOnly = false)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
@@ -17,14 +30,29 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
     local list = (typeof entry == "array") ? entry : [entry];
     foreach (project in list) {
       if (project == null) continue;
-      if (project.mode == "fleet") continue;
+      if (densifyOnly) {
+        if (OpexV107RailDensifyProject(project)) continue;
+      } else if (project.mode == "fleet") continue;
       if (abandonedPairs != null && OpexCandidateIsAbandoned(project, abandonedPairs)) continue;
       OpexProjectRememberAll(winners, project, scratch);
     }
   }
 
   /* 2. Injecter les opportunites de flotte fraiches */
-  if (FLEET_PORTFOLIO && fleetPlan != null) {
+  if (densifyOnly) {
+    if (fleetPlan != null) {
+      foreach (entry in fleetPlan) {
+        if (!OpexV107RailDensifyEntry(entry)) continue;
+        local p = OpexProjectFromFleet(entry);
+        if (p != null) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
+          OpexProjectRememberAll(winners, p, scratch);
+        } else if (C69_BOTTLENECK_PROBE) {
+          OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
+        }
+      }
+    }
+  } else if (FLEET_PORTFOLIO && fleetPlan != null) {
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry);
       if (p != null) {
@@ -59,6 +87,7 @@ function OpexC121PlanTouchesTowns(project, towns)
 
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null, railReadyStock = null)
 {
+  local spIncr = PROBE_SPAN_TRACE ? OpexSpanBegin("select.incremental") : null;
   if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
     railReadyStock = projects.railReadyStock;
   }
@@ -96,6 +125,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         if (p == null) continue;
         /* La flotte est regeneree fraiche ci-dessous. */
         if (p.mode == "fleet" && FLEET_PORTFOLIO && fleetPlan != null) continue;
+        if (p.mode == "fleet" && V107_DENSIFY_PORTFOLIO && !FLEET_PORTFOLIO
+            && fleetPlan != null && OpexV107RailDensifyProject(p)) continue;
         /* Early-slot est une priorite transitoire. Apres chaque chantier, le
          * nombre de villes deja securisees peut changer ; un ancien plan air ne
          * doit donc jamais conserver un bonus devenu perime. Les plans air sont
@@ -127,8 +158,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   }
 
   /* 2. Injection des projets de croissance de flotte (refleet) frais */
-  if (FLEET_PORTFOLIO && fleetPlan != null) {
+  if (fleetPlan != null && (FLEET_PORTFOLIO || V107_DENSIFY_PORTFOLIO)) {
     foreach (entry in fleetPlan) {
+      if (!FLEET_PORTFOLIO && !OpexV107RailDensifyEntry(entry)) continue;
       local p = OpexProjectFromFleet(entry);
       if (p != null) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
@@ -173,6 +205,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (project in list) alternatives.push(project);
   }
   if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
+  if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
+      railReadyStock = projects.railReadyStock;
+    alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
+  }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   stats.budgetConsidered = alternatives.len();
@@ -230,5 +267,273 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
   if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
+  else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) {
+    if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
+    else projects.railReadyStock <- railReadyStock;
+  }
+  if (spIncr != null) OpexSpanEnd(spIncr);
   return projects;
+}
+
+/* Eau et flotte sont memorises apres l'air. Une subvention a souvent le mode
+ * route, mais sa cle n'est creee qu'apres l'air : la traiter comme la route
+ * la ferait passer devant les plans neufs au departage. */
+function OpexAir0310KeyIsLate(key)
+{
+  if (typeof key != "string") return false;
+  return (key.len() >= 8 && key.slice(0, 8) == "subsidy|")
+      || (key.len() >= 6 && key.slice(0, 6) == "fleet|");
+}
+
+function OpexAir0310ModeIsLate(project)
+{
+  if (project == null || !("mode" in project)) return false;
+  return project.mode == "water" || project.mode == "fleet";
+}
+
+/* OpexProjectInsertDefensive garde le projet deja present quand le score est
+ * egal et que son revenu est >= (`prior.revenueAnnual >= project.revenueAnnual`).
+ * L'ordre d'emission doit donc suivre OpexBuildProjects : rail, route, air deja
+ * publie, air neuf, puis eau et flotte. */
+function OpexAir0310InsertAirBlock(others, airBlock)
+{
+  local out = [];
+  local inserted = false;
+  foreach (project in others) {
+    if (!inserted && OpexAir0310ModeIsLate(project)) {
+      foreach (airProject in airBlock) out.append(airProject);
+      inserted = true;
+    }
+    out.append(project);
+  }
+  if (!inserted) {
+    foreach (airProject in airBlock) out.append(airProject);
+  }
+  return out;
+}
+
+function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
+{
+  if (payload == null || priorRaw == null || priorRaw.len() == 0) return false;
+  local found = false;
+  foreach (plan in priorRaw) {
+    if (plan == payload) { found = true; break; }
+  }
+  if (!found) return false;
+  foreach (plan in priorKept) {
+    if (plan == payload) return false;
+  }
+  return true;
+}
+
+/* Publication partielle AIR 03/10 1. Ne reconvertit que les plans neufs et
+ * reecrit les projets air deja materialises la ou OpexProjectFromAir depend
+ * de l'etat courant :
+ * - planningOpcodes = airOps / nombre TOTAL de plans (change a chaque lot ;
+ *   ce n'est pas opcodeScore) ;
+ * - economicsDate = date courante ;
+ * - cargo = catalog.paxCargo, et c118TownIds si C118 est actif ;
+ * - budgetScore et opcodeScore sont recalcules par le meme appel. Ils ne
+ *   dependent pas de airOpsPerPlan : expectedOpcodes vaut
+ *   PROJECT_AIR_TRANSACTION_OPS et le score budget vient de l'economie du
+ *   plan. La caisse n'est pas lue ici.
+ * La selection (filtre de validite, plancher, K_dec, slots defensifs, top-K)
+ * est rejouee par OpexReselectProjects. Rail, route, eau, flotte et
+ * subventions ne sont pas regeneres ici : ils restent ceux du dernier
+ * rebuild complet, jusqu'a la phase apply. Retourne null si le portefeuille
+ * ne peut pas etre complete : l'appelant reconstruit alors tout. */
+function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps, bestPlan)
+{
+  if (owner == null || scanPlans == null || publishedCount <= 0) return null;
+  if (owner._projects == null || owner._catalog == null) return null;
+  local projects = owner._projects;
+  if (!("candidateGroups" in projects) || projects.candidateGroups == null) return null;
+  if (!("stats" in projects) || projects.stats == null) return null;
+
+  local catalog = owner._catalog;
+  local stage = OPEX_STAGE_COMPLETE;
+  if (STAGED_BOOTSTRAP && owner._generationStage < OPEX_STAGE_COMPLETE) {
+    stage = owner._generationStage;
+  }
+  local hadAirPlans = ("airPlans" in projects) && projects.airPlans != null;
+
+  /* Queue heritee du bootstrap AIR_RAIL seulement. Le prefixe deja publie
+   * de ce scan est dans scanPlans : le rebuild complet, lui, re-ajoute aussi
+   * ce prefixe s'il est encore dans airPlans, et le compte deux fois. Ecart
+   * assume, limite a cette etape. */
+  local spPubPrior = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.prior") : null;
+  local priorRaw = [];
+  local priorKept = [];
+  if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans
+      && projects.airPlans.len() > publishedCount) {
+    for (local i = publishedCount; i < projects.airPlans.len(); i++) {
+      local priorPlan = projects.airPlans[i];
+      priorRaw.append(priorPlan);
+      if (OpexStagedAirPlanStillValid(catalog, priorPlan, owner._lines, owner._abandonedPairs)) {
+        priorKept.append(priorPlan);
+      }
+    }
+  }
+  if (spPubPrior != null) OpexSpanEnd(spPubPrior);
+
+  /* Meme denominateur que OpexBuildProjects : tous les plans du lot, y compris
+   * ceux que OpexProjectFromAir refusera, plus les plans herites encore valides. */
+  local spPubNew = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.new_plans") : null;
+  local planCount = scanPlans.len() + priorKept.len();
+  local airOpsPerPlan = (planCount > 0) ? airOps / planCount : airOps;
+  local added = 0;
+  local reconverted = 0;
+  local invalidated = 0;
+  local refreshedCount = 0;
+  local pendingNew = {};
+  local newKeyOrder = [];
+  local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount) : [];
+  foreach (plan in newPlans) {
+    local created = OpexProjectFromAir(catalog, plan, airOpsPerPlan);
+    if (created == null) {
+      invalidated++;
+      continue;
+    }
+    local createdKey = OpexProjectKeyFor(created);
+    if (!(createdKey in pendingNew)) {
+      pendingNew.rawset(createdKey, []);
+      newKeyOrder.append(createdKey);
+    }
+    pendingNew[createdKey].append(created);
+    added++;
+  }
+  if (spPubNew != null) OpexSpanEnd(spPubNew);
+
+  local spPubFilter = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.filter") : null;
+  local keptAir = {};
+  local movedAir = {};
+  local othersByKey = {};
+  foreach (slotKey, entry in projects.candidateGroups) {
+    local list = (typeof entry == "array") ? entry : [entry];
+    local others = [];
+    local kept = [];
+    foreach (project in list) {
+      if (project == null) continue;
+      if (!(("mode" in project) && project.mode == "air")) {
+        others.append(project);
+        continue;
+      }
+      local payload = ("payload" in project) ? project.payload : null;
+      if (OpexAir0310PriorDropped(payload, priorRaw, priorKept)) {
+        invalidated++;
+        continue;
+      }
+      /* Pas un plan aerien : le laisser en place plutot que d'appeler
+       * OpexProjectFromAir sur un payload sans sites. */
+      if (payload == null || !("economics" in payload) || !("siteA" in payload)
+          || !("siteB" in payload) || payload.siteA == null || payload.siteB == null) {
+        kept.append(project);
+        continue;
+      }
+      local refreshed = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
+      if (refreshed == null) {
+        invalidated++;
+        continue;
+      }
+      reconverted++;
+      local freshKey = OpexProjectKeyFor(refreshed);
+      if (freshKey == slotKey) {
+        kept.append(refreshed);
+      } else {
+        if (!(freshKey in movedAir)) movedAir.rawset(freshKey, []);
+        movedAir[freshKey].append(refreshed);
+      }
+    }
+    othersByKey.rawset(slotKey, others);
+    if (kept.len() > 0) keptAir.rawset(slotKey, kept);
+  }
+  if (spPubFilter != null) OpexSpanEnd(spPubFilter);
+
+  local spPubPart = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.partition") : null;
+  local preKeys = [];
+  local postKeys = [];
+  local preMark = {};
+  foreach (slotKey, entry in projects.candidateGroups) {
+    local hasRailRoad = false;
+    local lane = othersByKey[slotKey];
+    foreach (project in lane) {
+      if (("mode" in project) && (project.mode == "rail" || project.mode == "road")) {
+        hasRailRoad = true;
+        break;
+      }
+    }
+    local hasKept = (slotKey in keptAir);
+    local hasIncoming = (slotKey in pendingNew) || (slotKey in movedAir);
+    if (!OpexAir0310KeyIsLate(slotKey) && (hasRailRoad || hasKept)) {
+      preKeys.append(slotKey);
+      preMark.rawset(slotKey, true);
+    } else if (!hasIncoming && (lane.len() > 0 || hasKept)) {
+      postKeys.append(slotKey);
+    }
+  }
+
+  local deferred = [];
+  foreach (addedKey in newKeyOrder) {
+    if (addedKey in preMark) continue;
+    deferred.append(addedKey);
+  }
+  foreach (movedKey, movedList in movedAir) {
+    if (movedKey in preMark) continue;
+    if (movedKey in pendingNew) continue;
+    if (movedList == null) continue;
+    deferred.append(movedKey);
+  }
+  if (spPubPart != null) OpexSpanEnd(spPubPart);
+
+  local spPubInsert = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.insert") : null;
+  local rebuilt = {};
+  local emitOrder = [];
+  foreach (slotKey in preKeys) emitOrder.append(slotKey);
+  foreach (slotKey in deferred) emitOrder.append(slotKey);
+  foreach (slotKey in postKeys) emitOrder.append(slotKey);
+  foreach (slotKey in emitOrder) {
+    local row = (slotKey in othersByKey) ? othersByKey[slotKey] : [];
+    local airBlock = [];
+    if (slotKey in keptAir) {
+      foreach (project in keptAir[slotKey]) airBlock.append(project);
+    }
+    if (slotKey in movedAir) {
+      foreach (project in movedAir[slotKey]) airBlock.append(project);
+    }
+    if (slotKey in pendingNew) {
+      foreach (project in pendingNew[slotKey]) airBlock.append(project);
+    }
+    local spliced = OpexAir0310InsertAirBlock(row, airBlock);
+    if (spliced.len() > 0) rebuilt.rawset(slotKey, spliced);
+  }
+  if (spPubInsert != null) OpexSpanEnd(spPubInsert);
+
+  local spPubStore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.store") : null;
+  local storedPlans = [];
+  foreach (plan in scanPlans) storedPlans.append(plan);
+  foreach (plan in priorKept) storedPlans.append(plan);
+  projects.candidateGroups = rebuilt;
+  projects.airPlans = storedPlans;
+  projects.airPlanningOpcodes = airOps;
+  if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans && storedPlans.len() > 0) {
+    projects.airPlan = storedPlans[0];
+  } else if ("airPlan" in projects) {
+    projects.airPlan = bestPlan;
+  } else {
+    projects.airPlan <- bestPlan;
+  }
+  if (spPubStore != null) OpexSpanEnd(spPubStore);
+  local spPubRecount = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.recount") : null;
+  OpexProjectsRecountGroups(projects);
+  if (spPubRecount != null) OpexSpanEnd(spPubRecount);
+  /* La caisse est lue ici, juste avant la reelection, pas pendant FromAir. */
+  local spPubCap = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.capital") : null;
+  local publishCapital = OpexAvailableCapital();
+  if (spPubCap != null) OpexSpanEnd(spPubCap);
+  local spPubSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select") : null;
+  OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, owner._lines,
+      owner._railReadyStock);
+  if (spPubSelect != null) OpexSpanEnd(spPubSelect);
+  return { added = added, reconverted = reconverted, invalidated = invalidated,
+      refreshed = refreshedCount };
 }

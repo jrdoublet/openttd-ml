@@ -41,6 +41,46 @@ function OpexAirSiteRefusal(site, airportType)
   return OpexAirProbeSite(site, airportType);
 }
 
+/* Valide les DEUX extremites avant toute depense reelle. Pour un nouvel aeroport,
+ * on ne peut pas appeler OpexAirProbeSite tant que le terrain n'est pas plat :
+ * BuildAirport retournerait ERR_FLAT_LAND_REQUIRED meme si LevelTiles reussirait.
+ * Cette phase teste donc d'abord la possibilite de nivellement en AITestMode, puis
+ * sonde directement les emprises deja plates. Les refus municipaux restent
+ * rattrapables au moment de la construction reelle. */
+function OpexAirPreflightEndpoint(site, airport, planeChoice, reuse)
+{
+  if (site == null || airport == null || planeChoice == null || !AIMap.IsValidTile(site.anchor)) {
+    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
+             errorText = "invalid airport preflight" };
+  }
+  if (OpexAirRecoveryOwnsAirport(site.anchor)) {
+    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
+             errorText = "airport recovery in progress" };
+  }
+  if (reuse) {
+    local okReuse = AIAirport.IsAirportTile(site.anchor)
+        && OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(site.anchor), planeChoice.planeType);
+    return { ok = okReuse, error = okReuse ? 0 : AIError.ERR_PRECONDITION_FAILED,
+             errorText = okReuse ? "" : "invalid airport hub" };
+  }
+  if (!("town" in site) || site.town == null || !("id" in site.town)
+      || AIAirport.GetNearestTown(site.anchor, airport.type) != site.town.id
+      || (AIR_CHEAP_SITE && !OpexAirFootprintCheapOk(site.anchor, airport))) {
+    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
+             errorText = "airport site preflight failed" };
+  }
+  local err = OpexAirProbeSite(site, airport.type);
+  if (err == 0) return { ok = true, error = 0, errorText = "" };
+  if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+    return { ok = true, error = err, errorText = "airport preflight deferred authority" };
+  }
+  if (err == AIError.ERR_FLAT_LAND_REQUIRED
+      && OpexAirCanLevelFootprint(site.anchor, airport, site.town.id)) {
+    return { ok = true, error = err, errorText = "airport preflight deferred level" };
+  }
+  return { ok = false, error = err, errorText = "airport preflight error " + err };
+}
+
 function OpexAirRollback(airportA, airportB, planes, pairKey = "")
 {
   local airports = [];
@@ -50,6 +90,7 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
       pairKey = pairKey, nextDate = 0 };
   /* Enregistrer AVANT toute commande susceptible de suspendre / sauvegarder. */
   OPEX_AIR_ROLLBACKS.append(ticket);
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   if (OpexAirContinueRollback(ticket)) {
     OPEX_AIR_ROLLBACKS.pop();
     AILog.Info("AIR_ROLLBACK_DONE pair=" + pairKey + " immediate=1");
@@ -95,7 +136,10 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
   ];
 
   local candidates = [];
-  for (local x = minX; x <= maxX; x++) {
+  if (EXP_OPCODE_EXACT_ON) {
+    candidates = OpexAirJoinedCandidatesSelect(minX, maxX, minY, maxY, town, paxCargo, coverage,
+                                               airportCoverage, ax, ay, w, h, center);
+  } else for (local x = minX; x <= maxX; x++) {
     for (local y = minY; y <= maxY; y++) {
       local tile = AIMap.GetTileIndex(x, y);
       if (!AIMap.IsValidTile(tile)) continue;
@@ -175,6 +219,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
     }
 
     if (ok) {
+      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
       builtStops.append(cand.tile);
       summary.count++;
       summary.monthlyPax += cand.value;
@@ -204,6 +249,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.reason = "RECOVERY";
     return result;
   }
+  local spBuild = null;
   local airportA = null;
   local airportB = null;
   local plane = null;
@@ -217,6 +263,29 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
 
+  /* Tester A et B ensemble avant AIAccounting/LevelTiles/BuildAirport : un site B
+   * devenu impossible ne doit plus laisser les frais de terrassement/aeroport A. */
+  local preA = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteA, airport, planeChoice, reuseA) : null;
+  if (preA != null && !preA.ok) {
+    if (!reuseA) {
+      OpexAirInvalidateCachedSite(plan.siteA, airport);
+      result.error = preA.error;
+      result.errorText = preA.errorText;
+    }
+    result.reason = reuseA ? "HUB" : "PREA";
+    return result;
+  }
+  local preB = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, reuseB) : null;
+  if (preB != null && !preB.ok) {
+    if (!reuseB) {
+      OpexAirInvalidateCachedSite(plan.siteB, airport);
+      result.error = preB.error;
+      result.errorText = preB.errorText;
+    }
+    result.reason = reuseB ? "HUBB" : "PREB";
+    return result;
+  }
+
   /* air_cost_probe : le cout REEL de la ligne aerienne, nivellement, aeroports, avions et
    * demolitions de repli compris. Symetrique du `costs` de builder_rail.nut. Le seul
    * AIAccounting imbrique en dessous est le bouclier d'OpexAirProbeSite, et c'est voulu : il
@@ -226,13 +295,19 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   budget.begin();
 
   if (reuseA) {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_a") : null;
     if (AIAirport.IsAirportTile(plan.siteA.anchor) &&
         OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteA.anchor),
                                    planeChoice.planeType)) {
       airportA = plan.siteA.anchor;
     }
+    if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_a") : null;
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelA = OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
+    if (spBuild != null) OpexSpanEnd(spBuild);
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_a") : null;
     local okA = levelA.ok && AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
     if (!levelA.ok) {
       airportErrorA = levelA.error;
@@ -252,6 +327,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
+    if (spBuild != null) OpexSpanEnd(spBuild);
   }
   if (airportA == null) {
     if (!reuseA) {
@@ -266,13 +342,19 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   }
 
   if (reuseB) {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;
     if (AIAirport.IsAirportTile(plan.siteB.anchor) &&
         OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteB.anchor),
                                    planeChoice.planeType)) {
       airportB = plan.siteB.anchor;
     }
+    if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_b") : null;
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
+    if (spBuild != null) OpexSpanEnd(spBuild);
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;
     local okB = levelB.ok && AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
     if (!levelB.ok) {
       airportErrorB = levelB.error;
@@ -292,6 +374,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
+    if (spBuild != null) OpexSpanEnd(spBuild);
   }
   result.opcodes += budget.end("build_airports");
   if (airportB == null) {
@@ -326,8 +409,10 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   }
 
   budget.begin();
+  spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.plane") : null;
   plane = AIVehicle.BuildVehicleWithRefit(hangar, planeChoice.id, catalog.paxCargo);
   if (!AIVehicle.IsValidVehicle(plane)) {
+    if (spBuild != null) OpexSpanEnd(spBuild);
     result.error = AIError.GetLastError();
     result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
@@ -336,8 +421,10 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.reason = "PLANE";
     return result;
   }
+  if (spBuild != null) OpexSpanEnd(spBuild);
 
   local airFlagsA = (AIR_FULL_LOAD == 1 || AIR_FULL_LOAD == 2) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.orders") : null;
   local airFlagsB = (AIR_FULL_LOAD == 1) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlagsA);
   local errorA = okOrderA ? 0 : AIError.GetLastError();
@@ -345,6 +432,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local errorB = okOrderB ? 0 : AIError.GetLastError();
   local ordersOk = okOrderA && okOrderB && AIOrder.GetOrderCount(plane) == 2;
   if (!ordersOk) {
+    if (spBuild != null) OpexSpanEnd(spBuild);
     result.error = !okOrderA ? errorA : errorB;
     result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
@@ -354,11 +442,17 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.reason = "ORDFAIL";
     return result;
   }
+  if (spBuild != null) OpexSpanEnd(spBuild);
   local built = [plane];
+  spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.plane") : null;
   local wanted = ("planes" in plan) ? plan.planes : 1;
   /* c121_aaa_line : le second avion part du hangar de l'aeroport B et commence par le
-   * trajet retour, comme AAAHogEx (route.nut:2232-2237). */
-  local hangarB = C121_AAA_LINE ? AIAirport.GetHangarOfAirport(airportB) : null;
+   * trajet retour, comme AAAHogEx (route.nut:2232-2237).
+   * c121_air_one_or_two_planes : meme depart oppose quand le plan retient N=2,
+   * sans forcer AIR_FULL_LOAD. Hangar B invalide : fromB reste faux, le clone
+   * ou la construction de repli partent du hangar A, sans SkipToOrder. */
+  local hangarB = (C121_AAA_LINE || (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2))
+      ? AIAirport.GetHangarOfAirport(airportB) : null;
   for (local i = 1; i < wanted; i++) {
     local fromB = (i % 2 == 1) && hangarB != null && AIMap.IsValidTile(hangarB)
         && AIAirport.IsHangarTile(hangarB);
@@ -368,6 +462,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       local engine = AIVehicle.GetEngineType(plane);
       extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, catalog.paxCargo);
       if (AIVehicle.IsValidVehicle(extra) && !AIOrder.ShareOrders(extra, plane)) {
+        if (spBuild != null) OpexSpanEnd(spBuild);
         result.error = AIError.GetLastError();
         result.errorText = AIError.GetLastErrorString();
         built.append(extra);
@@ -379,11 +474,14 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
         return result;
       }
     }
-    if (!AIVehicle.IsValidVehicle(extra)) break;
+    if (!AIVehicle.IsValidVehicle(extra)) {
+      break;
+    }
     built.append(extra);
   }
   foreach (aircraft in built) {
     if (!AIVehicle.StartStopVehicle(aircraft)) {
+      if (spBuild != null) OpexSpanEnd(spBuild);
       result.error = AIError.GetLastError();
       result.errorText = AIError.GetLastErrorString();
       result.opcodes += budget.end("build_aircraft");
@@ -399,6 +497,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (R19_FAULT_ROUTE_SEQ == R19_FAULT_INJECT) {
       AILog.Warning("R19_FAULT_INJECT route=" + R19_FAULT_ROUTE_SEQ
           + " planes=" + built.len() + " pair=" + OpexAirPairKey(plan.siteA, plan.siteB));
+      if (spBuild != null) OpexSpanEnd(spBuild);
       result.error = -1;
       result.errorText = "R19_FAULT_INJECT";
       result.opcodes += budget.end("build_aircraft");
@@ -409,9 +508,11 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       return result;
     }
   }
+  if (spBuild != null) OpexSpanEnd(spBuild);
   result.opcodes += budget.end("build_aircraft");
 
   if (AIR_JOINED_STOPS) {
+    spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.joined") : null;
     local beforeStops = costs != null ? costs.GetCosts() : 0;
     if (!reuseA) {
       local joinedA = OpexAirBuildJoinedStops(airportA, stationA, airport, plan.siteA.town, catalog.paxCargo);
@@ -434,6 +535,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     local afterStops = costs != null ? costs.GetCosts() : beforeStops;
     result.joinedStopCost = afterStops - beforeStops;
     if (result.joinedStopCost < 0) result.joinedStopCost = 0;
+    if (spBuild != null) OpexSpanEnd(spBuild);
   }
 
   result.actualCost = costs != null ? costs.GetCosts() : 0;
