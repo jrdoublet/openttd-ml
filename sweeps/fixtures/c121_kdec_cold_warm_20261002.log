@@ -1,0 +1,13 @@
+# Excerpt from results/c121_kdec_cold_shadow_5x6_20261002_r1_engine/c121_kdec_cold_shadow_seed42_r0.log
+[2026-10-02 15:16:50] dbg: [script:4] [0] [I] C121_KDEC_COLD_SHADOW state=cold line=0 samples=0 finance=39964 k_dec=55195 denom=55195 cold_denom=39964 score=1934.9941 cold_score=2672.4553 rank=0 cold_rank=0 affected=1 head_flip=0 year=1972 month=1 day=22
+[2026-10-02 15:16:50] dbg: [script:4] [0] [I] C121_KDEC_COLD_SHADOW state=cold line=1 samples=0 finance=39964 k_dec=55195 denom=55195 cold_denom=39964 score=1073.0682 cold_score=1482.0338 rank=1 cold_rank=1 affected=1 head_flip=0 year=1972 month=1 day=22
+[2026-10-02 15:16:50] dbg: [script:4] [0] [I] C121_KDEC_COLD_SUMMARY cold=2 warm=0 affected=2 rank_up=0 entered=0 head_flip=0 head_mode=fleet k_dec=55195 year=1972 month=1 day=22
+[2026-10-02 15:16:52] dbg: [script:4] [0] [I] C121_KDEC_COLD_FUNDED line=0 added=1 samples=0 year=1972 month=3 day=6
+# Excerpt from results/c121_kdec_cold_shadow_5x6_20261002_r1_engine/c121_kdec_cold_shadow_seed100_r0.log
+[2026-10-02 15:17:41] dbg: [script:4] [0] [I] C121_KDEC_COLD_SHADOW state=cold line=29 samples=0 finance=39964 k_dec=42570 denom=42570 cold_denom=39964 score=440.12216 cold_score=468.82193 rank=0 cold_rank=0 affected=1 head_flip=0 year=1975 month=1 day=30
+[2026-10-02 15:17:41] dbg: [script:4] [0] [I] C121_KDEC_COLD_SHADOW state=cold line=30 samples=0 finance=39964 k_dec=42570 denom=42570 cold_denom=39964 score=172.6568 cold_score=183.91553 rank=2 cold_rank=1 affected=1 head_flip=0 year=1975 month=1 day=30
+[2026-10-02 15:17:41] dbg: [script:4] [0] [I] C121_KDEC_COLD_SHADOW state=cold line=32 samples=0 finance=39964 k_dec=42570 denom=42570 cold_denom=39964 score=174.7005 cold_score=186.09248 rank=1 cold_rank=1 affected=1 head_flip=0 year=1975 month=1 day=30
+[2026-10-02 15:17:41] dbg: [script:4] [0] [I] C121_KDEC_COLD_SHADOW state=cold line=31 samples=0 finance=39964 k_dec=42570 denom=42570 cold_denom=39964 score=113.62462 cold_score=121.03393 rank=3 cold_rank=3 affected=1 head_flip=0 year=1975 month=1 day=30
+[2026-10-02 15:17:41] dbg: [script:4] [0] [I] C121_KDEC_COLD_SHADOW state=warm line=10 samples=1 finance=39964 k_dec=42570 denom=42570 cold_denom=42570 score=0.6107587 cold_score=0.6107587 rank=9 cold_rank=9 affected=0 head_flip=0 year=1975 month=1 day=30
+[2026-10-02 15:17:41] dbg: [script:4] [0] [I] C121_KDEC_COLD_SUMMARY cold=4 warm=1 affected=4 rank_up=1 entered=0 head_flip=0 head_mode=fleet k_dec=42570 year=1975 month=1 day=30
+[2026-10-02 15:16:49] dbg: [script:4] [0] [I] C121_KDEC_COLD_FUNDED line=5 added=1 samples=0 year=1972 month=2 day=6

@@ -894,6 +894,7 @@ function OpexCatalog::_refreshTowns()
   this.townAcceptors = {};
   local list = AITownList();
   for (local t = list.Begin(); !list.IsEnd(); t = list.Next()) {
+    local townMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local tile = AITown.GetLocation(t);
     local pop = AITown.GetPopulation(t);
     local houses = AITown.GetHouseCount(t);
@@ -914,7 +915,73 @@ function OpexCatalog::_refreshTowns()
         this.townAcceptors[cargo].append(townObj);
       }
     }
+    if (townMark != null) OpexSpanAgg("catalog.town", townMark);
   }
+  /* Hors de la boucle : au defaut, un seul test par rafraichissement (identite des opcodes). */
+  if (C121_CATALOG_INCREMENTAL) OpexC121CatalogSeedTownPopulations(this.towns);
+}
+
+/* Revision par ville : 5 % et au moins 20 habitants, pour eviter les oscillations
+ * des tres petites villes. */
+function OpexC121CatalogSeedTownPopulations(towns)
+{
+  foreach (town in towns) {
+    local t = town.id;
+    local pop = town.pop;
+    local previous = t in C121_CATALOG_TOWN_POP ? C121_CATALOG_TOWN_POP[t] : -1;
+    if (previous < 0 || abs(pop - previous) >= 20
+        && abs(pop - previous) * 100 >= previous * 5) {
+      C121_CATALOG_TOWN_POP.rawset(t, pop);
+      C121_CATALOG_TOWN_REV.rawset(t,
+          (t in C121_CATALOG_TOWN_REV ? C121_CATALOG_TOWN_REV[t] : 0) + 1);
+    }
+  }
+}
+
+/* Huit villes au plus par tour catalogue. La production n'a pas d'evenement
+ * NoAI ; chaque ville revient au plus apres ceil(N/8) tours utiles. */
+function OpexC121CatalogTownProductionBatch(catalog)
+{
+  if (!C121_CATALOG_INCREMENTAL || catalog == null || catalog.towns == null
+      || catalog.towns.len() == 0 || catalog.paxCargo < 0) return false;
+  local count = catalog.towns.len();
+  local changed = false;
+  for (local i = 0; i < 8 && i < count; i++) {
+    local index = (C121_CATALOG_TOWN_CURSOR + i) % count;
+    local id = catalog.towns[index].id;
+    local population = AITown.GetPopulation(id);
+    if (population >= 0 && id in C121_CATALOG_TOWN_POP) {
+      local oldPopulation = C121_CATALOG_TOWN_POP[id];
+      if (abs(population - oldPopulation) >= 20
+          && abs(population - oldPopulation) * 100 >= oldPopulation * 5) {
+        C121_CATALOG_TOWN_POP.rawset(id, population);
+        C121_CATALOG_TOWN_REV.rawset(id,
+            (id in C121_CATALOG_TOWN_REV ? C121_CATALOG_TOWN_REV[id] : 0) + 1);
+        changed = true;
+      }
+    }
+    local pax = AITown.GetLastMonthProduction(id, catalog.paxCargo);
+    local mail = catalog.mailCargo >= 0
+        ? AITown.GetLastMonthProduction(id, catalog.mailCargo) : 0;
+    if (pax < 0) pax = 0;
+    if (mail < 0) mail = 0;
+    if (id in C121_CATALOG_TOWN_PROD) {
+      local old = C121_CATALOG_TOWN_PROD[id];
+      /* La demande C121 emploie le volume mensuel, mais une oscillation de
+       * quelques unites ne change pas materiellement le choix d'un avion.
+       * Comparer au dernier volume ayant invalide le plan, pas au mois
+       * precedent : les petites variations finissent ainsi par s'accumuler. */
+      if ((abs(pax - old.pax) >= 10 && abs(pax - old.pax) * 100 >= old.pax * 20)
+          || (abs(mail - old.mail) >= 10 && abs(mail - old.mail) * 100 >= old.mail * 20)) {
+        C121_CATALOG_TOWN_REV.rawset(id,
+            (id in C121_CATALOG_TOWN_REV ? C121_CATALOG_TOWN_REV[id] : 0) + 1);
+        C121_CATALOG_TOWN_PROD.rawset(id, { pax = pax, mail = mail });
+        changed = true;
+      }
+    } else C121_CATALOG_TOWN_PROD.rawset(id, { pax = pax, mail = mail });
+  }
+  C121_CATALOG_TOWN_CURSOR = (C121_CATALOG_TOWN_CURSOR + 8) % count;
+  return changed;
 }
 
 function OpexCatalog::_refreshIndustries()
@@ -937,6 +1004,7 @@ function OpexCatalog::_refreshIndustries()
   local producedByType = {};
   local acceptedByType = {};
   for (local k = 0; k < this.industries.len(); k++) {
+    local industryMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local type = this.industries[k].type;
     if (!(type in producedByType)) {
       local prodList = AIIndustryType.IsValidIndustryType(type) ? AIIndustryType.GetProducedCargo(type) : null;
@@ -954,6 +1022,7 @@ function OpexCatalog::_refreshIndustries()
       if (!(cargo in this.acceptors)) this.acceptors.rawset(cargo, []);
       this.acceptors[cargo].append(k);
     }
+    if (industryMark != null) OpexSpanAgg("catalog.industry", industryMark);
   }
 }
 
@@ -967,22 +1036,34 @@ function OpexCatalog::_cargoArray(list)
 
 function OpexCatalog::refresh(budget, year)
 {
+  local spRefresh = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh") : null;
+  local spStep = null;
   this.year = year;
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.cargos") : null;
   this._refreshCargos();
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_cargos");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.rail") : null;
   this._refreshRail();
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_rail");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.towns") : null;
   this._refreshTowns();
+  if (spStep != null) OpexSpanEnd(spStep);
+  if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.catalogTowns = this.towns.len();
   budget.end("cat_towns");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.industries") : null;
   this._refreshIndustries();
+  if (spStep != null) OpexSpanEnd(spStep);
+  if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.catalogIndustries = this.industries.len();
   budget.end("cat_industries");
 
   /* Propose du 2026-09-08 (docs/taches.md C43/E3) : au lieu d'une fenetre de selection fixe,
@@ -1000,11 +1081,35 @@ function OpexCatalog::refresh(budget, year)
   }
 
   budget.begin();
+  local airRefreshMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.air") : null;
   this._refreshAir();
+  if (C121_CATALOG_INCREMENTAL) {
+    foreach (airportType, choices in this.airPlaneChoicesByAirport) {
+      local prices = "";
+      foreach (plane in choices) prices += plane.id + ":" + plane.price + ":" + plane.runningCost + ";";
+      if (!(airportType in C121_CATALOG_AIRPORT_PRICES)
+          || C121_CATALOG_AIRPORT_PRICES[airportType] != prices) {
+        C121_CATALOG_AIRPORT_PRICES.rawset(airportType, prices);
+        C121_CATALOG_AIRPORT_REV.rawset(airportType,
+            (airportType in C121_CATALOG_AIRPORT_REV
+                ? C121_CATALOG_AIRPORT_REV[airportType] : 0) + 1);
+      }
+    }
+  }
+  if (CATALOG_COST_ACTIVE != null) {
+    CATALOG_COST_ACTIVE.engineRefreshOps += OpexOpsMeasureEnd(airRefreshMark);
+    CATALOG_COST_ACTIVE.engineChoices = 0;
+    foreach (airportType, choices in this.airPlaneChoicesByAirport)
+      CATALOG_COST_ACTIVE.engineChoices += choices.len();
+  }
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_air");
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.water") : null;
   this._refreshWater();
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_water");
 
   /* Le catalogue route n'est rafraichi que si le mode est actif : a road_mode = 0, le chemin
@@ -1012,11 +1117,16 @@ function OpexCatalog::refresh(budget, year)
    * banc apparie lisible (une trajectoire ne diverge que par une decision, pas par un debit). */
   if (ROAD_BUILD_ENABLED) {
     budget.begin();
+    spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.road") : null;
     this._refreshRoad();
+    if (spStep != null) OpexSpanEnd(spStep);
     budget.end("cat_road");
   }
 
   budget.begin();
+  spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.bounds") : null;
   OpexRefreshEpochBounds(this);
+  if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_bounds");
+  if (spRefresh != null) OpexSpanEnd(spRefresh);
 }

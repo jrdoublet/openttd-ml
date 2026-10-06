@@ -1,29 +1,120 @@
 # C117 ‚Äî d√©bit AIR r√©el par ligne ‚Äî 2026-09-27
 
-## Objet et autorit√©s
+R√©vision documentaire statique : **2026-09-30**, sans test ni partie.
 
-C117 mesure passivement la cha√Æne demande projet ‚Üí trafic ‚Üí capacit√©/fr√©quence ‚Üí revenu/profit.
-Il ne modifie ni classement, ni admission, ni moteur, ni flotte, ni construction, ni ordres.
-C115 reste le t√©moin courant ; C116 n'est pas activ√©.
+## Objet et provenance
 
-Autorit√©s :
+C117 observe la cha√Æne demande projet ‚Üí trafic ‚Üí capacit√©/fr√©quence ‚Üí revenu/profit.
+La sonde C117 ne modifie ni classement, ni admission, ni moteur, ni flotte,
+ni construction, ni ordres. Une sonde passive peut n√©anmoins perturber les
+trajectoires par son co√ªt en opcodes ; ce diagnostic ne qualifie pas un traitement.
+C115 reste le t√©moin ; C116 n'est pas activ√© par ce diagnostic.
 
-- campagne : `results/c117_air_throughput_5x6_20260927_r2.json`
-- agr√©gation anti-aliasing : `results/c117_air_throughput_5x6_20260927_r2_aggregate.json`
-- smoke : `results/smoke_c117_air_throughput_1x2_20260927_r2.json`
+L'[original corrompu](archives/c117_original_corrompu_non_exploitable_2026-09-30.md)
+est conserv√© comme archive **non autoritaire, non source exploitable**. Aucun
+tableau chiffr√© ni signe n'a √©t√© reconstruit depuis la partie illisible.
 
-Le premier `results/c117_air_throughput_5x6_20260927.json` est invalide pour l'analyse :
-les cinq parties ont tourn√© mais un filtre calendaire du runner a jet√© leur sortie.
+Sources de m√©thode lues dans l'arbre local :
 
-Campagne valide : graines 42, 100, 999, 1234, 5678 ; 6 ans ; 5 workers / 5 CPU.
-R√©sultat : 5/5 runs sains, 483 lignes AIR, 14 175 fen√™tres brutes.
+- `ai/OpexAI/probes.nut` : `OpexC117AirThroughputStep`,
+  `OpexC117NewLineState`, `OpexC117FlushLine` ; le fichier demand√© sous le nom
+  `air_throughput_probe.nut` est **absent de cet arbre**, la sonde se trouve ici ;
+- `sweeps/diag_c117_air_throughput.py` : d√©duplication et unit√©s des √©v√©nements ;
+- `sweeps/analyse_c117_aggregate.py` : agr√©gation anti-aliasing.
 
-## Mesure du d√©bit et unit√©s
+Cette lecture d√©crit le code actuel, enrichi ensuite pour C119/C121 ; elle ne
+certifie pas l'identit√© du bundle C117 initial. Les r√©sultats locaux C117 et
+leur index de preuves sont absents : les r√©f√©rences suivantes restent des
+**r√©f√©rences historiques rapport√©es, non revalid√©es** :
 
-NoAI 15 n'expose pas directement les passagers livr√©s par ligne. Une ligne AIR Opex poss√®de
-exactement deux ordres A‚ÜîB; les clones partagent ces ordres et les ordres manuels de hangar
-ne font pas partie de la liste.
+- campagne : `results/c117_air_throughput_5x6_20260927_r2.json` ;
+- agr√©gation : `results/c117_air_throughput_5x6_20260927_r2_aggregate.json` ;
+- smoke : `results/smoke_c117_air_throughput_1x2_20260927_r2.json`.
 
-C117 √©chantillonne tous les deux jours de jeu. Tant que l'avion est `VS_RUNNING`, la sonde
-m√©morise sa charge passagers maximale et sa capacit√©. Quand l'index d'ordre bascule A‚ÜíB ou
-B‚ÜíA,  le leg pr√©c√©dent est compt√© comme termin√©. La charge au quai n'estÅ¡ÖÃÅ’—•±•œ•î∏((¥ÅÅ¡Ö·ÄÄËÅ¡ÖÕÕÖùï…ÃÅΩâÕï…€•ÃÅÕ’»Å±ïÃÅ±ïùÃÅ—ï…µ•ª•ÃÅëîÅ±ÑÅôïª©—…î∏(¥ÅÅ¡Ö·}¡¥ÄÙÅ¡Ö‡Ä®ÄÃ¿∞–ÄºÅ¡ï…•Ωë}ëÖÂÕÄÄËÅ¡ÖÕÕÖùï…ÃÅ—…ÖπÕ¡Ω…”°ÃÅ¡Ö»ÄÃ¿∞–Å©Ω’…Ã∏(¥ÅÅÕïÖ—}±ïùÕÄÄËÅÕß°ùïÃÅΩôôï…—ÃÅÕ’»Å±ïÃÅ∑©µïÃÅ±ïùÃ∏(¥ÅÅ±ΩÖë}ôÖç—Ω»ÄÙÅ¡Ö‡ÄºÅÕïÖ—}±ïùÕÄ∏(¥ÅÅ—…•¡ÕÄÄËÅ±ïùÃÅ—ï…µ•ª•Ã∏(¥ÅÅ°ïÖë›ÖÂ}ëÖÂÃÄÙÄ»Ä®Å¡ï…•Ωë}ëÖÂÃÄºÅ—…•¡ÕÄ∏(¥ÅÅ¡…Ωô•—ÄÄËÅëï±—ÑÅëîÅÅ%Yï°•ç±îπï—A…Ωô•—Q°•ÕeïÖ…Ä∞Å…ÖççΩ…ì§ÅÖ‘Åç°Öπùïµïπ–ÅêùÖπª•î∏(¥ÅÅ…ïŸïπ’ï}ïÕ—ÄÄËÅ¡…Ωô•–Å€•°•ç’±îÄ¨ÅçøÌ–ÅëîÅôΩπç—•Ωππïµïπ–Å¡…Ω…Ö—•œ§∏(¥Å›Ö•—•πúΩ…Ö—•πúÄËÅ∑•—…•≈’ïÃÅÕ—Ö—•Ω∏≠çÖ…ùºÄÏÅëÖπÃÅ’∏Å°’àÅ¡Ö…—Öü§Åï±±ïÃÅπîÅÕΩπ–Å¡ÖÃÅ¡…Ω¡…ïÃÉÄÅ’πîÅ±•ùπî∏()M’»Å±ïÃÅ±•ùπïÃÅµÖ—’…ïÃ∞Ä‰‹∞–ÄîÅëïÃÅ—…ÖπÕ•—•ΩπÃÅÕΩπ–ÅçÖ¡”•ïÃ∏Å1îÅÕΩ’ÃµçΩµ¡—ÖùîÅÀ•Õ•ë’ï∞Åëî)≈’ï±≈’ïÃÅ¡Ω’…çïπ—ÃÅπîÅç°ÖπùîÅ¡ÖÃÅ±ïÃÅçΩπç±’Õ•ΩπÃ∏((ååÅπ—§µÖ±•ÖÕ•πú()1îÅ°ïÖë›Ö‰ÅÀ•ï∞Å∑•ë•Ö∏Åì•¡ÖÕÕîÄƒ¿¿Å©Ω’…Ã∏ÅUπîÅôïª©—…îÅëîÄÃ¿Å©Ω’…ÃÅ¡ï’–ÅëΩπåÅçΩπ—ïπ•»ÅÎ•…ºÅ±ïú)—ï…µ•ª§ÅÕ’»Å’πîÅ±•ùπîÅÕÖ•πî∏Å1ïÃÅ…Ö—•ΩÃÅÖ’—Ω…•—Ö•…ïÃÅÖùÀ°ùïπ–Å±ïÃÅôïª©—…ïÃÅÖŸÖπ–ÅëîÅçÖ±ç’±ï»Å±ïÃ)…Ö—•ΩÃÄËÅ¡Ö»Å±•ùπîÅï–Å—…Öπç°îÅêüâùî∞Å¡Ö»ÅŸ•îÅëîÅ±•ùπî∞Å¡’•ÃÅÕ’»Å±ÑÅ¡°ÖÕîÅµÖ—’…îÄ°µΩ•ÃÉäv‹§∏((ååÅïµÖπëîÉäHÅ—…Öô•å()K•ÕïÖ‘Å¡Ωπì•À§Å¡Ö»Å∞ùï·¡ΩÕ•—•Ω∏ÄË()Å5ïÕ’…îÅÅK•Ö±•œ§ÄºÅÕ•ùπÖ∞Å)¥¥µ¥¥¥È)Å¡Ö‡ÄºÅÅâÖÕï}µΩπ—°±ÂÄÅÄ®®¿∞¿ÿ‰‘®®Å)Å¡Ö‡ÄºÅÕ°ÖëΩ‹Å‰ÅÄ®®¿∞ƒ–‰¿®®Å)Å¡Ö‡ÄºÅÅ¡…ïëÖ……•ïëÄÅÄ®®¿∞ÿ‹Ãÿ®®Å)Å±ΩÖêÅôÖç—Ω»ÅÄ®®¿∞Ã»ƒ¿®®Å()1•ùπïÃÅµÖ—’…ïÃ∞Å∑•ë•ÖπîÅ¡Ö»Å±•ùπîÄË()Å5ïÕ’…îÅÅ7•ë•ÖπîÅ)¥¥µ¥¥¥È)Å¡Ö‡ÄºÅÅâÖÕï}µΩπ—°±ÂÄÅÄ®®¿∞¿‹‹»®®Å)Å¡Ö‡ÄºÅÕ°ÖëΩ‹Å‰ÅÄ®®¿∞ƒÿ–‡®®Å)Å¡Ö‡ÄºÅÅ¡…ïëÖ……•ïëÄÅÄ®®¿∞ÿ‡–ƒ®®Å)Å±ΩÖêÅôÖç—Ω»ÅÄ®®¿∞Ã–ƒ–®®Å)Å¡Ö‡ÄºÅµΩ•ÃÅÄ®®»¿∞‹®®Å()Å¡…ïëÖ……•ïëÄÅïÕ–Åπï——ïµïπ–Å¡±’ÃÅ¡…Ωç°îÅë‘ÅÀ•ï∞Å≈’îÅÅâÖÕï}µΩπ—°±ÂÄÅΩ‘Å±îÅÕ°ÖëΩ‹Å‰∞ÅµÖ•Ã)…ïÕ—îÅΩ¡—•µ•Õ—îÅêùïπŸ•…Ω∏Ä–ÿÄîÅÕ’»Å±ÑÅ±•ùπîÅµÖ—’…îÅ∑•ë•Öπî∏()ï±ÑÅπîÅ©’Õ—•ô•îÅ¡ÖÃÅëîÅ…ïµ¡±Öçï»ÅÅµΩπ—°±ÂAÖ·ÄÅ¡Ö»Å±îÅÕ°ÖëΩ‹Å‰ÄËÅX‰Ã∏ƒΩX‰Ã∏»ÅΩπ–Åì•´ÄÅµΩπ—À§)≈’îÅçï——îÅÀ•ë’ç—•Ω∏Åì•—…’•–Å∞ùï·¡ÖπÕ•Ω∏∏Å1ïÃÅëï’‡ÅΩâ©ï—ÃÅ∏ùΩπ–Å¡ÖÃÅ±ÑÅ∑©µîÅœ•µÖπ—•≈’î∏((ååÅ5Ωπ”•¿Åï∏Åç°Ö…ùî()M’»ÄÃ‡¿Å±•ùπïÃÅë•Õ¡ΩÕÖπ–ÅêùÖÕÕïËÅêù°•Õ—Ω…•≈’îÄË()ÅMï’•∞Åë‘Åì•â•–ÅÕ—Öâ•±•œ§ÅÅ7•ë•ÖπîÅÅ5ΩÂïππîÅ)¥¥µ¥¥¥È¥¥¥È)Ä‘¿ÄîÅÄ‡ÅµΩ•ÃÅÄ‰∞ÿƒÅµΩ•ÃÅ)Ä‹‘ÄîÅÄ‡ÅµΩ•ÃÅÄƒ¿∞ÃÿÅµΩ•ÃÅ)Ä‰¿ÄîÅÄ‰ÅµΩ•ÃÅÄƒ¿∞‹–ÅµΩ•ÃÅ()•â•–ÅÕ—Öâ•±•œ§Å∑•ë•Ö∏ÄËÄ®®ƒ‹∞»Å¡Ö‡ΩµΩ•Ã®®∏()7•ë•ÖπîÅÀ•Ö±•œ§ÄºÅÅ¡…ïëÖ……•ïëÄÄË(¥ÅµΩ•ÃÄ«äLÃÄËÄ®®¿∞ƒ–ÿ®®(¥ÅµΩ•ÃÄ”äLÿÄËÄ®®¿∞–Ãƒ®®(¥ÅµΩ•ÃÄﬂäLƒ»ÄËÄ®®¿∞‹‘‘®®(¥Ä¯ƒ»ÅµΩ•ÃÄËÄ®®¿∞ÿ»Ã®®()1ÑÅµΩπ”•¿Åï∏Åç°Ö…ùîÅï·¡±•≈’îÅëΩπåÅÕ’…—Ω’–Å±ïÃÅÕ•‡Å¡…ïµ•ï…ÃÅµΩ•ÃÄÏÅ∞ü•çÖ…–ÅÕ’âÕ•Õ—îÅïπÕ’•—î∏((ååÅÖ¡Öç•”§∞Åô±Ω——î∞ÅôÀ•≈’ïπçîÅï–Å…Ö—•πú()1îÅì•ô•ç•–ÅëîÅ—…Öô•åÅ∏ùïÕ–Å¡ÖÃÅ’πîÅ√•π’…•îÅëîÅçÖ¡Öç•”§ÄË((¥Å±ΩÖêÅôÖç—Ω»ÅµÖ—’…îÅ∑•ë•Ö∏ÄËÄ®®Ã–∞ƒÄî®®(¥ÅÕï’±ïµïπ–Ä®®‘º–ÿ–®®Å±•ùπïÃÅµÖ—’…ïÃÅç±ÖÕœ•ïÃÅçÖ¡Öç•—‰µ±•µ•—ïê(¥Ä®®Ãÿ‰º–ÿ–®®Åç±ÖÕœ•ïÃÅëïµÖπêµ±•µ•—ïêÅ¡Ö»Å±ÑÅÕΩπëî(¥ÅÕß°ùïÃΩµΩ•ÃÅÀ•ï±ÃÄºÅ¡À•ë•—ÃÄËÄ®®ƒ∞ÿ≈‡®®Å∑•ë•Ö∏(¥Åô±Ω——îÅÀ•ï±±îÄºÅ¡À•ë•—îÄËÄ®®ƒ∞¿¡‡®®Å∑•ë•Ö∏(¥Å—ïµ¡ÃÅëîÅ±ïúÅÀ•ï∞ÄºÅÅ¡…ïë=πï]ÖÂÖÂÕÄÄËÄ®®¿∞ÿ‘›‡®®Å∑•ë•Ö∏(¥Å°ïÖë›Ö‰ÅÀ•ï∞ÄºÅ¡À•ë•–ÄËÄ®®¿∞ÿ»¡‡®®Å∑•ë•Ö∏(¥Å…Ö—•πúÅÕ—Ö—•Ω∏ÅÀ•ï∞ÄºÅ…Ö—•πúÅë‘ÅµΩì°±îÄËÄ®®–∞‹·‡®®Å∑•ë•Ö∏()1ÑÅ±•ùπîÅÀ•ï±±îÅ—Ω’…πîÅ¡±’ÃÅŸ•—îÅ≈’îÅ±îÅµΩì°±î∞ÅΩôô…îÅ¡±’ÃÅëîÅÕß°ùïÃÅ¡Ö»ÅµΩ•ÃÅï–Å…ïÕ—îÅ¡Ω’…—Öπ–)¡ï‘Å…ïµ¡±•î∏Å©Ω’—ï»ÅëîÅ±ÑÅçÖ¡Öç•”§ÅΩ‘ÅôΩ…çï»ÅëÖŸÖπ—ÖùîÅ±ÑÅôÀ•≈’ïπçîÅÕï…Ö•–ÅçΩπ—…Ö•…îÅÖ‘ÅÕ•ùπÖ∞∏()1ïÃÅù…ΩÃÅÖ¡¡Ö…ï•±ÃÅÕΩπ–Å¡Ö…—•ç’±ß°…ïµïπ–ÅÕ’…ë•µïπÕ•Ωπª•ÃÄË()ÅÖ¡Öç•”§ÅÖŸ•Ω∏ÅÅ¡Ö‡ÄºÅ¡…ïëÖ……•ïêÅÅ1ΩÖêÅôÖç—Ω»ÅÅMß°ùïÃÅÀ•ï∞Ω¡À•ë•–Å)¥¥µ¥¥¥È¥¥¥È¥¥¥È)Ä‘«äLƒ¿¿ÅÄ®®¿∞‹Ã‡®®ÅÄ®®¿∞Ãÿÿ®®ÅÄ®®ƒ∞ÿÕ‡®®Å)Ä¯ƒ¿¿ÅÄ®®¿∞–‹Ã®®ÅÄ®®¿∞»‘–®®ÅÄ®®ƒ∞‘Ÿ‡®®Å()îÅ¡Ω•π–Å¡Ω’……ÑÅëïŸïπ•»Å’∏Å±ïŸ•ï»ÅµÖ”•…•ï∞ÅÕïçΩπëÖ•…î∞ÅµÖ•ÃÅƒƒÿÅ∏ùïÕ–Å¡ÖÃÅÀ•Ω’Ÿï…–Å•ç§∏((ååÅIïŸïπ‘Åï–Å¡…Ωô•–()5Ö±ùÀ§ÅµΩ•πÃÅëîÅ¡Ö‡Å≈’îÅ¡À•Ÿ‘∞Å±ïÃÅ±•ùπïÃÅùÖùπïπ–ÅëÖŸÖπ—ÖùîÄË()Å5Ö—’…î∞Å∑•ë•ÖπîÅÅK•Ö±•œ§ÄºÅ¡À•ë•–Å)¥¥µ¥¥¥È)Å…ïŸïπ‘Å€•°•ç’±îÅÄ®®ƒ∞Ã»≈‡®®Å)Å¡…Ωô•–Åêùï·¡±Ω•—Ö—•Ω∏Å€•°•ç’±îÅÄ®®ƒ∞–¿Õ‡®®Å)Å¡…Ωô•–Å…ïçΩπÕ—•—◊§ÅÖ‘Å√•…•ª°—…îÅë‘ÅµΩì°±îÅÄ®®ƒ∞–Ã’‡®®Å)Å…ïπëïµïπ–Å¡Ö»Å¡Ö‡ÅÄ®®»∞¿‘›‡®®Å()Ω’……•ï»ÅÀ•ï∞ÄºÅ¡ÖÕÕÖùï»ÄËÄ®®¿∞Ã––®®Å∑•ë•Ö∏∞ÅÖ±Ω…ÃÅ≈’îÅ±îÅµΩì°±îÅ°Ω…ÃÅX‰»ÅÕ’¡¡ΩÕîÄƒ‘Äî∏()ï’‡Åâ•Ö•ÃÅçΩπÕï…ŸÖ—ï’…ÃÅÃùÖëë•—•Ωππïπ–ÄË((ƒ∏Å±îÅ—ïµ¡ÃÅ—Ö…•ôÖ•…îÅ¡À•ë•–ÅïÕ–Å—…Ω¿Å±Ωπú∏ÅÅ=¡ï·•…Ö…ïAï…AÖ·ÄÅÖ¡¡ï±±î(ÄÄÅÅ%Ö…ùºπï—Ö…ùΩ%πçΩµî†∏∏∏∞Å•πçΩµïÖÂÃ•ÄÅÖŸïåÅÅ•πçΩµïÖÂÕÄÅì•…•ª§ÅëîÅÅ¡…ïë=πï]ÖÂÖÂÕÄ∞(ÄÄÅÖ±Ω…ÃÅ≈’îÅ±îÅ±ïúÅÀ•ï∞ÅπîÅŸÖ’–Å≈‘ùïπŸ•…Ω∏Ä¿∞ÿŸ‡ÅçîÅ—ïµ¡ÃÄÏ(»∏Å±îÅçΩ’……•ï»Å—…ÖπÕ¡Ω…”§ÅïÕ–ÅÕΩ’ÃµïÕ—•∑§ÄËÅïπŸ•…Ω∏Ä¿∞Ã–Å’π•”§Å¡Ö»Å¡Ö‡ÅçΩπ—…îÄ¿∞ƒ‘ÅÕ’¡¡Ωœ§∏()1îÅµΩì°±îÅçΩµâ•πîÅëΩπåÅëï’‡Åï……ï’…ÃÅëîÅÕïπÃÅΩ¡¡Ωœ•ÃÄË(¥ÅŸΩ±’µîÅ—…ÖπÕ¡Ω…”§ÅÕ’…ïÕ—•∑§ÄËÅÀ•ï∞ÄºÅÅ¡…ïëÖ……•ïëÄÉä&ÄÄ¿∞ÿ‡ÄÏ(¥Å…ïŸïπ‘Å’π•—Ö•…îÅÕΩ’ÃµïÕ—•∑§ÄËÅ…ïπëïµïπ–ÅÀ•ï∞ÄºÅ¡À•ë•–Éä& Ä»∞¿ÿ∏()1ÑÅÕïçΩπëîÅï……ï’»ÅçΩµ¡ïπÕîÅ¡±’ÃÅ≈’îÅ±ÑÅ¡…ïµß°…îÅï∏ÅÖ…ùïπ–∏ÅùïÕ–ÅçΩ£•…ïπ–ÅÖŸïåÅ∞ü•ç°ïåÅëîÅX‰ÃÄË)À•ë’•…îÅâ…’—Ö±ïµïπ–Å±ÑÅëïµÖπëîÅ…ï—•…îÅëïÃÅ¡…Ω©ï—ÃÅïôôïç—•Ÿïµïπ–Å…ïπ—Öâ±ïÃ∏((ååÅ•ôõ•…ïπçïÃÅ¡Ö»ÅÖ…¥ÉäPÅ±•ùπïÃÅµÖ—’…ïÃ()Å…¥ÅÅ∏ÅÅ¡Ö‡ΩâÖÕîÅÅ¡Ö‡ΩÕ°ÖëΩ‹ÅÅ¡Ö‡Ω¡…ïëÖ……•ïêÅÅ1ÅÅ…ïŸïπ‘ÅÀ•ï∞Ω¡À•ë•–Å)¥¥µ¥¥¥È¥¥¥È¥¥¥È¥¥¥È¥¥¥È¥¥¥È)ÅÅπï›¡Ö•…ÄÅÄ»–ÅÄ¿∞¿‘ÿ‰ÅÄ¿∞ƒ¿‡ÃÅÄ®®¿∞‡»–‹®®ÅÄ¿∞»‡‰ÅÄ®®ƒ∞‹‡Â‡®®Å)ÅÅ°’âÕ•—ïÄÅÄƒƒ–ÅÄ¿∞¿ÿ‘‘ÅÄ¿∞ƒ–¿ÃÅÄ®®¿∞‹ƒ‰–®®ÅÄ¿∞Ã‘»ÅÄ®®ƒ∞–‹—‡®®Å)ÅÅ°’â°’âÄÅÄÃ»ÿÅÄ¿∞¿‡Ã–ÅÄ¿∞ƒ‹ÿ‰ÅÄ®®¿∞ÿ‘–‰®®ÅÄ¿∞ÃÃ‹ÅÄ®®ƒ∞»‡—‡®®Å()Åπï›¡Ö•…ÄÅïÕ–Å±îÅ¡±’ÃÉ°±Ω•ùª§Åë‘ÅâÖÕÕ•∏Åâ…’–ΩÕ°ÖëΩ‹ÅµÖ•ÃÅ±îÅ¡±’ÃÅ¡…Ωç°îÅëîÅÅ¡…ïëÖ……•ïëÄ∏)MΩ∏ÅÕï…Ÿ•çîÅÀ•ï∞ÅïÕ–ÅÖ’ÕÕ§Å±îÅ¡±’ÃÅ…Ö¡•ëîÅ…ï±Ö—•Ÿïµïπ–ÅÖ‘ÅµΩì°±îÅï–ÅÕΩ∏Å…ïπëïµïπ–Å±îÅ¡±’ÃÅÕΩ’Ãµ¡À•ë•–∏((ååÅ•ÖùπΩÕ—•å()1îÅµÖ•±±Ω∏Å…ïÕ¡ΩπÕÖâ±îÅ∏ùïÕ–Åπ§Å±îÅ¡±Öçïµïπ–∞Åπ§Å’πîÅ√•π’…•îÅëîÅçÖ¡Öç•”§∞Åπ§Å’πîÅµÖ’ŸÖ•Õî)ôÀ•≈’ïπçîΩ…Ö—•πú∏Å1îÅµΩì°±îÅ%HÅÖππ’±îÅ¡Ö…—•ï±±ïµïπ–Å’πîÅÕ’…ïÕ—•µÖ—•Ω∏Åë‘ÅŸΩ±’µîÅ¡Ö»Å’πîÅôΩ…—î)ÕΩ’ÃµïÕ—•µÖ—•Ω∏Åë‘Å…ïπëïµïπ–Å’π•—Ö•…î∏((ååÅA…Ωç°Ö•∏Å±ïŸ•ï»ÅçÖ’ÕÖ∞Åµ•π•µÖ∞()9îÅµΩë•ô•ï»Åπ§ÅÅµΩπ—°±ÂAÖ·Ä∞Åπ§ÅÅ¡…ïëÖ……•ïëÄ∞Åπ§Å±îÅµΩ—ï’»Ωô±Ω——îÅ¡°ÂÕ•≈’îÅï∏Å¡…ïµ•ï»∏()1îÅ¡…Ωç°Ö•∏Å—ïÕ–ÅëΩ•–Å•ÕΩ±ï»Å±îÅ…ïπëïµïπ–ÄË((ƒ∏ÅÕ°ÖëΩ‹ÅëîÅÅ•πçΩµïAï…Uπ•—ÄÅ…ïçÖ±ç’≥§ÅÖŸïåÅ’∏Å—ïµ¡ÃÅ—Ö…•ôÖ•…îÅçÖ±•âÀ§ÅÕ’»Å±ïÃÅ±ïùÃÅÀ•ï±ÃÅï–Å’∏(ÄÄÅ…Ö—•ºÅçΩ’……•ï»ÅΩâÕï…€§ÄÏ(»∏ÅÕ§Å±îÅÕ°ÖëΩ‹Å…Ö∑°πîÅ…ïŸïπ‘ÅÀ•ï∞ÄºÅ…ïŸïπ‘Å¡À•ë•–Å¡À°ÃÅëîÄƒ∞Å—ïÕ–ÅçÖ’ÕÖ∞Åµ•π•µÖ∞Åø‰ÅÕï’∞Å±î(ÄÄÅçÖ±ç’∞Å—Ö…•òΩ…ïŸïπ‘Ω¡…Ωô•–Å¡À•ë•–Å’—•±•ÕîÅçï——îÅçÖ±•â…Ö—•Ω∏ÄÏ(Ã∏ÅùÖ…ëï»Å•πç°Öπü•ÃÅëïµÖπëî∞ÅçÖ¡Öç•”§∞ÅµΩ—ï’»Ωô±Ω——îÅ¡°ÂÕ•≈’îÅï–ÅΩ…ë…ïÃ∏()ï——îÅœ•¡Ö…Ö—•Ω∏Å—ïÕ—îÅë•…ïç—ïµïπ–Å±ïÃÅëï’‡Å∑•çÖπ•ÕµïÃÅ•ëïπ—•ôß•ÃÅ¡Ö»Åƒƒ‹∞ÅÕÖπÃÅÀ••π—…Ωë’•…îÅX‰Ã)ππ§Åì•…•Ÿï»ÅŸï…ÃÅƒƒÿ∏(
+L'ancien compte rendu rapporte **5/5 runs sains, 483 lignes AIR et 14 175
+fen√™tres brutes**, sur 42/100/999/1234/5678 √ó 6 ans. Ces effectifs ne sont pas
+recalcul√©s ici. Il signale aussi que la premi√®re sortie sans suffixe `_r2`
+(`c117_air_throughput_5x6_20260927.json`) √©tait inutilisable apr√®s filtrage
+calendaire du runner ; elle ne doit pas remplacer la r√©f√©rence r2.
+
+## Mesure : legs observ√©s, pas compteur de livraisons NoAI
+
+Une ligne AIR Opex a deux ordres A‚ÜîB ; les clones partagent ces ordres.
+L'√©chantillonnage annonc√© est tous les deux jours de jeu. Le code exclut les
+ordres hors liste (notamment les ordres manuels de hangar) de la r√©solution
+des positions A/B et suit les √©chantillons invalides s√©par√©ment.
+
+Pour chaque avion, tant que son √©tat est `AIVehicle.VS_RUNNING`, la sonde
+m√©morise le **maximum de charge passagers** du leg et sa capacit√©. Au changement
+d'index d'ordre A‚ÜíB ou B‚ÜíA, elle cl√¥t le leg pr√©c√©dent :
+
+- s'il a √©t√© observ√© en mouvement (`legMoving`), elle cumule sa charge maximale
+  dans `pax`, sa capacit√© dans `seat_legs`, et incr√©mente `trips` ;
+- sinon elle incr√©mente `unobserved_transitions`, sans inventer de charge ;
+- le chargement au quai n'est pas pris comme une livraison suppl√©mentaire.
+
+Il s'agit donc d'un **d√©bit reconstruit sur les legs observ√©s**, pas d'un
+compteur exhaustif de passagers livr√©s fourni par NoAI. Des transitions peuvent
+√™tre manqu√©es entre deux √©chantillons ; leur taux ne peut pas √™tre recalcul√©
+sans les √©v√©nements bruts.
+
+## D√©finitions et unit√©s
+
+Sur une dur√©e `days > 0`, soit `observed_pax = sum(pax)` et
+`seats = sum(seat_legs)` sur les m√™mes legs termin√©s (ce n'est pas la capacit√©
+instantan√©e de la flotte). La convention explicite **sur 30 jours** donne :
+
+- `carried = 30 * observed_pax / days` : passagers transport√©s observ√©s / 30 j ;
+- `offered = 30 * seats / days` : si√®ges offerts sur ces legs / 30 j ;
+- `load_factor = observed_pax / seats`, si `seats > 0` ;
+- `trips = legs` observ√©s termin√©s, **pas des allers-retours** ;
+- `headway = 2 * days / legs`, si `legs > 0`, intervalle moyen par sens
+  reconstruit √† partir des deux directions.
+
+**Attention √† la convention du code courant :** `OpexC117FlushLine` et
+`analyse_c117_aggregate.py` utilisent **30,4**, et non 30, dans `pax_pm` et
+`seats_pm`. Les formules sur 30 jours ci-dessus d√©finissent une unit√© distincte ;
+elles ne doivent pas √™tre pr√©sent√©es comme la sortie exacte de ces champs.
+Les comparaisons avec le mod√®le doivent garder la m√™me base temporelle.
+Le load factor et le headway ne d√©pendent pas de cette conversion mensuelle.
+Un d√©nominateur nul signifie mesure indisponible, pas z√©ro trafic prouv√©.
+
+Le profit est la variation des profits v√©hicule, avec raccord de l'ann√©e
+pr√©c√©dente lors du changement d'ann√©e. Le revenu est **estim√©** en y ajoutant
+les co√ªts de fonctionnement v√©hicule proratis√©s ; il inclut PASS et MAIL.
+Le profit v√©hicule n'inclut pas le m√™me p√©rim√®tre que le profit net du mod√®le
+(infrastructure/amortissement). L'attente et le rating sont ceux des stations :
+dans un hub partag√©, ils ne sont pas propres √† une seule ligne.
+
+## Agr√©gation anti-aliasing
+
+Les fen√™tres suivent des tranches d'√¢ge de 30 jours depuis le build, pas les
+mois calendaires. Une fen√™tre peut ne contenir aucun leg termin√© malgr√© une
+ligne active : ne pas moyenner na√Øvement ses ratios.
+
+Le diagnostic conserve un √©v√©nement final par `(seed, line, age_bucket)`
+car les checkpoints sont cumulatifs. L'analyseur agr√©g√© :
+
+1. retient les fen√™tres avec **`period_days >= 20`** ;
+2. groupe par `(seed, line, age_band)` ou par `(seed, line)` pour la vie enti√®re ;
+3. d√©finit le sous-ensemble **mature par `age_bucket >= 6`** (buckets index√©s
+   √† z√©ro, donc √† partir du septi√®me mois d'√¢ge conventionnel) ;
+4. **somme jours, passagers, si√®ges-legs et legs avant de calculer les ratios** ;
+5. pond√®re les moyennes station/flotte par la dur√©e et distingue les
+   distributions par ligne des ratios r√©seau pond√©r√©s par exposition.
+
+Un ratio r√©seau, une m√©diane par ligne et une moyenne de fen√™tres ne d√©crivent
+pas le m√™me objet. Aucun de leurs r√©sultats num√©riques n'est recr√©√© ici.
+
+## C117 initial et rerun pour C119 : deux diagnostics distincts
+
+Les 483 lignes / 14 175 fen√™tres rapport√©es ci-dessus appartiennent au
+**C117 initial r2**. Le **rerun enrichi pour C119** ajoute notamment la distance
+Manhattan de paiement et les informations d'a√©roport ; ses effectifs matures et
+ratios de revenu rel√®vent de la [fiche C119](42_c119_air_income_model_20260928.md),
+pas d'un remplacement des r√©sultats initiaux C117.
+
+La m√©thode permet de s√©parer d√©bit observ√©, capacit√© offerte et revenu unitaire.
+Elle ne suffit pas √† d√©duire une correction active de `monthlyPax`, des moteurs,
+de la flotte ou des ordres. **Aucun nouveau test, tableau de r√©sultats, verdict
+√©conomique ou changement de d√©faut n'est produit par cette remise en √©tat.**

@@ -5,6 +5,8 @@ __pycache__/
 
 # Artefacts locaux de diagnostics et benchmarks : volumineux et regenerables.
 results/*
+# Bundles CA locaux (proxy TLS d'entreprise), jamais publies
+.ca_bundle*.pem
 !results/bench_c46_freight_grid_10y_20seeds_map1024.json
 !results/test_c46_shadow.json
 !results/diag_c46_freight_cost_map1024.json

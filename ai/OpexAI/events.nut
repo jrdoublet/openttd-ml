@@ -50,6 +50,12 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
       this._c76BumpLayer("engines." + affectedMode, true);
     }
   }
+  if (C121_CATALOG_INCREMENTAL) {
+    if (reason == "town_founded" && affectedId >= 0)
+      C121_CATALOG_TOWN_REV.rawset(affectedId,
+          (affectedId in C121_CATALOG_TOWN_REV ? C121_CATALOG_TOWN_REV[affectedId] : 0) + 1);
+    /* Le prochain refresh compare les listes de moteurs par type d'aeroport. */
+  }
   /* C77 alimente en permanence la file reactive ; C76 suit ses propres revisions ci-dessus. */
   if (this._staleness == null) return;
   local revisionBumped = false;
@@ -272,85 +278,102 @@ function OpexAI::_logStalenessRefresh(reason)
     candidates = { rail = -1, road = -1, air = -1, water = -1 }, portfolio = -1, selection = -1,
   };
 }
+/* probe_event_backlog (F-EVENT-BACKLOG-01) : date YYYY-MM-DD avec zero padding */
+function OpexEventBacklogDateText(date)
+{
+  local month = AIDate.GetMonth(date);
+  local day = AIDate.GetDayOfMonth(date);
+  return AIDate.GetYear(date) + "-"
+      + (month < 10 ? "0" + month : "" + month) + "-"
+      + (day < 10 ? "0" + day : "" + day);
+}
+
+function OpexEventBacklogFlush(curDate)
+{
+  local dateText = OpexEventBacklogDateText(curDate);
+  AILog.Info("EVENT_BACKLOG date=" + dateText
+      + " calls=" + EVENT_BACKLOG_CALLS
+      + " events=" + EVENT_BACKLOG_EVENTS
+      + " max_burst=" + EVENT_BACKLOG_MAX_BURST
+      + " ops_total=" + EVENT_BACKLOG_OPS_TOTAL
+      + " ops_max=" + EVENT_BACKLOG_OPS_MAX);
+  EVENT_BACKLOG_CALLS = 0;
+  EVENT_BACKLOG_EVENTS = 0;
+  EVENT_BACKLOG_MAX_BURST = 0;
+  EVENT_BACKLOG_OPS_TOTAL = 0;
+  EVENT_BACKLOG_OPS_MAX = 0;
+  EVENT_BACKLOG_MONTH = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+}
+
 /* Event moteur exact : CRASH_TRAIN est emis dans train_cmd.cpp au moment ou deux trains
  * entrent en collision. XC garde la ligne, le vehicule, la tuile et les victimes ; RX reste le
- * filet annuel pour toute disparition sans evenement reconnu. */
+ * filet annuel pour toute disparition sans evenement reconnu.
+ * probe_event_backlog : une seule boucle. Flag eteint, le dispatch est celui d'origine ;
+ * la sonde ne fait que tester `backlog` (avant, dans, et apres la boucle). */
 function OpexAI::_processEvents()
 {
+  local backlog = PROBE_EVENT_BACKLOG;
+  local eventCount = 0;
+  local mark = null;
+  if (backlog) {
+    local curDate = AIDate.GetCurrentDate();
+    local ym = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+    if (EVENT_BACKLOG_MONTH >= 0 && ym != EVENT_BACKLOG_MONTH) {
+      OpexEventBacklogFlush(curDate);
+    }
+    if (EVENT_BACKLOG_MONTH < 0) {
+      EVENT_BACKLOG_MONTH = ym;
+    }
+    mark = OpexOpsMeasureBegin();
+  }
   while (AIEventController.IsEventWaiting()) {
     local event = AIEventController.GetNextEvent();
     if (event == null) continue;
+    if (backlog) eventCount++;
     local eventType = event.GetEventType();
     if (C52_EVENT_EXPOSURE_PROBE) OpexC52EventExposureObserve(event, eventType);
     if (C39_INVALIDATION_PROBE) OpexC76ObserveEvent(eventType);
 
+    local spEv = PROBE_SPAN_TRACE ? OpexSpanBegin(OpexSpanEventKind(eventType)) : null;
     if (eventType == AIEvent.ET_VEHICLE_CRASHED) {
       this._onVehicleCrashed(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) {
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) {
+    } else if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) {
+    } else if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) {
       this._onVehicleAutoreplaced(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) {
+    } else if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) {
       this._onVehicleUnprofitable(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_INDUSTRY_CLOSE) {
+    } else if (eventType == AIEvent.ET_INDUSTRY_CLOSE) {
       this._onIndustryClose(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_OFFER) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_OFFER) {
       this._onSubsidyOffer(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) {
       this._onSubsidyOfferExpired(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_AWARDED) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_AWARDED) {
       this._onSubsidyAwarded(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) {
+    } else if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) {
       this._onSubsidyExpired(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_VEHICLE_LOST) {
+    } else if (eventType == AIEvent.ET_VEHICLE_LOST) {
       this._onVehicleLost(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_INDUSTRY_OPEN) {
+    } else if (eventType == AIEvent.ET_INDUSTRY_OPEN) {
       this._onIndustryOpen(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_TOWN_FOUNDED) {
+    } else if (eventType == AIEvent.ET_TOWN_FOUNDED) {
       this._onTownFounded(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_ENGINE_AVAILABLE) {
+    } else if (eventType == AIEvent.ET_ENGINE_AVAILABLE) {
       this._onEngineAvailable(event);
-      continue;
-    }
-
-    if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) {
+    } else if (eventType == AIEvent.ET_ENGINE_PREVIEW && C121_CATALOG_INCREMENTAL) {
+      /* Le prochain refresh compare les listes de moteurs par type d'aeroport. */
+    } else if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) {
       this._onStationFirstVehicle(event);
-      continue;
     }
+    if (spEv != null) OpexSpanEnd(spEv);
+  }
+  if (backlog) {
+    local ops = OpexOpsMeasureEnd(mark);
+    if (ops < 0) ops = 0;
+    EVENT_BACKLOG_CALLS++;
+    EVENT_BACKLOG_EVENTS += eventCount;
+    if (eventCount > EVENT_BACKLOG_MAX_BURST) EVENT_BACKLOG_MAX_BURST = eventCount;
+    EVENT_BACKLOG_OPS_TOTAL += ops;
+    if (ops > EVENT_BACKLOG_OPS_MAX) EVENT_BACKLOG_OPS_MAX = ops;
   }
 }

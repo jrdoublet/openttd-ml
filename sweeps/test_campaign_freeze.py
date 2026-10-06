@@ -39,6 +39,8 @@ from bench_v2 import (
 )
 from bench_1v1_5y_20seeds import (
     build_policy_comparison,
+    frozen_execution_inputs,
+    make_experiments_plan,
     project_build_sign_metrics,
     student_t_ci95_critical_value,
 )
@@ -57,6 +59,62 @@ INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 
 
 class TestCampaignFreeze(unittest.TestCase):
+    def test_frozen_execution_inputs_reject_protocol_drift(self):
+        manifest = {
+            "execution": {"options": {"seeds": [42], "years": 1, "repeats": 1,
+                                      "policy_id": "ref", "variant_policy_id": None}},
+            "configuration": {"seeds": [42], "years": 1, "repeats": 1, "starting_year": 1970},
+            "versions": {"openttd": "15.3", "opengfx": "7.1"},
+            "policy": {"id": "ref"}, "comparison": None,
+            "policies": [{"id": "ref", "role": "reference",
+                          "settings": {"explicit": {"sample": 1}}}],
+        }
+        campaign = types.SimpleNamespace(manifest=manifest)
+        args, policies = frozen_execution_inputs(campaign)
+        self.assertEqual(args.seeds, [42])
+        self.assertEqual(policies[0]["explicit_settings"], (("sample", 1),))
+        for field, wrong in (("seeds", [100]), ("years", 10), ("repeats", 2),
+                             ("policy_id", "other"), ("variant_policy_id", "undeclared")):
+            with self.subTest(field=field), mock.patch.dict(manifest["execution"]["options"], {field: wrong}):
+                with self.assertRaises(ValueError):
+                    frozen_execution_inputs(campaign)
+
+        manifest["execution"]["options"].update({
+            "variant_policy_id": "var", "decision_rule": "signs20", "primary_metric": "profit_year",
+            "min_useful_primary_delta": 5, "value_guard_max_loss_pct": 5,
+        })
+        manifest["comparison"] = {
+            "variant_policy_id": "var", "decision_rule": {
+                "rule": "signs20", "primary_metric": "profit_year",
+                "min_useful_primary_delta": 5, "value_guard_max_loss_pct": 5,
+            },
+        }
+        manifest["policies"].append({"id": "var", "role": "variant",
+                                     "settings": {"explicit": {"sample": 0}}})
+        _, policies = frozen_execution_inputs(campaign)
+        self.assertEqual(policies[1]["explicit_settings"], (("sample", 0),))
+        for field, wrong in (("variant_policy_id", "other"), ("decision_rule", "mean40"),
+                             ("primary_metric", "company_value"), ("min_useful_primary_delta", 0),
+                             ("value_guard_max_loss_pct", 100)):
+            with self.subTest(field=field), mock.patch.dict(manifest["execution"]["options"], {field: wrong}):
+                with self.assertRaises(ValueError):
+                    frozen_execution_inputs(campaign)
+
+    def test_frozen_experiment_plan_uses_manifest_config_and_frozen_ais(self):
+        campaign = types.SimpleNamespace(
+            manifest={"configuration": {"raw": "[fixture]\nsetting=unchanged\n"}},
+            opex_dir=Path("frozen/ai/OpexAI"), aaahogex_dir=Path("frozen/ai/AAAHogEx-115"),
+            campaign_id="fixture", bundle_sha256="hash",
+        )
+        with mock.patch("openttdlab.local_folder", side_effect=lambda *args: args):
+            plan = make_experiments_plan([42], 1, campaign=campaign, policies=[
+                {"id": "ref", "explicit_settings": (("sample", 1),)},
+            ])
+        self.assertEqual(plan[0]["openttd_config"], campaign.manifest["configuration"]["raw"])
+        self.assertEqual(plan[0]["ais"][0], (str(campaign.opex_dir), "OpexAI", (("sample", 1),)))
+        self.assertEqual(plan[0]["ais"][1][0], str(campaign.aaahogex_dir))
+        self.assertEqual(plan[0]["game_id"], "fixture:policy=ref:s42:r0")
+
     def test_prepare_frozen_campaign_copies_ai_harness_and_libraries(self):
         """Couvre le gel complet sans réseau avec une bibliothèque BaNaNaS synthétique."""
         library_bytes = b"synthetic-library-tar\n"
@@ -175,13 +233,15 @@ class TestCampaignFreeze(unittest.TestCase):
         )
         for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build", "c75_kpass_bypass",
                      "c80_air_hub_index", "town_growth_roi_gate", "c76_regen_targeted",
-                     "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder", "v94_air_site_list"):
+                     "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder", "v94_air_site_list",
+                     "air_hubhub_marginal", "c121_air_project_realization_adaptive", "c121_air_first_live_growth",
+                     "c80_marginal_floor"):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c84_air_target_fleet", "c85_air_equipment_frontier", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate", "c80_double_register",
                      "c76_lean_invalidation", "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
-                     "c82_engine_calibration", "c80_marginal_floor", "rail_depot_cost",
-                     "air_hubhub_marginal", "air_hub_max_routes",
+                     "c82_engine_calibration", "rail_depot_cost",
+                     "air_hub_max_routes",
                      "v90_pathfinder_check", "v92_air_service_choice", "c83_fixes",
                      "c83_preempt_open", "air_batch_town_reserve",
                      "v93_airport_no_pop_floor", "v93_air_demand_production", "v95_air_post73_probe",
@@ -198,6 +258,7 @@ class TestCampaignFreeze(unittest.TestCase):
             self.assertEqual(defaults[name], 0, name)
         self.assertEqual(defaults["rail_finance_bias_pct"], 100)
         self.assertEqual(defaults["v91_astar_weight_pct"], 120)
+        self.assertEqual(defaults["c121_air_first_live_growth_phase_years"], 4)
         self.assertNotIn("c80_fleet_inject", defaults)
         self.assertNotIn("c80_air_targeted_update", defaults)
         self.assertNotIn("c77_opportunistic_candidates", defaults)
@@ -205,6 +266,9 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("c77_fixes", defaults)
         self.assertEqual(defaults["probe_events"], 0)
         self.assertEqual(defaults["probe_cost"], 0)
+        self.assertEqual(defaults["probe_air_engine_depth"], 0)
+        self.assertEqual(defaults["probe_air_finance_margin"], 0)
+        self.assertEqual(defaults["probe_event_backlog"], 0)
         self.assertEqual(defaults["policy_rail"], 1)
         self.assertEqual(defaults["policy_caches"], 1)
         self.assertEqual(defaults["air_route_plane_selection"], 1)
@@ -505,7 +569,7 @@ class TestCampaignFreeze(unittest.TestCase):
                             "median_station_rating": 100,
                         }
                         summary.append(rec)
-                        rows.append({**rec, "run": [arm, seed, 0], "date": "1970-12-01"})
+                        rows.append({**rec, "run": [arm, seed, 0], "date": "1979-12-01"})
             return build_policy_comparison(
                 summary,
                 rows,
@@ -517,7 +581,7 @@ class TestCampaignFreeze(unittest.TestCase):
                 min_useful_primary_delta=5.0,
                 value_guard_max_loss_pct=5.0,
                 starting_year=1970,
-                years=1,
+                years=10,
                 decision_rule=decision_rule,
             )
 

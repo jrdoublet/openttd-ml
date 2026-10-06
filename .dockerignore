@@ -1,0 +1,6 @@
+# Both Dockerfile targets only COPY dependency lists. Keep AI/results out of
+# the build context; the checked-out code is mounted at runtime instead.
+**
+!Dockerfile
+!requirements.txt
+!requirements-ml.txt

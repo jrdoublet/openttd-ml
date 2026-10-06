@@ -1,8 +1,26 @@
 # Le mode route d'OpexAI
 
-État au **2026-08-30**. Ce document décrit ce que le mode route fait, ce qui a été mesuré, et ce
-qui reste ouvert. Il remplace la note historique sur la « liaison bus v1 », qui décrivait une
-transaction unique et désactivée.
+> **Archive au 2026-08-30, pas un guide d'exécution actuel.** Les paramètres, mesures,
+> décisions et mentions « courant » ci-dessous se rapportent à cette date. Les résultats
+> antérieurs au 9 septembre ne font plus preuve actuelle. Les priorités sont exclusivement
+> dans [taches.md](taches.md), le protocole dans [AGENTS.md](../AGENTS.md).
+
+## Repères courants (relecture du 30 septembre 2026)
+
+`road_mode` et `road_refleet` ont été **retirés** de l'interface des réglages : ne pas exécuter
+les anciens bras qui les emploient. La macro-politique **`policy_road=1`** est déclarée dans
+[`info.nut`](../ai/OpexAI/info.nut). Dans [`settings.nut`](../ai/OpexAI/settings.nut), elle pilote
+ensemble `ROAD_BUILD_ENABLED`, `ROAD_REFLEET`, `ROAD_FLEET_FIX`, `PRICING_ROAD_OPS`,
+`ROAD_PAX_OVERLAP` et `ROAD_PAX_VOIRIE`. Passer à `policy_road=0` désactive donc plusieurs
+comportements ; **ce n'est ni un remplacement individuel de `road_refleet=0`, ni une
+reproduction exacte du contrôle historique `road_mode=0`**.
+
+Le portefeuille commun utilise le **profit calibré** et `fundScore` C69 dans
+[`projects.nut`](../ai/OpexAI/projects.nut), non une priorité générale « rail d'abord » ni un
+score de revenu. `Save` / `Load` et la réconciliation des lignes sont implémentés dans
+[`persist.nut`](../ai/OpexAI/persist.nut).
+
+La suite conserve le récit qui remplaçait alors la note « liaison bus v1 ».
 
 ---
 
@@ -25,8 +43,9 @@ Le type d'arrêt est **imposé par le cargo**, jamais choisi : un bus ne charger
 de chargement camion (`docs/mecanique_jeu.md` §11). `OpexRoadStopKind` est le seul endroit qui en
 décide.
 
-Réglage de partie **`road_mode`** (défaut 1). À 0, la baseline rail retrouve *exactement* son
-chemin d'opcodes antérieur : le catalogue routier n'est même pas rafraîchi.
+Ancien réglage **`road_mode`** (défaut 1 à l'époque, **retiré aujourd'hui**). À 0, cette version
+retrouvait son chemin d'opcodes rail antérieur sans rafraîchir le catalogue routier. Ce constat
+historique ne s'applique pas à la macro-politique actuelle.
 
 ## 2. Les trois décisions d'allocation
 
@@ -132,14 +151,15 @@ candidats. Négligeable devant les ~270 M d'opcodes annuels.
 
 ## 6 bis. Le verdict du banc apparié
 
-**Re-baseline courant (2026-08-30, `results/bench_road_current.json`) :** 20 graines × 20 ans,
-route active contre `road_mode=0`, avec traction et `road_pax_catchment_pct=86`.
+**Re-baseline historique (2026-08-30, `results/bench_road_current.json`), sans valeur de preuve actuelle :** 20 graines × 20 ans,
+route active contre l'ancien `road_mode=0` (retiré), avec traction et `road_pax_catchment_pct=86`.
 `performance_history` **+15,3 %** (+70,35), t = **5,65**, 18/20 ; `company_value`
 **+13,5 %**, t = **2,24**, 13/20. Le mode route est reconfirmé.
 
 ### Mesure historique (`results/bench_v2_road.json`)
 
-20 graines × 20 ans, `OpexAI` contre `OpexAI[road_mode=0]`. Les deux bras portent le
+20 graines × 20 ans, `OpexAI` contre l'ancien bras `OpexAI[road_mode=0]` (**ne plus exécuter**).
+Les deux bras portaient le
 renouvellement automatique et le correctif de ligne morte : le banc isole donc **le mode route
 seul**.
 
@@ -213,12 +233,14 @@ retuné). L'item 2 du backlog général (villes enfermées) reste dernier.
    (`results/opex_road_multistop_20y_5seeds.json`) : extra A 7/8, extra B 8/8, les
    deux 7/8. La ligne pax appariée (12345 L22) **8 905 → 1 781** à 4 bus. ⚠️
    Défaut 0. Le ×5 du wiki n'est pas là.
-5. ✅ **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** Réglage `road_refleet`, défaut 1.
+5. ✅ **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** Ancien réglage `road_refleet`,
+   défaut 1 à l'époque, **retiré aujourd'hui**.
    Le trou n'était pas n = 1 (pax 15 de `opex_road_20y_42.json` : 2→1→0, 9 000/an ; COAL de
    `opex_join_20y_42.json` : vide huit ans). Sur l'arbre courant (`results/opex_refleet_20y_4seeds.json`,
    graine 42) la ligne COAL 15 passe 2→1 en 1982 et 1988 : `RF` ajoute 1 chaque fois, la note
    revient à 67, **jamais à zéro**. Auto-renouvellement ne suffit pas : il ne remplace pas un
-   véhicule détruit. `OpexAI[road_refleet=0]` rallume l'abandon.
+   véhicule détruit. L'ancien bras `OpexAI[road_refleet=0]` réactivait l'abandon ; **ne plus
+   l'exécuter ni le remplacer par `policy_road=0` pour isoler cet effet**.
 6. ✅ **`ROAD_SPEED_EFFICIENCY_PCT = 60` : mesuré, pas retuné** (2026-08-30).
    Panneau `RY`, 5 graines (`results/opex_road_speed_yield.json`). n = 53
    (6 lignes, 0 sur 12345). Fret **1,00** vs catalogue, pax **0,75**.

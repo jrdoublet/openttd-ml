@@ -2,6 +2,11 @@ from pathlib import Path
 import unittest
 
 from sweeps.campaign_freeze import parse_ai_settings
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,9 +37,9 @@ class TestC84AirTargetFleet(unittest.TestCase):
         cls.info = AI / "info.nut"
         cls.globals = source("globals_pre.nut")
         cls.settings = source("settings.nut")
-        cls.builder = source("builder_air.nut")
+        cls.builder = read_builder_air()
         cls.task_air = source("task_air.nut")
-        cls.projects = source("projects.nut")
+        cls.projects = read_projects_source()
 
     def test_setting_is_experimental_and_loaded_once(self):
         defaults = parse_ai_settings(self.info)

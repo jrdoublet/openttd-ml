@@ -1,7 +1,10 @@
 # V91 — Heuristique pondérée du pathfinder rail (Weighted A*)
 
 Date : **2026-09-24**.  
-Statut : **implémenté, tests de contrat validés ; validation par banc à faire**.  
+Statut réconcilié au 30 septembre : **poids 120 retenu par décision utilisateur
+du 24 après le 20×10 neutre ; poids 150 rejeté**. Les étapes ci-dessous conservent
+la conception et les essais historiques, pas un banc à relancer.
+Voir [synthèse](journaux/synthese_decisions_2026-09-30.md) et [tâches](taches.md).
 Objectif : **réduire fortement le nombre d'itérations d'une recherche ferroviaire** (levier physique direct pour diviser par $\ge 2$ le temps script de recherche), au prix de tracés légèrement sub-optimaux (longueur $\le w \times \text{optimum}$, typiquement +1 à +5 % en pratique).
 
 ---
@@ -32,7 +35,8 @@ L'algorithme A* évalue chaque nœud candidat selon la priorité de file $f(n) =
 ### 2.2 Réglages et globale Squirrel
 - **Réglage `v91_astar_weight_pct`** (`info.nut`) :
   - Type entier, `min_value = 100`, `max_value = 300`, `step_size = 10`.
-  - Défaut : **100** (désactivé, comportement V90 strictement inchangé).
+  - Défaut initial de conception : **100** (V90 strictement inchangé) ;
+    **défaut livré ensuite : 120**. Le fragment ci-dessous est historique.
   - Flags : `0` (entier).
 - **Globale `V91_ASTAR_WEIGHT_PCT`** (`globals_pre.nut`) : initialisée à `100`.
 - **Chargement** (`settings.nut`) :

@@ -11,6 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 
 from campaign_freeze import parse_ai_settings, parse_ai_setting_specs
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 
 def read(rel: str) -> str:
@@ -37,7 +41,7 @@ class TestV95AirPost73Probe(unittest.TestCase):
         cls.info = read("ai/OpexAI/info.nut")
         cls.settings = read("ai/OpexAI/settings.nut")
         cls.globals = read("ai/OpexAI/globals_pre.nut")
-        cls.air = read("ai/OpexAI/builder_air.nut")
+        cls.air = read_builder_air()
 
     def test_setting_is_declared_loaded_and_default_off(self):
         defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")

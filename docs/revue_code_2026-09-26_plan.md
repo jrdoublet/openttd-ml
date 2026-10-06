@@ -1,5 +1,10 @@
 # Revue OpexAI — plan fractionné du 26 septembre 2026
 
+**Statut au 30 septembre : plan historique.** Les mentions « aucun lot exécuté »
+et la discipline ci-dessous décrivent la demande du 26, pas la file actuelle.
+Pour les constats consolidés et les correctifs locaux, lire la
+[revue du 30](revue_code_2026-09-30.md) ; seul [taches.md](taches.md) fixe la suite.
+
 ## Périmètre et point de départ
 
 Préparation demandée par l'utilisateur pour éviter de consommer le quota en une seule passe.

@@ -14,6 +14,7 @@ import json
 import math
 import os
 from pathlib import Path
+import random
 import re
 import statistics
 import sys
@@ -40,7 +41,7 @@ def _force_utf8_stdio():
 
 _force_utf8_stdio()
 
-ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import (
     OPENGFX_VERSION,
@@ -56,9 +57,10 @@ from bench_v2 import (
     quarter_profit,
     station_ratings,
     summarise,
-    year_profit,
+    year_profit_metrics,
 )
 from physical_counters import decode_vehicles, decode_stations
+from c83_reaction import parse_c83_reactions, parse_c83_repairs
 from game_health import (
     DEFAULT_ENGINE_TIMEOUT_SEC,
     assess_game,
@@ -71,6 +73,7 @@ from game_health import (
     write_engine_log,
 )
 import bench_v2
+from frozen_harness import launch_frozen_campaign
 from campaign_freeze import (
     default_campaign_id,
     fingerprint_tree,
@@ -85,6 +88,7 @@ AAAHOGEX_DIR = "AAAHogEx-115"
 CHECKPOINT_PATH = None
 ENGINE_LOG_DIR = None
 LINE_TELEMETRY = False
+LINE_TELEMETRY_MONTHLY = False
 PROFIT_RAW_UNITS_PER_GBP = 256.0
 VEHICLE_VARIANT_BY_MODE = {
     "rail": "train",
@@ -96,6 +100,10 @@ VEHICLE_VARIANT_BY_MODE = {
 ARMS = ("OpexAI", "AAAHogEx")
 PRIMARY_METRIC = "profit_year"
 VALUE_GUARD_METRIC = "company_value"
+DECISION_RULES = ("signs20", "mean40", "gain_short", "non_erosion")
+BOOTSTRAP_CONFIDENCE = 0.95
+BOOTSTRAP_RESAMPLES = 20000
+BOOTSTRAP_SEED = 0
 AIR_SLOT_METRICS = (
     "airport_slots_opex",
     "airport_slots_aaahogex",
@@ -112,6 +120,11 @@ AIR_EARLY_SLOT_DIAG_METRICS = (
     "early_slot_build_claims",
 )
 AIR_STRUCTURAL_METRICS = AIR_SLOT_METRICS + AIR_EARLY_SLOT_DIAG_METRICS
+TOWN_GROWTH_SUMMARY_METRICS = (
+    "town_growth_builds_sign_total",
+    "town_growth_builds_sign_by_year",
+    "town_growth_signs_invalid",
+)
 C75_BYPASS_SUMMARY_METRICS = (
     "c75_bypass_events",
     "c75_bypass_consumed_signs",
@@ -128,8 +141,10 @@ LIBRARY_SPECS = (
 
 CAMPAIGN_HARNESS_FILES = (
     "sweeps/bench_1v1_5y_20seeds.py",
+    "sweeps/c83_reaction.py",
     "sweeps/bench_v2.py",
     "sweeps/campaign_freeze.py",
+    "sweeps/frozen_harness.py",
     "sweeps/game_health.py",
     "sweeps/physical_counters.py",
     "sweeps/run_c66_reference.py",
@@ -262,6 +277,65 @@ def early_slot_sign_metrics(chunks):
         "early_slot_select_signs": sum(name.startswith("SK|") for name in names),
         "early_slot_build_signs": sum(name.startswith("SB|") for name in names),
         "early_slot_build_claims": build_claims,
+    }
+
+
+def town_growth_sign_metrics(chunks, *, current_year=STARTING_YEAR, target_owner=0):
+    """One durable TG|yy|town|before|after sign per successful growth build.
+
+    Missing SIGN stays unknown; an available empty chunk is an observed zero.
+    The two-digit year is resolved in the century ending at current_year.
+    Counts describe retained signs, not station increments or repeated snapshots.
+    """
+    signs = (chunks or {}).get("SIGN")
+    if not isinstance(signs, (dict, list)):
+        return {metric: None for metric in TOWN_GROWTH_SUMMARY_METRICS}
+    records = signs.values() if isinstance(signs, dict) else signs
+    by_year = {}
+    invalid = 0
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        if "owner" in sign and str(sign["owner"]) != str(target_owner):
+            continue
+        name = sign.get("name")
+        if not isinstance(name, str) or not name.startswith("TG|"):
+            continue
+        match = re.fullmatch(r"TG\|([0-9]{1,2})\|[0-9]+\|[0-9]+\|[0-9]+", name)
+        if match is None:
+            invalid += 1
+            continue
+        year = int(current_year) // 100 * 100 + int(match[1])
+        if year > int(current_year):
+            year -= 100
+        key = str(year)
+        by_year[key] = by_year.get(key, 0) + 1
+    return {
+        "town_growth_builds_sign_total": sum(by_year.values()),
+        "town_growth_builds_sign_by_year": dict(sorted(by_year.items())),
+        "town_growth_signs_invalid": invalid,
+    }
+
+
+def _town_growth_policy_metrics(reference, variant, starting_year, years):
+    def pair(ref, var):
+        return {"reference": ref, "variant": var,
+                "policy_delta": var - ref if ref is not None and var is not None else None}
+
+    reference = reference or {}
+    variant = variant or {}
+    ref_years = reference.get("town_growth_builds_sign_by_year")
+    var_years = variant.get("town_growth_builds_sign_by_year")
+    return {
+        "builds_total": pair(reference.get("town_growth_builds_sign_total"),
+                            variant.get("town_growth_builds_sign_total")),
+        "invalid_signs": pair(reference.get("town_growth_signs_invalid"),
+                             variant.get("town_growth_signs_invalid")),
+        "builds_by_year": {
+            str(year): pair(ref_years.get(str(year), 0) if ref_years is not None else None,
+                            var_years.get(str(year), 0) if var_years is not None else None)
+            for year in range(int(starting_year), int(starting_year) + int(years))
+        },
     }
 
 
@@ -801,7 +875,7 @@ def _annual_line_checkpoint(date):
 
 
 def build_line_telemetry_report(rows):
-    """Rassemble les snapshots annuels de lignes sans modifier le jeu."""
+    """Rassemble les snapshots de lignes sans modifier le jeu."""
     snapshots = []
     for row in rows:
         telemetry = row.get("line_telemetry")
@@ -823,7 +897,11 @@ def build_line_telemetry_report(rows):
         })
     return {
         "schema_version": 1,
-        "scope": "annual December savegame post-processing; no NoAI behavior change",
+        "scope": (
+            "monthly savegame post-processing; no NoAI behavior change"
+            if LINE_TELEMETRY_MONTHLY else
+            "annual December savegame post-processing; no NoAI behavior change"
+        ),
         "observed_fields": [
             "mode", "station_ids", "town_ids", "vehicles", "capacity_by_cargo",
             "profit_this_year_gbp", "profit_last_year_gbp", "vehicle_value",
@@ -841,8 +919,11 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         player = players.get(str(owner))
     company_present = isinstance(player, dict) and bool(player)
     player = player or {}
-    closed = player.get("old_economy") or []
-    last_closed = closed[0] if closed else {}
+    closed = player.get("old_economy")
+    last_closed = (
+        closed[0] if isinstance(closed, (list, tuple)) and closed
+        and isinstance(closed[0], dict) else {}
+    )
     ratings = station_ratings(chunks, owner=owner)
     veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=owner)
     stn_dec = decode_stations(chunks.get("STNN"), target_owner=owner)
@@ -878,7 +959,7 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "income_last_year": last_closed.get("income", 0),
         "expenses_last_year": last_closed.get("expenses", 0),
         "profit": quarter_profit(last_closed),
-        "profit_year": year_profit(closed),
+        **year_profit_metrics(closed),
         "median_station_rating": (statistics.median(ratings) if ratings else None),
         "n_station_ratings": len(ratings),
         "money": player.get("money", 0),
@@ -941,12 +1022,15 @@ def keep(row):
 
     rec0 = extract_company_record(chunks, 0, ["OpexAI", seed, repeat], date)
     rec1 = extract_company_record(chunks, 1, ["AAAHogEx", seed, repeat], date)
-    if LINE_TELEMETRY and _annual_line_checkpoint(date):
+    if LINE_TELEMETRY and (LINE_TELEMETRY_MONTHLY or _annual_line_checkpoint(date)):
         rec0["line_telemetry"] = extract_line_telemetry(chunks, 0)
         rec1["line_telemetry"] = extract_line_telemetry(chunks, 1)
     structural = {}
     structural.update(airport_slot_metrics(chunks))
     structural.update(early_slot_sign_metrics(chunks))
+    date_text = str(date)
+    sign_year = int(date_text[:4]) if date_text[:4].isdigit() else STARTING_YEAR
+    structural.update(town_growth_sign_metrics(chunks, current_year=sign_year))
     structural.update(c75_bypass_sign_metrics(chunks))
     structural.update(project_build_sign_metrics(chunks))
     structural.update(c118_sign_metrics(chunks))
@@ -976,7 +1060,7 @@ def keep(row):
 
 def make_experiments_plan(seeds, years, repeats=1, campaign=None, policy_id="reference", policies=None):
     from openttdlab import local_folder
-    cfg = make_cfg(STARTING_YEAR)
+    cfg = campaign.manifest["configuration"]["raw"] if campaign is not None else make_cfg(STARTING_YEAR)
     days = 365 * years
     opex_dir = campaign.opex_dir if campaign is not None else ROOT / "ai" / "OpexAI"
     aaahogex_dir = campaign.aaahogex_dir if campaign is not None else ROOT / "ai" / AAAHOGEX_DIR
@@ -1091,6 +1175,151 @@ def exact_sign_test_p(wins, losses):
     return _number(min(1.0, probability))
 
 
+def wilcoxon_signed_rank_statistic(values):
+    """Composantes du test des rangs signés de Wilcoxon.
+
+    Les zéros sont écartés. Les ex æquo d'une même valeur absolue reçoivent
+    le rang moyen. ``w_plus`` somme les rangs des valeurs strictement
+    positives ; ``expectation`` est son espérance sous H0 (moitié de la
+    somme des rangs). ``p`` est le p bilatéral exact, ou None s'il ne reste
+    aucune valeur non nulle.
+
+    La loi nulle est une programmation dynamique sur les rangs doublés :
+    un rang moyen demi-entier devient un entier, et chaque assignation de
+    signes est comptée une fois (support ``2**n``).
+    """
+    observed = []
+    for value in values:
+        if value is None:
+            continue
+        number = float(value)
+        if number == 0.0:
+            continue
+        observed.append(number)
+    n = len(observed)
+    empty = {
+        "n": 0,
+        "w_plus": None,
+        "total_ranks": None,
+        "expectation": None,
+        "p": None,
+    }
+    if n == 0:
+        return empty
+    order = sorted(range(n), key=lambda index: abs(observed[index]))
+    doubled = [0] * n
+    start = 0
+    while start < n:
+        end = start
+        anchor = abs(observed[order[start]])
+        while end + 1 < n and abs(observed[order[end + 1]]) == anchor:
+            end += 1
+        # Rangs 1-based start+1..end+1. La moyenne (start+end+2)/2, doublée,
+        # reste entière quand des ex æquo produisent un demi-rang.
+        doubled_rank = start + end + 2
+        for cursor in range(start, end + 1):
+            doubled[order[cursor]] = doubled_rank
+        start = end + 1
+    positive = sum(doubled[index] for index in range(n) if observed[index] > 0)
+    total_doubled = sum(doubled)
+    counts = [0] * (total_doubled + 1)
+    counts[0] = 1
+    for rank in doubled:
+        for score in range(total_doubled - rank, -1, -1):
+            count = counts[score]
+            if count:
+                counts[score + rank] += count
+    smaller = min(positive, total_doubled - positive)
+    tail = sum(counts[:smaller + 1])
+    total_ranks = total_doubled / 2.0
+    return {
+        "n": n,
+        "w_plus": positive / 2.0,
+        "total_ranks": total_ranks,
+        "expectation": total_ranks / 2.0,
+        "p": min(1.0, 2.0 * tail / (2 ** n)),
+    }
+
+
+def exact_wilcoxon_signed_rank_p(values):
+    """p bilatéral exact du test des rangs signés, ou None si tout est nul."""
+    return wilcoxon_signed_rank_statistic(values)["p"]
+
+
+def bootstrap_mean_ci(values, *, confidence=0.95, resamples=20000, seed=0):
+    """Intervalle percentile de la moyenne, bootstrap avec remise.
+
+    ``random.Random(seed)`` rend deux appels identiques bit à bit. Les indices
+    suivent ``Random.choices`` (``floor(random() * n)``) et la moyenne est
+    ``statistics.mean``. Un échantillon constant a la même moyenne dans tout
+    rééchantillonnage : l'intervalle est cette constante, sans tirage. Une
+    série vide renvoie ``(None, None)``.
+    """
+    sample = []
+    for value in values:
+        if value is None:
+            continue
+        sample.append(float(value))
+    if not sample:
+        return (None, None)
+    if resamples < 1:
+        raise ValueError("resamples doit être >= 1")
+    if not 0.0 < float(confidence) < 1.0:
+        raise ValueError("confidence doit être dans (0, 1)")
+    constant = sample[0]
+    if all(value == constant for value in sample):
+        return (constant, constant)
+    generator = random.Random(seed)
+    width = float(len(sample))
+    draw = generator.random
+    floor = math.floor
+    count = len(sample)
+    means = [
+        statistics.mean(sample[floor(draw() * width)] for _ in range(count))
+        for _ in range(int(resamples))
+    ]
+    means.sort()
+    tail = (1.0 - float(confidence)) / 2.0
+    lower_index = int(tail * resamples)
+    upper_index = int((1.0 - tail) * resamples)
+    if upper_index >= resamples:
+        upper_index = resamples - 1
+    return (means[lower_index], means[upper_index])
+
+
+def paired_metric_display_p(metric):
+    """p affiché : Wilcoxon dès qu'il est présent, y compris 0.0.
+
+    ``0.0 or sign_test_p`` retomberait sur le test des signes, parce que 0.0
+    est faux en Python. None, ou une clé absente, laisse le test des signes.
+    """
+    if not isinstance(metric, dict):
+        return None
+    wilcoxon_p = metric.get("wilcoxon_p")
+    if wilcoxon_p is not None:
+        return wilcoxon_p
+    return metric.get("sign_test_p")
+
+
+def annotate_paired_comparison_wilcoxon(comparisons):
+    """Remplit ``wilcoxon_p`` sur les comparaisons lues par le bilan.
+
+    ``paired_comparisons`` calcule le test des signes. Le bilan lit déjà
+    ``wilcoxon_p`` sans que ce champ ait été produit.
+    """
+    for comparison in comparisons or ():
+        for metric in (comparison.get("metrics") or {}).values():
+            if metric.get("wilcoxon_p") is not None:
+                continue
+            differences = [
+                item.get("difference")
+                for item in metric.get("paired_differences") or ()
+                if item.get("difference") is not None
+            ]
+            metric["wilcoxon_p"] = exact_wilcoxon_signed_rank_p(differences)
+    return comparisons
+
+
 # Table exacte précalculée du quantile bilatéral 95% (t_{0.975, df}) pour df = 1 à 40.
 # Source : intégration numérique de la densité de Student-t (résultats identiques aux tables NIST/Fisher-Yates).
 _STUDENT_T_95_TABLE = (
@@ -1161,6 +1390,15 @@ def delta_statistics(values):
         "ties": ties,
         "sign_test_n_excluding_ties": wins + losses,
         "sign_test_p": exact_sign_test_p(wins, losses),
+        "wilcoxon_p": exact_wilcoxon_signed_rank_p(values),
+        "mean_bootstrap_95pct_ci": list(bootstrap_mean_ci(
+            values,
+            confidence=BOOTSTRAP_CONFIDENCE,
+            resamples=BOOTSTRAP_RESAMPLES,
+            seed=BOOTSTRAP_SEED,
+        )),
+        "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
+        "bootstrap_seed": BOOTSTRAP_SEED,
     }
 
 
@@ -1227,7 +1465,144 @@ def _stamp_structural_metrics(summary_records, raw_records):
             record[metric] = source.get(metric)
         for metric in C75_BYPASS_SUMMARY_METRICS:
             record[metric] = source.get(metric)
+        for metric in TOWN_GROWTH_SUMMARY_METRICS:
+            record[metric] = source.get(metric)
     return summary_records
+
+
+def policy_adoption_eligibility(
+    seeds, repeats, years, decision_rule, *, required_seeds=None, required_years=None,
+):
+    """Sépare le protocole d'adoption des statistiques diagnostiques par paire.
+
+    Les répétitions d'une même carte ne sont pas des graines indépendantes.
+    ``signs20`` (20), ``mean40`` (40) et ``non_erosion`` (20) exigent dix ans.
+    ``gain_short`` est paramétrable, 40 graines × 3 ans par défaut.
+    ``required_seeds`` et ``required_years`` sont ignorés hors ``gain_short``.
+    """
+    if decision_rule == "gain_short":
+        required = 40 if required_seeds is None else int(required_seeds)
+        required_horizon = 3 if required_years is None else int(required_years)
+        if required < 1:
+            raise ValueError("gain_short exige au moins une graine")
+        if required_horizon < 1:
+            raise ValueError("gain_short exige au moins une année")
+    elif decision_rule == "signs20":
+        required, required_horizon = 20, 10
+    elif decision_rule == "mean40":
+        required, required_horizon = 40, 10
+    elif decision_rule == "non_erosion":
+        required, required_horizon = 20, 10
+    else:
+        raise ValueError(f"règle d'adoption inconnue: {decision_rule}")
+    distinct_seeds = len(set(seeds))
+    reasons = []
+    if distinct_seeds != len(seeds):
+        reasons.append("duplicate_seeds")
+    if distinct_seeds != required:
+        reasons.append("distinct_seed_count")
+    if repeats != 1:
+        reasons.append("repeated_seeds")
+    if years != required_horizon:
+        if required_horizon == 10:
+            reasons.append("horizon_not_10_years")
+        else:
+            reasons.append("horizon_not_required_years")
+    return {
+        "eligible": not reasons,
+        "reasons": reasons,
+        "required_distinct_seeds": required,
+        "distinct_seeds": distinct_seeds,
+        "required_years": required_horizon,
+        "years": years,
+        "required_repeats": 1,
+        "repeats": repeats,
+        "independent_seed_sample": distinct_seeds == len(seeds) and repeats == 1,
+    }
+
+
+def default_seeds_for_rule(decision_rule, required_seeds=None):
+    """Graines canoniques quand ``--seeds`` est omis.
+
+    ``signs20`` et ``non_erosion`` restent sur SEEDS. ``mean40`` reste sur
+    SEEDS_40. Seul ``gain_short`` lit ``required_seeds`` (défaut 40).
+    """
+    if decision_rule == "mean40":
+        return list(SEEDS_40)
+    if decision_rule == "gain_short":
+        needed = 40 if required_seeds is None else int(required_seeds)
+        if needed < 1:
+            raise ValueError("--required-seeds doit etre >= 1")
+        if needed > len(SEEDS_40):
+            raise ValueError(
+                f"--required-seeds={needed} depasse SEEDS_40 ({len(SEEDS_40)}) ; passez --seeds"
+            )
+        return list(SEEDS_40[:needed])
+    if decision_rule in ("signs20", "non_erosion"):
+        return list(SEEDS)
+    raise ValueError(f"règle d'adoption inconnue: {decision_rule}")
+
+
+def c66_threshold_specification_error(decision_rule, absolute, pct):
+    """None si le couple de seuils est acceptable, sinon le message d'erreur.
+
+    ``signs20`` et ``mean40`` exigent le seuil absolu. ``gain_short`` et
+    ``non_erosion`` exigent exactement un des deux seuils.
+    """
+    if decision_rule in ("signs20", "mean40"):
+        if absolute is None:
+            return "--min-useful-primary-delta doit etre fixe avant un banc C66.4"
+        if pct is not None:
+            return "--min-useful-primary-delta-pct ne s'applique qu'a gain_short et non_erosion"
+        return None
+    if decision_rule in ("gain_short", "non_erosion"):
+        if (absolute is None) == (pct is None):
+            return (
+                "gain_short et non_erosion exigent exactement un seuil : "
+                "--min-useful-primary-delta ou --min-useful-primary-delta-pct"
+            )
+        if pct is not None and float(pct) < 0:
+            return "--min-useful-primary-delta-pct doit etre >= 0"
+        return None
+    return f"règle d'adoption inconnue: {decision_rule}"
+
+
+def terminal_reference_profits(pairs):
+    """Profit de référence, métrique primaire, dernière année de chaque trajectoire.
+
+    Retourne None si une paire n'a pas cette observation : la moyenne ne porte
+    pas sur un sous-ensemble.
+    """
+    profits = []
+    for pair in pairs:
+        trajectory = pair.get("annual_trajectory") or []
+        if not trajectory:
+            return None
+        value = trajectory[-1].get("reference_opex")
+        if value is None:
+            return None
+        profits.append(float(value))
+    return profits
+
+
+def resolve_min_useful_primary_delta(absolute, pct, reference_terminal_profits):
+    """Retourne ``(seuil_absolu, moyenne_de_reference)``.
+
+    Si ``pct`` est fourni, ``seuil_absolu = pct / 100 * moyenne``. La moyenne
+    est celle des profits de référence de l'année terminale. Elle vaut None
+    quand la liste est vide ; le seuil relatif est alors None lui aussi.
+    """
+    if reference_terminal_profits:
+        reference_mean = statistics.mean(float(value) for value in reference_terminal_profits)
+    else:
+        reference_mean = None
+    if pct is not None:
+        if reference_mean is None:
+            return None, None
+        return (float(pct) / 100.0) * reference_mean, reference_mean
+    if absolute is None:
+        return None, reference_mean
+    return float(absolute), reference_mean
 
 
 def build_policy_comparison(
@@ -1244,8 +1619,17 @@ def build_policy_comparison(
     starting_year,
     years,
     decision_rule="signs20",
+    min_useful_primary_delta_pct=None,
+    required_seeds=None,
+    required_years=None,
 ):
     """Rapport C66.4 fail-closed pour deux politiques jouant chacune contre AAAHogEx."""
+    adoption_protocol = policy_adoption_eligibility(
+        seeds, repeats, years, decision_rule,
+        required_seeds=required_seeds,
+        required_years=required_years,
+    )
+    adoption_sample_complete = adoption_protocol["eligible"]
     index = {}
     for record in summary:
         key = (
@@ -1322,6 +1706,9 @@ def build_policy_comparison(
                     ),
                 }
 
+            town_growth_payload = _town_growth_policy_metrics(
+                records["reference_opex"], records["variant_opex"], starting_year, years
+            )
             trajectory = []
             for year in range(int(starting_year), int(starting_year) + int(years)):
                 def annual_value(policy, arm, metric):
@@ -1355,6 +1742,7 @@ def build_policy_comparison(
                     "reference_duel_gap": ref_o - ref_a if ref_o is not None and ref_a is not None else None,
                     "variant_duel_gap": var_o - var_a if var_o is not None and var_a is not None else None,
                     "air_structural_metrics": annual_structural,
+                    "town_growth_builds": town_growth_payload["builds_by_year"][str(year)],
                 })
 
             pair = {
@@ -1364,6 +1752,7 @@ def build_policy_comparison(
                 "statuses": statuses,
                 "metrics": metric_payload,
                 "air_structural_metrics": structural_payload,
+                "town_growth_metrics": town_growth_payload,
                 "annual_trajectory": trajectory,
             }
             pairs.append(pair)
@@ -1412,8 +1801,30 @@ def build_policy_comparison(
         and not incomplete_pairs
         and metric_coverage_complete
     )
+    if decision_rule in ("gain_short", "non_erosion"):
+        if (min_useful_primary_delta is None) == (min_useful_primary_delta_pct is None):
+            raise ValueError(
+                "gain_short et non_erosion exigent exactement un seuil absolu ou relatif"
+            )
+        profits = terminal_reference_profits(complete_pairs)
+        resolved_delta, reference_mean = resolve_min_useful_primary_delta(
+            min_useful_primary_delta,
+            min_useful_primary_delta_pct,
+            [] if profits is None else profits,
+        )
+        terminal_year = None
+        if profits is not None and complete_pairs:
+            terminal_year = complete_pairs[0]["annual_trajectory"][-1].get("year")
+        recorded_pct = (
+            None if min_useful_primary_delta_pct is None else float(min_useful_primary_delta_pct)
+        )
+    else:
+        resolved_delta = None
+        reference_mean = None
+        terminal_year = None
+        recorded_pct = None
+
     if decision_rule == "mean40":
-        adoption_sample_complete = planned == 40
         primary_ci95 = primary_stats.get("mean_student_t_95pct_ci")
         ci_lower_positive = (
             primary_ci95 is not None
@@ -1451,8 +1862,90 @@ def build_policy_comparison(
             ),
             "all_planned_pairs_required_for_verdict": True,
         }
+    elif decision_rule == "gain_short":
+        required_pairs = adoption_protocol["required_distinct_seeds"]
+        required_horizon = adoption_protocol["required_years"]
+        bootstrap_ci = primary_stats.get("mean_bootstrap_95pct_ci") or [None, None]
+        ci_lower = bootstrap_ci[0]
+        wilcoxon_p = primary_stats.get("wilcoxon_p")
+        wilcoxon_pass = (
+            wilcoxon_p is not None and wilcoxon_p < 0.05
+            if comparison_complete else None
+        )
+        lower_positive = ci_lower is not None and ci_lower > 0
+        gates_open = adoption_sample_complete and comparison_complete
+        ci_pass = bool(lower_positive) if gates_open else None
+        sign_pass = None
+        primary_mean_pass = (
+            resolved_delta is not None
+            and primary_stats["mean"] is not None
+            and primary_stats["mean"] >= resolved_delta
+            if comparison_complete else None
+        )
+        primary_pass = (
+            bool(wilcoxon_pass and lower_positive and primary_mean_pass)
+            if gates_open else None
+        )
+        decision_rule_record = {
+            "rule": "gain_short",
+            "required_pairs": required_pairs,
+            "required_years": required_horizon,
+            "confidence_level": 0.95,
+            "max_wilcoxon_p_exclusive": 0.05,
+            "min_useful_primary_delta": resolved_delta,
+            "min_useful_primary_delta_pct": recorded_pct,
+            "reference_terminal_year": terminal_year,
+            "reference_terminal_profit_mean": reference_mean,
+            "value_guard_max_loss_pct": float(value_guard_max_loss_pct),
+            "bootstrap_resamples": primary_stats.get("bootstrap_resamples"),
+            "bootstrap_seed": primary_stats.get("bootstrap_seed"),
+            "primary_rule": (
+                f"all planned pairs required ({required_pairs}) over {required_horizon} years; "
+                "exact two-sided Wilcoxon signed-rank p<0.05; "
+                "bootstrap percentile 95% CI lower bound > 0; "
+                "then mean(variant-reference) >= min_useful_primary_delta "
+                "(absolute, or pct/100 * mean terminal-year reference profit)"
+            ),
+            "value_guard_rule": (
+                f"all {required_pairs} reference denominators must be positive; then "
+                "ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct"
+            ),
+            "all_planned_pairs_required_for_verdict": True,
+        }
+    elif decision_rule == "non_erosion":
+        bootstrap_ci = primary_stats.get("mean_bootstrap_95pct_ci") or [None, None]
+        ci_upper = bootstrap_ci[1] if len(bootstrap_ci) > 1 else None
+        gates_open = adoption_sample_complete and comparison_complete
+        upper_shows_loss = ci_upper is not None and ci_upper < 0
+        ci_pass = (ci_upper is not None and not upper_shows_loss) if gates_open else None
+        sign_pass = None
+        primary_mean_pass = None
+        primary_pass = ci_pass
+        decision_rule_record = {
+            "rule": "non_erosion",
+            "required_pairs": 20,
+            "required_years": 10,
+            "confidence_level": 0.95,
+            "min_useful_primary_delta": resolved_delta,
+            "min_useful_primary_delta_pct": recorded_pct,
+            "reference_terminal_year": terminal_year,
+            "reference_terminal_profit_mean": reference_mean,
+            "value_guard_max_loss_pct": float(value_guard_max_loss_pct),
+            "bootstrap_resamples": primary_stats.get("bootstrap_resamples"),
+            "bootstrap_seed": primary_stats.get("bootstrap_seed"),
+            "primary_rule": (
+                "all planned pairs required (20) over 10 years; "
+                "unilateral non-erosion: fail only if the bootstrap percentile "
+                "95% CI upper bound < 0; a positive gain is not required; "
+                "min_useful_primary_delta is recorded and is not a gate"
+            ),
+            "value_guard_rule": (
+                "all 20 reference denominators must be positive; then "
+                "ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct"
+            ),
+            "all_planned_pairs_required_for_verdict": True,
+        }
     else:
-        adoption_sample_complete = planned == 20
         sign_pass = (
             primary_stats["wins"] >= 15
             and primary_stats["sign_test_p"] is not None
@@ -1515,6 +2008,7 @@ def build_policy_comparison(
         "complete_pairs": len(complete_pairs),
         "comparison_complete": comparison_complete,
         "adoption_sample_complete": adoption_sample_complete,
+        "adoption_protocol": adoption_protocol,
         "metric_coverage_complete": metric_coverage_complete,
         "incomplete_pairs": incomplete_pairs,
         "statistical_incompleteness": {
@@ -1525,6 +2019,18 @@ def build_policy_comparison(
         "per_pair": pairs,
         "aggregates": aggregates,
         "air_structural_aggregates": structural_aggregates,
+        "town_growth_aggregates": {
+            "builds_total": delta_statistics([
+                pair["town_growth_metrics"]["builds_total"]["policy_delta"]
+                for pair in complete_pairs
+            ]),
+            "builds_by_year": {
+                str(year): delta_statistics([
+                    pair["town_growth_metrics"]["builds_by_year"][str(year)]["policy_delta"]
+                    for pair in complete_pairs
+                ]) for year in range(int(starting_year), int(starting_year) + int(years))
+            },
+        },
         "sign_pass": sign_pass,
         "ci_pass": ci_pass,
         "primary_mean_pass": primary_mean_pass,
@@ -1547,17 +2053,23 @@ def main():
     parser.add_argument("--years", type=int, default=DEFAULT_YEARS)
     parser.add_argument(
         "--decision-rule",
-        choices=["signs20", "mean40"],
+        choices=list(DECISION_RULES),
         default="signs20",
-        help="Règle d'adoption C66.4 : 'signs20' (20 paires, test des signes bilatéral 15/20) "
-             "ou 'mean40' (40 paires, IC95 Student-t > 0 et moyenne >= min_useful_primary_delta)",
+        help="Règle d'adoption C66.4 : 'signs20' (20 graines, test des signes bilatéral 15/20, 10 ans) "
+             "ou 'mean40' (40 graines, IC95 Student-t > 0 et moyenne >= seuil, 10 ans). "
+             "'gain_short' (défaut 40 graines x 3 ans : Wilcoxon p<0.05, borne basse du IC95 "
+             "bootstrap > 0, moyenne >= seuil, garde de valeur). "
+             "'non_erosion' (20 graines x 10 ans : échec seulement si la borne haute du IC95 "
+             "bootstrap < 0 ou si la garde de valeur casse). "
+             "signs20 et mean40 exigent 10 ans et une répétition ; sinon diagnostic.",
     )
     parser.add_argument(
         "--seeds",
         nargs="+",
         type=int,
         default=None,
-        help="Graines de carte (défaut : SEEDS (20) sous signs20, SEEDS_40 (40) sous mean40)",
+        help="Graines de carte (défaut : SEEDS (20) sous signs20 et non_erosion, "
+             "SEEDS_40 (40) sous mean40 et gain_short)",
     )
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-workers", type=int, default=3)
@@ -1568,6 +2080,28 @@ def main():
     parser.add_argument("--variant-policy-id", help="C66.4 : identifiant stable de la variante")
     parser.add_argument("--primary-metric", choices=list(SUCCESS_METRICS), default=PRIMARY_METRIC)
     parser.add_argument("--min-useful-primary-delta", type=float)
+    parser.add_argument(
+        "--min-useful-primary-delta-pct",
+        type=float,
+        help="Seuil utile en pourcentage du profit de référence de l'année terminale. "
+             "Mutuellement exclusif avec --min-useful-primary-delta. "
+             "gain_short et non_erosion exigent exactement un des deux. "
+             "signs20 et mean40 conservent le seuil absolu.",
+    )
+    parser.add_argument(
+        "--required-seeds",
+        type=int,
+        default=None,
+        help="gain_short seulement : graines distinctes exigées (défaut 40). "
+             "Ignoré par signs20, mean40 et non_erosion.",
+    )
+    parser.add_argument(
+        "--required-years",
+        type=int,
+        default=None,
+        help="gain_short seulement : années exigées (défaut 3). "
+             "Ignoré par signs20, mean40 et non_erosion.",
+    )
     parser.add_argument("--value-guard-max-loss-pct", type=float)
     parser.add_argument("--out", type=Path, default=None, help="JSON final ; C66.3 refuse tout ecrasement")
     parser.add_argument("--docker-image", default=os.environ.get("C66_DOCKER_IMAGE", "openttd-lab"))
@@ -1576,6 +2110,10 @@ def main():
     parser.add_argument(
         "--line-telemetry", action="store_true",
         help="Diagnostic passif annuel: reconstruit les lignes depuis VEHS + ORDL/ORDR + STNN",
+    )
+    parser.add_argument(
+        "--line-telemetry-monthly", action="store_true",
+        help="Avec --line-telemetry, reconstruit les lignes a chaque checkpoint mensuel (post-traitement savegame uniquement)",
     )
     parser.add_argument(
         "--script-debug", action="store_true",
@@ -1587,29 +2125,15 @@ def main():
     )
     args = parser.parse_args()
     if args.seeds is None:
-        args.seeds = list(SEEDS_40) if args.decision_rule == "mean40" else list(SEEDS)
+        try:
+            args.seeds = default_seeds_for_rule(args.decision_rule, args.required_seeds)
+        except ValueError as exc:
+            parser.error(str(exc))
 
     if args.selftest:
         selftest()
         return
 
-    import openttdlab
-    from openttdlab import run_experiments
-    from bench_v2 import enable_savegame_cleanup, write_json_atomically
-
-    if args.script_debug:
-        real_check_output = openttdlab.subprocess.check_output
-
-        def check_output_with_script_debug(command, *rest, **kwargs):
-            command = tuple(command)
-            if any(str(part).startswith("-vnull") for part in command):
-                command = command[:1] + ("-d", "script=4") + command[1:]
-            return real_check_output(command, *rest, **kwargs)
-
-        openttdlab.subprocess.check_output = check_output_with_script_debug
-
-    global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY
-    LINE_TELEMETRY = bool(args.line_telemetry)
     if args.repeats < 1:
         parser.error("--repeats doit etre >= 1")
     reference_settings = ()
@@ -1628,8 +2152,18 @@ def main():
             parser.error("--variant-policy-id est requis avec --variant")
         if args.variant_policy_id == args.policy_id:
             parser.error("--variant-policy-id doit differer de --policy-id")
-        if args.min_useful_primary_delta is None:
-            parser.error("--min-useful-primary-delta doit etre fixe avant un banc C66.4")
+        threshold_error = c66_threshold_specification_error(
+            args.decision_rule,
+            args.min_useful_primary_delta,
+            args.min_useful_primary_delta_pct,
+        )
+        if threshold_error:
+            parser.error(threshold_error)
+        if args.decision_rule == "gain_short":
+            if args.required_seeds is not None and args.required_seeds < 1:
+                parser.error("--required-seeds doit etre >= 1")
+            if args.required_years is not None and args.required_years < 1:
+                parser.error("--required-years doit etre >= 1")
         if args.value_guard_max_loss_pct is None:
             parser.error("--value-guard-max-loss-pct doit etre fixe avant un banc C66.4")
         if args.value_guard_max_loss_pct < 0:
@@ -1657,8 +2191,14 @@ def main():
             "value_guard_max_loss_pct": args.value_guard_max_loss_pct,
             "all_planned_pairs_required_for_verdict": True,
         }
+        if args.decision_rule in ("gain_short", "non_erosion"):
+            decision_rule["min_useful_primary_delta_pct"] = args.min_useful_primary_delta_pct
+        if args.decision_rule == "gain_short":
+            decision_rule["required_seeds"] = args.required_seeds
+            decision_rule["required_years"] = args.required_years
     elif any(value is not None for value in (
         args.variant_policy_id, args.min_useful_primary_delta, args.value_guard_max_loss_pct,
+        args.min_useful_primary_delta_pct,
     )):
         parser.error("les options C66.4 de variante exigent --variant")
 
@@ -1685,7 +2225,80 @@ def main():
         policy_definitions=policies,
         intervention_settings=intervention_settings,
         decision_rule=decision_rule,
+        execution_options={key: str(value) if isinstance(value, Path) else value
+                           for key, value in vars(args).items()},
     )
+    returncode = launch_frozen_campaign(campaign)
+    if returncode:
+        raise SystemExit(returncode)
+
+
+def frozen_execution_inputs(campaign):
+    """Read hashed options/policies and reject inconsistent protocol metadata."""
+    manifest = campaign.manifest
+    args = argparse.Namespace(**manifest["execution"]["options"])
+    config = manifest["configuration"]
+    for key in ("seeds", "years", "repeats"):
+        if getattr(args, key) != config[key]:
+            raise ValueError(f"frozen execution option mismatch: {key}")
+    if (config["starting_year"] != STARTING_YEAR
+            or manifest["versions"]["openttd"] != OPENTTD_VERSION
+            or manifest["versions"]["opengfx"] != OPENGFX_VERSION):
+        raise ValueError("frozen runtime constants differ from manifest")
+    if args.policy_id != manifest["policy"]["id"]:
+        raise ValueError("frozen reference policy mismatch")
+    comparison = manifest.get("comparison")
+    if comparison:
+        if args.variant_policy_id != comparison["variant_policy_id"]:
+            raise ValueError("frozen variant policy mismatch")
+        rule = comparison["decision_rule"]
+        for option, field in (("decision_rule", "rule"), ("primary_metric", "primary_metric"),
+                              ("min_useful_primary_delta", "min_useful_primary_delta"),
+                              ("value_guard_max_loss_pct", "value_guard_max_loss_pct")):
+            if getattr(args, option) != rule[field]:
+                raise ValueError(f"frozen decision rule mismatch: {option}")
+        for option, field in (
+            ("min_useful_primary_delta_pct", "min_useful_primary_delta_pct"),
+            ("required_seeds", "required_seeds"),
+            ("required_years", "required_years"),
+        ):
+            if field in rule and getattr(args, option, None) != rule[field]:
+                raise ValueError(f"frozen decision rule mismatch: {option}")
+    elif args.variant_policy_id is not None:
+        raise ValueError("frozen variant missing from manifest")
+    policies = [
+        {"id": policy["id"], "role": policy["role"],
+         "explicit_settings": tuple(policy["settings"]["explicit"].items())}
+        for policy in manifest["policies"]
+    ]
+    return args, policies
+
+
+def execute_frozen_campaign(campaign):
+    """Called only by the verified bundle's isolated bootstrap, not live main()."""
+    import openttdlab
+    from openttdlab import run_experiments
+    from bench_v2 import enable_savegame_cleanup, write_json_atomically
+    from frozen_harness import verify_manifest_bundle
+
+    expected_source = campaign.bundle_dir / "harness" / "sweeps" / Path(__file__).name
+    if Path(__file__).resolve() != expected_source.resolve():
+        raise RuntimeError("campaign executor must originate from the frozen bundle")
+    args, policies = frozen_execution_inputs(campaign)
+    if args.script_debug:
+        real_check_output = openttdlab.subprocess.check_output
+
+        def check_output_with_script_debug(command, *rest, **kwargs):
+            command = tuple(command)
+            if any(str(part).startswith("-vnull") for part in command):
+                command = command[:1] + ("-d", "script=4") + command[1:]
+            return real_check_output(command, *rest, **kwargs)
+
+        openttdlab.subprocess.check_output = check_output_with_script_debug
+
+    global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY, LINE_TELEMETRY_MONTHLY
+    LINE_TELEMETRY = bool(args.line_telemetry)
+    LINE_TELEMETRY_MONTHLY = bool(getattr(args, "line_telemetry_monthly", False))
     out = campaign.out_path
     CHECKPOINT_PATH = campaign.checkpoint_path
     ENGINE_LOG_DIR = campaign.engine_log_dir
@@ -1721,20 +2334,11 @@ def main():
     )
     print(f"Workers: {args.max_workers} | Sortie: {out}")
 
-    result_processor = keep
-    if getattr(keep, "__module__", None) == "__main__":
-        import importlib
-        processor_module = importlib.import_module("bench_1v1_5y_20seeds")
-        processor_module.CHECKPOINT_PATH = CHECKPOINT_PATH
-        processor_module.ENGINE_LOG_DIR = ENGINE_LOG_DIR
-        processor_module.LINE_TELEMETRY = LINE_TELEMETRY
-        result_processor = processor_module.keep
-
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers,
-        result_processor=result_processor,
+        result_processor=keep,
         experiments=exps,
         ai_libraries=campaign.ai_libraries,
     ))
@@ -1799,7 +2403,16 @@ def main():
         part = summarise(recs, expected_last_year=last_year, expected_savegames=args.years * 12)
         part = _stamp_structural_metrics(part, recs)
         part_annotated = annotate_summary(part, recs, assessment)
+        # Parse the final cumulative log once per game, not once per snapshot.
+        # Absence remains unknown; only OpexAI owns this branch's exposure.
+        c83_reaction = parse_c83_reactions(
+            Path(log_path).read_text(encoding="utf-8") if log_path and Path(log_path).is_file() else None
+        )
         for record in part_annotated:
+            if record["arm"] == "OpexAI":
+                record["c83_reaction"] = c83_reaction
+                record["c83_local_repair"] = parse_c83_repairs(
+                    Path(log_path).read_text(encoding="utf-8") if log_path is not None else None)
             if record.get("status") == "bankrupt":
                 for metric in SUCCESS_METRICS:
                     if record.get(metric) is None:
@@ -1890,9 +2503,12 @@ def main():
     for policy in policies:
         current_id = policy["id"]
         policy_summary = [record for record in summary if record.get("duel_policy_id") == current_id]
+        comparisons = annotate_paired_comparison_wilcoxon(
+            paired_comparisons(policy_summary, list(ARMS))
+        )
         policy_reports[current_id] = {
             "statistics": arm_statistics(policy_summary, list(ARMS)),
-            "paired_comparisons": paired_comparisons(policy_summary, list(ARMS)),
+            "paired_comparisons": comparisons,
         }
 
     policy_comparison = None
@@ -1906,6 +2522,9 @@ def main():
             variant_policy_id=args.variant_policy_id,
             primary_metric=args.primary_metric,
             min_useful_primary_delta=args.min_useful_primary_delta,
+            min_useful_primary_delta_pct=getattr(args, "min_useful_primary_delta_pct", None),
+            required_seeds=getattr(args, "required_seeds", None),
+            required_years=getattr(args, "required_years", None),
             value_guard_max_loss_pct=args.value_guard_max_loss_pct,
             starting_year=STARTING_YEAR,
             years=args.years,
@@ -1962,6 +2581,8 @@ def main():
         "policy_comparison": policy_comparison,
         "line_telemetry": build_line_telemetry_report(rows) if LINE_TELEMETRY else None,
     }
+    # A modified bundle cannot receive a final campaign report claiming its old hash.
+    verify_manifest_bundle(campaign.manifest_path, campaign.manifest_sha256)
     write_json_atomically(out, payload)
 
     print("\n" + "=" * 115)
@@ -2028,7 +2649,7 @@ def main():
                 diff = m.get("mean_difference_percent")
                 wins = m.get("arm_a_beats_arm_b")
                 n = m.get("n")
-                pval = m.get("wilcoxon_p") or m.get("sign_test_p")
+                pval = paired_metric_display_p(m)
                 pval_str = f"p={pval:.4f}" if pval is not None else "p=N/A"
                 if diff is not None:
                     print(f"  {metric:<24} : d% = {diff:+.2f}% | Victoires {a} = {wins}/{n} ({pval_str})")
@@ -2043,6 +2664,24 @@ def main():
                 f"{args.primary_metric}: delta moyen={primary['mean']} median={primary['median']} "
                 f"V/D/E={primary['wins']}/{primary['losses']}/{primary['ties']} "
                 f"CI95_Student={ci_t} (borne basse > 0: {policy_comparison.get('ci_pass')})"
+            )
+        elif args.decision_rule == "gain_short":
+            rule = policy_comparison["decision_rule"]
+            print(
+                f"{args.primary_metric}: delta moyen={primary['mean']} median={primary['median']} "
+                f"V/D/E={primary['wins']}/{primary['losses']}/{primary['ties']} "
+                f"p_wilcoxon={primary.get('wilcoxon_p')} "
+                f"CI95_bootstrap={primary.get('mean_bootstrap_95pct_ci')} "
+                f"seuil={rule.get('min_useful_primary_delta')} "
+                f"(pct={rule.get('min_useful_primary_delta_pct')})"
+            )
+        elif args.decision_rule == "non_erosion":
+            print(
+                f"{args.primary_metric}: delta moyen={primary['mean']} median={primary['median']} "
+                f"V/D/E={primary['wins']}/{primary['losses']}/{primary['ties']} "
+                f"p_wilcoxon={primary.get('wilcoxon_p')} "
+                f"CI95_bootstrap={primary.get('mean_bootstrap_95pct_ci')} "
+                f"(echec si borne haute < 0)"
             )
         else:
             print(
@@ -2455,7 +3094,7 @@ def selftest():
                     case_rows.append({
                         **record,
                         "run": [arm, seed, 0],
-                        "date": "1970-12-01",
+                        "date": "1979-12-01",
                     })
         return build_policy_comparison(
             case_summary,
@@ -2468,7 +3107,7 @@ def selftest():
             min_useful_primary_delta=5,
             value_guard_max_loss_pct=5,
             starting_year=1970,
-            years=1,
+            years=10,
             decision_rule=decision_rule,
         )
 

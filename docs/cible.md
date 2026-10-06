@@ -1,5 +1,18 @@
 # Architecture cible d'OpexAI — version corrigée
 
+> **Document historique de conception et de revues successives, pas un contrat courant.**
+> Les schémas, formules proposées, tableaux « à faire », verdicts et mentions « normative »
+> ci-dessous sont conservés dans leur contexte daté ; ils n'autorisent aucune réactivation.
+> Voir [AGENTS.md](../AGENTS.md) et [taches.md](taches.md), seule liste autoritaire du travail
+> restant. Les résultats antérieurs au 9 septembre ne font plus preuve actuelle.
+
+**Repères courants (relecture du 30 septembre 2026).** Le classement des projets finançables
+dans [`projects.nut`](../ai/OpexAI/projects.nut) utilise `fundScore` sur le **profit calibré**,
+pas le revenu, avec le dénominateur C69 `max(capital de décision, K_dec)` et ses
+exemptions/priorités. La formule composée de tension ci-dessous n'est donc pas le contrat
+du score courant. [`persist.nut`](../ai/OpexAI/persist.nut) implémente effectivement
+`Save`, `Load` et `_reconcileAfterLoad` ; la persistance des lignes n'est plus une cible à créer.
+
 Origine : schéma d'orchestrateur proposé par Gemini le 2026-09-03, à la suite du modèle de tension
 de Liebig (`docs/taches.md` §3 terdecies). **L'idée générale est retenue.** Ce document sépare ce
 qui est juste, ce qui est faux, et ce qui contredit nos propres mesures.
@@ -365,7 +378,8 @@ script.script_max_opcode_till_suspend   def = 10000   max = 250000
 
 ### 8.4 C39 — bus d'invalidation événementiel et réconciliation périodique (2026-09-08)
 
-Cette section est normative pour l'architecture future. Le moteur publie les événements dans la
+Cette section était une proposition normative au 8 septembre, pas un contrat courant.
+Le moteur publie les événements dans la
 file propre à l'instance du script. OpexAI la consomme déjà correctement avec
 `AIEventController.IsEventWaiting()`, `GetNextEvent()`, `GetEventType()` puis la méthode statique
 `.Convert(event)` de la classe spécialisée (`main.nut:4609-4874`).

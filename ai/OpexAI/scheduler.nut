@@ -119,6 +119,86 @@ function OpexAI::_runNextTaskWithSlackLedger()
   this._railWorkerSteppedThisTick = false;
   return ran;
 }
+/* P7 experimental, raccordement globals_pre/settings/info :
+ * globals_pre : EXP_SCHEDULER_SKIP_NOT_DUE <- false;
+ * settings : exp_scheduler_skip_not_due != 0 (reglage bool, quatre defauts 0).
+ * Helpers libres : aucune declaration de methode/etat dans main, aucun nouvel etat Save/Load.
+ * Liste blanche volontairement minimale, verifiee contre scheduler_tasks.nut.
+ * catalog_fresh est EXCLU : avant sa garde, C121 met a jour son etat et le lot de production,
+ * un rebuild C78 peut avancer/publier, et les sondes de capital ont des effets observables.
+ * projects_null, air/expand disabled, town_growth et les workers ne sont pas des filtres P7. */
+function OpexExpSchedulerSkipReason(owner, candidate, year)
+{
+  if (owner._projects == null) return null;
+  if (candidate.name == "report" && owner._lastReportYear == year) return "report_same_year";
+  if (candidate.name == "repay") {
+    /* Meme cle que _dispatchRepay : annee du dispatch, mois lu au moment du predicat.
+     * Aucun test de cash/dette : meme un essai sans remboursement consomme son mois. */
+    local date = AIDate.GetCurrentDate();
+    local ym = year * 12 + AIDate.GetMonth(date);
+    if (owner._lastRepayMonth == ym) return "repay_same_month";
+  }
+  return null;
+}
+
+function OpexExpSchedulerSelectTask(owner, year)
+{
+  local count = owner._taskQueue.len();
+  local index = owner._taskCursor;
+  local startCursor = index;
+  local startCycle = owner._taskCycle;
+  local selected = -1;
+  local scanned = 0;
+  local reportSkips = 0;
+  local repaySkips = 0;
+  /* Au plus UN tour de la file, pas un tour de dispatchs ni une recursion.
+   * Le suffixe est lu au cycle courant, le prefixe au suivant. A la borne, les entrees
+   * du suffixe devenues dues attendent l'appel suivant : ne jamais les relire ici.
+   * Cela peut rendre false une fois avant une echeance, mais ne peut affamer une entree. */
+  for (local visited = 0; visited < count; visited++) {
+    if (index >= count) {
+      owner._taskCycle++;
+      index = 0;
+    }
+    local candidate = owner._taskQueue[index];
+    scanned++;
+    if (candidate.enabled && candidate.dueCycle <= owner._taskCycle) {
+      local reason = OpexExpSchedulerSkipReason(owner, candidate, year);
+      if (reason == null) {
+        selected = index;
+        break;
+      }
+      /* Consommer exactement l'echeance du dispatch no-op, sans toucher son horloge
+       * metier (_lastReportYear/_lastRepayMonth), enabled, ni les autres echeances. */
+      owner._taskCursor = (index + 1) % count;
+      candidate.dueCycle = owner._taskCycle + 1;
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_ENTER", candidate.name, owner._taskCycle);
+      if (C50_CHRONOLOGY_PROBE) owner._checkC50MonthlyTreasury(year);
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", candidate.name, owner._taskCycle);
+      if (reason == "report_same_year") reportSkips++;
+      else repaySkips++;
+    }
+    index++;
+  }
+  if (index >= count) {
+    owner._taskCycle++;
+    index = 0;
+  }
+  owner._taskCursor = index;
+  /* Une seule ligne agregee par scan avec skips, aucun scan de vehicules/villes/projets.
+   * SCHED_IDLE conserve son peek historique (avant continuations) ; cette preuve P7
+   * explicite les skips reels et la selection finale, sans modifier les mesures P5. */
+  if ((V95_SCHED_IDLE_LEDGER || DECISION_LOG) && reportSkips + repaySkips > 0) {
+    local fields = "report_same_year=" + reportSkips + " repay_same_month=" + repaySkips
+        + " scanned=" + scanned + " limit=" + count + " cursor_from=" + startCursor
+        + " cycle_from=" + startCycle + " cycle=" + owner._taskCycle
+        + " next=" + (selected >= 0 ? owner._taskQueue[selected].name : "idle");
+    if (V95_SCHED_IDLE_LEDGER) OpexSchedIdleLog("P7_SCHED_SKIP", fields);
+    else OpexDecide("P7_SCHED_SKIP", fields);
+  }
+  return selected;
+}
+
 /* File CONTINUE : le scan reprend apres la derniere tache choisie, meme si un A* a franchi le
  * changement d'annee. Le calendrier ne decide plus RIEN : quand le suffixe de la table est fini,
  * _taskCycle avance et le scan repart a zero. Chaque tache se reporte par dueCycle, donc aucun
@@ -173,7 +253,8 @@ function OpexAI::_runNextTask()
    * _runOrchestratorTick (étape c) avant la file de fond ; elle n'est pas refaite ici.
    * V89 : sous v89_rail_search_throughput=1, avance des tranches supplémentaires sur le
    * budget d'opcodes disponible du tick. */
-  if (this._railSearch != null && !this._railWorkerSteppedThisTick) {
+  if (this._railSearch != null && !this._railWorkerSteppedThisTick
+      && !(C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold)) {
     this._advanceRailSearchSliceWithLedgers();
     if (V89_RAIL_SEARCH_THROUGHPUT) {
       this._advanceRailSearchThroughput();
@@ -182,23 +263,29 @@ function OpexAI::_runNextTask()
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local task = null;
   local taskIndex = -1;
-  for (local index = this._taskCursor; index < this._taskQueue.len(); index++) {
-    local candidate = this._taskQueue[index];
-    if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
-      task = candidate;
-      taskIndex = index;
-      break;
-    }
-  }
-  if (task == null) {
-    this._taskCycle++;
-    this._taskCursor = 0;
-    for (local index = 0; index < this._taskQueue.len(); index++) {
+  if (EXP_SCHEDULER_SKIP_NOT_DUE) {
+    taskIndex = OpexExpSchedulerSelectTask(this, year);
+    if (taskIndex >= 0) task = this._taskQueue[taskIndex];
+  } else {
+    /* Chemin temoin conserve : meme scan suffixe puis file entiere au cycle suivant. */
+    for (local index = this._taskCursor; index < this._taskQueue.len(); index++) {
       local candidate = this._taskQueue[index];
       if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
         task = candidate;
         taskIndex = index;
         break;
+      }
+    }
+    if (task == null) {
+      this._taskCycle++;
+      this._taskCursor = 0;
+      for (local index = 0; index < this._taskQueue.len(); index++) {
+        local candidate = this._taskQueue[index];
+        if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
+          task = candidate;
+          taskIndex = index;
+          break;
+        }
       }
     }
   }
@@ -215,7 +302,14 @@ function OpexAI::_runNextTask()
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_ENTER", task.name, this._taskCycle);
   if (C50_CHRONOLOGY_PROBE) this._checkC50MonthlyTreasury(year);
 
-  if (task.name == "catalog") return this._dispatchCatalog(task, year);
+  local spTask = null;
+  local ranTask = false;
+  if (task.name == "catalog") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
+    ranTask = this._dispatchCatalog(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
   if (task.name == "c41_water") return false;
   if (this._projects == null) {
     /* `_taskCycle` (et non `+ 1`) laissait la tache due au cycle COURANT. Or le cycle n'avance que
@@ -231,15 +325,60 @@ function OpexAI::_runNextTask()
   }
   if (task.name == "c41_rail_signals") return this._dispatchC41RailSignals(task, year);
   if (task.name == "c41_rail_junction") return this._dispatchC41RailJunction(task, year);
-  if (task.name == "report") return this._dispatchReport(task, year);
-  if (task.name == "scrap") return this._dispatchScrap(task, year);
-  if (task.name == "air") return this._dispatchAir(task, year);
-  if (task.name == "air_fleet") return this._dispatchAirFleet(task, year);
-  if (task.name == "projects") return this._dispatchProjects(task, year);
-  if (task.name == "expand") return this._dispatchExpand(task, year);
-  if (task.name == "refleet") return this._dispatchRefleet(task, year);
-  if (task.name == "town_growth") return this._dispatchTownGrowth(task, year);
-  if (task.name == "repay") return this._dispatchRepay(task, year);
+  if (task.name == "report") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.report") : null;
+    ranTask = this._dispatchReport(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "scrap") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.scrap") : null;
+    ranTask = this._dispatchScrap(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "air") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.air") : null;
+    ranTask = this._dispatchAir(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "air_fleet") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.air_fleet") : null;
+    ranTask = this._dispatchAirFleet(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "projects") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.projects") : null;
+    ranTask = this._dispatchProjects(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "expand") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.expand") : null;
+    ranTask = this._dispatchExpand(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "refleet") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.refleet") : null;
+    ranTask = this._dispatchRefleet(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "town_growth") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.town_growth") : null;
+    ranTask = this._dispatchTownGrowth(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "repay") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.repay") : null;
+    ranTask = this._dispatchRepay(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
   AILog.Error("Unknown scheduler task name: " + task.name);
   task.enabled = false;
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
@@ -251,6 +390,7 @@ function OpexAI::_runNextTask()
 function OpexAI::_advanceRailSearchSliceWithLedgers()
 {
   if (this._railSearch == null) return;
+  local spanSlice = null;
   /* C41.46 : n'encadrer que les passes qui font REELLEMENT avancer l'A* -- phase == "search".
    * phase == "build" retourne immediatement pour kind == "primary" (le cout reel est ailleurs,
    * dans _consumeRailSearch via la tache "projects") ou execute _consumeRailUpgrade() pour
@@ -263,6 +403,7 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
      * de tick de depart -- pas de second AIController.GetTick(). */
     local c39SliceDateBefore = C39_PASS_CLOCK_LEDGER ? AIDate.GetCurrentDate() : -1;
     local sliceMark = OpexOpsMeasureBegin();
+    spanSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     this._continueRailSearch();
     /* C39.6 reutilise ce MEME sliceOps que C41.46 -- pas de second begin()/end() pour la meme
      * tranche, les deux sondes partagent la seule mesure d'opcodes necessaire. */
@@ -288,6 +429,7 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
   } else {
     local sliceMark = (V89_RAIL_SEARCH_THROUGHPUT && this._railSearch.phase == "search")
         ? OpexOpsMeasureBegin() : null;
+    if (this._railSearch.phase == "search") spanSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     this._continueRailSearch();
     if (sliceMark != null) {
       local sliceOps = OpexOpsMeasureEnd(sliceMark);
@@ -297,6 +439,10 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
         this._v89EstimatedSliceOps = nextEst;
       }
     }
+  }
+  if (spanSlice != null) OpexSpanAgg("astar.slice", spanSlice);
+  if (PROBE_SPAN_TRACE && this._railSearch != null && this._railSearch.phase == "build") {
+    OpexSpanEvent("astar_ready", "kind=" + this._railSearch.kind);
   }
 }
 
@@ -338,6 +484,10 @@ function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)
 {
   if (!V89_RAIL_SEARCH_THROUGHPUT) return 0;
   if (this._railSearch == null || this._railSearch.phase != "search") return 0;
+  /* Hold pose seulement par la preparation C121 quand l'AIR est finançable.
+   * Sans recherche en cours, la ligne precedente a deja rendu la main. */
+  if (C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold) return 0;
+  local spThru = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.throughput") : null;
 
   local slicesRan = 0;
   local minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
@@ -352,11 +502,13 @@ function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)
     this._advanceRailSearchSliceWithLedgers();
     slicesRan++;
     minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
-    if (V88_STEP2_RAIL_PRIO && minThreshold > 2500 && ("candidate" in this._railSearch) && this._railSearch.candidate != null
+    /* daycap peut avoir libere le creneau dans la tranche : ne pas lire une table nulle. */
+    if (V88_STEP2_RAIL_PRIO && minThreshold > 2500 && this._railSearch != null && ("candidate" in this._railSearch) && this._railSearch.candidate != null
         && ((("isChainStep1" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep1)
             || (("isChainStep2" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep2))) {
       minThreshold = 2500;
     }
   }
+  if (spThru != null) OpexSpanEnd(spThru);
   return slicesRan;
 }

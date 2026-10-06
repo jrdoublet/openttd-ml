@@ -1,9 +1,13 @@
 """Contrat V92 : choix d'un service aerien (moteur x nombre) et variante bon marche."""
 from pathlib import Path
 import unittest
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILDER = (ROOT / "ai" / "OpexAI" / "builder_air.nut").read_text(encoding="utf-8")
+BUILDER = read_builder_air()
 GLOBALS = (ROOT / "ai" / "OpexAI" / "globals_pre.nut").read_text(encoding="utf-8")
 INFO = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
 SETTINGS = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
@@ -84,7 +88,10 @@ class V92AirServiceChoiceTests(unittest.TestCase):
         self.assertEqual(replace.count("OpexAirRebuildFleet(line, hangar, oldEngine, oldCount, cargo)"), 2)
         self.assertIn("line.vehicles = []", replace)
         resize = function_body(TASK_AIR, "function OpexAI::_resizeAirFleets(")
-        self.assertLess(resize.index("OpexAirLineReequipPending(line)"), resize.index("lastAirFleetYear"))
+        # Le prefiltre de cooldown (opcodes) est saute sous V92 ; l'ordre se lit sur le garde historique.
+        self.assertIn("AIR_FLEET_COOLDOWN_PREFILTER && !V92_AIR_SERVICE_CHOICE", resize)
+        self.assertLess(resize.index("OpexAirLineReequipPending(line)"),
+                        resize.index('if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) {'))
         report = (ROOT / "ai" / "OpexAI" / "task_report.nut").read_text(encoding="utf-8")
         scrap = function_body(report, "function OpexAI::_triggerScrapLine(")
         self.assertIn("if (!reequipPending) AIVehicle.SendVehicleToDepot(v);", scrap)

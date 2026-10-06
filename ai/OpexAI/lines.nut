@@ -36,6 +36,8 @@ function OpexAttemptReasonCode(reason)
 function OpexBuildFailureIsAbandonable(result)
 {
   if (result == null) return false;
+  /* Attente de liquidation R19 : ni impossibilite geometrique ni nouvel echec. */
+  if (("reason" in result) && result.reason == "RECOVERY") return false;
   if (!ABANDON_MEMORY_TRANSIENT_GUARD) return true;
   if (("reason" in result) && result.reason == "CASH") return false;
   if (("error" in result) && result.error == AIError.ERR_NOT_ENOUGH_CASH) return false;
@@ -257,6 +259,12 @@ function OpexAbandonedPairKey(candidate)
     }
   }
   return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;
+}
+/* V100 : cle d'echec de doublement de voie d'une ligne dans _abandonedPairs (sauvegardee,
+ * purgee par _pruneAbandonedPairs au meme delai que les paires de lignes neuves). */
+function OpexRailUpgradeRejectKey(lineId)
+{
+  return "rail_upgrade|" + lineId;
 }
 /* C33.3 : Enregistre un échec de construction avec horodatage et compteur d'échecs cumulés. */
 function OpexAI::_markPairAbandoned(key)

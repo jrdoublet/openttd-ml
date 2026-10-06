@@ -3,6 +3,10 @@ from pathlib import Path
 import json
 import sys
 import unittest
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
@@ -40,7 +44,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertNotIn('("probe_events", 1)', runner)
 
     def test_demand_shadow_is_post_decision_and_default_off(self):
-        builder = BUILDER.read_text(encoding="utf-8")
+        builder = read_builder_air()
         task = TASK_AIR.read_text(encoding="utf-8")
         selected = task.index("local buildPlan = buildChoice.plan;")
         shadow = task.index("OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);")
@@ -55,7 +59,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn('"--demand-shadow"', runner)
 
     def test_demand_shadow_uses_square_station_catchment_geometry(self):
-        src = BUILDER.read_text(encoding="utf-8")
+        src = read_builder_air()
         start = src.index("function OpexAirB9TownCoverageTiles")
         end = src.index("function OpexAirB9DemandShadowEndpoint", start)
         shadow = src[start:end]
@@ -72,7 +76,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertNotIn("AIMap.DistanceManhattan(tile, stop) <= busRadius", shadow)
 
     def test_joined_stop_shadow_prefilters_with_aitilelist(self):
-        src = BUILDER.read_text(encoding="utf-8")
+        src = read_builder_air()
         start = src.index("function OpexAirB9PredictJoinedStops")
         end = src.index("function OpexAirB9TownCoverageTiles", start)
         shadow = src[start:end]
@@ -94,7 +98,7 @@ class TestB9AirCatchment(unittest.TestCase):
         )
 
     def test_probe_airport_only_uses_square_catchment_not_manhattan(self):
-        src = BUILDER.read_text(encoding="utf-8")
+        src = read_builder_air()
         start = src.index("function OpexAirCatchmentProbeEndpoint")
         end = src.index('OpexAirCatchmentLog("AIR_CATCHMENT_ENDPOINT"', start)
         probe = src[start:end]
@@ -155,7 +159,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("if (!AIR_CATCHMENT_PROBE) return;", probes[start:start + 500])
 
     def test_probe_runs_after_success_and_before_reconciliation(self):
-        src = BUILDER.read_text(encoding="utf-8")
+        src = read_builder_air()
         probe = src.index('OpexAirCatchmentLog("AIR_CATCHMENT_BUILD"')
         reconcile = src.index("OpexAirReconcileActualBuild(catalog, plan, result);")
         success = src.index("result.ok = true;", src.index("function OpexBuildAirRoute"))
@@ -165,7 +169,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("joinedMonthlyPaxB = 0", src)
 
     def test_probe_keeps_measurement_dimensions_separate(self):
-        src = BUILDER.read_text(encoding="utf-8")
+        src = read_builder_air()
         for token in (
             "airport_pax_prod=", "union_pax_prod=", "airport_mail_prod=",
             "union_mail_prod=", "base_source=", "base_monthly=",
@@ -201,7 +205,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertGreater(sample["width"], 0)
 
     def test_air_default_planning_uses_named_proxy_not_duplicated_literal(self):
-        src = BUILDER.read_text(encoding="utf-8")
+        src = read_builder_air()
         self.assertNotIn("* 22", src)
         self.assertGreaterEqual(src.count("TOWN_CATCHMENT_SHARE_PCT"), 4)
         self.assertIn(
@@ -211,7 +215,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("town_population_proxy", src)
 
     def test_joined_stop_reconciliation_uses_union_marginal(self):
-        src = BUILDER.read_text(encoding="utf-8")
+        src = read_builder_air()
         self.assertIn("function OpexAirJoinedMarginalProduction", src)
         self.assertIn("joinedRawMonthlyPaxA = 0", src)
         self.assertIn("result.joinedRawMonthlyPaxA = joinedA.monthlyPax;", src)

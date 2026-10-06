@@ -1,6 +1,7 @@
 """Contrats B6: instrumentation passive du classement/capital/cache, sans politique."""
 from pathlib import Path
 import unittest
+from opex_projects_source import read_projects_source
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
@@ -24,7 +25,7 @@ def body(text, signature):
 class TestB6PortfolioCausality(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.projects = read("projects.nut")
+        cls.projects = read_projects_source()
         cls.globals = read("globals_post.nut")
 
     def test_current_policy_is_observed_not_changed(self):
@@ -32,9 +33,15 @@ class TestB6PortfolioCausality(unittest.TestCase):
         self.assertIn("PORTFOLIO_FLOOR_PCT <- 0;", self.globals)
         select = body(self.projects, "function OpexProjectSelectAffordable(")
         self.assertIn('"fundScore"', select)
-        self.assertIn("OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,", select)
-        self.assertIn('(C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital && !fleetExemptDecision) ? kDec : decisionFinanceCapital', select)
+        # 9e29951 : le split C121 (defaut 0) factorise profit et capital de
+        # classement ; hors split ils restent calibre C70 et decisionFinanceCapital.
+        self.assertIn("OpexProjectScore(OpexProjectFundProfit(project),", select)
         flat = " ".join(select.split())
+        self.assertIn('(C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision) ? kDec : scoreDecisionFinanceCapital', flat)
+        self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", select)
+        fund = body(self.projects, "function OpexProjectFundProfit(")
+        self.assertIn("C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual", fund)
+        self.assertIn("if (!C121_AIR_PORTFOLIO_SPLIT_ECONOMICS", fund)
         self.assertIn('local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet" && !OpexC121ProjectHasRealization(project);', flat)
         helper = body(self.projects, "function OpexC121ProjectHasRealization(")
         self.assertIn("if (!C121_AIR_ECONOMICS", helper)

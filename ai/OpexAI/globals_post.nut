@@ -151,9 +151,10 @@ AIR_ROI_ORDER <- true;
  * Defaut 0. 1 admet au classement les pax <=100 tuiles a predit > -200, une
  * tentative/an au plafond dur. Le long et le fret restent filtres. */
 PAX_NEAR <- false;
-/* Croissance urbaine : repli VRAI jusqu'a la lecture unique de town_growth dans Start().
+/* Croissance urbaine : repli FAUX jusqu'a la lecture unique de town_growth dans Start().
+ * Defaut 0 depuis le 2026-10-02 par decision utilisateur apres les A/B ON/OFF.
  * Complete avec 5-n stations de bus pour chaque ville desservie comptant n gares/aeroports. */
-TOWN_GROWTH_ENABLED <- true;
+TOWN_GROWTH_ENABLED <- false;
 TOWN_GROWTH_SKIP_NOOP <- false;
 /* Memoire des echecs de planification town_growth : une ville n'est replanifiee que si son nombre
  * de maisons a change depuis l'echec (mesure : 20 villes replanifiees jusqu'a 41 fois en 6 ans pour

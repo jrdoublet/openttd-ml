@@ -1,6 +1,7 @@
 """Contrats de air_batch_town_reserve : une ville neuve par lot, defaut 0."""
 import unittest
 from pathlib import Path
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,7 +31,7 @@ class AirBatchTownReserveTests(unittest.TestCase):
         cls.info = read("ai/OpexAI/info.nut")
         cls.settings = read("ai/OpexAI/settings.nut")
         cls.globals = read("ai/OpexAI/globals_pre.nut")
-        cls.projects = read("ai/OpexAI/projects.nut")
+        cls.projects = read_projects_source()
         cls.task_projects = read("ai/OpexAI/task_projects.nut")
         cls.task_air = read("ai/OpexAI/task_air.nut")
 

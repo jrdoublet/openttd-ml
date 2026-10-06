@@ -1,6 +1,6 @@
 # Diagnostic : plafonnement d'OpexAI et tresorerie dormante
 
-Mesure : [opexai_plafonnement_mesure.json](opexai_plafonnement_mesure.json), produite par
+Mesure historique : [opexai_plafonnement_mesure.json](../results/opexai_plafonnement_mesure.json), produite par
 sweeps/opex_full_campaign.py sur 20 ans, graines 12345, 999, 100 et 4096, OpenTTD 15.3,
 carte 256x256, depart 1970, inflation desactivee.
 

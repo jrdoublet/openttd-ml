@@ -68,6 +68,96 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "probe_loop_ops",
+      description = "Log yearly opcode aggregates of the main loop (events, C117 sampler, orchestrator, Sleep leftover); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_span_trace",
+      description = "Log dated nested spans of OpexAI micro-tasks (ticks and opcodes); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_c121_engine_table",
+      description = "Log already-computed C121 engine scans and plan context for an offline engine table; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_air_engine_depth",
+      description = "Shadow only: on C121 full engine scans, score the N=1 runner-up at N=1 and N=2 with the fused kernel and log AIR_ENGINE_DEPTH; the V96 shortcut is unchanged; decisions unchanged; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_air_finance_margin",
+      description = "Exposure only: log AIR_FINANCE_TRY at air cash checks and AIR_FINANCE_FIRST_REVENUE/AIR_FINANCE_PENDING on built air lines; decisions unchanged; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_event_backlog",
+      description = "Monthly probe of _processEvents burst sizes and opcode consumption; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_opcode_exact",
+      description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_opcode_exact_check",
+      description = "Run historical and exact opcode paths, log mismatches and opcode sums, keep the historical result; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "catalog_cost_probe",
+      description = "Log catalog refresh and project generation costs; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "fleet_amort_shadow_probe",
+      description = "Diagnostic only: 0 off, 1 added-aircraft amortisation shadow calculation, 2 full election snapshots; never changes decisions",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "r19_fault_inject",
+      description = "TEST ONLY: force a rollback of the Nth new AIR route after its planes started (R19 recovery); 0 = off (default)",
+      min_value = 0, max_value = 20,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "probe_candidates_road",
       description = "Enable road candidate generation opcode profiling (pax, freight, town, feeder); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -174,8 +264,48 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c83_slot_reaction",
+      description = "C83: regenerate AIR candidates when a watched town has one airport slot left; 1 = current behavior (default), 0 = continue the projects pass without this reactive regeneration",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c83_local_repair",
+      description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c83_fixes",
       description = "C83 review fixes (contestable watch towns, slot-town identity, rearmable race, skip dead air pairs, targeted site scan): 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_c83_watch_daily",
+      description = "Experimental P4: poll existing C83 airport-slot watcher once per available game day before arbitration; default off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_scheduler_skip_not_due",
+      description = "Experimental P7: skip already completed report/repay tasks within one bounded scheduler scan; default off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "exp_air_hub_pair_prefilter",
+      description = "Experimental: skip hub pairs already linked by an AIR line before expensive route evaluation; default off",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -237,7 +367,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v95_air_targeted_second",
-      description = "V95.1: post-1973 targeted second airport only where Opex already owns one slot and measured site demand/cost plus C68 profit pass fixed gates; 1 = enabled, 0 = disabled (default)",
+      description = "V95.1 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables targeted second airports",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -245,7 +375,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v95_air_post73_targeted",
-      description = "V95 causal: after 1973, allow only sub-600 AIR sites where a competitor owns the first physical slot and measured catchment economics do not degrade C68 profit; 1 = on, 0 = off (default)",
+      description = "V95 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables post-1973 targeted sites; v95_air_post73_probe remains a separate active probe",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -468,6 +598,221 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_air_winner_fusion",
+      description = "C121 opcode optimization: retain opening N=1 during the winner fleet scan; monthly tariff changes and AAA_LINE fall back; requires C121 economics; 1 = on (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_engine_context",
+      description = "C121 opcode experiment: reuse pair/engine trip, fares and amortisation during one chooser call; refresh on input/date changes; 0 = off pending qualification",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_game_engine",
+      description = "C121 opcode optimization: reuse the established aircraft of the current game per airport type and skip the engine scan; 1 = on (default since 2026-10-03, opcode neutrality rule), 0 = full engine scan",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_decision_depth_economics",
+      description = "C121 experimental: rank a new AIR project on the full-fleet depth selected by C121 decision score; initial build and post-build target stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_portfolio_depth_economics",
+      description = "C121 experimental: choose AIR decision depth with the same P/max(C,K_dec) economics used by the portfolio; engine, initial N=1 build and post-build target stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_portfolio_split_economics",
+      description = "C121 experimental: keep max-profit long-run economics for project qualification, but rank AIR with a separate P/max(C,K_dec) depth; engine, initial N=1 build and post-build target stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_catalog_incremental",
+      description = "Experimental incremental C121 AIR plan economics and bounded catalog slices; requires c121_air_economics; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_catalog_air_first_year",
+      description = "With incremental C121, generate only AIR candidates through the first game year; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_flat_bootstrap",
+      description = "With incremental C121, skip the staged bootstrap: start in the complete stage so every post-build regeneration is the incremental C121 update instead of a synchronous full rebuild; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_year_rail_prep",
+      description = "With air-only first year, when no living AIR project is fundable and no rail search is running, prepare up to 3 rail routes (catalog through segmented A*) without building them; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_one_or_two_planes",
+      description = "With C121 economics, score only fleet depths N=1 and N=2 and build the better one; N=2 starts the second aircraft from airport B toward A, without changing full-load orders; 1 by default, 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_aaa_line",
+      description = "With C121, open each AIR line with two aircraft (one per airport, AAAHogEx-style) and full-load orders at both airports; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_territory_first",
+      description = "With C121, reserve cash for the next AIR project opening a town without an Opex airport: other builds (fleet, hub, rail, road) must leave enough for it; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_fleet_stock_growth",
+      description = "With C121, grow under-target AIR fleets on waiting-cargo evidence (AAAHogEx-like) with a 60-day cooldown instead of the two-year observation rules; 0 = off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_observation_growth",
+      description = "C121 experimental: allow at most one +1 AIR reinforcement per new positive annual report while under target; portfolio arbitration and target bound stay unchanged; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_observation_growth",
+      description = "C121 cadence experiment: advance only the first AIR reinforcement 1->2 to the first positive annual observation; later reinforcements keep the standard two-year C121 cadence; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_min_days",
+      description = "With c121_air_first_observation_growth, minimum line age in days before the first 1->2 AIR reinforcement; 0 = no extra age floor",
+      min_value = 0, max_value = 365,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 15,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_phase_years",
+      description = "Cadence experiment: for this many game years use c121_air_first_growth_min_days, then switch first 1->2 reinforcements to c121_air_first_growth_late_days; 0 = disabled",
+      min_value = 0, max_value = 20,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_late_days",
+      description = "With phased first-growth cadence, minimum line age after the early phase; 0 = no extra late age floor",
+      min_value = 0, max_value = 365,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 15,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_growth_min_wait_pct",
+      description = "With first-observation growth, require current max waiting cargo to reach this percentage of one plane capacity before 1->2; 0 = disabled",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_shadow",
+      description = "C121 cadence shadow: log passive 60/90-day live evidence for AIR lines still at one plane; never changes reinforcement decisions; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_growth",
+      description = "C121 cadence: advance only AIR 1->2 when balanced 90-day live evidence is positive; target, portfolio arbitration and later reinforcements stay unchanged; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_growth_phase_years",
+      description = "With first-live growth, use the live 1->2 early override only during this many opening game years; 4 = default, 0 = all years",
+      min_value = 0, max_value = 20,
+      easy_value = 4, medium_value = 4, hard_value = 4,
+      custom_value = 4, step_size = 1, flags = 0
+    });
+
+    AddSetting({
+      name = "c121_air_first_live_air_priority",
+      description = "With C121 first-live growth, defer a live 1->2 only when the immediately following project is a fundable new AIR line, the pass has built nothing yet, and buying the plane would make that AIR line unaffordable; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_kpass_shadow",
+      description = "C121 cadence shadow: log each portfolio pass stop with blocking project and a bounded look-ahead of following project modes/finance; never changes decisions; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_kpass_air_continue",
+      description = "C121 cadence experiment: when a fleet reinforcement would stop the pass on K_pass but a live AIR new-line project is fundable in the next five ranks, skip only that fleet blocker and keep scanning under the normal C75 bypass rules; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_kdec_cold_shadow",
+      description = "C121 cadence shadow: for fleet projects with zero real marginal samples, log current K_dec rank versus the counterfactual C69 fleet exemption; never changes decisions; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_kdec_cold_exempt",
+      description = "C121 experiment: preserve the C69 fleet K_dec exemption until a real marginal sample exists; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c121_air_engine_realization",
       description = "C121 experimental engine-only realization correction by AIR arm; project economics unchanged; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -485,9 +830,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_air_project_realization_adaptive",
-      description = "C121 experimental adaptive AIR strategy: use reused-hub realization correction only when last year's C83 pressure stayed mostly contestable; otherwise keep raw C121 race economics; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C121 adaptive AIR strategy: use reused-hub realization correction only when the locked pressure regime is efficiency; otherwise keep raw C121 race economics; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -501,7 +846,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_air_defensive_floor",
-      description = "C121 experimental anti-monopoly policy: defensive AIR projects use a softened relative profit floor (50% competitor-slot, 75% own-slot); 0 = off (default)",
+      description = "C121 protected experimental setting: defensive AIR floor uses 50% competitor-slot / 75% own-slot, currently neutralized by the global zero floor; branch still runs with C121 enabled and may affect opcode cadence; 0 = off (default), 1 = on",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -557,7 +902,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c102_air_station_rating_probe",
-      description = "C102 passive probe: compare line-headway rating with station-wide AIR pickup rating and raw catchment production; no decision change",
+      description = "C102 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables station-rating probe output",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -769,6 +1114,36 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "rail_search_day_cap",
+      description = "max days a single rail A* search may hold the one search slot before being abandoned and the slot released; 0 = off (default)",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 10,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "rail_upgrade_failure_memory",
+      description = "remember a failed double-track A* search per line and do not retry it until the abandon cooldown expires; 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_rail_terrain",
+      description = "log a cheap terrain-roughness summary of the straight line between both stations when a rail A* search starts, to test whether terrain predicts iteration-cap abandons; 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "abandon_cooldown_days",
       description = "Delai de reprise en jours sur la memoire d'abandon (365 = defaut adopte, docs/taches.md C33.3)",
       min_value = 0, max_value = 5000,
@@ -919,6 +1294,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_fleet_cooldown_prefilter",
+      description = "Filter AIR lines still under fleet-growth cooldown before ROI sorting",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "air_joined_stop_limit",
       description = "Maximum bus-stop pieces directly joined to each airport station (default 2)",
       min_value = 0, max_value = 2,
@@ -940,9 +1324,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "town_growth",
-      description = "Boost served town growth with one base bus line per town: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "Boost served town growth with one base bus line per town: 1 = enabled, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -988,7 +1372,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c80_double_register",
-      description = "C80 tranche 0: double-register orchestrator (reactive queue + execution register): 1 = enabled, 0 = disabled (default)",
+      description = "C80 compatibility setting, ignored: the double-register orchestrator is permanently on for C77; both 0 (declared default) and 1 keep it enabled",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -1092,9 +1476,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c80_marginal_floor",
-      description = "C80 task 5: filter marginal multi-build projects whose calibrated profit per vehicle is below the mode realized average: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C80 task 5: filter marginal multi-build projects whose calibrated profit per vehicle is below the mode realized average: 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1108,9 +1492,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "air_hubhub_marginal",
-      description = "V86: Deduct cannibalised revenue from existing hub lines when evaluating hub-to-hub air routes: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "V86: Deduct cannibalised revenue from existing hub lines for legacy hub-to-hub economics; deduction bypassed under C121: 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1189,6 +1573,74 @@ class OpexAIInfo extends AIInfo {
       description = "Rank rail and road candidate pools by the portfolio funding score: 1 = enabled, 0 = historical ranking (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "air_efficiency_batch",
+      description = "AIR 2026-10-02 A/B: preflight both sites, one top64 plan per OD pair, event/cash portfolio reselection; 1 = candidate, 0 = previous behavior (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({ name = "air_efficiency_preflight", description = "AIR efficiency A/B: preflight both airport endpoints before spending", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "air_efficiency_dedupe", description = "AIR efficiency A/B: keep one ranked AIR plan per OD pair in top K", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "air_efficiency_reselect", description = "AIR efficiency A/B: event-driven catalog plus cash-threshold local reselection", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+
+    AddSetting({
+      name = "v107_densify_portfolio",
+      description = "V107: price a second rail train or a double-track upgrade as a fleet project and let the portfolio rank it; 1 = on, 0 = spend from residual cash (default). Road refleet is unchanged.",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_v96_shortcut_lean",
+      description = "AIR 03/10 3a A/B: V96 shortcut keeps null guards and drops the unused upper score; 1 = on (default), 0 = previous bound",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_one_two_fused",
+      description = "AIR 03/10 3b A/B: prepare one aircraft's fares, trip, amortisation, capacities and airport costs, then score N=1 and N=2; 1 = on (default), 0 = two full economics calls",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_incremental_publish",
+      description = "AIR 03/10 1 A/B: a partial air publish inserts only the new plans and reselects; 1 = on (default), 0 = full portfolio rebuild",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_hub_snapshot",
+      description = "AIR 03/10 2 A/B: reuse the ordered hub and site snapshot across slices of the same combo while the air topology signature matches; 1 = on (default), 0 = rediscover every slice",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_site_validity_cache",
+      description = "AIR 03/10 V122 A/B: remember whether each air site is still buildable across reselections until the month changes or OpexAI builds or removes a station, airport or line; 1 = on (default), 0 = probe every unique site on every filter",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
   }

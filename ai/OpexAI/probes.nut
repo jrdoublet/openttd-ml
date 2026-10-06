@@ -79,6 +79,14 @@ function OpexC117Log(fields)
       + AIDate.GetDayOfMonth(date) + " C117_AIR_THROUGHPUT " + fields);
 }
 
+function OpexC121FirstLiveLog(fields)
+{
+  if (!C121_AIR_FIRST_LIVE_SHADOW) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " C121_FIRST_LIVE " + fields);
+}
+
 function OpexC121HubDelayLog(fields)
 {
   if (!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) return;
@@ -134,6 +142,9 @@ function OpexC121HubDelayObserveBatch(stationId, residualSum, residualSq, residu
       state.variance = variance;
       state.lastWindowN = n;
       state.lastUpdate = now;
+      if (C121_CATALOG_INCREMENTAL) C121_CATALOG_HUB_LEARN_REV.rawset(stationId,
+          (stationId in C121_CATALOG_HUB_LEARN_REV
+              ? C121_CATALOG_HUB_LEARN_REV[stationId] : 0) + 1);
       published = {
         station = stationId, days = state.days, rawDays = mean,
         variance = variance, windowN = n, observations = state.observations,
@@ -205,6 +216,145 @@ function OpexC117NewLineState(bucket, startDate)
   };
 }
 
+function OpexC121FirstLiveAggregate(history, count)
+{
+  if (history == null || count <= 0 || history.len() < count) return null;
+  local start = history.len() - count;
+  local days = 0;
+  local trips = 0;
+  local tripsA = 0;
+  local tripsB = 0;
+  local profit = 0;
+  local pax = 0;
+  local seats = 0;
+  local waitASum = 0;
+  local waitAN = 0;
+  local waitBSum = 0;
+  local waitBN = 0;
+  for (local i = start; i < history.len(); i++) {
+    local w = history[i];
+    days += w.days;
+    trips += w.trips;
+    tripsA += w.tripsA;
+    tripsB += w.tripsB;
+    profit += w.profit;
+    pax += w.pax;
+    seats += w.seats;
+    waitASum += w.waitASum;
+    waitAN += w.waitAN;
+    waitBSum += w.waitBSum;
+    waitBN += w.waitBN;
+  }
+  local load = seats > 0 ? pax.tofloat() / seats.tofloat() : -1.0;
+  local waitA = waitAN > 0 ? waitASum.tofloat() / waitAN.tofloat() : -1.0;
+  local waitB = waitBN > 0 ? waitBSum.tofloat() / waitBN.tofloat() : -1.0;
+  local cap = history[history.len() - 1].cap;
+  local maxWait = waitA > waitB ? waitA : waitB;
+  local waitNorm = cap > 0 && maxWait >= 0.0 ? maxWait / cap.tofloat() : -1.0;
+  return {
+    days = days, trips = trips, tripsA = tripsA, tripsB = tripsB,
+    profit = profit,
+    profitPm = days > 0 ? profit.tofloat() * 30.4 / days.tofloat() : 0.0,
+    load = load, waitA = waitA, waitB = waitB, waitNorm = waitNorm,
+    cap = cap,
+  };
+}
+
+/* C121 cadence : reutilise les fenetres mensuelles deja produites par C117.
+ * Aucun scan vehicule supplementaire, aucune lecture par le portefeuille et
+ * aucune mutation de ligne : uniquement trois petits snapshots par LineID. */
+function OpexC121FirstLiveObserve(line, state, ageDays)
+{
+  if ((!C121_AIR_FIRST_LIVE_SHADOW && !C121_AIR_FIRST_LIVE_GROWTH)
+      || line == null || state == null
+      || !("lineId" in line)) return;
+  local tick0 = AIController.GetTick();
+  local ops0 = AIController.GetOpsTillSuspend();
+  local key = line.lineId;
+  if (state.lastLive != 1 || ageDays < 0 || ageDays > 365
+      || ("lastAirFleetYear" in line)) {
+    if (key in C121_AIR_FIRST_LIVE_STATE) delete C121_AIR_FIRST_LIVE_STATE[key];
+    return;
+  }
+  local targetN = ("c121TargetPlanes" in line) ? line.c121TargetPlanes : -1;
+  if (targetN >= 0 && targetN <= 1) {
+    if (key in C121_AIR_FIRST_LIVE_STATE) delete C121_AIR_FIRST_LIVE_STATE[key];
+    return;
+  }
+
+  local holder = (key in C121_AIR_FIRST_LIVE_STATE)
+      ? C121_AIR_FIRST_LIVE_STATE[key] : { history = [] };
+  holder.history.append({
+    date = state.lastDate,
+    days = state.lastDate - state.startDate > 0 ? state.lastDate - state.startDate : 1,
+    trips = state.trips, tripsA = state.tripsA, tripsB = state.tripsB,
+    profit = state.profit, pax = state.pax, seats = state.seatLegs,
+    waitASum = state.waitASum, waitAN = state.waitAN,
+    waitBSum = state.waitBSum, waitBN = state.waitBN,
+    cap = state.lastCap,
+  });
+  while (holder.history.len() > 3) holder.history.remove(0);
+  C121_AIR_FIRST_LIVE_STATE.rawset(key, holder);
+
+  if (ageDays < 60) return;
+  local r60 = OpexC121FirstLiveAggregate(holder.history, 2);
+  local r90 = OpexC121FirstLiveAggregate(holder.history, 3);
+  local balanced60 = r60 != null && r60.days >= 45 && r60.trips >= 2
+      && r60.profit > 0 && (r60.load >= 0.40 || r60.waitNorm >= 0.50);
+  local balanced90 = r90 != null && r90.days >= 50 && r90.trips >= 2
+      && r90.profit > 0 && (r90.load >= 0.40 || r90.waitNorm >= 0.50);
+  local strict90 = ageDays >= 75 && r90 != null && r90.days >= 60 && r90.trips >= 2
+      && r90.tripsA >= 1 && r90.tripsB >= 1 && r90.profit > 0
+      && (r90.load >= 0.55 || r90.waitNorm >= 0.75);
+  local dual90 = r90 != null && r90.days >= 50 && r90.trips >= 2
+      && r90.profit > 0 && r90.load >= 0.30 && r90.waitNorm >= 0.25;
+  if ("balanced90" in holder) holder.balanced90 = balanced90;
+  else holder.balanced90 <- balanced90;
+  if ("lastEvidenceDate" in holder) holder.lastEvidenceDate = state.lastDate;
+  else holder.lastEvidenceDate <- state.lastDate;
+  C121_AIR_FIRST_LIVE_STATE.rawset(key, holder);
+  local shadowOps = OpexAirCalcDeltaOps(tick0, ops0);
+  C121_AIR_FIRST_LIVE_OPS += shadowOps;
+  C121_AIR_FIRST_LIVE_SAMPLES++;
+
+  OpexC121FirstLiveLog("line=" + line.lineId
+      + " arm=" + (("c117Arm" in line) ? line.c117Arm : "unknown")
+      + " age_days=" + ageDays + " target_n=" + targetN
+      + " cold_marginal_profit=" + (("c121MarginalProfit" in line) ? line.c121MarginalProfit : -1)
+      + " marginal_samples=" + (("c121MarginalSamples" in line) ? line.c121MarginalSamples : -1)
+      + " last_profit=" + (("lastProfit" in line) ? line.lastProfit : -1)
+      + " r60_days=" + (r60 != null ? r60.days : 0)
+      + " r60_trips=" + (r60 != null ? r60.trips : 0)
+      + " r60_profit_pm=" + (r60 != null ? r60.profitPm : 0.0)
+      + " r60_load=" + (r60 != null ? r60.load : -1.0)
+      + " r60_wait_norm=" + (r60 != null ? r60.waitNorm : -1.0)
+      + " r90_days=" + (r90 != null ? r90.days : 0)
+      + " r90_trips=" + (r90 != null ? r90.trips : 0)
+      + " r90_trips_a=" + (r90 != null ? r90.tripsA : 0)
+      + " r90_trips_b=" + (r90 != null ? r90.tripsB : 0)
+      + " r90_profit_pm=" + (r90 != null ? r90.profitPm : 0.0)
+      + " r90_load=" + (r90 != null ? r90.load : -1.0)
+      + " r90_wait_norm=" + (r90 != null ? r90.waitNorm : -1.0)
+      + " rule_bal60=" + (balanced60 ? 1 : 0)
+      + " rule_bal90=" + (balanced90 ? 1 : 0)
+      + " rule_strict90=" + (strict90 ? 1 : 0)
+      + " rule_dual90=" + (dual90 ? 1 : 0)
+      + " shadow_ops=" + shadowOps
+      + " shadow_ops_total=" + C121_AIR_FIRST_LIVE_OPS
+      + " shadow_samples=" + C121_AIR_FIRST_LIVE_SAMPLES
+      + " shadow_ops_mean=" + (C121_AIR_FIRST_LIVE_SAMPLES > 0
+          ? C121_AIR_FIRST_LIVE_OPS.tofloat() / C121_AIR_FIRST_LIVE_SAMPLES.tofloat() : 0.0));
+}
+
+function OpexC121FirstLiveBalanced90(line)
+{
+  if (line == null || !("lineId" in line)) return false;
+  local key = line.lineId;
+  if (!(key in C121_AIR_FIRST_LIVE_STATE)) return false;
+  local holder = C121_AIR_FIRST_LIVE_STATE[key];
+  return ("balanced90" in holder) && holder.balanced90;
+}
+
 function OpexC117FlushLine(line, state)
 {
   if (state == null || state.samples <= 0) return;
@@ -231,6 +381,7 @@ function OpexC117FlushLine(line, state)
   local ageDays = ("buildDate" in line) ? (state.lastDate - line.buildDate) : -1;
   local capital = ("actualCapital" in line) ? line.actualCapital : -1;
   local profitCapitalPm = capital > 0 ? profitPm / capital.tofloat() : -1.0;
+  OpexC121FirstLiveObserve(line, state, ageDays);
   /* C119 diagnostic passif : distance Manhattan disponible avant toute decision. */
   local paymentDistance = -1;
   local airportTypeA = -1;
@@ -544,6 +695,109 @@ function OpexC39Log(kind, fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+/* Une seule ligne par regeneration catalogue terminee. Le record reste sur la tache
+ * pendant C78.4 ; Save/Load abandonne deja ce curseur et recommence la passe. */
+function OpexCatalogCostNew(reason)
+{
+  return { reason = reason, path = "full", refreshOps = 0, engineRefreshOps = 0, engineChoices = 0,
+    catalogTowns = 0, catalogIndustries = 0,
+    modeRegenOps = 0, reselectOps = 0,
+    railOps = 0, roadOps = 0,
+    airOps = 0, waterOps = 0, assemblyOps = 0, selectionOps = 0,
+    railCandidates = 0, roadCandidates = 0, waterPlans = 0,
+    airPlans = 0, modeAlternatives = 0, considered = 0, selected = 0,
+    airScans = 0, airTowns = 0, airCombos = 0, airPairs = 0,
+    airHubSitePairs = 0, airHubHubPairs = 0,
+    airSiteProbes = 0, airSites = 0, airSiteOps = 0, airEvalOps = 0,
+    c121Calls = 0, c121DemandOps = 0, c121StaticOps = 0,
+    c121ScanOps = 0, c121EngineEvals = 0, c121WinnerOps = 0,
+    c121CacheHits = 0, c121Recomputed = 0, c121DirtyEngine = 0,
+    c121DirtyTown = 0, c121DirtyStation = 0, c121DirtyLearning = 0,
+    c121DirtyAge = 0, c121DirtyInput = 0, c121New = 0,
+    c121Slices = 0, c121LastSliceOps = 0,
+    c121MaxSliceOps = 0 };
+}
+
+function OpexProjectsCostLog(pcost, builtCount, stopReason)
+{
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " PROJECTS_COST build_ops=" + pcost.buildOps
+      + " fleet_ops=" + pcost.fleetOps + " regen_ops=" + pcost.regenOps
+      + " regen=" + pcost.regenKind + " built=" + builtCount
+      + " stop=" + (stopReason != null ? stopReason : "none"));
+}
+
+function OpexCatalogCostLog(cost)
+{
+  local date = AIDate.GetCurrentDate();
+  /* Sous-etapes disjointes ; les compteurs AIR/C121 ci-dessous sont inclus dans air_ops. */
+  local total = cost.refreshOps + cost.railOps + cost.roadOps + cost.airOps
+      + cost.waterOps + cost.assemblyOps + cost.selectionOps
+      + cost.modeRegenOps + cost.reselectOps;
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+    + AIDate.GetDayOfMonth(date) + " CATALOG_COST reason=" + cost.reason
+    + " total_ops=" + total
+    + " path=" + cost.path + " mode_regen_ops=" + cost.modeRegenOps
+    + " reselect_ops=" + cost.reselectOps
+    + " refresh_ops=" + cost.refreshOps
+    + " catalog_towns=" + cost.catalogTowns
+    + " catalog_industries=" + cost.catalogIndustries
+    + " engine_refresh_ops=" + cost.engineRefreshOps
+    + " engine_choices=" + cost.engineChoices
+    + " rail_ops=" + cost.railOps + " rail_candidates=" + cost.railCandidates
+    + " road_ops=" + cost.roadOps + " road_candidates=" + cost.roadCandidates
+    + " air_ops=" + cost.airOps + " air_plans=" + cost.airPlans
+    + " water_ops=" + cost.waterOps + " water_plans=" + cost.waterPlans
+    + " assembly_ops=" + cost.assemblyOps + " mode_alternatives=" + cost.modeAlternatives
+    + " selection_ops=" + cost.selectionOps + " considered=" + cost.considered
+    + " selected=" + cost.selected + " air_scans=" + cost.airScans
+    + " air_towns=" + cost.airTowns + " air_combos=" + cost.airCombos
+    + " air_new_pairs=" + cost.airPairs
+    + " air_hub_site_pairs=" + cost.airHubSitePairs
+    + " air_hub_hub_pairs=" + cost.airHubHubPairs
+    + " air_site_probes=" + cost.airSiteProbes
+    + " air_sites=" + cost.airSites + " air_site_ops=" + cost.airSiteOps
+    + " air_eval_ops=" + cost.airEvalOps + " c121_calls=" + cost.c121Calls
+    + " c121_demand_ops=" + cost.c121DemandOps
+    + " c121_static_ops=" + cost.c121StaticOps
+    + " c121_scan_ops=" + cost.c121ScanOps
+    + " c121_engine_evals=" + cost.c121EngineEvals
+    + " c121_winner_ops=" + cost.c121WinnerOps
+    + " c121_cache_hits=" + cost.c121CacheHits
+    + " c121_recomputed=" + cost.c121Recomputed
+    + " c121_dirty_engine=" + cost.c121DirtyEngine
+    + " c121_dirty_town=" + cost.c121DirtyTown
+    + " c121_dirty_station=" + cost.c121DirtyStation
+    + " c121_dirty_learning=" + cost.c121DirtyLearning
+    + " c121_dirty_age=" + cost.c121DirtyAge
+    + " c121_dirty_input=" + cost.c121DirtyInput
+    + " c121_new=" + cost.c121New
+    + " c121_slices=" + cost.c121Slices
+    + " c121_last_slice_ops=" + cost.c121LastSliceOps
+    + " c121_max_slice_ops=" + cost.c121MaxSliceOps);
+}
+function OpexCatalogCostSliceLog(cost, scan, sliceOps)
+{
+  if (!C121_CATALOG_INCREMENTAL || !CATALOG_COST_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  local examined = cost.c121CacheHits + cost.c121Recomputed;
+  local reusePct = examined > 0 ? cost.c121CacheHits * 100 / examined : 0;
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+    + AIDate.GetDayOfMonth(date) + " CATALOG_COST_SLICE"
+    + " cache=" + C121_CATALOG_CACHE.len()
+    + " hits=" + cost.c121CacheHits + " recalculated=" + cost.c121Recomputed
+    + " reuse_pct=" + reusePct
+    + " dirty_engine=" + cost.c121DirtyEngine + " dirty_town=" + cost.c121DirtyTown
+    + " dirty_station=" + cost.c121DirtyStation + " dirty_learning=" + cost.c121DirtyLearning
+    + " dirty_age=" + cost.c121DirtyAge
+    + " dirty_input=" + cost.c121DirtyInput + " new=" + cost.c121New
+    + " same_tick_slices=" + scan.tickSlices
+    + " chained_slices=" + (scan.tickSlices - 1) + " slice_ops=" + sliceOps
+    + " partial=" + (scan.published ? 1 : 0)
+    + " partial_pending=" + (scan.partialPending ? 1 : 0)
+    + " published_plans=" + scan.lastPublishedCount + " evaluated_plans=" + scan.plans.len());
 }
 /* C41.11 reste lisible sans activer le bus C39 : il mesure le scheduler historique lui-meme. */
 function OpexC41SchedulerLog(kind, fields)
@@ -2199,4 +2453,371 @@ function OpexC76FlushYear(year)
              + " unchanged_deps=" + rec.unchanged_deps
              + " top1_unchanged=" + rec.top1_unchanged
              + reasonsStr);
+}
+
+/* Sonde probe_loop_ops (diagnostic, defaut 0) : agregats annuels de la boucle principale.
+ * ops = formule OpexOpsMeasureEnd : un tick traverse compte 10 000 opcodes, y compris un tick
+ * passe a attendre une commande de construction. tk = ticks traverses, pour le distinguer.
+ * sleep_left = opcodes restants du tick au moment du Sleep(1), donc perdus. */
+function OpexLoopProfAddRaw(post, ops, ticks)
+{
+  if (OPEX_LOOP_PROF == null) OPEX_LOOP_PROF = {};
+  local e = (post in OPEX_LOOP_PROF) ? OPEX_LOOP_PROF[post] : null;
+  if (e == null) {
+    e = { n = 0, ops = 0, ticks = 0, max = 0 };
+    OPEX_LOOP_PROF.rawset(post, e);
+  }
+  e.n++;
+  e.ops += ops;
+  e.ticks += ticks;
+  if (ops > e.max) e.max = ops;
+}
+
+function OpexLoopProfAdd(post, mark)
+{
+  OpexLoopProfAddRaw(post, OpexOpsMeasureEnd(mark), AIController.GetTick() - mark.tick);
+}
+
+function OpexLoopProfFlushIfNewYear()
+{
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (OPEX_LOOP_PROF_YEAR < 0) {
+    OPEX_LOOP_PROF_YEAR = year;
+    OPEX_LOOP_PROF_TICK0 = AIController.GetTick();
+    return;
+  }
+  if (year == OPEX_LOOP_PROF_YEAR) return;
+  local tick = AIController.GetTick();
+  AILog.Info("LOOP_OPS y=" + OPEX_LOOP_PROF_YEAR + " post=_year n=1 ops=0 tk="
+      + (tick - OPEX_LOOP_PROF_TICK0) + " max=0");
+  if (OPEX_LOOP_PROF != null) {
+    foreach (post, e in OPEX_LOOP_PROF) {
+      AILog.Info("LOOP_OPS y=" + OPEX_LOOP_PROF_YEAR + " post=" + post + " n=" + e.n
+          + " ops=" + e.ops + " tk=" + e.ticks + " max=" + e.max);
+    }
+  }
+  OPEX_LOOP_PROF = {};
+  OPEX_LOOP_PROF_YEAR = year;
+  OPEX_LOOP_PROF_TICK0 = tick;
+}
+
+/* Copie instrumentee de la branche C80_DOUBLE_REGISTER de la boucle de main.nut, appelee
+ * uniquement sous probe_loop_ops=1 : le chemin par defaut reste celui de main.nut. */
+function OpexAI::_mainLoopProfiled()
+{
+  while (true) {
+    if (PROBE_SPAN_TRACE) {
+      OpexSpanRescueOrphans();
+      OpexSpanYearRoll();
+    }
+    OpexLoopProfFlushIfNewYear();
+    if (C56_TASK_TRACE) {
+      C56_LOOP_TICK_COUNT++;
+      if (C56_LOOP_TICK_COUNT % 200 == 0) {
+        OpexC56TaskLog("LOOP_TICK", "-", this._taskCycle);
+      }
+    }
+    local mark = OpexOpsMeasureBegin();
+    local spEvents = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.events") : null;
+    this._processEvents();
+    if (spEvents != null) OpexSpanEnd(spEvents);
+    OpexLoopProfAdd("events", mark);
+    if (EXP_C83_WATCH_DAILY) {
+      mark = OpexOpsMeasureBegin();
+      local spC83 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c83") : null;
+      this._expC83PollAirSlots();
+      if (spC83 != null) OpexSpanEnd(spC83);
+      OpexLoopProfAdd("c83_watch_daily", mark);
+    }
+    if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+      local before = C117_AIR_LAST_DATE;
+      mark = OpexOpsMeasureBegin();
+      local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
+      OpexC117AirThroughputStep(this._lines, this._catalog);
+      if (spC117 != null) OpexSpanEnd(spC117);
+      OpexLoopProfAdd(C117_AIR_LAST_DATE != before ? "c117_sample" : "c117_skip", mark);
+    }
+    if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
+    mark = OpexOpsMeasureBegin();
+    local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
+    this._runOrchestratorTick();
+    if (spOrch != null) OpexSpanEnd(spOrch);
+    OpexLoopProfAdd("orchestrator", mark);
+    if (C121_CATALOG_INCREMENTAL) {
+      mark = OpexOpsMeasureBegin();
+      local continued = false;
+      local spResume = null;
+      local catalogPending = true;
+      local continuationTick = AIController.GetTick();
+      while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
+        catalogPending = false;
+        foreach (queuedTask in this._taskQueue) {
+          if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
+              && queuedTask.c78AirRebuild != null) {
+            if (spResume == null && PROBE_SPAN_TRACE) spResume = OpexSpanBegin("loop.c121_catalog_resume");
+            catalogPending = true;
+            continued = true;
+            local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
+            this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            if (spCat != null) OpexSpanEnd(spCat);
+            break;
+          }
+        }
+        if (catalogPending) {
+          local spMid = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
+          this._runOrchestratorTick();
+          if (spMid != null) OpexSpanEnd(spMid);
+        }
+      }
+      if (spResume != null) OpexSpanEnd(spResume);
+      OpexLoopProfAdd(continued ? "catalog_continuation" : "catalog_continuation_check", mark);
+    }
+    if (V89_RAIL_SEARCH_THROUGHPUT) {
+      mark = OpexOpsMeasureBegin();
+      local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
+      this._advanceRailSearchThroughput();
+      if (spAstar != null) OpexSpanEnd(spAstar);
+      OpexLoopProfAdd("rail_throughput", mark);
+    }
+    if (C67_SLACK_HOOK) {
+      mark = OpexOpsMeasureBegin();
+      local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
+      this._c67SlackHook();
+      if (spC67 != null) OpexSpanEnd(spC67);
+      OpexLoopProfAdd("c67_hook", mark);
+    }
+    OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
+    local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
+    AIController.Sleep(1);
+    if (spSleep != null) OpexSpanEnd(spSleep);
+  }
+}
+
+/* probe_span_trace (defaut 0). Jeton = entier >= 1, jamais un objet : pas de
+ * destructeur Squirrel. Le parent inclut les opcodes des enfants, y compris
+ * les ticks passes a attendre une commande. Eteint : les sites lisent seulement
+ * le global. Les tables ne sont pas sauvees sur l'instance. */
+function OpexSpanDateText(date)
+{
+  return AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-" + AIDate.GetDayOfMonth(date);
+}
+
+function OpexSpanEventKind(eventType)
+{
+  if (eventType == AIEvent.ET_VEHICLE_CRASHED) return "event.vehicle_crashed";
+  if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) return "event.vehicle_waiting";
+  if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) return "event.vehicle_autoreplaced";
+  if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) return "event.vehicle_unprofitable";
+  if (eventType == AIEvent.ET_INDUSTRY_CLOSE) return "event.industry_close";
+  if (eventType == AIEvent.ET_SUBSIDY_OFFER) return "event.subsidy_offer";
+  if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) return "event.subsidy_offer_expired";
+  if (eventType == AIEvent.ET_SUBSIDY_AWARDED) return "event.subsidy_awarded";
+  if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) return "event.subsidy_expired";
+  if (eventType == AIEvent.ET_VEHICLE_LOST) return "event.vehicle_lost";
+  if (eventType == AIEvent.ET_INDUSTRY_OPEN) return "event.industry_open";
+  if (eventType == AIEvent.ET_TOWN_FOUNDED) return "event.town_founded";
+  if (eventType == AIEvent.ET_ENGINE_AVAILABLE) return "event.engine_available";
+  if (eventType == AIEvent.ET_ENGINE_PREVIEW) return "event.engine_preview";
+  if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) return "event.station_first_vehicle";
+  return "event.type_" + eventType;
+}
+
+function OpexSpanFlushAgg(rec)
+{
+  if (rec == null || rec.agg == null) return;
+  local date = AIDate.GetCurrentDate();
+  local head = "OPEX " + OpexSpanDateText(date) + " SPAN_AGG par=" + rec.id + " ";
+  foreach (name, bucket in rec.agg) {
+    AILog.Info(head + "n=" + name + " cnt=" + bucket.cnt + " tk=" + bucket.tk + " op=" + bucket.op);
+    SPAN_AGG_LINES = SPAN_AGG_LINES + 1;
+  }
+  rec.agg = null;
+}
+
+function OpexSpanEmit(rec, extra)
+{
+  local op = OpexOpsMeasureEnd(rec.mark);
+  local tk = AIController.GetTick() - rec.tick;
+  local line = "OPEX " + OpexSpanDateText(AIDate.GetCurrentDate())
+      + " SPAN id=" + rec.id
+      + " par=" + rec.parentId
+      + " dep=" + rec.depth
+      + " n=" + rec.name
+      + " ds=" + OpexSpanDateText(rec.date)
+      + " t0=" + rec.tick
+      + " tk=" + tk
+      + " op=" + op;
+  if (extra != null && extra != "") line = line + " " + extra;
+  AILog.Info(line);
+  SPAN_LINES = SPAN_LINES + 1;
+  OpexSpanFlushAgg(rec);
+}
+
+function OpexSpanBegin(name)
+{
+  if (SPAN_STACK == null) SPAN_STACK = [];
+  if (SPAN_BY_ID == null) SPAN_BY_ID = {};
+  local parentId = 0;
+  local depth = 0;
+  if (SPAN_STACK.len() > 0) {
+    local top = SPAN_STACK[SPAN_STACK.len() - 1];
+    parentId = top.id;
+    depth = top.depth + 1;
+  }
+  local id = SPAN_NEXT_ID;
+  SPAN_NEXT_ID = id + 1;
+  if (SPAN_NEXT_ID < 1) SPAN_NEXT_ID = 1;
+  local rec = {
+    id = id,
+    parentId = parentId,
+    depth = depth,
+    name = name,
+    date = AIDate.GetCurrentDate(),
+    tick = AIController.GetTick(),
+    mark = OpexOpsMeasureBegin(),
+    agg = null,
+    closed = false
+  };
+  SPAN_STACK.append(rec);
+  SPAN_BY_ID.rawset(id, rec);
+  return id;
+}
+
+function OpexSpanEnd(token, extra = "")
+{
+  if (token == null || SPAN_BY_ID == null || !(token in SPAN_BY_ID)) return;
+  local rec = SPAN_BY_ID[token];
+  if (rec.closed) return;
+  if (SPAN_STACK != null) {
+    while (SPAN_STACK.len() > 0) {
+      local top = SPAN_STACK[SPAN_STACK.len() - 1];
+      if (top.id == token) break;
+      SPAN_STACK.pop();
+      if (!top.closed) {
+        top.closed = true;
+        OpexSpanEmit(top, "orphan=1");
+      }
+      delete SPAN_BY_ID[top.id];
+    }
+    if (SPAN_STACK.len() > 0 && SPAN_STACK[SPAN_STACK.len() - 1].id == token) SPAN_STACK.pop();
+  }
+  rec.closed = true;
+  OpexSpanEmit(rec, extra);
+  delete SPAN_BY_ID[token];
+}
+
+function OpexSpanRescueOrphans()
+{
+  if (!PROBE_SPAN_TRACE) return;
+  if (SPAN_STACK != null) {
+    while (SPAN_STACK.len() > 0) {
+      local top = SPAN_STACK[SPAN_STACK.len() - 1];
+      OpexSpanEnd(top.id, "orphan=1");
+    }
+  }
+  if (SPAN_ROOT_AGG != null) {
+    OpexSpanFlushAgg({ id = 0, agg = SPAN_ROOT_AGG });
+    SPAN_ROOT_AGG = null;
+  }
+}
+
+function OpexSpanAgg(name, mark)
+{
+  if (!PROBE_SPAN_TRACE || mark == null) return;
+  local ops = OpexOpsMeasureEnd(mark);
+  local tk = AIController.GetTick() - mark.tick;
+  local ownerAgg = null;
+  if (SPAN_STACK != null && SPAN_STACK.len() > 0) {
+    local top = SPAN_STACK[SPAN_STACK.len() - 1];
+    if (top.agg == null) top.agg = {};
+    ownerAgg = top.agg;
+  } else {
+    if (SPAN_ROOT_AGG == null) SPAN_ROOT_AGG = {};
+    ownerAgg = SPAN_ROOT_AGG;
+  }
+  local bucket = (name in ownerAgg) ? ownerAgg[name] : null;
+  if (bucket == null) {
+    bucket = { cnt = 0, tk = 0, op = 0 };
+    ownerAgg.rawset(name, bucket);
+  }
+  bucket.cnt = bucket.cnt + 1;
+  bucket.tk = bucket.tk + tk;
+  bucket.op = bucket.op + ops;
+}
+
+function OpexSpanEvent(kind, fields)
+{
+  if (!PROBE_SPAN_TRACE) return;
+  local line = "OPEX " + OpexSpanDateText(AIDate.GetCurrentDate())
+      + " EVT k=" + kind + " t0=" + AIController.GetTick();
+  if (fields != null && fields != "") line = line + " " + fields;
+  AILog.Info(line);
+}
+
+function OpexSpanYearRoll()
+{
+  if (!PROBE_SPAN_TRACE) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (SPAN_YEAR < 0) {
+    SPAN_YEAR = year;
+    return;
+  }
+  if (year == SPAN_YEAR) return;
+  AILog.Info("OPEX " + OpexSpanDateText(AIDate.GetCurrentDate())
+      + " SPAN_SELF lines=" + SPAN_LINES + " agg_lines=" + SPAN_AGG_LINES);
+  SPAN_LINES = 0;
+  SPAN_AGG_LINES = 0;
+  SPAN_YEAR = year;
+}
+
+/* V101 : rugosite du segment droit entre deux tuiles, au demarrage d'une recherche
+ * rail. Mesure seule, aucun seuil et aucun rejet. Inerte si probe_rail_terrain = 0 :
+ * retour avant tout appel d'API. Les tuiles invalides ne comptent pas ; steps et
+ * rough comparent les points valides consecutifs dans l'ordre du segment. */
+function OpexRailTerrainProbe(src, dst)
+{
+  if (!RAIL_TERRAIN_PROBE) return;
+  local srcX = AIMap.GetTileX(src);
+  local srcY = AIMap.GetTileY(src);
+  local dstX = AIMap.GetTileX(dst);
+  local dstY = AIMap.GetTileY(dst);
+  local n = 0;
+  local flat = 0;
+  local water = 0;
+  local bld = 0;
+  local hmin = 0;
+  local hmax = 0;
+  local steps = 0;
+  local rough = 0;
+  local prevH = null;
+  /* 16 points, i = 0 et i = 15 inclus : les deux extremites du segment. */
+  for (local i = 0; i < 16; i++) {
+    local x = (srcX * (15 - i) + dstX * i) / 15;
+    local y = (srcY * (15 - i) + dstY * i) / 15;
+    local t = AIMap.GetTileIndex(x, y);
+    if (!AIMap.IsValidTile(t)) continue;
+    local h = AITile.GetMinHeight(t);
+    n++;
+    if (AITile.GetSlope(t) == AITile.SLOPE_FLAT) flat++;
+    if (AITile.IsWaterTile(t)) water++;
+    if (AITile.IsBuildable(t)) bld++;
+    if (n == 1) {
+      hmin = h;
+      hmax = h;
+    } else {
+      if (h < hmin) hmin = h;
+      if (h > hmax) hmax = h;
+    }
+    if (prevH != null) {
+      local dh = h - prevH;
+      if (dh != 0) steps++;
+      if (dh < 0) dh = -dh;
+      rough += dh;
+    }
+    prevH = h;
+  }
+  OpexDecide("RAIL_TERRAIN", "src=" + src + " dst=" + dst + " n=" + n
+     + " flat=" + flat + " water=" + water + " bld=" + bld
+     + " hmin=" + hmin + " hmax=" + hmax + " hspread=" + (hmax - hmin)
+     + " steps=" + steps + " rough=" + rough);
 }

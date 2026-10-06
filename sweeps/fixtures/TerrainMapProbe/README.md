@@ -1,9 +1,12 @@
 # C67.2 — fixture de contrat
 
-Cette IA de diagnostic charge le **même** `terrain_map.nut` que le futur consommateur.
+Cette IA de diagnostic charge le **même** `terrain_map.nut` que le service OpexAI.
+État au 30 septembre : C67.3–.6 livrés, sans consommateur métier adopté ;
+voir [contrat](../../../docs/c67_cartographie_contrat.md) et [tâches](../../../docs/taches.md).
 `diag_c67_terrain.py` copie ses sources et `budget.nut` dans un dossier de campagne
 unique, enregistre leurs SHA256 puis réutilise configuration, runtime et nettoyage
-de `bench_v2.py`. Aucun `require` n'est ajouté au `main.nut` d'OpexAI.
+de `bench_v2.py`. Le diagnostic ne modifie pas les `require` de `main.nut` ;
+le service terrain y est déjà chargé dans le code courant.
 
 La fixture exécute les cas synthétiques dans la VM Squirrel du moteur : agrégats d'un
 bloc de bord, inconnus, reprise, LRU, priorité, file pleine et invalidation en cours.
@@ -15,8 +18,8 @@ Depuis la racine du worktree, après vérification du contexte Docker, de l'imag
 du cache et du montage local réellement visible par le daemon :
 
 ```powershell
-rtk proxy python -X utf8 -m unittest discover -s sweeps -p test_c67_terrain.py -v
-rtk proxy docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "${PWD}:/work" -w /work openttd-lab python3 sweeps/diag_c67_terrain.py --out results/c67_terrain_smoke_identifiant_unique.json
+python -X utf8 -m unittest discover -s sweeps -p test_c67_terrain.py -v
+docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "${PWD}:/work" -w /work openttd-lab python3 sweeps/diag_c67_terrain.py --out results/c67_terrain_smoke_identifiant_unique.json
 ```
 
 Le smoke est fixe : graine 42, un an, un worker, aucune bibliothèque tierce requise.

@@ -1,9 +1,14 @@
 import unittest
 from pathlib import Path
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 ROOT = Path(__file__).resolve().parents[1]
-AIR = (ROOT / "ai" / "OpexAI" / "builder_air.nut").read_text(encoding="utf-8")
-PROJECTS = (ROOT / "ai" / "OpexAI" / "projects.nut").read_text(encoding="utf-8")
+AIR = read_builder_air()
+PROJECTS = read_projects_source()
 INFO = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
 GLOBALS = (ROOT / "ai" / "OpexAI" / "globals_pre.nut").read_text(encoding="utf-8")
 SETTINGS = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")

@@ -2,7 +2,7 @@
 
 > **Date** : 2026-09-17  
 > **Chantiers réalisés** :
-> 1. Élimination formelle de **66 paramètres de pistes abandonnées** de [`ai/OpexAI/info.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/info.nut) et verrouillage neutre dans [`ai/OpexAI/settings.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/settings.nut).
+> 1. Élimination formelle de **66 paramètres de pistes abandonnées** de [`ai/OpexAI/info.nut`](../ai/OpexAI/info.nut) et verrouillage neutre dans [`ai/OpexAI/settings.nut`](../ai/OpexAI/settings.nut).
 > 2. Regroupement de ~60 réglages adoptés en **8 macro-politiques** `policy_*` déballées proprement dans `settings.nut`.
 > 3. Bascule du défaut de `air_early_slot` à 1 (conforme à la décision économique du 2026-09-15).
 > 4. Réduction nette de **-1 870 lignes de code** et passage de **169 à 44 paramètres exposés** dans `info.nut` (-74%).

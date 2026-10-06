@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 import unittest
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +26,7 @@ class V86HubHubContractTest(unittest.TestCase):
         marginal_block = info[info.index('name = "air_hubhub_marginal"'):]
         marginal_block = marginal_block[:marginal_block.index("});")]
         self.assertIn("flags = AICONFIG_BOOLEAN", marginal_block)
-        self.assertIn("custom_value = 0", marginal_block)
+        self.assertIn("custom_value = 1", marginal_block)
 
         # air_hub_max_routes
         self.assertIn('name = "air_hub_max_routes"', info)
@@ -46,7 +50,7 @@ class V86HubHubContractTest(unittest.TestCase):
         self.assertIn("AIR_HUB_MAX_ROUTES =", settings)
 
     def test_variante_b_route_cap_factorised_helper(self):
-        builder = _read("ai/OpexAI/builder_air.nut")
+        builder = read_builder_air()
         task = _read("ai/OpexAI/task_air.nut")
 
         # Function definition in builder_air.nut
@@ -73,7 +77,7 @@ class V86HubHubContractTest(unittest.TestCase):
         self.assertNotIn("? 4 : 12", cap_body)
 
     def test_variante_a_hubhub_marginal_deduction_and_precalc(self):
-        builder = _read("ai/OpexAI/builder_air.nut")
+        builder = read_builder_air()
         h2h_start = builder.index("function OpexAirPlansHubToHub(")
         h2h_end = builder.index("function OpexAirPlansFinalize(", h2h_start)
         h2h_body = builder[h2h_start:h2h_end]
@@ -85,7 +89,7 @@ class V86HubHubContractTest(unittest.TestCase):
 
         # Precalculation happens BEFORE the hub pair loops
         precalc_pos = h2h_body.index("if (AIR_HUBHUB_MARGINAL)")
-        loop_i_pos = h2h_body.index("for (local i = 0; i < hubs.len(); i++)")
+        loop_i_pos = h2h_body.index("for (local i = resumeI; i < hubs.len(); i++)")
         self.assertLess(precalc_pos, loop_i_pos)
 
         # Revenue model: uses AICargo.GetCargoIncome on distance and time, mail bonus, calibration

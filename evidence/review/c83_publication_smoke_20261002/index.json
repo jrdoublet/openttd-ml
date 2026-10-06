@@ -1,0 +1,25 @@
+{
+  "schema": "opex-review-evidence-v1",
+  "documents": [
+    "docs/c83_local_repair_20261002.md"
+  ],
+  "artifacts": [
+    {
+      "source": "results/c83_publish_20261002/results/c83_publish_smoke_20261002_r2.json",
+      "evidence": "evidence/review/c83_publication_smoke_20261002/results/c83_publish_smoke_20261002_r2.json.gz",
+      "raw_bytes": 22419,
+      "raw_sha256": "071daca8b1f3ff3afeacf120b8496df2b4c751be6763a9e94b5b5b83790541e2",
+      "gzip_bytes": 2875,
+      "gzip_sha256": "4ae8db2706cc01678df1d8176f094d9141a8dd6cc82bb9c2bfed29a0119dbea9"
+    },
+    {
+      "source": "results/c83_publish_20261002/results/c83_publish_smoke_20261002_r2.manifest.json",
+      "evidence": "evidence/review/c83_publication_smoke_20261002/results/c83_publish_smoke_20261002_r2.manifest.json.gz",
+      "raw_bytes": 54754,
+      "raw_sha256": "36a273edf488ebf700cfe13aa2a618ee385964544979a108fe0d6dbce883f80b",
+      "gzip_bytes": 11121,
+      "gzip_sha256": "c19ade582311367bcb873769384b175ec185059ef0f79a2f4e504cc6593af2e3"
+    }
+  ],
+  "missing": []
+}

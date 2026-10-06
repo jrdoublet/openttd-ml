@@ -102,7 +102,10 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
   if (!AITown.IsValidTown(townId)) return false;
   /* Une seule ligne bus de base par commune. Le plafond de croissance n'autorise pas cinq
    * lignes superposees : les quartiers suivants deviennent des bus_pax_extension de la ligne. */
-  if (OpexTownBusPaxServed(this._lines, townId)) return false;
+  local tgMark = PROBE_LOOP_OPS ? OpexOpsMeasureBegin() : null;
+  local tgBusServed = OpexTownBusPaxServed(this._lines, townId);
+  if (tgMark != null) OpexLoopProfAdd(tgBusServed ? "tg_bus_served_yes" : "tg_bus_served_no", tgMark);
+  if (tgBusServed) return false;
   if (TOWN_GROWTH_PLAN_MEMO && this._townPlanFailures != null && (townId in this._townPlanFailures)
       && this._townPlanFailures[townId] == AITown.GetHouseCount(townId)) {
     if (DECISION_LOG) OpexDecide("TOWN_GROWTH_MEMO", "action=skip town=" + townId);
@@ -170,6 +173,7 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
   this._budget.begin();
   local planning = OpexRoadPlanFor(this._catalog, candidate);
   local planOps = this._budget.end("build_road_plans");
+  if (PROBE_LOOP_OPS) OpexLoopProfAddRaw("tg_plan", planOps, 0);
   local plan = planning.plan;
   if (plan == null) {
     if (TOWN_GROWTH_PLAN_MEMO) {
@@ -241,6 +245,7 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
     OpexDecide("TOWN_GROWTH", "action=build town=" + townId + " stations_before=" + currentCount + " stations_after=" + newCount + " cost=" + candidate.capital);
   }
 
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   this._lines.append({
     stationA = result.stopA, stationB = result.stopB,
     originA = candidate.src, originB = candidate.dst,
@@ -277,12 +282,21 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
  * espacees de cette meme ligne, jusqu'au plafond de croissance maximale OpenTTD. */
 function OpexAI::_tryTownGrowth(year)
 {
+  local tgPrep = PROBE_LOOP_OPS ? OpexOpsMeasureBegin() : null;
   local servedTowns = this._prepareTownGrowth();
+  if (tgPrep != null) {
+    OpexLoopProfAdd("tg_prepare", tgPrep);
+    OpexLoopProfAddRaw("tg_served_towns", servedTowns == null ? 0 : servedTowns.len(), 0);
+    OpexLoopProfAddRaw("tg_lines", this._lines.len(), 0);
+  }
   if (servedTowns == null) return false;
 
   local anchor = AIMap.GetTileIndex(1, 1);
   foreach (townId in servedTowns) {
-    if (this._tryTownGrowthCity(townId, year, anchor)) return true;
+    local tgCity = PROBE_LOOP_OPS ? OpexOpsMeasureBegin() : null;
+    local tgBuilt = this._tryTownGrowthCity(townId, year, anchor);
+    if (tgCity != null) OpexLoopProfAdd(tgBuilt ? "tg_city_built" : "tg_city_nobuild", tgCity);
+    if (tgBuilt) return true;
     if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
   }
   return false;

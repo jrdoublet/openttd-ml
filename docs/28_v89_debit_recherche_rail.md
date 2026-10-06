@@ -1,5 +1,9 @@
 # V89 — Débit de recherche de chemin ferroviaire opportuniste
 
+**Statut au 30 septembre : défaut 1 par décision utilisateur du 26, comme dépendance
+de V88, malgré un 20×10 sans gain direct démontré.** Le protocole initial ci-dessous
+est historique ; il n'ordonne pas un nouveau banc. [Décision et limites](journaux/synthese_decisions_2026-09-30.md).
+
 Date : **2026-09-24**. Protocole requalifié le **2026-09-25** après adoption de V91=120.
 Objectif : réduire le **délai de mise en service** des lignes ferroviaires sans toucher au budget d'itérations ni à la qualité des tracés.
 

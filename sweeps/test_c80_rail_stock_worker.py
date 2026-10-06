@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 import re
 from diag_c80_projects_gap import extract, analyze_events
+from opex_projects_source import read_projects_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,7 +23,7 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         cls.settings = _read("ai/OpexAI/settings.nut")
         cls.main = _read("ai/OpexAI/main.nut")
         cls.persist = _read("ai/OpexAI/persist.nut")
-        cls.projects = _read("ai/OpexAI/projects.nut")
+        cls.projects = read_projects_source()
         cls.task_projects = _read("ai/OpexAI/task_projects.nut")
         cls.task_rail = _read("ai/OpexAI/task_rail.nut")
         cls.orchestrator = _read("ai/OpexAI/orchestrator.nut")
@@ -85,21 +86,165 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertNotIn("OpexBuildTrack", reval_body)
         self.assertIn("OpexTestRailTrack", reval_body)
 
-        # Contrat : OpexBuildTrack inchangée par rapport à 6895781
-        import subprocess
-        orig_file = subprocess.check_output(
-            ["git", "show", "6895781:ai/OpexAI/builder_rail.nut"],
-            cwd=str(ROOT),
-            text=True,
+        # OpexBuildTrack n'est plus byte-identique à 6895781 : sonde additive
+        # RAIL_TRACK_FAIL (3e paramètre failure = null). failure null n'écrit rien.
+        # OpexTestRailTrack reste le jumeau sans AreTilesConnected ni ces champs.
+        rail = (ROOT / "ai/OpexAI/builder_rail.nut").read_text(encoding="utf-8")
+        start = rail.index("function OpexBuildTrack(")
+        end = rail.index("\nfunction OpexTestRailTrack(", start)
+        body = rail[start:end]
+        self.assertTrue(body.startswith(
+            "function OpexBuildTrack(tiles, structures = null, failure = null)"))
+        self.assertIn("return failed;", body)
+        self.assertIn("ok = AIRail.BuildRail(prev, cur, next);", body)
+        self.assertIn("ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);", body)
+        self.assertIn(
+            "ok = !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);",
+            body)
+        self.assertIn("!AIRail.AreTilesConnected(prev, cur, next)", body)
+        self.assertIn('failure.kind <- "connect"', body)
+        self.assertIn("failure.kind <- segmentKind", body)
+        self.assertIn('if (failure != null && !("index" in failure))', body)
+        self.assertEqual(body.count('if (failure != null && !("index" in failure))'), 2)
+        fills = body.split('if (failure != null && !("index" in failure))')
+        self.assertEqual(len(fills), 3)
+        self.assertNotIn("failure.is_station", fills[0])
+        self.assertNotIn("failure.dup_index", fills[0])
+        self.assertNotIn("AITile.IsBuildable(cur)", fills[0])
+        tile_state = (
+            "failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;",
+            "failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;",
+            "failure.is_station <- AIRail.IsRailStationTile(cur) ? 1 : 0;",
+            "failure.is_road <- AIRoad.IsRoadTile(cur) ? 1 : 0;",
+            "failure.is_water <- AITile.IsWaterTile(cur) ? 1 : 0;",
+            "failure.owner_self <- (AITile.GetOwner(cur) == "
+            "AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) ? 1 : 0;",
+            "failure.slope <- AITile.GetSlope(cur);",
+            "failure.dup_index <- dupIndex;",
+            "for (local j = 0; j < i; j++) {",
+            "if (tiles[j] == cur) {",
         )
-        def _extract_build_track(content):
-            start = content.index("function OpexBuildTrack(")
-            end = content.index("\n}\n", start) + 3
-            return content[start:end]
+        for part in fills[1:]:
+            for line in tile_state:
+                self.assertIn(line, part)
+        self.assertNotIn("OpexDecide", body)
+        twin = rail[end:rail.index("\nfunction OpexBuildDepot(", end)]
+        self.assertIn("function OpexTestRailTrack(tiles, structures = null)", twin)
+        self.assertIn("firstSegment", twin)
+        self.assertIn("firstTile", twin)
+        self.assertNotIn("failure", twin)
+        self.assertNotIn("manh_prev", twin)
+        self.assertNotIn("is_station", twin)
+        self.assertNotIn("dup_index", twin)
+        self.assertNotIn("IsRailStationTile", twin)
 
-        curr_build_track = _extract_build_track((ROOT / "ai/OpexAI/builder_rail.nut").read_text(encoding="utf-8"))
-        orig_build_track = _extract_build_track(orig_file)
-        self.assertEqual(curr_build_track, orig_build_track, "OpexBuildTrack doit être strictement identique à 6895781")
+        execute = rail[rail.index("function OpexExecuteRailPlan("):rail.index("\nfunction OpexBuildLine(")]
+        self.assertIn("local trackFailure = null;\n  if (DECISION_LOG) trackFailure = {};", execute)
+        self.assertIn("OpexBuildTrack(tiles, plan.structures, trackFailure)", execute)
+        self.assertIn("OpexBuildTrack(tiles2, plan.structures2);", execute)
+        self.assertEqual(execute.count("OpexBuildTrack(tiles, plan.structures, trackFailure)"), 1)
+        self.assertIn(
+            "local connected = trackFailed == 0 &&\n"
+            "      AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&\n"
+            "      AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);",
+            execute)
+        track_at = execute.index('OpexDecide("RAIL_TRACK_FAIL"')
+        track_log = execute[execute.rindex("if (!connected)", 0, track_at):
+                            execute.index('result.reason = "TRKFAIL"', track_at)]
+        self.assertIn("if (DECISION_LOG)", track_log)
+        self.assertIn("tiles.len() >= 3", track_log)
+        self.assertIn("exit_a=", track_log)
+        self.assertIn("exit_b=", track_log)
+        self.assertIn('cause=" + (trackFailed > 0 ? "track" : "connect")', track_log)
+        log_order = (
+            "cause=", "failed=", "tiles=", "exit_a=", "exit_b=",
+            "idx=", "tile=", "kind=", "err=", "mprev=", "mnext=",
+            "bld=", "rail=", "stn=", "road=", "watr=", "own=", "slp=", "dup=",
+            "leadb=", "exitb=",
+            "h0=", "h1=", "h2=", "d01=", "d12=",
+            "t2=", "t1=", "t0=", "d21=", "d10=",
+        )
+        log_pos = -1
+        for token in log_order:
+            at = track_log.index(token)
+            self.assertGreater(at, log_pos, token)
+            log_pos = at
+        for key in (
+            "is_buildable", "is_rail", "is_station", "is_road", "is_water",
+            "owner_self", "slope", "dup_index", "lead", "station_exit",
+        ):
+            self.assertIn(f'("{key}" in ', track_log)
+        self.assertIn("trackFailure.is_buildable", track_log)
+        self.assertIn("trackFailure.is_station", track_log)
+        self.assertIn("trackFailure.dup_index", track_log)
+        self.assertIn("planB.lead", track_log)
+        self.assertIn("planB.station_exit", track_log)
+        self.assertLess(track_log.index("exitb="), track_log.index('OpexDecide("RAIL_TRACK_FAIL"'))
+        geom = track_log[track_log.index("exitb="):track_log.index('OpexDecide("RAIL_TRACK_FAIL"')]
+        self.assertIn("if (tiles.len() >= 3)", geom)
+        self.assertIn("tiles[0]", geom)
+        self.assertIn("tiles[1]", geom)
+        self.assertIn("tiles[2]", geom)
+        self.assertIn("tiles[last - 2]", geom)
+        self.assertIn("tiles[last - 1]", geom)
+        self.assertIn("tiles[last]", geom)
+        self.assertIn("AIMap.DistanceManhattan(tiles[0], tiles[1])", geom)
+        self.assertIn("AIMap.DistanceManhattan(tiles[1], tiles[2])", geom)
+        self.assertIn("AIMap.DistanceManhattan(tiles[last - 2], tiles[last - 1])", geom)
+        self.assertIn("AIMap.DistanceManhattan(tiles[last - 1], tiles[last])", geom)
+        fail_only = track_log[track_log.index("if (trackFailed > 0"):track_log.index('if ("lead" in planB)')]
+        self.assertNotIn("h0=", fail_only)
+        self.assertNotIn("d01=", fail_only)
+        self.assertNotIn("t2=", fail_only)
+        self.assertNotIn("d21=", fail_only)
+        self.assertLess(track_at, execute.index("OpexRollback(tiles, planA, planB, null, null);"))
+        stn_at = execute.index('OpexDecide("RAIL_STN_FAIL"')
+        stn_block = execute[execute.rindex("if (!okA || !okB)", 0, stn_at):stn_at]
+        self.assertIn("if (DECISION_LOG)", stn_block)
+        self.assertLess(stn_at, execute.index("OpexRollback(null, planA, planB, null, null);"))
+        self.assertIn("ok_a=", execute)
+        self.assertIn("len_a=", execute)
+        self.assertIn("len_b=", execute)
+
+    def test_rail_attempt_logs_station_exit_crossings(self):
+        """startx/endx sur chaque RAIL_ATTEMPT. -1 si le tracé n'est pas sur result."""
+        record_at = self.task_rail.index("function OpexAI::_recordRailAttempt(")
+        record = self.task_rail[record_at:self.task_rail.index("\nfunction ", record_at)]
+        attempt_at = record.index('OpexDecide("RAIL_ATTEMPT"')
+        attempt = record[attempt_at:record.index("if (result.ok)", attempt_at)]
+        self.assertIn("if (DECISION_LOG)", record[:attempt_at])
+        order = (
+            "src=", "dst=", "kind=", "manh=", "pre=", "model=",
+            "quote=", "actual=", "ok=", "reason=", "iters=", "ops=",
+            "startx=", "endx=",
+        )
+        pos = -1
+        for token in order:
+            at = attempt.index(token)
+            self.assertGreater(at, pos, token)
+            pos = at
+        self.assertIn('("startx" in result) ? result.startx : -1', attempt)
+        self.assertIn('("endx" in result) ? result.endx : -1', attempt)
+        self.assertNotIn("result.startx : 0", attempt)
+        self.assertNotIn("result.endx : 0", attempt)
+
+        rail = (ROOT / "ai/OpexAI/builder_rail.nut").read_text(encoding="utf-8")
+        execute = rail[rail.index("function OpexExecuteRailPlan("):rail.index("\nfunction OpexBuildLine(")]
+        cross = execute[execute.index("local tiles = plan.tiles;"):execute.index("if (RAIL_DEVIS)")]
+        self.assertIn("if (DECISION_LOG)", cross)
+        self.assertLess(cross.index("local crossStart = -1;"), cross.index("result.startx <-"))
+        self.assertLess(cross.index("local crossEnd = -1;"), cross.index("result.endx <-"))
+        self.assertIn("tiles != null && tiles.len() >= 2", cross)
+        self.assertIn("tiles != null && tiles.len() >= 3", cross)
+        self.assertIn("(AIMap.DistanceManhattan(tiles[0], tiles[1]) > 1) ? 1 : 0", cross)
+        self.assertIn("(AIMap.DistanceManhattan(tiles[tail - 2], tiles[tail - 1]) > 1) ? 1 : 0", cross)
+        self.assertIn("result.startx <- crossStart;", cross)
+        self.assertIn("result.endx <- crossEnd;", cross)
+        twin_at = rail.index("function OpexTestRailTrack(")
+        twin = rail[twin_at:rail.index("\nfunction OpexBuildDepot(", twin_at)]
+        self.assertNotIn("startx", twin)
+        self.assertNotIn("endx", twin)
+        self.assertNotIn("h0=", twin)
 
     def test_v89_throughput_interaction_documented_and_guarded(self):
         # Le worker absorbe le reliquat et V89 cède sous C80_RAIL_STOCK_WORKER

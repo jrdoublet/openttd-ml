@@ -1,11 +1,28 @@
 # OpexAI multimodale : avion, bateau et route
 
+> **Archive des 28–30 août 2026, pas un contrat courant.** Les mécanismes, limites et mesures
+> ci-dessous décrivent ces versions ; les résultats antérieurs au 9 septembre ne font plus
+> preuve actuelle. Voir [AGENTS.md](../AGENTS.md) et l'[état courant](taches.md).
+
+## Repères courants (relecture du 30 septembre 2026)
+
+- [`projects.nut`](../ai/OpexAI/projects.nut) classe les projets finançables par `fundScore`
+  sur le **profit calibré**, non le revenu, avec le dénominateur C69
+  `max(capital de décision, K_dec)` et les exemptions/priorités applicables.
+- [`persist.nut`](../ai/OpexAI/persist.nut) implémente `Save`, `Load` et
+  `_reconcileAfterLoad` : la persistance des lignes est effective, pas limitée à un scan.
+- `road_mode` et `road_refleet` sont des réglages historiques retirés. `policy_road=1`
+  est la macro-politique courante ; sa désactivation coupe plusieurs comportements routiers,
+  et n'est pas une ablation isolée du renouvellement de flotte.
+
+## Description historique
+
 Implémentation du 2026-08-28, ciblée sur **OpenTTD 15.3 / API NoAI 15**. Ces trois modes
 complètent le constructeur ferroviaire sans réutiliser son modèle de coût A* : ils ont leur
 propre catalogue, leur planification bornée, leur garde de trésorerie et leur transaction de
 construction.
 
-## Orchestration annuelle
+## Orchestration annuelle historique (remplacée)
 
 `ai/OpexAI/main.nut` rafraîchit le catalogue puis exécute cette chaîne :
 
@@ -17,9 +34,9 @@ construction.
 4. seuls les projets financés sont reclassés par `revenueAnnual / expectedOpcodes` ;
 5. l'ordonnanceur construit le premier projet, puis invalide et recalcule tout le portefeuille.
 
-Le choix modal est donc antérieur aux deux contraintes et ne dépend jamais d'une priorité
-rail/route/air/eau. Le budget optimise le **revenu**, pas le profit, une fois les alternatives non
-rentables éliminées par le ROI. Les opcodes déjà dépensés pour découvrir les projets sont
+Dans cette version historique, le choix modal précédait les deux contraintes sans priorité
+rail/route/air/eau. Le budget optimisait le **revenu**, pas le profit ; ce n'est plus le score
+courant décrit plus haut. Les opcodes déjà dépensés pour découvrir les projets étaient
 télémétrés mais ne sont pas refacturés dans leur coût d'exécution restant.
 
 L'air expose toutes les paires rentables de chaque combinaison aéroport/avion. L'eau classe
@@ -190,15 +207,17 @@ Dans OpenTTDLab 15.3, le chunk `ORDR` peut rester vide alors que les ordres fonc
 validation croise donc le compte d'ordres au moment de la construction, les stations/dépôts et
 l'état courant du véhicule dans `VEHS`.
 
-## Limites actuelles
+## Limites historiques (non contractuelles aujourd'hui)
 
 - une seule liaison **avion** et une seule **maritime** ;
-- la route est une phase annuelle (plusieurs lignes), `road_mode` défaut 1 — voir `docs/opexai_route.md` ;
+- la route était une phase annuelle (plusieurs lignes), `road_mode` défaut 1 à l'époque,
+  réglage aujourd'hui retiré — voir [l'archive route](opexai_route.md) ;
 - passagers uniquement pour l'air et l'eau ; la route fait aussi du fret camion ;
 - classements rail et route séparés : `ROAD_PLAN_ITERATIONS_BASE` mesuré (rapport plan 0,29),
   pas unifié — un ratio unique affamerait le rail (`results/opex_road_rb_calibrate.json`) ;
 - aucun canal, écluse ou bouée ; une paire sans composante d'eau naturelle commune est ignorée
   (le trick des pseudo-canaux — inonder du terrain sec, `docs/mecanique_jeu.md` §13 — n'est pas
   un plan : un bateau pax ne le justifie pas, coût opcode/argent non mesuré) ;
-- la reconstruction après chargement est évitée par scan des véhicules, mais OpexAI ne possède
-  toujours pas de schéma `Save` / `Load` persistant pour ses tables de lignes.
+- à l'époque, un scan des véhicules évitait la reconstruction après chargement sans schéma
+  persistant des lignes. **Limite levée** : `Save` / `Load` et la réconciliation sont désormais
+  implémentés dans [`persist.nut`](../ai/OpexAI/persist.nut).

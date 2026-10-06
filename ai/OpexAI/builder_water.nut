@@ -492,6 +492,7 @@ function OpexWaterRollback(dockA, dockB, depot, ship)
   if (depot != null && AIMarine.IsWaterDepotTile(depot)) AIMarine.RemoveWaterDepot(depot);
   if (dockB != null && AIMarine.IsDockTile(dockB)) AIMarine.RemoveDock(dockB);
   if (dockA != null && AIMarine.IsDockTile(dockA)) AIMarine.RemoveDock(dockA);
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
 }
 
 function OpexWaterStampCost(result, costs)
@@ -527,6 +528,7 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   }
 
   budget.begin();
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   local okA = AIMarine.BuildDock(plan.siteA.dock, AIStation.STATION_NEW);
   local errorA = okA ? 0 : AIError.GetLastError();
   if (okA && AIMarine.IsDockTile(plan.siteA.dock)) dockA = plan.siteA.dock;

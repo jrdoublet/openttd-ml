@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import unittest
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -63,7 +64,7 @@ class V88GoodsChainContractTest(unittest.TestCase):
         self.assertIn('"t" + candidate.dstTown', lines)
 
         # projects.nut key
-        projects = _read("ai/OpexAI/projects.nut")
+        projects = read_projects_source()
         self.assertIn('"chain|" + project.payload.inputCargo', projects)
         self.assertIn('+ project.payload.factoryId + "|t" + project.payload.dstTown', projects)
 
@@ -190,7 +191,7 @@ class V88GoodsChainContractTest(unittest.TestCase):
         candidates = _read("ai/OpexAI/candidates.nut")
         self.assertIn("V88_ALL_INPUTS", candidates)
 
-        projects = _read("ai/OpexAI/projects.nut")
+        projects = read_projects_source()
         self.assertIn("V88_CHAIN_STEP1_FINANCE", projects)
 
         capital = _read("ai/OpexAI/capital.nut")

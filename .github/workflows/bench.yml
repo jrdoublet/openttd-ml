@@ -1,0 +1,137 @@
+name: Bancs OpenTTD
+run-name: "Banc ${{ inputs.mode }} / ${{ inputs.profile }} — ${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "solo = Opex seul ; duel = contre AAA ; paired = A/B contre AAA"
+        type: choice
+        options: [solo, duel, paired]
+        default: solo
+      profile:
+        description: "smoke 1x1 ; diagnostic 5x6 ; adoption 20x10 (paired) ; custom"
+        type: choice
+        options: [smoke, diagnostic, adoption, custom]
+        default: smoke
+      reference:
+        description: "Référence : OpexAI ou OpexAI[reglage=0,...]"
+        type: string
+        default: OpexAI
+      variant:
+        description: "paired seulement : OpexAI[reglage=1,...]"
+        type: string
+        default: ""
+      years:
+        description: "custom seulement : 1 à 10 ans ; sinon laisser vide"
+        type: string
+        default: ""
+      seeds:
+        description: "custom seulement : 1 à 20 graines uniques séparées par espaces"
+        type: string
+        default: ""
+      min_delta:
+        description: "A/B : effet utile minimal de profit_year (£/an), fixé AVANT le banc"
+        type: number
+        default: 50000
+      value_guard:
+        description: "A/B : perte maximale de valeur acceptée (%)"
+        type: number
+        default: 5
+      line_telemetry:
+        description: "Duels : collecter aussi le profit par ligne (artefacts plus gros)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# A new push/dispatch never cancels an ongoing campaign.
+concurrency:
+  group: openttd-bench-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUNBUFFERED: "1"
+      BENCH_MODE: ${{ inputs.mode }}
+      BENCH_PROFILE: ${{ inputs.profile }}
+      BENCH_REFERENCE: ${{ inputs.reference }}
+      BENCH_VARIANT: ${{ inputs.variant }}
+      BENCH_YEARS: ${{ inputs.years }}
+      BENCH_SEEDS: ${{ inputs.seeds }}
+      BENCH_MIN_DELTA: ${{ inputs.min_delta }}
+      BENCH_VALUE_GUARD: ${{ inputs.value_guard }}
+      BENCH_LINE_TELEMETRY: ${{ inputs.line_telemetry }}
+      RESULT_DIR: results/gha-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate request before building or downloading
+        id: plan
+        run: python sweeps/github_bench.py plan
+
+      - name: Test orchestration without OpenTTD
+        run: python -m unittest discover -s sweeps -p test_github_bench.py -v
+
+      - name: Record checkout and runner identity
+        id: runner
+        run: |
+          git rev-parse HEAD > "$RESULT_DIR/git-sha.txt"
+          git status --porcelain=v1 > "$RESULT_DIR/git-status.txt"
+          docker context show > "$RESULT_DIR/docker-context.txt"
+          docker info > "$RESULT_DIR/docker-info.txt"
+          echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
+          echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build simulation runtime (no ML dependencies)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: simulation
+          load: true
+          tags: openttd-lab:github
+          build-args: |
+            UID=${{ steps.runner.outputs.uid }}
+            GID=${{ steps.runner.outputs.gid }}
+          cache-from: type=gha,scope=openttd-simulation
+          cache-to: type=gha,scope=openttd-simulation,mode=max
+
+      - name: Prepare pinned opponent and record image
+        run: |
+          python sweeps/github_bench.py prepare 2>&1 | tee "$RESULT_DIR/prepare.log"
+          docker image inspect openttd-lab:github > "$RESULT_DIR/docker-image.json"
+          # Fresh runner volume: never restore /home/lab/.local from an older image.
+          docker volume create openttd-lab-home
+
+      - name: Run benchmark on GitHub
+        # Leave time to upload partial results before the job's six-hour limit.
+        timeout-minutes: 300
+        run: python sweeps/github_bench.py run 2>&1 | tee "$RESULT_DIR/console.log"
+
+      - name: Publish readable summary
+        if: always() && steps.plan.outcome == 'success'
+        run: python sweeps/github_bench.py summary
+
+      - name: Upload full campaign, including partial results on failure
+        if: always() && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ inputs.mode }}-${{ inputs.profile }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.RESULT_DIR }}/
+          if-no-files-found: error
+          retention-days: 30

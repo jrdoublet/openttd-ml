@@ -39,7 +39,7 @@ from campaign_freeze import (
 )
 from physical_counters import decode_stations, decode_vehicles
 
-ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 TRAINS_MD5 = "c4c069dc797674e545411b59867ad0c2"  # identique aux scripts phase0
 YEARS = 20
@@ -369,24 +369,56 @@ def _first(value):
 
 def quarter_profit(entry):
     """Profit d'un trimestre clos. expenses est negatif dans OpenTTD 15.3."""
-    if not entry:
+    if not isinstance(entry, dict):
         return None
     income = entry.get("income")
     expenses = entry.get("expenses")
-    if income is None or expenses is None:
+    if not all(
+        isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+        for value in (income, expenses)
+    ):
         return None
-    if expenses <= 0:
-        return income + expenses
-    return income - expenses
+    profit = income + expenses if expenses <= 0 else income - expenses
+    return profit if math.isfinite(profit) else None
+
+
+def year_profit_metrics(closed):
+    """Profit et couverture des quatre derniers trimestres, sans omission invalide.
+
+    Un historique court reste explicitement partiel (pas de remplissage à zéro
+    ni d'annualisation). Une entrée présente mais indécodable invalide la somme.
+    """
+    if closed is not None and not isinstance(closed, (list, tuple)):
+        return {
+            "profit_year": None,
+            "profit_year_quarters_available": None,
+            "profit_year_quarters_valid": 0,
+            "profit_year_coverage": "invalid",
+        }
+    profits = [quarter_profit(entry) for entry in (closed or [])[:4]]
+    available = len(profits)
+    valid = sum(value is not None for value in profits)
+    if not available:
+        coverage = "missing"
+    elif valid != available:
+        coverage = "invalid"
+    else:
+        coverage = "complete" if available == 4 else "partial"
+    profit = sum(profits) if available and valid == available else None
+    if profit is not None and not math.isfinite(profit):
+        profit = None
+        coverage = "invalid"
+    return {
+        "profit_year": profit,
+        "profit_year_quarters_available": available,
+        "profit_year_quarters_valid": valid,
+        "profit_year_coverage": coverage,
+    }
 
 
 def year_profit(closed):
-    """Somme des (jusqu'a) quatre derniers trimestres clos."""
-    profits = [quarter_profit(entry) for entry in (closed or [])[:4]]
-    profits = [value for value in profits if value is not None]
-    if not profits:
-        return None
-    return sum(profits)
+    """Somme des trimestres disponibles, inconnue si l'un d'eux est invalide."""
+    return year_profit_metrics(closed)["profit_year"]
 
 
 def station_ratings(chunks, owner=0):
@@ -517,8 +549,11 @@ def keep(row):
     """Une ligne par sauvegarde mensuelle, persistee immediatement pour survivre a un crash."""
     chunks = row["chunks"]
     player = chunks.get("PLYR", {}).get(0) or chunks.get("PLYR", {}).get("0")
-    closed = (player or {}).get("old_economy") or []
-    last_closed = closed[0] if closed else {}
+    closed = (player or {}).get("old_economy")
+    last_closed = (
+        closed[0] if isinstance(closed, (list, tuple)) and closed
+        and isinstance(closed[0], dict) else {}
+    )
     ratings = station_ratings(chunks)
     veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=0)
     stn_dec = decode_stations(chunks.get("STNN"), target_owner=0)
@@ -562,7 +597,7 @@ def keep(row):
         "delivered_cargo_last_quarter": last_closed.get("delivered_cargo"),
         "expenses_last_year": last_closed.get("expenses"),
         "profit": quarter_profit(last_closed),
-        "profit_year": year_profit(closed),
+        **year_profit_metrics(closed),
         "median_station_rating": (statistics.median(ratings) if ratings else None),
         "n_station_ratings": len(ratings),
         "money": (player or {}).get("money"),
@@ -725,6 +760,9 @@ def summarise(rows, expected_last_year=None, expected_savegames=None):
                 err_msg = v_err if vehs_valid is False else s_err
                 failure_reason = f"physical_decode_failure: {err_msg}"
 
+        if final.get("profit_year_coverage") == "invalid" and failure_reason is None:
+            failure_reason = "economic_decode_failure: invalid_closed_quarter"
+
         rec = {
             "arm": key[0], "seed": key[1], "repeat": key[2],
             "last_date": final["date"], "last_year": last_year,
@@ -735,6 +773,9 @@ def summarise(rows, expected_last_year=None, expected_savegames=None):
             "expenses_last_year": final.get("expenses_last_year"),
             "profit": final.get("profit"),
             "profit_year": final.get("profit_year"),
+            "profit_year_quarters_available": final.get("profit_year_quarters_available"),
+            "profit_year_quarters_valid": final.get("profit_year_quarters_valid"),
+            "profit_year_coverage": final.get("profit_year_coverage"),
             "median_station_rating": final.get("median_station_rating"),
             "n_station_ratings": final.get("n_station_ratings"),
             "money": final["money"], "current_loan": final["current_loan"],

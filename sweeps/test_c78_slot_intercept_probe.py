@@ -76,7 +76,17 @@ class C78SlotInterceptProbeTests(unittest.TestCase):
         self.assertIn("OpexProjectAttemptKey(fundedProject)", funded_rank)
 
     def test_projects_task_emits_pass_and_successful_build_timestamps(self):
-        attempt = body(self.projects, "function OpexAI::_tryBuildProjects(")
+        orchestrator = body(self.projects, "function OpexAI::_tryBuildProjects(")
+        # R12 : journaux C78 deplaces dans des helpers appeles par l'orchestrateur.
+        self.assertIn('this._c78LogAirSlotLine("air_attempt", project, i,', orchestrator)
+        self.assertIn('this._c78LogAirSlotLine("air_outcome", project, i,', orchestrator)
+        self.assertIn("c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, true,", orchestrator)
+        slot_line = body(self.projects, "function OpexAI::_c78LogAirSlotLine(")
+        finalize = body(self.projects, "function OpexAI::_finalizeProjectsPassDiagnostics(")
+        self.assertIn('"phase=" + phase + " pass=" + C78_SLOT_PASS_COUNTER', slot_line)
+        attempt = (orchestrator + slot_line + finalize).replace(
+            'this._c78LogAirSlotLine("air_attempt"', 'phase=air_attempt').replace(
+            'this._c78LogAirSlotLine("air_outcome"', 'phase=air_outcome')
         self.assertIn("this._c78SlotOnProjectsPass();", attempt)
         self.assertIn('OpexC78SlotLog("phase=build pass=" + C78_SLOT_PASS_COUNTER', attempt)
         self.assertIn('" cycle=" + this._taskCycle + " tick=" + AIController.GetTick()', attempt)

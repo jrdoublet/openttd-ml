@@ -352,10 +352,17 @@ class TestSchedIdleSourceContract(unittest.TestCase):
         self.assertNotIn("skip-not-due", scan)
         self.assertIn("candidate.enabled && candidate.dueCycle <= this._taskCycle", scan)
 
-    def test_no_skip_not_due_admission(self):
-        self.assertNotIn("skip-not-due", self.scheduler)
-        self.assertNotIn("skip_not_due", self.scheduler)
-        self.assertNotIn("skipNotDue", self.scheduler)
+    def test_probe_does_not_enable_experimental_skip_admission(self):
+        # P7 existe desormais derriere son propre flag OFF ; la sonde V95
+        # reste observatoire et ne doit jamais armer ce chemin de decision.
+        self.assertIn("EXP_SCHEDULER_SKIP_NOT_DUE <- false;", self.globals)
+        self.assertIn('EXP_SCHEDULER_SKIP_NOT_DUE = AIController.GetSetting("exp_scheduler_skip_not_due") != 0;', self.settings)
+        self.assertNotIn("EXP_SCHEDULER_SKIP_NOT_DUE = probeScheduler", self.settings)
+        self.assertIn("if (EXP_SCHEDULER_SKIP_NOT_DUE) {", self.run_next)
+        self.assertNotIn("V95_SCHED_IDLE_LEDGER", _scan_loop(self.run_next))
+        for signature in ("function OpexAI::_schedIdlePreDispatch()",
+                          "function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)"):
+            self.assertNotIn("OpexExpSchedulerSelectTask", _fn_body(self.ledgers + self.probes, signature))
         self.assertIn("AIController.Sleep(1);", self.main)
 
     def test_added_idle_code_is_probe_guarded(self):

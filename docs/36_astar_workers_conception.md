@@ -1,10 +1,12 @@
 # Note de conception : Recherche A* rail entièrement dans les workers et projets rail éligibles seulement à tracé prêt
 
-**Date : 2026-09-26**  
-**Auteur : Antigravity (d'après décision utilisateur du 2026-09-26)**  
-**Statut : Conception ; étapes 1, 2 et révision 3.2 bis implémentées sous réglages expérimentaux**  
-**Branche de référence : `v88-exposure`**  
-**Fichier cible : `docs/36_astar_workers_conception.md`**  
+**Statut au 30 septembre : implémentation expérimentale, défauts 0, duel 5×6
+négatif ; reprise en pause.** Ce document conserve le plan initial et ses suites,
+ce n'est pas une nouvelle autorisation de développement ou de banc V88.
+Voir [tâches](taches.md), [synthèse des décisions](journaux/synthese_decisions_2026-09-30.md)
+et [architecture courante](architecture_courante.md).
+Les lignes citées sont historiques ; les liens ouvrent les modules courants,
+sans garantie que ces anciennes positions désignent encore les mêmes fonctions.
 
 ---
 
@@ -16,7 +18,7 @@ Le 2026-09-26, l'utilisateur a arrêté la décision d'architecture suivante pou
 2. **Seuls les projets rail dont l'A\* est terminé (tracé géographique et devis financier réels connus) sont éligibles dans le portefeuille de construction (`projects`).**
 3. **La passe de construction `projects` ne lance donc plus jamais d'A\* rail.**
 
-Cette note de conception formalise l'état des lieux, les mécanismes en jeu, l'architecture cible et le chemin de migration incrémental pour mettre en œuvre cette décision, en respectant rigoureusement les invariants du projet ([`AGENTS.md`](file:///home/deploy/projects/openttd-ml/AGENTS.md), [`docs/cible.md`](file:///home/deploy/projects/openttd-ml/docs/cible.md), [`docs/methode.md`](file:///home/deploy/projects/openttd-ml/docs/methode.md)).
+Cette note de conception formalise l'état des lieux, les mécanismes en jeu, l'architecture cible et le chemin de migration incrémental pour mettre en œuvre cette décision, en respectant rigoureusement les invariants du projet ([`AGENTS.md`](../AGENTS.md), [`docs/cible.md`](../docs/cible.md), [`docs/methode.md`](../docs/methode.md)).
 
 Conformément aux règles du projet, ce document distingue en permanence trois statuts d'affirmation :
 - **[Fait mesuré]** : grandeur issue d'un diagnostic ou d'un banc reproductible identifié (avec référence exacte) ;
@@ -66,34 +68,34 @@ Boucle principale (main.nut:678-689)
 ```
 
 #### A. Déclenchement de la recherche
-- **[Lecture de code]** La recherche n'est initiée **que** lorsqu'un projet ferroviaire arrive en tête des candidats finançables examinés par `_tryBuildProjects` ([`ai/OpexAI/task_projects.nut:1156-1160`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_projects.nut#L1156-L1160)).
-- **[Lecture de code]** `_tryBuildRailProject` ([`ai/OpexAI/task_rail.nut:137-345`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L137-L345)) vérifie si une recherche est déjà en cours (`this._railSearch != null`). Si oui, le projet est immédiatement rejeté avec `reason = "search_in_progress"` ([`l. 150-153`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L150-L153)).
-- **[Lecture de code]** Si aucun A\* n'est actif, et en l'absence de `candidate.railPlan`, `_tryBuildRailProject` appelle `_startRailSearch(candidate, ...)` ([`ai/OpexAI/task_rail.nut:332`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L332), et [`l. 212`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L212) pour l'étape 1 des chaînes V88).
-- **[Lecture de code]** `_startRailSearch` ([`task_rail.nut:903-981`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L903-L981)) prépare le plan (`OpexPrepareRailRoute`), instancie le pathfinder natif (ou segmenté AYSTAR), initialise la table `this._railSearch` avec `phase = "search"`, pose une échéance globale `safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS` ([`l. 940`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L940)), puis exécute une première tranche via `_continueRailSearch()` ([`l. 965`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L965)). Si la recherche n'aboutit pas dès cette première tranche, elle retourne `{ pending = true, plan = null }` ([`l. 980`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L980)).
+- **[Lecture de code]** La recherche n'est initiée **que** lorsqu'un projet ferroviaire arrive en tête des candidats finançables examinés par `_tryBuildProjects` ([`ai/OpexAI/task_projects.nut:1156-1160`](../ai/OpexAI/task_projects.nut#L1156-L1160)).
+- **[Lecture de code]** `_tryBuildRailProject` ([`ai/OpexAI/task_rail.nut:137-345`](../ai/OpexAI/task_rail.nut#L137-L345)) vérifie si une recherche est déjà en cours (`this._railSearch != null`). Si oui, le projet est immédiatement rejeté avec `reason = "search_in_progress"` ([`l. 150-153`](../ai/OpexAI/task_rail.nut#L150-L153)).
+- **[Lecture de code]** Si aucun A\* n'est actif, et en l'absence de `candidate.railPlan`, `_tryBuildRailProject` appelle `_startRailSearch(candidate, ...)` ([`ai/OpexAI/task_rail.nut:332`](../ai/OpexAI/task_rail.nut#L332), et [`l. 212`](../ai/OpexAI/task_rail.nut#L212) pour l'étape 1 des chaînes V88).
+- **[Lecture de code]** `_startRailSearch` ([`task_rail.nut:903-981`](../ai/OpexAI/task_rail.nut#L903-L981)) prépare le plan (`OpexPrepareRailRoute`), instancie le pathfinder natif (ou segmenté AYSTAR), initialise la table `this._railSearch` avec `phase = "search"`, pose une échéance globale `safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS` ([`l. 940`](../ai/OpexAI/task_rail.nut#L940)), puis exécute une première tranche via `_continueRailSearch()` ([`l. 965`](../ai/OpexAI/task_rail.nut#L965)). Si la recherche n'aboutit pas dès cette première tranche, elle retourne `{ pending = true, plan = null }` ([`l. 980`](../ai/OpexAI/task_rail.nut#L980)).
 
 #### B. Avancement de la recherche
 Une fois `this._railSearch` non nul en phase `"search"`, l'A\* progresse par trois canaux concurrents :
-1. **En tête de `_runNextTask`** ([`ai/OpexAI/scheduler.nut:176-181`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/scheduler.nut#L176-L181)) : appel systématique de `_advanceRailSearchSliceWithLedgers()`, qui avance d'une tranche de 50 itérations (`RAIL_SEARCH_SLICE`, [`builder_rail.nut:39`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/builder_rail.nut#L39)) avec échéance locale par micro-étape (`RAIL_MICRO_DEADLINE`, [`task_rail.nut:995-1000`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L995-L1000)).
-2. **Sous `c80_worker_rail=1`** ([`ai/OpexAI/orchestrator.nut:676-692`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/orchestrator.nut#L676-L692)) : dans `_runOrchestratorTick()`, si `_activeWorker.kind == "rail_search"`, `OpexWorkerRailSearchStep` ([`orchestrator.nut:205-222`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/orchestrator.nut#L205-L222)) avance la tranche avant de rendre la main à la file de fond.
+1. **En tête de `_runNextTask`** ([`ai/OpexAI/scheduler.nut:176-181`](../ai/OpexAI/scheduler.nut#L176-L181)) : appel systématique de `_advanceRailSearchSliceWithLedgers()`, qui avance d'une tranche de 50 itérations (`RAIL_SEARCH_SLICE`, [`builder_rail.nut:39`](../ai/OpexAI/builder_rail.nut#L39)) avec échéance locale par micro-étape (`RAIL_MICRO_DEADLINE`, [`task_rail.nut:995-1000`](../ai/OpexAI/task_rail.nut#L995-L1000)).
+2. **Sous `c80_worker_rail=1`** ([`ai/OpexAI/orchestrator.nut:676-692`](../ai/OpexAI/orchestrator.nut#L676-L692)) : dans `_runOrchestratorTick()`, si `_activeWorker.kind == "rail_search"`, `OpexWorkerRailSearchStep` ([`orchestrator.nut:205-222`](../ai/OpexAI/orchestrator.nut#L205-L222)) avance la tranche avant de rendre la main à la file de fond.
 3. **Sous `v89_rail_search_throughput=1`** (défaut 1 depuis le 2026-09-26) :
-   - En tête de `_runNextTask` ([`scheduler.nut:178-180`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/scheduler.nut#L178-L180)) ;
-   - Dans le worker C80 ([`orchestrator.nut:215-217`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/orchestrator.nut#L215-L217)) ;
+   - En tête de `_runNextTask` ([`scheduler.nut:178-180`](../ai/OpexAI/scheduler.nut#L178-L180)) ;
+   - Dans le worker C80 ([`orchestrator.nut:215-217`](../ai/OpexAI/orchestrator.nut#L215-L217)) ;
    - Dans la boucle principale de `main.nut:680, 686` juste avant `AIController.Sleep(1)`.
-   `_advanceRailSearchThroughput(maxSlices = -1)` ([`scheduler.nut:337-362`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/scheduler.nut#L337-L362)) boucle pour exécuter des tranches successives tant que `AIController.GetOpsTillSuspend() >= this._v89EstimatedSliceOps` (seuil auto-calibré ≥ 1 500 opcodes).
+   `_advanceRailSearchThroughput(maxSlices = -1)` ([`scheduler.nut:337-362`](../ai/OpexAI/scheduler.nut#L337-L362)) boucle pour exécuter des tranches successives tant que `AIController.GetOpsTillSuspend() >= this._v89EstimatedSliceOps` (seuil auto-calibré ≥ 1 500 opcodes).
 
 #### C. Achèvement de la recherche
-- **[Lecture de code]** Lorsque la tranche atteint la destination (`slice.done == true`), `_continueRailSearch` bascule le mode en appelant `OpexCompleteRailRouteAfterSearch` ([`ai/OpexAI/builder_rail.nut:1494-1560`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/builder_rail.nut#L1494-L1560)).
-- **[Lecture de code]** Cette fonction résout les tuiles du chemin, valide la géométrie des gares d'extrémité (`planA`, `planB`), recalcule les grandeurs économiques réelles avec la longueur exacte (`routeDistance`) via `OpexLineEconomics` ([`l. 1524-1533`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/builder_rail.nut#L1524-L1533)), tente l'option double voie (`OpexTryDoubleTrack`, [`l. 1546`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/builder_rail.nut#L1546)), attache `candidate.railPlan <- plan`, libère l'objet pathfinder natif (`state.pathfinder = null`), et passe `state.phase = "build"` ([`task_rail.nut:1111-1115`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L1111-L1115)).
+- **[Lecture de code]** Lorsque la tranche atteint la destination (`slice.done == true`), `_continueRailSearch` bascule le mode en appelant `OpexCompleteRailRouteAfterSearch` ([`ai/OpexAI/builder_rail.nut:1494-1560`](../ai/OpexAI/builder_rail.nut#L1494-L1560)).
+- **[Lecture de code]** Cette fonction résout les tuiles du chemin, valide la géométrie des gares d'extrémité (`planA`, `planB`), recalcule les grandeurs économiques réelles avec la longueur exacte (`routeDistance`) via `OpexLineEconomics` ([`l. 1524-1533`](../ai/OpexAI/builder_rail.nut#L1524-L1533)), tente l'option double voie (`OpexTryDoubleTrack`, [`l. 1546`](../ai/OpexAI/builder_rail.nut#L1546)), attache `candidate.railPlan <- plan`, libère l'objet pathfinder natif (`state.pathfinder = null`), et passe `state.phase = "build"` ([`task_rail.nut:1111-1115`](../ai/OpexAI/task_rail.nut#L1111-L1115)).
 
 #### D. Consommation du tracé
-- **[Lecture de code]** La construction physique n'a lieu que lors d'un **nouveau passage de la tâche `projects`**, via `_consumeRailSearch` ([`task_rail.nut:1138-1233`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L1138-L1233)).
-- **[Lecture de code]** Si la trésorerie est insuffisante (`money < need`), sous `c41_rail_cash_release=1` (défaut adopté), `this._railSearch = null` est immédiatement libéré ([`l. 1163`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L1163)) tout en conservant `candidate.railPlan` attaché au candidat pour une tentative ultérieure.
-- **[Lecture de code]** Si la caisse suffit, `OpexBuildLine` érige l'infrastructure, pose les gares et les signaux, achète le train, enregistre la ligne dans `this._lines` et détruit le plan : `candidate.railPlan = null` ([`l. 1185`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L1185)).
+- **[Lecture de code]** La construction physique n'a lieu que lors d'un **nouveau passage de la tâche `projects`**, via `_consumeRailSearch` ([`task_rail.nut:1138-1233`](../ai/OpexAI/task_rail.nut#L1138-L1233)).
+- **[Lecture de code]** Si la trésorerie est insuffisante (`money < need`), sous `c41_rail_cash_release=1` (défaut adopté), `this._railSearch = null` est immédiatement libéré ([`l. 1163`](../ai/OpexAI/task_rail.nut#L1163)) tout en conservant `candidate.railPlan` attaché au candidat pour une tentative ultérieure.
+- **[Lecture de code]** Si la caisse suffit, `OpexBuildLine` érige l'infrastructure, pose les gares et les signaux, achète le train, enregistre la ligne dans `this._lines` et détruit le plan : `candidate.railPlan = null` ([`l. 1185`](../ai/OpexAI/task_rail.nut#L1185)).
 
 #### E. Persistance et invalidation
 - **[Lecture de code]** Dans `persist.nut:229-236`, `OpexSaveActiveWorker` ne sérialise pas l'état interne de `rail_search` car les structures AYSTAR C++ ne sont pas persistables dans les savegames NoAI.
 - **[Lecture de code]** Au rechargement (`Load`), `persist.nut:800-825` abandonne explicitement toute recherche rail active (`this._railSearch = null`), annule le worker C80 associé, force `this._portfolioInvalidated = true` et réarme la tâche `catalog` pour reconstruire le vivier à partir de la carte fraîche.
-- **[Lecture de code]** Invalidation en cours de partie : si un premier projet est bâti dans une passe multi-projets (`builtCount > 0`), tout `candidate.railPlan` d'un candidat suivant est immédiatement effacé (`candidate.railPlan = null`, [`task_rail.nut:142-147`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L142-L147)) pour forcer une replanification si la carte a bougé.
+- **[Lecture de code]** Invalidation en cours de partie : si un premier projet est bâti dans une passe multi-projets (`builtCount > 0`), tout `candidate.railPlan` d'un candidat suivant est immédiatement effacé (`candidate.railPlan = null`, [`task_rail.nut:142-147`](../ai/OpexAI/task_rail.nut#L142-L147)) pour forcer une replanification si la carte a bougé.
 
 ---
 
@@ -102,7 +104,7 @@ Une fois `this._railSearch` non nul en phase `"search"`, l'A\* progresse par tro
 L'enquête approfondie menée sur V88 et V89 révèle le mécanisme destructeur du couplage actuel :
 
 1. **Arrêt immédiat de la passe `projects`** :
-   Dans [`ai/OpexAI/task_projects.nut:1164-1196`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_projects.nut#L1164-L1196), dès qu'un projet rail (ou une chaîne V88) lance son A\*, `attempt.outcome` vaut `"pending"`. Le code fait alors :
+   Dans [`ai/OpexAI/task_projects.nut:1164-1196`](../ai/OpexAI/task_projects.nut#L1164-L1196), dès qu'un projet rail (ou une chaîne V88) lance son A\*, `attempt.outcome` vaut `"pending"`. Le code fait alors :
    ```squirrel
    if (attempt.outcome == "pending") {
      ...
@@ -120,18 +122,18 @@ L'enquête approfondie menée sur V88 et V89 révèle le mécanisme destructeur 
    - **[Fait mesuré]** (Diagnostic `results/v89gap_solo_3x6_20260926.json`, solo graines 100/999/5678 × 6 ans, V89=0 et V89=1) :
      - Les passes `projects` sont espacées en médiane de **34 à 111 jours de jeu**, avec OU sans V89 (ex. graine 999 : médiane 108 j, max 240 j ; graine 5678 : médiane 80 j, max 357 j).
      - Sur la graine 999, une recherche rail primaire (src=31930, dst=20197, 5 681 itérations) a occupé le slot unique `this._railSearch` du **12 juillet 1970 au 24 avril 1974**, soit **1 382 jours consécutifs de jeu (près de 4 ans !)** et 25 566 ticks, de manière strictement identique avec V89=0 et V89=1.
-     - Pendant ces 1 382 jours, `this._railSearch != null` a rejeté en bloc tout autre projet rail avec le motif `search_in_progress` (98 à 150 rejets par partie, [`docs/28_v89_debit_recherche_rail.md:15`](file:///home/deploy/projects/openttd-ml/docs/28_v89_debit_recherche_rail.md#L15)).
+    - Pendant ces 1 382 jours, `this._railSearch != null` a rejeté en bloc tout autre projet rail avec le motif `search_in_progress` (98 à 150 rejets par partie, [fiche V89](28_v89_debit_recherche_rail.md)).
 
 ---
 
 ### 1.3 Bilan de `c80_worker_rail` : pourquoi son banc officiel n'a pas été adopté
 
-La tentative précédente d'encapsuler la recherche rail dans un travailleur C80 (`c80_worker_rail=1`) a été mesurée dans la campagne complète 20×10 du 2026-09-25 (`c80_full_stack_workers_vs_current_default_20x10_20260925`, [`docs/taches.md:60-70`](file:///home/deploy/projects/openttd-ml/docs/taches.md#L60-L70)) :
+La tentative précédente d'encapsuler la recherche rail dans un travailleur C80 (`c80_worker_rail=1`) a été mesurée dans la campagne complète 20×10 du 2026-09-25 (`c80_full_stack_workers_vs_current_default_20x10_20260925`, [synthèse des décisions](journaux/synthese_decisions_2026-09-30.md)) :
 - **[Fait mesuré]** Résultat : 20/20 paires saines, `profit_year` **+32,6 k£/an** (médiane +104,8 k£), 12 victoires / 8 défaites, $p = 0{,}503$, IC95 [−162,5 ; +227,7] k£/an, valeur d'entreprise +1,76 %.
 - **[Fait mesuré]** Le critère d'adoption C80-6 (+50 k£/an, 15/20, $p < 0{,}05$) n'a pas été atteint. `c80_worker_rail` est resté désactivé par défaut (`défaut 0`).
 
 **Pourquoi cette première version n'a pas mordu :**
-- **[Lecture de code]** `c80_worker_rail` n'était qu'un wrapper passif : le travailleur `WorkerRailSearch` n'était instancié **qu'après** que `projects` avait sélectionné le projet et appelé `_startRailSearch` ([`task_rail.nut:954-964`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L954-L964)).
+- **[Lecture de code]** `c80_worker_rail` n'était qu'un wrapper passif : le travailleur `WorkerRailSearch` n'était instancié **qu'après** que `projects` avait sélectionné le projet et appelé `_startRailSearch` ([`task_rail.nut:954-964`](../ai/OpexAI/task_rail.nut#L954-L964)).
 - **[Lecture de code]** La passe `projects` continuait donc d'être bloquée par `outcome == "pending"`.
 - **[Lecture de code]** Le worker était asservi à l'unique slot `this._railSearch`. Il n'a créé **aucun parallélisme**, **aucun stock tampon** et n'a pas découplé l'A\* de la passe de décision.
 
@@ -174,7 +176,7 @@ La tentative précédente d'encapsuler la recherche rail dans un travailleur C80
 
 #### A. Règle de dimensionnement du stock ($N_{\max}$)
 - Le stock conserve au maximum **$N_{\max} = 2$ tracés prêts** (valeur recommandée, avec $N_{\max} = 1$ en étape transitoire).
-- **Justification économique [Hypothèse / Fait mesuré]** : Un tracé stocké immobilise peu de mémoire Squirrel (~200 entiers par tracé), mais la carte d'OpenTTD évolue continuellement (croissance urbaine, concurrence). Stocker plus de 2 tracés augmente le risque de péremption avant construction. Avec 1 à 2 chantiers rail par an en moyenne ([`docs/28_v89_debit_recherche_rail.md:136`](file:///home/deploy/projects/openttd-ml/docs/28_v89_debit_recherche_rail.md#L136)), un stock de 2 couvre 100 % du besoin immédiat sans gaspiller d'opcodes en pure perte.
+- **Justification économique [Hypothèse / Fait mesuré]** : Un tracé stocké immobilise peu de mémoire Squirrel (~200 entiers par tracé), mais la carte d'OpenTTD évolue continuellement (croissance urbaine, concurrence). Stocker plus de 2 tracés augmente le risque de péremption avant construction. Avec 1 à 2 chantiers rail par an en moyenne ([fiche V89](28_v89_debit_recherche_rail.md)), la proposition initiale supposait qu'un stock de 2 couvrirait le besoin immédiat ; cela reste à mesurer, pas une garantie de couverture à 100 %.
 
 #### B. Règle d'élection du candidat à précalculer (Garde-fou `cible.md` §6.4)
 - **Règle absolue [Garde-fou `cible.md` §6.4]** : *« Le goulot mesuré est le DÉBIT DU CONTRÔLEUR : ne jamais simuler le vivier. Estimer seulement les candidats de tête. »*
@@ -191,14 +193,14 @@ La tentative précédente d'encapsuler la recherche rail dans un travailleur C80
 ### 2.3 Porte d'éligibilité dans `projects` et éradication du retour `pending`
 
 #### A. Règle d'admission au portefeuille
-Dans `OpexBuildProjects` / `OpexProjectSelectAffordable` ([`ai/OpexAI/projects.nut:2373-2384`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/projects.nut#L2373-L2384)) :
+Dans `OpexBuildProjects` / `OpexProjectSelectAffordable` ([`ai/OpexAI/projects.nut:2373-2384`](../ai/OpexAI/projects.nut#L2373-L2384)) :
 - Un candidat rail n'est admis dans `alternatives` et dans la sélection `funded` **que si** :
   $$\text{candidate.pairKey} \in \text{readyStock} \quad \text{ET} \quad \text{readyStock[pairKey].plan.ok} == \text{true}$$
 - Si le tracé n'est pas prêt, le candidat rail est simplement **omis** de la passe du portefeuille (ou classé dans un statut passif `awaiting_route`).
 - **Conséquence directe** : Le sac à dos (`funded`) ne contient **que des projets immédiatement constructibles**.
 
 #### B. Suppression définitive de `outcome == "pending"`
-Dans `_tryBuildRailProject` ([`ai/OpexAI/task_rail.nut:137`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L137)) et `_tryBuildProjects` ([`ai/OpexAI/task_projects.nut:1164`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_projects.nut#L1164)) :
+Dans `_tryBuildRailProject` ([`ai/OpexAI/task_rail.nut:137`](../ai/OpexAI/task_rail.nut#L137)) et `_tryBuildProjects` ([`ai/OpexAI/task_projects.nut:1164`](../ai/OpexAI/task_projects.nut#L1164)) :
 - La branche `if (start.pending) return { outcome = "pending" };` est **supprimée**.
 - Comme le tracé est déjà calculé, `_tryBuildRailProject` trouve immédiatement `candidate.railPlan` prêt dans le stock.
 - Il procède à la pose physique de la ligne en 1 seul tick via `OpexBuildLine`, exactement comme pour une liaison aérienne ou routière.
@@ -213,14 +215,14 @@ Dans `_tryBuildRailProject` ([`ai/OpexAI/task_rail.nut:137`](file:///home/deploy
   - Banc 1 : **−23,1 %** de valeur d'entreprise, 16/20 graines perdantes ($p = 0{,}0118$) ;
   - Banc 2 : **−13,3 %** de valeur, et **−27,5 % de gares construites** ($t = -4{,}46$, $p = 0{,}0414$).
 - **Mécanisme exact identifié dans le code** :
-  Dans [`ai/OpexAI/task_rail.nut:940`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L940) :
+  Dans [`ai/OpexAI/task_rail.nut:940`](../ai/OpexAI/task_rail.nut#L940) :
   ```squirrel
   safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS;
   ```
   Cette échéance globale en ticks absolus était posée à l'entrée de la recherche. Lorsque la recherche était fractionnée et partageait le temps machine avec le reste de la file, le temps calendaire s'écoulait, l'échéance globale expirait, et l'A\* **était avorté prématurément (`outcome = DEAD`)**. Le fractionnement n'avait pas étalé le travail : il l'avait **amputé**, privant l'IA de ses lignes les plus rentables.
 
 #### B. La parade adoptée : échéance locale par tranche (`RAIL_MICRO_DEADLINE`)
-- **[Lecture de code]** Le correctif validé C20 ([`task_rail.nut:995-1000`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut#L995-L1000)) calcule une échéance locale à chaque appel de micro-étape :
+- **[Lecture de code]** Le correctif validé C20 ([`task_rail.nut:995-1000`](../ai/OpexAI/task_rail.nut#L995-L1000)) calcule une échéance locale à chaque appel de micro-étape :
   ```squirrel
   deadlineTick = AIController.GetTick() + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
   ```
@@ -241,7 +243,7 @@ Un tracé précalculé stocké en mémoire peut devenir obsolète si le monde é
    - Si une station concurrente est fondée dans la zone terminale, le bus d'invalidation retire le tracé.
 
 3. **Re-vérification instantanée au moment de la construction** :
-   - **[Lecture de code]** `OpexBuildLine` ([`ai/OpexAI/builder_rail.nut:1918`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/builder_rail.nut#L1918)) consomme déjà `candidate.railPlan` directement. Avant toute dépense lourde, le constructeur effectue des tests élémentaires sous `AITestMode` sur les tuiles clés (têtes de quais, embranchement de dépôt).
+   - **[Lecture de code]** `OpexBuildLine` ([`ai/OpexAI/builder_rail.nut:1918`](../ai/OpexAI/builder_rail.nut#L1918)) consomme déjà `candidate.railPlan` directement. Avant toute dépense lourde, le constructeur effectue des tests élémentaires sous `AITestMode` sur les tuiles clés (têtes de quais, embranchement de dépôt).
    - Si une tuile du corridor a été occupée entre-temps par une route municipale ou un bâtiment concurrent :
      - `OpexBuildLine` échoue proprement sans dépense ;
      - La paire est marquée en échec temporaire (`_markPairAbandoned`) ;
@@ -249,7 +251,7 @@ Un tracé précalculé stocké en mémoire peut devenir obsolète si le monde é
      - `_tryBuildRailProject` retourne `{ outcome = "rejected" }` et la passe `projects` passe immédiatement au projet suivant sans bloquer.
 
 4. **Devis financier réel et calibrage du capital** :
-   - **[Lecture de code]** Dans [`ai/OpexAI/projects.nut:302-313`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/projects.nut#L302-L313), `OpexProjectFinanceCapital` implémente déjà la prise en compte du devis exact :
+   - **[Lecture de code]** Dans [`ai/OpexAI/projects.nut:302-313`](../ai/OpexAI/projects.nut#L302-L313), `OpexProjectFinanceCapital` implémente déjà la prise en compte du devis exact :
      ```squirrel
      local capitalIsActual = ("capitalIsActual" in project) && project.capitalIsActual;
      ...
@@ -264,14 +266,14 @@ Un tracé précalculé stocké en mémoire peut devenir obsolète si le monde é
 ### 2.6 Du singleton `_activeWorker` au registre multi-workers arbitrable
 
 #### A. Limite actuelle du singleton `_activeWorker`
-- **[Lecture de code]** Dans [`ai/OpexAI/orchestrator.nut:676-735`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/orchestrator.nut#L676-L735), l'orchestrateur ne gère qu'un unique travailleur actif :
+- **[Lecture de code]** Dans [`ai/OpexAI/orchestrator.nut:676-735`](../ai/OpexAI/orchestrator.nut#L676-L735), l'orchestrateur ne gère qu'un unique travailleur actif :
   ```squirrel
   if (this._activeWorker != null) { ... }
   ```
   Si une recherche rail occupe `this._activeWorker`, le travailleur de croissance urbaine (`town_growth`) ou de régénération de vivier (`regen_candidates`) ne peut pas avancer.
 
 #### B. Structure cible : File de travaux et classes de priorité (Note 34 §5.5)
-Conformément à [`docs/34_arbitrage_economique_unifie.md`](file:///home/deploy/projects/openttd-ml/docs/34_arbitrage_economique_unifie.md) §5.5, le registre d'exécution des workers passe d'un singleton à un tableau ordonné de travailleurs, arbitrés par **4 classes de priorité structurelles** :
+Conformément à [`docs/34_arbitrage_economique_unifie.md`](../docs/34_arbitrage_economique_unifie.md) §5.5, le registre d'exécution des workers passe d'un singleton à un tableau ordonné de travailleurs, arbitrés par **4 classes de priorité structurelles** :
 
 ```text
 Classe 1 : DÉBLOQUE (Urgence maximale)
@@ -312,8 +314,8 @@ Classe 4 : TRAVAIL DE FOND OPPORTUNISTE
 ### 2.8 Persistance et résilience (Save / Load)
 
 La persistance sous NoAI impose de respecter deux règles matérielles strictes :
-1. **Les objets C++ AYSTAR / Pathfinders natifs ne sont PAS sérialisables** ([`persist.nut:230-236`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/persist.nut#L230-L236)).
-2. **Les nombres flottants sont formellement interdits dans les tables sauvées** ([`persist.nut:16-17`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/persist.nut#L16-L17)).
+1. **Les objets C++ AYSTAR / Pathfinders natifs ne sont PAS sérialisables** ([`persist.nut:230-236`](../ai/OpexAI/persist.nut#L230-L236)).
+2. **Les nombres flottants sont formellement interdits dans les tables sauvées** ([`persist.nut:16-17`](../ai/OpexAI/persist.nut#L16-L17)).
 
 **Doctrine de persistance pour le Stock & Worker Rail** :
 - **Tracés terminés dans le stock (`readyStock`)** :
@@ -593,11 +595,13 @@ revalidation de la carte reste obligatoire juste avant la dépense. Le devis phy
       - Graine 5678 : profit 4 244 024 £ (+6,0 % vs réf 4 004 709 £), valeur 13 710 873 £ (+7,7 %) ;
       - Moyenne 3 graines : profit 3 125 718 £ (−0,74 % vs réf 3 148 981 £), valeur 10 409 052 £ (+4,28 % vs réf 9 981 718 £).
 
+---
+
 ### 3.3 Étape 3 — Stock borné $N=2$ et devis réel dans le sac à dos (`c80_rail_stock_capacity`)
 
 - **Changement** :
   - Passage du stock à $N_{\max} = 2$.
-  - Injection systématique de `capitalIsActual = true` pour les projets issus du stock dans `OpexProjectFinanceCapital` ([`projects.nut:302-313`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/projects.nut#L302-L313)).
+  - Injection systématique de `capitalIsActual = true` pour les projets issus du stock dans `OpexProjectFinanceCapital` ([`projects.nut:302-313`](../ai/OpexAI/projects.nut#L302-L313)).
   - Mise en place du TTL de 90 jours et purge automatique des tracés périmés.
 - **Risque** : Calcul de tracés qui périment sans être financés (gaspillage d'opcodes).
 - **Preuve que le mécanisme mord** :
@@ -676,11 +680,11 @@ sauvegardable ou reconstructible.
 
 | Thématique | Emplacement dans le dépôt |
 |---|---|
-| Invariants NoAI et méthodologie | [`AGENTS.md`](file:///home/deploy/projects/openttd-ml/AGENTS.md) ; [`docs/methode.md`](file:///home/deploy/projects/openttd-ml/docs/methode.md) (piège de portée des closures) |
-| Architecture cible et échecs historiques | [`docs/cible.md`](file:///home/deploy/projects/openttd-ml/docs/cible.md) §2.1 (rejet de l'échéance globale), §6.4 (ne pas simuler le vivier) |
-| Arbitrage unifié et workers sur reliquat | [`docs/34_arbitrage_economique_unifie.md`](file:///home/deploy/projects/openttd-ml/docs/34_arbitrage_economique_unifie.md) §2, §5.5 (classes de workers), §7 |
-| Orchestrateur double registre C80 | [`docs/18_orchestrateur_double_registre.md`](file:///home/deploy/projects/openttd-ml/docs/18_orchestrateur_double_registre.md) ; [`ai/OpexAI/orchestrator.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/orchestrator.nut) |
-| Débit de recherche opportuniste V89 | [`docs/28_v89_debit_recherche_rail.md`](file:///home/deploy/projects/openttd-ml/docs/28_v89_debit_recherche_rail.md) ; [`ai/OpexAI/scheduler.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/scheduler.nut) |
-| Tâches ferroviaires et point d'arrêt `pending` | [`ai/OpexAI/task_rail.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_rail.nut) (`_tryBuildRailProject`, `_startRailSearch`) ; [`ai/OpexAI/task_projects.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/task_projects.nut) (`_tryBuildProjects`) |
-| Complétion du tracé et devis réel | [`ai/OpexAI/builder_rail.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/builder_rail.nut) (`OpexCompleteRailRouteAfterSearch`) ; [`ai/OpexAI/projects.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/projects.nut) (`OpexProjectFinanceCapital`) |
-| Sérialisation et persistance | [`ai/OpexAI/persist.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/persist.nut) (`OpexSaveActiveWorker`, `Load`) |
+| Invariants NoAI et méthodologie | [`AGENTS.md`](../AGENTS.md) ; [`docs/methode.md`](../docs/methode.md) (piège de portée des closures) |
+| Architecture cible et échecs historiques | [`docs/cible.md`](../docs/cible.md) §2.1 (rejet de l'échéance globale), §6.4 (ne pas simuler le vivier) |
+| Arbitrage unifié et workers sur reliquat | [`docs/34_arbitrage_economique_unifie.md`](../docs/34_arbitrage_economique_unifie.md) §2, §5.5 (classes de workers), §7 |
+| Orchestrateur double registre C80 | [`docs/18_orchestrateur_double_registre.md`](../docs/18_orchestrateur_double_registre.md) ; [`ai/OpexAI/orchestrator.nut`](../ai/OpexAI/orchestrator.nut) |
+| Débit de recherche opportuniste V89 | [`docs/28_v89_debit_recherche_rail.md`](../docs/28_v89_debit_recherche_rail.md) ; [`ai/OpexAI/scheduler.nut`](../ai/OpexAI/scheduler.nut) |
+| Tâches ferroviaires et point d'arrêt `pending` | [`ai/OpexAI/task_rail.nut`](../ai/OpexAI/task_rail.nut) (`_tryBuildRailProject`, `_startRailSearch`) ; [`ai/OpexAI/task_projects.nut`](../ai/OpexAI/task_projects.nut) (`_tryBuildProjects`) |
+| Complétion du tracé et devis réel | [`ai/OpexAI/builder_rail.nut`](../ai/OpexAI/builder_rail.nut) (`OpexCompleteRailRouteAfterSearch`) ; [`ai/OpexAI/projects.nut`](../ai/OpexAI/projects.nut) (`OpexProjectFinanceCapital`) |
+| Sérialisation et persistance | [`ai/OpexAI/persist.nut`](../ai/OpexAI/persist.nut) (`OpexSaveActiveWorker`, `Load`) |

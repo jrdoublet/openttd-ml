@@ -1,11 +1,16 @@
 import re
 import unittest
 from pathlib import Path
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
-AIR = (ROOT / "ai" / "OpexAI" / "builder_air.nut").read_text(encoding="utf-8")
-PROJECTS = (ROOT / "ai" / "OpexAI" / "projects.nut").read_text(encoding="utf-8")
+AIR = read_builder_air()
+PROJECTS = read_projects_source()
 INFO = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
 GLOBALS = (ROOT / "ai" / "OpexAI" / "globals_pre.nut").read_text(encoding="utf-8")
 SETTINGS = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
@@ -72,7 +77,10 @@ class C111AirC100DecisionShadowTests(unittest.TestCase):
         self.assertIn("if (financeCapital > capitalBudget) continue;", body)
         self.assertIn("local decisionFinanceCapital = financeCapital;", body)
         self.assertIn("project.decisionFinanceCapital", body)
-        self.assertIn("kDec > decisionFinanceCapital", body)
+        # 9e29951 : le capital de classement est scoreDecisionFinanceCapital,
+        # egal a decisionFinanceCapital hors split C121 (defaut 0).
+        self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", body)
+        self.assertIn("kDec > scoreDecisionFinanceCapital", body)
 
     def test_shadow_is_propagated_to_all_air_plan_families(self):
         self.assertGreaterEqual(AIR.count("plan.decisionEconomics <-"), 3)

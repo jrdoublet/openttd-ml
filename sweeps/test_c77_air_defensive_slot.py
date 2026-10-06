@@ -1,5 +1,10 @@
 import unittest
 from pathlib import Path
+from pathlib import Path as _AirSrcPath
+import sys as _air_src_sys
+_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
+from air_source import read_builder_air
+from opex_projects_source import read_projects_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,9 +47,9 @@ def air_plans_pipeline(source):
 class C77AirDefensiveSlotTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.projects = read("ai/OpexAI/projects.nut")
+        cls.projects = read_projects_source()
         cls.task_projects = read("ai/OpexAI/task_projects.nut")
-        cls.builder_air = read("ai/OpexAI/builder_air.nut")
+        cls.builder_air = read_builder_air()
         cls.task_air = read("ai/OpexAI/task_air.nut")
         cls.probes = read("ai/OpexAI/probes.nut")
         cls.info = read("ai/OpexAI/info.nut")
@@ -188,8 +193,11 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertIn("closestA=", pass_probe)
         self.assertIn("defensive_claims=", pass_probe)
         self.assertIn("defensive_competitor_claims=", pass_probe)
-        attempt = body(self.task_projects, "function OpexAI::_tryBuildProjects(")
-        self.assertIn("if (C78_SLOT_INTERCEPT_PROBE)", attempt)
+        orchestrator = body(self.task_projects, "function OpexAI::_tryBuildProjects(")
+        self.assertIn("if (C78_SLOT_INTERCEPT_PROBE)", orchestrator)
+        self.assertIn('this._c78LogAirSlotLine("air_attempt"', orchestrator)
+        # R12 : la ligne C78 AIR vit dans un helper appele sous la garde de sonde.
+        attempt = body(self.task_projects, "function OpexAI::_c78LogAirSlotLine(")
         self.assertIn("OpexC78AirSlotTown(c78Plan.siteA, c78AirportType)", attempt)
         self.assertIn("defensive_claims=", attempt)
         self.assertIn("defensive_competitor_claims=", attempt)
@@ -197,7 +205,9 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
     def test_completed_rail_search_yields_only_one_pass_to_defensive_air(self):
         attempt = body(self.task_projects, "function OpexAI::_tryBuildProjects(")
         defer_at = attempt.index("local c77DeferCompletedRail =")
-        consume_at = attempt.index("local railCandidate = this._railSearch.candidate;", defer_at)
+        consume_at = attempt.index("this._consumeResumableRailAtPassStart(", defer_at)
+        consume = body(self.task_projects, "function OpexAI::_consumeResumableRailAtPassStart(")
+        self.assertIn("local railCandidate = this._railSearch.candidate;", consume)
         self.assertLess(defer_at, consume_at)
         self.assertIn('!("c77DefensiveDeferred" in this._railSearch)', attempt)
         self.assertIn("this._railSearch.c77DefensiveDeferred <- true;", attempt)

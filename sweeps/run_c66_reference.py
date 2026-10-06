@@ -17,6 +17,14 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def docker_workspace(mount_root=None):
+    """Allow an isolated worktree inside an already shared Docker parent."""
+    root = Path(mount_root).resolve() if mount_root is not None else ROOT
+    relative = ROOT.relative_to(root)  # Reject unrelated mounts before Docker.
+    workdir = "/work" if relative == Path(".") else "/work/" + relative.as_posix()
+    return root, workdir
+
+
 def _output(args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
 
@@ -25,6 +33,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", required=True)
     parser.add_argument("--image", default="openttd-lab:latest")
+    parser.add_argument("--mount-root", type=Path, help="Shared ancestor containing this worktree; default is the worktree itself")
+    parser.add_argument("--container-name", help="Nom optionnel pour nettoyage borné par l'orchestrateur")
     parser.add_argument("--policy-id", default="reference")
     parser.add_argument("--reference")
     parser.add_argument("--variant")
@@ -32,22 +42,63 @@ def main():
     parser.add_argument("--primary-metric")
     parser.add_argument("--min-useful-primary-delta", type=float)
     parser.add_argument("--value-guard-max-loss-pct", type=float)
-    parser.add_argument("--decision-rule", choices=["signs20", "mean40"], default="signs20",
-                        help="Règle d'adoption C66.4 (défaut 'signs20')")
+    parser.add_argument("--decision-rule",
+                        choices=["signs20", "mean40", "gain_short", "non_erosion"],
+                        default="signs20",
+                        help="Règle d'adoption C66.4 (défaut 'signs20'). V102 ajoute "
+                             "'gain_short' (porte A de gain, court et large) et "
+                             "'non_erosion' (porte B, 20x10 unilatérale).")
+    parser.add_argument("--min-useful-primary-delta-pct", type=float,
+                        help="V102 : seuil de gain en %% du profit de référence de l'année "
+                             "terminale, au lieu du seuil absolu. Exactement un des deux "
+                             "seuils sous 'gain_short' et 'non_erosion'.")
+    parser.add_argument("--required-seeds", type=int,
+                        help="V102 : graines exigées par 'gain_short' (défaut 40).")
+    parser.add_argument("--required-years", type=int,
+                        help="V102 : horizon exigé par 'gain_short' (défaut 3).")
     parser.add_argument("--years", type=int)
     parser.add_argument("--seeds", nargs="+", type=int)
     parser.add_argument("--repeats", type=int)
     parser.add_argument("--max-workers", type=int)
     parser.add_argument("--engine-timeout", type=int)
     parser.add_argument("--line-telemetry", action="store_true")
+    parser.add_argument("--line-telemetry-monthly", action="store_true")
     parser.add_argument("--script-debug", action="store_true")
     parser.add_argument("--cpus", type=int, default=3)
+    parser.add_argument("--network",
+                        help="Mode reseau Docker (ex. 'host'). Non precise = pont Docker par "
+                             "defaut. Utile quand bananas-api.openttd.org n'est joignable qu'en "
+                             "IPv6 : le pont Docker est IPv4 seul, le gel des bibliotheques "
+                             "BaNaNaS part alors en ReadTimeout. Le reseau ne sert qu'a ce "
+                             "telechargement de preparation ; la simulation est locale et les "
+                             "empreintes des tars restent dans le manifeste, donc la mesure est "
+                             "inchangee.")
     parser.add_argument("--memory", default="2g",
                         help="plafond RAM Docker, swap egal (defaut 2g). "
                              "Pic observe sous 800 Mo meme a 10 workers en duel 10 ans ; "
                              "sur le VPS, 3 workers avec 2 Go suffisent.")
     parser.add_argument("--out")
     args = parser.parse_args()
+
+    # V102 : echouer AVANT de demarrer Docker. On ne peut pas importer
+    # c66_threshold_specification_error ici (bench_1v1_5y_20seeds tire openttdlab, absent de
+    # l'hote), donc la regle est repetee a l'identique ; le banc la revalide dans le conteneur.
+    _absolute = args.min_useful_primary_delta
+    _pct = args.min_useful_primary_delta_pct
+    if args.decision_rule in ("signs20", "mean40"):
+        if _absolute is None:
+            parser.error("--min-useful-primary-delta doit etre fixe avant un banc C66.4")
+        if _pct is not None:
+            parser.error("--min-useful-primary-delta-pct ne s'applique qu'a gain_short "
+                         "et non_erosion")
+    else:
+        if (_absolute is None) == (_pct is None):
+            parser.error("gain_short et non_erosion exigent exactement un seuil : "
+                         "--min-useful-primary-delta ou --min-useful-primary-delta-pct")
+        if _pct is not None and _pct < 0:
+            parser.error("--min-useful-primary-delta-pct doit etre >= 0")
+
+    mount_root, container_workdir = docker_workspace(args.mount_root)
 
     git_sha = _output(["git", "rev-parse", "HEAD"])
     git_status = _output(["git", "status", "--porcelain=v1", "--untracked-files=all"])
@@ -72,6 +123,8 @@ def main():
         benchmark += ["--engine-timeout", str(args.engine_timeout)]
     if args.line_telemetry:
         benchmark += ["--line-telemetry"]
+    if args.line_telemetry_monthly:
+        benchmark += ["--line-telemetry-monthly"]
     if args.script_debug:
         benchmark += ["--script-debug"]
     if args.variant is not None:
@@ -88,12 +141,23 @@ def main():
         benchmark += ["--value-guard-max-loss-pct", str(args.value_guard_max_loss_pct)]
     if args.decision_rule is not None:
         benchmark += ["--decision-rule", args.decision_rule]
+    # V102 : chacune seulement si fournie, pour que la ligne de commande d'une campagne
+    # 'signs20' historique reste identique au bit près.
+    if args.min_useful_primary_delta_pct is not None:
+        benchmark += ["--min-useful-primary-delta-pct", str(args.min_useful_primary_delta_pct)]
+    if args.required_seeds is not None:
+        benchmark += ["--required-seeds", str(args.required_seeds)]
+    if args.required_years is not None:
+        benchmark += ["--required-years", str(args.required_years)]
     if args.out is not None:
         benchmark += ["--out", args.out]
 
     command = [
         "docker", "run", "--rm",
+        *(["--name", args.container_name] if args.container_name else []),
+        *([f"--network={args.network}"] if args.network else []),
         f"--cpus={args.cpus}", f"--memory={args.memory}", f"--memory-swap={args.memory}",
+        "-e", f"C66_DOCKER_NETWORK={args.network or 'bridge'}",
         "-e", f"C66_DOCKER_IMAGE={args.image}",
         "-e", f"C66_DOCKER_IMAGE_ID={image_id}",
         "-e", f"C66_DOCKER_CPUS={args.cpus}",
@@ -103,8 +167,8 @@ def main():
         "-e", f"C66_GIT_DIRTY={git_dirty}",
         "-e", f"C66_GIT_STATUS_B64={git_status_b64}",
         "-v", "openttd-lab-home:/home/lab",
-        "-v", f"{ROOT}:/work",
-        "-w", "/work",
+        "-v", f"{mount_root}:/work",
+        "-w", container_workdir,
         args.image,
         *benchmark,
     ]
