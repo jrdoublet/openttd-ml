@@ -90,6 +90,7 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
       pairKey = pairKey, nextDate = 0 };
   /* Enregistrer AVANT toute commande susceptible de suspendre / sauvegarder. */
   OPEX_AIR_ROLLBACKS.append(ticket);
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   if (OpexAirContinueRollback(ticket)) {
     OPEX_AIR_ROLLBACKS.pop();
     AILog.Info("AIR_ROLLBACK_DONE pair=" + pairKey + " immediate=1");
@@ -218,6 +219,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
     }
 
     if (ok) {
+      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
       builtStops.append(cand.tile);
       summary.count++;
       summary.monthlyPax += cand.value;
@@ -302,6 +304,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_a") : null;
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelA = OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
     if (spBuild != null) OpexSpanEnd(spBuild);
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_a") : null;
@@ -348,6 +351,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_b") : null;
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
     if (spBuild != null) OpexSpanEnd(spBuild);
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;
@@ -411,8 +415,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     if (spBuild != null) OpexSpanEnd(spBuild);
     result.error = AIError.GetLastError();
     result.errorText = AIError.GetLastErrorString();
-    if (PROBE_AIR0310_N1_FALLBACK && result.error == AIError.ERR_NOT_ENOUGH_CASH)
-      OpexAir0310N1FallbackProbe(plan, AICompany.GetBankBalance(AICompany.COMPANY_SELF), "build", "lost");
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -473,8 +475,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (!AIVehicle.IsValidVehicle(extra)) {
-      if (PROBE_AIR0310_N1_FALLBACK)
-        OpexAir0310N1FallbackProbe(plan, AICompany.GetBankBalance(AICompany.COMPANY_SELF), "build", "built");
       break;
     }
     built.append(extra);

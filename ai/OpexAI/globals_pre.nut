@@ -494,6 +494,21 @@ C121_ENGTAB_PASS <- 0;
 C121_ENGTAB_NEXT <- 0;
 C121_ENGTAB_N1 <- null;
 C121_ENGTAB_N2 <- null;
+/* Piste 6 : sonde shadow. Defaut 0. Jamais lue par un choix, jamais sauvee. */
+PROBE_AIR_ENGINE_DEPTH <- false;
+AIR_ENGINE_DEPTH_SCAN <- 0;
+AIR_ENGINE_DEPTH_CHALLENGER <- null;
+/* Exposition only: air finance margin / first-revenue delay. Defaut 0. */
+PROBE_AIR_FINANCE_MARGIN <- false;
+AIR_FINANCE_MARGIN_YEAR <- -1;
+/* F-EVENT-BACKLOG-01 : sonde passive de la file d'evenements. Defaut 0. */
+PROBE_EVENT_BACKLOG <- false;
+EVENT_BACKLOG_CALLS <- 0;
+EVENT_BACKLOG_EVENTS <- 0;
+EVENT_BACKLOG_MAX_BURST <- 0;
+EVENT_BACKLOG_OPS_TOTAL <- 0;
+EVENT_BACKLOG_OPS_MAX <- 0;
+EVENT_BACKLOG_MONTH <- -1;
 SPAN_STACK <- null;
 SPAN_BY_ID <- null;
 SPAN_NEXT_ID <- 1;
@@ -733,11 +748,6 @@ AIR0310_V96_SHORTCUT_LEAN <- false;
 /* AIR 03/10 3b : N=1 et N=2 du meme avion partagent leurs invariants.
  * 0 = deux economies completes (comportement historique). */
 AIR0310_ONE_TWO_FUSED <- false;
-/* AIR 03/10 4 : sonde C1 <= budget < C2. 0 = aucune emission. */
-PROBE_AIR0310_N1_FALLBACK <- false;
-/* AIR 03/10 4 : si N=2 n'est pas finançable et N=1 l'est, publier N=1.
- * 0 = le projet N=2 reste ecarte (comportement historique). */
-AIR0310_N1_FALLBACK <- false;
 /* AIR 03/10 1 : publication partielle sans reconstruire tout le portefeuille.
  * 0 = rebuild complet a chaque lot (comportement historique). Le chargement
  * reel est en plus barre par C121_CATALOG_INCREMENTAL. */
@@ -746,6 +756,11 @@ AIR0310_INCREMENTAL_PUBLISH <- false;
  * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
  * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
 AIR0310_HUB_SNAPSHOT <- false;
+/* AIR 03/10 V122 : validite des sites air partagee entre reelections.
+ * 0 = sonde locale a chaque filtre (comportement historique). Le
+ * chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
+AIR0310_SITE_VALIDITY_CACHE <- false;
+AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */

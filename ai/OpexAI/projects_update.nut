@@ -361,6 +361,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
    * de ce scan est dans scanPlans : le rebuild complet, lui, re-ajoute aussi
    * ce prefixe s'il est encore dans airPlans, et le compte deux fois. Ecart
    * assume, limite a cette etape. */
+  local spPubPrior = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.prior") : null;
   local priorRaw = [];
   local priorKept = [];
   if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans
@@ -373,14 +374,17 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
       }
     }
   }
+  if (spPubPrior != null) OpexSpanEnd(spPubPrior);
 
   /* Meme denominateur que OpexBuildProjects : tous les plans du lot, y compris
    * ceux que OpexProjectFromAir refusera, plus les plans herites encore valides. */
+  local spPubNew = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.new_plans") : null;
   local planCount = scanPlans.len() + priorKept.len();
   local airOpsPerPlan = (planCount > 0) ? airOps / planCount : airOps;
   local added = 0;
   local reconverted = 0;
   local invalidated = 0;
+  local refreshedCount = 0;
   local pendingNew = {};
   local newKeyOrder = [];
   local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount) : [];
@@ -398,7 +402,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     pendingNew[createdKey].append(created);
     added++;
   }
+  if (spPubNew != null) OpexSpanEnd(spPubNew);
 
+  local spPubFilter = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.filter") : null;
   local keptAir = {};
   local movedAir = {};
   local othersByKey = {};
@@ -441,7 +447,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     othersByKey.rawset(slotKey, others);
     if (kept.len() > 0) keptAir.rawset(slotKey, kept);
   }
+  if (spPubFilter != null) OpexSpanEnd(spPubFilter);
 
+  local spPubPart = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.partition") : null;
   local preKeys = [];
   local postKeys = [];
   local preMark = {};
@@ -475,7 +483,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     if (movedList == null) continue;
     deferred.append(movedKey);
   }
+  if (spPubPart != null) OpexSpanEnd(spPubPart);
 
+  local spPubInsert = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.insert") : null;
   local rebuilt = {};
   local emitOrder = [];
   foreach (slotKey in preKeys) emitOrder.append(slotKey);
@@ -496,7 +506,9 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     local spliced = OpexAir0310InsertAirBlock(row, airBlock);
     if (spliced.len() > 0) rebuilt.rawset(slotKey, spliced);
   }
+  if (spPubInsert != null) OpexSpanEnd(spPubInsert);
 
+  local spPubStore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.store") : null;
   local storedPlans = [];
   foreach (plan in scanPlans) storedPlans.append(plan);
   foreach (plan in priorKept) storedPlans.append(plan);
@@ -510,8 +522,18 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   } else {
     projects.airPlan <- bestPlan;
   }
+  if (spPubStore != null) OpexSpanEnd(spPubStore);
+  local spPubRecount = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.recount") : null;
   OpexProjectsRecountGroups(projects);
-  OpexReselectProjects(projects, OpexAvailableCapital(), owner._abandonedPairs, owner._lines,
+  if (spPubRecount != null) OpexSpanEnd(spPubRecount);
+  /* La caisse est lue ici, juste avant la reelection, pas pendant FromAir. */
+  local spPubCap = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.capital") : null;
+  local publishCapital = OpexAvailableCapital();
+  if (spPubCap != null) OpexSpanEnd(spPubCap);
+  local spPubSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select") : null;
+  OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, owner._lines,
       owner._railReadyStock);
-  return { added = added, reconverted = reconverted, invalidated = invalidated };
+  if (spPubSelect != null) OpexSpanEnd(spPubSelect);
+  return { added = added, reconverted = reconverted, invalidated = invalidated,
+      refreshed = refreshedCount };
 }

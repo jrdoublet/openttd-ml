@@ -892,8 +892,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
-      if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310CopyN1N2(routeChoice, plan);
-      if (AIR0310_N1_FALLBACK) OpexAir0310CopyRetained(routeChoice, plan);
       OpexAirReserveJoinedStops(catalog, plan);
 
       if (a == 0 && b == 1) {
@@ -1544,8 +1542,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
-      if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310CopyN1N2(routeChoice, plan);
-      if (AIR0310_N1_FALLBACK) OpexAir0310CopyRetained(routeChoice, plan);
       OpexAirReserveJoinedStops(catalog, plan);
       if (admissionEconomics.profitAnnual <= 0) {
         if (hubSiteMark != null) OpexSpanAgg("air.hub_site_pair", hubSiteMark);
@@ -1861,8 +1857,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
-      if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310CopyN1N2(routeChoice, plan);
-      if (AIR0310_N1_FALLBACK) OpexAir0310CopyRetained(routeChoice, plan);
       OpexAirReserveJoinedStops(catalog, plan);
       /* C113 : l'admission a deja ete arbitree sur le shadow C68. Le profit
        * legacy du moteur replay peut etre negatif sans invalider le marche de

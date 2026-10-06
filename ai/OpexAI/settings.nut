@@ -186,6 +186,17 @@ function OpexLoadSettings()
   PROBE_LOOP_OPS = AIController.GetSetting("probe_loop_ops") != 0;
   PROBE_SPAN_TRACE = AIController.GetSetting("probe_span_trace") != 0;
   PROBE_C121_ENGINE_TABLE = AIController.GetSetting("probe_c121_engine_table") != 0;
+  PROBE_AIR_ENGINE_DEPTH = AIController.GetSetting("probe_air_engine_depth") != 0;
+  PROBE_AIR_FINANCE_MARGIN = AIController.GetSetting("probe_air_finance_margin") != 0;
+  PROBE_EVENT_BACKLOG = AIController.GetSetting("probe_event_backlog") != 0;
+  if (PROBE_EVENT_BACKLOG) {
+    EVENT_BACKLOG_CALLS = 0;
+    EVENT_BACKLOG_EVENTS = 0;
+    EVENT_BACKLOG_MAX_BURST = 0;
+    EVENT_BACKLOG_OPS_TOTAL = 0;
+    EVENT_BACKLOG_OPS_MAX = 0;
+    EVENT_BACKLOG_MONTH = -1;
+  }
   EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;
   EXP_OPCODE_EXACT_CHECK = AIController.GetSetting("exp_opcode_exact_check") != 0;
   EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;
@@ -610,12 +621,13 @@ function OpexLoadSettings()
   V107_DENSIFY_PORTFOLIO = AIController.GetSetting("v107_densify_portfolio") != 0;
   AIR0310_V96_SHORTCUT_LEAN = AIController.GetSetting("air0310_v96_shortcut_lean") != 0;
   AIR0310_ONE_TWO_FUSED = AIController.GetSetting("air0310_one_two_fused") != 0;
-  PROBE_AIR0310_N1_FALLBACK = AIController.GetSetting("probe_air0310_n1_fallback") != 0;
-  AIR0310_N1_FALLBACK = AIController.GetSetting("air0310_n1_fallback") != 0;
   AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_incremental_publish") != 0;
   AIR0310_HUB_SNAPSHOT = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_hub_snapshot") != 0;
+  AIR0310_SITE_VALIDITY_CACHE = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("air0310_site_validity_cache") != 0;
+  AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");

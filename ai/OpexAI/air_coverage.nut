@@ -21,6 +21,7 @@ function OpexAirResetSiteCache()
   if (C121_CATALOG_INCREMENTAL) OpexC121InvalidateEndpointGeometry();
   AIR_STATION_COVERAGE_HITS = 0;
   AIR_STATION_COVERAGE_MISSES = 0;
+  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
 }
 
 function OpexAirResetTerritorialCoverageCache()
@@ -33,6 +34,53 @@ function OpexAirResetStationCoverageTownCache()
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
   AIR_C121_STATION_COVERAGE_CACHE.clear();
   if (C121_CATALOG_INCREMENTAL) OpexC121InvalidateEndpointGeometry();
+}
+
+/* V122 : validite OpexAirSiteStillBuildable par cle keyA/keyB.
+ * month = annee * 12 + mois. entries[cle] = bool. limited = villes deja
+ * au plafond ERR_STATION_TOO_MANY_STATIONS_IN_TOWN. Ce plafond est une
+ * propriete de ville, mutee pendant le filtre : on le rejoue seulement
+ * pour les cles absentes. Une reponse deja stockee, vraie ou fausse,
+ * reste jusqu'au mois suivant ou jusqu'a un chantier/demolition d'OpexAI.
+ * Un concurrent qui occupe ou libere la tuile n'est pas vu avant. Le
+ * chantier sur un true perime passe par OpexAirLevelFootprint (depense
+ * reelle possible) puis BuildAirport : echec AFAIL/BFAIL, sans aeroport
+ * laisse par l'echec de pose ; rollback de A si B echoue ensuite, sauf
+ * infrastructure_maintenance a 0. */
+function OpexAir0310SiteValidityMonth()
+{
+  local date = AIDate.GetCurrentDate();
+  return AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+}
+
+function OpexAir0310InvalidateSiteValidity()
+{
+  if (!AIR0310_SITE_VALIDITY_CACHE) return;
+  AIR0310_SITE_VALIDITY_STATE = null;
+}
+
+function OpexAir0310SiteValidityBegin(stationLimitedTowns)
+{
+  local month = OpexAir0310SiteValidityMonth();
+  local state = AIR0310_SITE_VALIDITY_STATE;
+  if (state == null || state.month != month) {
+    state = { month = month, entries = {}, limited = {} };
+    AIR0310_SITE_VALIDITY_STATE = state;
+  }
+  foreach (townId, ignored in state.limited) stationLimitedTowns.rawset(townId, true);
+  return state;
+}
+
+function OpexAir0310SiteValidityOk(state, key, site, airport, plane, reuse, stationLimitedTowns)
+{
+  if (key in state.entries) return state.entries[key];
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTowns);
+  state.entries.rawset(key, ok);
+  if (!reuse && !ok && site != null && ("town" in site) && site.town != null
+      && ("id" in site.town) && (site.town.id in stationLimitedTowns)) {
+    state.limited.rawset(site.town.id, true);
+  }
+  return ok;
 }
 
 /* Un test de site n'est qu'une prediction : si le chantier reel le contredit, ne jamais
@@ -630,6 +678,8 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
   }
   local cacheKey = null;
   local cacheStamp = null;
+  local cached = null;
+  local forceRefresh = false;
   if (C121_AIR_ECONOMICS && C121_AIR_ENDPOINT_CACHE != null) {
     local anchorKey = ("anchor" in site) ? site.anchor : -1;
     local townKey = ("town" in site) && site.town != null && ("id" in site.town) ? site.town.id : -1;
@@ -638,12 +688,13 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
     cacheKey = cargo + "|" + airportType + "|" + anchorKey + "|" + townKey
         + "|" + (reused ? 1 : 0) + "|" + routesKey + "|" + stationKey;
     if (C121_CATALOG_INCREMENTAL) cacheStamp = OpexC121EndpointCacheStamp(townKey, stationKey);
-    local forceRefresh = C121_CATALOG_INCREMENTAL
+    forceRefresh = C121_CATALOG_INCREMENTAL
       && ("c121CatalogRefreshEndpoints" in plan) && plan.c121CatalogRefreshEndpoints;
-    if (!forceRefresh && cacheKey in C121_AIR_ENDPOINT_CACHE
-      && (cacheStamp == null || OpexC121EndpointCacheFresh(C121_AIR_ENDPOINT_CACHE[cacheKey], cacheStamp))) {
+    if (cacheKey in C121_AIR_ENDPOINT_CACHE) cached = C121_AIR_ENDPOINT_CACHE[cacheKey];
+    if (!forceRefresh && cached != null
+      && (cacheStamp == null || OpexC121EndpointCacheFresh(cached, cacheStamp))) {
       if (C121_AIR_PLAN_PERF != null) C121_AIR_PLAN_PERF.endpointHits++;
-      return C121_AIR_ENDPOINT_CACHE[cacheKey];
+      return cached;
     }
     if (C121_AIR_PLAN_PERF != null) C121_AIR_PLAN_PERF.endpointMisses++;
   }

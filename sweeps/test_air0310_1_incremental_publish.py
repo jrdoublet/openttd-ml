@@ -169,6 +169,7 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
             'OpexDecide("AIR0310_PUBLISH", "mode=" + publishMode\n'
             '          + " added=" + publishAdded\n'
             '          + " reconverted=" + publishReconverted\n'
+            '          + " refreshed=" + publishRefreshed\n'
             '          + " invalidated=" + publishInvalidated\n'
             '          + " total_plans=" + s.plans.len());'
         )
@@ -185,10 +186,12 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
         self.assertIn("airOps / planCount", self.publish)
         self.assertNotIn("airOps / newPlans.len()", self.publish)
         self.assertGreaterEqual(self.publish.count("OpexProjectFromAir("), 2)
-        self.assertIn(
-            "OpexReselectProjects(projects, OpexAvailableCapital(), owner._abandonedPairs, "
-            "owner._lines,\n      owner._railReadyStock);",
-            self.publish,
+        self.assertLess(
+            self.publish.index("local publishCapital = OpexAvailableCapital();"),
+            self.publish.index(
+                "OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, "
+                "owner._lines,\n      owner._railReadyStock);"
+            ),
         )
         self.assertIn("OpexFilterAirAlternativesStillValid(", self.reselect)
         self.assertIn(

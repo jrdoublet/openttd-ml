@@ -27,6 +27,96 @@ function OpexAI::_padAirFailedSites(plan, result)
     this._markPairAbandoned(OpexAirSitePaddingKey(plan.siteB, plan.airport.type));
   }
 }
+
+/* Exposition only (probe_air_finance_margin). Jamais lue par un choix. */
+function OpexAirFinanceMarginDate(date)
+{
+  if (date == null || date <= 0) return "0000-00-00";
+  local month = AIDate.GetMonth(date);
+  local day = AIDate.GetDayOfMonth(date);
+  return AIDate.GetYear(date) + "-"
+      + (month < 10 ? "0" + month : "" + month) + "-"
+      + (day < 10 ? "0" + day : "" + day);
+}
+
+function OpexAirFinanceMarginLogTry(path, rank, srcTown, dstTown, newAirports, margin, reserve, capital, need, money, outcome, extra)
+{
+  local msg = "AIR_FINANCE_TRY date=" + OpexAirFinanceMarginDate(AIDate.GetCurrentDate())
+      + " rank=" + rank
+      + " src_town=" + srcTown
+      + " dst_town=" + dstTown
+      + " new_airports=" + newAirports
+      + " margin=" + margin
+      + " reserve=" + reserve
+      + " capital=" + capital
+      + " need=" + need
+      + " cash=" + money
+      + " outcome=" + outcome
+      + " path=" + path;
+  if (extra != null) msg += extra;
+  AILog.Info(msg);
+}
+
+function OpexAirFinanceMarginInitLine(line, year, money)
+{
+  line.finProbePrev <- { profit = 0, year = year, cashMin = money };
+}
+
+function OpexAirFinanceMarginProfitSum(line)
+{
+  local sum = 0;
+  if (!("vehicles" in line) || line.vehicles == null) return sum;
+  foreach (v in line.vehicles) {
+    if (AIVehicle.IsValidVehicle(v)) sum += AIVehicle.GetProfitThisYear(v);
+  }
+  return sum;
+}
+
+function OpexAirFinanceMarginTick(lines, year)
+{
+  if (lines == null) return;
+  local now = AIDate.GetCurrentDate();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (AIR_FINANCE_MARGIN_YEAR >= 0 && AIR_FINANCE_MARGIN_YEAR != year) {
+    foreach (line in lines) {
+      if (line == null || typeof line != "table") continue;
+      if (!("mode" in line) || line.mode != "air") continue;
+      if (!("finProbePrev" in line) || line.finProbePrev == null) continue;
+      local buildDate = ("buildDate" in line) ? line.buildDate : 0;
+      AILog.Info("AIR_FINANCE_PENDING line=" + (("lineId" in line) ? line.lineId : -1)
+          + " build_date=" + OpexAirFinanceMarginDate(buildDate)
+          + " days=" + (now - buildDate));
+    }
+  }
+  AIR_FINANCE_MARGIN_YEAR = year;
+  foreach (line in lines) {
+    if (line == null || typeof line != "table") continue;
+    if (!("mode" in line) || line.mode != "air") continue;
+    if (!("finProbePrev" in line) || line.finProbePrev == null) continue;
+    local prev = line.finProbePrev;
+    if (money < prev.cashMin) prev.cashMin = money;
+    local sum = OpexAirFinanceMarginProfitSum(line);
+    local gotRevenue = false;
+    if (prev.year == year) {
+      if (sum > prev.profit) gotRevenue = true;
+    } else if (sum > 0) {
+      gotRevenue = true;
+    }
+    if (gotRevenue) {
+      local buildDate = ("buildDate" in line) ? line.buildDate : 0;
+      AILog.Info("AIR_FINANCE_FIRST_REVENUE line=" + (("lineId" in line) ? line.lineId : -1)
+          + " build_date=" + OpexAirFinanceMarginDate(buildDate)
+          + " first_date=" + OpexAirFinanceMarginDate(now)
+          + " days=" + (now - buildDate)
+          + " cash_min=" + prev.cashMin);
+      line.finProbePrev = null;
+    } else {
+      prev.profit = sum;
+      prev.year = year;
+    }
+  }
+}
+
 /* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
 function OpexAI::_tryBuildAir(year)
 {
@@ -126,8 +216,11 @@ function OpexAI::_tryBuildAir(year)
     local requiredMargin = OpexAirRequiredMargin(newAirports);
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
-    if (PROBE_AIR0310_N1_FALLBACK && money < need)
-      OpexAir0310N1FallbackProbe(plan, money, "finance", "deferred");
+    if (PROBE_AIR_FINANCE_MARGIN && money < need) {
+      local outcome = (money >= capital + baseReserve) ? "refused_margin" : "refused_capital";
+      OpexAirFinanceMarginLogTry("legacy", builtCount, plan.siteA.town.id, plan.siteB.town.id,
+          newAirports, requiredMargin, baseReserve, capital, need, money, outcome, null);
+    }
     if (money < need) {
       if (money < need) {
         if (DECISION_LOG) {
@@ -147,6 +240,13 @@ function OpexAI::_tryBuildAir(year)
     local result = V93_AIR_DEMAND_PRODUCTION
         ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
         : OpexBuildAirRoute(this._catalog, this._budget, plan);
+    if (PROBE_AIR_FINANCE_MARGIN) {
+      OpexAirFinanceMarginLogTry("legacy", builtCount, plan.siteA.town.id, plan.siteB.town.id,
+          newAirports, requiredMargin, baseReserve, capital, need, money,
+          result.ok ? "built" : "failed",
+          " planned=" + result.plannedCapital + " actual=" + result.actualCost
+              + " reason=" + result.reason + " line=" + this._nextLineId);
+    }
     if (PROBE_SPAN_TRACE) {
       local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
       local evtPlanes = result.ok ? result.vehicles.len() : 0;
@@ -185,6 +285,7 @@ function OpexAI::_tryBuildAir(year)
     if (DECISION_LOG) {
       OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
     }
+    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
       originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
@@ -211,6 +312,10 @@ function OpexAI::_tryBuildAir(year)
       isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
       lineId = this._nextLineId,
     });
+    if (PROBE_AIR_FINANCE_MARGIN) {
+      OpexAirFinanceMarginInitLine(this._lines[this._lines.len() - 1], year,
+          AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+    }
     if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, plan, result);
     }
@@ -446,8 +551,12 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (spCash != null) OpexSpanEnd(spCash);
-      if (PROBE_AIR0310_N1_FALLBACK && money < need)
-        OpexAir0310N1FallbackProbe(plan, money, "finance", "deferred");
+      if (PROBE_AIR_FINANCE_MARGIN && money < need) {
+        local reserve = need - capital - requiredMargin;
+        local outcome = (money >= capital + reserve) ? "refused_margin" : "refused_capital";
+        OpexAirFinanceMarginLogTry("portfolio", i, plan.siteA.town.id, plan.siteB.town.id,
+            newAirports, requiredMargin, reserve, capital, need, money, outcome, null);
+      }
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
@@ -485,6 +594,13 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local result = V93_AIR_DEMAND_PRODUCTION
           ? OpexBuildAirRoute(this._catalog, this._budget, buildPlan, this._lines)
           : OpexBuildAirRoute(this._catalog, this._budget, buildPlan);
+      if (PROBE_AIR_FINANCE_MARGIN) {
+        OpexAirFinanceMarginLogTry("portfolio", i, plan.siteA.town.id, plan.siteB.town.id,
+            newAirports, requiredMargin, need - capital - requiredMargin, capital, need, money,
+            result.ok ? "built" : "failed",
+            " planned=" + result.plannedCapital + " actual=" + result.actualCost
+                + " reason=" + result.reason + " line=" + this._nextLineId);
+      }
       if (PROBE_SPAN_TRACE) {
         local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
         local evtPlanes = result.ok ? result.vehicles.len() : 0;
@@ -564,6 +680,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             "line=" + this._nextLineId + " profit=" + buildPlan.economics.profitAnnual + " cost=" + buildPlan.capital
             + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
         this._airBuilt = true;
+        if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
           originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
@@ -590,6 +707,10 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
+        if (PROBE_AIR_FINANCE_MARGIN) {
+          OpexAirFinanceMarginInitLine(this._lines[this._lines.len() - 1], year,
+              AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+        }
         if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
           OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, buildPlan, result);
         }
@@ -765,6 +886,7 @@ function OpexC121FleetStockEvidence(line)
 
 function OpexAI::_resizeAirFleets(year, plan = null)
 {
+  if (PROBE_AIR_FINANCE_MARGIN) OpexAirFinanceMarginTick(this._lines, year);
   local spFleet = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.resize") : null;
   local anchor = AIMap.GetTileIndex(1, 1);
   /* air_roi_order : servir la ligne qui rembourse le plus vite, pas la plus ancienne. Le tri

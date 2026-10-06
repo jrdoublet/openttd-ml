@@ -52,8 +52,6 @@ LEGACY_BODY = """\
     C121_ENGTAB_N1 = econ1;
     C121_ENGTAB_N2 = econ2;
   }
-  if (PROBE_AIR0310_N1_FALLBACK) OpexAir0310KeepN1N2(plan, econ1, econ2, chosen);
-  if (AIR0310_N1_FALLBACK) OpexAir0310RetainN1N2(plan, econ1, econ2);
   return { initial = chosen, full = chosen };
 """
 

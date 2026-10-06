@@ -92,6 +92,30 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "probe_air_engine_depth",
+      description = "Shadow only: on C121 full engine scans, score the N=1 runner-up at N=1 and N=2 with the fused kernel and log AIR_ENGINE_DEPTH; the V96 shortcut is unchanged; decisions unchanged; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_air_finance_margin",
+      description = "Exposure only: log AIR_FINANCE_TRY at air cash checks and AIR_FINANCE_FIRST_REVENUE/AIR_FINANCE_PENDING on built air lines; decisions unchanged; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_event_backlog",
+      description = "Monthly probe of _processEvents burst sizes and opcode consumption; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "exp_opcode_exact",
       description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -1771,26 +1795,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "probe_air0310_n1_fallback",
-      description = "AIR 03/10 4 probe: log C121 air plans lost or deferred when C1 <= budget < C2 after N=2 wins; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air0310_n1_fallback",
-      description = "AIR 03/10 4 A/B: if the chosen N=2 opening is not fundable and the already computed N=1 opening is, publish that N=1 economy; 1 = on, 0 = drop the plan (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "air0310_incremental_publish",
       description = "AIR 03/10 1 A/B: a partial air publish inserts only the new plans and reselects; 1 = on (default), 0 = full portfolio rebuild",
       min_value = 0, max_value = 1,
@@ -1803,6 +1807,16 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "air0310_hub_snapshot",
       description = "AIR 03/10 2 A/B: reuse the ordered hub and site snapshot across slices of the same combo while the air topology signature matches; 1 = on (default), 0 = rediscover every slice",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air0310_site_validity_cache",
+      description = "AIR 03/10 V122 A/B: remember whether each air site is still buildable across reselections until the month changes or OpexAI builds or removes a station, airport or line; 1 = on (default), 0 = probe every unique site on every filter",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,

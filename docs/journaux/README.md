@@ -13,6 +13,7 @@ Les autres mesures exigent toujours bundle, protocole et santé vérifiables.
 
 | Journal | Contenu / portée |
 |---|---|
+| [5 octobre](journal_2026-10-05.md) | Workflow de régression réparé ; piste AIR 6 close : 0 challenger meilleur sur 172 décisions (6 graines × 3 ans) |
 | [4 octobre](journal_2026-10-04.md) | File C121 nocturne : 27 comparaisons saines sans passage A ; trois B passent, adoption explicite utilisateur, analyse des graines perdantes et validation technique |
 | [3 octobre](journal_2026-10-03.md) | V96 « avion de la partie » (C121) adopté sous règle opcodes ; synchronisation des consignes LLM avec V102 (portes 40×3 puis 20×10), workflows GitHub encore historiques |
 | [2 octobre](journal_2026-10-02.md) | Fusion du gagnant AIR adoptée sous règle de neutralité après 20×10 sain ; contexte paire/avion non retenu (+9,88 % d'opcodes, garde valeur échouée en 5×6) ; blocage/reprise Docker ; lot cadence/K_pass distinct, aucun modèle C121 adopté |

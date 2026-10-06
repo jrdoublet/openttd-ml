@@ -972,7 +972,9 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
  * celui mesure sur le profit long terme preserve exactement ce calibrage. */
 function OpexProjectFundProfit(project)
 {
+  local calibMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local calibrated = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual;
+  if (calibMark != null) OpexSpanAgg("pub.select.calibrate", calibMark);
   if (!C121_AIR_PORTFOLIO_SPLIT_ECONOMICS || project == null
       || !("mode" in project) || project.mode != "air"
       || !("portfolioProfitAnnual" in project)) return calibrated;
@@ -1078,41 +1080,6 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
       + " head_flip=" + headFlip + " head_mode=" + headMode + " k_dec=" + kDec + stamp);
 }
 
-/* AIR 03/10 4. Les pertes mesurees sont le `continue` de cette selection :
- * le plan a deja ete choisi a N=2, converti, puis jete parce que son capital
- * de financement depasse le budget alors que N=1 tiendrait. On reecrit CE
- * projet, avant le plancher et le filtre, pour que le classement et le
- * chantier lisent l'economie N=1. Pas de second projet. Si le budget couvre
- * N=2, aucun ecrit ; un repli anterieur est annule. */
-function OpexAir0310SelectN1(project, capitalBudget)
-{
-  if (!AIR0310_N1_FALLBACK || project == null || capitalBudget == null) return;
-  if (!("mode" in project) || project.mode != "air") return;
-  if (!("payload" in project) || project.payload == null) return;
-  local plan = project.payload;
-  if (!("c121EconN1" in plan) || !("c121EconN2" in plan)) return;
-  local econ1 = plan.c121EconN1;
-  local econ2 = plan.c121EconN2;
-  if (econ1 == null || econ2 == null) return;
-  if (!("planes" in econ1) || econ1.planes != 1) return;
-  if (!("planes" in econ2) || econ2.planes != 2) return;
-  local fellBack = ("c121Air0310N1" in plan) && plan.c121Air0310N1;
-  local published2 = ("economics" in plan) && plan.economics == econ2;
-  if (!fellBack && !published2) return;
-  local finance2 = OpexAir0310EconomyFinance(plan, econ2);
-  local finance1 = OpexAir0310EconomyFinance(plan, econ1);
-  if (finance2 <= 0 || finance1 <= 0) return;
-  if (finance2 <= capitalBudget) {
-    if (fellBack) {
-      if (OpexAir0310WritePlan(plan, econ2, false)) OpexAir0310WriteProject(project);
-    }
-    return;
-  }
-  if (finance1 <= capitalBudget && !fellBack) {
-    if (OpexAir0310WritePlan(plan, econ1, true)) OpexAir0310WriteProject(project);
-  }
-}
-
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
@@ -1122,18 +1089,17 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
    * les modes. Le budget fourni a deja soustrait la reserve de tresorerie. */
   local fittedAlternatives = [];
   foreach (project in alternatives) {
+    local fitMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local fitted = OpexProjectFitFleetToBudget(project, capitalBudget);
     if (R1_R3_TEST_ONLY) fitted = OpexR1R3FitTrace(project, fitted, capitalBudget);
     if (amortProbe != null && fitted != null && project.mode == "fleet")
       amortProbe.originals.append({ project = fitted, quantity = project.payload.want });
     if (fitted != null) fittedAlternatives.append(fitted);
+    if (fitMark != null) OpexSpanAgg("pub.select.score.fit", fitMark);
   }
   alternatives = fittedAlternatives;
-  /* Avant plancher, preparation territoriale et filtre : le budget de cette
-   * passe est celui qui a produit les select/lost mesures. */
-  if (AIR0310_N1_FALLBACK) {
-    foreach (project in alternatives) OpexAir0310SelectN1(project, capitalBudget);
-  }
+  local spStates = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.states") : null;
+  /* Avant plancher, preparation territoriale et filtre. */
   OpexC118PrepareSelection(alternatives, capitalBudget);
   OpexC120PrepareSelection(alternatives, capitalBudget);
   /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,
@@ -1180,8 +1146,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     kDec = kDecData.K_dec;
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
   }
+  if (spStates != null) OpexSpanEnd(spStates);
 
   foreach (project in alternatives) {
+    local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    local slotMark = null;
+    local insertMark = null;
     local financeCapital = OpexProjectFinanceCapital(project);
     OpexC116ObserveAirPortfolioOpportunity(c116Snapshot, project, financeCapital, capitalBudget);
     local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
@@ -1189,16 +1159,24 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (c118Territorial && ("c118MinFinance" in project) && project.c118MinFinance > 0) {
       financeCapital = project.c118MinFinance;
     }
-    if (PROBE_AIR0310_N1_FALLBACK && financeCapital > capitalBudget)
-      OpexAir0310N1FallbackProbe(project, capitalBudget, "select", "lost");
+    if (fundMark != null) {
+      OpexSpanAgg("pub.select.score.fund_score", fundMark);
+      fundMark = null;
+    }
     if (financeCapital > capitalBudget) continue;
     local c121DefensivePrepared = C121_AIR_ECONOMICS && C121_AIR_DEFENSIVE_FLOOR
         && project.mode == "air";
     local c121DefensiveTier = 0;
     local c121DefensiveFloor = floorProfit;
     if (c121DefensivePrepared) {
+      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      if (slotMark != null) {
+        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
+        slotMark = null;
+      }
+      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       c121DefensiveTier = OpexProjectDefensiveAirPriority(project);
       /* C121 anti-monopole : ne plus supprimer completement le garde-fou de
        * profit. Une course au second slot concurrent (tier 2) accepte la moitie
@@ -1208,10 +1186,22 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;
     }
     if (project.profitAnnual < c121DefensiveFloor && !c118Territorial
-        && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) continue;
+        && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) {
+      if (fundMark != null) {
+        OpexSpanAgg("pub.select.score.fund_score", fundMark);
+        fundMark = null;
+      }
+      continue;
+    }
     if (!c121DefensivePrepared) {
+      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      if (slotMark != null) {
+        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
+        slotMark = null;
+      }
+      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     }
     local decisionFinanceCapital = financeCapital;
     if (project.mode == "air" && ("decisionFinanceCapital" in project)
@@ -1238,6 +1228,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         && ("c121CatalogKey" in project.payload)
         && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
       C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
+    if (fundMark != null) {
+      OpexSpanAgg("pub.select.score.fund_score", fundMark);
+      fundMark = null;
+    }
+    insertMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1266,6 +1261,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     } else {
       OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
+    if (insertMark != null) {
+      OpexSpanAgg("pub.select.score.insert", insertMark);
+      insertMark = null;
+    }
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
@@ -1277,14 +1276,27 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     airPairBest = {};
     if (c121KDecColdRows != null) c121KDecColdRows.clear();
     foreach (project in alternatives) {
+      local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      local slotMark = null;
+      local insertMark = null;
       local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
           && (("c118NewTowns") in project) && project.c118NewTowns > 0;
       local normalFinanceCapital = OpexProjectFinanceCapital(project);
       local financeCapital = (c118Territorial && ("c118MinFinance" in project)
           && project.c118MinFinance > 0) ? project.c118MinFinance : normalFinanceCapital;
+      if (fundMark != null) {
+        OpexSpanAgg("pub.select.score.fund_score", fundMark);
+        fundMark = null;
+      }
       if (financeCapital > capitalBudget) continue;
+      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+      if (slotMark != null) {
+        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
+        slotMark = null;
+      }
+      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local decisionFinanceCapital = financeCapital;
       if (project.mode == "air" && ("decisionFinanceCapital" in project)
           && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
@@ -1300,6 +1312,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);
       OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
+      if (fundMark != null) {
+        OpexSpanAgg("pub.select.score.fund_score", fundMark);
+        fundMark = null;
+      }
+      insertMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
@@ -1328,8 +1345,13 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         } else {
           OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
         }
+      if (insertMark != null) {
+        OpexSpanAgg("pub.select.score.insert", insertMark);
+        insertMark = null;
+      }
     }
   }
+  local spEpilogue = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.epilogue") : null;
   if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
   OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
@@ -1370,6 +1392,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           + " finance=" + OpexProjectFinanceCapital(project) + " budget=" + capitalBudget);
     }
   }
+  if (PROBE_AIR_FINANCE_MARGIN) OpexAirFinanceMarginLogSelect(alternatives, affordable, capitalBudget);
+  if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;
 }
@@ -1767,25 +1791,36 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   local selectionLight = CATALOG_COST_PROBE ? OpexSelectionLightBegin() : null;
   local opsMark = OpexOpsMeasureBegin();
   local alternatives = [];
+  local spPubFlat = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.flatten") : null;
   foreach (key, list in projects.candidateGroups) {
     foreach (project in list) alternatives.push(project);
   }
+  if (spPubFlat != null) OpexSpanEnd(spPubFlat);
+  local spPubMerge = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.merge") : null;
   if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, projects.stats);
   if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
       railReadyStock = projects.railReadyStock;
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
+  if (spPubMerge != null) OpexSpanEnd(spPubMerge);
+  local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  if (spPubFilt != null) OpexSpanEnd(spPubFilt);
+  local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  if (spPubScore != null) OpexSpanEnd(spPubScore);
   considered = alternatives.len();
   projects.stats.knapsackNodes = 0;
   projects.stats.knapsackExact = false;
   projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
   if (selectionLight != null) OpexSelectionLightEnd(selectionLight, "reselect",
       projects.stats.selectionOpcodes, considered, funded.len());
+  local spPubLog = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.log") : null;
   OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate);
+  if (spPubLog != null) OpexSpanEnd(spPubLog);
 
+  local spPubStats = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.stats") : null;
   projects.stats.budgetConsidered = considered;
   projects.stats.budgetSelected = funded.len();
   projects.stats.budgetRejected = considered - funded.len();
@@ -1820,7 +1855,9 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     projects.c69Best <- ::C69_LAST_AFFORDABLE;
     projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
   }
+  if (spPubStats != null) OpexSpanEnd(spPubStats);
 
+  local spPubVivier = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.vivier") : null;
   if (DECISION_LOG) {
     local vivierPool = [];
     if (("candidateGroups" in projects) && projects.candidateGroups != null) {
@@ -1830,6 +1867,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     }
     OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
   }
+  if (spPubVivier != null) OpexSpanEnd(spPubVivier);
 
   if (spReselect != null) OpexSpanEnd(spReselect);
   return projects;
@@ -1900,4 +1938,35 @@ function OpexProjectsRecountGroups(projects)
     projects.stats.modeCandidates = n;
     projects.stats.modeAlternatives = alternatives;
   }
+}
+
+/* Exposition seulement (probe_air_finance_margin) : projets AIR ecartes par la
+ * seule marge de financement (capital + immobilisation finançable, marge non). */
+function OpexAirFinanceMarginLogSelect(alternatives, affordable, capitalBudget)
+{
+  local air = 0, blocked = 0, blockedCapital = 0, bestBlocked = null;
+  foreach (project in alternatives) {
+    if (project == null || !("mode" in project) || project.mode != "air") continue;
+    air++;
+    local finance = OpexProjectFinanceCapital(project);
+    if (finance <= capitalBudget) continue;
+    local plan = ("payload" in project) ? project.payload : null;
+    local newAirports = (plan != null && ("reuseA" in plan) && plan.reuseA ? 0 : 1)
+        + (plan != null && ("reuseB" in plan) && plan.reuseB ? 0 : 1);
+    if (finance - OpexAirRequiredMargin(newAirports) <= capitalBudget) {
+      blocked++;
+      if (bestBlocked == null || project.profitAnnual > bestBlocked.profitAnnual) bestBlocked = project;
+    } else blockedCapital++;
+  }
+  local top = affordable.len() > 0 ? affordable[0] : null;
+  local msg = "AIR_FINANCE_SELECT date=" + OpexAirFinanceMarginDate(AIDate.GetCurrentDate())
+      + " budget=" + capitalBudget + " air=" + air + " blocked_margin=" + blocked
+      + " blocked_capital=" + blockedCapital
+      + " top_mode=" + (top != null ? top.mode : "none")
+      + " top_profit=" + (top != null ? top.profitAnnual : 0)
+      + " top_score=" + (top != null && ("budgetScore" in top) ? top.budgetScore : 0);
+  if (bestBlocked != null) msg += " blk_profit=" + bestBlocked.profitAnnual
+      + " blk_finance=" + OpexProjectFinanceCapital(bestBlocked)
+      + " blk_score=" + (("budgetScore" in bestBlocked) ? bestBlocked.budgetScore : 0);
+  AILog.Info(msg);
 }

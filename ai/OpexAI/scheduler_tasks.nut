@@ -114,12 +114,14 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       local publishMode = "full";
       local publishAdded = 0;
       local publishReconverted = 0;
+      local publishRefreshed = 0;
       local publishInvalidated = 0;
       if (publishCounts != null) {
         publishMode = "incr";
         publishAdded = publishCounts.added;
         publishReconverted = publishCounts.reconverted;
         publishInvalidated = publishCounts.invalidated;
+        if ("refreshed" in publishCounts) publishRefreshed = publishCounts.refreshed;
       } else {
         /* Plans soumis au rebuild, pas les projets gardes : FromAir peut
          * encore en refuser, et ce chemin ne les compte pas. */
@@ -131,6 +133,7 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       OpexDecide("AIR0310_PUBLISH", "mode=" + publishMode
           + " added=" + publishAdded
           + " reconverted=" + publishReconverted
+          + " refreshed=" + publishRefreshed
           + " invalidated=" + publishInvalidated
           + " total_plans=" + s.plans.len());
     }
