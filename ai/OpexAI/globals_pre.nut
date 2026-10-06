@@ -501,6 +501,14 @@ AIR_ENGINE_DEPTH_CHALLENGER <- null;
 /* Exposition only: air finance margin / first-revenue delay. Defaut 0. */
 PROBE_AIR_FINANCE_MARGIN <- false;
 AIR_FINANCE_MARGIN_YEAR <- -1;
+/* F-EVENT-BACKLOG-01 : sonde passive de la file d'evenements. Defaut 0. */
+PROBE_EVENT_BACKLOG <- false;
+EVENT_BACKLOG_CALLS <- 0;
+EVENT_BACKLOG_EVENTS <- 0;
+EVENT_BACKLOG_MAX_BURST <- 0;
+EVENT_BACKLOG_OPS_TOTAL <- 0;
+EVENT_BACKLOG_OPS_MAX <- 0;
+EVENT_BACKLOG_MONTH <- -1;
 SPAN_STACK <- null;
 SPAN_BY_ID <- null;
 SPAN_NEXT_ID <- 1;
