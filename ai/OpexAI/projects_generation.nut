@@ -22,10 +22,12 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   if (mode == "rail") {
     local generatePax = !targeted || entityKind == "town";
     local generateFreight = !targeted || entityKind == "industry";
+    local freightOrder = OpexFreightCargoOrder(catalog);
+    local deferRailReuseAdmission = generateFreight && freightCargo != null
+        && freightOrder.len() > 1;
     local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
         null, null, null, null, null, generatePax, generateFreight, PAX_BAND_ALL,
-        freightCargo, entityKind, entityId);
-    local freightOrder = OpexFreightCargoOrder(catalog);
+        freightCargo, entityKind, entityId, deferRailReuseAdmission);
     local hasFreight = false;
     foreach (candidate in rail.candidates) {
       if (candidate.kind == "freight") { hasFreight = true; break; }
@@ -37,12 +39,28 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
       }
       for (local offset = 1; offset < freightOrder.len(); offset++) {
         local idx = start >= 0 ? (start + offset) % freightOrder.len() : offset - 1;
+        local fallbackCargo = freightOrder[idx];
+        local impossibleTargetCargo = targeted && entityKind == "industry"
+            && !OpexRailTargetIndustryHasStructuralPairForCargo(catalog, entityId, fallbackCargo);
+        if (RAIL_TARGET_CARGO_PREFILTER && impossibleTargetCargo) {
+          if (DECISION_LOG) {
+            OpexDecide("RAIL_TARGET_CARGO_SKIP", "industry=" + entityId
+                       + " cargo=" + fallbackCargo + " reason=no_structural_pair");
+          }
+          continue;
+        }
         local extra = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
-            null, null, null, null, null, false, true, PAX_BAND_ALL, freightOrder[idx],
-            entityKind, entityId);
+            null, null, null, null, null, false, true, PAX_BAND_ALL, fallbackCargo,
+            entityKind, entityId, deferRailReuseAdmission);
+        if (DECISION_LOG && impossibleTargetCargo) {
+          OpexDecide("RAIL_TARGET_CARGO_SHADOW", "industry=" + entityId
+                     + " cargo=" + fallbackCargo + " opcodes=" + extra.opcodes
+                     + " candidates=" + extra.candidates.len());
+        }
         if (extra.candidates.len() == 0) continue;
-        rail = OpexMergeRailCandidateSet(rail, extra);
-        freightCargo = freightOrder[idx];
+        rail = OpexRailSelectFreightReusePool(rail, extra);
+        rail = OpexMergeRailCandidateSet(rail, extra, false);
+        freightCargo = fallbackCargo;
         generated.freightCargo = freightCargo;
         /* Sous C77, le mode route est traite a la tranche suivante : publier le fallback reel
          * uniquement sur cette regeneration ciblee, sans toucher au chemin normal. */
@@ -50,6 +68,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
         break;
       }
     }
+    rail = OpexRailOriginReuseFinalize(rail, TOP_K, catalog, budget, lines);
     generated.rail = rail;
     foreach (candidate in rail.candidates) {
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null

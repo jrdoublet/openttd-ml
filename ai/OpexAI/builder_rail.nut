@@ -109,6 +109,17 @@ function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
   return cap;
 }
 
+/* Expérience causale origin-reuse : A3 garde le rail normal a 10k, mais une extension deja
+ * qualifiee `originServed` peut recevoir un plafond distinct. Le setting vaut 0 par defaut ; il
+ * n'altère donc aucun chemin historique. 40k reproduit uniquement pour ces extensions l'ancien
+ * cap pre-A3, choisi historiquement au-dessus du plus grand succes mesure (36,6k). */
+function OpexRailCandidateHardCap(candidate, baseCap)
+{
+  if (candidate == null || RAIL_ORIGIN_REUSE_SEARCH_CAP <= baseCap) return baseCap;
+  if (!("originServed" in candidate) || !candidate.originServed) return baseCap;
+  return RAIL_ORIGIN_REUSE_SEARCH_CAP;
+}
+
 function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 10000)
 {
   /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,
@@ -310,23 +321,66 @@ function OpexRailPlatformPlans(catalog, candidate)
   local sawA = false;
   local sawB = false;
 
-  /* V88 : si le candidat dispose d'un quai joint a une gare existante (ex. usine pour ligne de biens) */
+  /* V88 + rail_origin_reuse : si le candidat dispose d'un quai joint a une gare existante.
+   * Historiquement V88 joint toujours A. `joinEnd=B` permet une extension vers une origine deja
+   * servie sans inverser src/dst (interdit pour le fret). */
   if (("joinPlatform" in candidate) && candidate.joinPlatform != null &&
       ("joinStationId" in candidate) && candidate.joinStationId >= 0) {
-    local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
-    if (jointPlansA.len() > 0) {
-      local jointLength = candidate.joinPlatform.length;
-      foreach (p in jointPlansA) {
-        p.stationId <- candidate.joinStationId;
+    local joinB = ("joinEnd" in candidate) && candidate.joinEnd == "B";
+    local jointLength = candidate.joinPlatform.length;
+    local joinHasA = false;
+    local joinHasB = false;
+    /* Une reutilisation d'origine n'est PAS un simple indice de placement : c'est le contrat
+     * physique du candidat. L'ancien station_join rendait SITE* immediatement si le quai joint
+     * ou l'autre extremite n'existaient pas. Sans ce garde, tomber dans la recherche libre plus
+     * bas tout en gardant joinLineId fait ignorer la ligne existante dans _tooClose et permet de
+     * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique
+     * actuel : seul un candidat marque originServed + joinEnd est strict ici. */
+    local strictOriginReuseJoin = RAIL_ORIGIN_REUSE
+        && ("originServed" in candidate) && candidate.originServed
+        && ("joinEnd" in candidate);
+    if (!joinB) {
+      local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
+      joinHasA = jointPlansA.len() > 0;
+      if (jointPlansA.len() > 0) {
+        foreach (p in jointPlansA) {
+          p.stationId <- candidate.joinStationId;
+        }
+        local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, jointLength,
+                                        MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
+                                        candidate.kind == "pax", statsB);
+        joinHasB = plansB.len() > 0;
+        if (plansB.len() > 0) {
+          return { plansA = jointPlansA, plansB = plansB, length = jointLength,
+                   slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
+        }
+        sawA = true;
       }
-      local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, jointLength,
-                                      MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
-                                      candidate.kind == "pax", statsB);
-      if (plansB.len() > 0) {
-        return { plansA = jointPlansA, plansB = plansB, length = jointLength,
-                 slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
+    } else {
+      local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
+      joinHasB = jointPlansB.len() > 0;
+      if (jointPlansB.len() > 0) {
+        foreach (p in jointPlansB) {
+          p.stationId <- candidate.joinStationId;
+        }
+        /* A reste toujours l'origine productrice, y compris quand B reutilise une gare existante.
+         * L'ancien `candidate.kind == "pax"` passait false pour le fret et testait donc
+         * l'ACCEPTATION du cargo sur la source : faux SITEA systematique des extensions fret B. */
+        local plansA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, jointLength,
+                                        MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
+                                        true, statsA);
+        joinHasA = plansA.len() > 0;
+        if (plansA.len() > 0) {
+          return { plansA = plansA, plansB = jointPlansB, length = jointLength,
+                   slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
+        }
+        sawB = true;
       }
-      sawA = true;
+    }
+    if (strictOriginReuseJoin) {
+      return { plansA = null, plansB = null, length = jointLength,
+               slopeRelaxed = 0, reason = OpexRailSiteReason(joinHasA, joinHasB),
+               statsA = statsA, statsB = statsB };
     }
   }
 
@@ -474,11 +528,53 @@ function OpexCanAppendSegment(prefix, tail)
 {
   if (prefix == null) return true;
   local seen = {};
-  for (local i = 0; i < prefix.len() - 2; i++) seen[prefix[i]] <- true;
+  /* tail[0..1] sont les deux cases directionnelles deja presentes dans prefix ; elles ne sont
+   * jamais testees ci-dessous. Toute REAPPARITION ulterieure, y compris sur ces deux cases, est
+   * une vraie boucle et doit etre refusee. Ajouter aussi chaque tuile du tail au fur et a mesure
+   * ferme les boucles internes d'un segment. */
+  for (local i = 0; i < prefix.len(); i++) seen[prefix[i]] <- true;
   for (local i = 2; i < tail.len(); i++) {
     if (tail[i] in seen) return false;
+    seen[tail[i]] <- true;
   }
   return true;
+}
+
+/* Tuiles interdites au NOUVEAU segment A*. Les deux dernieres cases du prefix sont precisement
+ * sa source directionnelle [front, previous] et ne doivent pas etre fermees avant InitializePath.
+ * Le garde OpexCanAppendSegment ci-dessus interdit quand meme d'y revenir plus tard dans le tail.
+ * Fusionner plutot que remplacer les ignoredTiles du caller conserve les autres contraintes. */
+function OpexSegmentIgnoredTiles(state)
+{
+  local merged = [];
+  local seen = {};
+  if (state.ignoredTiles != null) {
+    foreach (tile in state.ignoredTiles) {
+      if (tile in seen) continue;
+      seen[tile] <- true;
+      merged.push(tile);
+    }
+  }
+  if (state.prefix != null) {
+    local limit = state.prefix.len() - 2;
+    if (limit < 0) limit = 0;
+    for (local i = 0; i < limit; i++) {
+      local tile = state.prefix[i];
+      if (tile in seen) continue;
+      seen[tile] <- true;
+      merged.push(tile);
+    }
+  }
+  return merged;
+}
+
+function OpexSegmentPrefixContains(prefix, tile)
+{
+  if (prefix == null) return false;
+  foreach (known in prefix) {
+    if (known == tile) return true;
+  }
+  return false;
 }
 
 /* Extraire K minima par un petit front d'indices, sans retirer de noeud et sans
@@ -682,7 +778,6 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
 {
   local sliceSpent = 0;
   local sleepTicks = AIController.GetSetting("pathfinder_sleep_ticks");
-  local ignored = state.ignoredTiles;
 
   while (state.iterations < state.iterationBudget &&
          state.iterations < state.timeSafe &&
@@ -705,6 +800,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       }
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+      local ignored = OpexSegmentIgnoredTiles(state);
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);
       state.pathfinder = pathfinder;
       state.segmentPath = false;
@@ -732,6 +828,17 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     local path = state.segmentPath;
     if (path != false && path != null) {
       local tail = OpexSegmentTiles(path);
+      /* Le dernier segment etait le seul a echapper au garde anti-reentree applique aux coupures
+       * intermediaires. Il pouvait donc revenir sur une tuile du prefixe, passer le devis en
+       * AITestMode (les poses simulees ne persistent pas), puis casser la pose reelle quand la
+       * meme tuile etait rencontree une seconde fois. Meme contrat que les segments intermediaires :
+       * tenter d'abord un checkpoint de backtrack, sinon aucun chemin valide pour ce search. */
+      if (state.prefix != null && !OpexCanAppendSegment(state.prefix, tail)) {
+        state.pathfinder = null;
+        state.segmentPath = false;
+        if (OpexTrySegmentedBacktrack(state)) continue;
+        return OpexSegmentedResult(state, null, "NOPA", true);
+      }
       if (state.prefix == null) state.prefix = tail;
       else for (local i = 2; i < tail.len(); i++) state.prefix.push(tail[i]);
       state.pathfinder = null;
@@ -798,20 +905,24 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     local front = state.prefix[state.prefix.len() - 1];
     local previous = state.prefix[state.prefix.len() - 2];
     local choices = OpexLocalStructureChoices(front, previous, state.destinationCenter, state);
-    if (choices.len() > 0) {
-      for (local i = choices.len() - 1; i >= 1; i--) {
+    local nonLoopChoices = [];
+    foreach (choice in choices) {
+      if (!OpexSegmentPrefixContains(state.prefix, choice.to)) nonLoopChoices.push(choice);
+    }
+    if (nonLoopChoices.len() > 0) {
+      for (local i = nonLoopChoices.len() - 1; i >= 1; i--) {
         local alternativePrefix = OpexCopySegmentTiles(state.prefix);
-        alternativePrefix.push(choices[i].to);
+        alternativePrefix.push(nonLoopChoices[i].to);
         local alternativeStructures = OpexCopySegmentStructures(state.structures);
-        alternativeStructures.push({ from = front, to = choices[i].to, kind = choices[i].kind,
-            length = choices[i].length });
+        alternativeStructures.push({ from = front, to = nonLoopChoices[i].to,
+            kind = nonLoopChoices[i].kind, length = nonLoopChoices[i].length });
         state.alternatives.push({ prefix = alternativePrefix, structures = alternativeStructures,
-            sources = [[choices[i].to, front]] });
+            sources = [[nonLoopChoices[i].to, front]] });
       }
-      state.prefix.push(choices[0].to);
-      state.structures.push({ from = front, to = choices[0].to, kind = choices[0].kind,
-          length = choices[0].length });
-      state.activeSources = [[choices[0].to, front]];
+      state.prefix.push(nonLoopChoices[0].to);
+      state.structures.push({ from = front, to = nonLoopChoices[0].to,
+          kind = nonLoopChoices[0].kind, length = nonLoopChoices[0].length });
+      state.activeSources = [[nonLoopChoices[0].to, front]];
       state.localChoices++;
     } else {
       state.activeSources = [[front, previous]];
@@ -910,6 +1021,101 @@ function OpexMatchPlan(plans, tile)
     if (plan.station_exit == tile) return plan;
   }
   return null;
+}
+
+/* Version stricte utilisee seulement sous RAIL_GEOMETRY_GUARD. Plusieurs plans peuvent partager
+ * station_exit avec une orientation/lead differents. Le pathfinder choisit la paire complete
+ * [lead, station_exit] : la reconstruction doit conserver cette identite. */
+function OpexMatchPlanExact(plans, tile, lead)
+{
+  foreach (plan in plans) {
+    if (plan.station_exit == tile && ("lead" in plan) && plan.lead == lead) return plan;
+  }
+  return null;
+}
+
+/* Recalcule uniquement la GEOMETRIE DE QUAI autour d'un chemin A* deja paye. Le chemin definit
+ * l'interface physique [lead, station_exit] aux deux bouts ; une nouvelle implantation n'est
+ * acceptable que si elle expose exactement la meme interface et conserve la meme longueur de
+ * quai, donc les memes hypotheses economiques. Aucun pathfinder n'est appele ici. */
+function OpexRailRefreshExactPlatforms(catalog, candidate, plan)
+{
+  if (plan == null || !("tiles" in plan) || plan.tiles == null || plan.tiles.len() < 3) {
+    return { ok = false, reason = "invalid_plan" };
+  }
+  local fresh = OpexRailPlatformPlans(catalog, candidate);
+  if (fresh.plansA == null || fresh.reason != "OK") {
+    return { ok = false, reason = fresh.reason };
+  }
+  if (fresh.length != plan.length) {
+    return { ok = false, reason = "length_changed" };
+  }
+  local tiles = plan.tiles;
+  local last = tiles.len() - 1;
+  local planA = OpexMatchPlanExact(fresh.plansA, tiles[0], tiles[1]);
+  local planB = OpexMatchPlanExact(fresh.plansB, tiles[last], tiles[last - 1]);
+  if (planA == null || planB == null) {
+    return { ok = false, reason = "exact_interface_missing" };
+  }
+  if (RAIL_GEOMETRY_PREFILTER) {
+    local geometryIssue = OpexRailPathGeometryIssue(tiles, planA, planB);
+    if (geometryIssue != null) {
+      return { ok = false, reason = "geometry_" + geometryIssue.kind };
+    }
+  }
+  plan.plansA = fresh.plansA;
+  plan.plansB = fresh.plansB;
+  plan.planA = planA;
+  plan.planB = planB;
+  return { ok = true, reason = "ok" };
+}
+
+function OpexRailPlanContainsTile(plan, tile)
+{
+  if (plan == null || !("anchor" in plan) || !("step" in plan) || !("length" in plan)) return false;
+  for (local i = 0; i < plan.length; i++) {
+    if (plan.anchor + plan.step * i == tile) return true;
+  }
+  return false;
+}
+
+/* Invariants geometriques verifies APRES l'A* mais AVANT tout devis/terrassement reel.
+ * 1) le lead choisi par le chemin ne doit appartenir a aucune des deux emprises de gare qui
+ *    seront effectivement construites ;
+ * 2) a l'arrivee B, un saut pont/tunnel vers le lead fait entrer OpexBuildTrack dans la branche
+ *    "autre bout d'un franchissement deja pose" au dernier i : la transition lead->gare est alors
+ *    ni posee ni verifiee. Cote A, le lead est traite AVANT le saut et ce skip n'existe pas ; ne
+ *    pas bannir symetriquement un cas potentiellement constructible sans preuve. */
+function OpexRailPathGeometryIssue(tiles, planA, planB)
+{
+  if (tiles == null || tiles.len() < 3 || planA == null || planB == null) return null;
+  local last = tiles.len() - 1;
+  local leadA = tiles[1];
+  local leadB = tiles[last - 1];
+  if (OpexRailPlanContainsTile(planA, leadA) || OpexRailPlanContainsTile(planB, leadA)) {
+    return { kind = "lead_a_station", tile = leadA };
+  }
+  if (OpexRailPlanContainsTile(planA, leadB) || OpexRailPlanContainsTile(planB, leadB)) {
+    return { kind = "lead_b_station", tile = leadB };
+  }
+  if (AIMap.DistanceManhattan(tiles[last - 2], tiles[last - 1]) > 1) {
+    return { kind = "end_jump", tile = leadB };
+  }
+  return null;
+}
+
+/* Fallback apres pose : ne classe persistant que la signature instrumentee le 03/10,
+ * ERR_AREA_NOT_CLEAR sur le lead devenu NOTRE tuile de gare. Un TRKFAIL generique, une erreur
+ * vehicule ou une autre occupation ne sont pas memorises par ce garde. */
+function OpexRailTrackFailureIsPersistentGeometry(failure, planA, planB)
+{
+  if (failure == null || !("error" in failure) || !("tile" in failure)) return false;
+  if (failure.error != AIError.ERR_AREA_NOT_CLEAR) return false;
+  if (!("is_station" in failure) || failure.is_station != 1) return false;
+  if (!("owner_self" in failure) || failure.owner_self != 1) return false;
+  local leadA = (planA != null && ("lead" in planA)) ? planA.lead : null;
+  local leadB = (planB != null && ("lead" in planB)) ? planB.lead : null;
+  return failure.tile == leadA || failure.tile == leadB;
 }
 
 /* Une voie parallele d'upgrade doit rester une branche independante. Le pathfinder peut donner
@@ -1599,9 +1805,30 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
 
   local tiles = OpexResolveSearchTiles(search);
   if (tiles.len() < 3) { plan.reason = "SHORT"; return plan; }
-  local planA = OpexMatchPlan(plan.plansA, tiles[0]);
-  local planB = OpexMatchPlan(plan.plansB, tiles[tiles.len() - 1]);
+  local last = tiles.len() - 1;
+  local planA = (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_EXACT_IDENTITY)
+      ? OpexMatchPlanExact(plan.plansA, tiles[0], tiles[1])
+      : OpexMatchPlan(plan.plansA, tiles[0]);
+  local planB = (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_EXACT_IDENTITY)
+      ? OpexMatchPlanExact(plan.plansB, tiles[last], tiles[last - 1])
+      : OpexMatchPlan(plan.plansB, tiles[last]);
   if (planA == null || planB == null) { plan.reason = "NOMATCH"; return plan; }
+
+  if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PREFILTER) {
+    local geometryIssue = OpexRailPathGeometryIssue(tiles, planA, planB);
+    if (geometryIssue != null) {
+      /* Conserver TRKFAIL dans la telemetrie historique, mais distinguer sa persistance pour la
+       * memoire d'abandon. Aucun AITile.DemolishTile/BuildRailStation n'a encore ete execute. */
+      plan.reason = "TRKFAIL";
+      plan.persistentGeometry <- RAIL_GEOMETRY_PAIR_MEMORY;
+      plan.geometryReason <- geometryIssue.kind;
+      if (DECISION_LOG) {
+        OpexDecide("RAIL_GEOM_REJECT", "kind=" + geometryIssue.kind + " tile=" + geometryIssue.tile
+                   + " src=" + candidate.src + " dst=" + candidate.dst);
+      }
+      return plan;
+    }
+  }
 
   plan.tiles = tiles;
   plan.structures = OpexResolveSearchStructures(search);
@@ -1834,7 +2061,44 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   if (RAIL_DEVIS) {
     local quoteFailure = {};
     local realCapital = OpexQuoteRailCapital(catalog, candidate, plan, quoteFailure);
+    if (realCapital == null && RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_LIVE_REPLAN
+        && ("reason" in quoteFailure) && quoteFailure.reason == "STNFAIL") {
+      local firstError = ("error" in quoteFailure) ? quoteFailure.error : 0;
+      local refresh = OpexRailRefreshExactPlatforms(catalog, candidate, plan);
+      if (DECISION_LOG) {
+        OpexDecide("RAIL_GEOM_REPLAN", "src=" + candidate.src + " dst=" + candidate.dst
+                   + " refreshed=" + (refresh.ok ? 1 : 0) + " reason=" + refresh.reason
+                   + " first_err=" + firstError);
+      }
+      if (refresh.ok) {
+        planA = plan.planA;
+        planB = plan.planB;
+        result.plansA = plan.plansA.len();
+        result.plansB = plan.plansB.len();
+        quoteFailure = {};
+        realCapital = OpexQuoteRailCapital(catalog, candidate, plan, quoteFailure);
+        if (DECISION_LOG) {
+          OpexDecide("RAIL_GEOM_REPLAN_QUOTE", "src=" + candidate.src + " dst=" + candidate.dst
+                     + " ok=" + (realCapital != null ? 1 : 0)
+                     + " reason=" + (realCapital == null && ("reason" in quoteFailure)
+                                      ? quoteFailure.reason : "OK"));
+        }
+      }
+    }
     if (realCapital == null) {
+      if (DECISION_LOG) {
+        local failTile = ("tile" in quoteFailure) ? quoteFailure.tile : -1;
+        local failError = ("error" in quoteFailure) ? quoteFailure.error : 0;
+        local failReason = ("reason" in quoteFailure) ? quoteFailure.reason : "UNKNOWN";
+        OpexDecide("RAIL_QUOTE_FAIL", "src=" + candidate.src + " dst=" + candidate.dst
+                   + " reason=" + failReason + " err=" + failError + " tile=" + failTile
+                   + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)
+                   + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
+                   + " plan_a=" + (planA != null ? planA.anchor : -1)
+                   + " plan_b=" + (planB != null ? planB.anchor : -1)
+                   + " lead_a=" + (planA != null && ("lead" in planA) ? planA.lead : -1)
+                   + " lead_b=" + (planB != null && ("lead" in planB) ? planB.lead : -1));
+      }
       result.error = quoteFailure.error;
       result.reason = result.error == AIError.ERR_NOT_ENOUGH_CASH ? "CASH" : quoteFailure.reason;
       result.quoteFailure <- quoteFailure;
@@ -1890,15 +2154,20 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     result.opcodes += budget.end("build_stations"); result.reason = "STNFAIL"; return result;
   }
 
-  /* Table seulement sous decision_log : null au defaut, aucune allocation. */
+  /* Table seulement sous decision_log ou garde geometrique : null au defaut 0/0. */
   local trackFailure = null;
-  if (DECISION_LOG) trackFailure = {};
+  if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};
   local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
       AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&
       AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);
   if (!connected) {
+    if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY && trackFailed > 0 &&
+        OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB)) {
+      result.persistentGeometry <- true;
+      result.error = trackFailure.error;
+    }
     /* Avant rollback, et seulement ici : `connected` court-circuite les deux
      * AreTilesConnected quand trackFailed > 0. Memes indices. len < 3 : -1. */
     if (DECISION_LOG) {
@@ -2104,6 +2373,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
     return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
              siteClear = plan.siteClear, siteCargo = plan.siteCargo, siteCmd = plan.siteCmd,
              siteKind = "N", error = 0, diag = null,
+             persistentGeometry = (("persistentGeometry" in plan) && plan.persistentGeometry),
              trains = 0, doubleTrack = 0, doubleSkip = 0,
              capacitySignalSegments = 0, capacitySignalsOk = 0, capacitySignalsFail = 0,
              capacitySignalFailures = [],

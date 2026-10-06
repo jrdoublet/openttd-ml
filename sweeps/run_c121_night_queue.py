@@ -15,6 +15,42 @@ import sys
 import time
 from datetime import datetime, timezone
 
+COPY_EXPOSURES = ("n1", "hubcap", "priority", "marginal",
+                  "num_target", "num_bonus", "num_pop", "num_phase", "num_cadence")
+
+
+def wait_artifact(result, container, env, deadline):
+    """Recover only the exact owned container after a Windows client interruption."""
+    while True:
+        if time.monotonic() >= deadline:
+            subprocess.run(["docker", "stop", "--time", "20", container],
+                           env=env, timeout=35, check=False, capture_output=True)
+            raise TimeoutError("Original budget exhausted while recovering owned container.")
+        check = subprocess.run(["docker", "inspect", container], env=env,
+                               capture_output=True, text=True, timeout=30)
+        if check.returncode:
+            if "no such" not in check.stderr.lower():
+                raise RuntimeError("Docker inspection failed during recovery: " + check.stderr)
+            if not result.is_file():
+                raise RuntimeError("Owned container disappeared without a final result.")
+            return
+        item = json.loads(check.stdout)[0]
+        if item["Name"] != "/" + container:
+            raise RuntimeError("Recovery container identity mismatch.")
+        if not item["State"]["Running"]:
+            if not result.is_file():
+                raise RuntimeError("Owned container stopped without a final result.")
+            return
+        time.sleep(2)
+
+
+def wait_docker_idle(env, deadline):
+    """Wait for other campaigns without stopping or restarting their containers."""
+    while subprocess.check_output(["docker", "ps", "-q"], env=env, text=True).strip():
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Original budget exhausted while waiting for other containers.")
+        time.sleep(10)
+
 
 def save(path, data):
     tmp = path.with_suffix(".tmp")
@@ -73,7 +109,7 @@ def snapshot(root):
 def exposed(data, root, kind):
     hits = []
     for g in data["games"]:
-        if kind in ("n1", "hubcap", "priority", "marginal") and g["policy_id"] == "reference":
+        if kind in COPY_EXPOSURES and g["policy_id"] == "reference":
             continue
         if kind == "kpass" and g["policy_id"] == "reference":
             continue
@@ -89,6 +125,9 @@ def exposed(data, root, kind):
             "priority": r"C121_FIRST_LIVE_PRIORITY_DEFER line=",
             "marginal": r"QUAL_EXPOSURE mechanism=marginal rejected=1",
         }
+        for name in COPY_EXPOSURES:
+            if name.startswith("num_"):
+                patterns[name] = rf"QUAL_NUMERIC mechanism={name} affected=1\b"
         count = len(re.findall(r"\[script:\d+\]\s*\[0\].*?" + patterns[kind], text))
         if count:
             hits.append({"seed": g["seed"], "events": count, "log": str(log)})
@@ -122,10 +161,15 @@ def main():
     env["PYTHONUTF8"] = "1"
 
     def run(entry, step, *, years, pairs, seeds=None, probe=False):
-        run_root = diagnostic_root if probe and entry.get("exposure") in ("n1", "hubcap", "priority", "marginal") else root
+        run_root = diagnostic_root if probe and entry.get("exposure") in COPY_EXPOSURES else root
+        recovery = entry.get("recover_A") if step == "A" else None
         running = subprocess.check_output(["docker", "ps", "-q"], env=env, text=True).strip()
-        if running:
-            raise RuntimeError("Another Docker container is running; queue stopped.")
+        if running and not recovery:
+            state["waiting_for_other_containers"] = True
+            save(status_path, state)
+            wait_docker_idle(env, deadline)
+            state.pop("waiting_for_other_containers", None)
+            save(status_path, state)
         if snapshot(root) != initial:
             raise RuntimeError("Frozen worktree sources changed; queue stopped.")
         if snapshot(diagnostic_root) != diagnostic_initial:
@@ -144,7 +188,13 @@ def main():
         cid = f'{plan["id"]}_{entry["id"]}_{step}'
         container = cid.lower().replace("_", "-")
         result = run_root / "results" / (cid + ".json")
-        if result.exists() or result.with_suffix(".jsonl").exists():
+        if recovery:
+            cid = recovery["campaign"]
+            container = recovery["container"]
+            result = Path(recovery["result"])
+            if result != run_root / "results" / (cid + ".json"):
+                raise RuntimeError("Recovered result must be in the frozen economic root.")
+        elif result.exists() or result.with_suffix(".jsonl").exists():
             raise RuntimeError("Campaign already exists; never overwrite or repeat.")
         rule = "non_erosion" if step == "B" else "gain_short"
         cmd = [sys.executable, "-X", "utf8", str(run_root / "sweeps/run_c66_reference.py"),
@@ -163,19 +213,30 @@ def main():
                             "result": str(result), "command": cmd}
         save(status_path, state)
         with (out / (cid + ".launcher.log")).open("x", encoding="utf-8") as log:
-            proc = subprocess.Popen(cmd, cwd=run_root, env=env, stdout=log,
-                                    stderr=subprocess.STDOUT)
-            try:
-                rc = proc.wait(timeout=max(1, deadline - time.monotonic()))
-            except subprocess.TimeoutExpired:
-                subprocess.run(["docker", "stop", "--time", "20", container],
-                               env=env, timeout=35, check=False, stdout=log, stderr=log)
-                proc.terminate()
-                proc.wait(timeout=15)
-                raise TimeoutError("Eight-hour deadline; current gate interrupted, not validated.")
-        if rc != 0 or not result.is_file():
+            if recovery:
+                rc = recovery["launcher_exit_code"]
+                log.write("Recover existing campaign only; no launch or rerun.\n")
+            else:
+                proc = subprocess.Popen(cmd, cwd=run_root, env=env, stdout=log,
+                                        stderr=subprocess.STDOUT,
+                                        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
+                try:
+                    rc = proc.wait(timeout=max(1, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired:
+                    subprocess.run(["docker", "stop", "--time", "20", container],
+                                   env=env, timeout=35, check=False, stdout=log, stderr=log)
+                    proc.terminate()
+                    proc.wait(timeout=15)
+                    raise TimeoutError("Eight-hour deadline; current gate interrupted, not validated.")
+            if rc == 0xC000013A:
+                state["current"]["recovering_launcher_interrupt"] = True
+                save(status_path, state)
+                wait_artifact(result, container, env, deadline)
+        if rc not in (0, 0xC000013A) or not result.is_file():
             raise RuntimeError(f"{cid}: technical failure, exit={rc}; inspect launcher log.")
         data = json.loads(result.read_text(encoding="utf-8"))
+        if data.get("campaign_id") != cid:
+            raise RuntimeError("Final artifact campaign identity mismatch.")
         manifest = mount / data["manifest_path"].removeprefix("/work/")
         if hashlib.sha256(manifest.read_bytes()).hexdigest() != data["manifest_sha256"]:
             raise RuntimeError("Manifest hash mismatch.")
@@ -188,6 +249,8 @@ def main():
                    "kind": entry["kind"], "step": step,
                    "source_bundle_sha256": data["source_bundle_sha256"],
                    "manifest_sha256": data["manifest_sha256"],
+                   "launcher_exit_code": rc,
+                   "recovered_launcher_interrupt": rc == 0xC000013A,
                    "qualification_complete": False}
         state["results"].append(summary)
         save(status_path, state)
@@ -224,17 +287,22 @@ def main():
                 summary["stop_reason"] = "explicit B after failed A; no adoption qualification"
                 save(status_path, state)
                 continue
-            run(entry, "smoke", years=1, pairs=1, seeds=[42])
+            if entry.get("recover_A"):
+                if not entry.get("verified_prior_smoke_and_exposure"):
+                    raise RuntimeError("Recovery requires verified prior smoke and exposure.")
+            else:
+                run(entry, "smoke", years=1, pairs=1, seeds=[42])
             if entry["kind"] == "qualification":
-                data, summary = run(entry, "exposure", years=entry.get("exposure_years", 3), pairs=5,
+                if not entry.get("recover_A"):
+                    data, summary = run(entry, "exposure", years=entry.get("exposure_years", 3), pairs=5,
                                     seeds=[42, 100, 999, 1234, 5678], probe=True)
-                hits = exposed(data, mount, entry["exposure"])
-                summary["exposure"] = hits
-                save(status_path, state)
-                if not hits:
-                    summary["stop_reason"] = "exposure_missing; A and B not launched"
+                    hits = exposed(data, mount, entry["exposure"])
+                    summary["exposure"] = hits
                     save(status_path, state)
-                    continue
+                    if not hits:
+                        summary["stop_reason"] = "exposure_missing; A and B not launched"
+                        save(status_path, state)
+                        continue
                 data, summary = run(entry, "A", years=entry["years"], pairs=40)
                 if gate_pass(data, "gain_short", 40) and entry["allow_B"]:
                     data, summary = run(entry, "B", years=10, pairs=20)

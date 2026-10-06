@@ -775,9 +775,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     mode = "rail",
     kind = kind,            // "pax" ou "freight"
     cargo = cargo,
-    /* Vrai quand UNE des deux extremites reutilise une origine deja desservie : ce candidat n'est
-     * constructible que si _tooClose lui trouve un quai joint (cf. OpexOriginService ci-dessous).
-     * Sert a l'instrumentation, pas a la decision -- l'autorite reste _tooClose. */
+    /* Vrai quand UNE des deux extremites reutilise une origine deja desservie. Sous
+     * rail_origin_reuse, OpexRailAttachOriginReuse transporte aussi le quai/StationID exacts ;
+     * le champ alimente en plus le cout de tension fonciere (une seule origine libre consommee). */
     originServed = originServed,
     src = srcTile,
     dst = dstTile,
@@ -1005,7 +1005,565 @@ function OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage, b
   return accepted;
 }
 
-/* Une origine rail deja servie exclut la paire avant l'etage economique. */
+/* Politique d'exclusivite d'origine du GENERATEUR rail. Historique : une seule extremite servie
+ * suffit a exclure la paire. Sous rail_origin_reuse, on aligne la generation sur la revalidation
+ * rail et on ne rejette que lorsque les deux extremites sont deja servies. */
+function OpexRailOriginPairBlocked(sa, sb)
+{
+  if (RAIL_ORIGIN_REUSE) return sa != null && sb != null;
+  return sa != null || sb != null;
+}
+
+/* Le relachement n'est utile que si l'extremite deja servie peut devenir un VRAI raccordement.
+ * Reprend le contrat mesure de station_join (2026-08-29) : gare logique unique, quai rail connu,
+ * meme nature/cargo ; pour le fret, une source ne se joint qu'a une source et un puits qu'a un
+ * puits. Sans ce dernier garde, on paie un A* complet pour une extension semantiquement fausse. */
+function OpexRailOriginCompatibleService(service, kind, cargo, candidateEnd)
+{
+  if (service == null) return null;
+  if (("blocked" in service) && service.blocked) return null;
+  local choices = [service];
+  if (RAIL_ORIGIN_REUSE_MULTILINE_MATCH && ("sameStationServices" in service)
+      && service.sameStationServices != null) choices = service.sameStationServices;
+  foreach (choice in choices) {
+    if (choice == null || !("line" in choice) || choice.line == null) continue;
+    if (!("lineEnd" in choice) || !("stationId" in choice) || choice.stationId < 0) continue;
+    if (!AIStation.IsValidStation(choice.stationId)) continue;
+    local line = choice.line;
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (!("kind" in line) || line.kind != kind) continue;
+    local sameCargo = ("cargo" in line) && line.cargo == cargo;
+    if (!sameCargo && !RAIL_ORIGIN_REUSE_CROSS_CARGO) continue;
+    if (kind == "freight" && sameCargo && candidateEnd != choice.lineEnd) continue;
+    if (!("lineId" in line)) continue;
+    local platformKey = choice.lineEnd == "A" ? "platformA" : "platformB";
+    if ((platformKey in line) && line[platformKey] != null) return choice;
+  }
+  return null;
+}
+
+function OpexRailOriginServiceJoinable(service, kind, cargo, candidateEnd)
+{
+  return OpexRailOriginCompatibleService(service, kind, cargo, candidateEnd) != null;
+}
+
+/* Fast-negative TARDIF : condition seulement necessaire, donc sans faux negatif. Une evaluation
+ * reuse ne peut aboutir que si au moins une ligne rail deja construite pourrait fournir le service
+ * que OpexRailOriginCompatibleService acceptera ensuite : meme kind, cargo compatible (sauf option
+ * cross-cargo), identite de ligne et au moins un quai persiste. On ne teste volontairement ni la
+ * proximite de l'origine, ni le role fret, ni l'ambiguite StationID ici : ces conditions dependent
+ * de la paire et restent l'autorite du resolver complet. Le helper ne s'execute qu'apres que le
+ * fallback reuse a deja ete demande ; aucun cout n'est ajoute au passage frais. `cargo == null`
+ * signifie que l'evaluation fret peut parcourir plusieurs cargos : toute ligne du bon kind suffit
+ * alors a interdire le fast-negative. */
+function OpexRailOriginReuseHasPotentialLine(lines, kind, cargo = null)
+{
+  if (lines == null) return false;
+  foreach (line in lines) {
+    if (line == null) continue;
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (!("kind" in line) || line.kind != kind) continue;
+    if (cargo != null) {
+      local sameCargo = ("cargo" in line) && line.cargo == cargo;
+      if (!sameCargo && !RAIL_ORIGIN_REUSE_CROSS_CARGO) continue;
+    } else if (!("cargo" in line) && !RAIL_ORIGIN_REUSE_CROSS_CARGO) {
+      /* Sans cargo cible, une ligne sans cargo ne pourra matcher aucun cargo concret si le
+       * cross-cargo est coupe. Une ligne avec n'importe quel cargo reste en revanche potentielle. */
+      continue;
+    }
+    if (!("lineId" in line)) continue;
+    local hasEndA = ("platformA" in line) && line.platformA != null
+        && OpexLineStationId(line, "A") >= 0;
+    local hasEndB = ("platformB" in line) && line.platformB != null
+        && OpexLineStationId(line, "B") >= 0;
+    if (hasEndA || hasEndB) return true;
+  }
+  return false;
+}
+
+/* Diagnostic pur du contrat de raccordement. Si plusieurs lignes partagent le meme StationID
+ * et que multiline_match est actif, rend le blocage du service qui va le plus loin dans la
+ * chaine de compatibilite. Une alternative pleinement compatible gagne toujours. */
+function OpexRailOriginServiceJoinReason(service, kind, cargo, candidateEnd)
+{
+  if (service == null) return "free";
+  if (("blocked" in service) && service.blocked) return "ambiguous";
+  local choices = [service];
+  if (RAIL_ORIGIN_REUSE_MULTILINE_MATCH && ("sameStationServices" in service)
+      && service.sameStationServices != null) choices = service.sameStationServices;
+  local bestDepth = -1;
+  local bestReason = "missing_line";
+  foreach (choice in choices) {
+    if (choice == null || !("line" in choice) || choice.line == null) continue;
+    if (bestDepth < 0) { bestDepth = 0; bestReason = "invalid_station"; }
+    if (!("lineEnd" in choice) || !("stationId" in choice) || choice.stationId < 0
+        || !AIStation.IsValidStation(choice.stationId)) continue;
+    if (bestDepth < 1) { bestDepth = 1; bestReason = "nonrail"; }
+    local line = choice.line;
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (bestDepth < 2) { bestDepth = 2; bestReason = "kind_mismatch"; }
+    if (!("kind" in line) || line.kind != kind) continue;
+    local sameCargo = ("cargo" in line) && line.cargo == cargo;
+    if (!sameCargo && !RAIL_ORIGIN_REUSE_CROSS_CARGO) {
+      local cargoReason = "cargo_mismatch";
+      if (kind == "freight") {
+        cargoReason = candidateEnd == choice.lineEnd
+            ? "cargo_mismatch_same_role" : "cargo_mismatch_cross_role";
+      }
+      if (bestDepth < 3) { bestDepth = 3; bestReason = cargoReason; }
+      continue;
+    }
+    if (bestDepth < 4) { bestDepth = 4; bestReason = "role_mismatch"; }
+    if (kind == "freight" && sameCargo && candidateEnd != choice.lineEnd) continue;
+    if (bestDepth < 5) { bestDepth = 5; bestReason = "missing_line_id"; }
+    if (!("lineId" in line)) continue;
+    if (bestDepth < 6) { bestDepth = 6; bestReason = "missing_platform"; }
+    local platformKey = choice.lineEnd == "A" ? "platformA" : "platformB";
+    if (!(platformKey in line) || line[platformKey] == null) continue;
+    return "joinable";
+  }
+  return bestReason;
+}
+
+/* Shadow du verrou d'origine historique : reprend STRICTEMENT le classifieur structurel ci-dessus
+ * au lieu de definir une seconde notion de raccordabilite. Les tables sont creees paresseusement,
+ * seulement dans un rejet OR reel lorsque rail_origin_exposure_shadow=1 : avant la premiere
+ * exposition, OFF et ON suivent donc exactement le meme chemin de generation. */
+function OpexRailOriginExposureStats()
+{
+  return {
+    oneServedTotal = 0, oneServedA = 0, oneServedB = 0, bothServed = 0,
+    joinable = 0, ambiguous = 0, invalidStation = 0, nonrail = 0,
+    kindMismatch = 0, cargoMismatch = 0,
+    cargoMismatchSameRole = 0, cargoMismatchCrossRole = 0,
+    roleMismatch = 0, missingLine = 0, missingLineId = 0,
+    missingPlatform = 0, other = 0,
+  };
+}
+
+function OpexRailOriginExposureObserve(exposure, sa, sb, kind, cargo)
+{
+  if (exposure == null) return;
+  if (sa == null && sb == null) return;
+  if (sa != null && sb != null) {
+    exposure.bothServed++;
+    return;
+  }
+
+  exposure.oneServedTotal++;
+  local service = null;
+  local candidateEnd = "";
+  if (sa != null) {
+    exposure.oneServedA++;
+    service = sa;
+    candidateEnd = "A";
+  } else {
+    exposure.oneServedB++;
+    service = sb;
+    candidateEnd = "B";
+  }
+
+  /* Niveau 1 : l'exposition exacte A/B ci-dessus reste bon marche. Le contrat de jointure complet
+   * n'est evalue qu'au niveau 2, car AIStation.IsValidStation + alternatives multiline peuvent
+   * perturber le budget opcode d'une passe diagnostique chargee. */
+  if (!RAIL_ORIGIN_EXPOSURE_DETAIL_SHADOW) return;
+  local reason = OpexRailOriginServiceJoinReason(service, kind, cargo, candidateEnd);
+  if (reason == "joinable") exposure.joinable++;
+  else if (reason == "ambiguous") exposure.ambiguous++;
+  else if (reason == "invalid_station") exposure.invalidStation++;
+  else if (reason == "nonrail") exposure.nonrail++;
+  else if (reason == "kind_mismatch") exposure.kindMismatch++;
+  else if (reason == "cargo_mismatch") exposure.cargoMismatch++;
+  else if (reason == "cargo_mismatch_same_role") {
+    exposure.cargoMismatch++;
+    exposure.cargoMismatchSameRole++;
+  } else if (reason == "cargo_mismatch_cross_role") {
+    exposure.cargoMismatch++;
+    exposure.cargoMismatchCrossRole++;
+  } else if (reason == "role_mismatch") exposure.roleMismatch++;
+  else if (reason == "missing_line") exposure.missingLine++;
+  else if (reason == "missing_line_id") exposure.missingLineId++;
+  else if (reason == "missing_platform") exposure.missingPlatform++;
+  else exposure.other++;
+}
+
+function OpexRailOriginExposureFields(stats, freshCandidates)
+{
+  local underTopK = freshCandidates < TOP_K;
+  local fields = " fresh_candidates=" + freshCandidates
+      + " fresh_lt_top_k=" + (underTopK ? 1 : 0)
+      + " top_k=" + TOP_K;
+  foreach (entry in [
+    ["pax", "originExposurePax"],
+    ["freight", "originExposureFreight"],
+  ]) {
+    if (!(entry[1] in stats)) continue;
+    local prefix = entry[0];
+    local exposure = stats[entry[1]];
+    fields += " " + prefix + "_one_served_total=" + exposure.oneServedTotal
+        + " " + prefix + "_one_served_A=" + exposure.oneServedA
+        + " " + prefix + "_one_served_B=" + exposure.oneServedB
+        + " " + prefix + "_both_served=" + exposure.bothServed
+        + " " + prefix + "_detail=" + (RAIL_ORIGIN_EXPOSURE_DETAIL_SHADOW ? 1 : 0)
+        + " " + prefix + "_joinable=" + exposure.joinable
+        + " " + prefix + "_ambiguous=" + exposure.ambiguous
+        + " " + prefix + "_invalid_station=" + exposure.invalidStation
+        + " " + prefix + "_nonrail=" + exposure.nonrail
+        + " " + prefix + "_kind_mismatch=" + exposure.kindMismatch
+        + " " + prefix + "_cargo_mismatch=" + exposure.cargoMismatch
+        + " " + prefix + "_cargo_same_role=" + exposure.cargoMismatchSameRole
+        + " " + prefix + "_cargo_cross_role=" + exposure.cargoMismatchCrossRole
+        + " " + prefix + "_role_mismatch=" + exposure.roleMismatch
+        + " " + prefix + "_missing_line=" + exposure.missingLine
+        + " " + prefix + "_missing_line_id=" + exposure.missingLineId
+        + " " + prefix + "_missing_platform=" + exposure.missingPlatform
+        + " " + prefix + "_other=" + exposure.other
+        + " " + prefix + "_joinable_when_fresh_lt_top_k="
+        + (underTopK ? exposure.joinable : 0);
+  }
+  return fields;
+}
+
+function OpexRailOriginReuseJoinable(sa, sb, kind, cargo)
+{
+  if (sa == null && sb == null) return true;
+  if (!RAIL_ORIGIN_REUSE) return true;
+  if (sa != null && sb != null) return false;
+  if (kind == "pax" && !RAIL_ORIGIN_REUSE_PAX) return false;
+  if (kind == "freight" && !RAIL_ORIGIN_REUSE_FREIGHT) return false;
+  if (sa != null) return OpexRailOriginServiceJoinable(sa, kind, cargo, "A");
+  return OpexRailOriginServiceJoinable(sb, kind, cargo, "B");
+}
+
+/* Resolution de compatibilite executee UNIQUEMENT lors de l'evaluation differee. Le service
+ * compatible est retourne pour eviter de refaire exactement le meme scan lors de l'annotation du
+ * candidat. Le classifieur detaille des echecs reste reserve au decision_log. */
+function OpexRailOriginReuseDeferredMatch(stats, sa, sb, kind, cargo)
+{
+  stats.originReuseOneServed++;
+  if ((sa != null) == (sb != null)) return null;
+  local service = sa != null ? sa : sb;
+  local candidateEnd = sa != null ? "A" : "B";
+  local matchedService = OpexRailOriginCompatibleService(service, kind, cargo, candidateEnd);
+  if (matchedService != null) {
+    stats.originReuseJoinable++;
+    return matchedService;
+  }
+  if (!DECISION_LOG) return null;
+  local reason = OpexRailOriginServiceJoinReason(service, kind, cargo, candidateEnd);
+  if (reason == "ambiguous") stats.originReuseAmbiguous++;
+  else if (reason == "invalid_station") stats.originReuseInvalidStation++;
+  else if (reason == "kind_mismatch") stats.originReuseKindMismatch++;
+  else if (reason == "cargo_mismatch" || reason == "cargo_mismatch_same_role"
+      || reason == "cargo_mismatch_cross_role") {
+    stats.originReuseCargoMismatch++;
+    if (reason == "cargo_mismatch_same_role") stats.originReuseCargoMismatchSameRole++;
+    else if (reason == "cargo_mismatch_cross_role") stats.originReuseCargoMismatchCrossRole++;
+  }
+  else if (reason == "role_mismatch") stats.originReuseRoleMismatch++;
+  else if (reason == "missing_platform") stats.originReuseMissingPlatform++;
+  else stats.originReuseOther++;
+  return null;
+}
+
+function OpexRailAttachMatchedOriginReuse(candidate, sa, sb, matchedService)
+{
+  if (candidate == null || matchedService == null) return;
+  local service = null;
+  local joinEnd = "";
+  if (sa != null && sb == null) { service = sa; joinEnd = "A"; }
+  else if (sa == null && sb != null) { service = sb; joinEnd = "B"; }
+  else return;
+  local platformKey = matchedService.lineEnd == "A" ? "platformA" : "platformB";
+  candidate.originServed = true;
+  candidate.joinPlatform <- matchedService.line[platformKey];
+  candidate.joinStationId <- matchedService.stationId;
+  candidate.joinLineId <- matchedService.line.lineId;
+  candidate.joinEnd <- joinEnd;
+  local originalLineId = -1;
+  if (("line" in service) && service.line != null && ("lineId" in service.line)) {
+    originalLineId = service.line.lineId;
+  }
+  candidate.joinMatchedAlternate <- RAIL_ORIGIN_REUSE_MULTILINE_MATCH
+      && (originalLineId < 0 || matchedService.line.lineId != originalLineId);
+}
+
+/* Transporte jusqu'au constructeur l'identite physique du quai a reutiliser. `_tooClose` sait
+ * deja ignorer joinLineId (V88), et OpexRailPlatformPlans sait fabriquer un quai parallele joint
+ * a un StationID connu. `joinEnd` etend ce contrat a B sans inverser un flux fret. */
+function OpexRailAttachOriginReuse(candidate, sa, sb)
+{
+  /* Meme fast-path que le filtre : une paire libre ne doit jamais payer une lecture de toggle.
+   * Le candidat vient d'etre cree, donc cette sortie est le chemin commun reference/variante. */
+  if (candidate == null || (sa == null && sb == null)) return;
+  if (!RAIL_ORIGIN_REUSE) return;
+  local service = null;
+  local joinEnd = "";
+  if (sa != null && sb == null) { service = sa; joinEnd = "A"; }
+  else if (sa == null && sb != null) { service = sb; joinEnd = "B"; }
+  else return;
+  local matchedService = OpexRailOriginCompatibleService(service, candidate.kind, candidate.cargo, joinEnd);
+  if (matchedService == null) return;
+  OpexRailAttachMatchedOriginReuse(candidate, sa, sb, matchedService);
+}
+
+/* Une extension (originServed=1) ne doit pas deplacer un projet rail a deux origines libres.
+ * Quand le vivier libre a deja TOP_K candidats, aucune extension n'est publiee. Sinon on garde
+ * TOUS les candidats libres et on remplit seulement les places manquantes avec les meilleures
+ * extensions selon le classement rail historique. Ce n'est donc ni un nouveau seuil ni un bonus
+ * de score : TOP_K est deja la profondeur de travail du rail. */
+function OpexRailOriginReuseFallback(fresh, reuse, k)
+{
+  local slots = k - fresh.len();
+  if (slots <= 0 || reuse.len() == 0) {
+    return { candidates = fresh, reuseTotal = reuse.len(), reuseAdmitted = 0,
+             reuseDeferred = reuse.len() };
+  }
+  local admitted = OpexTopK(reuse, slots);
+  foreach (candidate in admitted) fresh.append(candidate);
+  return { candidates = fresh, reuseTotal = reuse.len(), reuseAdmitted = admitted.len(),
+           reuseDeferred = reuse.len() - admitted.len() };
+}
+
+/* Evaluation + admission tardives utilisees quand la rotation freightCargo doit d'abord chercher
+ * un vrai candidat frais. Les descripteurs reuse restent hors de l'economie pendant cette
+ * recherche : les cargos vides intermediaires ne paient donc plus OpexLineEconomics pour des
+ * extensions qui seront jetees. */
+function OpexRailOriginReuseFinalize(set, k, catalog = null, budget = null, lines = null,
+                                     profile = null, paxProfile = null, paxCandidateProfile = null,
+                                     paxCruiseCache = null, freightCruiseCache = null)
+{
+  if (set == null) return set;
+  if (set.candidates.len() >= k) {
+    if ("reuseCandidates" in set) set.reuseCandidates = [];
+    if ("reusePaxDeferred" in set) set.reusePaxDeferred = null;
+    if ("reuseFreightDeferred" in set) set.reuseFreightDeferred = null;
+    return set;
+  }
+  local reuse = [];
+  if (("reuseCandidates" in set) && set.reuseCandidates != null) {
+    foreach (candidate in set.reuseCandidates) reuse.append(candidate);
+  }
+  local reuseStats = null;
+  local hasPaxDeferred = ("reusePaxDeferred" in set) && set.reusePaxDeferred != null;
+  local hasFreightDeferred = ("reuseFreightDeferred" in set) && set.reuseFreightDeferred != null;
+  if ((hasPaxDeferred || hasFreightDeferred) && catalog != null && lines != null) {
+    reuseStats = OpexRailCandidateStats();
+    local reuseOpsMark = null;
+    if (budget != null) budget.begin();
+    else reuseOpsMark = OpexOpsMeasureBegin();
+    if (hasPaxDeferred && RAIL_ORIGIN_REUSE_PAX) {
+      local reusePaxMark = profile != null ? OpexOpsMeasureBegin() : null;
+      OpexRailOriginReuseEvaluatePax(catalog, lines, set.reusePaxDeferred, reuse,
+                                     reuseStats, paxProfile, paxCandidateProfile, paxCruiseCache);
+      if (profile != null) profile.paxOps += OpexOpsMeasureEnd(reusePaxMark);
+    }
+    if (hasFreightDeferred && RAIL_ORIGIN_REUSE_FREIGHT) {
+      local reuseFreightMark = profile != null ? OpexOpsMeasureBegin() : null;
+      OpexRailOriginReuseEvaluateFreight(catalog, lines, set.reuseFreightDeferred,
+                                         reuse, reuseStats, profile, freightCruiseCache);
+      if (profile != null) profile.freightOps += OpexOpsMeasureEnd(reuseFreightMark);
+    }
+    local opsReuse = budget != null ? budget.end("cand_origin_reuse_finalize")
+        : OpexOpsMeasureEnd(reuseOpsMark);
+    if (("opcodes" in set)) set.opcodes += opsReuse;
+  }
+  if (reuse.len() == 0) {
+    if (DECISION_LOG && (hasPaxDeferred || hasFreightDeferred)) {
+      OpexDecide("RAIL_ORIGIN_REUSE_FINALIZE", "reuse_total=0 admitted=0 deferred=0"
+                 + " queued=" + (("stats" in set) && set.stats != null
+                     && ("originReuseQueued" in set.stats) ? set.stats.originReuseQueued : 0)
+                 + " joinable=" + (reuseStats != null ? reuseStats.originReuseJoinable : 0)
+                 + " fast_negative=" + (reuseStats != null ? reuseStats.originReuseFastNegative : 0)
+                 + " kept=" + set.candidates.len() + " top_k=" + k);
+    }
+    if ("reuseCandidates" in set) set.reuseCandidates = [];
+    if ("reusePaxDeferred" in set) set.reusePaxDeferred = null;
+    if ("reuseFreightDeferred" in set) set.reuseFreightDeferred = null;
+    return set;
+  }
+  local fallback = OpexRailOriginReuseFallback(set.candidates, reuse, k);
+  if (("stats" in set) && set.stats != null && ("accepted" in set.stats)) {
+    set.stats.accepted += fallback.reuseAdmitted;
+  }
+  set.candidates = fallback.candidates;
+  set.all = set.candidates.len();
+  set.best = OpexTopK(set.candidates, k);
+  set.bands = OpexBands(set.candidates);
+  if ("reuseCandidates" in set) set.reuseCandidates = [];
+  if ("reusePaxDeferred" in set) set.reusePaxDeferred = null;
+  if ("reuseFreightDeferred" in set) set.reuseFreightDeferred = null;
+  if (DECISION_LOG) {
+    OpexDecide("RAIL_ORIGIN_REUSE_FINALIZE", "reuse_total=" + fallback.reuseTotal
+               + " admitted=" + fallback.reuseAdmitted
+               + " deferred=" + fallback.reuseDeferred
+               + " queued=" + (("stats" in set) && set.stats != null
+                   && ("originReuseQueued" in set.stats) ? set.stats.originReuseQueued : 0)
+               + " joinable=" + (reuseStats != null ? reuseStats.originReuseJoinable : 0)
+               + " fast_negative=" + (reuseStats != null ? reuseStats.originReuseFastNegative : 0)
+               + " kept=" + set.candidates.len() + " top_k=" + k);
+  }
+  return set;
+}
+
+/* Les contextes differes reutilisent les tableaux deja calcules par le passage principal. Ils
+ * n'existent meme pas tant qu'une paire exactement-un-servi n'a pas ete rencontree, et surtout
+ * ne stockent plus AUCUNE paire : une seule petite table de contexte est publiee par famille.
+ * Si le vivier frais finit sous TOP_K, on re-enumere alors les paires depuis ce contexte. Le cout
+ * supplementaire sur une passe finalement pleine reste donc constant, au lieu de croitre avec le
+ * nombre de paires origin_served parcourues avant le 20e candidat frais. */
+function OpexRailOriginReuseEvaluatePax(catalog, lines, deferred, out, stats,
+                                        profile = null, candidateProfile = null,
+                                        cruiseCache = null)
+{
+  if (deferred == null) return;
+  local cargo = catalog.paxCargo;
+  if (cargo < 0) return;
+  if (!OpexRailOriginReuseHasPotentialLine(lines, "pax", cargo)) {
+    stats.originReuseFastNegative++;
+    return;
+  }
+  local towns = catalog.towns;
+  local produced = [];
+  local served = [];
+  for (local i = 0; i < towns.len(); i++) {
+    local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
+    if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+    produced.append(p);
+    served.append(OpexOriginService(lines, towns[i].tile));
+  }
+  local bounds = OpexCatalogBounds(catalog);
+  local cellSize = bounds.railMax;
+  if (cellSize < 1) cellSize = 1;
+  local grid = OpexSpatialGrid();
+  grid.Build(towns, cellSize);
+  for (local a = 0; a < towns.len(); a++) {
+    local neighbors = grid.GetCandidatesFor(a);
+    foreach (b in neighbors) {
+      if (deferred.targetKind == "town" && deferred.targetId >= 0
+          && towns[a].id != deferred.targetId && towns[b].id != deferred.targetId) continue;
+      local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
+      if (!OpexRailPaxPairInBand(bounds, pairDistance, deferred.paxBand)) continue;
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && deferred.abandonedPairs != null) {
+        local tA = towns[a].id;
+        local tB = towns[b].id;
+        if (tA > tB) { local swap = tA; tA = tB; tB = swap; }
+      local pairKey = "pax|" + cargo + "|" + tA + "|" + tB;
+      if (pairKey in deferred.abandonedPairs) continue;
+      }
+      local sa = served[a];
+      local sb = served[b];
+      if ((sa != null) == (sb != null)) continue;
+      local matchedService = OpexRailOriginReuseDeferredMatch(stats, sa, sb, "pax", cargo);
+      if (matchedService == null) continue;
+      local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+      local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+      local candidate = OpexMakeCandidate(catalog, "pax", cargo,
+                                          towns[a].tile, towns[b].tile,
+                                          monthly, false, stats, false, candidateProfile, cruiseCache);
+      if (profile != null) {
+        profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
+        profile.paxCandidateCalls++;
+      }
+      if (candidate == null) continue;
+      OpexRailAttachMatchedOriginReuse(candidate, sa, sb, matchedService);
+      candidate.srcTown <- towns[a].id;
+      candidate.dstTown <- towns[b].id;
+      out.append(candidate);
+    }
+  }
+}
+
+function OpexRailOriginReuseEvaluateFreight(catalog, lines, deferred,
+                                            out, stats, profile = null, cruiseCache = null)
+{
+  if (deferred == null) return;
+  if (!OpexRailOriginReuseHasPotentialLine(lines, "freight", deferred.freightCargo)) {
+    stats.originReuseFastNegative++;
+    return;
+  }
+  local industries = catalog.industries;
+  local served = [];
+  for (local i = 0; i < industries.len(); i++) {
+    served.append(OpexOriginService(lines, industries[i].tile));
+  }
+  local townServiceCache = C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE ? {} : null;
+  foreach (cargo, sources in catalog.producers) {
+    if (deferred.freightCargo != null && cargo != deferred.freightCargo) continue;
+    local hasIndustrySinks = (cargo in catalog.acceptors);
+    local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
+    if (!hasIndustrySinks && !hasTownSinks) continue;
+    local sinks = hasIndustrySinks ? catalog.acceptors[cargo] : [];
+    foreach (si in sources) {
+      local source = industries[si];
+      local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
+      local ss = served[si];
+      if (BASIN_SHARE && ss != null) {
+        monthly = OpexShareBasin(monthly, lines, ss.stationId, cargo);
+      }
+      for (local k = 0; k < sinks.len(); k++) {
+        local di = sinks[k];
+        if (di == si) continue;
+        if (deferred.targetKind == "town") continue;
+        if (deferred.targetKind == "industry" && deferred.targetId >= 0
+            && source.id != deferred.targetId && industries[di].id != deferred.targetId) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && deferred.abandonedPairs != null) {
+          local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
+          if (pairKey in deferred.abandonedPairs) continue;
+        }
+        local sd = served[di];
+        if ((ss != null) == (sd != null)) continue;
+        local matchedService = OpexRailOriginReuseDeferredMatch(stats, ss, sd, "freight", cargo);
+        if (matchedService == null) continue;
+        local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+        local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+        local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
+                                            industries[di].tile, monthly, false, stats,
+                                            isTransformer, profile, cruiseCache);
+        if (profile != null) {
+          profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
+          profile.freightIndustryCandidateCalls++;
+        }
+        if (candidate == null) continue;
+        OpexRailAttachMatchedOriginReuse(candidate, ss, sd, matchedService);
+        out.append(candidate);
+      }
+      if (!hasTownSinks) continue;
+      local townSinks = catalog.townAcceptors[cargo];
+      foreach (town in townSinks) {
+        if (deferred.targetKind == "industry" && deferred.targetId >= 0
+            && source.id != deferred.targetId) continue;
+        if (deferred.targetKind == "town" && deferred.targetId >= 0
+            && town.id != deferred.targetId) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && deferred.abandonedPairs != null) {
+          local pairKey = "freight|" + cargo + "|" + source.id + "|t" + town.id;
+          if (pairKey in deferred.abandonedPairs) continue;
+        }
+        local st = null;
+        if (townServiceCache != null && town.id in townServiceCache) {
+          st = townServiceCache[town.id];
+        } else {
+          st = OpexOriginService(lines, town.tile);
+          if (townServiceCache != null) townServiceCache[town.id] <- st;
+        }
+        if ((ss != null) == (st != null)) continue;
+        local matchedService = OpexRailOriginReuseDeferredMatch(stats, ss, st, "freight", cargo);
+        if (matchedService == null || monthly <= 0) continue;
+        local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+        local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile, town.tile,
+                                            monthly, false, stats, false, profile, cruiseCache);
+        if (profile != null) {
+          profile.freightTownCandidateOps += OpexOpsMeasureEnd(candidateMark);
+          profile.freightTownCandidateCalls++;
+        }
+        if (candidate == null) continue;
+        OpexRailAttachMatchedOriginReuse(candidate, ss, st, matchedService);
+        candidate.dstTown <- town.id;
+        out.append(candidate);
+      }
+    }
+  }
+}
 
 /* Etat d'une origine face aux lignes RAIL deja baties. Rend null si elle est libre, sinon la ligne
  * qui la sert et l'extremite concernee -- ou une table dont `blocked` est vrai quand plusieurs
@@ -1019,10 +1577,14 @@ function OpexOriginService(lines, tile)
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       if (AIMap.DistanceManhattan(tile, originTile) >= ORIGIN_SEPARATION) continue;
       local stationId = OpexLineStationId(line, lineEnd);
+      local service = { line = line, lineEnd = lineEnd, stationId = stationId, blocked = false };
       if (found == null) {
-        found = { line = line, lineEnd = lineEnd, stationId = stationId, blocked = false };
+        found = service;
+        if (RAIL_ORIGIN_REUSE_MULTILINE_MATCH) found.sameStationServices <- [service];
       } else if (found.stationId != stationId) {
         return { line = null, lineEnd = "", stationId = -1, blocked = true };
+      } else if (RAIL_ORIGIN_REUSE_MULTILINE_MATCH) {
+        found.sameStationServices.append(service);
       }
     }
   }
@@ -1064,12 +1626,14 @@ function OpexShareBasin(amount, lines, stationId, cargo)
 const TOWN_CATCHMENT_SHARE_PCT = 22;
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1, prePair = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
+  if (prePair != null) prePair.paxCargoValid = 1;
   local towns = catalog.towns;
   local n = towns.len();
+  if (prePair != null) prePair.paxTowns += n;
   local produced = [];
   local served = [];
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1091,10 +1655,17 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
   for (local a = 0; a < n; a++) {
     local neighbors = grid.GetCandidatesFor(a);
     foreach (b in neighbors) {
+      if (prePair != null) prePair.paxGridPairs++;
       if (targetKind == "town" && targetId >= 0
-          && towns[a].id != targetId && towns[b].id != targetId) continue;
+          && towns[a].id != targetId && towns[b].id != targetId) {
+        if (prePair != null) prePair.paxTargetSkipped++;
+        continue;
+      }
       local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
-      if (!OpexRailPaxPairInBand(bounds, pairDistance, paxBand)) continue;
+      if (!OpexRailPaxPairInBand(bounds, pairDistance, paxBand)) {
+        if (prePair != null) prePair.paxBandSkipped++;
+        continue;
+      }
       if (C60_TOWN_RATING_PROBE) {
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[b].id);
@@ -1105,14 +1676,24 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         local tB = towns[b].id;
         if (tA > tB) { local swap = tA; tA = tB; tB = swap; }
         local pairKey = "pax|" + cargo + "|" + tA + "|" + tB;
-        if (pairKey in abandonedPairs) continue;
+        if (pairKey in abandonedPairs) {
+          if (prePair != null) prePair.paxAbandonSkipped++;
+          continue;
+        }
       }
       stats.pairsTotal++;
       if (profile != null) profile.paxPairsScanned++;
       local sa = served[a];
       local sb = served[b];
+      /* Premier passage STRICTEMENT historique. Aucune lecture origin-reuse ici : meme lorsqu'une
+       * origine est servie, reference et variante paient exactement le meme chemin. Si le vivier
+       * frais finit insuffisant, OpexBuildCandidates declenche ensuite un scan reuse cible. */
       if (sa != null || sb != null) {
         stats.pairsOriginServed++;
+        if (RAIL_ORIGIN_EXPOSURE_SHADOW) {
+          if (!("originExposurePax" in stats)) stats.originExposurePax <- OpexRailOriginExposureStats();
+          OpexRailOriginExposureObserve(stats.originExposurePax, sa, sb, "pax", cargo);
+        }
         continue;
       }
       /* Une ligne dessert les deux sens, et chaque sens transporte la production de SON
@@ -1130,6 +1711,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         profile.paxCandidateCalls++;
       }
       if (candidate != null) {
+        OpexRailAttachOriginReuse(candidate, sa, sb);
         candidate.srcTown <- towns[a].id;
         candidate.dstTown <- towns[b].id;
         out.append(candidate);
@@ -1141,7 +1723,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, prePair = null)
 {
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
@@ -1157,10 +1739,26 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
     if (freightCargo != null && cargo != freightCargo) continue;
+    if (prePair != null) {
+      prePair.freightCargoMatched++;
+      prePair.freightSources += sources.len();
+    }
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
-    if (!hasIndustrySinks && !hasTownSinks) continue;
+    if (!hasIndustrySinks && !hasTownSinks) {
+      if (prePair != null) prePair.freightCargoNoSinks++;
+      continue;
+    }
     local sinks = hasIndustrySinks ? catalog.acceptors[cargo] : [];
+    if (prePair != null) {
+      prePair.freightIndustrySinks += sinks.len();
+      prePair.freightIndustryCartesian += sources.len() * sinks.len();
+      if (hasTownSinks) {
+        local townSinkCount = catalog.townAcceptors[cargo].len();
+        prePair.freightTownSinks += townSinkCount;
+        prePair.freightTownCartesian += sources.len() * townSinkCount;
+      }
+    }
 
     foreach (si in sources) {
       local source = industries[si];
@@ -1173,18 +1771,35 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
-        if (di == si) continue;
-        if (targetKind == "town") continue;
+        if (di == si) {
+          if (prePair != null) prePair.freightSelfSkipped++;
+          continue;
+        }
+        if (targetKind == "town") {
+          if (prePair != null) prePair.freightTargetSkipped++;
+          continue;
+        }
         if (targetKind == "industry" && targetId >= 0
-            && source.id != targetId && industries[di].id != targetId) continue;
+            && source.id != targetId && industries[di].id != targetId) {
+          if (prePair != null) prePair.freightTargetSkipped++;
+          continue;
+        }
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
           local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
-          if (pairKey in abandonedPairs) continue;
+          if (pairKey in abandonedPairs) {
+            if (prePair != null) prePair.freightAbandonSkipped++;
+            continue;
+          }
         }
+        if (prePair != null) prePair.freightIndustryPairs++;
         stats.pairsTotal++;
         local sd = served[di];
         if (ss != null || sd != null) {
           stats.pairsOriginServed++;
+          if (RAIL_ORIGIN_EXPOSURE_SHADOW) {
+            if (!("originExposureFreight" in stats)) stats.originExposureFreight <- OpexRailOriginExposureStats();
+            OpexRailOriginExposureObserve(stats.originExposureFreight, ss, sd, "freight", cargo);
+          }
           continue;
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
@@ -1195,7 +1810,10 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
           profile.freightIndustryCandidateCalls++;
         }
-        if (candidate != null) out.append(candidate);
+        if (candidate != null) {
+          OpexRailAttachOriginReuse(candidate, ss, sd);
+          out.append(candidate);
+        }
       }
       if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
@@ -1205,18 +1823,26 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         local townSinks = catalog.townAcceptors[cargo];
         for (local k = 0; k < townSinks.len(); k++) {
           local town = townSinks[k];
-          if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
-          if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
+          if (targetKind == "industry" && targetId >= 0 && source.id != targetId) {
+            if (prePair != null) prePair.freightTargetSkipped++;
+            continue;
+          }
+          if (targetKind == "town" && targetId >= 0 && town.id != targetId) {
+            if (prePair != null) prePair.freightTargetSkipped++;
+            continue;
+          }
           local townGuardMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
             /* G9Â§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
              * pour une ville), en coherence avec OpexAbandonedPairKey. */
             local pairKey = "freight|" + cargo + "|" + source.id + "|t" + town.id;
             if (pairKey in abandonedPairs) {
+              if (prePair != null) prePair.freightAbandonSkipped++;
               if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
               continue;
             }
           }
+          if (prePair != null) prePair.freightTownPairs++;
           stats.pairsTotal++;
           local townServiceMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           local st = null;
@@ -1228,11 +1854,16 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
           if (ss != null || st != null) {
             stats.pairsOriginServed++;
+            if (RAIL_ORIGIN_EXPOSURE_SHADOW) {
+              if (!("originExposureFreight" in stats)) stats.originExposureFreight <- OpexRailOriginExposureStats();
+              OpexRailOriginExposureObserve(stats.originExposureFreight, ss, st, "freight", cargo);
+            }
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
           }
           local townMonthly = monthly;
           if (townMonthly <= 0) {
+            if (prePair != null) prePair.freightTownZeroMonthly++;
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
           }
@@ -1249,6 +1880,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             profile.freightTownCandidateCalls++;
           }
           if (candidate != null) {
+            OpexRailAttachOriginReuse(candidate, ss, st);
             candidate.dstTown <- town.id;
             out.append(candidate);
           }
@@ -1423,7 +2055,71 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1)
+function OpexRailCandidateStats()
+{
+  local stats = {
+    townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
+    pairsTotal = 0, pairsOriginServed = 0,
+    originReuseQueued = 0, originReuseOneServed = 0, originReuseJoinable = 0,
+    originReuseFastNegative = 0,
+    originReuseKindDisabled = 0,
+    originReuseAmbiguous = 0, originReuseInvalidStation = 0,
+    originReuseKindMismatch = 0, originReuseCargoMismatch = 0,
+    originReuseCargoMismatchSameRole = 0, originReuseCargoMismatchCrossRole = 0,
+    originReuseRoleMismatch = 0,
+    originReuseMissingPlatform = 0, originReuseOther = 0,
+    noMonthly = 0, unsitable = 0,
+    distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
+    profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
+  };
+  if (PAX_NEAR) stats.paxNearAdmitted <- 0;
+  return stats;
+}
+
+function OpexRailPrePairStats()
+{
+  return {
+    paxCargoValid = 0, paxTowns = 0, paxGridPairs = 0, paxTargetSkipped = 0,
+    paxBandSkipped = 0, paxAbandonSkipped = 0,
+    freightCargoMatched = 0, freightCargoNoSinks = 0,
+    freightSources = 0, freightIndustrySinks = 0, freightTownSinks = 0,
+    freightIndustryCartesian = 0, freightTownCartesian = 0,
+    freightSelfSkipped = 0, freightTargetSkipped = 0, freightAbandonSkipped = 0,
+    freightIndustryPairs = 0, freightTownPairs = 0, freightTownZeroMonthly = 0,
+  };
+}
+
+function OpexRailPrePairFields(pre, generatePax, generateFreight, paxBand,
+                              freightCargo, targetKind, targetId)
+{
+  return " generate_pax=" + (generatePax ? 1 : 0)
+      + " generate_freight=" + (generateFreight ? 1 : 0)
+      + " pax_band=" + paxBand
+      + " freight_cargo=" + (freightCargo != null ? freightCargo : -1)
+      + " target_kind=" + (targetKind != null ? targetKind : "none")
+      + " target_id=" + targetId
+      + " pax_cargo_valid=" + pre.paxCargoValid
+      + " pax_towns=" + pre.paxTowns
+      + " pax_grid_pairs=" + pre.paxGridPairs
+      + " pax_target_skip=" + pre.paxTargetSkipped
+      + " pax_band_skip=" + pre.paxBandSkipped
+      + " pax_abandon_skip=" + pre.paxAbandonSkipped
+      + " freight_cargo_matched=" + pre.freightCargoMatched
+      + " freight_cargo_no_sinks=" + pre.freightCargoNoSinks
+      + " freight_sources=" + pre.freightSources
+      + " freight_ind_sinks=" + pre.freightIndustrySinks
+      + " freight_town_sinks=" + pre.freightTownSinks
+      + " freight_ind_cartesian=" + pre.freightIndustryCartesian
+      + " freight_town_cartesian=" + pre.freightTownCartesian
+      + " freight_self_skip=" + pre.freightSelfSkipped
+      + " freight_target_skip=" + pre.freightTargetSkipped
+      + " freight_abandon_skip=" + pre.freightAbandonSkipped
+      + " freight_ind_pairs=" + pre.freightIndustryPairs
+      + " freight_town_pairs=" + pre.freightTownPairs
+      + " freight_town_zero_monthly=" + pre.freightTownZeroMonthly;
+}
+
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1, deferReuseAdmission = false)
 {
   /* Memo origin_sitable vide a chaque passe de generation : une gare ou un rail bati depuis la
    * derniere passe change le predicat, donc rien n'est reporte d'une passe a l'autre. Portee
@@ -1435,21 +2131,15 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
    * Une table explicite evite une closure imbriquee, non portable dans le Squirrel du scenario. */
-  local stats = {
-    townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
-    pairsTotal = 0, pairsOriginServed = 0,
-    noMonthly = 0, unsitable = 0,
-    distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
-    profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
-  };
+  local stats = OpexRailCandidateStats();
+  local prePair = (RAIL_ORIGIN_EXPOSURE_SHADOW && DECISION_LOG) ? OpexRailPrePairStats() : null;
   if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
-  if (PAX_NEAR) stats.paxNearAdmitted <- 0;
 
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generatePax) {
     OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile,
-                      paxCruiseCache, paxBand, targetKind, targetId);
+                      paxCruiseCache, paxBand, targetKind, targetId, prePair);
   }
   local opsPax = budget.end("cand_pax");
   if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
@@ -1458,7 +2148,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   budget.begin();
   if (generateFreight) {
     OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
-                          freightCargo, targetKind, targetId);
+                          freightCargo, targetKind, targetId, prePair);
     if (V88_GOODS_CHAIN) {
       OpexGoodsChainCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
                                freightCargo, targetKind, targetId);
@@ -1488,6 +2178,76 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     all = targeted;
   }
 
+  /* Capture seulement si une exposition OR a reellement ete observee, avant tout scan/admission
+   * rail_origin_reuse. Sans exposition, aucun etat shadow n'est ajoute a la passe. */
+  if (("originExposurePax" in stats) || ("originExposureFreight" in stats)) {
+    stats.originExposureFreshCandidates <- all.len();
+  }
+
+  local reuseFallback = null;
+  local opsReuse = 0;
+  local reuseQueued = 0;
+  local reuseStats = null;
+  local deferredReusePax = null;
+  local deferredReuseFreight = null;
+  /* Le passage principal est strictement historique. Le scan reuse n'existe qu'apres connaissance
+   * du vivier frais final : sous fallback seulement si fresh<TOP_K ; sans fallback il reproduit le
+   * mode equal-priority historique en ajoutant les reuse avant le classement final. */
+  local needFallbackReuse = all.len() < TOP_K && stats.pairsOriginServed > 0;
+  local runFallbackReuse = needFallbackReuse && RAIL_ORIGIN_REUSE && RAIL_ORIGIN_REUSE_FALLBACK;
+  local runEqualPriorityReuse = stats.pairsOriginServed > 0 && RAIL_ORIGIN_REUSE
+      && !RAIL_ORIGIN_REUSE_FALLBACK;
+  if (runFallbackReuse || runEqualPriorityReuse) {
+    local paxRequest = null;
+    local freightRequest = null;
+    if (generatePax && RAIL_ORIGIN_REUSE_PAX) {
+      paxRequest = { abandonedPairs = abandonedPairs, paxBand = paxBand,
+                     targetKind = targetKind, targetId = targetId };
+      reuseQueued++;
+    }
+    if (generateFreight && RAIL_ORIGIN_REUSE_FREIGHT) {
+      freightRequest = { abandonedPairs = abandonedPairs, freightCargo = freightCargo,
+                         targetKind = targetKind, targetId = targetId };
+      reuseQueued++;
+    }
+    stats.originReuseQueued = reuseQueued;
+    if (deferReuseAdmission && runFallbackReuse) {
+      deferredReusePax = paxRequest;
+      deferredReuseFreight = freightRequest;
+      if (DECISION_LOG) {
+        OpexDecide("RAIL_ORIGIN_REUSE_DEFER", "queued=" + reuseQueued
+                   + " pax=" + (deferredReusePax != null ? 1 : 0)
+                   + " freight=" + (deferredReuseFreight != null ? 1 : 0)
+                   + " kept=" + all.len() + " top_k=" + TOP_K);
+      }
+    } else {
+      local reuse = [];
+      reuseStats = OpexRailCandidateStats();
+      budget.begin();
+      if (paxRequest != null) {
+        local reusePaxMark = profile != null ? OpexOpsMeasureBegin() : null;
+        OpexRailOriginReuseEvaluatePax(catalog, lines, paxRequest, reuse,
+                                       reuseStats, paxProfile, paxCandidateProfile, paxCruiseCache);
+        if (profile != null) profile.paxOps += OpexOpsMeasureEnd(reusePaxMark);
+      }
+      if (freightRequest != null) {
+        local reuseFreightMark = profile != null ? OpexOpsMeasureBegin() : null;
+        OpexRailOriginReuseEvaluateFreight(catalog, lines, freightRequest,
+                                           reuse, reuseStats, profile, freightCruiseCache);
+        if (profile != null) profile.freightOps += OpexOpsMeasureEnd(reuseFreightMark);
+      }
+      opsReuse = budget.end("cand_origin_reuse");
+      if (runFallbackReuse) {
+        reuseFallback = OpexRailOriginReuseFallback(all, reuse, TOP_K);
+        stats.accepted += reuseFallback.reuseAdmitted;
+        all = reuseFallback.candidates;
+      } else {
+        foreach (candidate in reuse) all.append(candidate);
+        stats.accepted += reuse.len();
+      }
+    }
+  }
+
   local topKMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   local best = OpexTopK(all, TOP_K);
@@ -1511,8 +2271,36 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
 
   if (DECISION_LOG) {
     OpexDecide("VIVIER_GEN", "mode=rail produced=" + stats.pairsTotal + " kept=" + all.len());
+    if (prePair != null) {
+      OpexDecide("RAIL_PREPAIR", OpexRailPrePairFields(prePair, generatePax, generateFreight,
+                 paxBand, freightCargo, targetKind, targetId));
+    }
+    if (reuseFallback != null) {
+      OpexDecide("RAIL_ORIGIN_REUSE_FALLBACK", "reuse_total=" + reuseFallback.reuseTotal
+                 + " admitted=" + reuseFallback.reuseAdmitted
+                 + " deferred=" + reuseFallback.reuseDeferred
+                 + " queued=" + reuseQueued
+                 + " joinable=" + (reuseStats != null ? reuseStats.originReuseJoinable : 0)
+                 + " fast_negative=" + (reuseStats != null ? reuseStats.originReuseFastNegative : 0)
+                 + " one_served=" + (reuseStats != null ? reuseStats.originReuseOneServed : 0)
+                 + " ambiguous=" + (reuseStats != null ? reuseStats.originReuseAmbiguous : 0)
+                 + " invalid_station=" + (reuseStats != null ? reuseStats.originReuseInvalidStation : 0)
+                 + " kind_mismatch=" + (reuseStats != null ? reuseStats.originReuseKindMismatch : 0)
+                 + " cargo_mismatch=" + (reuseStats != null ? reuseStats.originReuseCargoMismatch : 0)
+                 + " cargo_same_role=" + (reuseStats != null ? reuseStats.originReuseCargoMismatchSameRole : 0)
+                 + " cargo_cross_role=" + (reuseStats != null ? reuseStats.originReuseCargoMismatchCrossRole : 0)
+                 + " role_mismatch=" + (reuseStats != null ? reuseStats.originReuseRoleMismatch : 0)
+                 + " missing_platform=" + (reuseStats != null ? reuseStats.originReuseMissingPlatform : 0)
+                 + " other=" + (reuseStats != null ? reuseStats.originReuseOther : 0)
+                 + " kept=" + all.len() + " top_k=" + TOP_K);
+    }
     if (stats.pairsOriginServed > 0) {
-      OpexDecide("VIVIER_REJECT", "reason=origin_served n=" + stats.pairsOriginServed);
+      if ("originExposureFreshCandidates" in stats) {
+        OpexDecide("VIVIER_REJECT", "reason=origin_served n=" + stats.pairsOriginServed
+                   + OpexRailOriginExposureFields(stats, stats.originExposureFreshCandidates));
+      } else {
+        OpexDecide("VIVIER_REJECT", "reason=origin_served n=" + stats.pairsOriginServed);
+      }
     }
     if (stats.noMonthly > 0) {
       OpexDecide("VIVIER_REJECT", "reason=no_monthly n=" + stats.noMonthly);
@@ -1537,9 +2325,12 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     }
   }
 
-  return { all = all.len(), candidates = all, best = best,
-           bands = OpexBands(all), stats = stats, opcodes = opsPax + opsFreight + opsRank,
-           profile = profile };
+  local result = { all = all.len(), candidates = all, best = best,
+                   bands = OpexBands(all), stats = stats,
+                   opcodes = opsPax + opsFreight + opsReuse + opsRank, profile = profile };
+  if (deferredReusePax != null) result.reusePaxDeferred <- deferredReusePax;
+  if (deferredReuseFreight != null) result.reuseFreightDeferred <- deferredReuseFreight;
+  return result;
 }
 
 /* Meilleur rapport atteint dans chaque bande de distance.
