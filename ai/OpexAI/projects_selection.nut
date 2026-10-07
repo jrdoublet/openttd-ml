@@ -1938,7 +1938,7 @@ function OpexAirFinanceMarginLogSelect(alternatives, affordable, capitalBudget)
     local plan = ("payload" in project) ? project.payload : null;
     local newAirports = (plan != null && ("reuseA" in plan) && plan.reuseA ? 0 : 1)
         + (plan != null && ("reuseB" in plan) && plan.reuseB ? 0 : 1);
-    if (finance - OpexAirRequiredMargin(newAirports) <= capitalBudget) {
+    if (finance - OpexAirRequiredMargin(newAirports, plan) <= capitalBudget) {
       blocked++;
       if (bestBlocked == null || project.profitAnnual > bestBlocked.profitAnnual) bestBlocked = project;
     } else blockedCapital++;

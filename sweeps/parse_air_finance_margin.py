@@ -7,6 +7,13 @@ des journaux moteur OpenTTD (AILog / script debug) :
 - AIR_FINANCE_FIRST_REVENUE : délai de premier revenu, trésorerie minimale vs réserve.
 - AIR_FINANCE_PENDING : lignes en cours de démarrage à l'horizon d'évaluation.
 
+Les lignes AIR_FINANCE_TRY portent, depuis V126, le devis de terrassement des
+aéroports neufs, le coût modélisé des arrêts joints et la ventilation du coût
+réel du chantier (v126=, quote_a=, c_level_a=...). Une section « V126 — devis et
+risque résiduel » mesure la précision du devis, le défrichage, les arrêts joints,
+le résidu non couvert et la couverture de la marge ; un ancien journal sans ces
+champs y affiche « aucune donnée ».
+
 Produit un rapport tabulaire sur stdout et/ou un export JSON structuré (--json PATH).
 """
 from __future__ import annotations
@@ -569,6 +576,199 @@ def compute_group_metrics(
     }
 
 
+# ==============================================================================
+# V126 : devis de terrassement, coût réel ventilé et risque résiduel
+# ==============================================================================
+
+# Parts de coût du site testées pour la marge au risque résiduel (marge = plancher + pct).
+V126_COVERAGE_PCTS = (0, 10, 15, 20, 25, 30, 40, 50, 75, 100)
+V126_MARGIN_FLOOR_GBP = 2000
+V126_QUOTE_GAP_GBP = 1000
+# quote_a / quote_b : -2 = extrémité réutilisée (non devisée), -1 = nivellement de test
+# impossible (compté pour 0 £), 0 = emprise plate, > 0 = devis de terrassement.
+V126_REUSED_QUOTE = -2
+
+# Indispensables au résidu : sans l'un d'eux la tentative est ignorée par la section V126.
+V126_REQUIRED_FIELDS = (
+    "quote_a",
+    "quote_b",
+    "stops_model",
+    "site_cost",
+    "extra",
+    "margin_legacy",
+    "airport_price",
+)
+# Lus s'ils sont présents ; c_* viennent de la ventilation du coût réel après chantier.
+V126_OPTIONAL_FIELDS = (
+    "v126",
+    "quote_fail",
+    "margin_v126",
+    "c_level_a",
+    "c_airport_a",
+    "c_level_b",
+    "c_airport_b",
+    "c_planes",
+    "c_stops",
+)
+
+
+def v126_view(rec: TryRecord) -> Optional[Dict[str, Optional[int]]]:
+    """Champs V126 typés d'une tentative, lus dans raw_kv, ou None s'ils manquent.
+
+    None pour un ancien journal, pour une ligne `quoted=0` (devis non calculés) et pour une
+    ligne dont un champ indispensable est absent ou non numérique.
+    """
+    kv = rec.raw_kv
+    if kv.get("quoted") == "0":
+        return None
+    view: Dict[str, Optional[int]] = {}
+    for key in V126_REQUIRED_FIELDS:
+        value = to_int(kv.get(key))
+        if value is None:
+            return None
+        view[key] = value
+    for key in V126_OPTIONAL_FIELDS:
+        view[key] = to_int(kv.get(key))
+    return view
+
+
+def v126_residual(
+    rec: TryRecord, view: Dict[str, Optional[int]]
+) -> Optional[Dict[str, float]]:
+    """Résidu d'un chantier : réel - (capital catalogue + devis connu + arrêts modélisés).
+
+    capital_catalogue = planned - extra : le capital prévu sans l'apport V126 (extra vaut 0
+    quand le réglage est à 0). Le résidu est ce que ni le prix catalogue, ni le devis de
+    terrassement, ni le coût modélisé des arrêts joints n'expliquent.
+    """
+    if rec.planned is None or rec.actual is None:
+        return None
+    capital_catalogue = rec.planned - float(view["extra"] or 0)
+    quote_known = float(max(view["quote_a"] or 0, 0) + max(view["quote_b"] or 0, 0))
+    stops_model = float(view["stops_model"] or 0)
+    residual = rec.actual - (capital_catalogue + quote_known + stops_model)
+    return {
+        "capital_catalogue": capital_catalogue,
+        "quote_known": quote_known,
+        "stops_model": stops_model,
+        "residual": residual,
+    }
+
+
+def compute_v126_metrics(try_records: Sequence[TryRecord]) -> Dict[str, Any]:
+    """Mesure V126 sur les tentatives built avec aéroport neuf et champs V126.
+
+    - précision du devis : c_level_x - quote_x par extrémité neuve devisée (quote_x >= 0) ;
+    - défrichage : c_airport_x - prix catalogue par aéroport neuf ;
+    - arrêts joints : c_stops / new_airports ;
+    - résidu : réel - (capital catalogue + devis connu + arrêts modélisés), en £ et en %
+      du coût du site (prix catalogue des aéroports neufs + devis connu) ;
+    - couverture : part des tentatives dont le résidu dépasse plancher + pct x coût du site,
+      comparée au régime actuel (réel - capital catalogue > marge historique).
+    """
+    built_new = [
+        r
+        for r in try_records
+        if r.outcome == "built" and r.new_airports is not None and r.new_airports >= 1
+    ]
+    rows: List[Tuple[TryRecord, Dict[str, Optional[int]]]] = []
+    for rec in built_new:
+        view = v126_view(rec)
+        if view is not None:
+            rows.append((rec, view))
+
+    precision_gaps: List[float] = []
+    clearing: List[float] = []
+    stops_per_airport: List[float] = []
+    residuals_gbp: List[float] = []
+    residuals_pct: List[float] = []
+    # (résidu, coût du site, marge historique, dépassement du régime actuel)
+    coverage_rows: List[Tuple[float, float, float, bool]] = []
+
+    for rec, view in rows:
+        for side in ("a", "b"):
+            quote = view[f"quote_{side}"]
+            if quote is None or quote == V126_REUSED_QUOTE:
+                continue  # extrémité réutilisée : ni devis, ni défrichage mesuré
+            c_airport = view[f"c_airport_{side}"]
+            if c_airport is not None:
+                clearing.append(float(c_airport - (view["airport_price"] or 0)))
+            c_level = view[f"c_level_{side}"]
+            if quote >= 0 and c_level is not None:
+                precision_gaps.append(float(c_level - quote))
+        if view["c_stops"] is not None and rec.new_airports:
+            stops_per_airport.append(view["c_stops"] / rec.new_airports)
+
+        res = v126_residual(rec, view)
+        if res is None:
+            continue
+        site_cost = float(view["site_cost"] or 0)
+        residuals_gbp.append(res["residual"])
+        if site_cost > 0:
+            residuals_pct.append(res["residual"] / site_cost * 100.0)
+        margin_legacy = float(view["margin_legacy"] or 0)
+        legacy_exceed = (rec.actual - res["capital_catalogue"]) > margin_legacy
+        coverage_rows.append((res["residual"], site_cost, margin_legacy, legacy_exceed))
+
+    abs_gaps = [abs(g) for g in precision_gaps]
+    gaps_gt = [g for g in precision_gaps if g > V126_QUOTE_GAP_GBP]
+    abs_gaps_gt = [g for g in abs_gaps if g > V126_QUOTE_GAP_GBP]
+    precision = summarize_distribution(precision_gaps)
+    precision["gap_threshold_gbp"] = V126_QUOTE_GAP_GBP
+    precision["share_gt_threshold"] = (
+        len(gaps_gt) / len(precision_gaps) if precision_gaps else 0.0
+    )
+    precision["share_abs_gt_threshold"] = (
+        len(abs_gaps_gt) / len(abs_gaps) if abs_gaps else 0.0
+    )
+
+    n_cov = len(coverage_rows)
+    by_pct: List[Dict[str, Any]] = []
+    for pct in V126_COVERAGE_PCTS:
+        margins = [
+            float(V126_MARGIN_FLOOR_GBP + int(site_cost * pct) // 100)
+            for _, site_cost, _, _ in coverage_rows
+        ]
+        exceed = sum(
+            1
+            for (resid, _, _, _), margin in zip(coverage_rows, margins)
+            if resid > margin
+        )
+        by_pct.append(
+            {
+                "pct": pct,
+                "margin_median_gbp": calc_median(margins),
+                "exceed_count": exceed,
+                "share": exceed / n_cov if n_cov else 0.0,
+            }
+        )
+    legacy_exceed_count = sum(1 for row in coverage_rows if row[3])
+    legacy_margins = [row[2] for row in coverage_rows]
+
+    return {
+        "built_new_airports": len(built_new),
+        "quoted_built": len(rows),
+        "unquoted_built": len(built_new) - len(rows),
+        "flag_on_count": sum(1 for _, v in rows if v["v126"] == 1),
+        "quote_fail_tries": sum(1 for _, v in rows if (v["quote_fail"] or 0) > 0),
+        "quote_precision": precision,
+        "clearing": summarize_distribution(clearing),
+        "stops_per_airport": summarize_distribution(stops_per_airport),
+        "residual_gbp": summarize_distribution(residuals_gbp),
+        "residual_pct_site_cost": summarize_distribution(residuals_pct),
+        "coverage": {
+            "count": n_cov,
+            "margin_floor_gbp": V126_MARGIN_FLOOR_GBP,
+            "legacy": {
+                "margin_median_gbp": calc_median(legacy_margins),
+                "exceed_count": legacy_exceed_count,
+                "share": legacy_exceed_count / n_cov if n_cov else 0.0,
+            },
+            "by_pct": by_pct,
+        },
+    }
+
+
 def aggregate_runs(runs: List[LogRunData]) -> Dict[str, Any]:
     """Agrège l'ensemble des parties par new_airports, au global et par graine."""
     all_tries: List[TryRecord] = []
@@ -642,6 +842,7 @@ def aggregate_runs(runs: List[LogRunData]) -> Dict[str, Any]:
         "overall": overall_metrics,
         "by_new_airports": by_new_airports,
         "by_seed": by_seed,
+        "v126": compute_v126_metrics(all_tries),
     }
 
 
@@ -675,6 +876,101 @@ def _fmt_num(val: Optional[float | int], dec: int = 1) -> str:
     if isinstance(val, int) or val == int(val):
         return str(int(val))
     return f"{val:.{dec}f}"
+
+
+def _fmt_pct_points(val: Optional[float]) -> str:
+    """Pourcentage déjà exprimé en points (9.5 -> « 9.5% »)."""
+    if val is None:
+        return "-"
+    return f"{val:.1f}%"
+
+
+def _v126_distribution_line(label: str, dist: Optional[Dict[str, Any]], fmt=_fmt_gbp) -> str:
+    if not dist or not dist.get("count"):
+        return f"  {label} : aucune donnée"
+    return (
+        f"  {label} : n={dist['count']} | médiane {fmt(dist.get('median'))} | "
+        f"p90 {fmt(dist.get('p90'))} | max {fmt(dist.get('max'))}"
+    )
+
+
+def render_v126_section(v126: Optional[Dict[str, Any]]) -> List[str]:
+    """Section « V126 — devis et risque résiduel » du rapport texte."""
+    lines: List[str] = ["V126 — devis et risque résiduel :"]
+    quoted = (v126 or {}).get("quoted_built", 0)
+    if not v126 or not quoted:
+        built_new = (v126 or {}).get("built_new_airports", 0)
+        lines.append(
+            f"  aucune donnée : {built_new} tentative(s) built avec aéroport neuf, "
+            "aucune ne porte les champs V126"
+        )
+        lines.append("")
+        return lines
+
+    lines.append(
+        f"  Tentatives built avec aéroport neuf : {v126.get('built_new_airports', 0)} | "
+        f"avec champs V126 : {quoted} | sans : {v126.get('unquoted_built', 0)}"
+    )
+    lines.append(
+        f"  Réglage air_site_cost_quote actif : {v126.get('flag_on_count', 0)}/{quoted} | "
+        f"devis impossibles (-1) : {v126.get('quote_fail_tries', 0)}/{quoted}"
+    )
+    prec = v126.get("quote_precision", {})
+    lines.append(
+        _v126_distribution_line(
+            "Précision du devis (c_level - quote, par extrémité neuve devisée)", prec
+        )
+    )
+    if prec and prec.get("count"):
+        lines.append(
+            f"    part des écarts > {_fmt_gbp(prec.get('gap_threshold_gbp'))} : "
+            f"{_fmt_pct(prec.get('share_gt_threshold'))} "
+            f"(en valeur absolue : {_fmt_pct(prec.get('share_abs_gt_threshold'))})"
+        )
+    lines.append(
+        _v126_distribution_line(
+            "Défrichage (c_airport - prix catalogue, par aéroport neuf)",
+            v126.get("clearing"),
+        )
+    )
+    lines.append(
+        _v126_distribution_line(
+            "Arrêts joints (c_stops / aéroports neufs)", v126.get("stops_per_airport")
+        )
+    )
+    lines.append(
+        _v126_distribution_line(
+            "Résidu en £ (réel - catalogue - devis connu - arrêts modélisés)",
+            v126.get("residual_gbp"),
+        )
+    )
+    lines.append(
+        _v126_distribution_line(
+            "Résidu en % du coût du site",
+            v126.get("residual_pct_site_cost"),
+            _fmt_pct_points,
+        )
+    )
+
+    cov = v126.get("coverage", {})
+    lines.append(
+        f"  Couverture : part des {cov.get('count', 0)} tentatives dont le résidu dépasse "
+        f"{_fmt_gbp(cov.get('margin_floor_gbp'))} + pct x coût du site"
+    )
+    lines.append(f"    {'pct':>5} {'marge méd.':>12} {'dépassent':>10} {'part':>8}")
+    for entry in cov.get("by_pct", []):
+        lines.append(
+            f"    {entry['pct']:>5} {_fmt_gbp(entry.get('margin_median_gbp')):>12} "
+            f"{entry.get('exceed_count', 0):>10} {_fmt_pct(entry.get('share')):>8}"
+        )
+    legacy = cov.get("legacy", {})
+    lines.append(
+        "    régime actuel (réel - capital catalogue > marge historique, médiane "
+        f"{_fmt_gbp(legacy.get('margin_median_gbp'))}) : "
+        f"{legacy.get('exceed_count', 0)} ({_fmt_pct(legacy.get('share'))})"
+    )
+    lines.append("")
+    return lines
 
 
 def render_report_table(report: Dict[str, Any]) -> str:
@@ -940,6 +1236,9 @@ def render_report_table(report: Dict[str, Any]) -> str:
             )
         lines.append("")
 
+    # --- V126 : devis de terrassement et risque résiduel ---
+    lines.extend(render_v126_section(report.get("v126")))
+
     return "\n".join(lines)
 
 
@@ -963,6 +1262,23 @@ AILog: AIR_FINANCE_TRY date=1971-02-15 path=0 rank=0 src_town=11 dst_town=12 new
 AIR_FINANCE_TRY date=1971-05-10 path=1 rank=0 src_town=13 dst_town=14 new_airports=1 margin=10000 reserve=12000 capital=28000 need=50000 cash=55000 outcome=built planned=28000 actual=28000 reason=ok line=10
 AIR_FINANCE_TRY date=1971-08-01 path=2 rank=1 src_town=15 dst_town=16 new_airports=1 margin=10000 reserve=12000 capital=32000 need=54000 cash=60000 outcome=failed planned=32000 actual=5000 reason=ERR_LOCAL_AUTHORITY line=11
 AIR_FINANCE_FIRST_REVENUE line=10 build_date=1971-05-10 first_date=1971-08-18 days=100 cash_min=14000
+"""
+
+# Fixture V126, séparée des deux précédentes (leurs comptes exacts sont assertés plus bas).
+# Quatre chantiers built avec aéroport neuf et champs V126 (T1 réglage à 0, T2 à T4 réglage à 1),
+# dont la ventilation c_* somme à `actual`, puis cinq lignes que la section V126 doit ignorer :
+# built sans champs V126, built `quoted=0`, refus portant les champs, échec portant les champs,
+# built sans aéroport neuf. Prix catalogue 16 200 £, un avion à 9 000 £.
+FIXTURE_V126 = """
+AIR_FINANCE_TRY date=1971-01-10 rank=0 src_town=1 dst_town=2 new_airports=2 margin=30000 reserve=5000 capital=41400 need=76400 cash=90000 outcome=built path=portfolio planned=41400 actual=49000 reason=OK line=0 v126=0 quote_a=3000 quote_b=0 quote_fail=0 stops_model=5400 site_cost=35400 extra=0 margin_legacy=30000 margin_v126=10850 airport_price=16200 c_level_a=3500 c_airport_a=17000 c_level_b=0 c_airport_b=16400 c_planes=9000 c_stops=3100
+AIR_FINANCE_TRY date=1971-03-02 rank=0 src_town=3 dst_town=4 new_airports=1 margin=7550 reserve=5000 capital=33900 need=46450 cash=60000 outcome=built path=portfolio planned=33900 actual=36900 reason=OK line=1 v126=1 quote_a=6000 quote_b=-2 quote_fail=0 stops_model=2700 site_cost=22200 extra=8700 margin_legacy=12000 margin_v126=7550 airport_price=16200 c_level_a=7600 c_airport_a=17500 c_level_b=0 c_airport_b=0 c_planes=9200 c_stops=2600
+AIR_FINANCE_TRY date=1971-05-20 rank=1 src_town=5 dst_town=6 new_airports=2 margin=10600 reserve=5000 capital=48800 need=64400 cash=70000 outcome=built path=portfolio planned=48800 actual=54100 reason=OK line=2 v126=1 quote_a=-1 quote_b=2000 quote_fail=1 stops_model=5400 site_cost=34400 extra=7400 margin_legacy=30000 margin_v126=10600 airport_price=16200 c_level_a=4000 c_airport_a=18500 c_level_b=2600 c_airport_b=16200 c_planes=8800 c_stops=4000
+AIR_FINANCE_TRY date=1971-08-01 rank=0 src_town=7 dst_town=8 new_airports=1 margin=6050 reserve=5000 capital=27900 need=38950 cash=45000 outcome=built path=portfolio planned=27900 actual=37800 reason=OK line=3 v126=1 quote_a=0 quote_b=-2 quote_fail=0 stops_model=2700 site_cost=16200 extra=2700 margin_legacy=12000 margin_v126=6050 airport_price=16200 c_level_a=0 c_airport_a=27000 c_level_b=0 c_airport_b=0 c_planes=9000 c_stops=1800
+AIR_FINANCE_TRY date=1971-09-12 rank=0 src_town=9 dst_town=10 new_airports=2 margin=30000 reserve=5000 capital=41400 need=76400 cash=90000 outcome=built path=portfolio planned=41400 actual=47000 reason=OK line=4
+AIR_FINANCE_TRY date=1971-10-01 rank=0 src_town=11 dst_town=12 new_airports=1 margin=12000 reserve=5000 capital=25200 need=42200 cash=60000 outcome=built path=legacy planned=25200 actual=27000 reason=OK line=5 v126=0 quoted=0
+AIR_FINANCE_TRY date=1971-11-05 rank=0 src_town=13 dst_town=14 new_airports=2 margin=10600 reserve=5000 capital=48800 need=64400 cash=60000 outcome=refused_margin path=portfolio v126=1 quote_a=-1 quote_b=2000 quote_fail=1 stops_model=5400 site_cost=34400 extra=7400 margin_legacy=30000 margin_v126=10600 airport_price=16200
+AIR_FINANCE_TRY date=1971-12-07 rank=0 src_town=15 dst_town=16 new_airports=2 margin=10850 reserve=5000 capital=49800 need=65650 cash=90000 outcome=failed path=portfolio planned=49800 actual=21000 reason=BFAIL line=6 v126=1 quote_a=1500 quote_b=1500 quote_fail=0 stops_model=5400 site_cost=35400 extra=8400 margin_legacy=30000 margin_v126=10850 airport_price=16200 c_level_a=1700 c_airport_a=16300 c_level_b=0 c_airport_b=0 c_planes=3000 c_stops=0
+AIR_FINANCE_TRY date=1972-01-04 rank=0 src_town=1 dst_town=3 new_airports=0 margin=2000 reserve=5000 capital=9000 need=16000 cash=90000 outcome=built path=portfolio planned=9000 actual=9100 reason=OK line=7 v126=1 quote_a=-2 quote_b=-2 quote_fail=0 stops_model=0 site_cost=0 extra=0 margin_legacy=2000 margin_v126=2000 airport_price=16200 c_level_a=0 c_airport_a=0 c_level_b=0 c_airport_b=0 c_planes=9100 c_stops=0
 """
 
 
@@ -1059,6 +1375,57 @@ def run_selftest() -> bool:
     # Test serialization JSON
     dumped = json.dumps(report)
     assert len(dumped) > 100
+
+    # V126 : les fixtures historiques n'ont aucun champ V126 -> section vide, sans exception
+    assert report["v126"]["quoted_built"] == 0
+    assert report["v126"]["quote_precision"]["count"] == 0
+    assert "V126 — devis et risque résiduel" in rendered
+    assert "aucune donnée" in rendered
+
+    # V126 : fixture dédiée (valeurs recalculées à la main dans test_parse_air_finance_margin)
+    run126 = parse_log_stream(
+        FIXTURE_V126.strip().splitlines(),
+        seed=7,
+        arm="v126_probe",
+        filename="v126_probe_seed7_r0.log",
+    )
+    report126 = aggregate_runs([run126])
+    v126 = report126["v126"]
+    assert v126["built_new_airports"] == 6, v126["built_new_airports"]
+    assert v126["quoted_built"] == 4
+    assert v126["unquoted_built"] == 2
+    assert v126["flag_on_count"] == 3
+    assert v126["quote_fail_tries"] == 1
+    # c_level - quote : T1 500 et 0, T2 1600, T3 600, T4 0 -> médiane 500, max 1600, 1/5 > 1000
+    assert v126["quote_precision"]["count"] == 5
+    assert v126["quote_precision"]["median"] == 500.0
+    assert v126["quote_precision"]["max"] == 1600.0
+    assert abs(v126["quote_precision"]["share_gt_threshold"] - 0.2) < 1e-9
+    # c_airport - 16 200 : 800, 200, 1 300, 2 300, 0, 10 800 -> médiane 1 050
+    assert v126["clearing"]["count"] == 6
+    assert v126["clearing"]["median"] == 1050.0
+    assert v126["clearing"]["max"] == 10800.0
+    # c_stops / aéroports neufs : 1 550, 2 600, 2 000, 1 800 -> médiane 1 900
+    assert v126["stops_per_airport"]["median"] == 1900.0
+    # résidu : -800, 3 000, 5 300, 9 900 -> médiane 4 150
+    assert v126["residual_gbp"]["count"] == 4
+    assert v126["residual_gbp"]["median"] == 4150.0
+    assert v126["residual_gbp"]["max"] == 9900.0
+    cov126 = v126["coverage"]
+    shares = {row["pct"]: row["exceed_count"] for row in cov126["by_pct"]}
+    assert shares == {
+        0: 3, 10: 1, 15: 1, 20: 1, 25: 1, 30: 1, 40: 1, 50: 0, 75: 0, 100: 0
+    }, shares
+    assert cov126["legacy"]["exceed_count"] == 1
+    assert cov126["legacy"]["margin_median_gbp"] == 21000.0
+    rendered126 = render_report_table(report126)
+    assert "V126 — devis et risque résiduel" in rendered126
+    assert "Précision du devis" in rendered126
+    assert "régime actuel" in rendered126
+    assert "aucune donnée" not in rendered126.split("V126 — devis et risque résiduel", 1)[1].split(
+        "Défrichage", 1
+    )[0]
+    assert len(json.dumps(report126)) > 100
 
     print("SELFTEST OK: all assertions passed on inline fixtures.")
     return True

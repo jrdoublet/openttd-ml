@@ -57,6 +57,37 @@ function OpexAirFinanceMarginLogTry(path, rank, srcTown, dstTown, newAirports, m
   AILog.Info(msg);
 }
 
+/* Exposition only (probe_air_finance_margin). Jamais lue par un choix. */
+function OpexAirV126FinanceFields(plan)
+{
+  /* Champs V126 d'une ligne de sonde de marge, lus sur l'etat C121 du plan. Sans devis
+   * calcule (profil sans C121, plan sans etat) seul le drapeau est rendu. margin_v126
+   * reprend la formule de OpexAirRequiredMargin pour comparer les deux marges meme quand
+   * le reglage vaut 0 et que la marge historique reste appliquee. */
+  local flag = AIR_SITE_COST_QUOTE ? 1 : 0;
+  local st = (plan != null && ("c121EngineStatic" in plan)) ? plan.c121EngineStatic : null;
+  if (st == null || !("v126Quoted" in st) || st.v126Quoted != true) {
+    return " v126=" + flag + " quoted=0";
+  }
+  return " v126=" + flag + " quote_a=" + st.v126LevelA + " quote_b=" + st.v126LevelB
+      + " quote_fail=" + st.v126QuoteFail + " stops_model=" + st.v126StopsModel
+      + " site_cost=" + st.v126SiteCost + " extra=" + st.v126Extra
+      + " margin_legacy=" + OpexAirRequiredMargin(st.newAirportCount)
+      + " margin_v126=" + (2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100)
+      + " airport_price=" + plan.airport.price;
+}
+
+function OpexAirV126CostFields(result)
+{
+  /* Cout reel ventile par etape, rempli par OpexBuildAirRoute quand la sonde est active.
+   * Absent sur les sorties anticipees d'avant le compteur de cout : aucun champ. */
+  if (result == null || !("costBreakdown" in result)) return "";
+  local brk = result.costBreakdown;
+  return " c_level_a=" + brk.levelA + " c_airport_a=" + brk.airportA
+      + " c_level_b=" + brk.levelB + " c_airport_b=" + brk.airportB
+      + " c_planes=" + brk.planes + " c_stops=" + brk.stops;
+}
+
 function OpexAirFinanceMarginInitLine(line, year, money)
 {
   line.finProbePrev <- { profit = 0, year = year, cashMin = money };
@@ -213,13 +244,14 @@ function OpexAI::_tryBuildAir(year)
 
     local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
     if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected");
-    local requiredMargin = OpexAirRequiredMargin(newAirports);
+    local requiredMargin = OpexAirRequiredMargin(newAirports, plan);
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
     if (PROBE_AIR_FINANCE_MARGIN && money < need) {
       local outcome = (money >= capital + baseReserve) ? "refused_margin" : "refused_capital";
       OpexAirFinanceMarginLogTry("legacy", builtCount, plan.siteA.town.id, plan.siteB.town.id,
-          newAirports, requiredMargin, baseReserve, capital, need, money, outcome, null);
+          newAirports, requiredMargin, baseReserve, capital, need, money, outcome,
+          OpexAirV126FinanceFields(plan));
     }
     if (money < need) {
       if (money < need) {
@@ -245,7 +277,8 @@ function OpexAI::_tryBuildAir(year)
           newAirports, requiredMargin, baseReserve, capital, need, money,
           result.ok ? "built" : "failed",
           " planned=" + result.plannedCapital + " actual=" + result.actualCost
-              + " reason=" + result.reason + " line=" + this._nextLineId);
+              + " reason=" + result.reason + " line=" + this._nextLineId
+              + OpexAirV126FinanceFields(plan) + OpexAirV126CostFields(result));
     }
     if (PROBE_SPAN_TRACE) {
       local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
@@ -546,7 +579,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
       if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
-      local requiredMargin = OpexAirRequiredMargin(newAirports);
+      local requiredMargin = OpexAirRequiredMargin(newAirports, buildPlan);
       local capital = ("capital" in buildPlan) ? buildPlan.capital
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
@@ -555,7 +588,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         local reserve = need - capital - requiredMargin;
         local outcome = (money >= capital + reserve) ? "refused_margin" : "refused_capital";
         OpexAirFinanceMarginLogTry("portfolio", i, plan.siteA.town.id, plan.siteB.town.id,
-            newAirports, requiredMargin, reserve, capital, need, money, outcome, null);
+            newAirports, requiredMargin, reserve, capital, need, money, outcome,
+            OpexAirV126FinanceFields(buildPlan));
       }
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
@@ -599,7 +633,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             newAirports, requiredMargin, need - capital - requiredMargin, capital, need, money,
             result.ok ? "built" : "failed",
             " planned=" + result.plannedCapital + " actual=" + result.actualCost
-                + " reason=" + result.reason + " line=" + this._nextLineId);
+                + " reason=" + result.reason + " line=" + this._nextLineId
+                + OpexAirV126FinanceFields(buildPlan) + OpexAirV126CostFields(result));
       }
       if (PROBE_SPAN_TRACE) {
         local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;

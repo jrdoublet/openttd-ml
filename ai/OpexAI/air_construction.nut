@@ -232,6 +232,17 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
   return summary;
 }
 
+/* Probe seule (probe_air_finance_margin) : attribue a `key` la part du cout deja
+ * depense qui n'est pas encore ventilee dans `brk`. Simple lecture du compteur
+ * `costs` de l'appelant : ce helper ne cree aucun compteur, donc ne peut pas
+ * effacer le cout vu par l'appelant. */
+function OpexAirCostBreakdownMark(costs, brk, key)
+{
+  local spent = costs.GetCosts();
+  local booked = brk.levelA + brk.airportA + brk.levelB + brk.airportB + brk.planes + brk.stops;
+  brk[key] = spent - booked;
+}
+
 /* Construit une ligne aerienne complete. Le caller a deja mesure la recherche des sites et
  * verifie le budget monetaire. Rend toujours une table, jamais une exception. */
 function OpexBuildAirRoute(catalog, budget, plan, lines = null)
@@ -291,6 +302,13 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
    * AIAccounting imbrique en dessous est le bouclier d'OpexAirProbeSite, et c'est voulu : il
    * jette le cout SIMULE des sondages au lieu de le laisser gonfler ce compteur. */
   local costs = AIAccounting();
+  /* Sonde probe_air_finance_margin : ventilation du cout reel par etape, lue sur le
+   * compteur `costs` ci-dessus (aucun autre compteur n'est cree ici). Nul au defaut. */
+  local brk = null;
+  if (PROBE_AIR_FINANCE_MARGIN) {
+    brk = { levelA = 0, airportA = 0, levelB = 0, airportB = 0, planes = 0, stops = 0 };
+    result.costBreakdown <- brk;
+  }
 
   budget.begin();
 
@@ -306,6 +324,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_a") : null;
     if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelA = OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "levelA");
     if (spBuild != null) OpexSpanEnd(spBuild);
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_a") : null;
     local okA = levelA.ok && AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
@@ -327,6 +346,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "airportA");
     if (spBuild != null) OpexSpanEnd(spBuild);
   }
   if (airportA == null) {
@@ -353,6 +373,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_b") : null;
     if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "levelB");
     if (spBuild != null) OpexSpanEnd(spBuild);
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;
     local okB = levelB.ok && AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
@@ -374,6 +395,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "airportB");
     if (spBuild != null) OpexSpanEnd(spBuild);
   }
   result.opcodes += budget.end("build_airports");
@@ -388,6 +410,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       OpexAirRollback(reuseA ? null : airportA, null, []);
     }
     result.actualCost = costs != null ? costs.GetCosts() : 0;
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = reuseB ? "HUBB" : "BFAIL";
     return result;
   }
@@ -397,6 +420,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) {
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "STNFAIL";
     return result;
   }
@@ -404,6 +428,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "HANGAR";
     return result;
   }
@@ -418,6 +443,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "PLANE";
     return result;
   }
@@ -439,6 +465,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, [plane],
       OpexAirPairKey(plan.siteA, plan.siteB));
     result.actualCost = costs != null ? costs.GetCosts() : 0;
+    if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "ORDFAIL";
     return result;
   }
@@ -470,6 +497,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
         OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
           OpexAirPairKey(plan.siteA, plan.siteB));
         result.actualCost = costs != null ? costs.GetCosts() : 0;
+        if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
         result.reason = "ORDFAIL";
         return result;
       }
@@ -488,6 +516,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
         OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
           OpexAirPairKey(plan.siteA, plan.siteB));
       result.actualCost = costs != null ? costs.GetCosts() : 0;
+      if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
       result.reason = "START";
       return result;
     }
@@ -504,12 +533,14 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
         OpexAirPairKey(plan.siteA, plan.siteB));
       result.actualCost = costs != null ? costs.GetCosts() : 0;
+      if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
       result.reason = "START";
       return result;
     }
   }
   if (spBuild != null) OpexSpanEnd(spBuild);
   result.opcodes += budget.end("build_aircraft");
+  if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
 
   if (AIR_JOINED_STOPS) {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.joined") : null;
@@ -535,6 +566,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     local afterStops = costs != null ? costs.GetCosts() : beforeStops;
     result.joinedStopCost = afterStops - beforeStops;
     if (result.joinedStopCost < 0) result.joinedStopCost = 0;
+    if (brk != null) brk.stops = result.joinedStopCost;
     if (spBuild != null) OpexSpanEnd(spBuild);
   }
 

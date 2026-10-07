@@ -315,6 +315,17 @@ V95_AIR_POST73_YEAR <- -1;
  * contient un jusqu'a l'anneau suivant. */
 C96_AIR_SITE_CATCHMENT <- true;
 AIR_SITE_MIN_CATCHMENT <- false;
+/* V126 : cout reel des aeroports neufs. AIR_SITE_COST_QUOTE ajoute au capital
+ * AIR C121 le devis de terrassement et le cout modelise des arrets joints, et
+ * dimensionne la marge de financement sur le risque residuel (pourcentage du cout
+ * du site, AIR_SITE_COST_MARGIN_PCT). Sans effet hors C121_AIR_ECONOMICS. Defaut 0.
+ * V126_JOINED_STOP_COST : cout modelise d'UN arret joint (livres, mesure 450..2250).
+ * AIR_SITE_COST_QUOTES : cache reconstructible des devis par ancre et type
+ * d'aeroport, jamais sauvegarde. */
+AIR_SITE_COST_QUOTE <- false;
+AIR_SITE_COST_MARGIN_PCT <- 0;
+V126_JOINED_STOP_COST <- 300;
+AIR_SITE_COST_QUOTES <- {};
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
 /* C97 : sonde passive du choix moteur AIR par argmax direct (moteur, profondeur)

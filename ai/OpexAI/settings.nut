@@ -304,6 +304,9 @@ function OpexLoadSettings()
   V95_AIR_POST73_YEAR = -1;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
+  AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;
+  local ascmp = AIController.GetSetting("air_site_cost_margin_pct");
+  if (ascmp >= 0) AIR_SITE_COST_MARGIN_PCT = ascmp;
   C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
   C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;

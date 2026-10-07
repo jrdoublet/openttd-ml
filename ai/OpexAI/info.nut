@@ -358,6 +358,24 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_site_cost_quote",
+      description = "V126: add the levelling quote and modelled joined-stop cost of new airports to C121 AIR capital, and size the finance margin to the residual risk; requires c121_air_economics; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_site_cost_margin_pct",
+      description = "V126 residual-risk margin, percent of the new-airport site cost (catalogue price + levelling quote) added to a 2,000 floor; used only when air_site_cost_quote=1",
+      min_value = 0, max_value = 200,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
       name = "c96_air_site_catchment",
       description = "C96: choose among a bounded set of buildable AIR anchors by passenger-producing catchment tiles, without changing route demand/economics; 1 = on (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,

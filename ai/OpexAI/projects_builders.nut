@@ -262,7 +262,7 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
   if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
       decisionEconomics.capital <= 0) return null;
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-  local margin = OpexAirRequiredMargin(newAirports);
+  local margin = OpexAirRequiredMargin(newAirports, plan);
   local budgetCapital = economics.capital + margin;
   if (("immobilise" in economics) && economics.immobilise > 0) {
     budgetCapital += economics.immobilise;
@@ -299,8 +299,18 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
 
 /* Marge de caisse AIR selon le nombre d'aeroports neufs. Remplace l'ancienne
  * branche morte airMarginPadding (toujours false) dupliquee en cinq endroits. */
-function OpexAirRequiredMargin(newAirports)
+function OpexAirRequiredMargin(newAirports, plan = null)
 {
+  /* V126 : avec le devis actif, la marge suit le risque residuel (plancher 2000
+   * plus un pourcentage du cout du site) a condition que le plan porte son devis
+   * C121 ; sinon, ou au defaut, la marge historique par aeroport neuf. */
+  if (AIR_SITE_COST_QUOTE && C121_AIR_ECONOMICS && plan != null
+      && ("c121EngineStatic" in plan) && plan.c121EngineStatic != null) {
+    local st = plan.c121EngineStatic;
+    if (("v126Quoted" in st) && st.v126Quoted == true) {
+      return 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100;
+    }
+  }
   return (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
 }
 
@@ -319,7 +329,7 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
       decisionEconomics.capital <= 0) return null;
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-  local margin = OpexAirRequiredMargin(newAirports);
+  local margin = OpexAirRequiredMargin(newAirports, plan);
   local budgetCapital = economics.capital + margin;
   if (("immobilise" in economics) && economics.immobilise > 0) {
     budgetCapital += economics.immobilise;

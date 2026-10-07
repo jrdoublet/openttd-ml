@@ -108,6 +108,23 @@ function OpexC121HubDelayDays(stationId)
   return state != null && ("days" in state) && state.days > 0.0 ? state.days : 0.0;
 }
 
+/* V126 : devis de terrassement d'un site NEUF, memoise par ancre et type d'aeroport. */
+function OpexAirSiteLevelQuote(site, airport)
+{
+  /* Cle par site et non par paire : un meme emplacement sert plusieurs paires.
+   * Valeur rendue : 0 emprise plate, > 0 devis, -1 nivellement de test impossible.
+   * L'entree est rejouee pendant 365 jours puis recalculee sur le terrain courant. */
+  local key = site.anchor + "|" + airport.type;
+  local today = AIDate.GetCurrentDate();
+  if (key in AIR_SITE_COST_QUOTES) {
+    local entry = AIR_SITE_COST_QUOTES[key];
+    if (today - entry.date < 365) return entry.level;
+  }
+  local level = OpexAirV95LevelCost(site, airport);
+  AIR_SITE_COST_QUOTES[key] <- { level = level, date = today };
+  return level;
+}
+
 /* Invariants de projet C121 : calcules une seule fois avant le scan moteur.
  * Aucun champ ci-dessous ne depend du moteur ni du nombre d'avions. */
 function OpexC121PrepareEngineStatic(catalog, plan)
@@ -205,6 +222,29 @@ function OpexC121PrepareEngineStatic(catalog, plan)
     existingPaxIncomeA = serviceA.paxIncome, existingPaxIncomeB = serviceB.paxIncome,
     existingMailIncomeA = serviceA.mailIncome, existingMailIncomeB = serviceB.mailIncome,
   };
+  /* V126 : cout reel des aeroports neufs. Les devis ne sont calcules que si le
+   * reglage ou la sonde de marge est actif ; sinon aucun appel n'est ajoute et le
+   * capital garde l'expression ci-dessus (prix catalogue seul). Une extremite
+   * reutilisee n'est pas devisee : champ a -2, 0 livre compte. Un devis a -1
+   * (nivellement de test impossible) compte pour 0 livre et dans quote_fail. */
+  if (C121_AIR_ECONOMICS && (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)) {
+    local levelA = reuseA ? 0 : OpexAirSiteLevelQuote(plan.siteA, plan.airport);
+    local levelB = reuseB ? 0 : OpexAirSiteLevelQuote(plan.siteB, plan.airport);
+    local levelKnown = (levelA > 0 ? levelA : 0) + (levelB > 0 ? levelB : 0);
+    local quoteFail = (levelA < 0 ? 1 : 0) + (levelB < 0 ? 1 : 0);
+    local stopsModel = AIR_JOINED_STOPS
+        ? newAirportCount * AIR_JOINED_STOP_LIMIT * V126_JOINED_STOP_COST : 0;
+    local siteCost = newAirportCount * plan.airport.price + levelKnown;
+    local extra = AIR_SITE_COST_QUOTE ? levelKnown + stopsModel : 0;
+    state.v126LevelA <- reuseA ? -2 : levelA;
+    state.v126LevelB <- reuseB ? -2 : levelB;
+    state.v126QuoteFail <- quoteFail;
+    state.v126StopsModel <- stopsModel;
+    state.v126SiteCost <- siteCost;
+    state.v126Extra <- extra;
+    state.v126Quoted <- true;
+    if (AIR_SITE_COST_QUOTE) state.airportCapital = newAirportCount * plan.airport.price + extra;
+  }
   plan.c121EngineStatic <- state;
   return state;
 }
