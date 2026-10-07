@@ -403,6 +403,13 @@ function OpexRailPlatformPlans(catalog, candidate)
            reason = OpexRailSiteReason(sawA, sawB), statsA = statsA, statsB = statsB };
 }
 
+/* V129 : cumule les opcodes de la phase de recherche A* sur le candidat (lu par RAIL_ATTEMPT). */
+function OpexAddRailSearchOps(candidate, ops)
+{
+  if ("searchOps" in candidate) candidate.searchOps += ops;
+  else candidate.searchOps <- ops;
+}
+
 /* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
 function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
@@ -416,7 +423,9 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
   if (sources.len() == 0 || goals.len() == 0) return null;
   local pathfinder;
   if (V90_FAST_PATHFINDER) {
-    if (V90_PATHFINDER_CHECK) {
+    if (V129_RAIL_ASTAR_EXACT_OPT) {
+      pathfinder = OpexNewRailPathfinderV129();
+    } else if (V90_PATHFINDER_CHECK) {
       pathfinder = OpexRailPathfinderCheckerV90();
     } else {
       pathfinder = OpexRailPathFinderV90();
@@ -589,9 +598,9 @@ function OpexFrontierAlternatives(pathfinder, maxAlternatives)
   local candidates = [0];
   while (candidates.len() > 0 && nodes.len() < maxAlternatives) {
     local bestPosition = 0;
-    local bestPriority = open._queue[candidates[0]][1];
+    local bestPriority = V129_RAIL_ASTAR_EXACT_OPT ? open._prios[candidates[0]] : open._queue[candidates[0]][1];
     for (local i = 1; i < candidates.len(); i++) {
-      local priority = open._queue[candidates[i]][1];
+      local priority = V129_RAIL_ASTAR_EXACT_OPT ? open._prios[candidates[i]] : open._queue[candidates[i]][1];
       if (priority < bestPriority) {
         bestPosition = i;
         bestPriority = priority;
@@ -604,7 +613,7 @@ function OpexFrontierAlternatives(pathfinder, maxAlternatives)
     local right = left + 1;
     if (left < open.Count()) candidates.push(left);
     if (right < open.Count()) candidates.push(right);
-    local node = open._queue[heapIndex][0];
+    local node = V129_RAIL_ASTAR_EXACT_OPT ? open._items[heapIndex] : open._queue[heapIndex][0];
     local key = node.GetTile() + ":" + node.GetDirection();
     if (key in seen) continue;
     seen[key] <- true;
@@ -790,7 +799,9 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.nextSegmentLimit = SEGMENTED_SEGMENT_ITERS;
       local pathfinder;
       if (V90_FAST_PATHFINDER) {
-        if (V90_PATHFINDER_CHECK) {
+        if (V129_RAIL_ASTAR_EXACT_OPT) {
+          pathfinder = OpexNewRailPathfinderV129();
+        } else if (V90_PATHFINDER_CHECK) {
           pathfinder = OpexRailPathfinderCheckerV90();
         } else {
           pathfinder = OpexRailPathFinderV90();
@@ -807,6 +818,29 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.segmentUsed = 0;
     }
 
+    if (V129_RAIL_ASTAR_EXACT_OPT && V90_FAST_PATHFINDER && sleepTicks <= 0) {
+      /* V129 : FindPath(n) groupe. n est borne par TOUTES les limites de la boucle historique
+       * (segment, budget, timeSafe, tranche) et le nombre d'iterations reellement consommees est
+       * relu (LastConsumed) : memes totaux et meme point d'arret. Seule l'echeance au tick, relue
+       * entre deux groupes, peut depasser de n-1 iterations au plus lorsqu'elle est franchie. */
+      while (state.segmentPath == false &&
+             state.segmentUsed < state.currentSegmentLimit &&
+             state.iterations < state.iterationBudget &&
+             state.iterations < state.timeSafe &&
+             AIController.GetTick() < deadlineTick &&
+             sliceSpent < sliceIters) {
+        local n = V129_RAIL_BATCH_ITERS;
+        if (state.currentSegmentLimit - state.segmentUsed < n) n = state.currentSegmentLimit - state.segmentUsed;
+        if (state.iterationBudget - state.iterations < n) n = state.iterationBudget - state.iterations;
+        if (state.timeSafe - state.iterations < n) n = state.timeSafe - state.iterations;
+        if (sliceIters - sliceSpent < n) n = sliceIters - sliceSpent;
+        state.segmentPath = state.pathfinder.FindPath(n);
+        local used = state.pathfinder.LastConsumed();
+        state.segmentUsed += used;
+        state.iterations += used;
+        sliceSpent += used;
+      }
+    }
     while (state.segmentPath == false &&
            state.segmentUsed < state.currentSegmentLimit &&
            state.iterations < state.iterationBudget &&
@@ -1902,7 +1936,9 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap
   budget.begin();
   local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
   local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick);
-  plan.opcodes += budget.end("build_search");
+  local searchOps = budget.end("build_search");
+  plan.opcodes += searchOps;
+  if (DECISION_LOG) OpexAddRailSearchOps(candidate, searchOps);
   return OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search);
 }
 

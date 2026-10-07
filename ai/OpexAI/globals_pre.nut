@@ -955,6 +955,13 @@ V90_PATHFINDER_CHECK <- false;
  * sub-optimaux. Défaut 120 depuis le 2026-09-24 (décision utilisateur) : recherches ÷ 5, 20x10 neutre. */
 V91_ASTAR_WEIGHT_PCT <- 120;
 
+/* V129 : A* rail à exploration strictement identique mais moins coûteux en opcodes
+ * (pathfinder_v90/v129.nut). 0 = code V90 inchangé (défaut). Sans effet si V90_FAST_PATHFINDER = 0. */
+V129_RAIL_ASTAR_EXACT_OPT <- true;
+
+/* V129 : vérification pas à pas V129 contre V90 (journal V129_CHECK). 0 = désactivé (défaut). */
+V129_RAIL_ASTAR_CHECK <- false;
+
 /* V94 : pré-filtre AITileList de OpexAirFindSite, défaut 1 depuis le 2026-09-25 (20×10 neutre). 0 = balayage historique. */
 V94_AIR_SITE_LIST <- true;
 /* V94 : compare le balayage historique et la liste sur la même entrée.

@@ -1262,8 +1262,11 @@ function OpexAI::_continueRailSearch()
     this._v89YearSlices++;
   }
   if (state.kind == "primary") {
-    state.plan.opcodes += this._budget.end("build_search");
+    local searchSliceOps = this._budget.end("build_search");
+    state.plan.opcodes += searchSliceOps;
     state.plan.iterations = state.spent;
+    /* V129 : opcodes de la seule phase de recherche A*, pour la ligne RAIL_ATTEMPT (journal seulement). */
+    if (DECISION_LOG && state.candidate != null) OpexAddRailSearchOps(state.candidate, searchSliceOps);
   } else {
     this._budget.end("build_search");
   }
@@ -1530,6 +1533,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                + " actual=" + (("actualCost" in result) ? result.actualCost : -1)
                + " ok=" + (result.ok ? 1 : 0) + " reason=" + (result.reason == "" ? "-" : result.reason)
                + " iters=" + result.iterations + " ops=" + result.opcodes
+               + " search_ops=" + (("searchOps" in candidate) ? candidate.searchOps : -1)
                + " startx=" + (("startx" in result) ? result.startx : -1)
                + " endx=" + (("endx" in result) ? result.endx : -1));
     if (result.ok) {

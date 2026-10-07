@@ -1669,6 +1669,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v129_rail_astar_exact_opt",
+      description = "V129: optimized rail A* with strictly identical exploration (parallel-array heap, cached heuristic/bridge table, batched FindPath, single-pass neighbours); needs v90_fast_pathfinder=1: 1 = enabled, 0 = V90 code unchanged; default 1 since 2026-10-07 (user adoption)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v129_rail_astar_check",
+      description = "V129: test-mode lockstep check of V129 against V90 (heap top, cost, priority per step; logs V129_CHECK), only if v129_rail_astar_exact_opt=1: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v94_air_site_list",
       description = "V94: native AITileList prefilter for OpexAirFindSite (same anchor and probes): 1 = enabled (default), 0 = legacy scan",
       easy_value = 1, medium_value = 1, hard_value = 1,
