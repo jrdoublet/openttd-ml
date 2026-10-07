@@ -7,6 +7,16 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **V126 — réadmission AIR d'une ville déjà desservie (07/10, rejetée en porte A)** :
+  réglage `v126_air_served_town_reuse`, défaut 0. À 1, une ville reconnue
+  `origin_served` reste dans le vivier si un aéroport Opex imputé à cette ville
+  porte moins de deux lignes AIR et si `AITown.GetAllowedNoise()` reste ≥1.
+  `decision_log` émet `V126_AIR_TOWN` et `V126_AIR_PAIR`. Smoke seed42×1 an sain :
+  7 paires formées avec une extrémité déjà desservie. Porte A V102 40×3 complète :
+  **`fail_primary`**, delta `profit_year` moyen −92 099 £/an, médiane −37 120,
+  V/D/E 13/26/1, Wilcoxon p=0,0155, IC95 bootstrap [−163 921 ; −30 510],
+  valeur −4,31 %. B non lancée conformément au protocole ; défaut V126 reste 0.
+
 - **Synchronisation `master` du 07/10** : changements locaux du 06/10 conservés
   dans `16e15a3`, puis intégration de `origin/master` à `5102070`. Les tests R6/R9
   sont adaptés aux symboles retirés par le nettoyage distant ; les comptes rendus

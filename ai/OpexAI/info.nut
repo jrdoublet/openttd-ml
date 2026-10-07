@@ -350,6 +350,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v126_air_served_town_reuse",
+      description = "V126: keep an already served AIR town in the pool while its Opex airport has fewer than two routes and town noise still allows airport use; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_site_min_catchment",
       description = "V125: refuse an AIR site whose catchment produces no passengers or accepts none (acceptance < 8), instead of building a dead airport; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

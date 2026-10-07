@@ -302,6 +302,7 @@ function OpexLoadSettings()
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
+  V126_AIR_SERVED_TOWN_REUSE = AIController.GetSetting("v126_air_served_town_reuse") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;

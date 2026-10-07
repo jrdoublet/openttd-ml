@@ -309,6 +309,10 @@ V93_AIR_COMPETITOR_WEIGHT <- 70;
  * (petites villes et seconds slots). Defaut 0, aucun effet decisionnel. */
 V95_AIR_POST73_PROBE <- false;
 V95_AIR_POST73_YEAR <- -1;
+/* V126 : une ville deja desservie peut rester dans le vivier AIR tant que
+ * son aeroport Opex porte moins de deux routes et que la ville accepte encore
+ * du bruit. Defaut 0 : filtre origin_served historique intact. */
+V126_AIR_SERVED_TOWN_REUSE <- false;
 /* C96 : selection de l'ancre aeroport par qualite physique de catchment, sans
  * changer la demande ni l'economie de la route. Defaut 0. La recherche reste
  * bornee : au plus quatre sites constructibles, du premier anneau qui en
