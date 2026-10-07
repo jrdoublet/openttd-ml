@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +27,7 @@ AAAHOGEX_URL = (
     "db5fd180cdf633c1a3310c4a367052e9/484f4745-AAAHogEx-115.tar.gz"
 )
 AAAHOGEX_SHA256 = "a67f6722b73d9b3179277e45d091747d94148fd8676d13d6bac98c9124c57e0e"
+DOWNLOAD_USER_AGENT = "OpenTTD-ML GitHub benchmark"
 ARM_RE = re.compile(r"OpexAI(?:\[[A-Za-z_][A-Za-z_0-9]*=-?\d+(?:,[A-Za-z_][A-Za-z_0-9]*=-?\d+)*\])?")
 
 
@@ -272,7 +273,7 @@ def main():
         (directory / "request.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(plan, indent=2), flush=True)
     elif args.action == "prepare" and plan["mode"] != "solo":
-        with urlopen(AAAHOGEX_URL, timeout=60) as response:
+        with urlopen(Request(AAAHOGEX_URL, headers={"User-Agent": DOWNLOAD_USER_AGENT}), timeout=60) as response:
             data = response.read(2 * 1024 * 1024)
         install_opponent(data, ROOT / "ai" / "AAAHogEx-115")
         (directory / "opponent.json").write_text(json.dumps({

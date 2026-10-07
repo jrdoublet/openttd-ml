@@ -9,10 +9,10 @@ import signal
 import subprocess
 import sys
 import time
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from campaign_freeze import parse_ai_setting_specs
-from github_bench import (AAAHOGEX_SHA256, AAAHOGEX_URL, ROOT, command_for,
+from github_bench import (AAAHOGEX_SHA256, AAAHOGEX_URL, DOWNLOAD_USER_AGENT, ROOT, command_for,
                           install_opponent, make_plan, profit_ratios, summary_text)
 from qualification import (ACCEPTED, INVALID, PROFILES, REJECTED, arm_settings, digest,
                            evaluate, load_evidence, read_json, require, validate_spec, write_json, stages_for)
@@ -90,7 +90,7 @@ def request_at(directory):
 
 def prepare(directory):
     request_at(directory)
-    with urlopen(AAAHOGEX_URL, timeout=60) as response:
+    with urlopen(Request(AAAHOGEX_URL, headers={"User-Agent": DOWNLOAD_USER_AGENT}), timeout=60) as response:
         data = response.read(2 * 1024 * 1024)
     install_opponent(data, ROOT / "ai/AAAHogEx-115")
     write_json(directory / "opponent.json", dict(url=AAAHOGEX_URL, sha256=AAAHOGEX_SHA256,

@@ -22,6 +22,23 @@ VARIANT = "OpexAI[c80_worker_rail=1]"
 REFERENCE = "OpexAI[c80_worker_rail=0]"
 
 
+class OpponentDownloadTests(unittest.TestCase):
+    def test_qualification_download_identifies_client_and_keeps_pinned_archive(self):
+        from sweeps import github_qualification as runner
+        payload = b"synthetic pinned archive"
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(runner, "request_at"), \
+                mock.patch.object(runner, "urlopen", return_value=io.BytesIO(payload)) as download, \
+                mock.patch.object(runner, "install_opponent") as install:
+            runner.prepare(Path(tmp))
+        request = download.call_args.args[0]
+        self.assertEqual(request.full_url, bench.AAAHOGEX_URL)
+        self.assertEqual(request.get_header("User-agent"), bench.DOWNLOAD_USER_AGENT)
+        self.assertEqual(download.call_args.kwargs["timeout"], 60)
+        self.assertEqual(install.call_args.args[0], payload)
+        self.assertEqual(runner.AAAHOGEX_SHA256, bench.AAAHOGEX_SHA256)
+
+
 def environment(**overrides):
     """Never depend on the developer's or CI runner's environment."""
     return {"GITHUB_RUN_ID": "123456", "GITHUB_RUN_ATTEMPT": "2", **overrides}
