@@ -331,6 +331,7 @@ V95_AIR_POST73_TARGETED <- false;
  * bornee : au plus quatre sites constructibles, du premier anneau qui en
  * contient un jusqu'a l'anneau suivant. */
 C96_AIR_SITE_CATCHMENT <- true;
+AIR_SITE_MIN_CATCHMENT <- false;
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
 /* C97 : sonde passive du choix moteur AIR par argmax direct (moteur, profondeur)

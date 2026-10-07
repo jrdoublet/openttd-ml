@@ -382,6 +382,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_site_min_catchment",
+      description = "V125: refuse an AIR site whose catchment produces no passengers or accepts none (acceptance < 8), instead of building a dead airport; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c96_air_site_catchment",
       description = "C96: choose among a bounded set of buildable AIR anchors by passenger-producing catchment tiles, without changing route demand/economics; 1 = on (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,

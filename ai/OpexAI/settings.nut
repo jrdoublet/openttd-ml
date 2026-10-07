@@ -310,6 +310,7 @@ function OpexLoadSettings()
   V95_AIR_TARGETED_SECOND = AIController.GetSetting("v95_air_targeted_second") != 0;
   V95_AIR_POST73_TARGETED = AIController.GetSetting("v95_air_post73_targeted") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
+  AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
   C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;

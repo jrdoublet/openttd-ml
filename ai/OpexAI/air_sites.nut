@@ -325,6 +325,17 @@ function OpexAirC96SiteCatchmentScore(anchor, airport, paxCargo)
   return OpexAirAirportCatchmentProduction(anchor, airport.type, paxCargo);
 }
 
+/* V125 : un aeroport dont le catchment ne produit ni n'accepte de passagers ne
+ * transporte rien (vu en jeu le 06/10 : « Accepte : Rien »). Seuil d'acceptation
+ * OpenTTD = 8. Production comptee en tuiles, comme C96. */
+function OpexAirSiteHasCatchment(anchor, airport, paxCargo)
+{
+  if (paxCargo < 0) return true;
+  local radius = AIAirport.GetAirportCoverageRadius(airport.type);
+  if (AITile.GetCargoAcceptance(anchor, paxCargo, airport.width, airport.height, radius) < 8) return false;
+  return OpexAirAirportCatchmentProduction(anchor, airport.type, paxCargo) > 0;
+}
+
 function OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
                             valid, firstValidRing, bestRing, used)
 {
@@ -471,6 +482,10 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
       if ("tested" in probes) probes.tested++;
       if (!ok) continue;
 
+      if (AIR_SITE_MIN_CATCHMENT && !OpexAirSiteHasCatchment(anchor, airport, paxCargo)) {
+        if ("deadCatchment" in probes) probes.deadCatchment++;
+        continue;
+      }
       if (firstValidRing < 0) firstValidRing = r;
       local score = OpexAirC96SiteCatchmentScore(anchor, airport, paxCargo);
       valid++;
@@ -572,7 +587,9 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
       if (!AITile.IsWaterTile(cachedAnchor) && !AITile.IsCoastTile(cachedAnchor) &&
           !AITile.IsWaterTile(c4) && !AITile.IsCoastTile(c4) &&
           AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id &&
-          (!AIR_CHEAP_SITE || OpexAirFootprintCheapOk(cachedAnchor, airport))) {
+          (!AIR_CHEAP_SITE || OpexAirFootprintCheapOk(cachedAnchor, airport)) &&
+          (!AIR_SITE_MIN_CATCHMENT
+           || OpexAirSiteHasCatchment(cachedAnchor, airport, OpexAirDemandPaxCargo()))) {
         local ok = false;
         if (AIR_CHEAP_SITE) {
           {
