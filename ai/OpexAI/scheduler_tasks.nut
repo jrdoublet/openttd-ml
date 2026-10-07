@@ -426,6 +426,7 @@ function OpexAI::_dispatchCatalog(task, year)
         if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
       }
       this._c76RecordAvoided(year);
+      if (V127_IDLE_CASH_ROAD_REGEN) this._v127IdleCashRoadRegen(ym);
       if (CATALOG_COST_ACTIVE != null) {
         CATALOG_COST_ACTIVE.path = "reselect";
         CATALOG_COST_ACTIVE.reselectOps += OpexOpsMeasureEnd(reselectMark);

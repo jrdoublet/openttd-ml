@@ -1751,6 +1751,16 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "v127_idle_cash_road_regen",
+      description = "V127: under C121_CATALOG_INCREMENTAL, at most once a month, enqueue a road pool regeneration when idle cash exceeds 100000 and the road pool is small or 90 days old; 1 = on, 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

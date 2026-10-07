@@ -604,6 +604,10 @@ function OpexLoadSettings()
   AIR0310_ONE_TWO_FUSED = AIController.GetSetting("air0310_one_two_fused") != 0;
   AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_incremental_publish") != 0;
+  V127_IDLE_CASH_ROAD_REGEN = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("v127_idle_cash_road_regen") != 0;
+  V127_LAST_MONTH = -1;
+  V127_LAST_ROAD_REGEN_DATE = -1;
   AIR0310_HUB_SNAPSHOT = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_hub_snapshot") != 0;
   AIR0310_SITE_VALIDITY_CACHE = C121_CATALOG_INCREMENTAL

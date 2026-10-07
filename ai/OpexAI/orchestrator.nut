@@ -816,6 +816,34 @@ function OpexAI::_c77EnqueueEntity(modes, entityKind = null, entityId = -1, buil
   return true;
 }
 
+/* V127 : tresorerie oisive et vivier route affame. Passe par la file reactive C77 (tranche
+ * regen_candidates, refresh catalogue du mode, build apres) plutot que par _c80DoModeRegen, qui
+ * regenere de facon synchrone dans la tache catalogue et ne serait pas borne en opcodes. Au plus
+ * une fois par mois. */
+function OpexAI::_v127IdleCashRoadRegen(ym)
+{
+  if (!V127_IDLE_CASH_ROAD_REGEN || this._projects == null) return;
+  if (V127_LAST_MONTH == ym) return;
+  V127_LAST_MONTH = ym;
+  local date = AIDate.GetCurrentDate();
+  if (V127_LAST_ROAD_REGEN_DATE < 0) V127_LAST_ROAD_REGEN_DATE = date;
+  local cash = OpexAvailableCapital();
+  if (cash <= V127_IDLE_CASH_MIN) return;
+  local pool = (("road" in this._projects) && this._projects.road != null
+                && ("candidates" in this._projects.road) && this._projects.road.candidates != null)
+      ? this._projects.road.candidates.len() : 0;
+  local age = date - V127_LAST_ROAD_REGEN_DATE;
+  local reason = pool < V127_ROAD_POOL_MIN ? "small_pool"
+      : (age >= V127_ROAD_MAX_AGE_DAYS ? "stale_pool" : null);
+  if (reason == null) return;
+  if (!this._c77EnqueueEntity(["road"], null, -1, true, "v127_idle_cash")) return;
+  V127_LAST_ROAD_REGEN_DATE = date;
+  if (DECISION_LOG) {
+    OpexDecide("V127_ROAD_REGEN", "month=" + ym + " cash=" + cash + " pool=" + pool
+               + " age_days=" + age + " reason=" + reason);
+  }
+}
+
 function OpexAI::_c77RefreshModeCatalog(mode)
 {
   if (this._catalog == null) return;

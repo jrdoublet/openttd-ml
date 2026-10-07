@@ -739,6 +739,14 @@ AIR0310_ONE_TWO_FUSED <- false;
  * 0 = rebuild complet a chaque lot (comportement historique). Le chargement
  * reel est en plus barre par C121_CATALOG_INCREMENTAL. */
 AIR0310_INCREMENTAL_PUBLISH <- false;
+/* V127 : regeneration route sur tresorerie oisive. 0 = inerte (defaut). Le chargement reel est
+ * barre par C121_CATALOG_INCREMENTAL. */
+V127_IDLE_CASH_ROAD_REGEN <- false;
+V127_IDLE_CASH_MIN <- 100000;
+V127_ROAD_POOL_MIN <- 8;
+V127_ROAD_MAX_AGE_DAYS <- 90;
+V127_LAST_MONTH <- -1;
+V127_LAST_ROAD_REGEN_DATE <- -1;
 /* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
  * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
  * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
