@@ -1618,8 +1618,8 @@ class OpexAIInfo extends AIInfo {
       name = "air_hub_max_routes",
       description = "V86: Maximum number of routes per airport hub: 0 = default caps (4 for small/commuter, 12 for others), 1..12 = cap at min(default, N)",
       min_value = 0, max_value = 12,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3,
       step_size = 1,
       flags = 0
     });

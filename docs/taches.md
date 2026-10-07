@@ -296,6 +296,18 @@ Revue du 22/09 revérifiée sur le code le 30/09 et close pour : F-ROAD-TXN-01 (
 
 **Pistes AIR ajoutées aux tâches sur demande utilisateur du 03/10 :**
 [analyse, points de code et limites](air_pistes_20261003.md), code relu à `f6cc6ca`.
+**À approfondir — cap de routes par hub AIR (07/10)** : `air_hub_max_routes=3`
+est désormais le défaut retenu après passage V102 A40×3 puis B20×10 ; les essais
+A comparables donnent cap 2 `fail_primary`, cap 3 `pass`, cap 4 `fail_primary`.
+L'analyse des 40 graines montre néanmoins un optimum terminal hétérogène (cap 2
+meilleur sur 20/40, cap 3 sur 8/40, cap 4 sur 12/40) et de forts écarts par graine.
+Approfondir avant toute règle adaptative : autopsier des graines discriminantes
+(notamment 17/781335 côté cap 2 et 1/802204 côté cap 4), identifier un signal
+observable **avant** la décision (force économique AIR, saturation/concentration
+des hubs, capacité à continuer d'ouvrir des aéroports) et distinguer cause du cap
+et conséquence de la trajectoire. Ne pas transformer directement les métriques
+terminales en classifieur ; ne tester un cap dynamique qu'après mécanisme causal
+et protocole pré-enregistré.
 Les numéros ci-dessous correspondent aux six pistes de cette analyse ; la piste 3
 est séparée en deux interventions. Ordre recommandé : **3a → 3b**, puis **1/2** ;
 mesurer aussi l'exposition de **4**, traiter **5** selon son coût observé et **6**

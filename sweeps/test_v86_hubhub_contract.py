@@ -36,7 +36,7 @@ class V86HubHubContractTest(unittest.TestCase):
         self.assertIn("max_value = 12", cap_block)
         self.assertIn("step_size = 1", cap_block)
         self.assertIn("flags = 0", cap_block)
-        self.assertIn("custom_value = 0", cap_block)
+        self.assertIn("custom_value = 3", cap_block)
 
     def test_globals_declared_in_globals_pre_nut(self):
         globals_pre = _read("ai/OpexAI/globals_pre.nut")
