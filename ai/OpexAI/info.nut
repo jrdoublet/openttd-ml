@@ -593,9 +593,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_air_economics",
-      description = "C121 experimental unified AIR economics for engine/project decisions; supersedes the C115 economic replay when enabled; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C121 unified AIR economics for engine/project decisions; supersedes the C115 economic replay; 1 = on (default since 2026-10-07)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -617,9 +617,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_catalog_incremental",
-      description = "Experimental incremental C121 AIR plan economics and bounded catalog slices; requires c121_air_economics; 0 = off",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
+      description = "Incremental C121 AIR plan economics and bounded catalog slices; requires c121_air_economics; 1 = on (default since 2026-10-07)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({

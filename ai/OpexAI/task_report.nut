@@ -60,6 +60,8 @@ function OpexC121ObserveLineMarginal(line, year, vehCount, profit, currentRevenu
   else line.c121MarginalProfit <- avgProfit;
   if ("c121MarginalRevenue" in line) line.c121MarginalRevenue = avgRevenue;
   else line.c121MarginalRevenue <- avgRevenue;
+  line.c121LastMarginalProfit <- observedProfit;
+  line.c121LastMarginalRevenue <- observedRevenue;
   if ("c121MarginalSamples" in line) line.c121MarginalSamples = samples + 1;
   else line.c121MarginalSamples <- samples + 1;
   AILog.Info("C121_FLEET_MARGINAL line=" + line.lineId + " year=" + year

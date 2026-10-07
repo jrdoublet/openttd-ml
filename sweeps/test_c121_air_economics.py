@@ -43,7 +43,7 @@ class TestC121AirEconomics(unittest.TestCase):
     def test_declared_defaults_and_loaded(self):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["c121_air_economics_shadow"], 0)
-        self.assertEqual(defaults["c121_air_economics"], 0)
+        self.assertEqual(defaults["c121_air_economics"], 1)
         self.assertEqual(defaults["c121_air_engine_realization"], 0)
         self.assertEqual(defaults["c121_air_project_realization_adaptive"], 1)
         self.assertEqual(defaults["c121_air_pressure_probe"], 0)
@@ -533,6 +533,8 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("observedRevenue /= addedObserved", self.task_report)
         self.assertIn("line.c121MarginalProfit * samples + observedProfit", self.task_report)
         self.assertIn("line.c121MarginalRevenue * samples + observedRevenue", self.task_report)
+        self.assertIn("c121LastMarginalProfit", self.task_report)
+        self.assertIn("c121LastMarginalProfit <= 0", fleet_project)
         self.assertIn("line.c121MarginalObserveYear <- year + 2", self.task_projects)
 
     def test_c121_fleet_projects_do_not_bypass_kdec(self):

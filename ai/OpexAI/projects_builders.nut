@@ -179,6 +179,8 @@ function OpexProjectFromFleet(entry)
     local perPlaneProfit = line.c121MarginalProfit;
     local perPlaneRevenue = line.c121MarginalRevenue;
     local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+    if (samples > 0 && ("c121LastMarginalProfit" in line)
+        && line.c121LastMarginalProfit <= 0) return null;
     if (samples <= 0 && ("c121Arm" in line) && (line.c121Arm in C121_AIR_REALIZATION_FACTOR)) {
       local builtFactor = ("c121RealizationPmAtBuild" in line)
           ? line.c121RealizationPmAtBuild.tofloat() / 1000.0
