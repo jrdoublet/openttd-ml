@@ -26,9 +26,8 @@ sont strictement positifs, sinon 0.
   C70 est actif et que le profit d'ouverture est positif ;
 * sinon le profit de classement est ``calibrated``.
 
-Sous les defauts courants (``c121_air_portfolio_split_economics=0``,
-``c121_air_initial_project_economics=0``, ``c82_engine_calibration=0``,
-``c121_air_decision_depth_economics=0``, ``c121_air_one_or_two_planes=1``),
+Sous les defauts courants (``c121_air_initial_project_economics=0``,
+``c82_engine_calibration=0``, ``c121_air_one_or_two_planes=1``),
 ``OpexProjectFromAir`` pose ``profitAnnual`` et le capital de decision sur
 ``decisionEconomics``. La marge de caisse depend du bras :
 newpair 30000, hubsite 12000, hubhub 2000. ``immobilise`` s'ajoute s'il est

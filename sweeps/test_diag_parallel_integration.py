@@ -54,7 +54,7 @@ class IntegrationProbeTests(unittest.TestCase):
         for spec in resolved.values():
             values = spec["settings"]["effective"]
             self.assertEqual(values["c115_air_c100_capital_replay"], 1)
-            for key in ("exp_c83_watch_daily", "exp_scheduler_skip_not_due",
+            for key in ("exp_scheduler_skip_not_due",
                         "exp_air_hub_pair_prefilter", "c121_air_economics",
                         "c84_air_target_fleet", "c85_air_equipment_frontier"):
                 self.assertEqual(values[key], 0)

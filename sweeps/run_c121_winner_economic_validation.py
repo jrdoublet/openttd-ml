@@ -25,10 +25,6 @@ VARIANT = "OpexAI[" + COMMON + "c121_air_winner_fusion=1]"
 def intervention_arms(intervention):
     if intervention == "fusion":
         return REFERENCE, VARIANT
-    if intervention == "context":
-        common = COMMON + "c121_air_winner_fusion=1,"
-        return ("OpexAI[" + common + "c121_air_engine_context=0]",
-                "OpexAI[" + common + "c121_air_engine_context=1]")
     raise ValueError("Unknown opcode intervention")
 
 
@@ -104,14 +100,6 @@ def prepare(folder, intervention="fusion", ai_source=None, opcode_evidence=None,
     import bench_1v1_5y_20seeds as bench
     from campaign_freeze import fingerprint_tree
     reference, variant = intervention_arms(intervention)
-    if intervention == "context":
-        if ai_source is None or opcode_evidence is None:
-            raise ValueError("Context requires its measured source and confirmed opcode evidence")
-        evidence = json.loads(Path(opcode_evidence).read_text(encoding="utf-8"))
-        if evidence.get("pass") is not True or (evidence.get("opcode_gain_confirmed") is not True and not evaluate_economics):
-            raise ValueError("Context opcode gain has not passed its evidence gate")
-        if evidence.get("ai_fingerprint") != fingerprint_tree(Path(ai_source)):
-            raise ValueError("Economic source differs from measured context source")
     folder.mkdir(parents=True, exist_ok=False)
     inputs = folder / "inputs"
     inputs.mkdir()
@@ -129,9 +117,8 @@ def prepare(folder, intervention="fusion", ai_source=None, opcode_evidence=None,
         "category": "opcodes", "scope": intervention + " only, C121 experimental profile",
         "intervention": intervention,
         "economic_evaluation_requested": evaluate_economics,
-        "opcode_gain_confirmed": evidence.get("opcode_gain_confirmed") if intervention == "context" else True,
-        "authorization": "2026-10-02: vérifie le gain en opcode et la neutralité éco" if intervention == "context"
-                         else "2026-10-01: lance la validation économique dès que possible",
+        "opcode_gain_confirmed": True,
+        "authorization": "2026-10-01: lance la validation économique dès que possible",
         "reference": reference, "variant": variant,
         "primary_metric": "profit_year", "value_guard_max_loss_pct": 5,
         "neutrality": "Student CI95 upper >=0; sign p>=.05 OR wins>losses; value guard -5%",

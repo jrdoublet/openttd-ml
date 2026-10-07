@@ -975,12 +975,7 @@ function OpexProjectFundProfit(project)
   local calibMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local calibrated = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual;
   if (calibMark != null) OpexSpanAgg("pub.select.calibrate", calibMark);
-  if (!C121_AIR_PORTFOLIO_SPLIT_ECONOMICS || project == null
-      || !("mode" in project) || project.mode != "air"
-      || !("portfolioProfitAnnual" in project)) return calibrated;
-  local portfolioProfit = project.portfolioProfitAnnual;
-  if (!C70_PROFIT_CALIBRATED || project.profitAnnual <= 0) return portfolioProfit;
-  return portfolioProfit.tofloat() * calibrated.tofloat() / project.profitAnnual.tofloat();
+  return calibrated;
 }
 
 /* C121 cadence : mesurer le biais de cold-start K_dec sans toucher au projet
@@ -1207,11 +1202,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (project.mode == "air" && ("decisionFinanceCapital" in project)
         && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
     local scoreDecisionFinanceCapital = decisionFinanceCapital;
-    if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS && project.mode == "air"
-        && ("portfolioDecisionFinanceCapital" in project)
-        && project.portfolioDecisionFinanceCapital > 0) {
-      scoreDecisionFinanceCapital = project.portfolioDecisionFinanceCapital;
-    }
     /* C121 : un renfort d'avion est un vrai projet economique concurrent d'une
      * nouvelle ligne. L'exemption historique C69 lui donnerait un denominateur
      * ~= prix avion alors que les lignes AIR sont bornees par K_dec, ce qui
@@ -1301,11 +1291,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       if (project.mode == "air" && ("decisionFinanceCapital" in project)
           && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
       local scoreDecisionFinanceCapital = decisionFinanceCapital;
-      if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS && project.mode == "air"
-          && ("portfolioDecisionFinanceCapital" in project)
-          && project.portfolioDecisionFinanceCapital > 0) {
-        scoreDecisionFinanceCapital = project.portfolioDecisionFinanceCapital;
-      }
       local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
       project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),

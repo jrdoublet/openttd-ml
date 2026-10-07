@@ -1498,9 +1498,6 @@ function OpexRailOriginReuseEvaluateFreight(catalog, lines, deferred,
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
-      if (BASIN_SHARE && ss != null) {
-        monthly = OpexShareBasin(monthly, lines, ss.stationId, cargo);
-      }
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
         if (di == si) continue;
@@ -1589,28 +1586,6 @@ function OpexOriginService(lines, tile)
     }
   }
   return found;
-}
-
-/* Combien de lignes RAIL utilisent deja ce StationID pour ce cargo. Les modes avec un champ
- * `mode` (air, eau, route) n'ont pas de quai rail a partager. */
-function OpexStationCargoLineCount(lines, stationId, cargo)
-{
-  if (stationId < 0) return 0;
-  local n = 0;
-  foreach (line in lines) {
-    if (("mode" in line)) continue;
-    if (!("cargo" in line) || line.cargo != cargo) continue;
-    if (OpexLineStationId(line, "A") == stationId || OpexLineStationId(line, "B") == stationId) n++;
-  }
-  return n;
-}
-
-/* La part du nouvel arrivant : 1/(n+1) de la production de CETTE extremite, n = lignes deja
- * la. n = 0 (StationID invalide) laisse le montant intact. */
-function OpexShareBasin(amount, lines, stationId, cargo)
-{
-  local n = OpexStationCargoLineCount(lines, stationId, cargo);
-  return amount / (n + 1);
 }
 
 /* Part de la production TOTALE d'une ville qui tombe dans le rayon de couverture d'UNE gare.
@@ -1764,10 +1739,6 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
-      /* Source seulement : le puits n'a pas de production a partager. */
-      if (BASIN_SHARE && ss != null) {
-        monthly = OpexShareBasin(monthly, lines, ss.stationId, cargo);
-      }
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
@@ -1956,9 +1927,6 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
           if (ss != null) continue;
 
           local inputMonthly = AIIndustry.GetLastMonthProduction(source.id, cargoIn);
-          if (BASIN_SHARE && ss != null) {
-            inputMonthly = OpexShareBasin(inputMonthly, lines, ss.stationId, cargoIn);
-          }
           if (inputMonthly <= 0) continue;
 
           /* Evaluer le troncon intrant */

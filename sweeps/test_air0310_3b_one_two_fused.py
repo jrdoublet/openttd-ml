@@ -69,9 +69,7 @@ NULL_GUARDS = (
 )
 
 REJECTED_CONTEXT = (
-    "OpexC121PrepareEngineContext",
     "OpexC121EngineContextMatches",
-    "C121_AIR_ENGINE_CONTEXT",
 )
 
 
@@ -236,8 +234,7 @@ class TestAir0310_3bOneTwoFused(unittest.TestCase):
         self.assertIn("OpexC121RatingTarget(", depth)
         self.assertIn("OpexC121StationAllocatedMonthly(", depth)
         self.assertIn("OpexC121RealizationFactor(plan)", self.invariants)
-        self.assertIn("OpexAirRequiredMargin(newAirportCount)", depth)
-        self.assertIn("C121_AIR_PORTFOLIO_DEPTH_ECONOMICS", depth)
+        self.assertIn("local decisionCapital = totalCapital;", depth)
         self.assertIn("mailKnown = useMail", depth)
         self.assertIn("score = decisionScore", depth)
         self.assertIn("local best = clone scoreBest;", depth)

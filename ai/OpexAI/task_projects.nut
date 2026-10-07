@@ -191,126 +191,6 @@ function OpexAI::_purgeSubsidyFromProjects(subId)
   }
 }
 /* C38 etape 2 : une croissance de flotte est une tentative synchrone de portefeuille. */
-function OpexAI::_v107FleetDiscard(passDiscards, rank, project, reason)
-{
-  if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
-    passDiscards.append({ rank = rank, mode = "fleet", src = project.src, dst = project.dst,
-                          reason = reason, extra = "" });
-  }
-  if (DECISION_LOG) {
-    local lineId = -1;
-    if (("payload" in project) && project.payload != null && ("line" in project.payload)
-        && project.payload.line != null && ("lineId" in project.payload.line)) {
-      lineId = project.payload.line.lineId;
-    }
-    OpexDecide("FLEET_PROJECT", "action=refuse line=" + lineId + " reason=" + reason);
-  }
-  return { outcome = "rejected", discards = passDiscards };
-}
-
-/* Execute une densification rail deja prixee. Le second train achete tout de suite.
- * Le doublement reprenable occupe le creneau de recherche et rend pending. */
-function OpexAI::_tryBuildRailDensifyProject(year, project, rank, passDiscards)
-{
-  local entry = project.payload;
-  local line = entry.line;
-  if (line == null || !("vehicles" in line) || !("v107Action" in entry)
-      || (entry.v107Action != "second" && entry.v107Action != "upgrade")) {
-    return this._v107FleetDiscard(passDiscards, rank, project, "densify_stale");
-  }
-  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
-    return this._v107FleetDiscard(passDiscards, rank, project, "search_in_progress");
-  }
-  local need = entry.planePrice + OpexCashReserve();
-  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < need) {
-    if (C50_CHRONOLOGY_PROBE) {
-      this._logC50CashRefusal("rail_densify", rank, project.capital, project.profitAnnual,
-                              project.roi, project.src, project.dst, need, money);
-      if (C50_NON_EXPANSION_LEDGER != null) {
-        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-        if (!("c50_rail_cash_ym" in line) || line.c50_rail_cash_ym != ym) {
-          line.c50_rail_cash_ym <- ym;
-          C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
-        }
-      }
-    }
-    return this._v107FleetDiscard(passDiscards, rank, project, "insufficient_cash");
-  }
-  if (entry.v107Action == "second") {
-    if (!(("doubleTrack" in line) && line.doubleTrack == 1 && ("depot2" in line) && line.depot2 != null)) {
-      return this._v107FleetDiscard(passDiscards, rank, project, "densify_stale");
-    }
-    local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
-    if (!secondTrain.ok) {
-      return this._v107FleetDiscard(passDiscards, rank, project, "densify_failed");
-    }
-    line.vehicles.append(secondTrain.train);
-    line.trains = line.vehicles.len();
-    line.vehCount <- line.vehicles.len();
-    if (C50_CHRONOLOGY_PROBE) {
-      if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.second_built++;
-      OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-    }
-    OpexSign(AIMap.GetTileIndex(1, 1), "RD|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
-    if (DECISION_LOG) {
-      OpexDecide("FLEET_PROJECT", "action=second_train line=" + line.lineId + " trains=" + line.trains);
-    }
-    return { outcome = "built", discards = passDiscards };
-  }
-  if (RAIL_UPGRADE_FAILURE_MEMORY && ABANDON_MEMORY && this._abandonedPairs != null
-      && ("lineId" in line)
-      && (OpexRailUpgradeRejectKey(line.lineId) in this._abandonedPairs)) {
-    return this._v107FleetDiscard(passDiscards, rank, project, "abandoned_pair");
-  }
-  if ((("doubleTrack" in line) && line.doubleTrack == 1)
-      || !("platformA" in line) || !("platformB" in line)
-      || line.platformA == null || line.platformB == null) {
-    return this._v107FleetDiscard(passDiscards, rank, project, "densify_stale");
-  }
-  if (RAIL_SEARCH_RESUMABLE) {
-    local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
-    local anchor = AIMap.GetTileIndex(1, 1);
-    if (!prep.ok) {
-      if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
-        C50_NON_EXPANSION_LEDGER.rail.prep_failed++;
-      }
-      OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + prep.reason);
-      return this._v107FleetDiscard(passDiscards, rank, project, "densify_prep");
-    }
-    this._startRailUpgradeSearch(line, prep);
-    if (this._railSearch != null) return { outcome = "pending", discards = passDiscards };
-    return this._v107FleetDiscard(passDiscards, rank, project, "densify_failed");
-  }
-  local upgrade = OpexUpgradeRailLineToDoubleTrack(this._catalog, this._budget, line, OpexCashReserve(), HARD_ITERATION_CAP);
-  local anchor = AIMap.GetTileIndex(1, 1);
-  OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + upgrade.reason);
-  if (DECISION_LOG) {
-    OpexDecide("FLEET_PROJECT", "action=double_track line=" + line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
-  }
-  if (!upgrade.ok) {
-    if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
-      if (upgrade.reason == "CASH") C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
-      else C50_NON_EXPANSION_LEDGER.rail.upgrade_failed++;
-    }
-    return this._v107FleetDiscard(passDiscards, rank, project, "densify_failed");
-  }
-  line.rawset("doubleTrack", 1);
-  line.rawset("depot2", upgrade.depot2);
-  line.rawset("stationA2", upgrade.stationA2);
-  line.rawset("stationB2", upgrade.stationB2);
-  line.rawset("platformA2", upgrade.platformA2);
-  line.rawset("platformB2", upgrade.platformB2);
-  line.vehicles.append(upgrade.train);
-  line.trains = line.vehicles.len();
-  line.vehCount <- line.vehicles.len();
-  if (C50_CHRONOLOGY_PROBE) {
-    if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.double_built++;
-    OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-  }
-  return { outcome = "built", discards = passDiscards };
-}
-
 function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 {
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
@@ -345,9 +225,6 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
                             reason = "fleet_stale", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
-  }
-  if (V107_DENSIFY_PORTFOLIO && ("v107Densify" in entry) && entry.v107Densify == "rail") {
-    return this._tryBuildRailDensifyProject(year, project, i, passDiscards);
   }
   local need = entry.planePrice + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -878,65 +755,6 @@ function OpexC122ThreatRetryUnbuildable(ai, project, rank, attempt)
   return queued;
 }
 
-/* P4 experimental : etat exclusivement transitoire. main.nut appelle ce reset
- * apres OpexLoadSettings / _reconcileAfterLoad, puis le poll apres les evenements
- * et avant l'arbitrage reactif. Aucun nouvel etat dans Save/Load.
- * EXP_C83_WATCH_DAILY est declare/charge par globals_pre/settings, defaut false/0. */
-function OpexExpC83ResetWatchDaily(ai)
-{
-  ai._expC83WatchDaily = null;
-}
-
-/* Meme canal C78 que detection/intention/tentative ; decision_log seul suffit
- * aussi pour les nouvelles mesures P4. Pas de log par tick ni par poll stable. */
-function OpexExpC83WatchLog(fields)
-{
-  if (C78_SLOT_INTERCEPT_PROBE) OpexC78SlotLog(fields);
-  else if (DECISION_LOG) OpexDecide("C83_WATCH", fields);
-}
-
-function OpexExpC83ObserveSlot(ai, townId, previous, remaining, ownPresent)
-{
-  if (!EXP_C83_WATCH_DAILY || ai._expC83WatchDaily == null) return;
-  local poll = ai._expC83WatchDaily;
-  local today = AIDate.GetCurrentDate();
-  local state = remaining + (ownPresent ? 10 : 0);
-  local old = (townId in poll.observed) ? poll.observed[townId] : null;
-  local changed = old == null || old.state != state;
-  poll.current.rawset(townId, { state = state, date = today,
-      action = changed ? null : old.action });
-  poll.towns++;
-  if (!changed) return;
-  poll.changes++;
-  if (!C78_SLOT_INTERCEPT_PROBE && !DECISION_LOG) return;
-  /* seen_before n'est PAS la date de construction adverse : la detection
-   * borne l'evenement entre deux observations. -1 = premier echantillon. */
-  OpexExpC83WatchLog("phase=c83_poll_state town=" + townId
-      + " previous=" + previous + " state=" + state + " remaining=" + remaining
-      + " own=" + (ownPresent ? 1 : 0) + " initial=" + (old == null ? 1 : 0)
-      + " seen_before=" + (old == null ? -1 : old.date) + " detected=" + today
-      + " source=" + poll.source + " tick=" + AIController.GetTick());
-}
-
-/* A 0, conserver les logs historiques. A 1, une action inchangee pour le
- * meme etat n'est pas repetee tous les jours (notamment c83_fixes). Le recu
- * est une mesure, jamais une condition d'enqueue ou de rearmement. */
-function OpexExpC83WatchActionLog(ai, townId, action, fields)
-{
-  if (!EXP_C83_WATCH_DAILY) {
-    OpexC78SlotLog(fields);
-    return;
-  }
-  if (!C78_SLOT_INTERCEPT_PROBE && !DECISION_LOG) return;
-  local poll = ai._expC83WatchDaily;
-  if (poll != null && (townId in poll.current)) {
-    local sample = poll.current[townId];
-    if (sample.action == action && action != "targeted_regen") return;
-    sample.action = action;
-  }
-  OpexExpC83WatchLog(fields);
-}
-
 function OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount)
 {
   if (remaining != 0) return;
@@ -964,7 +782,6 @@ function OpexC83WatchDroppedTown(ai, townId, ownCounts)
   local ownPresent = ownCount > 0;
   local state = remaining + (ownPresent ? 10 : 0);
   local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
-  if (EXP_C83_WATCH_DAILY) OpexExpC83ObserveSlot(ai, townId, previous, remaining, ownPresent);
   OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
   if (previous == 1 && remaining > 1) OpexC122ThreatCancel(townId, "threat_cleared");
   else if (previous == 1 && ownPresent && remaining > 0) OpexC122ThreatCancel(townId, "opex_served");
@@ -987,7 +804,7 @@ function OpexC83ReactionLog(townId, action)
 {
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-      + AIDate.GetDayOfMonth(date) + " C83_REACTION enabled=" + (C83_SLOT_REACTION ? 1 : 0)
+      + AIDate.GetDayOfMonth(date) + " C83_REACTION enabled=1"
       + " town=" + townId + " action=" + action);
 }
 
@@ -998,7 +815,6 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
   local ownPresent = ownCount > 0;
   local state = remaining + (ownPresent ? 10 : 0);
   local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
-  if (EXP_C83_WATCH_DAILY) OpexExpC83ObserveSlot(ai, townId, previous, remaining, ownPresent);
   OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
   if (previous == 1 && remaining > 1) OpexC122ThreatCancel(townId, "threat_cleared");
   else if (previous == 1 && ownPresent && remaining > 0) OpexC122ThreatCancel(townId, "opex_served");
@@ -1017,24 +833,18 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
   /* Etat 1 sans aeroport Opex : la course reste armee. Le recu d'enqueue
    * (_c83SlotRace) n'est ecrit qu'apres un enqueue reussi. */
   if (OpexAirC83FundedRaceCoversTown(ai._projects, ai._lines, townId)) {
-    if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-      OpexExpC83WatchActionLog(ai, townId, "already_funded", "phase=c83_slot_watch town=" + townId
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
           + " previous=" + previous + " remaining=1 action=already_funded");
     }
     ai._c83SlotWatch.rawset(townId, state);
     return 0;
   }
 
-  if (!C83_SLOT_REACTION) {
-    ai._c83SlotWatch.rawset(townId, state);
-    if (previous != 1) OpexC83ReactionLog(townId, "suppressed");
-    return 0;
-  }
-
   local raceKey = "c77|town|" + townId + "|air";
   if (ai._reactiveQueue != null && ai._reactiveQueue.has(raceKey)) {
-    if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-      OpexExpC83WatchActionLog(ai, townId, "coalesced", "phase=c83_slot_watch town=" + townId
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
           + " previous=" + previous + " remaining=1 action=coalesced");
     }
     ai._c83SlotWatch.rawset(townId, state);
@@ -1043,8 +853,8 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
 
   local lastEnqueue = (townId in ai._c83SlotRace) ? ai._c83SlotRace[townId] : -1;
   if (lastEnqueue >= 0 && today - lastEnqueue < rearmDays) {
-    if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-      OpexExpC83WatchActionLog(ai, townId, "rearm_capped", "phase=c83_slot_watch town=" + townId
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
           + " previous=" + previous + " remaining=1 action=rearm_capped");
     }
     ai._c83SlotWatch.rawset(townId, state);
@@ -1055,15 +865,15 @@ function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
     OpexC83ReactionLog(townId, "enqueued");
     ai._c83SlotRace.rawset(townId, today);
     ai._c83SlotWatch.rawset(townId, state);
-    if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-      OpexExpC83WatchActionLog(ai, townId, "targeted_regen", "phase=c83_slot_watch town=" + townId
+    if (C78_SLOT_INTERCEPT_PROBE) {
+      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
           + " previous=" + previous + " remaining=1 action=targeted_regen");
     }
     return 1;
   }
   OpexC83ReactionLog(townId, "enqueue_failed");
-  if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-    OpexExpC83WatchActionLog(ai, townId, "enqueue_failed", "phase=c83_slot_watch town=" + townId
+  if (C78_SLOT_INTERCEPT_PROBE) {
+    OpexC78SlotLog("phase=c83_slot_watch town=" + townId
         + " previous=" + previous + " remaining=1 action=enqueue_failed");
   }
   return 0;
@@ -1182,63 +992,6 @@ function OpexC83PreemptWatch(ai)
   return enqueued;
 }
 
-/* P4 : un passage au premier point de controle disponible de chaque jour,
- * independamment de l'existence/dueCycle de projects. Aucun rattrapage des jours
- * manques, aucune construction ni promotion ici. Reutiliser le watcher garde
- * exactement top-K/population/egalites et, si arme separement, c83_fixes.
- * Cout : selection O(villes du catalogue * K), inventaire des aeroports Opex,
- * puis K observations et au plus PROJECT_TOP_K plans connus par cible. Aucun
- * AITownList, scan carte, production ou recherche de site. Les predicats de
- * plans/hubs de c83_fixes restent ceux du watcher, pas le preflight physique R3.
- * Ne pas cacher le top-K sur un delai arbitraire : cela changerait sa politique. */
-function OpexAI::_expC83PollAirSlots(source = "main")
-{
-  if (!EXP_C83_WATCH_DAILY) return 0;
-  local poll = this._expC83WatchDaily;
-  local today = AIDate.GetCurrentDate();
-  /* La garde precede meme les lectures des reglages moteur : la boucle main
-   * peut revenir plusieurs fois dans la journee, sans refaire leurs appels API. */
-  if (poll != null && poll.lastDate == today) return 0;
-  if (this._catalog == null || this._catalog.towns == null
-      || this._catalog.towns.len() == 0 || !OpexAirC83SlotSignalEnabled()) return 0;
-  if (poll == null) {
-    this._expC83WatchDaily = { lastDate = -1, observed = {}, current = {},
-        source = "main", polls = 0, towns = 0, changes = 0, enqueued = 0,
-        ops = 0, maxGap = 0, maxSpan = 0, logMonth = -1 };
-    poll = this._expC83WatchDaily;
-  }
-  local gap = poll.lastDate < 0 ? 0 : today - poll.lastDate;
-  if (gap > poll.maxGap) poll.maxGap = gap;
-  poll.lastDate = today;
-  poll.source = source;
-  poll.current = {};
-  local measure = C78_SLOT_INTERCEPT_PROBE || DECISION_LOG;
-  local mark = measure ? OpexOpsMeasureBegin() : null;
-  local enqueued = this._c83WatchAirSlotTransitions();
-  if (measure) poll.ops += OpexOpsMeasureEnd(mark);
-  poll.polls++;
-  poll.enqueued += enqueued;
-  poll.observed = poll.current;
-  /* Une suspension peut franchir minuit : ne pas repoller depuis projects
-   * le jour ou ce poll vient de finir. Le prochain poll n'est pas un retry. */
-  poll.lastDate = AIDate.GetCurrentDate();
-  local span = poll.lastDate - today;
-  if (span > poll.maxSpan) poll.maxSpan = span;
-  if (measure) {
-    local month = AIDate.GetYear(poll.lastDate) * 12 + AIDate.GetMonth(poll.lastDate);
-    if (poll.logMonth != month) {
-      poll.logMonth = month;
-      OpexExpC83WatchLog("phase=c83_poll_summary enabled=1 source=" + poll.source
-          + " polls=" + poll.polls + " towns=" + poll.towns
-          + " changes=" + poll.changes + " enqueued=" + poll.enqueued
-          + " watcher_ops=" + poll.ops + " max_gap_days=" + poll.maxGap
-          + " max_span_days=" + poll.maxSpan
-          + " watched=" + poll.current.len() + " fixes=" + (C83_FIXES ? 1 : 0));
-    }
-  }
-  return enqueued;
-}
-
 /* C83.1 : equivalent d'un evenement "un concurrent vient de prendre le premier
  * slot", absent de NoAI. On ne surveille que les K grandes villes early-slot et
  * GetAllowedNoise est O(1). Le cache encode (slots restants + 10 si Opex y est
@@ -1274,7 +1027,6 @@ function OpexAI::_c83WatchAirSlotTransitions()
     local ownPresent = town.id in ownAirportTowns;
     local state = remaining + (ownPresent ? 10 : 0);
     local previous = (town.id in this._c83SlotWatch) ? this._c83SlotWatch[town.id] : 2;
-    if (EXP_C83_WATCH_DAILY) OpexExpC83ObserveSlot(this, town.id, previous, remaining, ownPresent);
     this._c83SlotWatch.rawset(town.id, state);
 
     if (previous == 1 && remaining > 1) OpexC122ThreatCancel(town.id, "threat_cleared");
@@ -1324,27 +1076,23 @@ function OpexAI::_c83WatchAirSlotTransitions()
       }
     }
     if (alreadyFunded) {
-      if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-        OpexExpC83WatchActionLog(this, town.id, "already_funded", "phase=c83_slot_watch town=" + town.id
+      if (C78_SLOT_INTERCEPT_PROBE) {
+        OpexC78SlotLog("phase=c83_slot_watch town=" + town.id
             + " previous=" + previous + " remaining=1 action=already_funded");
       }
-      continue;
-    }
-    if (!C83_SLOT_REACTION) {
-      OpexC83ReactionLog(town.id, "suppressed");
       continue;
     }
     if (this._c77EnqueueEntity(["air"], "town", town.id, true, "c83_slot_race")) {
       OpexC83ReactionLog(town.id, "enqueued");
       enqueued++;
-      if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-        OpexExpC83WatchActionLog(this, town.id, "targeted_regen", "phase=c83_slot_watch town=" + town.id
+      if (C78_SLOT_INTERCEPT_PROBE) {
+        OpexC78SlotLog("phase=c83_slot_watch town=" + town.id
             + " previous=" + previous + " remaining=1 action=targeted_regen");
       }
     } else {
       OpexC83ReactionLog(town.id, "enqueue_failed");
-      if (C78_SLOT_INTERCEPT_PROBE || (EXP_C83_WATCH_DAILY && DECISION_LOG)) {
-        OpexExpC83WatchActionLog(this, town.id, "enqueue_failed", "phase=c83_slot_watch town=" + town.id
+      if (C78_SLOT_INTERCEPT_PROBE) {
+        OpexC78SlotLog("phase=c83_slot_watch town=" + town.id
             + " previous=" + previous + " remaining=1 action=enqueue_failed");
       }
     }
@@ -1688,13 +1436,7 @@ function OpexAI::_tryBuildProjects(year)
   if (this._projects != null) {
     if (C83_PREEMPT_OPEN) this._c83PreemptEnqueued = 0;
     local c83TargetedRegens = 0;
-    if (EXP_C83_WATCH_DAILY) {
-      /* Repli si main n'a pas encore observe ce jour. Un poll deja fait rend
-       * zero, pas son ancien nombre d'enqueues : aucun report chaud de projects. */
-      c83TargetedRegens = this._expC83PollAirSlots("projects");
-    } else {
-      c83TargetedRegens = this._c83WatchAirSlotTransitions();
-    }
+    c83TargetedRegens = this._c83WatchAirSlotTransitions();
     if (C83_PREEMPT_OPEN && this._c83PreemptEnqueued > 0) {
       c83TargetedRegens += this._c83PreemptEnqueued;
     }
@@ -2358,7 +2100,6 @@ function OpexAI::_tryBuildProjects(year)
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
-    if (V107_DENSIFY_PORTFOLIO) fleetPlan = this._v107AttachRailDensify(fleetPlan);
     if (pcost != null) {
       pcost.fleetOps = OpexOpsMeasureEnd(pcost.mark);
       pcost.mark = OpexOpsMeasureBegin();

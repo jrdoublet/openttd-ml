@@ -72,9 +72,6 @@ AIR_EARLY_SLOT_BONUS_PCT <- 50;
  * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
  * pas requalifie. */
 AIR_C83_TARGET_TOWNS <- 6;
-/* Ablation C83 : conserver l'observation des slots et les gardes physiques,
- * mais pouvoir supprimer l'enqueue AIR cible qui interrompt projects. */
-C83_SLOT_REACTION <- true;
 /* C83 : revalider les sites connus ; chercher seulement dans la ville cible.
  * Intervention comportementale experimentale, ancien parcours conserve a 0. */
 C83_LOCAL_REPAIR <- false;
@@ -82,7 +79,6 @@ C83_LOCAL_REPAIR <- false;
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
 /* Lots de cadence independants, jamais actives implicitement par C83/C121. */
-EXP_C83_WATCH_DAILY <- false;
 EXP_SCHEDULER_SKIP_NOT_DUE <- false;
 EXP_AIR_HUB_PAIR_PREFILTER <- false;
 /* C83 : une seule grande ville encore vide (deux slots libres), avant que le
@@ -109,8 +105,6 @@ C39_INVALIDATION_PROBE <- false;
 C39_DECISION_DELTA_PROBE <- false;
 /* C39.4 : explique pourquoi un EngineAvailable air n'est pas retenu par les combos. */
 C39_AIR_REASON_PROBE <- false;
-/* C39.2 : premier consommateur actif, limite aux nouveaux moteurs ; reste experimental. */
-C39_ENGINE_REFRESH <- false;
 /* C41.0 : registre passif revision/acquittement pour les futures micro-taches ciblees. */
 C41_REVISION_PROBE <- false;
 /* Compatibilite d'opcodes des anciens flags WATER tous forces false. Ce slot ne pilote
@@ -315,17 +309,6 @@ V93_AIR_COMPETITOR_WEIGHT <- 70;
  * (petites villes et seconds slots). Defaut 0, aucun effet decisionnel. */
 V95_AIR_POST73_PROBE <- false;
 V95_AIR_POST73_YEAR <- -1;
-/* V95.1 : extension AIR post-1973 tres ciblee. Seulement un second aeroport
- * dans une ville >=600 ou Opex possede deja exactement un aeroport, hors coeur
- * C83.1, avec bassin reel/cout/profit mesures. Defaut 0. */
-V95_AIR_TARGETED_SECOND <- false;
-V95_AIR_SECOND_MIN_PAX_SITE <- 50;
-V95_AIR_SECOND_MIN_PROFIT <- 50000;
-V95_AIR_SECOND_MAX_SITE_COST <- 30000;
-/* V95 causal minimal : petite ville encore non servie, un seul slot physique
- * deja pris par un concurrent, et economie C68 non degradee quand la demande
- * du nouveau site est remplacee par son bassin mesure. Defaut 0. */
-V95_AIR_POST73_TARGETED <- false;
 /* C96 : selection de l'ancre aeroport par qualite physique de catchment, sans
  * changer la demande ni l'economie de la route. Defaut 0. La recherche reste
  * bornee : au plus quatre sites constructibles, du premier anneau qui en
@@ -341,7 +324,6 @@ C97_AIR_C69_ENGINE_PROBE <- false;
 C98_AIR_REALIZED_PROBE <- false;
 C99_AIR_SPEED_API_FIX <- false;
 C100_AIR_TRIP_PHYSICAL <- false;
-C102_AIR_STATION_RATING_PROBE <- false;
 C101_AIR_PHYSICAL_ENGINE_CHOICE <- false;
 /* C103 : replay causal du classement moteur du premier C100 positif. Le timing
  * volontairement pessimiste ne sert QUE de regularisateur de classement ;
@@ -428,15 +410,11 @@ C121_AIR_ECONOMICS_SHADOW <- false;
  * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
 C121_AIR_ECONOMICS <- false;
 C121_AIR_WINNER_FUSION <- false;
-C121_AIR_ENGINE_CONTEXT <- false;
 C121_AIR_GAME_ENGINE <- false;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
  * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
  * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */
 C121_GAME_ENGINE_STATE <- {};
-C121_AIR_DECISION_DEPTH_ECONOMICS <- false;
-C121_AIR_PORTFOLIO_DEPTH_ECONOMICS <- false;
-C121_AIR_PORTFOLIO_SPLIT_ECONOMICS <- false;
 C121_AIR_ENGINE_REALIZATION <- false;
 C121_AIR_PROJECT_REALIZATION <- false;
 C121_AIR_PROJECT_REALIZATION_ADAPTIVE <- false;
@@ -740,9 +718,6 @@ COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
-/* V107 : densification rail classee par le portefeuille. 0 = depense directe
- * sur la tresorerie residuelle (comportement historique). */
-V107_DENSIFY_PORTFOLIO <- false;
 /* AIR 03/10 3a : raccourci V96 sans la borne jetee. 0 = calcul historique. */
 AIR0310_V96_SHORTCUT_LEAN <- false;
 /* AIR 03/10 3b : N=1 et N=2 du meme avion partagent leurs invariants.
@@ -802,9 +777,6 @@ CASH_RESERVE_PROBE_MAX_BINDS <- 0;
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
 HARD_ITERATION_CAP <- 10000;
-/* Jours max de detention du creneau unique _railSearch. 0 = borne inactive :
- * aucun calcul de date, les recherches suivent le budget d'iterations. */
-RAIL_SEARCH_DAY_CAP <- 0;
 /* V100 : memoire d'echec des doublements de voie (defaut 0). */
 RAIL_UPGRADE_FAILURE_MEMORY <- false;
 /* Garde geometrique rail : preserve l'identite [lead, station_exit], refuse avant depense les
@@ -868,16 +840,12 @@ RAIL_ORIGIN_REUSE_SEARCH_SUPERSEDE <- false;
 /* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
 RAIL_TERRAIN_PROBE <- false;
 
-/* C80 tranche 0 : socle de l'orchestrateur à double registre (intentions / exécution).
- * 0 = ordonnanceur historique (défaut), 1 = orchestrateur à double registre actif. */
-C80_DOUBLE_REGISTER <- false;
-
 /* C80 tranche 1 : migration de la recherche A* rail (_railSearch) dans le registre d'exécution.
- * 0 = désactivé (défaut), 1 = travailleur "rail_search" actif sous c80_double_register=1. */
+ * 0 = désactivé (défaut), 1 = travailleur "rail_search" actif. */
 C80_WORKER_RAIL <- false;
 
 /* C80 tranche 2 : découpage de la croissance urbaine (_tryTownGrowth) en travailleur "town_growth".
- * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif sous c80_double_register=1. */
+ * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif. */
 C80_WORKER_TOWN <- false;
 
 /* C67.4 : carte par blocs dans le reliquat de tick, sans consommateur (contrat C67 §14).

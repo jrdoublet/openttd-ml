@@ -176,7 +176,7 @@ function OpexAI::_logC39PassClockLedger(year)
     }
     this._c39PassClockLedger = {};
   }
-  if (this._townWorkerStats != null && (this._townWorkerStats.slices > 0 || (C80_DOUBLE_REGISTER && C80_WORKER_TOWN))) {
+  if (this._townWorkerStats != null && (this._townWorkerStats.slices > 0 || C80_WORKER_TOWN)) {
     OpexC39PassClockLog("phase=town_worker_year year=" + year
                         + " slices=" + this._townWorkerStats.slices
                         + " ops_max=" + this._townWorkerStats.opsMax

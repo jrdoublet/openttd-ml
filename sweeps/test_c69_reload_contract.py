@@ -25,6 +25,5 @@ class TestC69ReloadContract(unittest.TestCase):
     def test_c80_restore_does_not_require_unloaded_settings(self):
         text = (Path(__file__).resolve().parents[1] / "ai/OpexAI/persist.nut").read_text(encoding="utf-8")
         load = function_body(text, "function OpexAI::Load(version, data)")
-        self.assertNotIn("if (C80_DOUBLE_REGISTER)", load)
         self.assertIn("OpexLoadReactiveQueue(data.c80ReactiveQueue)", load)
         self.assertIn("OpexLoadActiveWorker(data.c80ActiveWorker)", load)

@@ -43,7 +43,7 @@ class FusionTests(unittest.TestCase):
         self.assertEqual((evidence["old_ops"], evidence["new_ops"]), (20000, 17000))
 
     def test_missing_matrix_domain_fails(self):
-        log = "C121_WINNER_MATRIX case=1 cap=1 mail=0 mode=0 aaa=0 stable=1 eligible=1 old_ops=4 new_ops=3 pass=1"
+        log = "C121_WINNER_MATRIX case=1 cap=1 mail=0 aaa=0 stable=1 eligible=1 old_ops=4 new_ops=3 pass=1"
         self.assertFalse(markers(log)["checks"]["matrix_domain"])
 
 

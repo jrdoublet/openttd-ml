@@ -90,12 +90,12 @@ def markers(log):
         arm, cap, mail, checked, old, new = row
         live.append(dict(arm=arm, cap=int(cap), mail=mail, checked=int(checked), old_ops=int(old), new_ops=int(new)))
     checked = [r for r in live if r["checked"]]
-    domain = {(cap, mail, mode, aaa) for cap in (1, 6, 13) for mail in range(3) for mode in range(4) for aaa in range(2)}
+    domain = {(cap, mail, aaa) for cap in (1, 6, 13) for mail in range(3) for aaa in range(2)}
     checks = {"start": "C121_FUSION_START active=1 production_result=old" in log,
-              "matrix_cases": [r["case"] for r in matrix] == list(range(1, 73)),
-              "matrix_domain": {(r["cap"], r["mail"], r["mode"], r["aaa"]) for r in matrix} == domain,
+              "matrix_cases": [r["case"] for r in matrix] == list(range(1, 19)),
+              "matrix_domain": {(r["cap"], r["mail"], r["aaa"]) for r in matrix} == domain,
               "matrix_stable": bool(matrix) and all(r["stable"] for r in matrix),
-              "matrix_restored": "C121_WINNER_VM complete=1 cases=72 restored=1" in log,
+              "matrix_restored": "C121_WINNER_VM complete=1 cases=18 restored=1" in log,
               "null_contract": "C121_FUSION_NULL pass=1" in log,
               "live_exposed": bool(checked), "natural_large_cap": any(r["cap"] >= 6 for r in checked),
               "no_fixture_assertion": "C121_WINNER_ASSERT" not in log}

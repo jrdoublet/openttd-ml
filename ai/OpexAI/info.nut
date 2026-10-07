@@ -264,14 +264,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c83_slot_reaction",
-      description = "C83: regenerate AIR candidates when a watched town has one airport slot left; 1 = current behavior (default), 0 = continue the projects pass without this reactive regeneration",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c83_local_repair",
       description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -282,14 +274,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c83_fixes",
       description = "C83 review fixes (contestable watch towns, slot-town identity, rearmable race, skip dead air pairs, targeted site scan): 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "exp_c83_watch_daily",
-      description = "Experimental P4: poll existing C83 airport-slot watcher once per available game day before arbitration; default off",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -360,22 +344,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "v95_air_post73_probe",
       description = "V95: passive annual diagnostic of post-1973 AIR opportunities rejected by population floor or served-town filters; 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v95_air_targeted_second",
-      description = "V95.1 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables targeted second airports",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v95_air_post73_targeted",
-      description = "V95 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables post-1973 targeted sites; v95_air_post73_probe remains a separate active probe",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -606,42 +574,10 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_air_engine_context",
-      description = "C121 opcode experiment: reuse pair/engine trip, fares and amortisation during one chooser call; refresh on input/date changes; 0 = off pending qualification",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c121_air_game_engine",
       description = "C121 opcode optimization: reuse the established aircraft of the current game per airport type and skip the engine scan; 1 = on (default since 2026-10-03, opcode neutrality rule), 0 = full engine scan",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_air_decision_depth_economics",
-      description = "C121 experimental: rank a new AIR project on the full-fleet depth selected by C121 decision score; initial build and post-build target stay unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_air_portfolio_depth_economics",
-      description = "C121 experimental: choose AIR decision depth with the same P/max(C,K_dec) economics used by the portfolio; engine, initial N=1 build and post-build target stay unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_air_portfolio_split_economics",
-      description = "C121 experimental: keep max-profit long-run economics for project qualification, but rank AIR with a separate P/max(C,K_dec) depth; engine, initial N=1 build and post-build target stay unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -901,14 +837,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c102_air_station_rating_probe",
-      description = "C102 inactive compatibility setting: value is loaded but has no consumer; neither 0 (default) nor 1 enables station-rating probe output",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v88_goods_chain",
       description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -1110,16 +1038,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 10, medium_value = 10, hard_value = 10,
       custom_value = 10,
       step_size = 5,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "rail_search_day_cap",
-      description = "max days a single rail A* search may hold the one search slot before being abandoned and the slot released; 0 = off (default)",
-      min_value = 0, max_value = 400,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 10,
       flags = 0
     });
 
@@ -1551,14 +1469,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c80_double_register",
-      description = "C80 compatibility setting, ignored: the double-register orchestrator is permanently on for C77; both 0 (declared default) and 1 keep it enabled",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c80_worker_rail",
       description = "C80 tranche 1: migrate A* rail search to execution register worker: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -1765,14 +1675,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({ name = "air_efficiency_preflight", description = "AIR efficiency A/B: preflight both airport endpoints before spending", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "air_efficiency_dedupe", description = "AIR efficiency A/B: keep one ranked AIR plan per OD pair in top K", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "air_efficiency_reselect", description = "AIR efficiency A/B: event-driven catalog plus cash-threshold local reselection", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
-
-    AddSetting({
-      name = "v107_densify_portfolio",
-      description = "V107: price a second rail train or a double-track upgrade as a fleet project and let the portfolio rank it; 1 = on, 0 = spend from residual cash (default). Road refleet is unchanged.",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "air0310_v96_shortcut_lean",
