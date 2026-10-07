@@ -142,6 +142,35 @@ def comparison(
     )
 
 
+class GitHubGateIntegrationTests(unittest.TestCase):
+    def test_real_harness_reports_are_accepted_by_github_gates(self):
+        import qualification as q
+        from test_qualification import fixture, spec, SHA
+
+        self.assertEqual(list(SEEDS), q.SEEDS)
+        self.assertEqual(list(SEEDS_40), q.SEEDS_40)
+        previous = None
+        for stage in q.PROFILES:
+            report, manifest = fixture(stage)
+            years, seeds = q.PROFILES[stage]
+            summary = [dict(r, status="complete", profit=10, performance_history=100,
+                            median_station_rating=100, primary_vehicles=10) for r in report["summary"]]
+            rows = [dict(r, run=[r["arm"], r["seed"], 0], date=r["last_date"]) for r in summary]
+            report["policy_comparison"] = build_policy_comparison(
+                summary, rows, seeds=seeds, repeats=1, reference_policy_id="reference",
+                variant_policy_id="variant", primary_metric="profit_year",
+                min_useful_primary_delta=None, min_useful_primary_delta_pct=4,
+                value_guard_max_loss_pct=5, starting_year=1970, years=years,
+                decision_rule=q.protocol_rule(stage)["rule"],
+                required_seeds=40 if stage != "non_erosion" else None,
+                required_years=3 if stage != "non_erosion" else None)
+            result = q.evaluate(spec(), stage, report, manifest, expected_sha=SHA,
+                                campaign=report["campaign_id"], previous=previous)
+            self.assertEqual(result["status"], q.ACCEPTED if stage == "non_erosion" else q.CONTINUE,
+                             result)
+            previous = result["identity"]
+
+
 class WilcoxonTests(unittest.TestCase):
     def test_hand_cases(self):
         self.assertEqual(exact_wilcoxon_signed_rank_p([1, -2, 3, -4, 5]), 0.8125)

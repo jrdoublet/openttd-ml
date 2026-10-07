@@ -22,6 +22,23 @@ VARIANT = "OpexAI[c80_worker_rail=1]"
 REFERENCE = "OpexAI[c80_worker_rail=0]"
 
 
+class OpponentDownloadTests(unittest.TestCase):
+    def test_qualification_download_identifies_client_and_keeps_pinned_archive(self):
+        from sweeps import github_qualification as runner
+        payload = b"synthetic pinned archive"
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(runner, "request_at"), \
+                mock.patch.object(runner, "urlopen", return_value=io.BytesIO(payload)) as download, \
+                mock.patch.object(runner, "install_opponent") as install:
+            runner.prepare(Path(tmp))
+        request = download.call_args.args[0]
+        self.assertEqual(request.full_url, bench.AAAHOGEX_URL)
+        self.assertEqual(request.get_header("User-agent"), bench.DOWNLOAD_USER_AGENT)
+        self.assertEqual(download.call_args.kwargs["timeout"], 60)
+        self.assertEqual(install.call_args.args[0], payload)
+        self.assertEqual(runner.AAAHOGEX_SHA256, bench.AAAHOGEX_SHA256)
+
+
 def environment(**overrides):
     """Never depend on the developer's or CI runner's environment."""
     return {"GITHUB_RUN_ID": "123456", "GITHUB_RUN_ATTEMPT": "2", **overrides}
@@ -46,10 +63,43 @@ class OfflineTestCase(unittest.TestCase):
 
 
 class MakePlanTests(OfflineTestCase):
+    def test_generated_duel_and_gate_commands_reach_host_launcher(self):
+        from sweeps import run_c66_reference as launcher
+
+        for mode, profile in (("duel", "smoke"), ("paired", "gain_short"), ("paired", "non_erosion")):
+            plan = bench.make_plan(environment(BENCH_MODE=mode, BENCH_PROFILE=profile,
+                                              BENCH_VARIANT=VARIANT if mode == "paired" else ""))
+            command = bench.command_for(plan)
+            with mock.patch.object(sys, "argv", command[1:]), \
+                 mock.patch.object(launcher, "_output", side_effect=["a" * 40, "", "sha256:" + "b" * 64]), \
+                 mock.patch.object(launcher, "docker_workspace", return_value=("/checkout", "/work")), \
+                 mock.patch.object(launcher.subprocess, "run", return_value=mock.Mock(returncode=0)) as run:
+                with self.assertRaises(SystemExit) as stopped:
+                    launcher.main()
+                self.assertEqual(stopped.exception.code, 0)
+                docker = run.call_args.args[0]
+                self.assertIn("--cpus=3", docker)
+                self.assertIn("--memory-swap=2g", docker)
+                self.assert_option(docker, "--decision-rule", "non_erosion" if profile == "non_erosion" else "gain_short")
+
+    def test_gain_short_profile_and_legacy_request_rejection(self):
+        plan = bench.make_plan(environment(BENCH_MODE="paired", BENCH_PROFILE="gain_short", BENCH_VARIANT=VARIANT))
+        self.assertEqual((plan["years"], plan["expected_games"], plan["seeds"]), (3, 80, None))
+        command = bench.command_for(plan)
+        self.assert_option(command, "--decision-rule", "gain_short")
+        self.assert_option(command, "--required-seeds", 40)
+        self.assert_option(command, "--required-years", 3)
+        self.assert_option(command, "--min-useful-primary-delta-pct", 4.0)
+        self.assertNotIn("--min-useful-primary-delta", command)
+        with self.assertRaises(ValueError):
+            bench.make_plan(environment(BENCH_MIN_DELTA="50000"))
+        with self.assertRaises(ValueError):
+            bench.make_plan(environment(BENCH_PROFILE="adoption", BENCH_MODE="paired", BENCH_VARIANT=VARIANT))
+
     def test_default_smoke_plan(self):
         self.assertEqual(bench.make_plan(environment()), {
             "mode": "solo", "profile": "smoke", "reference": "OpexAI",
-            "variant": "", "years": 1, "seeds": [42], "minimum": 50000.0,
+            "variant": "", "years": 1, "seeds": [42], "minimum": 4.0,
             "guard": 5.0, "telemetry": False, "campaign": "gha-123456-2",
             "output": "results/gha-123456-2/bench.json", "expected_games": 1,
         })
@@ -70,9 +120,9 @@ class MakePlanTests(OfflineTestCase):
                     self.assertEqual(plan["expected_games"],
                                      len(seeds) * (2 if mode == "paired" else 1))
 
-    def test_adoption_defers_canonical_seeds_to_harness(self):
+    def test_non_erosion_defers_canonical_seeds_to_harness(self):
         plan = bench.make_plan(environment(
-            BENCH_MODE="paired", BENCH_PROFILE="adoption", BENCH_VARIANT=VARIANT))
+            BENCH_MODE="paired", BENCH_PROFILE="non_erosion", BENCH_VARIANT=VARIANT))
         self.assertEqual(plan["years"], 10)
         self.assertIsNone(plan["seeds"])
         self.assertEqual(plan["expected_games"], 40)
@@ -87,7 +137,7 @@ class MakePlanTests(OfflineTestCase):
 
     def test_custom_count_and_year_boundaries(self):
         for years in (1, 10):
-            for count in (1, 20):
+            for count in (1, 40):
                 with self.subTest(years=years, count=count):
                     plan = bench.make_plan(environment(
                         BENCH_PROFILE="custom", BENCH_YEARS=str(years),
@@ -101,7 +151,7 @@ class MakePlanTests(OfflineTestCase):
             ("BENCH_YEARS", ("", "0", "-1", "11", "1.5", "nan", "1;echo x")),
             ("BENCH_SEEDS", ("", " ", ",,,", "42 42", "0 00", "-1",
                              str(2**32), "1.5", "nan", "42;echo x",
-                             " ".join(map(str, range(21))))),
+                             " ".join(map(str, range(41))))),
         ):
             for value in values:
                 with self.subTest(field=field, value=value):
@@ -119,10 +169,10 @@ class MakePlanTests(OfflineTestCase):
              "BENCH_VARIANT": VARIANT},
             {"BENCH_MODE": "solo", "BENCH_VARIANT": VARIANT},
             {"BENCH_MODE": "duel", "BENCH_VARIANT": VARIANT},
-            {"BENCH_PROFILE": "adoption", "BENCH_MODE": "solo"},
-            {"BENCH_PROFILE": "adoption", "BENCH_MODE": "duel"},
+            {"BENCH_PROFILE": "non_erosion", "BENCH_MODE": "solo"},
+            {"BENCH_PROFILE": "non_erosion", "BENCH_MODE": "duel"},
         ]
-        for profile in ("smoke", "diagnostic", "adoption"):
+        for profile in ("smoke", "diagnostic", "non_erosion"):
             for field, value in (("BENCH_YEARS", "1"), ("BENCH_SEEDS", "42")):
                 cases.append({"BENCH_PROFILE": profile, "BENCH_MODE": "paired",
                               "BENCH_VARIANT": VARIANT, field: value})
@@ -174,7 +224,7 @@ class MakePlanTests(OfflineTestCase):
 
     def test_effect_size_and_guard_reject_nonfinite_and_invalid_values(self):
         for field, values in (
-            ("BENCH_MIN_DELTA", ("nan", "NaN", "inf", "-inf", "1e309", "-1", "", "x")),
+            ("BENCH_MIN_DELTA_PCT", ("nan", "NaN", "inf", "-inf", "1e309", "-1", "", "x")),
             ("BENCH_VALUE_GUARD", ("nan", "NaN", "inf", "-inf", "1e309", "-0.1",
                                    "100.01", "", "5;echo x")),
         ):
@@ -187,7 +237,7 @@ class MakePlanTests(OfflineTestCase):
             for guard in ("0", "5.5", "100"):
                 with self.subTest(minimum=minimum, guard=guard):
                     plan = bench.make_plan(environment(
-                        BENCH_MIN_DELTA=minimum, BENCH_VALUE_GUARD=guard))
+                        BENCH_MIN_DELTA_PCT=minimum, BENCH_VALUE_GUARD=guard))
                     self.assertEqual(plan["minimum"], float(minimum))
                     self.assertEqual(plan["guard"], float(guard))
 
@@ -221,7 +271,7 @@ class CommandForTests(OfflineTestCase):
         self.assertEqual(bench.command_for(plan), [
             sys.executable, "sweeps/run_c66_reference.py", "--image", "openttd-lab:github",
             "--campaign", "gha-123456-2", "--cpus", "3", "--memory", "2g",
-            "--engine-timeout", "1800", "--decision-rule", "signs20",
+            "--engine-timeout", "1800", "--decision-rule", "gain_short",
             "--years", "1", "--max-workers", "2", "--out",
             "results/gha-123456-2/bench.json", "--seeds", "42",
         ])
@@ -240,14 +290,14 @@ class CommandForTests(OfflineTestCase):
                 command = bench.command_for(bench.make_plan(environment(
                     BENCH_MODE="paired", BENCH_PROFILE="diagnostic",
                     BENCH_REFERENCE=reference, BENCH_VARIANT=VARIANT,
-                    BENCH_MIN_DELTA="12345.5", BENCH_VALUE_GUARD="2.5",
+                    BENCH_MIN_DELTA_PCT="12345.5", BENCH_VALUE_GUARD="2.5",
                     BENCH_LINE_TELEMETRY="true")))
                 for option, value in (
                     ("--variant", VARIANT), ("--variant-policy-id", "variant"),
                     ("--primary-metric", "profit_year"),
-                    ("--min-useful-primary-delta", "12345.5"),
+                    ("--min-useful-primary-delta-pct", "12345.5"),
                     ("--value-guard-max-loss-pct", "2.5"),
-                    ("--decision-rule", "signs20"), ("--years", "6"),
+                    ("--decision-rule", "gain_short"), ("--years", "6"),
                     ("--cpus", "3"), ("--memory", "2g"), ("--max-workers", "2"),
                 ):
                     self.assert_option(command, option, value)
@@ -259,14 +309,14 @@ class CommandForTests(OfflineTestCase):
                 self.assertEqual(command[start:start + 5], ["42", "100", "999", "1234", "5678"])
                 self.assertIn("--line-telemetry", command)
 
-    def test_adoption_omits_seeds_and_keeps_two_workers(self):
+    def test_non_erosion_omits_seeds_and_keeps_two_workers(self):
         command = bench.command_for(bench.make_plan(environment(
-            BENCH_MODE="paired", BENCH_PROFILE="adoption", BENCH_VARIANT=VARIANT)))
+            BENCH_MODE="paired", BENCH_PROFILE="non_erosion", BENCH_VARIANT=VARIANT)))
         self.assertNotIn("--seeds", command)
         self.assertNotIn("--line-telemetry", command)
         self.assert_option(command, "--years", 10)
         self.assert_option(command, "--max-workers", 2)
-        self.assert_option(command, "--min-useful-primary-delta", "50000.0")
+        self.assert_option(command, "--min-useful-primary-delta-pct", "4.0")
         self.assert_option(command, "--value-guard-max-loss-pct", "5.0")
 
     def test_custom_seed_order_is_preserved(self):
@@ -457,7 +507,7 @@ class SummaryTextTests(OfflineTestCase):
 
     def test_paired_summary_preserves_harness_verdict_and_coverage(self):
         plan = bench.make_plan(environment(
-            BENCH_MODE="paired", BENCH_PROFILE="adoption", BENCH_VARIANT=VARIANT))
+            BENCH_MODE="paired", BENCH_PROFILE="non_erosion", BENCH_VARIANT=VARIANT))
         for verdict in ("pass", "fail_primary", "fail_guard", "incomplete"):
             with self.subTest(verdict=verdict):
                 text = bench.summary_text(plan, {

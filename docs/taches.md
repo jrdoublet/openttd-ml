@@ -1,6 +1,6 @@
 # Tâches — travail restant
 
-**Mise à jour : 5 octobre 2026. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 7 octobre 2026. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
@@ -130,9 +130,14 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   [Consignes courantes](../AGENTS.md#4-validation-proportionnée-puis-adoption).
   Les propositions anciennes de V102 ci-dessous sont remplacées par cette décision
   et l'application V110 ; conserver leurs constats et les verdicts historiques.
-- **Migration GitHub V102 à faire** : les CLI livrées exposent les deux règles,
-  mais `bench.yml`/`qualify.yml` imposent encore l'ancien protocole. Utiliser le
-  lanceur hôte explicite ; un job vert de ces workflows ne qualifie pas V102.
+- **Migration GitHub V102 livrée localement le 07/10** : workflows, plans de
+  schéma 2 et validateurs enchaînent contrats→smoke→A40×3→B20×10, seuil relatif
+  4 %, garde 5 %. Règle opcodes distincte ; schéma 1 historique refusé.
+  Publication autorisée sur `codex/github-v102`, [PR draft 18](https://github.com/jrdoublet/openttd-ml/pull/18).
+  Contrats Windows/Linux, selftest et [smoke apparié Actions 37625779195](https://github.com/jrdoublet/openttd-ml/actions/runs/37625779195)
+  sains, artefacts audités, SHA `a27ca28`, tentative 1 ; aucune fusion.
+  Séquence `qualify.yml` A/B complète encore à confirmer sur un plan pré-enregistré.
+  [Migration et limites](journaux/journal_2026-10-07.md#migration-github-vers-v102).
 - **Retests V102 — C121 uniquement, premier banc autorisé** :
   [plan proposé et inventaire des 190 réglages](plan_retests_v102_20261003.md).
   Décision utilisateur suivante : ignorer les profils non-C121 et commencer
@@ -264,7 +269,7 @@ Ordre de dépendance, pas autorisation de publier ni de modifier un défaut.
 | R4/R5/R20 : continuation, autotests au chargement, régime persistant | **R5/R20 observés au reload (30/09) ; R4 clos sans effet** | R4 : 167 tranches, `chained_slices=0` ; le budget n'est testé qu'entre paires et une paire (~40 k opcodes médian) dépasse un tick, donc enchaînement intra-tick inatteignable. Décision : garde-fou conservé tel quel, aucun gain attribuable ; points d'arrêt intra-paire = chantier distinct. R5 : `selftest skipped` ×2 ; R20 : `C121_STRATEGY_RELOAD` restauré. Restent : verrou race/efficiency, ancien format, file/worker en cours, options séparées. |
 | R1/R19 : renfort partiel AIR et récupération de chantier | **Cinq fixtures R1 validées ; R19 qualifié techniquement/mécaniquement sur le cœur le 06/10** | Besoin réel4/budget1, seuil prix +1 000 £ après réserve et contre-test +999, achat réel+1, mutation API, non-duplication et deux frontières Save/Load validés. R19 : 10/10 contrats ; fault injection moteur avec PENDING→DONE et ticket antérieur terminé après Save/Load ; fixture dirigée sur copie d'IA prouve qu'un avion encore roulant bloque toute démolition, qu'un aéroport occupé est conservé, et qu'un hub réutilisé n'entre jamais dans `ticket.airports`. Seul angle matériel restant : obtenir naturellement `IsStoppedInDepot=true` avec `SellVehicle=false`; ne pas le simuler en falsifiant l'API. **Pas de qualification économique old/new.** [Journal du 06/10](journaux/journal_2026-10-06.md), [compléments](performance_completion_20261001.md), [historique R19](journaux/journal_2026-09-30.md#clôture-du-groupe-r1r19). |
 | Bancs manuels GitHub | **Préparés, intégration non validée** | Après publication autorisée : solo/smoke et duel/smoke pour l'intégration ; paired/smoke pour une intervention causale. Contrôler santé, horizon, artefacts et bras réellement différents. |
-| Qualification GitHub enchaînée | **Ancien protocole implémenté ; migration V102 à faire** | Migrer les entrées, plans, lanceurs et validateurs `bench.yml`/`qualify.yml` vers smoke→`gain_short` 40×3→`non_erosion` 20×10, seuil relatif et critères du §4. Tester contrats/fixtures et intégration réelle avant de recommander le parcours. Le [schéma 1](../qualifications/README.md) reste historique ; aucun code de workflow modifié lors de la synchronisation documentaire du 03/10. |
+| Qualification GitHub enchaînée | **V102 publié sur branche, fixtures Actions vertes et smoke moteur confirmé le 07/10 ; séquence A/B complète non exécutée** | [PR draft18](https://github.com/jrdoublet/openttd-ml/pull/18), branche codex/github-v102 ; smoke [37625779195](https://github.com/jrdoublet/openttd-ml/actions/runs/37625779195), tentative1, SHA a27ca28, 2/2duels sains et complets, diagnostic_only attendu. Artefacts/bundle/JSONL audités avec load_evidence. Premier403 adversaire conservé et téléchargement corrigé par User-Agent identifié, même version/hash. Qualify.yml schéma2 : contrats→smoke→A40×3→B20×10, seuil4%, garde5%, parcours opcodes distinct. Confirmer une séquence complète seulement sur un candidat et plan pré-enregistrés ; aucune fusion ni adoption économique. [Journal](journaux/journal_2026-10-07.md#confirmation-du-smoke-sur-actions). |
 | Image Docker et audit de preuves | **Fait localement (30/09)** | Image `/opt/venv` construite et exercée (smoke, Save/Load, 5×6) ; proxy TLS via `SSL_CERT_FILE`. `test_review_evidence.py` : 13/13 OK. Limite maintenue : L'intégrité des 57 archives ne prouve pas la couverture de toutes les citations. [Bilan documentaire](revue_documentation_2026-09-30.md). |
 | Récupération des preuves | **Sources absentes (reconfirmé 30/09)** | Recherche locale dans tout `PRV/` : seuls scripts, tests, fiches et archives non autoritaires C116/C117/C122 ; aucun JSON de résultat ni manifeste. Récupération seulement depuis une autre copie/le dépôt distant. Réconcilier capacités C116.4 et identifiant du bundle C122. Auditer les autres citations manquantes sans relancer les campagnes ni inventer de chiffres. |
 

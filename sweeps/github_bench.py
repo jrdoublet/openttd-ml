@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,10 +27,13 @@ AAAHOGEX_URL = (
     "db5fd180cdf633c1a3310c4a367052e9/484f4745-AAAHogEx-115.tar.gz"
 )
 AAAHOGEX_SHA256 = "a67f6722b73d9b3179277e45d091747d94148fd8676d13d6bac98c9124c57e0e"
+DOWNLOAD_USER_AGENT = "OpenTTD-ML GitHub benchmark"
 ARM_RE = re.compile(r"OpexAI(?:\[[A-Za-z_][A-Za-z_0-9]*=-?\d+(?:,[A-Za-z_][A-Za-z_0-9]*=-?\d+)*\])?")
 
 
 def make_plan(env):
+    if env.get("BENCH_MIN_DELTA", ""):
+        raise ValueError("Seuil absolu historique refusé ; utiliser BENCH_MIN_DELTA_PCT")
     mode = env.get("BENCH_MODE", "solo")
     profile = env.get("BENCH_PROFILE", "smoke")
     if mode not in ("solo", "duel", "paired"):
@@ -51,20 +54,20 @@ def make_plan(env):
         years, seeds = 1, [42]
     elif profile == "diagnostic":
         years, seeds = 6, [42, 100, 999, 1234, 5678]
-    elif profile == "adoption":
+    elif profile in ("gain_short", "non_erosion"):
         if mode != "paired":
-            raise ValueError("Le profil adoption exige paired (20 paires x 10 ans)")
-        years, seeds = 10, None  # Canonical SEEDS_20 owned by the duel harness.
+            raise ValueError("Les portes V102 exigent paired")
+        years, seeds = (3 if profile == "gain_short" else 10), None
     elif profile == "custom":
         years = int(custom_years)
         seeds = [int(value) for value in custom_seeds.replace(",", " ").split()]
-        if not 1 <= years <= 10 or not 1 <= len(seeds) <= 20:
-            raise ValueError("custom : 1..10 ans et 1..20 graines")
+        if not 1 <= years <= 10 or not 1 <= len(seeds) <= 40:
+            raise ValueError("custom : 1..10 ans et 1..40 graines")
         if len(set(seeds)) != len(seeds) or any(not 0 <= s < 2**32 for s in seeds):
             raise ValueError("Graines uniques, entiers non signes sur 32 bits")
     else:
         raise ValueError("Profil inconnu")
-    minimum = float(env.get("BENCH_MIN_DELTA", "50000"))
+    minimum = float(env.get("BENCH_MIN_DELTA_PCT", "4"))
     guard = float(env.get("BENCH_VALUE_GUARD", "5"))
     if not math.isfinite(minimum) or minimum < 0:
         raise ValueError("Effet utile : nombre fini >= 0")
@@ -81,7 +84,8 @@ def make_plan(env):
                 years=years, seeds=seeds, minimum=minimum, guard=guard,
                 telemetry=telemetry == "true", campaign=campaign,
                 output=f"results/{campaign}/bench.json",
-                expected_games=(len(seeds) if seeds is not None else 20) * (2 if mode == "paired" else 1))
+                expected_games=(len(seeds) if seeds is not None else
+                                40 if profile == "gain_short" else 20) * (2 if mode == "paired" else 1))
 
 
 def command_for(plan, root=ROOT):
@@ -95,7 +99,8 @@ def command_for(plan, root=ROOT):
                 "--arm", plan["reference"], *common]
     command = [sys.executable, "sweeps/run_c66_reference.py", "--image", "openttd-lab:github",
                "--campaign", plan["campaign"], "--cpus", "3", "--memory", "2g",
-               "--engine-timeout", "1800", "--decision-rule", "signs20", *common]
+               "--engine-timeout", "1800", "--decision-rule",
+               "non_erosion" if plan["profile"] == "non_erosion" else "gain_short", *common]
     if plan["reference"] != "OpexAI":
         command += ["--reference", plan["reference"]]
     if plan["mode"] == "paired":
@@ -103,8 +108,10 @@ def command_for(plan, root=ROOT):
         if plan["variant"] == "OpexAI":
             raise ValueError("La variante doit expliciter ses reglages ; utiliser OpexAI comme reference")
         command += ["--variant", plan["variant"], "--variant-policy-id", "variant",
-                    "--primary-metric", "profit_year", "--min-useful-primary-delta", str(plan["minimum"]),
+                    "--primary-metric", "profit_year", "--min-useful-primary-delta-pct", str(plan["minimum"]),
                     "--value-guard-max-loss-pct", str(plan["guard"])]
+        if plan["profile"] != "non_erosion":
+            command += ["--required-seeds", "40", "--required-years", "3"]
     if plan["telemetry"]:
         command += ["--line-telemetry"]
     return command
@@ -248,6 +255,7 @@ def summary_text(plan, report):
                       f"- Verdict économique du harnais : **`{comparison['verdict']}`**"]
         lines += profit_summary_lines(plan, report)
     lines += ["", "Un job vert indique une exécution valide, pas une adoption économique.",
+              "Les portes manuelles sont isolées : vérifier A et B comparables avant toute adoption.",
               "Télécharger les artefacts (JSON, JSONL, logs et, pour les duels, manifeste et bundle).", ""]
     return "\n".join(lines)
 
@@ -265,7 +273,7 @@ def main():
         (directory / "request.json").write_text(json.dumps(plan, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(plan, indent=2), flush=True)
     elif args.action == "prepare" and plan["mode"] != "solo":
-        with urlopen(AAAHOGEX_URL, timeout=60) as response:
+        with urlopen(Request(AAAHOGEX_URL, headers={"User-Agent": DOWNLOAD_USER_AGENT}), timeout=60) as response:
             data = response.read(2 * 1024 * 1024)
         install_opponent(data, ROOT / "ai" / "AAAHogEx-115")
         (directory / "opponent.json").write_text(json.dumps({

@@ -69,9 +69,9 @@ supprimé, pas de branche morte à unifier).
 - **Défauts et bancs automatiques** : appliquer `AGENTS.md` §4.1. Pour un changement
   de défaut demandé, pré-enregistrer le plan et utiliser `run_c66_reference.py`
   avec la règle explicite et les options du §4.1, puis suivre les portes et artefacts.
-  `signs20` reste le défaut CLI historique. `qualify.yml` et `bench.yml` ne sont
-  pas encore migrés vers V102 ; le [schéma de plan 1](../../qualifications/README.md)
-  correspond à leur ancien protocole, pas aux nouvelles portes.
+  `signs20` reste le défaut CLI historique. `qualify.yml` et `bench.yml` exposent
+  désormais V102 avec [plans de schéma 2](../../qualifications/README.md) ;
+  confirmation sur Actions après publication encore requise, schéma 1 refusé.
   Garder l'ancien défaut pendant les essais ; ne pas attendre une nouvelle demande
   de lancement lorsque accès/publication/budget sont disponibles. Un blocage d'accès
   ou de publication doit être signalé, jamais contourné par un push implicite.

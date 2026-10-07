@@ -4,8 +4,8 @@
 
 1. Publier le workflow **et ses scripts** sur GitHub. Le fichier
    `.github/workflows/bench.yml` doit être présent sur la **branche par défaut**
-   pour que GitHub propose le déclenchement manuel. Cette copie locale provient
-   d'une archive sans Git : rien n'a été publié automatiquement.
+   pour que GitHub propose le déclenchement manuel. Les modifications locales
+   exigent une publication autorisée avant leur exécution sur Actions.
 2. Ouvrir le dépôt → **Actions** → **Bancs OpenTTD** → **Run workflow**.
 3. Choisir la branche à tester (elle doit également contenir ces fichiers).
 4. Pour le premier essai, garder **mode = solo**, **profile = smoke**,
@@ -26,16 +26,11 @@ IC95 bootstrap >0, gain moyen ≥4 % du profit de référence terminal), puis po
 `non_erosion` **20×10** (borne haute IC95 bootstrap ≥0). Garde de valeur −5 %
 aux deux portes ; le 5×6 n'est plus obligatoire. La règle opcodes reste distincte.
 
-**`bench.yml` et `qualify.yml` ne sont pas encore compatibles avec V102.**
-`github_bench.py` impose `signs20` et au plus 20 graines ; `qualification.py`
-vérifie l'ancienne règle +50 k£/15 victoires après un diagnostic 5×6. Ni un profil
-`custom` trois ans, ni `paired/adoption`, ni un plan JSON de schéma 1 ne suffisent.
-Utiliser `sweeps/run_c66_reference.py` avec les options explicites du §4.1 ; si
-ce runtime manque, signaler l'absence de chemin V102 disponible. La migration est
-suivie dans `taches.md`, sans substitution silencieuse de l'ancien protocole.
-
-Les modes, champs et commandes GitHub ci-dessous décrivent leurs capacités
-actuelles pour les smokes, diagnostics et protocoles historiques.
+Les workflows migrés le 07/10 exposent V102 : `bench.yml` lance des étapes
+isolées ; `qualify.yml` les enchaîne avec plans de schéma 2, contrôle indépendant
+des critères, provenance et arrêts. Migration validée localement ; confirmation
+sur Actions après publication encore nécessaire. Les plans de schéma 1 sont
+historiques et refusés. Voir [guide des plans](../qualifications/README.md).
 
 ## Modes et profils
 
@@ -49,13 +44,15 @@ actuelles pour les smokes, diagnostics et protocoles historiques.
 |---|---|---|
 | `smoke` | 42 × 1 an | Compilation/exécution et premier test du workflow |
 | `diagnostic` | 42, 100, 999, 1234, 5678 × 6 ans | Diagnostic, pas adoption |
-| `adoption` | 20 graines canoniques du harnais × 10 ans | `paired` obligatoire ; 40 parties |
-| `custom` | Champs `years` et `seeds` obligatoires | 1–10 ans, 1–20 graines uniques |
+| `gain_short` | 40 graines canoniques × 3 ans | Porte A isolée, paired ; 80 parties |
+| `non_erosion` | 20 graines canoniques × 10 ans | Porte B isolée, paired ; 40 parties, A préalable à vérifier |
+| `custom` | Champs `years` et `seeds` obligatoires | 1–10 ans, 1–40 graines uniques |
 
 Les champs `years` et `seeds` restent **vides** hors profil `custom` ; ils ne sont
 pas ignorés silencieusement. `seeds` accepte espaces ou virgules. Les graines
-doivent être des entiers non signés sur 32 bits. La règle statistique reste
-`signs20` ; ce workflow ne propose ni `mean40`, ni `gain_short`, ni `non_erosion`.
+doivent être des entiers non signés sur 32 bits. La règle est `gain_short`
+pour smoke/diagnostic/custom/A, `non_erosion` pour B. A exige 40×3 : le
+5×6 reste diagnostique. Un run isolé ne prouve pas le passage de deux portes.
 
 Le solo utilise toujours le harnais de smoke : même en 5×6, il ne constitue
 ni un duel, ni une preuve causale comparative, ni un bundle C66 gelé.
@@ -97,7 +94,8 @@ reste diagnostique ; il ne constitue pas la porte A V102 du lanceur hôte.
   `OpexAI[reglage=1]`. Pas d'espace dans le bloc. Le harnais valide noms, bornes
   et différences effectives ; changer un réglage déjà au défaut n'est pas une
   variante. Aucun défaut de l'IA n'est modifié par le workflow.
-- **min_delta** : effet minimal utile de `profit_year`, défaut **50 000 £/an**.
+- **min_delta_pct** : seuil relatif de `profit_year`, défaut **4 %** du profit
+  terminal moyen de référence ; enregistré mais sans exigence de gain sous B.
 - **value_guard** : perte maximale de valeur acceptée, défaut **5 %**.
 - **line_telemetry** : uniquement duel/paired ; ajoute la télémétrie annuelle
   par ligne, avec davantage de données et de temps de traitement.
@@ -187,11 +185,11 @@ selon le §4.1. Conserver SHA, ID, URL, tentative et inputs de chaque étape dan
 journal. Aucune boucle de relances sur résultat économique négatif. Les arrêts ou
 quotas dépassés donnent « non validé », pas un défaut promu sans preuve.
 
-### Enchaînement autonome historique après déclenchement (hors V102)
+### Enchaînement V102 après déclenchement
 
 Le workflow distinct **Qualification de défaut OpenTTD** (`qualify.yml`) prend
 un seul input `plan=qualifications/<chantier>.json`, publié sur la branche testée.
-Il exécute les contrats pré-enregistrés, puis **smoke → diagnostic → adoption**,
+Il exécute les contrats pré-enregistrés, puis **smoke → gain_short 40×3 → non_erosion 20×10**,
 avec arrêt à la première porte échouée, preuve manquante ou budget dépassé.
 Le même run relie toutes les étapes, sur un SHA et une image uniques.
 
@@ -206,13 +204,15 @@ Pas de compteur d'exposition disponible → non validé, sans inventer une preuv
 Le workflow n'interprète pas les interdictions métier de `docs/taches.md` : elles
 doivent être contrôlées avant le dispatch, ainsi que les doublons et le quota.
 
-Le formulaire `bench.yml` reste inchangé pour les bancs isolés et les duels 3 ans ;
-il n'enchaîne pas les étapes et n'encode pas la neutralité opcodes. Le nouveau
-workflow ne s'auto-déclenche pas sur chaque push. La publication et les premiers
-contrôles sont pris comme prérequis supposés satisfaits pour poursuivre ce lot,
-conformément à la demande utilisateur ; aucune exécution économique n'en est déduite.
+Le formulaire `bench.yml` propose aussi les deux portes isolées. Il n'enchaîne
+pas les étapes et n'encode pas la neutralité opcodes ; utiliser `qualify.yml`
+pour le parcours contrôlé, avec schéma 2 et catégorie pré-enregistrée.
+Aucun workflow ne s'auto-déclenche pour lancer des parties sur chaque push.
 
-## Validation de cette livraison
+## Validation des livraisons historiques
+
+Les constats ci-dessous décrivent les livraisons initiales, pas la migration
+V102 du 07/10 consignée dans le journal et `docs/taches.md`.
 
 Workflows vérifiés avec **actionlint 1.7.12**, sans ShellCheck/Pyflakes locaux ;
 diagnostics éditeur sans erreur. Archive officielle téléchargée et vérifiée
