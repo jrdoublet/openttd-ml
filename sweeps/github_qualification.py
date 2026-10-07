@@ -1,4 +1,4 @@
-"""Bounded smoke -> diagnostic -> adoption; no dispatch loop, default edit or merge."""
+"""Bounded V102 smoke -> gain_short -> non_erosion; no default edit or merge."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,7 @@ from campaign_freeze import parse_ai_setting_specs
 from github_bench import (AAAHOGEX_SHA256, AAAHOGEX_URL, ROOT, command_for,
                           install_opponent, make_plan, profit_ratios, summary_text)
 from qualification import (ACCEPTED, INVALID, PROFILES, REJECTED, arm_settings, digest,
-                           evaluate, load_evidence, read_json, require, validate_spec, write_json)
+                           evaluate, load_evidence, read_json, require, validate_spec, write_json, stages_for)
 
 
 def location(env):
@@ -27,7 +27,7 @@ def location(env):
 def stage_plan(spec, stage, env):
     plan = make_plan(dict(env, BENCH_MODE="paired", BENCH_PROFILE=stage,
                           BENCH_REFERENCE=spec["reference"], BENCH_VARIANT=spec["variant"],
-                          BENCH_YEARS="", BENCH_SEEDS="", BENCH_MIN_DELTA="50000",
+                          BENCH_YEARS="", BENCH_SEEDS="", BENCH_MIN_DELTA_PCT="4",
                           BENCH_VALUE_GUARD="5", BENCH_LINE_TELEMETRY="false"))
     plan["campaign"] = f"qualification-{env['GITHUB_RUN_ID']}-{env['GITHUB_RUN_ATTEMPT']}-{stage}"
     plan["output"] = (location(env) / stage / "bench.json").relative_to(ROOT).as_posix()
@@ -66,11 +66,11 @@ def initialize(env):
                 require(value == setting["default"], f"Ancien défaut non conservé : {name}")
     for name in spec["contract_tests"]:
         require((ROOT / "sweeps" / f"{name}.py").is_file(), f"Contrat absent : {name}")
-    request = dict(schema_version=1, qualification_id=directory.name, sha=sha,
+    request = dict(schema_version=2, qualification_id=directory.name, sha=sha,
                    run_id=env["GITHUB_RUN_ID"], attempt=env["GITHUB_RUN_ATTEMPT"],
                    repository=env.get("GITHUB_REPOSITORY"), ref=env.get("GITHUB_REF"),
                    spec_path=path.relative_to(ROOT).as_posix(), spec_sha256=digest(path), spec=spec,
-                   stages=[stage_plan(spec, stage, env) for stage in PROFILES])
+                   stages=[stage_plan(spec, stage, env) for stage in stages_for(spec)])
     write_json(directory / "request.json", request)
     print(f"Plan figé : {directory.name} / {sha}", flush=True)
 
@@ -80,6 +80,11 @@ def request_at(directory):
     validate_spec(request["spec"])
     require(digest(ROOT / request["spec_path"]) == request["spec_sha256"] and
             read_json(ROOT / request["spec_path"]) == request["spec"], "Plan modifié après préparation")
+    expected = [stage_plan(request["spec"], stage,
+                           dict(GITHUB_RUN_ID=request["run_id"], GITHUB_RUN_ATTEMPT=request["attempt"]))
+                for stage in stages_for(request["spec"])]
+    require(request["schema_version"] == 2 and request["stages"] == expected,
+            "Séquence ou commandes différentes du plan V102")
     return request
 
 
@@ -158,11 +163,11 @@ def run_sequence(directory, execute=run_bounded):
             result["manifest_sha256"] = digest(output.with_suffix(".manifest.json"))
             (output.parent / "summary.md").write_text(summary_text(plan, report), encoding="utf-8")
             write_json(output.parent / "profit-ratios.json", profit_ratios(plan, report))
-        except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        except (OSError, ValueError, KeyError, IndexError, TypeError, subprocess.SubprocessError) as error:
             result.update(status=INVALID, proceed=False, reasons=[str(error)])
         write_json(output.parent / "decision.json", result)
         decision["stages"].append(result)
-        decision["status"] = result["status"] if not result["proceed"] or stage == "adoption" else INVALID
+        decision["status"] = result["status"] if not result["proceed"] or stage == "non_erosion" else INVALID
         decision["reasons"] = result["reasons"] if decision["status"] != INVALID or not result["proceed"] else ["Séquence inachevée"]
         write_json(directory / "decision.json", decision)
         print(f"{stage}: {result['status']} — {'; '.join(result['reasons'])}", flush=True)
@@ -183,7 +188,7 @@ def summarize(directory):
     text += "| Étape | Décision | Verdict brut |\n|---|---|---|\n"
     for result in decision["stages"]:
         text += f"| {result['stage']} | {result['status']} | {result.get('raw_harness_verdict', 'n/d')} |\n"
-    text += "\nAucun défaut modifié. Smoke/diagnostic ne sont pas une adoption. Voir decision.json et les artefacts complets.\n"
+    text += "\nAucun défaut modifié. La porte A seule ne qualifie pas l'adoption. Voir decision.json et les artefacts complets.\n"
     (directory / "summary.md").write_text(text, encoding="utf-8")
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:

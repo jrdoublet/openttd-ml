@@ -48,10 +48,24 @@ class TestRailQuoteFailure(unittest.TestCase):
         self.assertLess(self.execute.index("if (realCapital == null)"), self.execute.index("AITile.DemolishTile("))
 
     def test_cash_failure_retains_retry_contract(self):
-        self.assertIn('result.error == AIError.ERR_NOT_ENOUGH_CASH ? "CASH" : quoteFailure.reason;', self.execute)
+        guard = self.execute.split("if (realCapital == null)", 1)[1].split("if (realCapital > 0)", 1)[0]
+        # CASH must take precedence even when an exact-platform refresh requests
+        # REPLAN_GEOM; other failures retain the original quote reason.
+        self.assertRegex(
+            guard,
+            r'result\.reason\s*=\s*result\.error\s*==\s*AIError\.ERR_NOT_ENOUGH_CASH'
+            r'\s*\?\s*"CASH"\s*:\s*\(\s*replanGeometry\s*\?\s*"REPLAN_GEOM"'
+            r'\s*:\s*quoteFailure\.reason\s*\)\s*;',
+        )
         task = (ROOT / "ai/OpexAI/task_rail.nut").read_text(encoding="utf-8")
         consume = task.split("function OpexAI::_consumeRailSearch(", 1)[1].split("\nfunction ", 1)[0]
-        self.assertLess(consume.index('if (result.reason == "CASH")'), consume.index("candidate.railPlan = null;"))
+        cash_at = consume.index('if (result.reason == "CASH")')
+        clear_at = consume.index("candidate.railPlan = null;")
+        self.assertLess(cash_at, clear_at)
+        cash_branch = consume[cash_at:clear_at]
+        self.assertIn('return { outcome = "cash", reason = "cash_at_build", error = cashError };', cash_branch)
+        self.assertNotIn("candidate.railPlan =", cash_branch)
+        self.assertLess(clear_at, consume.index("this._recordRailAttempt("))
 
     def test_valid_quote_keeps_depot_vehicle_and_finance_components(self):
         self.assertIn("simulatedInfra = accounting.GetCosts();", self.simulate)

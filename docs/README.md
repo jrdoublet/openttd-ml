@@ -11,7 +11,7 @@ Lecture documentaire, pas nouvelle validation économique.**
 | [AGENTS.md](../AGENTS.md) | Invariants, environnement, mesure et protocole de qualification ; prime sur les anciens exemples |
 | [Architecture courante](architecture_courante.md) | Carte de lecture du code et ordre de chargement |
 | [Bancs GitHub](bancs_github.md) | Parcours opérationnel ; publication et accès requis |
-| [Qualification enchaînée](../qualifications/README.md) | Schéma 1 et ancien protocole de `qualify.yml` ; migration V102 à faire, protocole courant dans AGENTS §4/§4.1 |
+| [Qualification enchaînée](../qualifications/README.md) | Schéma 2 V102 livré localement ; confirmation Actions après publication, protocole dans AGENTS §4/§4.1 |
 | [Journaux](journaux/README.md) | Chronologie, décisions et résultats ; pas un second backlog |
 | [Synthèse des décisions](journaux/synthese_decisions_2026-09-30.md) | Défauts adoptés, exceptions et rejets, avec sources |
 | [Preuves](../evidence/review/README.md) | Audit, archives et limites de couverture |

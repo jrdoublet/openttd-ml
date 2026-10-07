@@ -10,9 +10,9 @@ on:
         options: [solo, duel, paired]
         default: solo
       profile:
-        description: "smoke 1x1 ; diagnostic 5x6 ; adoption 20x10 (paired) ; custom"
+        description: "smoke 1x1 ; diagnostic 5x6 ; gain_short A40x3 ; non_erosion B20x10 ; custom"
         type: choice
-        options: [smoke, diagnostic, adoption, custom]
+        options: [smoke, diagnostic, gain_short, non_erosion, custom]
         default: smoke
       reference:
         description: "Référence : OpexAI ou OpexAI[reglage=0,...]"
@@ -27,13 +27,13 @@ on:
         type: string
         default: ""
       seeds:
-        description: "custom seulement : 1 à 20 graines uniques séparées par espaces"
+        description: "custom seulement : 1 à 40 graines uniques séparées par espaces"
         type: string
         default: ""
-      min_delta:
-        description: "A/B : effet utile minimal de profit_year (£/an), fixé AVANT le banc"
+      min_delta_pct:
+        description: "A/B : seuil relatif de profit_year (% référence), fixé AVANT le banc"
         type: number
-        default: 50000
+        default: 4
       value_guard:
         description: "A/B : perte maximale de valeur acceptée (%)"
         type: number
@@ -66,7 +66,7 @@ jobs:
       BENCH_VARIANT: ${{ inputs.variant }}
       BENCH_YEARS: ${{ inputs.years }}
       BENCH_SEEDS: ${{ inputs.seeds }}
-      BENCH_MIN_DELTA: ${{ inputs.min_delta }}
+      BENCH_MIN_DELTA_PCT: ${{ inputs.min_delta_pct }}
       BENCH_VALUE_GUARD: ${{ inputs.value_guard }}
       BENCH_LINE_TELEMETRY: ${{ inputs.line_telemetry }}
       RESULT_DIR: results/gha-${{ github.run_id }}-${{ github.run_attempt }}

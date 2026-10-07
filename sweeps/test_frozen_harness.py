@@ -192,7 +192,7 @@ class TestFrozenHarness(unittest.TestCase):
     def test_actual_harness_reaches_mocked_engine_with_frozen_collector(self):
         # Exercise the real production import/preparation path, but stop at the
         # engine boundary. No OpenTTD binary, network, game, or real AI is needed.
-        for name in ("bench_1v1_5y_20seeds.py", "bench_v2.py", "game_health.py", "physical_counters.py", "c83_reaction.py"):
+        for name in ("bench_1v1_5y_20seeds.py", "bench_v2.py", "paired_statistics.py", "game_health.py", "physical_counters.py", "c83_reaction.py"):
             shutil.copy2(Path(__file__).with_name(name), self.sweeps / name)
         (self.sweeps / "openttdlab.py").write_text('''import inspect
 import json
@@ -219,7 +219,7 @@ def run_experiments(**kwargs):
                              "script_debug": False, "engine_timeout": 30,
                              "docker_image_id": None, "max_workers": 1})
         self.campaign = self.freeze("actual-harness")
-        for name in ("bench_1v1_5y_20seeds.py", "bench_v2.py", "game_health.py", "physical_counters.py", "c83_reaction.py"):
+        for name in ("bench_1v1_5y_20seeds.py", "bench_v2.py", "paired_statistics.py", "game_health.py", "physical_counters.py", "c83_reaction.py"):
             (self.sweeps / name).write_text('raise RuntimeError("live code executed")\n', encoding="utf-8")
         child = self.run_child()
         self.assertNotEqual(child.returncode, 0)
