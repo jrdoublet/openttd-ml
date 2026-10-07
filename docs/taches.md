@@ -48,6 +48,19 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   sous-estimé ; le devis physique ajoute en outre dépôt + 2 tuiles de raccord, alors
   que `rail_depot_cost` n'ajoute que le dépôt. Ne pas interpréter une simple
   exposition causale comme validation du modèle ni lancer une adoption avant ce check.
+  **Clôture provisoire du 07/10** : l'historique Git confirme que 170 était la
+  calibration voulue et que le setting terrain a été passé à 100 par erreur dans le
+  commit `58fce9f4` « adopt finance bias 100 ». Néanmoins, le retour isolé
+  `rail_terrain_factor=100→170` échoue à la porte A V102 live 40×3 :
+  **−36,4 k£/an** en moyenne, médiane −2,1 k£, 19/20/1, p=0,365,
+  IC95 [−95,7 ; +22,0] k£/an ; valeur −0,92 % (garde tenue). Donc **pas de B et
+  défaut terrain maintenu à 100**. `rail_depot_cost` est causalement exposé dans le
+  diagnostic 3×3 (+450 £ de capital papier sur mêmes candidats), mais il n'est plus
+  un NEXT qualifiable isolément : avec le coût de voie live restant non calibré et le
+  devis physique comptant dépôt + raccords, une correction dépôt seule serait un
+  modèle partiel. **Défaut `rail_depot_cost=0` conservé ; chantier différé et à
+  reprendre plus tard**, dans une recalibration rail globale couvrant coût de voie,
+  dépôt/raccord et devis réel. La route reste dépriorisée.
 
 - **Dix valeurs numériques C121 : évaluation terminée (04/10 20:12 Paris)** :
   neuf A complètes/saines, toutes `fail_primary` ; fenêtre live4→6 non validée
@@ -299,7 +312,7 @@ code au moment de l'intervention ; ne pas coder toute la liste d'un bloc.
 | Dette UR-15b (revue ultra #15, 06/10) | **Dette technique, non traitée** — `air_economics_c121.nut:1093-1472` (`OpexC121OneOrTwoInvariants`/`Depth`) recopie ~250 lignes du calcul de `OpexC121AirEconomics` (l. 545) : toute correction du modèle doit être reportée à la main | Partager le noyau (helper commun ou appel du moteur avec `fixedPlanes`). Touche aux décisions : exiger mêmes décisions et opcodes mesurés, puis règle opcodes (20×10 non-perte). |
 | Dette UR-16a (revue ultra #16, 06/10) | **À trancher — comportement, non gardé par drapeau** — `scheduler_tasks.nut:208` (depuis 38a4ff3) : la garde `!s.published` a été remplacée par `s.plans.len() > s.lastPublishedCount` ; le rebuild AIR découpé (pool > 64 villes) republie à chaque tranche qui ajoute des plans, au lieu d'une seule publication partielle par scan. Le commentaire l. 88-91 décrit encore l'ancien comportement | Probablement voulu (publication progressive, base du gain `air0310_incremental_publish`) et inclus dans toutes les mesures depuis le 30/09 ; sous C121 la republication est incrémentale. Mesurer le coût en opcodes des republications hors `air0310_incremental_publish` ; sinon seulement corriger le commentaire. |
 | Dette UR-16b–e (revue ultra #16, 06/10) | **Dette technique, non traitée** | b) `scheduler_tasks.nut:19/234` + `/ 12` : année décalée de +1 si le premier tampon `_generationStageMonth` tombe en décembre (mois 1..12) — improbable (tampon pris au démarrage), corriger par `(ym - 1) / 12`. c) `main.nut` ~707-751 : boucle de vidage du catalogue dupliquée dans les deux branches `C80_DOUBLE_REGISTER`. d) `task_projects.nut` ~1224-1239 (`c121_territory_first`, défaut 0) : balayage O(n²) et villes servies figées avant la boucle. e) `task_air.nut` ~725/916 : lecture de capacité avion dupliquée (`OpexC121FleetStockEvidence` / `AIR_FLEET_BUFFER`). |
-| F-RAIL-ECON-01 (revue du 22/09) | **Implémenté derrière `rail_depot_cost`, défaut 0 ; exploration C121 40×3 inconclusive le 04/10** | `economy.nut` ajoute `costRailDepot` si le flag est actif. Profit −1,72 %, IC95 traversant zéro, `fail_primary` conservé. Suite proposée : exposition du classement/construction puis nouvelle A40×6 pré-enregistrée, B20×10 seulement après passage ; aucun lancement ni changement de défaut. Voir le bilan des retests nocturnes. |
+| F-RAIL-ECON-01 (revue du 22/09) | **Exposition causale confirmée ; correction isolée différée, défaut `rail_depot_cost=0` conservé** | Diagnostic live 3×3 : +450 £ de capital papier sur même candidat/TOP-5 dans 3/3 graines, avec devis physique inchangé sur tentative comparable ; 2/3 trajectoires divergent ensuite. Le garde-fou terrain révèle que 170 était la calibration historique mais que son retour isolé 100→170 échoue à la porte A V102 40×3 (−36,4 k£/an, p=0,365, IC95 [−95,7 ; +22,0], valeur −0,92 %). Pas de B terrain, pas de Gate A dépôt. **À reprendre plus tard comme recalibration rail globale** coût de voie + dépôt/raccord + devis réel. Voir F-RAIL-ECON-02 au journal du 07/10. |
 | F-EVENT-BACKLOG-01 (revue du 22/09) | **Ouvert, faible priorité** | `events.nut::_processEvents` vide toujours la file sans quota. Mesurer d'abord l'exposition (taille des rafales, opcodes) ; corriger seulement si elle est démontrée. |
 
 Revue du 22/09 revérifiée sur le code le 30/09 et close pour : F-ROAD-TXN-01 (ventes vérifiées, `allSold`), F-RAIL-START-01 (retour de `StartStopVehicle` lu, arrêt des trains déjà démarrés), F-RAIL-TXN-02 (`OpexBuildSecondTrain` appelle `OpexRollback` avec `rollbackVehicles`), F-LIFE-SCRAP-01 (retrait conditionné au retour de `SellVehicle`), F-SIGN-01 (troncature à 31 dans `OpexSign`). F-C80-TOWN-01/F-C77-SLICE-01 sont suivis par les chantiers C80 et régénération (§3). F-TEST-01 : les deux échecs historiques ne ressortent plus, les 2 échecs actuels sont dus à l'absence de Git. Ces fermetures sont des relectures, pas des validations moteur.
