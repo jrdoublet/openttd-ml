@@ -685,7 +685,9 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
     local failReason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
     OpexV88Log("CHAIN_FAIL", "step=2 reason=" + failReason);
     OpexSign(anchor, "CF|" + yy + "|2|" + OpexAttemptReasonCode(failReason));
-    this._markPairAbandoned(abandonedKey);
+    /* REPLAN_GEOM signifie seulement que le railPlan memorise a perdu son interface de quai.
+     * Ne pas transformer cette obsolescence transitoire en abandon durable de la paire. */
+    if (failReason != "REPLAN_GEOM") this._markPairAbandoned(abandonedKey);
     this._setActiveGoodsChain(null);
     return false;
   }
@@ -1602,7 +1604,7 @@ function OpexAI::_consumeRailSearch(year)
     } else {
       OpexV88Log("CHAIN_FAIL", "step=2 reason=" + result.reason);
       OpexSign(anchor, "CF|" + yy + "|2|" + OpexAttemptReasonCode(result.reason));
-      this._markPairAbandoned(OpexAbandonedPairKey(candidate));
+      if (result.reason != "REPLAN_GEOM") this._markPairAbandoned(OpexAbandonedPairKey(candidate));
       this._setActiveGoodsChain(null);
     }
   }

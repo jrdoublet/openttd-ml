@@ -36,6 +36,7 @@ class TestRailGeometryGuard(unittest.TestCase):
         cls.settings = source("settings.nut")
         cls.globals = source("globals_pre.nut")
         cls.persist = source("persist.nut")
+        cls.lines = source("lines.nut")
 
     def test_setting_is_dedicated_and_off_by_default(self):
         start = self.info.index('name = "rail_geometry_guard"')
@@ -172,6 +173,21 @@ class TestRailGeometryGuard(unittest.TestCase):
         self.assertLess(second_quote, real_spend)
         self.assertIn('quoteFailure.reason == "STNFAIL"', execute[first_quote:refresh])
         self.assertIn('OpexDecide("RAIL_GEOM_REPLAN"', execute)
+
+    def test_live_replan_missing_exact_interface_requests_fresh_scheduler_plan(self):
+        execute = function_body(self.builder, "function OpexExecuteRailPlan(")
+        self.assertIn("local replanGeometry = false;", execute)
+        self.assertIn('else if (refresh.reason == "exact_interface_missing")', execute)
+        self.assertIn("replanGeometry = true;", execute)
+        self.assertIn('(replanGeometry ? "REPLAN_GEOM" : quoteFailure.reason)', execute)
+
+        record = function_body(self.task, "function OpexAI::_recordRailAttempt(")
+        memory = record[record.index("if (ABANDON_MEMORY &&"):]
+        self.assertNotIn('result.reason == "REPLAN_GEOM"', memory)
+        self.assertGreaterEqual(self.task.count('!= "REPLAN_GEOM"'), 2)
+
+        reasons = function_body(self.lines, "function OpexAttemptReasonCode(reason)")
+        self.assertIn('if (reason == "REPLAN_GEOM") return "J";', reasons)
 
     def test_terminal_jump_filter_matches_proven_skip_without_symmetric_overban(self):
         geom = function_body(self.builder, "function OpexRailPathGeometryIssue(")

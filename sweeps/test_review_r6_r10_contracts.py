@@ -36,6 +36,20 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
         self.assertIn('C102_AIR_STATION_RATING_PROBE = AIController.GetSetting("c102_air_station_rating_probe") != 0;', settings)
         self.assertIn('C80_DOUBLE_REGISTER = true;', settings)
         self.assertIn('AIController.GetSetting("c80_worker_rail")', settings)
+        self.assertNotIn('GetSetting("c80_double_register")', settings)
+
+        # Les trois anciens réglages restent lisibles pour compatibilité de config,
+        # mais ne doivent plus piloter aucun chemin métier. C80 est différent : son
+        # réglage utilisateur est ignoré et le mécanisme est forcé actif.
+        root = ROOT / "ai" / "OpexAI"
+        inert = ("V95_AIR_TARGETED_SECOND", "V95_AIR_POST73_TARGETED",
+                 "C102_AIR_STATION_RATING_PROBE")
+        for path in root.rglob("*.nut"):
+            if path.name in ("globals_pre.nut", "settings.nut"):
+                continue
+            text = path.read_text(encoding="utf-8")
+            for symbol in inert:
+                self.assertNotIn(symbol, text, f"unexpected R6 consumer {symbol} in {path.name}")
 
     def test_r7_defensive_floor_remains_protected_and_neutralized(self):
         settings = _read("ai/OpexAI/settings.nut")
@@ -52,8 +66,10 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
     def test_r8_removed_dead_helpers_are_not_defined_anymore(self):
         rail = _read("ai/OpexAI/builder_rail.nut")
         road = _read("ai/OpexAI/builder_road.nut")
+        projects = _read("ai/OpexAI/projects.nut")
         self.assertNotIn("function OpexPlaceCapacitySignals(", rail)
         self.assertNotIn("function OpexRoadFindOrBuildTruckStop(", road)
+        self.assertNotIn("function OpexCloneCandidateGroups(", projects)
         self.assertIn("function OpexPlaceJoinSignals(", rail)
         self.assertIn("function OpexBuildRoadRoute(", road)
 
@@ -89,7 +105,19 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
         self.assertIn("OPEX_ECONOMY_OPCODE_COMPAT_FALSE", pre)
         self.assertIn("WATER_OPCODE_COMPAT_FALSE", pre)
         self.assertIn("function OpexShareBasin(", cands)
-        self.assertEqual(cands.count("if (BASIN_SHARE && ss != null)"), 2)
+        # Trois sites existent désormais dans candidates.nut. Deux peuvent devenir
+        # sémantiques si BASIN_SHARE est réactivé (reuse fret + génération fret).
+        # Le troisième est dans la chaîne goods et reste dominé par `ss != null`
+        # juste avant : il ne peut donc jamais appeler OpexShareBasin, mais son test
+        # de BASIN_SHARE consomme encore des opcodes sur le chemin historique false.
+        self.assertEqual(cands.count("if (BASIN_SHARE && ss != null)"), 3)
+        self.assertRegex(
+            cands,
+            r"local ss = OpexOriginService\(lines, source\.tile\);\s*"
+            r"if \(ss != null\) continue;\s*"
+            r"local inputMonthly = AIIndustry\.GetLastMonthProduction\(source\.id, cargoIn\);\s*"
+            r"if \(BASIN_SHARE && ss != null\)",
+        )
         self.assertIn("if (BASIN_SHARE && srcService != null)", projects)
 
 

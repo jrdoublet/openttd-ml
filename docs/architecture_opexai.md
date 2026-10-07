@@ -11,6 +11,14 @@
 > Les tailles et graphes ci-dessous conservent l'état daté de C65 ; les autres intégrations
 > ultérieures, notamment C80 et le retrait des feeders, n'y sont pas représentées.
 
+> **Repère courant R8 (06/10).** Le checkout live n'a plus `task_feeders.nut` et les
+> helpers morts `OpexPlaceCapacitySignals`, `OpexRoadFindOrBuildTruckStop`,
+> `OpexCloneCandidateGroups`, `OpexC102WaitingRatingPoints`,
+> `OpexC102AgeRatingPoints` et `OpexC102SpeedRatingPoints` sont absents du code.
+> Les occurrences de `task_feeders` / `OpexRoadFindOrBuildTruckStop` dans les graphes
+> datés ci-dessous décrivent donc uniquement le snapshot C65 et ne sont pas des
+> références de l'architecture exécutable actuelle.
+
 **Repères courants.** [`projects.nut`](../ai/OpexAI/projects.nut) classe les projets finançables
 sur le **profit calibré** via `fundScore` C69, non le revenu ; le dénominateur est
 `max(capital de décision, K_dec)` avec les exemptions/priorités applicables.

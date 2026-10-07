@@ -1175,7 +1175,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "rail_geometry_live_replan",
-      description = "on a live STNFAIL quote, refresh same-length station plans once and keep only the exact [lead,station_exit] path interface; no new A*; 0 = off (default)",
+      description = "on a live STNFAIL quote, retry an exact same-interface refresh once; if that interface disappeared, keep the pair eligible so the scheduler can replan it with a fresh A*; 0 = off (default)",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
@@ -1215,10 +1215,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "rail_target_cargo_prefilter",
-      description = "experimental opcode optimization: during targeted industry rail regeneration, skip fallback cargos that cannot structurally touch the target industry; 0 = off (default)",
+      description = "opcode optimization: during targeted industry rail regeneration, skip fallback cargos that cannot structurally touch the target industry; 1 = on (default)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });

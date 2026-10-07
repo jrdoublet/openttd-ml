@@ -2045,6 +2045,12 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local planA = plan.planA;
   local planB = plan.planB;
   local tiles = plan.tiles;
+  /* V100bis : si le devis prouve que l'interface A* memorisee n'existe plus dans le
+   * vivier de quais courant, ce n'est pas une impossibilite durable de la paire. Le caller
+   * efface deja candidate.railPlan apres OpexBuildLine ; un motif distinct lui permet donc
+   * de laisser le scheduler refaire naturellement un A* frais, sans reintroduire le vieux
+   * match station_exit-only et sans lancer un second pathfinder bloquant ici. */
+  local replanGeometry = false;
   /* Franchissement colle a une sortie de gare. Deux entiers sur result, lus par
    * RAIL_ATTEMPT. -1 si le trace est absent ou trop court pour l'index. Nul au defaut. */
   if (DECISION_LOG) {
@@ -2083,8 +2089,10 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
           OpexDecide("RAIL_GEOM_REPLAN_QUOTE", "src=" + candidate.src + " dst=" + candidate.dst
                      + " ok=" + (realCapital != null ? 1 : 0)
                      + " reason=" + (realCapital == null && ("reason" in quoteFailure)
-                                      ? quoteFailure.reason : "OK"));
+                                     ? quoteFailure.reason : "OK"));
         }
+      } else if (refresh.reason == "exact_interface_missing") {
+        replanGeometry = true;
       }
     }
     if (realCapital == null) {
@@ -2102,7 +2110,8 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
                    + " lead_b=" + (planB != null && ("lead" in planB) ? planB.lead : -1));
       }
       result.error = quoteFailure.error;
-      result.reason = result.error == AIError.ERR_NOT_ENOUGH_CASH ? "CASH" : quoteFailure.reason;
+      result.reason = result.error == AIError.ERR_NOT_ENOUGH_CASH ? "CASH"
+          : (replanGeometry ? "REPLAN_GEOM" : quoteFailure.reason);
       result.quoteFailure <- quoteFailure;
       return result;
     }
