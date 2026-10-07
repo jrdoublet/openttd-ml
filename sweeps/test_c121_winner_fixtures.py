@@ -15,7 +15,7 @@ class WinnerFixtureTests(unittest.TestCase):
         self.assertIsNone(evidence["eligible_share"])
 
     def test_duplicate_or_missing_case_fails(self):
-        line = "C121_WINNER_MATRIX case=1 cap=1 mail=0 mode=0 aaa=0 stable=1 eligible=1 old_ops=4000 new_ops=2200 pass=1"
+        line = "C121_WINNER_MATRIX case=1 cap=1 mail=0 aaa=0 stable=1 eligible=1 old_ops=4000 new_ops=2200 pass=1"
         self.assertFalse(markers(line + "\n" + line)["checks"]["matrix_cases"])
 
     def test_distribution_keeps_mail_and_topology(self):
@@ -31,7 +31,7 @@ class WinnerFixtureTests(unittest.TestCase):
         self.assertEqual(len(e["distribution"]), 2)
 
     def test_assertion_is_not_hidden_by_success_marker(self):
-        self.assertFalse(markers("C121_WINNER_ASSERT bad\nC121_WINNER_VM complete=1 cases=72 restored=1")["checks"]["no_fixture_assertion"])
+        self.assertFalse(markers("C121_WINNER_ASSERT bad\nC121_WINNER_VM complete=1 cases=18 restored=1")["checks"]["no_fixture_assertion"])
 
     def test_staging_changes_copy_only(self):
         root = Path(__file__).resolve().parents[1]

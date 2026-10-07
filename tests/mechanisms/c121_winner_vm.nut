@@ -54,9 +54,7 @@ function FxWPair(catalog, plan, plane, shortcut)
 
 function FxWMatrix(catalog, plan, plane)
 {
-  local saved = { aaa = C121_AAA_LINE, depth = C121_AIR_PORTFOLIO_DEPTH_ECONOMICS,
-      split = C121_AIR_PORTFOLIO_SPLIT_ECONOMICS, decision = C121_AIR_DECISION_DEPTH_ECONOMICS,
-      caps = C121_AIR_ENGINE_CAPACITY_OBS };
+  local saved = { aaa = C121_AAA_LINE, caps = C121_AIR_ENGINE_CAPACITY_OBS };
   OpexC121AirFleetScanCap = FxWCap;
   local count = 0;
   for (local mail = 0; mail < 3; mail++) {
@@ -64,62 +62,54 @@ function FxWMatrix(catalog, plan, plane)
     if (plane.id in C121_AIR_ENGINE_CAPACITY_OBS) delete C121_AIR_ENGINE_CAPACITY_OBS[plane.id];
     if (mail > 0) C121_AIR_ENGINE_CAPACITY_OBS.rawset(plane.id,
         { pax = plane.capacity, mail = mail == 1 ? 0 : 20 });
-    for (local mode = 0; mode < 4; mode++) {
-      C121_AIR_PORTFOLIO_DEPTH_ECONOMICS = mode == 1;
-      C121_AIR_PORTFOLIO_SPLIT_ECONOMICS = mode == 2;
-      C121_AIR_DECISION_DEPTH_ECONOMICS = mode == 3;
-      foreach (cap in [1, 2, 4]) {
-        FXW_CAP = cap;
-        for (local aaa = 0; aaa < 2; aaa++) {
-          C121_AAA_LINE = aaa != 0;
-          local oldPair = null;
-          local newPair = null;
-          local oldOps = 0;
-          local newOps = 0;
-          local stable = false;
-          local attempts = 0;
-          /* Suspensions can cross a day. Discard that timing sample and rerun
-           * the same directed input, at most eight times; never accept it. */
-          for (; attempts < 8; attempts++) {
-            local day = AIDate.GetCurrentDate();
-            local tick = AIController.GetTick();
-            local ops = AIController.GetOpsTillSuspend();
-            oldPair = FxWPair(catalog, plan, plane, false);
-            oldOps = OpexAirCalcDeltaOps(tick, ops);
-            tick = AIController.GetTick();
-            ops = AIController.GetOpsTillSuspend();
-            newPair = FxWPair(catalog, plan, plane, true);
-            newOps = OpexAirCalcDeltaOps(tick, ops);
-            stable = day == AIDate.GetCurrentDate();
-            if (stable) break;
-          }
-          FxWAssert(oldPair.initial != null && oldPair.full != null, "matrix_nonnull");
-          FxWAssert(stable, "matrix_no_stable_sample");
-          FxWAssert(FxWEqual(oldPair, newPair), "matrix_recursive_values");
-          local eligible = cap == 1 && aaa == 0;
-          if (eligible) {
-            local prior = newPair.initial.profitAnnual;
-            newPair.full.profitAnnual++;
-            FxWAssert(newPair.initial.profitAnnual == prior, "outer_alias");
-            prior = newPair.initial.decisionEconomics.profitAnnual;
-            newPair.full.decisionEconomics.profitAnnual++;
-            FxWAssert(newPair.initial.decisionEconomics.profitAnnual == prior, "nested_alias");
-          }
-          count++;
-          AILog.Info("C121_WINNER_MATRIX case=" + count + " cap=" + cap + " mail=" + mail
-              + " mode=" + mode + " aaa=" + aaa + " stable=" + (stable ? 1 : 0)
-              + " eligible=" + (eligible ? 1 : 0) + " old_ops=" + oldOps + " new_ops=" + newOps + " pass=1");
-          if (attempts > 0) AILog.Info("C121_WINNER_RETRY case=" + count + " discarded=" + attempts);
+    foreach (cap in [1, 2, 4]) {
+      FXW_CAP = cap;
+      for (local aaa = 0; aaa < 2; aaa++) {
+        C121_AAA_LINE = aaa != 0;
+        local oldPair = null;
+        local newPair = null;
+        local oldOps = 0;
+        local newOps = 0;
+        local stable = false;
+        local attempts = 0;
+        /* Suspensions can cross a day. Discard that timing sample and rerun
+         * the same directed input, at most eight times; never accept it. */
+        for (; attempts < 8; attempts++) {
+          local day = AIDate.GetCurrentDate();
+          local tick = AIController.GetTick();
+          local ops = AIController.GetOpsTillSuspend();
+          oldPair = FxWPair(catalog, plan, plane, false);
+          oldOps = OpexAirCalcDeltaOps(tick, ops);
+          tick = AIController.GetTick();
+          ops = AIController.GetOpsTillSuspend();
+          newPair = FxWPair(catalog, plan, plane, true);
+          newOps = OpexAirCalcDeltaOps(tick, ops);
+          stable = day == AIDate.GetCurrentDate();
+          if (stable) break;
         }
+        FxWAssert(oldPair.initial != null && oldPair.full != null, "matrix_nonnull");
+        FxWAssert(stable, "matrix_no_stable_sample");
+        FxWAssert(FxWEqual(oldPair, newPair), "matrix_recursive_values");
+        local eligible = cap == 1 && aaa == 0;
+        if (eligible) {
+          local prior = newPair.initial.profitAnnual;
+          newPair.full.profitAnnual++;
+          FxWAssert(newPair.initial.profitAnnual == prior, "outer_alias");
+          prior = newPair.initial.decisionEconomics.profitAnnual;
+          newPair.full.decisionEconomics.profitAnnual++;
+          FxWAssert(newPair.initial.decisionEconomics.profitAnnual == prior, "nested_alias");
+        }
+        count++;
+        AILog.Info("C121_WINNER_MATRIX case=" + count + " cap=" + cap + " mail=" + mail
+            + " aaa=" + aaa + " stable=" + (stable ? 1 : 0)
+            + " eligible=" + (eligible ? 1 : 0) + " old_ops=" + oldOps + " new_ops=" + newOps + " pass=1");
+        if (attempts > 0) AILog.Info("C121_WINNER_RETRY case=" + count + " discarded=" + attempts);
       }
     }
   }
   FXW_CAP = 0;
   OpexC121AirFleetScanCap = FXW_SCAN_CAP;
   C121_AAA_LINE = saved.aaa;
-  C121_AIR_PORTFOLIO_DEPTH_ECONOMICS = saved.depth;
-  C121_AIR_PORTFOLIO_SPLIT_ECONOMICS = saved.split;
-  C121_AIR_DECISION_DEPTH_ECONOMICS = saved.decision;
   C121_AIR_ENGINE_CAPACITY_OBS = saved.caps;
   FXW_MATRIX = true;
   AILog.Info("C121_WINNER_VM complete=1 cases=" + count + " restored=1");

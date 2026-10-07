@@ -796,7 +796,7 @@ function OpexAI::_dispatchReactiveIntention(intention)
 function OpexAI::_c77EnqueueEntity(modes, entityKind = null, entityId = -1, buildAfter = false,
                                    reason = "event")
 {
-  if (!C80_DOUBLE_REGISTER || modes == null) return false;
+  if (modes == null) return false;
   local targeted = entityKind != null && entityId >= 0;
   local validModes = [];
   local key = targeted ? ("c77|" + entityKind + "|" + entityId) : ("c77|" + reason);
@@ -906,7 +906,7 @@ function OpexAI::_c77InjectSubsidy(subId)
 }
 
 /* BOUCLE ORDONNANCÉE C80 TRANCHE 0 :
- * Appelée à la place de l'appel actuel à la file quand C80_DOUBLE_REGISTER est vrai.
+ * Appelée à la place de l'appel actuel à la file.
  * (a) Événements : traités dans main.nut par this._processEvents() à chaque itération (inchangé).
  * (b) Une intention réactive si la file réactive n'est pas vide (en tranche 0 elle est toujours vide).
  * (c) Une tranche du travailleur actif s'il y en a un.
@@ -1057,9 +1057,8 @@ function OpexAI::_c76BumpLayer(layer, isEvent = false)
     this._c76Revisions.engines.water++;
   }
 
-  // Si C80_DOUBLE_REGISTER est actif et qu'il s'agit d'un événement externe :
-  // enfiler une intention réactive de clé "regen" (coalescée)
-  if (isEvent && C80_DOUBLE_REGISTER) {
+  // Événement externe : enfiler une intention réactive de clé "regen" (coalescée)
+  if (isEvent) {
     this._enqueueReactive("regen", "regen", null);
   }
 }
@@ -1173,7 +1172,6 @@ function OpexAI::_c76DoFullRegen(reason, year)
     fleetPlan = [];
     this._resizeAirFleets(AIDate.GetYear(date), fleetPlan);
   }
-  if (V107_DENSIFY_PORTFOLIO) fleetPlan = this._v107AttachRailDensify(fleetPlan);
 
   if (this._recomputeEpochBounds) {
     OpexRefreshEpochBounds(this._catalog);

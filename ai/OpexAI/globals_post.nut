@@ -49,16 +49,11 @@ ABANDON_MEMORY <- true;
 ABANDON_COOLDOWN_DAYS <- 0;
 /* C22 : Filtrer les paires abandonnées dès la génération des candidats (defaut 1, adopte). */
 ABANDON_GEN_FILTER <- false;
-/* H1 : constante historique conservee bit-identique. */
-JOIN_MAX_DISTANCE <- 0;
 /* Filtre d'origine sitable : repli ACTIF jusqu'a la lecture unique de origin_sitable dans
  * Start(). Defaut passe a 1 le 2026-09-09 (decision utilisateur) ; 1 ecarte du TOP_K les
  * sources sans tuile de terre voyant le cargo dans leur bassin. Le classement a 0 reste celui
  * d'avant le filtre, conserve pour l'A/B. */
 ORIGIN_SITABLE <- true;
-/* Partage de bassin : repli FAUX jusqu'a la lecture unique de basin_share dans Start().
- * Defaut 0 apres banc apparie. */
-BASIN_SHARE <- false;
 /* Reconstitution de flotte routiere : repli ACTIF jusqu'a la lecture unique de road_refleet
  * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
  * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */

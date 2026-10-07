@@ -26,7 +26,7 @@ function OpexAmortProbeBegin(budget)
       && !C121_AIR_ECONOMICS && !C122_AIR_REGIME_PRIORITY && !C122_AIR_REGIME_SHADOW
       && !C118_AIR_TERRITORIAL_EXPANSION && !C120_AIR_TERRITORIAL_RANKING
       && !V92_AIR_SERVICE_CHOICE && C115_AIR_C100_CAPITAL_REPLAY
-      && !EXP_C83_WATCH_DAILY && !EXP_SCHEDULER_SKIP_NOT_DUE && !EXP_AIR_HUB_PAIR_PREFILTER;
+      && !EXP_SCHEDULER_SKIP_NOT_DUE && !EXP_AIR_HUB_PAIR_PREFILTER;
   return { id = AMORT_PROBE_SEQ, budget = budget, rows = [], originals = [],
       day = AIDate.GetCurrentDate(), tick = AIController.GetTick(), mark = OpexOpsMeasureBegin(),
       supported = supported, helperOps = 0, copyOps = 0, valid = supported };

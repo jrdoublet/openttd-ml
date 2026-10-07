@@ -21,7 +21,7 @@ def main():
         protected = {"c115_air_c100_capital_replay": 1, "c84_air_target_fleet": 0,
                      "c85_air_equipment_frontier": 0, "c121_air_economics": 0,
                      "c122_air_regime_priority": 0, "r19_fault_inject": 0,
-                     "exp_c83_watch_daily": 0, "exp_scheduler_skip_not_due": 0,
+                     "exp_scheduler_skip_not_due": 0,
                      "exp_air_hub_pair_prefilter": 0}
         if any(effective.get(key) != value for key, value in protected.items()):
             raise ValueError("Protected default drift")

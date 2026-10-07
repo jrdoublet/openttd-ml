@@ -35,9 +35,9 @@ def stage(folder):
 
 
 def markers(log):
-    matrix = [dict(zip(("case", "cap", "mail", "mode", "aaa", "stable", "eligible", "old_ops", "new_ops"),
+    matrix = [dict(zip(("case", "cap", "mail", "aaa", "stable", "eligible", "old_ops", "new_ops"),
                        map(int, row))) for row in re.findall(
-        r"C121_WINNER_MATRIX case=(\d+) cap=(\d+) mail=(\d+) mode=(\d+) aaa=(\d+) stable=(\d+) eligible=(\d+) old_ops=(\d+) new_ops=(\d+) pass=1", log)]
+        r"C121_WINNER_MATRIX case=(\d+) cap=(\d+) mail=(\d+) aaa=(\d+) stable=(\d+) eligible=(\d+) old_ops=(\d+) new_ops=(\d+) pass=1", log)]
     live = [dict(zip(("arm", "cap", "mail", "eligible", "stable", "full_ops", "copy_ops"), row))
             for row in re.findall(
                 r"C121_WINNER_LIVE arm=(\w+) cap=(\d+) mail=(\w+) eligible=(\d+) stable=(\d+) full_ops=(\d+) copy_ops=(-?\d+) pass=1", log)]
@@ -54,9 +54,9 @@ def markers(log):
             "eligible_full_ops": sum(r["full_ops"] for r in eligible),
             "eligible_copy_ops": sum(r["copy_ops"] for r in eligible),
             "checks": {"start": "C121_WINNER_START active=1 production_result=old" in log,
-                       "matrix_cases": [r["case"] for r in matrix] == list(range(1, 73)),
+                       "matrix_cases": [r["case"] for r in matrix] == list(range(1, 19)),
                        "matrix_stable": bool(matrix) and all(r["stable"] for r in matrix),
-                       "matrix_restored": "C121_WINNER_VM complete=1 cases=72 restored=1" in log,
+                       "matrix_restored": "C121_WINNER_VM complete=1 cases=18 restored=1" in log,
                        "live_exposed": bool(live),
                        "no_fixture_assertion": "C121_WINNER_ASSERT" not in log}}
 

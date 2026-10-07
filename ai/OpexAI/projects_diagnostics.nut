@@ -265,7 +265,6 @@ function OpexB6RepriceFreightTop(catalog, lines, project)
   local monthly = AIIndustry.GetLastMonthProduction(srcIndustry, cand.cargo);
   if (project.mode == "rail") {
     local srcService = OpexOriginService(lines, cand.src);
-    if (BASIN_SHARE && srcService != null) monthly = OpexShareBasin(monthly, lines, srcService.stationId, cand.cargo);
     if (monthly <= 0 && srcService != null && ("dstTown" in cand) && cand.dstTown >= 0) monthly = 45;
   }
   if (monthly <= 0) return { status = "not_generated_monthly", monthly = monthly };

@@ -334,8 +334,6 @@ class OpexAI extends AIController {
    * _c83SlotRace : date du dernier enqueue reussi (c83_fixes). Meme regime. */
   _c83SlotWatch = null;
   _c83SlotRace = null;
-  /* Horloge et mesures P4 reconstructibles, jamais serialisees. */
-  _expC83WatchDaily = null;
   /* c83_preempt_open : date de rearm par ville, ville deja demandee, et
    * nombre d'enqueues de la passe. Non lus quand le reglage est a 0. */
   _c83PreemptRace = null;
@@ -582,7 +580,6 @@ class OpexAI extends AIController {
   function _c77RemoveSubsidy(subId);
   function _c77RegenEntitySync(payload);
   function _c83WatchAirSlotTransitions();
-  function _expC83PollAirSlots(source = "main");
   function enqueue(key, kind, payload);
   function pop();
   function _advanceRailSearchThroughput(maxSlices = -1);
@@ -673,7 +670,6 @@ function OpexAI::Start()
     /* Branche de compatibilite volontairement vide : l'ancien flag etait force false. */
   }
   if (this._loadedFromSave) this._reconcileAfterLoad();
-  OpexExpC83ResetWatchDaily(this);
   if (DECISION_LOG) {
     OpexDecide("SETTINGS", "road_pax_build=" + ROAD_PAX_BUILD_ENABLED
                + " road_pax_voirie=" + ROAD_PAX_VOIRIE
@@ -717,9 +713,7 @@ function OpexAI::Start()
   }
 
   local spSelf = PROBE_SPAN_TRACE ? OpexSpanBegin("start.selftest") : null;
-  if (C80_DOUBLE_REGISTER) {
-    this._c80RunSelfTest();
-  }
+  this._c80RunSelfTest();
   if (C76_REGEN_TARGETED) {
     this._c76RunSelfTest();
   }
@@ -730,7 +724,7 @@ function OpexAI::Start()
     this._tryStartRailStockWorker();
   }
 
-  if (PROBE_LOOP_OPS && C80_DOUBLE_REGISTER) this._mainLoopProfiled();
+  if (PROBE_LOOP_OPS) this._mainLoopProfiled();
   while (true) {
     if (PROBE_SPAN_TRACE) {
       OpexSpanRescueOrphans();
@@ -751,97 +745,48 @@ function OpexAI::Start()
       this._refreshSaveProjection();
       if (spSave != null) OpexSpanEnd(spSave);
     } else if (this._saveProjection != null) this._saveProjection = null;
-    if (EXP_C83_WATCH_DAILY) {
-      local spC83 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c83") : null;
-      this._expC83PollAirSlots();
-      if (spC83 != null) OpexSpanEnd(spC83);
-    }
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
       OpexC117AirThroughputStep(this._lines, this._catalog);
       if (spC117 != null) OpexSpanEnd(spC117);
     }
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
-    if (C80_DOUBLE_REGISTER) {
-      local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
-      this._runOrchestratorTick();
-      if (spOrch != null) OpexSpanEnd(spOrch);
-      if (C121_CATALOG_INCREMENTAL) {
-        local spResume = null;
-        local catalogPending = true;
-        local continuationTick = AIController.GetTick();
-        while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
-          catalogPending = false;
-          foreach (queuedTask in this._taskQueue) {
-            if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
-                && queuedTask.c78AirRebuild != null) {
-              if (spResume == null && PROBE_SPAN_TRACE) spResume = OpexSpanBegin("loop.c121_catalog_resume");
-              catalogPending = true;
-              local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
-              this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
-              if (spCat != null) OpexSpanEnd(spCat);
-              break;
-            }
+    local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
+    this._runOrchestratorTick();
+    if (spOrch != null) OpexSpanEnd(spOrch);
+    if (C121_CATALOG_INCREMENTAL) {
+      local spResume = null;
+      local catalogPending = true;
+      local continuationTick = AIController.GetTick();
+      while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
+        catalogPending = false;
+        foreach (queuedTask in this._taskQueue) {
+          if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
+              && queuedTask.c78AirRebuild != null) {
+            if (spResume == null && PROBE_SPAN_TRACE) spResume = OpexSpanBegin("loop.c121_catalog_resume");
+            catalogPending = true;
+            local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
+            this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            if (spCat != null) OpexSpanEnd(spCat);
+            break;
           }
-          local spMid = (PROBE_SPAN_TRACE && catalogPending) ? OpexSpanBegin("loop.orch") : null;
-          if (catalogPending) this._runOrchestratorTick();
-          if (spMid != null) OpexSpanEnd(spMid);
         }
-        if (spResume != null) OpexSpanEnd(spResume);
+        local spMid = (PROBE_SPAN_TRACE && catalogPending) ? OpexSpanBegin("loop.orch") : null;
+        if (catalogPending) this._runOrchestratorTick();
+        if (spMid != null) OpexSpanEnd(spMid);
       }
-      local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
-      if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
-      if (spAstar != null) OpexSpanEnd(spAstar);
-      if (C67_SLACK_HOOK) {
-        local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
-        this._c67SlackHook();
-        if (spC67 != null) OpexSpanEnd(spC67);
-      }
-      local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
-      AIController.Sleep(1);
-      if (spSleep != null) OpexSpanEnd(spSleep);
-    } else if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
-    } else {
-      local spLegacy = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.legacy") : null;
-      this._runNextTaskWithSlackLedger();
-      if (spLegacy != null) OpexSpanEnd(spLegacy);
-      /* C121 : les tranches rendent la main aux taches dues dans la file, mais
-       * ne doivent pas imposer un Sleep entre deux tranches lorsque le tick a
-       * encore des opcodes. La file continue son tour normal a chaque appel. */
-      if (C121_CATALOG_INCREMENTAL) {
-        local spResumeLeg = null;
-        local catalogPending = true;
-        local continuationTick = AIController.GetTick();
-        while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick)) {
-          catalogPending = false;
-          foreach (queuedTask in this._taskQueue) {
-            if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
-                && queuedTask.c78AirRebuild != null) {
-              if (spResumeLeg == null && PROBE_SPAN_TRACE) spResumeLeg = OpexSpanBegin("loop.c121_catalog_resume");
-              catalogPending = true;
-              local spCatLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
-              this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
-              if (spCatLeg != null) OpexSpanEnd(spCatLeg);
-              break;
-            }
-          }
-          local spLegMid = (PROBE_SPAN_TRACE && catalogPending) ? OpexSpanBegin("loop.legacy") : null;
-          if (catalogPending) this._runNextTaskWithSlackLedger();
-          if (spLegMid != null) OpexSpanEnd(spLegMid);
-        }
-        if (spResumeLeg != null) OpexSpanEnd(spResumeLeg);
-      }
-      local spAstarLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
-      if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
-      if (spAstarLeg != null) OpexSpanEnd(spAstarLeg);
-      if (C67_SLACK_HOOK) {
-        local spC67Leg = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
-        this._c67SlackHook();
-        if (spC67Leg != null) OpexSpanEnd(spC67Leg);
-      }
-      local spSleepLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
-      AIController.Sleep(1);
-      if (spSleepLeg != null) OpexSpanEnd(spSleepLeg);
+      if (spResume != null) OpexSpanEnd(spResume);
     }
+    local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
+    if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+    if (spAstar != null) OpexSpanEnd(spAstar);
+    if (C67_SLACK_HOOK) {
+      local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
+      this._c67SlackHook();
+      if (spC67 != null) OpexSpanEnd(spC67);
+    }
+    local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
+    AIController.Sleep(1);
+    if (spSleep != null) OpexSpanEnd(spSleep);
   }
 }

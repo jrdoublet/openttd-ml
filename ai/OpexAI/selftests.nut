@@ -3,7 +3,7 @@
  * Requis apres la classe OpexAI ; appeles depuis OpexAI::Start sous les memes gardes. */
 
 /* Selftest C80 tranche 0 :
- * Déclenché une seule fois au démarrage si C80_DOUBLE_REGISTER est vrai.
+ * Déclenché une seule fois au démarrage.
  * 1. Enfile deux intentions de même clé (vérifie la coalescence).
  * 2. Enregistre le travailleur "noop" qui se termine en 3 étapes, vérifie les transitions.
  * 3. Vide tout et vérifie qu'aucun état ne subsiste.
@@ -656,28 +656,26 @@ function OpexAI::_c76RunSelfTest()
     return false;
   }
 
-  // 5. Test de la file réactive sous C80_DOUBLE_REGISTER
-  if (C80_DOUBLE_REGISTER) {
+  // 5. Test de la file réactive
+  this._clearReactiveQueue();
+  this._c76BumpLayer("towns", true); // isEvent = true
+  if (!this._hasReactiveIntentions()) {
+    AILog.Info("C76 selftest FAIL: event bump did not enqueue reactive regen");
     this._clearReactiveQueue();
-    this._c76BumpLayer("towns", true); // isEvent = true
-    if (!this._hasReactiveIntentions()) {
-      AILog.Info("C76 selftest FAIL: event bump did not enqueue reactive regen");
-      this._clearReactiveQueue();
-      this._c76LoadRevisions(savedRevs);
-      this._c76ForceReloadRegen = savedForceReload;
-      return false;
-    }
-    local popped = this._popReactive();
-    if (popped == null || popped.key != "regen") {
-      local pk = (popped != null) ? popped.key : "null";
-      AILog.Info("C76 selftest FAIL: expected key regen, got " + pk);
-      this._clearReactiveQueue();
-      this._c76LoadRevisions(savedRevs);
-      this._c76ForceReloadRegen = savedForceReload;
-      return false;
-    }
-    this._clearReactiveQueue();
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
   }
+  local popped = this._popReactive();
+  if (popped == null || popped.key != "regen") {
+    local pk = (popped != null) ? popped.key : "null";
+    AILog.Info("C76 selftest FAIL: expected key regen, got " + pk);
+    this._clearReactiveQueue();
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+  this._clearReactiveQueue();
 
   // Restauration propre de l'état
   this._c76LoadRevisions(savedRevs);

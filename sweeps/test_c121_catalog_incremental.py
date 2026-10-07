@@ -72,10 +72,10 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn("C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()", scheduler)
         self.assertIn("this._runOrchestratorTick();", source("main.nut"))
         self.assertEqual(source("main.nut").count(
-            "while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 2)
+            "while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 1)
         self.assertNotIn("AIController.GetOpsTillSuspend() > 10000", source("main.nut"))
         self.assertIn("AIController.GetTick() == continuationTick", scheduler)
-        self.assertEqual(source("main.nut").count("this._dispatchCatalog(queuedTask,"), 2)
+        self.assertEqual(source("main.nut").count("this._dispatchCatalog(queuedTask,"), 1)
         self.assertNotIn("OpexC121CatalogTownProductionBatch(this._catalog)) this._portfolioInvalidated", scheduler)
         self.assertIn("C121_CATALOG_AIR_FIRST_YEAR", read_projects_source())
         self.assertIn("doFreight = false;", read_projects_source())

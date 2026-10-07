@@ -809,10 +809,8 @@ function OpexAI::Save()
     activeGoodsChain = OpexSaveGoodsChain(this._activeGoodsChain),
     stateVersion = 2,
   };
-  if (C80_DOUBLE_REGISTER) {
-    saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
-    saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
-  }
+  saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
+  saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
   if (C76_REGEN_TARGETED) {
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }

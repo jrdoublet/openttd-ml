@@ -243,13 +243,9 @@ class SourceTests(unittest.TestCase):
 
     def test_preexisting_builder_entirely_preserved(self):
         original = re.sub(r"\n/\* FLEET_AMORT_SHADOW_BEGIN.*?/\* FLEET_AMORT_SHADOW_END \*/\n?", "", self.source, flags=re.S)
-        # Empreinte reprise apres 9e29951 (champs portfolio* du split C121,
-        # defaut 0), puis V107 : refus de densification rail dans
-        # OpexProjectFromFleet, derriere v107_densify_portfolio a defaut 0,
-        # puis retrait du repli N=1 (air0310_n1_fallback, code mort a defaut 0)
-        # de OpexProjectFromAir le 05/10.
+        # Empreinte du builder hors helper de sonde amortissement flotte.
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
-                         "05f7bf1e9cd138ca59386b968a6e9b7d36aa4ee456aa2f9a83cdf551e6a1c1ef")
+                         "399ee1dc158c20331af11d232d4d38429b47deaff0d91d30fefcc2fa80672cb0")
 
     def test_integrated_caller_is_diagnostic_helper_stays_explicit_opt_in(self):
         occurrences = sum(p.read_text(encoding="utf-8").count("OpexFleetAmortShadow(")

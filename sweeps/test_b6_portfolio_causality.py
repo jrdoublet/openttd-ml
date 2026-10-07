@@ -41,7 +41,7 @@ class TestB6PortfolioCausality(unittest.TestCase):
         self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", select)
         fund = body(self.projects, "function OpexProjectFundProfit(")
         self.assertIn("C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual", fund)
-        self.assertIn("if (!C121_AIR_PORTFOLIO_SPLIT_ECONOMICS", fund)
+        self.assertIn("return calibrated;", fund)
         self.assertIn('local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet" && !OpexC121ProjectHasRealization(project);', flat)
         helper = body(self.projects, "function OpexC121ProjectHasRealization(")
         self.assertIn("if (!C121_AIR_ECONOMICS", helper)
