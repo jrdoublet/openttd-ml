@@ -36,6 +36,18 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   `policy_vehicle_events` est multimodal et doit être traité séparément.
   Les verdicts 40×3 restent conservés ; aucune neutralité démontrée ni adoption.
   [Pertes, limites et ordre proposé](resultats_retests_c121_nuit_20261004.md#pertes-importantes-à-conserver-explicitement--décision-du-0410).
+  **Clarification utilisateur du 07/10** : cet ordre proposé n'est plus une file de
+  priorité. **La route n'est pas du tout prioritaire** ; `road_loading_fix` et
+  `road_time_scaled_cap` restent documentés mais ne doivent pas être traités comme
+  des NEXT actifs. La suite hors AIR doit privilégier les axes non-route ; dans ce
+  trio historique, `rail_depot_cost` est donc le seul candidat encore prioritaire.
+  **Garde-fou avant qualification de `rail_depot_cost`** : vérifier le défaut live
+  de `rail_terrain_factor` (initialiseur code à 170, setting actuellement à 100 et
+  relu par `settings.nut`) et déterminer s'il est intentionnel. L'historique du
+  02/09 déconseillait de corriger le dépôt isolément si le coût de voie papier restait
+  sous-estimé ; le devis physique ajoute en outre dépôt + 2 tuiles de raccord, alors
+  que `rail_depot_cost` n'ajoute que le dépôt. Ne pas interpréter une simple
+  exposition causale comme validation du modèle ni lancer une adoption avant ce check.
 
 - **Dix valeurs numériques C121 : évaluation terminée (04/10 20:12 Paris)** :
   neuf A complètes/saines, toutes `fail_primary` ; fenêtre live4→6 non validée
