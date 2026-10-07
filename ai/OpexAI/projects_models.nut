@@ -172,11 +172,7 @@ function OpexC70Factor(project)
 {
   local mode = ("mode" in project) ? project.mode : "unknown";
   if (mode == "fleet") {
-    /* Le mode du projet reste fleet (executeur d'achat). Le facteur, lui,
-     * suit le rail quand la charge est une densification. */
-    local payload = ("payload" in project) ? project.payload : null;
-    if (payload != null && ("v107Densify" in payload) && payload.v107Densify == "rail") mode = "rail";
-    else mode = "air";
+    mode = "air";
   }
   return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
 }

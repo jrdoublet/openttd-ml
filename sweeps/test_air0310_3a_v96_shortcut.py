@@ -116,7 +116,7 @@ class TestAir0310_3aV96Shortcut(unittest.TestCase):
         self.assertIn("AIEngine.IsBuildable(plane.id)", body)
         self.assertIn("OpexC118EngineFitsPlan(plan, plane)", body)
         self.assertIn("OpexAirPlaneInRange(plane, plan.distance)", body)
-        self.assertIn("OpexC121PrepareEngineContext(catalog, plan, plane)", body)
+        self.assertIn("local context = null;", body)
         gate = body.index("if (AIR0310_V96_SHORTCUT_LEAN) {")
         close = body.index("\n  }\n  local upperScore = context == null", gate)
         lean = body[gate:close]

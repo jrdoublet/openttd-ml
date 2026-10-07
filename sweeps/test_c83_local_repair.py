@@ -1,10 +1,25 @@
 """Source contracts and fail-closed reader, supplemented by real NoAI fixtures."""
 from pathlib import Path
+import re
 import unittest
 from c83_reaction import parse_c83_repairs
-from test_exp_c83_watch_daily import body
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def body(source, signature):
+    start = source.index(signature)
+    brace = source.index("{", start)
+    tokens = re.compile(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"|[{}]', re.S)
+    depth = 0
+    for token in tokens.finditer(source, brace):
+        if token.group() == "{":
+            depth += 1
+        elif token.group() == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start:token.end()]
+    raise AssertionError(f"unterminated function: {signature}")
 
 class LocalRepairContracts(unittest.TestCase):
     def test_isolated_setting_defaults_and_loading(self):

@@ -2662,8 +2662,7 @@ function OpexC121EngTabEmitPlan(plan, routeChoice)
       && routeChoice.portfolioEconomics != null) ? routeChoice.portfolioEconomics : null;
   local rankObj = opening;
   if (!C121_AIR_INITIAL_PROJECT_ECONOMICS) {
-    if (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS && portfolio != null) rankObj = portfolio;
-    else if (decision != null) rankObj = decision;
+    if (decision != null) rankObj = decision;
   }
   local eng = -1;
   if (routeChoice != null && ("plane" in routeChoice) && routeChoice.plane != null
@@ -2691,7 +2690,7 @@ function OpexC121EngTabEmitPlan(plan, routeChoice)
     n2C = OpexC121EngTabNum(C121_ENGTAB_N2, "capital");
   }
   local initFlag = C121_AIR_INITIAL_PROJECT_ECONOMICS ? 1 : 0;
-  local splitFlag = C121_AIR_PORTFOLIO_SPLIT_ECONOMICS ? 1 : 0;
+  local splitFlag = 0;
   local ge = 0;
   local geEst = -1;
   if (plan != null && ("c121GeMode" in plan) && plan.c121GeMode != null) ge = plan.c121GeMode;

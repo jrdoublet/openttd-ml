@@ -2501,7 +2501,7 @@ function OpexLoopProfFlushIfNewYear()
   OPEX_LOOP_PROF_TICK0 = tick;
 }
 
-/* Copie instrumentee de la branche C80_DOUBLE_REGISTER de la boucle de main.nut, appelee
+/* Copie instrumentee de la boucle de main.nut, appelee
  * uniquement sous probe_loop_ops=1 : le chemin par defaut reste celui de main.nut. */
 function OpexAI::_mainLoopProfiled()
 {
@@ -2522,13 +2522,6 @@ function OpexAI::_mainLoopProfiled()
     this._processEvents();
     if (spEvents != null) OpexSpanEnd(spEvents);
     OpexLoopProfAdd("events", mark);
-    if (EXP_C83_WATCH_DAILY) {
-      mark = OpexOpsMeasureBegin();
-      local spC83 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c83") : null;
-      this._expC83PollAirSlots();
-      if (spC83 != null) OpexSpanEnd(spC83);
-      OpexLoopProfAdd("c83_watch_daily", mark);
-    }
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       local before = C117_AIR_LAST_DATE;
       mark = OpexOpsMeasureBegin();

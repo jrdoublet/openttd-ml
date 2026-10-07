@@ -60,12 +60,11 @@ class TestCatalogContinuation(unittest.TestCase):
         self.assertFalse(self.admit(enabled=False))
 
     def test_both_dispatch_paths_capture_tick_and_keep_task_alternation(self):
-        self.assertEqual(self.main.count("local continuationTick = AIController.GetTick();"), 2)
-        self.assertEqual(self.main.count("while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 2)
-        self.assertEqual(self.main.count("this._dispatchCatalog(queuedTask,"), 2)
+        self.assertEqual(self.main.count("local continuationTick = AIController.GetTick();"), 1)
+        self.assertEqual(self.main.count("while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 1)
+        self.assertEqual(self.main.count("this._dispatchCatalog(queuedTask,"), 1)
         self.assertIn("if (catalogPending) this._runOrchestratorTick();", self.main)
-        self.assertIn("if (catalogPending) this._runNextTaskWithSlackLedger();", self.main)
-        self.assertEqual(self.main.count('queuedTask.c78AirRebuild != null'), 2)
+        self.assertEqual(self.main.count('queuedTask.c78AirRebuild != null'), 1)
         self.assertNotIn("GetOpsTillSuspend() > 10000", self.main)
 
     def test_slice_still_uses_live_budget_and_resumable_cursor(self):

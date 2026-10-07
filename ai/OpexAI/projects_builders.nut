@@ -205,16 +205,6 @@ function OpexProjectFromFleet(entry)
     if (revenue <= 0) revenue = profit;
     usedTargetMarginal = true;
   }
-  if (!usedTargetMarginal && ("v107Densify" in entry)) {
-    /* Densification rail. La marge est deja la difference 1 train -> 2.
-     * Champ absent ou non positif : refus, sans repli sur le profit de la ligne. */
-    if (entry.v107Densify != "rail"
-        || !("v107MarginalProfit" in entry) || !("v107MarginalRevenue" in entry)) return null;
-    profit = entry.v107MarginalProfit;
-    revenue = entry.v107MarginalRevenue;
-    if (profit <= 0 || revenue <= 0) return null;
-    usedTargetMarginal = true;
-  }
 
   if (!usedTargetMarginal) {
     local perPlaneProfit = 0;
@@ -324,9 +314,6 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   local economics = plan.economics;
   local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in plan)
       && plan.decisionEconomics != null) ? plan.decisionEconomics : economics;
-  local portfolioEconomics = (C121_AIR_PORTFOLIO_SPLIT_ECONOMICS
-      && ("portfolioEconomics" in plan) && plan.portfolioEconomics != null)
-      ? plan.portfolioEconomics : null;
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;
   if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
@@ -340,16 +327,6 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   local decisionBudgetCapital = decisionEconomics.capital + margin;
   if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
     decisionBudgetCapital += decisionEconomics.immobilise;
-  }
-  local portfolioDecisionBudgetCapital = 0;
-  if (portfolioEconomics != null && portfolioEconomics.profitAnnual > 0
-      && portfolioEconomics.revenueAnnual > 0 && portfolioEconomics.capital > 0) {
-    portfolioDecisionBudgetCapital = portfolioEconomics.capital + margin;
-    if (("immobilise" in portfolioEconomics) && portfolioEconomics.immobilise > 0) {
-      portfolioDecisionBudgetCapital += portfolioEconomics.immobilise;
-    }
-  } else {
-    portfolioEconomics = null;
   }
   /* Option experimentale : classer le projet sur ce qui est construit maintenant
    * (N=1). Les renforcements futurs restent des projets flotte independants. */
@@ -372,11 +349,6 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
-  if (portfolioEconomics != null) {
-    project.portfolioProfitAnnual <- portfolioEconomics.profitAnnual;
-    project.portfolioRevenueAnnual <- portfolioEconomics.revenueAnnual;
-    project.portfolioDecisionFinanceCapital <- portfolioDecisionBudgetCapital;
-  }
   if (C118_AIR_TERRITORIAL_EXPANSION) {
     project.c118TownIds <- OpexC118PlanCoverageTowns(plan, catalog.paxCargo);
     local c68 = (("c118C68Economics") in plan) ? plan.c118C68Economics : economics;

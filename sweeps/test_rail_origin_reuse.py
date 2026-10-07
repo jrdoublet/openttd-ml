@@ -333,16 +333,6 @@ class TestRailOriginReuse(unittest.TestCase):
         self.assertNotIn("RAIL_ORIGIN_REUSE", freight)
         self.assertIn("OpexRailAttachOriginReuse(candidate, ss, st);", freight)
 
-    def test_basin_share_is_preserved_before_origin_filter(self):
-        freight = function_body(self.candidates, "function OpexFreightCandidates(")
-        share = freight.index("if (BASIN_SHARE && ss != null)")
-        share_call = freight.index("OpexShareBasin(monthly, lines, ss.stationId, cargo)")
-        ind_guard = freight.index("if (ss != null || sd != null)")
-        town_guard = freight.index("if (ss != null || st != null)")
-        self.assertLess(share, share_call)
-        self.assertLess(share_call, ind_guard)
-        self.assertLess(share_call, town_guard)
-
     def test_rail_revalidation_already_rejects_only_both_served(self):
         body = function_body(self.projects, "function OpexCandidateStillValid(")
         rail = body[body.index('if (mode == "rail")'):]

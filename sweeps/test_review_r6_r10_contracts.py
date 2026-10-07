@@ -20,22 +20,10 @@ def _read(rel: str) -> str:
 
 
 class ReviewR6R10ContractsTest(unittest.TestCase):
-    def test_r6_compat_settings_are_explicitly_documented(self):
-        info = _read("ai/OpexAI/info.nut")
-        self.assertIn('name = "c80_double_register"', info)
-        self.assertIn('ignored: the double-register orchestrator is permanently on', info)
-        self.assertIn('name = "c102_air_station_rating_probe"', info)
-        self.assertIn('inactive compatibility setting: value is loaded but has no consumer', info)
-        self.assertIn('name = "v95_air_targeted_second"', info)
-        self.assertIn('name = "v95_air_post73_targeted"', info)
-
-    def test_r6_compat_settings_remain_loaded_without_behavior_toggle(self):
+    def test_r6_worker_settings_remain_loaded(self):
         settings = _read("ai/OpexAI/settings.nut")
-        self.assertIn('V95_AIR_TARGETED_SECOND = AIController.GetSetting("v95_air_targeted_second") != 0;', settings)
-        self.assertIn('V95_AIR_POST73_TARGETED = AIController.GetSetting("v95_air_post73_targeted") != 0;', settings)
-        self.assertIn('C102_AIR_STATION_RATING_PROBE = AIController.GetSetting("c102_air_station_rating_probe") != 0;', settings)
-        self.assertIn('C80_DOUBLE_REGISTER = true;', settings)
         self.assertIn('AIController.GetSetting("c80_worker_rail")', settings)
+        self.assertIn('AIController.GetSetting("c80_worker_town")', settings)
 
     def test_r7_defensive_floor_remains_protected_and_neutralized(self):
         settings = _read("ai/OpexAI/settings.nut")
@@ -75,22 +63,12 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
         self.assertIn("if (C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY", air)
         self.assertIn("C122_AIR_THREAT_PROBE = AIController.GetSetting(\"c122_air_threat_probe\") != 0 || C122_AIR_THREAT_RETRY;", settings)
 
-    def test_r9_locked_branches_stay_locked_until_opcode_measurement(self):
-        # R9 : branches mortes mais conditions evaluees ; leur retrait change
-        # les opcodes executes. Verrouillage conserve tant que non mesure.
+    def test_r9_opcode_compat_slots_remain(self):
         settings = _read("ai/OpexAI/settings.nut")
         pre = _read("ai/OpexAI/globals_pre.nut")
-        cands = _read("ai/OpexAI/candidates.nut")
-        projects = _read("ai/OpexAI/projects.nut")
-        self.assertIn("BASIN_SHARE = false;", settings)
-        self.assertIn("JOIN_MAX_DISTANCE = 0;", settings)
-        self.assertIn("C39_ENGINE_REFRESH = false;", settings)
         self.assertNotIn('GetSetting("basin_share")', settings)
         self.assertIn("OPEX_ECONOMY_OPCODE_COMPAT_FALSE", pre)
         self.assertIn("WATER_OPCODE_COMPAT_FALSE", pre)
-        self.assertIn("function OpexShareBasin(", cands)
-        self.assertEqual(cands.count("if (BASIN_SHARE && ss != null)"), 2)
-        self.assertIn("if (BASIN_SHARE && srcService != null)", projects)
 
 
 if __name__ == "__main__":

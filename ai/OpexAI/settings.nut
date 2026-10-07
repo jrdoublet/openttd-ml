@@ -90,7 +90,6 @@ function OpexLoadSettings()
 
   LOAN_REPAY_FLOOR = AIController.GetSetting("loan_repay_floor_k") * 1000;
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
-  RAIL_SEARCH_DAY_CAP = AIController.GetSetting("rail_search_day_cap");
   RAIL_UPGRADE_FAILURE_MEMORY = AIController.GetSetting("rail_upgrade_failure_memory") != 0;
   RAIL_GEOMETRY_GUARD = AIController.GetSetting("rail_geometry_guard") != 0;
   RAIL_GEOMETRY_EXACT_IDENTITY = AIController.GetSetting("rail_geometry_exact_identity") != 0;
@@ -293,9 +292,7 @@ function OpexLoadSettings()
   C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;
   C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
-  C83_SLOT_REACTION = AIController.GetSetting("c83_slot_reaction") != 0;
   C83_LOCAL_REPAIR = AIController.GetSetting("c83_local_repair") != 0;
-  EXP_C83_WATCH_DAILY = AIController.GetSetting("exp_c83_watch_daily") != 0;
   EXP_SCHEDULER_SKIP_NOT_DUE = AIController.GetSetting("exp_scheduler_skip_not_due") != 0;
   EXP_AIR_HUB_PAIR_PREFILTER = AIController.GetSetting("exp_air_hub_pair_prefilter") != 0;
   C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
@@ -305,18 +302,12 @@ function OpexLoadSettings()
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
-  /* R6 : compatibilite inactive, valeurs lues sans consommateur metier.
-   * Conserver ces lectures ; ne pas confondre avec la sonde V95 ci-dessus. */
-  V95_AIR_TARGETED_SECOND = AIController.GetSetting("v95_air_targeted_second") != 0;
-  V95_AIR_POST73_TARGETED = AIController.GetSetting("v95_air_post73_targeted") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
   C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;
   C100_AIR_TRIP_PHYSICAL = AIController.GetSetting("c100_air_trip_physical") != 0;
-  /* R6 : compatibilite inactive ; stockee sans lecteur, cette valeur n'active aucune sonde. */
-  C102_AIR_STATION_RATING_PROBE = AIController.GetSetting("c102_air_station_rating_probe") != 0;
   C101_AIR_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c101_air_physical_engine_choice") != 0;
   C103_AIR_C100_RANK_REPLAY = AIController.GetSetting("c103_air_c100_rank_replay") != 0;
   C104_AIR_C100_COMPARE_PROBE = AIController.GetSetting("c104_air_c100_compare_probe") != 0;
@@ -343,16 +334,8 @@ function OpexLoadSettings()
   C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
   C121_AIR_WINNER_FUSION = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_winner_fusion") != 0;
-  C121_AIR_ENGINE_CONTEXT = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_engine_context") != 0;
   C121_AIR_GAME_ENGINE = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_game_engine") != 0;
-  C121_AIR_DECISION_DEPTH_ECONOMICS = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_decision_depth_economics") != 0;
-  C121_AIR_PORTFOLIO_DEPTH_ECONOMICS = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_portfolio_depth_economics") != 0;
-  C121_AIR_PORTFOLIO_SPLIT_ECONOMICS = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_portfolio_split_economics") != 0;
   C121_CATALOG_INCREMENTAL = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_catalog_incremental") != 0;
   C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
@@ -598,14 +581,11 @@ function OpexLoadSettings()
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
   C67_WATER_EXPOSURE = AIController.GetSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
-  /* C77 corrige est permanent et repose sur le socle du double registre.
-   * R6 : c80_double_register reste public pour compatibilite (defaut declare 0),
-   * mais n'est pas lu : 0 comme 1 laisse ce socle actif. */
-  C80_DOUBLE_REGISTER = true;
-  C80_WORKER_RAIL = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_rail") != 0);
+  /* C77 corrige est permanent et repose sur le socle du double registre. */
+  C80_WORKER_RAIL = AIController.GetSetting("c80_worker_rail") != 0;
   C80_RAIL_STOCK_GATE = AIController.GetSetting("c80_rail_stock_gate") != 0;
   C80_RAIL_STOCK_WORKER = C80_RAIL_STOCK_GATE && (AIController.GetSetting("c80_rail_stock_worker") != 0);
-  C80_WORKER_TOWN = C80_DOUBLE_REGISTER && (AIController.GetSetting("c80_worker_town") != 0);
+  C80_WORKER_TOWN = AIController.GetSetting("c80_worker_town") != 0;
   C76_LEAN_INVALIDATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_lean_invalidation") != 0);
   C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
   C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
@@ -616,10 +596,7 @@ function OpexLoadSettings()
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
-  JOIN_MAX_DISTANCE = 0;
-  BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
-  V107_DENSIFY_PORTFOLIO = AIController.GetSetting("v107_densify_portfolio") != 0;
   AIR0310_V96_SHORTCUT_LEAN = AIController.GetSetting("air0310_v96_shortcut_lean") != 0;
   AIR0310_ONE_TWO_FUSED = AIController.GetSetting("air0310_one_two_fused") != 0;
   AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL
@@ -648,7 +625,6 @@ function OpexLoadSettings()
   OPEX_AIR_PLAN_PAD = false;
   OPEX_AIR_SITE_PAD = false;
   OPEX_AIR_TOWN_PAD = false;
-  C39_ENGINE_REFRESH = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   AIR_MAX_DISTANCE = 0;

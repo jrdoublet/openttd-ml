@@ -20,13 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/mechanisms/c121_winner_integration_vm.nut"
 
 
-def stage(folder, mode, source_copy=None, context_fixture=False):
-    if context_fixture:
-        from .c121_context_fixtures import stage_context
-        target = stage_context(folder)
-        main = target / "main.nut"
-        text = main.read_text(encoding="utf-8")
-    elif mode == "fixture":
+def stage(folder, mode, source_copy=None):
+    if mode == "fixture":
         target = fusion_stage(folder)
         shutil.copy2(FIXTURE, target / FIXTURE.name)
         main = target / "main.nut"
@@ -41,8 +36,7 @@ def stage(folder, mode, source_copy=None, context_fixture=False):
     if source_copy is None:
         text = replace_once(text, "  OpexLoadSettings();", """  OpexLoadSettings();
   AILog.Info("C121_INTEGRATION_RECEIPT fusion=" + (C121_AIR_WINNER_FUSION ? 1 : 0)
-      + " probe=" + (CATALOG_COST_PROBE ? 1 : 0)
-      + " context=" + (C121_AIR_ENGINE_CONTEXT ? 1 : 0));""")
+      + " probe=" + (CATALOG_COST_PROBE ? 1 : 0));""")
     elif text.count("C121_INTEGRATION_RECEIPT fusion=") != 1:
         raise ValueError("Expected one source-copy receipt")
     main.write_text(text, encoding="utf-8")
@@ -82,7 +76,7 @@ def probe_evidence(log, source):
 
 def compare_measurements(reference, variant, setting="c121_air_winner_fusion"):
     """Audit a specific OFF/ON pair; trajectories and work volumes may differ."""
-    if setting not in ("c121_air_winner_fusion", "c121_air_engine_context"):
+    if setting != "c121_air_winner_fusion":
         raise ValueError("Unsupported opcode intervention")
     plans = [json.loads((Path(p) / "plan.json").read_text(encoding="utf-8")) for p in (reference, variant)]
     reports = [json.loads((Path(p) / "report.json").read_text(encoding="utf-8")) for p in (reference, variant)]
@@ -100,9 +94,6 @@ def compare_measurements(reference, variant, setting="c121_air_winner_fusion"):
               "only_selected_setting_differs": diffs == [setting],
               "off_on": a["resolved_settings"].get(setting) == 0
                         and b["resolved_settings"].get(setting) == 1}
-    if setting == "c121_air_engine_context":
-        checks["adopted_fusion_common"] = all(p["resolved_settings"].get("c121_air_winner_fusion") == 1 for p in plans)
-        checks["c121_exposed_profile"] = all(p["resolved_settings"].get("c121_air_economics") == 1 for p in plans)
     left, right = [r["evidence"]["totals"] for r in reports]
     deltas = {}
     for key in ("c121_scan_ops", "c121_winner_ops", "air_ops", "total_ops", "c121_calls"):
@@ -127,14 +118,10 @@ def main(argv=None):
     parser.add_argument("--library-manifest", type=Path, required=True)
     parser.add_argument("--source-copy", type=Path)
     parser.add_argument("--use-default-settings", action="store_true", help="Smoke without explicit overrides")
-    parser.add_argument("--engine-context", type=int, choices=(0, 1), default=0)
-    parser.add_argument("--context-fixture", action="store_true")
     args = parser.parse_args(argv)
-    if args.context_fixture and (args.mode != "fixture" or args.engine_context != 0 or args.fusion != 1):
-        parser.error("Context fixture observes context OFF with the adopted winner fusion ON")
     if args.use_default_settings and args.mode != "smoke":
         parser.error("Default settings are reserved for the delivery smoke")
-    if args.mode == "fixture" and not args.context_fixture and args.fusion != 0:
+    if args.mode == "fixture" and args.fusion != 0:
         parser.error("Fixture observes the OFF witness and calls the ON pair alongside it")
     if args.source_copy and args.mode != "measure":
         parser.error("--source-copy is reserved for measurements")
@@ -145,7 +132,7 @@ def main(argv=None):
     from .game_health import assess_game, parse_script_errors
     from .campaign_freeze import parse_ai_settings
     before = source_hashes()
-    target = stage(folder, args.mode, args.source_copy, args.context_fixture)
+    target = stage(folder, args.mode, args.source_copy)
     copied = tree_hashes(target)
     source_copy_hashes = tree_hashes(args.source_copy) if args.source_copy else None
     fixture_hashes = {p.name: digest(p) for p in ROOT.glob("tests/mechanisms/c121*vm.nut")}
@@ -154,19 +141,17 @@ def main(argv=None):
     libraries, groups = cached_libraries(args.library_manifest, driver.CACHE_DIR, folder / "ai_libraries")
     settings = () if args.use_default_settings else (
         ("c121_air_economics", 1), ("c121_air_winner_fusion", args.fusion),
-        ("c121_air_engine_context", args.engine_context),
         ("catalog_cost_probe", int(args.mode == "measure")))
     defaults = parse_ai_settings(target / "info.nut")
     resolved = {**defaults, **dict(settings)}
     loaded_fusion = int(bool(resolved["c121_air_economics"] and resolved["c121_air_winner_fusion"]))
     loaded_probe = int(bool(resolved["catalog_cost_probe"]))
-    loaded_context = int(bool(resolved["c121_air_economics"] and resolved["c121_air_engine_context"]))
     cfg = driver.bench_v2.make_cfg(1970)
     arm = openttdlab.local_folder(str(target), "OpexAI", settings)
     shutil.copy2(Path(__file__), folder / "executed_runner.py")
     write_new(folder / "plan.json", {"kind": "integrated_opcode_experiment_not_adoption",
-        "mode": args.mode, "fusion": args.fusion, "engine_context": args.engine_context,
-        "context_fixture": args.context_fixture, "seed": args.seed, "years": 1, "workers": 1,
+        "mode": args.mode, "fusion": args.fusion,
+        "seed": args.seed, "years": 1, "workers": 1,
         "settings": settings, "resolved_settings": resolved,
         "source_hashes": measured_sources(before, copied) if args.source_copy else before,
         "live_source_hashes": before, "source_copy": str(args.source_copy) if args.source_copy else None,
@@ -195,17 +180,12 @@ def main(argv=None):
     phase["integrity"] = phase_integrity(phase, "1970-01-01", 1)
     checks = {**phase["integrity"], "game_health": phase["health"]["game_ok"],
               "loaded_setting_receipt": f"C121_INTEGRATION_RECEIPT fusion={loaded_fusion} probe={loaded_probe}" in log,
-              "loaded_context_receipt": f"probe={loaded_probe} context={loaded_context}" in log,
               "sources_unchanged": (measured_sources(before, copied) == measured_sources(source_hashes(), copied)
                                     and source_copy_hashes == tree_hashes(args.source_copy)) if args.source_copy else before == source_hashes(),
               "copy_unchanged": copied == tree_hashes(target),
               "fixtures_unchanged": fixture_hashes == {p.name: digest(p) for p in ROOT.glob("tests/mechanisms/c121*vm.nut")}}
     evidence = None
-    if args.context_fixture:
-        from .c121_context_fixtures import markers as context_markers
-        evidence = context_markers(log)
-        checks.update(evidence["checks"])
-    elif args.mode == "fixture":
+    if args.mode == "fixture":
         evidence = markers(log)
         checks.update(evidence["checks"])
         checks["integrated_fixture"] = "C121_INTEGRATION_START pass=1" in log

@@ -45,7 +45,8 @@ def stage(folder):
         "main.nut": [
             ('function OpexAI::Start()', 'require("fleet_vm.nut");\nrequire("world_fleet.nut");\n\nfunction OpexAI::Start()'),
             ('  OpexLoadSettings();', '  OpexLoadSettings();\n  if (!this._loadedFromSave) FxMatrix();'),
-            ('  OpexExpC83ResetWatchDaily(this);', '  FxResume(this);\n  OpexExpC83ResetWatchDaily(this);'),
+            ('  if (this._loadedFromSave) this._reconcileAfterLoad();',
+             '  if (this._loadedFromSave) this._reconcileAfterLoad();\n  FxResume(this);'),
         ],
         "task_air.nut": [('        plan.append(fleetEntry);', '        plan.append(fleetEntry);\n        FxEntry(this, fleetEntry);')],
         "persist.nut": [

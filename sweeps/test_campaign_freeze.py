@@ -237,7 +237,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "air_hubhub_marginal", "c121_air_project_realization_adaptive", "c121_air_first_live_growth",
                      "c80_marginal_floor"):
             self.assertEqual(defaults[name], 1, name)
-        for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c84_air_target_fleet", "c85_air_equipment_frontier", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate", "c80_double_register",
+        for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c84_air_target_fleet", "c85_air_equipment_frontier", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate",
                      "c76_lean_invalidation", "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "rail_depot_cost",
@@ -248,7 +248,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "v88_all_inputs", "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve",
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
                      "c97_air_c69_engine_probe", "c98_air_realized_probe",
-                     "c99_air_speed_api_fix", "c100_air_trip_physical", "c101_air_physical_engine_choice", "c102_air_station_rating_probe",
+                     "c99_air_speed_api_fix", "c100_air_trip_physical", "c101_air_physical_engine_choice",
                      "c103_air_c100_rank_replay", "c104_air_c100_compare_probe",
                      "c105_air_replay_choice_physical_economics", "c106_air_marginal_physical_engine_choice",
                      "c108_air_onestep_physical_economics",
