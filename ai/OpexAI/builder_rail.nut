@@ -1152,6 +1152,22 @@ function OpexRailTrackFailureIsPersistentGeometry(failure, planA, planB)
   return failure.tile == leadA || failure.tile == leadB;
 }
 
+/* Quand le match historique sur station_exit remplace le quai initial,
+ * le lead d'A* (tiles[1]/tiles[last-1]) peut differer de planA.lead/planB.lead.
+ * Une gare propre qui couvre ce lead apres pose donne alors un TRKFAIL
+ * permanent jusqu'au changement de geometrie. Signature fret seulement. */
+function OpexRailTrackFailureIsPersistentPathLead(failure, tiles)
+{
+  if (failure == null || tiles == null || tiles.len() < 3) return false;
+  if (!("error" in failure) || failure.error != AIError.ERR_AREA_NOT_CLEAR) return false;
+  if (!("is_station" in failure) || failure.is_station != 1) return false;
+  if (!("owner_self" in failure) || failure.owner_self != 1) return false;
+  if (!("index" in failure) || !("tile" in failure)) return false;
+  local last = tiles.len() - 1;
+  return (failure.index == 1 && failure.tile == tiles[1])
+      || (failure.index == last - 1 && failure.tile == tiles[last - 1]);
+}
+
 /* Une voie parallele d'upgrade doit rester une branche independante. Le pathfinder peut donner
  * un cout faible a un rail deja pose ; l'accepter fabriquerait un aiguillage implicite que le
  * rollback ne pourrait pas restaurer. Les deux sorties de quai (indices 0 et last) sont exclues. */
@@ -2190,15 +2206,19 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   /* Table seulement sous decision_log ou garde geometrique : null au defaut 0/0. */
   local trackFailure = null;
-  if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};
+  if (DECISION_LOG || RAIL_GEOMETRY_GUARD
+      || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight")) trackFailure = {};
   local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
       AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&
       AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);
   if (!connected) {
-    if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY && trackFailed > 0 &&
-        OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB)) {
+    if (trackFailed > 0 &&
+        ((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
+            && OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB))
+         || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"
+             && OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)))) {
       result.persistentGeometry <- true;
       result.error = trackFailure.error;
     }
@@ -2234,6 +2254,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
         if ("dup_index" in trackFailure) fields += " dup=" + trackFailure.dup_index;
       }
       /* Identite planifiee de la gare B, toujours sous DECISION_LOG. */
+      if ("lead" in planA) fields += " leada=" + planA.lead;
       if ("lead" in planB) fields += " leadb=" + planB.lead;
       if ("station_exit" in planB) fields += " exitb=" + planB.station_exit;
       /* Deux bouts du trace, y compris quand failed=0 (table failure vide).

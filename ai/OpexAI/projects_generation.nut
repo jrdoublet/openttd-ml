@@ -273,6 +273,69 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
   return false;
 }
 
+/* Paires rail du cache : miroir volontaire des deux rayons de
+ * OpexAI::_tooClose. Le chantier historique reste la source de verite.
+ * Aucun appel si rail_cached_proximity_gate=0. Ne pas traiter les
+ * projets V88 chain sans traduire inputCandidate (non actifs au defaut). */
+function OpexRailCachedProximity(project, lines)
+{
+  if (project == null || !("payload" in project) || project.payload == null
+      || lines == null) return null;
+  local candidate = project.payload;
+  if (("isChain" in candidate) && candidate.isChain) return null;
+  if (!("src" in candidate) || !("dst" in candidate)) return null;
+  local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
+  local entries = [["A", candidate.src], ["B", candidate.dst]];
+  local originA = -1;
+  local originB = -1;
+  foreach (line in lines) {
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local originTile = lineEnd == "A" ? line.originA : line.originB;
+      foreach (entry in entries) {
+        local d = AIMap.DistanceManhattan(entry[1], originTile);
+        if (d >= ORIGIN_SEPARATION) continue;
+        if (entry[0] == "A") originA = OpexRememberClosest(d, ORIGIN_SEPARATION, originA);
+        else originB = OpexRememberClosest(d, ORIGIN_SEPARATION, originB);
+      }
+    }
+  }
+  if (originA >= 0 && originB >= 0)
+    return { hard = (originA < originB ? originA : originB), blocking = -1 };
+  local blocking = originA >= 0 ? originA : originB;
+  foreach (line in lines) {
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local stationId = OpexLineStationId(line, lineEnd);
+      if (stationId < 0) continue;
+      local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
+      foreach (entry in entries) {
+        local d = AIMap.DistanceManhattan(entry[1], stationTile);
+        blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);
+      }
+    }
+  }
+  return { hard = -1, blocking = blocking };
+}
+
+/* Revalidation de cache / reselection seulement, pas generation fraiche.
+ * Les rejets shadow sont des occurrences de passages, pas des projets uniques. */
+function OpexRailCachedProximityKeep(project, lines, phase)
+{
+  if (RAIL_CACHED_PROXIMITY_GATE == 0 || project == null || project.mode != "rail") return true;
+  local close = OpexRailCachedProximity(project, lines);
+  if (close == null || (close.hard < 0 && close.blocking < 0)) return true;
+  if (DECISION_LOG) {
+    OpexDecide("RAIL_CACHE_PROXIMITY",
+        "phase=" + phase + " gate=" + RAIL_CACHED_PROXIMITY_GATE
+        + " kind=" + project.kind + " src=" + project.src + " dst=" + project.dst
+        + " hard=" + close.hard + " blocking=" + close.blocking);
+  }
+  return RAIL_CACHED_PROXIMITY_GATE != 2;
+}
+
 /* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines.
  * Verifie qu'aucune extremite n'est devenue invalide, qu'aucune ligne identique n'a ete batie,
  * et que les contraintes physiques du mode tiennent toujours. */
@@ -371,6 +434,7 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
     if (OpexOriginServed(lines, p.src, false) && OpexOriginServed(lines, p.dst, false)) {
       return false;
     }
+    if (!OpexRailCachedProximityKeep(p, lines, "incremental")) return false;
     return true;
   }
 

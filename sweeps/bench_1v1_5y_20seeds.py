@@ -408,6 +408,120 @@ def c75_bypass_sign_metrics(chunks):
     }
 
 
+RAIL_ATTEMPT_REASON_CODES = {
+    "K": "OK", "A": "ABND", "D": "DEAD", "P": "NOPA", "L": "NOPLAN",
+    "B": "SITEA", "C": "SITEB", "G": "SITEAB", "F": "ECON", "H": "SHORT",
+    "M": "NOMATCH", "S": "STNFAIL", "T": "TRKFAIL", "E": "DEPFAIL",
+    "U": "SIGFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "J": "REPLAN_GEOM",
+    "X": "OTHER",
+}
+
+
+def rail_attempt_sign_metrics(chunks, *, current_year=STARTING_YEAR, target_owner=0):
+    """Read retained OR/OB|A rail-attempt signs; never infer missing attempts.
+
+    OR|yy|line|position|<budget_path>S<reason>|iteration_budget|iterations
+    OB|A|yy|line|position|opcodes|distance
+
+    The signs have no unique attempt ID or freight/passenger field. Repeated
+    (year, line, position) keys cannot be paired reliably. AISign names are
+    silently clipped to 31 characters by OpexSign; even a valid 31-char name
+    could have a truncated final number, so it is excluded and flagged.
+    A missing SIGN chunk is unknown, not an observed zero. Existing signs may
+    also be absent because the game has reached its sign/map limit. Monthly
+    checkpoints repeat retained signs: never sum these counts across dates.
+    """
+    keys = ("rail_attempt_sign_or", "rail_attempt_sign_ob", "rail_attempt_sign_by_year",
+            "rail_attempt_sign_invalid", "rail_attempt_sign_length_limit",
+            "rail_attempt_sign_key_coverage")
+    signs = (chunks or {}).get("SIGN")
+    if not isinstance(signs, (dict, list)):
+        return {"rail_attempt_sign_coverage": "missing_sign_chunk",
+                **{key: None for key in keys}}
+
+    or_events, ob_events = [], []
+    invalid = {"OR": 0, "OB": 0}
+    length_limit = {"OR": 0, "OB": 0}
+    patterns = {
+        "OR": re.compile(r"OR\|([0-9]{1,2})\|([0-9]+)\|([0-9]+)\|([ZFCN])S([A-Z])\|([0-9]+)\|([0-9]+)"),
+        "OB": re.compile(r"OB\|A\|([0-9]{1,2})\|([0-9]+)\|([0-9]+)\|([0-9]+)\|([0-9]+)"),
+    }
+    records = signs.values() if isinstance(signs, dict) else signs
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        if "owner" in sign and str(sign["owner"]) != str(target_owner):
+            continue
+        name = sign.get("name")
+        if not isinstance(name, str):
+            continue
+        panel = "OR" if name.startswith("OR|") else "OB" if name.startswith("OB|A|") else None
+        if panel is None:
+            continue
+        if len(name) >= 31:
+            length_limit[panel] += 1
+            continue
+        match = patterns[panel].fullmatch(name)
+        if match is None or (panel == "OR" and match[5] not in RAIL_ATTEMPT_REASON_CODES):
+            invalid[panel] += 1
+            continue
+        year = (int(current_year) // 100) * 100 + int(match[1])
+        if year > int(current_year):
+            year -= 100
+        key = {"year": year, "line_id": int(match[2]), "position": int(match[3])}
+        if panel == "OR":
+            or_events.append({**key, "budget_path": match[4],
+                              "reason_code": match[5],
+                              "reason": RAIL_ATTEMPT_REASON_CODES[match[5]],
+                              "iteration_budget": int(match[6]), "iterations": int(match[7])})
+        else:
+            ob_events.append({**key, "opcodes": int(match[4]), "distance": int(match[5])})
+
+    by_year = {}
+    for event in or_events:
+        year = str(event["year"])
+        entry = by_year.setdefault(year, {"or_signs": 0, "reasons": {},
+                                          "iterations": 0, "iteration_budget": 0,
+                                          "ob_signs": 0, "opcodes": 0})
+        entry["or_signs"] += 1
+        reason = event["reason"]
+        entry["reasons"][reason] = entry["reasons"].get(reason, 0) + 1
+        entry["iterations"] += event["iterations"]
+        entry["iteration_budget"] += event["iteration_budget"]
+    for event in ob_events:
+        entry = by_year.setdefault(str(event["year"]), {"or_signs": 0, "reasons": {},
+                                                        "iterations": 0, "iteration_budget": 0,
+                                                        "ob_signs": 0, "opcodes": 0})
+        entry["ob_signs"] += 1
+        entry["opcodes"] += event["opcodes"]
+
+    # Only a diagnostic of sign coverage: equal keys do not prove same attempt.
+    or_keys, ob_keys = defaultdict(int), defaultdict(int)
+    for event in or_events:
+        or_keys[(event["year"], event["line_id"], event["position"])] += 1
+    for event in ob_events:
+        ob_keys[(event["year"], event["line_id"], event["position"])] += 1
+    key_coverage = {"unique_one_to_one_keys": 0, "or_without_ob": 0,
+                    "ob_without_or": 0, "ambiguous_keys": 0}
+    for key in or_keys.keys() | ob_keys.keys():
+        left, right = or_keys[key], ob_keys[key]
+        if left == right == 1:
+            key_coverage["unique_one_to_one_keys"] += 1
+        if left > 1 or right > 1:
+            key_coverage["ambiguous_keys"] += 1
+        key_coverage["or_without_ob"] += max(0, left - right)
+        key_coverage["ob_without_or"] += max(0, right - left)
+    return {
+        "rail_attempt_sign_coverage": "retained_signs_only",
+        "rail_attempt_sign_or": or_events,
+        "rail_attempt_sign_ob": ob_events,
+        "rail_attempt_sign_by_year": dict(sorted(by_year.items())),
+        "rail_attempt_sign_invalid": invalid,
+        "rail_attempt_sign_length_limit": length_limit,
+        "rail_attempt_sign_key_coverage": key_coverage,
+    }
+
+
 def project_build_sign_metrics(chunks):
     """Somme les chantiers deja publies par IB|...|B<n>, sans nouvelle sonde IA."""
     signs = (chunks or {}).get("SIGN") or {}
@@ -1047,6 +1161,8 @@ def keep(row):
     structural.update(c120_sign_metrics(chunks))
     rec0.update(structural)
     rec1.update(structural)
+    # OR/OB|A belong to OpexAI only; the SIGN chunk is shared by both players.
+    rec0.update(rail_attempt_sign_metrics(chunks, current_year=sign_year))
     shared_identity = {
         "campaign_id": experiment.get("campaign_id"),
         "game_id": experiment.get("game_id"),

@@ -95,6 +95,9 @@ function OpexLoadSettings()
   RAIL_GEOMETRY_EXACT_IDENTITY = AIController.GetSetting("rail_geometry_exact_identity") != 0;
   RAIL_GEOMETRY_PREFILTER = AIController.GetSetting("rail_geometry_prefilter") != 0;
   RAIL_GEOMETRY_PAIR_MEMORY = AIController.GetSetting("rail_geometry_pair_memory") != 0;
+  RAIL_FREIGHT_TRKFAIL_MEMORY = AIController.GetSetting("rail_freight_trkfail_memory") != 0;
+  RAIL_CACHED_PROXIMITY_GATE = AIController.GetSetting("rail_cached_proximity_gate");
+  RAIL_FAILURE_AUDIT = AIController.GetSetting("rail_failure_audit") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
   RAIL_ORIGIN_REUSE = AIController.GetSetting("rail_origin_reuse") != 0;
   RAIL_ORIGIN_EXPOSURE_SHADOW = AIController.GetSetting("rail_origin_exposure_shadow") != 0;
@@ -274,6 +277,7 @@ function OpexLoadSettings()
 
   // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, reserves, origin relax, town rating
   local probePort = AIController.GetSetting("probe_portfolio") != 0;
+  RAIL_FREIGHT_SELECT_SHADOW = AIController.GetSetting("rail_freight_select_shadow") != 0;
   C49_SCARCITY_LEDGER = probePort;
   C50_CHRONOLOGY_PROBE = probePort;
   if (C50_CHRONOLOGY_PROBE) {

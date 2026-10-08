@@ -214,6 +214,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "rail_freight_select_shadow",
+      description = "Diagnostic only: log freight rail cash, floor and final selection counts; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c69_fleet_demand_batch",
       description = "C69: allow air fleet expansion batch size to match measured waiting demand without the 4-plane cap; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -1168,6 +1176,34 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "rail_freight_trkfail_memory",
+      description = "Isolated freight-only memory for persistent own-station lead TRKFAIL; 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "rail_cached_proximity_gate",
+      description = "Cached rail candidate proximity against live rail lines: 0 historical (default), 1 shadow only, 2 drop before selection",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "rail_failure_audit",
+      description = "Diagnostic-only rail attempts and proximity refusals by kind; 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
 

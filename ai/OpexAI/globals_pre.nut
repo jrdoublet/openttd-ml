@@ -676,6 +676,8 @@ C78_SLOT_PASS_COUNTER <- 0;
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */
 MONTHLY_FUNNEL <- false;
+/* Diagnostic freight ranking; isolated and off by default. No saved state. */
+RAIL_FREIGHT_SELECT_SHADOW <- false;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
 /* B3 : test du plafond routier remis à l'échelle par le temps passé à quai. Défaut 0 tant que
@@ -828,6 +830,14 @@ RAIL_GEOMETRY_GUARD <- false;
 RAIL_GEOMETRY_EXACT_IDENTITY <- true;
 RAIL_GEOMETRY_PREFILTER <- true;
 RAIL_GEOMETRY_PAIR_MEMORY <- true;
+/* Isolation fret : memorise uniquement un TRKFAIL de quai propre prouve persistant,
+ * sans activer les autres branches du garde V100. Defaut 0. */
+RAIL_FREIGHT_TRKFAIL_MEMORY <- false;
+/* Projets rail du cache : 0 historique, 1 shadow des rejets de proximite
+ * que _tooClose imposerait au chantier, 2 exclusion avant TOP_K. */
+RAIL_CACHED_PROXIMITY_GATE <- 0;
+/* Sondes de tentatives / refus de proximite ferroviaires, OFF par defaut. */
+RAIL_FAILURE_AUDIT <- false;
 /* Si un devis vivant STNFAIL sur le quai exact choisi avant l'A*, recalculer une fois les plans
  * de quai a longueur identique et ne garder qu'un plan exposant le meme [lead, station_exit].
  * Aucun nouvel A* ; defaut 0 pendant qualification. */

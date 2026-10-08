@@ -299,10 +299,12 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         local inputCand = candidate.inputCandidate;
         local close = this._tooClose(inputCand);
         if (close.hard >= 0) {
+          if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", inputCand, "too_close_hard", 0, 0, 0);
           if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
         if (close.blocking >= 0) {
+          if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", inputCand, "too_close_no_join", 0, 0, 0);
           if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
@@ -419,10 +421,12 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
+        if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_hard", 0, 0, 0);
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       if (close.blocking >= 0) {
+        if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_no_join", 0, 0, 0);
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -1487,6 +1491,10 @@ function OpexAI::_consumeRailSearch(year)
  * panneaux OR/OB restent identiques. */
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 {
+  if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
+      (result.ok ? "OK" : (("reason" in result) && result.reason != "" ? result.reason : "UNKNOWN")),
+      (result.ok ? 1 : 0), (("actualCost" in result) ? result.actualCost : 0),
+      (("opcodes" in result) ? result.opcodes : 0));
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
   local budgetInfo = (("budgetInfo" in result) && result.budgetInfo != null)
@@ -1637,7 +1645,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
   }
   if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
                          result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL"
-                         || (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
+                         || (((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY)
+                              || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"))
                              && result.reason == "TRKFAIL"
                              && ("persistentGeometry" in result) && result.persistentGeometry))) {
     this._markPairAbandoned(OpexAbandonedPairKey(candidate));

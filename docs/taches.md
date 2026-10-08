@@ -7,6 +7,40 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **V134 — second aéroport AIR pour hub saturé (08/10)** : banc demandé
+  **40 graines × 5 ans** terminé sur `7e01b8e`, bras
+  `v134_air_p2p_saturated_hub=0` contre `=1`. 40/40 paires comparables,
+  profit terminal +2,20 k£/an en moyenne (médiane −21,58 k£),
+  V/D/E 19/21/0, Wilcoxon p=0,826, IC95 bootstrap
+  [−44,96 ; +51,48] k£ ; valeur +0,54 %. **`fail_primary`** au seuil
+  pré-enregistré de +4 %. **20×10 supplémentaire explicitement demandé** :
+  20/20 paires et 40/40 parties saines, profit −4,32 k£/an,
+  médiane −34,44 k£, V/D/E 7/13/0, Wilcoxon p=0,784,
+  IC95 [−88,19 ; +84,39] k£, valeur +1,36 % : **`pass non_erosion`**
+  (aucune perte statistiquement établie, aucun gain démontré). Le 40×5
+  n'ayant pas passé sa porte de gain, **V134 reste à défaut 0, non adopté**.
+  L'exposition directe de `V134_P2P` n'était pas loguée ; +0,75 aéroport
+  Opex à cinq ans est un indicateur physique secondaire.
+  L'audit identifie une interaction **non additive C83** et un
+  **profit marginal réseau potentiellement surestimé** (pertes des anciennes
+  lignes non imputées aux `newpair`). Attribution par graine non mesurée.
+  [40×5](v134_air_p2p_40x5_20261008.md) · [20×10](v134_air_p2p_20x10_20261008.md) ·
+  [diagnostic et mesures manquantes](diagnostic_v133_v134_air_20261008.md).
+
+- **V133 — quarantaine AIR après échec (08/10, défaut 0 maintenu)** :
+  porte A historique 40×3 `fail_primary` (−10,3 k£/an).
+  Diagnostic supplémentaire **40×5 complet/sain (40/40)** :
+  profit annuel variante − référence **−45,80 k£/an**,
+  médiane −73,79 k£, V/D/E 15/25/0, Wilcoxon p=0,077,
+  IC95 [−96,41 ; +7,30] k£, valeur −2,15 % (garde tenue) :
+  **`fail_primary`**. Le « salvage » ne fait que compter les
+  paires du lot déjà parcourues sous OFF ; en revanche, une revalidation
+  négative peut mettre **toute la ville en quarantaine 730 jours**,
+  y compris bloquer des hubs réutilisables. La fréquence et le
+  coût des faux blocages restent à mesurer.
+  [banc V133](v133_air_build_retry_40x5_20261008.md) ·
+  [diagnostic commun V133/V134](diagnostic_v133_v134_air_20261008.md).
+
 - **UR-15a/UR-16b — correctifs et validation technique clos (08/10)** :
   capture d'échec rail factorisée et cinq lecteurs de décembre corrigés.
   63 contrats verts ; smoke 1×1 sain ; fixture NoAI finale r4 avant/après
@@ -595,6 +629,8 @@ année à 0 : ses deltas ne qualifient pas le profil courant.
 | C83 préemption — suppression de la réaction | **Non retenue au 5×6 ; réaction conservée** | `c83_slot_reaction=0` implémenté : supprime l'enqueue C77 du watcher et poursuit la passe. 120 contrats et smoke sains ; 10/10 duels 5×6 sains, 5/5 paires, Δprofit −96,9 k£/an (1/3/1, IC95 Student [−408,8 ; +215,0]), valeur −9,13 % : garde échouée. Dix suppressions, quatre graines exposées sur cinq. Défaut 1 conservé ; aucun 20×10 ni relance identique. Gardes physiques et priorité des projets présents inchangées. [Plan, bilan et preuves](c83_slot_reaction_20261002.md). |
 | C83 réparation locale de site | **20×10 non qualifié ; prototype OFF conservé** | Sur demande utilisateur après le filtre 5×6 non franchi : 40/40 duels sains, 20/20 paires, 9600/9600 points, Δprofit **+64,4 k£/an**, médiane +53,2, IC95 Student [−67,8 ; +196,7], 11/9/0, p=0,824 ; valeur **+5,40 %**, garde tenue, verdict `fail_primary`. Estimation descriptive ≈111 k opcodes/travail C83 (**−18,1 %**), soit 0,203 % de la planification AIR témoin ; total AIR observé +1,91 %, entrées non appariées, aucun gain global qualifié. 38 travaux locaux sur 17/20 graines, 19 sites conservés/19 recherches. `c83_local_repair=0`, délai global 25–60 jours non expliqué, aucune relance. [Bilan et preuves](c83_local_repair_20261002.md). |
 | C76/C77 reliquat | **À réconcilier** | Vérifier vivier injecté, invalidation non-AIR, intention mutatrice pendant worker, cycle de subvention et Save/Load. Points 1–5, horloge et premiers selftests déjà codés : ne pas les refaire. Réévaluation légère du vivier reste une piste distincte, pas retour à `lean`/rotation rejetés. |
+| Rail fret 08/10 — mémoire TRKFAIL géométrique | **REJETÉE ÉCONOMIQUEMENT, défaut 0** | Le défaut de pose existe : seed42 sous sondes, 29 échecs fret 1974–75 sur **deux paires** et 218 851 £ de coûts de tentatives sans ligne livrée ; cause `ERR_AREA_NOT_CLEAR` (260), gare propre au `lead` du chemin A*. Prototype `rail_freight_trkfail_memory=1` : sous instrumentation appariée 1×6, **31→5** TRKFAIL fret ; **mais porte A 40×5 sans sondes complète 40/40, 80/80, zéro échec** : Δprofit Opex **−7 887 £/an**, V/D/E **5/11/24**, Wilcoxon p=0,37546, IC95 bootstrap [−27 992 ; +12 656] £/an, seuil de gain préenregistré +65 634 £/an ; ratio des valeurs +0,203 %. Verdict `fail_primary`, **pas de porte B20×10**, aucun changement du défaut. L'effet sur le moteur est réel, son gain économique non établi. [Rapport détaillé](diag_fret_ferroviaire_20261008.md), résultats `results/rail_freight_trkfail_memory_gateA_40x5_20261008_r1.json`. |
+| Rail fret 08/10 — candidats en cache rejetés par `too_close_no_join` | **CORRECTIF MÉCANIQUE EXPOSÉ ; porte A 40×5 `fail_primary`, défaut 0** | `OpexCandidateStillValid` retenait des projets rail qu'`_tooClose` rejetait ensuite à l'exécution. `rail_cached_proximity_gate` (0 historique, 1 shadow, 2 exclusion pré-TOP64) reproduit les rayons d'origine et de gare avec `joinLineId` ; génération fraîche et `_tooClose` non modifiés. 3 tests ciblés + smoke sains. Shadow 3×6 : **4 211 passages potentiellement bloqués**, seulement 120 clés au total en comptant séparément chaque graine, kind et OD (**3 450 pax** et **761 fret**), surtout des resélections répétées. Porte A 40×5 sans sondes : **40/40 paires, 80/80 parties complètes**, Δprofit Opex **+42 709 £/an**, médiane +33 174, V/D/E **22/18/0**, Wilcoxon p=0,3203, IC95 bootstrap [−32 304 ; +118 466] £/an, seuil préenregistré +65 668 £/an ; valeur **+2,27 %**, garde tenue, mais **`fail_primary`**. Gain économiquement non démontré ; **B20×10 non lancée, aucun changement de défaut, ni commit/push**. Prochaine enquête : distinguer projets périmés réellement en tête et blocages de construction/score, sans déduire les lignes bâties des seuls rejets du cache. [Rapport et preuves](diag_fret_ferroviaire_20261008.md), `results/rail_cached_proximity_gateA_40x5_20261008_r1.json`. |
 | C80 workers / P5–P6 | **Piste mesurée, pas adoptée** | Réutiliser P1/P2/P5 ; arbitrage tranche par tranche selon travail prêt et blocage aval, sans famine ni boucle chaude `projects`. Stock A* en pause : expliquer l'éviction du rail avant relance. **Correctif du 03/10 (grok, non commité, inerte au défaut)** : `task_rail.nut:1726` lisait une tuile comme `IndustryID` (`IsValidIndustry(candidate.src)`), ce qui rejetait tout le fret dans `_tryStartRailStockWorker` ; passé par `AIIndustry.GetIndustryID`, comme `_revalidateRailStockPlan` (`:2019`) et `rail_prep_c121.nut:255`. C'est une cause candidate de l'éviction à expliquer. Vérifié : aucun autre `IsValidIndustry` sur un `.src`/`.dst` de candidat (`candidates.nut:2296/2305` portent des identifiants de subvention, pas des tuiles). C67 s'intègre au futur arbitre, pas par multiplication de hooks. [Conception](36_astar_workers_conception.md). |
 | Scheduler P7 | **Prototype OFF ; gain propre non démontré** | 5×6 : Δ profit Opex 1975 −17,2 k£/an malgré ratio +1,08 pt ; valeur +4,85 %. Exposition 7 sauts, Save/Load réussi ; mesurer coût net et délai vers tâche utile avant suite. `report_same_year`/`repay_same_month` seulement ; **`catalog_fresh` exclu** (effets avant garde), pas de batch accru ni `fleet_before_new`. [Bilan](cadence_parallel_20260930.md). |
 | C80 rapport / catalogue / hubs | **Préfiltre OFF ; mesure légère intégrée et exercée** | 2×5×6 sondes : filtre pratique passé, IC95 du Δprofit inclut zéro, neutralité non prouvée. 939/942 invocations AIR appariées, 1564 sélections valides. Scope synchrone général : hub→hub premier 3/5, hub→site 2/5 ; aucun bloc premier ≥4/5. Choisir une intervention isolée sans mélanger bootstrap/ciblé ; pas de découpage automatique, pas de retour au préfiltre défavorable sur 42. Préserver C115/C121. [Trois lots](three_lots_integration_20261001.md). |
@@ -649,6 +685,7 @@ année à 0 : ses deltas ne qualifient pas le profil courant.
 | NewGRF/M3 ; risques M2/M5/G2/M6/M7/B6 | Chemin/runtime exposé et validation dédiée ; vanilla ne qualifie pas les refits NewGRF. |
 | Eau, jointures, RAM et implantation | Besoin actuel démontré ; accord explicite avant nouveau diagnostic maritime. Pas de Lakes/feeders. |
 | Réseau rail partagé | **À la toute fin**, hors file active : exposition passive du raccord au réseau, trains directs, capacité/signalisation avant chantier ; aucun transbordement. |
+| Rail fret — mesure exhaustive des tentatives achevées 1974–1975 (08/10) | **DIAGNOSTIC TERMINÉ, aucun nouveau défaut adopté** : `rail_failure_audit` OFF par défaut, une ligne par tentative achevée ou rejet `too_close` pré-A*, avec `kind` et cargo ; parseur/test hôte. A/B diagnostique 5×6 sur graines 42/100/999/1234/5678, même bundle, référence `rail_cached_proximity_gate=0` et variante `=2`, sonde légère ON dans les deux bras : **10/10 parties complètes, 0 événement invalide**. **1974** 13→11 tentatives, **5→5 réussites**, 8→6 échecs, TRKFAIL 2→2 ; fret OK 0→2 et voyageurs OK 5→3. **1975** 13→7 tentatives, **6→3 réussites**, 7→4 échecs, TRKFAIL 1→2 ; fret OK 4→3 et voyageurs OK 2→0. Les rejets `too_close_no_join` tardifs sont transférés en amont (passages répétés : fret/pax 1974 **206/113→0/0**, 1975 **29/36→0/0**) ; les échecs baissent car moins de tentatives, sans fiabilité accrue ni croissance des constructions. Diagnostic instrumenté distinct du 40×5 économique `fail_primary` ; ne pas requalifier ni lancer B. Voir [rapport](diag_fret_ferroviaire_20261008.md), `results/rail_failure_audit_5x6_20261008_r1.analysis.json`. |
 
 ## 5. Tenue du suivi
 

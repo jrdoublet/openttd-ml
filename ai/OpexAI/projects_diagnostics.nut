@@ -18,7 +18,7 @@ function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget,
   local savedC69 = C69_BOTTLENECK_PROBE;
   C69_BOTTLENECK_PROBE = false;
   local liveFunded = OpexProjectSelectAffordable(
-      liveAlternatives, liveBudget, PORTFOLIO_MAX_BATCH);
+      liveAlternatives, liveBudget, PORTFOLIO_MAX_BATCH, false);
   C69_BOTTLENECK_PROBE = savedC69;
   local flips = 0;
   local affordable = 0;

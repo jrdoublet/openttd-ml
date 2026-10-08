@@ -1141,7 +1141,7 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
   OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=topk rank=" + limit + " score=" + score + " top=" + topScore);
 }
 
-function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
+function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
 {
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
@@ -1444,6 +1444,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     OpexC73RecordSelection(toSel, aff, sel);
   }
   OpexC120FinalizeSelection(affordable, capitalBudget);
+  if (RAIL_FREIGHT_SELECT_SHADOW && realSelection)
+    OpexRailFreightSelectShadow(alternatives, affordable, capitalBudget, floorProfit);
   OpexC121RecordPressureSnapshot(defensiveSlotState);
   OpexC116RememberAirPortfolioOpportunity(affordable, capitalBudget, c116Snapshot);
   if (R1_R3_TEST_ONLY) {
@@ -1462,6 +1464,68 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;
+}
+
+/* Diagnostic passif : scanne les deux tableaux une fois seulement sous son
+ * setting dedie. La branche OFF ne parcourt aucun projet supplementaire.
+ * Un appel = un classement ; les projets revus lors des reselects ne sont
+ * jamais presentes comme des creations nouvelles ou des pertes uniques. */
+function OpexRailFreightSelectShadow(alternatives, selected, capitalBudget, floorProfit)
+{
+  local totalF = 0, cashF = 0, floorF = 0, eligibleF = 0;
+  local townF = 0, eligibleTownF = 0, selectedF = 0, selectedTownF = 0;
+  local eligibleP = 0, selectedP = 0, selectedAir = 0, selectedFleet = 0;
+  local bestFreightScore = -1.0;
+  foreach (p in alternatives) {
+    if (p == null || !("mode" in p) || p.mode != "rail") continue;
+    local freight = ("kind" in p) && p.kind == "freight";
+    local townDestination = ("payload" in p) && p.payload != null
+        && ("dstTown" in p.payload) && p.payload.dstTown >= 0;
+    if (freight) {
+      totalF++;
+      if (townDestination) townF++;
+    }
+    if (OpexProjectFinanceCapital(p) > capitalBudget) {
+      if (freight) cashF++;
+      continue;
+    }
+    if (p.profitAnnual < floorProfit) {
+      if (freight) floorF++;
+      continue;
+    }
+    if (freight) {
+      eligibleF++;
+      if (townDestination) eligibleTownF++;
+      if (("fundScore" in p) && p.fundScore > bestFreightScore)
+        bestFreightScore = p.fundScore;
+    } else if (("kind" in p) && p.kind == "pax") eligibleP++;
+  }
+  foreach (p in selected) {
+    if (p == null || !("mode" in p)) continue;
+    if (p.mode == "rail" && ("kind" in p)) {
+      if (p.kind == "freight") {
+        selectedF++;
+        if (("payload" in p) && p.payload != null
+            && ("dstTown" in p.payload) && p.payload.dstTown >= 0) selectedTownF++;
+      } else if (p.kind == "pax") selectedP++;
+    } else if (p.mode == "air") selectedAir++;
+    else if (p.mode == "fleet") selectedFleet++;
+  }
+  local head = selected.len() > 0 ? selected[0] : null;
+  local headMode = head != null && ("mode" in head) ? head.mode : "none";
+  local headTier = head != null ? OpexProjectDefensiveAirPriority(head) : -1;
+  local headScore = head != null && ("fundScore" in head) ? head.fundScore : -1;
+  local now = AIDate.GetCurrentDate();
+  AILog.Info("RAIL_FREIGHT_SELECT_SHADOW year=" + AIDate.GetYear(now)
+      + " month=" + AIDate.GetMonth(now)
+      + " budget=" + capitalBudget + " total_f=" + totalF + " cash_f=" + cashF
+      + " floor_f=" + floorF + " eligible_f=" + eligibleF
+      + " town_f=" + townF + " eligible_town_f=" + eligibleTownF
+      + " selected_f=" + selectedF + " selected_town_f=" + selectedTownF
+      + " eligible_p=" + eligibleP + " selected_p=" + selectedP
+      + " selected_air=" + selectedAir + " selected_fleet=" + selectedFleet
+      + " head_mode=" + headMode + " head_tier=" + headTier
+      + " head_score=" + headScore + " best_f_score=" + bestFreightScore);
 }
 
 /* Early-slot ne falsifie ni profitAnnual ni revenueAnnual. Le bonus n'existe
@@ -1877,6 +1941,13 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   if (spPubMerge != null) OpexSpanEnd(spPubMerge);
   local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  if (RAIL_CACHED_PROXIMITY_GATE != 0 && lines != null) {
+    local viable = [];
+    foreach (project in alternatives) {
+      if (OpexRailCachedProximityKeep(project, lines, "reselect")) viable.append(project);
+    }
+    alternatives = viable;
+  }
   if (spPubFilt != null) OpexSpanEnd(spPubFilt);
   local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);

@@ -60,6 +60,21 @@ function OpexDecide(kind, fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
 }
+/* Evenement leger et unique par tentative, ou par passage devant _tooClose.
+ * Ne pas passer par OpexDecide : son logging de TASK ajoute d'autres evenements. */
+function OpexRailFailureAudit(stage, candidate, reason, ok, actual, opcodes)
+{
+  if (!RAIL_FAILURE_AUDIT) return;
+  if (candidate == null) return;
+  local cargo = ("cargo" in candidate) && AICargo.IsValidCargo(candidate.cargo)
+      ? AICargo.GetCargoLabel(candidate.cargo) : "-";
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " RAIL_AUDIT stage=" + stage
+      + " kind=" + (("kind" in candidate) ? candidate.kind : "-")
+      + " cargo=" + cargo + " src=" + candidate.src + " dst=" + candidate.dst
+      + " reason=" + reason + " ok=" + ok + " actual=" + actual + " ops=" + opcodes);
+}
 /* B9/G4 : gate dedie au diagnostic catchment. Ne pas reutiliser DECISION_LOG :
  * il instrumente toute l'IA et son cout a deja ete mesure comme perturbant. */
 function OpexAirCatchmentLog(kind, fields)
