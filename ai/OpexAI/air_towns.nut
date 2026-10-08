@@ -218,6 +218,46 @@ function OpexAirV126ServedTownState(town, lines)
   return state;
 }
 
+/* V134 : verifie si un aeroport existant d'une ville a atteint AIR_HUB_MAX_ROUTES
+ * et si la ville ouvre un second slot (OpexAirC83SecondSlotOpen). */
+function OpexAirV134SaturatedHubState(town, lines, hubIndex = null)
+{
+  local state = { eligible = false, hubRoutes = 0 };
+  if (!V134_AIR_P2P_SATURATED_HUB || town == null || !("id" in town)
+      || !AITown.IsValidTown(town.id)) return state;
+
+  if (!OpexAirC83SecondSlotOpen(town)) return state;
+
+  local capRoutes = (AIR_HUB_MAX_ROUTES > 0) ? AIR_HUB_MAX_ROUTES : 3;
+  local maxRoutes = 0;
+  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+    local loc = AIStation.GetLocation(st);
+    if (OpexAirSlotTownId(loc) != town.id) continue;
+    local routes = 0;
+    if (hubIndex != null && ("routes" in hubIndex) && (st in hubIndex.routes)) {
+      routes = hubIndex.routes[st];
+    } else if (lines != null) {
+      foreach (line in lines) {
+        if (!("mode" in line) || line.mode != "air") continue;
+        local stA = AIR_HUB_FIX ? OpexAirLineStationId(line, 0)
+            : (AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA));
+        local stB = AIR_HUB_FIX ? OpexAirLineStationId(line, 1)
+            : (AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB));
+        if (stA == st || stB == st) routes++;
+      }
+    }
+    if (routes > maxRoutes) maxRoutes = routes;
+    if (routes >= capRoutes) {
+      state.eligible = true;
+      state.hubRoutes = routes;
+      return state;
+    }
+  }
+  state.hubRoutes = maxRoutes;
+  return state;
+}
+
 /* V95 causal : le second slot doit etre encore libre et le premier doit etre
  * detenu par un tiers. Avec station_noise_level=0, slots=1 et zero aeroport
  * Opex sur la ville physique impliquent exactement un aeroport concurrent. */

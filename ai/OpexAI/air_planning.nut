@@ -511,13 +511,19 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
         local v126State = isServed ? OpexAirV126ServedTownState(towns[i], lines)
                                    : { eligible = false, stationId = -1, routes = 0, noise = -1 };
         local v126Reuse = isServed && v126State.eligible;
+        local v134State = (V134_AIR_P2P_SATURATED_HUB && isServed)
+            ? OpexAirV134SaturatedHubState(towns[i], lines, ctx.hubIndex)
+            : { eligible = false, hubRoutes = 0 };
+        local v134Eligible = v134State.eligible;
         if (DECISION_LOG && isServed && V126_AIR_SERVED_TOWN_REUSE) {
           OpexDecide("V126_AIR_TOWN", "town=" + towns[i].id
               + " eligible=" + (v126Reuse ? 1 : 0)
               + " station=" + v126State.stationId
               + " routes=" + v126State.routes + " noise=" + v126State.noise);
         }
-        if (isServed && !c83OwnSecondSlot && !v126Reuse) {
+        local skipServed = false;
+        if (isServed && !c83OwnSecondSlot && !v126Reuse) skipServed = !v134Eligible;
+        if (skipServed) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "origin_served", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=origin_served");
         } else if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && towns[i].pop < 600) {
@@ -535,6 +541,9 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
           if (C83_FIXES && c83RequiredSlotTown < 0 && c83OwnSecondSlot) {
             c83RequiredSlotTown = towns[i].id;
           }
+          if (c83RequiredSlotTown < 0 && v134Eligible) {
+            c83RequiredSlotTown = towns[i].id;
+          }
           if (c78Gen && ("c78NoSite" in probes)) probes.c78NoSite = null;
           local site = OpexAirFindSite(towns[i], airport, probes, c83RequiredSlotTown);
           if (site != null) {
@@ -543,6 +552,10 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
               site.v126ServedTown <- true;
               site.v126StationId <- v126State.stationId;
               site.v126Routes <- v126State.routes;
+            }
+            if (v134Eligible) {
+              site.v134SecondSlot <- true;
+              site.v134HubRoutes <- v134State.hubRoutes;
             }
             if (C83_FIXES && c83RequiredSlotTown >= 0) site.c83SlotTown <- c83RequiredSlotTown;
             scanSites.append(site);
@@ -847,6 +860,15 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
       }
 
+      local v134A = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlot" in sites[a]) && sites[a].v134SecondSlot;
+      local v134B = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlot" in sites[b]) && sites[b].v134SecondSlot;
+      local servedOtherA = (("c83OwnSecondSlot" in sites[a]) && sites[a].c83OwnSecondSlot)
+          || (("v126ServedTown" in sites[a]) && sites[a].v126ServedTown);
+      local servedOtherB = (("c83OwnSecondSlot" in sites[b]) && sites[b].c83OwnSecondSlot)
+          || (("v126ServedTown" in sites[b]) && sites[b].v126ServedTown);
+      if (v134A && (v134B || servedOtherB)) continue;
+      if (v134B && (v134A || servedOtherA)) continue;
+
       local plan = {
         siteA = sites[a], siteB = sites[b], distance = flightDistance,
         orderDistance = orderDistance,
@@ -855,6 +877,8 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         reuseA = false, reuseB = false, hubRoutes = 0, arm = "newpair",
         c83OwnSecondSlotA = ("c83OwnSecondSlot" in sites[a]) && sites[a].c83OwnSecondSlot,
         c83OwnSecondSlotB = ("c83OwnSecondSlot" in sites[b]) && sites[b].c83OwnSecondSlot,
+        v134SecondSlotA = v134A,
+        v134SecondSlotB = v134B,
       };
       if (DECISION_LOG && V126_AIR_SERVED_TOWN_REUSE) {
         local v126A = ("v126ServedTown" in sites[a]) && sites[a].v126ServedTown;
@@ -864,6 +888,14 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
               + " servedA=" + (v126A ? 1 : 0) + " servedB=" + (v126B ? 1 : 0)
               + " routesA=" + (v126A ? sites[a].v126Routes : -1)
               + " routesB=" + (v126B ? sites[b].v126Routes : -1));
+        }
+      }
+      if (DECISION_LOG && V134_AIR_P2P_SATURATED_HUB) {
+        if (v134A) {
+          OpexDecide("V134_P2P", "town=" + sites[a].town.id + " hubRoutes=" + sites[a].v134HubRoutes);
+        }
+        if (v134B) {
+          OpexDecide("V134_P2P", "town=" + sites[b].town.id + " hubRoutes=" + sites[b].v134HubRoutes);
         }
       }
       local routeChoice = C121_AIR_ECONOMICS

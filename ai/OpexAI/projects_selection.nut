@@ -1077,6 +1077,70 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
       + " head_flip=" + headFlip + " head_mode=" + headMode + " k_dec=" + kDec + stamp);
 }
 
+function OpexSelectRejectScore(project, kDec)
+{
+  if (project == null) return 0;
+  if ("fundScore" in project) return project.fundScore;
+  local financeCapital = OpexProjectFinanceCapital(project);
+  local decisionFinanceCapital = financeCapital;
+  if (("decisionFinanceCapital" in project) && project.decisionFinanceCapital > 0) {
+    decisionFinanceCapital = project.decisionFinanceCapital;
+  }
+  local denom = (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital) ? kDec : decisionFinanceCapital;
+  return OpexProjectScore(OpexProjectFundProfit(project), denom);
+}
+
+function OpexSelectRejectLog(project, reason, affordable, scoreKey, kDec)
+{
+  if (!PROBE_SELECT_REJECT || project == null) return;
+  if (!("mode" in project) || project.mode != "air") return;
+
+  local typeStr = "newpair";
+  if (("payload" in project) && project.payload != null && ("arm" in project.payload)) {
+    typeStr = project.payload.arm;
+  }
+
+  local score = OpexSelectRejectScore(project, kDec);
+  local topScore = 0;
+  local rank = affordable.len();
+  if (affordable.len() > 0) {
+    local topProj = affordable[0];
+    topScore = (scoreKey in topProj) ? topProj[scoreKey] : (("fundScore" in topProj) ? topProj.fundScore : topProj.budgetScore);
+    for (local i = 0; i < affordable.len(); i++) {
+      local p = affordable[i];
+      local pScore = (scoreKey in p) ? p[scoreKey] : (("fundScore" in p) ? p.fundScore : p.budgetScore);
+      if (score > pScore) {
+        rank = i;
+        break;
+      }
+    }
+  }
+
+  local pairStr = project.src + "|" + project.dst;
+  OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=" + reason + " rank=" + rank + " score=" + score + " top=" + topScore);
+}
+
+function OpexSelectRejectLogTopK(dropped, best, limit)
+{
+  if (!PROBE_SELECT_REJECT || dropped == null) return;
+  if (!("mode" in dropped) || dropped.mode != "air") return;
+
+  local typeStr = "newpair";
+  if (("payload" in dropped) && dropped.payload != null && ("arm" in dropped.payload)) {
+    typeStr = dropped.payload.arm;
+  }
+
+  local score = ("fundScore" in dropped) ? dropped.fundScore : (("budgetScore" in dropped) ? dropped.budgetScore : 0);
+  local topScore = 0;
+  if (best.len() > 0) {
+    local topProj = best[0];
+    topScore = ("fundScore" in topProj) ? topProj.fundScore : topProj.budgetScore;
+  }
+
+  local pairStr = dropped.src + "|" + dropped.dst;
+  OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=topk rank=" + limit + " score=" + score + " top=" + topScore);
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
@@ -1160,7 +1224,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       OpexSpanAgg("pub.select.score.fund_score", fundMark);
       fundMark = null;
     }
-    if (financeCapital > capitalBudget) continue;
+    if (financeCapital > capitalBudget) {
+      if (PROBE_SELECT_REJECT && project.mode == "air") {
+        OpexSelectRejectLog(project, "cash", affordable, scoreKey, kDec);
+      }
+      continue;
+    }
     local c121DefensivePrepared = C121_AIR_ECONOMICS && C121_AIR_DEFENSIVE_FLOOR
         && project.mode == "air";
     local c121DefensiveTier = 0;
@@ -1184,6 +1253,9 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     }
     if (project.profitAnnual < c121DefensiveFloor && !c118Territorial
         && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) {
+      if (PROBE_SELECT_REJECT && project.mode == "air") {
+        OpexSelectRejectLog(project, "floor", affordable, scoreKey, kDec);
+      }
       if (fundMark != null) {
         OpexSpanAgg("pub.select.score.fund_score", fundMark);
         fundMark = null;
@@ -1244,7 +1316,14 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           for (local ai = affordable.len() - 1; ai >= 0; ai--) {
             if (affordable[ai] == prior) { affordable.remove(ai); break; }
           }
+          if (PROBE_SELECT_REJECT) {
+            OpexSelectRejectLog(prior, "dedupe", affordable, scoreKey, kDec);
+          }
           OpexProjectInsertDefensive(affordable, pairBest[0], scoreKey, limit, AIR_EARLY_SLOT);
+        } else {
+          if (PROBE_SELECT_REJECT) {
+            OpexSelectRejectLog(project, "dedupe", affordable, scoreKey, kDec);
+          }
         }
       } else {
         airPairBest.rawset(pairKey, project);
@@ -1507,7 +1586,12 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot 
     pos--;
   }
   best.insert(pos, project);
-  if (best.len() > limit) best.pop();
+  if (best.len() > limit) {
+    local dropped = best.pop();
+    if (PROBE_SELECT_REJECT && limit > 1 && ("mode" in dropped) && dropped.mode == "air") {
+      OpexSelectRejectLogTopK(dropped, best, limit);
+    }
+  }
 }
 
 /* C78 / course defensive live : `best` peut survivre plusieurs passages projects

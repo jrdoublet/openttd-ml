@@ -429,9 +429,11 @@ function OpexAirBatchPlanStillLive(plan, lines)
   local reuseB = ("reuseB" in plan) && plan.reuseB;
   local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
   local c83OwnSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
+  local v134SecondA = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotA" in plan) && plan.v134SecondSlotA;
+  local v134SecondB = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotB" in plan) && plan.v134SecondSlotB;
   if (!reuseA) {
     local servedA = OpexAirTownServed(plan.siteA.town, lines);
-    if (c83OwnSecondA) {
+    if (c83OwnSecondA || v134SecondA) {
       if (!servedA || !OpexAirC83SecondSlotOpen(plan.siteA.town)) return false;
     } else if (servedA) {
       return false;
@@ -439,7 +441,7 @@ function OpexAirBatchPlanStillLive(plan, lines)
   }
   if (!reuseB) {
     local servedB = OpexAirTownServed(plan.siteB.town, lines);
-    if (c83OwnSecondB) {
+    if (c83OwnSecondB || v134SecondB) {
       if (!servedB || !OpexAirC83SecondSlotOpen(plan.siteB.town)) return false;
     } else if (servedB) {
       return false;

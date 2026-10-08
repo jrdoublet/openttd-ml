@@ -188,6 +188,7 @@ function OpexLoadSettings()
   PROBE_AIR_ENGINE_DEPTH = AIController.GetSetting("probe_air_engine_depth") != 0;
   PROBE_AIR_FINANCE_MARGIN = AIController.GetSetting("probe_air_finance_margin") != 0;
   PROBE_EVENT_BACKLOG = AIController.GetSetting("probe_event_backlog") != 0;
+  PROBE_SELECT_REJECT = AIController.GetSetting("probe_select_reject") != 0;
   if (PROBE_EVENT_BACKLOG) {
     EVENT_BACKLOG_CALLS = 0;
     EVENT_BACKLOG_EVENTS = 0;
@@ -303,6 +304,7 @@ function OpexLoadSettings()
   V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
   V126_AIR_SERVED_TOWN_REUSE = AIController.GetSetting("v126_air_served_town_reuse") != 0;
+  V134_AIR_P2P_SATURATED_HUB = AIController.GetSetting("v134_air_p2p_saturated_hub") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;

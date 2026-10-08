@@ -313,6 +313,10 @@ V95_AIR_POST73_YEAR <- -1;
  * son aeroport Opex porte moins de deux routes et que la ville accepte encore
  * du bruit. Defaut 0 : filtre origin_served historique intact. */
 V126_AIR_SERVED_TOWN_REUSE <- false;
+/* V134 : second aeroport point-a-point (newpair) vers une ville libre pour une
+ * ville dont l'aeroport existant a atteint AIR_HUB_MAX_ROUTES et qui ouvre un
+ * second slot. Defaut 0 : filtre origin_served historique intact. */
+V134_AIR_P2P_SATURATED_HUB <- false;
 /* C96 : selection de l'ancre aeroport par qualite physique de catchment, sans
  * changer la demande ni l'economie de la route. Defaut 0. La recherche reste
  * bornee : au plus quatre sites constructibles, du premier anneau qui en
@@ -506,6 +510,8 @@ PROBE_AIR_FINANCE_MARGIN <- false;
 AIR_FINANCE_MARGIN_YEAR <- -1;
 /* F-EVENT-BACKLOG-01 : sonde passive de la file d'evenements. Defaut 0. */
 PROBE_EVENT_BACKLOG <- false;
+/* Sonde de rejet de selection portefeuille AIR (cash, floor, dedupe, topk). Defaut 0. */
+PROBE_SELECT_REJECT <- false;
 EVENT_BACKLOG_CALLS <- 0;
 EVENT_BACKLOG_EVENTS <- 0;
 EVENT_BACKLOG_MAX_BURST <- 0;
