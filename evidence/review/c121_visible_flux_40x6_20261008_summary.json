@@ -1,0 +1,3593 @@
+{
+  "kind": "derived_campaign_summary",
+  "campaign_id": "c121_visible_flux_porteA_40x6_20261008",
+  "source_result": "results/c121_visible_flux_porteA_40x6_20261008.json",
+  "source_result_sha256": "a72c5500a0fbe93efc9cfc69810f472bf8bb630e1294a6defe4ecb5bfc73a328",
+  "source_manifest": "results/c121_visible_flux_porteA_40x6_20261008.manifest.json",
+  "source_manifest_file_sha256": "bd17d9dc742102aeeaebca1d83163c859010fed42fe119f4978a35c12421c88e",
+  "source_bundle_sha256": "ddb2e194c13565be0a02d1fa96c1c53c0bd41b99796264dd0ea930b49426dc50",
+  "manifest_sha256_reported": "bd17d9dc742102aeeaebca1d83163c859010fed42fe119f4978a35c12421c88e",
+  "years": 6,
+  "seeds": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    12345,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309,
+    423960,
+    613553,
+    515222,
+    781335,
+    375172,
+    999533,
+    442018,
+    746035,
+    455216,
+    230185,
+    706990,
+    983759,
+    802204,
+    232037,
+    723002,
+    313707,
+    701256,
+    292001,
+    841478,
+    59527
+  ],
+  "repeats": 1,
+  "policies": [
+    {
+      "id": "reference",
+      "role": "reference",
+      "explicit_settings": [
+        [
+          "c121_air_visible_competition",
+          0
+        ],
+        [
+          "c121_air_visible_fused",
+          0
+        ]
+      ]
+    },
+    {
+      "id": "c121_visible_flux",
+      "role": "variant",
+      "explicit_settings": [
+        [
+          "c121_air_visible_competition",
+          1
+        ],
+        [
+          "c121_air_visible_fused",
+          0
+        ]
+      ]
+    }
+  ],
+  "game_count": 80,
+  "all_games_healthy": true,
+  "failed_runs": [],
+  "comparison": {
+    "decision_rule": {
+      "rule": "gain_short",
+      "required_pairs": 40,
+      "required_years": 6,
+      "confidence_level": 0.95,
+      "max_wilcoxon_p_exclusive": 0.05,
+      "min_useful_primary_delta": 69424.217,
+      "min_useful_primary_delta_pct": 4.0,
+      "reference_terminal_year": 1975,
+      "reference_terminal_profit_mean": 1735605.425,
+      "value_guard_max_loss_pct": 5.0,
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0,
+      "primary_rule": "all planned pairs required (40) over 6 years; exact two-sided Wilcoxon signed-rank p<0.05; bootstrap percentile 95% CI lower bound > 0; then mean(variant-reference) >= min_useful_primary_delta (absolute, or pct/100 * mean terminal-year reference profit)",
+      "value_guard_rule": "all 40 reference denominators must be positive; then ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct",
+      "all_planned_pairs_required_for_verdict": true
+    },
+    "planned_pairs": 40,
+    "complete_pairs": 40,
+    "comparison_complete": true,
+    "adoption_sample_complete": true,
+    "metric_coverage_complete": true,
+    "aggregates": {
+      "company_value": {
+        "policy_delta": {
+          "n": 40,
+          "mean": 127724.95,
+          "median": 224300.0,
+          "standard_deviation": 826601.708212,
+          "standard_error": 130697.205787,
+          "mean_normal_95pct_ci": [
+            -128436.866222,
+            383886.766222
+          ],
+          "mean_student_t_95pct_ci": [
+            -136635.11187,
+            392085.01187
+          ],
+          "wins": 22,
+          "losses": 18,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.635828,
+          "wilcoxon_p": 0.33356623058170953,
+          "mean_bootstrap_95pct_ci": [
+            -126282.425,
+            378692.975
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "policy_ratio": {
+          "n_positive_denominator": 40,
+          "excluded_nonpositive_or_missing_denominator": 0,
+          "ratio_of_means": 1.017758,
+          "ratio_of_means_percent_change": 1.775847,
+          "mean_of_ratios": 1.034104,
+          "mean_of_ratios_percent_change": 3.410366
+        },
+        "reference_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -1651374.85,
+          "median": -1714941.5,
+          "standard_deviation": 2617982.408051,
+          "standard_error": 413939.364185,
+          "mean_normal_95pct_ci": [
+            -2462681.095585,
+            -840068.604415
+          ],
+          "mean_student_t_95pct_ci": [
+            -2488646.276482,
+            -814103.423518
+          ],
+          "wins": 8,
+          "losses": 32,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.000182,
+          "wilcoxon_p": 0.00017029843002092093,
+          "mean_bootstrap_95pct_ci": [
+            -2430545.875,
+            -831200.075
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "variant_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -1958827.775,
+          "median": -2120215.0,
+          "standard_deviation": 2188665.734964,
+          "standard_error": 346058.437963,
+          "mean_normal_95pct_ci": [
+            -2637089.849953,
+            -1280565.700047
+          ],
+          "mean_student_t_95pct_ci": [
+            -2658797.062941,
+            -1258858.487059
+          ],
+          "wins": 7,
+          "losses": 33,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 4.2e-05,
+          "wilcoxon_p": 1.6943467926466838e-06,
+          "mean_bootstrap_95pct_ci": [
+            -2627224.55,
+            -1286128.6
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "duel_gap_evolution": {
+          "n": 40,
+          "mean": -307452.925,
+          "median": -177047.5,
+          "standard_deviation": 1796474.034314,
+          "standard_error": 284047.485289,
+          "mean_normal_95pct_ci": [
+            -864175.766066,
+            249269.916066
+          ],
+          "mean_student_t_95pct_ci": [
+            -881993.217067,
+            267087.367067
+          ],
+          "wins": 15,
+          "losses": 25,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.15386,
+          "wilcoxon_p": 0.18311741828802042,
+          "mean_bootstrap_95pct_ci": [
+            -850579.475,
+            244334.2
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        }
+      },
+      "performance_history": {
+        "policy_delta": {
+          "n": 40,
+          "mean": -22.85,
+          "median": -24.0,
+          "standard_deviation": 43.788858,
+          "standard_error": 6.923626,
+          "mean_normal_95pct_ci": [
+            -36.420058,
+            -9.279942
+          ],
+          "mean_student_t_95pct_ci": [
+            -36.854357,
+            -8.845643
+          ],
+          "wins": 13,
+          "losses": 27,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.038477,
+          "wilcoxon_p": 0.0036447444817895303,
+          "mean_bootstrap_95pct_ci": [
+            -36.4,
+            -9.7
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "policy_ratio": {
+          "n_positive_denominator": 40,
+          "excluded_nonpositive_or_missing_denominator": 0,
+          "ratio_of_means": 0.967906,
+          "ratio_of_means_percent_change": -3.209382,
+          "mean_of_ratios": 0.971003,
+          "mean_of_ratios_percent_change": -2.899659
+        },
+        "reference_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -107.4,
+          "median": -89.0,
+          "standard_deviation": 80.734068,
+          "standard_error": 12.765177,
+          "mean_normal_95pct_ci": [
+            -132.419287,
+            -82.380713
+          ],
+          "mean_student_t_95pct_ci": [
+            -133.220009,
+            -81.579991
+          ],
+          "wins": 2,
+          "losses": 38,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 5.638867150992155e-10,
+          "mean_bootstrap_95pct_ci": [
+            -132.15,
+            -82.825
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "variant_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -133.825,
+          "median": -127.0,
+          "standard_deviation": 62.985097,
+          "standard_error": 9.958818,
+          "mean_normal_95pct_ci": [
+            -153.343925,
+            -114.306075
+          ],
+          "mean_student_t_95pct_ci": [
+            -153.968612,
+            -113.681388
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -153.5,
+            -115.075
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "duel_gap_evolution": {
+          "n": 40,
+          "mean": -26.425,
+          "median": -20.5,
+          "standard_deviation": 54.346414,
+          "standard_error": 8.592923,
+          "mean_normal_95pct_ci": [
+            -43.266819,
+            -9.583181
+          ],
+          "mean_student_t_95pct_ci": [
+            -43.805827,
+            -9.044173
+          ],
+          "wins": 13,
+          "losses": 27,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.038477,
+          "wilcoxon_p": 0.006025570286510629,
+          "mean_bootstrap_95pct_ci": [
+            -43.975,
+            -10.725
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        }
+      },
+      "profit": {
+        "policy_delta": {
+          "n": 40,
+          "mean": -7963.35,
+          "median": -5906.5,
+          "standard_deviation": 69139.309267,
+          "standard_error": 10931.884657,
+          "mean_normal_95pct_ci": [
+            -29389.45021,
+            13462.75021
+          ],
+          "mean_student_t_95pct_ci": [
+            -30075.174708,
+            14148.474708
+          ],
+          "wins": 17,
+          "losses": 23,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.429591,
+          "wilcoxon_p": 0.48452077669571736,
+          "mean_bootstrap_95pct_ci": [
+            -29091.325,
+            13140.75
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "policy_ratio": {
+          "n_positive_denominator": 40,
+          "excluded_nonpositive_or_missing_denominator": 0,
+          "ratio_of_means": 0.982291,
+          "ratio_of_means_percent_change": -1.770942,
+          "mean_of_ratios": 0.995727,
+          "mean_of_ratios_percent_change": -0.427298
+        },
+        "reference_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -743360.2,
+          "median": -745832.0,
+          "standard_deviation": 224073.361636,
+          "standard_error": 35429.109287,
+          "mean_normal_95pct_ci": [
+            -812799.978207,
+            -673920.421793
+          ],
+          "mean_student_t_95pct_ci": [
+            -815022.340493,
+            -671698.059507
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -811446.475,
+            -674862.6
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "variant_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -786301.175,
+          "median": -770590.0,
+          "standard_deviation": 207039.721593,
+          "standard_error": 32735.854318,
+          "mean_normal_95pct_ci": [
+            -850462.270467,
+            -722140.079533
+          ],
+          "mean_student_t_95pct_ci": [
+            -852515.692906,
+            -720086.657094
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -849141.3,
+            -721995.6
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "duel_gap_evolution": {
+          "n": 40,
+          "mean": -42940.975,
+          "median": -32592.5,
+          "standard_deviation": 232576.151314,
+          "standard_error": 36773.518379,
+          "mean_normal_95pct_ci": [
+            -115015.746608,
+            29133.796608
+          ],
+          "mean_student_t_95pct_ci": [
+            -117322.439664,
+            31440.489664
+          ],
+          "wins": 16,
+          "losses": 24,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.268187,
+          "wilcoxon_p": 0.3753805605592788,
+          "mean_bootstrap_95pct_ci": [
+            -114001.925,
+            28830.925
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        }
+      },
+      "profit_year": {
+        "policy_delta": {
+          "n": 40,
+          "mean": -15498.55,
+          "median": 11727.0,
+          "standard_deviation": 236752.582407,
+          "standard_error": 37433.870117,
+          "mean_normal_95pct_ci": [
+            -88867.58723,
+            57870.48723
+          ],
+          "mean_student_t_95pct_ci": [
+            -91215.70218,
+            60218.60218
+          ],
+          "wins": 21,
+          "losses": 19,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.874629,
+          "wilcoxon_p": 0.8471556244439853,
+          "mean_bootstrap_95pct_ci": [
+            -88842.525,
+            55407.95
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "policy_ratio": {
+          "n_positive_denominator": 40,
+          "excluded_nonpositive_or_missing_denominator": 0,
+          "ratio_of_means": 0.99107,
+          "ratio_of_means_percent_change": -0.892977,
+          "mean_of_ratios": 1.006822,
+          "mean_of_ratios_percent_change": 0.682243
+        },
+        "reference_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -2706564.225,
+          "median": -2740202.5,
+          "standard_deviation": 803548.421099,
+          "standard_error": 127052.161045,
+          "mean_normal_95pct_ci": [
+            -2955581.884807,
+            -2457546.565193
+          ],
+          "mean_student_t_95pct_ci": [
+            -2963551.487677,
+            -2449576.962323
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -2947183.625,
+            -2458018.35
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "variant_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -2822683.5,
+          "median": -2766060.5,
+          "standard_deviation": 800046.918071,
+          "standard_error": 126498.524805,
+          "mean_normal_95pct_ci": [
+            -3070616.052715,
+            -2574750.947285
+          ],
+          "mean_student_t_95pct_ci": [
+            -3078550.927637,
+            -2566816.072363
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -3066245.825,
+            -2575663.9
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "duel_gap_evolution": {
+          "n": 40,
+          "mean": -116119.275,
+          "median": -39688.0,
+          "standard_deviation": 725728.366464,
+          "standard_error": 114747.730031,
+          "mean_normal_95pct_ci": [
+            -341020.693168,
+            108782.143168
+          ],
+          "mean_student_t_95pct_ci": [
+            -348218.475804,
+            115979.925804
+          ],
+          "wins": 19,
+          "losses": 21,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.874629,
+          "wilcoxon_p": 0.3826448613508546,
+          "mean_bootstrap_95pct_ci": [
+            -339887.325,
+            103771.8
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        }
+      },
+      "median_station_rating": {
+        "policy_delta": {
+          "n": 40,
+          "mean": 0.325,
+          "median": 0.0,
+          "standard_deviation": 4.042324,
+          "standard_error": 0.639148,
+          "mean_normal_95pct_ci": [
+            -0.927706,
+            1.577706
+          ],
+          "mean_student_t_95pct_ci": [
+            -0.967798,
+            1.617798
+          ],
+          "wins": 19,
+          "losses": 17,
+          "ties": 4,
+          "sign_test_n_excluding_ties": 36,
+          "sign_test_p": 0.867939,
+          "wilcoxon_p": 0.9089436308422592,
+          "mean_bootstrap_95pct_ci": [
+            -0.8,
+            1.675
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "policy_ratio": {
+          "n_positive_denominator": 40,
+          "excluded_nonpositive_or_missing_denominator": 0,
+          "ratio_of_means": 1.001947,
+          "ratio_of_means_percent_change": 0.194669,
+          "mean_of_ratios": 1.002295,
+          "mean_of_ratios_percent_change": 0.229536
+        },
+        "reference_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -18.7625,
+          "median": -20.25,
+          "standard_deviation": 8.172803,
+          "standard_error": 1.292234,
+          "mean_normal_95pct_ci": [
+            -21.295231,
+            -16.229769
+          ],
+          "mean_student_t_95pct_ci": [
+            -21.376289,
+            -16.148711
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -21.25,
+            -16.225
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "variant_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -18.275,
+          "median": -20.0,
+          "standard_deviation": 7.992745,
+          "standard_error": 1.263764,
+          "mean_normal_95pct_ci": [
+            -20.751932,
+            -15.798068
+          ],
+          "mean_student_t_95pct_ci": [
+            -20.831204,
+            -15.718796
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -20.7375,
+            -15.8375
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "duel_gap_evolution": {
+          "n": 40,
+          "mean": 0.4875,
+          "median": 0.25,
+          "standard_deviation": 8.397563,
+          "standard_error": 1.327771,
+          "mean_normal_95pct_ci": [
+            -2.114884,
+            3.089884
+          ],
+          "mean_student_t_95pct_ci": [
+            -2.198171,
+            3.173171
+          ],
+          "wins": 20,
+          "losses": 18,
+          "ties": 2,
+          "sign_test_n_excluding_ties": 38,
+          "sign_test_p": 0.871415,
+          "wilcoxon_p": 0.7933645451703342,
+          "mean_bootstrap_95pct_ci": [
+            -2.0375,
+            3.075
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        }
+      },
+      "primary_vehicles": {
+        "policy_delta": {
+          "n": 40,
+          "mean": -7.95,
+          "median": -5.0,
+          "standard_deviation": 11.052207,
+          "standard_error": 1.747507,
+          "mean_normal_95pct_ci": [
+            -11.375052,
+            -4.524948
+          ],
+          "mean_student_t_95pct_ci": [
+            -11.484667,
+            -4.415333
+          ],
+          "wins": 9,
+          "losses": 31,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.00068,
+          "wilcoxon_p": 3.6613031625165604e-05,
+          "mean_bootstrap_95pct_ci": [
+            -11.375,
+            -4.6
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "policy_ratio": {
+          "n_positive_denominator": 40,
+          "excluded_nonpositive_or_missing_denominator": 0,
+          "ratio_of_means": 0.92577,
+          "ratio_of_means_percent_change": -7.422969,
+          "mean_of_ratios": 0.938801,
+          "mean_of_ratios_percent_change": -6.119885
+        },
+        "reference_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -148.625,
+          "median": -147.5,
+          "standard_deviation": 32.658833,
+          "standard_error": 5.163815,
+          "mean_normal_95pct_ci": [
+            -158.745891,
+            -138.504109
+          ],
+          "mean_student_t_95pct_ci": [
+            -159.069802,
+            -138.180198
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -158.625,
+            -138.85
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "variant_opex_minus_aaahogex": {
+          "n": 40,
+          "mean": -147.575,
+          "median": -145.5,
+          "standard_deviation": 33.878279,
+          "standard_error": 5.356626,
+          "mean_normal_95pct_ci": [
+            -158.073795,
+            -137.076205
+          ],
+          "mean_student_t_95pct_ci": [
+            -158.4098,
+            -136.7402
+          ],
+          "wins": 0,
+          "losses": 40,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.0,
+          "wilcoxon_p": 1.8189894035458565e-12,
+          "mean_bootstrap_95pct_ci": [
+            -158.025,
+            -137.275
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        },
+        "duel_gap_evolution": {
+          "n": 40,
+          "mean": 1.05,
+          "median": 3.0,
+          "standard_deviation": 37.585424,
+          "standard_error": 5.942777,
+          "mean_normal_95pct_ci": [
+            -10.59763,
+            12.69763
+          ],
+          "mean_student_t_95pct_ci": [
+            -10.970402,
+            13.070402
+          ],
+          "wins": 22,
+          "losses": 18,
+          "ties": 0,
+          "sign_test_n_excluding_ties": 40,
+          "sign_test_p": 0.635828,
+          "wilcoxon_p": 0.8601745353735168,
+          "mean_bootstrap_95pct_ci": [
+            -10.5,
+            12.45
+          ],
+          "bootstrap_resamples": 20000,
+          "bootstrap_seed": 0
+        }
+      }
+    },
+    "primary_pass": false,
+    "value_guard_pass": true,
+    "verdict": "fail_primary"
+  },
+  "per_seed": [
+    {
+      "seed": 42,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1533340,
+        "variant_opex": 1808125,
+        "policy_delta": 274785,
+        "reference_aaahogex": 3481354,
+        "variant_aaahogex": 3484221,
+        "reference_duel_gap": -1948014,
+        "variant_duel_gap": -1676096,
+        "duel_gap_evolution": 271918
+      },
+      "company_value": {
+        "reference_opex": 7212862,
+        "variant_opex": 7913566,
+        "policy_delta": 700704,
+        "reference_aaahogex": 7878794,
+        "variant_aaahogex": 7377205,
+        "reference_duel_gap": -665932,
+        "variant_duel_gap": 536361,
+        "duel_gap_evolution": 1202293
+      }
+    },
+    {
+      "seed": 100,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1182862,
+        "variant_opex": 950729,
+        "policy_delta": -232133,
+        "reference_aaahogex": 3054624,
+        "variant_aaahogex": 2674368,
+        "reference_duel_gap": -1871762,
+        "variant_duel_gap": -1723639,
+        "duel_gap_evolution": 148123
+      },
+      "company_value": {
+        "reference_opex": 4604725,
+        "variant_opex": 3633250,
+        "policy_delta": -971475,
+        "reference_aaahogex": 5146872,
+        "variant_aaahogex": 5617770,
+        "reference_duel_gap": -542147,
+        "variant_duel_gap": -1984520,
+        "duel_gap_evolution": -1442373
+      }
+    },
+    {
+      "seed": 7,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2106913,
+        "variant_opex": 2285758,
+        "policy_delta": 178845,
+        "reference_aaahogex": 4631831,
+        "variant_aaahogex": 5563873,
+        "reference_duel_gap": -2524918,
+        "variant_duel_gap": -3278115,
+        "duel_gap_evolution": -753197
+      },
+      "company_value": {
+        "reference_opex": 9543487,
+        "variant_opex": 10005697,
+        "policy_delta": 462210,
+        "reference_aaahogex": 9246530,
+        "variant_aaahogex": 11047017,
+        "reference_duel_gap": 296957,
+        "variant_duel_gap": -1041320,
+        "duel_gap_evolution": -1338277
+      }
+    },
+    {
+      "seed": 999,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2205453,
+        "variant_opex": 1726763,
+        "policy_delta": -478690,
+        "reference_aaahogex": 5931917,
+        "variant_aaahogex": 4561008,
+        "reference_duel_gap": -3726464,
+        "variant_duel_gap": -2834245,
+        "duel_gap_evolution": 892219
+      },
+      "company_value": {
+        "reference_opex": 7296542,
+        "variant_opex": 5451994,
+        "policy_delta": -1844548,
+        "reference_aaahogex": 13019691,
+        "variant_aaahogex": 10254785,
+        "reference_duel_gap": -5723149,
+        "variant_duel_gap": -4802791,
+        "duel_gap_evolution": 920358
+      }
+    },
+    {
+      "seed": 2026,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1639135,
+        "variant_opex": 1779660,
+        "policy_delta": 140525,
+        "reference_aaahogex": 6100079,
+        "variant_aaahogex": 6428514,
+        "reference_duel_gap": -4460944,
+        "variant_duel_gap": -4648854,
+        "duel_gap_evolution": -187910
+      },
+      "company_value": {
+        "reference_opex": 6804110,
+        "variant_opex": 7514245,
+        "policy_delta": 710135,
+        "reference_aaahogex": 12548692,
+        "variant_aaahogex": 11965446,
+        "reference_duel_gap": -5744582,
+        "variant_duel_gap": -4451201,
+        "duel_gap_evolution": 1293381
+      }
+    },
+    {
+      "seed": 1,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2248614,
+        "variant_opex": 1994955,
+        "policy_delta": -253659,
+        "reference_aaahogex": 5410923,
+        "variant_aaahogex": 4520131,
+        "reference_duel_gap": -3162309,
+        "variant_duel_gap": -2525176,
+        "duel_gap_evolution": 637133
+      },
+      "company_value": {
+        "reference_opex": 10692789,
+        "variant_opex": 10139650,
+        "policy_delta": -553139,
+        "reference_aaahogex": 10450414,
+        "variant_aaahogex": 10075254,
+        "reference_duel_gap": 242375,
+        "variant_duel_gap": 64396,
+        "duel_gap_evolution": -177979
+      }
+    },
+    {
+      "seed": 17,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1219125,
+        "variant_opex": 1204313,
+        "policy_delta": -14812,
+        "reference_aaahogex": 4023716,
+        "variant_aaahogex": 5259635,
+        "reference_duel_gap": -2804591,
+        "variant_duel_gap": -4055322,
+        "duel_gap_evolution": -1250731
+      },
+      "company_value": {
+        "reference_opex": 5087756,
+        "variant_opex": 5232817,
+        "policy_delta": 145061,
+        "reference_aaahogex": 7945201,
+        "variant_aaahogex": 9363249,
+        "reference_duel_gap": -2857445,
+        "variant_duel_gap": -4130432,
+        "duel_gap_evolution": -1272987
+      }
+    },
+    {
+      "seed": 73,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2233909,
+        "variant_opex": 2162713,
+        "policy_delta": -71196,
+        "reference_aaahogex": 4963485,
+        "variant_aaahogex": 5346353,
+        "reference_duel_gap": -2729576,
+        "variant_duel_gap": -3183640,
+        "duel_gap_evolution": -454064
+      },
+      "company_value": {
+        "reference_opex": 9693926,
+        "variant_opex": 9873507,
+        "policy_delta": 179581,
+        "reference_aaahogex": 11179532,
+        "variant_aaahogex": 10254935,
+        "reference_duel_gap": -1485606,
+        "variant_duel_gap": -381428,
+        "duel_gap_evolution": 1104178
+      }
+    },
+    {
+      "seed": 314,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1784857,
+        "variant_opex": 1982362,
+        "policy_delta": 197505,
+        "reference_aaahogex": 3991217,
+        "variant_aaahogex": 4274935,
+        "reference_duel_gap": -2206360,
+        "variant_duel_gap": -2292573,
+        "duel_gap_evolution": -86213
+      },
+      "company_value": {
+        "reference_opex": 8018181,
+        "variant_opex": 8015087,
+        "policy_delta": -3094,
+        "reference_aaahogex": 9001070,
+        "variant_aaahogex": 10418724,
+        "reference_duel_gap": -982889,
+        "variant_duel_gap": -2403637,
+        "duel_gap_evolution": -1420748
+      }
+    },
+    {
+      "seed": 512,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 733274,
+        "variant_opex": 983037,
+        "policy_delta": 249763,
+        "reference_aaahogex": 3779189,
+        "variant_aaahogex": 4083550,
+        "reference_duel_gap": -3045915,
+        "variant_duel_gap": -3100513,
+        "duel_gap_evolution": -54598
+      },
+      "company_value": {
+        "reference_opex": 2327927,
+        "variant_opex": 3425461,
+        "policy_delta": 1097534,
+        "reference_aaahogex": 7736076,
+        "variant_aaahogex": 8688300,
+        "reference_duel_gap": -5408149,
+        "variant_duel_gap": -5262839,
+        "duel_gap_evolution": 145310
+      }
+    },
+    {
+      "seed": 1024,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1202403,
+        "variant_opex": 1228262,
+        "policy_delta": 25859,
+        "reference_aaahogex": 3571001,
+        "variant_aaahogex": 4275089,
+        "reference_duel_gap": -2368598,
+        "variant_duel_gap": -3046827,
+        "duel_gap_evolution": -678229
+      },
+      "company_value": {
+        "reference_opex": 4888258,
+        "variant_opex": 5157277,
+        "policy_delta": 269019,
+        "reference_aaahogex": 6928058,
+        "variant_aaahogex": 7297595,
+        "reference_duel_gap": -2039800,
+        "variant_duel_gap": -2140318,
+        "duel_gap_evolution": -100518
+      }
+    },
+    {
+      "seed": 1337,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1612514,
+        "variant_opex": 1573196,
+        "policy_delta": -39318,
+        "reference_aaahogex": 4135157,
+        "variant_aaahogex": 4281615,
+        "reference_duel_gap": -2522643,
+        "variant_duel_gap": -2708419,
+        "duel_gap_evolution": -185776
+      },
+      "company_value": {
+        "reference_opex": 7141844,
+        "variant_opex": 6952063,
+        "policy_delta": -189781,
+        "reference_aaahogex": 8430728,
+        "variant_aaahogex": 7681502,
+        "reference_duel_gap": -1288884,
+        "variant_duel_gap": -729439,
+        "duel_gap_evolution": 559445
+      }
+    },
+    {
+      "seed": 4096,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2297058,
+        "variant_opex": 2229760,
+        "policy_delta": -67298,
+        "reference_aaahogex": 4562798,
+        "variant_aaahogex": 4182631,
+        "reference_duel_gap": -2265740,
+        "variant_duel_gap": -1952871,
+        "duel_gap_evolution": 312869
+      },
+      "company_value": {
+        "reference_opex": 10702022,
+        "variant_opex": 9892127,
+        "policy_delta": -809895,
+        "reference_aaahogex": 7959559,
+        "variant_aaahogex": 8682346,
+        "reference_duel_gap": 2742463,
+        "variant_duel_gap": 1209781,
+        "duel_gap_evolution": -1532682
+      }
+    },
+    {
+      "seed": 8191,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2154591,
+        "variant_opex": 1832596,
+        "policy_delta": -321995,
+        "reference_aaahogex": 5080386,
+        "variant_aaahogex": 5116084,
+        "reference_duel_gap": -2925795,
+        "variant_duel_gap": -3283488,
+        "duel_gap_evolution": -357693
+      },
+      "company_value": {
+        "reference_opex": 9423861,
+        "variant_opex": 8642854,
+        "policy_delta": -781007,
+        "reference_aaahogex": 9861664,
+        "variant_aaahogex": 10950926,
+        "reference_duel_gap": -437803,
+        "variant_duel_gap": -2308072,
+        "duel_gap_evolution": -1870269
+      }
+    },
+    {
+      "seed": 12345,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1040897,
+        "variant_opex": 1278853,
+        "policy_delta": 237956,
+        "reference_aaahogex": 3119260,
+        "variant_aaahogex": 3381994,
+        "reference_duel_gap": -2078363,
+        "variant_duel_gap": -2103141,
+        "duel_gap_evolution": -24778
+      },
+      "company_value": {
+        "reference_opex": 4126855,
+        "variant_opex": 4631019,
+        "policy_delta": 504164,
+        "reference_aaahogex": 7325559,
+        "variant_aaahogex": 9050571,
+        "reference_duel_gap": -3198704,
+        "variant_duel_gap": -4419552,
+        "duel_gap_evolution": -1220848
+      }
+    },
+    {
+      "seed": 54321,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1822478,
+        "variant_opex": 1898119,
+        "policy_delta": 75641,
+        "reference_aaahogex": 3542007,
+        "variant_aaahogex": 3615436,
+        "reference_duel_gap": -1719529,
+        "variant_duel_gap": -1717317,
+        "duel_gap_evolution": 2212
+      },
+      "company_value": {
+        "reference_opex": 8847888,
+        "variant_opex": 8649721,
+        "policy_delta": -198167,
+        "reference_aaahogex": 5804057,
+        "variant_aaahogex": 7180445,
+        "reference_duel_gap": 3043831,
+        "variant_duel_gap": 1469276,
+        "duel_gap_evolution": -1574555
+      }
+    },
+    {
+      "seed": 65537,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1053981,
+        "variant_opex": 1264225,
+        "policy_delta": 210244,
+        "reference_aaahogex": 3537901,
+        "variant_aaahogex": 4490181,
+        "reference_duel_gap": -2483920,
+        "variant_duel_gap": -3225956,
+        "duel_gap_evolution": -742036
+      },
+      "company_value": {
+        "reference_opex": 4406518,
+        "variant_opex": 4885518,
+        "policy_delta": 479000,
+        "reference_aaahogex": 6915217,
+        "variant_aaahogex": 9735297,
+        "reference_duel_gap": -2508699,
+        "variant_duel_gap": -4849779,
+        "duel_gap_evolution": -2341080
+      }
+    },
+    {
+      "seed": 123456,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1881661,
+        "variant_opex": 1857242,
+        "policy_delta": -24419,
+        "reference_aaahogex": 3815092,
+        "variant_aaahogex": 4598439,
+        "reference_duel_gap": -1933431,
+        "variant_duel_gap": -2741197,
+        "duel_gap_evolution": -807766
+      },
+      "company_value": {
+        "reference_opex": 7186928,
+        "variant_opex": 7740836,
+        "policy_delta": 553908,
+        "reference_aaahogex": 7781762,
+        "variant_aaahogex": 10368208,
+        "reference_duel_gap": -594834,
+        "variant_duel_gap": -2627372,
+        "duel_gap_evolution": -2032538
+      }
+    },
+    {
+      "seed": 424242,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2196367,
+        "variant_opex": 2207958,
+        "policy_delta": 11591,
+        "reference_aaahogex": 5905218,
+        "variant_aaahogex": 4405091,
+        "reference_duel_gap": -3708851,
+        "variant_duel_gap": -2197133,
+        "duel_gap_evolution": 1511718
+      },
+      "company_value": {
+        "reference_opex": 8429262,
+        "variant_opex": 8867249,
+        "policy_delta": 437987,
+        "reference_aaahogex": 13034137,
+        "variant_aaahogex": 11165136,
+        "reference_duel_gap": -4604875,
+        "variant_duel_gap": -2297887,
+        "duel_gap_evolution": 2306988
+      }
+    },
+    {
+      "seed": 8675309,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1932179,
+        "variant_opex": 1587233,
+        "policy_delta": -344946,
+        "reference_aaahogex": 4817036,
+        "variant_aaahogex": 4293989,
+        "reference_duel_gap": -2884857,
+        "variant_duel_gap": -2706756,
+        "duel_gap_evolution": 178101
+      },
+      "company_value": {
+        "reference_opex": 6832848,
+        "variant_opex": 6580592,
+        "policy_delta": -252256,
+        "reference_aaahogex": 9950989,
+        "variant_aaahogex": 9813444,
+        "reference_duel_gap": -3118141,
+        "variant_duel_gap": -3232852,
+        "duel_gap_evolution": -114711
+      }
+    },
+    {
+      "seed": 423960,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2398918,
+        "variant_opex": 2090804,
+        "policy_delta": -308114,
+        "reference_aaahogex": 4106354,
+        "variant_aaahogex": 4657703,
+        "reference_duel_gap": -1707436,
+        "variant_duel_gap": -2566899,
+        "duel_gap_evolution": -859463
+      },
+      "company_value": {
+        "reference_opex": 11209825,
+        "variant_opex": 10317366,
+        "policy_delta": -892459,
+        "reference_aaahogex": 8032924,
+        "variant_aaahogex": 9715042,
+        "reference_duel_gap": 3176901,
+        "variant_duel_gap": 602324,
+        "duel_gap_evolution": -2574577
+      }
+    },
+    {
+      "seed": 613553,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1842159,
+        "variant_opex": 2171998,
+        "policy_delta": 329839,
+        "reference_aaahogex": 4485251,
+        "variant_aaahogex": 4555019,
+        "reference_duel_gap": -2643092,
+        "variant_duel_gap": -2383021,
+        "duel_gap_evolution": 260071
+      },
+      "company_value": {
+        "reference_opex": 7141580,
+        "variant_opex": 8419952,
+        "policy_delta": 1278372,
+        "reference_aaahogex": 7716290,
+        "variant_aaahogex": 8648104,
+        "reference_duel_gap": -574710,
+        "variant_duel_gap": -228152,
+        "duel_gap_evolution": 346558
+      }
+    },
+    {
+      "seed": 515222,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1762924,
+        "variant_opex": 2008199,
+        "policy_delta": 245275,
+        "reference_aaahogex": 3338475,
+        "variant_aaahogex": 2919593,
+        "reference_duel_gap": -1575551,
+        "variant_duel_gap": -911394,
+        "duel_gap_evolution": 664157
+      },
+      "company_value": {
+        "reference_opex": 7931939,
+        "variant_opex": 9548995,
+        "policy_delta": 1617056,
+        "reference_aaahogex": 7205959,
+        "variant_aaahogex": 6283146,
+        "reference_duel_gap": 725980,
+        "variant_duel_gap": 3265849,
+        "duel_gap_evolution": 2539869
+      }
+    },
+    {
+      "seed": 781335,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1666851,
+        "variant_opex": 1573793,
+        "policy_delta": -93058,
+        "reference_aaahogex": 3664994,
+        "variant_aaahogex": 4016014,
+        "reference_duel_gap": -1998143,
+        "variant_duel_gap": -2442221,
+        "duel_gap_evolution": -444078
+      },
+      "company_value": {
+        "reference_opex": 6654939,
+        "variant_opex": 6569712,
+        "policy_delta": -85227,
+        "reference_aaahogex": 6828734,
+        "variant_aaahogex": 8060011,
+        "reference_duel_gap": -173795,
+        "variant_duel_gap": -1490299,
+        "duel_gap_evolution": -1316504
+      }
+    },
+    {
+      "seed": 375172,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1904896,
+        "variant_opex": 2105741,
+        "policy_delta": 200845,
+        "reference_aaahogex": 4786989,
+        "variant_aaahogex": 5611523,
+        "reference_duel_gap": -2882093,
+        "variant_duel_gap": -3505782,
+        "duel_gap_evolution": -623689
+      },
+      "company_value": {
+        "reference_opex": 7241979,
+        "variant_opex": 8216997,
+        "policy_delta": 975018,
+        "reference_aaahogex": 10565920,
+        "variant_aaahogex": 12772165,
+        "reference_duel_gap": -3323941,
+        "variant_duel_gap": -4555168,
+        "duel_gap_evolution": -1231227
+      }
+    },
+    {
+      "seed": 999533,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1633344,
+        "variant_opex": 1690616,
+        "policy_delta": 57272,
+        "reference_aaahogex": 5144714,
+        "variant_aaahogex": 4700186,
+        "reference_duel_gap": -3511370,
+        "variant_duel_gap": -3009570,
+        "duel_gap_evolution": 501800
+      },
+      "company_value": {
+        "reference_opex": 6563825,
+        "variant_opex": 7518692,
+        "policy_delta": 954867,
+        "reference_aaahogex": 9886612,
+        "variant_aaahogex": 8951036,
+        "reference_duel_gap": -3322787,
+        "variant_duel_gap": -1432344,
+        "duel_gap_evolution": 1890443
+      }
+    },
+    {
+      "seed": 442018,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1484382,
+        "variant_opex": 1496245,
+        "policy_delta": 11863,
+        "reference_aaahogex": 4905668,
+        "variant_aaahogex": 4895887,
+        "reference_duel_gap": -3421286,
+        "variant_duel_gap": -3399642,
+        "duel_gap_evolution": 21644
+      },
+      "company_value": {
+        "reference_opex": 6285486,
+        "variant_opex": 6228403,
+        "policy_delta": -57083,
+        "reference_aaahogex": 8449453,
+        "variant_aaahogex": 8405469,
+        "reference_duel_gap": -2163967,
+        "variant_duel_gap": -2177066,
+        "duel_gap_evolution": -13099
+      }
+    },
+    {
+      "seed": 746035,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2248825,
+        "variant_opex": 2025344,
+        "policy_delta": -223481,
+        "reference_aaahogex": 4841837,
+        "variant_aaahogex": 5829239,
+        "reference_duel_gap": -2593012,
+        "variant_duel_gap": -3803895,
+        "duel_gap_evolution": -1210883
+      },
+      "company_value": {
+        "reference_opex": 9490297,
+        "variant_opex": 8943935,
+        "policy_delta": -546362,
+        "reference_aaahogex": 9746667,
+        "variant_aaahogex": 12317117,
+        "reference_duel_gap": -256370,
+        "variant_duel_gap": -3373182,
+        "duel_gap_evolution": -3116812
+      }
+    },
+    {
+      "seed": 455216,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1002575,
+        "variant_opex": 922589,
+        "policy_delta": -79986,
+        "reference_aaahogex": 3635736,
+        "variant_aaahogex": 3118334,
+        "reference_duel_gap": -2633161,
+        "variant_duel_gap": -2195745,
+        "duel_gap_evolution": 437416
+      },
+      "company_value": {
+        "reference_opex": 3541099,
+        "variant_opex": 3854042,
+        "policy_delta": 312943,
+        "reference_aaahogex": 7286780,
+        "variant_aaahogex": 5954154,
+        "reference_duel_gap": -3745681,
+        "variant_duel_gap": -2100112,
+        "duel_gap_evolution": 1645569
+      }
+    },
+    {
+      "seed": 230185,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1508917,
+        "variant_opex": 1136825,
+        "policy_delta": -372092,
+        "reference_aaahogex": 4403650,
+        "variant_aaahogex": 3995131,
+        "reference_duel_gap": -2894733,
+        "variant_duel_gap": -2858306,
+        "duel_gap_evolution": 36427
+      },
+      "company_value": {
+        "reference_opex": 5943624,
+        "variant_opex": 5182235,
+        "policy_delta": -761389,
+        "reference_aaahogex": 8291483,
+        "variant_aaahogex": 7544567,
+        "reference_duel_gap": -2347859,
+        "variant_duel_gap": -2362332,
+        "duel_gap_evolution": -14473
+      }
+    },
+    {
+      "seed": 706990,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1143851,
+        "variant_opex": 1179467,
+        "policy_delta": 35616,
+        "reference_aaahogex": 3894680,
+        "variant_aaahogex": 3243627,
+        "reference_duel_gap": -2750829,
+        "variant_duel_gap": -2064160,
+        "duel_gap_evolution": 686669
+      },
+      "company_value": {
+        "reference_opex": 4718876,
+        "variant_opex": 5085802,
+        "policy_delta": 366926,
+        "reference_aaahogex": 5855264,
+        "variant_aaahogex": 5310558,
+        "reference_duel_gap": -1136388,
+        "variant_duel_gap": -224756,
+        "duel_gap_evolution": 911632
+      }
+    },
+    {
+      "seed": 983759,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1020608,
+        "variant_opex": 1136251,
+        "policy_delta": 115643,
+        "reference_aaahogex": 4197465,
+        "variant_aaahogex": 5435307,
+        "reference_duel_gap": -3176857,
+        "variant_duel_gap": -4299056,
+        "duel_gap_evolution": -1122199
+      },
+      "company_value": {
+        "reference_opex": 3577978,
+        "variant_opex": 3876067,
+        "policy_delta": 298089,
+        "reference_aaahogex": 9132328,
+        "variant_aaahogex": 11430518,
+        "reference_duel_gap": -5554350,
+        "variant_duel_gap": -7554451,
+        "duel_gap_evolution": -2000101
+      }
+    },
+    {
+      "seed": 802204,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2299876,
+        "variant_opex": 2100810,
+        "policy_delta": -199066,
+        "reference_aaahogex": 5756360,
+        "variant_aaahogex": 5787857,
+        "reference_duel_gap": -3456484,
+        "variant_duel_gap": -3687047,
+        "duel_gap_evolution": -230563
+      },
+      "company_value": {
+        "reference_opex": 9813400,
+        "variant_opex": 9044901,
+        "policy_delta": -768499,
+        "reference_aaahogex": 11853496,
+        "variant_aaahogex": 11960143,
+        "reference_duel_gap": -2040096,
+        "variant_duel_gap": -2915242,
+        "duel_gap_evolution": -875146
+      }
+    },
+    {
+      "seed": 232037,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1659112,
+        "variant_opex": 1462769,
+        "policy_delta": -196343,
+        "reference_aaahogex": 5226869,
+        "variant_aaahogex": 5604650,
+        "reference_duel_gap": -3567757,
+        "variant_duel_gap": -4141881,
+        "duel_gap_evolution": -574124
+      },
+      "company_value": {
+        "reference_opex": 6155702,
+        "variant_opex": 5213023,
+        "policy_delta": -942679,
+        "reference_aaahogex": 9461352,
+        "variant_aaahogex": 9409575,
+        "reference_duel_gap": -3305650,
+        "variant_duel_gap": -4196552,
+        "duel_gap_evolution": -890902
+      }
+    },
+    {
+      "seed": 723002,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2357595,
+        "variant_opex": 2092501,
+        "policy_delta": -265094,
+        "reference_aaahogex": 5488388,
+        "variant_aaahogex": 4702263,
+        "reference_duel_gap": -3130793,
+        "variant_duel_gap": -2609762,
+        "duel_gap_evolution": 521031
+      },
+      "company_value": {
+        "reference_opex": 9079282,
+        "variant_opex": 8305511,
+        "policy_delta": -773771,
+        "reference_aaahogex": 10715018,
+        "variant_aaahogex": 10117363,
+        "reference_duel_gap": -1635736,
+        "variant_duel_gap": -1811852,
+        "duel_gap_evolution": -176116
+      }
+    },
+    {
+      "seed": 313707,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1994066,
+        "variant_opex": 2275844,
+        "policy_delta": 281778,
+        "reference_aaahogex": 5847885,
+        "variant_aaahogex": 5537754,
+        "reference_duel_gap": -3853819,
+        "variant_duel_gap": -3261910,
+        "duel_gap_evolution": 591909
+      },
+      "company_value": {
+        "reference_opex": 8097179,
+        "variant_opex": 9301613,
+        "policy_delta": 1204434,
+        "reference_aaahogex": 13376768,
+        "variant_aaahogex": 12195371,
+        "reference_duel_gap": -5279589,
+        "variant_duel_gap": -2893758,
+        "duel_gap_evolution": 2385831
+      }
+    },
+    {
+      "seed": 701256,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1719520,
+        "variant_opex": 1917115,
+        "policy_delta": 197595,
+        "reference_aaahogex": 5757645,
+        "variant_aaahogex": 5591763,
+        "reference_duel_gap": -4038125,
+        "variant_duel_gap": -3674648,
+        "duel_gap_evolution": 363477
+      },
+      "company_value": {
+        "reference_opex": 7240152,
+        "variant_opex": 8478080,
+        "policy_delta": 1237928,
+        "reference_aaahogex": 9034299,
+        "variant_aaahogex": 10090741,
+        "reference_duel_gap": -1794147,
+        "variant_duel_gap": -1612661,
+        "duel_gap_evolution": 181486
+      }
+    },
+    {
+      "seed": 292001,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 2104098,
+        "variant_opex": 1519186,
+        "policy_delta": -584912,
+        "reference_aaahogex": 2349286,
+        "variant_aaahogex": 3887666,
+        "reference_duel_gap": -245188,
+        "variant_duel_gap": -2368480,
+        "duel_gap_evolution": -2123292
+      },
+      "company_value": {
+        "reference_opex": 9856719,
+        "variant_opex": 8948897,
+        "policy_delta": -907822,
+        "reference_aaahogex": 4407196,
+        "variant_aaahogex": 7674148,
+        "reference_duel_gap": 5449523,
+        "variant_duel_gap": 1274749,
+        "duel_gap_evolution": -4174774
+      }
+    },
+    {
+      "seed": 841478,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1959495,
+        "variant_opex": 2070337,
+        "policy_delta": 110842,
+        "reference_aaahogex": 3786036,
+        "variant_aaahogex": 4861261,
+        "reference_duel_gap": -1826541,
+        "variant_duel_gap": -2790924,
+        "duel_gap_evolution": -964383
+      },
+      "company_value": {
+        "reference_opex": 7961710,
+        "variant_opex": 8998698,
+        "policy_delta": 1036988,
+        "reference_aaahogex": 6510310,
+        "variant_aaahogex": 9537679,
+        "reference_duel_gap": 1451400,
+        "variant_duel_gap": -538981,
+        "duel_gap_evolution": -1990381
+      }
+    },
+    {
+      "seed": 59527,
+      "repeat": 0,
+      "complete": true,
+      "profit_year": {
+        "reference_opex": 1630594,
+        "variant_opex": 1991982,
+        "policy_delta": 361388,
+        "reference_aaahogex": 4614313,
+        "variant_aaahogex": 3923701,
+        "reference_duel_gap": -2983719,
+        "variant_duel_gap": -1931719,
+        "duel_gap_evolution": 1052000
+      },
+      "company_value": {
+        "reference_opex": 5919392,
+        "variant_opex": 7545119,
+        "policy_delta": 1625727,
+        "reference_aaahogex": 11247111,
+        "variant_aaahogex": 7790619,
+        "reference_duel_gap": -5327719,
+        "variant_duel_gap": -245500,
+        "duel_gap_evolution": 5082219
+      }
+    }
+  ],
+  "terminal_opex": [
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 100,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 950729,
+      "company_value": 3633250,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 0,
+        "air": 63,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 0,
+        "bus": 16,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 1024,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1228262,
+      "company_value": 5157277,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 8,
+        "air": 77,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 28,
+        "truck": 2,
+        "bus": 25,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 123456,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1857242,
+      "company_value": 7740836,
+      "primary_vehicles_by_mode": {
+        "rail": 8,
+        "road": 7,
+        "air": 83,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 14,
+        "truck": 6,
+        "bus": 20,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 12345,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1278853,
+      "company_value": 4631019,
+      "primary_vehicles_by_mode": {
+        "rail": 15,
+        "road": 12,
+        "air": 73,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 20,
+        "truck": 12,
+        "bus": 20,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 1337,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1573196,
+      "company_value": 6952063,
+      "primary_vehicles_by_mode": {
+        "rail": 10,
+        "road": 8,
+        "air": 80,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 18,
+        "truck": 8,
+        "bus": 17,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 17,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1204313,
+      "company_value": 5232817,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 7,
+        "air": 55,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 4,
+        "bus": 20,
+        "airport": 17,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 1,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1994955,
+      "company_value": 10139650,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 4,
+        "air": 81,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 4,
+        "bus": 18,
+        "airport": 23,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 2026,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1779660,
+      "company_value": 7514245,
+      "primary_vehicles_by_mode": {
+        "rail": 15,
+        "road": 6,
+        "air": 79,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 26,
+        "truck": 6,
+        "bus": 21,
+        "airport": 25,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 230185,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1136825,
+      "company_value": 5182235,
+      "primary_vehicles_by_mode": {
+        "rail": 12,
+        "road": 6,
+        "air": 88,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 6,
+        "bus": 22,
+        "airport": 24,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 232037,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1462769,
+      "company_value": 5213023,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 6,
+        "air": 79,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 6,
+        "bus": 19,
+        "airport": 21,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 292001,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1519186,
+      "company_value": 8948897,
+      "primary_vehicles_by_mode": {
+        "rail": 9,
+        "road": 4,
+        "air": 94,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 4,
+        "bus": 23,
+        "airport": 26,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 313707,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2275844,
+      "company_value": 9301613,
+      "primary_vehicles_by_mode": {
+        "rail": 5,
+        "road": 2,
+        "air": 89,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 8,
+        "truck": 0,
+        "bus": 28,
+        "airport": 28,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 314,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1982362,
+      "company_value": 8015087,
+      "primary_vehicles_by_mode": {
+        "rail": 13,
+        "road": 4,
+        "air": 83,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 24,
+        "truck": 4,
+        "bus": 20,
+        "airport": 25,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 375172,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2105741,
+      "company_value": 8216997,
+      "primary_vehicles_by_mode": {
+        "rail": 6,
+        "road": 4,
+        "air": 86,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 10,
+        "truck": 4,
+        "bus": 25,
+        "airport": 29,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 4096,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2229760,
+      "company_value": 9892127,
+      "primary_vehicles_by_mode": {
+        "rail": 8,
+        "road": 4,
+        "air": 100,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 12,
+        "truck": 4,
+        "bus": 24,
+        "airport": 28,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 423960,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2090804,
+      "company_value": 10317366,
+      "primary_vehicles_by_mode": {
+        "rail": 12,
+        "road": 4,
+        "air": 100,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 18,
+        "truck": 4,
+        "bus": 25,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 424242,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2207958,
+      "company_value": 8867249,
+      "primary_vehicles_by_mode": {
+        "rail": 10,
+        "road": 2,
+        "air": 91,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 14,
+        "truck": 2,
+        "bus": 23,
+        "airport": 28,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 42,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1808125,
+      "company_value": 7913566,
+      "primary_vehicles_by_mode": {
+        "rail": 9,
+        "road": 4,
+        "air": 88,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 2,
+        "bus": 25,
+        "airport": 24,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 442018,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1496245,
+      "company_value": 6228403,
+      "primary_vehicles_by_mode": {
+        "rail": 14,
+        "road": 12,
+        "air": 70,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 10,
+        "bus": 20,
+        "airport": 19,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 455216,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 922589,
+      "company_value": 3854042,
+      "primary_vehicles_by_mode": {
+        "rail": 13,
+        "road": 4,
+        "air": 51,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 20,
+        "truck": 4,
+        "bus": 16,
+        "airport": 18,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 512,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 983037,
+      "company_value": 3425461,
+      "primary_vehicles_by_mode": {
+        "rail": 21,
+        "road": 6,
+        "air": 41,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 36,
+        "truck": 6,
+        "bus": 14,
+        "airport": 14,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 515222,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2008199,
+      "company_value": 9548995,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 2,
+        "air": 103,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 2,
+        "bus": 28,
+        "airport": 29,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 54321,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1898119,
+      "company_value": 8649721,
+      "primary_vehicles_by_mode": {
+        "rail": 16,
+        "road": 5,
+        "air": 84,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 26,
+        "truck": 2,
+        "bus": 23,
+        "airport": 19,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 59527,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1991982,
+      "company_value": 7545119,
+      "primary_vehicles_by_mode": {
+        "rail": 12,
+        "road": 8,
+        "air": 91,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 8,
+        "bus": 23,
+        "airport": 25,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 613553,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2171998,
+      "company_value": 8419952,
+      "primary_vehicles_by_mode": {
+        "rail": 8,
+        "road": 7,
+        "air": 90,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 14,
+        "truck": 4,
+        "bus": 29,
+        "airport": 25,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 65537,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1264225,
+      "company_value": 4885518,
+      "primary_vehicles_by_mode": {
+        "rail": 16,
+        "road": 6,
+        "air": 64,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 24,
+        "truck": 6,
+        "bus": 16,
+        "airport": 19,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 701256,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1917115,
+      "company_value": 8478080,
+      "primary_vehicles_by_mode": {
+        "rail": 9,
+        "road": 8,
+        "air": 101,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 14,
+        "truck": 8,
+        "bus": 26,
+        "airport": 29,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 706990,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1179467,
+      "company_value": 5085802,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 12,
+        "air": 79,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 20,
+        "truck": 8,
+        "bus": 24,
+        "airport": 22,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 723002,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2092501,
+      "company_value": 8305511,
+      "primary_vehicles_by_mode": {
+        "rail": 9,
+        "road": 5,
+        "air": 99,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 4,
+        "bus": 26,
+        "airport": 29,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 73,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2162713,
+      "company_value": 9873507,
+      "primary_vehicles_by_mode": {
+        "rail": 8,
+        "road": 6,
+        "air": 97,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 14,
+        "truck": 2,
+        "bus": 27,
+        "airport": 26,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 746035,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2025344,
+      "company_value": 8943935,
+      "primary_vehicles_by_mode": {
+        "rail": 3,
+        "road": 2,
+        "air": 94,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 6,
+        "truck": 2,
+        "bus": 26,
+        "airport": 26,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 781335,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1573793,
+      "company_value": 6569712,
+      "primary_vehicles_by_mode": {
+        "rail": 18,
+        "road": 6,
+        "air": 73,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 32,
+        "truck": 6,
+        "bus": 20,
+        "airport": 23,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 7,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2285758,
+      "company_value": 10005697,
+      "primary_vehicles_by_mode": {
+        "rail": 6,
+        "road": 6,
+        "air": 94,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 12,
+        "truck": 6,
+        "bus": 27,
+        "airport": 26,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 802204,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2100810,
+      "company_value": 9044901,
+      "primary_vehicles_by_mode": {
+        "rail": 7,
+        "road": 4,
+        "air": 78,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 8,
+        "truck": 0,
+        "bus": 25,
+        "airport": 25,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 8191,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1832596,
+      "company_value": 8642854,
+      "primary_vehicles_by_mode": {
+        "rail": 5,
+        "road": 0,
+        "air": 89,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 6,
+        "truck": 0,
+        "bus": 26,
+        "airport": 28,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 841478,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2070337,
+      "company_value": 8998698,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 5,
+        "air": 96,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 2,
+        "bus": 31,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 8675309,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1587233,
+      "company_value": 6580592,
+      "primary_vehicles_by_mode": {
+        "rail": 14,
+        "road": 10,
+        "air": 80,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 26,
+        "truck": 8,
+        "bus": 20,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 983759,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1136251,
+      "company_value": 3876067,
+      "primary_vehicles_by_mode": {
+        "rail": 15,
+        "road": 12,
+        "air": 58,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 8,
+        "bus": 19,
+        "airport": 17,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 999533,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1690616,
+      "company_value": 7518692,
+      "primary_vehicles_by_mode": {
+        "rail": 9,
+        "road": 6,
+        "air": 87,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 14,
+        "truck": 6,
+        "bus": 24,
+        "airport": 26,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "c121_visible_flux",
+      "seed": 999,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1726763,
+      "company_value": 5451994,
+      "primary_vehicles_by_mode": {
+        "rail": 20,
+        "road": 8,
+        "air": 60,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 32,
+        "truck": 6,
+        "bus": 17,
+        "airport": 23,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 100,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1182862,
+      "company_value": 4604725,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 2,
+        "air": 74,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 20,
+        "truck": 2,
+        "bus": 18,
+        "airport": 23,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 1024,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1202403,
+      "company_value": 4888258,
+      "primary_vehicles_by_mode": {
+        "rail": 15,
+        "road": 10,
+        "air": 72,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 24,
+        "truck": 6,
+        "bus": 25,
+        "airport": 22,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 123456,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1881661,
+      "company_value": 7186928,
+      "primary_vehicles_by_mode": {
+        "rail": 16,
+        "road": 17,
+        "air": 97,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 27,
+        "truck": 16,
+        "bus": 22,
+        "airport": 26,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 12345,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1040897,
+      "company_value": 4126855,
+      "primary_vehicles_by_mode": {
+        "rail": 12,
+        "road": 13,
+        "air": 74,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 18,
+        "truck": 14,
+        "bus": 19,
+        "airport": 21,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 1337,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1612514,
+      "company_value": 7141844,
+      "primary_vehicles_by_mode": {
+        "rail": 15,
+        "road": 8,
+        "air": 76,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 6,
+        "bus": 17,
+        "airport": 19,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 17,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1219125,
+      "company_value": 5087756,
+      "primary_vehicles_by_mode": {
+        "rail": 14,
+        "road": 8,
+        "air": 51,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 26,
+        "truck": 4,
+        "bus": 18,
+        "airport": 15,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 1,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2248614,
+      "company_value": 10692789,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 4,
+        "air": 91,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 4,
+        "bus": 16,
+        "airport": 20,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 2026,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1639135,
+      "company_value": 6804110,
+      "primary_vehicles_by_mode": {
+        "rail": 20,
+        "road": 10,
+        "air": 82,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 34,
+        "truck": 6,
+        "bus": 27,
+        "airport": 25,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 230185,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1508917,
+      "company_value": 5943624,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 13,
+        "air": 95,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 12,
+        "bus": 25,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 232037,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1659112,
+      "company_value": 6155702,
+      "primary_vehicles_by_mode": {
+        "rail": 14,
+        "road": 6,
+        "air": 84,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 28,
+        "truck": 4,
+        "bus": 22,
+        "airport": 23,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 292001,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2104098,
+      "company_value": 9856719,
+      "primary_vehicles_by_mode": {
+        "rail": 13,
+        "road": 4,
+        "air": 99,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 4,
+        "bus": 24,
+        "airport": 26,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 313707,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1994066,
+      "company_value": 8097179,
+      "primary_vehicles_by_mode": {
+        "rail": 16,
+        "road": 3,
+        "air": 95,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 28,
+        "truck": 4,
+        "bus": 23,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 314,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1784857,
+      "company_value": 8018181,
+      "primary_vehicles_by_mode": {
+        "rail": 10,
+        "road": 4,
+        "air": 84,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 2,
+        "bus": 21,
+        "airport": 23,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 375172,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1904896,
+      "company_value": 7241979,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 14,
+        "air": 86,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 34,
+        "truck": 10,
+        "bus": 25,
+        "airport": 23,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 4096,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2297058,
+      "company_value": 10702022,
+      "primary_vehicles_by_mode": {
+        "rail": 9,
+        "road": 8,
+        "air": 109,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 10,
+        "bus": 24,
+        "airport": 28,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 423960,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2398918,
+      "company_value": 11209825,
+      "primary_vehicles_by_mode": {
+        "rail": 21,
+        "road": 8,
+        "air": 108,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 32,
+        "truck": 4,
+        "bus": 29,
+        "airport": 28,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 424242,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2196367,
+      "company_value": 8429262,
+      "primary_vehicles_by_mode": {
+        "rail": 18,
+        "road": 2,
+        "air": 102,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 26,
+        "truck": 2,
+        "bus": 24,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 42,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1533340,
+      "company_value": 7212862,
+      "primary_vehicles_by_mode": {
+        "rail": 18,
+        "road": 10,
+        "air": 77,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 31,
+        "truck": 8,
+        "bus": 22,
+        "airport": 21,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 442018,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1484382,
+      "company_value": 6285486,
+      "primary_vehicles_by_mode": {
+        "rail": 7,
+        "road": 6,
+        "air": 74,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 12,
+        "truck": 6,
+        "bus": 20,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 455216,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1002575,
+      "company_value": 3541099,
+      "primary_vehicles_by_mode": {
+        "rail": 20,
+        "road": 5,
+        "air": 41,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 34,
+        "truck": 6,
+        "bus": 13,
+        "airport": 15,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 512,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 733274,
+      "company_value": 2327927,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 13,
+        "air": 23,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 8,
+        "bus": 13,
+        "airport": 7,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 515222,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1762924,
+      "company_value": 7931939,
+      "primary_vehicles_by_mode": {
+        "rail": 15,
+        "road": 4,
+        "air": 100,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 24,
+        "truck": 4,
+        "bus": 27,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 54321,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1822478,
+      "company_value": 8847888,
+      "primary_vehicles_by_mode": {
+        "rail": 10,
+        "road": 10,
+        "air": 88,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 16,
+        "truck": 6,
+        "bus": 25,
+        "airport": 22,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 59527,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1630594,
+      "company_value": 5919392,
+      "primary_vehicles_by_mode": {
+        "rail": 18,
+        "road": 6,
+        "air": 74,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 4,
+        "bus": 23,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 613553,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1842159,
+      "company_value": 7141580,
+      "primary_vehicles_by_mode": {
+        "rail": 15,
+        "road": 4,
+        "air": 87,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 26,
+        "truck": 2,
+        "bus": 23,
+        "airport": 24,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 65537,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1053981,
+      "company_value": 4406518,
+      "primary_vehicles_by_mode": {
+        "rail": 13,
+        "road": 6,
+        "air": 71,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 18,
+        "truck": 6,
+        "bus": 18,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 701256,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1719520,
+      "company_value": 7240152,
+      "primary_vehicles_by_mode": {
+        "rail": 17,
+        "road": 12,
+        "air": 95,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 12,
+        "bus": 29,
+        "airport": 28,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 706990,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1143851,
+      "company_value": 4718876,
+      "primary_vehicles_by_mode": {
+        "rail": 18,
+        "road": 8,
+        "air": 78,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 8,
+        "bus": 20,
+        "airport": 23,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 723002,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2357595,
+      "company_value": 9079282,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 2,
+        "air": 109,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 20,
+        "truck": 2,
+        "bus": 26,
+        "airport": 30,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 73,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2233909,
+      "company_value": 9693926,
+      "primary_vehicles_by_mode": {
+        "rail": 19,
+        "road": 4,
+        "air": 106,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 36,
+        "truck": 0,
+        "bus": 26,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 746035,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2248825,
+      "company_value": 9490297,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 6,
+        "air": 109,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 4,
+        "bus": 33,
+        "airport": 31,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 781335,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1666851,
+      "company_value": 6654939,
+      "primary_vehicles_by_mode": {
+        "rail": 19,
+        "road": 10,
+        "air": 82,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 8,
+        "bus": 21,
+        "airport": 24,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 7,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2106913,
+      "company_value": 9543487,
+      "primary_vehicles_by_mode": {
+        "rail": 14,
+        "road": 10,
+        "air": 85,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 4,
+        "bus": 27,
+        "airport": 22,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 802204,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2299876,
+      "company_value": 9813400,
+      "primary_vehicles_by_mode": {
+        "rail": 9,
+        "road": 14,
+        "air": 94,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 12,
+        "truck": 12,
+        "bus": 27,
+        "airport": 28,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 8191,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2154591,
+      "company_value": 9423861,
+      "primary_vehicles_by_mode": {
+        "rail": 11,
+        "road": 2,
+        "air": 98,
+        "water": 1
+      },
+      "stations_by_facility": {
+        "rail": 18,
+        "truck": 2,
+        "bus": 27,
+        "airport": 29,
+        "dock": 2
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 841478,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1959495,
+      "company_value": 7961710,
+      "primary_vehicles_by_mode": {
+        "rail": 20,
+        "road": 8,
+        "air": 99,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 31,
+        "truck": 8,
+        "bus": 27,
+        "airport": 27,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 8675309,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1932179,
+      "company_value": 6832848,
+      "primary_vehicles_by_mode": {
+        "rail": 16,
+        "road": 10,
+        "air": 80,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 30,
+        "truck": 10,
+        "bus": 17,
+        "airport": 24,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 983759,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1020608,
+      "company_value": 3577978,
+      "primary_vehicles_by_mode": {
+        "rail": 16,
+        "road": 9,
+        "air": 59,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 26,
+        "truck": 8,
+        "bus": 18,
+        "airport": 19,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 999533,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 1633344,
+      "company_value": 6563825,
+      "primary_vehicles_by_mode": {
+        "rail": 14,
+        "road": 6,
+        "air": 84,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 22,
+        "truck": 6,
+        "bus": 23,
+        "airport": 25,
+        "dock": 0
+      }
+    },
+    {
+      "policy_id": "reference",
+      "seed": 999,
+      "last_date": "1975-12-01",
+      "horizon_complete": true,
+      "profit_year_quarters_valid": 4,
+      "profit_year": 2205453,
+      "company_value": 7296542,
+      "primary_vehicles_by_mode": {
+        "rail": 20,
+        "road": 7,
+        "air": 76,
+        "water": 0
+      },
+      "stations_by_facility": {
+        "rail": 32,
+        "truck": 8,
+        "bus": 17,
+        "airport": 25,
+        "dock": 0
+      }
+    }
+  ],
+  "limitations": [
+    "Derived summary; full raw JSON, JSONL, engine logs and frozen bundle remain in ignored results directory.",
+    "No significant economic gain or loss established; failed pre-registered gain_short gate; no B launch or default adoption.",
+    "Comparison is conditional on shared frozen code, including common local changes."
+  ]
+}

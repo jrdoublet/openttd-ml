@@ -648,3 +648,18 @@ Bundle communddb2e194c13565be0a02d1fa96c1c53c0bd41b99796264dd0ea930b49426dc50,
 manifestbd17d9dc742102aeeaebca1d83163c859010fed42fe119f4978a35c12421c88e.
 Début d'exécution confirmé par le lanceur ; résultat final attendu, pas encore
 de verdict. Defaults0 conservés. Session de lanceur80581 (identifiant transitoire).
+
+
+### Clôture du 40×6 : gain non démontré
+
+Campagne `c121_visible_flux_porteA_40x6_20261008` terminée : **80/80 parties saines, 40/40 paires**, comparaison et couverture complètes ; quatre trimestres valides pour chaque ligne terminale Opex. Aucun `failed_run`. Résultat brut : `results/c121_visible_flux_porteA_40x6_20261008.json`. Bundle et manifeste identiques au lancement. Une synthèse versionnée est conservée dans `evidence/review/c121_visible_flux_40x6_20261008_summary.json` : critères, résultats par graine, compteurs physiques terminaux et hashes des sources. Les JSONL, journaux moteur et bundle complets restent locaux dans `results/` ; cette synthèse dérivée ne les remplace pas.
+
+| Mesure terminale Opex | Référence | Nouvel estimateur |
+|---|---:|---:|
+| Profit annuel moyen | 1 735 605 £ | 1 720 107 £ |
+| Avions moyens | 84,2 | 81,7 |
+| Aéroports moyens | 23,675 | 23,8 |
+
+Delta de profit : **−15 498,55 £ (−0,892977 %)** ; médiane +11 727 £ ; V/D/E 21/19/0 ; Wilcoxon p=0,8471556244 ; IC95 bootstrap [−88 842,525 ; +55 407,95] £ (20 000 rééchantillonnages, graine 0). Valeur de compagnie : ratio des moyennes **+1,775847 %**, garde de −5 % tenue.
+
+Verdict brut **`fail_primary`** : le gain requis n'est pas démontré ; aucune perte significative n'est démontrée non plus. La baisse du nombre d'avions ne suffit pas à établir leur meilleure rentabilité. Porte B non lancée, candidat maintenu à 0, aucune adoption. La comparaison reste conditionnelle au code commun figé ; elle ne qualifie pas les autres changements communs aux deux bras. Suite : analyser les bifurcations et le rating projeté des nouveaux aéroports/hubs ; aucune relance favorable.
