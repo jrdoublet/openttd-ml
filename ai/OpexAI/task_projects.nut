@@ -1399,6 +1399,11 @@ function OpexAI::_finalizeC75PassOutcome(year, builtCount, c75KPassData, c75Stop
 
 function OpexAI::_tryBuildProjects(year)
 {
+  /* V133 : a 0, seul ce booleen. Les tables ne sont pas touchees. */
+  if (V133_AIR_BUILD_RETRY) {
+    V133_AIR_BATCH_FAILED = {};
+    V133_AIR_SKIP_LOGGED = {};
+  }
   local spPass = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.pass") : null;
   if (R1_R3_TEST_ONLY) R1_R3_TEST_PASS++;
   local c75KPassData = null;
@@ -1705,11 +1710,26 @@ function OpexAI::_tryBuildProjects(year)
           r1r3BypassBefore, builtCount, r1r3Threshold);
     }
 
+    /* V133 : a 0, seul ce booleen. Une ville en quarantaine ou fautive dans
+     * cette passe ne relance pas le chantier ; les autres paires suivent. */
+    if (V133_AIR_BUILD_RETRY && project.mode == "air"
+        && OpexV133AirPlanBlocked(project.payload)) {
+      OpexV133LogBlockedTowns(project.payload);
+      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
+          || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) {
+        local v133Plan = project.payload;
+        passDiscards.append({ rank = i, mode = "air", src = v133Plan.siteA.town.tile,
+                              dst = v133Plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
+      }
+      continue;
+    }
+
     /* Un site pris par un chantier precedent rend les autres plans de ce
      * portefeuille caducs. R3 : les ecarter avant K_pass et son bypass aussi
      * au defaut, pas uniquement dans le batch C121 de premiere annee. */
     if (project.mode == "air"
         && !OpexAirBatchPlanStillLive(project.payload, this._lines)) {
+      if (V133_AIR_BUILD_RETRY) OpexV133SalvageDeadPlan(this._projects.best, i, project.payload, this._lines);
       if (R1_R3_TEST_ONLY) OpexR1R3AirTrace(this, project, i, "reject", "batch_plan_dead",
           r1r3BypassBefore, r1r3BypassBefore, builtCount, r1r3Threshold);
       if (c121FirstYearAirBatch) c121DeadSkipped++;

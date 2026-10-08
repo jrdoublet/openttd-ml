@@ -61,6 +61,7 @@ function OpexC83RepairFindSites(ctx, comboIndex, combo, airport, plane)
     local town = ctx.towns[scan.index];
     scan.index++;
     progressed = true;
+    if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, town.id)) continue;
     if (town.id in ctx.stationLimitedTowns) continue;
     local served = OpexAirTownServed(town, ctx.lines, ctx.servedDiag);
     local secondSlot = served && (town.id in ctx.c83TopTownIds) && OpexAirC83SecondSlotOpen(town);

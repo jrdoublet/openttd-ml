@@ -374,6 +374,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v133_air_build_retry",
+      description = "V133: quarantine an AIR town for 730 days after a local-authority refusal, a non-flat or invalid footprint, an unbuildable site or a town station cap, and keep lot pairs that do not use the failed site; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_site_min_catchment",
       description = "V125: refuse an AIR site whose catchment produces no passengers or accepts none (acceptance < 8), instead of building a dead airport; 1 = on (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,

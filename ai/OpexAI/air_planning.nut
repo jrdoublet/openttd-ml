@@ -498,7 +498,9 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
       probes.townsLeft = limit - i;
       if (C83_FIXES && targetTownId >= 0) probes.townsLeft = scanEnd - i;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
-      if (towns[i].id in stationLimitedTowns) {
+      if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) {
+        /* V133 : ville en quarantaine, aucun site newpair/hubsite. Le curseur de tranche suit. */
+      } else if (towns[i].id in stationLimitedTowns) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_station_limit", 1);
         if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_station_limit");
       } else {
@@ -788,6 +790,11 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
           }
           if (!siteValidity[keyB]) continue;
         }
+      }
+      if (V133_AIR_BUILD_RETRY) {
+        local v133TownA = OpexV133TownIdOf(sites[a]);
+        local v133TownB = OpexV133TownIdOf(sites[b]);
+        if (OpexV133AirTownSkip(ctx, v133TownA) || OpexV133AirTownSkip(ctx, v133TownB)) continue;
       }
       local pairMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airPairs++;
@@ -1260,6 +1267,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
       for (local i = 0; i < hubScanEnd && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
         hubProbes.townsLeft = limit - i;
         if (C83_FIXES && targetTownId >= 0) hubProbes.townsLeft = hubScanEnd - i;
+        if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) continue;
         if (towns[i].id in stationLimitedTowns) {
           continue;
         }
@@ -1458,8 +1466,13 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         }
         progressed = true;
       }
-      local hubSiteMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local site = sites[sj];
+      if (V133_AIR_BUILD_RETRY) {
+        local v133TownA = OpexV133TownIdOf(hub);
+        local v133TownB = OpexV133TownIdOf(site);
+        if (OpexV133AirTownSkip(ctx, v133TownA) || OpexV133AirTownSkip(ctx, v133TownB)) continue;
+      }
+      local hubSiteMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR0310_HUB_SNAPSHOT && (ctx.air0310HubRestored || ctx.air0310HubSkip != null)
           && OpexAir0310SkipRestoredPair(ctx, airport, "hubsite", hub, null, site, plane)) continue;
       if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubSitePairs++;
@@ -1724,9 +1737,14 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         }
         progressed = true;
       }
-      local hubHubMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local hub1 = hubs[i];
       local hub2 = hubs[j];
+      if (V133_AIR_BUILD_RETRY) {
+        local v133TownA = OpexV133TownIdOf(hub1);
+        local v133TownB = OpexV133TownIdOf(hub2);
+        if (OpexV133AirTownSkip(ctx, v133TownA) || OpexV133AirTownSkip(ctx, v133TownB)) continue;
+      }
+      local hubHubMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       if (AIR0310_HUB_SNAPSHOT && (ctx.air0310HubRestored || ctx.air0310HubSkip != null)
           && OpexAir0310SkipRestoredPair(ctx, airport, "hubhub", hub1, hub2, null, plane)) continue;
       if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubHubPairs++;
