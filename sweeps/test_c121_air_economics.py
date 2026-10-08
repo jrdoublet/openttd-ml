@@ -30,6 +30,16 @@ def body(text: str, start: str, end: str) -> str:
     return text[i:text.index(end, i)]
 
 class TestC121AirEconomics(unittest.TestCase):
+    def test_adaptive_realization_applies_in_all_regimes(self):
+        defaults = parse_ai_settings(INFO)
+        factor = body(self.projects, 'function OpexC121RealizationFactor(plan)',
+                      'function OpexC121EngineDecisionRealizationFactor(plan)')
+        self.assertEqual(defaults['c121_air_project_realization_adaptive'], 1)
+        self.assertNotIn('C121_AIR_PROJECT_REALIZATION_REGIME != 1', factor)
+        self.assertIn('arm != "hubsite" && arm != "hubhub"', factor)
+        self.assertIn('if (learned < 0.0 || learned >= 1.0) return 1.0;', factor)
+        self.assertIn('return 0.75 + 0.25 * learned;', factor)
+
     @classmethod
     def setUpClass(cls):
         cls.air = read_builder_air()
@@ -85,7 +95,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("C121_AIR_PROJECT_REALIZATION", project_factor)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_ADAPTIVE", project_factor)
         self.assertNotIn("OpexC121PressureAdvanceYear();", project_factor)
-        self.assertIn("C121_AIR_PROJECT_REALIZATION_REGIME != 1", project_factor)
+        self.assertNotIn("C121_AIR_PROJECT_REALIZATION_REGIME != 1", project_factor)
         self.assertIn('arm != "hubsite" && arm != "hubhub"', project_factor)
         self.assertIn("return 0.75 + 0.25 * learned;", project_factor)
         self.assertIn("0.5 + 0.5 * learned", project_factor)
@@ -533,8 +543,10 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("observedRevenue /= addedObserved", self.task_report)
         self.assertIn("line.c121MarginalProfit * samples + observedProfit", self.task_report)
         self.assertIn("line.c121MarginalRevenue * samples + observedRevenue", self.task_report)
-        self.assertIn("c121LastMarginalProfit", self.task_report)
-        self.assertIn("c121LastMarginalProfit <= 0", fleet_project)
+        self.assertIn("line.c121LastMarginalProfit <- observedProfit", self.task_report)
+        self.assertIn("line.c121LastMarginalRevenue <- observedRevenue", self.task_report)
+        self.assertIn('samples > 0 && ("c121LastMarginalProfit" in line)', fleet_project)
+        self.assertIn("line.c121LastMarginalProfit <= 0", fleet_project)
         self.assertIn("line.c121MarginalObserveYear <- year + 2", self.task_projects)
 
     def test_c121_fleet_projects_do_not_bypass_kdec(self):

@@ -2522,6 +2522,7 @@ function OpexAI::_mainLoopProfiled()
     this._processEvents();
     if (spEvents != null) OpexSpanEnd(spEvents);
     OpexLoopProfAdd("events", mark);
+    if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       local before = C117_AIR_LAST_DATE;
       mark = OpexOpsMeasureBegin();

@@ -328,6 +328,11 @@ function OpexLoadSettings()
   C116_AIR_MARGINAL_CAPITAL = AIController.GetSetting("c116_air_marginal_capital") != 0;
   C116_AIR_PROJECT_PROBE = AIController.GetSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = AIController.GetSetting("c117_air_throughput_probe") != 0;
+  C121_STATION_FLUX_PROBE = AIController.GetSetting("c121_station_flux_probe") != 0;
+  C121_VISIBLE_AIRPORT_CACHE.clear();
+  C121_VISIBLE_FLEET_CACHE.clear();
+  C121_STATION_FLUX_LAST_DATE = -1;
+  C121_STATION_FLUX_STATE = {};
   C118_AIR_TERRITORIAL_EXPANSION = AIController.GetSetting("c118_air_territorial_expansion") != 0;
   C118_AIR_COVERAGE_PROBE = AIController.GetSetting("c118_air_coverage_probe") != 0;
   C119_AIR_INCOME_MODEL = AIController.GetSetting("c119_air_income_model") != 0;
@@ -336,6 +341,12 @@ function OpexLoadSettings()
   C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;
   C121_AIR_ECONOMICS_SHADOW = AIController.GetSetting("c121_air_economics_shadow") != 0;
   C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
+  C121_AIR_VISIBLE_COMPETITION = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_visible_competition") != 0;
+  C121_AIR_VISIBLE_FUSED = C121_AIR_VISIBLE_COMPETITION
+      && AIController.GetSetting("c121_air_visible_fused") != 0;
+  C121_AIR_TARGET_LIMIT = C121_AIR_ECONOMICS
+      && AIController.GetSetting("c121_air_target_limit") != 0;
   C121_AIR_WINNER_FUSION = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_winner_fusion") != 0;
   C121_AIR_GAME_ENGINE = C121_AIR_ECONOMICS

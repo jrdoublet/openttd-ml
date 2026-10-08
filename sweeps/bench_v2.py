@@ -646,6 +646,7 @@ def keep(row):
 
 _ORIGINAL_RUN_EXPERIMENT = None
 _RUN_EXPERIMENT_SIGNATURE = None
+SAVEGAME_ARCHIVE_DIR = None
 
 
 def _run_experiment_with_savegame_cleanup(*args, **kwargs):
@@ -664,6 +665,10 @@ def _run_experiment_with_savegame_cleanup(*args, **kwargs):
     try:
         return _ORIGINAL_RUN_EXPERIMENT(*args, **kwargs)
     finally:
+        # Optional external diagnostic only. Copy errors must remain visible.
+        if SAVEGAME_ARCHIVE_DIR is not None:
+            from savegame_archive import archive_savegames
+            archive_savegames(experiment_dir, SAVEGAME_ARCHIVE_DIR, bound.arguments["i"])
         # Ne jamais effacer run_dir : il contient les binaires et OpenGFX partages par les essais.
         try:
             shutil.rmtree(experiment_dir, ignore_errors=True)
@@ -671,9 +676,10 @@ def _run_experiment_with_savegame_cleanup(*args, **kwargs):
             pass
 
 
-def enable_savegame_cleanup():
+def enable_savegame_cleanup(archive_dir=None):
     """Pool pickle cette reference module : l'accroche doit etre posee avant sa soumission."""
-    global _ORIGINAL_RUN_EXPERIMENT, _RUN_EXPERIMENT_SIGNATURE
+    global _ORIGINAL_RUN_EXPERIMENT, _RUN_EXPERIMENT_SIGNATURE, SAVEGAME_ARCHIVE_DIR
+    SAVEGAME_ARCHIVE_DIR = str(Path(archive_dir).resolve()) if archive_dir is not None else None
     if openttdlab._run_experiment is _run_experiment_with_savegame_cleanup:
         return
     _ORIGINAL_RUN_EXPERIMENT = openttdlab._run_experiment

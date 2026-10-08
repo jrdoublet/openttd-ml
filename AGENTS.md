@@ -93,10 +93,19 @@ ils sont historiques et ne définissent pas le runtime d'OpexAI.
 - `sweeps/archive/` contient des références historiques : vérifier leurs dépendances et protocole
   avant toute réutilisation, plutôt que les traiter comme des harnais courants.
 
-### Protection obligatoire du VPS et cache Docker
+### Profils Docker : PC local et VPS
 
-Toute exécution Docker de tests/parties utilise **`--cpus=3 --memory=2g --memory-swap=2g`** et
-**`-v openttd-lab-home:/home/lab`**, en plus du montage du dépôt et de `-w /work`.
+**Décision utilisateur du 07/10 : sur ce PC Windows local, utiliser jusqu'à
+10 CPU et 10 workers. Les limites 3 CPU / 3 workers concernent le VPS uniquement.**
+Sur ce PC (32 Go RAM vérifiés), le profil de campagne est
+`--cpus 10 --memory 8g --max-workers 10`, plafond swap égal à la RAM.
+Vérifier le contexte Docker avant de choisir le profil ; un daemon distant
+sur le VPS doit toujours conserver ses limites ci-dessous.
+
+Sur le VPS, toute exécution Docker de tests/parties utilise
+**`--cpus=3 --memory=2g --memory-swap=2g`**.
+Les deux profils utilisent **`-v openttd-lab-home:/home/lab`**, en plus du
+montage du dépôt et de `-w /work`.
 Le VPS a 4 cœurs et environ 3,7 Go de RAM ; ces limites protègent l'hôte et interdisent le swap.
 Plusieurs conteneurs plafonnés séparément peuvent saturer ensemble le VPS : ne pas y lancer
 plusieurs campagnes simultanées. Garder `--max-workers 3` au maximum sur ce profil.
@@ -107,7 +116,7 @@ chemin réellement monté. Un daemon distant ne monte pas automatiquement le dos
 Si le runtime manque, rapporter la validation non exécutée ; ne pas substituer un autre protocole.
 Ne pas appeler `openttd` directement : utiliser les harnais Python existants.
 
-Smoke **1 graine × 1 an**, depuis la racine, syntaxe PowerShell :
+Smoke **1 graine × 1 an**, depuis la racine, syntaxe PowerShell, profil VPS :
 
 ```powershell
 docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "${PWD}:/work" -w /work openttd-lab python3 sweeps/bench_v2.py --arms "OpexAI" --seeds 42 --years 1 --max-workers 3 --out results/smoke_identifiant_unique.json
@@ -117,13 +126,13 @@ Sous Bash, remplacer uniquement le montage du dépôt par `-v "$PWD":/work`. Cho
 sortie neuf ; pour une variante, remplacer le bras par son réglage réel déclaré.
 
 Pour un duel reproductible, préférer le lanceur hôte qui enregistre Git, l'image exacte et les
-limites Docker, puis exécute les copies figées :
+limites Docker, puis exécute les copies figées ; exemple sur ce PC local :
 
 ```powershell
-python -X utf8 sweeps/run_c66_reference.py --campaign diag_identifiant_unique --years 6 --seeds 42 100 999 1234 5678 --max-workers 3 --min-useful-primary-delta 50000
+python -X utf8 sweeps/run_c66_reference.py --campaign diag_identifiant_unique --years 6 --seeds 42 100 999 1234 5678 --cpus 10 --memory 8g --max-workers 10
 ```
 
-Cette commande mesure une référence ; le lanceur exige un seuil même pour ce diagnostic.
+Cette commande mesure une référence ; sans variante, aucun seuil A/B n'est requis.
 Pour un A/B, ajouter les bras et critères pré-enregistrés du §4.1. Consulter `--help`.
 Le nom `bench_1v1_5y_20seeds.py` n'impose ni durée ni nombre de graines : les passer
 selon la porte choisie. Le défaut CLI reste `signs20` ; V102 exige une règle explicite.
@@ -246,7 +255,9 @@ Utiliser `sweeps/run_c66_reference.py` avec les options communes suivantes,
 remplacées par les valeurs du plan : `--campaign <identifiant_neuf>`,
 `--reference "OpexAI[reglage=ancien]"`, `--variant "OpexAI[reglage=candidat]"`,
 `--variant-policy-id <chantier>`, `--primary-metric profit_year`,
-`--value-guard-max-loss-pct 5`, `--repeats 1`, `--cpus 3 --memory 2g --max-workers 3`.
+`--value-guard-max-loss-pct 5`, `--repeats 1`, puis le profil de l'hôte :
+**ce PC local** `--cpus 10 --memory 8g --max-workers 10` ;
+**VPS seulement** `--cpus 3 --memory 2g --max-workers 3`.
 Le lanceur ajoute le plafond swap égal à la RAM et le volume de cache.
 
 | Étape | Options supplémentaires explicites |
@@ -263,15 +274,19 @@ durée réellement simulée. Le défaut CLI `signs20` est conservé pour compati
 toujours nommer la règle. Télémétrie OFF sauf besoin pré-enregistré et identique
 dans les deux bras ; distinguer exposition instrumentée et résultat sans sonde.
 
-**Limite GitHub vérifiée le 03/10 :** `bench.yml` / `github_bench.py` imposent
-encore `signs20` et au plus 20 graines ; `qualify.yml` /
-`github_qualification.py` / `qualification.py` enchaînent encore
-smoke→5×6→20×10 avec +50 k£ et 15/20. **Ils n'implémentent pas V102.**
-Ne pas présenter un job vert ou un plan JSON de schéma 1 comme qualification A/B
-V102, ni substituer l'ancien protocole quand V102 est demandé. Le lanceur hôte
-ci-dessus est le parcours disponible ; la migration des workflows est suivie
-dans `docs/taches.md`. Contrats et limites historiques :
-[guide GitHub](docs/bancs_github.md), [plans](qualifications/README.md).
+**Migration GitHub V102 livrée localement le 07/10 :** `bench.yml` propose
+`gain_short` 40×3 et `non_erosion` 20×10 séparément ; `qualify.yml` et les
+plans de schéma 2 enchaînent contrats→smoke→A→B avec seuil relatif 4 %, garde
+5 %, exposition, provenance et contrôle des critères. Les plans de schéma 1
+restent historiques et sont refusés. Le parcours opcodes est distinct,
+smoke→20×10 avec gain d'opcodes préalable et critères dédiés conservés.
+Publication autorisée sur `codex/github-v102` ([PR #18](https://github.com/jrdoublet/openttd-ml/pull/18)),
+smoke `bench.yml` confirmé par le [run 37625779195](https://github.com/jrdoublet/openttd-ml/actions/runs/37625779195)
+tentative1 au code `a27ca28` : deux duels sains, artefacts audités et verdict
+`diagnostic_only` attendu. Contrats/fixtures Windows/Linux verts. Ce contrôle
+ne prouve pas une qualification économique complète A/B via `qualify.yml` ;
+la PR n'est pas fusionnée. [Guide GitHub](docs/bancs_github.md),
+[plans](qualifications/README.md), suivi dans `docs/taches.md`.
 
 **Optimisations d'opcodes :** appliquer la règle dédiée du §4, déclarée avant
 mesure : gain d'opcodes mesuré sur le poste visé à entrées/protocoles comparables,

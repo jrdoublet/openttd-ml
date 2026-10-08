@@ -359,6 +359,12 @@ function OpexAI::_tryBuildAir(year)
         builtLine.targetAirPlanes <- C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)
             ? builtLine.c121TargetPlanes
             : (("targetPlanes" in plan) ? plan.targetPlanes : result.vehicles.len());
+        if (C121_AIR_ECONOMICS && C121_AIR_TARGET_LIMIT) {
+          local modelTarget = builtLine.targetAirPlanes;
+          builtLine.targetAirPlanes = OpexC121AirPhysicalTarget(builtLine, this._catalog, this._lines);
+          if (DECISION_LOG) OpexDecide("C121_TARGET_LIMIT", "phase=build line=" + builtLine.lineId
+              + " model=" + modelTarget + " limit=" + builtLine.targetAirPlanes);
+        }
       }
       this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
       if (C98_AIR_REALIZED_PROBE) {
@@ -756,6 +762,12 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             builtLine.targetAirPlanes <- C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)
                 ? builtLine.c121TargetPlanes
                 : (("targetPlanes" in buildPlan) ? buildPlan.targetPlanes : result.vehicles.len());
+            if (C121_AIR_ECONOMICS && C121_AIR_TARGET_LIMIT) {
+              local modelTarget = builtLine.targetAirPlanes;
+              builtLine.targetAirPlanes = OpexC121AirPhysicalTarget(builtLine, this._catalog, this._lines);
+              if (DECISION_LOG) OpexDecide("C121_TARGET_LIMIT", "phase=build line=" + builtLine.lineId
+                  + " model=" + modelTarget + " limit=" + builtLine.targetAirPlanes);
+            }
           }
           this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in buildPlan) ? buildPlan.monthlyPax : 0;
           if (C98_AIR_REALIZED_PROBE) {
@@ -977,7 +989,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     /* V92 : finir un remplacement même si la ligne n'est plus candidate à la croissance.
      * Sinon les avions déjà envoyés au hangar y restent. */
     if (V92_AIR_SERVICE_CHOICE && OpexAirLineReequipPending(line)) {
-      local resumed = OpexAirAddPlane(line, this._catalog);
+      local resumed = OpexAirAddPlane(line, this._catalog, this._lines);
       if (!(("reason" in resumed) && (resumed.reason == "NOLIVE" || resumed.reason == "NOVEH"))) continue;
     }
     /* Reconstitution de crash : elle passe avant les gardes de croissance
@@ -1024,6 +1036,25 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (have < 1) {
       OpexAirFleetRefusal(line, year, "V");
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
+      continue;
+    }
+    OpexC121RefreshVisibleFleet(this._catalog, line, this._lines);
+    if (C121_AIR_ECONOMICS && C121_AIR_TARGET_LIMIT) {
+      /* Garde scalaire avant les gardes d'observation. La cadence partagee
+       * est deja recalculee une seule fois, plus bas, pour un renfort eligible :
+       * ne pas rebalayer tous les aeroports des lignes encore trop jeunes. */
+      local limit = OpexC121AirTargetLimit(line, AIR_MAX_PLANES_PER_ROUTE);
+      if (have >= limit) {
+        OpexAirFleetRefusal(line, year, "T");
+        if (DECISION_LOG) OpexDecide("C121_TARGET_LIMIT", "phase=resize line=" + line.lineId
+            + " have=" + have + " limit=" + limit);
+        if (plan != null && C69_BOTTLENECK_PROBE)
+          OpexC73RecordRejection("fleet", "c121_target_reached", 1);
+        continue;
+      }
+    }
+    if (C121_AIR_VISIBLE_COMPETITION && ("targetAirPlanes" in line) && have >= line.targetAirPlanes) {
+      OpexAirFleetRefusal(line, year, "T");
       continue;
     }
     local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
@@ -1277,7 +1308,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
-      local grown = OpexAirAddPlane(line, this._catalog);
+      local grown = OpexAirAddPlane(line, this._catalog, this._lines);
       if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {
         if (grown.reason == "REPLACE" && ("vehCount" in grown)) {
           have = grown.vehCount;

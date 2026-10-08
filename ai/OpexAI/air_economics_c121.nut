@@ -584,7 +584,7 @@ function OpexC121AirFleetScanCap(plan, roundTripDays, paxCapacity, mailCapacity)
 /* C121 : economie PASS/MAIL directionnelle, sans forfait mail ni plein retour. */
 function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes = 0,
                              decisionOnly = false, decisionScoreFloor = null, openingOut = null,
-                             engineContext = null)
+                             engineContext = null, marginalOut = null)
 {
   if (catalog == null || plan == null || plane == null || !("c121Demand" in plan)) return null;
   if (paxCapacity <= 0 || mailCapacity < 0 || catalog.paxCargo < 0) return null;
@@ -810,6 +810,11 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
     local vehicleAmortAnnual = planes * vehicleAmortPerPlane;
     local amortAnnual = vehicleAmortAnnual + airportAmortAnnual;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+    /* Optional live-fleet capture: these are the only fixed-depth fields
+     * consumed by refresh. Do not allocate another rich economics snapshot. */
+    if (marginalOut != null && (planes == marginalOut.have || planes == marginalOut.have+1))
+      marginalOut.values.rawset(planes, { profitAnnual = profitAnnual,
+        revenueAnnual = revenueAnnual, realizationFactor = realizationFactor });
     local capital = airportCapital + planes * plane.price;
     local immobilise = (TRANSIT_COST_PERMILLE > 0) ? (revenueAnnual * trip.roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
     local totalCapital = capital + immobilise;
@@ -1006,6 +1011,19 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
     best.decisionEconomics <- scoreBest;
   }
   return best;
+}
+
+/* One shared model for live target and fixed-depth marginal fields. */
+function OpexC121VisibleFleetEconomics(catalog, plan, plane, paxCapacity, mailCapacity, have)
+{
+  local captured = { have = have, values = {} };
+  local target = OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity,
+      0, false, null, null, null, captured);
+  /* Existing fleets may already exceed the scan's economic bound. Preserve
+   * the original fixed-N evaluation for every depth absent from the scan. */
+  foreach (n in [have, have+1]) if (!(n in captured.values))
+    captured.values.rawset(n, OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, n));
+  return { target = target, before = captured.values[have], after = captured.values[have+1] };
 }
 
 /* The captured N=1 snapshots must receive fixed-N annotations before the

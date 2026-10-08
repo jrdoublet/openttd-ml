@@ -31,6 +31,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s sweeps -p test_qualification.py -v
+      - run: python -m unittest discover -s sweeps -p test_github_bench.py -v
 
   fixtures:
     name: Fixtures (${{ matrix.os }})
@@ -55,6 +56,7 @@ jobs:
           test_benchmark_adoption test_profit_coverage test_campaign_freeze
           test_frozen_harness test_game_health test_physical_counters
           test_review_evidence
+          test_v102_protocol
 
   pinned-runtime:
     name: Pinned OpenTTDLab imports and selftest (no games)
@@ -76,5 +78,6 @@ jobs:
           test_benchmark_adoption test_profit_coverage test_campaign_freeze
           test_frozen_harness test_game_health test_physical_counters
           test_review_evidence
+          test_v102_protocol
       - name: Duel selftest (synthetic data; no OpenTTD launch)
         run: python sweeps/bench_1v1_5y_20seeds.py --selftest

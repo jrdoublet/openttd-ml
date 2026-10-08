@@ -359,9 +359,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "air_site_min_catchment",
-      description = "V125: refuse an AIR site whose catchment produces no passengers or accepts none (acceptance < 8), instead of building a dead airport; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "V125: refuse an AIR site whose catchment produces no passengers or accepts none (acceptance < 8), instead of building a dead airport; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -552,6 +552,28 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c121_station_flux_probe",
+      description = "Passive PASS station balance: loading increases, queue changes, unknown losses and transfer risks; no fleet decisions; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_visible_competition",
+      description = "Experimental PASS capture from visible rival airport tiles, equal-rating prior; common new/hub/live fleet demand; 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_visible_fused",
+      description = "Experimental live visible fleet quote: capture N/N+1 during target scan; requires visible competition; 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c119_air_income_model",
       description = "C119: AIR pre-build income uses Manhattan payment distance and delivery-only time while keeping legacy cycle, demand and fleet sizing unchanged; 1 = enabled, 0 = default",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -596,6 +618,14 @@ class OpexAIInfo extends AIInfo {
       description = "C121 unified AIR economics for engine/project decisions; supersedes the C115 economic replay; 1 = on (default since 2026-10-07)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c121_air_target_limit",
+      description = "C121: cap the remembered fleet target by airport cadence and enforce it for all growth, including cached projects; requires c121_air_economics; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -800,7 +830,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c121_air_project_realization_adaptive",
-      description = "C121 adaptive AIR strategy: use reused-hub realization correction only when the locked pressure regime is efficiency; otherwise keep raw C121 race economics; 1 = on (default), 0 = off",
+      description = "C121 adaptive AIR strategy: use the learned reused-hub realization correction in observe, race and efficiency; 1 = on (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN

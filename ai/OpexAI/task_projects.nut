@@ -249,7 +249,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
    * compte separe, aligne sur task_air.nut (pas de added). */
   local replaced = 0;
   for (local k = 0; k < entry.want; k++) {
-    local grown = OpexAirAddPlane(line, this._catalog);
+    local grown = OpexAirAddPlane(line, this._catalog, this._lines);
     if (R1_R3_TEST_ONLY) OpexR1R3Log("mechanism=R1 phase=api_result id="
         + (("r1r3Id" in project) ? project.r1r3Id : "unknown")
         + " pass=" + R1_R3_TEST_PASS + " cycle=" + this._taskCycle + " rank=" + i

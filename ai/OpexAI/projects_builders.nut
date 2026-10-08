@@ -160,6 +160,8 @@ function OpexProjectFromFleet(entry)
   local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
              : (("vehicles" in line) ? line.vehicles.len() : 0);
   if (have < 1) return null;
+  if (C121_AIR_ECONOMICS && C121_AIR_TARGET_LIMIT
+      && (!("targetAirPlanes" in line) || have + entry.want > line.targetAirPlanes)) return null;
 
   local profit = 0;
   local revenue = 0;
@@ -179,6 +181,9 @@ function OpexProjectFromFleet(entry)
     local perPlaneProfit = line.c121MarginalProfit;
     local perPlaneRevenue = line.c121MarginalRevenue;
     local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+    /* Une moyenne historique positive ne peut pas financer un nouveau palier
+     * si le dernier renfort mesure a detruit du profit. Le cold-start (0 sample)
+     * conserve exactement le comportement C121 existant. */
     if (samples > 0 && ("c121LastMarginalProfit" in line)
         && line.c121LastMarginalProfit <= 0) return null;
     if (samples <= 0 && ("c121Arm" in line) && (line.c121Arm in C121_AIR_REALIZATION_FACTOR)) {

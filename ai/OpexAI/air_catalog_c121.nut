@@ -144,7 +144,7 @@ function OpexC121CatalogChoice(catalog, plan, lines)
         || entry.routes != plan.hubRoutes) reason = "station";
     else if (entry.airportLearn != airportLearn || entry.hubLearnA != hubLearnA
         || entry.hubLearnB != hubLearnB || entry.armLearn != armLearn) reason = "learning";
-    else if (date - entry.date >= 365) reason = "age";
+    else if (date - entry.date >= (C121_AIR_VISIBLE_COMPETITION ? 30 : 365)) reason = "age";
     else if (entry.distance != plan.distance
         || (V93_AIR_DEMAND_PRODUCTION && entry.monthlyPax != plan.monthlyPax)
         || entry.airportPrice != plan.airport.price
@@ -416,6 +416,16 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
       + " arm=" + (("arm" in plan) ? plan.arm : "unknown") + " engine=" + plan.plane.id
       + " station_id_a=" + AIStation.GetStationID(result.stationA)
       + " station_id_b=" + AIStation.GetStationID(result.stationB)
+      + " town_a=" + plan.siteA.town.id + " town_b=" + plan.siteB.town.id
+      + " pax_produced_a=" + plan.c121Demand.paxProducedA
+      + " pax_produced_b=" + plan.c121Demand.paxProducedB
+      + " pax_town_tiles_a=" + plan.c121Demand.paxTownTilesA
+      + " pax_town_tiles_b=" + plan.c121Demand.paxTownTilesB
+      + " pax_union_tiles_a=" + plan.c121Demand.paxUnionTilesA
+      + " pax_union_tiles_b=" + plan.c121Demand.paxUnionTilesB
+      + " visible_flux=" + (C121_AIR_VISIBLE_COMPETITION ? 1 : 0)
+      + " rival_weight_a=" + (("rivalWeight" in plan.c121Demand.paxCompetitionA) ? plan.c121Demand.paxCompetitionA.rivalWeight : 0)
+      + " rival_weight_b=" + (("rivalWeight" in plan.c121Demand.paxCompetitionB) ? plan.c121Demand.paxCompetitionB.rivalWeight : 0)
       + " pax_a=" + plan.c121Demand.paxA + " pax_b=" + plan.c121Demand.paxB
       + " mail_a=" + plan.c121Demand.mailA + " mail_b=" + plan.c121Demand.mailB
       + " pax_raw_a=" + plan.c121Demand.paxRawA + " pax_raw_b=" + plan.c121Demand.paxRawB

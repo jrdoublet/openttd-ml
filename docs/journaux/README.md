@@ -13,6 +13,7 @@ Les autres mesures exigent toujours bundle, protocole et santé vérifiables.
 
 | Journal | Contenu / portée |
 |---|---|
+| [8 octobre](journal_2026-10-08.md) | C121 : mesure fantôme du flux PASS par aéroport, smoke OFF/ON sain ; bornes basses exposées, aucune recalibration de flotte |
 | [5 octobre](journal_2026-10-05.md) | Workflow de régression réparé ; piste AIR 6 close : 0 challenger meilleur sur 172 décisions (6 graines × 3 ans) |
 | [4 octobre](journal_2026-10-04.md) | File C121 nocturne : 27 comparaisons saines sans passage A ; trois B passent, adoption explicite utilisateur, analyse des graines perdantes et validation technique |
 | [3 octobre](journal_2026-10-03.md) | V96 « avion de la partie » (C121) adopté sous règle opcodes ; synchronisation des consignes LLM avec V102 (portes 40×3 puis 20×10), workflows GitHub encore historiques |

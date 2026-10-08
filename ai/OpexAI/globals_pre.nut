@@ -400,6 +400,14 @@ C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
 C117_AIR_VEHICLE_STATE <- {};
+/* PASS balance: transient telemetry, never read by fleet decisions. */
+C121_STATION_FLUX_PROBE <- false;
+C121_AIR_VISIBLE_COMPETITION <- false;
+C121_AIR_VISIBLE_FUSED <- false;
+C121_VISIBLE_AIRPORT_CACHE <- {};
+C121_VISIBLE_FLEET_CACHE <- {};
+C121_STATION_FLUX_LAST_DATE <- -1;
+C121_STATION_FLUX_STATE <- {};
 /* C119 : corrige uniquement les entrees du paiement AIR pre-construction :
  * distance Manhattan de livraison et temps de livraison separe du cycle. */
 C119_AIR_INCOME_MODEL <- false;
@@ -425,6 +433,7 @@ C121_AIR_ECONOMICS_SHADOW <- false;
 /* C121 : modele economique AIR unifie. Le flag decisionnel reste eteint tant
  * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
 C121_AIR_ECONOMICS <- false;
+C121_AIR_TARGET_LIMIT <- false;
 C121_AIR_WINNER_FUSION <- false;
 C121_AIR_GAME_ENGINE <- false;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non

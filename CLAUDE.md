@@ -18,4 +18,5 @@ Pour une qualification comportementale : contrats → smoke 1×1 → porte A
 `non_erosion` 20×10, garde de valeur 5 % aux deux portes. Le 5×6 n'est plus
 obligatoire. La règle particulière aux optimisations d'opcodes reste distincte.
 Utiliser le lanceur et les options explicites du §4.1 : `signs20` reste le défaut
-CLI historique et les workflows `qualify.yml`/`bench.yml` ne gèrent pas encore V102.
+CLI historique. Les workflows migrés le 07/10 exposent V102 (plans de schéma 2) ;
+confirmation du nouveau parcours sur Actions après publication encore requise.

@@ -60,6 +60,8 @@ function OpexC121ObserveLineMarginal(line, year, vehCount, profit, currentRevenu
   else line.c121MarginalProfit <- avgProfit;
   if ("c121MarginalRevenue" in line) line.c121MarginalRevenue = avgRevenue;
   else line.c121MarginalRevenue <- avgRevenue;
+  /* La moyenne sert au scoring, mais ne doit jamais masquer un dernier palier
+   * destructeur : un renfort suivant exige aussi une marge recente positive. */
   line.c121LastMarginalProfit <- observedProfit;
   line.c121LastMarginalRevenue <- observedRevenue;
   if ("c121MarginalSamples" in line) line.c121MarginalSamples = samples + 1;

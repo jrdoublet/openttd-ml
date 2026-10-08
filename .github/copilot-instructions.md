@@ -11,8 +11,8 @@ prérequis sont réunis. Depuis le 03/10/2026, le protocole comportemental V102 
 contrats → smoke 1×1 → porte A `gain_short` 40×3 → porte B `non_erosion` 20×10.
 Le 5×6 n'est plus obligatoire. Utiliser `run_c66_reference.py` avec les options
 explicites du §4.1 ; le défaut CLI reste `signs20` pour compatibilité.
-`qualify.yml` et `bench.yml` appliquent encore l'ancien protocole et ne permettent
-pas cette qualification V102 ; ne pas les recommander comme équivalents.
+`qualify.yml` et `bench.yml` exposent V102 depuis la migration locale du 07/10,
+avec plans de schéma 2 ; confirmation sur Actions après publication encore requise.
 Les seuils, règles opcodes, contrôles de santé, provenance et décisions sont
 définis dans AGENTS.md ; ne pas créer une autre règle d'adoption ici.
 

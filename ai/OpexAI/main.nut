@@ -617,6 +617,7 @@ require("lines.nut");
 require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");
+require("air_flux_probe.nut");
 require("scheduler.nut");
 require("scheduler_tasks.nut");
 require("settings.nut");
@@ -747,6 +748,7 @@ function OpexAI::Start()
       this._refreshSaveProjection();
       if (spSave != null) OpexSpanEnd(spSave);
     } else if (this._saveProjection != null) this._saveProjection = null;
+    if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
       OpexC117AirThroughputStep(this._lines, this._catalog);

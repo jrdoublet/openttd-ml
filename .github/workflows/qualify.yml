@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       plan:
-        description: "Plan pré-enregistré et publié : qualifications/<chantier>.json"
+        description: "Plan V102 schéma 2 pré-enregistré et publié : qualifications/<chantier>.json"
         required: true
         type: string
 
@@ -53,7 +53,7 @@ jobs:
           echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
           echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
-      - name: Build one identical runtime for all three stages
+      - name: Build one identical runtime for all stages
         uses: docker/build-push-action@v6
         timeout-minutes: 30
         with:
@@ -75,7 +75,7 @@ jobs:
       - name: Preregistered targeted contracts (no games)
         timeout-minutes: 12
         run: python sweeps/github_qualification.py contracts
-      - name: Smoke then diagnostic then adoption, with stop gates and total budget
+      - name: V102 smoke then gain_short 40x3 then non_erosion 20x10, stop on failure
         timeout-minutes: 280
         run: python sweeps/github_qualification.py run
       - name: Decision and readable summary, including interruption

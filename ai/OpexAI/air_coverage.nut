@@ -496,9 +496,57 @@ function OpexC121StationCoverageTiles(stationId)
  * B9 groupe ici les tuiles productrices par (somme,max) des ratings des gares
  * EXISTANTES concurrentes. La gare candidate est exclue si elle est reutilisee
  * car son rating projete la remplacera dans OpexC121StationAllocatedMonthly(). */
+/* Foreign GetAirportType/GetCargoRating are unavailable. This candidate uses
+ * only visible airport tiles and owners, a small-airport catchment prior and
+ * equal company-best ratings. Potential coverage, not exact service eligibility.
+ * A company is counted once per source, regardless of its number of airports. */
+function OpexC121VisibleAirportOwners(minX, minY, maxX, maxY)
+{
+  local key = minX + "|" + minY + "|" + maxX + "|" + maxY;
+  local now = AIDate.GetCurrentDate();
+  if (key in C121_VISIBLE_AIRPORT_CACHE) {
+    local cached = C121_VISIBLE_AIRPORT_CACHE[key];
+    if (now >= cached.date && now - cached.date < 30) return cached.owners;
+  }
+  local radius = AIAirport.GetAirportCoverageRadius(AIAirport.AT_SMALL);
+  local owners = {};
+  if (radius < 0) return owners;
+  local width = AIMap.GetMapSizeX();
+  local height = AIMap.GetMapSizeY();
+  local tiles = AITileList();
+  /* AddRectangle rejects the entire list if either corner is an invalid map
+   * border tile. Producers/airport facilities cannot occupy these borders. */
+  tiles.AddRectangle(AIMap.GetTileIndex(minX-radius < 1 ? 1 : minX-radius,
+      minY-radius < 1 ? 1 : minY-radius),
+      AIMap.GetTileIndex(maxX+radius >= width-1 ? width-2 : maxX+radius,
+      maxY+radius >= height-1 ? height-2 : maxY+radius));
+  tiles.Valuate(AIAirport.IsAirportTile);
+  tiles.KeepValue(1);
+  local self = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  foreach (tile, unused in tiles) {
+    local owner = AITile.GetOwner(tile);
+    if (owner == self || owner == AICompany.COMPANY_INVALID
+        || AICompany.ResolveCompanyID(owner) != owner) continue;
+    local x = AIMap.GetTileX(tile);
+    local y = AIMap.GetTileY(tile);
+    local left = x-radius > minX ? x-radius : minX;
+    local right = x+radius < maxX ? x+radius : maxX;
+    local top = y-radius > minY ? y-radius : minY;
+    local bottom = y+radius < maxY ? y+radius : maxY;
+    for (local yy = top; yy <= bottom; yy++) for (local xx = left; xx <= right; xx++) {
+      local source = AIMap.GetTileIndex(xx, yy);
+      if (!(source in owners)) owners.rawset(source, {});
+      owners[source].rawset(owner, true);
+    }
+  }
+  if (C121_VISIBLE_AIRPORT_CACHE.len() >= 256) C121_VISIBLE_AIRPORT_CACHE.clear();
+  C121_VISIBLE_AIRPORT_CACHE.rawset(key, { date = now, owners = owners });
+  return owners;
+}
+
 function OpexC121StationCompetitionBuckets(town, cargo, cargoTiles, candidateStationId = -1)
 {
-  local result = { buckets = [], totalWeight = 0, competingWeight = 0, competingStations = 0 };
+  local result = { buckets = [], totalWeight = 0, competingWeight = 0, competingStations = 0, rivalWeight = 0 };
   if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
       || town == null || !AITown.IsValidTown(town.id) || cargo < 0 || cargoTiles == null) return result;
   local mapX = AIMap.GetMapSizeX();
@@ -558,13 +606,18 @@ function OpexC121StationCompetitionBuckets(town, cargo, cargoTiles, candidateSta
   }
 
   local grouped = {};
+  local rivalOwners = (C121_AIR_VISIBLE_COMPETITION && AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS))
+      ? OpexC121VisibleAirportOwners(minX, minY, maxX, maxY) : {};
+  result.rivalWeight = 0;
   foreach (tile, producedHere in cargoTiles) {
     if (producedHere <= 0) continue;
     local sum = (tile in sums) ? sums[tile] : 0;
     local maxRating = (tile in maxima) ? maxima[tile] : 0;
     if (sum > 0) result.competingWeight += producedHere;
-    local key = sum + "|" + maxRating;
-    if (!(key in grouped)) grouped.rawset(key, { sum = sum, maxRating = maxRating, weight = 0 });
+    local rivals = tile in rivalOwners ? rivalOwners[tile].len() : 0;
+    if (rivals > 0) result.rivalWeight += producedHere;
+    local key = sum + "|" + maxRating + "|" + rivals;
+    if (!(key in grouped)) grouped.rawset(key, { sum = sum, maxRating = maxRating, weight = 0, rivals = rivals });
     grouped[key].weight += producedHere;
   }
   foreach (key, bucket in grouped) result.buckets.append(bucket);
@@ -592,7 +645,8 @@ function OpexC121StationAllocatedMonthly(rawMonthly, rating, competition)
     if (denom <= 0) continue;
     local sourceFraction = (best + 1).tofloat() / 256.0;
     local stationShare = rating.tofloat() / denom.tofloat();
-    weighted += bucket.weight.tofloat() * sourceFraction * stationShare;
+    local companies = ("rivals" in bucket) ? 1 + bucket.rivals : 1;
+    weighted += bucket.weight.tofloat() * sourceFraction * stationShare / companies.tofloat();
   }
   return rawMonthly.tofloat() * weighted / competition.totalWeight.tofloat();
 }
@@ -692,7 +746,9 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
       && ("c121CatalogRefreshEndpoints" in plan) && plan.c121CatalogRefreshEndpoints;
     if (cacheKey in C121_AIR_ENDPOINT_CACHE) cached = C121_AIR_ENDPOINT_CACHE[cacheKey];
     if (!forceRefresh && cached != null
-      && (cacheStamp == null || OpexC121EndpointCacheFresh(cached, cacheStamp))) {
+      && (cacheStamp == null || OpexC121EndpointCacheFresh(cached, cacheStamp))
+      && (!C121_AIR_VISIBLE_COMPETITION || ("visibleDate" in cached)
+          && AIDate.GetCurrentDate() >= cached.visibleDate && AIDate.GetCurrentDate() - cached.visibleDate < 30)) {
       if (C121_AIR_PLAN_PERF != null) C121_AIR_PLAN_PERF.endpointHits++;
       return cached;
     }
@@ -737,6 +793,7 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
   result.townTiles = union.townTiles;
   result.unionTiles = union.coveredTiles;
   result.competition = union.competition;
+  if (C121_AIR_VISIBLE_COMPETITION) result.visibleDate <- AIDate.GetCurrentDate();
   result.stopTiles = stops;
   result.coverageTiles = coverageTiles;
   if (cacheStamp != null) result.catalogStamp <- cacheStamp;

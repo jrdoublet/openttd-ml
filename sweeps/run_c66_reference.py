@@ -62,6 +62,8 @@ def main():
     parser.add_argument("--max-workers", type=int)
     parser.add_argument("--engine-timeout", type=int)
     parser.add_argument("--line-telemetry", action="store_true")
+    parser.add_argument("--station-supply-telemetry", action="store_true")
+    parser.add_argument("--retain-savegames", help="Diagnostic: dossier de copie des sauvegardes dans le conteneur")
     parser.add_argument("--line-telemetry-monthly", action="store_true")
     parser.add_argument("--script-debug", action="store_true")
     parser.add_argument("--cpus", type=int, default=3)
@@ -83,20 +85,21 @@ def main():
     # V102 : echouer AVANT de demarrer Docker. On ne peut pas importer
     # c66_threshold_specification_error ici (bench_1v1_5y_20seeds tire openttdlab, absent de
     # l'hote), donc la regle est repetee a l'identique ; le banc la revalide dans le conteneur.
-    _absolute = args.min_useful_primary_delta
-    _pct = args.min_useful_primary_delta_pct
-    if args.decision_rule in ("signs20", "mean40"):
-        if _absolute is None:
-            parser.error("--min-useful-primary-delta doit etre fixe avant un banc C66.4")
-        if _pct is not None:
-            parser.error("--min-useful-primary-delta-pct ne s'applique qu'a gain_short "
-                         "et non_erosion")
-    else:
-        if (_absolute is None) == (_pct is None):
-            parser.error("gain_short et non_erosion exigent exactement un seuil : "
-                         "--min-useful-primary-delta ou --min-useful-primary-delta-pct")
-        if _pct is not None and _pct < 0:
-            parser.error("--min-useful-primary-delta-pct doit etre >= 0")
+    if args.variant is not None:
+        _absolute = args.min_useful_primary_delta
+        _pct = args.min_useful_primary_delta_pct
+        if args.decision_rule in ("signs20", "mean40"):
+            if _absolute is None:
+                parser.error("--min-useful-primary-delta doit etre fixe avant un banc C66.4")
+            if _pct is not None:
+                parser.error("--min-useful-primary-delta-pct ne s'applique qu'a gain_short "
+                             "et non_erosion")
+        else:
+            if (_absolute is None) == (_pct is None):
+                parser.error("gain_short et non_erosion exigent exactement un seuil : "
+                             "--min-useful-primary-delta ou --min-useful-primary-delta-pct")
+            if _pct is not None and _pct < 0:
+                parser.error("--min-useful-primary-delta-pct doit etre >= 0")
 
     mount_root, container_workdir = docker_workspace(args.mount_root)
 
@@ -123,6 +126,10 @@ def main():
         benchmark += ["--engine-timeout", str(args.engine_timeout)]
     if args.line_telemetry:
         benchmark += ["--line-telemetry"]
+    if args.station_supply_telemetry:
+        benchmark += ["--station-supply-telemetry"]
+    if args.retain_savegames:
+        benchmark += ["--retain-savegames", args.retain_savegames]
     if args.line_telemetry_monthly:
         benchmark += ["--line-telemetry-monthly"]
     if args.script_debug:

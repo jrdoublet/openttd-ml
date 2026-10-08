@@ -93,7 +93,7 @@ class TestC84AirTargetFleet(unittest.TestCase):
         hard_dead = resize.index("line.deadStreak >= 2", below)
         wait = resize.index('OpexAirFleetRefusal(line, year, "W")', hard_dead)
         target_cap = resize.index("local targetNeed = line.targetAirPlanes - have;", wait)
-        purchase = resize.index("OpexAirAddPlane(line, this._catalog)", target_cap)
+        purchase = resize.index("OpexAirAddPlane(line, this._catalog, this._lines)", target_cap)
 
         self.assertLess(below, hard_dead)
         self.assertLess(hard_dead, wait)

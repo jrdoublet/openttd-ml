@@ -927,6 +927,8 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
   if (line == null || (("scrapping" in line) && line.scrapping)) return null;
   local have = ("vehCount" in line) ? line.vehCount : line.vehicles.len();
   if (("baseVehicles" in entry) && have != entry.baseVehicles) return null;
+  if (C121_AIR_ECONOMICS && C121_AIR_TARGET_LIMIT
+      && (!("targetAirPlanes" in line) || have + entry.want > line.targetAirPlanes)) return null;
   local purchaseBudget = capitalBudget - 1000; // tampon d'OpexAirAddPlane
   if (entry.planePrice <= 0 || entry.want <= 0 || purchaseBudget < entry.planePrice) return null;
   local quantity = (purchaseBudget / entry.planePrice).tointeger();

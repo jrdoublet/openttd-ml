@@ -38,14 +38,15 @@ Le 5×6 n'est plus obligatoire ; la règle opcodes reste distincte.
 [AGENTS.md §4/§4.1](AGENTS.md#4-validation-proportionnée-puis-adoption) définit
 les critères et les options explicites de `sweeps/run_c66_reference.py`.
 
-**Les workflows GitHub ne sont pas encore migrés vers V102.** `qualify.yml`
-et son [plan de schéma 1](qualifications/README.md) conservent l'ancien parcours
-smoke→5×6→20×10 sous `signs20`. Ne pas les utiliser comme substitut aux deux portes.
+Les workflows GitHub migrés le 07/10 proposent V102 : `bench.yml` expose les
+portes isolées ; `qualify.yml` et ses [plans de schéma 2](qualifications/README.md)
+enchaînent smoke→`gain_short` 40×3→`non_erosion` 20×10 avec arrêts et audit.
+La confirmation du nouveau parcours sur Actions reste à faire après publication.
 
 **Actions → Bancs OpenTTD → Run workflow** : choisir branche, mode (`solo`, `duel`,
-`paired`) et profil (`smoke`, `diagnostic`, `adoption`, `custom`). Pour vérifier
-l'installation : `solo/smoke`. Les profils actuels restent disponibles pour les
-diagnostics et protocoles historiques ; `paired/adoption` applique encore `signs20`.
+`paired`) et profil (`smoke`, `diagnostic`, `gain_short`, `non_erosion`, `custom`).
+Pour vérifier l'installation : `solo/smoke`. Le diagnostic 5×6 reste facultatif ;
+une porte isolée ne qualifie pas les deux étapes d'adoption.
 
 Le workflow doit être publié ; **seul le code de la branche choisie est exécuté**,
 pas les fichiers locaux non envoyés. Aucun commit/push implicite. Lire santé,

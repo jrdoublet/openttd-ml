@@ -14,7 +14,6 @@ import json
 import math
 import os
 from pathlib import Path
-import random
 import re
 import statistics
 import sys
@@ -59,6 +58,7 @@ from bench_v2 import (
     summarise,
     year_profit_metrics,
 )
+from paired_statistics import (wilcoxon_signed_rank_statistic, exact_wilcoxon_signed_rank_p, bootstrap_mean_ci)
 from physical_counters import decode_vehicles, decode_stations
 from c83_reaction import parse_c83_reactions, parse_c83_repairs
 from game_health import (
@@ -89,6 +89,7 @@ CHECKPOINT_PATH = None
 ENGINE_LOG_DIR = None
 LINE_TELEMETRY = False
 LINE_TELEMETRY_MONTHLY = False
+STATION_SUPPLY_TELEMETRY = False
 PROFIT_RAW_UNITS_PER_GBP = 256.0
 VEHICLE_VARIANT_BY_MODE = {
     "rail": "train",
@@ -140,9 +141,12 @@ LIBRARY_SPECS = (
 )
 
 CAMPAIGN_HARNESS_FILES = (
+    "sweeps/savegame_archive.py",
+    "sweeps/station_supply.py",
     "sweeps/bench_1v1_5y_20seeds.py",
     "sweeps/c83_reaction.py",
     "sweeps/bench_v2.py",
+    "sweeps/paired_statistics.py",
     "sweeps/campaign_freeze.py",
     "sweeps/frozen_harness.py",
     "sweeps/game_health.py",
@@ -1022,6 +1026,12 @@ def keep(row):
 
     rec0 = extract_company_record(chunks, 0, ["OpexAI", seed, repeat], date)
     rec1 = extract_company_record(chunks, 1, ["AAAHogEx", seed, repeat], date)
+    if STATION_SUPPLY_TELEMETRY:
+        from station_supply import extract_station_supply, extract_town_month
+        rec0["station_supply"] = extract_station_supply(chunks, 0)
+        rec1["station_supply"] = extract_station_supply(chunks, 1)
+        rec0["town_month"] = extract_town_month(chunks)
+        rec0["savegame_version"] = row.get("savegame_version")
     if LINE_TELEMETRY and (LINE_TELEMETRY_MONTHLY or _annual_line_checkpoint(date)):
         rec0["line_telemetry"] = extract_line_telemetry(chunks, 0)
         rec1["line_telemetry"] = extract_line_telemetry(chunks, 1)
@@ -1173,118 +1183,6 @@ def exact_sign_test_p(wins, losses):
     tail = min(int(wins), int(losses))
     probability = 2 * sum(math.comb(n, k) for k in range(tail + 1)) / (2 ** n)
     return _number(min(1.0, probability))
-
-
-def wilcoxon_signed_rank_statistic(values):
-    """Composantes du test des rangs signés de Wilcoxon.
-
-    Les zéros sont écartés. Les ex æquo d'une même valeur absolue reçoivent
-    le rang moyen. ``w_plus`` somme les rangs des valeurs strictement
-    positives ; ``expectation`` est son espérance sous H0 (moitié de la
-    somme des rangs). ``p`` est le p bilatéral exact, ou None s'il ne reste
-    aucune valeur non nulle.
-
-    La loi nulle est une programmation dynamique sur les rangs doublés :
-    un rang moyen demi-entier devient un entier, et chaque assignation de
-    signes est comptée une fois (support ``2**n``).
-    """
-    observed = []
-    for value in values:
-        if value is None:
-            continue
-        number = float(value)
-        if number == 0.0:
-            continue
-        observed.append(number)
-    n = len(observed)
-    empty = {
-        "n": 0,
-        "w_plus": None,
-        "total_ranks": None,
-        "expectation": None,
-        "p": None,
-    }
-    if n == 0:
-        return empty
-    order = sorted(range(n), key=lambda index: abs(observed[index]))
-    doubled = [0] * n
-    start = 0
-    while start < n:
-        end = start
-        anchor = abs(observed[order[start]])
-        while end + 1 < n and abs(observed[order[end + 1]]) == anchor:
-            end += 1
-        # Rangs 1-based start+1..end+1. La moyenne (start+end+2)/2, doublée,
-        # reste entière quand des ex æquo produisent un demi-rang.
-        doubled_rank = start + end + 2
-        for cursor in range(start, end + 1):
-            doubled[order[cursor]] = doubled_rank
-        start = end + 1
-    positive = sum(doubled[index] for index in range(n) if observed[index] > 0)
-    total_doubled = sum(doubled)
-    counts = [0] * (total_doubled + 1)
-    counts[0] = 1
-    for rank in doubled:
-        for score in range(total_doubled - rank, -1, -1):
-            count = counts[score]
-            if count:
-                counts[score + rank] += count
-    smaller = min(positive, total_doubled - positive)
-    tail = sum(counts[:smaller + 1])
-    total_ranks = total_doubled / 2.0
-    return {
-        "n": n,
-        "w_plus": positive / 2.0,
-        "total_ranks": total_ranks,
-        "expectation": total_ranks / 2.0,
-        "p": min(1.0, 2.0 * tail / (2 ** n)),
-    }
-
-
-def exact_wilcoxon_signed_rank_p(values):
-    """p bilatéral exact du test des rangs signés, ou None si tout est nul."""
-    return wilcoxon_signed_rank_statistic(values)["p"]
-
-
-def bootstrap_mean_ci(values, *, confidence=0.95, resamples=20000, seed=0):
-    """Intervalle percentile de la moyenne, bootstrap avec remise.
-
-    ``random.Random(seed)`` rend deux appels identiques bit à bit. Les indices
-    suivent ``Random.choices`` (``floor(random() * n)``) et la moyenne est
-    ``statistics.mean``. Un échantillon constant a la même moyenne dans tout
-    rééchantillonnage : l'intervalle est cette constante, sans tirage. Une
-    série vide renvoie ``(None, None)``.
-    """
-    sample = []
-    for value in values:
-        if value is None:
-            continue
-        sample.append(float(value))
-    if not sample:
-        return (None, None)
-    if resamples < 1:
-        raise ValueError("resamples doit être >= 1")
-    if not 0.0 < float(confidence) < 1.0:
-        raise ValueError("confidence doit être dans (0, 1)")
-    constant = sample[0]
-    if all(value == constant for value in sample):
-        return (constant, constant)
-    generator = random.Random(seed)
-    width = float(len(sample))
-    draw = generator.random
-    floor = math.floor
-    count = len(sample)
-    means = [
-        statistics.mean(sample[floor(draw() * width)] for _ in range(count))
-        for _ in range(int(resamples))
-    ]
-    means.sort()
-    tail = (1.0 - float(confidence)) / 2.0
-    lower_index = int(tail * resamples)
-    upper_index = int((1.0 - tail) * resamples)
-    if upper_index >= resamples:
-        upper_index = resamples - 1
-    return (means[lower_index], means[upper_index])
 
 
 def paired_metric_display_p(metric):
@@ -2107,6 +2005,10 @@ def main():
     parser.add_argument("--docker-image", default=os.environ.get("C66_DOCKER_IMAGE", "openttd-lab"))
     parser.add_argument("--docker-image-id", default=os.environ.get("C66_DOCKER_IMAGE_ID"))
     parser.add_argument("--selftest", action="store_true", help="Vérifie le décodage et le fail-closed sans lancer OpenTTD")
+    parser.add_argument("--station-supply-telemetry", action="store_true",
+                        help="Diagnostic mensuel hors moteur: compteurs LGRP de cargo nouvellement capte")
+    parser.add_argument("--retain-savegames", type=Path, default=None,
+                        help="Diagnostic externe: copie les sauvegardes brutes avant nettoyage; refuse l'ecrasement")
     parser.add_argument(
         "--line-telemetry", action="store_true",
         help="Diagnostic passif annuel: reconstruit les lignes depuis VEHS + ORDL/ORDR + STNN",
@@ -2299,13 +2201,15 @@ def execute_frozen_campaign(campaign):
     global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY, LINE_TELEMETRY_MONTHLY
     LINE_TELEMETRY = bool(args.line_telemetry)
     LINE_TELEMETRY_MONTHLY = bool(getattr(args, "line_telemetry_monthly", False))
+    global STATION_SUPPLY_TELEMETRY
+    STATION_SUPPLY_TELEMETRY = bool(getattr(args, "station_supply_telemetry", False))
     out = campaign.out_path
     CHECKPOINT_PATH = campaign.checkpoint_path
     ENGINE_LOG_DIR = campaign.engine_log_dir
 
     bench_v2.CHECKPOINT_PATH = CHECKPOINT_PATH
     enable_engine_failure_capture(timeout_sec=args.engine_timeout)
-    enable_savegame_cleanup()
+    enable_savegame_cleanup(getattr(args, "retain_savegames", None))
 
     exps = make_experiments_plan(
         args.seeds,
@@ -2580,6 +2484,8 @@ def execute_frozen_campaign(campaign):
         "policy_reports": policy_reports,
         "policy_comparison": policy_comparison,
         "line_telemetry": build_line_telemetry_report(rows) if LINE_TELEMETRY else None,
+        "station_supply_telemetry": STATION_SUPPLY_TELEMETRY,
+        "retained_savegames": str(args.retain_savegames) if args.retain_savegames else None,
     }
     # A modified bundle cannot receive a final campaign report claiming its old hash.
     verify_manifest_bundle(campaign.manifest_path, campaign.manifest_sha256)

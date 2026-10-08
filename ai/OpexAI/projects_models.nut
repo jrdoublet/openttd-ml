@@ -67,26 +67,20 @@ function OpexC70RecomputeFactors(lines)
 function OpexC121RealizationFactor(plan)
 {
   /* Les anciens essais r4/r5 appliquaient trop brutalement le facteur appris.
-   * Ce levier reste donc separe et OFF par defaut : il ne corrige que les bras
-   * reutilisant un hub, et ne prend que la moitie de l'ecart mesure a 1.0. */
+   * Le levier reste separe et ne corrige que les bras reutilisant un hub. */
   if ((!C121_AIR_PROJECT_REALIZATION && !C121_AIR_PROJECT_REALIZATION_ADAPTIVE)
       || plan == null || !("arm" in plan)) return 1.0;
   local arm = plan.arm;
   if (arm != "hubsite" && arm != "hubhub") return 1.0;
   if (!(arm in C121_AIR_REALIZATION_FACTOR)) return 1.0;
-  /* Strategie adaptative one-shot : les deux premieres annees restent en C121
-   * brut. La pression C83 classe ensuite la carte une fois pour toutes en mode
-   * race ou efficiency. On evite ainsi la boucle de retroaction ou les decisions
-   * de la politique modifiaient le signal servant a la reclassifier. */
-  if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE) {
-    if (C121_AIR_PROJECT_REALIZATION_REGIME != 1) return 1.0;
-  }
+  /* La stratégie adaptative reste disponible dans les trois états de pression.
+   * Le régime continue de piloter C122, mais ne bloque plus la correction
+   * apprise ; sans observation suffisante, learned reste 1.0. */
   local learned = C121_AIR_REALIZATION_FACTOR[arm];
   if (learned < 0.0 || learned >= 1.0) return 1.0;
   if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE) {
-    /* Le classifieur porte le signal strategique. Une fois la carte classee
-     * efficiency, n'appliquer que 25 % de l'ecart appris pour preserver la
-     * valeur et la capacite d'expansion. */
+    /* Appliquer seulement 25 % de l'ecart appris pour preserver la valeur et
+     * la capacite d'expansion ; le régime C121/C122 ne bloque plus ce calcul. */
     return 0.75 + 0.25 * learned;
   }
   return 0.5 + 0.5 * learned;
