@@ -738,6 +738,7 @@ function OpexAI::Save()
     if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
+    if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
     return shortSave;
   }
 
@@ -817,6 +818,7 @@ function OpexAI::Save()
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
+  if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -825,6 +827,7 @@ function OpexAI::Load(version, data)
   OPEX_RELOAD_C121_STRATEGY = null;
   OPEX_AIR_ROLLBACKS = [];
   if (data == null) return;
+  OpexV133LoadQuarantine(data);
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
   if ("c121Strategy" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;

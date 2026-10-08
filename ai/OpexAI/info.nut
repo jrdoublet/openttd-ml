@@ -337,11 +337,11 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v93_airport_no_pop_floor",
-      description = "V93: a town under 600 people can take a large airport when route economics pass, down to 100 people; 1 = on, 0 = off (default)",
+      description = "V93: a town under 600 people can take a large airport when route economics pass, down to 100 people; 1 = on (default), 0 = off",
       min_value = 0,
       max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
@@ -376,6 +376,14 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "v134_air_p2p_saturated_hub",
       description = "V134: allow a second airport in point-to-point (newpair) to a free town when existing airport reached air_hub_max_routes and town opens a 2nd slot; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v133_air_build_retry",
+      description = "V133: quarantine an AIR town for 730 days after a local-authority refusal, a non-flat or invalid footprint, an unbuildable site or a town station cap, and keep lot pairs that do not use the failed site; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

@@ -473,11 +473,19 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
       if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
                                              ("reuseA" in plan) && plan.reuseA)) {
+          if (V133_AIR_BUILD_RETRY) {
+            local v133BestA = (this._projects != null) ? this._projects.best : null;
+            OpexV133NoteUnbuildableEndpoint(v133BestA, i, plan.siteA, ("reuseA" in plan) && plan.reuseA);
+          }
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
                                              ("reuseB" in plan) && plan.reuseB)) {
+          if (V133_AIR_BUILD_RETRY) {
+            local v133BestB = (this._projects != null) ? this._projects.best : null;
+            OpexV133NoteUnbuildableEndpoint(v133BestB, i, plan.siteB, ("reuseB" in plan) && plan.reuseB);
+          }
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
@@ -661,6 +669,10 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
+        if (V133_AIR_BUILD_RETRY) {
+          local v133BestFail = (this._projects != null) ? this._projects.best : null;
+          OpexV133NoteBuildFailure(v133BestFail, i, plan, result);
+        }
         local errorAnchor = null;
         if ((result.reason == "PREA" || result.reason == "AFAIL") && plan.siteA != null) {
           errorAnchor = plan.siteA.anchor;

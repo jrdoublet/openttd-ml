@@ -349,3 +349,243 @@ function OpexAirLineStationId(line, which)
   if (tile == null || !AIMap.IsValidTile(tile)) return -1;
   return AIStation.GetStationID(tile);
 }
+
+/* V133. Les appelants testent V133_AIR_BUILD_RETRY avant d'entrer ici :
+ * a 0 la fonction n'est pas appelee. 730 jours de jeu, pas un reglage. */
+function OpexV133Log(message)
+{
+  AILog.Info(message);
+  OpexC56TaskLog("V133", "air", "-", message);
+}
+
+function OpexV133AirTownQuarantined(townId)
+{
+  if (townId == null || townId < 0) return false;
+  if (!(townId in V133_AIR_QUARANTINE)) return false;
+  local untilDate = V133_AIR_QUARANTINE[townId];
+  if (AIDate.GetCurrentDate() >= untilDate) {
+    delete V133_AIR_QUARANTINE[townId];
+    return false;
+  }
+  return true;
+}
+
+function OpexV133TownIdOf(node)
+{
+  if (node == null || !("town" in node) || node.town == null || !("id" in node.town)) return -1;
+  return node.town.id;
+}
+
+function OpexV133LogAirSkip(seen, townId)
+{
+  if (townId == null || townId < 0) return;
+  if (seen != null && (townId in seen)) return;
+  if (seen != null) seen.rawset(townId, true);
+  OpexV133Log("V133_SKIP town=" + townId);
+}
+
+/* Vrai si la ville est encore en quarantaine. Journal V133_SKIP une fois
+ * par ville et par balayage (table vue sur le contexte de generation). */
+function OpexV133AirTownSkip(ctx, townId)
+{
+  if (!OpexV133AirTownQuarantined(townId)) return false;
+  if (ctx != null && !("v133Skip" in ctx)) ctx.v133Skip <- {};
+  local seen = (ctx != null) ? ctx.v133Skip : null;
+  OpexV133LogAirSkip(seen, townId);
+  return true;
+}
+
+function OpexV133AirBuildReason(error, errorText)
+{
+  if (error == AIError.ERR_LOCAL_AUTHORITY_REFUSES) return "authority";
+  if (error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) return "station_limit";
+  if (error == AIError.ERR_FLAT_LAND_REQUIRED) return "terrain";
+  if (error == AIError.ERR_LAND_SLOPED_WRONG) return "terrain";
+  if (error == AIError.ERR_AREA_NOT_CLEAR) return "unbuildable";
+  if (error == AIError.ERR_SITE_UNSUITABLE) return "unbuildable";
+  if (typeof errorText == "string") {
+    if (errorText.find("recovery") != null) return null;
+    if (errorText.find("non-flat") != null) return "terrain";
+    if (errorText.find("invalid airport footprint") != null) return "footprint";
+    if (errorText.find("invalid airport preflight") != null) return "footprint";
+    if (errorText.find("airport site preflight failed") != null) return "unbuildable";
+    if (errorText.find("airport preflight error") != null) return "unbuildable";
+  }
+  if (error == AIError.ERR_PRECONDITION_FAILED) return "footprint";
+  return null;
+}
+
+/* Extremite neuve seulement : un hub reuse ne depend pas du site fautif. */
+function OpexV133AirPlanUsesTown(plan, townId)
+{
+  if (plan == null || townId == null || townId < 0) return false;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (!reuseA && OpexV133TownIdOf(("siteA" in plan) ? plan.siteA : null) == townId) return true;
+  if (!reuseB && OpexV133TownIdOf(("siteB" in plan) ? plan.siteB : null) == townId) return true;
+  return false;
+}
+
+function OpexV133CountBatchSalvage(best, rank, townA, townB)
+{
+  local kept = 0;
+  local dropped = 0;
+  if (best != null) {
+    for (local j = rank + 1; j < best.len(); j++) {
+      local other = best[j];
+      if (other == null || !("mode" in other) || other.mode != "air") continue;
+      if (!("payload" in other) || other.payload == null) continue;
+      if (OpexV133AirPlanUsesTown(other.payload, townA)
+          || OpexV133AirPlanUsesTown(other.payload, townB)) dropped++;
+      else kept++;
+    }
+  }
+  local tally = {};
+  tally.kept <- kept;
+  tally.dropped <- dropped;
+  return tally;
+}
+
+function OpexV133LogBatchSalvage(best, rank, townA, townB)
+{
+  local tally = OpexV133CountBatchSalvage(best, rank, townA, townB);
+  OpexV133Log("V133_BATCH_SALVAGE kept=" + tally.kept + " dropped=" + tally.dropped);
+}
+
+function OpexV133OnAirSiteFailed(best, rank, townId, reason)
+{
+  if (!V133_AIR_BUILD_RETRY || townId == null || townId < 0) return;
+  local untilDate = AIDate.GetCurrentDate() + 730;
+  V133_AIR_QUARANTINE.rawset(townId, untilDate);
+  OpexV133Log("V133_QUARANTINE town=" + townId + " reason=" + reason + " until=" + untilDate);
+  local freshTown = !(townId in V133_AIR_BATCH_FAILED);
+  V133_AIR_BATCH_FAILED.rawset(townId, true);
+  if (freshTown) OpexV133LogBatchSalvage(best, rank, townId, -1);
+}
+
+/* batch_plan_dead : la ville neuve deja desservie est le site pris.
+ * On ne la met pas en quarantaine (ce n'est pas un echec physique).
+ * Les paires du lot qui ne l'utilisent pas restent sur le parcours normal. */
+function OpexV133SalvageDeadPlan(best, rank, plan, lines)
+{
+  if (!V133_AIR_BUILD_RETRY || plan == null) return;
+  local townA = -1;
+  local townB = -1;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (!reuseA) {
+    local idA = OpexV133TownIdOf(("siteA" in plan) ? plan.siteA : null);
+    if (idA >= 0 && ("siteA" in plan) && plan.siteA != null
+        && OpexAirTownServed(plan.siteA.town, lines)) townA = idA;
+  }
+  if (!reuseB) {
+    local idB = OpexV133TownIdOf(("siteB" in plan) ? plan.siteB : null);
+    if (idB >= 0 && ("siteB" in plan) && plan.siteB != null
+        && OpexAirTownServed(plan.siteB.town, lines)) townB = idB;
+  }
+  if (townA < 0 && townB < 0) return;
+  local freshTown = false;
+  if (townA >= 0 && !(townA in V133_AIR_BATCH_FAILED)) {
+    V133_AIR_BATCH_FAILED.rawset(townA, true);
+    freshTown = true;
+  }
+  if (townB >= 0 && !(townB in V133_AIR_BATCH_FAILED)) {
+    V133_AIR_BATCH_FAILED.rawset(townB, true);
+    freshTown = true;
+  }
+  if (freshTown) OpexV133LogBatchSalvage(best, rank, townA, townB);
+}
+
+/* Quarantaine : les deux bouts, y compris un hub. Lot fautif de la passe :
+ * seulement l'extremite neuve, pour ne pas ecarter un hubhub independent. */
+function OpexV133AirPlanBlocked(plan)
+{
+  if (plan == null) return false;
+  if (OpexV133EndpointBlocked(plan, true)) return true;
+  if (OpexV133EndpointBlocked(plan, false)) return true;
+  return false;
+}
+
+function OpexV133EndpointBlocked(plan, isA)
+{
+  local site = isA ? (("siteA" in plan) ? plan.siteA : null) : (("siteB" in plan) ? plan.siteB : null);
+  local reuse = isA ? (("reuseA" in plan) && plan.reuseA) : (("reuseB" in plan) && plan.reuseB);
+  local townId = OpexV133TownIdOf(site);
+  if (townId < 0) return false;
+  if (OpexV133AirTownQuarantined(townId)) return true;
+  if (!reuse && (townId in V133_AIR_BATCH_FAILED)) return true;
+  return false;
+}
+
+function OpexV133LogBlockedTowns(plan)
+{
+  if (plan == null) return;
+  local idA = OpexV133TownIdOf(("siteA" in plan) ? plan.siteA : null);
+  local idB = OpexV133TownIdOf(("siteB" in plan) ? plan.siteB : null);
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (idA >= 0 && (OpexV133AirTownQuarantined(idA) || (!reuseA && (idA in V133_AIR_BATCH_FAILED)))) {
+    OpexV133LogAirSkip(V133_AIR_SKIP_LOGGED, idA);
+  }
+  if (idB >= 0 && idB != idA
+      && (OpexV133AirTownQuarantined(idB) || (!reuseB && (idB in V133_AIR_BATCH_FAILED)))) {
+    OpexV133LogAirSkip(V133_AIR_SKIP_LOGGED, idB);
+  }
+}
+
+function OpexV133NoteUnbuildableEndpoint(best, rank, site, reuse)
+{
+  if (!V133_AIR_BUILD_RETRY || reuse) return;
+  local townId = OpexV133TownIdOf(site);
+  if (townId < 0) return;
+  local anchorOk = site != null && ("anchor" in site) && AIMap.IsValidTile(site.anchor);
+  if (anchorOk && OpexAirRecoveryOwnsAirport(site.anchor)) return;
+  local reason = OpexV133AirBuildReason(V133_AIR_LAST_SITE_ERROR, "");
+  if (reason == null) reason = "unbuildable";
+  OpexV133OnAirSiteFailed(best, rank, townId, reason);
+}
+
+function OpexV133NoteBuildFailure(best, rank, plan, result)
+{
+  if (!V133_AIR_BUILD_RETRY || plan == null || result == null) return;
+  local why = ("reason" in result) ? result.reason : "";
+  local site = null;
+  local reuse = false;
+  if (why == "PREA" || why == "AFAIL") {
+    site = ("siteA" in plan) ? plan.siteA : null;
+    reuse = ("reuseA" in plan) && plan.reuseA;
+  } else if (why == "PREB" || why == "BFAIL") {
+    site = ("siteB" in plan) ? plan.siteB : null;
+    reuse = ("reuseB" in plan) && plan.reuseB;
+  } else {
+    return;
+  }
+  if (reuse) return;
+  local townId = OpexV133TownIdOf(site);
+  if (townId < 0) return;
+  local reason = OpexV133AirBuildReason(("error" in result) ? result.error : 0,
+      ("errorText" in result) ? result.errorText : "");
+  if (reason == null) return;
+  OpexV133OnAirSiteFailed(best, rank, townId, reason);
+}
+
+function OpexV133SaveQuarantine(target)
+{
+  if (!V133_AIR_BUILD_RETRY || V133_AIR_QUARANTINE.len() == 0 || target == null) return;
+  local flat = [];
+  foreach (townId, untilDate in V133_AIR_QUARANTINE) {
+    flat.append(townId.tointeger());
+    flat.append(untilDate.tointeger());
+  }
+  target.v133AirQuarantine <- flat;
+}
+
+function OpexV133LoadQuarantine(data)
+{
+  V133_AIR_QUARANTINE = {};
+  if (data == null || !("v133AirQuarantine" in data) || data.v133AirQuarantine == null) return;
+  local flat = data.v133AirQuarantine;
+  for (local i = 0; i + 1 < flat.len(); i += 2) {
+    V133_AIR_QUARANTINE.rawset(flat[i], flat[i + 1]);
+  }
+}

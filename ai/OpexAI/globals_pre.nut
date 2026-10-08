@@ -296,7 +296,7 @@ AIR_MAIL_LEARN_MONTH <- -1;
 V92_CLOSED_PAIRS <- {};
 /* V93 : pas de plancher a 600 habitants pour poser un aeroport. Defaut 0.
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
-V93_AIRPORT_NO_POP_FLOOR <- false;
+V93_AIRPORT_NO_POP_FLOOR <- true;
 V93_AIRPORT_MIN_POP <- 100;
 /* V93.1 : demande aerienne lue sur la production du mois passe. Defaut 0,
  * independant du plancher de population. Le plafond par extremite, le seuil
@@ -317,6 +317,19 @@ V126_AIR_SERVED_TOWN_REUSE <- false;
  * ville dont l'aeroport existant a atteint AIR_HUB_MAX_ROUTES et qui ouvre un
  * second slot. Defaut 0 : filtre origin_served historique intact. */
 V134_AIR_P2P_SATURATED_HUB <- false;
+/* V133 : quarantaine de ville apres echec physique d'aeroport, et salvage
+ * des paires du lot qui ne dependent pas du site fautif. Defaut 0 : aucun
+ * ecart, aucune ecriture de table, aucun journal. La duree est 730 jours
+ * de jeu, ecrite au moment du marquage. V133_AIR_QUARANTINE : townId -> date
+ * de fin (entier). V133_AIR_BATCH_FAILED : villes fautives de la passe
+ * courante. V133_AIR_SKIP_LOGGED : anti-doublon du journal V133_SKIP en
+ * construction. V133_AIR_LAST_SITE_ERROR : dernier code du test de site,
+ * lu seulement si le reglage est actif. */
+V133_AIR_BUILD_RETRY <- false;
+V133_AIR_QUARANTINE <- {};
+V133_AIR_BATCH_FAILED <- {};
+V133_AIR_SKIP_LOGGED <- {};
+V133_AIR_LAST_SITE_ERROR <- 0;
 /* C96 : selection de l'ancre aeroport par qualite physique de catchment, sans
  * changer la demande ni l'economie de la route. Defaut 0. La recherche reste
  * bornee : au plus quatre sites constructibles, du premier anneau qui en

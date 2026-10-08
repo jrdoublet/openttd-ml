@@ -309,6 +309,7 @@ function OpexLoadSettings()
   V95_AIR_POST73_YEAR = -1;
   V126_AIR_SERVED_TOWN_REUSE = AIController.GetSetting("v126_air_served_town_reuse") != 0;
   V134_AIR_P2P_SATURATED_HUB = AIController.GetSetting("v134_air_p2p_saturated_hub") != 0;
+  V133_AIR_BUILD_RETRY = AIController.GetSetting("v133_air_build_retry") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;

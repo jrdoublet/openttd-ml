@@ -32,7 +32,7 @@ def function_body(text, signature):
 
 class V93AirportNoPopFloorTests(unittest.TestCase):
     def test_setting_defaults_off_and_count_matches_info(self):
-        self.assertIn("V93_AIRPORT_NO_POP_FLOOR <- false;", GLOBALS)
+        self.assertIn("V93_AIRPORT_NO_POP_FLOOR <- true;", GLOBALS)
         self.assertIn("V93_AIRPORT_MIN_POP <- 100;", GLOBALS)
         self.assertNotIn("V93_SMALL_AIRPORT_TOWNS", GLOBALS)
         self.assertNotIn("V93_SMALL_AIRPORT_MIN_POP", GLOBALS)
@@ -42,10 +42,10 @@ class V93AirportNoPopFloorTests(unittest.TestCase):
         for token in (
             "min_value = 0",
             "max_value = 1",
-            "easy_value = 0",
-            "medium_value = 0",
-            "hard_value = 0",
-            "custom_value = 0",
+            "easy_value = 1",
+            "medium_value = 1",
+            "hard_value = 1",
+            "custom_value = 1",
         ):
             self.assertIn(token, block)
         self.assertNotIn("v93_airport_min_pop", INFO)
