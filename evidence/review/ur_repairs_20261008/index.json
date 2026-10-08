@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "correctness_not_economic",
+  "artifacts": [
+    {
+      "source": "results/smoke_ur15a_20261008_r1.json",
+      "archive": "evidence/review/ur_repairs_20261008/smoke.json.gz",
+      "raw_bytes": 61810,
+      "raw_sha256": "b4f9e68a119a0d63bc4415594ae8864b62704479a0e95097abff4423bd2fc755",
+      "gzip_bytes": 6153,
+      "gzip_sha256": "d377763278cc50b7c273f2ec4ce78839fbd8d05496183ba52be4d9b7766e4c7d"
+    },
+    {
+      "source": "results/c121_target_limit/ur_repairs_vm_20261008_r4/plan.json",
+      "archive": "evidence/review/ur_repairs_20261008/plan.json.gz",
+      "raw_bytes": 7031,
+      "raw_sha256": "c56a4904ecea0b1285079780c8b7ef1a949bcf01790b583f3ef68347607455cc",
+      "gzip_bytes": 3765,
+      "gzip_sha256": "d4efe627584521c0a4ec75e7c45247070b071a050ad49946cce82af4b82217d9"
+    },
+    {
+      "source": "results/c121_target_limit/ur_repairs_vm_20261008_r4/report.json",
+      "archive": "evidence/review/ur_repairs_20261008/report.json.gz",
+      "raw_bytes": 78002,
+      "raw_sha256": "90e49a7948bf246dbd505325fc6f46b90ef3157aee8dddeb6aa68eb83398b1d2",
+      "gzip_bytes": 6108,
+      "gzip_sha256": "9d17a26a6eff3037dd2646fa242bf339a5b417f0544e80a37ba30b4fc03b9398"
+    },
+    {
+      "source": "results/c121_target_limit/ur_repairs_vm_20261008_r4/phase_0/engine.log",
+      "archive": "evidence/review/ur_repairs_20261008/phase_0.log.gz",
+      "raw_bytes": 701586,
+      "raw_sha256": "693c7343257346aec94e96e3e36ad7ea8f8668581e333adc1d0341acb7471bb6",
+      "gzip_bytes": 57706,
+      "gzip_sha256": "f7d91428030b175352637a8402b6ed76f594afb42a02ea2306aa9d89691d07c3"
+    },
+    {
+      "source": "results/c121_target_limit/ur_repairs_vm_20261008_r4/phase_1/engine.log",
+      "archive": "evidence/review/ur_repairs_20261008/phase_1.log.gz",
+      "raw_bytes": 676743,
+      "raw_sha256": "e7e560ea1fb58b7e5db3d1956dbfe136bbb916f25bd60f97eac977b0c89635ea",
+      "gzip_bytes": 62765,
+      "gzip_sha256": "f7c8b5714cefd3abe3cea3ce271a1bb7fc9d4583da71d378b05604b4cffc6202"
+    }
+  ]
+}

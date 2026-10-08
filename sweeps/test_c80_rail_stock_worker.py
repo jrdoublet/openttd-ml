@@ -102,8 +102,8 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
             "ok = !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);",
             body)
         self.assertIn("!AIRail.AreTilesConnected(prev, cur, next)", body)
-        self.assertIn('failure.kind <- "connect"', body)
-        self.assertIn("failure.kind <- segmentKind", body)
+        self.assertIn('OpexRailCaptureTrackFailure(failure, tiles, i, cur, "connect", err, manhPrev, manhNext);', body)
+        self.assertIn("OpexRailCaptureTrackFailure(failure, tiles, i, cur, segmentKind, err, manhPrev, manhNext);", body)
         self.assertIn('if (failure != null && !("index" in failure))', body)
         self.assertEqual(body.count('if (failure != null && !("index" in failure))'), 2)
         fills = body.split('if (failure != null && !("index" in failure))')
@@ -111,6 +111,8 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertNotIn("failure.is_station", fills[0])
         self.assertNotIn("failure.dup_index", fills[0])
         self.assertNotIn("AITile.IsBuildable(cur)", fills[0])
+        self.assertNotIn("OpexRailCaptureTrackFailure", fills[0])
+        helper = rail[rail.index("function OpexRailCaptureTrackFailure("):start]
         tile_state = (
             "failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;",
             "failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;",
@@ -124,9 +126,18 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
             "for (local j = 0; j < i; j++) {",
             "if (tiles[j] == cur) {",
         )
+        for line in tile_state:
+            self.assertIn(line, helper)
+        self.assertIn("failure.kind <- kind;", helper)
+        self.assertNotIn("GetLastError()", helper)
+        self.assertNotIn("OpexDecide", helper)
         for part in fills[1:]:
-            for line in tile_state:
-                self.assertIn(line, part)
+            self.assertLess(part.index("local err = AIError.GetLastError();"),
+                            part.index("local manhPrev = AIMap.DistanceManhattan(prev, cur);"))
+            self.assertLess(part.index("local manhNext = AIMap.DistanceManhattan(cur, next);"),
+                            part.index("OpexRailCaptureTrackFailure("))
+            self.assertNotIn("failure.is_station", part)
+            self.assertNotIn("failure.dup_index", part)
         self.assertNotIn("OpexDecide", body)
         twin = rail[end:rail.index("\nfunction OpexBuildDepot(", end)]
         self.assertIn("function OpexTestRailTrack(tiles, structures = null)", twin)

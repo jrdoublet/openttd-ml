@@ -1281,6 +1281,34 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   return acc;
 }
 
+/* Capture commune du premier echec : l'appelant garde failure et lit GetLastError
+ * avant les distances et le kind. Ce helper ne pose rien et ne relit pas l'erreur. */
+function OpexRailCaptureTrackFailure(failure, tiles, i, cur, kind, err, manhPrev, manhNext)
+{
+  failure.index <- i;
+  failure.tile <- cur;
+  failure.kind <- kind;
+  failure.error <- err;
+  failure.manh_prev <- manhPrev;
+  failure.manh_next <- manhNext;
+  /* Apres GetLastError : les lectures suivantes ne doivent pas ecraser err. */
+  failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;
+  failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;
+  failure.is_station <- AIRail.IsRailStationTile(cur) ? 1 : 0;
+  failure.is_road <- AIRoad.IsRoadTile(cur) ? 1 : 0;
+  failure.is_water <- AITile.IsWaterTile(cur) ? 1 : 0;
+  failure.owner_self <- (AITile.GetOwner(cur) == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) ? 1 : 0;
+  failure.slope <- AITile.GetSlope(cur);
+  local dupIndex = -1;
+  for (local j = 0; j < i; j++) {
+    if (tiles[j] == cur) {
+      dupIndex = j;
+      break;
+    }
+  }
+  failure.dup_index <- dupIndex;
+}
+
 /* Pose la voie sur les cases intermediaires. Les extremites sont les sorties de quai.
  * `structures` propage le kind retenu sous AITestMode : GetOtherTunnelEnd sur une paire
  * eloignee a pris un tunnel naturel a la place d'un pont (TRKFAIL, prototype 4/9 -> 7/9).
@@ -1330,28 +1358,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null)
           local err = AIError.GetLastError();
           local manhPrev = AIMap.DistanceManhattan(prev, cur);
           local manhNext = AIMap.DistanceManhattan(cur, next);
-          failure.index <- i;
-          failure.tile <- cur;
-          failure.kind <- "connect";
-          failure.error <- err;
-          failure.manh_prev <- manhPrev;
-          failure.manh_next <- manhNext;
-          /* Apres GetLastError : les lectures suivantes ne doivent pas ecraser err. */
-          failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;
-          failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;
-          failure.is_station <- AIRail.IsRailStationTile(cur) ? 1 : 0;
-          failure.is_road <- AIRoad.IsRoadTile(cur) ? 1 : 0;
-          failure.is_water <- AITile.IsWaterTile(cur) ? 1 : 0;
-          failure.owner_self <- (AITile.GetOwner(cur) == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) ? 1 : 0;
-          failure.slope <- AITile.GetSlope(cur);
-          local dupIndex = -1;
-          for (local j = 0; j < i; j++) {
-            if (tiles[j] == cur) {
-              dupIndex = j;
-              break;
-            }
-          }
-          failure.dup_index <- dupIndex;
+          OpexRailCaptureTrackFailure(failure, tiles, i, cur, "connect", err, manhPrev, manhNext);
         }
       }
     }
@@ -1372,28 +1379,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null)
             segmentKind = "bridge";
           }
         }
-        failure.index <- i;
-        failure.tile <- cur;
-        failure.kind <- segmentKind;
-        failure.error <- err;
-        failure.manh_prev <- manhPrev;
-        failure.manh_next <- manhNext;
-        /* Apres GetLastError : les lectures suivantes ne doivent pas ecraser err. */
-        failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;
-        failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;
-        failure.is_station <- AIRail.IsRailStationTile(cur) ? 1 : 0;
-        failure.is_road <- AIRoad.IsRoadTile(cur) ? 1 : 0;
-        failure.is_water <- AITile.IsWaterTile(cur) ? 1 : 0;
-        failure.owner_self <- (AITile.GetOwner(cur) == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) ? 1 : 0;
-        failure.slope <- AITile.GetSlope(cur);
-        local dupIndex = -1;
-        for (local j = 0; j < i; j++) {
-          if (tiles[j] == cur) {
-            dupIndex = j;
-            break;
-          }
-        }
-        failure.dup_index <- dupIndex;
+        OpexRailCaptureTrackFailure(failure, tiles, i, cur, segmentKind, err, manhPrev, manhNext);
       }
     }
   }

@@ -27,9 +27,10 @@ def squirrel_code(text):
 
 
 class TestC121CatalogIncremental(unittest.TestCase):
-    def test_settings_default_off_and_c121_gate(self):
+    def test_settings_adopted_default_and_c121_gate(self):
         defaults = parse_ai_settings(AI / "info.nut")
-        self.assertEqual(defaults["c121_catalog_incremental"], 0)
+        # Profil C121 corrige adopte le 07/10 : le chargement reste conditionnel.
+        self.assertEqual(defaults["c121_catalog_incremental"], 1)
         # Decision utilisateur du 2026-10-02 : 1 par defaut, inerte hors C121 incremental.
         self.assertEqual(defaults["c121_catalog_air_first_year"], 1)
         settings = source("settings.nut")
@@ -57,7 +58,9 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn("C121_CATALOG_AIRPORT_REV.rawset(airportType", source("catalog.nut"))
         self.assertNotIn("C121_CATALOG_LINES_REV", read_builder_air())
         self.assertNotIn("C121_CATALOG_LEARN_REV", read_builder_air())
-        self.assertIn("date - entry.date >= 365", read_builder_air())
+        # Expiration historique 365 j ; candidat visible OFF par defaut, 30 j ON.
+        self.assertEqual(parse_ai_settings(AI / "info.nut")["c121_air_visible_competition"], 0)
+        self.assertIn("date - entry.date >= (C121_AIR_VISIBLE_COMPETITION ? 30 : 365)", read_builder_air())
         save = source("persist.nut").split("function OpexAI::Save()", 1)[1].split(
             "function OpexAI::Load(", 1)[0]
         self.assertNotIn("C121_CATALOG_CACHE", save)
@@ -87,7 +90,7 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn("abs(pax - old.pax) * 100 >= old.pax * 20", catalog)
         projects = source("task_projects.nut")
         self.assertIn("local c121FirstYearAirBatch = C121_CATALOG_AIR_FIRST_YEAR", projects)
-        self.assertIn("year == this._generationStageMonth / 12", projects)
+        self.assertIn("year == (this._generationStageMonth - 1) / 12", projects)
         self.assertIn('c121FirstYearAirBatch && project.mode == "air"', projects)
         self.assertLess(projects.index("!OpexAirBatchPlanStillLive(project.payload"),
                         projects.index("local projCap = OpexProjectFinanceCapital(project);"))

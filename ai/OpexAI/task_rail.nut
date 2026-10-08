@@ -186,7 +186,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           && ("railPlan" in candidate) && candidate.railPlan != null) {
         local stillFirstYear = C121_CATALOG_FIRST_YEAR_ACTIVE;
         if (!stillFirstYear && this._generationStageMonth >= 0
-            && AIDate.GetYear(AIDate.GetCurrentDate()) == this._generationStageMonth / 12) {
+            && AIDate.GetYear(AIDate.GetCurrentDate()) == (this._generationStageMonth - 1) / 12) {
           stillFirstYear = true;
         }
         if (stillFirstYear) {

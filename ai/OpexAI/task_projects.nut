@@ -1407,7 +1407,7 @@ function OpexAI::_tryBuildProjects(year)
   local c75BypassConsumed = false;
   local c121FirstYearAirBatch = C121_CATALOG_AIR_FIRST_YEAR
       && this._generationStageMonth >= 0
-      && year == this._generationStageMonth / 12;
+      && year == (this._generationStageMonth - 1) / 12;
   local c121AirBuilt = 0;
   local c121AirChained = 0;
   local c121DeadSkipped = 0;
@@ -2217,7 +2217,7 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
     local yearNow = AIDate.GetYear(AIDate.GetCurrentDate());
     if (this._generationStageMonth < 0)
       this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == this._generationStageMonth / 12;
+    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12;
   }
   /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
    * rebuild normal reste l'unique producteur du nouveau portefeuille. */

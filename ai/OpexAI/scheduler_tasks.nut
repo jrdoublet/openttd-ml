@@ -24,8 +24,9 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
   local doAir = stage == OPEX_STAGE_AIR_ONLY || stage == OPEX_STAGE_AIR_RAIL
       || stage == OPEX_STAGE_COMPLETE;
   if (C121_CATALOG_AIR_FIRST_YEAR) {
+    /* Estampille annee * 12 + mois (1..12) : decembre reste dans son annee. */
     local firstYear = owner._generationStageMonth >= 0
-        ? owner._generationStageMonth / 12 : AIDate.GetYear(AIDate.GetCurrentDate());
+        ? (owner._generationStageMonth - 1) / 12 : AIDate.GetYear(AIDate.GetCurrentDate());
     if (AIDate.GetYear(AIDate.GetCurrentDate()) == firstYear) doAir = true;
   }
   local hasAir = owner._catalog != null
@@ -232,7 +233,7 @@ function OpexAI::_dispatchCatalog(task, year)
   if (C121_CATALOG_AIR_FIRST_YEAR) {
     if (this._generationStageMonth < 0)
       this._generationStageMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-    C121_CATALOG_FIRST_YEAR_ACTIVE = year == this._generationStageMonth / 12;
+    C121_CATALOG_FIRST_YEAR_ACTIVE = year == (this._generationStageMonth - 1) / 12;
   }
   if (C121_CATALOG_INCREMENTAL
       && C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()) {
