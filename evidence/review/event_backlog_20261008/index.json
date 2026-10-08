@@ -1,0 +1,62 @@
+{
+  "campaign_id": "event_backlog_exposure_3x3_20261008",
+  "source_bundle_sha256": "d159a45b9a5d3a89d73c19111f5787c44ddb7ed40fd894f45fb15dc1067f72f8",
+  "artifacts": [
+    {
+      "source": "results/event_backlog_exposure_3x3_20261008.json",
+      "archive": "event_backlog_exposure_3x3_20261008.json.gz",
+      "raw_bytes": 56242,
+      "raw_sha256": "5a18399eced439261e9d14bd6f40ca64229820755c14fbffe0e66d941addbe47",
+      "gzip_bytes": 5760,
+      "gzip_sha256": "a944d927f6c59a46d79531d666043e1d9254dff5dcb743ad5631f67f1deec5f2"
+    },
+    {
+      "source": "results/event_backlog_exposure_3x3_20261008.manifest.json",
+      "archive": "event_backlog_exposure_3x3_20261008.manifest.json.gz",
+      "raw_bytes": 60147,
+      "raw_sha256": "e4a5689bc736f47cb16b5963a34d51dcd8d045dd7d0b68b72b5b7b1672e52241",
+      "gzip_bytes": 11647,
+      "gzip_sha256": "cfab79a344659b3df04401b8149cb212a928e862cfa012a1520180c291e60076"
+    },
+    {
+      "source": "results/event_backlog_exposure_3x3_20261008.exposure.json",
+      "archive": "event_backlog_exposure_3x3_20261008.exposure.json.gz",
+      "raw_bytes": 21097,
+      "raw_sha256": "1221eafa748345e6e87f379c3156d17ef717cd8511ad2312627bd397ac44cfef",
+      "gzip_bytes": 2130,
+      "gzip_sha256": "41400dc72ed93dbd62acd4c41f005d65f1f04a464a865b1b65d03442d54a16ef"
+    },
+    {
+      "source": "results/event_backlog_exposure_3x3_20261008_engine/reference_seed42_r0.log",
+      "archive": "reference_seed42_r0.log.gz",
+      "raw_bytes": 1657139,
+      "raw_sha256": "0c9d54f67a56ecf8cd583ad2a3b5c2364de337b2929fdd278264e9331e984559",
+      "gzip_bytes": 189177,
+      "gzip_sha256": "00a161b73e1fd1ce3b4b544c78bbf01aeeaf41f7055b30f1c16e4e57c744f15d"
+    },
+    {
+      "source": "results/event_backlog_exposure_3x3_20261008_engine/reference_seed100_r0.log",
+      "archive": "reference_seed100_r0.log.gz",
+      "raw_bytes": 1219846,
+      "raw_sha256": "d8c30f41876d984d4b28d6a9781d52c1cc48a102285c776034c40f02d009ca66",
+      "gzip_bytes": 139947,
+      "gzip_sha256": "5a26e1840adb94c8bf98c4ececee31bb186ac5db730d0e7be64c51402bdfdedd"
+    },
+    {
+      "source": "results/event_backlog_exposure_3x3_20261008_engine/reference_seed999_r0.log",
+      "archive": "reference_seed999_r0.log.gz",
+      "raw_bytes": 1575916,
+      "raw_sha256": "9ecd251f69d30da01ee1d1f2c90b451f9dda343a14e3822f719bbc5803b77ff1",
+      "gzip_bytes": 177857,
+      "gzip_sha256": "f7bbb29ae438e928a590ea267009bf91602b48216c5056060217d6e0d1d158d6"
+    },
+    {
+      "source": "C:/Users/jr/vscode/openttd-ml/openttd-ml/results/package_event_backlog_20261008.py",
+      "archive": "package_event_backlog_20261008.py.gz",
+      "raw_bytes": 2878,
+      "raw_sha256": "a81990d8f375d186375fb457468bc0f0d8348b465a98708cd83de5809b0d3a24",
+      "gzip_bytes": 1261,
+      "gzip_sha256": "95a89a4aec6083f5d38c7019b7ce1ae1e9b6932836f747b1c056b246eb99f30c"
+    }
+  ]
+}
