@@ -296,7 +296,7 @@ AIR_MAIL_LEARN_MONTH <- -1;
 V92_CLOSED_PAIRS <- {};
 /* V93 : pas de plancher a 600 habitants pour poser un aeroport. Defaut 0.
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
-V93_AIRPORT_NO_POP_FLOOR <- false;
+V93_AIRPORT_NO_POP_FLOOR <- true;
 V93_AIRPORT_MIN_POP <- 100;
 /* V93.1 : demande aerienne lue sur la production du mois passe. Defaut 0,
  * independant du plancher de population. Le plafond par extremite, le seuil
