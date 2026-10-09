@@ -507,6 +507,16 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       }
       OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
     }
+    if (V139_FEEDER_BUS) {
+      local feeders = OpexBuildFeederCandidates(catalog, lines);
+      foreach (candidate in feeders) {
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+          abandonFiltered++;
+          continue;
+        }
+        OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
+      }
+    }
     foreach (plan in airPlans) {
       OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan), stats);
     }

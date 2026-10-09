@@ -150,6 +150,23 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     }
   }
 
+  /* 3. Injection des feeders V139 frais lors de l'implantation d'aeroports */
+  if (V139_FEEDER_BUS && airBuilt) {
+    local feeders = OpexBuildFeederCandidates(catalog, lines);
+    foreach (candidate in feeders) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null
+          && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      local p = OpexProjectFromCandidate(candidate);
+      if (p != null) {
+        local recycledKey = OpexProjectAttemptKey(p);
+        if (!(recycledKey in recycledKeys)) {
+          recycledKeys[recycledKey] <- true;
+          OpexProjectRememberAll(newWinners, p, stats);
+        }
+      }
+    }
+  }
+
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     if (airBuilt && C121_CATALOG_INCREMENTAL) {

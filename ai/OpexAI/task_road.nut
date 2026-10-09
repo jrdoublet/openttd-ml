@@ -9,6 +9,9 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       local candidate = project.payload;
+      if (V139_FEEDER_BUS && candidate != null && ("isFeeder" in candidate) && candidate.isFeeder) {
+        return this._tryBuildFeederProject(year, project, rank, passDiscards, anchor, yy);
+      }
       local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
       if (isSubsidy) {
         local subId = candidate.subsidyId;

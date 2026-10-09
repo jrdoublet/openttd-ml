@@ -706,6 +706,27 @@ function OpexAI::_refreshSaveProjection()
   this._saveProjection = cache;
 }
 
+function OpexV139SaveUnjoinedStops(target)
+{
+  if (!V139_FEEDER_BUS || V139_UNJOINED_STOPS.len() == 0 || target == null) return;
+  local flat = [];
+  foreach (tile, apId in V139_UNJOINED_STOPS) {
+    flat.append(tile.tointeger());
+    flat.append(apId.tointeger());
+  }
+  target.v139UnjoinedStops <- flat;
+}
+
+function OpexV139LoadUnjoinedStops(data)
+{
+  V139_UNJOINED_STOPS = {};
+  if (data == null || !("v139UnjoinedStops" in data) || data.v139UnjoinedStops == null) return;
+  local flat = data.v139UnjoinedStops;
+  for (local i = 0; i + 1 < flat.len(); i += 2) {
+    V139_UNJOINED_STOPS.rawset(flat[i], flat[i + 1]);
+  }
+}
+
 function OpexAI::Save()
 {
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
@@ -739,6 +760,7 @@ function OpexAI::Save()
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
+    if (V139_FEEDER_BUS) OpexV139SaveUnjoinedStops(shortSave);
     return shortSave;
   }
 
@@ -819,6 +841,7 @@ function OpexAI::Save()
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
+  if (V139_FEEDER_BUS) OpexV139SaveUnjoinedStops(saveObj);
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -828,6 +851,7 @@ function OpexAI::Load(version, data)
   OPEX_AIR_ROLLBACKS = [];
   if (data == null) return;
   OpexV133LoadQuarantine(data);
+  OpexV139LoadUnjoinedStops(data);
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
   if ("c121Strategy" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;

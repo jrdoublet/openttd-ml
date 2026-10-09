@@ -2066,6 +2066,7 @@ function OpexProjectIsPersistentSpecial(project)
   if (project == null || !(("payload" in project)) || project.payload == null) return false;
   if (("isSubsidy" in project.payload) && project.payload.isSubsidy) return true;
   if (("isRoadExtension" in project.payload) && project.payload.isRoadExtension) return true;
+  if (("isFeeder" in project.payload) && project.payload.isFeeder) return true;
   return false;
 }
 

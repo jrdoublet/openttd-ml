@@ -1045,3 +1045,8 @@ V131_REPAIR_MAX_ITERS <- 2500;
  * et leurs emprises aeroportuaires futures. Defaut 0 : cout nul. */
 V131_TOWN_CLEARANCE <- false;
 V131_TOWN_CLEAR_BUFFER <- 4;
+/* V139 : feeder bus navette centre-ville vers aéroport. Défaut 0 (désactivé). */
+V139_FEEDER_BUS <- 0;
+
+/* V139 : table des arrêts déliés (tile -> airportStationId). */
+V139_UNJOINED_STOPS <- {};

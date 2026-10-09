@@ -657,6 +657,7 @@ function OpexLoadSettings()
   V94_AIR_SITE_CHECK = AIController.GetSetting("v94_air_site_check") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
+  V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

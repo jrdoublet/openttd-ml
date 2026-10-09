@@ -221,6 +221,11 @@ function OpexRememberClosest(distance, threshold, closest)
  * changement de l'ordre de catalog.towns entre deux rafraichissements. */
 function OpexAbandonedPairKey(candidate)
 {
+  if (("isFeeder" in candidate) && candidate.isFeeder) {
+    local aId = ("airportStationId" in candidate) ? candidate.airportStationId : candidate.src;
+    local tId = ("townId" in candidate) ? candidate.townId : candidate.dst;
+    return "feeder|" + aId + "|" + tId;
+  }
   if (("isSubsidy" in candidate) && candidate.isSubsidy) {
     return "subsidy|" + candidate.subsidyId;
   }

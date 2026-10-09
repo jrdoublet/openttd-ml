@@ -21,7 +21,7 @@ function OpexLogPortfolioRank(projects)
     local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;
     local generationRatio = ("generationRatio" in p) ? p.generationRatio : 0;
     local roadFleet = (p.mode == "road" && ("vehiclesForVolume" in p))
-        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + p.payload.roadBerthCapacity
+        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + (("roadBerthCapacity" in p.payload) ? p.payload.roadBerthCapacity : 2)
            + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
         : "";
     if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet);
@@ -75,7 +75,7 @@ function OpexLogPortfolioRankWithTension(projects)
     local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;
     local generationRatio = ("generationRatio" in p) ? p.generationRatio : 0;
     local roadFleet = (p.mode == "road" && ("vehiclesForVolume" in p))
-        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + p.payload.roadBerthCapacity
+        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + (("roadBerthCapacity" in p.payload) ? p.payload.roadBerthCapacity : 2)
            + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
         : "";
     if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet);

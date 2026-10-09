@@ -1948,6 +1948,16 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "v139_feeder_bus",
+      description = "V139: feeder bus shuttle from uncovered town center to airport; 0 = disabled (default), 1 = enabled",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

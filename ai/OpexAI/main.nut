@@ -637,6 +637,7 @@ require("task_rail.nut");
 require("rail_prep_c121.nut");
 require("task_report.nut");
 require("task_road.nut");
+require("feeder_bus.nut");
 require("task_terrain.nut");
 require("task_town.nut");
 require("task_water.nut");
