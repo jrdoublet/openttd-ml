@@ -517,7 +517,7 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local result = { ok = false, reason = "", opcodes = 0, error = 0, dockA = null,
                    dockB = null, stationA = null, stationB = null, depot = null, vehicle = null,
                    actualCost = 0, plannedCapital = OpexWaterPlannedCapital(catalog, plan) };
-  local costs = C63_INVEST_PROBE ? AIAccounting() : null;
+  local costs = (C63_INVEST_PROBE || CAPITAL_QUOTE_LEARNING) ? AIAccounting() : null;
   local dockA = null;
   local dockB = null;
   local depot = null;

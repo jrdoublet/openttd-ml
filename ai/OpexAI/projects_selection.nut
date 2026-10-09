@@ -1274,7 +1274,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     }
     local decisionFinanceCapital = financeCapital;
     if (project.mode == "air" && ("decisionFinanceCapital" in project)
-        && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
+        && project.decisionFinanceCapital > 0)
+      decisionFinanceCapital = OpexCapitalQuoteDecisionFinance(project, project.decisionFinanceCapital);
     local scoreDecisionFinanceCapital = decisionFinanceCapital;
     /* C121 : un renfort d'avion est un vrai projet economique concurrent d'une
      * nouvelle ligne. L'exemption historique C69 lui donnerait un denominateur
@@ -1370,7 +1371,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local decisionFinanceCapital = financeCapital;
       if (project.mode == "air" && ("decisionFinanceCapital" in project)
-          && project.decisionFinanceCapital > 0) decisionFinanceCapital = project.decisionFinanceCapital;
+          && project.decisionFinanceCapital > 0)
+        decisionFinanceCapital = OpexCapitalQuoteDecisionFinance(project, project.decisionFinanceCapital);
       local scoreDecisionFinanceCapital = decisionFinanceCapital;
       local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);

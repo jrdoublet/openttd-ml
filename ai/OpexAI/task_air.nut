@@ -415,9 +415,11 @@ function OpexAI::_tryBuildAir(year)
     if (B9_AIR_DEMAND_SHADOW || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
       OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);
     }
+    local quotePlanes = ("planes" in plan) ? plan.planes : 1;
     local result = V93_AIR_DEMAND_PRODUCTION
         ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
         : OpexBuildAirRoute(this._catalog, this._budget, plan);
+    if (CAPITAL_QUOTE_LEARNING) OpexCapitalQuoteObserve("air", plan, result, -1, quotePlanes);
     if (PROBE_AIR_FINANCE_MARGIN) {
       OpexAirFinanceMarginLogTry("legacy", builtCount, plan.siteA.town.id, plan.siteB.town.id,
           newAirports, requiredMargin, baseReserve, capital, need, money,
@@ -795,9 +797,11 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       if (B9_AIR_DEMAND_SHADOW || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
         OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);
       }
+      local quotePlanes = ("planes" in buildPlan) ? buildPlan.planes : 1;
       local result = V93_AIR_DEMAND_PRODUCTION
           ? OpexBuildAirRoute(this._catalog, this._budget, buildPlan, this._lines)
           : OpexBuildAirRoute(this._catalog, this._budget, buildPlan);
+      if (CAPITAL_QUOTE_LEARNING) OpexCapitalQuoteObserve("air", buildPlan, result, -1, quotePlanes);
       if (PROBE_AIR_FINANCE_MARGIN) {
         OpexAirFinanceMarginLogTry("portfolio", i, plan.siteA.town.id, plan.siteB.town.id,
             newAirports, requiredMargin, need - capital - requiredMargin, capital, need, money,

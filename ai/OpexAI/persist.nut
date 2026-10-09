@@ -761,6 +761,7 @@ function OpexAI::Save()
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
     if (V139_FEEDER_BUS) OpexV139SaveUnjoinedStops(shortSave);
+    if (CAPITAL_QUOTE_LEARNING) shortSave.capitalQuoteLearning <- OPEX_CAPITAL_QUOTE_SAMPLES;
     return shortSave;
   }
 
@@ -842,6 +843,7 @@ function OpexAI::Save()
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
   if (V139_FEEDER_BUS) OpexV139SaveUnjoinedStops(saveObj);
+  if (CAPITAL_QUOTE_LEARNING) saveObj.capitalQuoteLearning <- OPEX_CAPITAL_QUOTE_SAMPLES;
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -852,6 +854,7 @@ function OpexAI::Load(version, data)
   if (data == null) return;
   OpexV133LoadQuarantine(data);
   OpexV139LoadUnjoinedStops(data);
+  OpexCapitalQuoteLoad(("capitalQuoteLearning" in data) ? data.capitalQuoteLearning : null);
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
   if ("c121Strategy" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;

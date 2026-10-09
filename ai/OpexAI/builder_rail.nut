@@ -1790,9 +1790,11 @@ function OpexPlaceJoinSignals(planA, planB, tiles, depot)
 function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hardCap = 10000)
 {
   /* C67.6 rail : capital du candidat tel que finance avant A* (distance Manhattan). */
-  if (DECISION_LOG && !("preCapital" in candidate)
+  if ((DECISION_LOG || CAPITAL_QUOTE_LEARNING) && !("preCapital" in candidate)
       && !(("capitalIsActual" in candidate) && candidate.capitalIsActual))
     candidate.preCapital <- candidate.capital;
+  if (CAPITAL_QUOTE_LEARNING && !("preQuoteTrains" in candidate))
+    candidate.preQuoteTrains <- candidate.trains;
   local plan = { ok = false, reason = "", iterations = 0, opcodes = 0,
                  plansA = null, plansB = null, planA = null, planB = null,
                  length = candidate.platformLength,

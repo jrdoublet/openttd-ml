@@ -219,7 +219,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
         /* Comme OpexAirProbeSite, isoler le cout SIMULE du AITestMode pour
          * mesurer le risque V126. Garde OFF : les calculs historiques et leur
          * comptabilite restent strictement inchanges au defaut. */
-        local shield = (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)
+        local shield = (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN || CAPITAL_QUOTE_LEARNING)
             ? AIAccounting() : null;
         local test = AITestMode();
         testOk = AIRoad.BuildDriveThroughRoadStation(

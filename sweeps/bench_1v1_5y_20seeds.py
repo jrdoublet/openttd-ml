@@ -284,6 +284,57 @@ def early_slot_sign_metrics(chunks):
     }
 
 
+def capital_quote_sign_metrics(chunks, *, target_owner=0):
+    """P0 capital : devis/debit par construction, sans assimiler echec a perte nette.
+
+    Les panneaux restent dans chaque sauvegarde; analyser uniquement le DERNIER
+    checkpoint de chaque partie, pas la somme des checkpoints mensuels.
+    """
+    signs = (chunks or {}).get("SIGN")
+    if not isinstance(signs, (dict, list)):
+        return {"capital_quote_events": None, "capital_quote_by_mode": None,
+                "capital_quote_invalid": None}
+    records = signs.values() if isinstance(signs, dict) else signs
+    events = []
+    invalid = 0
+    modes = {"A": "air", "R": "rail", "D": "road", "W": "water"}
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        if "owner" in sign and str(sign["owner"]) != str(target_owner):
+            continue
+        name = sign.get("name")
+        if not isinstance(name, str) or not name.startswith("CQ|"):
+            continue
+        match = re.fullmatch(r"CQ\|([ARDW])\|(-?\d+)\|(-?\d+)\|([01])\|(\d+)", name)
+        if match is None:
+            invalid += 1
+            continue
+        letter, quote, actual, success, trained = match.groups()
+        events.append({"mode": modes[letter], "quoted": int(quote),
+                       "actual_recorded": int(actual), "success": success == "1",
+                       "sample_count_at_event": int(trained)})
+    by_mode = {}
+    for event in events:
+        row = by_mode.setdefault(event["mode"], {
+            "success_events": 0, "failed_events": 0,
+            "quoted_success": 0, "actual_success": 0,
+            "actual_failed_at_return": 0, "max_samples_learned": 0,
+        })
+        if event["success"]:
+            row["success_events"] += 1
+            if event["quoted"] > 0 and event["actual_recorded"] > 0:
+                row["quoted_success"] += event["quoted"]
+                row["actual_success"] += event["actual_recorded"]
+        else:
+            row["failed_events"] += 1
+            row["actual_failed_at_return"] += event["actual_recorded"]
+        row["max_samples_learned"] = max(
+            row["max_samples_learned"], event["sample_count_at_event"])
+    return {"capital_quote_events": events, "capital_quote_by_mode": by_mode,
+            "capital_quote_invalid": invalid}
+
+
 def town_growth_sign_metrics(chunks, *, current_year=STARTING_YEAR, target_owner=0):
     """One durable TG|yy|town|before|after sign per successful growth build.
 
@@ -1163,6 +1214,7 @@ def keep(row):
     rec1.update(structural)
     # OR/OB|A belong to OpexAI only; the SIGN chunk is shared by both players.
     rec0.update(rail_attempt_sign_metrics(chunks, current_year=sign_year))
+    rec0.update(capital_quote_sign_metrics(chunks))
     shared_identity = {
         "campaign_id": experiment.get("campaign_id"),
         "game_id": experiment.get("game_id"),

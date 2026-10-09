@@ -293,6 +293,8 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
     distance = plan.distance, capital = economics.capital,
     budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
+    decisionConstructionCapital = useInitialProjectEconomics
+        ? economics.capital : decisionEconomics.capital,
     profitAnnual = projectEconomics.profitAnnual,
     revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
     expectedOpcodes = expectedOps,
@@ -358,6 +360,8 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
     distance = plan.distance, capital = economics.capital,
     budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
+    decisionConstructionCapital = useInitialProjectEconomics
+        ? economics.capital : decisionEconomics.capital,
     profitAnnual = projectEconomics.profitAnnual,
     revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
     expectedOpcodes = expectedOps,

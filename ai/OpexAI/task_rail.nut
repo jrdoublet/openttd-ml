@@ -1535,6 +1535,11 @@ function OpexAI::_consumeRailSearch(year)
  * panneaux OR/OB restent identiques. */
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 {
+  if (CAPITAL_QUOTE_LEARNING) {
+    local preQuote = ("preCapital" in candidate) ? candidate.preCapital : -1;
+    local preTrains = ("preQuoteTrains" in candidate) ? candidate.preQuoteTrains : -1;
+    OpexCapitalQuoteObserve("rail", candidate, result, preQuote, -1, preTrains);
+  }
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarBuild(candidate, result);
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
       (result.ok ? "OK" : (("reason" in result) && result.reason != "" ? result.reason : "UNKNOWN")),

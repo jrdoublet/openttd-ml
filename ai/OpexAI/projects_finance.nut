@@ -9,6 +9,7 @@ function OpexProjectFinanceCapital(project)
 {
   if (project == null || !("budgetCapital" in project)) return 0;
   local financeCapital = project.budgetCapital;
+  if (CAPITAL_QUOTE_LEARNING) return OpexCapitalQuoteFinance(project, financeCapital);
   if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;
 
   local biasPct = 0;
@@ -54,7 +55,7 @@ function OpexC118ProjectC68FinanceCapital(project)
   local margin = newAirports == 2 ? 30000 : (newAirports == 1 ? 12000 : 2000);
   local finance = economics.capital + margin;
   if (("immobilise" in economics) && economics.immobilise > 0) finance += economics.immobilise;
-  return finance;
+  return OpexCapitalQuoteAlternativeFinance(project, economics, finance);
 }
 
 function OpexC118ProjectC68SpendCapital(project)
@@ -102,7 +103,8 @@ function OpexC118ProjectMinFinance(project)
           || !("economics" in item) || item.economics == null
           || item.economics.profitAnnual <= 0
           || !OpexC118EngineFitsPlan(plan, item.plane)) continue;
-      local finance = OpexC116RouteFinanceCapital(item.economics, newAirports);
+      local finance = OpexCapitalQuoteAlternativeFinance(project, item.economics,
+          OpexC116RouteFinanceCapital(item.economics, newAirports));
       if (finance > 0 && (best <= 0 || finance < best)) best = finance;
     }
   }
@@ -204,7 +206,8 @@ function OpexC118PrepareSelection(alternatives, capitalBudget)
               || !("economics" in item) || item.economics == null
               || item.economics.profitAnnual <= 0
               || !OpexC118EngineFitsPlan(plan, item.plane)) continue;
-          local finance = OpexC116RouteFinanceCapital(item.economics, newAirports);
+          local finance = OpexCapitalQuoteAlternativeFinance(project, item.economics,
+              OpexC116RouteFinanceCapital(item.economics, newAirports));
           if (finance <= 0 || finance > capitalBudget) continue;
           local days = OpexC118TimeToNextDays(capitalBudget,
               OpexC118EconomicsSpendCapital(item.economics), flowPerDay,

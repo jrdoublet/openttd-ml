@@ -111,6 +111,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
 
       OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
 
+      local preQuoteRoadVehicles = CAPITAL_QUOTE_LEARNING ? candidate.trains : -1;
       this._budget.begin();
       local planning = OpexRoadPlanFor(this._catalog, candidate);
       local planOps = this._budget.end("build_road_plans");
@@ -148,6 +149,20 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       OpexApplyRoadEconomics(candidate, economics, actualDist);
+      if (CAPITAL_QUOTE_LEARNING) {
+        local revisedNeed = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
+        local revisedMoney = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        if (revisedMoney < revisedNeed) {
+          if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("road", i, candidate.capital,
+              candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst,
+              revisedNeed, revisedMoney);
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "road", src = candidate.src,
+                dst = candidate.dst, reason = "insufficient_cash_after_plan",
+                extra = "need=" + revisedNeed + " cash=" + revisedMoney });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
       if (isSubsidy) {
         candidate.baseRevenueAnnual = economics.revenueAnnual;
         candidate.baseProfitAnnual = economics.profitAnnual;
@@ -186,6 +201,8 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
       }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+      if (CAPITAL_QUOTE_LEARNING)
+        OpexCapitalQuoteObserve("road", project, result, project.capital, -1, preQuoteRoadVehicles);
       if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
       if (ROAD_COST_PROBE) {

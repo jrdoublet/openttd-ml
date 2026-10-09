@@ -23,10 +23,10 @@
  * de la tache "predit vs reel" pour le detail ligne par ligne. */
 const STATION_RATING_PCT = 50;
 
-/* Facteur correctif sur le coût de la voie ferrée par tuile à vol d'oiseau (docs/taches.md §0 unvicies & C2).
- * Calibré sur la campagne 5 graines : le coût réel mesuré est de 151 £/tuile pour 75 £ brut (détours,
- * terrassement, ponts/tunnels). 170 = ×1,70 annule le biais médian. */
-RAIL_TERRAIN_FACTOR <- 170;
+/* Valeur initiale identique au reglage actif (info.nut: rail_terrain_factor=100).
+ * L'ancien initialiseur 170 etait aussitot ecrase par OpexLoadSettings et
+ * sa reactivation isolee a echoue a la porte A du 07/10. */
+RAIL_TERRAIN_FACTOR <- 100;
 
 /* Coût d'opportunité du capital immobilisé en transit, en pour mille (docs/taches.md §3 quater & C9).
  * 0 = inerte, 1000 = coût complet inspiré de lostOpportunity dans AAAHogEx. */

@@ -36,6 +36,7 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
       OpexSign(anchor, "IP|" + yy + "|W|" + project.budgetScore + "|" + project.opcodeScore);
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
       local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
+      if (CAPITAL_QUOTE_LEARNING) OpexCapitalQuoteObserve("water", project, result, project.capital);
       if (C63_INVEST_PROBE) OpexC63RecordSpendResult("water", result, capital);
       if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
       else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);

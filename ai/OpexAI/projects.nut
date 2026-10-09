@@ -40,6 +40,7 @@ CLEAN_DENSITY_SCORE <- true;
 /* R14 : etapes du portefeuille, chargees dans l'ordre historique de definition. */
 require("projects_rank_log.nut");
 require("projects_models.nut");
+require("capital_quote_learning.nut");
 require("projects_finance.nut");
 require("projects_builders.nut");
 require("projects_selection.nut");

@@ -79,6 +79,7 @@ function OpexLoadSettings()
   VIVIER_RATIO_FILTER = polPort;
   COMPLEX_CARGO = polPort;
   CAPITAL_CALIBRATION = polPort;
+  CAPITAL_QUOTE_LEARNING = AIController.GetSetting("capital_quote_learning") != 0;
   DYNAMIC_CASH_RESERVE = polPort;
   C53_ORDER_NONSTOP = polPort;
   EVENT_CATALOG_INVALIDATE = polPort;
