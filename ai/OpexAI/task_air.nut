@@ -69,11 +69,14 @@ function OpexAirV126FinanceFields(plan)
   if (st == null || !("v126Quoted" in st) || st.v126Quoted != true) {
     return " v126=" + flag + " quoted=0";
   }
+  local legacyMargin = OpexAirRequiredMargin(st.newAirportCount);
   return " v126=" + flag + " quote_a=" + st.v126LevelA + " quote_b=" + st.v126LevelB
       + " quote_fail=" + st.v126QuoteFail + " stops_model=" + st.v126StopsModel
       + " site_cost=" + st.v126SiteCost + " extra=" + st.v126Extra
-      + " margin_legacy=" + OpexAirRequiredMargin(st.newAirportCount)
-      + " margin_v126=" + (2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100)
+      + " margin_legacy=" + legacyMargin
+      + " margin_v126=" + (st.v126QuoteFail > 0
+          ? legacyMargin
+          : 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100)
       + " airport_price=" + plan.airport.price;
 }
 
@@ -86,6 +89,147 @@ function OpexAirV126CostFields(result)
   return " c_level_a=" + brk.levelA + " c_airport_a=" + brk.airportA
       + " c_level_b=" + brk.levelB + " c_airport_b=" + brk.airportB
       + " c_planes=" + brk.planes + " c_stops=" + brk.stops;
+}
+
+/* Une depense au chantier n'est pas la perte finale si le rollback demeure
+ * en attente, ni si BFAIL conserve un aeroport A reutilisable. Un identifiant
+ * correlable est emis uniquement sous la sonde, sans effet decisionnel. */
+function OpexAirV126RecoveryFields(result)
+{
+  if (result == null) return "";
+  local fields = " recovery_id=" + (("recoveryTraceId" in result) && result.recoveryTraceId != null
+      && result.recoveryTraceId != "" ? result.recoveryTraceId : "none")
+      + " orphan_kept=" + (("orphanRetained" in result) && result.orphanRetained ? 1 : 0);
+  /* Jointure intra-appel à AIR_FINANCE_TRY, pas de SequenceID a sauver. Aucune
+   * lecture du resultat par les décisions ; OFF rend exactement fields. */
+  if (AIR_BFAIL_PRECHECK_SHADOW && ("preBShadow" in result)) {
+    local s = result.preBShadow;
+    fields += " pre_b_ok=" + (s.ok ? 1 : 0)
+        + " pre_b_err=" + s.error
+        + " pre_b_verdict=" + s.verdict
+        + " pre_b_anchor=" + s.anchor
+        + " real_b_err=" + result.error
+        + " real_b_stage=" + (("preBRealStage" in result) ? result.preBRealStage : "not_attempted");
+    if ("preBLevelShadow" in result) {
+      local b = result.preBLevelShadow;
+      fields += " b_level_phase=" + (("phase" in b) ? b.phase : "unknown")
+          + " b_level_cmd=" + (("command" in b) ? b.command : "not_called")
+          + " b_level_cmd_err=" + (("commandError" in b) ? b.commandError : -1)
+          + " b_level_retry_err=" + (("retryError" in b) ? b.retryError : -1)
+          + " b_level_w=" + b.width + " b_level_h=" + b.height
+          + " b_level_end=" + b.end
+          + " b_level_x=" + b.before.x + " b_level_y=" + b.before.y
+          + " b_level_target_z=" + b.before.target
+          + " b_level_slopes_setting=" + b.slopesEnabled
+          + " b_level_cash_before=" + b.cashBefore
+          + " b_level_cash_after=" + b.cashAfter
+          + " b_level_pre_mismatch=" + b.before.mismatched
+          + " b_level_post_mismatch=" + b.after.mismatched
+          + " b_level_pre_blocked=" + b.before.blocked
+          + " b_level_post_blocked=" + b.after.blocked
+          + " b_level_pre_slopes=" + b.before.slopes
+          + " b_level_post_slopes=" + b.after.slopes
+          + " b_level_pre_invalid=" + b.before.invalid
+          + " b_level_post_invalid=" + b.after.invalid
+          + " b_level_pre_min=" + b.before.minH
+          + " b_level_pre_max=" + b.before.maxH
+          + " b_level_post_min=" + b.after.minH
+          + " b_level_post_max=" + b.after.maxH
+          + " b_level_changed=" + (b.before.grid != b.after.grid ? 1 : 0)
+          + " b_level_pre_grid=" + b.before.grid
+          + " b_level_post_grid=" + b.after.grid;
+    }
+  }
+  return fields;
+}
+
+/* Sonde AIR orphelin -> hub : une utilisation est un succes de construction
+ * d'une ligne et non une simple candidature. Comparer les stations physiques
+ * des lignes presentes AVANT insertion ; aucun inventaire/persistance ajoute. */
+function OpexAirHubPriorLineRefs(lines, station)
+{
+  local refs = 0;
+  foreach (line in lines) {
+    if (!( "mode" in line) || line.mode != "air") continue;
+    local found = false;
+    if (("stationA" in line) && line.stationA != null && AIMap.IsValidTile(line.stationA)
+        && AIAirport.IsAirportTile(line.stationA)
+        && AIStation.GetStationID(line.stationA) == station) found = true;
+    if (!found && ("stationB" in line) && line.stationB != null
+        && AIMap.IsValidTile(line.stationB) && AIAirport.IsAirportTile(line.stationB)
+        && AIStation.GetStationID(line.stationB) == station) found = true;
+    if (found) refs++;
+  }
+  return refs;
+}
+
+function OpexAirHubReuseObserve(lines, plan, result, lineId)
+{
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (!reuseA && !reuseB) return;
+  local now = AIDate.GetCurrentDate();
+  if (reuseA) {
+    local anchorA = result.stationA;
+    local stationA = AIStation.GetStationID(anchorA);
+    AILog.Info("AIR_HUB_REUSE date=" + now + " line=" + lineId
+        + " anchor=" + anchorA + " station=" + stationA + " side=A"
+        + " prior_line_refs=" + OpexAirHubPriorLineRefs(lines, stationA)
+        + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id
+        + " reuse_a=" + (reuseA ? 1 : 0) + " reuse_b=" + (reuseB ? 1 : 0));
+  }
+  if (reuseB) {
+    local anchorB = result.stationB;
+    local stationB = AIStation.GetStationID(anchorB);
+    AILog.Info("AIR_HUB_REUSE date=" + now + " line=" + lineId
+        + " anchor=" + anchorB + " station=" + stationB + " side=B"
+        + " prior_line_refs=" + OpexAirHubPriorLineRefs(lines, stationB)
+        + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id
+        + " reuse_a=" + (reuseA ? 1 : 0) + " reuse_b=" + (reuseB ? 1 : 0));
+  }
+}
+
+/* V126 stale-shadow : mesure au dernier garde cash, avant toute depense,
+ * sans toucher au cache quotidien OpexAirSiteLevelQuote. Les sites peuvent
+ * avoir change dans la meme journee. Une quote -1 reste "impossible", jamais
+ * une economie negative. La difference de marge est reconstruite seulement
+ * quand les deux devis sont valides. Aucun retour lu par une decision. */
+function OpexAirStaleQuoteObserve(path, rank, plan, economicsDate, money, reserve, need)
+{
+  if (!AIR_SITE_STALE_SHADOW || !AIR_SITE_COST_QUOTE || !C121_AIR_ECONOMICS
+      || plan == null || !("c121EngineStatic" in plan) || plan.c121EngineStatic == null) return;
+  local st = plan.c121EngineStatic;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (reuseA && reuseB) return;
+  local oldA = ("v126LevelA" in st) ? st.v126LevelA : -3;
+  local oldB = ("v126LevelB" in st) ? st.v126LevelB : -3;
+  local freshA = reuseA ? -2 : OpexAirV95LevelCost(plan.siteA, plan.airport);
+  local freshB = reuseB ? -2 : OpexAirV95LevelCost(plan.siteB, plan.airport);
+  local missing = !("v126Quoted" in st) || !st.v126Quoted || oldA == -3 || oldB == -3;
+  local invalid = (!reuseA && (oldA < 0 || freshA < 0))
+      || (!reuseB && (oldB < 0 || freshB < 0));
+  local changed = !missing && (oldA != freshA || oldB != freshB);
+  local cashShift = 0;
+  local newNeed = need;
+  if (!missing && !invalid) {
+    cashShift = (reuseA ? 0 : freshA - oldA) + (reuseB ? 0 : freshB - oldB);
+    newNeed += cashShift;
+    if (!AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN)
+      newNeed += (cashShift * AIR_SITE_COST_MARGIN_PCT) / 100;
+  }
+  local age = economicsDate >= 0 ? AIDate.GetCurrentDate() - economicsDate : -1;
+  AILog.Info("AIR_SITE_STALE path=" + path + " rank=" + rank
+      + " date=" + AIDate.GetCurrentDate() + " age=" + age
+      + " src=" + plan.siteA.town.id + " dst=" + plan.siteB.town.id
+      + " new=" + ((!reuseA ? 1 : 0) + (!reuseB ? 1 : 0))
+      + " anchor_a=" + plan.siteA.anchor + " anchor_b=" + plan.siteB.anchor
+      + " old_a=" + oldA + " old_b=" + oldB
+      + " now_a=" + freshA + " now_b=" + freshB
+      + " missing=" + (missing ? 1 : 0) + " invalid=" + (invalid ? 1 : 0)
+      + " changed=" + (changed ? 1 : 0) + " shift=" + cashShift
+      + " need=" + need + " fresh_need=" + newNeed + " cash=" + money
+      + " flip=" + ((!missing && !invalid && ((need <= money) != (newNeed <= money))) ? 1 : 0));
 }
 
 function OpexAirFinanceMarginInitLine(line, year, money)
@@ -247,6 +391,8 @@ function OpexAI::_tryBuildAir(year)
     local requiredMargin = OpexAirRequiredMargin(newAirports, plan);
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
+    if (AIR_SITE_STALE_SHADOW) OpexAirStaleQuoteObserve(
+        "legacy", builtCount, plan, -1, money, baseReserve, need);
     if (PROBE_AIR_FINANCE_MARGIN && money < need) {
       local outcome = (money >= capital + baseReserve) ? "refused_margin" : "refused_capital";
       OpexAirFinanceMarginLogTry("legacy", builtCount, plan.siteA.town.id, plan.siteB.town.id,
@@ -278,7 +424,8 @@ function OpexAI::_tryBuildAir(year)
           result.ok ? "built" : "failed",
           " planned=" + result.plannedCapital + " actual=" + result.actualCost
               + " reason=" + result.reason + " line=" + this._nextLineId
-              + OpexAirV126FinanceFields(plan) + OpexAirV126CostFields(result));
+              + OpexAirV126FinanceFields(plan) + OpexAirV126CostFields(result)
+              + OpexAirV126RecoveryFields(result));
     }
     if (PROBE_SPAN_TRACE) {
       local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
@@ -319,6 +466,9 @@ function OpexAI::_tryBuildAir(year)
       OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
     }
     if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+    if (PROBE_AIR_FINANCE_MARGIN) {
+      OpexAirHubReuseObserve(this._lines, plan, result, this._nextLineId);
+    }
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
       originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
@@ -599,6 +749,10 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local capital = ("capital" in buildPlan) ? buildPlan.capital
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
+      if (AIR_SITE_STALE_SHADOW) OpexAirStaleQuoteObserve(
+          "portfolio", i, buildPlan,
+          ("economicsDate" in project) ? project.economicsDate : -1,
+          money, need - capital - requiredMargin, need);
       if (spCash != null) OpexSpanEnd(spCash);
       if (PROBE_AIR_FINANCE_MARGIN && money < need) {
         local reserve = need - capital - requiredMargin;
@@ -650,7 +804,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             result.ok ? "built" : "failed",
             " planned=" + result.plannedCapital + " actual=" + result.actualCost
                 + " reason=" + result.reason + " line=" + this._nextLineId
-                + OpexAirV126FinanceFields(buildPlan) + OpexAirV126CostFields(result));
+                + OpexAirV126FinanceFields(buildPlan) + OpexAirV126CostFields(result)
+                + OpexAirV126RecoveryFields(result));
       }
       if (PROBE_SPAN_TRACE) {
         local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
@@ -736,6 +891,9 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
         this._airBuilt = true;
         if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+        if (PROBE_AIR_FINANCE_MARGIN) {
+          OpexAirHubReuseObserve(this._lines, buildPlan, result, this._nextLineId);
+        }
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
           originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,

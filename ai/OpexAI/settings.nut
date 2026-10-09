@@ -5,6 +5,8 @@ function OpexLoadSettings()
 {
   /* --- 1. Systeme et persistance --- */
   DEBUG_SIGNS = AIController.GetSetting("debug_signs") != 0;
+  AIR_P0_MARGIN_PROBE = AIController.GetSetting("air_p0_margin_probe") != 0;
+  AIR_P0_SECOND_STEP_MARGINAL = AIController.GetSetting("air_p0_second_step_marginal") != 0;
   DECISION_LOG = AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
   SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
@@ -314,8 +316,12 @@ function OpexLoadSettings()
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;
+  AIR_BFAIL_DISPOSE_ORPHAN = AIController.GetSetting("air_bfail_dispose_orphan") != 0;
+  AIR_BFAIL_PRECHECK_SHADOW = AIController.GetSetting("air_bfail_precheck_shadow") != 0;
   local ascmp = AIController.GetSetting("air_site_cost_margin_pct");
   if (ascmp >= 0) AIR_SITE_COST_MARGIN_PCT = ascmp;
+  AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN = AIController.GetSetting("air_site_quote_keep_legacy_margin") != 0;
+  AIR_SITE_STALE_SHADOW = AIController.GetSetting("air_site_stale_shadow") != 0;
   C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
   C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;

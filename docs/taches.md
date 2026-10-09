@@ -1,6 +1,6 @@
 # Tâches — travail restant
 
-**Mise à jour : 8 octobre 2026. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 9 octobre 2026. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
@@ -10,6 +10,25 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 - **P0 RAIL — prolongement `blocked_score` du 09/10 : goulot A* prouvé, valeur économique N=2 inconnue.** [Contrefactuel et verdict](rail_p0_blocked_opportunity_20261009.md), [fret par graine/cargo/année](../results/rail_p0_blocked_score_5x6_20261009.summary.csv), [RID et OD](../results/rail_p0_blocked_score_5x6_20261009.rid_cohorts.json). Bundle `293d8e65…`, 5/5 duels complets/sains, smoke sonde 1×1 sain mais dérive −21 667 £/an : diagnostic intrusif, aucun effet comportemental testé. **7 627 refus A*** (6 981 voyageurs), **623 fret appariés** ; 105 auto-revisites et **518 visites de paires fret concurrentes**, représentant **83 paires-années / 64 OD uniques**, dont 1973 **175 visites / 21 paires**, toutes à score initial positif. Seed515222 15/08/1973 : 14 alternatives fret finançables selon le pool, 4 COAL concurrentes de rangs 1–4 refusées, tandis que le primaire occupant termine plus tard `OK` et construit ; seed42 07/07 : un fret rang1 refusé dans la même séquence qu'un achat flotte réel, mais primaire occupant `STNFAIL` à la pose. Trois OD fret refusées ont ultérieurement obtenu une construction `RAIL_PREASTAR_BUILD` sur la même graine (identité de paire seulement). **Verdict :** singleton `_railSearch` responsable du refus d'accès à un second A*, mais aucune ligne alternative constructible ni profit net contrefactuel prouvé. Scheduler coopératif N=2 **faisable techniquement**, encore **non implémenté/non qualifié** ; un prototype isolé doit conserver les `OK`, le budget global V89, l'unicité des chantiers et Save/Load avant essai économique V102. Aucun défaut/commit/push modifié.
 
 - **P0 RAIL — autopsie du pipeline 1972–1975 (09/10), diagnostic terminé, aucune politique adoptée.** [Fiche causale et reproduction](rail_pipeline_p0_20261009.md), [funnel par graine/année/cargo](../results/rail_p0_funnel_obs_5x6_20261009.funnel.csv), [RID](../results/rail_p0_funnel_obs_5x6_20261009.rids.csv). **Nouveau banc descriptif 5×6 : 5/5 parties saines**, bundle `d85053dd` ; smoke OFF/ON 1×1 sain mais profit décalé de 5 525 £, **sonde intrusive**. En 1973, sur les cinq graines, **633 occurrences de fret éligibles / 445 retenues, mais 0 projet fret élu/lancé et 0 nouvelle tentative** ; **4/5 graines** avaient leur unique recherche rail monopolisée depuis 1972. Cas seed999 upgrade 962 jours→`ABND` et seed42 primaire 743 jours→`OK` A* puis `STNFAIL`. Le TOP20 n'est **pas** une porte exclusive du portefeuille ; TOP64 global et modes stock/upgrade à traiter séparément. Fret physique en décembre 1975 **22 contre 128 trains** Opex/AAA sur cinq graines, profits véhicules YTD **282 k£ contre 5 963 k£**, sans équivalence avec ROI/`profit_year`. Première action prioritaire **à étudier avant toute intervention** : reprise coopérative de plusieurs états A* préservant les véritables `OK`, avec contrefactuel d'opportunités rentables et coûts/opcodes, puis V102 A/B seulement si justifiée. L'incohérence freight→town des préparations C121 existe mais exposition économique inconnue. Aucun nouveau filtre, mémoire TRKFAIL, plafond A*, défaut ou commit/push.
+
+- **P0 AIR — prolongement 09/10 : marge de profondeur C121 et contrôle causal — *CORRECTIF NON ADOPTÉ*.** Une incohérence exacte a été démontrée sur **17 achats 2→3 sans retour marginal** (3 graines) : le cache réutilise le devis `P(2)-P(1)` pour `2→3`, malgré la non-linéarité du rendement. Le candidat minimal `air_p0_second_step_marginal=0` capture `P(3)-P(2)` lors du scan C121 déjà payé, sans seuil inventé ni mutation des défauts. Tests ciblés Docker **4/4**, smokes moteur 1×1 **sains et Opex identique**. Une première étude 3×5 avec capture asymétrique a donné **−18 258 £/an** moyen (1/2) et n'est pas une preuve propre de politique. **Contrôle symétrique pré-enregistré** `air_p0_second_step_parity_3x5_20261009_r2` : **6/6 sains, 0/3 victoires**, `profit_year` variante−référence **−68 425 £/an** en 1974, valeur moyenne **−5,55 %** (garde V102 −5 % échouée), 2→3 **33 contre 32** ; mêmes événements jusqu'à la première cotation 2→3 (graine512 même avion : `pred_profit` **92 725→55 825 £/an**). Le recalcul corrige bien le mécanisme de score, **mais ne gagne pas**, donc **pas de porte V102 A40×3 ni B20×10, pas d'adoption**. [Verdict et protocole](air_p0_second_step_20261009.md), [comparaison annuelle + première divergence](../results/air_p0_second_step_parity_3x5_20261009_r2_analysis.json). La prochaine action n'est **pas** un plafond ni un nouveau nombre magique : mesurer, dans un même état de carte, les nouvelles liaisons réellement finançables/constructibles à la place des 2→3 et pourquoi le score réseau pénalise la bonne option ; contrôler frais et contrefactuel.
+- **P0 AIR — contrôle des 54 achats et marchés voisins le 09/10 : observationnel, cannibalisation non identifiée.** [Analyse reproductible](../results/air_p0_nearest_observational_20261009_report.md) : après retrait de la tendance d'une ligne témoin de même graine/mois, Δ de profit des anciens appareils **−1 442 £/3mo** médian (**32/54 négatifs**) et Δ de la ligne totale **+167 £/3mo** médian (**25/54 négatifs**). Des voisines à flotte constante déclinent avec **station commune 66/145**, **ville commune mais gares distinctes 4/4** seulement, **villes disjointes 594/1490** ; AAA même paire OD/gares différentes : **3 cas seulement**. Les 54 fenêtres ont toutes des achats concurrents, **466 mentions achat×fenêtre**, ce ne sont pas autant d'achats indépendants. Capital déboursé 2,227 M£ dont 674 k£ associés à 17 fenêtres de chute de profit ligne : **capital exposé, pas valeur détruite prouvée ; borne inférieure causale positive impossible**. [54 achats](../results/air_p0_nearest_observational_20261009_events.csv), [lignes voisines](../results/air_p0_nearest_observational_20261009_lines.csv). Aucun réglage nouveau adopté.
+
+- **P0 AIR — rendement marginal réseau, autopsie du 08/10** : [rapport](air_rendement_marginal_p0_20261008.md) et [analyse des 20 graines](../results/air_marginal_p0_20x5_20261008_analysis.json). Le banc historique 20×5 valide révèle de décembre 1972 à décembre 1974 **+38,6 avions** pour seulement **+42,1 k£** de profit AIR YTD : les nouvelles lignes font **+145,9 k£**, les anciennes présentes aux deux bornes **−93,9 k£**, les anciennes sorties **−9,9 k£**. Parmi les anciennes présentes, **+27,55 avions nets** sur 27,3 lignes renforcées correspondent à seulement **+17,2 k£** de variation observée ; les 11,1 lignes inchangées perdent **−101,5 k£**. **Observation, pas attribution causale.** Audit du score : C121 calcule déjà P(N) et ΔP, mais les renforts **à N≥cible** peuvent repasser à `lastProfit/N` et ne sont pas suivis marginalement ; pourtant sur **117 achats réellement tracés** dans un smoke étendu 3 graines×5 ans, **0 achat** suit ce chemin hors cible, **107 achats** sont encore des marges prédites sans échantillon de réalisation et **78** surviennent en 1973–74. Priorité désormais : prouver le rendement des **premiers renforts froids** sous cible par véhicule/marché ; les achats au-dessus de la cible ne justifient pas seuls un correctif. La sonde `air_p0_margin_probe=0` est OFF et passive, avec traces AIR_P0_BUY/ROUTE et détail par véhicule dans le harnais ; 3×5 sondé terminé et sain mais **ON/OFF divergent** (+58 k£ profit annuel moyen sur 3 graines, perturbation d'opcodes, PAS un gain). Reste ouvert : isoler revenue/net operating par véhicule, dépenses réelles, attentes et source PASS/MAIL, rapprocher événements/échantillons, chiffrer cannibalisation des catchments distincts et projets AIR alternatifs réellement finançables, contrôler stabilité sans logger, qualifier devis marginal froid et coût opcode **avant tout comportement**. Pas de paramètre, pas de défaut adopté, pas de porte A/B.
+- **P0 AIR — compléments événementiels mesurés le 08/10** : [117 achats](../results/air_marginal_p0_buy_3x5_20261008.csv) dont 115/117 joints à leur station-pair physique exacte dans les sauvegardes **du même bras sondé**, et [54 renforts isolés avec devis et profits moteurs](../results/air_marginal_p0_logged54_20261008.csv). Sur **54** fenêtres de 3 mois de part et d'autre de l'achat, **17** ont un Δ profit de ligne négatif malgré une marge annuelle C121 prévue positive, **32** ont réalisé moins que le devis annuel/4 ; médianes **+3,53 k£ observés vs +7,06 k£ prévus**. Signal hétérogène (moyennes dans l'autre sens), **observation non contrefactuelle**. Cohorte indépendante sans logging : [48 renforcements isolés](../results/air_marginal_p0_reinforcement48_20261008.csv), **19** à Δ ligne négatif, **29** avec baisse des anciens avions. La priorité causalité reste : débits/recouvrement physiques, coût net, initialisation des 1→2, concurrence et alternative finançable au même instant ; **aucune correction de comportement adoptée**.
+
+- **Chronologie OpexAI / AAAHogEx, banc neuf 20×5 (08/10)** : 20/20 duels
+  partagés complets/sains, bundle figé sur `cb23a172` (arbre local dirty),
+  télémétrie annuelle des lignes. Décrochage net dès **1973** : écart moyen
+  de `profit_year` Opex − AAA **−728 k£/an** en décembre 1973,
+  **−1 302 k£/an** en décembre 1974 (**0/20** victoires), alors que la
+  valeur Opex est **+14,37 %** à cinq ans. Fin 1974, **37,8 contre 33,7**
+  aéroports (Opex/AAA), mais **94,6 contre 41,0** avions et **5,8 contre
+  33,2** trains ; cash Opex **2,73 M£**. Priorité diagnostique : rentabilité
+  marginale AIR *réseau*, frein aux nouveaux projets réellement rentables
+  et fret rail par cargo/destination, sans réactiver les variantes rejetées.
+  **Banc descriptif, aucune qualification ni modification de défaut.**
+  [Chronologie, preuves et classement P0–P3](chronologie_opex_aaahogex_20261008.md).
 
 - **V134 — second aéroport AIR pour hub saturé (08/10)** : banc demandé
   **40 graines × 5 ans** terminé sur `7e01b8e`, bras
@@ -617,8 +636,8 @@ année à 0 : ses deltas ne qualifient pas le profil courant.
 
 | Chantier | Statut | Prochaine étape / condition de passage |
 |---|---|---|
-| AIR 03/10 — complément : marge de financement des aéroports | **Exposition mesurée le 06/10 (sonde `probe_air_finance_margin`, défaut 0) : exposition réelle mais petite ; aucune baisse décidée** — `afm_expo_6s_y3` (6 graines × 3 ans, décodeur `sweeps/parse_air_finance_margin.py`) : la marge agit surtout à la SÉLECTION (`budgetCapital` = capital + marge), pas au contrôle de caisse ; 35 à 74 jours par graine sans aucun projet retenu alors qu'un projet AIR n'est écarté que par la marge (déficit médian 4–12 k£), presque tous en 1970-1971 ; borne haute du profit différé ≈ 25 k£/graine (≈ 1,6 % du profit annuel, sous le seuil de 4 % de la porte A). Exécution : réel/prévu médiane 1,00 (p90 1,15, max 1,74), dépassement > marge 2,9 %, 47 échecs pour 370 k£ perdus (BFAIL 343 k£), caisse sous la réserve avant 1re recette 2,8 % ; 1re recette 43 j médiane, 95 j pour deux aéroports neufs. Ne pas supprimer la marge (dépassements et échecs réels) ; une intervention ne vaut la porte A que ciblée sur 1970-1971 et le cas « rien de retenu ». | Rapprocher coût prévu, dépense réelle, échecs partiels et délai de première recette pour les marges +30/+12/+2 k£ selon le nombre d'aéroports neufs. Inclure les échecs ; distinguer marge, immobilisation du modèle et réserve de trésorerie, dont la redondance n'est pas démontrée. Définir une intervention seulement après exposition, sans nouveau devis coûteux par paire ni suppression générale des gardes financières. |
-| AIR — estimer le coût réel des aéroports et adapter la marge au risque (demande utilisateur 06/10) | **À faire, non implémenté** | Audit du 06/10 : `plannedCapital` = prix catalogue aéroports + avions seulement ; nivellement (`OpexAirLevelFootprint`, `air_sites.nut:78`), plantations pour la note de ville, arrêts de bus joints (`OpexAirBuildJoinedStops`), refit et démolition de rollback ne sont pas devisés. `OpexAirV95LevelCost` (`air_planning.nut:1904`) devise déjà le nivellement en `AITestMode` mais ne sert qu'à une sonde. Intervention : intégrer ce devis (et le coût modélisé des arrêts joints) au capital, puis remplacer la marge fixe 30/12/2 k£ par une marge proportionnelle au risque résiduel mesuré (`afm_expo_6s_y3` : réel/prévu p90 1,15, max 1,74). Attention : le devis par site coûte des opcodes — le faire sur le site retenu ou en cache, pas par paire. Porte A puis B. |
+| AIR 03/10 — marge de financement des aéroports | **Exposition historique mesurée ; baisse générale non justifiée.** `afm_expo_6s_y3` : 35–74 jours/graine en 1970–71 à marge bloquante, déficit médian 4–12 k£ ; médiane réel/prévu 1,00, p90 1,15, max 1,74, dépassements de marge 2,9 %, 47 échecs/~370 k£ (343 k£ BFAIL), recette médiane 43 j (95 j si deux sites). Il s'agit d'événements répétés, pas autant de projets. **Artefacts bruts absents** des chemins accessibles au 08/10 ; ratios sur **ancien capital**, non transposables à une marge résiduelle après devis. | Conserver 30/12/2 k£ avec devis OFF ; récupérer/mesurer les résidus V126, les échecs, la chronologie d'investissement et la comptabilité nette, avant toute réduction. [Audit 08/10](air_cout_reel_marge_risque_20261008.md). |
+| AIR — coût réel des aéroports et marge adaptée au risque (06/10) | **Prototype V126 existant, corrigé techniquement le 08/10 ; OFF, non qualifié.** Réglages `air_site_cost_quote=0` et `air_site_cost_margin_pct=0` inchangés. Devis nivellement + arrêts joints déjà intégré au capital C121 ; cache devis journalier et revalidation du cache C121, repli marge historique sur devis impossible, bouclier des tests d'arrêts, coût prudent 2 250 £/arrêt, amortissement harmonisé. **Smokes appariés 42×1 an `air_site_quote_fix_smoke_1x1_20261008_r2/r3` : 2/2 sains chacun, `diagnostic_only`, Opex profit +58 662 £, aéroports 1970 15→19, terminal 20→21.** Une graine ne prouve aucune rentabilité durable ; V126 réadmission de villes est un chantier distinct. | Contrats V126 34/34, C121 8/8, parseur 42/42, sonde 5/5 ; r3 `--script-debug` ventile **référence 10 built / 2 échecs / 64 refus répétés de marge**, variante **11 built / 1 échec / 0 refus** ; résidu médian variante −7 215 £ sur 11 succès mais modèle arrêts conservateur et échecs exclus, donc insuffisant pour caler un %. Premier scan C121 `static_ops` +416, budget annuel non qualifié. **Roundtrip Save/Load V126 ON sain** (`LOAD_RECONCILE`, compagnie humaine fantôme connue). Ancien `afm_expo` brut absent. **Pas de porte A ni B**, aucun changement de défaut ; mesurer résidus et risques sur davantage de graines avant V102. [Fiche dédiée](air_cout_reel_marge_risque_20261008.md). |
 | AIR — aéroport sans passagers dans son catchment (bug vu en jeu, 06/10) | **Adopté à défaut 1 aux quatre difficultés sur décision utilisateur du 07/10 (V125, `air_site_min_catchment`), sans qualification V102 complète ; porte A 40×3 `fail_primary` le 06/10 ; B 20×10 `non_erosion=pass` le 07/10 sur master `208792e` (+3,56 % profit, IC95 bootstrap traversant zéro, valeur +2,93 %)** | Capture : « Grunwell Ouest », « Accepte : Rien ». Cause dans le code : C96 (`OpexAirFindSiteCatchmentListed`) garde le meilleur score de catchment **même nul**, et le site en cache (`AIR_SITE_CACHE`) est réutilisé sans contrôle de catchment. À 1 : `OpexAirSiteHasCatchment` refuse un site d'acceptation passagers < 8 ou sans tuile productrice, avant de le compter valide, et recontrôle l'ancre en cache. Contrats `test_v125_air_site_min_catchment.py`. Mesures du 06/10 (`results/v125_*`) : diag 5×3 +129,8 k£/an (4/1) mais **0 choix C96 à catchment nul sur 231** dans la référence (3 à ≤ 2 tuiles) : exposition non établie, l'écart vient de l'acceptation < 8 ou du chemin cache (non journalisé). Porte A 40×3 (`v125_porteA_40x3_20261006`) : +48,1 k£/an, médiane +60,0, 23/16/1, p 0,087, IC95 [−14,8 ; +108,4], seuil +55,8 k£ (4 %), valeur +3,4 % ⇒ **`fail_primary`**. Suite possible : journaliser les refus (cache et acceptation) pour établir l'exposition avant toute relance. Plus tard : lignes de bus de rabattage vers l'aéroport (demande utilisateur, non commencée). |
 | Cadence des passes (demande utilisateur 06/10) | **Déjà fait pour l'essentiel — ne pas rouvrir** | Audit du 06/10 : la passe `projects` tourne à chaque cycle de file (≈ 10 ticks, `scheduler_tasks.nut:955-991`) et relit la caisse ; un projet refusé faute d'argent est réexaminé ≈ 10 ticks plus tard. L'attente mesurée (35–74 j/graine) vient donc de la CAISSE, pas de la cadence. Reste non fait : sélection déclenchée par seuil de caisse (`air_efficiency_reselect`, défaut 0, **interdit de réactivation**, voir plus haut). |
 | Workers A* sur les seuls opcodes en surplus (demande utilisateur 06/10) | **Non fait — à mesurer avant, fil rail clos** | Audit du 06/10 : la recherche rail avance AVANT la tâche de file à chaque tick (`scheduler.nut:256-262`, V89 boucle tant que `GetOpsTillSuspend() ≥ 1 500–2 500`) et une recherche `pending` arrête la passe portefeuille (`task_projects.nut:2190`). Le worker non bloquant `c80_rail_stock_worker` existe à défaut 0. Les réallocations du créneau rail ont déjà été mesurées nulles (03/10, fiche `rail_creneau_pas_la_contrainte`) : ne lancer qu'après une exposition montrant des passes portefeuille réellement retardées (jours de passe bloquée par `pending`, profit des projets non-rail en attente). |
@@ -680,7 +699,7 @@ année à 0 : ses deltas ne qualifient pas le profil courant.
 | V128 | Chantier | Profondeur du stock rail quand l'aérien n'a plus de projets (`v128_rail_stock_depth`, 0..8, **défaut 0**, code dans le worktree `agent-a443b23da5ff9a726`, non fusionné). 1er smoke 07/10 : stock jamais consommé (`no_candidate`, plans posés à ~366 j). Correctifs 08/10 : régénération rail en fin d'année 1 C121, repli sur les candidats de préparation, A* refait au-delà de `V128_STOCK_MAX_AGE_DAYS`=120. Smoke 2×3 `v128b_smoke_2x3_20261008` : 15 lignes rail posées contre 10, 0 erreur. **Porte A 40×3 `v128_porteA_40x3_20261008` (profondeur 4) : −40,7 k£/an (médiane −24,3 k), 17/23, p Wilcoxon 0,23, IC95 [−101 ; +18] k, valeur −3,3 % ⇒ `fail_primary`.** Plus de rail posé ne paie pas à 3 ans. **40×4 diagnostic `v128_40x4_20261008` (horizon changé après échec, non qualifiant) : −37,8 k£/an (médiane +4,3 k), 20/20, p=0,58, IC95 [−116 ; +39] k, valeur −2,9 % ⇒ `fail_primary` ; neutre, pas de rattrapage la 4e année.** Défaut 0. |
 | V132 | Diagnostic | **Note de gare et priorités pour rattraper AAA (08/10).** Sonde `probe_station_rating` (grok, worktree `p1-note-gare`, défaut 0) + découpage `station_rating_breakdown` des sauvegardes (`sweeps/bench_v2.py`). Smoke `p1b_rating_breakdown_4x3_20261008` : note AAA ≈73 % contre Opex ≈61 % ; **effet de composition** : arrêts de bus AAA 78 % (136 notes), camions courrier 74 % ; aéroports joints bus AAA : PASS 64 % / MAIL 44 %, Opex 58 % / 58 %. **Gares AAA servies en transfert : 53 % contre 75 % sans transfert** (les bus de transfert ne relèvent pas la note). Poids économique (grok) : +14 octets sur nos aéroports ≈ +9-10 % du cargo capté ≈ 0,09-0,16 M£/an au plus ⇒ pas un levier de premier ordre. Courrier aérien `air_mail_fleet` (agy, worktree `p2-courrier`) smoke `p2_mail_4x3_20261008` : 13 avions achetés, −96,8 k£/an (1/3), refus surtout `low_waiting` ; AAA fait des lignes courrier dédiées, pas des avions ajoutés. Sélection des 35 paires AAA (agy, `scratchpad/p3_selection_rapport.md`) : 83 % de nos lignes aériennes sont des branches de hub ; causes : `origin_served` 11, échec de chantier 10 (dont 4 refus d'autorité), capital de paire neuve 7, battue au score 4, construite plus tard 3. |
 | V131 | Chantier | Tracés rail réutilisables (demande utilisateur du 08/10). Constat : les tracés de préparation sont prêts fin janvier 1970 mais posés ~1 an plus tard et meurent en `track_blocked`/`station_blocked`. Étapes : (0) sonde de revalidation par tuile (position sur le tracé, occupant : maison, route, gare/aéroport AAA, notre aéroport, industrie) ; (1) si blocages ponctuels, réparation locale par A* entre tronçons intacts, quai déplacé près de l'ancien ; (2) si blocages massifs près des villes/aéroports, pénalité de coût A* (centres-villes, sites d'aéroport probables, quais en bordure). Rappel : le rail rend ~15-30 %/an contre ~90 % pour l'aérien 1970 (smoke `v128b_smoke_2x3_20261008`).  **Résultats 08/10.** Sonde `v131_probe_4x3_20261008` : tracés d'~1 an tués à 4/5 par un bloc de 10-15 tuiles d'aéroport (40 tuiles AAA, 6 nôtres), 1 doublon sur notre propre rail (27/57 tuiles) ; tracés frais (26-119 j) : 1-3 tuiles (rail croisé, route, gare). Réparation locale `v131_rail_repair` (grok, worktree `v131-probe`) `v131_repair_4x3_20261008b` : 1 réparé et posé sur 7 (sinon `no_shift`, `no_anchor`, `over_tiles`, 1 `no_path` à 1 500 itér./2,3 M opcodes), profit +1,4 k£/an (1/1/2) ; garde doublon >50 % ratée à 47 %. Pénalité sites d'aéroport `v131_airport_site_penalty` (agy, worktree `v131-penalty`) `v131_penalty_4x3_20261008b` : +201 k£/an 4/0 mais **non causal** : 20/22 tracés inchangés (0 tuile pénalisée), blocages AAA identiques (la table ne contient pas les emprises qu'AAA prend) ⇒ bruit de perturbation d'opcodes. Les deux codes ajoutent des opcodes à 0 et partent d'avant V129. **En pause** : enjeu ~1,5 tracé bloqué/partie et le rail en plus ne paie pas (V128). |
-| V130 | À étudier | Poser un tracé rail **dès qu'il est prêt, même en année 1 de C121** (demande utilisateur du 08/10). Aujourd'hui les tracés de préparation C121 sont calculés en année 1 mais retenus (`rail_prep_held`, `task_rail.nut`) jusqu'à la fin de l'amorçage aérien ; ils sont alors posés ~1 an plus tard et échouent souvent (`track_blocked`/`station_blocked`, diagnostic V128 du 07/10). À étudier : coût en capital face à l'amorçage aérien plat (qualifié), effet sur le nombre d'aéroports de 1970, et interaction avec V128. Aucun code. |
+| V130 | **À étudier — non implémenté, aucun banc V130** | **Poser le rail dès que son tracé préparé est prêt, même en année 1 de C121** (demande du 08/10). La *préparation* est déjà à défaut 1 (`c121_air_first_year_rail_prep`), **mais la pose reste explicitement bloquée** par `rail_prep_held` dans `task_rail.nut:180–199` jusqu'à la fin de l'amorçage AIR. Les tracés stockés peuvent vieillir et rencontrer des emprises nouvelles (indices V128/V131, **pas preuves de V130**). Aucun réglage, commit ou résultat de banc V130 identifié. Avant correctif : mesurer plans réellement prêts/retardés, capital détourné de l'AIR, aéroports ouverts en 1970, constructions et profit ; interaction avec V128/V131 ; puis smoke et portes V102. **Ne pas réinterpréter V128/V131 comme un V130 réalisé.** [Fiche et protocole V130](v130_early_rail_build_20261008.md). |
 | V129 | Adopté | ✅ **A* RAIL EXACT MOINS COÛTEUX — DÉFAUT 1 PAR DÉCISION UTILISATEUR DU 07/10 (dérogation sur la garde de valeur).** `v129_rail_astar_exact_opt` (`pathfinder_v90/v129.nut`, requiert `v90_fast_pathfinder=1`) : groupage `FindPath(n≤8)`, `_Cost` sans `GetParent()` répétés, tas en tableaux parallèles, `_Neighbours` en une passe, cache d'heuristique par tuile (cache global des ponts retiré : cause de l'unique divergence). Identité : **20/20 tracés identiques** (`v129_ident2_4x2_20261007`, contrôle `v129_rail_astar_check`, défaut 0, journal `V129_CHECK` sous `probe_events=1`). Coût : `search_ops` −43 à −49 % à itérations égales (`v129_cost_4x2_20261007`). Neutralité 20×10 `v129_porteB_20x10_20261007` : profit non érodé (moyenne −104,8 k£/an, médiane +7,3 k, 10/10, p = 0,50, IC95 [−281 ; +54] k) mais **garde de valeur −5,59 % (seuil 5 %) ⇒ `fail_value_guard`** ; adopté par l'utilisateur au titre de la règle opcodes et de la décision du 29/09 (la valeur n'est pas un objectif). Champ `search_ops` ajouté à `RAIL_ATTEMPT`. |
 | V113 | Analyse | **Leviers « note de gare » d'AAAHogEx (rapport agy du 03/10, lecture seule) : aucun levier neuf.** Les trois proposés sont déjà couverts : statues = écartées par calcul (ligne « Actions municipales ») ; déclenchement de la flotte routière sur cargo en attente = déjà présent (`task_road.nut`, branche `totalWaiting >= capacity`) ; plafond routier à 2 = déjà desserrable par `road_time_scaled_cap` (codé, banqué par l'utilisateur) ; renouvellement par l'âge = `SetAutoRenewStatus(true)` (`main.nut:696`). Réseau routier d'AAA = mélange : lignes autonomes + **rabattements `TownBus` vers rail/air** (ordres de transfert) + arrêts joints à distance (`BuildSpreadPieceStations`) — ce sont eux qui expliquent l'écart d'occupation V108, mais les feeders sont hors politique (« Pas de Lakes/feeders »). À rouvrir seulement sur décision utilisateur. Affirmation agy non vérifiée : full load avion à la seule source chez AAA (contredit `aaahogex_full_load_avion`). |
 | V107 | Chantier | 🔨 **DENSIFICATION RAIL CLASSÉE PAR LE PORTEFEUILLE** — conséquence de code de l'annulation utilisateur du 03/10 (« les densifications doivent être au même niveau que les autres projets »). Réglage `v107_densify_portfolio`, **défaut 0**, non qualifié. **Constat préalable : l'air était DÉJÀ conforme à défaut 1** — `FLEET_PORTFOLIO` (porté par `policy_air`) fait déjà classer l'achat d'avion comme projet sur son profit marginal (`OpexProjectFromFleet`, C34.2) et `_dispatchAirFleet` n'a plus de droit de tirage, il injecte dans le vivier. Ne restaient non conformes que le rail (`RAIL_REFLEET` : second train, double voie, dans `_expandRailLines`) et la route (`ROAD_REFLEET` : `_refleetRoadLines`). **Livré, rail uniquement** : mode à blanc `_expandRailLines(year, plan = null)` sur le patron exact de `_resizeAirFleets` (le branchement à blanc retourne avant `_budget.begin()`, sans panneau ni série d'expansion) ; marginal réel `OpexRailRevenueAtTrainCount` + `OpexRailSecondTrainMarginal` (`economy.nut`) qui modélise l'écart 1 train → 2 avec le même headway/note/cargo que `OpexLineEconomics`, recalé par `lastRevenue / revenu modélisé à 1 train` quand le revenu observé existe, et **refuse** si le revenu modélisé est nul ; branche V107 de `OpexProjectFromFleet` qui **refuse plutôt que de retomber** sur le profit moyen de la ligne ; facteur de mode C70 corrigé (`projects_models.nut`) pour qu'une densification rail soit calibrée en rail et non en air. 🔴 **La route est volontairement laissée de côté, et c'est le bon arbitrage** (vérifié) : `_refleetRoadLines` décide sa cible sur des **flux physiques** (cargo en attente, capacité d'arrêt) et n'a pour seul signal de profit que `line.lastProfit` (total de ligne) ; en faire un marginal imposerait de diviser par l'effectif, c'est-à-dire exactement le **score cosmétique** que le patron air refuse explicitement (« un bonus posé sur roi serait cosmétique — même piège que le bonus feeder »). À rouvrir seulement avec un modèle de revenu marginal routier. **Vérifications faites** : polarité correcte (`if (V107_DENSIFY_PORTFOLIO) continue;` ne saute la dépense directe que si le réglage est À 1) ; `plan = null` garde les appelants existants intacts ; tous les symboles cités existent et `INFRA_AMORT_PCT <- 0` confirme que l'amortissement d'infra vaut 0 au défaut ; l'empreinte sha256 de `test_parallel_fleet_amort_shadow.py` a été mise à jour **légitimement** (c'est un test d'empreinte de source, et `OpexProjectFromFleet` a changé) et documentée. Test de contrat `sweeps/test_v107_densify_portfolio.py`. **Suite complète : 143/143, aucun échec réel** (les seuls non-passages sont `openttdlab` absent de l'hôte, il n'existe que dans l'image Docker). **Prochaine étape : porte A (40 graines × 3 ans).** |
@@ -700,6 +719,11 @@ année à 0 : ses deltas ne qualifient pas le profil courant.
 | Eau, jointures, RAM et implantation | Besoin actuel démontré ; accord explicite avant nouveau diagnostic maritime. Pas de Lakes/feeders. |
 | Réseau rail partagé | **À la toute fin**, hors file active : exposition passive du raccord au réseau, trains directs, capacité/signalisation avant chantier ; aucun transbordement. |
 | Rail fret — mesure exhaustive des tentatives achevées 1974–1975 (08/10) | **DIAGNOSTIC TERMINÉ, aucun nouveau défaut adopté** : `rail_failure_audit` OFF par défaut, une ligne par tentative achevée ou rejet `too_close` pré-A*, avec `kind` et cargo ; parseur/test hôte. A/B diagnostique 5×6 sur graines 42/100/999/1234/5678, même bundle, référence `rail_cached_proximity_gate=0` et variante `=2`, sonde légère ON dans les deux bras : **10/10 parties complètes, 0 événement invalide**. **1974** 13→11 tentatives, **5→5 réussites**, 8→6 échecs, TRKFAIL 2→2 ; fret OK 0→2 et voyageurs OK 5→3. **1975** 13→7 tentatives, **6→3 réussites**, 7→4 échecs, TRKFAIL 1→2 ; fret OK 4→3 et voyageurs OK 2→0. Les rejets `too_close_no_join` tardifs sont transférés en amont (passages répétés : fret/pax 1974 **206/113→0/0**, 1975 **29/36→0/0**) ; les échecs baissent car moins de tentatives, sans fiabilité accrue ni croissance des constructions. Diagnostic instrumenté distinct du 40×5 économique `fail_primary` ; ne pas requalifier ni lancer B. Voir [rapport](diag_fret_ferroviaire_20261008.md), `results/rail_failure_audit_5x6_20261008_r1.analysis.json`. |
+| Rail fret 08/10 — sélection pax vs verrou A* tardif | **DIAGNOSTIC 5×6 + autopsie graine 999 terminés, pas de nouveau correctif adopté** | Sonde légère `rail_failure_audit=0` étendue aux agrégats `RAIL_POOL_AUDIT`, à `stage=dispatch|early` et à l'occupant `RAIL_BLOCKER`, sans `decision_log`. En 1975, 5 graines ×6 ans : candidats voyageurs finançables par resélection **31,19→30,57** (témoin→cache=2), mais retenus **23,39→10,66** par passage et tête pax **92/315→22/180** ; donc pas de disparition du vivier. Diagnostic distinct 5×6 : 4 698→595 présentations pax au constructeur pour seulement 9→6 tentatives terminées ; ce sont des revisites, pas autant de projets. Seed999 : parmi les retours précoces en 1975, **1 847/1 847** référence et **1 370/1 370** variante proviennent de `search_in_progress`. Rejeu ciblé : référence bloquée par **A* primaire fret** (232 blocages pax, 9 650/10 000 itérations, 432 jours observés) ; variante surtout par **upgrade A*** (1 452 `upgrade/search`, 126 `upgrade/build` sur **2 jours**, 63 `primary/search`). `policy_caches=1` active déjà la libération de cash C41 ; ne pas diagnostiquer un build bloqué toute l'année. Les succès pax 1975 changent avec la sonde (2→0, 5→1, 3→4 sur trois rejeux distincts) : **aucune preuve d'effet économique stable** ; porte A 40×5 du filtre conserve son `fail_primary`, défauts 0. Le même goulet primaire/upgrade avait déjà été démontré en V100, et sa simple réallocation ne gagne pas : **ne pas relancer plafond en jours ou mémoire d'upgrade**. Prochaine piste seulement si prédicteur amont indépendant des seuils distance/terrain V101 (déjà insuffisants). [Preuves détaillées](diag_fret_ferroviaire_20261008.md), `results/rail_pool_audit_5x6_20261008_r1.analysis.json`, `results/rail_dispatch_audit_5x6_20261008_r1.analysis.json`, `results/rail_blocker_seed999_1x6_20261008_r1_engine`. |
+| Rail A* 08/10 — prédire les plafonnements avant lancement | **AUTOPSIE TERMINÉE — AUCUN FILTRE JUSTIFIÉ** | Relecture du HEAD `878fc56`, V100/V101 et diagnostics 08/10, sans nouvelle partie. Sur 10 parties sondées 5×6 : 174 tentatives achevées, **119 OK, 21 ABND** ; bannir une destination après un ABND retirerait certes 8 ABND ultérieurs mais **3 vrais OK**, dont un après deux ABND. La paire OD exacte donne 4 ABND répétés sans OK perdu sur l'échantillon, mécanisme couvert par `_abandonedPairs` ; elle ne prédit pas le premier ABND. Diagnostic indépendant 3×6 : **4 ABND réellement à 10 000 itérations**, mais distance Manhattan ≥56 sacrifierait **22/35 OK** ; les gares et frontières A* ne sont pas journalisées. Les 9650/10000 de seed999 au 25/12/1975 sont une recherche **censurée, non achevée**. Pas de sonde/filtre nouveau, défauts inchangés, **aucun smoke ni 40×5** : critère mécanique de ≤1 OK sacrifié non atteint. Reprise seulement avec une signature d'accès aux quais/corridor mesurée avant A* et validée sur graines indépendantes ; ensuite protocole utilisateur 40×5 V102, B20×10 si A passe. [Autopsie et contre-exemples](rail_astar_prelaunch_20261008.md). |
+
+| Rail A* 09/10 — sonde avant recherche et issue appariée | **SONDE PASSIVE LIVRÉE, FILTRE NON JUSTIFIÉ** | `probe_rail_preastar` OFF (=0, quatre difficultés), log `RAIL_PREASTAR_START/END/BUILD` avec identifiant par recherche, accès réels `[lead,station_exit]`, voisinage local et issue A*/chantier, modes primary/upgrade/stock. Smoke duel seed42×1 OFF/ON 2/2 sains et résultats Opex identiques (439 524 £/an, valeur 397 634 £). Collecte mono-bras 5 graines×6 ans `rail_preastar_collect_5x6_20261009_r2` : 5/5 complètes, **54 recherches uniques, 43 OK A*, 7 ABND à 10 000, 4 en cours** (END manquant attendu), 0 événement invalide. Les 24 primaires OK ne produisent que 13 poses, 10 échecs et 1 attente cash ; parmi 15 stocks A* OK, 8 constructions effectivement observées. Indices pré-A* `na/nb/amin/bmin/azero/bzero` : règle `nb≤1` en dev 2 ABND coupés / 1 OK perdu, mais sur réserves **0/3 ABND / 1 OK perdu** ; `bmin≥3` dev 1/4 pour 0 OK, réserves 0/3 pour **2 OK perdus**. Les réserves ont été affichées lors de l'exploration, donc **pas de validation aveugle**. Aucune règle sûre, **aucun filtre, aucune porte A40×5 ou B20×10**. Analyseur et 14 fixtures host verts, `git diff --check` OK ; aucun commit/push. [Rapport et provenance](rail_preastar_probe_20261009.md). |
+| Rail A* 09/10 — suite frontières segmentées | **COLLECTE TERMINÉE — MÉCANISME DÉCRIT, AUCUN FILTRE** | `probe_rail_preastar` maintenu OFF par défaut ; événements FRONTIER (tas `open`, `sampled`, `viable`, segment/backtrack/RID), END détaillé, analyseur HOST étendu **16/16 tests**, 10/10 tests rail connexes. Smoke 42×1 OFF/ON 2/2 sain/identique, 3 RID stock appariés. Nouvelle collecte mono-bras `rail_preastar_frontier_5x6_20261009_r1`, graines 7/512/65537/515222/230185 : **5/5 parties complètes**, **57 RID = 45 OK, 6 ABND à 10 000, 2 NOPA, 4 censurés** ; 0 événement invalide/doublon, 4 avertissements `missing_end` attendus. **6/6 ABND et 12/12 OK** ayant atteint la première coupure retiennent chacun **3 alternatives viables** ; les plafonnements utilisent encore des tas ouverts (jusqu'à 2 903 nœuds à la fin) ou accumulent 5 segments sans retour arrière. La seule frontière disponible **après** recherche ne prédit donc pas l'échec **avant** A*. Aucun filtre ni qualification économique ; défaut inchangé, pas de commit/push. [Rapport complet](rail_preastar_probe_20261009.md). |
 
 ## 5. Tenue du suivi
 
@@ -730,3 +754,196 @@ modèle et défauts inchangés ; cohérence et reconstruction du cache testées 
 le périmètre décrit ci-dessus. Le scan suspendu n'est plus entièrement non
 vérifié, mais son état dérivé est jeté au reload ; aucune continuité économique
 ni persistance d'apprentissage nouvelle attestée. Suite complète non réexécutée.
+
+**AIR, complément du 08/10/2026 — actualisation des lignes 629–630 :**
+le prototype V126 de devis corrigé reste OFF aux quatre difficultés.
+Campagne `air_site_quote_residual_6x3_20261008_r1` (6 graines × 3 ans,
+12/12 duels complets/sains, `diagnostic_only`, sonde active dans les deux
+bras) : profit annuel variante−référence **−70 729 £/an moyen**,
+IC95 bootstrap [−361 773 ; +187 743] £/an, 3/3 victoires/défaites,
+valeur ratio des moyennes −0,81 %. Variante : 230 constructions AIR,
+58 échecs / 271 538 £ comptabilisés, 7/149 succès avec nouvel aéroport
+au-delà des 2 000 £ de marge après devis. Référence : 219 constructions,
+62 échecs / 462 266 £ ; dépenses d'échec non assimilables aux pertes
+finales de rollback. **Aucun pourcentage résiduel validé, pas de porte A/B.**
+La quote et la réduction de marge étant activées ensemble, leur contribution
+individuelle n'est pas identifiable dans ce diagnostic. Priorités si reprise :
+mesurer le coût net des rollbacks, réviser la fraîcheur du devis au dernier
+garde de cash et distinguer projet unique de refus répété. [Rapport détaillé](air_risque_residuel_6x3_20261008.md).
+
+**AIR, complément du 09/10/2026 — suite concrète de l'enquête V126 :**
+le nouveau commutateur expérimental `air_site_quote_keep_legacy_margin=1`
+isole devis de nivellement/capital et marge historique (défaut 0).
+**Deux diagnostics factoriels 6×3 (12/12 complets chacun, même bundle,
+bras commun strictement identique 6/6)** : devis seul avec marge ancienne
+**−164 538 £/an** moyen (IC95 [−519 265 ; +143 297], 3/3), restaurer la
+marge ancienne avec devis ON **−156 413 £/an** moyen
+(IC95 [−343 897 ; +2 794], 2/4) ; combinaison devis+marge réduite face
+au défaut recomposée **−8 125 £/an** (4/2, valeur +2,81 %),
+**toujours diagnostic_only**, pas d'adoption. [Protocole et résultats](air_devis_marge_orthogonal_20261009.md).
+Instrumentation R19 passive : dans un 6×3 naturel devis ON, 70 échecs,
+370 199 £ dépensées : 61 sans ticket/166 879 £, 9 BFAIL gardant l'aéroport A
+pour 203 320 £ (actif immobilisé non valorisé), zéro ticket différé observé.
+Test dirigé seed42 `r19_fault_inject=1` : tentative `START` coût instantané
+118 505 £, liquidation complète ultérieure **−75 136 £**, coût net
+**43 369 £**. Décodeur net signé et 115/115 contrats/tests ciblés sains.
+**Suites P0/P1 :** revalider le devis de candidat au dernier cash guard et
+mesurer la pression de cache; suivre la valeur/réutilisation des BFAIL
+orphelins et les Save/Load pendant liquidation ; seulement ensuite
+déterminer une marge sûre et engager la porte A V102. Aucun défaut
+modifié, aucun commit/push. [Journal du 09/10](journaux/journal_2026-10-09.md).
+
+**AIR, 09/10 — exposition finale du devis périmé :** sonde observationnelle
+`air_site_stale_shadow=1` (défaut OFF), smoke apparié 42×1 sain ; 6 graines
+×3 ans mono-bras **6/6 sains**, 313 contrôles cash AIR, **111 devis dont le
+coût a changé** entre publication du projet et contrôle final ; différence
+absolue médiane 45 £, p90 135 £, hausse max 344 £, baisse max 12 780 £.
+**Un seul renversement de garde cash** (graine 2026 : besoin 167 437 £
+devenu 154 657 £, liquidité 156 463 £), aucun projet accepté devenu
+sous-financé. Âge `economicsDate` indicatif seulement (reconversion de
+projet possible). L'ombre modifie le calendrier des simulations via les
+opcodes, sans branche de décision : ne pas interpréter le delta de profit.
+**Aucun correctif comportemental, aucun réglage adopté, ni porte V102.**
+La mesure suivante de réemploi par ancre/StationID a été réalisée ; voir
+la [fiche dédiée](air_orphan_reuse_20261009.md). Ne pas traiter les
+394 225 £ historiques comme capital irrécupérable.
+
+**AIR, 09/10 — suivi moteur BFAIL/HUBB → premier hub réutilisé (fait)** :
+sonde passive dans `PROBE_AIR_FINANCE_MARGIN` existant, sans état persistant.
+Smoke 42×1 et campagne mono-bras 6×3 terminés/sains, source figée commune.
+**8** aéroports A neufs conservés après BFAIL dans cette campagne,
+**168 532 £** de coût A historique ; **5** ont servi une ligne AIR construite
+sur la **même ancre et StationID** avec zéro ligne antérieure sur cette station,
+pour **103 579 £** de capital A réemployé, après 214–995 jours (médiane 484).
+Trois actifs (**64 953 £**) sans réemploi observé sur trois ans, censurés ;
+aucune preuve de vente ou d'existence finale. Jointures ambiguës **0**,
+aucun HUBB naturel, mais log HUBB prévu. Les 207 réemplois sans événement
+orphelin antérieur ne sont pas attribués à ce phénomène. Aucun revenu,
+remboursement, gain économique ni nouvelle marge démontré ; défauts inchangés.
+Le prolongement de suivi physique et des profits ci-dessous a depuis
+répondu à l'exposition jusqu'au 01/12/1972. Les revenus bruts par ligne et
+la rentabilité causale restent inconnus.
+[Campagne initiale et limites](air_orphan_reuse_20261009.md).
+
+**AIR, 09/10 — maturité des aéroports conservés et profits moteur (diagnostic clos)** :
+nouveau `6×3` mono-bras `air_orphan_profit_6x3_20261009_r2` complet/sain,
+bundle figé, résultats compagnie identiques aux six graines du banc initial.
+Son prédécesseur `r1` a échoué au `frozen bundle fingerprint mismatch`
+après écriture des sauvegardes dans le bundle ; aucun verdict ne lui est
+attribué. Correctif du lanceur `run_c66_reference.py` : archives dirigées
+hors bundle ; tests spécifiques verts. Les six archives `r2` (36 sauvegardes
+chacune, SHA256 contrôlés) confirment le **01/12/1972** la présence physique
+des **3** aéroports A alors sans service (mêmes stations, ancres, propriétaire
+OpexAI), pour **64 953 £** de coût historique. Profits de ligne réels
+accessibles par décodeur strict VEHS/STNN/StationID, avec dates, flottes et
+ruptures de mesure ; aucun revenu brut par ligne séparé.
+L'extension ciblée `air_orphan_profit_maturity_3x5_20261009_r1`, graines
+1234/5678/2026, est **3/3 complète et saine**, même bundle `r2` ; deux
+orphelins supplémentaires trouvent leur première ligne (2026 station106
+après **516 jours**, 5678 station164 après **885 jours**). Les **7/7**
+orphelins des trois graines sont réemployés avant fin 1974 (capital A
+historique **147 572 £**), mais **la graine999 n'est pas prolongée**.
+Six lignes possèdent un groupe financier physique appariable avec bénéfices
+comptables positifs agrégés sur **148 intervalles mensuels complets**
+(+421 313 £ au total descriptif, **9 intervalles partiels non imputés**).
+La 7e ligne, bâtie le 19/12/1974, n'a aucun checkpoint post-construction.
+Les **7/7 nouveaux chantiers** ont un coût réellement débité appariable,
+**392 242 £** au total, distincts des **147 572 £** déjà investis en A,
+soit **539 814 £** d'engagements historiques associés à ces sept lignes.
+Les 216 snapshots mensuels des deux compagnies sur les trois graines
+jusqu'au 01/12/1972 sont identiques entre le 6×3 et la prolongation 3×5.
+**Ce total n'est ni le profit intégral de la cohorte, ni un remboursement des
+aéroports, ni la valeur d'option prouvée de les conserver face à une autre
+décision.** Aucun défaut ni marge AIR modifié et pas de porte V102.
+Prochaine causalité : contrefactuel gardé/démoli en mêmes conditions et
+coût d'opportunité des alternatives finançables, plutôt qu'un paramètre
+arbitraire. [Protocole, décodeurs et résultats](air_orphan_profit_realise_20261009.md).
+
+**AIR, 09/10 — suite BFAIL, première frontière contrefactuelle (diagnostic clos, NON QUALIFIÉ).**
+Analyse host stricte des mêmes logs `6×3` : sur les **8** A conservés,
+**5** sélections AIR retrouvées dans les sept jours avant tout autre chantier,
+**1 seul classement le jour du BFAIL** (aucun projet AIR alors bloqué par la
+marge) ; trois déficits théoriques seraient couverts par le coût historique
+de A **à J+5/J+6/J+7**, ce qui ne prouve aucune alternative construite.
+`sweeps/analyse_air_orphan_opportunity.py`, **7/7 tests**,
+`results/air_orphan_opportunity_6x3_20261009_r1.json` ; le 3×5 ciblé recoupe
+les mêmes trajectoires, sans observations indépendantes supplémentaires à
+trois ans. L'entretien infrastructure est désactivé : conserver A n'engendre
+pas cette charge ; il réduit toutefois le capital et la marge des lignes
+réemployant la station. Variante isolée **`air_bfail_dispose_orphan=0` au défaut**
+sur les quatre difficultés ; `=1` dirige seulement le A neuf de newpair
+échouant sur B vers R19. **48/48 contrats/tests Python ciblés verts**.
+Smoke `5678×1` et duel causal ciblé `1234/5678/2026 ×5 ans` désormais
+**2/2 puis 6/6 complets/sains**, source figée unique
+`04b40393c8bd...06abc69a2e` ; 3/3 premières divergences log exactement
+au BFAIL, R19 immédiatement terminé et **+792 £ de démolition** pour
+chacun des trois nouveaux A, **sans récupération du prix de A**.
+Delta `profit_year` terminal variante démolition−conservation par graine :
+1234 **+293 683**, 5678 **−380 374**, 2026 **+134 140 £/an** ;
+moyenne **+15 816 £/an**, IC95 bootstrap **[−380 374 ; +293 683]**,
+2V/1D, ratio des moyennes `company_value` **+0,3924 %**.
+Signal mixte, échantillon exposé non aléatoire, verdict brut
+`diagnostic_only` : **ne pas adopter, ne pas lancer de porte V102 sur cette
+preuve**. Le réglage reste **OFF=0** aux quatre difficultés. Axe distinct
+à étudier : **prévenir la dépense A en vérifiant B avant tout chantier**,
+avec preuve de constructibilité et alternative finançable au même état.
+Aucun commit/push. [Protocole, preuves et verdict](air_orphan_counterfactual_20261009.md).
+
+**AIR, 09/10 — test B avant chantier, diagnostic PASSIF clos :**
+`air_bfail_precheck_shadow=0` aux quatre difficultés ; `=1` sonde uniquement
+B des `newpair` avant A via `OpexAirPreflightEndpoint`, **sans** filtrer,
+invalider ou construire autrement. Le préflight de décision historique a
+déjà été rejeté au 20×10 (−89 294 £/an, 4V/14D/2E) et reste OFF. Smoke
+ON/OFF `5678×1` **2/2 sain, résultats de compagnie identiques** ; collecte
+ON `air_bfail_precheck_shadow_6x3_20261009_r1` **6/6 saine** : 96 chantiers
+à deux aéroports, 52 atteignent B avec succès, 36 AFAIL, **8 BFAIL**.
+Prédiction B `reject` **0/96** ; tous les 8 BFAIL sont jugés acceptables
+(6 `defer_level`, 2 `accept`), **168 532 £** de coûts A historiques non
+prévenables par ce préflight. Erreurs B observées `263×5`, `2×2`, `258×1` ;
+ne pas convertir les codes non vérifiés en motifs. `AITile.LevelTiles`
+peut retourner true sous AITestMode et échouer en mode réel ; une erreur
+de niveau peut aussi suivre un changement physique partiel. Instrumentation
+affinée `real_b_stage` **OFF sans la sonde**, absente du bundle r1 ;
+la collecte `air_bfail_precheck_stage_6x3_20261009_r2` a ensuite terminé
+**6/6 saine, 96/96 chantiers appariés, zéro avertissement**. Sur 8 BFAIL,
+**7 échouent au nivellement réel** (A 142 972 £), **1 à BuildAirport après
+nivellement OK** (A 25 560 £) ; 29 chantiers avec B construit avaient
+pourtant `defer_level` au prétest, donc ce cas n'est pas un filtre sûr.
+R1/R2 ont les mêmes trajectoires et métriques économiques sur six graines,
+mais cela ne prouve pas l'invariance générale aux opcodes. **Verdict :
+préflight courant non prédictif sur cette cohorte, ne pas l'adopter, ne pas
+transformer `defer_level` en refus, aucune porte V102.** Prochaine preuve
+nécessaire : pourquoi LevelTiles échoue réellement sans être détecté en
+AITestMode, avec détails tuiles/terrain, avant toute variante B-first.
+[Analyse et verdict](air_bfail_precheck_shadow_20261009.md),
+`results/air_bfail_precheck_stage_6x3_20261009_r2_analysis.json`.
+
+**AIR, 09/10 — autopsie géométrique BFAIL P0 r3 terminée :** sous le même
+setting passif `air_bfail_precheck_shadow=1` (défaut OFF), ajout du relevé
+géométrique `b_level_*` avant/après B, phase interne exacte du helper et
+codes `LevelTiles` immédiats. Smoke ON/OFF `5678×1` **2/2 sain, métriques
+identiques** (bundle final `d8a0b196…f8597519`). Collecte 6×3
+`air_bfail_geometry_6x3_20261009_r3` **6/6 saines**, 60/60 constructions
+ayant atteint B décodées sans avertissement ; sur **8 BFAIL r3**, **5**
+`postcheck_nonflat` après `LevelTiles=true` et terrassements partiels
+(erreur `263` produite par OpexAI), **2** `invalid_end` au bord x=255 avant
+tout appel `LevelTiles` (erreur `2` locale ; ancre B 44793, terrain des
+36 tuiles aéroport déjà plat), **1** pose `BuildAirport` refusée après
+nivellement OK (`258` = autorité locale, rating/bruit non départagés).
+**Aucun refus natif LevelTiles** parmi ces huit. Le rectangle du niveau
+est inclusif `(w+1)×(h+1)` : ne pas le rétrécir sans preuve. Les **27**
+succès r3 après `defer_level` interdisent tout rejet général.
+
+**Caveat causal essentiel :** 7/8 BFAIL r3 identiques en date/ancre à r2,
+mais seed1234 diverge (r2 1971-05-19/ancre59444 ; r3
+1971-01-12/ancre60508) ; profit Opex terminal **+69 689 £** et valeur
+**+238 769 £** entre campagnes, les 5 autres graines identiques. Sonde
+intrusive au moins pour une trajectoire, **ancien site 59444 non autopsié**.
+83 tentatives r3 contre 96 r2, coût A historique r3 167 872 £ contre
+168 532 £ r2 : résultats uniquement observationnels, non convertibles en
+gain. Piste isolée à éprouver : dans `OpexAirLevelFootprint`, vérifier
+`OpexAirFootprintIsFlat` **avant** le garde `end` invalide, puis confirmer
+la pose réelle et l'économie dans un contrefactuel apparié. **Aucune
+politique adoptée, aucun défaut modifié, aucune porte V102, aucun
+commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
+`results/air_bfail_geometry_6x3_20261009_r3_analysis.json`.

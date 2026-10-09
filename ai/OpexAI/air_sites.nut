@@ -56,6 +56,57 @@ function OpexAirFootprintIsFlat(anchor, airport)
   return true;
 }
 
+/* BFAIL : photographie pure des tuiles du rectangle de nivellement (w+1 x h+1),
+ * sous la seule sonde AIR_BFAIL_PRECHECK_SHADOW. Les cases sont en ordre dx/dy,
+ * code min.max.slope avec ! si non constructible. Le bord supplementaire est
+ * essentiel : LevelTiles utilise +(w,h), et non la derniere tuile aeroport. */
+function OpexAirBLevelTerrainSnapshot(anchor, airport)
+{
+  local ax = AIMap.GetTileX(anchor);
+  local ay = AIMap.GetTileY(anchor);
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local grid = "";
+  local minH = 999;
+  local maxH = -1;
+  local slopes = 0;
+  local blocked = 0;
+  local invalid = 0;
+  local mismatched = 0;
+  local airportZ = AITile.GetMaxHeight(anchor);
+  for (local dx = 0; dx <= airport.width; dx++) {
+    for (local dy = 0; dy <= airport.height; dy++) {
+      if (grid != "") grid += ",";
+      if (ax + dx >= mapX || ay + dy >= mapY) {
+        grid += "X";
+        invalid++;
+        continue;
+      }
+      local tile = AIMap.GetTileIndex(ax + dx, ay + dy);
+      /* La derniere colonne/ligne physique est hors carte jouable, meme
+       * lorsque l'index lineaire reste inferieur a GetMapSize(). */
+      if (!AIMap.IsValidTile(tile)) {
+        grid += "X";
+        invalid++;
+        continue;
+      }
+      local lo = AITile.GetMinHeight(tile);
+      local hi = AITile.GetMaxHeight(tile);
+      local slope = AITile.GetSlope(tile);
+      local buildable = AITile.IsBuildable(tile);
+      grid += lo + "." + hi + "." + slope + (buildable ? "" : "!");
+      if (lo < minH) minH = lo;
+      if (hi > maxH) maxH = hi;
+      if (slope != AITile.SLOPE_FLAT) slopes++;
+      if (!buildable) blocked++;
+      if (dx < airport.width && dy < airport.height && hi != airportZ) mismatched++;
+    }
+  }
+  return { grid = grid, minH = minH, maxH = maxH, slopes = slopes,
+           blocked = blocked, invalid = invalid, mismatched = mismatched,
+           x = ax, y = ay, target = AITile.GetCornerHeight(anchor, AITile.CORNER_N) };
+}
+
 /* G7Ãƒâ€šÃ‚Â§2 : Sonde AITestMode de nivelabilite, sans modifier la carte ni depenser de tresorerie.
  * Retourne true si LevelTiles REUSSIRAIT (terrain deja plat, ou nivelable, ou autorisation
  * achetable). Utilise par OpexAirFindSite pendant la generation, avant election. */
@@ -75,30 +126,51 @@ function OpexAirCanLevelFootprint(anchor, airport, townId = -1)
 
 /* Nivellement REEL (pas AITestMode) de l'emprise exacte, puis verification min=max.
  * LevelTiles en test ne change pas la carte ; BuildAirport ne terrasse pas. */
-function OpexAirLevelFootprint(anchor, airport, townId = -1)
+function OpexAirLevelFootprint(anchor, airport, townId = -1, shadow = null)
 {
   local end = OpexAirFootprintEnd(anchor, airport);
   /* R18 : ne pas relire une erreur moteur apres une autre commande (boost,
    * aeroport, invalidation ou rollback). Les echecs geometriques sont explicites. */
-  if (!AIMap.IsValidTile(end)) return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
-                                      errorText = "invalid airport footprint" };
-  if (OpexAirFootprintIsFlat(anchor, airport)) return { ok = true, error = 0, errorText = "" };
+  if (!AIMap.IsValidTile(end)) {
+    if (shadow != null) shadow.phase <- "invalid_end";
+    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
+             errorText = "invalid airport footprint" };
+  }
+  if (OpexAirFootprintIsFlat(anchor, airport)) {
+    if (shadow != null) shadow.phase <- "already_flat";
+    return { ok = true, error = 0, errorText = "" };
+  }
   if (!AITile.LevelTiles(anchor, end)) {
     local err = AIError.GetLastError();
     local errorText = AIError.GetLastErrorString();
+    if (shadow != null) { shadow.command <- "failed"; shadow.commandError <- err; }
     if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES && townId >= 0) {
       OpexBoostTownRating(townId, 800, 40);
       if (!AITile.LevelTiles(anchor, end)) {
         err = AIError.GetLastError();
         errorText = AIError.GetLastErrorString();
-        if (err != AITile.ERR_AREA_ALREADY_FLAT) return { ok = false, error = err, errorText = errorText };
+        if (shadow != null) shadow.retryError <- err;
+        if (err != AITile.ERR_AREA_ALREADY_FLAT) {
+          if (shadow != null) shadow.phase <- "retry_failed";
+          return { ok = false, error = err, errorText = errorText };
+        }
+      } else if (shadow != null) {
+        shadow.retryError <- 0;
       }
     } else if (err != AITile.ERR_AREA_ALREADY_FLAT) {
+      if (shadow != null) shadow.phase <- "command_failed";
       return { ok = false, error = err, errorText = errorText };
     }
+  } else if (shadow != null) {
+    shadow.command <- "ok";
+    shadow.commandError <- 0;
   }
-  if (!OpexAirFootprintIsFlat(anchor, airport)) return { ok = false, error = AIError.ERR_FLAT_LAND_REQUIRED,
-                                                       errorText = "airport footprint remains non-flat" };
+  if (!OpexAirFootprintIsFlat(anchor, airport)) {
+    if (shadow != null) shadow.phase <- "postcheck_nonflat";
+    return { ok = false, error = AIError.ERR_FLAT_LAND_REQUIRED,
+             errorText = "airport footprint remains non-flat" };
+  }
+  if (shadow != null) shadow.phase <- "success";
   return { ok = true, error = 0, errorText = "" };
 }
 

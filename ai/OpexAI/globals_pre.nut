@@ -34,6 +34,12 @@ CLEAN_DENSITY_SCORE <- true;
  * l'instrumentation de sweeps/*.py passe par ces panneaux, AILog.Info n'etant pas capture par
  * OpenTTDLab. On ne les coupe que pour une partie avec des humains. */
 DEBUG_SIGNS <- true;
+/* P0 AIR : journal des achats effectivement realises et de leur provenance de score.
+ * OFF par defaut, diagnostic seulement, aucune lecture par le classement. */
+AIR_P0_MARGIN_PROBE <- false;
+/* P0 : corriger uniquement la profondeur 2->3 du marginal C121 froid (1->2
+ * est memorise au build). Experience economique isolee OFF par defaut. */
+AIR_P0_SECOND_STEP_MARGINAL <- false;
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;
@@ -344,9 +350,24 @@ AIR_SITE_MIN_CATCHMENT <- false;
  * AIR_SITE_COST_QUOTES : cache reconstructible des devis par ancre et type
  * d'aeroport, jamais sauvegarde. */
 AIR_SITE_COST_QUOTE <- false;
+/* AIR BFAIL : expérience causale, 0 conserve A comme historiquement ; 1
+ * liquide seulement l'aéroport A neuf après échec de construction de B. */
+AIR_BFAIL_DISPOSE_ORPHAN <- false;
+/* Mesure seule : tester l'emprise B en AITestMode avant construction A,
+ * mais NE PAS rejeter de chantier avec ce resultat. Inerte au defaut. */
+AIR_BFAIL_PRECHECK_SHADOW <- false;
 AIR_SITE_COST_MARGIN_PCT <- 0;
+/* Diagnostic orthogonal V126 : devis AIR dans le capital mais conserver la
+ * marge historique 2k/12k/30k ; aucun effet si AIR_SITE_COST_QUOTE=0. */
+AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN <- false;
+/* V126 : observation uniquement des devis differes au dernier garde cash.
+ * Aucune revalidation decisionnelle ; OFF par defaut. */
+AIR_SITE_STALE_SHADOW <- false;
+/* B9 : 450..2250 GBP/stop observes, devis prudent au maximum constate.
+ * Candidate V126 OFF par defaut ; ne vaut pas garantie sur de nouveaux sites. */
 V126_JOINED_STOP_COST <- 300;
 AIR_SITE_COST_QUOTES <- {};
+AIR_SITE_COST_QUOTES_DATE <- -1;
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
 /* C97 : sonde passive du choix moteur AIR par argmax direct (moteur, profondeur)

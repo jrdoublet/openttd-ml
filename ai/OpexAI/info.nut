@@ -33,6 +33,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_p0_margin_probe",
+      description = "Passive P0 AIR purchase and portfolio alternative logs, no decision changes; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_p0_second_step_marginal",
+      description = "P0 test: use actual C121 model P(3)-P(2) for cold fleet 2->3 instead of reusing P(2)-P(1); 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "save_full_state",
       description = "Persist the full decision state in savegames: 1 = save built lines and scheduler state (default), 0 = minimal payload",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -406,6 +422,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_bfail_dispose_orphan",
+      description = "BFAIL diagnostic: dispose of a newly built A via existing R19 rollback when B fails, even with infrastructure upkeep off; never removes reused hubs; 0 = retain (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_bfail_precheck_shadow",
+      description = "BFAIL passive probe: test B before spending on A for two-new-airport plans, log the verdict against the real build without rejecting; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_site_cost_margin_pct",
       description = "V126 residual-risk margin, percent of the new-airport site cost (catalogue price + levelling quote) added to a 2,000 floor; used only when air_site_cost_quote=1",
       min_value = 0, max_value = 200,
@@ -413,6 +445,22 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       step_size = 5,
       flags = 0
+    });
+
+    AddSetting({
+      name = "air_site_quote_keep_legacy_margin",
+      description = "Diagnostic V126: with air_site_cost_quote=1, keep the historical 2000/12000/30000 AIR cash margin instead of residual-risk margin; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_site_stale_shadow",
+      description = "Diagnostic only: re-quote selected new AIR sites before cash/build, log outdated quotes and financing exposure; no decision changes; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({

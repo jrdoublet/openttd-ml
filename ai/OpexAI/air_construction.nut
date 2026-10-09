@@ -88,15 +88,30 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
   if (airportA != null && airportA != airportB) airports.append(airportA);
   local ticket = { version = 1, vehicles = clone planes, airports = airports,
       pairKey = pairKey, nextDate = 0 };
+  local traceId = "";
+  if (PROBE_AIR_FINANCE_MARGIN) {
+    OPEX_AIR_ROLLBACK_TRACE_SEQ++;
+    traceId = AIDate.GetCurrentDate() + "_" + OPEX_AIR_ROLLBACK_TRACE_SEQ;
+    ticket.v126TraceId <- traceId;
+    ticket.v126RecoveryNet <- 0;
+    AILog.Info("AIR_RECOVERY_CREATE id=" + traceId
+        + " date=" + AIDate.GetCurrentDate()
+        + " airport_a=" + (airportA != null ? airportA : -1)
+        + " airport_b=" + (airportB != null ? airportB : -1)
+        + " vehicles=" + planes.len() + " pair=" + pairKey);
+  }
   /* Enregistrer AVANT toute commande susceptible de suspendre / sauvegarder. */
   OPEX_AIR_ROLLBACKS.append(ticket);
   if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
   if (OpexAirContinueRollback(ticket)) {
     OPEX_AIR_ROLLBACKS.pop();
     AILog.Info("AIR_ROLLBACK_DONE pair=" + pairKey + " immediate=1");
+    if (PROBE_AIR_FINANCE_MARGIN) AILog.Info("AIR_RECOVERY_COMPLETE id=" + traceId
+        + " deferred_net=0 immediate=1");
   }
   else AILog.Warning("AIR_ROLLBACK_PENDING pair=" + pairKey
       + " vehicles=" + ticket.vehicles.len() + " airports=" + ticket.airports.len());
+  return traceId;
 }
 
 /* C33.2 : Pose d'arrets de bus traversants joints a la gare de l'aeroport (modele AAAHogEx piece stations).
@@ -201,9 +216,16 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
       if (!AIRoad.AreRoadTilesConnected(cand.tile, tryFront)) continue;
       local testOk = false;
       {
+        /* Comme OpexAirProbeSite, isoler le cout SIMULE du AITestMode pour
+         * mesurer le risque V126. Garde OFF : les calculs historiques et leur
+         * comptabilite restent strictement inchanges au defaut. */
+        local shield = (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)
+            ? AIAccounting() : null;
         local test = AITestMode();
         testOk = AIRoad.BuildDriveThroughRoadStation(
             cand.tile, tryFront, AIRoad.ROADVEHTYPE_BUS, stationId);
+        test = null;
+        shield = null;
       }
       if (testOk) {
         front = tryFront;
@@ -253,7 +275,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
                    joinedStopsA = 0, joinedStopsB = 0, joinedMonthlyPax = 0,
                    joinedMonthlyPaxA = 0, joinedMonthlyPaxB = 0,
                    joinedRawMonthlyPax = 0, joinedRawMonthlyPaxA = 0, joinedRawMonthlyPaxB = 0,
-                   joinedStopCost = 0 };
+                   joinedStopCost = 0, recoveryTraceId = "", orphanRetained = false };
   /* R19 : un retry ne doit pas dupliquer le service ni reutiliser un aeroport
    * promis a la demolition pendant la liquidation du chantier precedent. */
   if (OpexAirRecoveryBlocksPlan(plan)) {
@@ -287,7 +309,20 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     return result;
   }
   local preB = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, reuseB) : null;
-  if (preB != null && !preB.ok) {
+  /* Shadow uniquement sur newpair. Le preflight actif et historiquement rejete
+   * economiquement garde ses propres decisions. Le shadow ne peut jamais
+   * retourner PREB ni invalider le cache : la route est TOUJOURS construite. */
+  if (AIR_BFAIL_PRECHECK_SHADOW && !reuseA && !reuseB) {
+    if (preB == null) preB = OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, false);
+    result.preBShadow <- {
+      ok = preB.ok, error = preB.error,
+      anchor = plan.siteB.anchor,
+      verdict = !preB.ok ? "reject" :
+          preB.error == AIError.ERR_FLAT_LAND_REQUIRED ? "defer_level" :
+          preB.error == AIError.ERR_LOCAL_AUTHORITY_REFUSES ? "defer_authority" : "accept"
+    };
+  }
+  if (AIR_EFFICIENCY_PREFLIGHT && preB != null && !preB.ok) {
     if (!reuseB) {
       OpexAirInvalidateCachedSite(plan.siteB, airport);
       result.error = preB.error;
@@ -372,7 +407,24 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   } else {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_b") : null;
     if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
-    local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
+    /* Autopsie geometrique passive : les deux photos encadrent seulement le
+     * nivellement de B, avant la pose. Aucun releve au defaut OFF ; aucune
+     * lecture du shadow par les choix ou la validation du chantier. */
+    local levelBShadow = null;
+    if (AIR_BFAIL_PRECHECK_SHADOW && PROBE_AIR_FINANCE_MARGIN && !reuseA && !reuseB) {
+      levelBShadow = { before = OpexAirBLevelTerrainSnapshot(plan.siteB.anchor, airport),
+                       cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF),
+                       width = airport.width, height = airport.height,
+                       end = OpexAirFootprintEnd(plan.siteB.anchor, airport),
+                       slopesEnabled = AIGameSettings.GetValue("construction.build_on_slopes") };
+    }
+    local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id,
+                                        levelBShadow);
+    if (levelBShadow != null) {
+      levelBShadow.after <- OpexAirBLevelTerrainSnapshot(plan.siteB.anchor, airport);
+      levelBShadow.cashAfter <- AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      result.preBLevelShadow <- levelBShadow;
+    }
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "levelB");
     if (spBuild != null) OpexSpanEnd(spBuild);
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.airport_b") : null;
@@ -395,6 +447,11 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       }
     }
     if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
+    /* Diagnostic du maillon reel : distinguer echec de LevelTiles/verification
+     * physique et refus de BuildAirport APRES nivellement reussi. Aucun effet
+     * hors sonde ni sur l'issue du chantier. */
+    if (AIR_BFAIL_PRECHECK_SHADOW && !reuseA && !reuseB)
+      result.preBRealStage <- !levelB.ok ? "level" : (!okB ? "airport" : "built");
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "airportB");
     if (spBuild != null) OpexSpanEnd(spBuild);
   }
@@ -405,20 +462,40 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       result.error = airportErrorB;
       result.errorText = airportErrorTextB;
     }
-    local keepOrphan = (AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0);
+    /* Même politique historique avec le réglage 0. La variante ne liquide
+     * qu'un A NEUF de newpair quand B échoue : aucun hub partagé touché. */
+    local keepOrphan = (AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0)
+        && !(AIR_BFAIL_DISPOSE_ORPHAN && !reuseA && !reuseB);
     if (!keepOrphan) {
-      OpexAirRollback(reuseA ? null : airportA, null, []);
-    }
+      result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, null, []);
+    } else result.orphanRetained = !reuseA;
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = reuseB ? "HUBB" : "BFAIL";
+    /* L'aeroport A neuf et conserve est un actif, pas une perte liquidee.
+     * La provenance sera jointe hors moteur au premier service du meme
+     * (anchor, station). Aucun etat de Save/Load ni calcul hors sonde. */
+    if (PROBE_AIR_FINANCE_MARGIN && result.orphanRetained) {
+      local orphanStation = AIStation.GetStationID(airportA);
+      AILog.Info("AIR_ORPHAN_RETAIN date=" + AIDate.GetCurrentDate()
+          + " anchor=" + airportA
+          + " station=" + (AIStation.IsValidStation(orphanStation) ? orphanStation : -1)
+          + " town=" + plan.siteA.town.id
+          + " pair=" + OpexAirPairKey(plan.siteA, plan.siteB)
+          + " reason=" + result.reason
+          + " cost_a=" + (brk.levelA + brk.airportA)
+          + " cost_b=" + (brk.levelB + brk.airportB)
+          + " total=" + result.actualCost
+          + " reuse_a=" + (reuseA ? 1 : 0)
+          + " reuse_b=" + (reuseB ? 1 : 0));
+    }
     return result;
   }
 
   local stationA = AIStation.GetStationID(airportA);
   local stationB = AIStation.GetStationID(airportB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) {
-    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
+    result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "STNFAIL";
@@ -426,7 +503,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   }
   local hangar = AIAirport.GetHangarOfAirport(airportA);
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
-    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
+    result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "HANGAR";
@@ -441,7 +518,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.error = AIError.GetLastError();
     result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
-    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
+    result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "PLANE";
@@ -462,7 +539,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     result.error = !okOrderA ? errorA : errorB;
     result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
-    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, [plane],
+    result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, [plane],
       OpexAirPairKey(plan.siteA, plan.siteB));
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
@@ -494,7 +571,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
         result.errorText = AIError.GetLastErrorString();
         built.append(extra);
         result.opcodes += budget.end("build_aircraft");
-        OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
+        result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
           OpexAirPairKey(plan.siteA, plan.siteB));
         result.actualCost = costs != null ? costs.GetCosts() : 0;
         if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
@@ -513,7 +590,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       result.error = AIError.GetLastError();
       result.errorText = AIError.GetLastErrorString();
       result.opcodes += budget.end("build_aircraft");
-        OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
+        result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
           OpexAirPairKey(plan.siteA, plan.siteB));
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
@@ -530,7 +607,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
       result.error = -1;
       result.errorText = "R19_FAULT_INJECT";
       result.opcodes += budget.end("build_aircraft");
-      OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
+      result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
         OpexAirPairKey(plan.siteA, plan.siteB));
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
