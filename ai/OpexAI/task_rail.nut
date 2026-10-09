@@ -159,6 +159,7 @@ function OpexAI::_maybeSupersedeRailSearchForOriginReuse(candidate, rank)
                + " new_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
                + " rank=" + rank);
   }
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, "SUPERSEDE");
   if (("pathfinder" in state) && state.pathfinder != null) state.pathfinder = null;
   if (("segmented" in state) && state.segmented != null) state.segmented = null;
   this._railSearch = null;
@@ -231,6 +232,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           candidate.railPlan = null;
         }
         if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !(("railPlan" in candidate) && candidate.railPlan != null)) {
+          if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
+          if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
@@ -250,6 +253,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
          * deja depose a son railPlan : on le pose sans nouvel A*, meme si une autre
          * recherche occupe le slot. */
         if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !c121PrepPlan) {
+          if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
+          if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
@@ -286,6 +291,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+        if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "abandoned_pair", 0, 0, 0, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -411,6 +417,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
        * aucun train. OpexExecuteRailPlan refait la meme garde juste avant la premiere depense pour
        * couvrir la course avec une recherche reprenable. */
       if (!OpexRailVehicleSlotAvailable()) {
+        if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "vehicle_limit", 0, 0, 0, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "vehicle_limit", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -445,6 +452,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local willStartSearch = RAIL_SEARCH_RESUMABLE
           && !(("railPlan" in candidate) && candidate.railPlan != null);
       if (lowCash && !willStartSearch) {
+        if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "insufficient_cash", 0, 0, 0, i);
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
@@ -460,6 +468,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       if (RAIL_SEARCH_RESUMABLE &&
           !(("railPlan" in candidate) && candidate.railPlan != null)) {
         if (C80_RAIL_STOCK_GATE) {
+          if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "no_ready_route", 0, 0, 0, i);
           if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
             passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "no_ready_route", extra = "" });
           }
@@ -501,6 +510,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
               OpexC56TaskLog("RAIL_STOCK_REVALIDATE_FAIL", "rail_stock", this._taskCycle, failMsg);
             }
             if (reval.reason == "cash") {
+              if (RAIL_PREASTAR_PROBE && ("railPreastarRid" in entry.plan)) {
+                OpexRailPreAstarLog("BUILD", "rid=" + entry.plan.railPreastarRid
+                    + " reason=CASH ok=0 status=cash");
+              }
               if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
                 passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
                                       reason = "cash_at_revalidate", extra = "" });
@@ -511,6 +524,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
               return { outcome = "rejected", discards = passDiscards };
             }
             delete this._railReadyStock[pairKey];
+            if (RAIL_PREASTAR_PROBE && ("railPreastarRid" in entry.plan)) {
+              OpexRailPreAstarLog("BUILD", "rid=" + entry.plan.railPreastarRid
+                  + " reason=" + reval.reason + " ok=0 status=dropped");
+            }
             if ("railPlan" in candidate) candidate.railPlan = null;
             if (reval.reason == "industry_closed") {
               this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -534,6 +551,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             }
             return { outcome = "rejected", discards = passDiscards };
           }
+          if (RAIL_PREASTAR_PROBE && ("railPreastarRid" in entry.plan))
+            candidate.rawset("railPreastarRid", entry.plan.railPreastarRid);
         }
       }
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
@@ -1200,6 +1219,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     startDate = curDate,
     startTick = curTick,
   };
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "primary", plan.plansA, plan.plansB);
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
                    "src=" + candidate.src + " dst=" + candidate.dst
@@ -1344,6 +1364,7 @@ function OpexAI::_continueRailSearch()
   if (DECISION_LOG) {
     OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);
   }
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, slice.stop);
 
   if (state.kind == "primary") {
     if (C56_TASK_TRACE) {
@@ -1427,6 +1448,8 @@ function OpexAI::_consumeRailSearch(year)
     local need = candidate.capital + OpexCashReserve();
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) {
+      if (RAIL_PREASTAR_PROBE && ("preastarRid" in state))
+        OpexRailPreAstarLog("BUILD", "rid=" + state.preastarRid + " reason=CASH ok=0 status=cash");
       if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
       /* C41.47 : pendant de la garde G3S1 ci-dessus, applique au motif tresorerie -- des le
        * premier blocage constate, liberer _railSearch pour que _expandRailLines et les AUTRES
@@ -1447,6 +1470,8 @@ function OpexAI::_consumeRailSearch(year)
                                OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
   if (result.reason == "CASH") {
+    if (RAIL_PREASTAR_PROBE && ("preastarRid" in state))
+      OpexRailPreAstarLog("BUILD", "rid=" + state.preastarRid + " reason=CASH ok=0 status=cash");
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, candidate.capital, AICompany.GetBankBalance(AICompany.COMPANY_SELF));
     if (C41_RAIL_CASH_RELEASE) {
       this._railSearch = null;
@@ -1510,6 +1535,7 @@ function OpexAI::_consumeRailSearch(year)
  * panneaux OR/OB restent identiques. */
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 {
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarBuild(candidate, result);
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
       (result.ok ? "OK" : (("reason" in result) && result.reason != "" ? result.reason : "UNKNOWN")),
       (result.ok ? 1 : 0), (("actualCost" in result) ? result.actualCost : 0),
@@ -1705,6 +1731,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
     line = line,
     prep = prep,
   };
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "upgrade", prep.dualA, prep.dualB);
   if (C80_WORKER_RAIL) {
     if (this._activeWorker == null || this._activeWorker.kind == "rail_search") {
       this._activeWorker = {
@@ -1735,6 +1762,7 @@ function OpexAI::_consumeRailUpgrade()
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local upgrade = OpexExecuteUpgradeAfterSearch(this._catalog, this._budget, state.line,
                                                 OpexCashReserve(), state.search, state.prep);
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarUpgradeBuild(state, upgrade);
   /* Appliquer au doublement la meme politique de liberation cash que pour
    * une recherche primaire, sinon l'unique slot _railSearch gele tout le rail. */
   if (upgrade.reason == "CASH") {
@@ -1962,6 +1990,9 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     repairReason = repairReason,
     coarseScore = coarseScore
   };
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "stock", plan.plansA, plan.plansB);
+  if (RAIL_PREASTAR_PROBE && ("preastarRid" in this._railSearch))
+    plan.rawset("railPreastarRid", this._railSearch.preastarRid);
 
   this._activeWorker = {
     kind = "rail_stock",
@@ -1999,6 +2030,7 @@ function OpexAI::_handleRailStockSearchTimeout()
     this._v131FailRepair(state, "timeout");
     return;
   }
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, "TIMEOUT");
   local candidate = state.candidate;
   local iters = state.spent;
   local curDate = AIDate.GetCurrentDate();
@@ -2051,6 +2083,7 @@ function OpexAI::_handleRailStockSearchCompleted()
 
   local readyProject = (plan != null && ("ok" in plan) && plan.ok)
       ? OpexProjectFromCandidate(candidate) : null;
+  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStockReady(state, readyProject != null);
   if (readyProject != null) {
     local readyFinanceCapital = OpexProjectFinanceCapital(readyProject);
     local readyProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(readyProject) : readyProject.profitAnnual;
@@ -2123,6 +2156,11 @@ function OpexAI::_checkRailStockExpiry()
 
   foreach (exp in expiredKeys) {
     local expired = this._railReadyStock[exp.key];
+    if (RAIL_PREASTAR_PROBE && expired != null && ("plan" in expired)
+        && expired.plan != null && ("railPreastarRid" in expired.plan)) {
+      OpexRailPreAstarLog("BUILD", "rid=" + expired.plan.railPreastarRid
+          + " reason=EXPIRE ok=0 status=expired");
+    }
     if (expired != null && ("candidate" in expired) && expired.candidate != null
         && ("railPlan" in expired.candidate)) expired.candidate.railPlan = null;
     delete this._railReadyStock[exp.key];

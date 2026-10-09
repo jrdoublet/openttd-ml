@@ -98,6 +98,7 @@ function OpexLoadSettings()
   RAIL_FREIGHT_TRKFAIL_MEMORY = AIController.GetSetting("rail_freight_trkfail_memory") != 0;
   RAIL_CACHED_PROXIMITY_GATE = AIController.GetSetting("rail_cached_proximity_gate");
   RAIL_FAILURE_AUDIT = AIController.GetSetting("rail_failure_audit") != 0;
+  RAIL_PREASTAR_PROBE = AIController.GetSetting("probe_rail_preastar") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
   RAIL_ORIGIN_REUSE = AIController.GetSetting("rail_origin_reuse") != 0;
   RAIL_ORIGIN_EXPOSURE_SHADOW = AIController.GetSetting("rail_origin_exposure_shadow") != 0;

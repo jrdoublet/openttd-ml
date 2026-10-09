@@ -562,6 +562,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("full", alternatives, funded, capitalBudget);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();
   stats.budgetRejected = alternatives.len() - funded.len();

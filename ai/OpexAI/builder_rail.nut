@@ -902,6 +902,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     /* Coupure a 2000 (ou 10000 en reprise). Empiler 3 alternatives a CHAQUE
      * coupure, pas seulement aux obstacles : sinon la pile reste vide et
      * backtracks=0 / local_choices=0 (piege 3, echec initial du prototype). */
+    local openCount = RAIL_PREASTAR_PROBE ? state.pathfinder._pathfinder._open.Count() : 0;
     local frontier = OpexFrontierAlternatives(state.pathfinder, SEGMENTED_FRONTIER_WIDTH * 4);
     state.pathfinder = null;
     local usable = [];
@@ -911,6 +912,8 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       usable.push({ tail = candidateTail });
       if (usable.len() >= SEGMENTED_FRONTIER_WIDTH) break;
     }
+    if (RAIL_PREASTAR_PROBE)
+      OpexRailPreAstarFrontier(state, openCount, frontier.len(), usable.len());
     if (usable.len() == 0) {
       if (OpexTrySegmentedBacktrack(state)) continue;
       return OpexSegmentedResult(state, null, "NOPA", true);

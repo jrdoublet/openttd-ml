@@ -62,7 +62,7 @@ function OpexDecide(kind, fields)
 }
 /* Evenement leger et unique par tentative, ou par passage devant _tooClose.
  * Ne pas passer par OpexDecide : son logging de TASK ajoute d'autres evenements. */
-function OpexRailFailureAudit(stage, candidate, reason, ok, actual, opcodes)
+function OpexRailFailureAudit(stage, candidate, reason, ok, actual, opcodes, rank = -1)
 {
   if (!RAIL_FAILURE_AUDIT) return;
   if (candidate == null) return;
@@ -73,7 +73,77 @@ function OpexRailFailureAudit(stage, candidate, reason, ok, actual, opcodes)
       + AIDate.GetDayOfMonth(date) + " RAIL_AUDIT stage=" + stage
       + " kind=" + (("kind" in candidate) ? candidate.kind : "-")
       + " cargo=" + cargo + " src=" + candidate.src + " dst=" + candidate.dst
-      + " reason=" + reason + " ok=" + ok + " actual=" + actual + " ops=" + opcodes);
+      + " reason=" + reason + " ok=" + ok + " actual=" + actual + " ops=" + opcodes
+      + " rank=" + rank);
+}
+/* Origine du verrou A* : une recherche primaire ou un upgrade peut occuper
+ * le meme slot, meme si des projets voyageurs sont prets et finançables. */
+function OpexRailSearchBlockerAudit(candidate, state, project = null, rank = -1)
+{
+  if (!RAIL_FAILURE_AUDIT || candidate == null || state == null) return;
+  local blockKind = ("kind" in state) ? state.kind : "-";
+  local blockPhase = ("phase" in state) ? state.phase : "-";
+  local age = ("startDate" in state) ? AIDate.GetCurrentDate() - state.startDate : -1;
+  local spent = ("spent" in state) ? state.spent : -1;
+  local budget = ("iterationBudget" in state) ? state.iterationBudget : -1;
+  local blockSrc = ("candidate" in state) && state.candidate != null ? state.candidate.src : -1;
+  local blockDst = ("candidate" in state) && state.candidate != null ? state.candidate.dst : -1;
+  /* Les valeurs ci-dessous existent DEJA dans le projet classe. Pas de devis,
+   * nouveau score, API carte ou appel au selecteur en mode diagnostic. */
+  local score = project != null && ("fundScore" in project) ? project.fundScore : -1;
+  local profit = project != null && ("profitAnnual" in project) ? project.profitAnnual : -1;
+  local financeHint = project != null && ("budgetCapital" in project) ? project.budgetCapital : -1;
+  local isChain = ("isChain" in candidate) && candidate.isChain;
+  local destination = candidate.kind == "pax" ? "town" : (isChain ? "chain" :
+      (("dstTown" in candidate) && candidate.dstTown >= 0 ? "town" : "industry"));
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " RAIL_BLOCKER requested_kind=" + candidate.kind
+      + " requested_src=" + candidate.src + " requested_dst=" + candidate.dst
+      + " blocker=" + blockKind + " phase=" + blockPhase
+      + " src=" + blockSrc + " dst=" + blockDst
+      + " age_days=" + age + " spent=" + spent + " budget=" + budget
+      + " requested_rank=" + rank + " fund_score=" + score
+      + " pred_profit=" + profit + " budget_capital=" + financeHint
+      + " destination=" + destination);
+}
+/* Compte de portefeuille, une ligne PAR sélection (et non par candidat).
+ * La mesure a lieu apres les decisions : pas de recalcul des scores ni de tri. */
+function OpexRailPortfolioAudit(phase, alternatives, funded, capitalBudget, removedPax = 0, removedFreight = 0)
+{
+  if (!RAIL_FAILURE_AUDIT) return;
+  local railPax = 0, railFreight = 0, fundedPax = 0, fundedFreight = 0;
+  local affordablePax = 0, affordableFreight = 0;
+  local fundedAir = 0, fundedFleet = 0;
+  foreach (project in alternatives) {
+    if (project == null || project.mode != "rail") continue;
+    local isPax = project.kind == "pax";
+    if (isPax) railPax++;
+    else if (project.kind == "freight") railFreight++;
+    if (OpexProjectFinanceCapital(project) <= capitalBudget) {
+      if (isPax) affordablePax++;
+      else if (project.kind == "freight") affordableFreight++;
+    }
+  }
+  foreach (project in funded) {
+    if (project == null) continue;
+    if (project.mode == "rail") {
+      if (project.kind == "pax") fundedPax++;
+      else if (project.kind == "freight") fundedFreight++;
+    } else if (project.mode == "air") fundedAir++;
+    else if (project.mode == "fleet") fundedFleet++;
+  }
+  local headMode = funded.len() > 0 ? funded[0].mode : "-";
+  local headKind = funded.len() > 0 ? funded[0].kind : "-";
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+      + AIDate.GetDayOfMonth(date) + " RAIL_POOL_AUDIT phase=" + phase
+      + " pax=" + railPax + " freight=" + railFreight
+      + " affordable_pax=" + affordablePax + " affordable_freight=" + affordableFreight
+      + " selected_pax=" + fundedPax + " selected_freight=" + fundedFreight
+      + " selected_air=" + fundedAir + " selected_fleet=" + fundedFleet
+      + " dropped_pax=" + removedPax + " dropped_freight=" + removedFreight
+      + " head_mode=" + headMode + " head_kind=" + headKind);
 }
 /* B9/G4 : gate dedie au diagnostic catchment. Ne pas reutiliser DECISION_LOG :
  * il instrumente toute l'IA et son cout a deja ete mesure comme perturbant. */

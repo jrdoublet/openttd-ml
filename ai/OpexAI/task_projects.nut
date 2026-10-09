@@ -2007,6 +2007,19 @@ function OpexAI::_tryBuildProjects(year)
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
                                                  anchor, yy);
       passDiscards = attempt.discards;
+      if (RAIL_FAILURE_AUDIT) {
+        local outcomeReason = attempt.outcome;
+        if (attempt.outcome == "rejected" && passDiscards != null && passDiscards.len() > 0) {
+          local lastDiscard = passDiscards[passDiscards.len() - 1];
+          if (lastDiscard != null && lastDiscard.mode == "rail"
+              && lastDiscard.src == project.payload.src
+              && lastDiscard.dst == project.payload.dst) {
+            outcomeReason = lastDiscard.reason;
+          }
+        }
+        OpexRailFailureAudit("dispatch", project.payload, outcomeReason,
+            (attempt.outcome == "built" ? 1 : 0), 0, 0, i);
+      }
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
