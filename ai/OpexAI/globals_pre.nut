@@ -851,6 +851,9 @@ RAIL_FREIGHT_TRKFAIL_MEMORY <- false;
 RAIL_CACHED_PROXIMITY_GATE <- 0;
 /* Sondes de tentatives / refus de proximite ferroviaires, OFF par defaut. */
 RAIL_FAILURE_AUDIT <- false;
+/* Sonde locale d'acces aux quais avant A*, avec issues appariees (defaut 0). */
+RAIL_PREASTAR_PROBE <- false;
+RAIL_PREASTAR_SEQ <- 0;
 /* Si un devis vivant STNFAIL sur le quai exact choisi avant l'A*, recalculer une fois les plans
  * de quai a longueur identique et ne garder qu'un plan exposant le meme [lead, station_exit].
  * Aucun nouvel A* ; defaut 0 pendant qualification. */

@@ -543,6 +543,125 @@ des tentatives, sans requalifier le `fail_primary` de la porte A
 40×5. `rail_cached_proximity_gate=0` et
 `rail_failure_audit=0` restent les défauts. Aucune porte B.
 
+### Pourquoi les lignes voyageurs ne partent pas : sélection vs slot A* (suite du 08/10)
+
+Le dépôt a été fusionné par une autre session sur `878fc56` ; les
+prototypes précédents y sont présents, toujours **OFF par défaut**.
+L'analyse de la baisse des réussites pax en 1975 a été prolongée
+sans nouvelle politique métier : extension de `rail_failure_audit=1`
+aux seuls agrégats `RAIL_POOL_AUDIT` lors de full/incremental/reselect,
+à `RAIL_AUDIT stage=dispatch|early`, et à `RAIL_BLOCKER` pour
+l'identité de l'occupant de `_railSearch`. Toutes ces mesures sont
+conditionnées par la sonde, et le score/tri ne sont pas modifiés.
+Parseur `sweeps/analyse_rail_failure_audit.py`, tests
+`sweeps/test_rail_failure_audit.py` (5 verts), smokes 1×2 sains.
+
+**Premier constat : pas une pénurie de projets pax finançables.**
+Campagne `rail_pool_audit_5x6_20261008_r1`, graines
+42/100/999/1234/5678, **10/10 complètes, 0 événement invalide**,
+bundle `23d38765a9eccb242a5d7c801166abf7c0ecab91dc2f8798ee`.
+Dans les resélections de 1975, le nombre moyen de candidats
+voyageurs et finançables par appel est **31,19 pour la référence**
+(`gate=0`) contre **30,57 pour la variante** (`gate=2`) ;
+le rail pax **retenu** passe de **23,39 à 10,66 projets par
+resélection**. Des candidats pax sont en tête du classement lors de
+**92/315** resélections en référence (29,2 %) et **22/180** dans
+la variante (12,2 %). Ce sont des **sélections répétées**, et le
+nombre d'appels est lui-même modifié par les trajectoires.
+Cela oriente vers l'ordre d'exécution, pas vers une disparition du vivier.
+Analyse : `results/rail_pool_audit_5x6_20261008_r1.analysis.json`.
+
+**Deuxième constat : le projet pax en tête rencontre le créneau occupé.**
+Campagne `rail_dispatch_audit_5x6_20261008_r1`, même périmètre,
+**10/10 complètes, aucun événement invalide** et bundle
+`86911187a25588d917425b79a0dc6701b567bf30d14a5dbbe40cc664100dd8ed`.
+1975 : **4 698** passages pax vers `_tryBuildRailProject`
+en référence, dont **4 688** rejets et 10 `pending`,
+contre **595** passages, 589 rejets et 6 `pending`
+en variante. Les tentatives complétées ne sont que **9 contre 6**.
+Ce sont des retours du **même projet** sur des passes successives ;
+4 688 rejets ne sont pas 4 688 occasions de construction perdues.
+Analyse : `results/rail_dispatch_audit_5x6_20261008_r1.analysis.json`.
+
+**Identification du motif et de l'occupant, graine 999 seulement :**
+
+- `rail_early_reason_seed999_1x6_20261008_r1` : en 1975,
+  **1 847/1 847 rejets pax** de référence et **1 370/1 370**
+  rejets pax de variante sur le chemin diagnostiqué portent
+  `search_in_progress` ; aucun rejet précheck proximité associé
+  dans ces passages.
+- `rail_blocker_seed999_1x6_20261008_r1`, autre rejeu
+  instrumenté complet : la référence a **232 blocages pax**
+  face à une recherche **primaire fret** sur
+  `35675→55122`, `spent` jusqu'à **9 650/10 000**
+  et âge observé jusqu'à **432 jours de jeu**. La variante a
+  **1 452 blocages pax** face à `upgrade/search`,
+  **126** face à `upgrade/build` et **63** face à
+  `primary/search`. Les 126 blocages `upgrade/build`
+  ne surviennent que sur **deux dates** (02/01 et 16/09/1975) ;
+  ce n'est donc **pas** un état build bloqué pendant l'année entière.
+  L'occupation lourde est l'A* de **doublement de voie**, partagé
+  avec les recherches primaires sous `this._railSearch`.
+  Comptes automatisés dans
+  `results/rail_blocker_seed999_1x6_20261008_r1.analysis.json`.
+  Le `policy_caches=1` livré active déjà
+  `C41_RAIL_CASH_RELEASE` : un devis d'upgrade `CASH`
+  relâche le créneau au lieu de le bloquer indéfiniment.
+
+**Attribution et prudence.** Ce mécanisme confirme de manière
+indépendante le V100 de `docs/taches.md` : upgrades difficiles et
+primaires plafonnés saturent l'unique créneau, pendant que les
+candidats pax restent prêts. **Il ne prouve pas que la variante est
+systématiquement moins bonne en nombre de lignes pax :** selon les
+trois rejeux 5×6 avec différentes sondes, les réussites pax
+de 1975 sont respectivement **2→0**, **5→1**, puis **3→4**.
+Les sondes changent les limites d'opcodes et la trajectoire,
+et aucune de ces petites campagnes ne requalifie la porte A
+40×5 `fail_primary`. Les leviers V100 déjà mesurés
+(plafond en jours, mémoire d'échec upgrade) ont échoué économiquement :
+**ne pas recommencer un simple déplacement de priorité du créneau**.
+La prochaine hypothèse doit discriminer *en amont* une recherche
+sans issue d'une recherche profitable, sans éliminer les réussites.
+Le filtre par distance et le seuil de terrain simple V101 ont déjà
+été réfutés pour cette tâche. Tout paramètre expérimental et toute
+sonde restent au défaut 0 ; aucun commit/push lors de ces nouvelles
+mesures.
+
+### Autopsie des recherches A* plafonnées avant leur lancement (08/10)
+
+L'audit a comparé les traces `RAIL_ATTEMPT` à budget réellement atteint,
+les issues de chantier, les refus de créneau et les signaux disponibles
+avant A*. Les **quatre ABND à 10 000 itérations identifiés par OD**
+sur le diagnostic indépendant 3×6 ont des distances Manhattan 56–89 ;
+un seuil à 56 aurait éliminé **22 des 35 OK**, un seuil à 81 **4 OK**
+pour seulement trois des quatre plafonnements. `pred_astar` et le
+terrain droit V101 ne démontrent pas non plus une coupure sûre.
+
+La série `rail_failure_audit_5x6_20261008_r1` conserve 174
+tentatives achevées dans dix parties : 119 `OK`, 21 `ABND`,
+20 `TRKFAIL`, 10 `STNFAIL`, 3 `NOPA`, 1 `SITEB`.
+Les abandons se concentrent parfois vers un même centre de destination,
+mais une interdiction après le premier ABND aurait aussi supprimé
+**trois constructions OK** (référence seed1234, variante seeds999/5678),
+dont une après **deux ABND** vers la destination de seed5678.
+Le garde sur OD exacte ne sauverait que quatre échecs répétés dans
+ce petit échantillon et recouvre `_abandonedPairs`.
+
+Les couples `[lead,station_exit]` des quais réellement proposés,
+la progression de la frontière et les obstacles locaux **ne sont pas
+conservés** dans ces traces ; `src/dst` sont des centres, pas les
+quais. Les 432 jours et 9650/10000 du primaire fret seed999 sont
+une **recherche en cours** au 25/12/1975, pas un ABND achevé.
+`ABND` prouve l'épuisement du budget, pas l'impossibilité de construire.
+
+**Verdict : aucun nouveau prédicteur pré-A* validé, pas de filtre ni
+de sonde supplémentaire et aucune porte économique déclenchée.**
+Une mesure nouvelle devra apparier des accès de quais et des obstacles
+pré-A* à des recherches et résultats uniques, puis démontrer une
+précision élevée sur graines indépendantes avant toute modification.
+La [fiche d'autopsie](rail_astar_prelaunch_20261008.md) conserve les
+OD, dates, contre-exemples, sources et protocole de réouverture.
+
 ## Instrumentation minimale, protocole et limites
 
 - L'analyseur ci-dessus ne change rien au code NoAI.

@@ -341,6 +341,7 @@ function OpexWorkerRailStockCancel(worker)
   local ai = ("ai" in worker.state) ? worker.state.ai : null;
   if (ai != null) {
     if (ai._railSearch != null) {
+      if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(ai._railSearch, "CANCEL");
       if ("pathfinder" in ai._railSearch && ai._railSearch.pathfinder != null) ai._railSearch.pathfinder = null;
       if ("segmented" in ai._railSearch && ai._railSearch.segmented != null) ai._railSearch.segmented = null;
       ai._railSearch = null;

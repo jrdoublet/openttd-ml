@@ -87,6 +87,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   local cacheScanned = 0;
   local cacheRetained = 0;
   local abandonFiltered = 0;
+  local proximityDroppedPax = 0, proximityDroppedFreight = 0;
 
   /* 1. Filtrer les candidats existants du vivier */
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
@@ -115,7 +116,16 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
           abandonFiltered++;
           continue;
         }
-        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) {
+          if (RAIL_FAILURE_AUDIT && RAIL_CACHED_PROXIMITY_GATE == 2 && p.mode == "rail") {
+            local close = OpexRailCachedProximity(p, lines);
+            if (close != null && (close.hard >= 0 || close.blocking >= 0)) {
+              if (p.kind == "pax") proximityDroppedPax++;
+              else if (p.kind == "freight") proximityDroppedFreight++;
+            }
+          }
+          continue;
+        }
         local recycledKey = OpexProjectAttemptKey(p);
         if (!(recycledKey in recycledKeys)) recycledKeys[recycledKey] <- true;
         /* B6/06.11 mesure seulement : marquer les objets qui traversent REELLEMENT
@@ -181,6 +191,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("incremental", alternatives, funded,
+      capitalBudget, proximityDroppedPax, proximityDroppedFreight);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();
   stats.budgetRejected = alternatives.len() - funded.len();

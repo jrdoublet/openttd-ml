@@ -617,6 +617,7 @@ require("lines.nut");
 require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");
+require("rail_preastar_probe.nut");
 require("air_flux_probe.nut");
 require("scheduler.nut");
 require("scheduler_tasks.nut");
