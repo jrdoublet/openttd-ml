@@ -1009,3 +1009,15 @@ V94_AIR_SITE_LIST <- true;
 /* V94 : compare le balayage historique et la liste sur la même entrée.
  * Le balayage historique décide. 0 = désactivé. */
 V94_AIR_SITE_CHECK <- false;
+
+/* V131 : reparation locale d'un trace rail stocke/prepare (A* de contournement,
+ * deplacement de quai, garde doublon). Defaut 0 : comportement et cout nuls. */
+V131_RAIL_REPAIR <- false;
+V131_REPAIR_MAX_TILES <- 35;
+V131_REPAIR_MAX_RUNS <- 3;
+V131_REPAIR_MAX_ITERS <- 2500;
+
+/* V131 : degagement urbain (clearance) de l'A* rail pour eviter les centres-villes
+ * et leurs emprises aeroportuaires futures. Defaut 0 : cout nul. */
+V131_TOWN_CLEARANCE <- false;
+V131_TOWN_CLEAR_BUFFER <- 4;

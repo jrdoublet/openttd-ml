@@ -594,6 +594,15 @@ class OpexAI extends AIController {
   function _handleRailStockSearchCompleted();
   function _checkRailStockExpiry();
   function _revalidateRailStockPlan(candidate, plan);
+  function _v131RepairIsPending(plan);
+  function _v131RepairExhausted(plan);
+  function _v131DropDuplicateOwnRail(candidate, plan);
+  function _v131PlanRepairs(candidate, plan, cause);
+  function _v131TryStartRepair(candidate, plan, cause);
+  function _v131KickRepair(candidate, plan);
+  function _v131FailRepair(state, why);
+  function _v131CommitRepair(state);
+  function _v131OnRepairSliceDone(state, slice);
   function _c121CheapestLivingAirCap();
   function _c121RailPrepAirFundable();
   function _c121RailPrepAirFundableCheap();
