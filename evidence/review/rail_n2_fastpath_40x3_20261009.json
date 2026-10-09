@@ -1,0 +1,941 @@
+{
+  "note": "Comparaison descriptive sur 40 graines entre deux bundles figes : seuls les deltas apparies au sein de chaque bundle sont qualifies selon les regles propres de leur campagne.",
+  "seeds": [
+    1,
+    7,
+    17,
+    42,
+    73,
+    100,
+    314,
+    512,
+    999,
+    1024,
+    1337,
+    2026,
+    4096,
+    8191,
+    12345,
+    54321,
+    59527,
+    65537,
+    123456,
+    230185,
+    232037,
+    292001,
+    313707,
+    375172,
+    423960,
+    424242,
+    442018,
+    455216,
+    515222,
+    613553,
+    701256,
+    706990,
+    723002,
+    746035,
+    781335,
+    802204,
+    841478,
+    983759,
+    999533,
+    8675309
+  ],
+  "pairs": [
+    {
+      "seed": 1,
+      "profit_year": {
+        "old_off": 2707808,
+        "new_off": 2707808,
+        "old_gate": 2890824,
+        "new_gate": 2488812,
+        "old_gate_delta": 183016,
+        "new_gate_delta": -218996,
+        "fastpath_vs_old_gate": -402012
+      },
+      "company_value": {
+        "old_off": 5107622,
+        "new_off": 5107622,
+        "old_gate": 5309243,
+        "new_gate": 4838761,
+        "old_gate_delta": 201621,
+        "new_gate_delta": -268861,
+        "fastpath_vs_old_gate": -470482
+      }
+    },
+    {
+      "seed": 7,
+      "profit_year": {
+        "old_off": 2752201,
+        "new_off": 2752201,
+        "old_gate": 2630232,
+        "new_gate": 2566363,
+        "old_gate_delta": -121969,
+        "new_gate_delta": -185838,
+        "fastpath_vs_old_gate": -63869
+      },
+      "company_value": {
+        "old_off": 5395824,
+        "new_off": 5395824,
+        "old_gate": 5022367,
+        "new_gate": 5035024,
+        "old_gate_delta": -373457,
+        "new_gate_delta": -360800,
+        "fastpath_vs_old_gate": 12657
+      }
+    },
+    {
+      "seed": 17,
+      "profit_year": {
+        "old_off": 1574131,
+        "new_off": 1574131,
+        "old_gate": 1503403,
+        "new_gate": 1610806,
+        "old_gate_delta": -70728,
+        "new_gate_delta": 36675,
+        "fastpath_vs_old_gate": 107403
+      },
+      "company_value": {
+        "old_off": 3093362,
+        "new_off": 3093362,
+        "old_gate": 2951007,
+        "new_gate": 3175483,
+        "old_gate_delta": -142355,
+        "new_gate_delta": 82121,
+        "fastpath_vs_old_gate": 224476
+      }
+    },
+    {
+      "seed": 42,
+      "profit_year": {
+        "old_off": 2069495,
+        "new_off": 2069495,
+        "old_gate": 2082616,
+        "new_gate": 2082616,
+        "old_gate_delta": 13121,
+        "new_gate_delta": 13121,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 4059097,
+        "new_off": 4059097,
+        "old_gate": 4168732,
+        "new_gate": 4168732,
+        "old_gate_delta": 109635,
+        "new_gate_delta": 109635,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 73,
+      "profit_year": {
+        "old_off": 2069585,
+        "new_off": 2069585,
+        "old_gate": 2069585,
+        "new_gate": 2069585,
+        "old_gate_delta": 0,
+        "new_gate_delta": 0,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 3220118,
+        "new_off": 3220118,
+        "old_gate": 3220118,
+        "new_gate": 3220118,
+        "old_gate_delta": 0,
+        "new_gate_delta": 0,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 100,
+      "profit_year": {
+        "old_off": 1250358,
+        "new_off": 1250358,
+        "old_gate": 1240707,
+        "new_gate": 1240707,
+        "old_gate_delta": -9651,
+        "new_gate_delta": -9651,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 2480026,
+        "new_off": 2480026,
+        "old_gate": 2451923,
+        "new_gate": 2451923,
+        "old_gate_delta": -28103,
+        "new_gate_delta": -28103,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 314,
+      "profit_year": {
+        "old_off": 2234593,
+        "new_off": 2234593,
+        "old_gate": 2176000,
+        "new_gate": 2176000,
+        "old_gate_delta": -58593,
+        "new_gate_delta": -58593,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 3676105,
+        "new_off": 3676105,
+        "old_gate": 3575268,
+        "new_gate": 3575268,
+        "old_gate_delta": -100837,
+        "new_gate_delta": -100837,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 512,
+      "profit_year": {
+        "old_off": 821985,
+        "new_off": 821985,
+        "old_gate": 653757,
+        "new_gate": 821980,
+        "old_gate_delta": -168228,
+        "new_gate_delta": -5,
+        "fastpath_vs_old_gate": 168223
+      },
+      "company_value": {
+        "old_off": 1530544,
+        "new_off": 1530544,
+        "old_gate": 1224340,
+        "new_gate": 1530539,
+        "old_gate_delta": -306204,
+        "new_gate_delta": -5,
+        "fastpath_vs_old_gate": 306199
+      }
+    },
+    {
+      "seed": 999,
+      "profit_year": {
+        "old_off": 1770442,
+        "new_off": 1770442,
+        "old_gate": 1786142,
+        "new_gate": 1786142,
+        "old_gate_delta": 15700,
+        "new_gate_delta": 15700,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 3383139,
+        "new_off": 3383139,
+        "old_gate": 3428173,
+        "new_gate": 3428173,
+        "old_gate_delta": 45034,
+        "new_gate_delta": 45034,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 1024,
+      "profit_year": {
+        "old_off": 1378333,
+        "new_off": 1378333,
+        "old_gate": 1306209,
+        "new_gate": 1306209,
+        "old_gate_delta": -72124,
+        "new_gate_delta": -72124,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 2444584,
+        "new_off": 2444584,
+        "old_gate": 2016832,
+        "new_gate": 2016832,
+        "old_gate_delta": -427752,
+        "new_gate_delta": -427752,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 1337,
+      "profit_year": {
+        "old_off": 2666721,
+        "new_off": 2666721,
+        "old_gate": 2507464,
+        "new_gate": 2507464,
+        "old_gate_delta": -159257,
+        "new_gate_delta": -159257,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 5084462,
+        "new_off": 5084462,
+        "old_gate": 5012290,
+        "new_gate": 5012290,
+        "old_gate_delta": -72172,
+        "new_gate_delta": -72172,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 2026,
+      "profit_year": {
+        "old_off": 1952650,
+        "new_off": 1952650,
+        "old_gate": 1916901,
+        "new_gate": 2166091,
+        "old_gate_delta": -35749,
+        "new_gate_delta": 213441,
+        "fastpath_vs_old_gate": 249190
+      },
+      "company_value": {
+        "old_off": 3341132,
+        "new_off": 3341132,
+        "old_gate": 3282529,
+        "new_gate": 3950735,
+        "old_gate_delta": -58603,
+        "new_gate_delta": 609603,
+        "fastpath_vs_old_gate": 668206
+      }
+    },
+    {
+      "seed": 4096,
+      "profit_year": {
+        "old_off": 2542923,
+        "new_off": 2542923,
+        "old_gate": 2385584,
+        "new_gate": 2542923,
+        "old_gate_delta": -157339,
+        "new_gate_delta": 0,
+        "fastpath_vs_old_gate": 157339
+      },
+      "company_value": {
+        "old_off": 4293649,
+        "new_off": 4293649,
+        "old_gate": 4162307,
+        "new_gate": 4293649,
+        "old_gate_delta": -131342,
+        "new_gate_delta": 0,
+        "fastpath_vs_old_gate": 131342
+      }
+    },
+    {
+      "seed": 8191,
+      "profit_year": {
+        "old_off": 2326245,
+        "new_off": 2326245,
+        "old_gate": 2229241,
+        "new_gate": 2498077,
+        "old_gate_delta": -97004,
+        "new_gate_delta": 171832,
+        "fastpath_vs_old_gate": 268836
+      },
+      "company_value": {
+        "old_off": 4302886,
+        "new_off": 4302886,
+        "old_gate": 3986899,
+        "new_gate": 4341665,
+        "old_gate_delta": -315987,
+        "new_gate_delta": 38779,
+        "fastpath_vs_old_gate": 354766
+      }
+    },
+    {
+      "seed": 12345,
+      "profit_year": {
+        "old_off": 1313138,
+        "new_off": 1313138,
+        "old_gate": 1201872,
+        "new_gate": 1195435,
+        "old_gate_delta": -111266,
+        "new_gate_delta": -117703,
+        "fastpath_vs_old_gate": -6437
+      },
+      "company_value": {
+        "old_off": 2081369,
+        "new_off": 2081369,
+        "old_gate": 1857107,
+        "new_gate": 1853093,
+        "old_gate_delta": -224262,
+        "new_gate_delta": -228276,
+        "fastpath_vs_old_gate": -4014
+      }
+    },
+    {
+      "seed": 54321,
+      "profit_year": {
+        "old_off": 2179164,
+        "new_off": 2179164,
+        "old_gate": 2081516,
+        "new_gate": 2327467,
+        "old_gate_delta": -97648,
+        "new_gate_delta": 148303,
+        "fastpath_vs_old_gate": 245951
+      },
+      "company_value": {
+        "old_off": 4238240,
+        "new_off": 4238240,
+        "old_gate": 4146185,
+        "new_gate": 4601827,
+        "old_gate_delta": -92055,
+        "new_gate_delta": 363587,
+        "fastpath_vs_old_gate": 455642
+      }
+    },
+    {
+      "seed": 59527,
+      "profit_year": {
+        "old_off": 1781334,
+        "new_off": 1781334,
+        "old_gate": 1789530,
+        "new_gate": 1849415,
+        "old_gate_delta": 8196,
+        "new_gate_delta": 68081,
+        "fastpath_vs_old_gate": 59885
+      },
+      "company_value": {
+        "old_off": 2799936,
+        "new_off": 2799936,
+        "old_gate": 3060357,
+        "new_gate": 3110581,
+        "old_gate_delta": 260421,
+        "new_gate_delta": 310645,
+        "fastpath_vs_old_gate": 50224
+      }
+    },
+    {
+      "seed": 65537,
+      "profit_year": {
+        "old_off": 1369360,
+        "new_off": 1369360,
+        "old_gate": 1419363,
+        "new_gate": 1439889,
+        "old_gate_delta": 50003,
+        "new_gate_delta": 70529,
+        "fastpath_vs_old_gate": 20526
+      },
+      "company_value": {
+        "old_off": 2084333,
+        "new_off": 2084333,
+        "old_gate": 2210562,
+        "new_gate": 2265464,
+        "old_gate_delta": 126229,
+        "new_gate_delta": 181131,
+        "fastpath_vs_old_gate": 54902
+      }
+    },
+    {
+      "seed": 123456,
+      "profit_year": {
+        "old_off": 1763793,
+        "new_off": 1763793,
+        "old_gate": 1729153,
+        "new_gate": 1729153,
+        "old_gate_delta": -34640,
+        "new_gate_delta": -34640,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 2894305,
+        "new_off": 2894305,
+        "old_gate": 2733722,
+        "new_gate": 2733722,
+        "old_gate_delta": -160583,
+        "new_gate_delta": -160583,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 230185,
+      "profit_year": {
+        "old_off": 1388356,
+        "new_off": 1388356,
+        "old_gate": 1554581,
+        "new_gate": 1548798,
+        "old_gate_delta": 166225,
+        "new_gate_delta": 160442,
+        "fastpath_vs_old_gate": -5783
+      },
+      "company_value": {
+        "old_off": 2107215,
+        "new_off": 2107215,
+        "old_gate": 2520882,
+        "new_gate": 2498039,
+        "old_gate_delta": 413667,
+        "new_gate_delta": 390824,
+        "fastpath_vs_old_gate": -22843
+      }
+    },
+    {
+      "seed": 232037,
+      "profit_year": {
+        "old_off": 1462904,
+        "new_off": 1471566,
+        "old_gate": 1470430,
+        "new_gate": 1477154,
+        "old_gate_delta": 7526,
+        "new_gate_delta": 5588,
+        "fastpath_vs_old_gate": 6724
+      },
+      "company_value": {
+        "old_off": 2278899,
+        "new_off": 2246173,
+        "old_gate": 2286310,
+        "new_gate": 2284674,
+        "old_gate_delta": 7411,
+        "new_gate_delta": 38501,
+        "fastpath_vs_old_gate": -1636
+      }
+    },
+    {
+      "seed": 292001,
+      "profit_year": {
+        "old_off": 2488655,
+        "new_off": 2488655,
+        "old_gate": 2326806,
+        "new_gate": 2329914,
+        "old_gate_delta": -161849,
+        "new_gate_delta": -158741,
+        "fastpath_vs_old_gate": 3108
+      },
+      "company_value": {
+        "old_off": 4706490,
+        "new_off": 4706490,
+        "old_gate": 4390252,
+        "new_gate": 4390672,
+        "old_gate_delta": -316238,
+        "new_gate_delta": -315818,
+        "fastpath_vs_old_gate": 420
+      }
+    },
+    {
+      "seed": 313707,
+      "profit_year": {
+        "old_off": 2083031,
+        "new_off": 2083031,
+        "old_gate": 2313067,
+        "new_gate": 2158989,
+        "old_gate_delta": 230036,
+        "new_gate_delta": 75958,
+        "fastpath_vs_old_gate": -154078
+      },
+      "company_value": {
+        "old_off": 3539012,
+        "new_off": 3539012,
+        "old_gate": 3981273,
+        "new_gate": 3768390,
+        "old_gate_delta": 442261,
+        "new_gate_delta": 229378,
+        "fastpath_vs_old_gate": -212883
+      }
+    },
+    {
+      "seed": 375172,
+      "profit_year": {
+        "old_off": 2258253,
+        "new_off": 2258253,
+        "old_gate": 2050858,
+        "new_gate": 1991849,
+        "old_gate_delta": -207395,
+        "new_gate_delta": -266404,
+        "fastpath_vs_old_gate": -59009
+      },
+      "company_value": {
+        "old_off": 3937618,
+        "new_off": 3937618,
+        "old_gate": 3735585,
+        "new_gate": 3618107,
+        "old_gate_delta": -202033,
+        "new_gate_delta": -319511,
+        "fastpath_vs_old_gate": -117478
+      }
+    },
+    {
+      "seed": 423960,
+      "profit_year": {
+        "old_off": 2949165,
+        "new_off": 2949165,
+        "old_gate": 2838735,
+        "new_gate": 2685820,
+        "old_gate_delta": -110430,
+        "new_gate_delta": -263345,
+        "fastpath_vs_old_gate": -152915
+      },
+      "company_value": {
+        "old_off": 5373352,
+        "new_off": 5373352,
+        "old_gate": 5186771,
+        "new_gate": 4874770,
+        "old_gate_delta": -186581,
+        "new_gate_delta": -498582,
+        "fastpath_vs_old_gate": -312001
+      }
+    },
+    {
+      "seed": 424242,
+      "profit_year": {
+        "old_off": 2384896,
+        "new_off": 2384896,
+        "old_gate": 2118285,
+        "new_gate": 2494282,
+        "old_gate_delta": -266611,
+        "new_gate_delta": 109386,
+        "fastpath_vs_old_gate": 375997
+      },
+      "company_value": {
+        "old_off": 4501477,
+        "new_off": 4501477,
+        "old_gate": 3766259,
+        "new_gate": 4639468,
+        "old_gate_delta": -735218,
+        "new_gate_delta": 137991,
+        "fastpath_vs_old_gate": 873209
+      }
+    },
+    {
+      "seed": 442018,
+      "profit_year": {
+        "old_off": 2212020,
+        "new_off": 2213797,
+        "old_gate": 1708608,
+        "new_gate": 1708608,
+        "old_gate_delta": -503412,
+        "new_gate_delta": -505189,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 3765223,
+        "new_off": 3767000,
+        "old_gate": 2723289,
+        "new_gate": 2723289,
+        "old_gate_delta": -1041934,
+        "new_gate_delta": -1043711,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 455216,
+      "profit_year": {
+        "old_off": 988992,
+        "new_off": 988992,
+        "old_gate": 995596,
+        "new_gate": 987685,
+        "old_gate_delta": 6604,
+        "new_gate_delta": -1307,
+        "fastpath_vs_old_gate": -7911
+      },
+      "company_value": {
+        "old_off": 1924576,
+        "new_off": 1924576,
+        "old_gate": 2025017,
+        "new_gate": 1911510,
+        "old_gate_delta": 100441,
+        "new_gate_delta": -13066,
+        "fastpath_vs_old_gate": -113507
+      }
+    },
+    {
+      "seed": 515222,
+      "profit_year": {
+        "old_off": 2760993,
+        "new_off": 2760993,
+        "old_gate": 2712702,
+        "new_gate": 2626717,
+        "old_gate_delta": -48291,
+        "new_gate_delta": -134276,
+        "fastpath_vs_old_gate": -85985
+      },
+      "company_value": {
+        "old_off": 4823660,
+        "new_off": 4823660,
+        "old_gate": 4741591,
+        "new_gate": 4417586,
+        "old_gate_delta": -82069,
+        "new_gate_delta": -406074,
+        "fastpath_vs_old_gate": -324005
+      }
+    },
+    {
+      "seed": 613553,
+      "profit_year": {
+        "old_off": 1804188,
+        "new_off": 1804188,
+        "old_gate": 2041021,
+        "new_gate": 1625153,
+        "old_gate_delta": 236833,
+        "new_gate_delta": -179035,
+        "fastpath_vs_old_gate": -415868
+      },
+      "company_value": {
+        "old_off": 3067454,
+        "new_off": 3067454,
+        "old_gate": 3547223,
+        "new_gate": 2797535,
+        "old_gate_delta": 479769,
+        "new_gate_delta": -269919,
+        "fastpath_vs_old_gate": -749688
+      }
+    },
+    {
+      "seed": 701256,
+      "profit_year": {
+        "old_off": 2531685,
+        "new_off": 2531685,
+        "old_gate": 2523013,
+        "new_gate": 2523013,
+        "old_gate_delta": -8672,
+        "new_gate_delta": -8672,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 4414606,
+        "new_off": 4414606,
+        "old_gate": 4053148,
+        "new_gate": 4053148,
+        "old_gate_delta": -361458,
+        "new_gate_delta": -361458,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 706990,
+      "profit_year": {
+        "old_off": 1612130,
+        "new_off": 1612130,
+        "old_gate": 1645861,
+        "new_gate": 1688797,
+        "old_gate_delta": 33731,
+        "new_gate_delta": 76667,
+        "fastpath_vs_old_gate": 42936
+      },
+      "company_value": {
+        "old_off": 2549199,
+        "new_off": 2549199,
+        "old_gate": 2913178,
+        "new_gate": 2956446,
+        "old_gate_delta": 363979,
+        "new_gate_delta": 407247,
+        "fastpath_vs_old_gate": 43268
+      }
+    },
+    {
+      "seed": 723002,
+      "profit_year": {
+        "old_off": 2018151,
+        "new_off": 2018151,
+        "old_gate": 1653464,
+        "new_gate": 1868001,
+        "old_gate_delta": -364687,
+        "new_gate_delta": -150150,
+        "fastpath_vs_old_gate": 214537
+      },
+      "company_value": {
+        "old_off": 2994247,
+        "new_off": 2994247,
+        "old_gate": 2602280,
+        "new_gate": 2655185,
+        "old_gate_delta": -391967,
+        "new_gate_delta": -339062,
+        "fastpath_vs_old_gate": 52905
+      }
+    },
+    {
+      "seed": 746035,
+      "profit_year": {
+        "old_off": 2515391,
+        "new_off": 2515437,
+        "old_gate": 2497119,
+        "new_gate": 2689815,
+        "old_gate_delta": -18272,
+        "new_gate_delta": 174378,
+        "fastpath_vs_old_gate": 192696
+      },
+      "company_value": {
+        "old_off": 4789150,
+        "new_off": 4789196,
+        "old_gate": 4474541,
+        "new_gate": 4827949,
+        "old_gate_delta": -314609,
+        "new_gate_delta": 38753,
+        "fastpath_vs_old_gate": 353408
+      }
+    },
+    {
+      "seed": 781335,
+      "profit_year": {
+        "old_off": 2045552,
+        "new_off": 2045552,
+        "old_gate": 1639727,
+        "new_gate": 2057312,
+        "old_gate_delta": -405825,
+        "new_gate_delta": 11760,
+        "fastpath_vs_old_gate": 417585
+      },
+      "company_value": {
+        "old_off": 3245903,
+        "new_off": 3245903,
+        "old_gate": 3151529,
+        "new_gate": 3606719,
+        "old_gate_delta": -94374,
+        "new_gate_delta": 360816,
+        "fastpath_vs_old_gate": 455190
+      }
+    },
+    {
+      "seed": 802204,
+      "profit_year": {
+        "old_off": 2580730,
+        "new_off": 2580730,
+        "old_gate": 2428938,
+        "new_gate": 2428938,
+        "old_gate_delta": -151792,
+        "new_gate_delta": -151792,
+        "fastpath_vs_old_gate": 0
+      },
+      "company_value": {
+        "old_off": 4404035,
+        "new_off": 4404035,
+        "old_gate": 4233575,
+        "new_gate": 4233575,
+        "old_gate_delta": -170460,
+        "new_gate_delta": -170460,
+        "fastpath_vs_old_gate": 0
+      }
+    },
+    {
+      "seed": 841478,
+      "profit_year": {
+        "old_off": 2236224,
+        "new_off": 2236224,
+        "old_gate": 2198108,
+        "new_gate": 2202510,
+        "old_gate_delta": -38116,
+        "new_gate_delta": -33714,
+        "fastpath_vs_old_gate": 4402
+      },
+      "company_value": {
+        "old_off": 4028158,
+        "new_off": 4028158,
+        "old_gate": 3954897,
+        "new_gate": 3939590,
+        "old_gate_delta": -73261,
+        "new_gate_delta": -88568,
+        "fastpath_vs_old_gate": -15307
+      }
+    },
+    {
+      "seed": 983759,
+      "profit_year": {
+        "old_off": 1266925,
+        "new_off": 1266925,
+        "old_gate": 1342740,
+        "new_gate": 1314970,
+        "old_gate_delta": 75815,
+        "new_gate_delta": 48045,
+        "fastpath_vs_old_gate": -27770
+      },
+      "company_value": {
+        "old_off": 2356683,
+        "new_off": 2356683,
+        "old_gate": 2167160,
+        "new_gate": 2200077,
+        "old_gate_delta": -189523,
+        "new_gate_delta": -156606,
+        "fastpath_vs_old_gate": 32917
+      }
+    },
+    {
+      "seed": 999533,
+      "profit_year": {
+        "old_off": 2138881,
+        "new_off": 2138881,
+        "old_gate": 2059580,
+        "new_gate": 2056874,
+        "old_gate_delta": -79301,
+        "new_gate_delta": -82007,
+        "fastpath_vs_old_gate": -2706
+      },
+      "company_value": {
+        "old_off": 3793587,
+        "new_off": 3793587,
+        "old_gate": 3664136,
+        "new_gate": 3661430,
+        "old_gate_delta": -129451,
+        "new_gate_delta": -132157,
+        "fastpath_vs_old_gate": -2706
+      }
+    },
+    {
+      "seed": 8675309,
+      "profit_year": {
+        "old_off": 1417039,
+        "new_off": 1417039,
+        "old_gate": 1545945,
+        "new_gate": 1618263,
+        "old_gate_delta": 128906,
+        "new_gate_delta": 201224,
+        "fastpath_vs_old_gate": 72318
+      },
+      "company_value": {
+        "old_off": 2421057,
+        "new_off": 2421057,
+        "old_gate": 2640345,
+        "new_gate": 2664869,
+        "old_gate_delta": 219288,
+        "new_gate_delta": 243812,
+        "fastpath_vs_old_gate": 24524
+      }
+    }
+  ],
+  "strict_reference_parity": false,
+  "reference_mismatch_seeds": [
+    232037,
+    442018,
+    746035
+  ],
+  "statistics": {
+    "profit_year": {
+      "old_gate_delta": {
+        "mean": -60078.425,
+        "median": -43203.5,
+        "wins": 13,
+        "losses": 26,
+        "ties": 1
+      },
+      "new_gate_delta": {
+        "mean": -29757.725,
+        "median": -656.0,
+        "wins": 17,
+        "losses": 21,
+        "ties": 2
+      },
+      "fastpath_vs_old_gate": {
+        "mean": 30582.825,
+        "median": 0.0,
+        "wins": 17,
+        "losses": 12,
+        "ties": 11
+      }
+    },
+    "company_value": {
+      "old_gate_delta": {
+        "mean": -98828.3,
+        "median": -97605.5,
+        "wins": 12,
+        "losses": 27,
+        "ties": 1
+      },
+      "new_gate_delta": {
+        "mean": -54363.1,
+        "median": -20584.5,
+        "wins": 16,
+        "losses": 22,
+        "ties": 2
+      },
+      "fastpath_vs_old_gate": {
+        "mean": 43692.625,
+        "median": 0.0,
+        "wins": 17,
+        "losses": 12,
+        "ties": 11
+      }
+    }
+  }
+}
