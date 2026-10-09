@@ -86,9 +86,11 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       || typeof task.c78AirRebuild != "table") return true;
   local s = task.c78AirRebuild;
 
-  /* Publier le premier lot rentable au passage SUIVANT. Le scan qui l'a
-   * produit a ainsi deja rendu la main sur son budget ; le rebuild ne peut pas
-   * transformer une tranche bornee en passe monolithique. advanceStage=false
+  /* Publier le premier lot puis republier chaque tranche productive au passage
+   * SUIVANT (garde s.plans.len() > s.lastPublishedCount). Le scan qui l'a
+   * produit a ainsi deja rendu la main sur son budget ; la publication (rebuild
+   * complet initial, puis incrementale sous AIR0310_INCREMENTAL_PUBLISH) ne peut
+   * pas transformer une tranche bornee en passe monolithique. advanceStage=false
    * garde le bootstrap sur sa meme etape jusqu'au lot exact. */
   if (("partialPending" in s) && s.partialPending) {
     local partialAir = {

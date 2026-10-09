@@ -1840,6 +1840,22 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v131_rail_repair",
+      description = "V131: local repair of a stocked rail plan blocked on obstacle/station (extended anchors, bypass A* with adaptive budget, platform shift, duplicate-own-rail drop). 0 = off (default), no decision change. Not qualified",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v131_town_clearance",
+      description = "V131: rail A* town clearance avoiding tiles near town centers to protect routes from urban and airport expansion. 0 = off (default), no decision change. Not qualified",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v94_air_site_list",
       description = "V94: native AITileList prefilter for OpexAirFindSite (same anchor and probes): 1 = enabled (default), 0 = legacy scan",
       easy_value = 1, medium_value = 1, hard_value = 1,

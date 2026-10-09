@@ -655,6 +655,8 @@ function OpexLoadSettings()
   RAIL_FINANCE_BIAS_PCT = (railBias != null && railBias >= 90 && railBias <= 200) ? railBias : 100;
   V94_AIR_SITE_LIST = AIController.GetSetting("v94_air_site_list") != 0;
   V94_AIR_SITE_CHECK = AIController.GetSetting("v94_air_site_check") != 0;
+  V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
+  V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

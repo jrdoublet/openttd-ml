@@ -265,6 +265,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         local prepOps = OpexOpsMeasureEnd(prepMark);
         local prepTicks = AIController.GetTick() - prepMark.tick;
         if (!reval.ok) {
+          if (V131_RAIL_REPAIR && (reval.reason == "v131_repair_pending" || reval.reason == "slot_busy")) {
+            return { outcome = "rejected", discards = passDiscards };
+          }
           if (reval.reason == "cash" || reval.reason == "no_vehicle_slot") {
             if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
               passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
@@ -515,6 +518,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                 passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
                                       reason = "cash_at_revalidate", extra = "" });
               }
+              return { outcome = "rejected", discards = passDiscards };
+            }
+            if (V131_RAIL_REPAIR && (reval.reason == "v131_repair_pending" || reval.reason == "slot_busy")) {
               return { outcome = "rejected", discards = passDiscards };
             }
             delete this._railReadyStock[pairKey];
@@ -1168,17 +1174,18 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   OpexRailTerrainProbe(candidate.src, candidate.dst);
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
+  local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
   local pathfinder = null;
   local segmented = null;
   if (RAIL_SEGMENTED_SEARCH) {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, null);
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles);
     if (segmented == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       plan.reason = "NOPA";
       return { pending = false, plan = plan };
     }
   } else {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, null);
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       plan.reason = "NOPA";
@@ -1205,6 +1212,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS,
     plan = plan,
     candidate = candidate,
+    clearanceTiles = clearanceTiles,
     alternativeRatio = alternativeRatio,
     hardCap = hardCap,
     posPacked = posPacked,
@@ -1291,6 +1299,9 @@ function OpexAI::_continueRailSearch()
     state.plan.iterations = state.spent;
     /* V129 : opcodes de la seule phase de recherche A*, pour la ligne RAIL_ATTEMPT (journal seulement). */
     if (DECISION_LOG && state.candidate != null) OpexAddRailSearchOps(state.candidate, searchSliceOps);
+  } else if (V131_RAIL_REPAIR && state.kind == "v131_repair") {
+    local repairSliceOps = this._budget.end("build_search");
+    state.repairOps += repairSliceOps;
   } else {
     this._budget.end("build_search");
   }
@@ -1299,6 +1310,11 @@ function OpexAI::_continueRailSearch()
                    "slice_iters=" + sliceIters + " spent=" + state.spent
                    + " budget=" + state.iterationBudget + " done=" + (slice.done ? 1 : 0)
                    + " stop=" + slice.stop);
+  }
+  if (V131_RAIL_REPAIR && state.kind == "v131_repair") {
+    if (!slice.done) return;
+    this._v131OnRepairSliceDone(state, slice);
+    return;
   }
   if (!slice.done) {
     /* C41.48 : sonde passive a chaque frontiere de tranche (slice.stop == "CONT" ici, la SEULE
@@ -1388,6 +1404,9 @@ function OpexAI::_continueRailSearch()
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
     state.phase = "build";
+    if (DECISION_LOG && V131_TOWN_CLEARANCE && ("clearanceTiles" in state) && state.clearanceTiles != null) {
+      OpexV131LogClearance(state.candidate, plan, state.clearanceTiles);
+    }
     return;
   }
   if (state.kind == "upgrade") {
@@ -1919,10 +1938,11 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     return false;
   }
 
+  local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
   local pathfinder = null;
   local segmented = null;
   if (RAIL_SEGMENTED_SEARCH) {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, null);
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles);
     if (segmented == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -1934,7 +1954,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
       return false;
     }
   } else {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, null);
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles);
     if (pathfinder == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -1959,6 +1979,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS,
     plan = plan,
     candidate = candidate,
+    clearanceTiles = clearanceTiles,
     alternativeRatio = alternativeRatio,
     hardCap = hardCap,
     posPacked = posPacked,
@@ -2005,6 +2026,10 @@ function OpexAI::_handleRailStockSearchTimeout()
 {
   if (this._railSearch == null) return;
   local state = this._railSearch;
+  if (V131_RAIL_REPAIR && ("kind" in state) && state.kind == "v131_repair") {
+    this._v131FailRepair(state, "timeout");
+    return;
+  }
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, "TIMEOUT");
   local candidate = state.candidate;
   local iters = state.spent;
@@ -2040,6 +2065,9 @@ function OpexAI::_handleRailStockSearchCompleted()
 {
   if (this._railSearch == null) return;
   local state = this._railSearch;
+  if (V131_RAIL_REPAIR && ("kind" in state) && state.kind == "v131_repair") {
+    return;
+  }
   local prepSearch = C121_AIR_FIRST_YEAR_RAIL_PREP
       && ("isC121RailPrep" in state) && state.isC121RailPrep;
   local candidate = state.candidate;
@@ -2147,6 +2175,1007 @@ function OpexAI::_checkRailStockExpiry()
   }
 }
 
+/* ============================================================================
+ * V131 : reparation locale d'un trace rail stocke (C121 / C80)
+ * ============================================================================ */
+
+function OpexV131RepairLog(candidate, action, runs, tiles, iters, ops, extra)
+{
+  if (!DECISION_LOG) return;
+  local src = -1;
+  local dst = -1;
+  if (candidate != null && ("src" in candidate)) src = candidate.src;
+  if (candidate != null && ("dst" in candidate)) dst = candidate.dst;
+  local fields = "action=" + action
+      + " runs=" + runs + " tiles=" + tiles
+      + " iters=" + iters + " ops=" + ops
+      + " src=" + src + " dst=" + dst;
+  if (extra != null && extra != "") fields = fields + " " + extra;
+  OpexDecide("V131_REPAIR", fields);
+}
+
+function OpexV131PlanResult(ok, reason, runCount, blockedTiles, runs, shiftA, shiftB)
+{
+  return {
+    ok = ok,
+    reason = reason,
+    runCount = runCount,
+    blockedTiles = blockedTiles,
+    runs = runs,
+    shiftA = shiftA,
+    shiftB = shiftB
+  };
+}
+
+/* Meme predicat que OpexTestRailTrack. L'appelant tient deja AITestMode. */
+function OpexV131SegmentBuilds(prev, cur, next, structures)
+{
+  if (prev == next) return true;
+  if (AIMap.DistanceManhattan(prev, cur) > 1) return true;
+  if (AIMap.DistanceManhattan(cur, next) > 1) {
+    local plannedKind = OpexPlannedStructureKind(structures, cur, next);
+    if (plannedKind == "tunnel" ||
+        (plannedKind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
+      return AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
+    }
+    local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
+    bridges.Valuate(AIBridge.GetMaxSpeed);
+    bridges.Sort(AIList.SORT_BY_VALUE, false);
+    return !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
+  }
+  return AIRail.BuildRail(prev, cur, next);
+}
+
+function OpexV131ScanBlocked(tiles, structures)
+{
+  local n = tiles.len();
+  local blocked = array(n, 0);
+  {
+    local testMode = AITestMode();
+    local i = 1;
+    while (i < n - 1) {
+      if (!OpexV131SegmentBuilds(tiles[i - 1], tiles[i], tiles[i + 1], structures)) {
+        blocked[i] = 1;
+      }
+      i++;
+    }
+  }
+  /* Ouvrage coupe : les deux tetes partent ensemble, avant l'entree. */
+  local seed = array(n, 0);
+  local j = 0;
+  while (j < n) {
+    seed[j] = blocked[j];
+    j++;
+  }
+  j = 0;
+  while (j < n - 1) {
+    if (AIMap.DistanceManhattan(tiles[j], tiles[j + 1]) > 1) {
+      if (seed[j] == 1 || seed[j + 1] == 1) {
+        blocked[j] = 1;
+        blocked[j + 1] = 1;
+      }
+    }
+    j++;
+  }
+  return blocked;
+}
+
+function OpexV131CountBlocked(blocked)
+{
+  local n = 0;
+  foreach (flag in blocked) {
+    if (flag != 0) n++;
+  }
+  return n;
+}
+
+function OpexV131RawRuns(blocked)
+{
+  local runs = [];
+  local i = 0;
+  local n = blocked.len();
+  while (i < n) {
+    if (blocked[i] == 0) {
+      i++;
+      continue;
+    }
+    local start = i;
+    while (i < n && blocked[i] == 1) i++;
+    runs.push({ start = start, end = i - 1 });
+  }
+  return runs;
+}
+
+/* Fusionne les segments d'obstacle separes de <= 6 tuiles (ex. aeroport 10-15 tuiles). */
+function OpexV131MergedRuns(rawRuns)
+{
+  if (rawRuns.len() <= 1) return rawRuns;
+  local merged = [];
+  local cur = { start = rawRuns[0].start, end = rawRuns[0].end };
+  for (local i = 1; i < rawRuns.len(); i++) {
+    local nextRun = rawRuns[i];
+    if (nextRun.start - cur.end - 1 <= 6) {
+      cur.end = nextRun.end;
+    } else {
+      merged.push(cur);
+      cur = { start = nextRun.start, end = nextRun.end };
+    }
+  }
+  merged.push(cur);
+  return merged;
+}
+
+function OpexV131OnPlatform(st, tile)
+{
+  if (st == null) return false;
+  if (OpexRailPlanContainsTile(st, tile)) return true;
+  if (("lead" in st) && st.lead == tile) return true;
+  if (("station_exit" in st) && st.station_exit == tile) return true;
+  return false;
+}
+
+function OpexV131PlatformCargoOk(p, candidate, catalog, wantProduction)
+{
+  if (p == null || candidate == null) return false;
+  if (!("anchor" in p) || !("step" in p) || !("length" in p)) return false;
+  if (!("cargo" in candidate)) return false;
+  local coverage = 4;
+  if (catalog != null && ("railCoverage" in catalog) && catalog.railCoverage > 0) {
+    coverage = catalog.railCoverage;
+  }
+  local value = OpexRailPlatformCargoValue(p.anchor, p.step, p.length,
+      candidate.cargo, coverage, wantProduction);
+  if (wantProduction) return value > 0;
+  return value >= 8;
+}
+
+function OpexV131PlatformsOverlap(left, right)
+{
+  if (left == null || right == null) return false;
+  local seen = {};
+  if (("anchor" in left) && ("step" in left) && ("length" in left)) {
+    for (local i = 0; i < left.length; i++) seen[left.anchor + left.step * i] <- true;
+  }
+  if ("lead" in left) seen[left.lead] <- true;
+  if ("station_exit" in left) seen[left.station_exit] <- true;
+
+  if (("anchor" in right) && ("step" in right) && ("length" in right)) {
+    for (local i = 0; i < right.length; i++) {
+      if ((right.anchor + right.step * i) in seen) return true;
+    }
+  }
+  if (("lead" in right) && (right.lead in seen)) return true;
+  if (("station_exit" in right) && (right.station_exit in seen)) return true;
+  return false;
+}
+
+function OpexV131ConsiderShift(best, p, oldPlan, otherPlan, candidate, catalog, wantProduction)
+{
+  if (p == null || oldPlan == null) return best;
+  if (!OpexV131PlatformCargoOk(p, candidate, catalog, wantProduction)) return best;
+  if (otherPlan != null && OpexV131PlatformsOverlap(p, otherPlan)) return best;
+  local dist = AIMap.DistanceManhattan(p.anchor, oldPlan.anchor);
+  if (best == null || dist < best.dist) {
+    return { plan = p, dist = dist };
+  }
+  return best;
+}
+
+function OpexV131SidewaysShift(oldPlan, otherPlan, candidate, catalog, wantProduction, stationId)
+{
+  local length = oldPlan.length;
+  local sideways = oldPlan.direction == AIRail.RAILTRACK_NE_SW
+      ? AIMap.GetTileIndex(0, 1) : AIMap.GetTileIndex(1, 0);
+  local best = null;
+  for (local dist = 1; dist <= JOIN_PARALLEL_MAX_SIDE; dist++) {
+    for (local flip = -1; flip <= 1; flip += 2) {
+      local anchor = oldPlan.anchor + sideways * (dist * flip);
+      for (local farExit = 0; farExit <= 1; farExit++) {
+        local stationExit = farExit != 0 ? anchor + oldPlan.step * (length - 1) : anchor;
+        local lead = farExit != 0 ? stationExit + oldPlan.step : stationExit - oldPlan.step;
+        local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead)
+            && AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
+        for (local k = 0; k < length && usable; k++) {
+          local tile = anchor + oldPlan.step * k;
+          usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile)
+              && AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
+        }
+        if (!usable) continue;
+        local joins = false;
+        {
+          local mode = AITestMode();
+          joins = AIRail.BuildRailStation(anchor, oldPlan.direction, 1, length, stationId);
+        }
+        if (!joins) continue;
+        local shifted = {
+          anchor = anchor, station_exit = stationExit, lead = lead,
+          direction = oldPlan.direction, step = oldPlan.step, length = length
+        };
+        if (stationId >= 0 && stationId != AIStation.STATION_NEW) shifted.stationId <- stationId;
+        best = OpexV131ConsiderShift(best, shifted, oldPlan, otherPlan, candidate, catalog, wantProduction);
+      }
+    }
+  }
+  return best;
+}
+
+function OpexV131PickFresh(plans, oldPlan, otherPlan, candidate, catalog, wantProduction)
+{
+  if (plans == null || oldPlan == null) return null;
+  local best = null;
+  local count = 0;
+  foreach (p in plans) {
+    if (p == null) continue;
+    if (p.length != oldPlan.length) continue;
+    local dist = AIMap.DistanceManhattan(p.anchor, oldPlan.anchor);
+    if (dist > 16) continue;
+    best = OpexV131ConsiderShift(best, p, oldPlan, otherPlan, candidate, catalog, wantProduction);
+    count++;
+    if (count >= 12 && best != null) break;
+  }
+  if (best == null) return null;
+  return best.plan;
+}
+
+function OpexV131FindShift(oldPlan, otherPlan, candidate, catalog, wantProduction)
+{
+  if (oldPlan == null || candidate == null) return null;
+  local stationId = AIStation.STATION_NEW;
+  if (("stationId" in oldPlan) && oldPlan.stationId >= 0) stationId = oldPlan.stationId;
+  local best = null;
+  local joined = null;
+  if (stationId >= 0 && stationId != AIStation.STATION_NEW) {
+    joined = OpexJoinPlatformPlans(oldPlan, stationId, null);
+    foreach (p in joined) {
+      if ("stationId" in p) p.stationId = stationId;
+      else p.stationId <- stationId;
+      best = OpexV131ConsiderShift(best, p, oldPlan, otherPlan, candidate, catalog, wantProduction);
+    }
+  }
+  if (best == null && (joined == null || joined.len() == 0)) {
+    best = OpexV131SidewaysShift(oldPlan, otherPlan, candidate, catalog, wantProduction, stationId);
+  }
+  if (best == null) return null;
+  return best.plan;
+}
+
+/* Direction perp: si dx != 0, perps sont le long de Y [0, 1] et [0, -1].
+ * Si dy != 0, perps sont le long de X [1, 0] et [-1, 0]. */
+function OpexV131PerpOffsets(fromTile, toTile)
+{
+  local dx = AIMap.GetTileX(toTile) - AIMap.GetTileX(fromTile);
+  if (dx != 0) {
+    return [ AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1) ];
+  }
+  return [ AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0) ];
+}
+
+/* Verifie qu'une tuile d'ancre source est plate et autorise physiquement
+ * au moins un branchement en virage depuis srcPrev sous AITestMode. */
+function OpexV131CanBranchOut(srcPrev, srcValid)
+{
+  if (!AIMap.IsValidTile(srcValid) || !AITile.IsBuildable(srcValid)) return false;
+  if (AITile.GetSlope(srcValid) != AITile.SLOPE_FLAT) return false;
+  local perps = OpexV131PerpOffsets(srcPrev, srcValid);
+  local testMode = AITestMode();
+  foreach (offset in perps) {
+    local cand = srcValid + offset;
+    if (AIMap.IsValidTile(cand) && AITile.IsBuildable(cand)) {
+      if (AIRail.BuildRail(srcPrev, srcValid, cand)) return true;
+    }
+  }
+  return false;
+}
+
+/* Verifie qu'une tuile d'ancre but est plate et autorise physiquement
+ * la reception d'un virage depuis un voisin lateral vers goalNext sous AITestMode. */
+function OpexV131CanBranchIn(goalValid, goalNext)
+{
+  if (!AIMap.IsValidTile(goalValid) || !AITile.IsBuildable(goalValid)) return false;
+  if (AITile.GetSlope(goalValid) != AITile.SLOPE_FLAT) return false;
+  local perps = OpexV131PerpOffsets(goalValid, goalNext);
+  local testMode = AITestMode();
+  foreach (offset in perps) {
+    local cand = goalValid + offset;
+    if (AIMap.IsValidTile(cand) && AITile.IsBuildable(cand)) {
+      if (AIRail.BuildRail(cand, goalValid, goalNext)) return true;
+    }
+  }
+  return false;
+}
+
+function OpexV131PlanAnchorRun(tiles, run, planA, planB, shiftA, shiftB)
+{
+  local n = tiles.len();
+  local start = run.start;
+  local end = run.end;
+
+  local srcPrev = -1;
+  local srcValid = -1;
+  local validIndex = -1;
+
+  if (shiftA != null) {
+    srcPrev = shiftA.station_exit;
+    srcValid = shiftA.lead;
+    validIndex = -1;
+  } else if (start <= 3) {
+    srcPrev = planA.station_exit;
+    srcValid = planA.lead;
+    validIndex = -1;
+  } else {
+    /* Chercher en amont de l'obstacle en gardant une marge (start - 2)
+     * pour eviter l'emprise physique immediate et garantir un virage sain. */
+    local idx = start - 2;
+    while (idx >= 2) {
+      if (AIMap.DistanceManhattan(tiles[idx - 1], tiles[idx]) == 1
+          && tiles[idx - 1] != tiles[idx]
+          && !OpexV131OnPlatform(planA, tiles[idx])
+          && OpexV131CanBranchOut(tiles[idx - 1], tiles[idx])) {
+        srcPrev = tiles[idx - 1];
+        srcValid = tiles[idx];
+        validIndex = idx;
+        break;
+      }
+      idx--;
+    }
+    if (validIndex < 0) {
+      srcPrev = planA.station_exit;
+      srcValid = planA.lead;
+      validIndex = -1;
+    }
+  }
+
+  local goalValid = -1;
+  local goalNext = -1;
+  local resumeIndex = -1;
+
+  if (shiftB != null) {
+    goalValid = shiftB.lead;
+    goalNext = shiftB.station_exit;
+    resumeIndex = -1;
+  } else if (end >= n - 4) {
+    goalValid = planB.lead;
+    goalNext = planB.station_exit;
+    resumeIndex = -1;
+  } else {
+    /* Chercher en aval de l'obstacle en gardant une marge (end + 2). */
+    local idx = end + 2;
+    while (idx <= n - 3) {
+      if (AIMap.DistanceManhattan(tiles[idx], tiles[idx + 1]) == 1
+          && tiles[idx] != tiles[idx + 1]
+          && !OpexV131OnPlatform(planB, tiles[idx])
+          && OpexV131CanBranchIn(tiles[idx], tiles[idx + 1])) {
+        goalValid = tiles[idx];
+        goalNext = tiles[idx + 1];
+        resumeIndex = idx;
+        break;
+      }
+      idx++;
+    }
+    if (resumeIndex < 0) {
+      goalValid = planB.lead;
+      goalNext = planB.station_exit;
+      resumeIndex = -1;
+    }
+  }
+
+  if (srcPrev == srcValid || goalValid == goalNext || srcValid == goalValid) return null;
+  if (AIMap.DistanceManhattan(srcPrev, srcValid) != 1) return null;
+  if (AIMap.DistanceManhattan(goalValid, goalNext) != 1) return null;
+
+  local mode = "span";
+  if (validIndex == -1 && resumeIndex == -1) {
+    mode = "full";
+  } else if (validIndex == -1) {
+    mode = "prefix";
+  } else if (resumeIndex == -1) {
+    mode = "suffix";
+  } else {
+    if (validIndex >= resumeIndex) return null;
+    mode = "span";
+  }
+
+  return {
+    mode = mode,
+    srcPrev = srcPrev,
+    srcValid = srcValid,
+    goalValid = goalValid,
+    goalNext = goalNext,
+    validIndex = validIndex,
+    resumeIndex = resumeIndex,
+    blockedStart = start,
+    blockedEnd = end,
+    shift = (shiftA != null ? shiftA : shiftB)
+  };
+}
+
+function OpexV131IgnoreForRun(workTiles, run, planA, planB, shiftA, shiftB, clearanceTiles = null)
+{
+  local seen = {};
+  local ignored = [];
+  local except = {};
+  except[run.srcPrev] <- true;
+  except[run.srcValid] <- true;
+  except[run.goalValid] <- true;
+  except[run.goalNext] <- true;
+  if (planB != null) {
+    if ("lead" in planB) except[planB.lead] <- true;
+    if ("station_exit" in planB) except[planB.station_exit] <- true;
+  }
+
+  local stPlans = [planA, planB, shiftA, shiftB, run.shift];
+  foreach (st in stPlans) {
+    if (st == null) continue;
+    if (("anchor" in st) && ("step" in st) && ("length" in st)) {
+      for (local i = 0; i < st.length; i++) {
+        local t = st.anchor + st.step * i;
+        if (!(t in seen) && !(t in except)) {
+          seen[t] <- true;
+          ignored.push(t);
+        }
+      }
+    }
+  }
+
+  /* Seules les tuiles REELLEMENT BLOQUEES de l'obstacle sont marquees a eviter,
+   * sans interdire les tuiles saines du couloir situees hors de la coupure. */
+  if (workTiles != null) {
+    local bStart = ("blockedStart" in run) ? run.blockedStart : ((run.validIndex >= 0) ? run.validIndex + 1 : 1);
+    local bEnd = ("blockedEnd" in run) ? run.blockedEnd : ((run.resumeIndex >= 0) ? run.resumeIndex - 1 : workTiles.len() - 2);
+    if (bStart <= bEnd && bEnd < workTiles.len()) {
+      for (local k = bStart; k <= bEnd; k++) {
+        local t = workTiles[k];
+        if (!(t in seen) && !(t in except)) {
+          seen[t] <- true;
+          ignored.push(t);
+        }
+      }
+    }
+  }
+
+  /* Degagement periurbain si actif */
+  if (clearanceTiles != null && clearanceTiles.len() > 0) {
+    foreach (t in clearanceTiles) {
+      if (!(t in seen) && !(t in except)) {
+        seen[t] <- true;
+        ignored.push(t);
+      }
+    }
+  }
+
+  return ignored;
+}
+
+function OpexV131MakeFinder(run, ignored, planB = null)
+{
+  if (run == null) return null;
+  local srcPrev = run.srcPrev;
+  local srcValid = run.srcValid;
+  local goalValid = run.goalValid;
+  local goalNext = run.goalNext;
+  if (srcPrev == srcValid || goalValid == goalNext || srcValid == goalValid) return null;
+  if (AIMap.DistanceManhattan(srcPrev, srcValid) != 1) return null;
+  if (AIMap.DistanceManhattan(goalValid, goalNext) != 1) return null;
+
+  local goals = [{ lead = goalValid, station_exit = goalNext }];
+  if (run.resumeIndex >= 0 && planB != null && ("lead" in planB) && ("station_exit" in planB)) {
+    if (planB.lead != goalValid) {
+      goals.push({ lead = planB.lead, station_exit = planB.station_exit });
+    }
+  }
+
+  return OpexCreateRailPathfinder(
+      [{ lead = srcValid, station_exit = srcPrev }],
+      goals,
+      ignored);
+}
+
+function OpexV131DetectSpliceMode(run, planB, found)
+{
+  if (run == null || found == null || found.len() < 4) return null;
+  local last = found.len() - 1;
+  if (found[0] != run.srcPrev || found[1] != run.srcValid) return null;
+
+  /* Raccordement direct sur l'ancre goalValid */
+  if (found[last - 1] == run.goalValid && found[last] == run.goalNext) {
+    if (run.validIndex < 0 && run.resumeIndex < 0) return "full";
+    if (run.validIndex < 0) return "prefix";
+    if (run.resumeIndex < 0) return "suffix";
+    return "span";
+  }
+
+  /* Raccordement de repli direct sur la gare B */
+  if (planB != null && ("lead" in planB) && ("station_exit" in planB)
+      && found[last - 1] == planB.lead && found[last] == planB.station_exit) {
+    if (run.validIndex < 0) return "full";
+    return "suffix";
+  }
+
+  return null;
+}
+
+function OpexV131PathAnchors(found, srcPrev, srcValid, goalValid, goalNext)
+{
+  if (found == null || found.len() < 4) return false;
+  local last = found.len() - 1;
+  if (found[0] != srcPrev) return false;
+  if (found[1] != srcValid) return false;
+  if (found[last - 1] != goalValid) return false;
+  if (found[last] != goalNext) return false;
+  return true;
+}
+
+function OpexV131SplicePrefix(tiles, resumeIndex, found)
+{
+  local n = found.len();
+  if (n < 4) return null;
+  if (resumeIndex < 0 || resumeIndex + 1 >= tiles.len()) return null;
+  local out = [];
+  local i = 0;
+  while (i <= n - 2) {
+    out.push(found[i]);
+    i++;
+  }
+  i = resumeIndex + 1;
+  while (i < tiles.len()) {
+    out.push(tiles[i]);
+    i++;
+  }
+  if (out.len() < 4) return null;
+  return out;
+}
+
+function OpexV131SpliceSuffix(tiles, validIndex, found)
+{
+  local n = found.len();
+  if (n < 4) return null;
+  if (validIndex < 1 || validIndex >= tiles.len()) return null;
+  local out = [];
+  local i = 0;
+  while (i <= validIndex) {
+    out.push(tiles[i]);
+    i++;
+  }
+  i = 2;
+  while (i < n) {
+    out.push(found[i]);
+    i++;
+  }
+  if (out.len() < 4) return null;
+  return out;
+}
+
+function OpexV131SpliceSpan(tiles, validIndex, resumeIndex, found)
+{
+  local n = found.len();
+  if (n < 4) return null;
+  if (validIndex < 1 || resumeIndex <= validIndex || resumeIndex >= tiles.len()) return null;
+  local out = [];
+  local i = 0;
+  while (i <= validIndex) {
+    out.push(tiles[i]);
+    i++;
+  }
+  i = 2;
+  while (i <= n - 3) {
+    out.push(found[i]);
+    i++;
+  }
+  i = resumeIndex;
+  while (i < tiles.len()) {
+    out.push(tiles[i]);
+    i++;
+  }
+  if (out.len() < 4) return null;
+  return out;
+}
+
+function OpexV131ApplySplice(tiles, run, found, planB = null)
+{
+  if (tiles == null || run == null || found == null) return null;
+  local mode = OpexV131DetectSpliceMode(run, planB, found);
+  if (mode == null) {
+    if (!OpexV131PathAnchors(found, run.srcPrev, run.srcValid, run.goalValid, run.goalNext)) return null;
+    mode = run.mode;
+  }
+  if (mode == "full") {
+    local out = [];
+    foreach (t in found) out.push(t);
+    return out;
+  }
+  if (mode == "prefix") {
+    local resumeIdx = run.resumeIndex;
+    if (resumeIdx < 0 || resumeIdx + 1 >= tiles.len()) return null;
+    if (tiles[resumeIdx] != run.goalValid) return null;
+    if (tiles[resumeIdx + 1] != run.goalNext) return null;
+    return OpexV131SplicePrefix(tiles, resumeIdx, found);
+  }
+  if (mode == "suffix") {
+    local valid = run.validIndex;
+    if (valid < 1 || valid >= tiles.len()) return null;
+    if (tiles[valid] != run.srcValid) return null;
+    if (tiles[valid - 1] != run.srcPrev) return null;
+    return OpexV131SpliceSuffix(tiles, valid, found);
+  }
+  local validSpan = run.validIndex;
+  local resumeSpan = run.resumeIndex;
+  if (validSpan < 1 || resumeSpan <= validSpan || resumeSpan + 1 >= tiles.len()) return null;
+  if (tiles[validSpan] != run.srcValid) return null;
+  if (tiles[validSpan - 1] != run.srcPrev) return null;
+  if (tiles[resumeSpan] != run.goalValid) return null;
+  if (tiles[resumeSpan + 1] != run.goalNext) return null;
+  return OpexV131SpliceSpan(tiles, validSpan, resumeSpan, found);
+}
+
+function OpexV131RebuildStructures(tiles, oldStructures)
+{
+  local kept = [];
+  local n = (tiles != null) ? tiles.len() : 0;
+  for (local i = 0; i < n - 1; i++) {
+    local fromTile = tiles[i];
+    local toTile = tiles[i + 1];
+    local dist = AIMap.DistanceManhattan(fromTile, toTile);
+    if (dist > 1) {
+      local kind = OpexPlannedStructureKind(oldStructures, fromTile, toTile);
+      if (kind == null) {
+        if (AITunnel.GetOtherTunnelEnd(fromTile) == toTile) kind = "tunnel";
+        else kind = "bridge";
+      }
+      kept.push({ from = fromTile, to = toTile, kind = kind, length = dist + 1 });
+    }
+  }
+  return kept;
+}
+
+function OpexV131KeepStructures(tiles, structures)
+{
+  return OpexV131RebuildStructures(tiles, structures);
+}
+
+function OpexV131StationsBuild(planA, planB)
+{
+  local testMode = AITestMode();
+  local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
+  local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
+  local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
+  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
+  return { okA = okA, okB = okB };
+}
+
+function OpexV131WriteRepairedPlan(ai, candidate, plan)
+{
+  if (candidate != null) {
+    if ("railPlan" in candidate) candidate.railPlan = plan;
+    else candidate.railPlan <- plan;
+  }
+  if (ai != null && ai._railReadyStock != null && candidate != null
+      && ("kind" in candidate) && ("cargo" in candidate)
+      && ("src" in candidate) && ("dst" in candidate)) {
+    local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
+    if (pairKey in ai._railReadyStock) {
+      local entry = ai._railReadyStock[pairKey];
+      if (entry != null) {
+        entry.plan = plan;
+      }
+    }
+  }
+}
+
+function OpexAI::_v131RepairIsPending(plan)
+{
+  return this._railSearch != null && ("kind" in this._railSearch)
+      && this._railSearch.kind == "v131_repair"
+      && ("plan" in this._railSearch) && this._railSearch.plan == plan;
+}
+
+function OpexAI::_v131RepairExhausted(plan)
+{
+  if (plan == null) return true;
+  if (("v131Repaired" in plan) && plan.v131Repaired) return true;
+  if (("v131RepairFailed" in plan) && plan.v131RepairFailed) return true;
+  return false;
+}
+
+function OpexAI::_v131DropDuplicateOwnRail(candidate, plan)
+{
+  if (plan == null || !("tiles" in plan) || plan.tiles == null) return false;
+  local tiles = plan.tiles;
+  if (tiles.len() <= 0) return false;
+  local mark = OpexOpsMeasureBegin();
+  local selfId = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local own = 0;
+  foreach (tile in tiles) {
+    if (!AIRail.IsRailTile(tile)) continue;
+    if (AICompany.ResolveCompanyID(AITile.GetOwner(tile)) == selfId) own++;
+  }
+  local ops = OpexOpsMeasureEnd(mark);
+  /* Seuil abaisse a >= 40% (ex: 27/57 = 47.37% en graine 100). */
+  if (own * 10 >= tiles.len() * 4) {
+    OpexV131RepairLog(candidate, "duplicate", 0, own, 0, ops, "path_len=" + tiles.len());
+    return true;
+  }
+  return false;
+}
+
+function OpexAI::_v131PlanRepairs(candidate, plan, cause)
+{
+  local tiles = plan.tiles;
+  local planA = plan.planA;
+  local planB = plan.planB;
+  if (tiles == null || planA == null || planB == null || tiles.len() < 4) {
+    return OpexV131PlanResult(false, "short_path", 0, 0, [], null, null);
+  }
+  local structures = ("structures" in plan) ? plan.structures : null;
+  local blocked = OpexV131ScanBlocked(tiles, structures);
+  local blockedTiles = OpexV131CountBlocked(blocked);
+  local rawRuns = OpexV131RawRuns(blocked);
+  local mergedRuns = OpexV131MergedRuns(rawRuns);
+  if (blockedTiles > V131_REPAIR_MAX_TILES) {
+    return OpexV131PlanResult(false, "over_tiles", mergedRuns.len(), blockedTiles, [], null, null);
+  }
+  local catalog = this._catalog;
+  local wantB = candidate != null && ("kind" in candidate) && candidate.kind == "pax";
+  local okA = true;
+  local okB = true;
+  local shiftA = null;
+  local shiftB = null;
+  if (cause == "station") {
+    local stations = OpexV131StationsBuild(planA, planB);
+    okA = stations.okA;
+    okB = stations.okB;
+    if (okA && okB) {
+      return OpexV131PlanResult(false, "transient", mergedRuns.len(), blockedTiles, [], null, null);
+    }
+    if (!okA) shiftA = OpexV131FindShift(planA, planB, candidate, catalog, true);
+    if (!okB) {
+      local otherForB = shiftA != null ? shiftA : planA;
+      shiftB = OpexV131FindShift(planB, otherForB, candidate, catalog, wantB);
+    }
+    if ((!okA && shiftA == null) || (!okB && shiftB == null)) {
+      if (catalog != null) {
+        local fresh = OpexRailPlatformPlans(catalog, candidate);
+        if (!okA && shiftA == null && fresh != null && ("plansA" in fresh)) {
+          shiftA = OpexV131PickFresh(fresh.plansA, planA, planB, candidate, catalog, true);
+        }
+        if (!okB && shiftB == null && fresh != null && ("plansB" in fresh)) {
+          local otherFresh = shiftA != null ? shiftA : planA;
+          shiftB = OpexV131PickFresh(fresh.plansB, planB, otherFresh, candidate, catalog, wantB);
+        }
+      }
+    }
+    if ((!okA && shiftA == null) || (!okB && shiftB == null)) {
+      return OpexV131PlanResult(false, "no_shift", mergedRuns.len(), blockedTiles, [], shiftA, shiftB);
+    }
+    if (shiftA != null && shiftB != null && OpexV131PlatformsOverlap(shiftA, shiftB)) {
+      return OpexV131PlanResult(false, "overlap", mergedRuns.len(), blockedTiles, [], shiftA, shiftB);
+    }
+  }
+
+  local executable = [];
+  if (mergedRuns.len() > 0) {
+    local runIdx = mergedRuns.len() - 1;
+    while (runIdx >= 0) {
+      local r = mergedRuns[runIdx];
+      local sA = (runIdx == 0 ? shiftA : null);
+      local sB = (runIdx == mergedRuns.len() - 1 ? shiftB : null);
+      local plannedRun = OpexV131PlanAnchorRun(tiles, r, planA, planB, sA, sB);
+      if (plannedRun == null) {
+        return OpexV131PlanResult(false, "no_anchor", mergedRuns.len(), blockedTiles, [], shiftA, shiftB);
+      }
+      executable.push(plannedRun);
+      runIdx--;
+    }
+  } else if (shiftA != null || shiftB != null) {
+    local dummyRun = { start = (shiftA != null ? 1 : tiles.len() - 2), end = (shiftB != null ? tiles.len() - 2 : 1) };
+    local plannedRun = OpexV131PlanAnchorRun(tiles, dummyRun, planA, planB, shiftA, shiftB);
+    if (plannedRun == null) {
+      return OpexV131PlanResult(false, "no_anchor", 1, blockedTiles, [], shiftA, shiftB);
+    }
+    executable.push(plannedRun);
+  }
+
+  local runCount = executable.len();
+  if (runCount <= 0) {
+    return OpexV131PlanResult(false, "transient", 0, blockedTiles, [], shiftA, shiftB);
+  }
+  if (runCount > V131_REPAIR_MAX_RUNS) {
+    return OpexV131PlanResult(false, "over_runs", runCount, blockedTiles, [], shiftA, shiftB);
+  }
+  return OpexV131PlanResult(true, "ok", runCount, blockedTiles, executable, shiftA, shiftB);
+}
+
+function OpexAI::_v131TryStartRepair(candidate, plan, cause)
+{
+  if (this._v131RepairIsPending(plan)) return "pending";
+  if (this._railSearch != null) {
+    OpexV131RepairLog(candidate, "fallback", 0, 0, 0, 0, "reason=slot_busy");
+    return "slot_busy";
+  }
+  if (this._activeWorker != null && ("kind" in this._activeWorker)
+      && (this._activeWorker.kind == "rail_stock" || this._activeWorker.kind == "rail_search")) {
+    OpexV131RepairLog(candidate, "fallback", 0, 0, 0, 0, "reason=worker_busy");
+    return "slot_busy";
+  }
+  if (C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold) {
+    OpexV131RepairLog(candidate, "fallback", 0, 0, 0, 0, "reason=prep_hold");
+    return "slot_busy";
+  }
+  local mark = OpexOpsMeasureBegin();
+  local planned = this._v131PlanRepairs(candidate, plan, cause);
+  local setupOps = OpexOpsMeasureEnd(mark);
+  if (planned == null || !planned.ok) {
+    local runCount = (planned != null && ("runCount" in planned)) ? planned.runCount : 0;
+    local blockedTiles = (planned != null && ("blockedTiles" in planned)) ? planned.blockedTiles : 0;
+    local why = (planned != null && ("reason" in planned)) ? planned.reason : "plan";
+    OpexV131RepairLog(candidate, "fallback", runCount, blockedTiles, 0, setupOps, "reason=" + why);
+    return "fallback";
+  }
+  local runs = planned.runs;
+  local firstRun = runs[0];
+  local effectivePlanB = planned.shiftB != null ? planned.shiftB : plan.planB;
+  local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, [plan.planA], [effectivePlanB]) : null;
+  local ignored = OpexV131IgnoreForRun(plan.tiles, firstRun, plan.planA, plan.planB, planned.shiftA, planned.shiftB, clearanceTiles);
+  local finder = OpexV131MakeFinder(firstRun, ignored, effectivePlanB);
+  if (finder == null) {
+    OpexV131RepairLog(candidate, "fallback", planned.runCount, planned.blockedTiles, 0, setupOps, "reason=finder");
+    return "fallback";
+  }
+
+  /* Budget adaptatif recalibre : suffisant pour un contournement sans surcout pathologique */
+  local dist = AIMap.DistanceManhattan(firstRun.srcValid, firstRun.goalValid);
+  local budget = 600 + planned.blockedTiles * 40 + dist * 20;
+  if (budget < 800) budget = 800;
+  if (firstRun.mode == "full" && budget < 1800) budget = 1800;
+  if (budget > V131_REPAIR_MAX_ITERS) budget = V131_REPAIR_MAX_ITERS;
+
+  this._railSearch = {
+    kind = "v131_repair",
+    phase = "search",
+    pathfinder = finder,
+    segmented = null,
+    spent = 0,
+    iterationBudget = budget,
+    safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS,
+    plan = plan,
+    candidate = candidate,
+    isRepair = true,
+    repairReason = cause,
+    runs = runs,
+    runCursor = 0,
+    runCount = planned.runCount,
+    workTiles = OpexCopySegmentTiles(plan.tiles),
+    repairOps = setupOps,
+    blockedTiles = planned.blockedTiles,
+    shiftA = planned.shiftA,
+    shiftB = planned.shiftB,
+    planA = plan.planA,
+    planB = plan.planB,
+    startTick = AIController.GetTick()
+  };
+  OpexV131RepairLog(candidate, "start", planned.runCount, planned.blockedTiles, 0, setupOps, "cause=" + cause);
+  return "pending";
+}
+
+function OpexAI::_v131KickRepair(candidate, plan)
+{
+  this._continueRailSearch();
+  if (this._railSearch != null && ("kind" in this._railSearch) && this._railSearch.kind == "v131_repair") {
+    return { ok = false, reason = "v131_repair_pending" };
+  }
+  return this._revalidateRailStockPlan(candidate, plan);
+}
+
+function OpexAI::_v131FailRepair(state, why)
+{
+  if (state == null) {
+    this._railSearch = null;
+    return;
+  }
+  local plan = ("plan" in state) ? state.plan : null;
+  if (plan != null) plan.rawset("v131RepairFailed", true);
+  local runCount = ("runCount" in state) ? state.runCount : 0;
+  local blockedTiles = ("blockedTiles" in state) ? state.blockedTiles : 0;
+  local iters = ("spent" in state) ? state.spent : 0;
+  local ops = ("repairOps" in state) ? state.repairOps : 0;
+  local who = ("candidate" in state) ? state.candidate : null;
+  OpexV131RepairLog(who, "fail", runCount, blockedTiles, iters, ops, "reason=" + why);
+  if (("pathfinder" in state) && state.pathfinder != null) state.pathfinder = null;
+  state.phase = "done";
+  if (this._railSearch == state) this._railSearch = null;
+}
+
+function OpexAI::_v131CommitRepair(state)
+{
+  local plan = state.plan;
+  local tiles = state.workTiles;
+  local planA = state.shiftA != null ? state.shiftA : plan.planA;
+  local planB = state.shiftB != null ? state.shiftB : plan.planB;
+  local stationsOk = false;
+  {
+    local mode = AITestMode();
+    local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
+    local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
+    local builtA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
+    local builtB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
+    stationsOk = builtA && builtB;
+  }
+  if (!stationsOk) {
+    this._v131FailRepair(state, "retest");
+    return;
+  }
+  local structures = ("structures" in plan) ? plan.structures : null;
+  structures = OpexV131RebuildStructures(tiles, structures);
+  local trackRes = OpexTestRailTrack(tiles, structures);
+  if (trackRes.failed > 0) {
+    this._v131FailRepair(state, "retest");
+    return;
+  }
+  plan.tiles = tiles;
+  if (state.shiftA != null) plan.planA = state.shiftA;
+  if (state.shiftB != null) plan.planB = state.shiftB;
+  plan.structures = structures;
+  plan.rawset("v131Repaired", true);
+  OpexV131WriteRepairedPlan(this, state.candidate, plan);
+  OpexV131RepairLog(state.candidate, "ok", state.runCount, state.blockedTiles, state.spent, state.repairOps, null);
+  state.phase = "done";
+  state.pathfinder = null;
+  this._railSearch = null;
+}
+
+function OpexAI::_v131OnRepairSliceDone(state, slice)
+{
+  if (state == null || !("runs" in state) || state.runs == null) {
+    this._v131FailRepair(state, "finder");
+    return;
+  }
+  local runs = state.runs;
+  local cursor = ("runCursor" in state) ? state.runCursor : 0;
+  if (cursor < 0 || cursor >= runs.len()) {
+    this._v131FailRepair(state, "finder");
+    return;
+  }
+  local run = runs[cursor];
+  local found = null;
+  if (slice != null && ("stop" in slice) && slice.stop == "OK"
+      && ("path" in slice) && slice.path != null && slice.path != false) {
+    found = OpexResolveSearchTiles(slice);
+  }
+  local planB = (state.shiftB != null ? state.shiftB : state.planB);
+  local spliceMode = OpexV131DetectSpliceMode(run, planB, found);
+  if (found == null || spliceMode == null) {
+    local failReason = "no_path";
+    if (slice != null && ("stop" in slice)) {
+      if (slice.stop == "ABND") failReason = "budget_exhausted";
+      else if (slice.stop == "DEAD") failReason = "deadline_exhausted";
+    }
+    this._v131FailRepair(state, failReason);
+    return;
+  }
+  local spliced = OpexV131ApplySplice(state.workTiles, run, found, planB);
+  if (spliced == null) {
+    this._v131FailRepair(state, "splice");
+    return;
+  }
+  state.workTiles = spliced;
+  local next = cursor + 1;
+  if (next < runs.len()) {
+    local nextRun = runs[next];
+    local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(state.candidate, [state.planA], [planB]) : null;
+    local ignored = OpexV131IgnoreForRun(state.workTiles, nextRun, state.planA, planB, state.shiftA, state.shiftB, clearanceTiles);
+    local finder = OpexV131MakeFinder(nextRun, ignored, planB);
+    if (finder == null) {
+      this._v131FailRepair(state, "finder");
+      return;
+    }
+    state.pathfinder = finder;
+    state.runCursor = next;
+    state.phase = "search";
+    state.safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS;
+    return;
+  }
+  this._v131CommitRepair(state);
+}
+
 /* C80 étape 2 : re-vérification obligatoire sur la carte vivante avant construction.
  * Vérifie capital, slots de véhicules, gares, voies et possibilité de dépôt sous AITestMode. */
 function OpexAI::_revalidateRailStockPlan(candidate, plan)
@@ -2173,7 +3202,9 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
     return { ok = false, reason = "invalid_plan_structure" };
   }
 
-  {
+  /* Si V131_RAIL_REPAIR est inactif (defaut 0), executer le chemin de reference
+   * d'origine avec STRICTEMENT ZERO opcode ajoute et aucun test supplementaire. */
+  if (!V131_RAIL_REPAIR) {
     local testMode = AITestMode();
     local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
     local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
@@ -2208,6 +3239,72 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
       }
     }
     if (!depotFound) return { ok = false, reason = "depot_blocked" };
+
+    return { ok = true, reason = "ok" };
+  }
+
+  /* V131_RAIL_REPAIR actif : revalidation avec tentative de reparation locale */
+  if (this._v131RepairIsPending(plan)) {
+    return { ok = false, reason = "v131_repair_pending" };
+  }
+  if (!(("v131Repaired" in plan) && plan.v131Repaired)) {
+    if (this._v131DropDuplicateOwnRail(candidate, plan)) {
+      return { ok = false, reason = "duplicate_own_rail" };
+    }
+  }
+
+  local kickRepair = false;
+  {
+    local testMode = AITestMode();
+    local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
+    local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
+    local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
+    local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
+    if (!okA || !okB) {
+      if (!this._v131RepairExhausted(plan)) {
+        local rep = this._v131TryStartRepair(candidate, plan, "station");
+        if (rep == "pending") kickRepair = true;
+        else if (rep == "slot_busy") return { ok = false, reason = "slot_busy" };
+      }
+      if (!kickRepair) return { ok = false, reason = "station_blocked" };
+    } else {
+      local trackRes = OpexTestRailTrack(tiles, (("structures" in plan) ? plan.structures : null));
+      if (trackRes.failed > 0) {
+        if (!this._v131RepairExhausted(plan)) {
+          local rep = this._v131TryStartRepair(candidate, plan, "track");
+          if (rep == "pending") kickRepair = true;
+          else if (rep == "slot_busy") return { ok = false, reason = "slot_busy" };
+        }
+        if (!kickRepair) return {
+          ok = false,
+          reason = "track_blocked",
+          failedSegments = trackRes.failed,
+          firstSegment = trackRes.firstSegment,
+          firstTile = trackRes.firstTile
+        };
+      }
+
+      local depotFound = false;
+      local offsets = [
+        AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
+        AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1)
+      ];
+      for (local idx = 1; idx < tiles.len() - 1 && !depotFound; idx++) {
+        local anchor = tiles[idx];
+        foreach (offset in offsets) {
+          local cand = anchor + offset;
+          if (AIMap.IsValidTile(cand) && AIRail.BuildRailDepot(cand, anchor)) {
+            depotFound = true;
+            break;
+          }
+        }
+      }
+      if (!depotFound && !kickRepair) return { ok = false, reason = "depot_blocked" };
+    }
+  }
+
+  if (kickRepair) {
+    return this._v131KickRepair(candidate, plan);
   }
 
   return { ok = true, reason = "ok" };

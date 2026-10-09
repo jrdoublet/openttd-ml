@@ -1929,6 +1929,94 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   return plan;
 }
 
+/* V131 : degagement urbain (clearance) de l'A* rail pour eviter les centres-villes
+ * et les emprises de developpement futur (routes, immeubles, aeroports concurrents). */
+function OpexV131LogClearance(candidate, plan, clearanceTiles)
+{
+  if (!DECISION_LOG || !V131_TOWN_CLEARANCE) return;
+  local src = (candidate != null && ("src" in candidate)) ? candidate.src : -1;
+  local dst = (candidate != null && ("dst" in candidate)) ? candidate.dst : -1;
+  local count = (clearanceTiles != null) ? clearanceTiles.len() : 0;
+  local pathLen = (plan != null && ("tiles" in plan) && plan.tiles != null) ? plan.tiles.len() : 0;
+  OpexDecide("V131_CLEAR", "src=" + src + " dst=" + dst + " cleared_tiles=" + count + " avoided=" + count + " path_len=" + pathLen);
+}
+
+function OpexV131BuildTownClearance(candidate, plansA, plansB)
+{
+  if (!V131_TOWN_CLEARANCE || candidate == null) return [];
+  if (!("src" in candidate) || !("dst" in candidate)) return [];
+
+  local srcX = AIMap.GetTileX(candidate.src);
+  local srcY = AIMap.GetTileY(candidate.src);
+  local dstX = AIMap.GetTileX(candidate.dst);
+  local dstY = AIMap.GetTileY(candidate.dst);
+  local minX = (srcX < dstX ? srcX : dstX) - 15;
+  local maxX = (srcX > dstX ? srcX : dstX) + 15;
+  local minY = (srcY < dstY ? srcY : dstY) - 15;
+  local maxY = (srcY > dstY ? srcY : dstY) + 15;
+
+  local mapW = AIMap.GetMapSizeX();
+  local mapH = AIMap.GetMapSizeY();
+  if (minX < 1) minX = 1;
+  if (maxX > mapW - 2) maxX = mapW - 2;
+  if (minY < 1) minY = 1;
+  if (maxY > mapH - 2) maxY = mapH - 2;
+
+  local exempt = {};
+  local allPlans = [];
+  if (plansA != null) { foreach (p in plansA) if (p != null) allPlans.push(p); }
+  if (plansB != null) { foreach (p in plansB) if (p != null) allPlans.push(p); }
+
+  foreach (st in allPlans) {
+    if (("anchor" in st) && ("step" in st) && ("length" in st)) {
+      for (local i = 0; i < st.length; i++) {
+        exempt[st.anchor + st.step * i] <- true;
+      }
+    }
+    if ("lead" in st) {
+      exempt[st.lead] <- true;
+      local lx = AIMap.GetTileX(st.lead);
+      local ly = AIMap.GetTileY(st.lead);
+      for (local dx = -V131_TOWN_CLEAR_BUFFER; dx <= V131_TOWN_CLEAR_BUFFER; dx++) {
+        local limY = V131_TOWN_CLEAR_BUFFER - (dx >= 0 ? dx : -dx);
+        for (local dy = -limY; dy <= limY; dy++) {
+          local t = AIMap.GetTileIndex(lx + dx, ly + dy);
+          if (AIMap.IsValidTile(t)) exempt[t] <- true;
+        }
+      }
+    }
+    if ("station_exit" in st) exempt[st.station_exit] <- true;
+  }
+
+  local clearance = {};
+  local towns = AITownList();
+  foreach (town, _ in towns) {
+    local loc = AITown.GetLocation(town);
+    local tx = AIMap.GetTileX(loc);
+    local ty = AIMap.GetTileY(loc);
+    if (tx < minX || tx > maxX || ty < minY || ty > maxY) continue;
+
+    local pop = AITown.GetPopulation(town);
+    local radius = 4 + (pop / 500);
+    if (radius < 4) radius = 4;
+    if (radius > 10) radius = 10;
+
+    for (local dx = -radius; dx <= radius; dx++) {
+      local limY = radius - (dx >= 0 ? dx : -dx);
+      for (local dy = -limY; dy <= limY; dy++) {
+        local t = AIMap.GetTileIndex(tx + dx, ty + dy);
+        if (AIMap.IsValidTile(t) && !(t in exempt)) {
+          clearance[t] <- true;
+        }
+      }
+    }
+  }
+
+  local list = [];
+  foreach (tile, _ in clearance) list.push(tile);
+  return list;
+}
+
 /* Precalcule le plan physique complet d'une ligne ferroviaire (quais, economie, trace A*,
  * depot, double voie eventuelle) SANS modifier la carte du jeu ni depenser de tresorerie.
  * Mode bloquant : conserve pour rail_search_resumable=0. Le mode reprenable orchestre
@@ -1940,10 +2028,14 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap
 
   budget.begin();
   local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
-  local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick);
+  local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
+  local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick, clearanceTiles);
   local searchOps = budget.end("build_search");
   plan.opcodes += searchOps;
   if (DECISION_LOG) OpexAddRailSearchOps(candidate, searchOps);
+  if (DECISION_LOG && V131_TOWN_CLEARANCE && clearanceTiles != null) {
+    OpexV131LogClearance(candidate, plan, clearanceTiles);
+  }
   return OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search);
 }
 
