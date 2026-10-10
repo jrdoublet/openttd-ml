@@ -442,6 +442,10 @@ function OpexLoadSettings()
   C121_AIR_ENGINE_REALIZATION = AIController.GetSetting("c121_air_engine_realization") != 0;
   C121_AIR_PROJECT_REALIZATION = AIController.GetSetting("c121_air_project_realization") != 0;
   C121_AIR_PROJECT_REALIZATION_ADAPTIVE = AIController.GetSetting("c121_air_project_realization_adaptive") != 0;
+  AIR_P0_DIRECT_REALIZATION = AIController.GetSetting("air_p0_direct_realization") != 0;
+  AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
+  C121_AIR_P0_DIRECT_FACTOR.hubsite = 1.0;
+  C121_AIR_P0_DIRECT_FACTOR.hubhub = 1.0;
   C121_AIR_PRESSURE_PROBE = AIController.GetSetting("c121_air_pressure_probe") != 0;
   C121_AIR_PRESSURE_SNAPSHOT = null;
   C121_AIR_PRESSURE_ACCUM = null;

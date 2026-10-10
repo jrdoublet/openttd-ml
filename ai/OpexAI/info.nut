@@ -949,6 +949,13 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_p0_direct_realization",
+      description = "Validated AIR P0: use mature observed C121 hub revenue ratios directly; 1 = on (default), 0 = legacy smoothing",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c121_air_pressure_probe",
       description = "C121 passive AIR competition-pressure probe over already-inspected slot towns; no map scan and no decision change; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

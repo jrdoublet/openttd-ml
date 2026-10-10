@@ -526,6 +526,11 @@ C121_AIR_ENGINE_CAPACITY_OBS <- {};
  * moyenne recente realise/brut, lisible en O(1) pendant le scoring. */
 C121_AIR_REALIZATION_FACTOR <- { newpair = 1.0, hubsite = 1.0, hubhub = 1.0 };
 C121_AIR_REALIZATION_MIN_LINES <- 2;
+/* P0 valide : ratios C121 matures directs pour les nouveaux devis hub AIR. */
+AIR_P0_DIRECT_REALIZATION <- true;
+/* Cache transitoire reconstruit au rapport annuel et apres Load. */
+AIR_P0_DIRECT_REALIZATION_ACTIVE <- false;
+C121_AIR_P0_DIRECT_FACTOR <- { hubsite = 1.0, hubhub = 1.0 };
 /* Diagnostic agrege de cout du chemin causal C121 pendant une passe AIR.
  * La table est recreee a chaque planification (ou conservee dans resumeState
  * pour une passe slicee) et ne participe a aucune decision. */

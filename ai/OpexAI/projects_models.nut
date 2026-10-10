@@ -73,6 +73,9 @@ function OpexC121RealizationFactor(plan)
   local arm = plan.arm;
   if (arm != "hubsite" && arm != "hubhub") return 1.0;
   if (!(arm in C121_AIR_REALIZATION_FACTOR)) return 1.0;
+  /* Moyenne directe des ratios C121 matures, uniquement pour les hubs AIR. */
+  if (AIR_P0_DIRECT_REALIZATION_ACTIVE && C121_AIR_ECONOMICS)
+    return C121_AIR_P0_DIRECT_FACTOR[arm];
   /* La stratégie adaptative reste disponible dans les trois états de pression.
    * Le régime continue de piloter C122, mais ne bloque plus la correction
    * apprise ; sans observation suffisante, learned reste 1.0. */
@@ -107,6 +110,8 @@ function OpexC121RealizationSums()
 
 function OpexC121ApplyRealizationSums(sums, year, phase)
 {
+  if (AIR_P0_DIRECT_REALIZATION && C121_AIR_ECONOMICS)
+    AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
   foreach (arm, acc in sums) {
     local n = acc[1];
     local factor = 1.0;
@@ -115,7 +120,15 @@ function OpexC121ApplyRealizationSums(sums, year, phase)
     }
     local oldFactor = C121_AIR_REALIZATION_FACTOR[arm];
     C121_AIR_REALIZATION_FACTOR[arm] = factor;
-    if (C121_CATALOG_INCREMENTAL && oldFactor != factor)
+    local directChanged = false;
+    if (AIR_P0_DIRECT_REALIZATION && C121_AIR_ECONOMICS
+        && (arm == "hubsite" || arm == "hubhub")) {
+      local direct = n > 0 ? acc[0].tofloat() / (n.tofloat() * 1000.0) : 1.0;
+      directChanged = C121_AIR_P0_DIRECT_FACTOR[arm] != direct;
+      C121_AIR_P0_DIRECT_FACTOR[arm] = direct;
+      if (direct != 1.0) AIR_P0_DIRECT_REALIZATION_ACTIVE = true;
+    }
+    if (C121_CATALOG_INCREMENTAL && (oldFactor != factor || directChanged))
       C121_CATALOG_ARM_LEARN_REV.rawset(arm,
         (arm in C121_CATALOG_ARM_LEARN_REV ? C121_CATALOG_ARM_LEARN_REV[arm] : 0) + 1);
     AILog.Info("C121_REALIZATION phase=" + phase + " year=" + year
@@ -232,6 +245,12 @@ function OpexC70Profit(project)
    * vient de la branche qui a fourni profitAnnual, pas de l'etat actuel de la ligne. */
   if (project != null && ("profitIsObserved" in project) && project.profitIsObserved)
     return project.profitAnnual;
+  /* Eviter une seconde calibration C70/C82 apres une correction C121 non neutre. */
+  if (AIR_P0_DIRECT_REALIZATION_ACTIVE && project != null && ("mode" in project)
+      && project.mode == "air" && OpexC121ProjectHasRealization(project, false)
+      && ("realizationFactor" in project.payload.economics)
+      && project.payload.economics.realizationFactor != 1.0)
+    return project.profitAnnual;
   /* Le learner de realisation AIR C121 reste en shadow (facteur causal = 1.0),
    * donc une nouvelle ligne AIR doit continuer a beneficier de la calibration
    * C70 existante. Seule la flotte C121 porte deja sa propre marge observee. */
@@ -245,6 +264,12 @@ function OpexC70Profit(project)
 function OpexC82Profit(project)
 {
   if (project != null && ("profitIsObserved" in project) && project.profitIsObserved)
+    return project.profitAnnual;
+  /* Eviter une seconde calibration C70/C82 apres une correction C121 non neutre. */
+  if (AIR_P0_DIRECT_REALIZATION_ACTIVE && project != null && ("mode" in project)
+      && project.mode == "air" && OpexC121ProjectHasRealization(project, false)
+      && ("realizationFactor" in project.payload.economics)
+      && project.payload.economics.realizationFactor != 1.0)
     return project.profitAnnual;
   if (project != null && ("mode" in project) && project.mode == "fleet"
       && OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;
