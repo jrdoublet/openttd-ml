@@ -354,6 +354,7 @@ function OpexLoadSettings()
   C118_AIR_TERRITORIAL_EXPANSION = AIController.GetSetting("c118_air_territorial_expansion") != 0;
   C118_AIR_COVERAGE_PROBE = AIController.GetSetting("c118_air_coverage_probe") != 0;
   C119_AIR_INCOME_MODEL = AIController.GetSetting("c119_air_income_model") != 0;
+  AIR_C121_PHYSICAL_PAYMENT_DAYS = AIController.GetSetting("air_c121_physical_payment_days") != 0;
   C118_AIR_PROJECT_SNAPSHOT = null;
   C118_AIR_DECISION_SEQ = 0;
   C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;

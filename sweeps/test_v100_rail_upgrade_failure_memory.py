@@ -42,11 +42,11 @@ class TestRailUpgradeFailureMemoryContract(unittest.TestCase):
             cls.task_rail, "function OpexAI::_consumeRailUpgrade()"
         )
 
-    def test_setting_declared_inert_in_info_nut(self):
+    def test_setting_enabled_by_default_in_info_nut(self):
         block = _setting_block(self.info, "rail_upgrade_failure_memory")
         self.assertIn(
             "remember a failed double-track A* search per line and do not retry "
-            "it until the abandon cooldown expires; 0 = off (default)",
+            "it until the abandon cooldown expires; 1 = on (default), 0 = off",
             block,
         )
         self.assertIn("min_value = 0", block)
@@ -54,7 +54,7 @@ class TestRailUpgradeFailureMemoryContract(unittest.TestCase):
         self.assertIn("step_size = 1", block)
         self.assertIn("flags = AICONFIG_BOOLEAN", block)
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 0", block)
+            self.assertIn(f"{key} = 1", block)
         self.assertEqual(self.info.count('name = "rail_upgrade_failure_memory"'), 1)
 
     def test_global_declared_and_loaded_once(self):

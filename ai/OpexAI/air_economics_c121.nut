@@ -33,6 +33,15 @@ function OpexC119AirIncomeDays(plane, flightDistance)
   return days > 0 ? days : 1;
 }
 
+function OpexC121PhysicalPaymentDays(trip)
+{
+  if (trip == null || !("physicalOneWayDays" in trip)
+      || trip.physicalOneWayDays <= 0.0) return 1;
+  local days = trip.physicalOneWayDays.tointeger();
+  if (days.tofloat() < trip.physicalOneWayDays) days++;
+  return days > 0 ? days : 1;
+}
+
 /* C121 : type physique de l'aeroport a une extremite du plan. */
 function OpexC121EndpointAirportType(plan, which)
 {
@@ -603,7 +612,10 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
   local paymentDistance = engineStatic != null ? engineStatic.paymentDistance
       : AIMap.DistanceManhattan(plan.siteA.anchor, plan.siteB.anchor);
   if (paymentDistance < 1) paymentDistance = plan.distance;
-  local incomeDays = engineContext != null ? engineContext.incomeDays : OpexC119AirIncomeDays(plane, plan.distance);
+  local incomeDays = engineContext != null ? engineContext.incomeDays
+      : (AIR_C121_PHYSICAL_PAYMENT_DAYS
+          ? OpexC121PhysicalPaymentDays(trip)
+          : OpexC119AirIncomeDays(plane, plan.distance));
   local paxIncome = engineContext != null ? engineContext.paxIncome
       : AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
   local mailIncome = engineContext != null ? engineContext.mailIncome
@@ -1164,7 +1176,9 @@ function OpexC121OneOrTwoInvariants(catalog, plan, plane)
   local paymentDistance = engineStatic != null ? engineStatic.paymentDistance
       : AIMap.DistanceManhattan(plan.siteA.anchor, plan.siteB.anchor);
   if (paymentDistance < 1) paymentDistance = plan.distance;
-  local incomeDays = OpexC119AirIncomeDays(plane, plan.distance);
+  local incomeDays = AIR_C121_PHYSICAL_PAYMENT_DAYS
+      ? OpexC121PhysicalPaymentDays(trip)
+      : OpexC119AirIncomeDays(plane, plan.distance);
   local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
   local mailIncome = useMail ? AICargo.GetCargoIncome(catalog.mailCargo, paymentDistance, incomeDays) : 0;
   if (paxIncome < 0 || (useMail && mailIncome < 0)) return null;
@@ -1620,7 +1634,9 @@ function OpexC121EngineContextMatches(ctx, catalog, plan, plane, paxCapacity = n
       || ctx.ageYears != (("ageYears" in plane) ? plane.ageYears : null)
       || ctx.paxCargo != catalog.paxCargo
       || ctx.mailCargo != (("mailCargo" in catalog) ? catalog.mailCargo : -1)
-      || ctx.incomeDays != OpexC119AirIncomeDays(plane, plan.distance)) return false;
+      || ctx.incomeDays != (AIR_C121_PHYSICAL_PAYMENT_DAYS
+          ? OpexC121PhysicalPaymentDays(ctx.trip)
+          : OpexC119AirIncomeDays(plane, plan.distance))) return false;
   local known = false;
   local pax = plane.capacity;
   local mail = 0;
@@ -1652,7 +1668,12 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = n
   }
   local paxCapacity = plane.capacity;
   local mailCapacity = 0;
-  local incomeDays = engineContext != null ? engineContext.incomeDays : OpexC119AirIncomeDays(plane, plan.distance);
+  local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
+  if (trip == null || trip.roundTripDays <= 0.0) return null;
+  local incomeDays = engineContext != null ? engineContext.incomeDays
+      : (AIR_C121_PHYSICAL_PAYMENT_DAYS
+          ? OpexC121PhysicalPaymentDays(trip)
+          : OpexC119AirIncomeDays(plane, plan.distance));
   local paxIncome = engineContext != null ? engineContext.paxIncome
       : AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
   if (paxIncome < 0) return null;
@@ -1669,8 +1690,6 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = n
   local mailIncome = engineContext != null ? engineContext.mailIncome
       : (useMail ? AICargo.GetCargoIncome(catalog.mailCargo, st.paymentDistance, incomeDays) : 0);
   if (useMail && mailIncome < 0) return null;
-  local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
-  if (trip == null || trip.roundTripDays <= 0.0) return null;
   local departuresPerDirectionMonth = 30.4 / trip.roundTripDays;
   local paxDirectionCapacity = paxCapacity.tofloat() * departuresPerDirectionMonth;
   local paxUpperA = st.paxRawA.tofloat() < paxDirectionCapacity ? st.paxRawA.tofloat() : paxDirectionCapacity;
@@ -1818,7 +1837,12 @@ function OpexC121EngineShortcutViable(catalog, plan, plane, engineContext = null
   }
   local paxCapacity = plane.capacity;
   local mailCapacity = 0;
-  local incomeDays = engineContext != null ? engineContext.incomeDays : OpexC119AirIncomeDays(plane, plan.distance);
+  local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
+  if (trip == null || trip.roundTripDays <= 0.0) return false;
+  local incomeDays = engineContext != null ? engineContext.incomeDays
+      : (AIR_C121_PHYSICAL_PAYMENT_DAYS
+          ? OpexC121PhysicalPaymentDays(trip)
+          : OpexC119AirIncomeDays(plane, plan.distance));
   local paxIncome = engineContext != null ? engineContext.paxIncome
       : AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
   if (paxIncome < 0) return false;
@@ -1835,8 +1859,6 @@ function OpexC121EngineShortcutViable(catalog, plan, plane, engineContext = null
   local mailIncome = engineContext != null ? engineContext.mailIncome
       : (useMail ? AICargo.GetCargoIncome(catalog.mailCargo, st.paymentDistance, incomeDays) : 0);
   if (useMail && mailIncome < 0) return false;
-  local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
-  if (trip == null || trip.roundTripDays <= 0.0) return false;
   return true;
 }
 

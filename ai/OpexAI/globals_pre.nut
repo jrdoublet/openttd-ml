@@ -1062,3 +1062,5 @@ V139_FEEDER_BUS <- 0;
 
 /* V139 : table des arrêts déliés (tile -> airportStationId). */
 V139_UNJOINED_STOPS <- {};
+
+AIR_C121_PHYSICAL_PAYMENT_DAYS <- false;

@@ -694,6 +694,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_c121_physical_payment_days",
+      description = "AIR C121: compute cargo payment age from physical one-way flight and airport manoeuvre time; 1 = on (default), 0 = C119 distance+30 proxy",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c118_air_territorial_expansion",
       description = "C118: rank viable AIR expansion by real new-town catchment coverage and choose the engine minimizing time to the next territorial AIR project; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -1226,10 +1234,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "rail_upgrade_failure_memory",
-      description = "remember a failed double-track A* search per line and do not retry it until the abandon cooldown expires; 0 = off (default)",
+      description = "remember a failed double-track A* search per line and do not retry it until the abandon cooldown expires; 1 = on (default), 0 = off",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
