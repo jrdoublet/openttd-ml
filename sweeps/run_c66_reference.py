@@ -25,6 +25,25 @@ def docker_workspace(mount_root=None):
     return root, workdir
 
 
+def container_archive_destination(destination, mount_root, container_workdir, campaign):
+    """Place a retained savegame archive outside the immutable source bundle.
+
+    The frozen child runs from `<campaign>_bundle/harness`, so forwarding a
+    relative path unchanged silently writes inside the fingerprinted bundle.
+    Map the host's requested path to its mounted `/work` path instead.
+    """
+    requested = Path(destination)
+    host_path = (requested if requested.is_absolute() else ROOT / requested).resolve()
+    try:
+        relative = host_path.relative_to(Path(mount_root).resolve())
+    except ValueError as error:
+        raise ValueError("--retain-savegames must be under the Docker-mounted repository") from error
+    bundle = (ROOT / "results" / (campaign + "_bundle")).resolve()
+    if host_path == bundle or bundle in host_path.parents:
+        raise ValueError("--retain-savegames must be outside the frozen source bundle")
+    return container_workdir.rsplit("/", 1)[0] + "/" + relative.as_posix() if container_workdir != "/work" else "/work/" + relative.as_posix()
+
+
 def _output(args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
 
@@ -129,7 +148,8 @@ def main():
     if args.station_supply_telemetry:
         benchmark += ["--station-supply-telemetry"]
     if args.retain_savegames:
-        benchmark += ["--retain-savegames", args.retain_savegames]
+        benchmark += ["--retain-savegames", container_archive_destination(
+            args.retain_savegames, mount_root, container_workdir, args.campaign)]
     if args.line_telemetry_monthly:
         benchmark += ["--line-telemetry-monthly"]
     if args.script_debug:

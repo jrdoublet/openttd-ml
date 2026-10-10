@@ -1,0 +1,3809 @@
+{
+  "adversary": {
+    "ai": "AAAHogEx",
+    "company_slot": 1,
+    "id": "AAAHogEx",
+    "settings": {
+      "defaults": {
+        "Avoid removing water": 1,
+        "IsAvoidExtendCoverageAreaInTowns": 0,
+        "IsAvoidSecondaryIndustryStealing": 0,
+        "IsDebug": 0,
+        "IsForceToHandleFright": 0,
+        "IsPreferReusingExistingRoads": 0,
+        "disable_prefixed_station_name": 0,
+        "disable_veh_aircraft": 0,
+        "disable_veh_roadveh": 0,
+        "disable_veh_ship": 0,
+        "disable_veh_train": 0,
+        "disable_veh_tram": 0,
+        "usable_cargos": 3
+      },
+      "effective": {
+        "Avoid removing water": 1,
+        "IsAvoidExtendCoverageAreaInTowns": 0,
+        "IsAvoidSecondaryIndustryStealing": 0,
+        "IsDebug": 0,
+        "IsForceToHandleFright": 0,
+        "IsPreferReusingExistingRoads": 0,
+        "disable_prefixed_station_name": 0,
+        "disable_veh_aircraft": 0,
+        "disable_veh_roadveh": 0,
+        "disable_veh_ship": 0,
+        "disable_veh_train": 0,
+        "disable_veh_tram": 0,
+        "usable_cargos": 3
+      },
+      "explicit": {}
+    }
+  },
+  "artifacts": {
+    "bundle": "/work/results/rail_ready_readmission_diag_40x5_20261010_r1_bundle",
+    "checkpoints": "/work/results/rail_ready_readmission_diag_40x5_20261010_r1.jsonl",
+    "engine_logs": "/work/results/rail_ready_readmission_diag_40x5_20261010_r1_engine",
+    "manifest": "/work/results/rail_ready_readmission_diag_40x5_20261010_r1.manifest.json",
+    "result": "/work/results/rail_ready_readmission_diag_40x5_20261010_r1.json"
+  },
+  "campaign_id": "rail_ready_readmission_diag_40x5_20261010_r1",
+  "company_slots": {
+    "0": {
+      "ai": "OpexAI",
+      "policy_id": "per-game"
+    },
+    "1": {
+      "ai": "AAAHogEx",
+      "policy_id": "AAAHogEx"
+    }
+  },
+  "comparison": {
+    "decision_rule": {
+      "all_planned_pairs_required_for_verdict": true,
+      "min_useful_primary_delta": null,
+      "min_useful_primary_delta_pct": 4.0,
+      "primary_metric": "profit_year",
+      "required_seeds": 40,
+      "required_years": 5,
+      "rule": "gain_short",
+      "value_guard_max_loss_pct": 5.0,
+      "value_guard_metric": "company_value"
+    },
+    "effective_differences": {
+      "rail_ready_readmission": {
+        "candidate": 1,
+        "reference": 0
+      }
+    },
+    "intervention_settings": [
+      "rail_ready_readmission"
+    ],
+    "reference_policy_id": "reference",
+    "variant_policy_id": "rail_ready_readmission"
+  },
+  "configuration": {
+    "parsed": {
+      "difficulty": {
+        "industry_density": "4",
+        "number_towns": "3"
+      },
+      "economy": {
+        "inflation": "false",
+        "town_growth_rate": "2"
+      },
+      "game_creation": {
+        "map_x": "8",
+        "map_y": "8",
+        "starting_year": "1970"
+      }
+    },
+    "raw": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+    "repeats": 1,
+    "seeds": [
+      42,
+      100,
+      7,
+      999,
+      2026,
+      1,
+      17,
+      73,
+      314,
+      512,
+      1024,
+      1337,
+      4096,
+      8191,
+      12345,
+      54321,
+      65537,
+      123456,
+      424242,
+      8675309,
+      423960,
+      613553,
+      515222,
+      781335,
+      375172,
+      999533,
+      442018,
+      746035,
+      455216,
+      230185,
+      706990,
+      983759,
+      802204,
+      232037,
+      723002,
+      313707,
+      701256,
+      292001,
+      841478,
+      59527
+    ],
+    "sha256": "538aa46852b7c02eca91562a6a04ff778f2a5eff5c73a76cf05ee57fb8981d56",
+    "starting_year": 1970,
+    "years": 5
+  },
+  "created_at_utc": "2026-10-10T06:33:25.880369+00:00",
+  "execution": {
+    "mode": "frozen-subprocess",
+    "options": {
+      "campaign": "rail_ready_readmission_diag_40x5_20261010_r1",
+      "decision_rule": "gain_short",
+      "docker_image": "openttd-lab:latest",
+      "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+      "engine_timeout": 1800,
+      "line_telemetry": true,
+      "line_telemetry_monthly": false,
+      "max_workers": 10,
+      "min_useful_primary_delta": null,
+      "min_useful_primary_delta_pct": 4.0,
+      "out": null,
+      "policy_id": "reference",
+      "primary_metric": "profit_year",
+      "reference": "OpexAI[rail_ready_readmission=0]",
+      "repeats": 1,
+      "required_seeds": 40,
+      "required_years": 5,
+      "retain_savegames": null,
+      "script_debug": true,
+      "seeds": [
+        42,
+        100,
+        7,
+        999,
+        2026,
+        1,
+        17,
+        73,
+        314,
+        512,
+        1024,
+        1337,
+        4096,
+        8191,
+        12345,
+        54321,
+        65537,
+        123456,
+        424242,
+        8675309,
+        423960,
+        613553,
+        515222,
+        781335,
+        375172,
+        999533,
+        442018,
+        746035,
+        455216,
+        230185,
+        706990,
+        983759,
+        802204,
+        232037,
+        723002,
+        313707,
+        701256,
+        292001,
+        841478,
+        59527
+      ],
+      "selftest": false,
+      "station_supply_telemetry": false,
+      "value_guard_max_loss_pct": 5.0,
+      "variant": "OpexAI[rail_ready_readmission=1]",
+      "variant_policy_id": "rail_ready_readmission",
+      "years": 5
+    }
+  },
+  "games": [
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s42:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 42
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s42:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 42
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s100:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 100
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s100:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 100
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s7:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 7
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s7:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 7
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s999:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 999
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s999:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 999
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s2026:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 2026
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s2026:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 2026
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s1:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 1
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s1:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 1
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s17:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 17
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s17:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 17
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s73:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 73
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s73:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 73
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s314:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 314
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s314:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 314
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s512:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 512
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s512:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 512
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s1024:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 1024
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s1024:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 1024
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s1337:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 1337
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s1337:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 1337
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s4096:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 4096
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s4096:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 4096
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s8191:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 8191
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s8191:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 8191
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s12345:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 12345
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s12345:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 12345
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s54321:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 54321
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s54321:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 54321
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s65537:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 65537
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s65537:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 65537
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s123456:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 123456
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s123456:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 123456
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s424242:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 424242
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s424242:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 424242
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s8675309:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 8675309
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s8675309:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 8675309
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s423960:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 423960
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s423960:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 423960
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s613553:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 613553
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s613553:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 613553
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s515222:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 515222
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s515222:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 515222
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s781335:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 781335
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s781335:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 781335
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s375172:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 375172
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s375172:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 375172
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s999533:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 999533
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s999533:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 999533
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s442018:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 442018
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s442018:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 442018
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s746035:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 746035
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s746035:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 746035
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s455216:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 455216
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s455216:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 455216
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s230185:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 230185
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s230185:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 230185
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s706990:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 706990
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s706990:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 706990
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s983759:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 983759
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s983759:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 983759
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s802204:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 802204
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s802204:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 802204
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s232037:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 232037
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s232037:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 232037
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s723002:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 723002
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s723002:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 723002
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s313707:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 313707
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s313707:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 313707
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s701256:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 701256
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s701256:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 701256
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s292001:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 292001
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s292001:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 292001
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s841478:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 841478
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s841478:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 841478
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=reference:s59527:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 59527
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "rail_ready_readmission"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "rail_ready_readmission_diag_40x5_20261010_r1:policy=rail_ready_readmission:s59527:r0",
+      "policy_id": "rail_ready_readmission",
+      "repeat": 0,
+      "seed": 59527
+    }
+  ],
+  "git": {
+    "dirty": true,
+    "sha": "3a68c6efc4c107f938e99bb5a4b8b7d634ad5180",
+    "source": "host_environment",
+    "status_porcelain": [
+      "M ai/OpexAI/air_catalog_c121.nut",
+      " M ai/OpexAI/air_coverage.nut",
+      " M ai/OpexAI/air_economics_c121.nut",
+      " M ai/OpexAI/air_fleet.nut",
+      " M ai/OpexAI/air_planning.nut",
+      " M ai/OpexAI/builder_road.nut",
+      " M ai/OpexAI/candidates.nut",
+      " M ai/OpexAI/catalog.nut",
+      " M ai/OpexAI/feeder_bus.nut",
+      " M ai/OpexAI/globals_pre.nut",
+      " M ai/OpexAI/info.nut",
+      " M ai/OpexAI/main.nut",
+      " M ai/OpexAI/persist.nut",
+      " M ai/OpexAI/projects.nut",
+      " M ai/OpexAI/projects_builders.nut",
+      " M ai/OpexAI/projects_finance.nut",
+      " M ai/OpexAI/projects_generation.nut",
+      " M ai/OpexAI/projects_models.nut",
+      " M ai/OpexAI/projects_selection.nut",
+      " M ai/OpexAI/projects_update.nut",
+      " M ai/OpexAI/scheduler.nut",
+      " M ai/OpexAI/scheduler_tasks.nut",
+      " M ai/OpexAI/settings.nut",
+      " M ai/OpexAI/task_air.nut",
+      " M ai/OpexAI/task_projects.nut",
+      " M ai/OpexAI/task_rail.nut",
+      " M ai/OpexAI/task_report.nut",
+      " M ai/OpexAI/task_road.nut",
+      " M sweeps/bench_1v1_5y_20seeds.py",
+      " M sweeps/diag_c104_air_c100_compare.py",
+      " M sweeps/paired_statistics.py",
+      " M sweeps/run_c116_exact_gap_5x6.py",
+      " M sweeps/run_c116_exact_gap_smoke.py",
+      " M sweeps/run_c116_project_opp_5x6.py",
+      " M sweeps/run_c116_project_opp_smoke.py",
+      " M sweeps/run_c118_territorial_smoke.py",
+      " M sweeps/run_c119_income_lookup.py",
+      " M sweeps/run_c121_air_capacity_catalog.py",
+      " M sweeps/run_c121_air_economics_shadow.py",
+      " M sweeps/run_c66_reference.py",
+      " M sweeps/save_load_roundtrip.py",
+      " M sweeps/test_c80_rail_stock_worker.py",
+      " M sweeps/test_rail_origin_reuse.py",
+      " M sweeps/test_v126_air_site_cost_quote.py",
+      " M sweeps/test_v139_feeder_bus.py",
+      "?? sweeps/analyse_air_marginal_p0.py",
+      "?? sweeps/analyse_air_p0_nearest_observational_20261009.py",
+      "?? sweeps/analyse_air_p0_opportunity.py",
+      "?? sweeps/analyse_air_p0_second_step_20261009.py",
+      "?? sweeps/analyse_air_site_residual.py",
+      "?? sweeps/analyse_air_site_stale_shadow.py",
+      "?? sweeps/analyse_c121_exact_prod_cache.py",
+      "?? sweeps/analyse_c121_quote_refresh_delta.py",
+      "?? sweeps/analyse_rail_air_breakpoint.py",
+      "?? sweeps/analyse_rail_magic_ab_annual.py",
+      "?? sweeps/analyse_rail_magic_filter_p0.py",
+      "?? sweeps/analyse_rail_n2_diagnostic.py",
+      "?? sweeps/analyse_rail_ready_admission.py",
+      "?? sweeps/analyse_road_components_p0.py",
+      "?? sweeps/analyse_road_finance_p0.py",
+      "?? sweeps/rail_n2_reload_saved.py",
+      "?? sweeps/test_air_c121_physical_payment_days.py",
+      "?? sweeps/test_air_p0_learned_revenue.py",
+      "?? sweeps/test_air_p0_second_step_marginal.py",
+      "?? sweeps/test_air_quote_margin_isolation.py",
+      "?? sweeps/test_air_site_stale_shadow.py",
+      "?? sweeps/test_analyse_air_p0_opportunity.py",
+      "?? sweeps/test_analyse_air_site_residual.py",
+      "?? sweeps/test_analyse_air_site_stale_shadow.py",
+      "?? sweeps/test_analyse_c121_exact_prod_cache.py",
+      "?? sweeps/test_analyse_c121_quote_refresh_delta.py",
+      "?? sweeps/test_analyse_rail_air_breakpoint.py",
+      "?? sweeps/test_analyse_rail_magic_ab_annual.py",
+      "?? sweeps/test_analyse_rail_magic_filter_p0.py",
+      "?? sweeps/test_analyse_rail_ready_admission.py",
+      "?? sweeps/test_analyse_road_components_p0.py",
+      "?? sweeps/test_analyse_road_finance_p0.py",
+      "?? sweeps/test_c121_exact_prod_cache_hit.py",
+      "?? sweeps/test_c121_exact_production.py",
+      "?? sweeps/test_c121_production_only_replay.py",
+      "?? sweeps/test_c121_quote_refresh_delta_shadow.py",
+      "?? sweeps/test_rail_cooperative_n2.py",
+      "?? sweeps/test_rail_magic_economics.py",
+      "?? sweeps/test_rail_ready_admission_shadow.py",
+      "?? sweeps/test_rail_ready_readmission.py",
+      "?? sweeps/test_road_components_shadow_p0.py",
+      "?? sweeps/test_road_finance_unbias_p0.py",
+      "?? sweeps/test_run_c66_reference_archive.py"
+    ]
+  },
+  "libraries": [
+    {
+      "requested_md5": null,
+      "requested_name": "Queue.FibonacciHeap",
+      "requested_unique_id": "51554648",
+      "resolved": [
+        {
+          "content_id": "ai-library/51554648",
+          "filename": "51554648-Queue.FibonacciHeap-3.tar",
+          "license": "GPL v2",
+          "public_md5": "b234d8bd69d74bb86b6ec7fcef9c8d60",
+          "sha256": "c3c80ad59a0cf43b67a7d769484ba10f316b7a0b4a83a28efe5ce82e96066c9b",
+          "size": 30720,
+          "version": "3"
+        }
+      ]
+    },
+    {
+      "requested_md5": null,
+      "requested_name": "Pathfinder.Rail",
+      "requested_unique_id": "5046524c",
+      "resolved": [
+        {
+          "content_id": "ai-library/5046524c",
+          "filename": "5046524c-Pathfinder.Rail-1.tar",
+          "license": "GPL v2",
+          "public_md5": "e6b1d198257d580e65a97ca584adb2b5",
+          "sha256": "e3ab05b1811c1a57abb4219480f0fffa885efff6be42691c836ec144ab7f8b13",
+          "size": 40960,
+          "version": "1"
+        },
+        {
+          "content_id": "ai-library/4752412a",
+          "filename": "4752412a-Graph.AyStar-4.tar",
+          "license": "GPL v2",
+          "public_md5": "4afad59243616532a64e8da4565a7aa7",
+          "sha256": "cfc09cdd5877800d57e490832b65cf028db16aef4f1906eb1d625f908ebc49f1",
+          "size": 40960,
+          "version": "4"
+        },
+        {
+          "content_id": "ai-library/51554248",
+          "filename": "51554248-Queue.BinaryHeap-1.tar",
+          "license": "GPL v2",
+          "public_md5": "8ce55e1397e9c51f8032c3a8a29e9cf5",
+          "sha256": "a83eb5002b1246330dfc467dbd1076687d227156a697cc140f6d04515cf3bb67",
+          "size": 30720,
+          "version": "1"
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "ai": "OpexAI",
+      "company_slot": 0,
+      "id": "reference",
+      "role": "reference",
+      "settings": {
+        "defaults": {
+          "abandon_cooldown_days": 365,
+          "air0310_hub_snapshot": 1,
+          "air0310_incremental_publish": 1,
+          "air0310_one_two_fused": 1,
+          "air0310_site_validity_cache": 1,
+          "air0310_v96_shortcut_lean": 1,
+          "air_batch_town_reserve": 0,
+          "air_bfail_dispose_orphan": 0,
+          "air_bfail_precheck_shadow": 0,
+          "air_c121_physical_payment_days": 0,
+          "air_early_slot": 1,
+          "air_early_slot_bonus_pct": 50,
+          "air_early_slot_min_pop": 1000,
+          "air_early_slot_target_towns": 6,
+          "air_efficiency_batch": 0,
+          "air_efficiency_dedupe": 0,
+          "air_efficiency_preflight": 0,
+          "air_efficiency_reselect": 0,
+          "air_fleet_cadence_days": 7,
+          "air_fleet_cooldown_prefilter": 1,
+          "air_full_load": 0,
+          "air_hub_max_routes": 3,
+          "air_hubhub_marginal": 1,
+          "air_joined_stop_limit": 2,
+          "air_p0_learned_revenue": 0,
+          "air_p0_margin_probe": 0,
+          "air_p0_opportunity_probe": 0,
+          "air_p0_second_step_marginal": 0,
+          "air_pax_revenue_calibration_pct": 104,
+          "air_route_plane_selection": 1,
+          "air_site_cost_margin_pct": 0,
+          "air_site_cost_quote": 0,
+          "air_site_min_catchment": 1,
+          "air_site_quote_keep_legacy_margin": 0,
+          "air_site_stale_shadow": 0,
+          "b9_air_catchment_probe": 0,
+          "b9_air_demand_shadow": 0,
+          "c100_air_trip_physical": 0,
+          "c101_air_physical_engine_choice": 0,
+          "c103_air_c100_rank_replay": 0,
+          "c104_air_c100_compare_probe": 0,
+          "c105_air_replay_choice_physical_economics": 0,
+          "c106_air_marginal_physical_engine_choice": 0,
+          "c108_air_onestep_physical_economics": 0,
+          "c109_air_speed_elasticity_physical": 0,
+          "c110_air_engine_calibration_choice_only": 0,
+          "c111_air_c100_decision_shadow": 0,
+          "c112_air_speed_elasticity_e75_physical": 0,
+          "c113_air_c100_full_decision_shadow": 0,
+          "c114_air_c100_full_replay": 0,
+          "c115_air_c100_capital_replay": 1,
+          "c116_air_marginal_capital": 0,
+          "c116_air_project_probe": 0,
+          "c117_air_throughput_probe": 0,
+          "c118_air_coverage_probe": 0,
+          "c118_air_territorial_expansion": 0,
+          "c119_air_income_model": 0,
+          "c120_air_territorial_ranking": 0,
+          "c121_aaa_line": 0,
+          "c121_air_defensive_floor": 0,
+          "c121_air_economics": 1,
+          "c121_air_economics_shadow": 0,
+          "c121_air_engine_realization": 0,
+          "c121_air_engine_replay_shadow": 0,
+          "c121_air_first_growth_late_days": 0,
+          "c121_air_first_growth_min_days": 0,
+          "c121_air_first_growth_min_wait_pct": 0,
+          "c121_air_first_growth_phase_years": 0,
+          "c121_air_first_live_air_priority": 0,
+          "c121_air_first_live_growth": 1,
+          "c121_air_first_live_growth_phase_years": 4,
+          "c121_air_first_live_shadow": 0,
+          "c121_air_first_observation_growth": 0,
+          "c121_air_first_year_rail_prep": 1,
+          "c121_air_game_engine": 1,
+          "c121_air_initial_project_economics": 0,
+          "c121_air_observation_growth": 0,
+          "c121_air_one_or_two_planes": 1,
+          "c121_air_pressure_probe": 0,
+          "c121_air_project_realization": 0,
+          "c121_air_project_realization_adaptive": 1,
+          "c121_air_target_limit": 0,
+          "c121_air_visible_competition": 0,
+          "c121_air_visible_fused": 0,
+          "c121_air_winner_fusion": 1,
+          "c121_catalog_air_first_year": 1,
+          "c121_catalog_incremental": 1,
+          "c121_exact_prod_invalidation": 0,
+          "c121_exact_prod_shadow": 0,
+          "c121_flat_bootstrap": 1,
+          "c121_fleet_stock_growth": 0,
+          "c121_kdec_cold_exempt": 0,
+          "c121_kdec_cold_shadow": 0,
+          "c121_kpass_air_continue": 0,
+          "c121_kpass_shadow": 0,
+          "c121_production_only_replay_shadow": 0,
+          "c121_quote_refresh_delta_shadow": 0,
+          "c121_station_flux_probe": 0,
+          "c121_territory_first": 0,
+          "c122_air_regime_priority": 0,
+          "c122_air_regime_shadow": 0,
+          "c122_air_threat_probe": 0,
+          "c122_air_threat_retry": 0,
+          "c67_terrain_map": 0,
+          "c67_water_exposure_probe": 0,
+          "c69_decision_bottleneck": 1,
+          "c69_fleet_demand_batch": 0,
+          "c69_fleet_exempt": 1,
+          "c70_mode_calibration": 1,
+          "c72_plane_choice": 0,
+          "c75_kpass_bypass": 1,
+          "c75_multi_build": 1,
+          "c76_freight_rotation": 0,
+          "c76_lean_invalidation": 0,
+          "c76_regen_targeted": 1,
+          "c80_air_choice_memo": 0,
+          "c80_air_eval_fast": 0,
+          "c80_air_hub_index": 1,
+          "c80_marginal_floor": 1,
+          "c80_mode_regen": 1,
+          "c80_rail_stock_gate": 0,
+          "c80_rail_stock_worker": 0,
+          "c80_worker_rail": 0,
+          "c80_worker_town": 0,
+          "c82_engine_calibration": 0,
+          "c83_fixes": 0,
+          "c83_local_repair": 0,
+          "c83_preempt_open": 0,
+          "c84_air_target_fleet": 0,
+          "c85_air_equipment_frontier": 0,
+          "c96_air_site_catchment": 1,
+          "c97_air_c69_engine_probe": 0,
+          "c98_air_realized_probe": 0,
+          "c99_air_speed_api_fix": 0,
+          "capital_quote_learning": 0,
+          "catalog_cost_probe": 0,
+          "debug_signs": 1,
+          "decision_log": 0,
+          "exp_air_hub_pair_prefilter": 0,
+          "exp_opcode_exact": 1,
+          "exp_opcode_exact_check": 0,
+          "exp_scheduler_skip_not_due": 0,
+          "fleet_amort_shadow_probe": 0,
+          "homogeneous_preselect": 0,
+          "loan_repay_floor_k": 300,
+          "pathfinder_hard_cap_k": 10,
+          "pathfinder_sleep_ticks": 0,
+          "policy_abandon": 1,
+          "policy_air": 1,
+          "policy_caches": 1,
+          "policy_portfolio": 1,
+          "policy_rail": 1,
+          "policy_road": 1,
+          "policy_vehicle_events": 0,
+          "probe_air_engine_depth": 0,
+          "probe_air_finance_margin": 0,
+          "probe_c121_engine_table": 0,
+          "probe_candidates_rail": 0,
+          "probe_candidates_road": 0,
+          "probe_catalogue": 0,
+          "probe_cost": 0,
+          "probe_event_backlog": 0,
+          "probe_events": 0,
+          "probe_loop_ops": 0,
+          "probe_portfolio": 0,
+          "probe_rail_preastar": 0,
+          "probe_rail_search": 0,
+          "probe_rail_terrain": 0,
+          "probe_scheduler": 0,
+          "probe_select_reject": 0,
+          "probe_span_trace": 0,
+          "probe_vehicle_lost": 0,
+          "project_top_k": 64,
+          "project_top_k_dynamic": 0,
+          "r19_fault_inject": 0,
+          "rail_air_breakpoint_shadow": 0,
+          "rail_cached_proximity_gate": 0,
+          "rail_cooperative_n2": 0,
+          "rail_depot_cost": 0,
+          "rail_economic_preselect": 0,
+          "rail_expand": 0,
+          "rail_failure_audit": 0,
+          "rail_finance_bias_pct": 100,
+          "rail_freight_select_shadow": 0,
+          "rail_freight_trkfail_memory": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "rail_magic_admission_only": 0,
+          "rail_magic_astar_only": 0,
+          "rail_magic_rank_only": 0,
+          "rail_magic_shadow": 0,
+          "rail_n2_opportunity_gate": 0,
+          "rail_origin_exposure_detail_shadow": 0,
+          "rail_origin_exposure_shadow": 0,
+          "rail_origin_reuse": 0,
+          "rail_origin_reuse_air_priority": 0,
+          "rail_origin_reuse_air_priority_shadow": 0,
+          "rail_origin_reuse_cross_cargo": 0,
+          "rail_origin_reuse_fallback": 0,
+          "rail_origin_reuse_freight": 1,
+          "rail_origin_reuse_multiline_match": 0,
+          "rail_origin_reuse_pax": 1,
+          "rail_origin_reuse_search_cap_k": 0,
+          "rail_origin_reuse_search_supersede": 0,
+          "rail_ready_admission_shadow": 0,
+          "rail_ready_readmission": 0,
+          "rail_target_cargo_prefilter": 1,
+          "rail_terrain_factor": 100,
+          "rail_upgrade_failure_memory": 0,
+          "road_finance_gate_shadow_p0": 0,
+          "road_finance_unbias_p0": 0,
+          "road_loading_fix": 0,
+          "road_pax_build": 0,
+          "road_pax_catchment_pct": 86,
+          "road_pax_dwell_days": 6,
+          "road_quote_components_shadow_p0": 0,
+          "road_stop_catchment_houses": 10,
+          "road_time_scaled_cap": 0,
+          "save_full_state": 1,
+          "town_growth": 0,
+          "town_growth_plan_memo": 1,
+          "town_growth_roi_gate": 1,
+          "town_growth_skip_noop": 0,
+          "unprofitable_streak_threshold": 3,
+          "v126_air_served_town_reuse": 0,
+          "v127_idle_cash_road_regen": 0,
+          "v129_rail_astar_check": 0,
+          "v129_rail_astar_exact_opt": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v133_air_build_retry": 0,
+          "v134_air_p2p_saturated_hub": 0,
+          "v139_feeder_bus": 0,
+          "v139_feeder_scan_only": 0,
+          "v88_all_inputs": 0,
+          "v88_chain_force": 0,
+          "v88_chain_step1_finance": 0,
+          "v88_goods_chain": 0,
+          "v88_step2_cash_reserve": 0,
+          "v88_step2_plan_immediate": 0,
+          "v88_step2_rail_prio": 0,
+          "v89_rail_search_throughput": 1,
+          "v90_fast_pathfinder": 1,
+          "v90_pathfinder_check": 0,
+          "v91_astar_weight_pct": 120,
+          "v92_air_service_choice": 0,
+          "v93_air_demand_production": 0,
+          "v93_airport_no_pop_floor": 1,
+          "v94_air_site_check": 0,
+          "v94_air_site_list": 1,
+          "v95_air_post73_probe": 0
+        },
+        "effective": {
+          "abandon_cooldown_days": 365,
+          "air0310_hub_snapshot": 1,
+          "air0310_incremental_publish": 1,
+          "air0310_one_two_fused": 1,
+          "air0310_site_validity_cache": 1,
+          "air0310_v96_shortcut_lean": 1,
+          "air_batch_town_reserve": 0,
+          "air_bfail_dispose_orphan": 0,
+          "air_bfail_precheck_shadow": 0,
+          "air_c121_physical_payment_days": 0,
+          "air_early_slot": 1,
+          "air_early_slot_bonus_pct": 50,
+          "air_early_slot_min_pop": 1000,
+          "air_early_slot_target_towns": 6,
+          "air_efficiency_batch": 0,
+          "air_efficiency_dedupe": 0,
+          "air_efficiency_preflight": 0,
+          "air_efficiency_reselect": 0,
+          "air_fleet_cadence_days": 7,
+          "air_fleet_cooldown_prefilter": 1,
+          "air_full_load": 0,
+          "air_hub_max_routes": 3,
+          "air_hubhub_marginal": 1,
+          "air_joined_stop_limit": 2,
+          "air_p0_learned_revenue": 0,
+          "air_p0_margin_probe": 0,
+          "air_p0_opportunity_probe": 0,
+          "air_p0_second_step_marginal": 0,
+          "air_pax_revenue_calibration_pct": 104,
+          "air_route_plane_selection": 1,
+          "air_site_cost_margin_pct": 0,
+          "air_site_cost_quote": 0,
+          "air_site_min_catchment": 1,
+          "air_site_quote_keep_legacy_margin": 0,
+          "air_site_stale_shadow": 0,
+          "b9_air_catchment_probe": 0,
+          "b9_air_demand_shadow": 0,
+          "c100_air_trip_physical": 0,
+          "c101_air_physical_engine_choice": 0,
+          "c103_air_c100_rank_replay": 0,
+          "c104_air_c100_compare_probe": 0,
+          "c105_air_replay_choice_physical_economics": 0,
+          "c106_air_marginal_physical_engine_choice": 0,
+          "c108_air_onestep_physical_economics": 0,
+          "c109_air_speed_elasticity_physical": 0,
+          "c110_air_engine_calibration_choice_only": 0,
+          "c111_air_c100_decision_shadow": 0,
+          "c112_air_speed_elasticity_e75_physical": 0,
+          "c113_air_c100_full_decision_shadow": 0,
+          "c114_air_c100_full_replay": 0,
+          "c115_air_c100_capital_replay": 1,
+          "c116_air_marginal_capital": 0,
+          "c116_air_project_probe": 0,
+          "c117_air_throughput_probe": 0,
+          "c118_air_coverage_probe": 0,
+          "c118_air_territorial_expansion": 0,
+          "c119_air_income_model": 0,
+          "c120_air_territorial_ranking": 0,
+          "c121_aaa_line": 0,
+          "c121_air_defensive_floor": 0,
+          "c121_air_economics": 1,
+          "c121_air_economics_shadow": 0,
+          "c121_air_engine_realization": 0,
+          "c121_air_engine_replay_shadow": 0,
+          "c121_air_first_growth_late_days": 0,
+          "c121_air_first_growth_min_days": 0,
+          "c121_air_first_growth_min_wait_pct": 0,
+          "c121_air_first_growth_phase_years": 0,
+          "c121_air_first_live_air_priority": 0,
+          "c121_air_first_live_growth": 1,
+          "c121_air_first_live_growth_phase_years": 4,
+          "c121_air_first_live_shadow": 0,
+          "c121_air_first_observation_growth": 0,
+          "c121_air_first_year_rail_prep": 1,
+          "c121_air_game_engine": 1,
+          "c121_air_initial_project_economics": 0,
+          "c121_air_observation_growth": 0,
+          "c121_air_one_or_two_planes": 1,
+          "c121_air_pressure_probe": 0,
+          "c121_air_project_realization": 0,
+          "c121_air_project_realization_adaptive": 1,
+          "c121_air_target_limit": 0,
+          "c121_air_visible_competition": 0,
+          "c121_air_visible_fused": 0,
+          "c121_air_winner_fusion": 1,
+          "c121_catalog_air_first_year": 1,
+          "c121_catalog_incremental": 1,
+          "c121_exact_prod_invalidation": 0,
+          "c121_exact_prod_shadow": 0,
+          "c121_flat_bootstrap": 1,
+          "c121_fleet_stock_growth": 0,
+          "c121_kdec_cold_exempt": 0,
+          "c121_kdec_cold_shadow": 0,
+          "c121_kpass_air_continue": 0,
+          "c121_kpass_shadow": 0,
+          "c121_production_only_replay_shadow": 0,
+          "c121_quote_refresh_delta_shadow": 0,
+          "c121_station_flux_probe": 0,
+          "c121_territory_first": 0,
+          "c122_air_regime_priority": 0,
+          "c122_air_regime_shadow": 0,
+          "c122_air_threat_probe": 0,
+          "c122_air_threat_retry": 0,
+          "c67_terrain_map": 0,
+          "c67_water_exposure_probe": 0,
+          "c69_decision_bottleneck": 1,
+          "c69_fleet_demand_batch": 0,
+          "c69_fleet_exempt": 1,
+          "c70_mode_calibration": 1,
+          "c72_plane_choice": 0,
+          "c75_kpass_bypass": 1,
+          "c75_multi_build": 1,
+          "c76_freight_rotation": 0,
+          "c76_lean_invalidation": 0,
+          "c76_regen_targeted": 1,
+          "c80_air_choice_memo": 0,
+          "c80_air_eval_fast": 0,
+          "c80_air_hub_index": 1,
+          "c80_marginal_floor": 1,
+          "c80_mode_regen": 1,
+          "c80_rail_stock_gate": 0,
+          "c80_rail_stock_worker": 0,
+          "c80_worker_rail": 0,
+          "c80_worker_town": 0,
+          "c82_engine_calibration": 0,
+          "c83_fixes": 0,
+          "c83_local_repair": 0,
+          "c83_preempt_open": 0,
+          "c84_air_target_fleet": 0,
+          "c85_air_equipment_frontier": 0,
+          "c96_air_site_catchment": 1,
+          "c97_air_c69_engine_probe": 0,
+          "c98_air_realized_probe": 0,
+          "c99_air_speed_api_fix": 0,
+          "capital_quote_learning": 0,
+          "catalog_cost_probe": 0,
+          "debug_signs": 1,
+          "decision_log": 0,
+          "exp_air_hub_pair_prefilter": 0,
+          "exp_opcode_exact": 1,
+          "exp_opcode_exact_check": 0,
+          "exp_scheduler_skip_not_due": 0,
+          "fleet_amort_shadow_probe": 0,
+          "homogeneous_preselect": 0,
+          "loan_repay_floor_k": 300,
+          "pathfinder_hard_cap_k": 10,
+          "pathfinder_sleep_ticks": 0,
+          "policy_abandon": 1,
+          "policy_air": 1,
+          "policy_caches": 1,
+          "policy_portfolio": 1,
+          "policy_rail": 1,
+          "policy_road": 1,
+          "policy_vehicle_events": 0,
+          "probe_air_engine_depth": 0,
+          "probe_air_finance_margin": 0,
+          "probe_c121_engine_table": 0,
+          "probe_candidates_rail": 0,
+          "probe_candidates_road": 0,
+          "probe_catalogue": 0,
+          "probe_cost": 0,
+          "probe_event_backlog": 0,
+          "probe_events": 0,
+          "probe_loop_ops": 0,
+          "probe_portfolio": 0,
+          "probe_rail_preastar": 0,
+          "probe_rail_search": 0,
+          "probe_rail_terrain": 0,
+          "probe_scheduler": 0,
+          "probe_select_reject": 0,
+          "probe_span_trace": 0,
+          "probe_vehicle_lost": 0,
+          "project_top_k": 64,
+          "project_top_k_dynamic": 0,
+          "r19_fault_inject": 0,
+          "rail_air_breakpoint_shadow": 0,
+          "rail_cached_proximity_gate": 0,
+          "rail_cooperative_n2": 0,
+          "rail_depot_cost": 0,
+          "rail_economic_preselect": 0,
+          "rail_expand": 0,
+          "rail_failure_audit": 0,
+          "rail_finance_bias_pct": 100,
+          "rail_freight_select_shadow": 0,
+          "rail_freight_trkfail_memory": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "rail_magic_admission_only": 0,
+          "rail_magic_astar_only": 0,
+          "rail_magic_rank_only": 0,
+          "rail_magic_shadow": 0,
+          "rail_n2_opportunity_gate": 0,
+          "rail_origin_exposure_detail_shadow": 0,
+          "rail_origin_exposure_shadow": 0,
+          "rail_origin_reuse": 0,
+          "rail_origin_reuse_air_priority": 0,
+          "rail_origin_reuse_air_priority_shadow": 0,
+          "rail_origin_reuse_cross_cargo": 0,
+          "rail_origin_reuse_fallback": 0,
+          "rail_origin_reuse_freight": 1,
+          "rail_origin_reuse_multiline_match": 0,
+          "rail_origin_reuse_pax": 1,
+          "rail_origin_reuse_search_cap_k": 0,
+          "rail_origin_reuse_search_supersede": 0,
+          "rail_ready_admission_shadow": 0,
+          "rail_ready_readmission": 0,
+          "rail_target_cargo_prefilter": 1,
+          "rail_terrain_factor": 100,
+          "rail_upgrade_failure_memory": 0,
+          "road_finance_gate_shadow_p0": 0,
+          "road_finance_unbias_p0": 0,
+          "road_loading_fix": 0,
+          "road_pax_build": 0,
+          "road_pax_catchment_pct": 86,
+          "road_pax_dwell_days": 6,
+          "road_quote_components_shadow_p0": 0,
+          "road_stop_catchment_houses": 10,
+          "road_time_scaled_cap": 0,
+          "save_full_state": 1,
+          "town_growth": 0,
+          "town_growth_plan_memo": 1,
+          "town_growth_roi_gate": 1,
+          "town_growth_skip_noop": 0,
+          "unprofitable_streak_threshold": 3,
+          "v126_air_served_town_reuse": 0,
+          "v127_idle_cash_road_regen": 0,
+          "v129_rail_astar_check": 0,
+          "v129_rail_astar_exact_opt": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v133_air_build_retry": 0,
+          "v134_air_p2p_saturated_hub": 0,
+          "v139_feeder_bus": 0,
+          "v139_feeder_scan_only": 0,
+          "v88_all_inputs": 0,
+          "v88_chain_force": 0,
+          "v88_chain_step1_finance": 0,
+          "v88_goods_chain": 0,
+          "v88_step2_cash_reserve": 0,
+          "v88_step2_plan_immediate": 0,
+          "v88_step2_rail_prio": 0,
+          "v89_rail_search_throughput": 1,
+          "v90_fast_pathfinder": 1,
+          "v90_pathfinder_check": 0,
+          "v91_astar_weight_pct": 120,
+          "v92_air_service_choice": 0,
+          "v93_air_demand_production": 0,
+          "v93_airport_no_pop_floor": 1,
+          "v94_air_site_check": 0,
+          "v94_air_site_list": 1,
+          "v95_air_post73_probe": 0
+        },
+        "explicit": {
+          "rail_ready_readmission": 0
+        }
+      }
+    },
+    {
+      "ai": "OpexAI",
+      "company_slot": 0,
+      "id": "rail_ready_readmission",
+      "role": "variant",
+      "settings": {
+        "defaults": {
+          "abandon_cooldown_days": 365,
+          "air0310_hub_snapshot": 1,
+          "air0310_incremental_publish": 1,
+          "air0310_one_two_fused": 1,
+          "air0310_site_validity_cache": 1,
+          "air0310_v96_shortcut_lean": 1,
+          "air_batch_town_reserve": 0,
+          "air_bfail_dispose_orphan": 0,
+          "air_bfail_precheck_shadow": 0,
+          "air_c121_physical_payment_days": 0,
+          "air_early_slot": 1,
+          "air_early_slot_bonus_pct": 50,
+          "air_early_slot_min_pop": 1000,
+          "air_early_slot_target_towns": 6,
+          "air_efficiency_batch": 0,
+          "air_efficiency_dedupe": 0,
+          "air_efficiency_preflight": 0,
+          "air_efficiency_reselect": 0,
+          "air_fleet_cadence_days": 7,
+          "air_fleet_cooldown_prefilter": 1,
+          "air_full_load": 0,
+          "air_hub_max_routes": 3,
+          "air_hubhub_marginal": 1,
+          "air_joined_stop_limit": 2,
+          "air_p0_learned_revenue": 0,
+          "air_p0_margin_probe": 0,
+          "air_p0_opportunity_probe": 0,
+          "air_p0_second_step_marginal": 0,
+          "air_pax_revenue_calibration_pct": 104,
+          "air_route_plane_selection": 1,
+          "air_site_cost_margin_pct": 0,
+          "air_site_cost_quote": 0,
+          "air_site_min_catchment": 1,
+          "air_site_quote_keep_legacy_margin": 0,
+          "air_site_stale_shadow": 0,
+          "b9_air_catchment_probe": 0,
+          "b9_air_demand_shadow": 0,
+          "c100_air_trip_physical": 0,
+          "c101_air_physical_engine_choice": 0,
+          "c103_air_c100_rank_replay": 0,
+          "c104_air_c100_compare_probe": 0,
+          "c105_air_replay_choice_physical_economics": 0,
+          "c106_air_marginal_physical_engine_choice": 0,
+          "c108_air_onestep_physical_economics": 0,
+          "c109_air_speed_elasticity_physical": 0,
+          "c110_air_engine_calibration_choice_only": 0,
+          "c111_air_c100_decision_shadow": 0,
+          "c112_air_speed_elasticity_e75_physical": 0,
+          "c113_air_c100_full_decision_shadow": 0,
+          "c114_air_c100_full_replay": 0,
+          "c115_air_c100_capital_replay": 1,
+          "c116_air_marginal_capital": 0,
+          "c116_air_project_probe": 0,
+          "c117_air_throughput_probe": 0,
+          "c118_air_coverage_probe": 0,
+          "c118_air_territorial_expansion": 0,
+          "c119_air_income_model": 0,
+          "c120_air_territorial_ranking": 0,
+          "c121_aaa_line": 0,
+          "c121_air_defensive_floor": 0,
+          "c121_air_economics": 1,
+          "c121_air_economics_shadow": 0,
+          "c121_air_engine_realization": 0,
+          "c121_air_engine_replay_shadow": 0,
+          "c121_air_first_growth_late_days": 0,
+          "c121_air_first_growth_min_days": 0,
+          "c121_air_first_growth_min_wait_pct": 0,
+          "c121_air_first_growth_phase_years": 0,
+          "c121_air_first_live_air_priority": 0,
+          "c121_air_first_live_growth": 1,
+          "c121_air_first_live_growth_phase_years": 4,
+          "c121_air_first_live_shadow": 0,
+          "c121_air_first_observation_growth": 0,
+          "c121_air_first_year_rail_prep": 1,
+          "c121_air_game_engine": 1,
+          "c121_air_initial_project_economics": 0,
+          "c121_air_observation_growth": 0,
+          "c121_air_one_or_two_planes": 1,
+          "c121_air_pressure_probe": 0,
+          "c121_air_project_realization": 0,
+          "c121_air_project_realization_adaptive": 1,
+          "c121_air_target_limit": 0,
+          "c121_air_visible_competition": 0,
+          "c121_air_visible_fused": 0,
+          "c121_air_winner_fusion": 1,
+          "c121_catalog_air_first_year": 1,
+          "c121_catalog_incremental": 1,
+          "c121_exact_prod_invalidation": 0,
+          "c121_exact_prod_shadow": 0,
+          "c121_flat_bootstrap": 1,
+          "c121_fleet_stock_growth": 0,
+          "c121_kdec_cold_exempt": 0,
+          "c121_kdec_cold_shadow": 0,
+          "c121_kpass_air_continue": 0,
+          "c121_kpass_shadow": 0,
+          "c121_production_only_replay_shadow": 0,
+          "c121_quote_refresh_delta_shadow": 0,
+          "c121_station_flux_probe": 0,
+          "c121_territory_first": 0,
+          "c122_air_regime_priority": 0,
+          "c122_air_regime_shadow": 0,
+          "c122_air_threat_probe": 0,
+          "c122_air_threat_retry": 0,
+          "c67_terrain_map": 0,
+          "c67_water_exposure_probe": 0,
+          "c69_decision_bottleneck": 1,
+          "c69_fleet_demand_batch": 0,
+          "c69_fleet_exempt": 1,
+          "c70_mode_calibration": 1,
+          "c72_plane_choice": 0,
+          "c75_kpass_bypass": 1,
+          "c75_multi_build": 1,
+          "c76_freight_rotation": 0,
+          "c76_lean_invalidation": 0,
+          "c76_regen_targeted": 1,
+          "c80_air_choice_memo": 0,
+          "c80_air_eval_fast": 0,
+          "c80_air_hub_index": 1,
+          "c80_marginal_floor": 1,
+          "c80_mode_regen": 1,
+          "c80_rail_stock_gate": 0,
+          "c80_rail_stock_worker": 0,
+          "c80_worker_rail": 0,
+          "c80_worker_town": 0,
+          "c82_engine_calibration": 0,
+          "c83_fixes": 0,
+          "c83_local_repair": 0,
+          "c83_preempt_open": 0,
+          "c84_air_target_fleet": 0,
+          "c85_air_equipment_frontier": 0,
+          "c96_air_site_catchment": 1,
+          "c97_air_c69_engine_probe": 0,
+          "c98_air_realized_probe": 0,
+          "c99_air_speed_api_fix": 0,
+          "capital_quote_learning": 0,
+          "catalog_cost_probe": 0,
+          "debug_signs": 1,
+          "decision_log": 0,
+          "exp_air_hub_pair_prefilter": 0,
+          "exp_opcode_exact": 1,
+          "exp_opcode_exact_check": 0,
+          "exp_scheduler_skip_not_due": 0,
+          "fleet_amort_shadow_probe": 0,
+          "homogeneous_preselect": 0,
+          "loan_repay_floor_k": 300,
+          "pathfinder_hard_cap_k": 10,
+          "pathfinder_sleep_ticks": 0,
+          "policy_abandon": 1,
+          "policy_air": 1,
+          "policy_caches": 1,
+          "policy_portfolio": 1,
+          "policy_rail": 1,
+          "policy_road": 1,
+          "policy_vehicle_events": 0,
+          "probe_air_engine_depth": 0,
+          "probe_air_finance_margin": 0,
+          "probe_c121_engine_table": 0,
+          "probe_candidates_rail": 0,
+          "probe_candidates_road": 0,
+          "probe_catalogue": 0,
+          "probe_cost": 0,
+          "probe_event_backlog": 0,
+          "probe_events": 0,
+          "probe_loop_ops": 0,
+          "probe_portfolio": 0,
+          "probe_rail_preastar": 0,
+          "probe_rail_search": 0,
+          "probe_rail_terrain": 0,
+          "probe_scheduler": 0,
+          "probe_select_reject": 0,
+          "probe_span_trace": 0,
+          "probe_vehicle_lost": 0,
+          "project_top_k": 64,
+          "project_top_k_dynamic": 0,
+          "r19_fault_inject": 0,
+          "rail_air_breakpoint_shadow": 0,
+          "rail_cached_proximity_gate": 0,
+          "rail_cooperative_n2": 0,
+          "rail_depot_cost": 0,
+          "rail_economic_preselect": 0,
+          "rail_expand": 0,
+          "rail_failure_audit": 0,
+          "rail_finance_bias_pct": 100,
+          "rail_freight_select_shadow": 0,
+          "rail_freight_trkfail_memory": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "rail_magic_admission_only": 0,
+          "rail_magic_astar_only": 0,
+          "rail_magic_rank_only": 0,
+          "rail_magic_shadow": 0,
+          "rail_n2_opportunity_gate": 0,
+          "rail_origin_exposure_detail_shadow": 0,
+          "rail_origin_exposure_shadow": 0,
+          "rail_origin_reuse": 0,
+          "rail_origin_reuse_air_priority": 0,
+          "rail_origin_reuse_air_priority_shadow": 0,
+          "rail_origin_reuse_cross_cargo": 0,
+          "rail_origin_reuse_fallback": 0,
+          "rail_origin_reuse_freight": 1,
+          "rail_origin_reuse_multiline_match": 0,
+          "rail_origin_reuse_pax": 1,
+          "rail_origin_reuse_search_cap_k": 0,
+          "rail_origin_reuse_search_supersede": 0,
+          "rail_ready_admission_shadow": 0,
+          "rail_ready_readmission": 0,
+          "rail_target_cargo_prefilter": 1,
+          "rail_terrain_factor": 100,
+          "rail_upgrade_failure_memory": 0,
+          "road_finance_gate_shadow_p0": 0,
+          "road_finance_unbias_p0": 0,
+          "road_loading_fix": 0,
+          "road_pax_build": 0,
+          "road_pax_catchment_pct": 86,
+          "road_pax_dwell_days": 6,
+          "road_quote_components_shadow_p0": 0,
+          "road_stop_catchment_houses": 10,
+          "road_time_scaled_cap": 0,
+          "save_full_state": 1,
+          "town_growth": 0,
+          "town_growth_plan_memo": 1,
+          "town_growth_roi_gate": 1,
+          "town_growth_skip_noop": 0,
+          "unprofitable_streak_threshold": 3,
+          "v126_air_served_town_reuse": 0,
+          "v127_idle_cash_road_regen": 0,
+          "v129_rail_astar_check": 0,
+          "v129_rail_astar_exact_opt": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v133_air_build_retry": 0,
+          "v134_air_p2p_saturated_hub": 0,
+          "v139_feeder_bus": 0,
+          "v139_feeder_scan_only": 0,
+          "v88_all_inputs": 0,
+          "v88_chain_force": 0,
+          "v88_chain_step1_finance": 0,
+          "v88_goods_chain": 0,
+          "v88_step2_cash_reserve": 0,
+          "v88_step2_plan_immediate": 0,
+          "v88_step2_rail_prio": 0,
+          "v89_rail_search_throughput": 1,
+          "v90_fast_pathfinder": 1,
+          "v90_pathfinder_check": 0,
+          "v91_astar_weight_pct": 120,
+          "v92_air_service_choice": 0,
+          "v93_air_demand_production": 0,
+          "v93_airport_no_pop_floor": 1,
+          "v94_air_site_check": 0,
+          "v94_air_site_list": 1,
+          "v95_air_post73_probe": 0
+        },
+        "effective": {
+          "abandon_cooldown_days": 365,
+          "air0310_hub_snapshot": 1,
+          "air0310_incremental_publish": 1,
+          "air0310_one_two_fused": 1,
+          "air0310_site_validity_cache": 1,
+          "air0310_v96_shortcut_lean": 1,
+          "air_batch_town_reserve": 0,
+          "air_bfail_dispose_orphan": 0,
+          "air_bfail_precheck_shadow": 0,
+          "air_c121_physical_payment_days": 0,
+          "air_early_slot": 1,
+          "air_early_slot_bonus_pct": 50,
+          "air_early_slot_min_pop": 1000,
+          "air_early_slot_target_towns": 6,
+          "air_efficiency_batch": 0,
+          "air_efficiency_dedupe": 0,
+          "air_efficiency_preflight": 0,
+          "air_efficiency_reselect": 0,
+          "air_fleet_cadence_days": 7,
+          "air_fleet_cooldown_prefilter": 1,
+          "air_full_load": 0,
+          "air_hub_max_routes": 3,
+          "air_hubhub_marginal": 1,
+          "air_joined_stop_limit": 2,
+          "air_p0_learned_revenue": 0,
+          "air_p0_margin_probe": 0,
+          "air_p0_opportunity_probe": 0,
+          "air_p0_second_step_marginal": 0,
+          "air_pax_revenue_calibration_pct": 104,
+          "air_route_plane_selection": 1,
+          "air_site_cost_margin_pct": 0,
+          "air_site_cost_quote": 0,
+          "air_site_min_catchment": 1,
+          "air_site_quote_keep_legacy_margin": 0,
+          "air_site_stale_shadow": 0,
+          "b9_air_catchment_probe": 0,
+          "b9_air_demand_shadow": 0,
+          "c100_air_trip_physical": 0,
+          "c101_air_physical_engine_choice": 0,
+          "c103_air_c100_rank_replay": 0,
+          "c104_air_c100_compare_probe": 0,
+          "c105_air_replay_choice_physical_economics": 0,
+          "c106_air_marginal_physical_engine_choice": 0,
+          "c108_air_onestep_physical_economics": 0,
+          "c109_air_speed_elasticity_physical": 0,
+          "c110_air_engine_calibration_choice_only": 0,
+          "c111_air_c100_decision_shadow": 0,
+          "c112_air_speed_elasticity_e75_physical": 0,
+          "c113_air_c100_full_decision_shadow": 0,
+          "c114_air_c100_full_replay": 0,
+          "c115_air_c100_capital_replay": 1,
+          "c116_air_marginal_capital": 0,
+          "c116_air_project_probe": 0,
+          "c117_air_throughput_probe": 0,
+          "c118_air_coverage_probe": 0,
+          "c118_air_territorial_expansion": 0,
+          "c119_air_income_model": 0,
+          "c120_air_territorial_ranking": 0,
+          "c121_aaa_line": 0,
+          "c121_air_defensive_floor": 0,
+          "c121_air_economics": 1,
+          "c121_air_economics_shadow": 0,
+          "c121_air_engine_realization": 0,
+          "c121_air_engine_replay_shadow": 0,
+          "c121_air_first_growth_late_days": 0,
+          "c121_air_first_growth_min_days": 0,
+          "c121_air_first_growth_min_wait_pct": 0,
+          "c121_air_first_growth_phase_years": 0,
+          "c121_air_first_live_air_priority": 0,
+          "c121_air_first_live_growth": 1,
+          "c121_air_first_live_growth_phase_years": 4,
+          "c121_air_first_live_shadow": 0,
+          "c121_air_first_observation_growth": 0,
+          "c121_air_first_year_rail_prep": 1,
+          "c121_air_game_engine": 1,
+          "c121_air_initial_project_economics": 0,
+          "c121_air_observation_growth": 0,
+          "c121_air_one_or_two_planes": 1,
+          "c121_air_pressure_probe": 0,
+          "c121_air_project_realization": 0,
+          "c121_air_project_realization_adaptive": 1,
+          "c121_air_target_limit": 0,
+          "c121_air_visible_competition": 0,
+          "c121_air_visible_fused": 0,
+          "c121_air_winner_fusion": 1,
+          "c121_catalog_air_first_year": 1,
+          "c121_catalog_incremental": 1,
+          "c121_exact_prod_invalidation": 0,
+          "c121_exact_prod_shadow": 0,
+          "c121_flat_bootstrap": 1,
+          "c121_fleet_stock_growth": 0,
+          "c121_kdec_cold_exempt": 0,
+          "c121_kdec_cold_shadow": 0,
+          "c121_kpass_air_continue": 0,
+          "c121_kpass_shadow": 0,
+          "c121_production_only_replay_shadow": 0,
+          "c121_quote_refresh_delta_shadow": 0,
+          "c121_station_flux_probe": 0,
+          "c121_territory_first": 0,
+          "c122_air_regime_priority": 0,
+          "c122_air_regime_shadow": 0,
+          "c122_air_threat_probe": 0,
+          "c122_air_threat_retry": 0,
+          "c67_terrain_map": 0,
+          "c67_water_exposure_probe": 0,
+          "c69_decision_bottleneck": 1,
+          "c69_fleet_demand_batch": 0,
+          "c69_fleet_exempt": 1,
+          "c70_mode_calibration": 1,
+          "c72_plane_choice": 0,
+          "c75_kpass_bypass": 1,
+          "c75_multi_build": 1,
+          "c76_freight_rotation": 0,
+          "c76_lean_invalidation": 0,
+          "c76_regen_targeted": 1,
+          "c80_air_choice_memo": 0,
+          "c80_air_eval_fast": 0,
+          "c80_air_hub_index": 1,
+          "c80_marginal_floor": 1,
+          "c80_mode_regen": 1,
+          "c80_rail_stock_gate": 0,
+          "c80_rail_stock_worker": 0,
+          "c80_worker_rail": 0,
+          "c80_worker_town": 0,
+          "c82_engine_calibration": 0,
+          "c83_fixes": 0,
+          "c83_local_repair": 0,
+          "c83_preempt_open": 0,
+          "c84_air_target_fleet": 0,
+          "c85_air_equipment_frontier": 0,
+          "c96_air_site_catchment": 1,
+          "c97_air_c69_engine_probe": 0,
+          "c98_air_realized_probe": 0,
+          "c99_air_speed_api_fix": 0,
+          "capital_quote_learning": 0,
+          "catalog_cost_probe": 0,
+          "debug_signs": 1,
+          "decision_log": 0,
+          "exp_air_hub_pair_prefilter": 0,
+          "exp_opcode_exact": 1,
+          "exp_opcode_exact_check": 0,
+          "exp_scheduler_skip_not_due": 0,
+          "fleet_amort_shadow_probe": 0,
+          "homogeneous_preselect": 0,
+          "loan_repay_floor_k": 300,
+          "pathfinder_hard_cap_k": 10,
+          "pathfinder_sleep_ticks": 0,
+          "policy_abandon": 1,
+          "policy_air": 1,
+          "policy_caches": 1,
+          "policy_portfolio": 1,
+          "policy_rail": 1,
+          "policy_road": 1,
+          "policy_vehicle_events": 0,
+          "probe_air_engine_depth": 0,
+          "probe_air_finance_margin": 0,
+          "probe_c121_engine_table": 0,
+          "probe_candidates_rail": 0,
+          "probe_candidates_road": 0,
+          "probe_catalogue": 0,
+          "probe_cost": 0,
+          "probe_event_backlog": 0,
+          "probe_events": 0,
+          "probe_loop_ops": 0,
+          "probe_portfolio": 0,
+          "probe_rail_preastar": 0,
+          "probe_rail_search": 0,
+          "probe_rail_terrain": 0,
+          "probe_scheduler": 0,
+          "probe_select_reject": 0,
+          "probe_span_trace": 0,
+          "probe_vehicle_lost": 0,
+          "project_top_k": 64,
+          "project_top_k_dynamic": 0,
+          "r19_fault_inject": 0,
+          "rail_air_breakpoint_shadow": 0,
+          "rail_cached_proximity_gate": 0,
+          "rail_cooperative_n2": 0,
+          "rail_depot_cost": 0,
+          "rail_economic_preselect": 0,
+          "rail_expand": 0,
+          "rail_failure_audit": 0,
+          "rail_finance_bias_pct": 100,
+          "rail_freight_select_shadow": 0,
+          "rail_freight_trkfail_memory": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "rail_magic_admission_only": 0,
+          "rail_magic_astar_only": 0,
+          "rail_magic_rank_only": 0,
+          "rail_magic_shadow": 0,
+          "rail_n2_opportunity_gate": 0,
+          "rail_origin_exposure_detail_shadow": 0,
+          "rail_origin_exposure_shadow": 0,
+          "rail_origin_reuse": 0,
+          "rail_origin_reuse_air_priority": 0,
+          "rail_origin_reuse_air_priority_shadow": 0,
+          "rail_origin_reuse_cross_cargo": 0,
+          "rail_origin_reuse_fallback": 0,
+          "rail_origin_reuse_freight": 1,
+          "rail_origin_reuse_multiline_match": 0,
+          "rail_origin_reuse_pax": 1,
+          "rail_origin_reuse_search_cap_k": 0,
+          "rail_origin_reuse_search_supersede": 0,
+          "rail_ready_admission_shadow": 0,
+          "rail_ready_readmission": 1,
+          "rail_target_cargo_prefilter": 1,
+          "rail_terrain_factor": 100,
+          "rail_upgrade_failure_memory": 0,
+          "road_finance_gate_shadow_p0": 0,
+          "road_finance_unbias_p0": 0,
+          "road_loading_fix": 0,
+          "road_pax_build": 0,
+          "road_pax_catchment_pct": 86,
+          "road_pax_dwell_days": 6,
+          "road_quote_components_shadow_p0": 0,
+          "road_stop_catchment_houses": 10,
+          "road_time_scaled_cap": 0,
+          "save_full_state": 1,
+          "town_growth": 0,
+          "town_growth_plan_memo": 1,
+          "town_growth_roi_gate": 1,
+          "town_growth_skip_noop": 0,
+          "unprofitable_streak_threshold": 3,
+          "v126_air_served_town_reuse": 0,
+          "v127_idle_cash_road_regen": 0,
+          "v129_rail_astar_check": 0,
+          "v129_rail_astar_exact_opt": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v133_air_build_retry": 0,
+          "v134_air_p2p_saturated_hub": 0,
+          "v139_feeder_bus": 0,
+          "v139_feeder_scan_only": 0,
+          "v88_all_inputs": 0,
+          "v88_chain_force": 0,
+          "v88_chain_step1_finance": 0,
+          "v88_goods_chain": 0,
+          "v88_step2_cash_reserve": 0,
+          "v88_step2_plan_immediate": 0,
+          "v88_step2_rail_prio": 0,
+          "v89_rail_search_throughput": 1,
+          "v90_fast_pathfinder": 1,
+          "v90_pathfinder_check": 0,
+          "v91_astar_weight_pct": 120,
+          "v92_air_service_choice": 0,
+          "v93_air_demand_production": 0,
+          "v93_airport_no_pop_floor": 1,
+          "v94_air_site_check": 0,
+          "v94_air_site_list": 1,
+          "v95_air_post73_probe": 0
+        },
+        "explicit": {
+          "rail_ready_readmission": 1
+        }
+      }
+    }
+  ],
+  "policy": {
+    "ai": "OpexAI",
+    "company_slot": 0,
+    "id": "reference",
+    "settings": {
+      "defaults": {
+        "abandon_cooldown_days": 365,
+        "air0310_hub_snapshot": 1,
+        "air0310_incremental_publish": 1,
+        "air0310_one_two_fused": 1,
+        "air0310_site_validity_cache": 1,
+        "air0310_v96_shortcut_lean": 1,
+        "air_batch_town_reserve": 0,
+        "air_bfail_dispose_orphan": 0,
+        "air_bfail_precheck_shadow": 0,
+        "air_c121_physical_payment_days": 0,
+        "air_early_slot": 1,
+        "air_early_slot_bonus_pct": 50,
+        "air_early_slot_min_pop": 1000,
+        "air_early_slot_target_towns": 6,
+        "air_efficiency_batch": 0,
+        "air_efficiency_dedupe": 0,
+        "air_efficiency_preflight": 0,
+        "air_efficiency_reselect": 0,
+        "air_fleet_cadence_days": 7,
+        "air_fleet_cooldown_prefilter": 1,
+        "air_full_load": 0,
+        "air_hub_max_routes": 3,
+        "air_hubhub_marginal": 1,
+        "air_joined_stop_limit": 2,
+        "air_p0_learned_revenue": 0,
+        "air_p0_margin_probe": 0,
+        "air_p0_opportunity_probe": 0,
+        "air_p0_second_step_marginal": 0,
+        "air_pax_revenue_calibration_pct": 104,
+        "air_route_plane_selection": 1,
+        "air_site_cost_margin_pct": 0,
+        "air_site_cost_quote": 0,
+        "air_site_min_catchment": 1,
+        "air_site_quote_keep_legacy_margin": 0,
+        "air_site_stale_shadow": 0,
+        "b9_air_catchment_probe": 0,
+        "b9_air_demand_shadow": 0,
+        "c100_air_trip_physical": 0,
+        "c101_air_physical_engine_choice": 0,
+        "c103_air_c100_rank_replay": 0,
+        "c104_air_c100_compare_probe": 0,
+        "c105_air_replay_choice_physical_economics": 0,
+        "c106_air_marginal_physical_engine_choice": 0,
+        "c108_air_onestep_physical_economics": 0,
+        "c109_air_speed_elasticity_physical": 0,
+        "c110_air_engine_calibration_choice_only": 0,
+        "c111_air_c100_decision_shadow": 0,
+        "c112_air_speed_elasticity_e75_physical": 0,
+        "c113_air_c100_full_decision_shadow": 0,
+        "c114_air_c100_full_replay": 0,
+        "c115_air_c100_capital_replay": 1,
+        "c116_air_marginal_capital": 0,
+        "c116_air_project_probe": 0,
+        "c117_air_throughput_probe": 0,
+        "c118_air_coverage_probe": 0,
+        "c118_air_territorial_expansion": 0,
+        "c119_air_income_model": 0,
+        "c120_air_territorial_ranking": 0,
+        "c121_aaa_line": 0,
+        "c121_air_defensive_floor": 0,
+        "c121_air_economics": 1,
+        "c121_air_economics_shadow": 0,
+        "c121_air_engine_realization": 0,
+        "c121_air_engine_replay_shadow": 0,
+        "c121_air_first_growth_late_days": 0,
+        "c121_air_first_growth_min_days": 0,
+        "c121_air_first_growth_min_wait_pct": 0,
+        "c121_air_first_growth_phase_years": 0,
+        "c121_air_first_live_air_priority": 0,
+        "c121_air_first_live_growth": 1,
+        "c121_air_first_live_growth_phase_years": 4,
+        "c121_air_first_live_shadow": 0,
+        "c121_air_first_observation_growth": 0,
+        "c121_air_first_year_rail_prep": 1,
+        "c121_air_game_engine": 1,
+        "c121_air_initial_project_economics": 0,
+        "c121_air_observation_growth": 0,
+        "c121_air_one_or_two_planes": 1,
+        "c121_air_pressure_probe": 0,
+        "c121_air_project_realization": 0,
+        "c121_air_project_realization_adaptive": 1,
+        "c121_air_target_limit": 0,
+        "c121_air_visible_competition": 0,
+        "c121_air_visible_fused": 0,
+        "c121_air_winner_fusion": 1,
+        "c121_catalog_air_first_year": 1,
+        "c121_catalog_incremental": 1,
+        "c121_exact_prod_invalidation": 0,
+        "c121_exact_prod_shadow": 0,
+        "c121_flat_bootstrap": 1,
+        "c121_fleet_stock_growth": 0,
+        "c121_kdec_cold_exempt": 0,
+        "c121_kdec_cold_shadow": 0,
+        "c121_kpass_air_continue": 0,
+        "c121_kpass_shadow": 0,
+        "c121_production_only_replay_shadow": 0,
+        "c121_quote_refresh_delta_shadow": 0,
+        "c121_station_flux_probe": 0,
+        "c121_territory_first": 0,
+        "c122_air_regime_priority": 0,
+        "c122_air_regime_shadow": 0,
+        "c122_air_threat_probe": 0,
+        "c122_air_threat_retry": 0,
+        "c67_terrain_map": 0,
+        "c67_water_exposure_probe": 0,
+        "c69_decision_bottleneck": 1,
+        "c69_fleet_demand_batch": 0,
+        "c69_fleet_exempt": 1,
+        "c70_mode_calibration": 1,
+        "c72_plane_choice": 0,
+        "c75_kpass_bypass": 1,
+        "c75_multi_build": 1,
+        "c76_freight_rotation": 0,
+        "c76_lean_invalidation": 0,
+        "c76_regen_targeted": 1,
+        "c80_air_choice_memo": 0,
+        "c80_air_eval_fast": 0,
+        "c80_air_hub_index": 1,
+        "c80_marginal_floor": 1,
+        "c80_mode_regen": 1,
+        "c80_rail_stock_gate": 0,
+        "c80_rail_stock_worker": 0,
+        "c80_worker_rail": 0,
+        "c80_worker_town": 0,
+        "c82_engine_calibration": 0,
+        "c83_fixes": 0,
+        "c83_local_repair": 0,
+        "c83_preempt_open": 0,
+        "c84_air_target_fleet": 0,
+        "c85_air_equipment_frontier": 0,
+        "c96_air_site_catchment": 1,
+        "c97_air_c69_engine_probe": 0,
+        "c98_air_realized_probe": 0,
+        "c99_air_speed_api_fix": 0,
+        "capital_quote_learning": 0,
+        "catalog_cost_probe": 0,
+        "debug_signs": 1,
+        "decision_log": 0,
+        "exp_air_hub_pair_prefilter": 0,
+        "exp_opcode_exact": 1,
+        "exp_opcode_exact_check": 0,
+        "exp_scheduler_skip_not_due": 0,
+        "fleet_amort_shadow_probe": 0,
+        "homogeneous_preselect": 0,
+        "loan_repay_floor_k": 300,
+        "pathfinder_hard_cap_k": 10,
+        "pathfinder_sleep_ticks": 0,
+        "policy_abandon": 1,
+        "policy_air": 1,
+        "policy_caches": 1,
+        "policy_portfolio": 1,
+        "policy_rail": 1,
+        "policy_road": 1,
+        "policy_vehicle_events": 0,
+        "probe_air_engine_depth": 0,
+        "probe_air_finance_margin": 0,
+        "probe_c121_engine_table": 0,
+        "probe_candidates_rail": 0,
+        "probe_candidates_road": 0,
+        "probe_catalogue": 0,
+        "probe_cost": 0,
+        "probe_event_backlog": 0,
+        "probe_events": 0,
+        "probe_loop_ops": 0,
+        "probe_portfolio": 0,
+        "probe_rail_preastar": 0,
+        "probe_rail_search": 0,
+        "probe_rail_terrain": 0,
+        "probe_scheduler": 0,
+        "probe_select_reject": 0,
+        "probe_span_trace": 0,
+        "probe_vehicle_lost": 0,
+        "project_top_k": 64,
+        "project_top_k_dynamic": 0,
+        "r19_fault_inject": 0,
+        "rail_air_breakpoint_shadow": 0,
+        "rail_cached_proximity_gate": 0,
+        "rail_cooperative_n2": 0,
+        "rail_depot_cost": 0,
+        "rail_economic_preselect": 0,
+        "rail_expand": 0,
+        "rail_failure_audit": 0,
+        "rail_finance_bias_pct": 100,
+        "rail_freight_select_shadow": 0,
+        "rail_freight_trkfail_memory": 0,
+        "rail_geometry_exact_identity": 1,
+        "rail_geometry_guard": 0,
+        "rail_geometry_live_replan": 0,
+        "rail_geometry_pair_memory": 1,
+        "rail_geometry_prefilter": 1,
+        "rail_magic_admission_only": 0,
+        "rail_magic_astar_only": 0,
+        "rail_magic_rank_only": 0,
+        "rail_magic_shadow": 0,
+        "rail_n2_opportunity_gate": 0,
+        "rail_origin_exposure_detail_shadow": 0,
+        "rail_origin_exposure_shadow": 0,
+        "rail_origin_reuse": 0,
+        "rail_origin_reuse_air_priority": 0,
+        "rail_origin_reuse_air_priority_shadow": 0,
+        "rail_origin_reuse_cross_cargo": 0,
+        "rail_origin_reuse_fallback": 0,
+        "rail_origin_reuse_freight": 1,
+        "rail_origin_reuse_multiline_match": 0,
+        "rail_origin_reuse_pax": 1,
+        "rail_origin_reuse_search_cap_k": 0,
+        "rail_origin_reuse_search_supersede": 0,
+        "rail_ready_admission_shadow": 0,
+        "rail_ready_readmission": 0,
+        "rail_target_cargo_prefilter": 1,
+        "rail_terrain_factor": 100,
+        "rail_upgrade_failure_memory": 0,
+        "road_finance_gate_shadow_p0": 0,
+        "road_finance_unbias_p0": 0,
+        "road_loading_fix": 0,
+        "road_pax_build": 0,
+        "road_pax_catchment_pct": 86,
+        "road_pax_dwell_days": 6,
+        "road_quote_components_shadow_p0": 0,
+        "road_stop_catchment_houses": 10,
+        "road_time_scaled_cap": 0,
+        "save_full_state": 1,
+        "town_growth": 0,
+        "town_growth_plan_memo": 1,
+        "town_growth_roi_gate": 1,
+        "town_growth_skip_noop": 0,
+        "unprofitable_streak_threshold": 3,
+        "v126_air_served_town_reuse": 0,
+        "v127_idle_cash_road_regen": 0,
+        "v129_rail_astar_check": 0,
+        "v129_rail_astar_exact_opt": 1,
+        "v131_rail_repair": 0,
+        "v131_town_clearance": 0,
+        "v133_air_build_retry": 0,
+        "v134_air_p2p_saturated_hub": 0,
+        "v139_feeder_bus": 0,
+        "v139_feeder_scan_only": 0,
+        "v88_all_inputs": 0,
+        "v88_chain_force": 0,
+        "v88_chain_step1_finance": 0,
+        "v88_goods_chain": 0,
+        "v88_step2_cash_reserve": 0,
+        "v88_step2_plan_immediate": 0,
+        "v88_step2_rail_prio": 0,
+        "v89_rail_search_throughput": 1,
+        "v90_fast_pathfinder": 1,
+        "v90_pathfinder_check": 0,
+        "v91_astar_weight_pct": 120,
+        "v92_air_service_choice": 0,
+        "v93_air_demand_production": 0,
+        "v93_airport_no_pop_floor": 1,
+        "v94_air_site_check": 0,
+        "v94_air_site_list": 1,
+        "v95_air_post73_probe": 0
+      },
+      "effective": {
+        "abandon_cooldown_days": 365,
+        "air0310_hub_snapshot": 1,
+        "air0310_incremental_publish": 1,
+        "air0310_one_two_fused": 1,
+        "air0310_site_validity_cache": 1,
+        "air0310_v96_shortcut_lean": 1,
+        "air_batch_town_reserve": 0,
+        "air_bfail_dispose_orphan": 0,
+        "air_bfail_precheck_shadow": 0,
+        "air_c121_physical_payment_days": 0,
+        "air_early_slot": 1,
+        "air_early_slot_bonus_pct": 50,
+        "air_early_slot_min_pop": 1000,
+        "air_early_slot_target_towns": 6,
+        "air_efficiency_batch": 0,
+        "air_efficiency_dedupe": 0,
+        "air_efficiency_preflight": 0,
+        "air_efficiency_reselect": 0,
+        "air_fleet_cadence_days": 7,
+        "air_fleet_cooldown_prefilter": 1,
+        "air_full_load": 0,
+        "air_hub_max_routes": 3,
+        "air_hubhub_marginal": 1,
+        "air_joined_stop_limit": 2,
+        "air_p0_learned_revenue": 0,
+        "air_p0_margin_probe": 0,
+        "air_p0_opportunity_probe": 0,
+        "air_p0_second_step_marginal": 0,
+        "air_pax_revenue_calibration_pct": 104,
+        "air_route_plane_selection": 1,
+        "air_site_cost_margin_pct": 0,
+        "air_site_cost_quote": 0,
+        "air_site_min_catchment": 1,
+        "air_site_quote_keep_legacy_margin": 0,
+        "air_site_stale_shadow": 0,
+        "b9_air_catchment_probe": 0,
+        "b9_air_demand_shadow": 0,
+        "c100_air_trip_physical": 0,
+        "c101_air_physical_engine_choice": 0,
+        "c103_air_c100_rank_replay": 0,
+        "c104_air_c100_compare_probe": 0,
+        "c105_air_replay_choice_physical_economics": 0,
+        "c106_air_marginal_physical_engine_choice": 0,
+        "c108_air_onestep_physical_economics": 0,
+        "c109_air_speed_elasticity_physical": 0,
+        "c110_air_engine_calibration_choice_only": 0,
+        "c111_air_c100_decision_shadow": 0,
+        "c112_air_speed_elasticity_e75_physical": 0,
+        "c113_air_c100_full_decision_shadow": 0,
+        "c114_air_c100_full_replay": 0,
+        "c115_air_c100_capital_replay": 1,
+        "c116_air_marginal_capital": 0,
+        "c116_air_project_probe": 0,
+        "c117_air_throughput_probe": 0,
+        "c118_air_coverage_probe": 0,
+        "c118_air_territorial_expansion": 0,
+        "c119_air_income_model": 0,
+        "c120_air_territorial_ranking": 0,
+        "c121_aaa_line": 0,
+        "c121_air_defensive_floor": 0,
+        "c121_air_economics": 1,
+        "c121_air_economics_shadow": 0,
+        "c121_air_engine_realization": 0,
+        "c121_air_engine_replay_shadow": 0,
+        "c121_air_first_growth_late_days": 0,
+        "c121_air_first_growth_min_days": 0,
+        "c121_air_first_growth_min_wait_pct": 0,
+        "c121_air_first_growth_phase_years": 0,
+        "c121_air_first_live_air_priority": 0,
+        "c121_air_first_live_growth": 1,
+        "c121_air_first_live_growth_phase_years": 4,
+        "c121_air_first_live_shadow": 0,
+        "c121_air_first_observation_growth": 0,
+        "c121_air_first_year_rail_prep": 1,
+        "c121_air_game_engine": 1,
+        "c121_air_initial_project_economics": 0,
+        "c121_air_observation_growth": 0,
+        "c121_air_one_or_two_planes": 1,
+        "c121_air_pressure_probe": 0,
+        "c121_air_project_realization": 0,
+        "c121_air_project_realization_adaptive": 1,
+        "c121_air_target_limit": 0,
+        "c121_air_visible_competition": 0,
+        "c121_air_visible_fused": 0,
+        "c121_air_winner_fusion": 1,
+        "c121_catalog_air_first_year": 1,
+        "c121_catalog_incremental": 1,
+        "c121_exact_prod_invalidation": 0,
+        "c121_exact_prod_shadow": 0,
+        "c121_flat_bootstrap": 1,
+        "c121_fleet_stock_growth": 0,
+        "c121_kdec_cold_exempt": 0,
+        "c121_kdec_cold_shadow": 0,
+        "c121_kpass_air_continue": 0,
+        "c121_kpass_shadow": 0,
+        "c121_production_only_replay_shadow": 0,
+        "c121_quote_refresh_delta_shadow": 0,
+        "c121_station_flux_probe": 0,
+        "c121_territory_first": 0,
+        "c122_air_regime_priority": 0,
+        "c122_air_regime_shadow": 0,
+        "c122_air_threat_probe": 0,
+        "c122_air_threat_retry": 0,
+        "c67_terrain_map": 0,
+        "c67_water_exposure_probe": 0,
+        "c69_decision_bottleneck": 1,
+        "c69_fleet_demand_batch": 0,
+        "c69_fleet_exempt": 1,
+        "c70_mode_calibration": 1,
+        "c72_plane_choice": 0,
+        "c75_kpass_bypass": 1,
+        "c75_multi_build": 1,
+        "c76_freight_rotation": 0,
+        "c76_lean_invalidation": 0,
+        "c76_regen_targeted": 1,
+        "c80_air_choice_memo": 0,
+        "c80_air_eval_fast": 0,
+        "c80_air_hub_index": 1,
+        "c80_marginal_floor": 1,
+        "c80_mode_regen": 1,
+        "c80_rail_stock_gate": 0,
+        "c80_rail_stock_worker": 0,
+        "c80_worker_rail": 0,
+        "c80_worker_town": 0,
+        "c82_engine_calibration": 0,
+        "c83_fixes": 0,
+        "c83_local_repair": 0,
+        "c83_preempt_open": 0,
+        "c84_air_target_fleet": 0,
+        "c85_air_equipment_frontier": 0,
+        "c96_air_site_catchment": 1,
+        "c97_air_c69_engine_probe": 0,
+        "c98_air_realized_probe": 0,
+        "c99_air_speed_api_fix": 0,
+        "capital_quote_learning": 0,
+        "catalog_cost_probe": 0,
+        "debug_signs": 1,
+        "decision_log": 0,
+        "exp_air_hub_pair_prefilter": 0,
+        "exp_opcode_exact": 1,
+        "exp_opcode_exact_check": 0,
+        "exp_scheduler_skip_not_due": 0,
+        "fleet_amort_shadow_probe": 0,
+        "homogeneous_preselect": 0,
+        "loan_repay_floor_k": 300,
+        "pathfinder_hard_cap_k": 10,
+        "pathfinder_sleep_ticks": 0,
+        "policy_abandon": 1,
+        "policy_air": 1,
+        "policy_caches": 1,
+        "policy_portfolio": 1,
+        "policy_rail": 1,
+        "policy_road": 1,
+        "policy_vehicle_events": 0,
+        "probe_air_engine_depth": 0,
+        "probe_air_finance_margin": 0,
+        "probe_c121_engine_table": 0,
+        "probe_candidates_rail": 0,
+        "probe_candidates_road": 0,
+        "probe_catalogue": 0,
+        "probe_cost": 0,
+        "probe_event_backlog": 0,
+        "probe_events": 0,
+        "probe_loop_ops": 0,
+        "probe_portfolio": 0,
+        "probe_rail_preastar": 0,
+        "probe_rail_search": 0,
+        "probe_rail_terrain": 0,
+        "probe_scheduler": 0,
+        "probe_select_reject": 0,
+        "probe_span_trace": 0,
+        "probe_vehicle_lost": 0,
+        "project_top_k": 64,
+        "project_top_k_dynamic": 0,
+        "r19_fault_inject": 0,
+        "rail_air_breakpoint_shadow": 0,
+        "rail_cached_proximity_gate": 0,
+        "rail_cooperative_n2": 0,
+        "rail_depot_cost": 0,
+        "rail_economic_preselect": 0,
+        "rail_expand": 0,
+        "rail_failure_audit": 0,
+        "rail_finance_bias_pct": 100,
+        "rail_freight_select_shadow": 0,
+        "rail_freight_trkfail_memory": 0,
+        "rail_geometry_exact_identity": 1,
+        "rail_geometry_guard": 0,
+        "rail_geometry_live_replan": 0,
+        "rail_geometry_pair_memory": 1,
+        "rail_geometry_prefilter": 1,
+        "rail_magic_admission_only": 0,
+        "rail_magic_astar_only": 0,
+        "rail_magic_rank_only": 0,
+        "rail_magic_shadow": 0,
+        "rail_n2_opportunity_gate": 0,
+        "rail_origin_exposure_detail_shadow": 0,
+        "rail_origin_exposure_shadow": 0,
+        "rail_origin_reuse": 0,
+        "rail_origin_reuse_air_priority": 0,
+        "rail_origin_reuse_air_priority_shadow": 0,
+        "rail_origin_reuse_cross_cargo": 0,
+        "rail_origin_reuse_fallback": 0,
+        "rail_origin_reuse_freight": 1,
+        "rail_origin_reuse_multiline_match": 0,
+        "rail_origin_reuse_pax": 1,
+        "rail_origin_reuse_search_cap_k": 0,
+        "rail_origin_reuse_search_supersede": 0,
+        "rail_ready_admission_shadow": 0,
+        "rail_ready_readmission": 0,
+        "rail_target_cargo_prefilter": 1,
+        "rail_terrain_factor": 100,
+        "rail_upgrade_failure_memory": 0,
+        "road_finance_gate_shadow_p0": 0,
+        "road_finance_unbias_p0": 0,
+        "road_loading_fix": 0,
+        "road_pax_build": 0,
+        "road_pax_catchment_pct": 86,
+        "road_pax_dwell_days": 6,
+        "road_quote_components_shadow_p0": 0,
+        "road_stop_catchment_houses": 10,
+        "road_time_scaled_cap": 0,
+        "save_full_state": 1,
+        "town_growth": 0,
+        "town_growth_plan_memo": 1,
+        "town_growth_roi_gate": 1,
+        "town_growth_skip_noop": 0,
+        "unprofitable_streak_threshold": 3,
+        "v126_air_served_town_reuse": 0,
+        "v127_idle_cash_road_regen": 0,
+        "v129_rail_astar_check": 0,
+        "v129_rail_astar_exact_opt": 1,
+        "v131_rail_repair": 0,
+        "v131_town_clearance": 0,
+        "v133_air_build_retry": 0,
+        "v134_air_p2p_saturated_hub": 0,
+        "v139_feeder_bus": 0,
+        "v139_feeder_scan_only": 0,
+        "v88_all_inputs": 0,
+        "v88_chain_force": 0,
+        "v88_chain_step1_finance": 0,
+        "v88_goods_chain": 0,
+        "v88_step2_cash_reserve": 0,
+        "v88_step2_plan_immediate": 0,
+        "v88_step2_rail_prio": 0,
+        "v89_rail_search_throughput": 1,
+        "v90_fast_pathfinder": 1,
+        "v90_pathfinder_check": 0,
+        "v91_astar_weight_pct": 120,
+        "v92_air_service_choice": 0,
+        "v93_air_demand_production": 0,
+        "v93_airport_no_pop_floor": 1,
+        "v94_air_site_check": 0,
+        "v94_air_site_list": 1,
+        "v95_air_post73_probe": 0
+      },
+      "explicit": {
+        "rail_ready_readmission": 0
+      }
+    }
+  },
+  "runtime": {
+    "build_context_files": {
+      "Dockerfile": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+      "requirements-ml.txt": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+      "requirements.txt": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6"
+    },
+    "container_detected": true,
+    "docker_cpus": 10,
+    "docker_image": "openttd-lab:latest",
+    "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+    "docker_image_id_verified": true,
+    "docker_memory": "8g",
+    "docker_memory_swap": "8g",
+    "openttdlab": "0.0.75",
+    "platform": "Linux-7.0.14-linuxkit-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "python_executable": "/usr/local/bin/python3",
+    "runtime_fingerprint_sha256": "c4007c64ec918ef9c06856015c19fbe3494405e29a837ae73a0148cc70d0f3f5"
+  },
+  "schema_version": "1.2.0",
+  "source_bundle": {
+    "file_count": 107,
+    "path": "/work/results/rail_ready_readmission_diag_40x5_20261010_r1_bundle",
+    "sha256": "250223deaebfb849cde5717888fd2b16942de22798c1385158d4a5ad51757ff8"
+  },
+  "sources": {
+    "AAAHogEx": {
+      "file_count": 17,
+      "files": [
+        {
+          "path": "air.nut",
+          "sha256": "3adddad5e8abbc89df95082d4216818c53b021680ceb3ce6c49c8a090003f317",
+          "size": 20035
+        },
+        {
+          "path": "aystar.nut",
+          "sha256": "fb9ad9b2c65e9884953eddc3f3ed7942f8ca1de8e35aa74ef0f3cb38250fb148",
+          "size": 12742
+        },
+        {
+          "path": "estimator.nut",
+          "sha256": "f4fda5d182f5017b4504e0b75c0b871de28be67b6dcbf1a7ab845aa209bfb2a2",
+          "size": 89438
+        },
+        {
+          "path": "info.nut",
+          "sha256": "c41f35b3f2770694f656ac1ca690d3b2ce013b4a9d60279dec7126e158d1bd76",
+          "size": 4756
+        },
+        {
+          "path": "license.txt",
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+          "size": 35147
+        },
+        {
+          "path": "main.nut",
+          "sha256": "a2cc339da071451005d93a8150e21691c93f008e43795be9f802607b34fcb119",
+          "size": 162556
+        },
+        {
+          "path": "pathfinder.nut",
+          "sha256": "7b100fa4470b7ba58f7368bf27147c76b484a79542d84cdcb1d9477b035dde3e",
+          "size": 53972
+        },
+        {
+          "path": "place.nut",
+          "sha256": "55d1ffc01f002c576ceea9ef8098d1b784a01be1290b740284ca0f7bf572e805",
+          "size": 102186
+        },
+        {
+          "path": "railbuilder.nut",
+          "sha256": "6fedc74e82159d8f214e4600509baadba93a3b18fffcc90093f704baa792aea4",
+          "size": 97036
+        },
+        {
+          "path": "road.nut",
+          "sha256": "5b8ed3bef2b76f1a61c4ab326b9b657cf340c551ff188be5c15a14372626db57",
+          "size": 61570
+        },
+        {
+          "path": "roadpathfinder.nut",
+          "sha256": "77e80f0643336bc176333a0d4b909cf2a5fd3030ea45ee550704485334ad18b9",
+          "size": 20117
+        },
+        {
+          "path": "route.nut",
+          "sha256": "48d7276f5422a6091259e57f2cdf4130a56c09e0e49d302ccc8776f5901ab82f",
+          "size": 139804
+        },
+        {
+          "path": "station.nut",
+          "sha256": "893047f94313c3adcb6950cfd24b2ebe3396e63331940e14dc28148e7d2aa307",
+          "size": 156721
+        },
+        {
+          "path": "tile.nut",
+          "sha256": "ed914021bcbab6c2ebc51455f41b366f1595be015b3bd65ae2540092bfd85be8",
+          "size": 44235
+        },
+        {
+          "path": "trainroute.nut",
+          "sha256": "2c008b70ed2812997d35e7482521d3e1e60b555c0920a2466fd02f6e5a4120b2",
+          "size": 127144
+        },
+        {
+          "path": "utils.nut",
+          "sha256": "95150ad1454f8afae44057298c839f65ec0f12a44265d8d61796cdee8e218732",
+          "size": 34375
+        },
+        {
+          "path": "water.nut",
+          "sha256": "7ed187c6b3f3024925f1ed63feb24ae9ecb6f18a8ee0b7b37b2eabf45abd8165",
+          "size": 59944
+        }
+      ],
+      "sha256": "eaec19151d118daad80eddab437180402764e1c919f48904cc22cbf71cb80bc7"
+    },
+    "OpexAI": {
+      "file_count": 71,
+      "files": [
+        {
+          "path": "CLAUDE.md",
+          "sha256": "6953513af16cbef68a437d33705ed265b6bd646433469d8cc3729842829235cb",
+          "size": 13072
+        },
+        {
+          "path": "air_c83_repair.nut",
+          "sha256": "c6336b5778e46683d012fa6004cc9782b975e130eeca5e350a6a9a9fd3021eb4",
+          "size": 5623
+        },
+        {
+          "path": "air_catalog_c121.nut",
+          "sha256": "f2ecf31c87e4d8904c594ee4a1186f2a49c5167411f2bcd4af04d59f4d29a83a",
+          "size": 51247
+        },
+        {
+          "path": "air_construction.nut",
+          "sha256": "1952edb2bc394966e057bd054bb343730edcda0047025dd8e97da343b7e9dbef",
+          "size": 34307
+        },
+        {
+          "path": "air_coverage.nut",
+          "sha256": "9f141fd1a09593d1b60a65e267879a8c7c3738c31eee2d4be1f41a3281b5741b",
+          "size": 49934
+        },
+        {
+          "path": "air_economics_c121.nut",
+          "sha256": "2c25cd1570d01d974e759ae0415065d4669de2992147ff7fbc2e140345b8cebc",
+          "size": 134420
+        },
+        {
+          "path": "air_engine_choice.nut",
+          "sha256": "9e7e8f936fe591f75e08ab64e487a429b160872a9febad8c671de354d2ce424a",
+          "size": 114546
+        },
+        {
+          "path": "air_fleet.nut",
+          "sha256": "b4fd0c8fc5508315525922fe5673a481b3d1546c4a982c2fe24830a25909bcbf",
+          "size": 24284
+        },
+        {
+          "path": "air_flux_probe.nut",
+          "sha256": "9e56932e24d6a1c46d18a02c98501529085ee1fe0a3565440a8543a799a55e51",
+          "size": 6736
+        },
+        {
+          "path": "air_planning.nut",
+          "sha256": "f6395014e3e6ab98737de7eb66f2908c3f474f44a35509bffe4e4aa397686c11",
+          "size": 137365
+        },
+        {
+          "path": "air_recovery.nut",
+          "sha256": "650c2bfdd2dd4973a236dc76342073a7ec55f92b0445687dad3653f8f5db7687",
+          "size": 7411
+        },
+        {
+          "path": "air_route_economics.nut",
+          "sha256": "ea6c0317dec0383553d36c9709466750bfbcfd7f70ebee417e9f93e055ffbdfa",
+          "size": 16835
+        },
+        {
+          "path": "air_sites.nut",
+          "sha256": "8778610d5d38e12f0c2da475b5d0eda96bce507a3b8948d6ac7f92a0d2c7836a",
+          "size": 40462
+        },
+        {
+          "path": "air_town_demand.nut",
+          "sha256": "f8e310abcb3650e396940508eed394422ce8c69ab08c928824f7a64542b67ef3",
+          "size": 6875
+        },
+        {
+          "path": "air_towns.nut",
+          "sha256": "82351648aab3c693c83ca248747583a4ab19390aa445e32988e6aeefa62fbeff",
+          "size": 23786
+        },
+        {
+          "path": "air_trip.nut",
+          "sha256": "cc9d007d1ead5718ec64f4e7ed754c0863990737ce2e5ca03a7e7e855f7bf99b",
+          "size": 8980
+        },
+        {
+          "path": "budget.nut",
+          "sha256": "3cbff4de55170b6a21e54407300460bfcc70061b46aa0960c725c577f016b547",
+          "size": 3362
+        },
+        {
+          "path": "builder_air.nut",
+          "sha256": "8e1a52f3b1db892e9a3897e9b757bb4fcd242b2777e86e909a32c42024cad939",
+          "size": 3369
+        },
+        {
+          "path": "builder_rail.nut",
+          "sha256": "a9be49c12102927bbcab57fe6a718ae1ef34dc6369ec3eeed0631f436fc75c3e",
+          "size": 127073
+        },
+        {
+          "path": "builder_road.nut",
+          "sha256": "b28d7b40fdbf86f3cb232a8d938fd721a14d0d7e1d128a4995e60a31d79b97e2",
+          "size": 61472
+        },
+        {
+          "path": "builder_water.nut",
+          "sha256": "faadefec4c221a1efd4efd2bcaf03ce74b7896bae73ddf367ee2bb9d83afecdf",
+          "size": 32121
+        },
+        {
+          "path": "candidates.nut",
+          "sha256": "585ee87b604759ccbbc4f1c935b0e948993d37d94add23b837ef92609ae93668",
+          "size": 161481
+        },
+        {
+          "path": "capital.nut",
+          "sha256": "0a7139cad91c1febeeb50fff100384a093bab6081d8cd9396b39fe60d1d8f675",
+          "size": 3768
+        },
+        {
+          "path": "capital_quote_learning.nut",
+          "sha256": "3a51fa7c317c7ebcba063f2f6fde667329c8fff03688a10680eb0dad1d67e682",
+          "size": 9065
+        },
+        {
+          "path": "catalog.nut",
+          "sha256": "0d18a6f3e04392bfe9f41ec43d3f012ff334953240a480b76e6584663f0fe271",
+          "size": 53919
+        },
+        {
+          "path": "economy.nut",
+          "sha256": "4094c4c5a3f5f81802e8b31c5652cb6c5fa4588474ea00aa177abdb8716d6cb8",
+          "size": 49882
+        },
+        {
+          "path": "event_handlers.nut",
+          "sha256": "02ddb803e4e09c52ee208680cf618797b3e5aa6735df11cbb9ff133a7242b04e",
+          "size": 34990
+        },
+        {
+          "path": "events.nut",
+          "sha256": "2d74e8da4488911dccfa256152e6370e96aa6704740ac7082690325c6333d856",
+          "size": 19207
+        },
+        {
+          "path": "feeder_bus.nut",
+          "sha256": "86fd90a6e6a57f3ce424a8414c8e8fab3894ecc766fdf3abbba60f764fe8a0d2",
+          "size": 50652
+        },
+        {
+          "path": "globals_post.nut",
+          "sha256": "28267da8f2b5f8f9eeb48b81a339cac56a0c544284cd0604d8a9e3ad0ac0a340",
+          "size": 11456
+        },
+        {
+          "path": "globals_pre.nut",
+          "sha256": "69edc9e6be4ee7c5bf569838590dac6c9310834d3d6df0b8dc6a87420fdddca6",
+          "size": 61940
+        },
+        {
+          "path": "info.nut",
+          "sha256": "78b0aba6bc368863484efb9eacc05e09fc913ef4b7217ba4cc0562d0d0c185fe",
+          "size": 90364
+        },
+        {
+          "path": "ledgers.nut",
+          "sha256": "4ec1b928b9edca89d4091373487fb3480b384c2b1145b608fa2d70fea56fb06b",
+          "size": 70825
+        },
+        {
+          "path": "lines.nut",
+          "sha256": "de18a6bcc0fc8c49d00b877c7bfa5bda34fdcae1bc1a48b12e49c22fa693b776",
+          "size": 17025
+        },
+        {
+          "path": "main.nut",
+          "sha256": "360d85dfa2843b6c788dd0a24c1d7d45cc1dfa8e3249206efa776c6d5f73c8c0",
+          "size": 37751
+        },
+        {
+          "path": "opcode_exact.nut",
+          "sha256": "19bb9b4fc950ad5f6c4bae9f2f22e22138a46da09eea0de828366cbb1db2e39b",
+          "size": 38685
+        },
+        {
+          "path": "orchestrator.nut",
+          "sha256": "4f3f4bf90ca70ed89b826ba1aa2d13a650472923cccb360e15361a46ef13a009",
+          "size": 58927
+        },
+        {
+          "path": "pathfinder_v90/aystar.nut",
+          "sha256": "90d917d78575d84715c91d032c6e2a6059fe6f921706c3d401fa21fbfa1e23de",
+          "size": 9750
+        },
+        {
+          "path": "pathfinder_v90/binary_heap.nut",
+          "sha256": "ed028fd2af50a8ef906e1716a23c88babc1aeb86b2aba45f7754702d82c4d5c2",
+          "size": 3194
+        },
+        {
+          "path": "pathfinder_v90/rail.nut",
+          "sha256": "ccff93e69b4bb0473efab6fd667e84986b4cc420e336470b31c7e3b231c515d0",
+          "size": 29337
+        },
+        {
+          "path": "pathfinder_v90/v129.nut",
+          "sha256": "f4d24504a777c173ccea97ef094ce668aafbcd5215ee94b965f9a04395db4f85",
+          "size": 23498
+        },
+        {
+          "path": "persist.nut",
+          "sha256": "6b8674846a7697acdf6dfb5a268abe262fd0081cdcdd2f00f6ad31282d8d087c",
+          "size": 49828
+        },
+        {
+          "path": "probes.nut",
+          "sha256": "547b0040deab0c95ae1eb6996991061adf18ecf37d81e0a99a326729b2864b52",
+          "size": 122611
+        },
+        {
+          "path": "projects.nut",
+          "sha256": "e90d1c4e8c82c3dbd1d816bc6fbcca2e33b2a8c31b3a3ef2e5b330ba73f0373b",
+          "size": 33602
+        },
+        {
+          "path": "projects_builders.nut",
+          "sha256": "9440442e7b14d9aa8238a2c31173c906a925e52d06817136003686168c139073",
+          "size": 25652
+        },
+        {
+          "path": "projects_diagnostics.nut",
+          "sha256": "fcb7452412d0f404e54a76b6645d9c87cc2da32a57dbb4d1d751d8d30baa3013",
+          "size": 18277
+        },
+        {
+          "path": "projects_finance.nut",
+          "sha256": "4ddba8e84c92747733f587fc63e8001ee0763b3c46c79c039f6fe1ade5af3517",
+          "size": 20207
+        },
+        {
+          "path": "projects_generation.nut",
+          "sha256": "5daa30905e66931de3634f434b55127dcb19338b0848cde1695f9aa8525b1d46",
+          "size": 34144
+        },
+        {
+          "path": "projects_models.nut",
+          "sha256": "79690f2fbdcfe3826e80b4688489e4608d8d9aa7ada51500a1ee90e433900eee",
+          "size": 15524
+        },
+        {
+          "path": "projects_rank_log.nut",
+          "sha256": "8a86b0e124e30210aa9d8344f5ee4084311119227b9cb1d102593ed311a559a6",
+          "size": 6178
+        },
+        {
+          "path": "projects_selection.nut",
+          "sha256": "5aba22e28a6995f6a29419b3409f66bffe7932ac6adeef2fb76b63f058e7c7ba",
+          "size": 108061
+        },
+        {
+          "path": "projects_update.nut",
+          "sha256": "b5b0cdb43862777d5c9df107b70a455535c6caf8fcdfdd4d496a063e5ae697d7",
+          "size": 22803
+        },
+        {
+          "path": "rail_preastar_probe.nut",
+          "sha256": "348bb406b062715de99c1729d4912b9581b47860acaf07228a6b3b9a37052de9",
+          "size": 6696
+        },
+        {
+          "path": "rail_prep_c121.nut",
+          "sha256": "bfaaf95a2cf91df6c883911dd1a3231e81c2c9e1ba322269528f963e403a36cf",
+          "size": 12229
+        },
+        {
+          "path": "scheduler.nut",
+          "sha256": "196a736fde9f4ab6086763454db345cd45c3ade8e6786806b7f87be94b4a619d",
+          "size": 25171
+        },
+        {
+          "path": "scheduler_tasks.nut",
+          "sha256": "489b7a7f4c6ef8e8c0f5b9083e81945a8eb5ca3aa1c411d475e28c73c1e87bbd",
+          "size": 56952
+        },
+        {
+          "path": "selection_diagnostics.nut",
+          "sha256": "0e1b8bdc927e0b10398cf8eee928493194eecd92868ab8a95e59762d9753e175",
+          "size": 7835
+        },
+        {
+          "path": "selftests.nut",
+          "sha256": "9261e83c53feaabb2e75a90e8fad3ffa85e9d0fe254ebb9379e2715dc28e2a38",
+          "size": 25472
+        },
+        {
+          "path": "settings.nut",
+          "sha256": "eb2ad4f24319f8659204be2e6ebac7e684e98f98179764df6d85b7360d96be8c",
+          "size": 39750
+        },
+        {
+          "path": "spatial.nut",
+          "sha256": "569a416ac407d4b6a7f244f61b78d475c571dfd0cf3bb096aefc75b9a3113383",
+          "size": 2212
+        },
+        {
+          "path": "task_air.nut",
+          "sha256": "71f21f3a6a5cf94348dcfb2ad0579cb5052cc203f82f4b65d9ebec8c81a6e473",
+          "size": 86682
+        },
+        {
+          "path": "task_projects.nut",
+          "sha256": "335260d7fa862c8e0a429b2dfb87c03667cff541b902509ffd7dbb502d9df9fc",
+          "size": 134313
+        },
+        {
+          "path": "task_rail.nut",
+          "sha256": "945a33d993a2b23db69a36e03799977abc55a3b702032ebc18cfebc9a1058dfc",
+          "size": 174620
+        },
+        {
+          "path": "task_report.nut",
+          "sha256": "d4da5550abaca3b808952aecb76d63a4924925f76a79806dd5d4cf4cbea3748c",
+          "size": 80031
+        },
+        {
+          "path": "task_road.nut",
+          "sha256": "761c731cfad352e8f809b53462f1cd5ea7d540f9a644382b3387cf7252d133a4",
+          "size": 31766
+        },
+        {
+          "path": "task_terrain.nut",
+          "sha256": "5a3adcc0c915ba82191413feb829130b293fcd816512a14294fe8c2480884839",
+          "size": 12557
+        },
+        {
+          "path": "task_town.nut",
+          "sha256": "19c2a9ed716ac8f6e8fab6b0774b9be422f7ab79bd6828c855d9ffadb866c6bf",
+          "size": 13874
+        },
+        {
+          "path": "task_water.nut",
+          "sha256": "de524ac1d1a93acb7f6085afe8bb0dd6d8730b652d693386f5c93c034cd7c540",
+          "size": 7114
+        },
+        {
+          "path": "tension.nut",
+          "sha256": "d264cca09599c0f0f9d7cc8aea0a8b1c7c0fe489001ef4cdca475f134731c6e2",
+          "size": 14324
+        },
+        {
+          "path": "terrain_map.nut",
+          "sha256": "971b0a8df8ca5b85394a16da371d32c17c44adca5646669f4e3c2081384ca87b",
+          "size": 13025
+        },
+        {
+          "path": "water_graph.nut",
+          "sha256": "5a05161e2b900944c63841b0f870c897e12cfc9f31f664ee2ef202cbdab08569",
+          "size": 17710
+        }
+      ],
+      "sha256": "6d8f79c5547ef2005b038e23a3250c2ca3cc3a94b6ff51e12d6cb50827448581"
+    },
+    "ai_libraries": {
+      "file_count": 4,
+      "files": [
+        {
+          "path": "4752412a-Graph.AyStar-4.tar",
+          "sha256": "cfc09cdd5877800d57e490832b65cf028db16aef4f1906eb1d625f908ebc49f1",
+          "size": 40960
+        },
+        {
+          "path": "5046524c-Pathfinder.Rail-1.tar",
+          "sha256": "e3ab05b1811c1a57abb4219480f0fffa885efff6be42691c836ec144ab7f8b13",
+          "size": 40960
+        },
+        {
+          "path": "51554248-Queue.BinaryHeap-1.tar",
+          "sha256": "a83eb5002b1246330dfc467dbd1076687d227156a697cc140f6d04515cf3bb67",
+          "size": 30720
+        },
+        {
+          "path": "51554648-Queue.FibonacciHeap-3.tar",
+          "sha256": "c3c80ad59a0cf43b67a7d769484ba10f316b7a0b4a83a28efe5ce82e96066c9b",
+          "size": 30720
+        }
+      ],
+      "sha256": "c6be0dd91e4543c7f26a7c4a832c754931a2f338db9d7c2021ccbb85db244f41"
+    },
+    "harness": {
+      "file_count": 15,
+      "files": [
+        {
+          "path": "Dockerfile",
+          "sha256": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+          "size": 1249
+        },
+        {
+          "path": "requirements-ml.txt",
+          "sha256": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+          "size": 34
+        },
+        {
+          "path": "requirements.txt",
+          "sha256": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6",
+          "size": 64
+        },
+        {
+          "path": "sweeps/bench_1v1_5y_20seeds.py",
+          "sha256": "d086f901c637c2e1f1d1b96b414a3ca8e0e4c33e41d64b71a1c4f78ba8f97ddf",
+          "size": 145683
+        },
+        {
+          "path": "sweeps/bench_v2.py",
+          "sha256": "4aaa3bf7b092e09f770e569e283bd84c1ad6eefe339177f4d17e6f4f96bcc660",
+          "size": 53027
+        },
+        {
+          "path": "sweeps/c83_reaction.py",
+          "sha256": "62f3e7f41668af482435a9c1847a9d5d7d9a9fa14d1097eb72397bf9e7e0f920",
+          "size": 2794
+        },
+        {
+          "path": "sweeps/campaign_freeze.py",
+          "sha256": "3cfa9e0cf0b8ebf9fc0e2807bb929164aeeb6767a327ac150d2a8426876a7b50",
+          "size": 21622
+        },
+        {
+          "path": "sweeps/fixtures/c66_control_fixture_15_3.json",
+          "sha256": "418c4a330dad5db6785e391c15353e615b6f3c3e6018664c7e2dc3f01ff5407f",
+          "size": 831460
+        },
+        {
+          "path": "sweeps/frozen_harness.py",
+          "sha256": "b60d9b5a30a5b80cf7c8b7f9e80b5c449827bace8586e74d2132b8b805bfaaf9",
+          "size": 5808
+        },
+        {
+          "path": "sweeps/game_health.py",
+          "sha256": "058045a1fcf5c8143d14bfd2775d79c3e244c9f92b58825d2874a98ca41b1555",
+          "size": 28546
+        },
+        {
+          "path": "sweeps/paired_statistics.py",
+          "sha256": "b86de7e3238332b02845e83a036e0fc03f90dde4b4b81d0ef1a6c83521311080",
+          "size": 4231
+        },
+        {
+          "path": "sweeps/physical_counters.py",
+          "sha256": "aeb06fe168b2d3f99c0e1085d2895052d0101d53c4f3f50011de17b5e2d07873",
+          "size": 20540
+        },
+        {
+          "path": "sweeps/run_c66_reference.py",
+          "sha256": "292eed32ed1a291140c75e588ab8b3bc5151c3dea1c92286f1820afa1edecf72",
+          "size": 10792
+        },
+        {
+          "path": "sweeps/savegame_archive.py",
+          "sha256": "19ee3c3e85cfc0d678ddd7e73da91358514681c25de63bb1202371e79389664a",
+          "size": 1013
+        },
+        {
+          "path": "sweeps/station_supply.py",
+          "sha256": "486491eb9d22a53365e3fa9a67ae666a5b84e97d2418a7966e27dabd5652b515",
+          "size": 6645
+        }
+      ],
+      "sha256": "a9d71dfb8192dcc0426b204245329c05394ade066fd1de0e91db8516c91b0a35"
+    }
+  },
+  "versions": {
+    "opengfx": "7.1",
+    "openttd": "15.3",
+    "openttdlab": "0.0.75"
+  }
+}

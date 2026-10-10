@@ -60,6 +60,7 @@ from bench_v2 import (
 )
 from paired_statistics import (wilcoxon_signed_rank_statistic, exact_wilcoxon_signed_rank_p, bootstrap_mean_ci)
 from physical_counters import decode_vehicles, decode_stations
+from rail_budget_signs import rail_budget_sign_metrics
 from c83_reaction import parse_c83_reactions, parse_c83_repairs
 from game_health import (
     DEFAULT_ENGINE_TIMEOUT_SEC,
@@ -142,6 +143,7 @@ LIBRARY_SPECS = (
 
 CAMPAIGN_HARNESS_FILES = (
     "sweeps/savegame_archive.py",
+    "sweeps/rail_budget_signs.py",
     "sweeps/station_supply.py",
     "sweeps/bench_1v1_5y_20seeds.py",
     "sweeps/c83_reaction.py",
@@ -986,6 +988,7 @@ def extract_line_telemetry(chunks, owner):
                 "destination_town": ordered_town_ids[1] if len(ordered_town_ids) > 1 else None,
                 "endpoint_towns": list(canonical_town_ids),
                 "vehicle_ids": [],
+                "vehicle_financials": [],
                 "unitnumbers": [],
                 "order_list_ids": [],
                 "vehicles": 0,
@@ -1005,6 +1008,14 @@ def extract_line_telemetry(chunks, owner):
             line["capacity_by_cargo"][str(cargo)] += capacity
         raw_this = common.get("profit_this_year")
         raw_last = common.get("profit_last_year")
+        line["vehicle_financials"].append({
+            "vehicle_id": vehicle_id,
+            "profit_this_year_gbp": round(raw_this / PROFIT_RAW_UNITS_PER_GBP, 6)
+                if isinstance(raw_this, (int, float)) else None,
+            "profit_last_year_gbp": round(raw_last / PROFIT_RAW_UNITS_PER_GBP, 6)
+                if isinstance(raw_last, (int, float)) else None,
+            "vehicle_value": detail.get("consist_value"),
+        })
         if isinstance(raw_this, (int, float)):
             line["profit_this_year_gbp"] += raw_this / PROFIT_RAW_UNITS_PER_GBP
         if isinstance(raw_last, (int, float)):
@@ -1074,6 +1085,7 @@ def build_line_telemetry_report(rows):
         "observed_fields": [
             "mode", "station_ids", "town_ids", "vehicles", "capacity_by_cargo",
             "profit_this_year_gbp", "profit_last_year_gbp", "vehicle_value",
+            "vehicle_financials.{vehicle_id,profit_this_year_gbp,profit_last_year_gbp,vehicle_value}",
             "endpoint_cargo_stats.airport.{tile,width,height,type,layout,rotation}",
         ],
         "unavailable_fields": ["revenue", "running_cost"],
@@ -1156,6 +1168,13 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "air_capacities_by_cargo": air_capacities_by_cargo if vehs_valid else None,
         "air_passenger_capacity": air_passenger_capacity,
         "air_vehicle_book_value": air_vehicle_book_value if vehs_valid else None,
+        # OpexAI publie deja ces postes dans les panneaux de jeu IG/OA/OB/RB/OM.
+        # Decodage hote exclusivement : aucune sonde, commande ni opcode IA.
+        # Leur somme reste une borne PARTIELLE, jamais le CPU total de la partie.
+        **(bench_v2.observed_opcode_stats(chunks) if owner == 0 else {}),
+        # Post-traitement exclusivement : panneaux annuels OS/OP deja emis par
+        # OpexAI, sans flag de sonde ni temps VM additionnel dans l'IA.
+        **(rail_budget_sign_metrics(chunks, target_owner=owner) if owner == 0 else {}),
         "fleet_status": veh_dec["fleet_status"] if vehs_valid else None,
         "unclassified_vehicles": len(veh_dec["unclassified_entries"]),
         "n_stations": stn_dec["total_stations"] if stnn_valid else None,
@@ -2969,6 +2988,8 @@ def selftest():
     assert line["vehicles"] == 2
     assert line["capacity_by_cargo"] == {"0": 180}
     assert line["profit_this_year_gbp"] == 300.0
+    assert [v["profit_this_year_gbp"] for v in line["vehicle_financials"]] == [100.0, 200.0]
+    assert [v["vehicle_id"] for v in line["vehicle_financials"]] == [0, 1]
     assert line["ordered_station_tiles"] == [1000, 2000]
     assert line["endpoint_cargo_stats"] == [
         {
