@@ -49,6 +49,13 @@ AIR_COST_PROBE <- false;
 /* Symetrique route de RAIL_COST_PROBE/AIR_COST_PROBE, jamais construit avant (docs/taches.md,
  * retrouve le 2026-09-08). Panneau RP| par tentative, reussie ou non (RC| deja pris). */
 ROAD_COST_PROBE <- false;
+/* P0 ROAD : declarations indispensables avant OpexLoadSettings().
+ * Le default 0 preserve le financement et la selection historiques. */
+ROAD_FINANCE_UNBIAS_P0 <- false;
+ROAD_FINANCE_GATE_SHADOW_P0 <- false;
+/* Diagnostic ROAD passif : le slot doit exister avant OpexLoadSettings.
+ * OFF = aucune mesure ni modification des devis/constructions. */
+ROAD_QUOTE_COMPONENTS_SHADOW_P0 <- false;
 /* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
 AIR_JOINED_STOPS <- false;
 /* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile

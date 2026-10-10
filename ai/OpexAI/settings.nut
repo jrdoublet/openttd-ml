@@ -80,6 +80,9 @@ function OpexLoadSettings()
   COMPLEX_CARGO = polPort;
   CAPITAL_CALIBRATION = polPort;
   CAPITAL_QUOTE_LEARNING = AIController.GetSetting("capital_quote_learning") != 0;
+  ROAD_FINANCE_UNBIAS_P0 = AIController.GetSetting("road_finance_unbias_p0") != 0;
+  ROAD_FINANCE_GATE_SHADOW_P0 = AIController.GetSetting("road_finance_gate_shadow_p0") != 0;
+  ROAD_QUOTE_COMPONENTS_SHADOW_P0 = AIController.GetSetting("road_quote_components_shadow_p0") != 0;
   DYNAMIC_CASH_RESERVE = polPort;
   C53_ORDER_NONSTOP = polPort;
   EVENT_CATALOG_INVALIDATE = polPort;

@@ -1202,6 +1202,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   local kDecData = null;
   local c69Affordable = null;
   local airPairBest = {};
+  /* Mesure pure : les deux prix ROAD sur les MEMES candidats, avant
+   * admission. Ne constitue pas un contrefactuel de construction. */
+  local roadFinanceExposure = (ROAD_FINANCE_GATE_SHADOW_P0 && realSelection)
+      ? { observed = 0, legacy = 0, physical = 0, newlyFundable = 0,
+          unlockedProjects = [] } : null;
   if (C69_TRACK_BUILDS) {
     kDecData = OpexC69ComputeKDec();
     kDec = kDecData.K_dec;
@@ -1214,6 +1219,27 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     local slotMark = null;
     local insertMark = null;
     local financeCapital = OpexProjectFinanceCapital(project);
+    if (roadFinanceExposure != null && CAPITAL_CALIBRATION && !CAPITAL_QUOTE_LEARNING
+        && project.mode == "road" && project.capital > 0) {
+      local actualQuote = (("capitalIsActual" in project) && project.capitalIsActual)
+          || (("payload" in project) && project.payload != null
+              && ("capitalIsActual" in project.payload) && project.payload.capitalIsActual);
+      if (!actualQuote) {
+        local complement = project.budgetCapital - project.capital;
+        if (complement < 0) complement = 0;
+        local legacyNeed = ((project.capital * 121) / 100) + complement;
+        local physicalNeed = project.capital + complement;
+        roadFinanceExposure.observed++;
+        if (legacyNeed <= capitalBudget) roadFinanceExposure.legacy++;
+        if (physicalNeed <= capitalBudget) roadFinanceExposure.physical++;
+        if (legacyNeed > capitalBudget && physicalNeed <= capitalBudget) {
+          roadFinanceExposure.newlyFundable++;
+          roadFinanceExposure.unlockedProjects.append({
+            project = project, need121 = legacyNeed, need100 = physicalNeed
+          });
+        }
+      }
+    }
     OpexC116ObserveAirPortfolioOpportunity(c116Snapshot, project, financeCapital, capitalBudget);
     local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
         && (("c118NewTowns") in project) && project.c118NewTowns > 0;
@@ -1420,6 +1446,18 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     }
   }
   local spEpilogue = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.epilogue") : null;
+  if (roadFinanceExposure != null && roadFinanceExposure.observed > 0) {
+    local roadSelected = 0;
+    foreach (p in affordable) if (p.mode == "road") roadSelected++;
+    AILog.Info("ROAD_FINANCE_P0 date=" + AIDate.GetCurrentDate()
+        + " variant=" + (ROAD_FINANCE_UNBIAS_P0 ? 1 : 0)
+        + " budget=" + capitalBudget
+        + " observed=" + roadFinanceExposure.observed
+        + " eligible121=" + roadFinanceExposure.legacy
+        + " eligible100=" + roadFinanceExposure.physical
+        + " unlocked=" + roadFinanceExposure.newlyFundable
+        + " selected=" + roadSelected);
+  }
   if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
   OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
@@ -1446,6 +1484,18 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     OpexC73RecordSelection(toSel, aff, sel);
   }
   OpexC120FinalizeSelection(affordable, capitalBudget);
+  if (roadFinanceExposure != null) {
+    foreach (u in roadFinanceExposure.unlockedProjects) {
+      local chosen = 0;
+      foreach (p in affordable) if (p == u.project) { chosen = 1; break; }
+      AILog.Info("ROAD_FINANCE_UNLOCK_P0 date=" + AIDate.GetCurrentDate()
+          + " variant=" + (ROAD_FINANCE_UNBIAS_P0 ? 1 : 0)
+          + " src=" + u.project.src + " dst=" + u.project.dst
+          + " kind=" + u.project.kind + " cargo=" + u.project.cargo
+          + " budget=" + capitalBudget + " need121=" + u.need121
+          + " need100=" + u.need100 + " in_top=" + chosen);
+    }
+  }
   if (RAIL_FREIGHT_SELECT_SHADOW && realSelection)
     OpexRailFreightSelectShadow(alternatives, affordable, capitalBudget, floorProfit);
   OpexC121RecordPressureSnapshot(defensiveSlotState);

@@ -84,6 +84,30 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "road_finance_unbias_p0",
+      description = "P0 isolated ROAD finance experiment: replace 121% by 100% of unchanged physical quote, preserving reserves; 0 = historical (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "road_finance_gate_shadow_p0",
+      description = "P0 passive ROAD finance gate comparison 121% vs 100% on identical generated projects; log only, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "road_quote_components_shadow_p0",
+      description = "P0 passive ROAD physical command-tariff quote and AIAccounting phase costs after siting; log only, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "probe_scheduler",
       description = "Enable scheduler opcode, latency and idle-tour diagnostic ledgers (C41, C39, V95); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

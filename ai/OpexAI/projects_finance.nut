@@ -17,6 +17,10 @@ function OpexProjectFinanceCapital(project)
   else if (project.mode == "road") biasPct = 121;
   else return financeCapital;
 
+  /* P0 isolation: only ROAD's funding-side multiplier changes. Economic
+   * project.capital, budgetCapital, reserves and physical build stay intact. */
+  if (project.mode == "road" && ROAD_FINANCE_UNBIAS_P0) biasPct = 100;
+
   local capital = ("capital" in project) ? project.capital : 0;
   local modelCapital = capital;
   if (capital <= 0) return financeCapital;
