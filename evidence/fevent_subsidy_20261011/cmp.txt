@@ -1,0 +1,2 @@
+setting0 subsidy_spans 49 sum_op 13659550 max 2555833 ge100k 9 windows_ge10k 15 / 97
+setting1 subsidy_spans 50 sum_op 16336 max 1471 ge100k 0 windows_ge10k 0 / 104

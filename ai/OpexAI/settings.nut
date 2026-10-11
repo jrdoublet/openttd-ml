@@ -648,6 +648,7 @@ function OpexLoadSettings()
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;
+  SUBSIDY_RESELECT_IF_PURGED = AIController.GetSetting("subsidy_reselect_if_purged") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

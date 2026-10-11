@@ -1934,6 +1934,16 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "subsidy_reselect_if_purged",
+      description = "F-EVENT-BACKLOG-01: only reselect projects on subsidy expiration/award if _purgeSubsidyFromProjects actually removed candidates; 1 = conditional reselect, 0 = unconditional reselect (historical); default 1 since 2026-10-11",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

@@ -1,0 +1,71 @@
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] Your script made an error: the index 'BuildDepot' does not exist
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] 
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] CALLSTACK
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [BuildDestDepot()] aaahogex.tar/aaahogex/route.nut line [2056]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [DoBuild()] aaahogex.tar/aaahogex/route.nut line [4012]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [DoBuild()] aaahogex.tar/aaahogex/water.nut line [533]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [Build()] aaahogex.tar/aaahogex/route.nut line [3247]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [Build()] aaahogex.tar/aaahogex/route.nut line [3536]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [_ScanPlaces()] aaahogex.tar/aaahogex/main.nut line [958]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [ScanPlaces()] aaahogex.tar/aaahogex/main.nut line [860]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [DoStep()] aaahogex.tar/aaahogex/main.nut line [850]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] *FUNCTION [Start()] aaahogex.tar/aaahogex/main.nut line [758]
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] 
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] LOCALS
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [execMode] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [path] NULL
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [route] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [execMode] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [srcStationFactory] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [list] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [isNearestForPair] true
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [destStationFactory] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [testMode] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [engineSet] TABLE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [infrastractureTypes] ARRAY
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [distance] 17
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [vehicleType] 2
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [routeClass] CLASS
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [sourceRoute] NULL
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [sourceRouteId] NULL
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [production] 117
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [isWaitingDestRoute] false
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [isWaitingProduction] false
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [noDepot] false
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [path] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [buildPathBeforeStation] false
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [notUseCompoundRoute] false
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [start] 722047
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [distance] 17
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [pendingToDoPostBuild] false
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [isTransfer] true
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [needsToMeetDemand] true
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [vehicleType] 2
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [builder] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [t] TABLE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [builtAirOfInfrastructureMaintenance] false
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [buildingStartDate] 721576
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [endDate] 721576
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [totalNeeds] 0
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [pendingPlans] ARRAY
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [dirtyPlaces] TABLE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [searchDays] 78
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [minValue] 104
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [startDate] 721576
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [aiTestMode] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [currentLoanAmount] 0
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [d] 340
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [pred] 210
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [maxDistance] 256
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [loadTypes] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [newGrfList] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] [1] [S] [this] INSTANCE
+[2026-10-11 20:06:25] dbg: [script:0] The script died unexpectedly.
