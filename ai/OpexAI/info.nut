@@ -2005,6 +2005,26 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "v141_catalog_incremental",
+      description = "V141: during AIR0310 partial publish, refresh already-published air projects in place instead of OpexProjectFromAir; 1 = on (default, adopted 11/10), 0 = full reconvert",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v141_catalog_incremental_check",
+      description = "V141 control: under probe_events, also run OpexProjectFromAir on published air and log V141_CHECK identical/diff; 1 = on, 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

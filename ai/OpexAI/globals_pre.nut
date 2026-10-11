@@ -823,6 +823,13 @@ AIR0310_HUB_SNAPSHOT <- false;
  * chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
 AIR0310_SITE_VALIDITY_CACHE <- false;
 AIR0310_SITE_VALIDITY_STATE <- null;
+/* V141 : publication partielle AIR sans reconvertir les projets deja publies.
+ * 0 = OpexProjectFromAir sur tout le lot (comportement historique). Le
+ * chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
+V141_CATALOG_INCREMENTAL <- false;
+/* V141 controle : sous probe_events, recalcule aussi FromAir et journalise
+ * V141_CHECK. 0 = inerte. Barre par C121_CATALOG_INCREMENTAL. */
+V141_CATALOG_INCREMENTAL_CHECK <- false;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */

@@ -648,6 +648,10 @@ function OpexLoadSettings()
   AIR0310_SITE_VALIDITY_CACHE = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_site_validity_cache") != 0;
   AIR0310_SITE_VALIDITY_STATE = null;
+  V141_CATALOG_INCREMENTAL = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("v141_catalog_incremental") != 0;
+  V141_CATALOG_INCREMENTAL_CHECK = C121_CATALOG_INCREMENTAL
+      && AIController.GetSetting("v141_catalog_incremental_check") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
