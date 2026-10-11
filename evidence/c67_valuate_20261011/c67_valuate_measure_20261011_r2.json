@@ -1,0 +1,57 @@
+{
+ "kind": "C67 Valuate terrain reader benchmark",
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "seed": 42,
+ "years": 1,
+ "blocks_per_side": 64,
+ "sources": {
+  "main.nut": "404def185851c272c12dd510df9aa0f7c9a49a0af7776c6a38bb7bf8600efcdc",
+  "info.nut": "e7cd2ac85ebff6326c793d21a964700c3598170033bce3d27be483502a46ffb3",
+  "terrain_valuate.nut": "fd559f3cb989a7eed98cca5b857bed2328215cfea9bdb4f5c9e575dd01b7f98b",
+  "terrain_map.nut": "971b0a8df8ca5b85394a16da371d32c17c44adca5646669f4e3c2081384ca87b",
+  "budget.nut": "3cbff4de55170b6a21e54407300460bfcc70061b46aa0960c725c577f016b547"
+ },
+ "config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "assessment": {
+  "ok": true,
+  "fixture_pass": true,
+  "exactitude": {
+   "pass": true,
+   "s5_blocks": 64,
+   "s5_errors": 0,
+   "s10_blocks": 64,
+   "s10_errors": 0
+  },
+  "opcodes": {
+   "pass": true,
+   "s5": {
+    "ref_mean_ops": 2982,
+    "val_mean_ops": 1454,
+    "saving_pct": 51
+   },
+   "s10": {
+    "ref_mean_ops": 12395,
+    "val_mean_ops": 3885,
+    "saving_pct": 68
+   }
+  },
+  "non_suspendable_bound": {
+   "pass": true,
+   "tick_limit": 10000,
+   "s5_max_single_call_ops": 141,
+   "s5_max_block_ops": 1733,
+   "s10_max_single_call_ops": 516,
+   "s10_max_block_ops": 4283
+  },
+  "coverage": 12,
+  "horizon": true,
+  "script_errors": {
+   "attributed": [],
+   "unattributed": [],
+   "engine_marker": null,
+   "schema_version": "1.0.0"
+  },
+  "engine_failure": null
+ }
+}

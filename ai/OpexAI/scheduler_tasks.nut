@@ -86,12 +86,18 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       || typeof task.c78AirRebuild != "table") return true;
   local s = task.c78AirRebuild;
 
-  /* Publier le premier lot puis republier chaque tranche productive au passage
-   * SUIVANT (garde s.plans.len() > s.lastPublishedCount). Le scan qui l'a
-   * produit a ainsi deja rendu la main sur son budget ; la publication (rebuild
-   * complet initial, puis incrementale sous AIR0310_INCREMENTAL_PUBLISH) ne peut
-   * pas transformer une tranche bornee en passe monolithique. advanceStage=false
-   * garde le bootstrap sur sa meme etape jusqu'au lot exact. */
+  /* Publication progressive par tranche productive au passage SUIVANT :
+   * depuis le commit 38a4ff3, la garde historique !s.published (qui limitait
+   * la publication a une seule fois par scan) a ete remplacee par la garde
+   * s.plans.len() > s.lastPublishedCount. Chaque tranche qui decouvre de nouveaux
+   * plans arme ainsi s.partialPending = true pour republier au tour suivant.
+   * Le scan ayant deja rendu la main sur son budget d'opcodes, la publication
+   * ne transforme pas une tranche bornee en passe monolithique.
+   * Mode de publication : le premier lot (lastPublishedCount == 0 ou _projects null)
+   * passe par un _rebuildProjects complet ; les republications suivantes passent par
+   * OpexAir0310PublishIncremental si AIR0310_INCREMENTAL_PUBLISH est actif (defaut),
+   * ou se replient sur un _rebuildProjects complet sinon. advanceStage=false garde
+   * le bootstrap sur sa meme etape jusqu'au lot exact en phase apply. */
   if (("partialPending" in s) && s.partialPending) {
     local partialAir = {
       complete = true,
@@ -208,6 +214,8 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
   s.airOps += sliceOps;
   s.regenOps += sliceOps;
   if (!("done" in s.cursor) || !s.cursor.done) {
+    /* Publication progressive : republier des qu'une tranche decoupee enrichit
+     * le vivier (s.plans.len() > s.lastPublishedCount), sans attendre la fin du scan. */
     if (!s.partialPending && s.plans.len() > s.lastPublishedCount) {
       s.partialPending = true;
       s.partialBestPlan = best;
