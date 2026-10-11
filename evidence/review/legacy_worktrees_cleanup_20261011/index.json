@@ -1,0 +1,44 @@
+{
+  "scope": "Local read-only captured state before worktree cleanup; no new experiments",
+  "archives": [
+    {
+      "key": "c83_local_20261002",
+      "head": "b2334d7156f12519b1f27a0078bc267f7d40dce8",
+      "branch": "HEAD",
+      "archive_path": "evidence/review/legacy_worktrees_cleanup_20261011/c83_local_20261002.zip",
+      "archive_bytes": 28670655,
+      "archive_sha256": "e9fec994074b3f4139587f75d890b3741a6478df427a5b60d625c223dd25b935",
+      "files_count": 608,
+      "ignored_count": 599,
+      "untracked_count": 9,
+      "tracked_patch_bytes": 18266,
+      "verified_sha256_and_crc": true
+    },
+    {
+      "key": "c121_air_productivity",
+      "head": "79497c7498994d25c9f746c826cf2ad36f4e533c",
+      "branch": "analysis/c121-air-productivity",
+      "archive_path": "evidence/review/legacy_worktrees_cleanup_20261011/c121_air_productivity.zip",
+      "archive_bytes": 7151080,
+      "archive_sha256": "b6638014ffd53e2b6a2bca550d5798a0672a6b9bb5104a1a62d5191763c4c538",
+      "files_count": 120,
+      "ignored_count": 114,
+      "untracked_count": 6,
+      "tracked_patch_bytes": 9077,
+      "verified_sha256_and_crc": true
+    },
+    {
+      "key": "c61_air_rotations",
+      "head": "52ab55537dcf18a0ded8700bc9ac73833ac369a5",
+      "branch": "codex/c61-air-rotations",
+      "archive_path": "evidence/review/legacy_worktrees_cleanup_20261011/c61_air_rotations.zip",
+      "archive_bytes": 25833,
+      "archive_sha256": "e62af9cfc923bf29ccd11b43002cf92a86746f9a31fa8d9f4dedd9b4a260207d",
+      "files_count": 11,
+      "ignored_count": 3,
+      "untracked_count": 8,
+      "tracked_patch_bytes": 2394,
+      "verified_sha256_and_crc": true
+    }
+  ]
+}
