@@ -1,0 +1,1641 @@
+{
+  "source_bundle_sha256": "250223deaebfb849cde5717888fd2b16942de22798c1385158d4a5ad51757ff8",
+  "files": [
+    {
+      "bundle_relative_path": "ai/OpexAI/projects_update.nut",
+      "full_file_sha256": "b5b0cdb43862777d5c9df107b70a455535c6caf8fcdfdd4d496a063e5ae697d7",
+      "excerpts": [
+        {
+          "start_line": 226,
+          "end_line": 259,
+          "numbered_lines": [
+            {
+              "line": 226,
+              "text": ""
+            },
+            {
+              "line": 227,
+              "text": "  /* 6. Cloture des statistiques et du capital restant */"
+            },
+            {
+              "line": 228,
+              "text": "  local selectedRev = 0;"
+            },
+            {
+              "line": 229,
+              "text": "  local selectedCap = 0;"
+            },
+            {
+              "line": 230,
+              "text": "  foreach (p in funded) {"
+            },
+            {
+              "line": 231,
+              "text": "    selectedRev += p.revenueAnnual;"
+            },
+            {
+              "line": 232,
+              "text": "    selectedCap += OpexProjectFinanceCapital(p);"
+            },
+            {
+              "line": 233,
+              "text": "  }"
+            },
+            {
+              "line": 234,
+              "text": "  stats.selectedRevenue = selectedRev;"
+            },
+            {
+              "line": 235,
+              "text": "  stats.selectedCapital = selectedCap;"
+            },
+            {
+              "line": 236,
+              "text": "  stats.selectionPoolCapital = selectedCap;"
+            },
+            {
+              "line": 237,
+              "text": "  stats.nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;"
+            },
+            {
+              "line": 238,
+              "text": "  local remaining = capitalBudget - selectedCap;"
+            },
+            {
+              "line": 239,
+              "text": "  if (remaining < 0) remaining = 0;"
+            },
+            {
+              "line": 240,
+              "text": ""
+            },
+            {
+              "line": 241,
+              "text": "  local stampExtras = {"
+            },
+            {
+              "line": 242,
+              "text": "    abandonFiltered = abandonFiltered,"
+            },
+            {
+              "line": 243,
+              "text": "    abandonedPairsCount = (abandonedPairs != null) ? abandonedPairs.len() : 0,"
+            },
+            {
+              "line": 244,
+              "text": "    cacheScanned = cacheScanned,"
+            },
+            {
+              "line": 245,
+              "text": "    cacheRetained = cacheRetained"
+            },
+            {
+              "line": 246,
+              "text": "  };"
+            },
+            {
+              "line": 247,
+              "text": "  OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, stampExtras);"
+            },
+            {
+              "line": 248,
+              "text": ""
+            },
+            {
+              "line": 249,
+              "text": "  if (DECISION_LOG) {"
+            },
+            {
+              "line": 250,
+              "text": "    local vivierPool = [];"
+            },
+            {
+              "line": 251,
+              "text": "    foreach (key, list in newWinners) {"
+            },
+            {
+              "line": 252,
+              "text": "      foreach (project in list) vivierPool.push(project);"
+            },
+            {
+              "line": 253,
+              "text": "    }"
+            },
+            {
+              "line": 254,
+              "text": "    OpexLogVivier(\"incremental\", vivierPool, stats, capitalBudget, remaining);"
+            },
+            {
+              "line": 255,
+              "text": "  }"
+            },
+            {
+              "line": 256,
+              "text": ""
+            },
+            {
+              "line": 257,
+              "text": "  AILog.Info(\"[PORTFOLIO_CACHE] incremental: candidates=\" + stats.modeCandidates + \" od=\" + stats.odProjects + \" selected=\" + stats.budgetSelected + \" remaining=\" + remaining);"
+            },
+            {
+              "line": 258,
+              "text": ""
+            },
+            {
+              "line": 259,
+              "text": "  projects.all = stats.odProjects;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/task_projects.nut",
+      "full_file_sha256": "335260d7fa862c8e0a429b2dfb87c03667cff541b902509ffd7dbb502d9df9fc",
+      "excerpts": [
+        {
+          "start_line": 1562,
+          "end_line": 1599,
+          "numbered_lines": [
+            {
+              "line": 1562,
+              "text": "function OpexAI::_railReadyReadmissionShouldDefer(alreadyDeferred)"
+            },
+            {
+              "line": 1563,
+              "text": "{"
+            },
+            {
+              "line": 1564,
+              "text": "  if (!RAIL_READY_READMISSION || this._railSearch == null"
+            },
+            {
+              "line": 1565,
+              "text": "      || this._railSearch.kind != \"primary\" || this._railSearch.phase != \"build\""
+            },
+            {
+              "line": 1566,
+              "text": "      || this._railSearch.candidate == null"
+            },
+            {
+              "line": 1567,
+              "text": "      || ((\"isC121RailPrep\" in this._railSearch)"
+            },
+            {
+              "line": 1568,
+              "text": "          && this._railSearch.isC121RailPrep)"
+            },
+            {
+              "line": 1569,
+              "text": "      || this._projects == null || !(\"best\" in this._projects)"
+            },
+            {
+              "line": 1570,
+              "text": "      || this._projects.best == null || this._projects.best.len() == 0)"
+            },
+            {
+              "line": 1571,
+              "text": "    return false;"
+            },
+            {
+              "line": 1572,
+              "text": "  local state = this._railSearch;"
+            },
+            {
+              "line": 1573,
+              "text": "  local rail = state.candidate;"
+            },
+            {
+              "line": 1574,
+              "text": "  local railKey = \"rail|\" + rail.src + \"|\" + rail.dst + \"|\""
+            },
+            {
+              "line": 1575,
+              "text": "      + rail.cargo + \"|\" + rail.kind;"
+            },
+            {
+              "line": 1576,
+              "text": "  local head = this._projects.best[0];"
+            },
+            {
+              "line": 1577,
+              "text": "  if (head == null || !(\"mode\" in head)"
+            },
+            {
+              "line": 1578,
+              "text": "      || !(\"profitAnnual\" in head) || head.profitAnnual <= 0"
+            },
+            {
+              "line": 1579,
+              "text": "      || OpexProjectAttemptKey(head) == railKey) return false;"
+            },
+            {
+              "line": 1580,
+              "text": "  local headKey = OpexProjectAttemptKey(head);"
+            },
+            {
+              "line": 1581,
+              "text": "  local available = OpexAvailableCapital();"
+            },
+            {
+              "line": 1582,
+              "text": "  if (OpexProjectFinanceCapital(head) > available) return false;"
+            },
+            {
+              "line": 1583,
+              "text": "  local rank = this._projectsRankOfAttemptKey(railKey);"
+            },
+            {
+              "line": 1584,
+              "text": "  if (rank == 0) return false;"
+            },
+            {
+              "line": 1585,
+              "text": "  if ((\"readyReadmissionHeadKey\" in state)"
+            },
+            {
+              "line": 1586,
+              "text": "      && state.readyReadmissionHeadKey == headKey) return false;"
+            },
+            {
+              "line": 1587,
+              "text": "  state.rawset(\"readyReadmissionHeadKey\", headKey);"
+            },
+            {
+              "line": 1588,
+              "text": "  if (DECISION_LOG) {"
+            },
+            {
+              "line": 1589,
+              "text": "    OpexDecide(\"RAIL_READY_READMISSION\", \"action=\""
+            },
+            {
+              "line": 1590,
+              "text": "        + (alreadyDeferred ? \"c77_shared\" : \"defer\")"
+            },
+            {
+              "line": 1591,
+              "text": "        + \" head=\" + headKey + \" head_mode=\" + head.mode"
+            },
+            {
+              "line": 1592,
+              "text": "        + \" rail_rank=\" + rank + \" head_finance=\""
+            },
+            {
+              "line": 1593,
+              "text": "        + OpexProjectFinanceCapital(head) + \" available=\" + available);"
+            },
+            {
+              "line": 1594,
+              "text": "  }"
+            },
+            {
+              "line": 1595,
+              "text": "  return !alreadyDeferred;"
+            },
+            {
+              "line": 1596,
+              "text": "}"
+            },
+            {
+              "line": 1597,
+              "text": ""
+            },
+            {
+              "line": 1598,
+              "text": "/* Diagnostics communs de fin de passe (C49, C63, C69/C73 puis entonnoir mensuel)."
+            },
+            {
+              "line": 1599,
+              "text": " * withC78Exit ajoute les journaux C78 de sortie normale, absents du retour rail pending. */"
+            }
+          ]
+        },
+        {
+          "start_line": 1789,
+          "end_line": 1842,
+          "numbered_lines": [
+            {
+              "line": 1789,
+              "text": "  if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {"
+            },
+            {
+              "line": 1790,
+              "text": "    local head = this._projects.best[0];"
+            },
+            {
+              "line": 1791,
+              "text": "    if (OpexProjectDefensiveAirPriority(head) > 0"
+            },
+            {
+              "line": 1792,
+              "text": "        && OpexProjectFinanceCapital(head) <= OpexAvailableCapital()) {"
+            },
+            {
+              "line": 1793,
+              "text": "      c77DefensiveHead = head;"
+            },
+            {
+              "line": 1794,
+              "text": "    }"
+            },
+            {
+              "line": 1795,
+              "text": "  }"
+            },
+            {
+              "line": 1796,
+              "text": "  local c77DeferCompletedRail = c77DefensiveHead != null"
+            },
+            {
+              "line": 1797,
+              "text": "      && RAIL_SEARCH_RESUMABLE && this._railSearch != null"
+            },
+            {
+              "line": 1798,
+              "text": "      && this._railSearch.kind == \"primary\" && this._railSearch.phase == \"build\""
+            },
+            {
+              "line": 1799,
+              "text": "      && !(\"c77DefensiveDeferred\" in this._railSearch);"
+            },
+            {
+              "line": 1800,
+              "text": "  if (c77DeferCompletedRail) {"
+            },
+            {
+              "line": 1801,
+              "text": "    this._railSearch.c77DefensiveDeferred <- true;"
+            },
+            {
+              "line": 1802,
+              "text": "    if (C78_SLOT_INTERCEPT_PROBE) {"
+            },
+            {
+              "line": 1803,
+              "text": "      OpexC78SlotLog(\"phase=defensive_priority pass=\" + C78_SLOT_PASS_COUNTER"
+            },
+            {
+              "line": 1804,
+              "text": "          + \" cycle=\" + this._taskCycle + \" tick=\" + AIController.GetTick()"
+            },
+            {
+              "line": 1805,
+              "text": "          + \" action=defer_rail finance=\" + OpexProjectFinanceCapital(c77DefensiveHead)"
+            },
+            {
+              "line": 1806,
+              "text": "          + \" available=\" + OpexAvailableCapital());"
+            },
+            {
+              "line": 1807,
+              "text": "    }"
+            },
+            {
+              "line": 1808,
+              "text": "  }"
+            },
+            {
+              "line": 1809,
+              "text": "  if (RAIL_READY_ADMISSION_SHADOW && RAIL_SEARCH_RESUMABLE && this._railSearch != null"
+            },
+            {
+              "line": 1810,
+              "text": "      && this._railSearch.kind == \"primary\" && this._railSearch.phase == \"build\") {"
+            },
+            {
+              "line": 1811,
+              "text": "    this._railReadyAdmissionShadow(c77DeferCompletedRail);"
+            },
+            {
+              "line": 1812,
+              "text": "  }"
+            },
+            {
+              "line": 1813,
+              "text": ""
+            },
+            {
+              "line": 1814,
+              "text": "  /* La preparation rail cede la passe si l'AIR est finançable, et depose un A*"
+            },
+            {
+              "line": 1815,
+              "text": "   * termine avant que la consommation historique ne le construise. */"
+            },
+            {
+              "line": 1816,
+              "text": "  if (C121_AIR_FIRST_YEAR_RAIL_PREP) this._c121RailPrepOnPassStart();"
+            },
+            {
+              "line": 1817,
+              "text": "  local readyReAdmissionDeferred = RAIL_READY_READMISSION"
+            },
+            {
+              "line": 1818,
+              "text": "      && this._railReadyReadmissionShouldDefer(c77DeferCompletedRail);"
+            },
+            {
+              "line": 1819,
+              "text": ""
+            },
+            {
+              "line": 1820,
+              "text": "  /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le"
+            },
+            {
+              "line": 1821,
+              "text": "   * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */"
+            },
+            {
+              "line": 1822,
+              "text": "  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&"
+            },
+            {
+              "line": 1823,
+              "text": "      this._railSearch.kind == \"primary\" && this._railSearch.phase == \"build\""
+            },
+            {
+              "line": 1824,
+              "text": "      && !c77DeferCompletedRail && !readyReAdmissionDeferred) {"
+            },
+            {
+              "line": 1825,
+              "text": "    local auditReady = RAIL_READY_ADMISSION_SHADOW"
+            },
+            {
+              "line": 1826,
+              "text": "        && !((\"isC121RailPrep\" in this._railSearch) && this._railSearch.isC121RailPrep);"
+            },
+            {
+              "line": 1827,
+              "text": "    local readyTick = auditReady && (\"startTick\" in this._railSearch)"
+            },
+            {
+              "line": 1828,
+              "text": "        ? this._railSearch.startTick : -1;"
+            },
+            {
+              "line": 1829,
+              "text": "    local spAstarBuild = PROBE_SPAN_TRACE ? OpexSpanBegin(\"astar.build\") : null;"
+            },
+            {
+              "line": 1830,
+              "text": "    local railBuilt = this._consumeResumableRailAtPassStart(year, passDiscards, c49Best,"
+            },
+            {
+              "line": 1831,
+              "text": "        c49BuiltRanks, c75BuiltKeys, c69BuiltProjects);"
+            },
+            {
+              "line": 1832,
+              "text": "    if (spAstarBuild != null) OpexSpanEnd(spAstarBuild);"
+            },
+            {
+              "line": 1833,
+              "text": "    if (railBuilt && PROBE_SPAN_TRACE) OpexSpanEvent(\"line_built\", \"mode=rail built=1\");"
+            },
+            {
+              "line": 1834,
+              "text": "    if (auditReady) {"
+            },
+            {
+              "line": 1835,
+              "text": "      local readyDate = AIDate.GetCurrentDate();"
+            },
+            {
+              "line": 1836,
+              "text": "      AILog.Info(\"OPEX \" + AIDate.GetYear(readyDate) + \"-\""
+            },
+            {
+              "line": 1837,
+              "text": "          + AIDate.GetMonth(readyDate) + \"-\" + AIDate.GetDayOfMonth(readyDate)"
+            },
+            {
+              "line": 1838,
+              "text": "          + \" RAIL_READY_ADMISSION phase=after search_tick=\" + readyTick"
+            },
+            {
+              "line": 1839,
+              "text": "          + \" built=\" + (railBuilt ? 1 : 0));"
+            },
+            {
+              "line": 1840,
+              "text": "    }"
+            },
+            {
+              "line": 1841,
+              "text": "    if (MONTHLY_FUNNEL) funnelAttempted++;"
+            },
+            {
+              "line": 1842,
+              "text": "    if (railBuilt) builtCount++;"
+            }
+          ]
+        },
+        {
+          "start_line": 2548,
+          "end_line": 2556,
+          "numbered_lines": [
+            {
+              "line": 2548,
+              "text": "function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = true)"
+            },
+            {
+              "line": 2549,
+              "text": "{"
+            },
+            {
+              "line": 2550,
+              "text": "  if (C121_CATALOG_AIR_FIRST_YEAR) {"
+            },
+            {
+              "line": 2551,
+              "text": "    local yearNow = AIDate.GetYear(AIDate.GetCurrentDate());"
+            },
+            {
+              "line": 2552,
+              "text": "    if (this._generationStageMonth < 0)"
+            },
+            {
+              "line": 2553,
+              "text": "      this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());"
+            },
+            {
+              "line": 2554,
+              "text": "    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12;"
+            },
+            {
+              "line": 2555,
+              "text": "  }"
+            },
+            {
+              "line": 2556,
+              "text": "  /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/projects.nut",
+      "full_file_sha256": "e90d1c4e8c82c3dbd1d816bc6fbcca2e33b2a8c31b3a3ef2e5b330ba73f0373b",
+      "excerpts": [
+        {
+          "start_line": 163,
+          "end_line": 183,
+          "numbered_lines": [
+            {
+              "line": 163,
+              "text": "function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null,"
+            },
+            {
+              "line": 164,
+              "text": "                           generationStage = null, priorProjects = null, freightCargo = null,"
+            },
+            {
+              "line": 165,
+              "text": "                           freightCargoOrder = null, activeSubsidies = null, airOverride = null,"
+            },
+            {
+              "line": 166,
+              "text": "                           railReadyStock = null)"
+            },
+            {
+              "line": 167,
+              "text": "{"
+            },
+            {
+              "line": 168,
+              "text": "  local cost = CATALOG_COST_ACTIVE;"
+            },
+            {
+              "line": 169,
+              "text": "  local costMark = cost != null ? OpexOpsMeasureBegin() : null;"
+            },
+            {
+              "line": 170,
+              "text": "  if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;"
+            },
+            {
+              "line": 171,
+              "text": "  local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);"
+            },
+            {
+              "line": 172,
+              "text": "  local doPaxRail = (generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_RAIL_ONLY || generationStage == OPEX_STAGE_COMPLETE);"
+            },
+            {
+              "line": 173,
+              "text": "  local doRoad = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);"
+            },
+            {
+              "line": 174,
+              "text": "  local doAir = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_COMPLETE);"
+            },
+            {
+              "line": 175,
+              "text": "  local doWater = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);"
+            },
+            {
+              "line": 176,
+              "text": "  if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE) {"
+            },
+            {
+              "line": 177,
+              "text": "    doFreight = false;"
+            },
+            {
+              "line": 178,
+              "text": "    doPaxRail = false;"
+            },
+            {
+              "line": 179,
+              "text": "    doRoad = false;"
+            },
+            {
+              "line": 180,
+              "text": "    doWater = false;"
+            },
+            {
+              "line": 181,
+              "text": "    doAir = true;"
+            },
+            {
+              "line": 182,
+              "text": "  }"
+            },
+            {
+              "line": 183,
+              "text": "  local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/scheduler_tasks.nut",
+      "full_file_sha256": "489b7a7f4c6ef8e8c0f5b9083e81945a8eb5ca3aa1c411d475e28c73c1e87bbd",
+      "excerpts": [
+        {
+          "start_line": 234,
+          "end_line": 241,
+          "numbered_lines": [
+            {
+              "line": 234,
+              "text": "function OpexAI::_dispatchCatalog(task, year)"
+            },
+            {
+              "line": 235,
+              "text": "{"
+            },
+            {
+              "line": 236,
+              "text": "  if (C121_CATALOG_AIR_FIRST_YEAR) {"
+            },
+            {
+              "line": 237,
+              "text": "    if (this._generationStageMonth < 0)"
+            },
+            {
+              "line": 238,
+              "text": "      this._generationStageMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());"
+            },
+            {
+              "line": 239,
+              "text": "    C121_CATALOG_FIRST_YEAR_ACTIVE = year == (this._generationStageMonth - 1) / 12;"
+            },
+            {
+              "line": 240,
+              "text": "  }"
+            },
+            {
+              "line": 241,
+              "text": "  if (C121_CATALOG_INCREMENTAL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/rail_prep_c121.nut",
+      "full_file_sha256": "bfaaf95a2cf91df6c883911dd1a3231e81c2c9e1ba322269528f963e403a36cf",
+      "excerpts": [
+        {
+          "start_line": 146,
+          "end_line": 165,
+          "numbered_lines": [
+            {
+              "line": 146,
+              "text": "function OpexAI::_c121RailPrepOnPassStart()"
+            },
+            {
+              "line": 147,
+              "text": "{"
+            },
+            {
+              "line": 148,
+              "text": "  if (!C121_AIR_FIRST_YEAR_RAIL_PREP) return;"
+            },
+            {
+              "line": 149,
+              "text": "  if (!this._c121RailSearchIsPrep()) {"
+            },
+            {
+              "line": 150,
+              "text": "    if (this._c121RailPrepHold) this._c121RailPrepHold = false;"
+            },
+            {
+              "line": 151,
+              "text": "    return;"
+            },
+            {
+              "line": 152,
+              "text": "  }"
+            },
+            {
+              "line": 153,
+              "text": "  if (this._railSearch.phase == \"build\") {"
+            },
+            {
+              "line": 154,
+              "text": "    this._handleRailStockSearchCompleted();"
+            },
+            {
+              "line": 155,
+              "text": "    this._c121RailPrepHold = false;"
+            },
+            {
+              "line": 156,
+              "text": "    this._c121RailPrepYieldLogged = false;"
+            },
+            {
+              "line": 157,
+              "text": "    return;"
+            },
+            {
+              "line": 158,
+              "text": "  }"
+            },
+            {
+              "line": 159,
+              "text": "  if (this._railSearch.phase == \"search\" && C121_CATALOG_FIRST_YEAR_ACTIVE"
+            },
+            {
+              "line": 160,
+              "text": "      && this._c121RailPrepAirFundableCheap()) {"
+            },
+            {
+              "line": 161,
+              "text": "    this._c121RailPrepHold = true;"
+            },
+            {
+              "line": 162,
+              "text": "    if (!this._c121RailPrepYieldLogged) {"
+            },
+            {
+              "line": 163,
+              "text": "      this._c121RailPrepYieldLogged = true;"
+            },
+            {
+              "line": 164,
+              "text": "      OpexC121RailPrepLog(this, \"yield_to_air\", 0, 0);"
+            },
+            {
+              "line": 165,
+              "text": "    }"
+            }
+          ]
+        },
+        {
+          "start_line": 262,
+          "end_line": 300,
+          "numbered_lines": [
+            {
+              "line": 262,
+              "text": "function OpexAI::_tryStartC121RailPrepSearch()"
+            },
+            {
+              "line": 263,
+              "text": "{"
+            },
+            {
+              "line": 264,
+              "text": "  if (!C121_AIR_FIRST_YEAR_RAIL_PREP) return false;"
+            },
+            {
+              "line": 265,
+              "text": "  if (!C121_CATALOG_FIRST_YEAR_ACTIVE) return false;"
+            },
+            {
+              "line": 266,
+              "text": "  if (this._railSearch != null) return false;"
+            },
+            {
+              "line": 267,
+              "text": "  if (this._activeWorker != null && this._activeWorker.kind != \"rail_stock\") {"
+            },
+            {
+              "line": 268,
+              "text": "    OpexC121RailPrepLog(this, \"astar_none worker=\" + this._activeWorker.kind, 0, 0);"
+            },
+            {
+              "line": 269,
+              "text": "    return false;"
+            },
+            {
+              "line": 270,
+              "text": "  }"
+            },
+            {
+              "line": 271,
+              "text": "  if (this._c121RailPrepAirFundableCheap()) return false;"
+            },
+            {
+              "line": 272,
+              "text": "  if (this._railReadyStock != null && this._railReadyStock.len() >= C121_RAIL_PREP_MAX) return false;"
+            },
+            {
+              "line": 273,
+              "text": "  local ranked = this._c121RailPrepCandidates;"
+            },
+            {
+              "line": 274,
+              "text": "  if (ranked == null || ranked.len() == 0) {"
+            },
+            {
+              "line": 275,
+              "text": "    OpexC121RailPrepLog(this, \"astar_none ranked=0\", 0, 0);"
+            },
+            {
+              "line": 276,
+              "text": "    return false;"
+            },
+            {
+              "line": 277,
+              "text": "  }"
+            },
+            {
+              "line": 278,
+              "text": "  local curDate = AIDate.GetCurrentDate();"
+            },
+            {
+              "line": 279,
+              "text": "  local limit = ranked.len();"
+            },
+            {
+              "line": 280,
+              "text": "  if (limit > TOP_K) limit = TOP_K;"
+            },
+            {
+              "line": 281,
+              "text": "  local mark = OpexOpsMeasureBegin();"
+            },
+            {
+              "line": 282,
+              "text": "  local started = false;"
+            },
+            {
+              "line": 283,
+              "text": "  for (local i = 0; i < limit; i++) {"
+            },
+            {
+              "line": 284,
+              "text": "    local candidate = ranked[i];"
+            },
+            {
+              "line": 285,
+              "text": "    if (OpexC121RailPrepCandidateBlocked(this, candidate, curDate)) continue;"
+            },
+            {
+              "line": 286,
+              "text": "    if (this._startRailStockSearch(candidate)) {"
+            },
+            {
+              "line": 287,
+              "text": "      if (this._railSearch != null) this._railSearch.isC121RailPrep <- true;"
+            },
+            {
+              "line": 288,
+              "text": "      this._c121RailPrepHold = false;"
+            },
+            {
+              "line": 289,
+              "text": "      this._c121RailPrepYieldLogged = false;"
+            },
+            {
+              "line": 290,
+              "text": "      started = true;"
+            },
+            {
+              "line": 291,
+              "text": "      break;"
+            },
+            {
+              "line": 292,
+              "text": "    }"
+            },
+            {
+              "line": 293,
+              "text": "    OpexC121RailPrepLog(this, \"astar_fail\", OpexOpsMeasureEnd(mark), AIController.GetTick() - mark.tick);"
+            },
+            {
+              "line": 294,
+              "text": "    mark = OpexOpsMeasureBegin();"
+            },
+            {
+              "line": 295,
+              "text": "  }"
+            },
+            {
+              "line": 296,
+              "text": "  local ops = OpexOpsMeasureEnd(mark);"
+            },
+            {
+              "line": 297,
+              "text": "  local ticks = AIController.GetTick() - mark.tick;"
+            },
+            {
+              "line": 298,
+              "text": "  if (started) OpexC121RailPrepLog(this, \"astar_start\", ops, ticks);"
+            },
+            {
+              "line": 299,
+              "text": "  else OpexC121RailPrepLog(this, \"astar_none blocked=\" + limit, ops, ticks);"
+            },
+            {
+              "line": 300,
+              "text": "  return started;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/task_rail.nut",
+      "full_file_sha256": "945a33d993a2b23db69a36e03799977abc55a3b702032ebc18cfebc9a1058dfc",
+      "excerpts": [
+        {
+          "start_line": 1599,
+          "end_line": 1638,
+          "numbered_lines": [
+            {
+              "line": 1599,
+              "text": "  if (state.kind == \"primary\") {"
+            },
+            {
+              "line": 1600,
+              "text": "    if (C56_TASK_TRACE) {"
+            },
+            {
+              "line": 1601,
+              "text": "      local curDate = AIDate.GetCurrentDate();"
+            },
+            {
+              "line": 1602,
+              "text": "      local curTick = AIController.GetTick();"
+            },
+            {
+              "line": 1603,
+              "text": "      if (!(\"v89SearchEndDate\" in state.candidate)) state.candidate.v89SearchEndDate <- curDate;"
+            },
+            {
+              "line": 1604,
+              "text": "      else state.candidate.v89SearchEndDate = curDate;"
+            },
+            {
+              "line": 1605,
+              "text": "      if (!(\"v89SearchEndTick\" in state.candidate)) state.candidate.v89SearchEndTick <- curTick;"
+            },
+            {
+              "line": 1606,
+              "text": "      else state.candidate.v89SearchEndTick = curTick;"
+            },
+            {
+              "line": 1607,
+              "text": "      local searchDays = (\"startDate\" in state) ? (curDate - state.startDate) : -1;"
+            },
+            {
+              "line": 1608,
+              "text": "      local searchTicks = (\"startTick\" in state) ? (curTick - state.startTick) : -1;"
+            },
+            {
+              "line": 1609,
+              "text": "      local outcome = slice.stop;"
+            },
+            {
+              "line": 1610,
+              "text": "      local result = (outcome == \"OK\") ? \"found\" : ((outcome == \"ABND\" || outcome == \"DEAD\") ? \"cap\" : \"none\");"
+            },
+            {
+              "line": 1611,
+              "text": "      local pathLen = (outcome == \"OK\" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;"
+            },
+            {
+              "line": 1612,
+              "text": "      local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;"
+            },
+            {
+              "line": 1613,
+              "text": "      OpexC56TaskLog(\"RAIL_SEARCH_END\", \"primary\", this._taskCycle,"
+            },
+            {
+              "line": 1614,
+              "text": "                     \"src=\" + state.candidate.src + \" dst=\" + state.candidate.dst"
+            },
+            {
+              "line": 1615,
+              "text": "                     + \" outcome=\" + outcome + \" result=\" + result + \" iters=\" + state.spent"
+            },
+            {
+              "line": 1616,
+              "text": "                     + \" len=\" + pathLen + \" weight=\" + weightUsed"
+            },
+            {
+              "line": 1617,
+              "text": "                     + \" budget=\" + state.iterationBudget + \" days=\" + searchDays"
+            },
+            {
+              "line": 1618,
+              "text": "                     + \" ticks=\" + searchTicks);"
+            },
+            {
+              "line": 1619,
+              "text": "    }"
+            },
+            {
+              "line": 1620,
+              "text": "    if (V88_GOODS_CHAIN && (DECISION_LOG || C56_TASK_TRACE) && state.candidate != null) {"
+            },
+            {
+              "line": 1621,
+              "text": "      if ((\"isChainStep1\" in state.candidate) && state.candidate.isChainStep1) {"
+            },
+            {
+              "line": 1622,
+              "text": "        local pathLen = (slice.stop == \"OK\" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;"
+            },
+            {
+              "line": 1623,
+              "text": "        local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;"
+            },
+            {
+              "line": 1624,
+              "text": "        OpexV88Log(\"CHAIN_SEARCH_END\", \"step=1 iters=\" + state.spent + \" len=\" + pathLen"
+            },
+            {
+              "line": 1625,
+              "text": "                   + \" weight=\" + weightUsed + \" outcome=\" + slice.stop);"
+            },
+            {
+              "line": 1626,
+              "text": "      } else if ((\"isChainStep2\" in state.candidate) && state.candidate.isChainStep2) {"
+            },
+            {
+              "line": 1627,
+              "text": "        local pathLen = (slice.stop == \"OK\" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;"
+            },
+            {
+              "line": 1628,
+              "text": "        local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;"
+            },
+            {
+              "line": 1629,
+              "text": "        OpexV88Log(\"CHAIN_SEARCH_END\", \"step=2 iters=\" + state.spent + \" len=\" + pathLen"
+            },
+            {
+              "line": 1630,
+              "text": "                   + \" weight=\" + weightUsed + \" outcome=\" + slice.stop);"
+            },
+            {
+              "line": 1631,
+              "text": "      }"
+            },
+            {
+              "line": 1632,
+              "text": "    }"
+            },
+            {
+              "line": 1633,
+              "text": "    local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan, slice);"
+            },
+            {
+              "line": 1634,
+              "text": "    state.candidate.railPlan <- plan;"
+            },
+            {
+              "line": 1635,
+              "text": "    state.pathfinder = null;"
+            },
+            {
+              "line": 1636,
+              "text": "    state.phase = \"build\";"
+            },
+            {
+              "line": 1637,
+              "text": "    if (DECISION_LOG && V131_TOWN_CLEARANCE && (\"clearanceTiles\" in state) && state.clearanceTiles != null) {"
+            },
+            {
+              "line": 1638,
+              "text": "      OpexV131LogClearance(state.candidate, plan, state.clearanceTiles);"
+            }
+          ]
+        },
+        {
+          "start_line": 1664,
+          "end_line": 1679,
+          "numbered_lines": [
+            {
+              "line": 1664,
+              "text": "{"
+            },
+            {
+              "line": 1665,
+              "text": "  if (V88_GOODS_CHAIN && this._railSearch != null && (\"candidate\" in this._railSearch)"
+            },
+            {
+              "line": 1666,
+              "text": "      && this._railSearch.candidate != null && (\"isChainStep2\" in this._railSearch.candidate)) {"
+            },
+            {
+              "line": 1667,
+              "text": "    OpexV88Log(\"CHAIN_CONSUME\", \"step=2\");"
+            },
+            {
+              "line": 1668,
+              "text": "  }"
+            },
+            {
+              "line": 1669,
+              "text": "  local state = this._railSearch;"
+            },
+            {
+              "line": 1670,
+              "text": "  local candidate = state.candidate;"
+            },
+            {
+              "line": 1671,
+              "text": "  /* G3§1 : Un plan en echec (ABND/NOPA/DEAD) n'a besoin d'aucune tresorerie : OpexBuildLine"
+            },
+            {
+              "line": 1672,
+              "text": "   * retourne immediatement sans construction. Le test de cash ne doit pas bloquer un plan"
+            },
+            {
+              "line": 1673,
+              "text": "   * invalide en phase build indefiniment, sinon _railSearch ne se libere jamais et le"
+            },
+            {
+              "line": 1674,
+              "text": "   * pipeline rail est neutralise (l'echec n'est pas non plus transmis a C22). */"
+            },
+            {
+              "line": 1675,
+              "text": "  local planFailed = (\"railPlan\" in candidate) && candidate.railPlan != null"
+            },
+            {
+              "line": 1676,
+              "text": "                     && !candidate.railPlan.ok;"
+            },
+            {
+              "line": 1677,
+              "text": "  /* Le primaire garde le chemin de pose historique. B a été calculé pendant"
+            },
+            {
+              "line": 1678,
+              "text": "   * que A pouvait encore occuper terrain/gares : revalidation de la carte"
+            },
+            {
+              "line": 1679,
+              "text": "   * VIVANTE avant toute dépense. Un échec rend le slot au portefeuille, sans"
+            }
+          ]
+        },
+        {
+          "start_line": 1808,
+          "end_line": 1838,
+          "numbered_lines": [
+            {
+              "line": 1808,
+              "text": "{"
+            },
+            {
+              "line": 1809,
+              "text": "  if (CAPITAL_QUOTE_LEARNING) {"
+            },
+            {
+              "line": 1810,
+              "text": "    local preQuote = (\"preCapital\" in candidate) ? candidate.preCapital : -1;"
+            },
+            {
+              "line": 1811,
+              "text": "    local preTrains = (\"preQuoteTrains\" in candidate) ? candidate.preQuoteTrains : -1;"
+            },
+            {
+              "line": 1812,
+              "text": "    OpexCapitalQuoteObserve(\"rail\", candidate, result, preQuote, -1, preTrains);"
+            },
+            {
+              "line": 1813,
+              "text": "  }"
+            },
+            {
+              "line": 1814,
+              "text": "  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarBuild(candidate, result);"
+            },
+            {
+              "line": 1815,
+              "text": "  if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit(\"attempt\", candidate,"
+            },
+            {
+              "line": 1816,
+              "text": "      (result.ok ? \"OK\" : ((\"reason\" in result) && result.reason != \"\" ? result.reason : \"UNKNOWN\")),"
+            },
+            {
+              "line": 1817,
+              "text": "      (result.ok ? 1 : 0), ((\"actualCost\" in result) ? result.actualCost : 0),"
+            },
+            {
+              "line": 1818,
+              "text": "      ((\"opcodes\" in result) ? result.opcodes : 0));"
+            },
+            {
+              "line": 1819,
+              "text": "  local anchor = AIMap.GetTileIndex(1, 1);"
+            },
+            {
+              "line": 1820,
+              "text": "  local yy = year % 100;"
+            },
+            {
+              "line": 1821,
+              "text": "  local budgetInfo = ((\"budgetInfo\" in result) && result.budgetInfo != null)"
+            },
+            {
+              "line": 1822,
+              "text": "      ? result.budgetInfo : { path = \"Z\" };"
+            },
+            {
+              "line": 1823,
+              "text": "  local iterationBudget = (\"iterationBudget\" in result) ? result.iterationBudget : 0;"
+            },
+            {
+              "line": 1824,
+              "text": "  OpexSign(anchor, \"OR|\" + yy + \"|\" + this._nextLineId + \"|\" + posPacked"
+            },
+            {
+              "line": 1825,
+              "text": "                           + \"|\" + budgetInfo.path + \"S\""
+            },
+            {
+              "line": 1826,
+              "text": "                           + OpexAttemptReasonCode(result.reason) + \"|\" + iterationBudget"
+            },
+            {
+              "line": 1827,
+              "text": "                           + \"|\" + result.iterations);"
+            },
+            {
+              "line": 1828,
+              "text": "  /* Bras experimental seulement. Sous 31 caracteres : SG|yy|lineId|seg|bt|loc. */"
+            },
+            {
+              "line": 1829,
+              "text": "  if (RAIL_SEGMENTED_SEARCH) {"
+            },
+            {
+              "line": 1830,
+              "text": "    local segs = (\"segmentedSegments\" in result) ? result.segmentedSegments : 0;"
+            },
+            {
+              "line": 1831,
+              "text": "    local backs = (\"segmentedBacktracks\" in result) ? result.segmentedBacktracks : 0;"
+            },
+            {
+              "line": 1832,
+              "text": "    local locs = (\"segmentedLocalChoices\" in result) ? result.segmentedLocalChoices : 0;"
+            },
+            {
+              "line": 1833,
+              "text": "    OpexSign(anchor, \"SG|\" + yy + \"|\" + this._nextLineId + \"|\" + segs + \"|\" + backs + \"|\" + locs);"
+            },
+            {
+              "line": 1834,
+              "text": "  }"
+            },
+            {
+              "line": 1835,
+              "text": "  OpexSign(anchor, \"OB|A|\" + yy + \"|\" + this._nextLineId + \"|\" + posPacked"
+            },
+            {
+              "line": 1836,
+              "text": "                           + \"|\" + result.opcodes + \"|\" + candidate.distance);"
+            },
+            {
+              "line": 1837,
+              "text": "  if (result.reason == \"SITEA\" || result.reason == \"SITEB\" || result.reason == \"SITEAB\") {"
+            },
+            {
+              "line": 1838,
+              "text": "    OpexSign(anchor, \"PS|\" + yy + \"|\" + this._nextLineId + \"|\" + posPacked"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/builder_rail.nut",
+      "full_file_sha256": "a9be49c12102927bbcab57fe6a718ae1ef34dc6369ec3eeed0631f436fc75c3e",
+      "excerpts": [
+        {
+          "start_line": 2159,
+          "end_line": 2167,
+          "numbered_lines": [
+            {
+              "line": 2159,
+              "text": "/* Execute la construction reelle d'un plan precalcule ou valide. */"
+            },
+            {
+              "line": 2160,
+              "text": "function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)"
+            },
+            {
+              "line": 2161,
+              "text": "{"
+            },
+            {
+              "line": 2162,
+              "text": "  local result = { ok = false, reason = \"\", iterations = plan.iterations, opcodes = plan.opcodes,"
+            },
+            {
+              "line": 2163,
+              "text": "                   error = 0, diag = null, trains = 0, vehicles = [],"
+            },
+            {
+              "line": 2164,
+              "text": "                   stationA = null, stationB = null, depot = null,"
+            },
+            {
+              "line": 2165,
+              "text": "                   platformA = null, platformB = null, trainLength = 0, wagons = candidate.wagons,"
+            },
+            {
+              "line": 2166,
+              "text": "                   platformLength = plan.length, locoLength = 0, wagonLength = 0,"
+            },
+            {
+              "line": 2167,
+              "text": "                   wantedPlatformLength = candidate.platformLength, plansA = plan.plansA.len(),"
+            }
+          ]
+        },
+        {
+          "start_line": 2297,
+          "end_line": 2303,
+          "numbered_lines": [
+            {
+              "line": 2297,
+              "text": "          + \" err=\" + err);"
+            },
+            {
+              "line": 2298,
+              "text": "    }"
+            },
+            {
+              "line": 2299,
+              "text": "    OpexRollback(null, planA, planB, null, null);"
+            },
+            {
+              "line": 2300,
+              "text": "    result.actualCost = costs != null ? costs.GetCosts() : 0;"
+            },
+            {
+              "line": 2301,
+              "text": "    result.opcodes += budget.end(\"build_stations\"); result.reason = \"STNFAIL\"; return result;"
+            },
+            {
+              "line": 2302,
+              "text": "  }"
+            },
+            {
+              "line": 2303,
+              "text": ""
+            }
+          ]
+        },
+        {
+          "start_line": 2374,
+          "end_line": 2381,
+          "numbered_lines": [
+            {
+              "line": 2374,
+              "text": "    result.actualCost = costs != null ? costs.GetCosts() : 0;"
+            },
+            {
+              "line": 2375,
+              "text": "    result.opcodes += budget.end(\"build_track\"); result.reason = \"TRKFAIL\"; return result;"
+            },
+            {
+              "line": 2376,
+              "text": "  }"
+            },
+            {
+              "line": 2377,
+              "text": ""
+            },
+            {
+              "line": 2378,
+              "text": "  local depot = OpexBuildDepot(tiles);"
+            },
+            {
+              "line": 2379,
+              "text": "  result.opcodes += budget.end(\"build_track\");"
+            },
+            {
+              "line": 2380,
+              "text": "  if (depot == null) {"
+            },
+            {
+              "line": 2381,
+              "text": "    OpexRollback(tiles, planA, planB, null, null);"
+            }
+          ]
+        },
+        {
+          "start_line": 2458,
+          "end_line": 2465,
+          "numbered_lines": [
+            {
+              "line": 2458,
+              "text": "      foreach (train in started) {"
+            },
+            {
+              "line": 2459,
+              "text": "        AIVehicle.StartStopVehicle(train);"
+            },
+            {
+              "line": 2460,
+              "text": "      }"
+            },
+            {
+              "line": 2461,
+              "text": "    }"
+            },
+            {
+              "line": 2462,
+              "text": "  }"
+            },
+            {
+              "line": 2463,
+              "text": "  result.opcodes += budget.end(\"build_trains\");"
+            },
+            {
+              "line": 2464,
+              "text": "  result.error = trains.error;"
+            },
+            {
+              "line": 2465,
+              "text": "  result.diag = trains.diag;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/budget.nut",
+      "full_file_sha256": "3cbff4de55170b6a21e54407300460bfcc70061b46aa0960c725c577f016b547",
+      "excerpts": [
+        {
+          "start_line": 1,
+          "end_line": 31,
+          "numbered_lines": [
+            {
+              "line": 1,
+              "text": "/* Comptabilite du budget d'opcodes."
+            },
+            {
+              "line": 2,
+              "text": " *"
+            },
+            {
+              "line": 3,
+              "text": " * Le budget n'est pas un stock mais un DEBIT : OPS_PER_TICK opcodes par tick, non reportables,"
+            },
+            {
+              "line": 4,
+              "text": " * perdus s'ils ne sont pas consommes. La seule decision d'une IA est donc de savoir OU part le"
+            },
+            {
+              "line": 5,
+              "text": " * prochain tick de calcul, jamais s'il faut le depenser."
+            },
+            {
+              "line": 6,
+              "text": " *"
+            },
+            {
+              "line": 7,
+              "text": " * GetOpsTillSuspend() rend le RESTE du tick courant. Un bloc de travail qui traverse des ticks se"
+            },
+            {
+              "line": 8,
+              "text": " * compte donc : reste_au_depart + (ticks_traverses - 1) * OPS_PER_TICK + (OPS_PER_TICK - reste)."
+            },
+            {
+              "line": 9,
+              "text": " * Verifie dans le binaire 15.3 : script_max_opcode_till_suspend = 10000."
+            },
+            {
+              "line": 10,
+              "text": " *"
+            },
+            {
+              "line": 11,
+              "text": " * ATTENTION : non reentrant. Un seul begin()/end() a la fois, jamais imbrique."
+            },
+            {
+              "line": 12,
+              "text": " */"
+            },
+            {
+              "line": 13,
+              "text": ""
+            },
+            {
+              "line": 14,
+              "text": "OPS_PER_TICK <- 10000;"
+            },
+            {
+              "line": 15,
+              "text": ""
+            },
+            {
+              "line": 16,
+              "text": "/* Mesure d'opcodes sans passer par l'instance partagee OpexBudget : chaque appel cree son propre"
+            },
+            {
+              "line": 17,
+              "text": " * \"mark\" local, donc aucun risque de reentrance meme dans une fonction qui ne recoit pas `budget`."
+            },
+            {
+              "line": 18,
+              "text": " * Meme formule que OpexBudget.end(). */"
+            },
+            {
+              "line": 19,
+              "text": "function OpexOpsMeasureBegin()"
+            },
+            {
+              "line": 20,
+              "text": "{"
+            },
+            {
+              "line": 21,
+              "text": "  return { tick = AIController.GetTick(), left = AIController.GetOpsTillSuspend() };"
+            },
+            {
+              "line": 22,
+              "text": "}"
+            },
+            {
+              "line": 23,
+              "text": ""
+            },
+            {
+              "line": 24,
+              "text": "function OpexOpsMeasureEnd(mark)"
+            },
+            {
+              "line": 25,
+              "text": "{"
+            },
+            {
+              "line": 26,
+              "text": "  local left = AIController.GetOpsTillSuspend();"
+            },
+            {
+              "line": 27,
+              "text": "  local elapsed = AIController.GetTick() - mark.tick;"
+            },
+            {
+              "line": 28,
+              "text": "  return elapsed <= 0"
+            },
+            {
+              "line": 29,
+              "text": "    ? mark.left - left"
+            },
+            {
+              "line": 30,
+              "text": "    : mark.left + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - left);"
+            },
+            {
+              "line": 31,
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

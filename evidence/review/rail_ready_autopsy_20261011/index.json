@@ -1,0 +1,277 @@
+{
+  "schema": "opex-review-evidence-v1",
+  "description": "Sous-index documentaire ciblé : autopsie historique 40x5 et sonde indépendante 5x5; aucune qualification ou adoption.",
+  "documents": [
+    "docs/rail_ready_autopsy_20261011.md",
+    "docs/rail_ready_measure_20261011.md",
+    "docs/journaux/journal_2026-10-11.md"
+  ],
+  "artifacts": [
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/analyse.py",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/analyse.py.gz",
+      "raw_bytes": 14056,
+      "raw_sha256": "517b907f6304b49e32bc9ae666b9f7c183c7c1f96d5e448c1f6a7f8c8f5d692f",
+      "gzip_bytes": 4913,
+      "gzip_sha256": "277e4b1befd7d567c4522ce7774642249350c8683589ba4bd201036b95b96b52"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/complete.py",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/complete.py.gz",
+      "raw_bytes": 3475,
+      "raw_sha256": "505d2ab8620df63a97e0fb24513f5cc731028c11b7636564c00487ed97a63346",
+      "gzip_bytes": 1419,
+      "gzip_sha256": "03d2d3f0b15e4ac844d5bef7252eb95e26b22598998f1f70bbdfbf083333398a"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/test_analysis.py",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/test_analysis.py.gz",
+      "raw_bytes": 2590,
+      "raw_sha256": "a883843cd17deb6fb905ae552b4cfec73a2d8acda574706841a9c9fc0584d1ae",
+      "gzip_bytes": 1030,
+      "gzip_sha256": "346ac4b0f821cc827b2ba01220f277789a1a3e92eb72d1baec2da1840664d64c"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/rapport.md",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/rapport.md.gz",
+      "raw_bytes": 20874,
+      "raw_sha256": "b6226555d8be77ca5186f563a5502281f0fb32c7d5d6de13f5d0d7d974e4a4f9",
+      "gzip_bytes": 8165,
+      "gzip_sha256": "e5f0e783914c18a70a481c29dbc9ab7d1e0b2e7827d2a234a661fcb3e8b11217"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/analysis.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/analysis.json.gz",
+      "raw_bytes": 4042600,
+      "raw_sha256": "679009c26b9a589ebaf194be72fde3b286364db37a34ed5a0374ca7311e42f75",
+      "gzip_bytes": 233443,
+      "gzip_sha256": "cb61522e197e3913cd3b237f000db600cb1347318aec9bcf3ddaca3f0a291775"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/first_log_differences.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/first_log_differences.json.gz",
+      "raw_bytes": 7890,
+      "raw_sha256": "442130c16bc51d7054c86bd0fb506a0869f9b865e999d89de66e985bc0502e3a",
+      "gzip_bytes": 1221,
+      "gzip_sha256": "e049a4f1e6ab6ad52470f589de7f4c1e89e639b41559c2ed24751a82024bc4ed"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/monthly.csv",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/monthly.csv.gz",
+      "raw_bytes": 249569,
+      "raw_sha256": "bb7ac002da0e79dee0a92e0293219431a70f6dd533ae9f82645f852cdf5166fb",
+      "gzip_bytes": 9330,
+      "gzip_sha256": "84feb46b0086d4beab0ce4811a708cd77f01ad33d7572c3e46590818393c0458"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/annual_modes.csv",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/annual_modes.csv.gz",
+      "raw_bytes": 5565,
+      "raw_sha256": "713de512513815efecc10a5269d6a65d411d500c98808810b96b3821ea996b72",
+      "gzip_bytes": 2234,
+      "gzip_sha256": "cf63826af4c9879721dc17e1a0480b71887d9553a6df7d5b1a6ac6a265d3cd4d"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/rail_retained_signs.csv",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/rail_retained_signs.csv.gz",
+      "raw_bytes": 3842,
+      "raw_sha256": "6d5e9b7123654980b3ca543c2d320e162b9e6142820bfad260627c280a19786d",
+      "gzip_bytes": 772,
+      "gzip_sha256": "769a7e54895b0e3426cc5bbc4f3b835082e749f5cac829ab50d2125bb406a5d4"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/air_builds.csv",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/air_builds.csv.gz",
+      "raw_bytes": 31476,
+      "raw_sha256": "6eba6bf02349d17dab15960d6ef4084b536b98bafe4b3f80f4d3fa2b5116c550",
+      "gzip_bytes": 6943,
+      "gzip_sha256": "399d18f13f05a73924602264767c2dbde5f3f0bc37545cf4f3d9e16509a30a32"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/all_seeds_first_month.csv",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/all_seeds_first_month.csv.gz",
+      "raw_bytes": 5432,
+      "raw_sha256": "cd1028a0f6bc4b983e19d290a9cbbc8751f76994c4dc3002413aa6cd71517b90",
+      "gzip_bytes": 917,
+      "gzip_sha256": "acba3594619d717127f280f7f6d324fd12681fdbc30f3ff89fc19a813702fa4d"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/inputs_before.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/inputs_before.json.gz",
+      "raw_bytes": 35539,
+      "raw_sha256": "43735d9078c040bb037f9376f3ed54d755d8c50c21421eb98e61f5e78e4defd9",
+      "gzip_bytes": 9909,
+      "gzip_sha256": "7223a31b91d1590ae5d52b2c8b0cb5917b31d7dbd55bf2e4ee3d03487e09738f"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/verification.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/verification.json.gz",
+      "raw_bytes": 258,
+      "raw_sha256": "fbf1a0b1fa5a72a8802da2bffb174c04ac0e4089480d981e4f8e84033cc2f1c0",
+      "gzip_bytes": 173,
+      "gzip_sha256": "125b85c681da17b05a253ec022f15808874533c8f71cbb116c6c735e5197d3a9"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/final_verification.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/final_verification.json.gz",
+      "raw_bytes": 227,
+      "raw_sha256": "d8c7a9e9b61cdd4d0c5af0d580f475fbdbfffd358ef3b3571be1e9eea13e9cf8",
+      "gzip_bytes": 160,
+      "gzip_sha256": "67e338d86b88eda68a3652faf57e1b5185ba36de3b81cdf7614c063409729607"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/artifact_hashes.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/artifact_hashes.json.gz",
+      "raw_bytes": 1385,
+      "raw_sha256": "492e9e5f50eefee7c8f09824ee315a2838224b4b62b2aeb98936f15e2205fd78",
+      "gzip_bytes": 802,
+      "gzip_sha256": "c0f48ea8275163f4c609c1cbd6d433506d51b1b2cfdddb535d956bd4d16254ec"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/analyse.py",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/analyse.py.gz",
+      "raw_bytes": 16431,
+      "raw_sha256": "3147885b211076434a64280efa43436a2aa1017c2c2f4729c2660d3cc1a45096",
+      "gzip_bytes": 5352,
+      "gzip_sha256": "486fd8772a74c3ad5eece9b2928896638152a247c380db9c4a5f5917d81e5a45"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/test_analysis.py",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/test_analysis.py.gz",
+      "raw_bytes": 1289,
+      "raw_sha256": "816dd5a9d07bb9fdcbc9859167540c174c6051a67cb4de1ba35dc63224d1bf23",
+      "gzip_bytes": 605,
+      "gzip_sha256": "4208b525199e07d69b6c59e9e94461668bb24e81a46b0bc6cc8ea1c0a1c676cc"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/prepare.py",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/prepare.py.gz",
+      "raw_bytes": 8888,
+      "raw_sha256": "9174425ed87646f6928d757db4b8bdcad0482da2979c812a787314df941db7a6",
+      "gzip_bytes": 2827,
+      "gzip_sha256": "5d54774bef74fe958f58547405e63fb65fa671c027d3e1d61cd4c860d9ce168b"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/report.md",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/report.md.gz",
+      "raw_bytes": 15422,
+      "raw_sha256": "b2ebc7c9a8651f9349657432bd677a5571f0e01c3420d187ce54a59f32cf9dd8",
+      "gzip_bytes": 7149,
+      "gzip_sha256": "3d04d8fc772e3bc6f5036a0b24cd7c17522dca3ab1b94ce516121237615f3c9e"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/analysis.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/analysis.json.gz",
+      "raw_bytes": 3031423,
+      "raw_sha256": "b0002c3076d569d5183d0885dcf9aeb5a2e7ad88f46aa55866d3878ebbbd3ef3",
+      "gzip_bytes": 162378,
+      "gzip_sha256": "a7ed4485729886480d31f065c655db9258b3b6cdacb046ad06b799a99ce0b4ae"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/events.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/events.json.gz",
+      "raw_bytes": 74832,
+      "raw_sha256": "41a816fad73bb5a1bc0fdf1a01ec6300b3c985fdadc2ba475ddf340762d3778c",
+      "gzip_bytes": 5595,
+      "gzip_sha256": "3907db4948f3ab2ba580594ee787d75fb2afb4f28936fcbd109805a18cba8fc7"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/annual.csv",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/annual.csv.gz",
+      "raw_bytes": 3866,
+      "raw_sha256": "11b42fd92b6e6e96d7097a464d480d38854645dc6dca37609c2aba539706f4b3",
+      "gzip_bytes": 1444,
+      "gzip_sha256": "661e47ba09392cd00574f5bcfcb728b4fade917970c3126a046041bce91b74bf"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/preregistration.md",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/preregistration.md.gz",
+      "raw_bytes": 4725,
+      "raw_sha256": "0e4d720e708ce2a6d71d085adfb9bc1d1014fd1d7fe200ffa248d5b828733cf4",
+      "gzip_bytes": 2500,
+      "gzip_sha256": "0387f312524fc3c8b5dc26ed8f538c6e798a9b2f2db36f969ca9f4fcbca299b6"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/snapshot_probe.patch",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/snapshot_probe.patch.gz",
+      "raw_bytes": 9907,
+      "raw_sha256": "13a5ccd37917ab15577e78007c5284c701543191e5f6b15816d4edfcc74c0d80",
+      "gzip_bytes": 2732,
+      "gzip_sha256": "67fd3c0ce0e724c7ff9db3611758d94f022d84f76ef6b5646acd1aabde2ae82f"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/snapshot_source_hashes.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/snapshot_source_hashes.json.gz",
+      "raw_bytes": 8914,
+      "raw_sha256": "73d317939d58c52f6028ecf9b28fcd8d1652cde03135b206a07bf7974d3bbce4",
+      "gzip_bytes": 4211,
+      "gzip_sha256": "7b70ddc697dc855d6bc88993701972cc6004be122ca68ae5fa92ac06d6200008"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/artifact_hashes.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/artifact_hashes.json.gz",
+      "raw_bytes": 4513,
+      "raw_sha256": "2743ca0a1d94acc2fa720582c011b7219663e04babbb6ba86dc110c5e08388c9",
+      "gzip_bytes": 1631,
+      "gzip_sha256": "789bdb92d4311c63f37c90db2f215ae10670f7516c188c971c5f102ae635b5f3"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/snapshot/results/diagnostic.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/snapshot/results/diagnostic.json.gz",
+      "raw_bytes": 309807,
+      "raw_sha256": "92ce910c3320641235462e9393f0431bbd2cc1708a8ef4fe06e180cf74787254",
+      "gzip_bytes": 22532,
+      "gzip_sha256": "52b4e2e8b83b1fec8f949a84c58bb8a3364c56309ff3614f7183a9f20c863ccc"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/snapshot/results/diagnostic.manifest.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/snapshot/results/diagnostic.manifest.json.gz",
+      "raw_bytes": 95889,
+      "raw_sha256": "61b43088b7d41241343db1175209fdf1d25811436514d35b0a97a4224da6b2a7",
+      "gzip_bytes": 13392,
+      "gzip_sha256": "dc34a704d536a93bcc88c480bf5fa2f32d3057a2e2a91c6a877d12bffd71742d"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/snapshot/results/diagnostic.jsonl",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/snapshot/results/diagnostic.jsonl.gz",
+      "raw_bytes": 5433090,
+      "raw_sha256": "d30da6a2c95a92af3e3b635ba01548def8cb7e4f28ed0926ce9cef9f5961fc88",
+      "gzip_bytes": 315666,
+      "gzip_sha256": "38617e3913d81b73ab65704e256a0387e11018cecb12b2d6abbe749ab88db1dd"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/snapshot/results/smoke.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/snapshot/results/smoke.json.gz",
+      "raw_bytes": 68593,
+      "raw_sha256": "077e5444f6f94c981b2211fd040f21200de599f13541473472e843a97a38c0b2",
+      "gzip_bytes": 5547,
+      "gzip_sha256": "698c391c1851bd2637ea5641d4d96370c84297951ce8d59bfc71ba5b6a018fbf"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/snapshot/results/smoke.manifest.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/snapshot/results/smoke.manifest.json.gz",
+      "raw_bytes": 92782,
+      "raw_sha256": "4788353be6c314d2d857898091b5711a8454245eba4bda1cf737e87e63404089",
+      "gzip_bytes": 13238,
+      "gzip_sha256": "ef19a20376bc516b92bbd62e8dd82669ea583b8822d1411c43a4d8c04c48fc9c"
+    },
+    {
+      "source": "results/rail_ready_autopsy_20261011_r1/production_before.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/autopsy/production_before.json.gz",
+      "raw_bytes": 208536,
+      "raw_sha256": "c1ee9f85c4e3b194d69c14209d0ca679a33a823f050ffcf4b43386f9ba57c328",
+      "gzip_bytes": 85133,
+      "gzip_sha256": "4ec0fc0e71354854fb54cf1d5564d7f5865a53a47badf31ccf12732a34e89a8f"
+    },
+    {
+      "source": "results/rail_ready_measure_20261011_r1/production_before.json",
+      "evidence": "evidence/review/rail_ready_autopsy_20261011/measurement/production_before.json.gz",
+      "raw_bytes": 175182,
+      "raw_sha256": "3834bda93493f16929f7baf09282cdf0f2865cdccc67f6c9f81666043ca0a8b3",
+      "gzip_bytes": 70878,
+      "gzip_sha256": "249224b39bca68c27982caf840d9ff76b63fd042bb0e0fce51c34ac6826ae361"
+    }
+  ],
+  "missing": [],
+  "coverage": "Selected derived artifacts and measurement results only; historical raw 40x5 JSON/JSONL, logs and bundles remain local, hashed in autopsy/inputs_before.json.gz. Global evidence/review/index.json unchanged."
+}
