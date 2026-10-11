@@ -54,9 +54,9 @@ def markers(log):
             "eligible_full_ops": sum(r["full_ops"] for r in eligible),
             "eligible_copy_ops": sum(r["copy_ops"] for r in eligible),
             "checks": {"start": "C121_WINNER_START active=1 production_result=old" in log,
-                       "matrix_cases": [r["case"] for r in matrix] == list(range(1, 19)),
+                       "matrix_cases": [r["case"] for r in matrix] == list(range(1, 10)),
                        "matrix_stable": bool(matrix) and all(r["stable"] for r in matrix),
-                       "matrix_restored": "C121_WINNER_VM complete=1 cases=18 restored=1" in log,
+                       "matrix_restored": "C121_WINNER_VM complete=1 cases=9 restored=1" in log,
                        "live_exposed": bool(live),
                        "no_fixture_assertion": "C121_WINNER_ASSERT" not in log}}
 

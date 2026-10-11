@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 HISTORICAL_PICK = """) best = item;"""
-TERNARY = "C121_AAA_LINE ? 2 : 1"
+TERNARY = "local openingPlanes = 1;"
 LOG_FIELDS = (
     "date=",
     "towns=",
@@ -121,7 +121,7 @@ class TestAir0310_6EngineDepth(unittest.TestCase):
 
         armed = chooser.index("best = OpexAirEngineDepthFullScan(catalog, plan);")
         historical = chooser[chooser.index("} else {", armed):chooser.index("OpexC121GameEngineAfterScan", armed)]
-        self.assertIn("local openingPlanes = " + TERNARY + ";", historical)
+        self.assertIn(TERNARY, historical)
         self.assertIn(HISTORICAL_PICK, historical)
         self.assertNotIn("AIR_ENGINE_DEPTH", historical)
         self.assertNotIn("OpexAirEngineDepth", historical)
@@ -134,10 +134,10 @@ class TestAir0310_6EngineDepth(unittest.TestCase):
             self.scan,
         )
         self.assertEqual(self.scan.count("OpexAirEngineDepthFullScan"), 1)
-        self.assertIn("local openingPlanes = " + TERNARY + ";", self.scan)
+        self.assertIn(TERNARY, self.scan)
         self.assertIn(HISTORICAL_PICK, self.scan)
         self.assertEqual(self.econ.count(HISTORICAL_PICK), 2)
-        self.assertEqual(self.econ.count(TERNARY), 3)
+        self.assertEqual(self.econ.count(TERNARY), 4)
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", chooser)
 
         needle = "if (best != null && candidate.upperScore < best.economics.decisionScore) break;"
@@ -148,9 +148,8 @@ class TestAir0310_6EngineDepth(unittest.TestCase):
         emit = self.emit
         chooser = self.chooser
         self.assertNotIn("PROBE_AIR_ENGINE_DEPTH", full)
-        self.assertNotIn(TERNARY, full)
+        self.assertIn(TERNARY, full)
         self.assertIn("local openingPlanes = 1;", full)
-        self.assertIn("if (C121_AAA_LINE) openingPlanes = 2;", full)
         self.assertIn("AIR_ENGINE_DEPTH_CHALLENGER = null;", full)
         self.assertIn("AIR_ENGINE_DEPTH_CHALLENGER = best;", full)
         self.assertIn("else OpexAirEngineDepthConsider(item);", full)

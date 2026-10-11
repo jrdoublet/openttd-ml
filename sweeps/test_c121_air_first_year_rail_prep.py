@@ -93,16 +93,6 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         self.assertNotIn("C121_AIR_FIRST_YEAR_RAIL_PREP = false;", globals_pre)
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES = false;", globals_pre)
 
-    def test_full_load_stays_on_aaa_only(self):
-        settings = source("settings.nut")
-        self.assertEqual(settings.count("if (C121_AAA_LINE) AIR_FULL_LOAD = 1;"), 1)
-        self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES) AIR_FULL_LOAD", settings)
-        air_full = settings.index("AIR_FULL_LOAD = AIController.GetSetting(\"air_full_load\");")
-        aaa_force = settings.index("if (C121_AAA_LINE) AIR_FULL_LOAD = 1;")
-        self.assertLess(air_full, aaa_force)
-        planes_assign = settings.index("C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS")
-        self.assertLess(planes_assign, aaa_force)
-
     def test_one_or_two_replaces_only_the_winner_depth(self):
         econ = source("air_economics_c121.nut")
         winner = econ.split("function OpexC121WinnerEconomics(", 1)[1].split(
@@ -113,7 +103,7 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
             "  }",
             winner)
         self.assertLess(winner.index("OpexC121OneOrTwoWinner"),
-                        winner.index("if (!fusion || C121_AAA_LINE)"))
+                        winner.index("if (!fusion)"))
         pair = econ.split("function OpexC121OneOrTwoWinner(", 1)[1].split(
             "function OpexC121WinnerEconomics(", 1)[0]
         self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, 1, false)", pair)
@@ -122,9 +112,9 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         self.assertNotIn("fixedPlanes = 0", pair)
         chooser = econ.split("function OpexC121ChooseRoutePlane(", 1)[1].split(
             "\nfunction ", 1)[0]
-        self.assertIn("local openingPlanes = C121_AAA_LINE ? 2 : 1;", chooser)
+        self.assertIn("local openingPlanes = 1;", chooser)
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", chooser)
-        self.assertEqual(econ.count("C121_AAA_LINE ? 2 : 1"), 3)
+        self.assertEqual(econ.count("local openingPlanes = 1;"), 4)
         air_econ = econ.split("function OpexC121AirEconomics(", 1)[1].split(
             "\nfunction ", 1)[0]
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", air_econ)
@@ -136,7 +126,7 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
     def test_opposite_departure_does_not_force_full_load(self):
         air = source("air_construction.nut")
         self.assertIn(
-            "local hangarB = (C121_AAA_LINE || (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2))\n"
+            "local hangarB = (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2)\n"
             "      ? AIAirport.GetHangarOfAirport(airportB) : null;",
             air)
         self.assertIn("if (fromB && AIVehicle.IsValidVehicle(extra)) AIOrder.SkipToOrder(extra, 1);", air)

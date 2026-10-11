@@ -4,8 +4,8 @@ FXF_INITIAL_OPS <- 0;
 
 function FxFPair(catalog, plan, plane, fusion)
 {
-  if (!fusion || C121_AAA_LINE) {
-    local initial = FXW_ENGINE(catalog, plan, plane, C121_AAA_LINE ? 2 : 1, false);
+  if (!fusion) {
+    local initial = FXW_ENGINE(catalog, plan, plane, 1, false);
     local full = FXW_ENGINE(catalog, plan, plane, 0, false);
     return { initial = initial, full = full };
   }
@@ -16,7 +16,7 @@ function FxFPair(catalog, plan, plane, fusion)
 
 function FxFIsolation(pair)
 {
-  if (pair.initial == null || pair.full == null || C121_AAA_LINE) return;
+  if (pair.initial == null || pair.full == null) return;
   local profit = pair.initial.profitAnnual;
   pair.full.profitAnnual++;
   FxWAssert(pair.initial.profitAnnual == profit, "fusion_outer_alias");

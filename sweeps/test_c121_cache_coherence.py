@@ -39,8 +39,6 @@ class CacheSourceContracts(unittest.TestCase):
         # adoptés ; les leviers voisins restent désactivés indépendamment.
         for name in ("c121_air_economics", "c121_catalog_incremental"):
             self.assertEqual(settings[name], 1, name)
-        for name in ("c121_territory_first", "c121_aaa_line"):
-            self.assertEqual(settings[name], 0, name)
         # Optimisation d'opcodes adoptee le 2026-10-03 (inerte sans C121).
         self.assertEqual(settings["c121_air_game_engine"], 1)
         # Decision utilisateur du 2026-10-02 : aerien seul la premiere annee a 1

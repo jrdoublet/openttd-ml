@@ -189,7 +189,7 @@ def main(argv=None):
         evidence = markers(log)
         checks.update(evidence["checks"])
         checks["integrated_fixture"] = "C121_INTEGRATION_START pass=1" in log
-        checks["boundary_routes"] = "C121_INTEGRATION_BOUNDARY checks=5 restored=1 pass=1" in log
+        checks["boundary_routes"] = "C121_INTEGRATION_BOUNDARY checks=4 restored=1 pass=1" in log
     elif args.mode == "measure":
         evidence = probe_evidence(log, str(folder / "engine.log"))
         checks.update(evidence["checks"])

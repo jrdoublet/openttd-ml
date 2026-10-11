@@ -366,7 +366,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("local fullBest = winnerEconomics.full;", chooser)
         self.assertIn("local initialEconomics = winnerEconomics.initial;", chooser)
         witness = body(self.air, "function OpexC121WinnerEconomics", "function OpexC121InitialEngineUpperScore")
-        self.assertIn("if (!fusion || C121_AAA_LINE)", witness)
+        self.assertIn("if (!fusion)", witness)
         self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, false)", witness)
         self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, 0, false)", witness)
         self.assertIn("local decisionEconomics = fullBest;", chooser)
@@ -961,7 +961,7 @@ class TestC121FirstObservationGrowth(unittest.TestCase):
     def test_first_live_air_priority_is_opcode_parity_until_real_defer(self):
         task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
         start = task.index("local c121LiveShouldDefer = false;")
-        end = task.index("if (c121Served != null", start)
+        end = task.index("if (C75_MULTI_BUILD &&", start)
         block = task[start:end]
         compute = block.index("c121LiveShouldDefer = c121LiveOpp != null")
         gate = block.index("if (c121LiveShouldDefer) {")
@@ -1054,39 +1054,6 @@ class TestC121FirstObservationGrowth(unittest.TestCase):
         self.assertLess(score, capture)
         self.assertLess(capture, finish)
         self.assertLess(finish, c120)
-
-
-class TestC121TerritoryFirst(unittest.TestCase):
-    def test_setting_defaults_off_and_requires_c121(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_territory_first"')
-        self.assertIn("custom_value = 0", info[i:i + 400])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_TERRITORY_FIRST = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_territory_first") != 0;', settings)
-
-    def test_reserve_only_under_flag(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
-        self.assertIn("local c121Served = C121_TERRITORY_FIRST ? OpexC121ServedAirTowns() : null;", task)
-        self.assertIn('reason = "c121_territory_reserve"', task)
-
-
-
-class TestC121AaaLine(unittest.TestCase):
-    def test_setting_defaults_off_and_requires_c121(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_aaa_line"')
-        self.assertIn("custom_value = 0", info[i:i + 400])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AAA_LINE = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_aaa_line") != 0;', settings)
-        self.assertIn("if (C121_AAA_LINE) AIR_FULL_LOAD = 1;", settings)
-        self.assertLess(settings.index('C121_AAA_LINE = C121_AIR_ECONOMICS'),
-                        settings.index("if (C121_AAA_LINE) AIR_FULL_LOAD = 1;"))
-
-    def test_two_planes_and_second_from_airport_b(self):
-        air = read_builder_air()
-        self.assertEqual(air.count("C121_AAA_LINE ? 2 : 1"), 3)
-        self.assertIn("AIAirport.GetHangarOfAirport(airportB)", air)
-        self.assertIn("AIOrder.SkipToOrder(extra, 1)", air)
 
 
 if __name__ == "__main__":

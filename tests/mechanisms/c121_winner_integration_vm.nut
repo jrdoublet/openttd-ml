@@ -25,8 +25,6 @@ function FxIBoundaries()
 {
   local savedEngine = OpexC121EngineEconomics;
   local savedEpoch = OpexC121WinnerTariffEpoch;
-  local savedAAA = C121_AAA_LINE;
-  C121_AAA_LINE = false;
   OpexC121EngineEconomics = FxIStub;
   OpexC121WinnerTariffEpoch = FxIEpoch;
   FXI_CALLS = []; FXI_EPOCHS = [12, 12];
@@ -38,17 +36,13 @@ function FxIBoundaries()
   FXI_CALLS = []; FXI_EPOCHS = [];
   pair = OpexC121WinnerEconomics(null, null, null, false);
   FxWAssert(FxWEqual(FXI_CALLS, [1, 0]), "off_witness");
-  FXI_CALLS = []; C121_AAA_LINE = true;
-  pair = OpexC121WinnerEconomics(null, null, null, true);
-  FxWAssert(FxWEqual(FXI_CALLS, [2, 0]), "aaa_witness");
-  FXI_CALLS = []; C121_AAA_LINE = false; FXI_MISSING = true; FXI_EPOCHS = [12];
+  FXI_CALLS = []; FXI_MISSING = true; FXI_EPOCHS = [12];
   pair = OpexC121WinnerEconomics(null, null, null, true);
   FxWAssert(FxWEqual(FXI_CALLS, [0, 1]) && pair.initial.token == 2, "missing_opening");
   FXI_MISSING = false;
   OpexC121EngineEconomics = savedEngine;
   OpexC121WinnerTariffEpoch = savedEpoch;
-  C121_AAA_LINE = savedAAA;
-  AILog.Info("C121_INTEGRATION_BOUNDARY checks=5 restored=1 pass=1");
+  AILog.Info("C121_INTEGRATION_BOUNDARY checks=4 restored=1 pass=1");
 }
 
 function FxIPair(catalog, plan, plane, fusion)

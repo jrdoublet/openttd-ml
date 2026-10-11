@@ -1600,8 +1600,8 @@ function OpexC121WinnerEconomics(catalog, plan, plane, fusion, engineContext = n
   if (C121_AIR_ONE_OR_TWO_PLANES) {
     return OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext);
   }
-  if (!fusion || C121_AAA_LINE) {
-    local openingPlanes = C121_AAA_LINE ? 2 : 1;
+  if (!fusion) {
+    local openingPlanes = 1;
     local initial = engineContext == null
         ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, false)
         : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, false, null, null, engineContext);
@@ -1996,7 +1996,7 @@ function OpexAirEngineDepthEmit(catalog, plan, routeChoice)
 /* Scan complet reserve a la sonde. Le caller ne l'atteint que si
  * probe_air_engine_depth est deja vrai. Meme departage N=1 que le scan
  * historique ; le second moteur est conserve pour le noyau N=1/N=2.
- * N d'ouverture : 2 si C121_AAA_LINE, sinon 1, sans reprendre le motif
+ * N d'ouverture : 1, sans reprendre le motif
  * historique des trois corps. */
 function OpexAirEngineDepthFullScan(catalog, plan)
 {
@@ -2043,7 +2043,6 @@ function OpexAirEngineDepthFullScan(catalog, plan)
     local ops0 = AIController.GetOpsTillSuspend();
     local context = ("trip" in candidate) ? candidate : null;
     local openingPlanes = 1;
-    if (C121_AAA_LINE) openingPlanes = 2;
     local evaluatedEconomics = context == null
         ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null)
         : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null, null, context);
@@ -2142,7 +2141,7 @@ function OpexC121ScanRoutePlaneEngines(catalog, plan)
     local tick0 = AIController.GetTick();
     local ops0 = AIController.GetOpsTillSuspend();
     local context = ("trip" in candidate) ? candidate : null;
-    local openingPlanes = C121_AAA_LINE ? 2 : 1;
+    local openingPlanes = 1;
     local evaluatedEconomics = context == null
         ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null)
         : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null, null, context);
@@ -2321,7 +2320,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     local tick0 = AIController.GetTick();
     local ops0 = AIController.GetOpsTillSuspend();
     local context = ("trip" in candidate) ? candidate : null;
-    local openingPlanes = C121_AAA_LINE ? 2 : 1;
+    local openingPlanes = 1;
     local evaluatedEconomics = context == null
         ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null)
         : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, true, null, null, context);

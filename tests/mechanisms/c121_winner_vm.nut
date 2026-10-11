@@ -45,8 +45,8 @@ function FxWCap(plan, days, pax, mail)
 function FxWPair(catalog, plan, plane, shortcut)
 {
   local day = AIDate.GetCurrentDate();
-  local initial = FXW_ENGINE(catalog, plan, plane, C121_AAA_LINE ? 2 : 1, false);
-  local full = shortcut && !C121_AAA_LINE && initial != null
+  local initial = FXW_ENGINE(catalog, plan, plane, 1, false);
+  local full = shortcut && initial != null
       && initial.fleetScanCap == 1 && day == AIDate.GetCurrentDate()
       ? FxWCopy(initial) : FXW_ENGINE(catalog, plan, plane, 0, false);
   return { initial = initial, full = full };
@@ -54,7 +54,7 @@ function FxWPair(catalog, plan, plane, shortcut)
 
 function FxWMatrix(catalog, plan, plane)
 {
-  local saved = { aaa = C121_AAA_LINE, caps = C121_AIR_ENGINE_CAPACITY_OBS };
+  local saved = { caps = C121_AIR_ENGINE_CAPACITY_OBS };
   OpexC121AirFleetScanCap = FxWCap;
   local count = 0;
   for (local mail = 0; mail < 3; mail++) {
@@ -64,8 +64,7 @@ function FxWMatrix(catalog, plan, plane)
         { pax = plane.capacity, mail = mail == 1 ? 0 : 20 });
     foreach (cap in [1, 2, 4]) {
       FXW_CAP = cap;
-      for (local aaa = 0; aaa < 2; aaa++) {
-        C121_AAA_LINE = aaa != 0;
+      {
         local oldPair = null;
         local newPair = null;
         local oldOps = 0;
@@ -90,7 +89,7 @@ function FxWMatrix(catalog, plan, plane)
         FxWAssert(oldPair.initial != null && oldPair.full != null, "matrix_nonnull");
         FxWAssert(stable, "matrix_no_stable_sample");
         FxWAssert(FxWEqual(oldPair, newPair), "matrix_recursive_values");
-        local eligible = cap == 1 && aaa == 0;
+        local eligible = cap == 1;
         if (eligible) {
           local prior = newPair.initial.profitAnnual;
           newPair.full.profitAnnual++;
@@ -101,7 +100,7 @@ function FxWMatrix(catalog, plan, plane)
         }
         count++;
         AILog.Info("C121_WINNER_MATRIX case=" + count + " cap=" + cap + " mail=" + mail
-            + " aaa=" + aaa + " stable=" + (stable ? 1 : 0)
+            + " aaa=0 stable=" + (stable ? 1 : 0)
             + " eligible=" + (eligible ? 1 : 0) + " old_ops=" + oldOps + " new_ops=" + newOps + " pass=1");
         if (attempts > 0) AILog.Info("C121_WINNER_RETRY case=" + count + " discarded=" + attempts);
       }
@@ -109,7 +108,6 @@ function FxWMatrix(catalog, plan, plane)
   }
   FXW_CAP = 0;
   OpexC121AirFleetScanCap = FXW_SCAN_CAP;
-  C121_AAA_LINE = saved.aaa;
   C121_AIR_ENGINE_CAPACITY_OBS = saved.caps;
   FXW_MATRIX = true;
   AILog.Info("C121_WINNER_VM complete=1 cases=" + count + " restored=1");
@@ -130,7 +128,7 @@ function FxWEngine(catalog, plan, plane, fixed = 0, compact = false, floor = nul
     FXW_DATE = day;
   } else if (result != null) {
     local stable = day == AIDate.GetCurrentDate() && day == FXW_DATE;
-    local eligible = !C121_AAA_LINE && result.fleetScanCap == 1 && FXW_INITIAL != null
+    local eligible = result.fleetScanCap == 1 && FXW_INITIAL != null
         && FXW_INITIAL.fleetScanCap == 1 && FXW_PLAN == plan && FXW_PLANE == plane && stable;
     local copyOps = -1;
     if (eligible) {
@@ -142,7 +140,7 @@ function FxWEngine(catalog, plan, plane, fixed = 0, compact = false, floor = nul
     }
     AILog.Info("C121_WINNER_LIVE arm=" + plan.arm + " cap=" + result.fleetScanCap
         + " mail=" + (result.engineMailKnown ? (result.mailKnown ? "positive" : "zero") : "unknown")
-        + " eligible=" + (eligible ? 1 : 0) + " stable=" + (stable ? 1 : 0)
+        + " eligible=" + (eligible ? 1 : 0) + " aaa=0 stable=" + (stable ? 1 : 0)
         + " full_ops=" + used + " copy_ops=" + copyOps + " pass=1");
     if (FXW_INPUT == null) FXW_INPUT = { catalog = catalog, plan = plan, plane = plane };
   }

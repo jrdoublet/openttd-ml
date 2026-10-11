@@ -550,12 +550,8 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local built = [plane];
   spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.plane") : null;
   local wanted = ("planes" in plan) ? plan.planes : 1;
-  /* c121_aaa_line : le second avion part du hangar de l'aeroport B et commence par le
-   * trajet retour, comme AAAHogEx (route.nut:2232-2237).
-   * c121_air_one_or_two_planes : meme depart oppose quand le plan retient N=2,
-   * sans forcer AIR_FULL_LOAD. Hangar B invalide : fromB reste faux, le clone
-   * ou la construction de repli partent du hangar A, sans SkipToOrder. */
-  local hangarB = (C121_AAA_LINE || (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2))
+  /* Depart oppose pour le second avion du choix un/deux avions. */
+  local hangarB = (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2)
       ? AIAirport.GetHangarOfAirport(airportB) : null;
   for (local i = 1; i < wanted; i++) {
     local fromB = (i % 2 == 1) && hangarB != null && AIMap.IsValidTile(hangarB)
