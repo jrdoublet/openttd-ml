@@ -381,8 +381,6 @@ function OpexLoadSettings()
   C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
-  C121_AIR_OBSERVATION_GROWTH = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_observation_growth") != 0;
   C121_AIR_FIRST_OBSERVATION_GROWTH = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_first_observation_growth") != 0;
   C121_AIR_FIRST_GROWTH_MIN_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH

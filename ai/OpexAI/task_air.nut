@@ -1184,28 +1184,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         && line.targetAirPlanes > have;
     local belowTarget = c84BelowTarget || c121BelowTarget;
     local c121FirstLiveEntry = false;
-    if (c121BelowTarget && C121_AIR_OBSERVATION_GROWTH) {
-      /* La cible reste seulement une borne
-       * et le portefeuille continue d'arbitrer le +1. On accepte le dernier
-       * rapport annuel reel des que la ligne a traverse un changement d'annee,
-       * mais une meme observation ne peut financer qu'un seul renfort. La cadence
-       * AIR_FLEET_CADENCE_DAYS ci-dessus reste applicable. */
-      local c121Age = ("year" in line) ? year - line.year : -1;
-      local reportYear = this._lastReportYear;
-      if (reportYear != year || c121Age < 1
-          || !("lastProfit" in line) || line.lastProfit <= 0) {
-        OpexAirFleetRefusal(line, year, "O");
-        if (plan != null && C69_BOTTLENECK_PROBE)
-          OpexC73RecordRejection("fleet", "c121_no_positive_annual_observation", 1);
-        continue;
-      }
-      if (("c121GrowthReportYear" in line) && line.c121GrowthReportYear == reportYear) {
-        OpexAirFleetRefusal(line, year, "Y");
-        if (plan != null && C69_BOTTLENECK_PROBE)
-          OpexC73RecordRejection("fleet", "c121_observation_already_consumed", 1);
-        continue;
-      }
-    } else if (c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH
+    if (c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH
         && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
             || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS)
         && have == 1 && !("lastAirFleetYear" in line)) {
@@ -1430,9 +1409,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (addedThisPass > 0) {
       line.lastAirFleetYear <- year;
       line.lastAirFleetDate <- AIDate.GetCurrentDate();
-      if (C121_AIR_OBSERVATION_GROWTH && c121BelowTarget) {
-        line.c121GrowthReportYear <- this._lastReportYear;
-      }
       if (DECISION_LOG) {
         local yieldVal = OpexAirFleetYield(line);
         OpexDecide("AIR_FLEET", "action=grow line=" + line.lineId + " yield=" + yieldVal + " planes_before=" + (have - addedThisPass) + " planes_after=" + have + " added=" + addedThisPass);

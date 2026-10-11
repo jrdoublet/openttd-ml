@@ -595,9 +595,6 @@ C121_AIR_FIRST_YEAR_RAIL_PREP <- false;
 /* Economie C121 : n'evaluer que N=1 et N=2. N'exige pas aaa_line et ne touche
  * pas AIR_FULL_LOAD. Defaut 0. */
 C121_AIR_ONE_OR_TWO_PLANES <- false;
-/* C121 : au plus un renfort par nouveau rapport annuel positif, toujours arbitre
- * par le portefeuille et borne par la cible C121. */
-C121_AIR_OBSERVATION_GROWTH <- false;
 /* C121 cadence : avance seulement le premier renfort 1->2 a la premiere
  * observation annuelle positive. Les paliers suivants gardent les gardes
  * standard C121 (deux ans entre renforts). */

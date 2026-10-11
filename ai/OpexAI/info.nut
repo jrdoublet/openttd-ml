@@ -785,13 +785,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_air_observation_growth",
-      description = "C121 experimental: allow at most one +1 AIR reinforcement per new positive annual report while under target; portfolio arbitration and target bound stay unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c121_air_first_observation_growth",
       description = "C121 cadence experiment: advance only the first AIR reinforcement 1->2 to the first positive annual observation; later reinforcements keep the standard two-year C121 cadence; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

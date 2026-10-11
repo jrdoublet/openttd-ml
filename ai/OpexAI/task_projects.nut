@@ -290,10 +290,6 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 
   line.lastAirFleetYear <- year;
   line.lastAirFleetDate <- AIDate.GetCurrentDate();
-  if (C121_AIR_OBSERVATION_GROWTH && C121_AIR_ECONOMICS && added > 0
-      && ("targetAirPlanes" in line) && line.targetAirPlanes >= line.vehCount) {
-    line.c121GrowthReportYear <- this._lastReportYear;
-  }
   if (c121TrackMarginal && line.vehCount > c121HaveBefore) {
     line.c121MarginalBaselineProfit <- c121BaselineProfit;
     line.c121MarginalBaselineRevenue <- c121BaselineRevenue;

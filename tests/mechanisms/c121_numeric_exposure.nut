@@ -57,7 +57,7 @@ function QnCadence(line) {
 function QnPhase(line, below, have, year) {
   if (!below || !C121_AIR_FIRST_LIVE_GROWTH || have != 1
       || ("lastAirFleetYear" in line)
-      || C121_AIR_OBSERVATION_GROWTH || C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS == 4) return;
+      || C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS == 4) return;
   local elapsed = year - OPEX_START_YEAR;
   local active = C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
       || elapsed < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS;

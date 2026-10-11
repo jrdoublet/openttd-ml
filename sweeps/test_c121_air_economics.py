@@ -770,39 +770,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("line.c121TargetProfitAnnual <- target.profitAnnual;", attach)
         self.assertNotIn("C121_AIR_ECONOMICS_SHADOW", PERSIST.read_text(encoding="utf-8"))
 
-class TestC121ObservationGrowth(unittest.TestCase):
-    def test_setting_defaults_off_and_requires_c121(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_air_observation_growth"')
-        self.assertIn("custom_value = 0", info[i:i + 500])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_OBSERVATION_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_observation_growth") != 0;', settings)
-
-    def test_one_reinforcement_per_positive_annual_observation(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn("c121BelowTarget && C121_AIR_OBSERVATION_GROWTH", task)
-        self.assertIn("reportYear != year || c121Age < 1", task)
-        self.assertIn('!("lastProfit" in line) || line.lastProfit <= 0', task)
-        self.assertIn('line.c121GrowthReportYear == reportYear', task)
-        self.assertIn('"c121_observation_already_consumed"', task)
-        self.assertIn("maxAddedPerPass = 1;", task)
-
-    def test_success_consumes_report_and_scalar_is_persisted(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        projects = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
-        persist = (ROOT / "ai" / "OpexAI" / "persist.nut").read_text(encoding="utf-8")
-        self.assertIn("line.c121GrowthReportYear <- this._lastReportYear;", task)
-        self.assertIn("line.c121GrowthReportYear <- this._lastReportYear;", projects)
-        save_skip = persist[persist.index("OPEX_SAVE_LINE_SKIP <- {"):persist.index("function OpexSaveProjectLine(")]
-        self.assertNotIn("c121GrowthReportYear", save_skip)
-
-    def test_default_two_year_rules_are_preserved_when_flag_is_off(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn("} else if (c121BelowTarget) {", task)
-        self.assertIn('c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0', task)
-        self.assertIn('(year - line.lastAirFleetYear) < 2', task)
-
-
 class TestC121FirstObservationGrowth(unittest.TestCase):
     def test_setting_defaults_off_and_requires_c121(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")

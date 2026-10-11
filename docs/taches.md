@@ -7,6 +7,10 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **C121 observation growth retiré sur demande utilisateur (11/10).** Réglage, branche annuelle et marqueur actif supprimés après100×3 défavorable.80 contrats verts, smoke42×1 sain ; variantes premier renfort et Save/Load générique préservés. Aucun commit/push. [Bilan](c121_observation_growth_100x3_20261011.md).
+
+- **C121 observation growth —100×3 terminé (11/10), fail_primary_and_value_guard.**200/200 duels sains,100/100 paires complètes. Profit ON−OFF −50 966 £/an (−2,83 %), IC95 [−88 785 ; −12 279], p=0,00669,38V/62D ; valeur−5,142 %, garde échouée. Défaut0 conservé, aucune B/adoption. [Résultat](c121_observation_growth_100x3_20261011.md).
+
 - **C121 AAA line retiré sur demande utilisateur (11/10).** Réglage et code exclusif supprimés après le diagnostic10×3 défavorable ; choix un/deux avions préservé.109 tests verts, smoke42×1 sain. [Bilan](c121_aaa_line_10x3_20261011.md).
 
 - **C121 AAA line — diagnostic10×3 terminé (11/10).**20/20 duels sains ; ON−OFF −614 610 £/an, IC95 [−875 851 ; −334 577], p=0,00586,1V/9D ; valeur−33,85 %, garde non tenue. Verdict diagnostic_only (10 graines), perte étayée dans cet échantillon ; défaut0 maintenu. [Rapport](c121_aaa_line_10x3_20261011.md).

@@ -37,7 +37,6 @@ def main():
         ("c121_air_economics", 1),
         ("c121_catalog_incremental", 1),
         ("c121_catalog_air_first_year", 0),
-        ("c121_air_observation_growth", 0),
         ("c117_air_throughput_probe", 1),
         ("b9_air_demand_shadow", 0),
     )
