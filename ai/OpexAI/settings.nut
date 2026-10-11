@@ -387,8 +387,6 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_air_first_live_growth") != 0;
   C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH
       ? AIController.GetSetting("c121_air_first_live_growth_phase_years") : 0;
-  C121_AIR_FIRST_LIVE_AIR_PRIORITY = C121_AIR_FIRST_LIVE_GROWTH
-      && AIController.GetSetting("c121_air_first_live_air_priority") != 0;
   C121_KPASS_SHADOW = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_kpass_shadow") != 0;
   C121_KPASS_AIR_CONTINUE = C121_AIR_ECONOMICS

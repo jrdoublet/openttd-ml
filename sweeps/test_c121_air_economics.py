@@ -847,41 +847,10 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         self.assertIn("function OpexC121FirstLiveAirOpportunity(projects, project, rank, lines)", task)
         self.assertIn("airCap <= available && fleetCap + airCap > available", task)
         self.assertIn('AILog.Info("C121_FIRST_LIVE_PRIORITY line="', task)
-        probe = task[task.index("if ((C121_AIR_FIRST_LIVE_SHADOW || C121_AIR_FIRST_LIVE_AIR_PRIORITY)"):]
-        probe = probe[:probe.index("if (c121LiveShouldDefer) {")]
+        probe = task[task.index("if (C121_AIR_FIRST_LIVE_SHADOW\n"):]
+        probe = probe[:probe.index("if (C75_MULTI_BUILD &&")]
         self.assertNotIn("continue;", probe)
         self.assertNotIn("break;", probe)
-
-    def test_first_live_air_priority_defaults_off_and_is_growth_scoped(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_air_first_live_air_priority"')
-        self.assertIn("custom_value = 0", info[i:i + 700])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_LIVE_AIR_PRIORITY = C121_AIR_FIRST_LIVE_GROWTH\n      && AIController.GetSetting("c121_air_first_live_air_priority") != 0;', settings)
-
-    def test_first_live_air_priority_defers_only_direct_displacement(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
-        self.assertIn("local c121LiveShouldDefer = false;", task)
-        self.assertIn("c121LiveShouldDefer = c121LiveOpp != null && c121LiveOpp.displaced", task)
-        self.assertIn("c121LiveOpp.nextRank == i + 1 && builtCount == 0", task)
-        self.assertIn("if (c121LiveShouldDefer) {", task)
-        self.assertIn("if (C121_AIR_FIRST_LIVE_AIR_PRIORITY) {", task)
-        self.assertIn('AILog.Info("C121_FIRST_LIVE_PRIORITY_DEFER line="', task)
-        self.assertIn('reason = "c121_first_live_air_priority"', task)
-        self.assertIn("airCap <= available && fleetCap + airCap > available", task)
-        self.assertIn('" immediate=" + (c121LiveOpp.nextRank == i + 1 ? 1 : 0)', task)
-        self.assertIn('" built_before=" + builtCount', task)
-
-    def test_first_live_air_priority_is_opcode_parity_until_real_defer(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
-        start = task.index("local c121LiveShouldDefer = false;")
-        end = task.index("if (C75_MULTI_BUILD &&", start)
-        block = task[start:end]
-        compute = block.index("c121LiveShouldDefer = c121LiveOpp != null")
-        gate = block.index("if (c121LiveShouldDefer) {")
-        toggle = block.index("if (C121_AIR_FIRST_LIVE_AIR_PRIORITY) {", gate)
-        self.assertLess(compute, gate)
-        self.assertLess(gate, toggle)
 
     def test_c121_kpass_shadow_defaults_off_and_is_passive(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")

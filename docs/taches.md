@@ -7,6 +7,8 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **Priorité AIR du premier renfort live retirée (11/10, décision utilisateur).** `c121_air_first_live_air_priority` et branche de report supprimés après le 40×3 historique `fail_primary` (+0,315 %, sans gain ni perte significative démontrés). Croissance live=1, fenêtre4 et shadow partagés préservés ; Save/Load inchangé. 72 contrats verts et smoke défauts42×1 sain sur code synchronisé. [Bilan et preuves](c121_live_air_priority_retrait_20261011.md).
+
 - **Premier renfort annuel C121 retiré (11/10).** Paramètre et quatre sous-paramètres exclusifs supprimés après100×3 fail_primary ; variante live conservée.75 contrats verts, smoke42×1 sain. [Bilan](c121_first_observation_100x3_20261011.md).
 
 - **C121 observation growth retiré sur demande utilisateur (11/10).** Réglage, branche annuelle et marqueur actif supprimés après100×3 défavorable.80 contrats verts, smoke42×1 sain ; variantes premier renfort et Save/Load générique préservés. Aucun commit/push. [Bilan](c121_observation_growth_100x3_20261011.md).

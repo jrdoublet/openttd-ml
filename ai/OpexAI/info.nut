@@ -807,13 +807,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_air_first_live_air_priority",
-      description = "With C121 first-live growth, defer a live 1->2 only when the immediately following project is a fundable new AIR line, the pass has built nothing yet, and buying the plane would make that AIR line unaffordable; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c121_kpass_shadow",
       description = "C121 cadence shadow: log each portfolio pass stop with blocking project and a bounded look-ahead of following project modes/finance; never changes decisions; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

@@ -1633,19 +1633,12 @@ function OpexAI::_tryBuildProjects(year)
       }
     }
     local c121LiveOpp = null;
-    local c121LiveShouldDefer = false;
-    if ((C121_AIR_FIRST_LIVE_SHADOW || C121_AIR_FIRST_LIVE_AIR_PRIORITY)
+    if (C121_AIR_FIRST_LIVE_SHADOW
         && project.mode == "fleet"
         && ("payload" in project) && project.payload != null
         && ("c121FirstLive" in project.payload) && project.payload.c121FirstLive) {
       c121LiveOpp = OpexC121FirstLiveAirOpportunity(this._projects, project, i, this._lines);
-      /* Calculer la condition complete dans les DEUX bras quand le shadow est actif.
-       * Sinon le simple toggle ON paie davantage d'opcodes avant toute defer réelle et
-       * peut déplacer la cadence du scheduler. Le seul chemin divergent doit commencer
-       * au moment où une substitution immédiate est effectivement disponible. */
-      c121LiveShouldDefer = c121LiveOpp != null && c121LiveOpp.displaced
-          && c121LiveOpp.nextRank == i + 1 && builtCount == 0;
-      if (C121_AIR_FIRST_LIVE_SHADOW && c121LiveOpp != null) {
+      if (c121LiveOpp != null) {
         local liveLine = project.payload.line;
         local liveLineId = (liveLine != null && ("lineId" in liveLine)) ? liveLine.lineId : -1;
         local liveSig = c121LiveOpp.nextRank + ":" + (c121LiveOpp.airFundableNow ? 1 : 0)
@@ -1660,23 +1653,6 @@ function OpexAI::_tryBuildProjects(year)
               + " displaced=" + (c121LiveOpp.displaced ? 1 : 0)
               + " immediate=" + (c121LiveOpp.nextRank == i + 1 ? 1 : 0)
               + " built_before=" + builtCount);
-        }
-      }
-      if (c121LiveShouldDefer) {
-        if (C121_AIR_FIRST_LIVE_AIR_PRIORITY) {
-          AILog.Info("C121_FIRST_LIVE_PRIORITY_DEFER line="
-              + (("payload" in project) && project.payload != null
-                  && ("line" in project.payload) && project.payload.line != null
-                  && ("lineId" in project.payload.line) ? project.payload.line.lineId : -1)
-              + " rank=" + i + " next_air_rank=" + c121LiveOpp.nextRank
-              + " fleet_cap=" + c121LiveOpp.fleetCap + " air_cap=" + c121LiveOpp.airCap
-              + " available=" + c121LiveOpp.available + " built_before=" + builtCount);
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
-            passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
-                                  reason = "c121_first_live_air_priority",
-                                  extra = "next_air_rank=" + c121LiveOpp.nextRank
-                                      + " air_cap=" + c121LiveOpp.airCap });
-          continue;
         }
       }
     }
