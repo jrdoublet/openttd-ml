@@ -324,6 +324,99 @@ function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
   return true;
 }
 
+/* V141 : ecrire un slot existant ou le creer. `<-` sur un slot deja present
+ * est le piege Squirrel a eviter. */
+function OpexV141WriteSlot(target, slot, value)
+{
+  if (slot in target) target[slot] = value;
+  else target[slot] <- value;
+}
+
+/* Champs que OpexProjectFromAir reecrit sans relire l'economie du plan :
+ * planningOpcodes (airOps / N, pas opcodeScore), economicsDate, cargo, et
+ * C118 si actif. budgetScore / opcodeScore / capital viennent du payload. */
+function OpexV141PublishedAirStillValid(payload)
+{
+  if (payload == null || !("economics" in payload)) return false;
+  local economics = payload.economics;
+  if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
+      economics.capital <= 0) return false;
+  local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in payload)
+      && payload.decisionEconomics != null) ? payload.decisionEconomics : economics;
+  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
+      decisionEconomics.capital <= 0) return false;
+  return true;
+}
+
+function OpexV141RefreshPublishedAir(project, catalog, planningOps)
+{
+  if (project == null || catalog == null) return;
+  project.planningOpcodes = planningOps;
+  project.economicsDate = AIDate.GetCurrentDate();
+  project.cargo = catalog.paxCargo;
+  if (!C118_AIR_TERRITORIAL_EXPANSION) return;
+  local plan = ("payload" in project) ? project.payload : null;
+  OpexV141WriteSlot(project, "c118TownIds",
+      OpexC118PlanCoverageTowns(plan, catalog.paxCargo));
+  local economics = (plan != null && ("economics" in plan)) ? plan.economics : null;
+  local c68 = (plan != null && ("c118C68Economics" in plan))
+      ? plan.c118C68Economics : economics;
+  local profit = (c68 != null && ("profitAnnual" in c68)) ? c68.profitAnnual
+      : (economics != null ? economics.profitAnnual : 0);
+  local roi = (c68 != null && ("roi" in c68)) ? c68.roi
+      : (economics != null ? economics.roi : 0);
+  OpexV141WriteSlot(project, "c118C68Profit", profit);
+  OpexV141WriteSlot(project, "c118C68Roi", roi);
+}
+
+function OpexV141ValuesDiffer(leftVal, rightVal)
+{
+  if (leftVal == rightVal) return false;
+  if (typeof leftVal == "array" && typeof rightVal == "array") {
+    if (leftVal.len() != rightVal.len()) return true;
+    for (local i = 0; i < leftVal.len(); i++) {
+      if (leftVal[i] != rightVal[i]) return true;
+    }
+    return false;
+  }
+  return true;
+}
+
+function OpexV141DecisionFieldDiff(kept, rebuilt)
+{
+  if (kept == null && rebuilt == null) return null;
+  if (kept == null || rebuilt == null) return "null";
+  local fields = ["mode", "kind", "cargo", "src", "dst", "distance", "capital",
+      "budgetCapital", "decisionFinanceCapital", "decisionConstructionCapital",
+      "profitAnnual", "revenueAnnual", "roi", "expectedOpcodes", "budgetScore",
+      "opcodeScore", "planningOpcodes", "economicsDate", "c118C68Profit",
+      "c118C68Roi"];
+  local hasLeft = false;
+  local hasRight = false;
+  foreach (field in fields) {
+    hasLeft = field in kept;
+    hasRight = field in rebuilt;
+    if (hasLeft != hasRight) return field;
+    if (hasLeft && OpexV141ValuesDiffer(kept[field], rebuilt[field])) return field;
+  }
+  local hasTownsLeft = "c118TownIds" in kept;
+  local hasTownsRight = "c118TownIds" in rebuilt;
+  if (hasTownsLeft != hasTownsRight) return "c118TownIds";
+  if (hasTownsLeft && OpexV141ValuesDiffer(kept.c118TownIds, rebuilt.c118TownIds))
+    return "c118TownIds";
+  return null;
+}
+
+function OpexV141LogCheck(verdict, field, compared, added)
+{
+  if (!C56_TASK_TRACE) return;
+  local fieldTok = field != null ? field : "-";
+  OpexDecide("V141_CHECK", "verdict=" + verdict
+      + " field=" + fieldTok
+      + " compared=" + compared
+      + " added=" + added);
+}
+
 /* Publication partielle AIR 03/10 1. Ne reconvertit que les plans neufs et
  * reecrit les projets air deja materialises la ou OpexProjectFromAir depend
  * de l'etat courant :
@@ -339,7 +432,11 @@ function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
  * est rejouee par OpexReselectProjects. Rail, route, eau, flotte et
  * subventions ne sont pas regeneres ici : ils restent ceux du dernier
  * rebuild complet, jusqu'a la phase apply. Retourne null si le portefeuille
- * ne peut pas etre complete : l'appelant reconstruit alors tout. */
+ * ne peut pas etre complete : l'appelant reconstruit alors tout.
+ * V141 (v141_catalog_incremental) : les projets air deja publies ne passent
+ * plus par OpexProjectFromAir. Leurs scores viennent du payload inchange ;
+ * seuls planningOpcodes, economicsDate, cargo (et C118) sont reecrits.
+ * C111 reste sur FromAir. A 0 le chemin FromAir est conserve. */
 function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps, bestPlan)
 {
   if (owner == null || scanPlans == null || publishedCount <= 0) return null;
@@ -383,6 +480,13 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   local reconverted = 0;
   local invalidated = 0;
   local refreshedCount = 0;
+  local v141Use = V141_CATALOG_INCREMENTAL && !C111_AIR_C100_DECISION_SHADOW;
+  local v141Check = v141Use && V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;
+  local v141Diff = null;
+  local v141Compared = 0;
+  local v141Oracle = null;
+  local v141Field = null;
+  local freshKey = null;
   local pendingNew = {};
   local newKeyOrder = [];
   local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount) : [];
@@ -428,13 +532,44 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
         kept.append(project);
         continue;
       }
+      if (v141Use) {
+        if (!OpexV141PublishedAirStillValid(payload)) {
+          if (v141Check) {
+            v141Oracle = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
+            v141Compared = v141Compared + 1;
+            if (v141Oracle != null && v141Diff == null) v141Diff = "valid";
+          }
+          invalidated++;
+          continue;
+        }
+        OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan);
+        if (v141Check) {
+          v141Oracle = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
+          v141Compared = v141Compared + 1;
+          if (v141Oracle == null) {
+            if (v141Diff == null) v141Diff = "invalidated";
+          } else {
+            v141Field = OpexV141DecisionFieldDiff(project, v141Oracle);
+            if (v141Field != null && v141Diff == null) v141Diff = v141Field;
+          }
+        }
+        refreshedCount++;
+        freshKey = OpexProjectKeyFor(project);
+        if (freshKey == slotKey) {
+          kept.append(project);
+        } else {
+          if (!(freshKey in movedAir)) movedAir.rawset(freshKey, []);
+          movedAir[freshKey].append(project);
+        }
+        continue;
+      }
       local refreshed = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
       if (refreshed == null) {
         invalidated++;
         continue;
       }
       reconverted++;
-      local freshKey = OpexProjectKeyFor(refreshed);
+      freshKey = OpexProjectKeyFor(refreshed);
       if (freshKey == slotKey) {
         kept.append(refreshed);
       } else {
@@ -444,6 +579,10 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     }
     othersByKey.rawset(slotKey, others);
     if (kept.len() > 0) keptAir.rawset(slotKey, kept);
+  }
+  if (v141Check) {
+    OpexV141LogCheck(v141Diff == null ? "identical" : "diff", v141Diff,
+        v141Compared, added);
   }
   if (spPubFilter != null) OpexSpanEnd(spPubFilter);
 
