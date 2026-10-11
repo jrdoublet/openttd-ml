@@ -7,7 +7,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
-- **Commit des trois nettoyages et référence 10×5 demandés (11/10).** V126 réadmission, plafond C121 et stock-growth C121 : commit local demandé, sans push. Banc de référence OpexAI contre AAAHogEx pré-enregistré, aux défauts courants, 10 CPU/10 workers, sans variante A/B. [Protocole et suivi](cleanup_reference_10x5_20261011.md).
+- **Trois nettoyages committés et référence 10×5 terminée (11/10).** V126 réadmission, plafond C121 et stock-growth C121 : commit `5b05be9`, sans push. Banc OpexAI contre AAAHogEx `cleanup_reference_10x5_20261011_1227`, arbre propre figé, 10 CPU/10 workers : 10/10 duels sains, profits terminaux à quatre trimestres valides. Profit moyen 1,875 M£/an contre 3,441 M£ (−45,50 %, 0V/10D), valeur 6,570 M£ contre 6,201 M£ (+5,95 %, 8V/2D, avantage non significatif). Référence diagnostique, sans mesure causale du nettoyage ni variante A/B. [Protocole, bilan et provenance](cleanup_reference_10x5_20261011.md).
 
 - **Nettoyage C121 renforts sur stock (11/10) — retiré sur demande utilisateur.** `c121_fleet_stock_growth`, globale, chargement, helper exclusif et branche de croissance supprimés ; un seul renfort par passe sous cible C121, comme à l'ancien défaut OFF. Gardes d'observation, marginal C121, `AIR_FLEET_BUFFER` et champs partagés conservés. Contrats et diagnostics adaptés, 91 tests verts, smoke 42×1 sain `cleanup_c121_stock_smoke_20261011_r1`. Aucun banc économique ni commit/push. [Journal](journaux/journal_2026-10-11.md#retrait-c121--renforts-de-flotte-sur-stock).
 
