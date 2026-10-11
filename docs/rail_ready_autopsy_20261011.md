@@ -101,7 +101,7 @@ La lecture du helper testé révèle trois limites techniques, sans prouver leur
 
 `decision_log=0`, `rail_ready_admission_shadow=0` et `probe_span_trace=0` dans cette campagne. Les six journaux prioritaires ne contiennent aucun événement `RAIL_READY_READMISSION` ou `RAIL_READY_ADMISSION`. Il est donc impossible de désigner « le RAIL déféré qui a provoqué le premier changement AIR », de prouver que la tête concurrente a réellement été construite, ou de quantifier un blocage par plan invalide. La sonde ultérieure a montré des consommations RAIL hors arbitrage normal, mais ses visites et ses coûts ne peuvent pas être transférés à ce bundle.
 
-**6. Verdict et seule prochaine mesure prioritaire**
+**6. Verdict et suivi de la mesure prioritaire**
 
 | Composant | Verdict | Motif |
 |---|---|---|
@@ -110,9 +110,9 @@ La lecture du helper testé révèle trois limites techniques, sans prouver leur
 | Précalcul C121 | Conserver son statut courant | Faisabilité existante, mais aucun gain économique supplémentaire attribuable ici. |
 | Assimilation `build` à un tracé prêt valide | Rejeter dans tout futur diagnostic | Le code gelé place aussi les plans échoués dans cette phase. |
 | Attribution des pertes à « trop de rail » | Rejeter | 8191 diverge avant la décision étudiée ; résultats modaux et quantités ne soutiennent pas cette explication universelle. |
-| Hypothèse d'un effet du contrôle même inéligible | Étudier | Signal précoce sur plusieurs graines et appel ON supplémentaire établis ; coût et transmission non mesurés. |
+| Hypothèse d'un effet du contrôle même inéligible | Premier maillon mesuré, transmission non démontrée | Surcoût local ON−OFF de 15/25/40 ops par appel ; fréquence et suspension non récupérables dans les archives. Aucun effet AIR attribué. |
 
-La prochaine mesure prioritaire proposée est **un microbench VM isolé des chemins où le contrôle retourne faux**, sans catalogue vivant, concurrence, A* ou achats. Il ne relance pas la politique rejetée et ne compare aucun nouveau score.
+La proposition initiale ci-dessous a été réalisée : [microbench VM des retours faux](rail_ready_guard_vm_20261011.md), puis [audit hors ligne de fréquence/suspension](rail_ready_guard_exposure_20261011.md). Le coût local est établi, mais les archives ne permettent pas de démontrer sa transmission à la cadence ou au profit. Cette piste est close comme explication non démontrée sur ces archives ; aucun correctif de production ou nouveau banc actif n'en découle. Le protocole initial est conservé ci-dessous pour provenance.
 
 Hypothèse falsifiable : l'enveloppe ON consomme davantage d'opcodes que le court-circuit OFF alors qu'aucune décision de report n'est possible ; ce coût devient assez fréquent pour pouvoir déplacer une tranche de scheduler. Mesurer séparément état absent, recherche en cours et préparation C121 terminée, avec exactement les gardes du bundle et des fixtures figées. Les trois cas doivent retourner faux et ne modifier aucun état. Même budget d'entrée, même tick, même nombre d'appels dans chaque paire ; soustraire une enveloppe vide commune, publier aussi les valeurs brutes et rejeter les échantillons traversant un tick. L'adaptation partirait du harnais microbench existant, sans installation ou nouveau lanceur moteur improvisé.
 

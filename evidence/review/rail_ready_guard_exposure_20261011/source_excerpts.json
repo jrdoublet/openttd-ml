@@ -1,0 +1,1605 @@
+{
+  "source_bundle_sha256": "250223deaebfb849cde5717888fd2b16942de22798c1385158d4a5ad51757ff8",
+  "files": [
+    {
+      "bundle_relative_path": "ai/OpexAI/task_projects.nut",
+      "full_file_sha256": "335260d7fa862c8e0a429b2dfb87c03667cff541b902509ffd7dbb502d9df9fc",
+      "excerpts": [
+        {
+          "start_line": 1649,
+          "end_line": 1668,
+          "numbered_lines": [
+            {
+              "line": 1649,
+              "text": "function OpexAI::_finalizeC75PassOutcome(year, builtCount, c75KPassData, c75StopReason,"
+            },
+            {
+              "line": 1650,
+              "text": "                                         c80DiscardsThisPass)"
+            },
+            {
+              "line": 1651,
+              "text": "{"
+            },
+            {
+              "line": 1652,
+              "text": "  if (builtCount > 0 && c75StopReason == null) {"
+            },
+            {
+              "line": 1653,
+              "text": "    if (c80DiscardsThisPass > 0) {"
+            },
+            {
+              "line": 1654,
+              "text": "      c75StopReason = \"marginal_floor\";"
+            },
+            {
+              "line": 1655,
+              "text": "    } else {"
+            },
+            {
+              "line": 1656,
+              "text": "      c75StopReason = (!C75_MULTI_BUILD) ? \"single\" : \"list_end\";"
+            },
+            {
+              "line": 1657,
+              "text": "    }"
+            },
+            {
+              "line": 1658,
+              "text": "  }"
+            },
+            {
+              "line": 1659,
+              "text": "  if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null && builtCount > 0) {"
+            },
+            {
+              "line": 1660,
+              "text": "    if (c75StopReason == \"k_pass\") this._c49ScarcityLedger.stop_k_pass++;"
+            },
+            {
+              "line": 1661,
+              "text": "    else if (c75StopReason == \"cash\") this._c49ScarcityLedger.stop_cash++;"
+            },
+            {
+              "line": 1662,
+              "text": "    else if (c75StopReason == \"rail_search\") this._c49ScarcityLedger.stop_rail_search++;"
+            },
+            {
+              "line": 1663,
+              "text": "    else if (c75StopReason == \"list_end\") this._c49ScarcityLedger.stop_list_end++;"
+            },
+            {
+              "line": 1664,
+              "text": "    else this._c49ScarcityLedger.stop_other++;"
+            },
+            {
+              "line": 1665,
+              "text": "  }"
+            },
+            {
+              "line": 1666,
+              "text": "  if (C75_KPASS_BYPASS && builtCount > 0) OpexC75BypassRecordStop(c75StopReason);"
+            },
+            {
+              "line": 1667,
+              "text": "  OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);"
+            },
+            {
+              "line": 1668,
+              "text": "  return c75StopReason;"
+            }
+          ]
+        },
+        {
+          "start_line": 1671,
+          "end_line": 1724,
+          "numbered_lines": [
+            {
+              "line": 1671,
+              "text": "function OpexAI::_tryBuildProjects(year)"
+            },
+            {
+              "line": 1672,
+              "text": "{"
+            },
+            {
+              "line": 1673,
+              "text": "  if (RAIL_COOPERATIVE_N2) this._railN2Promote();"
+            },
+            {
+              "line": 1674,
+              "text": "  /* V133 : a 0, seul ce booleen. Les tables ne sont pas touchees. */"
+            },
+            {
+              "line": 1675,
+              "text": "  if (V133_AIR_BUILD_RETRY) {"
+            },
+            {
+              "line": 1676,
+              "text": "    V133_AIR_BATCH_FAILED = {};"
+            },
+            {
+              "line": 1677,
+              "text": "    V133_AIR_SKIP_LOGGED = {};"
+            },
+            {
+              "line": 1678,
+              "text": "  }"
+            },
+            {
+              "line": 1679,
+              "text": "  local spPass = PROBE_SPAN_TRACE ? OpexSpanBegin(\"projects.pass\") : null;"
+            },
+            {
+              "line": 1680,
+              "text": "  if (R1_R3_TEST_ONLY) R1_R3_TEST_PASS++;"
+            },
+            {
+              "line": 1681,
+              "text": "  local c75KPassData = null;"
+            },
+            {
+              "line": 1682,
+              "text": "  local c75StopReason = null;"
+            },
+            {
+              "line": 1683,
+              "text": "  local c75BuiltKeys = {};"
+            },
+            {
+              "line": 1684,
+              "text": "  local c75BypassConsumed = false;"
+            },
+            {
+              "line": 1685,
+              "text": "  local c121FirstYearAirBatch = C121_CATALOG_AIR_FIRST_YEAR"
+            },
+            {
+              "line": 1686,
+              "text": "      && this._generationStageMonth >= 0"
+            },
+            {
+              "line": 1687,
+              "text": "      && year == (this._generationStageMonth - 1) / 12;"
+            },
+            {
+              "line": 1688,
+              "text": "  local c121AirBuilt = 0;"
+            },
+            {
+              "line": 1689,
+              "text": "  local c121AirChained = 0;"
+            },
+            {
+              "line": 1690,
+              "text": "  local c121DeadSkipped = 0;"
+            },
+            {
+              "line": 1691,
+              "text": "  /* Sonde PROJECTS_COST (catalog_cost_probe) : repartition des opcodes d'une passe. */"
+            },
+            {
+              "line": 1692,
+              "text": "  local pcost = CATALOG_COST_PROBE"
+            },
+            {
+              "line": 1693,
+              "text": "      ? { mark = OpexOpsMeasureBegin(), buildOps = 0, fleetOps = 0, regenOps = 0, regenKind = \"none\" }"
+            },
+            {
+              "line": 1694,
+              "text": "      : null;"
+            },
+            {
+              "line": 1695,
+              "text": "  if (C75_KPASS_BYPASS) OpexC75BypassEnsureYear(year);"
+            },
+            {
+              "line": 1696,
+              "text": "  if (C75_TRACK_PASSES) {"
+            },
+            {
+              "line": 1697,
+              "text": "    local now = AIDate.GetCurrentDate();"
+            },
+            {
+              "line": 1698,
+              "text": "    OpexC75RecordPassDate(now);"
+            },
+            {
+              "line": 1699,
+              "text": "    c75KPassData = OpexC75ComputeKPass(now);"
+            },
+            {
+              "line": 1700,
+              "text": "    if (C75_YEAR_LEDGER != null) C75_YEAR_LEDGER.passes++;"
+            },
+            {
+              "line": 1701,
+              "text": "  }"
+            },
+            {
+              "line": 1702,
+              "text": "  if (spPass != null) {"
+            },
+            {
+              "line": 1703,
+              "text": "    local beginCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);"
+            },
+            {
+              "line": 1704,
+              "text": "    local beginAvail = OpexAvailableCapital();"
+            },
+            {
+              "line": 1705,
+              "text": "    local beginK = (c75KPassData != null && (\"K_pass\" in c75KPassData)) ? c75KPassData.K_pass : -1;"
+            },
+            {
+              "line": 1706,
+              "text": "    local beginPool = (this._projects != null && this._projects.best != null) ? this._projects.best.len() : 0;"
+            },
+            {
+              "line": 1707,
+              "text": "    OpexSpanEvent(\"projects_begin\", \"cash=\" + beginCash + \" avail=\" + beginAvail + \" k_pass=\" + beginK + \" pool=\" + beginPool);"
+            },
+            {
+              "line": 1708,
+              "text": "  }"
+            },
+            {
+              "line": 1709,
+              "text": "  local c80DiscardsThisPass = 0;"
+            },
+            {
+              "line": 1710,
+              "text": ""
+            },
+            {
+              "line": 1711,
+              "text": "  /* C83.1 : detecter d'abord une transition de slot qui exige un candidat absent,"
+            },
+            {
+              "line": 1712,
+              "text": "   * puis reevaluer le petit portefeuille deja finance avant toute depense. */"
+            },
+            {
+              "line": 1713,
+              "text": "  if (this._projects != null) {"
+            },
+            {
+              "line": 1714,
+              "text": "    if (C83_PREEMPT_OPEN) this._c83PreemptEnqueued = 0;"
+            },
+            {
+              "line": 1715,
+              "text": "    local c83TargetedRegens = 0;"
+            },
+            {
+              "line": 1716,
+              "text": "    c83TargetedRegens = this._c83WatchAirSlotTransitions();"
+            },
+            {
+              "line": 1717,
+              "text": "    if (C83_PREEMPT_OPEN && this._c83PreemptEnqueued > 0) {"
+            },
+            {
+              "line": 1718,
+              "text": "      c83TargetedRegens += this._c83PreemptEnqueued;"
+            },
+            {
+              "line": 1719,
+              "text": "    }"
+            },
+            {
+              "line": 1720,
+              "text": "    if (spPass != null && c83TargetedRegens > 0) {"
+            },
+            {
+              "line": 1721,
+              "text": "      OpexSpanEvent(\"projects_stop\", \"reason=c83_preempt\");"
+            },
+            {
+              "line": 1722,
+              "text": "      OpexSpanEnd(spPass);"
+            },
+            {
+              "line": 1723,
+              "text": "    }"
+            },
+            {
+              "line": 1724,
+              "text": "    if (c83TargetedRegens > 0) return true;"
+            }
+          ]
+        },
+        {
+          "start_line": 1814,
+          "end_line": 1827,
+          "numbered_lines": [
+            {
+              "line": 1814,
+              "text": "  /* La preparation rail cede la passe si l'AIR est finançable, et depose un A*"
+            },
+            {
+              "line": 1815,
+              "text": "   * termine avant que la consommation historique ne le construise. */"
+            },
+            {
+              "line": 1816,
+              "text": "  if (C121_AIR_FIRST_YEAR_RAIL_PREP) this._c121RailPrepOnPassStart();"
+            },
+            {
+              "line": 1817,
+              "text": "  local readyReAdmissionDeferred = RAIL_READY_READMISSION"
+            },
+            {
+              "line": 1818,
+              "text": "      && this._railReadyReadmissionShouldDefer(c77DeferCompletedRail);"
+            },
+            {
+              "line": 1819,
+              "text": ""
+            },
+            {
+              "line": 1820,
+              "text": "  /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le"
+            },
+            {
+              "line": 1821,
+              "text": "   * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */"
+            },
+            {
+              "line": 1822,
+              "text": "  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&"
+            },
+            {
+              "line": 1823,
+              "text": "      this._railSearch.kind == \"primary\" && this._railSearch.phase == \"build\""
+            },
+            {
+              "line": 1824,
+              "text": "      && !c77DeferCompletedRail && !readyReAdmissionDeferred) {"
+            },
+            {
+              "line": 1825,
+              "text": "    local auditReady = RAIL_READY_ADMISSION_SHADOW"
+            },
+            {
+              "line": 1826,
+              "text": "        && !((\"isC121RailPrep\" in this._railSearch) && this._railSearch.isC121RailPrep);"
+            },
+            {
+              "line": 1827,
+              "text": "    local readyTick = auditReady && (\"startTick\" in this._railSearch)"
+            }
+          ]
+        },
+        {
+          "start_line": 2146,
+          "end_line": 2174,
+          "numbered_lines": [
+            {
+              "line": 2146,
+              "text": "      if (attempt.outcome == \"pending\") {"
+            },
+            {
+              "line": 2147,
+              "text": "        if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {"
+            },
+            {
+              "line": 2148,
+              "text": "          this._c49ScarcityLedger.stop_rail_search++;"
+            },
+            {
+              "line": 2149,
+              "text": "        }"
+            },
+            {
+              "line": 2150,
+              "text": "        if (C78_SLOT_INTERCEPT_PROBE) {"
+            },
+            {
+              "line": 2151,
+              "text": "          OpexC78SlotLog(\"phase=pass_stop pass=\" + C78_SLOT_PASS_COUNTER"
+            },
+            {
+              "line": 2152,
+              "text": "              + \" cycle=\" + this._taskCycle + \" tick=\" + AIController.GetTick()"
+            },
+            {
+              "line": 2153,
+              "text": "              + \" reason=rail_search blocker_rank=\" + i + \" blocker_mode=fleet\""
+            },
+            {
+              "line": 2154,
+              "text": "              + \" built_before=\" + builtCount);"
+            },
+            {
+              "line": 2155,
+              "text": "        }"
+            },
+            {
+              "line": 2156,
+              "text": "        /* Le creneau de recherche est pris. Une passe deja productive regenere"
+            },
+            {
+              "line": 2157,
+              "text": "         * d'abord ; sinon on rend la main tout de suite, comme une ligne neuve. */"
+            },
+            {
+              "line": 2158,
+              "text": "        if (builtCount > 0) {"
+            },
+            {
+              "line": 2159,
+              "text": "          if (C75_TRACK_PASSES) c75StopReason = \"rail_search\";"
+            },
+            {
+              "line": 2160,
+              "text": "          break;"
+            },
+            {
+              "line": 2161,
+              "text": "        }"
+            },
+            {
+              "line": 2162,
+              "text": "        this._finalizeProjectsPassDiagnostics(builtCount, c49Best, c49BuiltRanks,"
+            },
+            {
+              "line": 2163,
+              "text": "            c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, false,"
+            },
+            {
+              "line": 2164,
+              "text": "            c75StopReason);"
+            },
+            {
+              "line": 2165,
+              "text": "        if (C75_TRACK_PASSES && builtCount > 0) {"
+            },
+            {
+              "line": 2166,
+              "text": "          if (C75_KPASS_BYPASS) OpexC75BypassRecordStop(\"rail_search\");"
+            },
+            {
+              "line": 2167,
+              "text": "          OpexC75RecordPassOutcome(year, builtCount, c75KPassData, \"rail_search\");"
+            },
+            {
+              "line": 2168,
+              "text": "        }"
+            },
+            {
+              "line": 2169,
+              "text": "        if (spPass != null) {"
+            },
+            {
+              "line": 2170,
+              "text": "          OpexSpanEvent(\"projects_stop\", \"reason=rail_search\");"
+            },
+            {
+              "line": 2171,
+              "text": "          OpexSpanEnd(spPass);"
+            },
+            {
+              "line": 2172,
+              "text": "        }"
+            },
+            {
+              "line": 2173,
+              "text": "        /* Parentheses : le diagnostic post-build ancre l'unique retour rail. */"
+            },
+            {
+              "line": 2174,
+              "text": "        return (true);"
+            }
+          ]
+        },
+        {
+          "start_line": 2326,
+          "end_line": 2353,
+          "numbered_lines": [
+            {
+              "line": 2326,
+              "text": "      if (attempt.outcome == \"pending\") {"
+            },
+            {
+              "line": 2327,
+              "text": "        if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {"
+            },
+            {
+              "line": 2328,
+              "text": "          this._c49ScarcityLedger.stop_rail_search++;"
+            },
+            {
+              "line": 2329,
+              "text": "        }"
+            },
+            {
+              "line": 2330,
+              "text": "        if (C78_SLOT_INTERCEPT_PROBE) {"
+            },
+            {
+              "line": 2331,
+              "text": "          OpexC78SlotLog(\"phase=pass_stop pass=\" + C78_SLOT_PASS_COUNTER"
+            },
+            {
+              "line": 2332,
+              "text": "              + \" cycle=\" + this._taskCycle + \" tick=\" + AIController.GetTick()"
+            },
+            {
+              "line": 2333,
+              "text": "              + \" reason=rail_search blocker_rank=\" + i + \" blocker_mode=rail\""
+            },
+            {
+              "line": 2334,
+              "text": "              + \" built_before=\" + builtCount);"
+            },
+            {
+              "line": 2335,
+              "text": "        }"
+            },
+            {
+              "line": 2336,
+              "text": "        /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un"
+            },
+            {
+              "line": 2337,
+              "text": "         * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */"
+            },
+            {
+              "line": 2338,
+              "text": "        if (builtCount > 0) {"
+            },
+            {
+              "line": 2339,
+              "text": "          if (C75_TRACK_PASSES) c75StopReason = \"rail_search\";"
+            },
+            {
+              "line": 2340,
+              "text": "          break;"
+            },
+            {
+              "line": 2341,
+              "text": "        }"
+            },
+            {
+              "line": 2342,
+              "text": "        this._finalizeProjectsPassDiagnostics(builtCount, c49Best, c49BuiltRanks,"
+            },
+            {
+              "line": 2343,
+              "text": "            c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, false,"
+            },
+            {
+              "line": 2344,
+              "text": "            c75StopReason);"
+            },
+            {
+              "line": 2345,
+              "text": "        if (C75_TRACK_PASSES && builtCount > 0) {"
+            },
+            {
+              "line": 2346,
+              "text": "          if (C75_KPASS_BYPASS) OpexC75BypassRecordStop(\"rail_search\");"
+            },
+            {
+              "line": 2347,
+              "text": "          OpexC75RecordPassOutcome(year, builtCount, c75KPassData, \"rail_search\");"
+            },
+            {
+              "line": 2348,
+              "text": "        }"
+            },
+            {
+              "line": 2349,
+              "text": "        if (spPass != null) {"
+            },
+            {
+              "line": 2350,
+              "text": "          OpexSpanEvent(\"projects_stop\", \"reason=rail_search\");"
+            },
+            {
+              "line": 2351,
+              "text": "          OpexSpanEnd(spPass);"
+            },
+            {
+              "line": 2352,
+              "text": "        }"
+            },
+            {
+              "line": 2353,
+              "text": "        return true;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/probes.nut",
+      "full_file_sha256": "547b0040deab0c95ae1eb6996991061adf18ecf37d81e0a99a326729b2864b52",
+      "excerpts": [
+        {
+          "start_line": 1977,
+          "end_line": 2040,
+          "numbered_lines": [
+            {
+              "line": 1977,
+              "text": "function OpexC75RecordPassDate(now = null)"
+            },
+            {
+              "line": 1978,
+              "text": "{"
+            },
+            {
+              "line": 1979,
+              "text": "  if (!C75_TRACK_PASSES) return;"
+            },
+            {
+              "line": 1980,
+              "text": "  if (C75_PASS_DATES == null) C75_PASS_DATES = [];"
+            },
+            {
+              "line": 1981,
+              "text": "  if (now == null) now = AIDate.GetCurrentDate();"
+            },
+            {
+              "line": 1982,
+              "text": "  C75_PASS_DATES.append(now);"
+            },
+            {
+              "line": 1983,
+              "text": ""
+            },
+            {
+              "line": 1984,
+              "text": "  local startDate = AIDate.GetDate(OPEX_START_YEAR, 1, 1);"
+            },
+            {
+              "line": 1985,
+              "text": "  local daysSinceStart = now - startDate;"
+            },
+            {
+              "line": 1986,
+              "text": "  if (daysSinceStart < 1) daysSinceStart = 1;"
+            },
+            {
+              "line": 1987,
+              "text": "  local D = daysSinceStart < 365 ? daysSinceStart : 365;"
+            },
+            {
+              "line": 1988,
+              "text": ""
+            },
+            {
+              "line": 1989,
+              "text": "  local cutoff = now - D;"
+            },
+            {
+              "line": 1990,
+              "text": "  local pruned = [];"
+            },
+            {
+              "line": 1991,
+              "text": "  foreach (d in C75_PASS_DATES) {"
+            },
+            {
+              "line": 1992,
+              "text": "    if (d >= cutoff) {"
+            },
+            {
+              "line": 1993,
+              "text": "      pruned.append(d);"
+            },
+            {
+              "line": 1994,
+              "text": "    }"
+            },
+            {
+              "line": 1995,
+              "text": "  }"
+            },
+            {
+              "line": 1996,
+              "text": "  C75_PASS_DATES = pruned;"
+            },
+            {
+              "line": 1997,
+              "text": "}"
+            },
+            {
+              "line": 1998,
+              "text": ""
+            },
+            {
+              "line": 1999,
+              "text": "/* C75 : calcul de K_pass = F * tau_pass sur la fenetre glissante min(365, jours depuis debut)."
+            },
+            {
+              "line": 2000,
+              "text": " * Moins de 2 passes dans la fenetre => K_pass = 0. */"
+            },
+            {
+              "line": 2001,
+              "text": "function OpexC75ComputeKPass(now = null)"
+            },
+            {
+              "line": 2002,
+              "text": "{"
+            },
+            {
+              "line": 2003,
+              "text": "  if (now == null) now = AIDate.GetCurrentDate();"
+            },
+            {
+              "line": 2004,
+              "text": "  local flow = OpexComputeOperatingCashFlow(now);"
+            },
+            {
+              "line": 2005,
+              "text": "  local F = flow.F;"
+            },
+            {
+              "line": 2006,
+              "text": ""
+            },
+            {
+              "line": 2007,
+              "text": "  local startDate = AIDate.GetDate(OPEX_START_YEAR, 1, 1);"
+            },
+            {
+              "line": 2008,
+              "text": "  local daysSinceStart = now - startDate;"
+            },
+            {
+              "line": 2009,
+              "text": "  if (daysSinceStart < 1) daysSinceStart = 1;"
+            },
+            {
+              "line": 2010,
+              "text": "  local D = daysSinceStart < 365 ? daysSinceStart : 365;"
+            },
+            {
+              "line": 2011,
+              "text": ""
+            },
+            {
+              "line": 2012,
+              "text": "  local N = 0;"
+            },
+            {
+              "line": 2013,
+              "text": "  if (C75_PASS_DATES != null) {"
+            },
+            {
+              "line": 2014,
+              "text": "    local cutoff = now - D;"
+            },
+            {
+              "line": 2015,
+              "text": "    local pruned = [];"
+            },
+            {
+              "line": 2016,
+              "text": "    foreach (d in C75_PASS_DATES) {"
+            },
+            {
+              "line": 2017,
+              "text": "      if (d >= cutoff) {"
+            },
+            {
+              "line": 2018,
+              "text": "        pruned.append(d);"
+            },
+            {
+              "line": 2019,
+              "text": "      }"
+            },
+            {
+              "line": 2020,
+              "text": "    }"
+            },
+            {
+              "line": 2021,
+              "text": "    C75_PASS_DATES = pruned;"
+            },
+            {
+              "line": 2022,
+              "text": "    N = C75_PASS_DATES.len();"
+            },
+            {
+              "line": 2023,
+              "text": "  }"
+            },
+            {
+              "line": 2024,
+              "text": ""
+            },
+            {
+              "line": 2025,
+              "text": "  local tau_pass = 0.0;"
+            },
+            {
+              "line": 2026,
+              "text": "  local K_pass = 0;"
+            },
+            {
+              "line": 2027,
+              "text": "  if (N >= 2 && F > 0.0) {"
+            },
+            {
+              "line": 2028,
+              "text": "    tau_pass = D.tofloat() / N.tofloat();"
+            },
+            {
+              "line": 2029,
+              "text": "    K_pass = (F * tau_pass).tointeger();"
+            },
+            {
+              "line": 2030,
+              "text": "    if (K_pass < 0) K_pass = 0;"
+            },
+            {
+              "line": 2031,
+              "text": "  }"
+            },
+            {
+              "line": 2032,
+              "text": ""
+            },
+            {
+              "line": 2033,
+              "text": "  return {"
+            },
+            {
+              "line": 2034,
+              "text": "    F = F,"
+            },
+            {
+              "line": 2035,
+              "text": "    tau_pass = tau_pass,"
+            },
+            {
+              "line": 2036,
+              "text": "    K_pass = K_pass,"
+            },
+            {
+              "line": 2037,
+              "text": "    D = D,"
+            },
+            {
+              "line": 2038,
+              "text": "    N = N,"
+            },
+            {
+              "line": 2039,
+              "text": "    daysCovered = flow.daysCovered"
+            },
+            {
+              "line": 2040,
+              "text": "  };"
+            }
+          ]
+        },
+        {
+          "start_line": 2157,
+          "end_line": 2209,
+          "numbered_lines": [
+            {
+              "line": 2157,
+              "text": "function OpexC75BypassRecordStop(stopReason)"
+            },
+            {
+              "line": 2158,
+              "text": "{"
+            },
+            {
+              "line": 2159,
+              "text": "  if (!C75_KPASS_BYPASS || C75_KPASS_BYPASS_LEDGER == null || stopReason == null) return;"
+            },
+            {
+              "line": 2160,
+              "text": "  if (stopReason == \"k_pass\") C75_KPASS_BYPASS_LEDGER.stop_k_pass++;"
+            },
+            {
+              "line": 2161,
+              "text": "  else if (stopReason == \"cash\") C75_KPASS_BYPASS_LEDGER.stop_cash++;"
+            },
+            {
+              "line": 2162,
+              "text": "  else if (stopReason == \"rail_search\") C75_KPASS_BYPASS_LEDGER.stop_rail_search++;"
+            },
+            {
+              "line": 2163,
+              "text": "  else if (stopReason == \"list_end\") C75_KPASS_BYPASS_LEDGER.stop_list_end++;"
+            },
+            {
+              "line": 2164,
+              "text": "  else C75_KPASS_BYPASS_LEDGER.stop_other++;"
+            },
+            {
+              "line": 2165,
+              "text": "}"
+            },
+            {
+              "line": 2166,
+              "text": ""
+            },
+            {
+              "line": 2167,
+              "text": "function OpexC75BypassFlushYear(year)"
+            },
+            {
+              "line": 2168,
+              "text": "{"
+            },
+            {
+              "line": 2169,
+              "text": "  if (!C75_KPASS_BYPASS || C75_KPASS_BYPASS_LEDGER == null) return;"
+            },
+            {
+              "line": 2170,
+              "text": "  AILog.Info(\"C75_BYPASS phase=year year=\" + year"
+            },
+            {
+              "line": 2171,
+              "text": "      + \" eligible=\" + C75_KPASS_BYPASS_LEDGER.eligible"
+            },
+            {
+              "line": 2172,
+              "text": "      + \" consumed=\" + C75_KPASS_BYPASS_LEDGER.consumed"
+            },
+            {
+              "line": 2173,
+              "text": "      + \" fleet_consumed=\" + C75_KPASS_BYPASS_LEDGER.fleet_consumed"
+            },
+            {
+              "line": 2174,
+              "text": "      + \" stop_k_pass=\" + C75_KPASS_BYPASS_LEDGER.stop_k_pass"
+            },
+            {
+              "line": 2175,
+              "text": "      + \" stop_cash=\" + C75_KPASS_BYPASS_LEDGER.stop_cash"
+            },
+            {
+              "line": 2176,
+              "text": "      + \" stop_rail_search=\" + C75_KPASS_BYPASS_LEDGER.stop_rail_search"
+            },
+            {
+              "line": 2177,
+              "text": "      + \" stop_list_end=\" + C75_KPASS_BYPASS_LEDGER.stop_list_end"
+            },
+            {
+              "line": 2178,
+              "text": "      + \" stop_other=\" + C75_KPASS_BYPASS_LEDGER.stop_other);"
+            },
+            {
+              "line": 2179,
+              "text": "  OpexSign(AIMap.GetTileIndex(3, 8), \"C7Y|\" + (year % 100)"
+            },
+            {
+              "line": 2180,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.eligible"
+            },
+            {
+              "line": 2181,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.consumed"
+            },
+            {
+              "line": 2182,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.fleet_consumed);"
+            },
+            {
+              "line": 2183,
+              "text": "  OpexSign(AIMap.GetTileIndex(3, 9), \"C7S|\" + (year % 100)"
+            },
+            {
+              "line": 2184,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.stop_k_pass"
+            },
+            {
+              "line": 2185,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.stop_cash"
+            },
+            {
+              "line": 2186,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.stop_rail_search"
+            },
+            {
+              "line": 2187,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.stop_list_end"
+            },
+            {
+              "line": 2188,
+              "text": "      + \"|\" + C75_KPASS_BYPASS_LEDGER.stop_other);"
+            },
+            {
+              "line": 2189,
+              "text": "  OpexC75BypassResetYearLedger();"
+            },
+            {
+              "line": 2190,
+              "text": "}"
+            },
+            {
+              "line": 2191,
+              "text": ""
+            },
+            {
+              "line": 2192,
+              "text": "/* C75 : enregistre le resultat d'une passe et publie phase=c75_pass si au moins 1 chantier */"
+            },
+            {
+              "line": 2193,
+              "text": "function OpexC75RecordPassOutcome(year, builtCount, c75KPassData, stopReason)"
+            },
+            {
+              "line": 2194,
+              "text": "{"
+            },
+            {
+              "line": 2195,
+              "text": "  if (!C75_TRACK_PASSES) return;"
+            },
+            {
+              "line": 2196,
+              "text": "  if (C75_YEAR_LEDGER != null) {"
+            },
+            {
+              "line": 2197,
+              "text": "    C75_YEAR_LEDGER.builds += builtCount;"
+            },
+            {
+              "line": 2198,
+              "text": "    if (builtCount > 1) C75_YEAR_LEDGER.multi_passes++;"
+            },
+            {
+              "line": 2199,
+              "text": "  }"
+            },
+            {
+              "line": 2200,
+              "text": "  if (builtCount > 0 && C69_BOTTLENECK_PROBE) {"
+            },
+            {
+              "line": 2201,
+              "text": "    local kPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;"
+            },
+            {
+              "line": 2202,
+              "text": "    local tauPass = (c75KPassData != null) ? c75KPassData.tau_pass : 0.0;"
+            },
+            {
+              "line": 2203,
+              "text": "    local fVal = (c75KPassData != null) ? c75KPassData.F : 0.0;"
+            },
+            {
+              "line": 2204,
+              "text": "    local reason = (stopReason != null) ? stopReason : \"list_end\";"
+            },
+            {
+              "line": 2205,
+              "text": "    OpexC69Log(\"phase=c75_pass year=\" + year + \" built=\" + builtCount"
+            },
+            {
+              "line": 2206,
+              "text": "        + \" k_pass=\" + kPass + \" tau_pass=\" + tauPass + \" F=\" + fVal"
+            },
+            {
+              "line": 2207,
+              "text": "        + \" stop=\" + reason);"
+            },
+            {
+              "line": 2208,
+              "text": "  }"
+            },
+            {
+              "line": 2209,
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "start_line": 2233,
+          "end_line": 2239,
+          "numbered_lines": [
+            {
+              "line": 2233,
+              "text": "function OpexC75FlushYear(year)"
+            },
+            {
+              "line": 2234,
+              "text": "{"
+            },
+            {
+              "line": 2235,
+              "text": "  if (!C69_BOTTLENECK_PROBE || C75_YEAR_LEDGER == null) return;"
+            },
+            {
+              "line": 2236,
+              "text": "  if (year < 1970) return;"
+            },
+            {
+              "line": 2237,
+              "text": ""
+            },
+            {
+              "line": 2238,
+              "text": "  OpexC69Log(\"phase=c75_year year=\" + year + \" passes=\" + C75_YEAR_LEDGER.passes"
+            },
+            {
+              "line": 2239,
+              "text": "      + \" builds=\" + C75_YEAR_LEDGER.builds + \" multi_passes=\" + C75_YEAR_LEDGER.multi_passes);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/settings.nut",
+      "full_file_sha256": "eb2ad4f24319f8659204be2e6ebac7e684e98f98179764df6d85b7360d96be8c",
+      "excerpts": [
+        {
+          "start_line": 220,
+          "end_line": 239,
+          "numbered_lines": [
+            {
+              "line": 220,
+              "text": "  EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;"
+            },
+            {
+              "line": 221,
+              "text": "  if (EXP_OPCODE_EXACT_ON) {"
+            },
+            {
+              "line": 222,
+              "text": "    OPCODE_EXACT_STATS = null;"
+            },
+            {
+              "line": 223,
+              "text": "    OPCODE_EXACT_BREAK = null;"
+            },
+            {
+              "line": 224,
+              "text": "    OPCODE_EXACT_MISMATCHES = null;"
+            },
+            {
+              "line": 225,
+              "text": "    OPCODE_EXACT_CAL_YEAR = -1;"
+            },
+            {
+              "line": 226,
+              "text": "    OPCODE_EXACT_LATE_DATE = -1;"
+            },
+            {
+              "line": 227,
+              "text": "    OPCODE_EXACT_SITE_NAME = null;"
+            },
+            {
+              "line": 228,
+              "text": "    OPCODE_EXACT_PLAN_ONCE = null;"
+            },
+            {
+              "line": 229,
+              "text": "  }"
+            },
+            {
+              "line": 230,
+              "text": "  FLEET_AMORT_SHADOW_PROBE = AIController.GetSetting(\"fleet_amort_shadow_probe\");"
+            },
+            {
+              "line": 231,
+              "text": "  R19_FAULT_INJECT = AIController.GetSetting(\"r19_fault_inject\");"
+            },
+            {
+              "line": 232,
+              "text": "  C41_SLACK_LEDGER = probeScheduler;"
+            },
+            {
+              "line": 233,
+              "text": "  C41_MONTHLY_BUSY_LEDGER = probeScheduler;"
+            },
+            {
+              "line": 234,
+              "text": "  C41_STALENESS_LEDGER = probeScheduler;"
+            },
+            {
+              "line": 235,
+              "text": "  C41_OPPORTUNITY_LEDGER = probeScheduler;"
+            },
+            {
+              "line": 236,
+              "text": "  C41_ADMISSION_LEDGER = probeScheduler;"
+            },
+            {
+              "line": 237,
+              "text": "  C39_PASS_CLOCK_LEDGER = probeScheduler;"
+            },
+            {
+              "line": 238,
+              "text": "  C41_RAIL_SLICE_LEDGER = probeScheduler;"
+            },
+            {
+              "line": 239,
+              "text": "  V95_SCHED_IDLE_LEDGER = probeScheduler;"
+            }
+          ]
+        },
+        {
+          "start_line": 303,
+          "end_line": 311,
+          "numbered_lines": [
+            {
+              "line": 303,
+              "text": "  C70_MODE_CALIBRATION = AIController.GetSetting(\"c70_mode_calibration\") != 0;"
+            },
+            {
+              "line": 304,
+              "text": "  C82_ENGINE_CALIBRATION = AIController.GetSetting(\"c82_engine_calibration\") != 0;"
+            },
+            {
+              "line": 305,
+              "text": "  C70_PROFIT_CALIBRATED = C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION;"
+            },
+            {
+              "line": 306,
+              "text": "  ::OpexCalibratedProfit <- C82_ENGINE_CALIBRATION ? OpexC82Profit : OpexC70Profit;"
+            },
+            {
+              "line": 307,
+              "text": "  C69_BOTTLENECK_PROBE = probePort;"
+            },
+            {
+              "line": 308,
+              "text": "  C69_DECISION_BOTTLENECK = AIController.GetSetting(\"c69_decision_bottleneck\") != 0;"
+            },
+            {
+              "line": 309,
+              "text": "  C69_FLEET_EXEMPT = AIController.GetSetting(\"c69_fleet_exempt\") != 0;"
+            },
+            {
+              "line": 310,
+              "text": "  C69_FLEET_DEMAND_BATCH = AIController.GetSetting(\"c69_fleet_demand_batch\") != 0;"
+            },
+            {
+              "line": 311,
+              "text": "  C72_PLANE_CHOICE = AIController.GetSetting(\"c72_plane_choice\");"
+            }
+          ]
+        },
+        {
+          "start_line": 539,
+          "end_line": 549,
+          "numbered_lines": [
+            {
+              "line": 539,
+              "text": "  C75_MULTI_BUILD = AIController.GetSetting(\"c75_multi_build\") != 0;"
+            },
+            {
+              "line": 540,
+              "text": "  C75_KPASS_BYPASS = AIController.GetSetting(\"c75_kpass_bypass\") != 0;"
+            },
+            {
+              "line": 541,
+              "text": "  if (C75_KPASS_BYPASS) {"
+            },
+            {
+              "line": 542,
+              "text": "    OpexC75BypassResetYearLedger();"
+            },
+            {
+              "line": 543,
+              "text": "  }"
+            },
+            {
+              "line": 544,
+              "text": "  C75_TRACK_PASSES = C75_MULTI_BUILD || C69_BOTTLENECK_PROBE;"
+            },
+            {
+              "line": 545,
+              "text": "  if (C75_TRACK_PASSES) {"
+            },
+            {
+              "line": 546,
+              "text": "    C75_PASS_DATES = [];"
+            },
+            {
+              "line": 547,
+              "text": "    OpexC75ResetYearLedger();"
+            },
+            {
+              "line": 548,
+              "text": "  }"
+            },
+            {
+              "line": 549,
+              "text": "  MONTHLY_FUNNEL = probePort;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/persist.nut",
+      "full_file_sha256": "6b8674846a7697acdf6dfb5a268abe262fd0081cdcdd2f00f6ad31282d8d087c",
+      "excerpts": [
+        {
+          "start_line": 808,
+          "end_line": 815,
+          "numbered_lines": [
+            {
+              "line": 808,
+              "text": "  local saveObj = {"
+            },
+            {
+              "line": 809,
+              "text": "    version = 1,"
+            },
+            {
+              "line": 810,
+              "text": "    /* C69/C75 : sans ces dates, tau repart de 0 chantier sur une fenetre de 365 jours et K_dec /"
+            },
+            {
+              "line": 811,
+              "text": "     * K_pass explosent pendant un an apres chargement (docs/19_rechargement_partie.md). Entiers. */"
+            },
+            {
+              "line": 812,
+              "text": "    c69BuildDates = C69_BUILD_DATES,"
+            },
+            {
+              "line": 813,
+              "text": "    c75PassDates = C75_PASS_DATES,"
+            },
+            {
+              "line": 814,
+              "text": "    generationStage = this._generationStage,"
+            },
+            {
+              "line": 815,
+              "text": "    generationStageMonth = this._generationStageMonth,"
+            }
+          ]
+        },
+        {
+          "start_line": 866,
+          "end_line": 870,
+          "numbered_lines": [
+            {
+              "line": 866,
+              "text": "  OpexCapitalQuoteLoad((\"capitalQuoteLearning\" in data) ? data.capitalQuoteLearning : null);"
+            },
+            {
+              "line": 867,
+              "text": "  if (\"airRollbacks\" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);"
+            },
+            {
+              "line": 868,
+              "text": "  if (\"c121Strategy\" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);"
+            },
+            {
+              "line": 869,
+              "text": "  this._reloadC69BuildDates = (\"c69BuildDates\" in data) ? data.c69BuildDates : null;"
+            },
+            {
+              "line": 870,
+              "text": "  this._reloadC75PassDates = (\"c75PassDates\" in data) ? data.c75PassDates : null;"
+            }
+          ]
+        },
+        {
+          "start_line": 943,
+          "end_line": 949,
+          "numbered_lines": [
+            {
+              "line": 943,
+              "text": "  /* C69/C75/C70 : restaurer APRES OpexLoadSettings() et les remises a zero de Start(). */"
+            },
+            {
+              "line": 944,
+              "text": "  if (C69_TRACK_BUILDS && this._reloadC69BuildDates != null && typeof this._reloadC69BuildDates == \"array\") {"
+            },
+            {
+              "line": 945,
+              "text": "    C69_BUILD_DATES = this._reloadC69BuildDates;"
+            },
+            {
+              "line": 946,
+              "text": "  }"
+            },
+            {
+              "line": 947,
+              "text": "  if (C75_TRACK_PASSES && this._reloadC75PassDates != null && typeof this._reloadC75PassDates == \"array\") {"
+            },
+            {
+              "line": 948,
+              "text": "    C75_PASS_DATES = this._reloadC75PassDates;"
+            },
+            {
+              "line": 949,
+              "text": "  }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle_relative_path": "ai/OpexAI/opcode_exact.nut",
+      "full_file_sha256": "19bb9b4fc950ad5f6c4bae9f2f22e22138a46da09eea0de828366cbb1db2e39b",
+      "excerpts": [
+        {
+          "start_line": 75,
+          "end_line": 115,
+          "numbered_lines": [
+            {
+              "line": 75,
+              "text": "    local prev = OPCODE_EXACT_CAL_YEAR;"
+            },
+            {
+              "line": 76,
+              "text": "    OPCODE_EXACT_CAL_YEAR = year;"
+            },
+            {
+              "line": 77,
+              "text": "    OpexOpcodeExactPublishYear(prev);"
+            },
+            {
+              "line": 78,
+              "text": "    return;"
+            },
+            {
+              "line": 79,
+              "text": "  }"
+            },
+            {
+              "line": 80,
+              "text": "  if (AIDate.GetMonth(now) == 12 && AIDate.GetDayOfMonth(now) >= 28"
+            },
+            {
+              "line": 81,
+              "text": "      && OPCODE_EXACT_LATE_DATE != now) {"
+            },
+            {
+              "line": 82,
+              "text": "    OPCODE_EXACT_LATE_DATE = now;"
+            },
+            {
+              "line": 83,
+              "text": "    OpexOpcodeExactPublishYear(year);"
+            },
+            {
+              "line": 84,
+              "text": "  }"
+            },
+            {
+              "line": 85,
+              "text": "}"
+            },
+            {
+              "line": 86,
+              "text": ""
+            },
+            {
+              "line": 87,
+              "text": "function OpexOpcodeExactAdd(site, opsOld, opsNew, same, detail) {"
+            },
+            {
+              "line": 88,
+              "text": "  if (!EXP_OPCODE_EXACT_CHECK) return;"
+            },
+            {
+              "line": 89,
+              "text": "  OpexOpcodeExactObserveCalendar();"
+            },
+            {
+              "line": 90,
+              "text": "  local year = AIDate.GetYear(AIDate.GetCurrentDate());"
+            },
+            {
+              "line": 91,
+              "text": "  local bySite = OpexOpcodeExactEnsureYear(year);"
+            },
+            {
+              "line": 92,
+              "text": "  local rec = (site in bySite) ? bySite[site] : null;"
+            },
+            {
+              "line": 93,
+              "text": "  if (rec == null) {"
+            },
+            {
+              "line": 94,
+              "text": "    rec = { calls = 0, mismatch = 0, opsOld = 0, opsNew = 0 };"
+            },
+            {
+              "line": 95,
+              "text": "    bySite.rawset(site, rec);"
+            },
+            {
+              "line": 96,
+              "text": "  }"
+            },
+            {
+              "line": 97,
+              "text": "  rec.calls++;"
+            },
+            {
+              "line": 98,
+              "text": "  rec.opsOld += opsOld;"
+            },
+            {
+              "line": 99,
+              "text": "  rec.opsNew += opsNew;"
+            },
+            {
+              "line": 100,
+              "text": "  if (same) return;"
+            },
+            {
+              "line": 101,
+              "text": "  rec.mismatch++;"
+            },
+            {
+              "line": 102,
+              "text": "  if (OPCODE_EXACT_MISMATCHES == null) OPCODE_EXACT_MISMATCHES = {};"
+            },
+            {
+              "line": 103,
+              "text": "  local n = (site in OPCODE_EXACT_MISMATCHES) ? OPCODE_EXACT_MISMATCHES[site] : 0;"
+            },
+            {
+              "line": 104,
+              "text": "  if (n >= 5) return;"
+            },
+            {
+              "line": 105,
+              "text": "  OPCODE_EXACT_MISMATCHES.rawset(site, n + 1);"
+            },
+            {
+              "line": 106,
+              "text": "  AILog.Info(\"OPCODE_EXACT_MISMATCH site=\" + site + \" \" + detail);"
+            },
+            {
+              "line": 107,
+              "text": "}"
+            },
+            {
+              "line": 108,
+              "text": ""
+            },
+            {
+              "line": 109,
+              "text": "function OpexOpcodeExactSite(fallback) {"
+            },
+            {
+              "line": 110,
+              "text": "  if (OPCODE_EXACT_SITE_NAME != null) return OPCODE_EXACT_SITE_NAME;"
+            },
+            {
+              "line": 111,
+              "text": "  return fallback;"
+            },
+            {
+              "line": 112,
+              "text": "}"
+            },
+            {
+              "line": 113,
+              "text": ""
+            },
+            {
+              "line": 114,
+              "text": "/* Borne de Manhattan. Les anneaux 0..R visitent le disque de Chebyshev de"
+            },
+            {
+              "line": 115,
+              "text": " * rayon R : pour toute tuile balayee t, manhattan(centre, t) <= 2R."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

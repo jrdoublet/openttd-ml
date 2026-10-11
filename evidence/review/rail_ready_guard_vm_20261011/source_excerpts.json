@@ -1,0 +1,433 @@
+{
+  "source_bundle_sha256": "250223deaebfb849cde5717888fd2b16942de22798c1385158d4a5ad51757ff8",
+  "files": [
+    {
+      "bundle_relative_path": "ai/OpexAI/task_projects.nut",
+      "full_file_sha256": "335260d7fa862c8e0a429b2dfb87c03667cff541b902509ffd7dbb502d9df9fc",
+      "excerpts": [
+        {
+          "start_line": 1562,
+          "end_line": 1599,
+          "numbered_lines": [
+            {
+              "line": 1562,
+              "text": "function OpexAI::_railReadyReadmissionShouldDefer(alreadyDeferred)"
+            },
+            {
+              "line": 1563,
+              "text": "{"
+            },
+            {
+              "line": 1564,
+              "text": "  if (!RAIL_READY_READMISSION || this._railSearch == null"
+            },
+            {
+              "line": 1565,
+              "text": "      || this._railSearch.kind != \"primary\" || this._railSearch.phase != \"build\""
+            },
+            {
+              "line": 1566,
+              "text": "      || this._railSearch.candidate == null"
+            },
+            {
+              "line": 1567,
+              "text": "      || ((\"isC121RailPrep\" in this._railSearch)"
+            },
+            {
+              "line": 1568,
+              "text": "          && this._railSearch.isC121RailPrep)"
+            },
+            {
+              "line": 1569,
+              "text": "      || this._projects == null || !(\"best\" in this._projects)"
+            },
+            {
+              "line": 1570,
+              "text": "      || this._projects.best == null || this._projects.best.len() == 0)"
+            },
+            {
+              "line": 1571,
+              "text": "    return false;"
+            },
+            {
+              "line": 1572,
+              "text": "  local state = this._railSearch;"
+            },
+            {
+              "line": 1573,
+              "text": "  local rail = state.candidate;"
+            },
+            {
+              "line": 1574,
+              "text": "  local railKey = \"rail|\" + rail.src + \"|\" + rail.dst + \"|\""
+            },
+            {
+              "line": 1575,
+              "text": "      + rail.cargo + \"|\" + rail.kind;"
+            },
+            {
+              "line": 1576,
+              "text": "  local head = this._projects.best[0];"
+            },
+            {
+              "line": 1577,
+              "text": "  if (head == null || !(\"mode\" in head)"
+            },
+            {
+              "line": 1578,
+              "text": "      || !(\"profitAnnual\" in head) || head.profitAnnual <= 0"
+            },
+            {
+              "line": 1579,
+              "text": "      || OpexProjectAttemptKey(head) == railKey) return false;"
+            },
+            {
+              "line": 1580,
+              "text": "  local headKey = OpexProjectAttemptKey(head);"
+            },
+            {
+              "line": 1581,
+              "text": "  local available = OpexAvailableCapital();"
+            },
+            {
+              "line": 1582,
+              "text": "  if (OpexProjectFinanceCapital(head) > available) return false;"
+            },
+            {
+              "line": 1583,
+              "text": "  local rank = this._projectsRankOfAttemptKey(railKey);"
+            },
+            {
+              "line": 1584,
+              "text": "  if (rank == 0) return false;"
+            },
+            {
+              "line": 1585,
+              "text": "  if ((\"readyReadmissionHeadKey\" in state)"
+            },
+            {
+              "line": 1586,
+              "text": "      && state.readyReadmissionHeadKey == headKey) return false;"
+            },
+            {
+              "line": 1587,
+              "text": "  state.rawset(\"readyReadmissionHeadKey\", headKey);"
+            },
+            {
+              "line": 1588,
+              "text": "  if (DECISION_LOG) {"
+            },
+            {
+              "line": 1589,
+              "text": "    OpexDecide(\"RAIL_READY_READMISSION\", \"action=\""
+            },
+            {
+              "line": 1590,
+              "text": "        + (alreadyDeferred ? \"c77_shared\" : \"defer\")"
+            },
+            {
+              "line": 1591,
+              "text": "        + \" head=\" + headKey + \" head_mode=\" + head.mode"
+            },
+            {
+              "line": 1592,
+              "text": "        + \" rail_rank=\" + rank + \" head_finance=\""
+            },
+            {
+              "line": 1593,
+              "text": "        + OpexProjectFinanceCapital(head) + \" available=\" + available);"
+            },
+            {
+              "line": 1594,
+              "text": "  }"
+            },
+            {
+              "line": 1595,
+              "text": "  return !alreadyDeferred;"
+            },
+            {
+              "line": 1596,
+              "text": "}"
+            },
+            {
+              "line": 1597,
+              "text": ""
+            },
+            {
+              "line": 1598,
+              "text": "/* Diagnostics communs de fin de passe (C49, C63, C69/C73 puis entonnoir mensuel)."
+            },
+            {
+              "line": 1599,
+              "text": " * withC78Exit ajoute les journaux C78 de sortie normale, absents du retour rail pending. */"
+            }
+          ]
+        },
+        {
+          "start_line": 1789,
+          "end_line": 1842,
+          "numbered_lines": [
+            {
+              "line": 1789,
+              "text": "  if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {"
+            },
+            {
+              "line": 1790,
+              "text": "    local head = this._projects.best[0];"
+            },
+            {
+              "line": 1791,
+              "text": "    if (OpexProjectDefensiveAirPriority(head) > 0"
+            },
+            {
+              "line": 1792,
+              "text": "        && OpexProjectFinanceCapital(head) <= OpexAvailableCapital()) {"
+            },
+            {
+              "line": 1793,
+              "text": "      c77DefensiveHead = head;"
+            },
+            {
+              "line": 1794,
+              "text": "    }"
+            },
+            {
+              "line": 1795,
+              "text": "  }"
+            },
+            {
+              "line": 1796,
+              "text": "  local c77DeferCompletedRail = c77DefensiveHead != null"
+            },
+            {
+              "line": 1797,
+              "text": "      && RAIL_SEARCH_RESUMABLE && this._railSearch != null"
+            },
+            {
+              "line": 1798,
+              "text": "      && this._railSearch.kind == \"primary\" && this._railSearch.phase == \"build\""
+            },
+            {
+              "line": 1799,
+              "text": "      && !(\"c77DefensiveDeferred\" in this._railSearch);"
+            },
+            {
+              "line": 1800,
+              "text": "  if (c77DeferCompletedRail) {"
+            },
+            {
+              "line": 1801,
+              "text": "    this._railSearch.c77DefensiveDeferred <- true;"
+            },
+            {
+              "line": 1802,
+              "text": "    if (C78_SLOT_INTERCEPT_PROBE) {"
+            },
+            {
+              "line": 1803,
+              "text": "      OpexC78SlotLog(\"phase=defensive_priority pass=\" + C78_SLOT_PASS_COUNTER"
+            },
+            {
+              "line": 1804,
+              "text": "          + \" cycle=\" + this._taskCycle + \" tick=\" + AIController.GetTick()"
+            },
+            {
+              "line": 1805,
+              "text": "          + \" action=defer_rail finance=\" + OpexProjectFinanceCapital(c77DefensiveHead)"
+            },
+            {
+              "line": 1806,
+              "text": "          + \" available=\" + OpexAvailableCapital());"
+            },
+            {
+              "line": 1807,
+              "text": "    }"
+            },
+            {
+              "line": 1808,
+              "text": "  }"
+            },
+            {
+              "line": 1809,
+              "text": "  if (RAIL_READY_ADMISSION_SHADOW && RAIL_SEARCH_RESUMABLE && this._railSearch != null"
+            },
+            {
+              "line": 1810,
+              "text": "      && this._railSearch.kind == \"primary\" && this._railSearch.phase == \"build\") {"
+            },
+            {
+              "line": 1811,
+              "text": "    this._railReadyAdmissionShadow(c77DeferCompletedRail);"
+            },
+            {
+              "line": 1812,
+              "text": "  }"
+            },
+            {
+              "line": 1813,
+              "text": ""
+            },
+            {
+              "line": 1814,
+              "text": "  /* La preparation rail cede la passe si l'AIR est finançable, et depose un A*"
+            },
+            {
+              "line": 1815,
+              "text": "   * termine avant que la consommation historique ne le construise. */"
+            },
+            {
+              "line": 1816,
+              "text": "  if (C121_AIR_FIRST_YEAR_RAIL_PREP) this._c121RailPrepOnPassStart();"
+            },
+            {
+              "line": 1817,
+              "text": "  local readyReAdmissionDeferred = RAIL_READY_READMISSION"
+            },
+            {
+              "line": 1818,
+              "text": "      && this._railReadyReadmissionShouldDefer(c77DeferCompletedRail);"
+            },
+            {
+              "line": 1819,
+              "text": ""
+            },
+            {
+              "line": 1820,
+              "text": "  /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le"
+            },
+            {
+              "line": 1821,
+              "text": "   * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */"
+            },
+            {
+              "line": 1822,
+              "text": "  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&"
+            },
+            {
+              "line": 1823,
+              "text": "      this._railSearch.kind == \"primary\" && this._railSearch.phase == \"build\""
+            },
+            {
+              "line": 1824,
+              "text": "      && !c77DeferCompletedRail && !readyReAdmissionDeferred) {"
+            },
+            {
+              "line": 1825,
+              "text": "    local auditReady = RAIL_READY_ADMISSION_SHADOW"
+            },
+            {
+              "line": 1826,
+              "text": "        && !((\"isC121RailPrep\" in this._railSearch) && this._railSearch.isC121RailPrep);"
+            },
+            {
+              "line": 1827,
+              "text": "    local readyTick = auditReady && (\"startTick\" in this._railSearch)"
+            },
+            {
+              "line": 1828,
+              "text": "        ? this._railSearch.startTick : -1;"
+            },
+            {
+              "line": 1829,
+              "text": "    local spAstarBuild = PROBE_SPAN_TRACE ? OpexSpanBegin(\"astar.build\") : null;"
+            },
+            {
+              "line": 1830,
+              "text": "    local railBuilt = this._consumeResumableRailAtPassStart(year, passDiscards, c49Best,"
+            },
+            {
+              "line": 1831,
+              "text": "        c49BuiltRanks, c75BuiltKeys, c69BuiltProjects);"
+            },
+            {
+              "line": 1832,
+              "text": "    if (spAstarBuild != null) OpexSpanEnd(spAstarBuild);"
+            },
+            {
+              "line": 1833,
+              "text": "    if (railBuilt && PROBE_SPAN_TRACE) OpexSpanEvent(\"line_built\", \"mode=rail built=1\");"
+            },
+            {
+              "line": 1834,
+              "text": "    if (auditReady) {"
+            },
+            {
+              "line": 1835,
+              "text": "      local readyDate = AIDate.GetCurrentDate();"
+            },
+            {
+              "line": 1836,
+              "text": "      AILog.Info(\"OPEX \" + AIDate.GetYear(readyDate) + \"-\""
+            },
+            {
+              "line": 1837,
+              "text": "          + AIDate.GetMonth(readyDate) + \"-\" + AIDate.GetDayOfMonth(readyDate)"
+            },
+            {
+              "line": 1838,
+              "text": "          + \" RAIL_READY_ADMISSION phase=after search_tick=\" + readyTick"
+            },
+            {
+              "line": 1839,
+              "text": "          + \" built=\" + (railBuilt ? 1 : 0));"
+            },
+            {
+              "line": 1840,
+              "text": "    }"
+            },
+            {
+              "line": 1841,
+              "text": "    if (MONTHLY_FUNNEL) funnelAttempted++;"
+            },
+            {
+              "line": 1842,
+              "text": "    if (railBuilt) builtCount++;"
+            }
+          ]
+        },
+        {
+          "start_line": 2548,
+          "end_line": 2556,
+          "numbered_lines": [
+            {
+              "line": 2548,
+              "text": "function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = true)"
+            },
+            {
+              "line": 2549,
+              "text": "{"
+            },
+            {
+              "line": 2550,
+              "text": "  if (C121_CATALOG_AIR_FIRST_YEAR) {"
+            },
+            {
+              "line": 2551,
+              "text": "    local yearNow = AIDate.GetYear(AIDate.GetCurrentDate());"
+            },
+            {
+              "line": 2552,
+              "text": "    if (this._generationStageMonth < 0)"
+            },
+            {
+              "line": 2553,
+              "text": "      this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());"
+            },
+            {
+              "line": 2554,
+              "text": "    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12;"
+            },
+            {
+              "line": 2555,
+              "text": "  }"
+            },
+            {
+              "line": 2556,
+              "text": "  /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
