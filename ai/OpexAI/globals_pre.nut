@@ -1057,3 +1057,7 @@ V139_FEEDER_BUS <- 0;
 V139_UNJOINED_STOPS <- {};
 
 AIR_C121_PHYSICAL_PAYMENT_DAYS <- false;
+
+/* F-EVENT-BACKLOG-01 : ne relancer la reselection dans _c77RemoveSubsidy que si
+ * la purge a reellement retire des candidats de subvention. 0 = inconditionnel (historique) ; defaut 1 depuis le 11/10. */
+SUBSIDY_RESELECT_IF_PURGED <- true;

@@ -1,0 +1,25 @@
+=== C66.4 campagne fevent_subsidy_nonerosion_20x10_20261011_r1_s73 ===
+Bundle: 7e59e4c17d13d3554935ca8fb57a4455a35dfc45229ff91e40cffc48e2e4f944 | Manifest: 68e1e573770ff91613de1609bd7418804529bf69757c61bdc198a3f3f1f1975b
+=== Lancement Banc 1v1 Duel OpexAI vs AAAHogEx : 2 parties (1 graines x 1 repetition(s) x 2 politique(s) x 10 ans) ===
+Workers: 3 | Sortie: /work/results/fevent_subsidy_nonerosion_20x10_20261011_r1_s73.json
+✔ Running experiments... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2/2
+
+===================================================================================================================
+BANC 1v1 OPEXAI vs AAAHOGEX (CARTE PARTAGÉE) — BILAN 10 ANS (1 GRAINES)
+===================================================================================================================
+Graine   | Valeur Opex vs AAAHogEx          | Profit An Opex vs AAA        | Score O/A      | Véhicules O/A    | Gares O/A    | statut O/A                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+73       | 21,338,861 vs 38,668,880 (55.2%) | 4,050,198 vs 8,969,343       |  908 vs 881    | 149 vs 301       |  56 vs 205   | complete/noai_error
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+MOYENNE [OpexAI  ] : CV: 21,338,861 £ | Profit/an: 4,050,198 £ | Score:  908 | Véhicules: 149.0 | Gares: 56.0
+
+=== COMPARAISON APPARIÉE OPEXAI vs AAAHOGEX ===
+
+=== C66.4 VARIANTE - RÉFÉRENCE ===
+profit_year: delta moyen=None median=None V/D/E=0/0/0 p_wilcoxon=None CI95_bootstrap=[None, None] (echec si borne haute < 0)
+company_value: ratio des moyennes=None (None%), moyenne des ratios=None
+paires=0/1 verdict=incomplete
+Banc invalide : 1 echec(s) de sante
+C66.4 campaign: fevent_subsidy_nonerosion_20x10_20261011_r1_s73
+Git: 25d26c631c7819703ddd761dfdce8ca7face514e dirty=1
+Docker: openttd-lab:latest sha256:a0e0a0727f5003532764eeaeee6b83e9ab96a7470df3c76208c6446d10b88c8c
