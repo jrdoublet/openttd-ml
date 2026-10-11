@@ -1,0 +1,17 @@
+# Premier renfort C121 :100×3
+
+Demande utilisateur :100×3 sur chaque paramètre si nécessaire. Première comparaison : c121_air_first_observation_growth0 vs1, autres défauts identiques, code436e1b5. Sous-paramètres tous0.100 graines identiques au précédent test annuel pour reproductibilité, une répétition,200 duels3 ans. Smoke42×1 préalable. Primaire profit_year terminal ON−OFF ; gain_short required-seeds100/required-years3, gain4 %, Wilcoxon bilatéral p<0,05, IC95 bootstrap moyenne borne basse>0, garde valeur5 %, bootstrap20000 graine0. Profil10 CPU/8g/swap8g/10 workers. Pas de changement de défaut/commit/push/B.
+
+Graines : 49256198, 40251535, 83661327, 67252909, 32954122, 61277276, 42289106, 31095326, 99947065, 48078806, 46817788, 84959643, 41065124, 96072607, 95103928, 77555843, 75791398, 4534239, 31766200, 81255172, 77038974, 84707446, 97761736, 9145132, 4293350, 53511174, 63258888, 13866363, 59126129, 95527813, 59206776, 18513410, 45211130, 95035196, 28657101, 15771828, 1206141, 15816523, 95940230, 2858502, 13097225, 22674892, 93203227, 73632834, 82622549, 88273420, 52918548, 27220949, 19282185, 64212962, 85577990, 25855129, 32226662, 63716307, 61492693, 3667773, 78914873, 31142783, 11027787, 85387996, 25989308, 38463564, 40702905, 85871141, 18184773, 71257234, 72696364, 823553, 50828053, 93987135, 55466383, 79432432, 39381698, 46336057, 14232081, 41998381, 12179205, 34425505, 50783799, 12583287, 86457249, 99736907, 86247171, 77435569, 1972841, 52098057, 77972755, 97998084, 78967085, 49383685, 20729563, 30983659, 49003797, 12703369, 77549383, 39603104, 14337478, 16822043, 32727518, 87391028
+
+Les quatre sous-paramètres sont inertes avec le parentOFF ; phase_years est aussi inerte quand les âges précoce/tardif sont identiques, late_days inerte sans phase. Aucun test indépendant OFF ne serait informatif. Choix des valeurs numériques demandé, sans bloquer la comparaison principale.
+
+Décision utilisateur : sous-paramètres seulement si test principal concluant (pass gain_short). Smoke2/2 sain ; aucune différence économique sur cette seule graine à1 an, exposition comportementale non établie par ce smoke.100×3 lancé comme mesure demandée, exposition à contrôler avant toute qualification. Campagne first_observation_100x3_20261011_r1.
+
+## Résultat final
+
+200/200 duels sains,100/100 paires complètes et couverture complète,200 observations Opex terminales à quatre trimestres valides. Profit ON−OFF +3 023,69 £/an (+0,167484 %), médiane0 ;47V/38D/15E. IC95 bootstrap [−15 682,91 ; +21 918,06], Wilcoxon p=0,387510. Valeur+0,202994 %, garde tenue. Verdict fail_primary : gain utile4 % non démontré, aucune équivalence prouvée. Conformément à la décision utilisateur, arrêt : aucun100×3 sur les sous-paramètres numériques. Défaut0 conservé, aucune adoption/B/commit/push.
+
+## Retrait du premier renfort sur observation annuelle
+
+Décision utilisateur après100×3 fail_primary (+0,17 %, IC95 traversant zéro). c121_air_first_observation_growth et ses quatre sous-réglages min_days/phase_years/late_days/min_wait_pct supprimés, ainsi que globale/chargement/branche et refus exclusifs. Les sous-réglages ne sont pas déclarés économiquement rejetés : non testés conformément à la condition utilisateur. Variante live et données partagées Save/Load intactes. Ancien lanceur spécifique retiré ; son consommateur live possède désormais sa propre configuration.75 contrats verts, smoke cleanup_first_observation_smoke_20261011_r1 (42×1) sain ; bundle7a2d35c5305be3ed814c4c2656a7a46098a93a07bad2ad07c604ee5cddd38d06. Commit demandé, aucun push.

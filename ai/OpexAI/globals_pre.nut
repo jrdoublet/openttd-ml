@@ -595,14 +595,6 @@ C121_AIR_FIRST_YEAR_RAIL_PREP <- false;
 /* Economie C121 : n'evaluer que N=1 et N=2. N'exige pas aaa_line et ne touche
  * pas AIR_FULL_LOAD. Defaut 0. */
 C121_AIR_ONE_OR_TWO_PLANES <- false;
-/* C121 cadence : avance seulement le premier renfort 1->2 a la premiere
- * observation annuelle positive. Les paliers suivants gardent les gardes
- * standard C121 (deux ans entre renforts). */
-C121_AIR_FIRST_OBSERVATION_GROWTH <- false;
-C121_AIR_FIRST_GROWTH_MIN_DAYS <- 0;
-C121_AIR_FIRST_GROWTH_PHASE_YEARS <- 0;
-C121_AIR_FIRST_GROWTH_LATE_DAYS <- 0;
-C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT <- 0;
 /* C121 cadence : shadow live du premier renfort 1->2. Reutilise les fenetres
  * C117 deja calculees et ne participe a aucune decision. */
 C121_AIR_FIRST_LIVE_SHADOW <- false;

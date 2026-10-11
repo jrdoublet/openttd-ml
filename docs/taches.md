@@ -7,6 +7,8 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **Premier renfort annuel C121 retiré (11/10).** Paramètre et quatre sous-paramètres exclusifs supprimés après100×3 fail_primary ; variante live conservée.75 contrats verts, smoke42×1 sain. [Bilan](c121_first_observation_100x3_20261011.md).
+
 - **C121 observation growth retiré sur demande utilisateur (11/10).** Réglage, branche annuelle et marqueur actif supprimés après100×3 défavorable.80 contrats verts, smoke42×1 sain ; variantes premier renfort et Save/Load générique préservés. Aucun commit/push. [Bilan](c121_observation_growth_100x3_20261011.md).
 
 - **C121 observation growth —100×3 terminé (11/10), fail_primary_and_value_guard.**200/200 duels sains,100/100 paires complètes. Profit ON−OFF −50 966 £/an (−2,83 %), IC95 [−88 785 ; −12 279], p=0,00669,38V/62D ; valeur−5,142 %, garde échouée. Défaut0 conservé, aucune B/adoption. [Résultat](c121_observation_growth_100x3_20261011.md).

@@ -1204,55 +1204,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         }
       }
       c121FirstLiveEntry = true;
-    } else if (c121BelowTarget && C121_AIR_FIRST_OBSERVATION_GROWTH
-        && have == 1 && !("lastAirFleetYear" in line)) {
-      /* Experience cadence isolee : seul le passage 1->2 est avance. Le projet
-       * reste un +1 C121 normal et passe par le meme portefeuille ; aucun autre
-       * renfort n'utilise cette garde. */
-      local c121Age = ("year" in line) ? year - line.year : -1;
-      local reportYear = this._lastReportYear;
-      local c121AgeDays = ("buildDate" in line) ? AIDate.GetCurrentDate() - line.buildDate : -1;
-      local c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_MIN_DAYS;
-      if (C121_AIR_FIRST_GROWTH_PHASE_YEARS > 0
-          && year - OPEX_START_YEAR >= C121_AIR_FIRST_GROWTH_PHASE_YEARS) {
-        c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_LATE_DAYS;
-      }
-      if (c121FirstGrowthMinDays > 0
-          && (c121AgeDays < 0 || c121AgeDays < c121FirstGrowthMinDays)) {
-        OpexAirFleetRefusal(line, year, "Y");
-        if (plan != null && C69_BOTTLENECK_PROBE)
-          OpexC73RecordRejection("fleet", "c121_first_growth_too_young", 1);
-        continue;
-      }
-      if (reportYear != year || c121Age < 1
-          || !("lastProfit" in line) || line.lastProfit <= 0) {
-        OpexAirFleetRefusal(line, year, "O");
-        if (plan != null && C69_BOTTLENECK_PROBE)
-          OpexC73RecordRejection("fleet", "c121_first_growth_no_positive_observation", 1);
-        continue;
-      }
-      if (C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT > 0) {
-        local firstCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
-        if (firstCap <= 0 && ("vehicles" in line)) {
-          foreach (v in line.vehicles) {
-            if (!AIVehicle.IsValidVehicle(v)) continue;
-            firstCap = AIVehicle.GetCapacity(v, line.cargo);
-            if (firstCap > 0) break;
-          }
-        }
-        local stA = AIStation.GetStationID(line.stationA);
-        local hasB = ("stationB" in line) && line.stationB != null;
-        local stB = hasB ? AIStation.GetStationID(line.stationB) : -1;
-        local waitA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : 0;
-        local waitB = (hasB && AIStation.IsValidStation(stB)) ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
-        local maxWait = waitA > waitB ? waitA : waitB;
-        if (firstCap <= 0 || maxWait * 100 < firstCap * C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT) {
-          OpexAirFleetRefusal(line, year, "W");
-          if (plan != null && C69_BOTTLENECK_PROBE)
-            OpexC73RecordRejection("fleet", "c121_first_growth_low_wait", 1);
-          continue;
-        }
-      }
     } else if (c121BelowTarget) {
       /* Une mesure annuelle complete est le premier feedback fiable apres le
        * cold-start C121. Ne jamais acheter plusieurs renforts sur la meme

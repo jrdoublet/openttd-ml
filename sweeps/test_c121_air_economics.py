@@ -770,60 +770,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("line.c121TargetProfitAnnual <- target.profitAnnual;", attach)
         self.assertNotIn("C121_AIR_ECONOMICS_SHADOW", PERSIST.read_text(encoding="utf-8"))
 
-class TestC121FirstObservationGrowth(unittest.TestCase):
-    def test_setting_defaults_off_and_requires_c121(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_air_first_observation_growth"')
-        self.assertIn("custom_value = 0", info[i:i + 600])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_OBSERVATION_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_first_observation_growth") != 0;', settings)
-
-    def test_only_first_one_to_two_reinforcement_is_advanced(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn("c121BelowTarget && C121_AIR_FIRST_OBSERVATION_GROWTH", task)
-        self.assertIn('have == 1 && !("lastAirFleetYear" in line)', task)
-        self.assertIn("reportYear != year || c121Age < 1", task)
-        self.assertIn('!("lastProfit" in line) || line.lastProfit <= 0', task)
-        self.assertIn('"c121_first_growth_no_positive_observation"', task)
-        self.assertIn('(year - line.lastAirFleetYear) < 2', task)
-
-    def test_optional_day_floor_is_off_by_default_and_scoped_to_first_growth(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_air_first_growth_min_days"')
-        self.assertIn("custom_value = 0", info[i:i + 700])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_GROWTH_MIN_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn('AIDate.GetCurrentDate() - line.buildDate', task)
-        self.assertIn('local c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_MIN_DAYS;', task)
-        self.assertIn('c121AgeDays < c121FirstGrowthMinDays', task)
-        self.assertIn('"c121_first_growth_too_young"', task)
-
-    def test_optional_phase_split_is_off_by_default_and_switches_only_first_growth_age_floor(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        phase_i = info.index('name = "c121_air_first_growth_phase_years"')
-        late_i = info.index('name = "c121_air_first_growth_late_days"')
-        self.assertIn("custom_value = 0", info[phase_i:phase_i + 700])
-        self.assertIn("custom_value = 0", info[late_i:late_i + 700])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_GROWTH_PHASE_YEARS = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
-        self.assertIn('C121_AIR_FIRST_GROWTH_LATE_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn("local c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_MIN_DAYS;", task)
-        self.assertIn("year - OPEX_START_YEAR >= C121_AIR_FIRST_GROWTH_PHASE_YEARS", task)
-        self.assertIn("c121FirstGrowthMinDays = C121_AIR_FIRST_GROWTH_LATE_DAYS;", task)
-        self.assertIn("c121AgeDays < c121FirstGrowthMinDays", task)
-
-    def test_optional_wait_floor_is_off_by_default_and_scoped_to_first_growth(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_air_first_growth_min_wait_pct"')
-        self.assertIn("custom_value = 0", info[i:i + 700])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT = C121_AIR_FIRST_OBSERVATION_GROWTH', settings)
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn('maxWait * 100 < firstCap * C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT', task)
-        self.assertIn('"c121_first_growth_low_wait"', task)
-
+class TestC121FirstLiveGrowth(unittest.TestCase):
     def test_first_live_shadow_defaults_off_and_never_enters_air_decision(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
         i = info.index('name = "c121_air_first_live_shadow"')
@@ -876,7 +823,7 @@ class TestC121FirstObservationGrowth(unittest.TestCase):
     def test_first_live_growth_is_early_override_not_a_late_gate(self):
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
         start = task.index("c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH")
-        end = task.index("} else if (c121BelowTarget && C121_AIR_FIRST_OBSERVATION_GROWTH", start)
+        end = task.index("} else if (c121BelowTarget) {", start)
         block = task[start:end]
         self.assertIn("if (!OpexC121FirstLiveBalanced90(line))", block)
         self.assertIn("c121Age < 2", block)

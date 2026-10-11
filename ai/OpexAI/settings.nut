@@ -381,16 +381,6 @@ function OpexLoadSettings()
   C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
-  C121_AIR_FIRST_OBSERVATION_GROWTH = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_first_observation_growth") != 0;
-  C121_AIR_FIRST_GROWTH_MIN_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH
-      ? AIController.GetSetting("c121_air_first_growth_min_days") : 0;
-  C121_AIR_FIRST_GROWTH_PHASE_YEARS = C121_AIR_FIRST_OBSERVATION_GROWTH
-      ? AIController.GetSetting("c121_air_first_growth_phase_years") : 0;
-  C121_AIR_FIRST_GROWTH_LATE_DAYS = C121_AIR_FIRST_OBSERVATION_GROWTH
-      ? AIController.GetSetting("c121_air_first_growth_late_days") : 0;
-  C121_AIR_FIRST_GROWTH_MIN_WAIT_PCT = C121_AIR_FIRST_OBSERVATION_GROWTH
-      ? AIController.GetSetting("c121_air_first_growth_min_wait_pct") : 0;
   C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_first_live_shadow") != 0;
   C121_AIR_FIRST_LIVE_GROWTH = C121_AIR_ECONOMICS
