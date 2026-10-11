@@ -138,3 +138,27 @@ pas neutre économiquement et respecte encore moins l'intervalle strict
 pré-enregistré. Aucune porte B **20×10**, aucune adoption par défaut,
 aucun commit ou push. Le résultat du ROI pur est sur un bundle/HEAD
 distinct et ne sert pas de bras témoin causal pour cette campagne.
+
+## Archivage de l'idée — abandon confirmé
+
+À la demande explicite de l'utilisateur, **abandonner `simple_opcode` comme
+politique à adopter**. Conserver seulement l'idée expérimentale dans les
+archives : employer `profitAnnual × 1000 / iterations` comme score de priorité
+RAIL local en remplacement du mélange historique `opcodeRatio + ROI × 15`
+et des bonus de rotation. Le dénominateur `iterations` mesure **une estimation
+du travail A***, et **non** des opcodes VM. C'est une hypothèse de classement
+simple et peu coûteuse, **pas une formule économique validée**.
+
+Raison de l'abandon : dans le 40×5 sain, perte moyenne **−88 103,8 £/an**
+(−4,409 %), IC95 bootstrap **[−172 423,05 ; −6 073,775] £/an**,
+valeur de compagnie **−4,685 %**, jusqu'à **−798 429 £/an** sur la graine
+802204. Le microbenchmark Squirrel détaché a mesuré **−24,67 à −77,85 %**
+de coût intrinsèque `score + TOP20` sur six profils **synthétiques**, mais
+il ne démontre pas un gain de VM totale en partie. Ce gain local ne justifie
+pas le dommage économique. Les résultats bruts des 40 graines et les
+96 mesures Squirrel sont **conservés intacts** :
+`results/rail_magic_simple_opcode_A40x5_20261010_r1.json` et
+`results/rail_magic_opcode_microbench_20261010.json`.
+
+**Statut durable : piste archivée / rejetée, flag OFF, ne pas relancer une
+campagne de qualification pour cette variante inchangée.**

@@ -243,11 +243,11 @@ class SourceTests(unittest.TestCase):
 
     def test_preexisting_builder_entirely_preserved(self):
         original = re.sub(r"\n/\* FLEET_AMORT_SHADOW_BEGIN.*?/\* FLEET_AMORT_SHADOW_END \*/\n?", "", self.source, flags=re.S)
-        # Empreinte du builder hors helper de sonde amortissement flotte.
-        # Re-epinglee par V126 (OpexAirRequiredMargin(newAirports, plan = null) et ses deux
-        # appels dans ce fichier) ; l'empreinte precedente etait 399ee1dc...2cb0.
+        # Empreinte du builder hors helper de sonde amortissement flotte,
+        # re-épinglee sur le code adopté HEAD 4943837 après nettoyage des
+        # expériences (l'ancienne 6c3939b... correspondait au prototype V126).
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
-                         "6c3939b65013ea51aca42c61b0211dfe50e7f0b78b49bfce244a4a111bd6ed68")
+                         "0ebdb62d7c92c91ee1fa86482612eb5c52d0363018b595027bf2f78bdd14ce48")
 
     def test_integrated_caller_is_diagnostic_helper_stays_explicit_opt_in(self):
         occurrences = sum(p.read_text(encoding="utf-8").count("OpexFleetAmortShadow(")

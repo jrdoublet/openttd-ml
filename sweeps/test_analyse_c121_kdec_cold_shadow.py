@@ -159,7 +159,11 @@ class ProbeContracts(unittest.TestCase):
     def test_date_and_funding_do_not_use_task_state(self):
         root = Path(__file__).resolve().parents[1]
         text = (root / "ai/OpexAI/projects_selection.nut").read_text(encoding="utf-8")
-        probe = text[text.index("function OpexC121KDecColdShadowCandidate"):text.index("function OpexProjectSelectAffordable")]
+        # Le shadow comporte ces deux fonctions. Les logs SELECT_REJECT voisins
+        # emploient OpexDecide et ne sont pas soumis à ce contrat passif.
+        probe = text[text.index("function OpexC121KDecColdShadowCandidate"):
+                     text.index("function OpexSelectRejectScore(")]
+        self.assertIn("function OpexC121KDecColdShadowEnd(", probe)
         self.assertNotIn("OpexDecide(", probe)
         self.assertIn('line.mode != "air"', probe)
         self.assertIn('" day=" + AIDate.GetDayOfMonth(date)', probe)

@@ -1,7 +1,9 @@
 """UR-15a: static equivalence to the pre-extraction rail builder (856c82c).
 
 Inlining the common capture must restore the original construction and
-diagnostics exactly, modulo comments/whitespace. This is not a NoAI VM test.
+diagnostics exactly, modulo comments/whitespace. The later freight TRKFAIL
+memory is checked separately and excluded from the historical comparison.
+This is not a NoAI VM test.
 """
 import hashlib
 from pathlib import Path
@@ -38,6 +40,41 @@ def digest(body):
     return hashlib.sha256(body.encode()).hexdigest()
 
 
+def without_freight_memory(body):
+    """Project the current builder onto the original capture/rollback contract.
+
+    The three replacements correspond to the adopted freight failure memory:
+    allocating the capture table, recognizing a persistent path-lead failure,
+    and publishing the original A-side lead in the failure log. Require each
+    exact addition so that unrelated builder edits still invalidate the SHA.
+    """
+    replacements = (
+        (
+            'if (DECISION_LOG || RAIL_GEOMETRY_GUARD\n'
+            '      || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight")) trackFailure = {};',
+            'if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};',
+        ),
+        (
+            'if (trackFailed > 0 &&\n'
+            '        ((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY\n'
+            '            && OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB))\n'
+            '         || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"\n'
+            '             && OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)))) {',
+            'if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY && trackFailed > 0 &&\n'
+            '        OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB)) {',
+        ),
+        (
+            '      if ("lead" in planA) fields += " leada=" + planA.lead;\n',
+            '',
+        ),
+    )
+    for addition, original in replacements:
+        if body.count(addition) != 1:
+            raise AssertionError("Freight memory addition missing or duplicated: " + addition)
+        body = body.replace(addition, original, 1)
+    return body
+
+
 class TestRailTrackFailureCapture(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -59,8 +96,20 @@ class TestRailTrackFailureCapture(unittest.TestCase):
                          PRE_EXTRACTION_HASHES["OpexTestRailTrack"])
 
     def test_failure_logs_and_rollback_order_are_unchanged(self):
-        self.assertEqual(digest(function_body(self.source, "OpexExecuteRailPlan")),
+        current = function_body(self.source, "OpexExecuteRailPlan")
+        self.assertEqual(digest(without_freight_memory(current)),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
+
+    def test_freight_memory_does_not_skip_failure_diagnostics_or_rollback(self):
+        body = function_body(self.source, "OpexExecuteRailPlan")
+        self.assertEqual(body.count('RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"'), 2)
+        self.assertLess(body.index("local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);"),
+                        body.index("OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)"))
+        self.assertLess(body.index("OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)"),
+                        body.index('OpexDecide("RAIL_TRACK_FAIL", fields);'))
+        self.assertLess(body.index('OpexDecide("RAIL_TRACK_FAIL", fields);'),
+                        body.index("OpexRollback(tiles, planA, planB, null, null);"))
+        self.assertIn('result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;', body)
 
 
 if __name__ == "__main__":

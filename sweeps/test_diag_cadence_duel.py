@@ -97,7 +97,9 @@ class SettingsIntegrationTests(unittest.TestCase):
             self.assertEqual(len(changed), 1)
             self.assertTrue(changed[0].startswith("exp_"))
             self.assertEqual((base[changed[0]], other[changed[0]]), (0, 1))
-            self.assertEqual(other["c121_air_economics"], 0)
+            # Profil physique C121 adopté : tous les bras le gardent à 1.
+            self.assertEqual(other["c121_air_economics"], 1)
+            self.assertEqual(other["c121_catalog_incremental"], 1)
 
 
 if __name__ == "__main__":

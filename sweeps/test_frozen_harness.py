@@ -12,6 +12,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from campaign_freeze import fingerprint_tree, prepare_frozen_campaign
+from bench_1v1_5y_20seeds import CAMPAIGN_HARNESS_FILES
 from frozen_harness import (
     frozen_command, launch_frozen_campaign, restore_campaign, restore_installed_user_site,
     verify_manifest_bundle,
@@ -191,9 +192,17 @@ class TestFrozenHarness(unittest.TestCase):
 
     def test_actual_harness_reaches_mocked_engine_with_frozen_collector(self):
         # Exercise the real production import/preparation path, but stop at the
-        # engine boundary. No OpenTTD binary, network, game, or real AI is needed.
-        for name in ("bench_1v1_5y_20seeds.py", "bench_v2.py", "paired_statistics.py", "game_health.py", "physical_counters.py", "c83_reaction.py"):
-            shutil.copy2(Path(__file__).with_name(name), self.sweeps / name)
+        # engine boundary. Assemble the fixture from the actual campaign list:
+        # hardcoding only the old imports silently omitted rail_budget_signs.py.
+        # No OpenTTD binary, network, game, or real AI is needed.
+        harness_modules = tuple(
+            Path(relative) for relative in CAMPAIGN_HARNESS_FILES
+            if relative.startswith("sweeps/") and relative.endswith(".py")
+        )
+        self.assertIn(Path("sweeps/rail_budget_signs.py"), harness_modules)
+        for relative in harness_modules:
+            shutil.copy2(Path(__file__).resolve().parents[1] / relative,
+                         self.root / relative)
         (self.sweeps / "openttdlab.py").write_text('''import inspect
 import json
 
@@ -209,8 +218,9 @@ def run_experiments(**kwargs):
     import game_health
     import physical_counters
     import c83_reaction
+    import rail_budget_signs
     result = {"collector": inspect.getfile(kwargs["result_processor"]),
-              "modules": [module.__file__ for module in (bench_v2, game_health, physical_counters, c83_reaction)],
+              "modules": [module.__file__ for module in (bench_v2, game_health, physical_counters, c83_reaction, rail_budget_signs)],
               "experiments": kwargs["experiments"]}
     print("ENGINE_BOUNDARY=" + json.dumps(result))
     raise RuntimeError("fixture stopped before engine")
@@ -219,8 +229,9 @@ def run_experiments(**kwargs):
                              "script_debug": False, "engine_timeout": 30,
                              "docker_image_id": None, "max_workers": 1})
         self.campaign = self.freeze("actual-harness")
-        for name in ("bench_1v1_5y_20seeds.py", "bench_v2.py", "paired_statistics.py", "game_health.py", "physical_counters.py", "c83_reaction.py"):
-            (self.sweeps / name).write_text('raise RuntimeError("live code executed")\n', encoding="utf-8")
+        for relative in harness_modules:
+            self.assertTrue((self.campaign.bundle_dir / "harness" / relative).is_file())
+            (self.root / relative).write_text('raise RuntimeError("live code executed")\n', encoding="utf-8")
         child = self.run_child()
         self.assertNotEqual(child.returncode, 0)
         self.assertIn("fixture stopped before engine", child.stderr)

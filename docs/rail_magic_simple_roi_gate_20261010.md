@@ -135,3 +135,14 @@ la mesure `cand_rank` et du calcul de ratio sur les deux bras de façon
 symétrique, avec contrôle explicite du coût de la sonde et de sa neutralité ;
 un diagnostic neuf ne transforme pas rétroactivement ce 40×5 en qualification
 économique/opcodes. Aucune campagne B ni changement de défaut, commit ou push.
+
+## Clôture définitive — décision utilisateur du 11 octobre 2026
+
+Les deux variantes `simple_roi` et `simple_opcode` sont **REJETÉES**.
+La première est rejetée par décision de clôture, **sans démonstration
+de perte économique ni d'un surcoût opcode global** ; la seconde
+présente une régression économique étayée. La tentative 40×10 `r1`
+n'a pas fourni de JSON final ; `r2` a produit un fichier final présent
+à la clôture, non analysé. Le pré-enregistrement n'est plus actif :
+pas de nouveau banc, conserver les deux flags OFF, les données et
+le calcul historique. Voir `docs/rail_magic_final_qualification_20261010.md`.

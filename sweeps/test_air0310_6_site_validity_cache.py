@@ -410,7 +410,18 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
             parts = text.split("this._lines.append(")
             self.assertEqual(len(parts) - 1, count, rel)
             for part in parts[:-1]:
-                self.assertIn(f"if ({GLOBAL}) {INVALIDATE}();", part[-180:])
+                gated = f"if ({GLOBAL}) {INVALIDATE}();"
+                # Dans task_air, la sonde financière peut observer un hub entre
+                # l'invalidation et l'ajout, sans modifier la station construite.
+                # Aucun autre travail ni garde de décision ne doit s'intercaler.
+                self.assertRegex(
+                    part,
+                    re.escape(gated)
+                    + r'(?:\s+if \(PROBE_AIR_FINANCE_MARGIN\) \{\s+'
+                      r'OpexAirHubReuseObserve\(this\._lines, (?:plan|buildPlan), '
+                      r'result, this\._nextLineId\);\s+\})?\s*$',
+                    rel,
+                )
         report = _read("ai/OpexAI/task_report.nut")
         self.assertLess(report.index("this._lines.remove(toRemove[k]);"),
                         report.index(f"if ({GLOBAL} && toRemove.len() > 0) {INVALIDATE}();"))

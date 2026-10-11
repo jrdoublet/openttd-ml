@@ -150,7 +150,12 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertNotIn("IsRailStationTile", twin)
 
         execute = rail[rail.index("function OpexExecuteRailPlan("):rail.index("\nfunction OpexBuildLine(")]
-        self.assertIn("local trackFailure = null;\n  if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};", execute)
+        # La mémoire de l'échec de voie fret est déjà livrée dans builder_rail.
+        self.assertIn(
+            'local trackFailure = null;\n  if (DECISION_LOG || RAIL_GEOMETRY_GUARD\n'
+            '      || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight")) trackFailure = {};',
+            execute,
+        )
         self.assertIn("OpexBuildTrack(tiles, plan.structures, trackFailure)", execute)
         self.assertIn("OpexBuildTrack(tiles2, plan.structures2);", execute)
         self.assertEqual(execute.count("OpexBuildTrack(tiles, plan.structures, trackFailure)"), 1)

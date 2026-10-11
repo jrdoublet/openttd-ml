@@ -35,8 +35,11 @@ class CacheSourceContracts(unittest.TestCase):
 
     def test_no_default_or_persistence_extension(self):
         settings = parse_ai_settings(AI / "info.nut")
-        for name in ("c121_air_economics", "c121_catalog_incremental",
-                     "c121_fleet_stock_growth", "c121_territory_first", "c121_aaa_line"):
+        # Le profil physique C121 et son catalogue sont devenus les défauts
+        # adoptés ; les leviers voisins restent désactivés indépendamment.
+        for name in ("c121_air_economics", "c121_catalog_incremental"):
+            self.assertEqual(settings[name], 1, name)
+        for name in ("c121_fleet_stock_growth", "c121_territory_first", "c121_aaa_line"):
             self.assertEqual(settings[name], 0, name)
         # Optimisation d'opcodes adoptee le 2026-10-03 (inerte sans C121).
         self.assertEqual(settings["c121_air_game_engine"], 1)

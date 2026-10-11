@@ -405,8 +405,9 @@ class TestV126ProbeData(unittest.TestCase):
         code = code_only(self.route)
         self.assertEqual(code.count("AIAccounting()"), 1)
         self.assertIn("local costs = AIAccounting();", self.route)
-        # Fichier entier : le bouclier d'OpexAirProbeSite et le `costs` de la construction.
-        self.assertEqual(code_only(self.construction).count("AIAccounting()"), 2)
+        # Trois contextes distincts : sonde aéroport, arrêt joint protégé et
+        # dépenses de la construction. La route n'en crée toujours qu'un.
+        self.assertEqual(code_only(self.construction).count("AIAccounting()"), 3)
         for helper in (self.mark, self.finance, self.cost):
             self.assertNotIn("AIAccounting", code_only(helper))
 
@@ -477,10 +478,15 @@ class TestV126ProbeData(unittest.TestCase):
         for field in V126_REQUIRED_FIELDS + V126_OPTIONAL_FIELDS:
             self.assertRegex(emitted, r'" %s="|"[^"]*\b%s=' % (field, field), field)
         self.assertIn('" v126=" + flag + " quoted=0"', self.finance)
-        self.assertIn("margin_legacy=\" + OpexAirRequiredMargin(st.newAirportCount)", self.finance)
-        self.assertIn(
-            'margin_v126=" + (2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100)',
+        self.assertIn("local legacyMargin = OpexAirRequiredMargin(st.newAirportCount);", self.finance)
+        self.assertIn('" margin_legacy=" + legacyMargin', self.finance)
+        # La sonde publie le repli historique lorsque le devis a échoué,
+        # puis la formule résiduelle uniquement si le devis est exploitable.
+        self.assertIn('" margin_v126=" + (st.v126QuoteFail > 0', self.finance)
+        self.assertRegex(
             self.finance,
+            r'st\.v126QuoteFail > 0\s*\? legacyMargin\s*:\s*2000\s*\+'
+            r'\s*\(st\.v126SiteCost \* AIR_SITE_COST_MARGIN_PCT\) / 100\)',
         )
         self.assertIn('airport_price=" + plan.airport.price', self.finance)
 
