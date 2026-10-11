@@ -314,7 +314,6 @@ function OpexLoadSettings()
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
-  V126_AIR_SERVED_TOWN_REUSE = AIController.GetSetting("v126_air_served_town_reuse") != 0;
   V134_AIR_P2P_SATURATED_HUB = AIController.GetSetting("v134_air_p2p_saturated_hub") != 0;
   V133_AIR_BUILD_RETRY = AIController.GetSetting("v133_air_build_retry") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
@@ -364,8 +363,6 @@ function OpexLoadSettings()
       && AIController.GetSetting("c121_air_visible_competition") != 0;
   C121_AIR_VISIBLE_FUSED = C121_AIR_VISIBLE_COMPETITION
       && AIController.GetSetting("c121_air_visible_fused") != 0;
-  C121_AIR_TARGET_LIMIT = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_target_limit") != 0;
   C121_AIR_WINNER_FUSION = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_winner_fusion") != 0;
   C121_AIR_GAME_ENGINE = C121_AIR_ECONOMICS
@@ -384,8 +381,6 @@ function OpexLoadSettings()
   C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
-  C121_FLEET_STOCK_GROWTH = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_fleet_stock_growth") != 0;
   C121_AIR_OBSERVATION_GROWTH = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_observation_growth") != 0;
   C121_AIR_FIRST_OBSERVATION_GROWTH = C121_AIR_ECONOMICS

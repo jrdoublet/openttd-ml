@@ -7,6 +7,14 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **Commit des trois nettoyages et référence 10×5 demandés (11/10).** V126 réadmission, plafond C121 et stock-growth C121 : commit local demandé, sans push. Banc de référence OpexAI contre AAAHogEx pré-enregistré, aux défauts courants, 10 CPU/10 workers, sans variante A/B. [Protocole et suivi](cleanup_reference_10x5_20261011.md).
+
+- **Nettoyage C121 renforts sur stock (11/10) — retiré sur demande utilisateur.** `c121_fleet_stock_growth`, globale, chargement, helper exclusif et branche de croissance supprimés ; un seul renfort par passe sous cible C121, comme à l'ancien défaut OFF. Gardes d'observation, marginal C121, `AIR_FLEET_BUFFER` et champs partagés conservés. Contrats et diagnostics adaptés, 91 tests verts, smoke 42×1 sain `cleanup_c121_stock_smoke_20261011_r1`. Aucun banc économique ni commit/push. [Journal](journaux/journal_2026-10-11.md#retrait-c121--renforts-de-flotte-sur-stock).
+
+- **Nettoyage C121 plafond de flotte (11/10) — retiré sur demande utilisateur.** `c121_air_target_limit`, globale, chargement et branches spécifiques à la construction, au redimensionnement et aux projets supprimés ; comportement de référence OFF conservé. Helpers et garde d'achat partagés avec la concurrence visible C121 maintenus, ainsi que la garde marginale adoptée et les champs Save/Load. 102 contrats verts, smoke 42×1 sain `cleanup_c121_target_smoke_20261011_r1`, fixture VM/Save-Load de la garde visible valide avant/après chargement. Aucun banc économique ni commit/push. [Journal](journaux/journal_2026-10-11.md#retrait-c121--plafond-optionnel-de-flotte-air).
+
+- **Nettoyage V126 réadmission AIR (11/10) — retiré sur demande utilisateur après `git pull`.** Réglage `v126_air_served_town_reuse`, chargement, globale, helper, marqueurs des sites et logs spécifiques supprimés ; ancien contrat du prototype retiré. Comportement de référence OFF conservé dans les filtres, exceptions C83/V134 maintenues. 18 contrats voisins verts, smoke 42×1 sain `cleanup_v126_smoke_20261011_r1`, réglage absent de l'audit. Aucune qualification économique du nettoyage ni commit/push. Le V126 de devis de coût AIR est un autre chantier et reste intact. [Journal](journaux/journal_2026-10-11.md#retrait-v126--réadmission-des-villes-air-déjà-desservies).
+
 - **Trois worktrees historiques nettoyés (11/10) : C83 local, C121 AIR productivity, C61.** Aucun code de production nouveau à adopter : C83 local `fail_primary` 20×10 puis 40×3, productivité C121 diagnostic seulement, C61 collecte trop lacunaire pour attribuer de la congestion. Les patches originaux, fichiers non suivis **et ignorés** (JSONL, bundles figés et traces compris) sont sauvegardés avec SHA-256 et vérificateur dans les [archives des worktrees](../evidence/review/legacy_worktrees_cleanup_20261011/README.md). Les clones ont été retirés ; aucun banc A/B relancé. La branche V102 GitHub, porteuse de trois commits exclusifs utiles au harnais mais en PR draft non fusionnée, reste volontairement isolée et propre.
 
 - **Nettoyage de l'arbre local (11/10) : prototypes non adoptés archivés puis retirés du code actif.** `master` reprend les sources de production déjà livrées : réalisation directe AIR, paiement physique C121 et mémoire d'échec upgrade RAIL restent intacts. Les essais expérimentaux RAIL N=2/réadmission/classement, AIR learner, C121 cache/replay, V126, V139 et sondes associées ne sont plus présents dans les sources de travail ; leurs références et rapports ci-dessous décrivent des **bundles historiques**, sans annoncer leur présence dans le HEAD. [Archive récupérable du diff et des 52 scripts/tests](../evidence/review/p0_worktree_cleanup_20261011/README.md). Aucun ancien rejet n'est réouvert, aucun changement de défaut ni nouvelle qualification A/B ne découle de ce nettoyage.
@@ -226,7 +234,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   Les mentions ci-dessous de C1210/0 conserve et non adoptable decrivent
   l'ancien profil. Notre A40x3/40x6 plafond avait deja ce garde marginal dans
   les deux bras : son echec ne contredit pas la qualification du profil corrige.
-  Le plafond additionnel `c121_air_target_limit` reste0.
+  Le plafond additionnel `c121_air_target_limit` était conservé à0 ; réglage et branches spécifiques retirés le 11/10, sans retirer la garde marginale adoptée.
   [Qualification et adoption](journaux/journal_2026-10-07.md#correctif-urgent-c121--arret-apres-dernier-renfort-marginal-deficitaire).
 
 - **C121 plafond — extension 40x6 terminee, non adoptee (07/10)** : comparaison
@@ -248,7 +256,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   [Pre-enregistrement](c121_target_limit_20261007.md#extension-40-x-6-ans-demandee-par-lutilisateur).
 
 - **C121 — plafond de croissance (07/10, A echouee : non adopte)** :
-  `c121_air_target_limit=0` conserve. Candidat : cible de croissance
+  `c121_air_target_limit=0` conservé lors de cette mesure historique ; réglage retiré le 11/10. Candidat testé : cible de croissance
   bornee par la cadence physique a l'ouverture, revalidee lors des renforts et
   juste avant l'achat ; aucun retour a la croissance historique une fois la
   cible atteinte. Moteur/economie/classement inchanges, aucune vente implicite,
@@ -258,7 +266,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   **fail_primary**, -21,2 k£/an (-1,18 %), mediane+14,3 k£, 21/19/0,
   p=0,858, IC95 bootstrap [-95,3;+53,3] k£/an, valeur-1,61 % (garde tenue).
   Gain utile non demontre ; ni perte significative ni neutralite prouvee.
-  **B non lancee**, defaut 0, aucun commit/push. Code teste conserve ;
+  **B non lancee**, defaut 0 lors de la mesure, aucun commit/push. Code testé conservé dans le bundle historique ; branches spécifiques retirées le 11/10 ;
   revalorisation de la cible depuis les observations non implementee.
   [Analyse et protocole](c121_target_limit_20261007.md).
 
@@ -278,7 +286,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   `fail_primary`** (`v126_porteA_40x3_20261007`) : delta `profit_year`
   moyen −92 099 £/an, médiane −37 120, V/D/E 13/26/1, Wilcoxon p=0,0155,
   IC95 bootstrap [−163 921 ; −30 510], valeur −4,31 % (garde 5 % tenue).
-  B non lancée conformément au protocole ; défaut V126 reste 0. Aucun commit.
+  B non lancée conformément au protocole ; défaut V126 resté à 0 lors de cette mesure. Réglage et branches de réadmission retirés le 11/10 sur demande utilisateur ; résultat historique conservé.
 
 - **Correction adaptative C121 dans les trois régimes (07/10)** : livrée localement
   dans `OpexC121RealizationFactor`. Le facteur appris par bras `hubsite`/`hubhub`
@@ -635,7 +643,7 @@ code au moment de l'intervention ; ne pas coder toute la liste d'un bloc.
 | R11–R17 | Découper les responsabilités et organiser les tests | Lots métier isolés : builder AIR, sélection/exécution, rapport annuel, projets, résultats C121, autotests. Aucun refactoring transversal simultané aux correctifs comportementaux. |
 | Dette UR-15b (revue ultra #15, 06/10) | **Dette technique, non traitée** — `air_economics_c121.nut:1093-1472` (`OpexC121OneOrTwoInvariants`/`Depth`) recopie ~250 lignes du calcul de `OpexC121AirEconomics` (l. 545) : toute correction du modèle doit être reportée à la main | Partager le noyau (helper commun ou appel du moteur avec `fixedPlanes`). Touche aux décisions : exiger mêmes décisions et opcodes mesurés, puis règle opcodes (20×10 non-perte). |
 | Dette UR-16a (revue ultra #16, 06/10) | **À trancher — comportement, non gardé par drapeau** — `scheduler_tasks.nut:208` (depuis 38a4ff3) : la garde `!s.published` a été remplacée par `s.plans.len() > s.lastPublishedCount` ; le rebuild AIR découpé (pool > 64 villes) republie à chaque tranche qui ajoute des plans, au lieu d'une seule publication partielle par scan. Le commentaire l. 88-91 décrit encore l'ancien comportement | Probablement voulu (publication progressive, base du gain `air0310_incremental_publish`) et inclus dans toutes les mesures depuis le 30/09 ; sous C121 la republication est incrémentale. Mesurer le coût en opcodes des republications hors `air0310_incremental_publish` ; sinon seulement corriger le commentaire. |
-| Dette UR-16d/e (revue ultra #16, 06/10) | **Dette technique, non traitée** | d) `task_projects.nut` ~1224-1239 (`c121_territory_first`, défaut 0) : balayage O(n²) et villes servies figées avant la boucle. e) `task_air.nut` ~725/916 : lecture de capacité avion dupliquée (`OpexC121FleetStockEvidence` / `AIR_FLEET_BUFFER`). UR-16c retiré : duplication supprimée par `7d01f6b` ; [clôture documentaire](journaux/journal_2026-10-08.md#nettoyage-documentaire--ur-16c-et-suivi-air). |
+| Dette UR-16d (revue ultra #16, 06/10) | **Dette technique, non traitée** | d) `task_projects.nut` ~1224-1239 (`c121_territory_first`, défaut 0) : balayage O(n²) et villes servies figées avant la boucle. UR-16e clos le 11/10 : retrait de `OpexC121FleetStockEvidence`, supprimant la duplication avec `AIR_FLEET_BUFFER` visée par cette revue. UR-16c retiré : duplication supprimée par `7d01f6b` ; [clôture documentaire](journaux/journal_2026-10-08.md#nettoyage-documentaire--ur-16c-et-suivi-air). |
 | F-RAIL-ECON-01 (revue du 22/09) | **Implémenté derrière `rail_depot_cost`, défaut 0 ; exploration C121 40×3 inconclusive le 04/10** | `economy.nut` ajoute `costRailDepot` si le flag est actif. Profit −1,72 %, IC95 traversant zéro, `fail_primary` conservé. Suite proposée : exposition du classement/construction puis nouvelle A40×6 pré-enregistrée, B20×10 seulement après passage ; aucun lancement ni changement de défaut. Voir le bilan des retests nocturnes. |
 | F-EVENT-BACKLOG-01 (revue du 22/09) | **Sonde livrée ; exposition mesurée ; attribution restante** | `probe_event_backlog=0` par défaut ; contrats 7/7 + ordonnanceur 3/3 verts. [Diagnostic du 08/10](event_backlog_20261008.md) : 3 graines × 3 ans, 3/3 parties saines, 105 fenêtres, 185 événements, rafales ≤ 5. Signal pré-enregistré dans 16 fenêtres : compteur maximal 728 067 avec un seul événement dans la fenêtre. L'horloge inclut l'attente de commandes ; identifier le handler via les spans `event.*` existants et départager calcul/attente avant correction. Aucun quota arbitraire ; défaut conservé à 0. |
 

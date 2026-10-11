@@ -55,7 +55,7 @@ if __name__ == "__main__":
     args, rest = parser.parse_known_args()
     settings = (("c121_air_visible_competition", 1), ("c121_air_visible_fused", 0 if args.off else 1), ("decision_log", 1))
     if args.reload:
-        from .run_c121_target_limit_fixtures import main
+        from .run_c121_fleet_fixtures import main
         main(rest, settings=settings, fixture=ROOT / "tests/mechanisms/c121_visible_port_reload_vm.nut",
              marker="C121_VISIBLE", stage_transform=reload_transform)
     else:

@@ -1,4 +1,4 @@
-"""NoAI target-limit assertions and ordinary Save/Load; correctness only.
+"""Shared NoAI fleet assertions and ordinary Save/Load; correctness only.
 
 Uses the existing save/load driver, source copier, decoders and health checks.
 The fixture restores every transient override before natural play resumes.
@@ -17,7 +17,7 @@ from .run_c121_cache_fixtures import stage as copy_ai
 from .run_mechanism_fixtures import digest, parse_saves, phase_integrity, replace_once, tree_hashes
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURE = ROOT / "tests/mechanisms/c121_target_limit_vm.nut"
+FIXTURE = ROOT / "tests/mechanisms/c121_visible_target_vm.nut"
 
 
 def stage(folder, fixture=FIXTURE):
@@ -40,7 +40,7 @@ def main(argv=None, *, settings=None, fixture=FIXTURE, marker="C121_TARGET", sta
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
-    folder = new_directory(args.out, ROOT / "results/c121_target_limit")
+    folder = new_directory(args.out, ROOT / "results/c121_fleet")
     import openttdlab
     from . import save_load_roundtrip as reload
     from .game_health import assess_game, parse_script_errors
@@ -53,7 +53,7 @@ def main(argv=None, *, settings=None, fixture=FIXTURE, marker="C121_TARGET", sta
     reload.SCRIPT_DEBUG_LEVEL = "4"
     if settings is None:
         settings = (("c121_air_economics", 1), ("c121_catalog_incremental", 1),
-                    ("c121_air_target_limit", 1), ("decision_log", 1))
+                    ("c121_air_visible_competition", 1), ("decision_log", 1))
     arm = openttdlab.local_folder(str(target), "OpexAI", settings)
     cfg = reload.bench_v2.make_cfg(1970)
     write_new(folder / "plan.json", {
@@ -112,7 +112,7 @@ def main(argv=None, *, settings=None, fixture=FIXTURE, marker="C121_TARGET", sta
     write_new(folder / "report.json", report)
     print(json.dumps(checks, indent=2), flush=True)
     if not report["pass"]:
-        raise RuntimeError("Target limit correctness non-validated; see retained evidence")
+        raise RuntimeError("Fleet correctness non-validated; see retained evidence")
 
 
 if __name__ == "__main__":

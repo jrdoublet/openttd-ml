@@ -160,8 +160,6 @@ function OpexProjectFromFleet(entry)
   local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
              : (("vehicles" in line) ? line.vehicles.len() : 0);
   if (have < 1) return null;
-  if (C121_AIR_ECONOMICS && C121_AIR_TARGET_LIMIT
-      && (!("targetAirPlanes" in line) || have + entry.want > line.targetAirPlanes)) return null;
 
   local profit = 0;
   local revenue = 0;

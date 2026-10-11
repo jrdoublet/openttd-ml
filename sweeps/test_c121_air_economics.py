@@ -524,8 +524,8 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("local belowTarget = c84BelowTarget || c121BelowTarget;", self.task)
         self.assertIn("if (!belowTarget && (\"lastProfit\" in line) && line.lastProfit < 0)", self.task)
         self.assertIn("if (c121BelowTarget) {", self.task)
-        # Hors c121_fleet_stock_growth, un seul renfort par passe (c121StockGrowth vaut 0).
-        self.assertIn("maxAddedPerPass = c121StockGrowth > 0 ? (c121StockGrowth < 4 ? c121StockGrowth : 4) : 1;", self.task)
+        # Sous cible C121, un seul renfort par passe.
+        self.assertIn("maxAddedPerPass = 1;", self.task)
         self.assertIn('C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)', self.task)
         self.assertIn('local c121Age = ("year" in line) ? year - line.year : -1;', self.task)
         self.assertIn('c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0', self.task)
@@ -770,23 +770,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("line.c121TargetProfitAnnual <- target.profitAnnual;", attach)
         self.assertNotIn("C121_AIR_ECONOMICS_SHADOW", PERSIST.read_text(encoding="utf-8"))
 
-class TestC121FleetStockGrowth(unittest.TestCase):
-    def test_setting_defaults_off_and_requires_c121(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_fleet_stock_growth"')
-        self.assertIn("custom_value = 0", info[i:i + 400])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_FLEET_STOCK_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_fleet_stock_growth") != 0;', settings)
-
-    def test_stock_rule_replaces_observation_rules_only_under_flag(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn("if (c121BelowTarget && C121_FLEET_STOCK_GROWTH) {", task)
-        self.assertIn("} else if (c121BelowTarget) {", task)
-        self.assertIn("AIDate.GetCurrentDate() - line.lastAirFleetDate < 60", task)
-        self.assertIn("function OpexC121FleetStockEvidence(line)", task)
-
-
-
 class TestC121ObservationGrowth(unittest.TestCase):
     def test_setting_defaults_off_and_requires_c121(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
@@ -802,7 +785,7 @@ class TestC121ObservationGrowth(unittest.TestCase):
         self.assertIn('!("lastProfit" in line) || line.lastProfit <= 0', task)
         self.assertIn('line.c121GrowthReportYear == reportYear', task)
         self.assertIn('"c121_observation_already_consumed"', task)
-        self.assertIn("maxAddedPerPass = c121StockGrowth > 0 ? (c121StockGrowth < 4 ? c121StockGrowth : 4) : 1;", task)
+        self.assertIn("maxAddedPerPass = 1;", task)
 
     def test_success_consumes_report_and_scalar_is_persisted(self):
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
@@ -921,7 +904,7 @@ class TestC121FirstObservationGrowth(unittest.TestCase):
         self.assertIn('if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0)', task)
         self.assertIn('"c121_first_live_not_ready"', task)
         self.assertIn('(year - line.lastAirFleetYear) < 2', task)
-        self.assertIn("maxAddedPerPass = c121StockGrowth > 0 ? (c121StockGrowth < 4 ? c121StockGrowth : 4) : 1;", task)
+        self.assertIn("maxAddedPerPass = 1;", task)
 
     def test_first_live_growth_is_early_override_not_a_late_gate(self):
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")

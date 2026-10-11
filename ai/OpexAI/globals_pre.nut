@@ -322,10 +322,6 @@ V93_AIR_COMPETITOR_WEIGHT <- 70;
  * (petites villes et seconds slots). Defaut 0, aucun effet decisionnel. */
 V95_AIR_POST73_PROBE <- false;
 V95_AIR_POST73_YEAR <- -1;
-/* V126 : une ville deja desservie peut rester dans le vivier AIR tant que
- * son aeroport Opex porte moins de deux routes et que la ville accepte encore
- * du bruit. Defaut 0 : filtre origin_served historique intact. */
-V126_AIR_SERVED_TOWN_REUSE <- false;
 /* V134 : second aeroport point-a-point (newpair) vers une ville libre pour une
  * ville dont l'aeroport existant a atteint AIR_HUB_MAX_ROUTES et qui ouvre un
  * second slot. Defaut 0 : filtre origin_served historique intact. */
@@ -478,7 +474,6 @@ C121_AIR_ECONOMICS_SHADOW <- false;
 /* C121 : modele economique AIR unifie. Le flag decisionnel reste eteint tant
  * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
 C121_AIR_ECONOMICS <- false;
-C121_AIR_TARGET_LIMIT <- false;
 C121_AIR_WINNER_FUSION <- false;
 C121_AIR_GAME_ENGINE <- false;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
@@ -600,10 +595,8 @@ C121_AIR_FIRST_YEAR_RAIL_PREP <- false;
 /* Economie C121 : n'evaluer que N=1 et N=2. N'exige pas aaa_line et ne touche
  * pas AIR_FULL_LOAD. Defaut 0. */
 C121_AIR_ONE_OR_TWO_PLANES <- false;
-/* C121 : renfort de flotte sur preuve de stock en gare (delai 60 jours). */
-C121_FLEET_STOCK_GROWTH <- false;
 /* C121 : au plus un renfort par nouveau rapport annuel positif, toujours arbitre
- * par le portefeuille et borne par la cible C121. Distinct du stock-growth. */
+ * par le portefeuille et borne par la cible C121. */
 C121_AIR_OBSERVATION_GROWTH <- false;
 /* C121 cadence : avance seulement le premier renfort 1->2 a la premiere
  * observation annuelle positive. Les paliers suivants gardent les gardes

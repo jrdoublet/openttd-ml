@@ -300,8 +300,8 @@ function OpexAirMaybeReequip(line, catalog, hangar, airportTile)
  * recherche de sites ni construction d'infrastructure : c'est le chemin marginal au meilleur
  * profit/opcode. Toute decision de l'appeler reste dans main.nut, apres une annee de donnees.
  * Sous V92, un autre service peut remplacer la flotte avant ce clonage. */
-/* La borne du scan economique n'est pas une capacite d'aeroport. La cible
- * memorisee reste un plafond, y compris pour une sauvegarde anterieure. Aucun
+/* Pour la concurrence visible, la borne du scan economique n'est pas une
+ * capacite d'aeroport. La cible memorisee reste un plafond. Aucun
  * nouveau champ persistant et aucune vente implicite d'une flotte deja livree. */
 function OpexC121AirTargetLimit(line, physicalCap)
 {
@@ -424,7 +424,7 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   /* Revalider au dernier site d'achat : un projet peut etre cache et un autre
    * chantier peut avoir consomme la cadence partagee depuis sa generation.
    * Les remplacements ci-dessus et le refleet de crash restent distincts. */
-  if (C121_AIR_ECONOMICS && (C121_AIR_TARGET_LIMIT || C121_AIR_VISIBLE_COMPETITION)) {
+  if (C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION) {
     OpexC121RefreshVisibleFleet(catalog, line, lines);
     local liveCount = 0;
     foreach (v in line.vehicles) {

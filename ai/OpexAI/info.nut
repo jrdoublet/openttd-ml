@@ -414,14 +414,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v126_air_served_town_reuse",
-      description = "V126: keep an already served AIR town in the pool while its Opex airport has fewer than two routes and town noise still allows airport use; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v134_air_p2p_saturated_hub",
       description = "V134: allow a second airport in point-to-point (newpair) to a free town when existing airport reached air_hub_max_routes and town opens a 2nd slot; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -742,14 +734,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_air_target_limit",
-      description = "C121: cap the remembered fleet target by airport cadence and enforce it for all growth, including cached projects; requires c121_air_economics; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c121_air_winner_fusion",
       description = "C121 opcode optimization: retain opening N=1 during the winner fleet scan; monthly tariff changes and AAA_LINE fall back; requires C121 economics; 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -810,13 +794,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c121_territory_first",
       description = "With C121, reserve cash for the next AIR project opening a town without an Opex airport: other builds (fleet, hub, rail, road) must leave enough for it; 0 = off",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_fleet_stock_growth",
-      description = "With C121, grow under-target AIR fleets on waiting-cargo evidence (AAAHogEx-like) with a 60-day cooldown instead of the two-year observation rules; 0 = off",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = AICONFIG_BOOLEAN
     });

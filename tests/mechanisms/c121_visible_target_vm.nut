@@ -1,4 +1,4 @@
-/* Tests de contrat dans la vraie VM. Les bornes synthetiques ne qualifient
+/* Gardes de concurrence visible dans la vraie VM. Les bornes synthetiques ne qualifient
  * pas le modele physique. Tous les reglages/champs modifies sont restaures. */
 FXTL_DONE <- false;
 FXTL_COUNT <- 0;
@@ -11,7 +11,7 @@ function FxTLAssert(ok, name)
 
 function FxTLStart(ai)
 {
-  FxTLAssert(C121_AIR_ECONOMICS && C121_AIR_TARGET_LIMIT, "settings_loaded");
+  FxTLAssert(C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION, "settings_loaded");
   FxTLAssert(OpexC121AirTargetLimit(null, 3) == 0, "missing_line");
   FxTLAssert(OpexC121AirTargetLimit({}, 3) == 0, "old_save_missing_target");
   FxTLAssert(OpexC121AirTargetLimit({ targetAirPlanes = 0 }, 3) == 0, "zero_target");
@@ -37,18 +37,14 @@ function FxTLWorld(ai)
       if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) have++;
     }
     if (have < 1) continue;
+    OpexC121RefreshVisibleFleet(ai._catalog, line, ai._lines);
     local savedTarget = line.targetAirPlanes;
     local savedV92 = V92_AIR_SERVICE_CHOICE;
     local savedCount = ("vehCount" in line) ? line.vehCount : null;
-    local savedFlag = C121_AIR_TARGET_LIMIT;
     local countBefore = line.vehicles.len();
     V92_AIR_SERVICE_CHOICE = false;
     line.targetAirPlanes = have;
     line.vehCount <- have;
-    local entry = { line = line, want = 1, planePrice = 100, baseVehicles = have };
-    FxTLAssert(OpexProjectFromFleet(entry) == null, "target_reached_no_project");
-    FxTLAssert(OpexProjectFitFleetToBudget({ mode = "fleet", payload = entry }, 100000) == null,
-        "cached_project_rejected");
     local result = OpexAirAddPlane(line, ai._catalog, ai._lines);
     FxTLAssert(result.added == 0 && result.reason == "TARGET", "final_purchase_guard");
     FxTLAssert(line.vehicles.len() == countBefore, "no_purchase");
@@ -60,7 +56,6 @@ function FxTLWorld(ai)
     FxTLAssert(line.vehicles.len() == countBefore, "no_implicit_sale");
     line.targetAirPlanes = savedTarget;
     V92_AIR_SERVICE_CHOICE = savedV92;
-    C121_AIR_TARGET_LIMIT = savedFlag;
     if (savedCount == null) delete line.vehCount;
     else line.vehCount = savedCount;
     FXTL_DONE = true;

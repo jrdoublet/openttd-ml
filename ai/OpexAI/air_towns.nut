@@ -182,42 +182,6 @@ function OpexAirOwnSlotTownCounts()
   return counts;
 }
 
-/* V126 : trouve l'aeroport Opex impute a la ville et compte ses lignes AIR.
- * Une ville peut avoir plusieurs stations AIR dans des configurations speciales ;
- * le candidat est admissible si au moins un aeroport vivant de cette ville reste
- * sous le plafond de deux routes. */
-function OpexAirV126ServedTownState(town, lines)
-{
-  local state = { eligible = false, stationId = -1, routes = 0, noise = -1 };
-  if (!V126_AIR_SERVED_TOWN_REUSE || town == null || !("id" in town)
-      || !AITown.IsValidTown(town.id)) return state;
-
-  state.noise = AITown.GetAllowedNoise(town.id);
-  if (state.noise < 1) return state;
-
-  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
-  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
-    local loc = AIStation.GetLocation(st);
-    if (OpexAirSlotTownId(loc) != town.id) continue;
-    local routes = 0;
-    if (lines != null) {
-      foreach (line in lines) {
-        if (!("mode" in line) || line.mode != "air") continue;
-        local stationA = ("stationA" in line) ? line.stationA : -1;
-        local stationB = ("stationB" in line) ? line.stationB : -1;
-        if (stationA == st || stationB == st) routes++;
-      }
-    }
-    if (routes < 2) {
-      state.eligible = true;
-      state.stationId = st;
-      state.routes = routes;
-      return state;
-    }
-  }
-  return state;
-}
-
 /* V134 : verifie si un aeroport existant d'une ville a atteint AIR_HUB_MAX_ROUTES
  * et si la ville ouvre un second slot (OpexAirC83SecondSlotOpen). */
 function OpexAirV134SaturatedHubState(town, lines, hubIndex = null)

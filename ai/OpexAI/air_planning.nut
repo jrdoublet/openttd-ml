@@ -510,21 +510,12 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
         local isServed = OpexAirTownServed(towns[i], lines, servedDiag);
         local c83OwnSecondSlot = isServed && (towns[i].id in c83TopTownIds)
             && OpexAirC83SecondSlotOpen(towns[i]);
-        local v126State = isServed ? OpexAirV126ServedTownState(towns[i], lines)
-                                   : { eligible = false, stationId = -1, routes = 0, noise = -1 };
-        local v126Reuse = isServed && v126State.eligible;
         local v134State = (V134_AIR_P2P_SATURATED_HUB && isServed)
             ? OpexAirV134SaturatedHubState(towns[i], lines, ctx.hubIndex)
             : { eligible = false, hubRoutes = 0 };
         local v134Eligible = v134State.eligible;
-        if (DECISION_LOG && isServed && V126_AIR_SERVED_TOWN_REUSE) {
-          OpexDecide("V126_AIR_TOWN", "town=" + towns[i].id
-              + " eligible=" + (v126Reuse ? 1 : 0)
-              + " station=" + v126State.stationId
-              + " routes=" + v126State.routes + " noise=" + v126State.noise);
-        }
         local skipServed = false;
-        if (isServed && !c83OwnSecondSlot && !v126Reuse) skipServed = !v134Eligible;
+        if (isServed && !c83OwnSecondSlot) skipServed = !v134Eligible;
         if (skipServed) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "origin_served", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=origin_served");
@@ -550,11 +541,6 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
           local site = OpexAirFindSite(towns[i], airport, probes, c83RequiredSlotTown);
           if (site != null) {
             if (c83OwnSecondSlot) site.c83OwnSecondSlot <- true;
-            if (v126Reuse) {
-              site.v126ServedTown <- true;
-              site.v126StationId <- v126State.stationId;
-              site.v126Routes <- v126State.routes;
-            }
             if (v134Eligible) {
               site.v134SecondSlot <- true;
               site.v134HubRoutes <- v134State.hubRoutes;
@@ -869,10 +855,8 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
 
       local v134A = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlot" in sites[a]) && sites[a].v134SecondSlot;
       local v134B = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlot" in sites[b]) && sites[b].v134SecondSlot;
-      local servedOtherA = (("c83OwnSecondSlot" in sites[a]) && sites[a].c83OwnSecondSlot)
-          || (("v126ServedTown" in sites[a]) && sites[a].v126ServedTown);
-      local servedOtherB = (("c83OwnSecondSlot" in sites[b]) && sites[b].c83OwnSecondSlot)
-          || (("v126ServedTown" in sites[b]) && sites[b].v126ServedTown);
+      local servedOtherA = ("c83OwnSecondSlot" in sites[a]) && sites[a].c83OwnSecondSlot;
+      local servedOtherB = ("c83OwnSecondSlot" in sites[b]) && sites[b].c83OwnSecondSlot;
       if (v134A && (v134B || servedOtherB)) continue;
       if (v134B && (v134A || servedOtherA)) continue;
 
@@ -887,16 +871,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         v134SecondSlotA = v134A,
         v134SecondSlotB = v134B,
       };
-      if (DECISION_LOG && V126_AIR_SERVED_TOWN_REUSE) {
-        local v126A = ("v126ServedTown" in sites[a]) && sites[a].v126ServedTown;
-        local v126B = ("v126ServedTown" in sites[b]) && sites[b].v126ServedTown;
-        if (v126A || v126B) {
-          OpexDecide("V126_AIR_PAIR", "townA=" + sites[a].town.id + " townB=" + sites[b].town.id
-              + " servedA=" + (v126A ? 1 : 0) + " servedB=" + (v126B ? 1 : 0)
-              + " routesA=" + (v126A ? sites[a].v126Routes : -1)
-              + " routesB=" + (v126B ? sites[b].v126Routes : -1));
-        }
-      }
       if (DECISION_LOG && V134_AIR_P2P_SATURATED_HUB) {
         if (v134A) {
           OpexDecide("V134_P2P", "town=" + sites[a].town.id + " hubRoutes=" + sites[a].v134HubRoutes);

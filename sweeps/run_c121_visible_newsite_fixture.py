@@ -7,7 +7,7 @@ import shutil
 import sys
 
 from .diag_r1_r3_mechanisms import new_directory, write_new
-from .run_c121_target_limit_fixtures import stage
+from .run_c121_fleet_fixtures import stage
 from .run_mechanism_fixtures import digest, tree_hashes
 
 ROOT = Path(__file__).resolve().parents[1]
