@@ -979,7 +979,7 @@ C80_RAIL_STOCK_WORKER <- false;
 
 /* V149 : debloquer le rail (decision utilisateur 13/10). Interrupteur maitre : force la gate et
  * le worker C80, stock de V149_STOCK_SIZE traces prets, revalidation periodique avec reparation,
- * traces stockes retenus pendant l'annee AIR, rotation mensuelle du cargo fret. Defaut 0 :
+ * traces stockes retenus pendant l'annee AIR, regeneration mensuelle du vivier rail. Defaut 0 :
  * capacite du stock 1 et chemins C80/C76 strictement inchanges. Etat transitoire (non sauve). */
 V149_RAIL_PIPELINE <- false;
 V149_STOCK_SIZE <- 4;

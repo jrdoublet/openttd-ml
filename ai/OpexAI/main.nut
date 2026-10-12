@@ -167,6 +167,8 @@ class OpexAI extends AIController {
   _v149LogMonth = -1;
   _v149SkipClose = 0;
   _v149SkipNear = 0;
+  _v149RegenMonth = -1;
+  _v149RegenCount = 0;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -648,6 +650,8 @@ class OpexAI extends AIController {
   function _v149ExpediteProjects();
   function _v149OnDeposit(candidate, fundScore, isRepair);
   function _v149AfterProjectsPass();
+  function _v149IdleDiag();
+  function _v149MaybeRegenRail();
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */

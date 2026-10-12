@@ -113,7 +113,8 @@ class Settings(unittest.TestCase):
         block = block[:block.index("  }\n") + 4]
         self.assertIn("C80_RAIL_STOCK_GATE = true;", block)
         self.assertIn("C80_RAIL_STOCK_WORKER = true;", block)
-        self.assertIn("if (V149_FREIGHT_ROTATION && C76_REGEN_TARGETED) C76_FREIGHT_ROTATION = true;", block)
+        # la rotation C76 n'est plus forcee : V149 regenere lui-meme le vivier rail
+        self.assertNotIn("C76_FREIGHT_ROTATION", block)
         # le forcage precede la coupure de V89 par le worker C80
         self.assertLess(settings.index("  if (V149_RAIL_PIPELINE) {"),
                         settings.index("if (C80_RAIL_STOCK_WORKER) V89_RAIL_SEARCH_THROUGHPUT = false;"))
@@ -284,6 +285,23 @@ class AirYear(unittest.TestCase):
         self.assertIn("if (V149_RAIL_PIPELINE && !prepSearch && ai._railSearch.phase == \"search\"\n"
                       "      && ai._v149AirYearActive() && ai._c121RailPrepAirFundableCheap()) {", step)
         self.assertLess(step.index("ai._v149AirYearActive()"), step.index("ai._checkRailStockExpiry();"))
+
+
+class RailRegen(unittest.TestCase):
+    def test_monthly_rail_only_regen_outside_catalog(self):
+        src = _read("rail_v149.nut")
+        body = _function_body(src, "OpexAI::_v149MaybeRegenRail")
+        self.assertIn("if (!V149_FREIGHT_ROTATION) return;", body)
+        self.assertIn("if (ym == this._v149RegenMonth) return;", body)
+        self.assertIn("if (this._v149AirYearActive() && month < 10) return;", body)
+        self.assertIn('this._projects.rawset("freightCargo", freightCargos[nextCargo]);', body)
+        self.assertIn('this._lines, this._abandonedPairs, "rail", null, null, -1);', body)
+        self.assertNotIn('"road"', body)
+        self.assertIn("this._ranked = this._projects.rail;", body)
+        # avant la revalidation et donc avant le demarrage du worker en fin de passe
+        after = _function_body(src, "OpexAI::_v149AfterProjectsPass")
+        self.assertLess(after.index("this._v149MaybeRegenRail();"), after.index("this._v149RevalidateStock(curDate);"))
+        self.assertIn("  _v149RegenMonth = -1;", _read("main.nut"))
 
 
 class Pipeline(unittest.TestCase):

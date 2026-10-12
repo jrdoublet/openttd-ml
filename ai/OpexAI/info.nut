@@ -1657,7 +1657,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v149_freight_rotation",
-      description = "V149 monthly freight cargo rotation (forces c76_freight_rotation, only with v149_rail_pipeline): 1 = on (default), 0 = off for ablation",
+      description = "V149 monthly rail pool regeneration with rotating freight cargo, outside the catalog task (only with v149_rail_pipeline): 1 = on (default), 0 = off for ablation",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,

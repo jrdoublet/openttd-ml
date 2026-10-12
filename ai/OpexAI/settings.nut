@@ -606,8 +606,9 @@ function OpexLoadSettings()
   C80_WORKER_TOWN = AIController.GetSetting("c80_worker_town") != 0;
   C76_LEAN_INVALIDATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_lean_invalidation") != 0);
   C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
-  /* V149 : l'interrupteur maitre arme la gate et le worker C80 (donc V89 coupe plus bas) et,
-   * sauf ablation, la rotation mensuelle du fret. A 0, rien n'est force. */
+  /* V149 : l'interrupteur maitre arme la gate et le worker C80 (donc V89 coupe plus bas). La
+   * regeneration mensuelle du vivier rail (v149_freight_rotation) est propre a V149 : la rotation
+   * C76 n'est jamais atteinte sous le catalogue AIR incremental. A 0, rien n'est force. */
   V149_RAIL_PIPELINE = AIController.GetSetting("v149_rail_pipeline") > 0;
   local v149Size = AIController.GetSetting("v149_stock_size");
   if (v149Size >= 1) V149_STOCK_SIZE = v149Size;
@@ -617,7 +618,6 @@ function OpexLoadSettings()
   if (V149_RAIL_PIPELINE) {
     C80_RAIL_STOCK_GATE = true;
     C80_RAIL_STOCK_WORKER = true;
-    if (V149_FREIGHT_ROTATION && C76_REGEN_TARGETED) C76_FREIGHT_ROTATION = true;
   }
   C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
