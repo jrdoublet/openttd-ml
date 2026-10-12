@@ -88,6 +88,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   local cacheRetained = 0;
   local abandonFiltered = 0;
   local proximityDroppedPax = 0, proximityDroppedFreight = 0;
+  local ctx = (INCR_REVALIDATE_INDEX != 0) ? OpexIncrRevalidateIndexContext(lines) : null;
+  local checkCount = 0;
+  local mismatchCount = 0;
 
   /* 1. Filtrer les candidats existants du vivier */
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
@@ -116,7 +119,26 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
           abandonFiltered++;
           continue;
         }
-        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) {
+        local isValid = true;
+        if (INCR_REVALIDATE_INDEX == 1) {
+          isValid = OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx);
+        } else if (INCR_REVALIDATE_INDEX == 2) {
+          local histValid = OpexIncrementalCandidateStillValid(p, lines, abandonedPairs);
+          local idxValid = OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx);
+          checkCount++;
+          if (histValid != idxValid) {
+            mismatchCount++;
+            local pKind = ("kind" in p) ? p.kind : "unknown";
+            local pMode = ("mode" in p) ? p.mode : "unknown";
+            local pSrc = ("src" in p) ? p.src : -1;
+            local pDst = ("dst" in p) ? p.dst : -1;
+            OpexDecide("INCR_INDEX_MISMATCH", "mode=" + pMode + " kind=" + pKind + " src=" + pSrc + " dst=" + pDst + " hist=" + (histValid ? "1" : "0") + " idx=" + (idxValid ? "1" : "0"));
+          }
+          isValid = histValid;
+        } else {
+          isValid = OpexIncrementalCandidateStillValid(p, lines, abandonedPairs);
+        }
+        if (!isValid) {
           if (RAIL_FAILURE_AUDIT && RAIL_CACHED_PROXIMITY_GATE == 2 && p.mode == "rail") {
             local close = OpexRailCachedProximity(p, lines);
             if (close != null && (close.hard >= 0 || close.blocking >= 0)) {
@@ -206,7 +228,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
       railReadyStock = projects.railReadyStock;
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
-  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  local extValidity = (INCR_REVALIDATE_INDEX == 1 && ctx != null) ? ctx.airSiteValidity : null;
+  local extTownLim = (INCR_REVALIDATE_INDEX == 1 && ctx != null) ? ctx.stationLimitedTowns : null;
+  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines, extValidity, extTownLim);
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("incremental", alternatives, funded,
       capitalBudget, proximityDroppedPax, proximityDroppedFreight);
@@ -268,6 +292,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
+  }
+  if (INCR_REVALIDATE_INDEX == 2) {
+    OpexDecide("INCR_INDEX_CHECK", "n=" + checkCount + " mismatches=" + mismatchCount);
   }
   if (spIncr != null) OpexSpanEnd(spIncr);
   return projects;

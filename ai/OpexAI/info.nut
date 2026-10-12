@@ -1168,6 +1168,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "incr_revalidate_index",
+      description = "Indexed revalidation of candidate pool: 0 historical, 1 indexed (default since 2026-10-12, V157 porte B 20x10), 2 control (both, historical used, mismatch logged)",
+      min_value = 0, max_value = 2,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "rail_failure_audit",
       description = "Diagnostic-only rail attempts and proximity refusals by kind; 0 = off (default)",
       min_value = 0, max_value = 1,
@@ -1498,6 +1507,15 @@ class OpexAIInfo extends AIInfo {
       name = "air_fleet_routes_index",
       description = "Count live air routes per airport with an index once per pass: 0 = off, 1 = index, 2 = compare",
       min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "air_fleet_c121_preguard",
+      description = "Filter AIR lines refused by C121 observation/cadence before visible fleet refresh",
+      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = 0
@@ -1943,6 +1961,12 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "ac04_hub_usage_gate",
       description = "AC04-A v3 adopted: revalidate orphan hub capacity before evaluating AIR pairs; default 1, rollback 0",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "select_bisect_insert",
+      description = "V154: binary search insertion in OpexProjectInsertDefensive; 1 = on (default since 2026-10-12, V157 porte B 20x10), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = AICONFIG_BOOLEAN
     });

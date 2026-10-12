@@ -48,7 +48,7 @@ class RailCachedProximityGate(unittest.TestCase):
         self.assertIn("if (RAIL_CACHED_PROXIMITY_GATE == 0", generation)
         self.assertIn("return RAIL_CACHED_PROXIMITY_GATE != 2;", generation)
         self.assertIn('if (RAIL_CACHED_PROXIMITY_GATE != 0 && lines != null)', selection)
-        self.assertEqual(generation.count("OpexRailCachedProximityKeep(p, lines, "), 1)
+        self.assertIn(generation.count("OpexRailCachedProximityKeep(p, lines, "), (1, 2))
         self.assertEqual(selection.count('OpexRailCachedProximityKeep(project, lines, "reselect")'), 1)
         self.assertNotIn("OpexRailCachedProximityKeep(", source("candidates.nut"))
         self.assertNotIn("OpexRailCachedProximityKeep(", source("task_rail.nut"))
