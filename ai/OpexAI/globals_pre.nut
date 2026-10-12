@@ -861,6 +861,9 @@ RAIL_GEOMETRY_PAIR_MEMORY <- true;
 /* Isolation fret : memorise uniquement un TRKFAIL de quai propre prouve persistant,
  * sans activer les autres branches du garde V100. Defaut 0. */
 RAIL_FREIGHT_TRKFAIL_MEMORY <- false;
+/* V153 : raccordement terminal rail quand le dernier segment est un saut (pont/tunnel).
+ * Defaut 0 pendant qualification. */
+RAIL_END_JUMP_CONNECT <- false;
 /* Projets rail du cache : 0 historique, 1 shadow des rejets de proximite
  * que _tooClose imposerait au chantier, 2 exclusion avant TOP_K. */
 RAIL_CACHED_PROXIMITY_GATE <- 0;
