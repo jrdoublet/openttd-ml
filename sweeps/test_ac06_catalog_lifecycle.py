@@ -36,6 +36,8 @@ def fn(source, signature):
 
 START = fn(SCHED, "function OpexC78StartCatalogAirRebuild(")
 CONTINUE = fn(SCHED, "function OpexC78ContinueCatalogAirRebuild(")
+PARTIAL = fn(SCHED, "function OpexC78PublishPartialAir(")
+APPLY = fn(SCHED, "function OpexC78ApplyAir(")
 DISPATCH = fn(SCHED, "function OpexAI::_dispatchCatalog(")
 TICK = fn(MAIN, "function OpexAI::Start(")
 SAVE = fn(PERSIST, "function OpexAI::Save()")
@@ -146,25 +148,29 @@ class AC06LifecycleTests(unittest.TestCase):
         self.assertIn("if (C121_CATALOG_INCREMENTAL && task.c78AirRebuild.published)", DISPATCH)
         self.assertIn("this._portfolioInvalidated = false;", DISPATCH)
         self.assertNotIn("delete task.c78AirRebuild;", DISPATCH)
-        self.assertEqual(CONTINUE.count("delete task.c78AirRebuild;"), 1)
+        self.assertEqual(APPLY.count("delete task.c78AirRebuild;"), 1)
         self.assertIn("if (s.phase == \"apply\")", CONTINUE)
-        self.assertLess(CONTINUE.index("owner._lastCatalogMonth = s.ym;"),
-                        CONTINUE.index("delete task.c78AirRebuild;"))
+        self.assertIn("return OpexC78ApplyAir(owner, task, year, s);", CONTINUE)
+        self.assertLess(APPLY.index("owner._lastCatalogMonth = s.ym;"),
+                        APPLY.index("delete task.c78AirRebuild;"))
 
     def test_phases_partials_fallback_and_apply_are_disjoint(self):
         for token in (
             'if (("partialPending" in s) && s.partialPending)',
-            's.lastPublishedCount = s.plans.len();',
-            's.partialPending = false;',
             'if (s.phase == "apply")',
-            'owner._c76AcknowledgeAllLayers();',
-            'owner._c76LastRegenQuarter = s.c76Quarter;',
-            'owner._c76ForceReloadRegen = false;',
             's.phase = "fallback";',
             's.cursor = {};',
             's.phase = "apply";',
         ):
             self.assertIn(token, CONTINUE)
+        for token in ('s.lastPublishedCount = s.plans.len();',
+                      's.partialPending = false;'):
+            self.assertIn(token, PARTIAL)
+        for token in ('owner._c76AcknowledgeAllLayers();',
+                      'owner._c76LastRegenQuarter = s.c76Quarter;',
+                      'owner._c76ForceReloadRegen = false;'):
+            self.assertIn(token, APPLY)
+        self.assertIn("return OpexC78PublishPartialAir(owner, s);", CONTINUE)
         self.assertLess(CONTINUE.index('if (("partialPending" in s) && s.partialPending)'),
                         CONTINUE.index('if (s.phase == "apply")'))
         self.assertLess(CONTINUE.index('if (s.phase == "apply")'),
@@ -228,7 +234,7 @@ class AC06LifecycleTests(unittest.TestCase):
         self.assertIn("this._c76Revisions.towns > this._c76AckRevisions.towns", CHANGED)
         self.assertIn('this._c76BumpLayer("towns", true);', read("events.nut"))
         self.assertIn("c76StartRevisions = AC06_C76_SNAPSHOT_ACK && c76Full", START)
-        self.assertIn("OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions);", CONTINUE)
+        self.assertIn("OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions);", APPLY)
         legacy = Model(snapshot_ack=False)
         legacy.start(ym, year=1970)
         legacy.event()
@@ -274,7 +280,7 @@ class AC06LifecycleTests(unittest.TestCase):
         self.assertIsNotNone(m.scan)
         self.assertIn("this._processEvents();", MAIN)
         self.assertIn("if (C121_CATALOG_INCREMENTAL && task.c78AirRebuild.published)", DISPATCH)
-        self.assertIn("owner._portfolioInvalidated = false;", CONTINUE)
+        self.assertIn("owner._portfolioInvalidated = false;", PARTIAL)
 
     def test_same_tick_chain_has_worker_rail_and_tick_budget_guards(self):
         gate = fn(SCHED, "function OpexC121CatalogCanContinue(")

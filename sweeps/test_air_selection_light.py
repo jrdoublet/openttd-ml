@@ -203,6 +203,10 @@ class SourceContracts(unittest.TestCase):
     def setUpClass(cls):
         cls.source = (light.ROOT / "ai/OpexAI/air_planning.nut").read_text(encoding="utf-8")
         cls.wrapper = cls.source[cls.source.index("function OpexAirPlans(catalog,"):]
+        cls.substeps = cls.source[
+            cls.source.index("function OpexAirPlansStepPrepare("):
+            cls.source.index("function OpexAirPlans(catalog,")
+        ]
 
     def test_gate_declared_and_loaded_existing_default_off(self):
         root = light.ROOT / "ai/OpexAI"
@@ -222,13 +226,16 @@ class SourceContracts(unittest.TestCase):
 
     def test_business_helpers_called_once_and_in_order(self):
         funcs = ("Prepare", "FindSites", "NewPairs", "DiscoverHubs", "HubToSite", "HubToHub", "Finalize")
+        entry_flow = self.substeps + self.wrapper
         indices = []
         for name in funcs:
             call = "OpexAirPlans" + name + "(ctx"
-            self.assertEqual(self.wrapper.count(call), 1)
-            indices.append(self.wrapper.index(call))
+            self.assertEqual(entry_flow.count(call), 1)
+            indices.append(entry_flow.index(call))
         self.assertEqual(indices, sorted(indices))
-        self.assertEqual(set(re.findall(r'OpexAirLightPhaseEnd\(light, "([a-z_]+)"', self.wrapper)), set(light.PHASES))
+        for name in ("Prepare", "FindSites", "NewPairs"):
+            self.assertEqual(self.wrapper.count("OpexAirPlansStep" + name + "(ctx"), 1)
+        self.assertEqual(set(re.findall(r'OpexAirLightPhaseEnd\(light, "([a-z_]+)"', entry_flow)), set(light.PHASES))
 
     def test_all_early_returns_close_measure(self):
         self.assertEqual(self.wrapper.count("return ctx.bestPlan;"), 5)

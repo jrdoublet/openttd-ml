@@ -1062,6 +1062,28 @@ function OpexAir0310CountStationRoutes(ctx, stationId)
   return routeCount;
 }
 
+/* AC04-A-v3 : ne pas modifier l'ordre de decouverte, les indices de curseur
+ * ni la longueur des snapshots. Une station non retenue car pleine par
+ * DiscoverHubs pouvait revenir avec routes=0 par le bras orphelin. La
+ * classification au point d'usage lit l'index C80 deja construit (O(1)),
+ * avec repli historique si C80 est OFF. Les lignes deadStreak>=2 comptent,
+ * comme dans OpexAirBatchHubHasCapacity avant construction. */
+function OpexAC04ValidateHubsAtUsage(ctx)
+{
+  foreach (hub in ctx.hubs) {
+    hub.ac04Blocked <- false;
+    if (hub.routes != 0) continue;
+    local effective = OpexAir0310CountStationRoutes(ctx, hub.stationId);
+    if (effective <= 0) continue;
+    if (!AIMap.IsValidTile(hub.anchor) || !AIAirport.IsAirportTile(hub.anchor)) {
+      hub.ac04Blocked = true;
+      continue;
+    }
+    hub.routes = effective;
+    hub.ac04Blocked = effective >= OpexAirAirportMaxRoutes(AIAirport.GetAirportType(hub.anchor));
+  }
+}
+
 function OpexAir0310RefreshHubRoutes(ctx, orphan)
 {
   local hubs = ctx.hubs;
@@ -1439,6 +1461,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
   local progressed = false;
   for (local hi = resumeHub; hi < hubs.len(); hi++) {
     local hub = hubs[hi];
+    if (AC04_HUB_USAGE_GATE && hub.ac04Blocked) continue;
     local hubMonthlyPre = C80_AIR_EVAL_FAST
         ? (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
         : 0;
@@ -1729,6 +1752,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       }
       local hub1 = hubs[i];
       local hub2 = hubs[j];
+      if (AC04_HUB_USAGE_GATE && (hub1.ac04Blocked || hub2.ac04Blocked)) continue;
       if (V133_AIR_BUILD_RETRY) {
         local v133TownA = OpexV133TownIdOf(hub1);
         local v133TownB = OpexV133TownIdOf(hub2);
@@ -2332,6 +2356,148 @@ function OpexAirV93NextSmallCombo(combos, comboIndex)
   return -1;
 }
 
+/* CD01 : la preparation est une sous-etape executable reutilisable sur le
+ * meme contexte d'invocation. Un echec de Prepare signifie deja termine
+ * (done/no combo), jamais un yield de tranche. Les sondes restent entourees
+ * exactement comme dans le driver initial. */
+function OpexAirPlansStepPrepare(ctx, light)
+{
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_prepare", "-");
+  local lightMark = light != null ? OpexAirLightPhaseBegin() : null;
+  local spPrepare = PROBE_SPAN_TRACE ? OpexSpanBegin("air.prepare") : null;
+  local prepared = OpexAirPlansPrepare(ctx);
+  if (spPrepare != null) OpexSpanEnd(spPrepare);
+  if (light != null) OpexAirLightPhaseEnd(light, "prepare", lightMark);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_prepare", "-",
+      "combos=" + (ctx.combos != null ? ctx.combos.len() : 0) + " towns=" + (ctx.towns != null ? ctx.towns.len() : 0)
+      + " target=" + ctx.targetTownId);
+  return prepared;
+}
+
+/* CD01 : la tranche Sites possede le meme seul point de suspension que
+ * FindSites (scanIndex/rankIndex et C83). L'appelant conserve son bestPlan
+ * quand la sous-etape renvoie false. */
+function OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo, light)
+{
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_find_sites", "-");
+  local lightMark = light != null ? OpexAirLightPhaseBegin() : null;
+  local spSites = PROBE_SPAN_TRACE ? OpexSpanBegin("air.sites") : null;
+  local sitesOk = OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo);
+  if (spSites != null) OpexSpanEnd(spSites);
+  if (light != null) OpexAirLightPhaseEnd(light, "sites", lightMark);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_find_sites", "-",
+      "combo=" + comboIndex + " sites=" + ctx.sites.len() + " probes=" + ctx.perfProbesCount);
+  return sitesOk;
+}
+
+/* CD02 : NewPairs reutilise le meme contexte et les meme curseurs a/b.
+ * Aucun point de yield ni reevaluation supplementaire d'une paire. */
+function OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo, light)
+{
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_new_pairs", "-");
+  local lightMark = light != null ? OpexAirLightPhaseBegin() : null;
+  local spPairs = PROBE_SPAN_TRACE ? OpexSpanBegin("air.new_pairs") : null;
+  local pairsOk = OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo);
+  if (spPairs != null) OpexSpanEnd(spPairs);
+  if (light != null) OpexAirLightPhaseEnd(light, "new_pairs", lightMark);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_new_pairs", "-",
+      "combo=" + comboIndex + " plans=" + (ctx.projects != null ? ctx.projects.len() : -1));
+  return pairsOk;
+}
+
+/* CD05 : clore exactement un combo, puis expliciter le prochain combo.
+ * -1 signifie break ; aucun point de yield ni nouvelle transaction. */
+function OpexAirPlansCompleteCombo(ctx, comboIndex, combo)
+{
+    if (AIR_HUB && ctx.hubs.len() > 0) {
+      OpexSign(AIMap.GetTileIndex(1, 6), "AU|" + ctx.hubs.len() + "|"
+               + (ctx.bestPlan != null && ctx.bestPlan.reuseA ? 1 : 0));
+    }
+    OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + ctx.sites.len() + "|B=" + (ctx.bestPlan != null ? ctx.bestPlan.economics.profitAnnual : "NO"));
+    if (ctx.sliced) {
+      ctx.resumeState.combo = comboIndex + 1;
+      ctx.resumeState.a = 0;
+      ctx.resumeState.b = 1;
+      ctx.resumeState.sites = null;
+      ctx.resumeState.scanIndex = 0;
+      ctx.resumeState.scanSites = [];
+      ctx.resumeState.scanProbes = null;
+      ctx.resumeState.rankIndex = 0;
+      ctx.resumeState.rankSites = [];
+      if (C121_CATALOG_INCREMENTAL) {
+        ctx.resumeState.hubPhase <- 0;
+        ctx.resumeState.hubSiteI <- 0;
+        ctx.resumeState.hubSiteJ <- 0;
+        ctx.resumeState.hubHubI <- 0;
+        ctx.resumeState.hubHubJ <- 1;
+      }
+      if (AIR0310_HUB_SNAPSHOT) {
+        if ("air0310HubSnap" in ctx.resumeState) delete ctx.resumeState.air0310HubSnap;
+        if ("air0310HubSkip" in ctx.resumeState) delete ctx.resumeState.air0310HubSkip;
+      }
+      ctx.resumeState.bestPlan = ctx.bestPlan;
+      ctx.resumeState.stationLimitedTowns = ctx.stationLimitedTowns;
+      ctx.resumeState.perfOpsSites = ctx.perfOpsSites;
+      ctx.resumeState.perfOpsEval = ctx.perfOpsEval;
+      ctx.resumeState.perfProbesCount = ctx.perfProbesCount;
+      ctx.resumeState.perfCheapSkip = ctx.perfCheapSkip;
+      ctx.resumeState.perfSitesFound = ctx.perfSitesFound;
+    }
+    /* Un plan grand arrete la boucle. Sous V93, les combos petits qui suivent
+     * sont quand meme parcourus ; les grands suivants restent sautes. A 0, le
+     * booleen provoque le meme break, sans helper ni appel d'API. */
+    local bestPlan = ctx.bestPlan;
+    if (bestPlan != null && bestPlan.airport.allowBig) {
+      if (!V93_AIRPORT_NO_POP_FLOOR) return -1;
+      if (!(("kind" in combo) && combo.kind == "small")) {
+        local nextSmall = OpexAirV93NextSmallCombo(ctx.combos, comboIndex);
+        if (nextSmall < 0) return -1;
+        if (ctx.sliced) ctx.resumeState.combo = nextSmall;
+        return nextSmall;
+      }
+    }
+    return comboIndex + 1;
+}
+
+/* CD03 : visite et reprise du snapshot hub dans une unique phase interne.
+ * Le span de decouverte reste conditionne a !reuseHubs ; aucun nouveau yield. */
+function OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)
+{
+  local lightMark = null;
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hubs", "-");
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_discover", "-");
+    local reuseHubs = false;
+    if (AIR0310_HUB_SNAPSHOT && ctx.sliced) {
+      local hubSnapAction = OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);
+      OpexAir0310HubSnapshotCount(ctx, hubSnapAction);
+      reuseHubs = hubSnapAction == "reuse";
+    }
+    if (!reuseHubs) {
+      if (AIR0310_HUB_SNAPSHOT) ctx.air0310HubOrphan <- [];
+      if (light != null) lightMark = OpexAirLightPhaseBegin();
+      local spDisc = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_discover") : null;
+      OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);
+      if (spDisc != null) OpexSpanEnd(spDisc);
+      if (light != null) OpexAirLightPhaseEnd(light, "hub_discover", lightMark);
+      if (AIR0310_HUB_SNAPSHOT && ctx.sliced) OpexAir0310HubSnapshotStore(ctx, comboIndex);
+    }
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_discover", "-",
+        "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len());
+    if (AC04_HUB_USAGE_GATE) OpexAC04ValidateHubsAtUsage(ctx);
+  OpexAirV95Post73Probe(ctx, combo, airport, plane);
+}
+
+/* CD04: la sous-etape hub->site maintient le checkpoint hubPhase et
+ * retourne false sur exactement le meme yield qu'avant. */
+function OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)
+{
+  if (!ctx.sliced || !C121_CATALOG_INCREMENTAL
+      || !("hubPhase" in ctx.resumeState) || ctx.resumeState.hubPhase < 1) {
+    if (!OpexAirPlansHubToSite(ctx, combo, airport, plane)) return false;
+    if (ctx.sliced && C121_CATALOG_INCREMENTAL) ctx.resumeState.hubPhase <- 1;
+  }
+  return true;
+}
 /* `abandoned` : table des paires dont une construction a deja echoue (cle
  * canonique OpexAirPairKey), et optionnellement des
  * sites exacts et types ("air_site|airportType|anchor"). null = filtre desactive.
@@ -2386,15 +2552,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   };
 
   local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;
-  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_prepare", "-");
-  if (light != null) lightMark = OpexAirLightPhaseBegin();
-  local spPrepare = PROBE_SPAN_TRACE ? OpexSpanBegin("air.prepare") : null;
-  local prepared = OpexAirPlansPrepare(ctx);
-  if (spPrepare != null) OpexSpanEnd(spPrepare);
-  if (light != null) OpexAirLightPhaseEnd(light, "prepare", lightMark);
-  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_prepare", "-",
-      "combos=" + (ctx.combos != null ? ctx.combos.len() : 0) + " towns=" + (ctx.towns != null ? ctx.towns.len() : 0)
-      + " target=" + targetTownId);
+  local prepared = OpexAirPlansStepPrepare(ctx, light);
   if (!prepared) {
     if (light != null) OpexAirLightEnd(light, !ctx.sliced || ctx.resumeState.done, "prepare_return");
     if (spPlans != null) OpexSpanEnd(spPlans);
@@ -2408,54 +2566,22 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local minDist = (plane.speed >= 400) ? 32 : 30;
     local resumingCombo = ctx.sliced && ctx.resumeState.combo == comboIndex && ctx.resumeState.sites != null;
 
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_find_sites", "-");
-    if (light != null) lightMark = OpexAirLightPhaseBegin();
-    local spSites = PROBE_SPAN_TRACE ? OpexSpanBegin("air.sites") : null;
-    local sitesOk = OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo);
-    if (spSites != null) OpexSpanEnd(spSites);
-    if (light != null) OpexAirLightPhaseEnd(light, "sites", lightMark);
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_find_sites", "-",
-        "combo=" + comboIndex + " sites=" + ctx.sites.len() + " probes=" + ctx.perfProbesCount);
+    local sitesOk = OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo, light);
     if (!sitesOk) {
       if (light != null) OpexAirLightEnd(light, false, "sites_yield");
       if (spPlans != null) OpexSpanEnd(spPlans);
       return ctx.bestPlan;
     }
 
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_new_pairs", "-");
-    if (light != null) lightMark = OpexAirLightPhaseBegin();
-    local spPairs = PROBE_SPAN_TRACE ? OpexSpanBegin("air.new_pairs") : null;
-    local pairsOk = OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo);
-    if (spPairs != null) OpexSpanEnd(spPairs);
-    if (light != null) OpexAirLightPhaseEnd(light, "new_pairs", lightMark);
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_new_pairs", "-",
-        "combo=" + comboIndex + " plans=" + (ctx.projects != null ? ctx.projects.len() : -1));
+    local pairsOk = OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane,
+        minDist, resumingCombo, light);
     if (!pairsOk) {
       if (light != null) OpexAirLightEnd(light, false, "pairs_yield");
       if (spPlans != null) OpexSpanEnd(spPlans);
       return ctx.bestPlan;
     }
 
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hubs", "-");
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_discover", "-");
-    local reuseHubs = false;
-    if (AIR0310_HUB_SNAPSHOT && ctx.sliced) {
-      local hubSnapAction = OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);
-      OpexAir0310HubSnapshotCount(ctx, hubSnapAction);
-      reuseHubs = hubSnapAction == "reuse";
-    }
-    if (!reuseHubs) {
-      if (AIR0310_HUB_SNAPSHOT) ctx.air0310HubOrphan <- [];
-      if (light != null) lightMark = OpexAirLightPhaseBegin();
-      local spDisc = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_discover") : null;
-      OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);
-      if (spDisc != null) OpexSpanEnd(spDisc);
-      if (light != null) OpexAirLightPhaseEnd(light, "hub_discover", lightMark);
-      if (AIR0310_HUB_SNAPSHOT && ctx.sliced) OpexAir0310HubSnapshotStore(ctx, comboIndex);
-    }
-    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_discover", "-",
-        "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len());
-    OpexAirV95Post73Probe(ctx, combo, airport, plane);
+    OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light);
 
     local c56PlansBefore = (ctx.projects != null) ? ctx.projects.len() : 0;
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_site", "-");
@@ -2463,18 +2589,14 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local lHubEval0 = AIController.GetOpsTillSuspend();
     if (light != null) lightMark = OpexAirLightPhaseBegin();
     local spHubSite = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_site") : null;
-    if (!ctx.sliced || !C121_CATALOG_INCREMENTAL
-        || !("hubPhase" in ctx.resumeState) || ctx.resumeState.hubPhase < 1) {
-      if (!OpexAirPlansHubToSite(ctx, combo, airport, plane)) {
-        if (light != null) {
-          OpexAirLightPhaseEnd(light, "hub_site", lightMark);
-          OpexAirLightEnd(light, false, "hub_site_yield");
-        }
-        if (spHubSite != null) OpexSpanEnd(spHubSite);
-        if (spPlans != null) OpexSpanEnd(spPlans);
-        return ctx.bestPlan;
+    if (!OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)) {
+      if (light != null) {
+        OpexAirLightPhaseEnd(light, "hub_site", lightMark);
+        OpexAirLightEnd(light, false, "hub_site_yield");
       }
-      if (ctx.sliced && C121_CATALOG_INCREMENTAL) ctx.resumeState.hubPhase <- 1;
+      if (spHubSite != null) OpexSpanEnd(spHubSite);
+      if (spPlans != null) OpexSpanEnd(spPlans);
+      return ctx.bestPlan;
     }
     if (spHubSite != null) OpexSpanEnd(spHubSite);
     if (light != null) OpexAirLightPhaseEnd(light, "hub_site", lightMark);
@@ -2497,53 +2619,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     ctx.perfOpsEval += _calcDeltaOps(tHubEval0, lHubEval0);
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hubs", "-", "hubs=" + ctx.hubs.len());
 
-    if (AIR_HUB && ctx.hubs.len() > 0) {
-      OpexSign(AIMap.GetTileIndex(1, 6), "AU|" + ctx.hubs.len() + "|"
-               + (ctx.bestPlan != null && ctx.bestPlan.reuseA ? 1 : 0));
-    }
-    OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + ctx.sites.len() + "|B=" + (ctx.bestPlan != null ? ctx.bestPlan.economics.profitAnnual : "NO"));
-    if (ctx.sliced) {
-      ctx.resumeState.combo = comboIndex + 1;
-      ctx.resumeState.a = 0;
-      ctx.resumeState.b = 1;
-      ctx.resumeState.sites = null;
-      ctx.resumeState.scanIndex = 0;
-      ctx.resumeState.scanSites = [];
-      ctx.resumeState.scanProbes = null;
-      ctx.resumeState.rankIndex = 0;
-      ctx.resumeState.rankSites = [];
-      if (C121_CATALOG_INCREMENTAL) {
-        ctx.resumeState.hubPhase <- 0;
-        ctx.resumeState.hubSiteI <- 0;
-        ctx.resumeState.hubSiteJ <- 0;
-        ctx.resumeState.hubHubI <- 0;
-        ctx.resumeState.hubHubJ <- 1;
-      }
-      if (AIR0310_HUB_SNAPSHOT) {
-        if ("air0310HubSnap" in ctx.resumeState) delete ctx.resumeState.air0310HubSnap;
-        if ("air0310HubSkip" in ctx.resumeState) delete ctx.resumeState.air0310HubSkip;
-      }
-      ctx.resumeState.bestPlan = ctx.bestPlan;
-      ctx.resumeState.stationLimitedTowns = ctx.stationLimitedTowns;
-      ctx.resumeState.perfOpsSites = ctx.perfOpsSites;
-      ctx.resumeState.perfOpsEval = ctx.perfOpsEval;
-      ctx.resumeState.perfProbesCount = ctx.perfProbesCount;
-      ctx.resumeState.perfCheapSkip = ctx.perfCheapSkip;
-      ctx.resumeState.perfSitesFound = ctx.perfSitesFound;
-    }
-    /* Un plan grand arrete la boucle. Sous V93, les combos petits qui suivent
-     * sont quand meme parcourus ; les grands suivants restent sautes. A 0, le
-     * booleen provoque le meme break, sans helper ni appel d'API. */
-    local bestPlan = ctx.bestPlan;
-    if (bestPlan != null && bestPlan.airport.allowBig) {
-      if (!V93_AIRPORT_NO_POP_FLOOR) break;
-      if (!(("kind" in combo) && combo.kind == "small")) {
-        local nextSmall = OpexAirV93NextSmallCombo(ctx.combos, comboIndex);
-        if (nextSmall < 0) break;
-        if (ctx.sliced) ctx.resumeState.combo = nextSmall;
-        comboIndex = nextSmall - 1;
-      }
-    }
+    local nextCombo = OpexAirPlansCompleteCombo(ctx, comboIndex, combo);
+    if (nextCombo < 0) break;
+    comboIndex = nextCombo - 1;
   }
 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_finalize", "-");

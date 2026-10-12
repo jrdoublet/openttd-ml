@@ -139,10 +139,15 @@ class AC04AirHubSiteResume(unittest.TestCase):
                         HUBSITE.index('if (V133_AIR_BUILD_RETRY)'))
         self.assertLess(HUBSITE.index('progressed = true;'),
                         HUBSITE.index('OpexAir0310SkipRestoredPair('))
-        self.assertIn('ctx.resumeState.hubPhase <- 1;', PLANS)
-        self.assertIn('ctx.resumeState.hubPhase <- 0;', PLANS)
-        self.assertLess(PLANS.index('OpexAir0310HubSnapshotPrepare('),
-                        PLANS.index('if (!ctx.sliced || !C121_CATALOG_INCREMENTAL'))
+        self.assertIn('OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)', PLANS)
+        self.assertIn('ctx.resumeState.hubPhase <- 1;',
+                      body(AIR, 'function OpexAirPlansHubToSitePhase('))
+        closing = body(AIR, 'function OpexAirPlansCompleteCombo(')
+        discovery = body(AIR, 'function OpexAirPlansHubDiscoveryPhase(')
+        self.assertIn('ctx.resumeState.hubPhase <- 0;', closing)
+        self.assertIn('OpexAir0310HubSnapshotPrepare(', discovery)
+        self.assertLess(PLANS.index('OpexAirPlansHubDiscoveryPhase('),
+                        PLANS.index('OpexAirPlansHubToSitePhase('))
 
     def test_frozen_cartesian_admission_and_order(self):
         ncases = 0

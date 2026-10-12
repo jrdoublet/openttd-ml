@@ -107,12 +107,14 @@ class V93AirportNoPopFloorTests(unittest.TestCase):
 
     def test_small_combo_is_scanned_after_a_large_plan_only_when_enabled(self):
         plans = function_body(BUILDER, "function OpexAirPlans(")
-        guard = plans.index("if (!V93_AIRPORT_NO_POP_FLOOR) break;")
-        helper = plans.index("OpexAirV93NextSmallCombo(ctx.combos, comboIndex)")
+        closing = function_body(BUILDER, "function OpexAirPlansCompleteCombo(")
+        self.assertIn("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)", plans)
+        guard = closing.index("if (!V93_AIRPORT_NO_POP_FLOOR) return -1;")
+        helper = closing.index("OpexAirV93NextSmallCombo(ctx.combos, comboIndex)")
         self.assertLess(guard, helper)
         self.assertNotIn(
             "if (bestPlan != null && bestPlan.airport.allowBig) break;",
-            plans,
+            closing,
         )
         self.assertIn("function OpexAirV93NextSmallCombo(", BUILDER)
         pairs = function_body(BUILDER, "function OpexAirPlansNewPairs(")

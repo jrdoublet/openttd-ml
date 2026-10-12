@@ -84,13 +84,18 @@ class V86HubHubContractTest(unittest.TestCase):
         h2h_end = planning.index("function OpexAirPlansFinalize(", h2h_start)
         h2h_body = planning[h2h_start:h2h_end]
 
-        # Guarded by AIR_HUBHUB_MARGINAL
-        self.assertIn("if (AIR_HUBHUB_MARGINAL)", h2h_body)
+        # Adopted AC05 guard: skip unused V86 precompute under C121.
+        self.assertIn(
+            "if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS))",
+            h2h_body,
+        )
         self.assertIn("if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS && economics != null && economics.profitAnnual > 0)",
                       " ".join(h2h_body.split()))
 
         # Precalculation happens BEFORE the hub pair loops
-        precalc_pos = h2h_body.index("if (AIR_HUBHUB_MARGINAL)")
+        precalc_pos = h2h_body.index(
+            "if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS))"
+        )
         loop_i_pos = h2h_body.index("for (local i = resumeI; i < hubs.len(); i++)")
         self.assertLess(precalc_pos, loop_i_pos)
 

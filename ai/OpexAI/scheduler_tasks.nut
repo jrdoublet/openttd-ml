@@ -83,25 +83,10 @@ function OpexC78RequeueInitialCatalogSlice(owner, task)
   owner._taskCursor = 0;
 }
 
-function OpexC78ContinueCatalogAirRebuild(owner, task, year)
+/* CD06: publication au passage suivant et apply final restent des transactions
+ * distinctes, sans changer le budget ou le curseur de C78. */
+function OpexC78PublishPartialAir(owner, s)
 {
-  if (!("c78AirRebuild" in task) || task.c78AirRebuild == null
-      || typeof task.c78AirRebuild != "table") return true;
-  local s = task.c78AirRebuild;
-
-  /* Publication progressive par tranche productive au passage SUIVANT :
-   * depuis le commit 38a4ff3, la garde historique !s.published (qui limitait
-   * la publication a une seule fois par scan) a ete remplacee par la garde
-   * s.plans.len() > s.lastPublishedCount. Chaque tranche qui decouvre de nouveaux
-   * plans arme ainsi s.partialPending = true pour republier au tour suivant.
-   * Le scan ayant deja rendu la main sur son budget d'opcodes, la publication
-   * ne transforme pas une tranche bornee en passe monolithique.
-   * Mode de publication : le premier lot (lastPublishedCount == 0 ou _projects null)
-   * passe par un _rebuildProjects complet ; les republications suivantes passent par
-   * OpexAir0310PublishIncremental si AIR0310_INCREMENTAL_PUBLISH est actif (defaut),
-   * ou se replient sur un _rebuildProjects complet sinon. advanceStage=false garde
-   * le bootstrap sur sa meme etape jusqu'au lot exact en phase apply. */
-  if (("partialPending" in s) && s.partialPending) {
     local partialAir = {
       complete = true,
       airPlan = ("partialBestPlan" in s) ? s.partialBestPlan : null,
@@ -156,11 +141,10 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
     s.partialPending = false;
     s.partialBestPlan = null;
     return false;
-  }
+}
 
-  /* La tranche AIR est un calcul prive jusqu'a sa completion. L'appliquer dans
-   * le meme passage qui vient d'epuiser son budget annulerait le bornage. */
-  if (s.phase == "apply") {
+function OpexC78ApplyAir(owner, task, year, s)
+{
     local airOverride = {
       complete = true,
       airPlan = ("bestPlan" in s) ? s.bestPlan : null,
@@ -190,7 +174,32 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
     owner._lastCatalogMonth = s.ym;
     delete task.c78AirRebuild;
     return true;
-  }
+}
+
+function OpexC78ContinueCatalogAirRebuild(owner, task, year)
+{
+  if (!("c78AirRebuild" in task) || task.c78AirRebuild == null
+      || typeof task.c78AirRebuild != "table") return true;
+  local s = task.c78AirRebuild;
+
+  /* Publication progressive par tranche productive au passage SUIVANT :
+   * depuis le commit 38a4ff3, la garde historique !s.published (qui limitait
+   * la publication a une seule fois par scan) a ete remplacee par la garde
+   * s.plans.len() > s.lastPublishedCount. Chaque tranche qui decouvre de nouveaux
+   * plans arme ainsi s.partialPending = true pour republier au tour suivant.
+   * Le scan ayant deja rendu la main sur son budget d'opcodes, la publication
+   * ne transforme pas une tranche bornee en passe monolithique.
+   * Mode de publication : le premier lot (lastPublishedCount == 0 ou _projects null)
+   * passe par un _rebuildProjects complet ; les republications suivantes passent par
+   * OpexAir0310PublishIncremental si AIR0310_INCREMENTAL_PUBLISH est actif (defaut),
+   * ou se replient sur un _rebuildProjects complet sinon. advanceStage=false garde
+   * le bootstrap sur sa meme etape jusqu'au lot exact en phase apply. */
+  if (("partialPending" in s) && s.partialPending)
+    return OpexC78PublishPartialAir(owner, s);
+
+  /* La tranche AIR est un calcul prive jusqu'a sa completion. L'appliquer dans
+   * le meme passage qui vient d'epuiser son budget annulerait le bornage. */
+  if (s.phase == "apply") return OpexC78ApplyAir(owner, task, year, s);
 
   local liveOps = AIController.GetOpsTillSuspend();
   local sliceBudget = liveOps;

@@ -1,8 +1,12 @@
 # AIR catalogue — reliquat de découpage après le commit 978d098
 
-État vérifié le **12 octobre 2026** dans `master` après le commit
-`978d098`. Ce document constitue un **plan de travail**, pas une
-qualification ni un changement de production.
+État historique vérifié le **12 octobre 2026** dans `master` après le commit
+`978d098`. Les lots de ce **plan de travail historique** ont ensuite été
+qualifiés et **CD01–CD06 intégrés sans commit** : voir le
+[rapport final](cd_air_catalogue_validation_20261012.md). Le CD07 retient
+une unique entrée de file `catalog` ; la conversion à huit entrées
+autonomes serait une nouvelle politique non réalisée. Les preuves
+sur code gelé restent distinctes des nettoyages C121 parallèles.
 
 ## Ce qui est clos
 
@@ -44,11 +48,12 @@ tick. Les entrées/indices de cette file servent aussi à la
 compatibilité des sauvegardes. Par conséquent, **aucune conversion
 à huit entrées de file n'est acquise ou automatiquement autorisée**.
 
-## Lots restant à traiter — chacun peut être clos séparément
+## Lots historiquement prévus — tous clos selon le contrat CD07 retenu
 
 ### CD-00 — Contrat de machine à états et référence de parité
 
-**Statut : à faire, préalable, lecture seule.**
+**Statut final : clos.** Contrat et fixtures dans
+[`cd00_air_catalogue_contract_20261012.md`](cd00_air_catalogue_contract_20261012.md).
 Inventorier les transitions exactes `primary → fallback → apply`,
 le saut de combo V93, les raisons `sites_yield / pairs_yield /
 hub_site_yield / hub_hub_yield`, les champs de `resumeState`,
@@ -66,7 +71,7 @@ autonomes sans changer `_taskQueue`. Aucun patch comportemental.
 
 ### CD-01 — Isoler la préparation et la recherche de sites
 
-**Statut : à faire après CD-00.**
+**Statut final : intégré et qualifié avec CD01–CD06.**
 Faire de `Prepare` et `FindSites` des étapes explicites avec
 entrée/sortie, en préservant l'ordre des combos, les validations
 C83, le balayage/reclassement, le `scanIndex`, `rankIndex`
@@ -79,7 +84,7 @@ au milieu du premier et du dernier combo.
 
 ### CD-02 — Détacher la génération des paires neuves
 
-**Statut : à faire après CD-01.**
+**Statut final : intégré et qualifié avec CD01–CD06.**
 Isoler `NewPairs` de la recherche de sites via un contrat de
 snapshot temporaire, et préserver les indices `a/b`, la clé OD,
 les filtres d'échec `abandoned`, l'ordre économique et les
@@ -92,18 +97,19 @@ comme historiquement, sans feindre une persistance des curseurs.
 
 ### CD-03 — Détacher la découverte des hubs
 
-**Statut : à faire après CD-02.**
+**Statut final : intégré et qualifié avec CD01–CD06 ; AC04-A v3 reste une décision séparée.**
 Isoler `DiscoverHubs` et ses interfaces `hubs/sites/hubIndex`
 sans changer `air0310HubSnap`, C80, les limites de routes ou
-la déduplication **AC04-B** par ancre. Ne pas intégrer AC04-A
-rejetée ni forcer la conservation des anciens hubs façon V143.
+la déduplication **AC04-B** par ancre. Ne pas inclure un changement comportemental AC04-A dans CD-03 :
+la variante v3 a été adoptée séparément, hors refactoring.
+Ne pas conserver les anciens hubs façon V143.
 
 **Sortie :** mêmes hubs, sites, slots C83, ordre et frontières
 de réutilisation ; pas de nouvel acquis sur AC04-A.
 
 ### CD-04 — Détacher les projets hub-vers-site
 
-**Statut : à faire après CD-03.**
+**Statut final : intégré et qualifié avec CD01–CD06.**
 Donner à `HubToSite` sa continuation dédiée `hubSiteI/J`
 et `hubPhase`, en respectant le filtrage, la validité des sites,
 la rentabilité et les sites distincts C83. Ne pas modifier les
@@ -114,7 +120,7 @@ parité des projets retenus lors de suspensions arbitraires.
 
 ### CD-05 — Détacher hub-vers-hub, fin de combo et finalisation
 
-**Statut : à faire après CD-04.**
+**Statut final : intégré et qualifié avec CD01–CD06.**
 Séparer `HubToHub` de `HubToSite` avec `hubHubI/J`,
 préserver le calcul AC05 adopté, l'ordre strict `i<j`,
 les exemptions V93, l'avancement du combo et le nettoyage des
@@ -126,7 +132,7 @@ combo et passage à `done` sur tous les cas dirigés.
 
 ### CD-06 — Extraire publication et acquittement de la génération
 
-**Statut : à faire après CD-05.**
+**Statut final : intégré et qualifié avec CD01–CD06.**
 Isoler la transaction de publication `partialPending` /
 `OpexAir0310PublishIncremental` (V141), le dernier
 `_rebuildProjects` et la transition finale `apply`, tout
@@ -143,7 +149,10 @@ réutiliser V142 ni le refresh intermédiaire V143 rejetés.
 
 ### CD-07 — Décider *séparément* d'une vraie autonomie dans la file
 
-**Statut : décision conditionnelle, non autorisée par les audits AC.**
+**Statut final : décision A adoptée**, une seule tâche globale `catalog`
+avec sous-étapes internes ; **architecture B non implémentée** et hors
+du périmètre validé. Voir
+[`cd07_air_catalogue_ordonnanceur_20261012.md`](cd07_air_catalogue_ordonnanceur_20261012.md).
 Après CD-00 à CD-06, comparer deux architectures :
 (A) sous-tâches explicites **dans la même entrée** `catalog`,
 préservant l'ordonnancement ; (B) plusieurs entrées
@@ -174,10 +183,13 @@ RAIL déjà closes sans **nouvelle hypothèse distincte**.
 
 ## Reliquats annexes, sans bloquer CD-00 à CD-07
 
-- **AC04-A : bug de hub saturé toujours présent.** L'anomalie est
-  documentée, mais ses deux corrections ont dégradé les opcodes.
-  Conserver en reliquat causal ; aucune variante v3 ni A/B
-  automatique sans nouvelle explication vérifiable.
+- **AC04-A v3 : correction au point d'usage adoptée.**
+  Les versions de découverte v1/v2 restent rejetées.
+  [Nouvelle feuille de route causale](ac04a_relance_causale_20261012.md) :
+  attribuer le coût intrinsèque / le changement de trajectoire,
+  mesurer l'exposition et la concurrence des projets avant
+  toute variante. Aucune variante v3 ni A/B automatique
+  sans nouvelle explication vérifiable.
 - **AC06 v2 : preuve moteur de la course tardive absente.**
   Le modèle et Save/Load sont testés ; une fixture moteur à
   événement forcé pourrait démontrer la correction réellement

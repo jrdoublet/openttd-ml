@@ -85,7 +85,9 @@ class TestM3EquipmentRoi(unittest.TestCase):
         # V93 : le break apres un plan grand reste le chemin par defaut (reglage a 0).
         air_src = AIR_PLANNING.read_text(encoding="utf-8")
         self.assertIn("if (bestPlan != null && bestPlan.airport.allowBig) {", air_src)
-        self.assertIn("if (!V93_AIRPORT_NO_POP_FLOOR) break;", air_src)
+        self.assertIn("if (!V93_AIRPORT_NO_POP_FLOOR) return -1;", air_src)
+        self.assertIn("if (nextCombo < 0) break;", air_src)
+        self.assertIn("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)", air_src)
 
 if __name__ == "__main__":
     unittest.main()

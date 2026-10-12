@@ -33,6 +33,7 @@ PREPARE = body("function OpexAirPlansPrepare(")
 FIND_SITES = body("function OpexAirPlansFindSites(")
 NEW_PAIRS = body("function OpexAirPlansNewPairs(")
 PIPELINE = body("function OpexAirPlans(")
+CLOSE = body("function OpexAirPlansCompleteCombo(")
 
 
 @dataclass
@@ -139,8 +140,11 @@ class AC03AirNewPairsResumeTests(unittest.TestCase):
         self.assertIn("resumeState.b <- 1;", PREPARE)
         self.assertIn("resumeState.a = 0;", FIND_SITES)
         self.assertIn("resumeState.b = 1;", FIND_SITES)
-        self.assertIn("ctx.resumeState.a = 0;", PIPELINE)
-        self.assertIn("ctx.resumeState.b = 1;", PIPELINE)
+        self.assertIn("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)", PIPELINE)
+        self.assertLess(PIPELINE.index("if (!pairsOk)"),
+                        PIPELINE.index("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)"))
+        self.assertIn("ctx.resumeState.a = 0;", CLOSE)
+        self.assertIn("ctx.resumeState.b = 1;", CLOSE)
 
     def test_filters_and_admission_are_inside_pair_loop(self):
         ordered = (

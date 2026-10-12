@@ -691,6 +691,9 @@ C76_REGEN_TARGETED <- true;
 AC04_EXTRA_SITE_DEDUP <- true;
 AC05_SKIP_UNUSED_HUB_INCOME <- true;
 AC06_C76_SNAPSHOT_ACK <- true;
+/* AC04-A v3 adopte : valider les hubs orphelins au point d'utilisation.
+ * Rollback : ac04_hub_usage_gate=0 (boucles historiques inchangees). */
+AC04_HUB_USAGE_GATE <- true;
 /* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
 C78_SLOT_INTERCEPT_PROBE <- false;

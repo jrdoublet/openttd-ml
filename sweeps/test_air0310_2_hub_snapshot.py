@@ -148,6 +148,12 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         cls.persist = _read("ai/OpexAI/persist.nut")
         cls.planning = _read("ai/OpexAI/air_planning.nut")
         cls.plans = _function_body(cls.planning, "function OpexAirPlans(")
+        cls.discovery_phase = _function_body(
+            cls.planning, "function OpexAirPlansHubDiscoveryPhase("
+        )
+        cls.complete_combo = _function_body(
+            cls.planning, "function OpexAirPlansCompleteCombo("
+        )
         cls.discover = _function_body(cls.planning, "function OpexAirPlansDiscoverHubs(")
         cls.hub_site = _function_body(cls.planning, "function OpexAirPlansHubToSite(")
         cls.hub_hub = _function_body(cls.planning, "function OpexAirPlansHubToHub(")
@@ -165,8 +171,8 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
             cls.planning, "function OpexAir0310RememberPublishedHubPairs("
         )
         cls.skip = _function_body(cls.planning, "function OpexAir0310SkipRestoredPair(")
-        reuse_at = cls.plans.index("if (!reuseHubs) {")
-        cls.reuse_block = cls.plans[reuse_at:cls.plans.index(
+        reuse_at = cls.discovery_phase.index("if (!reuseHubs) {")
+        cls.reuse_block = cls.discovery_phase[reuse_at:cls.discovery_phase.index(
             'OpexC56TaskLog("STAGE_EXIT", "air_hub_discover"', reuse_at
         )]
 
@@ -201,16 +207,20 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
     def test_span_wraps_only_a_real_discovery(self):
         call = "OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);"
         self.assertEqual(self.planning.count(call), 1)
-        self.assertEqual(self.plans.count(call), 1)
+        self.assertEqual(self.discovery_phase.count(call), 1)
+        self.assertEqual(
+            self.plans.count(
+                "OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light);"),
+            1)
         self.assertEqual(self.planning.count('OpexSpanBegin("air.hub_discover")'), 1)
-        self.assertIn("local reuseHubs = false;", self.plans)
+        self.assertIn("local reuseHubs = false;", self.discovery_phase)
         self.assertLess(
-            self.plans.index("local reuseHubs = false;"),
-            self.plans.index("if (AIR0310_HUB_SNAPSHOT && ctx.sliced)"),
+            self.discovery_phase.index("local reuseHubs = false;"),
+            self.discovery_phase.index("if (AIR0310_HUB_SNAPSHOT && ctx.sliced)"),
         )
         self.assertLess(
-            self.plans.index("OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);"),
-            self.plans.index("if (!reuseHubs) {"),
+            self.discovery_phase.index("OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);"),
+            self.discovery_phase.index("if (!reuseHubs) {"),
         )
         self.assertIn('OpexSpanBegin("air.hub_discover")', self.reuse_block)
         self.assertIn(call, self.reuse_block)
@@ -261,13 +271,14 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         )
         self.assertIn(
             'if ("air0310HubSnap" in ctx.resumeState) delete ctx.resumeState.air0310HubSnap;',
-            self.plans,
+            self.complete_combo,
         )
         self.assertIn(
             'if ("air0310HubSkip" in ctx.resumeState) delete ctx.resumeState.air0310HubSkip;',
-            self.plans,
+            self.complete_combo,
         )
-        self.assertNotIn("air0310HubCounts", self.plans[self.plans.index("if (AIR0310_HUB_SNAPSHOT) {"):])
+        self.assertIn("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)", self.plans)
+        self.assertNotIn("air0310HubCounts", self.complete_combo)
 
     def test_dynamic_routes_are_refreshed_and_endpoints_rechecked(self):
         self.assertIn("town = hub.town", self.copy_hubs)
@@ -344,7 +355,7 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
             '        + " invalidate=" + counts.invalidate);',
             self.count,
         )
-        self.assertIn("OpexAir0310HubSnapshotCount(ctx, hubSnapAction);", self.plans)
+        self.assertIn("OpexAir0310HubSnapshotCount(ctx, hubSnapAction);", self.discovery_phase)
 
     def test_new_functions_parse_and_have_unique_locals(self):
         self.assertEqual(_brace_balance(self.planning), 0)
@@ -371,10 +382,14 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
             self.assertEqual(sorted(locals_), sorted(set(locals_)), name)
         plans = _naive_body(self.planning, "function OpexAirPlans(")
         self.assertIn("return finalPlan;", plans)
-        self.assertEqual(plans.count("OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);"), 1)
-        self.assertEqual(plans.count("local spDisc"), 1)
-        self.assertEqual(plans.count("local reuseHubs"), 1)
-        self.assertEqual(plans.count("local hubSnapAction"), 1)
+        self.assertEqual(plans.count("OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light);"), 1)
+        phase = _naive_body(self.planning, "function OpexAirPlansHubDiscoveryPhase(")
+        self.assertEqual(phase.count("OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);"), 1)
+        self.assertEqual(phase.count("local spDisc"), 1)
+        self.assertEqual(phase.count("local reuseHubs"), 1)
+        self.assertEqual(phase.count("local hubSnapAction"), 1)
+        self.assertEqual(_brace_balance(phase), 0)
+        self.assertEqual(len(_explicit_locals(phase)), len(set(_explicit_locals(phase))))
 
     def test_decision_model_reuses_or_resets_without_reordering_cursors(self):
         cursors = {"hubPhase": 1, "hubSiteI": 3, "hubSiteJ": 4, "hubHubI": 2, "hubHubJ": 5}

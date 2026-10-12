@@ -172,12 +172,16 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         partial_start = cont.index('if (("partialPending" in s) && s.partialPending)')
         apply_start = cont.index('if (s.phase == "apply")', partial_start)
         partial_block = cont[partial_start:apply_start]
+        self.assertIn("return OpexC78PublishPartialAir(owner, s);", partial_block)
+        partial_block = body(self.scheduler_tasks, "function OpexC78PublishPartialAir(")
         self.assertIn("owner._rebuildProjects(s.fleetPlan, partialAir, false);", partial_block)
         self.assertIn("s.published = true;", partial_block)
         self.assertIn("s.partialPending = false;", partial_block)
         self.assertIn('if (s.phase == "apply")', cont)
         scan_start = cont.index("local liveOps = AIController.GetOpsTillSuspend();", apply_start)
         apply_block = cont[apply_start:scan_start]
+        self.assertIn("return OpexC78ApplyAir(owner, task, year, s);", apply_block)
+        apply_block = body(self.scheduler_tasks, "function OpexC78ApplyAir(")
         self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride);", apply_block)
         scan_block = cont[scan_start:]
         self.assertNotIn("owner._rebuildProjects(", scan_block)

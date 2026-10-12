@@ -51,18 +51,35 @@ class ACAdopted(unittest.TestCase):
                   "OpexAirPlansHubToSite", "OpexAirPlansHubToHub",
                   "OpexAirPlansFinalize")
         driver = function(AIR, "OpexAirPlans")
+        substeps = "".join(function(AIR, name) for name in (
+            "OpexAirPlansStepPrepare", "OpexAirPlansStepFindSites",
+            "OpexAirPlansStepNewPairs"))
+        discovery = function(AIR, "OpexAirPlansHubDiscoveryPhase")
+        hubsite = function(AIR, "OpexAirPlansHubToSitePhase")
         for name in phases:
             self.assertIn("function " + name + "(", AIR)
-            self.assertIn(name + "(", driver)
+            self.assertIn(name + "(", substeps + discovery + hubsite + driver)
+        for name in ("OpexAirPlansStepPrepare", "OpexAirPlansStepFindSites",
+                     "OpexAirPlansStepNewPairs"):
+            self.assertEqual(driver.count(name + "("), 1)
+        self.assertIn("OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)", driver)
+        self.assertIn("OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)", discovery)
+        self.assertIn("OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)", driver)
+        self.assertIn("OpexAirPlansHubToSite(ctx, combo, airport, plane)", hubsite)
+        self.assertIn("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)", driver)
         for checkpoint in ("scanIndex", "rankIndex", "hubSiteI", "hubSiteJ",
                            "hubHubI", "hubHubJ", "hubPhase"):
             self.assertIn(checkpoint, AIR)
         for yield_reason in ("sites_yield", "pairs_yield", "hub_site_yield", "hub_hub_yield"):
             self.assertIn(yield_reason, driver)
         c78 = function(SCHED, "OpexC78ContinueCatalogAirRebuild")
-        self.assertIn("OpexAir0310PublishIncremental", c78)
+        publish = function(SCHED, "OpexC78PublishPartialAir")
+        apply = function(SCHED, "OpexC78ApplyAir")
+        self.assertIn("OpexC78PublishPartialAir(owner, s)", c78)
+        self.assertIn("OpexAir0310PublishIncremental", publish)
         self.assertIn("s.partialPending", c78)
-        self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride)", c78)
+        self.assertIn("OpexC78ApplyAir(owner, task, year, s)", c78)
+        self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride)", apply)
         self.assertIn("function OpexAir0310PublishIncremental(", UPDATE)
 
     def test_defaults_overrideable_without_other_experiments(self):
@@ -83,7 +100,7 @@ class ACAdopted(unittest.TestCase):
         layer = function(ORCH, "OpexAC06SnapshotLayer")
         acknowledge = function(ORCH, "OpexAC06AcknowledgeSnapshot")
         start = function(SCHED, "OpexC78StartCatalogAirRebuild")
-        apply = function(SCHED, "OpexC78ContinueCatalogAirRebuild")
+        apply = function(SCHED, "OpexC78ApplyAir")
         for key in ("towns", "industries", "lines"):
             self.assertIn("current." + key, capture)
         for key in ("rail", "road", "air", "water"):

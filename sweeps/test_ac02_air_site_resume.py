@@ -32,6 +32,7 @@ def function_body(signature):
 PREPARE = function_body("function OpexAirPlansPrepare(")
 FIND = function_body("function OpexAirPlansFindSites(")
 PIPELINE = function_body("function OpexAirPlans(")
+CLOSE = function_body("function OpexAirPlansCompleteCombo(")
 
 
 @dataclass
@@ -150,9 +151,12 @@ class AC02AirSiteResumeTests(unittest.TestCase):
                         FIND.index('if ((opsBudget > 0 && rankSliceOps >= opsBudget)'))
         self.assertLess(FIND.index('resumeState.sites = sites;'),
                         FIND.index('resumeState.scanSites = [];'))
-        self.assertIn('ctx.resumeState.scanIndex = 0;', PIPELINE)
-        self.assertIn('ctx.resumeState.rankIndex = 0;', PIPELINE)
-        self.assertIn('ctx.resumeState.sites = null;', PIPELINE)
+        self.assertIn('OpexAirPlansCompleteCombo(ctx, comboIndex, combo)', PIPELINE)
+        self.assertLess(PIPELINE.index('if (!hubsOk)'),
+                        PIPELINE.index('OpexAirPlansCompleteCombo(ctx, comboIndex, combo)'))
+        self.assertIn('ctx.resumeState.scanIndex = 0;', CLOSE)
+        self.assertIn('ctx.resumeState.rankIndex = 0;', CLOSE)
+        self.assertIn('ctx.resumeState.sites = null;', CLOSE)
 
     def test_site_probe_state_is_shared_and_never_reinitialised_on_resume(self):
         self.assertIn('sliced && resumeState.scanProbes != null', FIND)

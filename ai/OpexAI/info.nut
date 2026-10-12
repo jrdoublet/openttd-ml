@@ -1927,6 +1927,12 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "ac04_hub_usage_gate",
+      description = "AC04-A v3 adopted: revalidate orphan hub capacity before evaluating AIR pairs; default 1, rollback 0",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

@@ -36,6 +36,8 @@ INSERT = function(UPDATE, "function OpexAir0310InsertAirBlock(")
 VALID = function(UPDATE, "function OpexV141PublishedAirStillValid(")
 REFRESH = function(UPDATE, "function OpexV141RefreshPublishedAir(")
 CONTINUE = function(SCHED, "function OpexC78ContinueCatalogAirRebuild(")
+CD06_PARTIAL = function(SCHED, "function OpexC78PublishPartialAir(")
+CD06_APPLY = function(SCHED, "function OpexC78ApplyAir(")
 REBUILD = function(TASK, "function OpexAI::_rebuildProjects(")
 FROM_AIR = function(BUILDER, "function OpexProjectFromAir(")
 
@@ -140,12 +142,14 @@ def publish_model(groups, scan_plans, old_count, old_airplans=(), stage="complet
 class AC07PartialTests(unittest.TestCase):
     def test_live_branching_first_publish_subsequent_and_final_apply(self):
         self.assertIn('if (("partialPending" in s) && s.partialPending)', CONTINUE)
-        self.assertIn('("lastPublishedCount" in s) && s.lastPublishedCount > 0', CONTINUE)
-        self.assertLess(CONTINUE.index("OpexAir0310PublishIncremental("),
-                        CONTINUE.index("owner._rebuildProjects(s.fleetPlan, partialAir, false);"))
-        self.assertIn("if (publishCounts == null)", CONTINUE)
-        self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride);", CONTINUE)
-        self.assertLess(CONTINUE.index("s.lastPublishedCount = s.plans.len();"),
+        self.assertIn('("lastPublishedCount" in s) && s.lastPublishedCount > 0', CD06_PARTIAL)
+        self.assertLess(CD06_PARTIAL.index("OpexAir0310PublishIncremental("),
+                        CD06_PARTIAL.index("owner._rebuildProjects(s.fleetPlan, partialAir, false);"))
+        self.assertIn("return OpexC78PublishPartialAir(owner, s);", CONTINUE)
+        self.assertIn("if (publishCounts == null)", CD06_PARTIAL)
+        self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride);", CD06_APPLY)
+        self.assertIn("s.lastPublishedCount = s.plans.len();", CD06_PARTIAL)
+        self.assertLess(CONTINUE.index("OpexC78PublishPartialAir(owner, s)"),
                         CONTINUE.index('if (s.phase == "apply")'))
         self.assertIn("advanceStage = false;", REBUILD)
         self.assertIn("if (advanceStage && STAGED_BOOTSTRAP", REBUILD)
@@ -289,7 +293,7 @@ class AC07PartialTests(unittest.TestCase):
                       "!(\"candidateGroups\" in projects)",
                       "!(\"stats\" in projects)"):
             self.assertIn(guard, PUBLISH)
-        self.assertIn("if (publishCounts == null)", CONTINUE)
+        self.assertIn("if (publishCounts == null)", CD06_PARTIAL)
 
 
 if __name__ == "__main__":

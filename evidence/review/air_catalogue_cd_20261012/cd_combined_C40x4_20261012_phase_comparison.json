@@ -1,0 +1,88 @@
+{
+  "valid": true,
+  "pairs": 40,
+  "closed_years": [
+    1970,
+    1971,
+    1972
+  ],
+  "posts": {
+    "c117_sample": {
+      "mean_delta": -107364.35,
+      "ci95": [
+        -749248.725,
+        504971.65
+      ],
+      "positive": 19,
+      "negative": 21
+    },
+    "c117_skip": {
+      "mean_delta": -1567.125,
+      "ci95": [
+        -9906.75,
+        6811.875
+      ],
+      "positive": 18,
+      "negative": 22
+    },
+    "catalog_continuation": {
+      "mean_delta": -816486.975,
+      "ci95": [
+        -6710145.625,
+        5000527.525
+      ],
+      "positive": 21,
+      "negative": 19
+    },
+    "catalog_continuation_check": {
+      "mean_delta": -1456.5,
+      "ci95": [
+        -4446.975,
+        1557.05
+      ],
+      "positive": 18,
+      "negative": 22
+    },
+    "events": {
+      "mean_delta": -1542.3,
+      "ci95": [
+        -6530.45,
+        3560.75
+      ],
+      "positive": 19,
+      "negative": 21
+    },
+    "orchestrator": {
+      "mean_delta": 1293850.325,
+      "ci95": [
+        -6146015.1,
+        8938282.125
+      ],
+      "positive": 19,
+      "negative": 21
+    },
+    "rail_throughput": {
+      "mean_delta": -2978.275,
+      "ci95": [
+        -13916.575,
+        7317.95
+      ],
+      "positive": 21,
+      "negative": 19
+    }
+  },
+  "air_phases": null,
+  "phase_calls": null,
+  "air_light_coverage": {
+    "measured": false,
+    "ref_slices": 0,
+    "var_slices": 0
+  },
+  "global": {
+    "mean_delta": 362454.8,
+    "ci95": [
+      -1296055.925,
+      2103469.4
+    ]
+  }
+}

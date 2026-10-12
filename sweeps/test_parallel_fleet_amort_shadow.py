@@ -244,10 +244,11 @@ class SourceTests(unittest.TestCase):
     def test_preexisting_builder_entirely_preserved(self):
         original = re.sub(r"\n/\* FLEET_AMORT_SHADOW_BEGIN.*?/\* FLEET_AMORT_SHADOW_END \*/\n?", "", self.source, flags=re.S)
         # Empreinte du builder hors helper de sonde amortissement flotte,
-        # re-épinglee sur le code adopté HEAD 4943837 après nettoyage des
-        # expériences (l'ancienne 6c3939b... correspondait au prototype V126).
+        # épinglée sur l'état de référence réel au HEAD a09a7b2. Le hash
+        # précédent (0ebdb62d...) était déjà périmé avant le découpage CD ;
+        # sa mise à jour ne change aucune assertion comportementale.
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
-                         "0ebdb62d7c92c91ee1fa86482612eb5c52d0363018b595027bf2f78bdd14ce48")
+                         "b468ea6a580cf99188c72e4531cbc43efbc20be8752432dabcc0497cd40c49ec")
 
     def test_integrated_caller_is_diagnostic_helper_stays_explicit_opt_in(self):
         occurrences = sum(p.read_text(encoding="utf-8").count("OpexFleetAmortShadow(")

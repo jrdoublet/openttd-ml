@@ -91,6 +91,12 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
         cls.cont = _function_body(
             cls.scheduler, "function OpexC78ContinueCatalogAirRebuild("
         )
+        cls.partial = _function_body(
+            cls.scheduler, "function OpexC78PublishPartialAir("
+        )
+        cls.apply = _function_body(
+            cls.scheduler, "function OpexC78ApplyAir("
+        )
         cls.publish = _function_body(
             cls.update, "function OpexAir0310PublishIncremental("
         )
@@ -109,8 +115,6 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
         scan_start = cls.cont.index(
             "local liveOps = AIController.GetOpsTillSuspend();", apply_start
         )
-        cls.partial = cls.cont[partial_start:apply_start]
-        cls.apply = cls.cont[apply_start:scan_start]
         cls.scan = cls.cont[scan_start:]
 
     def test_setting_defaults_to_one_and_is_not_persisted(self):  # adopte le 04/10 (porte A 40x3)

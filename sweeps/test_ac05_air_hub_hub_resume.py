@@ -143,8 +143,10 @@ class AC05HubHubTests(unittest.TestCase):
                         HUB_HUB.index('if (V133_AIR_BUILD_RETRY)'))
         self.assertLess(HUB_HUB.index('OpexAir0310SkipRestoredPair(ctx'),
                         HUB_HUB.index('CATALOG_COST_ACTIVE.airHubHubPairs++'))
-        self.assertIn('ctx.resumeState.hubHubI <- 0;', PIPELINE)
-        self.assertIn('ctx.resumeState.hubHubJ <- 1;', PIPELINE)
+        closing = body('function OpexAirPlansCompleteCombo(')
+        self.assertIn('OpexAirPlansCompleteCombo(ctx, comboIndex, combo)', PIPELINE)
+        self.assertIn('ctx.resumeState.hubHubI <- 0;', closing)
+        self.assertIn('ctx.resumeState.hubHubJ <- 1;', closing)
         self.assertIn('resumeState.hubHubI <- 0;', PREPARE)
         self.assertIn('resumeState.hubHubJ <- 1;', PREPARE)
 
@@ -249,9 +251,13 @@ class AC05HubHubTests(unittest.TestCase):
         self.assertIn('AICargo.GetCargoIncome(catalog.paxCargo, dist, incomeDays)', HUB_HUB)
         self.assertIn('(mailIncome * 15) / 100', HUB_HUB)
         self.assertIn('if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS', HUB_HUB)
-        self.assertIn('OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane)', PIPELINE)
+        self.assertIn('OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)', PIPELINE)
+        self.assertIn('OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane)',
+                      body('function OpexAirPlansHubDiscoveryPhase('))
         self.assertIn('OpexAirPlansHubToHub(ctx, combo, airport, plane)', PIPELINE)
-        self.assertLess(PIPELINE.index('ctx.resumeState.hubPhase <- 1;'),
+        self.assertIn('ctx.resumeState.hubPhase <- 1;',
+                      body('function OpexAirPlansHubToSitePhase('))
+        self.assertLess(PIPELINE.index('OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)'),
                         PIPELINE.index('OpexAirPlansHubToHub(ctx, combo, airport, plane)'))
         self.assertIn('if (!ctx.air0310HubRestored) return false;', SKIP)
 
