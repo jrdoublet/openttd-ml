@@ -1168,6 +1168,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "incr_revalidate_index",
+      description = "Indexed revalidation of candidate pool: 0 historical, 1 indexed (default since 2026-10-12, V157 porte B 20x10), 2 control (both, historical used, mismatch logged)",
+      min_value = 0, max_value = 2,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "rail_failure_audit",
       description = "Diagnostic-only rail attempts and proximity refusals by kind; 0 = off (default)",
       min_value = 0, max_value = 1,
@@ -1491,6 +1500,15 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "air_fleet_c121_preguard",
+      description = "Filter AIR lines refused by C121 observation/cadence before visible fleet refresh",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = 0
     });
 
@@ -1945,6 +1963,12 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       step_size = 1,
       flags = 0
+    });
+    AddSetting({
+      name = "select_bisect_insert",
+      description = "V154: binary search insertion in OpexProjectInsertDefensive; 1 = on (default since 2026-10-12, V157 porte B 20x10), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
     });
   }
 }
