@@ -268,6 +268,9 @@ function OpexAI::_schedIdlePreDispatch()
 
   local taskName = task.name;
   this._schedIdlePeekTask = taskName;
+  if (taskName == "projects" || taskName == "report") {
+    this._ensureSelection();
+  }
 
   local date = AIDate.GetCurrentDate();
   local tick = AIController.GetTick();

@@ -1324,6 +1324,7 @@ function OpexAI::_continueRailSearch()
      * au meme sens (state.line, pas state.candidate). */
     if (C41_RAIL_DOMINATION_PROBE && state.kind == "primary"
         && ("segmented" in state) && state.segmented != null) {
+      this._ensureSelection();
       local seg = state.segmented;
       local prefixLen = (seg.prefix != null) ? seg.prefix.len() : 0;
       local distRemaining = -1;
@@ -1827,6 +1828,7 @@ function OpexAI::_consumeRailUpgrade()
 function OpexAI::_updateRailStockSelectionThreshold()
 {
   if (!C80_RAIL_STOCK_WORKER || !C80_RAIL_STOCK_GATE) return;
+  this._ensureSelection();
   if (this._projects == null || !("best" in this._projects) || this._projects.best == null) return;
   if (this._projects.best.len() == 0) return;
 

@@ -882,10 +882,12 @@ function OpexAI::_dispatchReport(task, year)
 
   if (this._lastReportYear == year) { if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
   this._lastReportYear = year;
+  this._ensureSelection();
   if (DECISION_LOG) {
     local bank = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local loan = AICompany.GetLoanAmount();
     OpexDecide("REPORT", "year=" + year + " lines=" + this._lines.len() + " bank=" + bank + " loan=" + loan);
+    this._logAirLazySelect(year);
   }
   OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
@@ -1053,7 +1055,7 @@ function OpexAI::_dispatchAirFleet(task, year)
 }
 function OpexAI::_dispatchProjects(task, year)
 {
-
+  this._ensureSelection();
   /* Si l'evenement est arrive apres le passage catalog dans le cycle courant, attendre
    * sa reconstruction plutot que de choisir une ligne dans le vivier devenu obsolete. */
   if (C39_PROJECTS_CADENCE_PROBE) {

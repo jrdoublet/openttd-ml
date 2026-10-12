@@ -60,6 +60,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (this._staleness == null) return;
   local revisionBumped = false;
   if (C39_DECISION_DELTA_PROBE && !this._staleness.topBeforeCaptured) {
+    this._ensureSelection();
     this._staleness.topBefore = OpexC39ProjectSignature(this._projects);
     this._staleness.topBeforeCaptured = true;
   }

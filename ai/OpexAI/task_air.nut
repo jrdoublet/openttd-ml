@@ -602,6 +602,84 @@ function OpexAirBatchPlanStillLive(plan, lines)
   }
   return true;
 }
+
+/* V156 : version indexee et memoisee de OpexAirTownServed par town.tile. */
+function OpexAirTownServedIndexed(town, lines, ctx)
+{
+  if (town == null || !("tile" in town)) return false;
+  if (town.tile in ctx.airTownServed) return ctx.airTownServed[town.tile];
+  local served = false;
+  if (lines != null) {
+    foreach (orig in ctx.airOrigins) {
+      if (AIMap.DistanceManhattan(town.tile, orig) < 15) {
+        served = true;
+        break;
+      }
+    }
+  }
+  ctx.airTownServed.rawset(town.tile, served);
+  return served;
+}
+
+/* V156 : version indexee de OpexAirBatchHubHasCapacity via airHubRouteCounts precalcule. */
+function OpexAirBatchHubHasCapacityIndexed(anchor, plane, ctx)
+{
+  if (!AIAirport.IsAirportTile(anchor) ||
+      !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(anchor), plane.planeType)) return false;
+  local station = AIStation.GetStationID(anchor);
+  if (!AIStation.IsValidStation(station)) return false;
+  local routes = (station in ctx.airHubRouteCounts) ? ctx.airHubRouteCounts[station] : 0;
+  local airportType = AIAirport.GetAirportType(anchor);
+  local maxRoutes = OpexAirAirportMaxRoutes(airportType);
+  return routes < maxRoutes;
+}
+
+/* V156 : version memoisee de la constructibilite de site air par cle (reuse|airport.type|plane.planeType|anchor). */
+function OpexAirSiteStillBuildableIndexed(site, airport, plane, reuse, ctx)
+{
+  if (site == null || airport == null || plane == null || !("anchor" in site)) return false;
+  local key = (reuse ? "R|" : "N|") + airport.type + "|" + plane.planeType + "|" + site.anchor;
+  /* Cache limite a l'appel et sondage vivant sans villes plafonnees : meme predicat que
+   * OpexAirBatchSiteStillBuildable. Le cache mensuel AIR0310 gardait valides des sites devenus
+   * inconstructibles dans le mois (66 ecarts hist=0 idx=1 au controle v157_check_3x4). */
+  if (key in ctx.airSiteValidity) return ctx.airSiteValidity[key];
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, reuse);
+  ctx.airSiteValidity.rawset(key, ok);
+  return ok;
+}
+
+/* V156 : version indexee de OpexAirBatchPlanStillLive utilisant les index de ctx. */
+function OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx)
+{
+  if (OpexAirRecoveryBlocksPlan(plan)) return false;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
+  local c83OwnSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
+  local v134SecondA = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotA" in plan) && plan.v134SecondSlotA;
+  local v134SecondB = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotB" in plan) && plan.v134SecondSlotB;
+  if (!reuseA) {
+    local servedA = OpexAirTownServedIndexed(plan.siteA.town, lines, ctx);
+    if (c83OwnSecondA || v134SecondA) {
+      if (!servedA || !OpexAirC83SecondSlotOpen(plan.siteA.town)) return false;
+    } else if (servedA) {
+      return false;
+    }
+  }
+  if (!reuseB) {
+    local servedB = OpexAirTownServedIndexed(plan.siteB.town, lines, ctx);
+    if (c83OwnSecondB || v134SecondB) {
+      if (!servedB || !OpexAirC83SecondSlotOpen(plan.siteB.town)) return false;
+    } else if (servedB) {
+      return false;
+    }
+  }
+  if (reuseA && !OpexAirBatchHubHasCapacityIndexed(plan.siteA.anchor, plan.plane, ctx)) return false;
+  if (reuseB && !OpexAirBatchHubHasCapacityIndexed(plan.siteB.anchor, plan.plane, ctx)) return false;
+  local pairKey = plan.siteA.town.tile + "|" + plan.siteB.town.tile;
+  if (pairKey in ctx.airLinePairs) return false;
+  return true;
+}
 /* C38 etape 2 : tentative synchrone air, incluant les gardes de site et de flotte. */
 function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscards, anchor, yy)
 {
@@ -1099,7 +1177,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
             && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS;
       }
       if (cooldown) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "Y");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         if (plan != null && C69_BOTTLENECK_PROBE)
           OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
         continue;
@@ -1108,23 +1188,34 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     airLines.append(line);
   }
   if (AIR_ROI_ORDER) {
+    local spSort = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     if (EXP_OPCODE_EXACT_ON) airLines = OpexAirFleetSortSelect(airLines);
     else airLines.sort(OpexAirFleetPriorityCompare);
+    if (spSort != null) OpexSpanAgg("fleet.sort", spSort);
   }
+
+  local routesIndex = null;
+  local routesMismatchCount = 0;
+
   foreach (line in airLines) {
     if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordExamined("fleet", 1);
     /* B8 / G10 : une ligne en liquidation ne peut recevoir aucun appareil neuf, y compris une
      * reconstitution de crash. Ce garde doit preceder needsRefleet : pendant la fenetre de vente,
      * les avions encore vivants peuvent redevenir profitables et remettre deadStreak a zero. */
     if (("scrapping" in line) && line.scrapping) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "K");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "scrapping", 1);
       continue;
     }
     /* V92 : finir un remplacement même si la ligne n'est plus candidate à la croissance.
      * Sinon les avions déjà envoyés au hangar y restent. */
     if (V92_AIR_SERVICE_CHOICE && OpexAirLineReequipPending(line)) {
+      local spAdd = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local resumed = OpexAirAddPlane(line, this._catalog, this._lines);
+      if (spAdd != null) OpexSpanAgg("fleet.add_plane", spAdd);
+      routesIndex = null;
       if (!(("reason" in resumed) && (resumed.reason == "NOLIVE" || resumed.reason == "NOVEH"))) continue;
     }
     /* Reconstitution de crash : elle passe avant les gardes de croissance
@@ -1133,6 +1224,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * ordres depuis les metadonnees durables de la ligne. */
     if (("needsRefleet" in line) && line.needsRefleet) {
       local recovered = OpexAirRefleetCrashedPlane(line);
+      routesIndex = null;
       if (recovered.added > 0) {
         local afterCrash = (("vehCount" in line) ? line.vehCount : 0) + recovered.added;
         if ("vehCount" in line) line.vehCount = afterCrash;
@@ -1145,7 +1237,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         }
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "crash_refleeted", 1);
       } else {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "R");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "refleet_failed", 1);
       }
       continue;
@@ -1155,27 +1249,65 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * Sinon : verrou glissant en jours depuis la derniere extension (ou la creation de la ligne). */
     if (AIR_FLEET_CADENCE_DAYS >= 365) {
       if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "Y");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
         continue;
       }
     } else {
       local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate : (("buildDate" in line) ? line.buildDate : 0);
       if (lastDate > 0 && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "Y");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
         continue;
       }
     }
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
     if (have < 1) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "V");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
       continue;
     }
+    /* V155: pre-filter AIR lines refused by C121 observation/cadence before paying the visible fleet refresh */
+    if (AIR_FLEET_C121_PREGUARD && C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION
+        && ("targetAirPlanes" in line)) {
+      local isFirstLiveEligible = C121_AIR_FIRST_LIVE_GROWTH
+          && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
+              || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS)
+          && have == 1 && !("lastAirFleetYear" in line);
+      if (!isFirstLiveEligible) {
+        local c121Age = ("year" in line) ? year - line.year : -1;
+        if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0) {
+          if (DECISION_LOG) {
+            local reasonStr = (c121Age < 2) ? "age" : "profit";
+            OpexDecide("AIR_FLEET_PREGUARD", "line=" + line.lineId + " reason=" + reasonStr);
+          }
+          OpexAirFleetRefusal(line, year, "O");
+          if (plan != null && C69_BOTTLENECK_PROBE)
+            OpexC73RecordRejection("fleet", "c121_no_full_year_observation", 1);
+          continue;
+        }
+        if (("lastAirFleetYear" in line) && (year - line.lastAirFleetYear) < 2) {
+          if (DECISION_LOG) {
+            OpexDecide("AIR_FLEET_PREGUARD", "line=" + line.lineId + " reason=cadence");
+          }
+          OpexAirFleetRefusal(line, year, "O");
+          if (plan != null && C69_BOTTLENECK_PROBE)
+            OpexC73RecordRejection("fleet", "c121_wait_full_year_after_growth", 1);
+          continue;
+        }
+      }
+    }
     OpexC121RefreshVisibleFleet(this._catalog, line, this._lines);
     if (C121_AIR_VISIBLE_COMPETITION && ("targetAirPlanes" in line) && have >= line.targetAirPlanes) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "T");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       continue;
     }
     local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
@@ -1194,10 +1326,15 @@ function OpexAI::_resizeAirFleets(year, plan = null)
        * IMPORTANT : le signal live est uniquement un raccourci. S'il n'est pas
        * pret, la garde C121 historique reprend la main a deux ans ; cette
        * experience ne doit jamais retarder un 1->2 que le baseline accepterait. */
-      if (!OpexC121FirstLiveBalanced90(line)) {
+      local spFirstLive = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      local firstLiveOk = OpexC121FirstLiveBalanced90(line);
+      if (spFirstLive != null) OpexSpanAgg("fleet.first_live", spFirstLive);
+      if (!firstLiveOk) {
         local c121Age = ("year" in line) ? year - line.year : -1;
         if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0) {
+          local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
           OpexAirFleetRefusal(line, year, "O");
+          if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
           if (plan != null && C69_BOTTLENECK_PROBE)
             OpexC73RecordRejection("fleet", "c121_first_live_not_ready", 1);
           continue;
@@ -1210,25 +1347,33 @@ function OpexAI::_resizeAirFleets(year, plan = null)
        * observation : une nouvelle annee doit confirmer le palier suivant. */
       local c121Age = ("year" in line) ? year - line.year : -1;
       if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "O");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "c121_no_full_year_observation", 1);
         continue;
       }
       if (("lastAirFleetYear" in line) && (year - line.lastAirFleetYear) < 2) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "Y");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "c121_wait_full_year_after_growth", 1);
         continue;
       }
     }
     if (("deadStreak" in line) && line.deadStreak >= 2) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "D");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "dead_line", 1);
       continue;
     }
 
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
     if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "L");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
       continue;
     }
@@ -1241,13 +1386,49 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     local physicalMaxPlanes = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
     if (AIR_CADENCE_CAP) {
-      physicalMaxPlanes = OpexAirCadenceCap(line, this._catalog, this._lines);
+      local spCap = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      if (AIR_FLEET_ROUTES_INDEX == 1) {
+        if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
+        physicalMaxPlanes = OpexAirCadenceCapIndexed(line, this._catalog, this._lines, routesIndex);
+      } else if (AIR_FLEET_ROUTES_INDEX == 2) {
+        if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
+        local capDirect = OpexAirCadenceCap(line, this._catalog, this._lines);
+        local capIndexed = OpexAirCadenceCapIndexed(line, this._catalog, this._lines, routesIndex);
+        if (capDirect != capIndexed) {
+          routesMismatchCount++;
+          if (DECISION_LOG) {
+            OpexDecide("FLEET_ROUTES_MISMATCH", "line=" + line.lineId + " direct=" + capDirect + " indexed=" + capIndexed);
+          }
+        }
+        physicalMaxPlanes = capDirect;
+      } else {
+        physicalMaxPlanes = OpexAirCadenceCap(line, this._catalog, this._lines);
+      }
+      if (spCap != null) OpexSpanAgg("fleet.cadence_cap", spCap);
     }
-    if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "airport_capacity_reached", 1); continue; }
+    if (have >= physicalMaxPlanes) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      OpexAirFleetRefusal(line, year, "C");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "airport_capacity_reached", 1);
+      continue;
+    }
     local maxPlanesForAirport = physicalMaxPlanes;
     if (OPEX_AIR_CAP_PAD) maxPlanesForAirport = maxPlanesForAirport;
-    if (!belowTarget && ("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1); continue; }
-    if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1); continue; }
+    if (!belowTarget && ("deadStreak" in line) && line.deadStreak >= 1) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      OpexAirFleetRefusal(line, year, "S");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1);
+      continue;
+    }
+    if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      OpexAirFleetRefusal(line, year, "L");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
+      continue;
+    }
 
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
     if ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
@@ -1297,7 +1478,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         buildNum = (maxWait - bottom) / planeCap;
       }
       if (buildNum < 1) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "W");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_stock_buffer", 1);
         continue;
       }
@@ -1320,7 +1503,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
            * petite vue transitoire permet de recalculer une tranche finançable. */
           fleetEntry.c84Catalog <- { paxCargo = this._catalog.paxCargo,
               mailCargo = ("mailCargo" in this._catalog) ? this._catalog.mailCargo : -1 };
+          local spMarg = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
           local marginal = OpexAirExistingLineMarginalEconomics(this._catalog, line, have, want);
+          if (spMarg != null) OpexSpanAgg("fleet.marginal", spMarg);
           if (marginal != null) {
             fleetEntry.c84MarginalProfit <- marginal.profitAnnual;
             fleetEntry.c84MarginalRevenue <- marginal.revenueAnnual;
@@ -1341,8 +1526,16 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
+      if (money < need) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+        OpexAirFleetRefusal(line, year, "M");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
+        break;
+      }
+      local spAdd = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+      if (spAdd != null) OpexSpanAgg("fleet.add_plane", spAdd);
+      routesIndex = null;
       if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {
         if (grown.reason == "REPLACE" && ("vehCount" in grown)) {
           have = grown.vehCount;
@@ -1351,7 +1544,12 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         }
         break;
       }
-      if (grown.added <= 0) { OpexAirFleetRefusal(line, year, "X"); break; }
+      if (grown.added <= 0) {
+        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+        OpexAirFleetRefusal(line, year, "X");
+        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
+        break;
+      }
       have += grown.added;
       addedThisPass += grown.added;
       line.vehCount <- have;
@@ -1367,6 +1565,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       AILog.Info("[AIR_FLEET] line=" + line.lineId + " added=" + addedThisPass + " total=" + have);
       OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|K");
     }
+  }
+  if (AIR_FLEET_ROUTES_INDEX == 2 && DECISION_LOG) {
+    OpexDecide("FLEET_ROUTES_INDEX", "year=" + year + " lines=" + airLines.len() + " mismatches=" + routesMismatchCount);
   }
   if (spFleet != null) OpexSpanEnd(spFleet);
   return true;

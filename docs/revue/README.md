@@ -1,3 +1,17 @@
+# Revue du 12 octobre 2026 — prompts pour le scheduler
+
+[Plan](../revue_code_2026-10-12_plan.md). Une étape par lancement ; 01 à 06 indépendantes, 07 en dernier.
+
+| Étape | Sujet |
+|---|---|
+| [01](2026-10-12_etape_01_reglages_retraits.md) | Réglages et retraits |
+| [02](2026-10-12_etape_02_catalogue_air_v147.md) | Catalogue AIR et V147 |
+| [03](2026-10-12_etape_03_selection_v154_v158.md) | Sélection : V154 et V158 |
+| [04](2026-10-12_etape_04_revalidation_v156.md) | Revalidation indexée V156 |
+| [05](2026-10-12_etape_05_rail_v153.md) | Rail V153 |
+| [06](2026-10-12_etape_06_flotte_air_v155_v160.md) | Flotte AIR : V155 et V160 |
+| [07](2026-10-12_etape_07_synthese.md) | Synthèse |
+
 # Lots de revue du 15 septembre 2026
 
 [Index](../README.md) · [Plan d'origine](../revue_code_2026-09-15_plan.md) ·

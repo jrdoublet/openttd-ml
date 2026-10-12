@@ -89,12 +89,13 @@ function OpexAmortProbeOrder(projects)
 
 function OpexAmortProbeEnd(state, affordable)
 {
+  SELECT_BISECT_STAMP++;
   local mark = OpexOpsMeasureBegin();
   local originalOrder = [];
   local shadowOrder = [];
   foreach (row in state.rows) {
-    OpexProjectInsertDefensive(originalOrder, row.before, "fundScore", state.rows.len(), AIR_EARLY_SLOT);
-    OpexProjectInsertDefensive(shadowOrder, row.after, "fundScore", state.rows.len(), AIR_EARLY_SLOT);
+    OpexProjectInsertDefensive(originalOrder, row.before, "fundScore", state.rows.len(), AIR_EARLY_SLOT, true);
+    OpexProjectInsertDefensive(shadowOrder, row.after, "fundScore", state.rows.len(), AIR_EARLY_SLOT, true);
   }
   local orderMatches = originalOrder.len() >= affordable.len();
   for (local i = 0; i < affordable.len() && orderMatches; i++) {

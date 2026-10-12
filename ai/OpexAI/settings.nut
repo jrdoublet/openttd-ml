@@ -104,6 +104,7 @@ function OpexLoadSettings()
   RAIL_FREIGHT_TRKFAIL_MEMORY = AIController.GetSetting("rail_freight_trkfail_memory") != 0;
   RAIL_END_JUMP_CONNECT = AIController.GetSetting("rail_end_jump_connect") != 0;
   RAIL_CACHED_PROXIMITY_GATE = AIController.GetSetting("rail_cached_proximity_gate");
+  INCR_REVALIDATE_INDEX = AIController.GetSetting("incr_revalidate_index");
   RAIL_FAILURE_AUDIT = AIController.GetSetting("rail_failure_audit") != 0;
   RAIL_PREASTAR_PROBE = AIController.GetSetting("probe_rail_preastar") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
@@ -164,10 +165,14 @@ function OpexLoadSettings()
   local afcd = AIController.GetSetting("air_fleet_cadence_days");
   if (afcd >= 0) AIR_FLEET_CADENCE_DAYS = afcd;
   AIR_FLEET_COOLDOWN_PREFILTER = AIController.GetSetting("air_fleet_cooldown_prefilter") != 0;
+  local afri = AIController.GetSetting("air_fleet_routes_index");
+  if (afri >= 0) AIR_FLEET_ROUTES_INDEX = afri;
+  AIR_FLEET_C121_PREGUARD = AIController.GetSetting("air_fleet_c121_preguard") != 0;
   AIR_EFFICIENCY_BATCH = AIController.GetSetting("air_efficiency_batch") != 0;
   AIR_EFFICIENCY_PREFLIGHT = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_preflight") != 0;
   AIR_EFFICIENCY_DEDUPE = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_dedupe") != 0;
   AIR_EFFICIENCY_RESELECT = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_reselect") != 0;
+  AIR_PUBLISH_LAZY_SELECT = AIController.GetSetting("air_publish_lazy_select");
 
   local ajsl = AIController.GetSetting("air_joined_stop_limit");
   if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
@@ -650,6 +655,7 @@ function OpexLoadSettings()
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;
   SUBSIDY_RESELECT_IF_PURGED = AIController.GetSetting("subsidy_reselect_if_purged") != 0;
+  SELECT_BISECT_INSERT = AIController.GetSetting("select_bisect_insert") != 0;
   PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;

@@ -162,6 +162,7 @@ function OpexAI::_purgeSubsidyFromProjects(subId)
 {
   if (subId == null || subId < 0) return 0;
   if (this._projects == null) return 0;
+  this._ensureSelection();
   local removed = 0;
   if (("best" in this._projects) && this._projects.best != null) {
     for (local i = this._projects.best.len() - 1; i >= 0; i--) {
@@ -1382,6 +1383,12 @@ function OpexAI::_finalizeC75PassOutcome(year, builtCount, c75KPassData, c75Stop
   return c75StopReason;
 }
 
+/* V158 : Matérialise la sélection si elle a été différée par air_publish_lazy_select. */
+function OpexAI::_ensureSelection()
+{
+  OpexEnsureSelection(this);
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   /* V133 : a 0, seul ce booleen. Les tables ne sont pas touchees. */
@@ -1390,6 +1397,7 @@ function OpexAI::_tryBuildProjects(year)
     V133_AIR_SKIP_LOGGED = {};
   }
   local spPass = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.pass") : null;
+  this._ensureSelection();
   if (R1_R3_TEST_ONLY) R1_R3_TEST_PASS++;
   local c75KPassData = null;
   local c75StopReason = null;
