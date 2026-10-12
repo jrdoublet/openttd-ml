@@ -1505,10 +1505,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "air_fleet_routes_index",
-      description = "Count live air routes per airport with an index once per pass: 0 = off, 1 = index, 2 = compare",
+      description = "Count live air routes per airport with an index once per pass: 0 = off, 1 = index (default since 2026-10-12, V160 porte B 20x10), 2 = compare",
       min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
 

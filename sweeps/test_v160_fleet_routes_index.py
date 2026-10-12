@@ -103,10 +103,10 @@ class TestV160FleetRoutesIndexStaticContracts(unittest.TestCase):
         block = self.info[idx : idx + 350]
         self.assertIn("min_value = 0", block)
         self.assertIn("max_value = 2", block)
-        self.assertIn("easy_value = 0", block)
-        self.assertIn("medium_value = 0", block)
-        self.assertIn("hard_value = 0", block)
-        self.assertIn("custom_value = 0", block)
+        self.assertIn("easy_value = 1", block)
+        self.assertIn("medium_value = 1", block)
+        self.assertIn("hard_value = 1", block)
+        self.assertIn("custom_value = 1", block)
 
         # Check settings.nut loading
         self.assertIn('local afri = AIController.GetSetting("air_fleet_routes_index");', self.settings)
