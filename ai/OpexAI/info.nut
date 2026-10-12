@@ -656,6 +656,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c117_lean_sampling",
+      description = "V159 opcode optimization: 0 = legacy C117 sampler; 1 = lean sampling when probe is off (skips unused fields, AIAirport calls and string flush; default since 2026-10-13, V159 porte B 20x10); 2 = dual shadow comparison (logs C117_LEAN_MISMATCH and monthly summary)",
+      min_value = 0, max_value = 2,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "c121_station_flux_probe",
       description = "Passive PASS station balance: loading increases, queue changes, unknown losses and transfer risks; no fleet decisions; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -1485,6 +1494,35 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v161_fleet_net_marginal",
+      description = "V161 cap AIR fleet growth value by a prior net of neighbour lines sharing an airport: 0 = off, 1 = on (default since 2026-10-13, user decision after porte A 40x3 +2.7%)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v161_prior_own",
+      description = "V161 prior: annual profit of one more plane on its own line (pounds)",
+      min_value = 0, max_value = 200000,
+      easy_value = 13000, medium_value = 13000, hard_value = 13000,
+      custom_value = 13000,
+      step_size = 500,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v161_prior_neighbour",
+      description = "V161 prior: annual profit lost per neighbour line sharing an airport (pounds)",
+      min_value = 0, max_value = 100000,
+      easy_value = 2600, medium_value = 2600, hard_value = 2600,
+      custom_value = 2600,
+      step_size = 100,
       flags = 0
     });
 
