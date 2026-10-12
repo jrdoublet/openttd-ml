@@ -37,11 +37,13 @@ La tâche demandée est inscrite dans `docs/taches.md` : identifier l'ancre/moti
 
 Les trois nouvelles comparaisons ont été pré-enregistrées et figées depuis `f6139d8` avec les overlays explicités dans leurs rapports. Le40×3 C122 et le40×5 retry incluent le retrait initial-project déjà validé ; le40×5 retry inclut aussi le retrait priority. Les modifications de sonde P0 parallèles sont exclues de ces copies comparatives. Le retry compare une sonde de menace commune=1 : résultat dans ce contexte instrumenté, pas qualification du témoin sondeOFF. Aucune porte B, adoption ou nouvelle mesure économique du cumul des retraits.
 
-[Archive versionnée des preuves](../evidence/review/parameter_cleanup_20261012/README.md) :48 artefacts (JSON/manifestes/plans/synthèses/CSV et dix logs des retries), octets bruts et gzip vérifiés par SHA-256. Les bundles complets et JSONL restent locaux ; aucune preuve économique du nettoyage combiné ajoutée.
+[Archive versionnée des preuves](../evidence/review/parameter_cleanup_20261012/README.md) :50 artefacts (JSON/manifestes/plans/synthèses/CSV, dix logs des retries et smoke de publication), octets bruts et gzip vérifiés par SHA-256. Les bundles complets et JSONL restent locaux ; aucune preuve économique du nettoyage combiné ajoutée.
 
 Commits antérieurs `edac183`, `daf9486` et `5e6fe47` vérifiés présents dans `origin/master` lors du fetch du12/10 ; le statut « edac183 non poussé » du11/10 est donc historique. Départ de cette publication : master local `f6139d8`, distant `2b8f01a` (10 commits supplémentaires, dont V147 adopté). Intégration isolée et contrôle technique de l'arbre à publier, sans absorber les diagnostics P0 locaux. La synchronisation de V147 ne requalifie pas économiquement les nettoyages.
 
 Le commit ciblé contient les deux nouveaux retraits, leurs contrats/diagnostics nécessaires, les six rapports C121/C122, cette passation et seulement les sections correspondantes des tâches/journal. `probes.nut`, son test de flux station, les scripts/rapports/preuves P0 et les sections P0 des fichiers partagés restent hors périmètre. Pas de staging global, pas de force-push.
+
+Commit de nettoyage `d508c46`, fusion isolée `1100a96` avec les10 commits distants. Seul conflit : `docs/taches.md`, résolu en conservant toutes les décisions distantes et les entrées de ce chantier. **135 tests ciblés verts**,50 preuves vérifiées. Smoke propre de l'arbre fusionné `parameter_publish_smoke_20261012_r1`,42×1,1/1 duel sain, deux compagnies actives/horizon complet, aucune erreur non attribuée ; retraits absents des défauts et retry0 confirmés. Bundle `d00176f780b6b8231df76d895f57e802d2e5a1790a2b0cc7475aff939126ef22`, manifeste `53c841bcc86918aa56cdfde7deb9d22eee796cb2aface92d0af38cd3e1c88570`. Cette intégration technique n'est pas une qualification économique du cumul avec V147.
 
 ## Prompt de reprise
 

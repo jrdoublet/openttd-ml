@@ -10,4 +10,6 @@ python -X utf8 evidence/review/parameter_cleanup_20261012/verify.py
 
 Les sources figées complètes, caches, savegames et JSONL restent dans `results/`, hors Git. Cette archive ne suffit donc pas à rejouer les campagnes et ne prétend pas archiver tous les logs. Aucun verdict n'est requalifié : les trois comparaisons sont `fail_primary`; le retry a une sonde de menace commune=1, pas un témoin sondeOFF. Les smokes valident la santé/compilation, pas la rentabilité du nettoyage ni la neutralité d'opcodes.
 
+**50 artefacts vérifiés.** Les deux derniers archivent le smoke propre de publication après fusion V147 : `parameter_publish_smoke_20261012_r1`,42×1 complet/sain sur `1100a96`. Les48 premiers conservent les comparaisons, préalables et smokes antérieurs sans remplacement.
+
 [Passation et décisions](../../../docs/passation_nettoyage_parametres_20261012.md), [C12140×5](../../../docs/c121_initial_project_40x5_20261012.md), [C12240×3](../../../docs/c122_regime_priority_40x3_20261012.md), [retry40×5](../../../docs/c122_threat_retry_40x5_20261012.md), [audit des relances](../../../docs/c122_retry_reparation_audit_20261012.md).
