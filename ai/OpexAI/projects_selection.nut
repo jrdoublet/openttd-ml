@@ -909,7 +909,17 @@ function OpexProjectFundProfit(project)
   local calibMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local calibrated = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual;
   if (calibMark != null) OpexSpanAgg("pub.select.calibrate", calibMark);
+  if (V162_RAIL_FREIGHT_BONUS_PCT > 0) return OpexV162RailFreightProfit(project, calibrated);
   return calibrated;
+}
+
+/* V162 : profit de classement d'un projet rail fret majore de V162_RAIL_FREIGHT_BONUS_PCT.
+ * Les appelants testent V162_RAIL_FREIGHT_BONUS_PCT > 0 avant d'entrer ici. */
+function OpexV162RailFreightProfit(project, profit)
+{
+  if (project == null || !("mode" in project) || project.mode != "rail"
+      || !("kind" in project) || project.kind == "pax") return profit;
+  return profit * (100 + V162_RAIL_FREIGHT_BONUS_PCT) / 100;
 }
 
 /* C121 cadence : mesurer le biais de cold-start K_dec sans toucher au projet

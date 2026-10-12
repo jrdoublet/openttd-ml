@@ -760,6 +760,10 @@ AIR_FLEET_COOLDOWN_PREFILTER <- true;
 AIR_FLEET_ROUTES_INDEX <- 0;
 /* V155: filter AIR lines refused by C121 observation/cadence before visible fleet refresh */
 AIR_FLEET_C121_PREGUARD <- false;
+/* V162 : bonus temporaire (test utilisateur du 12/10) du profit des projets rail fret dans
+ * le classement seulement (fundScore, stock C80) ; profitAnnual et les planchers inchanges.
+ * En pour cent ajoutes : 0 = off, 50 = profit x1,5. */
+V162_RAIL_FREIGHT_BONUS_PCT <- 0;
 /* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
  * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
 AIR_EFFICIENCY_BATCH <- false;

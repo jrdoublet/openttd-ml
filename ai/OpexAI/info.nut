@@ -1513,6 +1513,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v162_rail_freight_bonus_pct",
+      description = "V162 temporary ranking bonus for rail freight projects, in percent of profit (0 = off)",
+      min_value = 0, max_value = 300,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 10,
+      flags = 0
+    });
+
+    AddSetting({
       name = "air_fleet_c121_preguard",
       description = "Filter AIR lines refused by C121 observation/cadence before visible fleet refresh",
       min_value = 0, max_value = 1,

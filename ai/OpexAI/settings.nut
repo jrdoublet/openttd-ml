@@ -168,6 +168,8 @@ function OpexLoadSettings()
   local afri = AIController.GetSetting("air_fleet_routes_index");
   if (afri >= 0) AIR_FLEET_ROUTES_INDEX = afri;
   AIR_FLEET_C121_PREGUARD = AIController.GetSetting("air_fleet_c121_preguard") != 0;
+  local v162 = AIController.GetSetting("v162_rail_freight_bonus_pct");
+  if (v162 >= 0) V162_RAIL_FREIGHT_BONUS_PCT = v162;
   AIR_EFFICIENCY_BATCH = AIController.GetSetting("air_efficiency_batch") != 0;
   AIR_EFFICIENCY_PREFLIGHT = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_preflight") != 0;
   AIR_EFFICIENCY_DEDUPE = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_dedupe") != 0;

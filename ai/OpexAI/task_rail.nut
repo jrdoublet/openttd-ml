@@ -1892,6 +1892,7 @@ function OpexAI::_tryStartRailStockWorker()
     if (paperProject == null) continue;
     local paperFinanceCapital = OpexProjectFinanceCapital(paperProject);
     local paperProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(paperProject) : paperProject.profitAnnual;
+    if (V162_RAIL_FREIGHT_BONUS_PCT > 0) paperProfit = OpexV162RailFreightProfit(paperProject, paperProfit);
     local coarseFundScore = OpexProjectScore(paperProfit, paperFinanceCapital);
 
     if (threshold > 0.0 && coarseFundScore < threshold) {
@@ -1921,6 +1922,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     if (paperProject != null) {
       local paperFinanceCapital = OpexProjectFinanceCapital(paperProject);
       local paperProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(paperProject) : paperProject.profitAnnual;
+      if (V162_RAIL_FREIGHT_BONUS_PCT > 0) paperProfit = OpexV162RailFreightProfit(paperProject, paperProfit);
       coarseScore = OpexProjectScore(paperProfit, paperFinanceCapital);
     } else {
       coarseScore = 0.0;
@@ -2094,6 +2096,7 @@ function OpexAI::_handleRailStockSearchCompleted()
   if (readyProject != null) {
     local readyFinanceCapital = OpexProjectFinanceCapital(readyProject);
     local readyProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(readyProject) : readyProject.profitAnnual;
+    if (V162_RAIL_FREIGHT_BONUS_PCT > 0) readyProfit = OpexV162RailFreightProfit(readyProject, readyProfit);
     local readyFundScore = OpexProjectScore(readyProfit, readyFinanceCapital);
     readyProject.fundScore <- readyFundScore;
 
