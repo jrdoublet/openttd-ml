@@ -78,7 +78,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('AIController.GetSetting("c121_air_project_realization_adaptive")', settings)
         self.assertIn('AIController.GetSetting("c121_air_pressure_probe")', settings)
         self.assertIn('AIController.GetSetting("c121_air_defensive_floor")', settings)
-        self.assertIn('AIController.GetSetting("c121_air_initial_project_economics")', settings)
         self.assertIn('AIController.GetSetting("c121_air_engine_replay_shadow")', settings)
         self.assertIn('AIController.GetSetting("c121_air_game_engine")', settings)
 
@@ -366,13 +365,10 @@ class TestC121AirEconomics(unittest.TestCase):
         for token in (
             "local decisionEconomics = (C121_AIR_ECONOMICS",
             "capital = economics.capital",
-            "C121_AIR_INITIAL_PROJECT_ECONOMICS",
-            "projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics",
-            "projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital",
-            "decisionFinanceCapital = projectDecisionBudgetCapital",
-            "profitAnnual = projectEconomics.profitAnnual",
-            "revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi",
-            "budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital)",
+            "decisionFinanceCapital = decisionBudgetCapital",
+            "profitAnnual = decisionEconomics.profitAnnual",
+            "revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi",
+            "budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital)",
         ):
             self.assertIn(token, project)
         self.assertIn("project.fundScore <- OpexProjectScore", self.projects)
@@ -543,9 +539,9 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("local economics = plan.economics;", project)
         self.assertIn("local decisionEconomics = (C121_AIR_ECONOMICS", project)
         self.assertIn("capital = economics.capital", project)
-        self.assertIn("decisionFinanceCapital = projectDecisionBudgetCapital", project)
-        self.assertIn("profitAnnual = projectEconomics.profitAnnual", project)
-        self.assertIn("revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi", project)
+        self.assertIn("decisionFinanceCapital = decisionBudgetCapital", project)
+        self.assertIn("profitAnnual = decisionEconomics.profitAnnual", project)
+        self.assertIn("revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi", project)
         self.assertIn("project.fundScore <- OpexProjectScore", self.projects)
 
         reconcile = body(self.air, "function OpexAirReconcileActualBuild", "function OpexAirReserveJoinedStops")

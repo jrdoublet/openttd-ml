@@ -495,12 +495,7 @@ C121_AIR_PRESSURE_SNAPSHOT <- null;
 C121_AIR_PRESSURE_ACCUM <- null;
 C121_AIR_PRESSURE_PREV <- null;
 C121_AIR_DEFENSIVE_FLOOR <- false;
-C121_AIR_INITIAL_PROJECT_ECONOMICS <- false;
-C122_AIR_REGIME_PRIORITY <- false;
 C122_AIR_REGIME_SHADOW <- false;
-C122_AIR_PROMOTION_COUNT <- 0;
-C122_AIR_PROMOTION_LOG_COUNT <- 0;
-C122_AIR_PROMOTION_LOG_MAX <- 8;
 /* C122.4 : sonde locale de menace territoriale. Elle ne cree aucune politique :
  * elle relie seulement une transition C83 remaining=1 a un projet AIR deja
  * vivant/finance, puis suit le meme TownID jusqu'a claimed/lost. */

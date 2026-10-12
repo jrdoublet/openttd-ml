@@ -22,7 +22,7 @@ function C121InvestSource()
 {
   C121InvestLog("source", " econ=" + (C121_AIR_ECONOMICS ? 1 : 0)
       + " catalog=" + (C121_CATALOG_INCREMENTAL ? 1 : 0)
-      + " initial=" + (C121_AIR_INITIAL_PROJECT_ECONOMICS ? 1 : 0));
+      + " initial=0");
 }
 
 function C121InvestProject(project, rank, phase, outcome = "na", lineId = -1)

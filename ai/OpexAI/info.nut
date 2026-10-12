@@ -852,24 +852,8 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_air_initial_project_economics",
-      description = "C121 experimental: rank a new AIR project on the one-plane economy actually built; future fleet remains a separate marginal project; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c121_air_engine_replay_shadow",
       description = "C121 passive engine/fleet economics replay using only observed exact PASS/MAIL capacities; no decision change; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c122_air_regime_priority",
-      description = "C122 experimental AIR regime strategy: after the locked C121 pressure classification, race prioritizes viable AIR projects whose already-computed defensive annotation opens an unserved Opex slot town within the same C77 tier; efficiency keeps raw economic order; economics/engine/finance unchanged; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

@@ -1,5 +1,7 @@
 # Passation — nettoyage des paramètres OpexAI
 
+**Suite réconciliée au12/10 :** [paramètres examinés, décisions et nouveau prompt](passation_nettoyage_parametres_20261012.md). `edac183` a depuis été publié ; les états Git ci-dessous décrivent la fin de session du11/10, pas le statut courant.
+
 État vérifié le 11 octobre 2026. Ce document résume cette session ; `docs/taches.md` reste la seule liste autoritaire du travail restant. Les rapports liés conservent protocoles, graines, bundles et résultats. Leurs paragraphes « défaut conservé » ou « aucun commit » décrivent parfois une étape antérieure : les décisions finales ci-dessous prévalent.
 
 ## Méthode retenue

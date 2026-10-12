@@ -30,7 +30,7 @@ class TestStrategyPersistence(unittest.TestCase):
     def test_each_observer_or_policy_can_enable_state_without_economics_gate(self):
         enabled = body(self.source, "OpexC121StrategyStateEnabled")
         self.assertIn("return C121_AIR_PRESSURE_PROBE || C121_AIR_PROJECT_REALIZATION_ADAPTIVE", enabled)
-        self.assertIn("|| C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW;", enabled)
+        self.assertIn("|| C122_AIR_REGIME_SHADOW;", enabled)
         self.assertNotIn("C121_AIR_ECONOMICS", enabled)
         self.assertNotIn("C122_AIR_THREAT", enabled)
 

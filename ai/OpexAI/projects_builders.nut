@@ -276,13 +276,6 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
   if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
     decisionBudgetCapital += decisionEconomics.immobilise;
   }
-  /* C121 peut isoler strictement l'economie du projet execute maintenant : une
-   * nouvelle ligne construit un seul avion. Les avions suivants sont deja des
-   * projets flotte marginaux concurrents, donc crediter ici la croisiere future
-   * peut compter deux fois la meme valeur. Le mode historique reste le defaut. */
-  local useInitialProjectEconomics = C121_AIR_ECONOMICS && C121_AIR_INITIAL_PROJECT_ECONOMICS;
-  local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;
-  local projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital;
   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
    * que sur les opcodes encore necessaires pour construire le projet. */
   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
@@ -290,14 +283,13 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
     mode = "air", kind = "pax", cargo = catalog.paxCargo,
     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
     distance = plan.distance, capital = economics.capital,
-    budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
-    decisionConstructionCapital = useInitialProjectEconomics
-        ? economics.capital : decisionEconomics.capital,
-    profitAnnual = projectEconomics.profitAnnual,
-    revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
+    budgetCapital = budgetCapital, decisionFinanceCapital = decisionBudgetCapital,
+    decisionConstructionCapital = decisionEconomics.capital,
+    profitAnnual = decisionEconomics.profitAnnual,
+    revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi,
     expectedOpcodes = expectedOps,
-    budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital),
-    opcodeScore = OpexProjectScore(projectEconomics.revenueAnnual, expectedOps),
+    budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
+    opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
@@ -345,11 +337,6 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
     decisionBudgetCapital += decisionEconomics.immobilise;
   }
-  /* Option experimentale : classer le projet sur ce qui est construit maintenant
-   * (N=1). Les renforcements futurs restent des projets flotte independants. */
-  local useInitialProjectEconomics = C121_AIR_ECONOMICS && C121_AIR_INITIAL_PROJECT_ECONOMICS;
-  local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;
-  local projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital;
   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
    * que sur les opcodes encore necessaires pour construire le projet. */
   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
@@ -357,14 +344,13 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     mode = "air", kind = "pax", cargo = catalog.paxCargo,
     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
     distance = plan.distance, capital = economics.capital,
-    budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
-    decisionConstructionCapital = useInitialProjectEconomics
-        ? economics.capital : decisionEconomics.capital,
-    profitAnnual = projectEconomics.profitAnnual,
-    revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
+    budgetCapital = budgetCapital, decisionFinanceCapital = decisionBudgetCapital,
+    decisionConstructionCapital = decisionEconomics.capital,
+    profitAnnual = decisionEconomics.profitAnnual,
+    revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi,
     expectedOpcodes = expectedOps,
-    budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital),
-    opcodeScore = OpexProjectScore(projectEconomics.revenueAnnual, expectedOps),
+    budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
+    opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };

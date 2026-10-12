@@ -23,25 +23,16 @@ def body(text: str, start: str, end: str) -> str:
 
 
 class TestC122AirRegimePriority(unittest.TestCase):
-    def test_toggle_is_default_off_and_loaded(self):
-        self.assertIn("C122_AIR_REGIME_PRIORITY <- false;", GLOBALS)
+    def test_remaining_diagnostics_are_default_off_and_loaded(self):
         self.assertIn("C122_AIR_REGIME_SHADOW <- false;", GLOBALS)
         self.assertIn("C122_AIR_THREAT_PROBE <- false;", GLOBALS)
         self.assertIn("C122_AIR_THREAT_RETRY <- false;", GLOBALS)
-        self.assertIn(
-            'C122_AIR_REGIME_PRIORITY = AIController.GetSetting("c122_air_regime_priority") != 0;',
-            SETTINGS,
-        )
         self.assertIn(
             'C122_AIR_REGIME_SHADOW = AIController.GetSetting("c122_air_regime_shadow") != 0;',
             SETTINGS,
         )
         self.assertIn('C122_AIR_THREAT_RETRY = AIController.GetSetting("c122_air_threat_retry") != 0;', SETTINGS)
         self.assertIn('C122_AIR_THREAT_PROBE = AIController.GetSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;', SETTINGS)
-        pos = INFO.index('name = "c122_air_regime_priority"')
-        block = INFO[pos:pos + 850]
-        for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(field, block)
         shadow_pos = INFO.index('name = "c122_air_regime_shadow"')
         shadow_block = INFO[shadow_pos:shadow_pos + 700]
         for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
@@ -61,9 +52,8 @@ class TestC122AirRegimePriority(unittest.TestCase):
             "function OpexC121PressureNewAccum",
             "/* C78 / course defensive",
         )
-        self.assertIn("C122_AIR_REGIME_PRIORITY", pressure)
         self.assertIn(
-            "if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE || C122_AIR_REGIME_PRIORITY",
+            "if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE || C122_AIR_REGIME_SHADOW)",
             pressure,
         )
         self.assertIn("|| C122_AIR_REGIME_SHADOW", pressure)
@@ -77,7 +67,7 @@ class TestC122AirRegimePriority(unittest.TestCase):
         priority = body(
             PROJECTS,
             "function OpexC122AirRegimeTier",
-            "function OpexC122TracePromotion",
+            "function OpexC122TraceShadow",
         )
         self.assertIn("C121_AIR_PROJECT_REALIZATION_REGIME != 0", priority)
         self.assertIn('("defensiveNewTownClaims" in project)', priority)
@@ -114,67 +104,16 @@ class TestC122AirRegimePriority(unittest.TestCase):
         self.assertLess(defensive_at, regime_at)
         self.assertLess(defensive_at, score_at)
         self.assertLess(score_at, regime_at)
-        self.assertIn("C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW", insert)
+        self.assertIn("if (C122_AIR_REGIME_SHADOW", insert)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_REGIME == 0", insert)
         self.assertIn("&& projectAir && priorAir", insert)
-        self.assertIn("if (priorRegimeTier > projectRegimeTier) {", insert)
-        self.assertIn("if (priorRegimeTier < projectRegimeTier)", insert)
-
-    def test_c77_stays_primary_and_c122_logs_only_real_promotions(self):
-        insert = body(
-            PROJECTS,
-            "function OpexProjectInsertDefensive",
-            "function OpexPromoteLiveDefensiveAir",
-        )
-        c77_at = insert.index("if (priorTier > projectTier) break;")
-        c122_at = insert.index("OpexC122AirRegimeTier(project)")
-        promote_at = insert.index("OpexC122TracePromotion(")
-        score_at = insert.index("local priorScore =")
-        self.assertLess(c77_at, c122_at)
-        self.assertLess(score_at, c122_at)
-        self.assertLess(c122_at, promote_at)
-        self.assertIn('OpexC122TracePromotion("prior"', insert)
-        self.assertIn('OpexC122TracePromotion("project"', insert)
-        self.assertIn("economicKeepsPrior", insert)
-        self.assertNotIn("C78_SLOT_INTERCEPT_PROBE", insert)
-
-        trace = body(
-            PROJECTS,
-            "function OpexC122TracePromotion",
-            "/* Villes de slot",
-        )
-        self.assertNotIn("C78_SLOT_INTERCEPT_PROBE", trace)
-        self.assertIn('AILog.Info("C122_PROMOTE', trace)
-        self.assertIn('field != "fundScore"', trace)
-        self.assertIn("C122_AIR_PROMOTION_COUNT", trace)
-        self.assertIn("C122_AIR_PROMOTION_LOG_MAX", trace)
-        self.assertIn('reason=new_opex_slot_town', trace)
-        for field in (
-            "projectC77Tier",
-            "priorC77Tier",
-            "earlySlotClaims",
-            "defensiveNewTownClaims",
-            "defensiveCompetitorClaims",
-            "defensiveOwnClaims",
-            "preemptClaims",
-            "project[field]",
-            "prior[field]",
-        ):
-            self.assertIn(field, trace)
-
-        shadow = body(
-            PROJECTS,
-            "function OpexC122TraceShadow",
-            "/* C122.3 diagnostic",
-        )
-        self.assertIn('AILog.Info("C122_SHADOW', shadow)
-        self.assertIn("!C122_AIR_REGIME_SHADOW", shadow)
-        self.assertIn("C122_AIR_REGIME_PRIORITY", shadow)
+        self.assertIn("if (priorRegimeTier > projectRegimeTier && !economicKeepsPrior) {", insert)
+        self.assertIn("else if (priorRegimeTier < projectRegimeTier && economicKeepsPrior)", insert)
 
     def test_new_town_annotation_reuses_defensive_state_without_new_scan(self):
         refresh = body(PROJECTS, "function OpexProjectRefreshDefensiveSlot", "function OpexProjectDefensiveAirPriority")
         self.assertIn("local newTownClaims = 0;", refresh)
-        self.assertIn("C121_AIR_PRESSURE_PROBE || C122_AIR_REGIME_PRIORITY", refresh)
+        self.assertIn("C121_AIR_PRESSURE_PROBE || C122_AIR_REGIME_SHADOW", refresh)
         self.assertIn("|| C122_AIR_REGIME_SHADOW", refresh)
         self.assertIn("local newTowns = observeNewTowns ? {} : null;", refresh)
         self.assertIn("!(townA in state.servedTowns)", refresh)
@@ -206,14 +145,16 @@ class TestC122AirRegimePriority(unittest.TestCase):
             "function OpexProjectInsertDefensive",
             "function OpexPromoteLiveDefensiveAir",
         )
-        self.assertIn("C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW", insert)
-        self.assertIn("C122_AIR_REGIME_SHADOW && !C122_AIR_REGIME_PRIORITY", insert)
+        self.assertIn("if (C122_AIR_REGIME_SHADOW", insert)
         self.assertIn('OpexC122TraceShadow("prior"', insert)
         self.assertIn('OpexC122TraceShadow("project"', insert)
-        shadow_branch = insert[insert.index("if (C122_AIR_REGIME_SHADOW && !C122_AIR_REGIME_PRIORITY)"):]
-        shadow_branch = shadow_branch[:shadow_branch.index("} else if (priorRegimeTier > projectRegimeTier)")]
+        shadow_branch = insert[insert.index("if (C122_AIR_REGIME_SHADOW"):]
+        shadow_branch = shadow_branch[:shadow_branch.index("    if (priorScore > projectScore)")]
         self.assertNotIn("pos--;", shadow_branch)
         self.assertNotIn("break;", shadow_branch)
+        shadow = body(PROJECTS, "function OpexC122TraceShadow", "/* C122.3 diagnostic")
+        self.assertIn('AILog.Info("C122_SHADOW', shadow)
+        self.assertIn('!C122_AIR_REGIME_SHADOW || field != "fundScore"', shadow)
 
     def test_c122_4_threat_probe_is_local_passive_and_tracks_real_slot_closure(self):
         match = body(
@@ -298,7 +239,7 @@ class TestC122AirRegimePriority(unittest.TestCase):
         priority = body(
             PROJECTS,
             "function OpexC122AirRegimeTier",
-            "function OpexC122TracePromotion",
+            "function OpexC122TraceShadow",
         )
         self.assertIn("C121_AIR_PROJECT_REALIZATION_REGIME != 0", priority)
         self.assertNotIn("C121_AIR_PROJECT_REALIZATION_REGIME == 1", priority)

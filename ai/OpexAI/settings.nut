@@ -427,9 +427,7 @@ function OpexLoadSettings()
    * filtre des profits negatifs hors exemptions existantes. Les calculs executes
    * peuvent changer la cadence d'opcodes ; ne pas supprimer la branche. */
   C121_AIR_DEFENSIVE_FLOOR = AIController.GetSetting("c121_air_defensive_floor") != 0;
-  C121_AIR_INITIAL_PROJECT_ECONOMICS = AIController.GetSetting("c121_air_initial_project_economics") != 0;
   C121_AIR_ENGINE_REPLAY_SHADOW = AIController.GetSetting("c121_air_engine_replay_shadow") != 0;
-  C122_AIR_REGIME_PRIORITY = AIController.GetSetting("c122_air_regime_priority") != 0;
   C122_AIR_REGIME_SHADOW = AIController.GetSetting("c122_air_regime_shadow") != 0;
   C122_AIR_THREAT_RETRY = AIController.GetSetting("c122_air_threat_retry") != 0;
   C122_AIR_THREAT_PROBE = AIController.GetSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;
