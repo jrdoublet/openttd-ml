@@ -109,7 +109,6 @@ class CapitalQuoteContracts(unittest.TestCase):
         self.assertEqual(builders.count("decisionConstructionCapital = decisionEconomics.capital"), 2)
         finance = source("capital_quote_learning.nut")
         self.assertIn('decisionFinance - decisionConstruction', finance)
-        self.assertIn('OpexCapitalQuoteAlternativeFinance(project, economics, finance)', source("projects_finance.nut"))
         selection = source("projects_selection.nut")
         self.assertEqual(selection.count('OpexCapitalQuoteDecisionFinance(project, project.decisionFinanceCapital)'), 2)
 

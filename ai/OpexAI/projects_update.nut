@@ -324,17 +324,9 @@ function OpexAir0310PriorDropped(payload, priorRaw, priorKept)
   return true;
 }
 
-/* V141 : ecrire un slot existant ou le creer. `<-` sur un slot deja present
- * est le piege Squirrel a eviter. */
-function OpexV141WriteSlot(target, slot, value)
-{
-  if (slot in target) target[slot] = value;
-  else target[slot] <- value;
-}
-
 /* Champs que OpexProjectFromAir reecrit sans relire l'economie du plan :
- * planningOpcodes (airOps / N, pas opcodeScore), economicsDate, cargo, et
- * C118 si actif. budgetScore / opcodeScore / capital viennent du payload. */
+ * planningOpcodes (airOps / N, pas opcodeScore), economicsDate, cargo.
+ * budgetScore / opcodeScore / capital viennent du payload. */
 function OpexV141PublishedAirStillValid(payload)
 {
   if (payload == null || !("economics" in payload)) return false;
@@ -354,19 +346,6 @@ function OpexV141RefreshPublishedAir(project, catalog, planningOps)
   project.planningOpcodes = planningOps;
   project.economicsDate = AIDate.GetCurrentDate();
   project.cargo = catalog.paxCargo;
-  if (!C118_AIR_TERRITORIAL_EXPANSION) return;
-  local plan = ("payload" in project) ? project.payload : null;
-  OpexV141WriteSlot(project, "c118TownIds",
-      OpexC118PlanCoverageTowns(plan, catalog.paxCargo));
-  local economics = (plan != null && ("economics" in plan)) ? plan.economics : null;
-  local c68 = (plan != null && ("c118C68Economics" in plan))
-      ? plan.c118C68Economics : economics;
-  local profit = (c68 != null && ("profitAnnual" in c68)) ? c68.profitAnnual
-      : (economics != null ? economics.profitAnnual : 0);
-  local roi = (c68 != null && ("roi" in c68)) ? c68.roi
-      : (economics != null ? economics.roi : 0);
-  OpexV141WriteSlot(project, "c118C68Profit", profit);
-  OpexV141WriteSlot(project, "c118C68Roi", roi);
 }
 
 function OpexV141ValuesDiffer(leftVal, rightVal)
@@ -389,8 +368,7 @@ function OpexV141DecisionFieldDiff(kept, rebuilt)
   local fields = ["mode", "kind", "cargo", "src", "dst", "distance", "capital",
       "budgetCapital", "decisionFinanceCapital", "decisionConstructionCapital",
       "profitAnnual", "revenueAnnual", "roi", "expectedOpcodes", "budgetScore",
-      "opcodeScore", "planningOpcodes", "economicsDate", "c118C68Profit",
-      "c118C68Roi"];
+      "opcodeScore", "planningOpcodes", "economicsDate"];
   local hasLeft = false;
   local hasRight = false;
   foreach (field in fields) {
@@ -399,11 +377,6 @@ function OpexV141DecisionFieldDiff(kept, rebuilt)
     if (hasLeft != hasRight) return field;
     if (hasLeft && OpexV141ValuesDiffer(kept[field], rebuilt[field])) return field;
   }
-  local hasTownsLeft = "c118TownIds" in kept;
-  local hasTownsRight = "c118TownIds" in rebuilt;
-  if (hasTownsLeft != hasTownsRight) return "c118TownIds";
-  if (hasTownsLeft && OpexV141ValuesDiffer(kept.c118TownIds, rebuilt.c118TownIds))
-    return "c118TownIds";
   return null;
 }
 
@@ -423,7 +396,7 @@ function OpexV141LogCheck(verdict, field, compared, added)
  * - planningOpcodes = airOps / nombre TOTAL de plans (change a chaque lot ;
  *   ce n'est pas opcodeScore) ;
  * - economicsDate = date courante ;
- * - cargo = catalog.paxCargo, et c118TownIds si C118 est actif ;
+ * - cargo = catalog.paxCargo ;
  * - budgetScore et opcodeScore sont recalcules par le meme appel. Ils ne
  *   dependent pas de airOpsPerPlan : expectedOpcodes vaut
  *   PROJECT_AIR_TRANSACTION_OPS et le score budget vient de l'economie du
@@ -435,7 +408,7 @@ function OpexV141LogCheck(verdict, field, compared, added)
  * ne peut pas etre complete : l'appelant reconstruit alors tout.
  * V141 (v141_catalog_incremental) : les projets air deja publies ne passent
  * plus par OpexProjectFromAir. Leurs scores viennent du payload inchange ;
- * seuls planningOpcodes, economicsDate, cargo (et C118) sont reecrits.
+ * seuls planningOpcodes, economicsDate, cargo sont reecrits.
  * C111 reste sur FromAir. A 0 le chemin FromAir est conserve. */
 function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps, bestPlan)
 {

@@ -244,11 +244,11 @@ class SourceTests(unittest.TestCase):
     def test_preexisting_builder_entirely_preserved(self):
         original = re.sub(r"\n/\* FLEET_AMORT_SHADOW_BEGIN.*?/\* FLEET_AMORT_SHADOW_END \*/\n?", "", self.source, flags=re.S)
         # Empreinte du builder hors helper de sonde amortissement flotte,
-        # actualisée après le retrait demandé de l'économie initiale C121
-        # du 12/10. Identique à la copie figée du 40x3 C122 ; le retrait
-        # de priorité C122 ne modifie pas ce builder ni le helper de sonde.
+        # actualisée après le retrait demandé de la politique C118 le 12/10.
+        # Comparaison avec la sauvegarde préalable : seul le bloc d'annotation
+        # C118 a disparu, le helper de sonde est strictement inchangé.
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
-                         "7e9493026ebb9e0fdc4408a2ae934eb12c0e4a0082c23cbe973f50d4d910b29a")
+                         "101219e15dc374782b9ccb1582299e7bd11fb20b57a70e23b0aeaafbde29e63a")
 
     def test_integrated_caller_is_diagnostic_helper_stays_explicit_opt_in(self):
         occurrences = sum(p.read_text(encoding="utf-8").count("OpexFleetAmortShadow(")

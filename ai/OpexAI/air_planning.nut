@@ -886,9 +886,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
           : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 2, opcodePadding,
               C80_AIR_CHOICE_MEMO ? ("n|" + sites[a].town.id + "|" + sites[b].town.id
-                  + "|" + airport.type + "|" + plane.id) : null,
-              C119_AIR_INCOME_MODEL
-                  ? AIMap.DistanceManhattan(sites[a].anchor, sites[b].anchor) : 0);
+                  + "|" + airport.type + "|" + plane.id) : null);
       if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
@@ -918,12 +916,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
-      if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
-          && ("c118C68Economics" in routeChoice)) {
-        plan.c118C68Plane <- routeChoice.c118C68Plane;
-        plan.c118C68Economics <- routeChoice.c118C68Economics;
-        if ("c118EngineChoices" in routeChoice) plan.c118EngineChoices <- routeChoice.c118EngineChoices;
-      }
       if (C121_AIR_ECONOMICS) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
@@ -1570,9 +1562,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
           : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 1, opcodePadding,
               C80_AIR_CHOICE_MEMO ? ("h|" + hub.stationId + "|" + site.town.id
-                  + "|" + airport.type + "|" + plane.id) : null,
-              C119_AIR_INCOME_MODEL
-                  ? AIMap.DistanceManhattan(hub.anchor, site.anchor) : 0);
+                  + "|" + airport.type + "|" + plane.id) : null);
       if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
@@ -1611,12 +1601,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
-      if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
-          && ("c118C68Economics" in routeChoice)) {
-        plan.c118C68Plane <- routeChoice.c118C68Plane;
-        plan.c118C68Economics <- routeChoice.c118C68Economics;
-        if ("c118EngineChoices" in routeChoice) plan.c118EngineChoices <- routeChoice.c118EngineChoices;
-      }
       if (C121_AIR_ECONOMICS) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
@@ -1856,9 +1840,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
           : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 0, opcodePadding,
               C80_AIR_CHOICE_MEMO ? ("hh|" + hub1.stationId + "|" + hub2.stationId
-                  + "|" + airport.type + "|" + plane.id) : null,
-              C119_AIR_INCOME_MODEL
-                  ? AIMap.DistanceManhattan(hub1.anchor, hub2.anchor) : 0);
+                  + "|" + airport.type + "|" + plane.id) : null);
       if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
@@ -1934,12 +1916,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
-      if (C118_AIR_TERRITORIAL_EXPANSION && ("c118C68Plane" in routeChoice)
-          && ("c118C68Economics" in routeChoice)) {
-        plan.c118C68Plane <- routeChoice.c118C68Plane;
-        plan.c118C68Economics <- routeChoice.c118C68Economics;
-        if ("c118EngineChoices" in routeChoice) plan.c118EngineChoices <- routeChoice.c118EngineChoices;
-      }
       if (C121_AIR_ECONOMICS) {
         plan.targetPlanes <- routeChoice.targetPlanes;
       } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
@@ -2040,8 +2016,7 @@ function OpexAirV95BestHubRoute(ctx, site, airport, plane)
     local monthlyPax = hubMonthly + newMonthly;
     if (monthlyPax < 10) monthlyPax = 10;
     local choice = OpexAirChooseRoutePlane(ctx.catalog, airport, plane, flightDistance, monthlyPax,
-        ctx.infrastructureMaintenance, 0, 1, 0, null,
-        C119_AIR_INCOME_MODEL ? AIMap.DistanceManhattan(hub.anchor, site.anchor) : 0);
+        ctx.infrastructureMaintenance, 0, 1, 0, null);
     local econ = choice != null ? choice.economics : null;
     if (econ == null) {
       result.reject = "economics_unavailable";

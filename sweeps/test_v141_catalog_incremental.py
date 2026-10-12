@@ -109,9 +109,6 @@ class TestV141CatalogIncremental(unittest.TestCase):
         cls.log = _function_body(
             cls.update, "function OpexV141LogCheck("
         )
-        cls.write = _function_body(
-            cls.update, "function OpexV141WriteSlot("
-        )
         cls.from_air = _function_body(
             cls.builders, "function OpexProjectFromAir("
         )
@@ -202,10 +199,8 @@ class TestV141CatalogIncremental(unittest.TestCase):
         self.assertIn("identical", self.publish)
         self.assertIn("diff", self.publish)
 
-    def test_squirrel_traps_and_slot_write(self):
-        self.assertIn("if (slot in target) target[slot] = value", self.write)
-        self.assertIn("target[slot] <- value", self.write)
-        for body in (self.publish, self.refresh, self.valid, self.diff, self.log, self.write):
+    def test_squirrel_traps(self):
+        for body in (self.publish, self.refresh, self.valid, self.diff, self.log):
             names = _explicit_locals(body)
             self.assertEqual(len(names), len(set(names)), names)
             for reserved in RESERVED:

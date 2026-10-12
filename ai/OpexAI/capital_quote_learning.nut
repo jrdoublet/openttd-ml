@@ -73,7 +73,7 @@ function OpexCapitalQuoteFinance(project, historicalFinance)
   return (construction * factor).tointeger() + nonConstruction;
 }
 
-/* C111/C118 AIR garde une economie distincte pour le score. On transforme son
+/* C111 AIR garde une economie distincte pour le score. On transforme son
  * devis de construction avec la meme observation sans recalibrer le tampon. */
 function OpexCapitalQuoteDecisionFinance(project, decisionFinance)
 {
@@ -86,16 +86,6 @@ function OpexCapitalQuoteDecisionFinance(project, decisionFinance)
   if (nonConstruction < 0) nonConstruction = 0;
   return (decisionConstruction * OpexCapitalQuoteFactor("air", project)).tointeger()
       + nonConstruction;
-}
-
-function OpexCapitalQuoteAlternativeFinance(project, economics, finance)
-{
-  if (!CAPITAL_QUOTE_LEARNING || project == null || economics == null
-      || !("capital" in economics) || economics.capital <= 0) return finance;
-  local marginAndTransit = finance - economics.capital;
-  if (marginAndTransit < 0) marginAndTransit = 0;
-  return (economics.capital * OpexCapitalQuoteFactor("air", project)).tointeger()
-      + marginAndTransit;
 }
 
 function OpexCapitalQuoteObserve(mode, subject, result, quoteOverride = -1,

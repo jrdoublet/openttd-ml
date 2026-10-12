@@ -350,12 +350,8 @@ function OpexLoadSettings()
   C121_VISIBLE_FLEET_CACHE.clear();
   C121_STATION_FLUX_LAST_DATE = -1;
   C121_STATION_FLUX_STATE = {};
-  C118_AIR_TERRITORIAL_EXPANSION = AIController.GetSetting("c118_air_territorial_expansion") != 0;
   C118_AIR_COVERAGE_PROBE = AIController.GetSetting("c118_air_coverage_probe") != 0;
-  C119_AIR_INCOME_MODEL = AIController.GetSetting("c119_air_income_model") != 0;
   AIR_C121_PHYSICAL_PAYMENT_DAYS = AIController.GetSetting("air_c121_physical_payment_days") != 0;
-  C118_AIR_PROJECT_SNAPSHOT = null;
-  C118_AIR_DECISION_SEQ = 0;
   C120_AIR_TERRITORIAL_RANKING = AIController.GetSetting("c120_air_territorial_ranking") != 0;
   C121_AIR_ECONOMICS_SHADOW = AIController.GetSetting("c121_air_economics_shadow") != 0;
   C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;

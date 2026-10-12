@@ -17,7 +17,8 @@ function OpexAirFarePerPax(catalog, plane, distance, incomeDays)
   return (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
 }
 
-/* C119 : temps de paiement uniquement, separe du cycle AIR. */
+/* Temps de paiement C119 partage : repli C121 quand le paiement physique est OFF.
+ * Conserve apres retrait du traitement economique C119 autonome. */
 function OpexC119AirIncomeDays(plane, flightDistance)
 {
   if (plane == null || !("id" in plane)) return 1;

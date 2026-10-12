@@ -671,70 +671,17 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       local spChoose = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.choose_plan") : null;
-      local buildChoice = C118_AIR_TERRITORIAL_EXPANSION
-          ? OpexC118ChooseBuildPlan(this._catalog, plan, project)
-          : OpexC116ChooseBuildPlan(this._catalog, plan);
+      local buildChoice = OpexC116ChooseBuildPlan(this._catalog, plan);
       if (spChoose != null) OpexSpanEnd(spChoose);
       local buildPlan = buildChoice.plan;
-      if (C118_AIR_TERRITORIAL_EXPANSION && (C118_AIR_COVERAGE_PROBE || DECISION_LOG)) {
-        local c118Now = AIDate.GetCurrentDate();
-        AILog.Info("C118_DECISION date=" + c118Now
-            + " y=" + AIDate.GetYear(c118Now) + " m=" + AIDate.GetMonth(c118Now)
-            + " d=" + AIDate.GetDayOfMonth(c118Now)
-            + " rank=" + i + " arm=" + (("arm" in plan) ? plan.arm : "unknown")
-            + " active=" + ((("active" in buildChoice) && buildChoice.active) ? 1 : 0)
-            + " new_towns=" + (("newTowns" in buildChoice) ? buildChoice.newTowns : 0)
-            + " base_engine=" + ((("c118C68Plane" in plan) && plan.c118C68Plane != null)
-                ? plan.c118C68Plane.id : plan.plane.id) + " engine=" + buildPlan.plane.id
-            + " available=" + (("available" in buildChoice) ? buildChoice.available : 0)
-            + " base_finance=" + (("baselineFinance" in buildChoice) ? buildChoice.baselineFinance : 0)
-            + " finance=" + (("chosenFinance" in buildChoice) ? buildChoice.chosenFinance : 0)
-            + " base_cash_after=" + (("baselineCashAfter" in buildChoice) ? buildChoice.baselineCashAfter : 0)
-            + " cash_after=" + (("chosenCashAfter" in buildChoice) ? buildChoice.chosenCashAfter : 0)
-            + " base_flow_after=" + (("baselineFlowAfter" in buildChoice) ? buildChoice.baselineFlowAfter : 0)
-            + " flow_after=" + (("chosenFlowAfter" in buildChoice) ? buildChoice.chosenFlowAfter : 0)
-            + " next_capital=" + (("nextCapital" in buildChoice) ? buildChoice.nextCapital : 0)
-            + " next_town=" + (("nextTown" in buildChoice) ? buildChoice.nextTown : -1)
-            + " base_days=" + (("baselineDays" in buildChoice) ? buildChoice.baselineDays : 0)
-            + " days=" + (("chosenDays" in buildChoice) ? buildChoice.chosenDays : 0)
-            + " base_profit=" + (("baselineProfit" in buildChoice) ? buildChoice.baselineProfit : plan.economics.profitAnnual)
-            + " profit=" + (("chosenProfit" in buildChoice) ? buildChoice.chosenProfit : buildPlan.economics.profitAnnual)
-            + " changed=" + (buildChoice.changed ? 1 : 0));
-        /* Le harness ne conserve pas AILog. En mode probe uniquement, publier
-         * une version compacte via SIGN, le canal durable deja utilise par les
-         * sweeps. Plusieurs panneaux courts evitent la troncature a 31 chars. */
-        if (C118_AIR_COVERAGE_PROBE && ("active" in buildChoice) && buildChoice.active) {
-          C118_AIR_DECISION_SEQ++;
-          local c118Seq = C118_AIR_DECISION_SEQ;
-          local c118YY = AIDate.GetYear(c118Now) % 100;
-          local c118BaseEngine = (("c118C68Plane" in plan) && plan.c118C68Plane != null)
-              ? plan.c118C68Plane.id : plan.plane.id;
-          local c118BaseDays = (("baselineDays" in buildChoice) ? buildChoice.baselineDays : 0.0).tointeger();
-          local c118Days = (("chosenDays" in buildChoice) ? buildChoice.chosenDays : 0.0).tointeger();
-          OpexSign(anchor, "C8D|" + c118Seq + "|" + c118YY + "|" + AIDate.GetMonth(c118Now)
-              + "|" + AIDate.GetDayOfMonth(c118Now) + "|" + buildChoice.newTowns);
-          OpexSign(anchor, "C8R|" + c118Seq + "|" + plan.siteA.town.id + "|" + plan.siteB.town.id);
-          OpexSign(anchor, "C8E|" + c118Seq + "|" + c118BaseEngine + "|" + buildPlan.plane.id
-              + "|" + buildChoice.nextTown);
-          OpexSign(anchor, "C8C|" + c118Seq + "|" + (buildChoice.baselineCashAfter / 1000)
-              + "|" + (buildChoice.chosenCashAfter / 1000) + "|" + (buildChoice.nextCapital / 1000));
-          OpexSign(anchor, "C8F|" + c118Seq + "|" + buildChoice.baselineFlowAfter.tointeger()
-              + "|" + buildChoice.chosenFlowAfter.tointeger());
-          OpexSign(anchor, "C8T|" + c118Seq + "|" + c118BaseDays + "|" + c118Days);
-        }
-      }
       if (buildChoice.changed && DECISION_LOG) {
-        OpexDecide(C118_AIR_TERRITORIAL_EXPANSION ? "C118_EQUIPMENT" : "C116_EQUIPMENT", "rank=" + i
+        OpexDecide("C116_EQUIPMENT", "rank=" + i
             + " arm=" + (("arm" in plan) ? plan.arm : "unknown")
-            + " base_engine=" + ((("c118C68Plane" in plan) && plan.c118C68Plane != null)
-                ? plan.c118C68Plane.id : plan.plane.id) + " engine=" + buildPlan.plane.id
-            + (C118_AIR_TERRITORIAL_EXPANSION
-                ? " next_capital=" + buildChoice.nextCapital
-                    + " base_days=" + buildChoice.baselineDays + " days=" + buildChoice.chosenDays
-                : " gap=" + buildPlan.c116TargetGap
-                    + " dC=" + buildChoice.deltaCapital + " dP=" + buildChoice.deltaProfit
-                    + " base_C=" + buildPlan.c116BaselineCapital + " C=" + buildPlan.economics.capital
-                    + " base_P=" + buildPlan.c116BaselineProfit + " P=" + buildPlan.economics.profitAnnual));
+            + " base_engine=" + plan.plane.id + " engine=" + buildPlan.plane.id
+            + " gap=" + buildPlan.c116TargetGap
+            + " dC=" + buildChoice.deltaCapital + " dP=" + buildChoice.deltaProfit
+            + " base_C=" + buildPlan.c116BaselineCapital + " C=" + buildPlan.economics.capital
+            + " base_P=" + buildPlan.c116BaselineProfit + " P=" + buildPlan.economics.profitAnnual);
       }
 
       local spCash = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.cash") : null;

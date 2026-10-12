@@ -185,7 +185,7 @@ function OpexC118StationCoverageTowns(stationId, cargo)
 function OpexC118EndpointCoverageTowns(site, airport, cargo, reused)
 {
   local ids = [];
-  if ((!C118_AIR_TERRITORIAL_EXPANSION && !C118_AIR_COVERAGE_PROBE
+  if ((!C118_AIR_COVERAGE_PROBE
       && !C120_AIR_TERRITORIAL_RANKING)
       || site == null || airport == null || cargo < 0) return ids;
   local airportType = airport.type;
@@ -245,7 +245,7 @@ function OpexC118EndpointCoverageTowns(site, airport, cargo, reused)
 function OpexC118PlanCoverageTowns(plan, cargo)
 {
   local ids = [];
-  if ((!C118_AIR_TERRITORIAL_EXPANSION && !C118_AIR_COVERAGE_PROBE
+  if ((!C118_AIR_COVERAGE_PROBE
       && !C120_AIR_TERRITORIAL_RANKING)
       || plan == null || !(("siteA") in plan)
       || !(("siteB") in plan) || !(("airport") in plan)) return ids;
@@ -274,7 +274,7 @@ function OpexC118EngineFitsPlan(plan, plane)
 function OpexC118OwnCoveredTownSet(cargo)
 {
   local covered = {};
-  if ((!C118_AIR_TERRITORIAL_EXPANSION && !C118_AIR_COVERAGE_PROBE
+  if ((!C118_AIR_COVERAGE_PROBE
       && !C120_AIR_TERRITORIAL_RANKING) || cargo < 0) return covered;
   local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
   for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {

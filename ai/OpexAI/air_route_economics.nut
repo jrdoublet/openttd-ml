@@ -5,9 +5,8 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
                           infrastructureMaintenance, maxCapital, newAirportCount = 2,
                           opcodePadding = 0, fixedPlanes = 0, targetSizing = false,
                           serviceScan = false, forcePhysicalTiming = false,
-                          forceC100RankReplay = false, paymentDistance = 0)
+                          forceC100RankReplay = false)
 {
-  local c119Income = C119_AIR_INCOME_MODEL && paymentDistance > 0;
   local econKey = null;
   local canMemo = C80_AIR_EVAL_FAST && fixedPlanes == 0 && opcodePadding == 0 && !targetSizing && !serviceScan;
   if (canMemo) {
@@ -20,8 +19,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
         + "|pt=" + ((C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
             || C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
             || forcePhysicalTiming) ? 1 : 0)
-        + "|rr=" + ((C114_AIR_C100_FULL_REPLAY || forceC100RankReplay) ? 1 : 0)
-        + "|c119=" + (c119Income ? paymentDistance : 0);
+        + "|rr=" + ((C114_AIR_C100_FULL_REPLAY || forceC100RankReplay) ? 1 : 0);
     if (econKey in AIR_ECONOMICS_MEMO) {
       return AIR_ECONOMICS_MEMO[econKey];
     }
@@ -42,7 +40,6 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
         : (physicalTiming
             ? (plane.id + "|" + airport.type + "|" + distance)
             : ((plane.id * 10000) + distance));
-    if (c119Income) tripKey = "c119|" + tripKey + "|pd=" + paymentDistance;
     if (tripKey in AIR_TRIP_MEMO) {
       local tripData = AIR_TRIP_MEMO[tripKey];
       oneWayDays = tripData.oneWayDays;
@@ -58,9 +55,8 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
       tripsPerMonth = trip.tripsPerMonth;
       capacityPerPlane = trip.capacityPerPlane;
       if (capacityPerPlane > 0) {
-        local incomeDays = c119Income ? OpexC119AirIncomeDays(plane, distance) : OpexCeilDiv(oneWayDays, 1);
-        local incomeDistance = c119Income ? paymentDistance : distance;
-        incomePerUnit = OpexAirFarePerPax(catalog, plane, incomeDistance, incomeDays);
+        local incomeDays = OpexCeilDiv(oneWayDays, 1);
+        incomePerUnit = OpexAirFarePerPax(catalog, plane, distance, incomeDays);
       }
       AIR_TRIP_MEMO.rawset(tripKey, {
         oneWayDays = oneWayDays,
@@ -78,10 +74,9 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
     tripsPerMonth = trip.tripsPerMonth;
     capacityPerPlane = trip.capacityPerPlane;
     if (capacityPerPlane <= 0) return null;
-    local incomeDays = c119Income ? OpexC119AirIncomeDays(plane, distance) : OpexCeilDiv(oneWayDays, 1);
-    local incomeDistance = c119Income ? paymentDistance : distance;
+    local incomeDays = OpexCeilDiv(oneWayDays, 1);
     /* En soute, sans mesure, ~15 % du tarif postal par passager. V92 utilise la soute reelle. */
-    incomePerUnit = OpexAirFarePerPax(catalog, plane, incomeDistance, incomeDays);
+    incomePerUnit = OpexAirFarePerPax(catalog, plane, distance, incomeDays);
   }
   if (capacityPerPlane <= 0) {
     if (canMemo) AIR_ECONOMICS_MEMO.rawset(econKey, null);

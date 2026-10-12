@@ -4,6 +4,8 @@ Complément courant à la [passation du11/10](passation_nettoyage_parametres_202
 
 ## Décisions réconciliées
 
+**Nouvelle demande après les retraits C119/C118 :** committer ce seul chantier et préparer la fusion avec `origin/master`, en préservant V157/V158/V160 adoptés en parallèle. Publication distante non demandée à cette étape ; diagnostics P0 locaux exclus. [Archive des preuves techniques C118/C119](../evidence/review/c118_c119_cleanup_20261012/README.md).
+
 | Paramètre examiné | Décision et état | Mesure / validation conservée |
 |---|---|---|
 | `rail_upgrade_failure_memory` | Adoption explicite à1 conservée | 40×10 `fail_primary`, équivalence non démontrée ; [rapport](rail_upgrade_failure_memory_40x10_20261010.md) |
@@ -24,6 +26,8 @@ Complément courant à la [passation du11/10](passation_nettoyage_parametres_202
 | `c121_air_initial_project_economics` | Retiré sur demande après40×5, inclus dans le présent commit | +0,148 %, `fail_primary`, exposition directe absente sous choix1/2 ;94 contrats et smoke ; [mesure](c121_initial_project_40x5_20261012.md), [retrait](c121_initial_project_retrait_20261012.md) |
 | `c122_air_regime_priority` | Retiré sur demande après40×3, inclus dans le présent commit | −0,996 %, `fail_primary`,13 graines avec promotion ;106 contrats et smoke ; [mesure](c122_regime_priority_40x3_20261012.md), [retrait](c122_regime_priority_retrait_20261012.md) |
 | `c122_air_threat_retry` | **Conservé à0**, aucune suppression demandée | 40×5 instrumenté :−0,490 %, `fail_primary`,6 retries/5 graines ; [mesure](c122_threat_retry_40x5_20261012.md) |
+| `c119_air_income_model` | **Retiré localement le12/10**, sur confirmation de C121 définitivement adopté | Helper partagé et sondes préservés ;94 contrats, smoke défauts42×1 sain ; [bilan](c119_air_income_retrait_20261012.md) ; aucun commit/push de ce retrait |
+| `c118_air_territorial_expansion` | **Retiré localement et validé techniquement le12/10**, sur demande | 188 contrats verts, deux smokes42×1 défauts/sonde sains ; helpers C121/C120 et sonde conservés ; [bilan](c118_territorial_retrait_20261012.md) ; aucun commit/push |
 
 Les paramètres de sondes et shadows sont exclus du nettoyage par décision utilisateur. Les variantes live actives, la fenêtre4 ans, l'adaptatif/direct et les consommateurs partagés restent préservés. Aucun réglage numérique dépendant d'un parent rejeté n'est requalifié par le retrait du parent. Gain non démontré, perte significative et décision de simplification restent distincts.
 
@@ -60,6 +64,12 @@ Les adoptions explicites rail_upgrade_failure_memory=1 et
 air_c121_physical_payment_days=1 restent conservées.
 
 c121_air_initial_project_economics et c122_air_regime_priority sont retirés.
+c119_air_income_model est aussi retiré localement sur confirmation de C121
+définitivement adopté. Le helper partagé OpexC119AirIncomeDays est conservé,
+94 contrats et smoke42×1 sains ; ce retrait n'est ni committé ni poussé.
+c118_air_territorial_expansion est retiré localement sur demande ;188 contrats
+verts, deux smokes42×1 défauts/sonde sains, helpers C121/C120 et sonde de couverture
+conservés. Aucun commit/push de ce retrait ; aucune politique C118 à retester.
 c122_air_threat_retry reste à0 : 40×5 instrumenté fail_primary,6 retries/5 graines.
 La réparation de site associée est une tâche distincte de diagnostic : ancre,
 motif exact, étapes C77, puis éventuelle recherche plus complète/élargie ciblée.

@@ -208,7 +208,6 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
         self.assertIn("planningOpcodes", self.noted)
         self.assertIn("economicsDate", self.noted)
         self.assertIn("catalog.paxCargo", self.noted)
-        self.assertIn("c118TownIds", self.noted)
         self.assertIn("budgetScore", self.noted)
         self.assertIn("opcodeScore", self.noted)
         self.assertIn("PROJECT_AIR_TRANSACTION_OPS", self.noted)

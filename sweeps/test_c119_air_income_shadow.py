@@ -36,12 +36,12 @@ class TestC119AirIncomeShadow(unittest.TestCase):
         for module in ("air_economics_c121.nut", "air_route_economics.nut", "air_planning.nut"):
             self.assertIn(f'require("{module}");', builder)
 
-    def test_decision_flag_defaults_off_and_is_loaded(self):
+    def test_standalone_decision_flag_is_removed(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["c119_air_income_model"], 0)
-        self.assertIn("C119_AIR_INCOME_MODEL <- false;", GLOBALS.read_text(encoding="utf-8"))
-        self.assertIn(
-            'C119_AIR_INCOME_MODEL = AIController.GetSetting("c119_air_income_model") != 0;',
+        self.assertNotIn("c119_air_income_model", defaults)
+        self.assertNotIn("C119_AIR_INCOME_MODEL", GLOBALS.read_text(encoding="utf-8"))
+        self.assertNotIn(
+            'AIController.GetSetting("c119_air_income_model")',
             SETTINGS.read_text(encoding="utf-8"),
         )
 
@@ -55,25 +55,16 @@ class TestC119AirIncomeShadow(unittest.TestCase):
         self.assertNotIn("airportDelayDays", body)
         self.assertNotIn("roundTripDays", body)
 
-    def test_c119_changes_payment_inputs_not_cycle_or_fleet(self):
+    def test_legacy_route_economics_keep_cycle_and_fleet(self):
         src = AIR_ROUTE_ECON.read_text(encoding="utf-8")
         start = src.index("function OpexAirEconomics")
         end = src.index("function OpexAirTargetEconomics", start)
         body = src[start:end]
-        self.assertIn("local c119Income = C119_AIR_INCOME_MODEL && paymentDistance > 0;", body)
+        self.assertNotIn("c119Income", body)
         self.assertIn("OpexAirTripModel(plane.speed, plane.capacity, distance", body)
-        self.assertIn("local incomeDistance = c119Income ? paymentDistance : distance;", body)
+        self.assertIn("OpexAirFarePerPax(catalog, plane, distance, incomeDays)", body)
         self.assertIn("local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());", body)
         self.assertNotIn("mailCapacity =", body)
-
-    def test_all_three_prebuild_arms_supply_manhattan_payment_distance(self):
-        src = AIR_PLANNING.read_text(encoding="utf-8")
-        for token in (
-            "AIMap.DistanceManhattan(sites[a].anchor, sites[b].anchor)",
-            "AIMap.DistanceManhattan(hub.anchor, site.anchor)",
-            "AIMap.DistanceManhattan(hub1.anchor, hub2.anchor)",
-        ):
-            self.assertIn(token, src)
 
     def test_base_engine_speed_replay_matches_noai_scale(self):
         self.assertEqual(script_air_speed(223), 236)

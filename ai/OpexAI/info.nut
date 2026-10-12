@@ -678,14 +678,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c119_air_income_model",
-      description = "C119: AIR pre-build income uses Manhattan payment distance and delivery-only time while keeping legacy cycle, demand and fleet sizing unchanged; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "air_c121_physical_payment_days",
       description = "AIR C121: compute cargo payment age from physical one-way flight and airport manoeuvre time; 1 = on (default), 0 = C119 distance+30 proxy",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -694,16 +686,8 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c118_air_territorial_expansion",
-      description = "C118: rank viable AIR expansion by real new-town catchment coverage and choose the engine minimizing time to the next territorial AIR project; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c118_air_coverage_probe",
-      description = "C118 passive probe: log actual AIR catchment town coverage and territorial decision diagnostics without enabling the C118 policy; 0 = off (default)",
+      description = "C118 passive probe: log actual AIR catchment town coverage without changing decisions; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

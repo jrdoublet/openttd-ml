@@ -112,15 +112,13 @@ class TestC120AirTerritorialRanking(unittest.TestCase):
         self.assertNotIn("c120NewTowns > 0", select[select.index("local floorProfit") : select.index("local affordable")])
         self.assertNotIn("C120_AIR_TERRITORIAL_RANKING && project.mode", select)
 
-    def test_engine_choice_path_is_exactly_existing_c115_c118_c116_path(self):
+    def test_engine_choice_path_remains_independent_from_c120(self):
         build = body(
             TASK_AIR,
             "function OpexAI::_tryBuildAirProject",
             "function OpexAirFleetRefusal",
         )
         choice = build[build.index("local buildChoice") : build.index("local buildPlan")]
-        self.assertIn("C118_AIR_TERRITORIAL_EXPANSION", choice)
-        self.assertIn("OpexC118ChooseBuildPlan", choice)
         self.assertIn("OpexC116ChooseBuildPlan(this._catalog, plan)", choice)
         self.assertNotIn("C120", choice)
 

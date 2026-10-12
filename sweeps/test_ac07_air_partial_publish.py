@@ -165,7 +165,6 @@ class AC07PartialTests(unittest.TestCase):
         self.assertIn("project.planningOpcodes = planningOps;", REFRESH)
         self.assertIn("project.economicsDate = AIDate.GetCurrentDate();", REFRESH)
         self.assertIn("project.cargo = catalog.paxCargo;", REFRESH)
-        self.assertIn('OpexV141WriteSlot(project, "c118TownIds"', REFRESH)
         self.assertIn("local expectedOps = PROJECT_AIR_TRANSACTION_OPS;", FROM_AIR)
         self.assertIn("OpexAir0310PriorDropped(payload, priorRaw, priorKept)", PUBLISH)
         self.assertIn("OpexStagedAirPlanStillValid(catalog, priorPlan,", PUBLISH)

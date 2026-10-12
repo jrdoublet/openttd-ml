@@ -354,12 +354,6 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
-  if (C118_AIR_TERRITORIAL_EXPANSION) {
-    project.c118TownIds <- OpexC118PlanCoverageTowns(plan, catalog.paxCargo);
-    local c68 = (("c118C68Economics") in plan) ? plan.c118C68Economics : economics;
-    project.c118C68Profit <- c68 != null ? c68.profitAnnual : economics.profitAnnual;
-    project.c118C68Roi <- c68 != null ? c68.roi : economics.roi;
-  }
   return project;
 }
 

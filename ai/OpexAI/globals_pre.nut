@@ -449,19 +449,9 @@ C121_VISIBLE_AIRPORT_CACHE <- {};
 C121_VISIBLE_FLEET_CACHE <- {};
 C121_STATION_FLUX_LAST_DATE <- -1;
 C121_STATION_FLUX_STATE <- {};
-/* C119 : corrige uniquement les entrees du paiement AIR pre-construction :
- * distance Manhattan de livraison et temps de livraison separe du cycle. */
-C119_AIR_INCOME_MODEL <- false;
-/* C118 : expansion AIR orientee couverture territoriale. Le portefeuille
- * classe les projets expansifs sur le nombre reel de villes nouvelles puis
- * sur le temps estime jusqu'au prochain projet expansif. Le choix moteur
- * minimise la meme grandeur, avec C68 comme departage economique. */
-C118_AIR_TERRITORIAL_EXPANSION <- false;
-/* Sonde passive separee : permet de mesurer la courbe de couverture du temoin
- * C115 sans activer la politique C118. */
+/* Sonde passive : mesure la couverture AIR sans modifier les decisions.
+ * Le traitement territorial C118 autonome a ete retire. */
 C118_AIR_COVERAGE_PROBE <- false;
-C118_AIR_PROJECT_SNAPSHOT <- null;
-C118_AIR_DECISION_SEQ <- 0;
 /* C120 : experience isolee de classement territorial ADMINISTRATIF. Elle ne
  * modifie ni moteur, ni economie, ni generation AIR : seulement l'ordre des
  * projets C115 deja admis/financables, par nouvelles villes portant physiquement

@@ -1093,7 +1093,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   alternatives = fittedAlternatives;
   local spStates = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.states") : null;
   /* Avant plancher, preparation territoriale et filtre. */
-  OpexC118PrepareSelection(alternatives, capitalBudget);
   OpexC120PrepareSelection(alternatives, capitalBudget);
   /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,
    * results/bench_isolation_3y_20seeds.json). Le tri au seul RATIO profit/capital a ete mesure isole :
@@ -1173,11 +1172,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       }
     }
     OpexC116ObserveAirPortfolioOpportunity(c116Snapshot, project, financeCapital, capitalBudget);
-    local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
-        && (("c118NewTowns") in project) && project.c118NewTowns > 0;
-    if (c118Territorial && ("c118MinFinance" in project) && project.c118MinFinance > 0) {
-      financeCapital = project.c118MinFinance;
-    }
     if (fundMark != null) {
       OpexSpanAgg("pub.select.score.fund_score", fundMark);
       fundMark = null;
@@ -1209,7 +1203,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       if (c121DefensiveTier >= 2) c121DefensiveFloor = floorProfit / 2;
       else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;
     }
-    if (project.profitAnnual < c121DefensiveFloor && !c118Territorial
+    if (project.profitAnnual < c121DefensiveFloor
         && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) {
       if (PROBE_SELECT_REJECT && project.mode == "air") {
         OpexSelectRejectLog(project, "floor", affordable, scoreKey, kDec);
@@ -1309,11 +1303,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local slotMark = null;
       local insertMark = null;
-      local c118Territorial = C118_AIR_TERRITORIAL_EXPANSION && project.mode == "air"
-          && (("c118NewTowns") in project) && project.c118NewTowns > 0;
-      local normalFinanceCapital = OpexProjectFinanceCapital(project);
-      local financeCapital = (c118Territorial && ("c118MinFinance" in project)
-          && project.c118MinFinance > 0) ? project.c118MinFinance : normalFinanceCapital;
+      local financeCapital = OpexProjectFinanceCapital(project);
       if (fundMark != null) {
         OpexSpanAgg("pub.select.score.fund_score", fundMark);
         fundMark = null;
@@ -1546,50 +1536,6 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot 
     local priorC77Tier = OpexProjectDefensiveAirPriority(prior);
     local priorTier = priorC77Tier
         + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
-    local c118Active = C118_AIR_TERRITORIAL_EXPANSION
-        && C118_AIR_PROJECT_SNAPSHOT != null
-        && ("active" in C118_AIR_PROJECT_SNAPSHOT) && C118_AIR_PROJECT_SNAPSHOT.active;
-    if (c118Active) {
-      local projectAir = ("mode" in project) && project.mode == "air";
-      local priorAir = ("mode" in prior) && prior.mode == "air";
-      local projectNew = ("c118NewTowns" in project) ? project.c118NewTowns : 0;
-      local priorNew = ("c118NewTowns" in prior) ? prior.c118NewTowns : 0;
-      if (projectNew > 0 || priorNew > 0) {
-        if (priorNew > projectNew) break;
-        if (priorNew < projectNew) {
-          pos--;
-          continue;
-        }
-      }
-      if (projectAir && priorAir) {
-        local projectDays = ("c118NextDays" in project) ? project.c118NextDays : -1.0;
-        local priorDays = ("c118NextDays" in prior) ? prior.c118NextDays : -1.0;
-        if (projectDays >= 0 && priorDays >= 0 && priorDays != projectDays) {
-          if (priorDays < projectDays) break;
-          pos--;
-          continue;
-        }
-        if (priorDays >= 0 && projectDays < 0) break;
-        if (priorDays < 0 && projectDays >= 0) {
-          pos--;
-          continue;
-        }
-        local projectProfit = ("c118C68Profit" in project) ? project.c118C68Profit : project.profitAnnual;
-        local priorProfit = ("c118C68Profit" in prior) ? prior.c118C68Profit : prior.profitAnnual;
-        if (priorProfit > projectProfit) break;
-        if (priorProfit < projectProfit) {
-          pos--;
-          continue;
-        }
-        local projectRoi = ("c118C68Roi" in project) ? project.c118C68Roi : project.roi;
-        local priorRoi = ("c118C68Roi" in prior) ? prior.c118C68Roi : prior.roi;
-        if (priorRoi > projectRoi) break;
-        if (priorRoi < projectRoi) {
-          pos--;
-          continue;
-        }
-      }
-    }
     if (priorTier > projectTier) break;
     if (priorTier < projectTier) {
       pos--;
@@ -1643,17 +1589,6 @@ function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
       && ("c120NewTowns" in projects.best[0]) && projects.best[0].c120NewTowns > 0) {
     return projects.best[0];
   }
-  /* C118 a deja impose son ordre lexicographique sur ce meme petit portefeuille.
-   * Une promotion defensive executee ensuite contournerait l'objectif territorial
-   * (et peut remettre un projet newTowns=0 devant un projet expansif). Tant que
-   * le snapshot contient au moins une opportunite territoriale, garder la tete
-   * C118 telle quelle. Des que la frontiere devient vide, le comportement
-   * defensif historique reprend naturellement. */
-  if (C118_AIR_TERRITORIAL_EXPANSION && C118_AIR_PROJECT_SNAPSHOT != null
-      && ("active" in C118_AIR_PROJECT_SNAPSHOT) && C118_AIR_PROJECT_SNAPSHOT.active) {
-    return projects.best[0];
-  }
-
   local earlyState = null;
   local defensiveState = null;
   local bestIndex = -1;
@@ -1821,9 +1756,6 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
       local fitQty = ((capitalBudget - 1000) / planePrice).tointeger();
       if (fitQty < 0) fitQty = 0;
       if (fitQty < want) cap = (fitQty + 1) * planePrice + 1000;
-    } else if (C118_AIR_TERRITORIAL_EXPANSION && ("mode" in p) && p.mode == "air"
-        && ("c118MinFinance" in p) && p.c118MinFinance > 0) {
-      cap = p.c118MinFinance;
     }
     if (cap > capitalBudget && (nextCap < 0 || cap < nextCap)) nextCap = cap;
   }
