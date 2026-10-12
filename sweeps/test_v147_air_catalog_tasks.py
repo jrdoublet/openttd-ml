@@ -37,12 +37,12 @@ def _body(source: str, signature: str) -> str:
 
 
 class StaticContract(unittest.TestCase):
-    def test_setting_default_zero(self):
+    def test_setting_default_one(self):
         info = _read("info.nut")
         block = info[info.index('name = "v147_air_catalog_tasks"') :][:600]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, rf"{key} = 0\b")
-        self.assertIn("V147_AIR_CATALOG_TASKS <- false;", _read("globals_pre.nut"))
+            self.assertRegex(block, rf"{key} = 1\b")
+        self.assertIn("V147_AIR_CATALOG_TASKS <- true;", _read("globals_pre.nut"))
         self.assertIn('GetSetting("v147_air_catalog_tasks")', _read("settings.nut"))
 
     def test_queue_extended_at_end_only_under_flag(self):

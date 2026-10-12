@@ -1910,10 +1910,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v147_air_catalog_tasks",
-      description = "V147 (CD07/B): run AIR catalogue rebuild phases (scan, publish, apply) as their own scheduler entries; 0 = single catalog entry (default)",
+      description = "V147 (CD07/B): run AIR catalogue rebuild phases (scan, publish, apply) as their own scheduler entries; default 1, 0 = single catalog entry (rollback)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });

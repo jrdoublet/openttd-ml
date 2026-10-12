@@ -1059,7 +1059,7 @@ SUBSIDY_RESELECT_IF_PURGED <- true;
 /* V147 (CD07/B) : phases du rebuild AIR du catalogue comme entrees autonomes de _taskQueue
  * (air_cat_scan, air_cat_publish, air_cat_apply), ajoutees EN FIN de file pour ne pas
  * deplacer les indices sauvegardes. L'etat reste task.c78AirRebuild sur l'entree catalog.
- * 0 = architecture A historique (defaut). */
-V147_AIR_CATALOG_TASKS <- false;
+ * Defaut 1 depuis le 12/10 (qualifie) ; 0 = architecture A historique (rollback). */
+V147_AIR_CATALOG_TASKS <- true;
 V147_IN_PHASE <- false;
 V147_TASK_BASE <- -1;
