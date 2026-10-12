@@ -281,6 +281,46 @@
       "raw_sha256": "623caa6e4cb8a51d8898512bbdd042e3311f4fd18d885eaebf8678d5b37a59bb",
       "gzip_bytes": 1198,
       "gzip_sha256": "422b5bf50db007203d769a966393e674007d9364dddd38bf3b67f6a3414b9a9f"
+    },
+    {
+      "source": "results/c118_c119_merge_defaults_smoke_20261012_r1.json",
+      "evidence": "evidence/review/c118_c119_cleanup_20261012/results/c118_c119_merge_defaults_smoke_20261012_r1.json.gz",
+      "raw_bytes": 23900,
+      "raw_sha256": "7df9ee7ecccee70357f2e0e9ba31e7b7c941b94c003d5fea58ef025f956b526d",
+      "gzip_bytes": 3330,
+      "gzip_sha256": "a74827a814ee136fabe66cb9b2841e354ef971b7c1dd8b82224a749c7ab936a0"
+    },
+    {
+      "source": "results/c118_c119_merge_defaults_smoke_20261012_r1.manifest.json",
+      "evidence": "evidence/review/c118_c119_cleanup_20261012/results/c118_c119_merge_defaults_smoke_20261012_r1.manifest.json.gz",
+      "raw_bytes": 62565,
+      "raw_sha256": "fd63252ae0669d899f3c1e255b3bfa2e0c734d3053098ac49778a365da78ffdd",
+      "gzip_bytes": 11866,
+      "gzip_sha256": "8756f2551e5ba5d050564862f3329af4fb683cf6bb47b993d6bba4bbe9308108"
+    },
+    {
+      "source": "results/c118_c119_merge_defaults_smoke_20261012_r1_engine/reference_seed42_r0.log",
+      "evidence": "evidence/review/c118_c119_cleanup_20261012/results/c118_c119_merge_defaults_smoke_20261012_r1_engine/reference_seed42_r0.log.gz",
+      "raw_bytes": 345359,
+      "raw_sha256": "496383f9c84093cc7310b832867b9b084651d173ae20499d9a5f0b7411f38cfa",
+      "gzip_bytes": 39949,
+      "gzip_sha256": "fe8d2cc4421cbcf1f2d9019d3f8ce45f7086244ed170d74f5eaa94e2c854e511"
+    },
+    {
+      "source": "results/c118_c119_merge_contracts_20261012.json",
+      "evidence": "evidence/review/c118_c119_cleanup_20261012/results/c118_c119_merge_contracts_20261012.json.gz",
+      "raw_bytes": 1019,
+      "raw_sha256": "a05cb3e3076d35a9cc42b96a24053234e081d285800276777cc82893c927091b",
+      "gzip_bytes": 422,
+      "gzip_sha256": "0e2b79148c9ac1f7e3996936a3db7365c34752d7edb21cbaea5b4827763dce7a"
+    },
+    {
+      "source": "results/c118_c119_merge_audit_20261012.json",
+      "evidence": "evidence/review/c118_c119_cleanup_20261012/results/c118_c119_merge_audit_20261012.json.gz",
+      "raw_bytes": 729,
+      "raw_sha256": "89c0daedec354134050892a2fd1743d0494ecb21c5c3f4a14df920ee18d148ba",
+      "gzip_bytes": 444,
+      "gzip_sha256": "60bfed46c25dad49d7686bf4d147a2279de82ea9d05d7a910e525f85075d0b7b"
     }
   ]
 }

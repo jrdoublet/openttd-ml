@@ -6,6 +6,8 @@ Complément courant à la [passation du11/10](passation_nettoyage_parametres_202
 
 **Nouvelle demande après les retraits C119/C118 :** committer ce seul chantier et préparer la fusion avec `origin/master`, en préservant V157/V158/V160 adoptés en parallèle. Publication distante non demandée à cette étape ; diagnostics P0 locaux exclus. [Archive des preuves techniques C118/C119](../evidence/review/c118_c119_cleanup_20261012/README.md).
 
+**Préparation terminée :** commit ciblé `c79bf0f`, fusion `dd826d6` de `origin/master` au `02d243f`, branche isolée `codex/c118-c119-merge-20261012` ; quatre réglages V157/V158/V160 à1,247 tests et smoke défauts42×1 sains,40 preuves archivées. Aucun push ; checkout principal et diagnostics P0 préservés. [État Git, conflits et validation](c118_c119_merge_preparation_20261012.md). Les mentions « aucun commit » des étapes antérieures sont historiques.
+
 | Paramètre examiné | Décision et état | Mesure / validation conservée |
 |---|---|---|
 | `rail_upgrade_failure_memory` | Adoption explicite à1 conservée | 40×10 `fail_primary`, équivalence non démontrée ; [rapport](rail_upgrade_failure_memory_40x10_20261010.md) |
