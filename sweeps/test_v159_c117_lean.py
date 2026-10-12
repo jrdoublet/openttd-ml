@@ -105,11 +105,13 @@ class TestV159C117Lean(unittest.TestCase):
             for path in AI.glob("*.nut")
         }
 
-    def test_default_zero_all_difficulties(self):
+    def test_default_one_all_difficulties(self):
+        # défaut 1 depuis le 13/10 (porte B 20x10 passée, décision utilisateur) ;
+        # le global reste à 0 : seul info.nut porte le défaut
         block = setting_block(self.info, "c117_lean_sampling")
         self.assertIn("min_value = 0, max_value = 2", block)
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{difficulty}_value = 0", block)
+            self.assertIn(f"{difficulty}_value = 1", block)
         self.assertNotIn("AICONFIG_BOOLEAN", block)
         self.assertEqual(self.info.count('name = "c117_lean_sampling"'), 1)
         self.assertIn("C117_LEAN_SAMPLING <- 0;", self.globals)

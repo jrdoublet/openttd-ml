@@ -657,10 +657,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c117_lean_sampling",
-      description = "V159 opcode optimization: 0 = legacy C117 sampler (default); 1 = lean sampling when probe is off (skips unused fields, AIAirport calls and string flush); 2 = dual shadow comparison (logs C117_LEAN_MISMATCH and monthly summary)",
+      description = "V159 opcode optimization: 0 = legacy C117 sampler; 1 = lean sampling when probe is off (skips unused fields, AIAirport calls and string flush; default since 2026-10-13, V159 porte B 20x10); 2 = dual shadow comparison (logs C117_LEAN_MISMATCH and monthly summary)",
       min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
 
