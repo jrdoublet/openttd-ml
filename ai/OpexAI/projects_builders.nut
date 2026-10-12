@@ -230,6 +230,23 @@ function OpexProjectFromFleet(entry)
     }
   }
 
+  /* V161 : la marge C121 (ligne seule) et le profit moyen ignorent ce que l'avion retire
+   * aux voisines du meme aeroport. Remplacer par la marge nette observee a l'echelle des
+   * aeroports quand elle existe ; sinon la plafonner. Une valeur restee "model" perd
+   * l'exemption C70/C82 des renforts (v161Calibrate). C84 reste hors champ. */
+  local v161Source = null;
+  local v161Model = 0;
+  if (V161_FLEET_NET_MARGINAL > 0 && !c84BelowTarget) {
+    v161Model = profit / entry.want;
+    local marginalCost = revenue - profit;
+    local v161 = OpexV161PerPlaneProfit(line, entry, v161Model);
+    if (v161 == null) return null;
+    profit = v161.profit * entry.want;
+    revenue = profit + (marginalCost > 0 ? marginalCost : 0);
+    v161Source = v161.source;
+    profitIsObserved = v161Source != "model";
+  }
+
   local capital = entry.planePrice * entry.want;
   /* Un achat d'avion ne coute aucune planification : ni pathfinder, ni sondage de site. Seules
    * les commandes transactionnelles restent, d'ou un opcodeScore structurellement tres favorable
@@ -253,6 +270,11 @@ function OpexProjectFromFleet(entry)
     /* B6/06.11 diagnostic-only: horodate l'economie mise en cache. */
     economicsDate = AIDate.GetCurrentDate(),
   };
+  if (v161Source != null) {
+    project.v161Source <- v161Source;
+    project.v161ModelPerPlane <- v161Model;
+    project.v161Calibrate <- true;
+  }
   return project;
 }
 

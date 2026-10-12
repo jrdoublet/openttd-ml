@@ -760,6 +760,21 @@ AIR_FLEET_COOLDOWN_PREFILTER <- true;
 AIR_FLEET_ROUTES_INDEX <- 0;
 /* V155: filter AIR lines refused by C121 observation/cadence before visible fleet refresh */
 AIR_FLEET_C121_PREGUARD <- false;
+/* V161 : marge nette d'un renfort AIR mesuree a l'echelle des aeroports (ligne + voisines
+ * partageant une gare, tendance des lignes non renforcees retiree).
+ * 0 = off ; 1 = marge nette observee, plafond par la moyenne de partie, renforts calibres C70 ;
+ * 2 = 1 + a priori V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR x voisines avant toute observation. */
+V161_FLEET_NET_MARGINAL <- 0;
+/* A priori mesure le 12/10 (v160_B20x10, 1973-74) : +13,4 k sur la ligne, -2,6 k par voisine. */
+V161_PRIOR_OWN <- 13000;
+V161_PRIOR_NEIGHBOUR <- 2600;
+/* Etat de partie, non persiste (repart de zero au chargement). */
+V161_POOL_N <- 0;
+V161_POOL_SUM <- 0;
+V161_POOL_SX <- 0;
+V161_POOL_SXX <- 0;
+V161_POOL_SXY <- 0;
+V161_TREND_PM <- 1000;
 /* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
  * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
 AIR_EFFICIENCY_BATCH <- false;

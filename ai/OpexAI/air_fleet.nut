@@ -515,3 +515,231 @@ function OpexAirRefleetCrashedPlane(line)
   result.added = 1; result.reason = "OK";
   return result;
 }
+
+/* V161 : marge nette d'un renfort AIR a l'echelle des aeroports.
+ * Mesure du 12/10 (v160_B20x10) : un avion de plus rapporte ~+9,6 k/an a SA ligne mais
+ * retire ~-1,8 k/an a chaque voisine partageant une ville, soit ~+3 k net pour ~39 k
+ * d'avion ; la marge C121 ne regardait que la ligne renforcee, sans tendance.
+ * Ici : grappe = ligne + voisines AIR vivantes partageant une gare (StationID) ; la base
+ * est leur profit cumule au releve de l'annee d'achat, l'observation leur profit cumule
+ * deux releves plus tard, la base etant corrigee de la tendance des lignes non renforcees. */
+
+/* Releve annuel d'une ligne AIR (appele par _reportLines) : registres scalaires seulement. */
+function OpexV161ReportLine(line, year, stationA, stationB, profit, vehCount, trend)
+{
+  local contiguous = ("v161RepYear" in line) && line.v161RepYear == year - 1;
+  /* Temoin de tendance : flotte inchangee sur trois releves (R-2, R-1, R) et annee
+   * rapportee en R-2 (soit R-3) pleine. */
+  if (contiguous && ("v161P2" in line) && line.v161V2 == line.v161V1
+      && line.v161V1 == vehCount && vehCount > 0 && line.v161P2 > 0
+      && ("year" in line) && line.year <= year - 4
+      && !(("scrapping" in line) && line.scrapping)) {
+    trend[0] += profit;
+    trend[1] += line.v161P2;
+    trend[2]++;
+  }
+  if (contiguous && ("v161P1" in line)) {
+    line.v161P2 <- line.v161P1;
+    line.v161V2 <- line.v161V1;
+  } else if ("v161P2" in line) {
+    delete line.v161P2;
+    delete line.v161V2;
+  }
+  line.v161P1 <- profit;
+  line.v161V1 <- vehCount;
+  line.v161RepYear <- year;
+  line.v161StA <- AIStation.IsValidStation(stationA) ? stationA : -1;
+  line.v161StB <- AIStation.IsValidStation(stationB) ? stationB : -1;
+}
+
+function OpexV161SharesStation(line, other)
+{
+  local a = line.v161StA;
+  local b = line.v161StB;
+  local oa = other.v161StA;
+  local ob = other.v161StB;
+  if (a >= 0 && (oa == a || ob == a)) return true;
+  if (b >= 0 && (oa == b || ob == b)) return true;
+  return false;
+}
+
+/* Grappe d'une ligne au releve de l'annee d'achat. null si la ligne n'a pas d'annee
+ * rapportee pleine (achat avant le releve de l'annee, ou ligne de moins de deux ans).
+ * Les voisines dont l'annee rapportee est partielle sont comptees (young) mais exclues. */
+function OpexV161ClusterSnapshot(line, lines, year)
+{
+  if (!("v161RepYear" in line) || line.v161RepYear != year) return null;
+  if (!("year" in line) || line.year > year - 2) return null;
+  local ids = [line.lineId];
+  local profit = line.v161P1;
+  local vehicles = line.v161V1;
+  local young = 0;
+  local touches = 0;
+  local a = line.v161StA;
+  local b = line.v161StB;
+  foreach (other in lines) {
+    if (other == line || !("mode" in other) || other.mode != "air") continue;
+    if (!("v161RepYear" in other) || other.v161RepYear != year || other.v161V1 <= 0) continue;
+    if (("scrapping" in other) && other.scrapping) continue;
+    if (!OpexV161SharesStation(line, other)) continue;
+    /* Meme compte que l'index des routes (V160) : une voisine touchant les deux gares
+     * compte deux fois. */
+    if (a >= 0 && (other.v161StA == a || other.v161StB == a)) touches++;
+    if (b >= 0 && b != a && (other.v161StA == b || other.v161StB == b)) touches++;
+    if (!("year" in other) || other.year > year - 2) {
+      young++;
+      continue;
+    }
+    ids.append(other.lineId);
+    profit += other.v161P1;
+    vehicles += other.v161V1;
+  }
+  return { ids = ids, profit = profit, vehicles = vehicles, young = young, neighbours = touches };
+}
+
+/* Achat d'un renfort : armer l'observation de la grappe (une seule fenetre a la fois ;
+ * un achat pendant la fenetre est compte dans les avions ajoutes). */
+function OpexV161ArmObservation(line, lines, year, planePrice)
+{
+  if (!("mode" in line) || line.mode != "air") return;
+  if ("v161ObserveYear" in line) {
+    if (DECISION_LOG) OpexDecide("V161_FLEET_NET", "action=pending line=" + line.lineId
+        + " observe=" + line.v161ObserveYear);
+    return;
+  }
+  local snap = OpexV161ClusterSnapshot(line, lines, year);
+  if (snap == null) {
+    if (DECISION_LOG) OpexDecide("V161_FLEET_NET", "action=skip line=" + line.lineId
+        + " year=" + year + " reason=no_full_baseline");
+    return;
+  }
+  line.v161ClusterIds <- snap.ids;
+  line.v161BaseProfit <- snap.profit;
+  line.v161BaseVehicles <- snap.vehicles;
+  line.v161Neighbours <- snap.neighbours;
+  line.v161AmortPerPlane <- (("c121VehicleAmortPerPlane" in line) && line.c121VehicleAmortPerPlane > 0)
+      ? line.c121VehicleAmortPerPlane.tointeger() : 0;
+  /* task_report(year) publie le profit de year-1 : premiere annee pleine post-achat au
+   * releve year+2, comme la marge C121. */
+  line.v161ObserveYear <- year + 2;
+  if (DECISION_LOG) OpexDecide("V161_FLEET_NET", "action=arm line=" + line.lineId
+      + " year=" + year + " cluster=" + snap.ids.len() + " young=" + snap.young
+      + " neighbours=" + snap.neighbours
+      + " base_profit=" + snap.profit + " base_veh=" + snap.vehicles
+      + " amort=" + line.v161AmortPerPlane + " price=" + planePrice);
+}
+
+function OpexV161ClearObservation(line)
+{
+  foreach (key in ["v161ClusterIds", "v161BaseProfit", "v161BaseVehicles",
+                   "v161Neighbours", "v161AmortPerPlane", "v161ObserveYear"]) {
+    if (key in line) delete line[key];
+  }
+}
+
+/* Fin de releve : tendance des temoins, puis observation des grappes echues.
+ * byId : lineId -> ligne AIR relevee cette annee (registres v161P1/v161V1 a jour). */
+function OpexV161ObserveClusters(lines, byId, trend, year)
+{
+  local gPm = 1000;
+  if (trend[2] >= 5 && trend[1] > 0) {
+    gPm = (trend[0].tofloat() * 1000.0 / trend[1].tofloat()).tointeger();
+    if (gPm < 750) gPm = 750;
+    if (gPm > 1333) gPm = 1333;
+  }
+  V161_TREND_PM = gPm;
+  if (DECISION_LOG) OpexDecide("V161_TREND", "year=" + year + " controls=" + trend[2]
+      + " base=" + trend[1] + " after=" + trend[0] + " g_pm=" + gPm);
+  foreach (line in lines) {
+    if (!("v161ObserveYear" in line) || year < line.v161ObserveYear) continue;
+    local after = 0;
+    local vehAfter = 0;
+    local missing = -1;
+    foreach (id in line.v161ClusterIds) {
+      if (!(id in byId)) { missing = id; break; }
+      local member = byId[id];
+      after += member.v161P1;
+      vehAfter += member.v161V1;
+    }
+    local added = vehAfter - line.v161BaseVehicles;
+    if (missing >= 0 || added <= 0) {
+      if (DECISION_LOG) OpexDecide("V161_FLEET_NET", "action=drop line=" + line.lineId
+          + " year=" + year + " reason=" + (missing >= 0 ? "gone_" + missing : "no_added")
+          + " added=" + added);
+      OpexV161ClearObservation(line);
+      continue;
+    }
+    local expected = (line.v161BaseProfit.tofloat() * gPm.tofloat() / 1000.0).tointeger();
+    local net = (after - expected - line.v161AmortPerPlane * added) / added;
+    local samples = ("v161NetSamples" in line) ? line.v161NetSamples : 0;
+    local avg = samples > 0 ? (line.v161NetAvg * samples + net) / (samples + 1) : net;
+    line.v161NetAvg <- avg;
+    line.v161NetLast <- net;
+    line.v161NetSamples <- samples + 1;
+    local x = line.v161Neighbours;
+    V161_POOL_N++;
+    V161_POOL_SUM += net;
+    V161_POOL_SX += x;
+    V161_POOL_SXX += x * x;
+    V161_POOL_SXY += x * net;
+    if (DECISION_LOG) OpexDecide("V161_FLEET_NET", "action=observe line=" + line.lineId
+        + " year=" + year + " cluster=" + line.v161ClusterIds.len() + " neighbours=" + x
+        + " added=" + added + " base_profit=" + line.v161BaseProfit + " expected=" + expected
+        + " after=" + after + " net=" + net + " avg=" + avg + " samples=" + (samples + 1)
+        + " pool_n=" + V161_POOL_N + " pool_at_x=" + OpexV161PoolPredict(x));
+    OpexV161ClearObservation(line);
+  }
+}
+
+/* Moyenne de partie des marges nettes, ajustee au nombre de voisines : regression
+ * marge = a + b x voisines sur les observations (b <= 0 : une voisine ne rapporte jamais).
+ * null tant que moins de 3 observations ; moyenne simple sous 8 ou sans dispersion. */
+function OpexV161PoolPredict(neighbours)
+{
+  if (V161_POOL_N < 3) return null;
+  local n = V161_POOL_N.tofloat();
+  local mean = V161_POOL_SUM.tofloat() / n;
+  if (V161_POOL_N >= 8) {
+    local mx = V161_POOL_SX.tofloat() / n;
+    local vxx = V161_POOL_SXX.tofloat() / n - mx * mx;
+    if (vxx > 0.25) {
+      local slope = (V161_POOL_SXY.tofloat() / n - mx * mean) / vxx;
+      if (slope > 0.0) slope = 0.0;
+      return (mean + slope * (neighbours.tofloat() - mx)).tointeger();
+    }
+  }
+  return mean.tointeger();
+}
+
+/* Valeur annuelle par avion d'un renfort sous V161. modelPerPlane : estimation du chemin
+ * historique (marge C121 ou profit moyen). Retourne null pour refuser le renfort, sinon
+ * { profit, source } ; source = "line" (marge nette de la ligne, retrecie vers la moyenne
+ * de partie), "pool" (moyenne de partie a ce nombre de voisines), "prior" (a priori du
+ * mode 2) ou "model" (valeur historique, calibree C70). */
+function OpexV161PerPlaneProfit(line, entry, modelPerPlane)
+{
+  local neighbours = ("v161Neighbours" in entry) ? entry.v161Neighbours : 0;
+  local pool = OpexV161PoolPredict(neighbours);
+  local samples = ("v161NetSamples" in line) ? line.v161NetSamples : 0;
+  if (samples > 0) {
+    /* Une grappe fluctue de plusieurs dizaines de k/an : un seul echantillon ne doit
+     * ni condamner ni financer seul la ligne. Retrecissement vers la moyenne de partie
+     * (poids 2), comme deux pseudo-observations. */
+    local value = pool != null ? (line.v161NetAvg * samples + pool * 2) / (samples + 2)
+                               : line.v161NetAvg;
+    if (value <= 0) return null;
+    return { profit = value, source = "line" };
+  }
+  local value = modelPerPlane;
+  local source = "model";
+  if (pool != null) {
+    if (pool <= 0) return null;
+    if (pool < value) { value = pool; source = "pool"; }
+  } else if (V161_FLEET_NET_MARGINAL >= 2) {
+    local prior = V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR * neighbours;
+    if (prior <= 0) return null;
+    if (prior < value) { value = prior; source = "prior"; }
+  }
+  if (value <= 0) return null;
+  return { profit = value, source = source };
+}
