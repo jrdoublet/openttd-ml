@@ -639,11 +639,11 @@ function OpexAirSiteStillBuildableIndexed(site, airport, plane, reuse, ctx)
 {
   if (site == null || airport == null || plane == null || !("anchor" in site)) return false;
   local key = (reuse ? "R|" : "N|") + airport.type + "|" + plane.planeType + "|" + site.anchor;
-  if (AIR0310_SITE_VALIDITY_CACHE && ("airValidityState" in ctx) && ctx.airValidityState != null) {
-    return OpexAir0310SiteValidityOk(ctx.airValidityState, key, site, airport, plane, reuse, ctx.stationLimitedTowns);
-  }
+  /* Cache limite a l'appel et sondage vivant sans villes plafonnees : meme predicat que
+   * OpexAirBatchSiteStillBuildable. Le cache mensuel AIR0310 gardait valides des sites devenus
+   * inconstructibles dans le mois (66 ecarts hist=0 idx=1 au controle v157_check_3x4). */
   if (key in ctx.airSiteValidity) return ctx.airSiteValidity[key];
-  local ok = OpexAirSiteStillBuildable(site, airport, plane, reuse, ctx.stationLimitedTowns);
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, reuse);
   ctx.airSiteValidity.rawset(key, ok);
   return ok;
 }
