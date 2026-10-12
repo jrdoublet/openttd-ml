@@ -1149,6 +1149,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "rail_end_jump_connect",
+      description = "recognize collinear bridge/tunnel jump track continuity on terminal station connection; 1 = on (default since 2026-10-12, porte B 20x10), 0 = off",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "rail_cached_proximity_gate",
       description = "Cached rail candidate proximity against live rail lines: 0 historical (default), 1 shadow only, 2 drop before selection",
       min_value = 0, max_value = 2,
