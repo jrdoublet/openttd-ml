@@ -515,3 +515,26 @@ function OpexAirRefleetCrashedPlane(line)
   result.added = 1; result.reason = "OK";
   return result;
 }
+
+/* V161 : valeur d'un renfort AIR nette de ce qu'il retire aux voisines.
+ * Mesure du 12/10 (v160_B20x10, regression Delta profit par ligne, effets fixes d'annee,
+ * 1973-74) : un avion de plus rapporte +13,4 k/an a SA ligne et retire -2,6 k/an a chaque
+ * voisine ; la marge C121 et le profit moyen ne regardent que la ligne (23 a 73 k predits).
+ * Une mesure en jeu a l'echelle de la grappe d'aeroports a ete essayee puis retiree : sans
+ * temoin a flotte stable et avec les lignes neuves qui cannibalisent, elle donnait -5 a
+ * -110 k par avion (smoke 12/10), et elle n'arrive qu'en 1974, quand la tresorerie n'est
+ * plus le verrou (mediane 0,5 M en 1973, 1,4 M en 1974). L'a priori agit des 1970, la ou
+ * la tresorerie lie (emprunt au maximum, 87 refus air faute de caisse en 1971).
+ * Retourne null pour refuser le renfort, sinon { profit, source } ; source = "model"
+ * (valeur historique, sous l'a priori ; calibree C70) ou "prior". */
+function OpexV161PerPlaneProfit(line, entry, modelPerPlane)
+{
+  local neighbours = ("v161Neighbours" in entry) ? entry.v161Neighbours : 0;
+  /* L'a priori mesure des profits annuels hors amortissement ; le modele C121 en est net. */
+  local amort = (("c121VehicleAmortPerPlane" in line) && line.c121VehicleAmortPerPlane > 0)
+      ? line.c121VehicleAmortPerPlane.tointeger() : 0;
+  local prior = V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR * neighbours - amort;
+  if (prior <= 0) return null;
+  if (modelPerPlane <= prior) return { profit = modelPerPlane, source = "model" };
+  return { profit = prior, source = "prior" };
+}

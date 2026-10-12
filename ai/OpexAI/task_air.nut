@@ -1498,6 +1498,17 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       if (want > 0) {
         local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
         if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
+        if (V161_FLEET_NET_MARGINAL > 0) {
+          /* V161 : voisines AIR vivantes partageant une gare, pour l'a priori. Index
+           * construit une fois par passe (aucun achat en mode a blanc). */
+          if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
+          local v161A = OpexAirLineStationId(line, 0);
+          local v161B = OpexAirLineStationId(line, 1);
+          local v161Nb = 0;
+          if (v161A in routesIndex) v161Nb += routesIndex[v161A] - 1;
+          if (v161B != v161A && (v161B in routesIndex)) v161Nb += routesIndex[v161B] - 1;
+          fleetEntry.v161Neighbours <- v161Nb > 0 ? v161Nb : 0;
+        }
         if (c84BelowTarget) {
           /* R1 : seuls les cargos sont lus par le modele marginal. Cette
            * petite vue transitoire permet de recalculer une tranche finançable. */

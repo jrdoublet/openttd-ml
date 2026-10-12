@@ -1522,6 +1522,35 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v161_fleet_net_marginal",
+      description = "V161 cap AIR fleet growth value by a prior net of neighbour lines sharing an airport: 0 = off, 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v161_prior_own",
+      description = "V161 prior: annual profit of one more plane on its own line (pounds)",
+      min_value = 0, max_value = 200000,
+      easy_value = 13000, medium_value = 13000, hard_value = 13000,
+      custom_value = 13000,
+      step_size = 500,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v161_prior_neighbour",
+      description = "V161 prior: annual profit lost per neighbour line sharing an airport (pounds)",
+      min_value = 0, max_value = 100000,
+      easy_value = 2600, medium_value = 2600, hard_value = 2600,
+      custom_value = 2600,
+      step_size = 100,
+      flags = 0
+    });
+
+    AddSetting({
       name = "air_fleet_c121_preguard",
       description = "Filter AIR lines refused by C121 observation/cadence before visible fleet refresh",
       min_value = 0, max_value = 1,

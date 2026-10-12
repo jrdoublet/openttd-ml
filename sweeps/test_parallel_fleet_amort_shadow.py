@@ -247,8 +247,10 @@ class SourceTests(unittest.TestCase):
         # actualisée après le retrait demandé de l'économie initiale C121
         # du 12/10. Identique à la copie figée du 40x3 C122 ; le retrait
         # de priorité C122 ne modifie pas ce builder ni le helper de sonde.
+        # V161 (12/10) : plafond net des voisines des renforts AIR dans OpexProjectFromFleet,
+        # inerte à v161_fleet_net_marginal=0 (défaut).
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
-                         "7e9493026ebb9e0fdc4408a2ae934eb12c0e4a0082c23cbe973f50d4d910b29a")
+                         "bcc3a5d155ef52510af1d277960a28dcfc3c0e530bc589780b9d81e63dd560e4")
 
     def test_integrated_caller_is_diagnostic_helper_stays_explicit_opt_in(self):
         occurrences = sum(p.read_text(encoding="utf-8").count("OpexFleetAmortShadow(")

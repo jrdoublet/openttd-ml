@@ -315,7 +315,9 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   if (DECISION_LOG) {
     OpexDecide("FLEET_PROJECT", "action=grow line=" + line.lineId + " added=" + added
                + " want=" + entry.want + " price=" + entry.planePrice
-               + " profit=" + project.profitAnnual + " roi=" + project.roi);
+               + " profit=" + project.profitAnnual + " roi=" + project.roi
+               + (("v161Source" in project) ? " v161_src=" + project.v161Source
+                  + " v161_model=" + project.v161ModelPerPlane : ""));
   }
   AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added + " replaced=" + replaced);
   if (C121_KDEC_COLD_SHADOW && added > 0 && ("c121MarginalSamples" in line)) {

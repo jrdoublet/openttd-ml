@@ -232,7 +232,9 @@ function OpexC70Profit(project)
   /* Le learner de realisation AIR C121 reste en shadow (facteur causal = 1.0),
    * donc une nouvelle ligne AIR doit continuer a beneficier de la calibration
    * C70 existante. Seule la flotte C121 porte deja sa propre marge observee. */
+  /* V161 : un renfort dont la valeur reste celle du modele perd cette exemption. */
   if (project != null && ("mode" in project) && project.mode == "fleet"
+      && !("v161Calibrate" in project)
       && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
   if (!C70_MODE_CALIBRATION) return project.profitAnnual;
   return project.profitAnnual * OpexC70Factor(project);
@@ -250,6 +252,7 @@ function OpexC82Profit(project)
       && project.payload.economics.realizationFactor != 1.0)
     return project.profitAnnual;
   if (project != null && ("mode" in project) && project.mode == "fleet"
+      && !("v161Calibrate" in project)
       && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
   local e = OpexC82ProjectEngine(project);
   if (e >= 0) return project.profitAnnual * OpexC82EngineFactor(e);
