@@ -58,3 +58,8 @@ la branche de nettoyage. Le checkout principal reste à son état local antérie
 avec les diagnostics P0 non committés ; aucune synchronisation destructive,
 aucun stash/reset, aucune suppression de branche. Pour la suite, utiliser ce
 checkout isolé ou réconcilier explicitement le travail local avant synchronisation.
+
+Dernier fetch avant publication : master a avancé au `72526c6`, uniquement pour
+mettre à jour le diagnostic V149 dans `docs/taches.md`. Mise à jour intégrée sans
+conflit ; `ai/OpexAI` et `sweeps` identiques au commit `e359523` exécuté par le
+smoke. Aucun nouveau contrôle moteur nécessaire pour cette seule documentation.
