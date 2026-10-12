@@ -1,6 +1,6 @@
 # Autopsie des échecs de pose rail et proposition de réparation / conservation de tracé (12/10/2026)
 
-Ce document constitue l'autopsie détaillée des 14 tentatives rail infructueuses observées lors du diagnostic 5×6 de la V148 ([docs/v148_rail_diag_20261012.md](file:///home/deploy/projects/wt-v152-rail-trkfail/docs/v148_rail_diag_20261012.md)), ainsi qu'une proposition d'architecture non implémentée, strictement alignée sur la vision utilisateur : *« des tracés prêts à être construits ou réparés en cas d'échec »*.
+Ce document constitue l'autopsie détaillée des 14 tentatives rail infructueuses observées lors du diagnostic 5×6 de la V148 ([docs/v148_rail_diag_20261012.md](../docs/v148_rail_diag_20261012.md)), ainsi qu'une proposition d'architecture non implémentée, strictement alignée sur la vision utilisateur : *« des tracés prêts à être construits ou réparés en cas d'échec »*.
 
 Il répond point par point aux quatre questions du programme V152, avec vérification systématique dans le code source de l'IA OpexAI et dans les journaux moteur bruts `/home/deploy/projects/openttd-ml/results/v148_rail_diag_5x6_20261012_engine/v148_master_seed*_r0.log`.
 
@@ -10,12 +10,12 @@ Il répond point par point aux quatre questions du programme V152, avec vérific
 
 ### 1.1 Signification exacte de `startx`, `endx`, `error=0` et `actual` dans `RAIL_ATTEMPT`
 
-La ligne de journalisation `RAIL_ATTEMPT` est émise par `OpexAI::_recordRailAttempt` dans [task_rail.nut:1580-1596](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1580-L1596) :
-- `startx` et `endx` ([task_rail.nut:1595-1596](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1595-L1596)) proviennent de `result.startx` et `result.endx`, calculés au début de `OpexExecuteRailPlan` dans [builder_rail.nut:2191-2203](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2191-L2203) :
+La ligne de journalisation `RAIL_ATTEMPT` est émise par `OpexAI::_recordRailAttempt` dans [task_rail.nut:1580-1596](../ai/OpexAI/task_rail.nut#L1580-L1596) :
+- `startx` et `endx` ([task_rail.nut:1595-1596](../ai/OpexAI/task_rail.nut#L1595-L1596)) proviennent de `result.startx` et `result.endx`, calculés au début de `OpexExecuteRailPlan` dans [builder_rail.nut:2191-2203](../ai/OpexAI/builder_rail.nut#L2191-L2203) :
   - `startx = (DistanceManhattan(tiles[0], tiles[1]) > 1) ? 1 : 0` : indique si le premier segment intermédiaire après la sortie de gare A saute directement par un pont ou tunnel (distance > 1 tuile).
   - `endx = (DistanceManhattan(tiles[tail - 2], tiles[tail - 1]) > 1) ? 1 : 0` (où `tail = tiles.len() - 1`) : indique si le dernier segment avant la tuile d'approche (`lead`, `tiles[tail - 1]`) de la gare B est un franchissement (pont ou tunnel) dont la culée/tête atterrit directement sur la tuile de tête `tiles[tail - 1]`.
-- `error` ([task_rail.nut:1607](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1607)) provient de `result.error`, initialisé à `0` dans `OpexExecuteRailPlan` ([builder_rail.nut:2163](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2163)).
-- `actual` ([task_rail.nut:1591](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1591)) provient de `result.actualCost`, initialisé à `0` ([builder_rail.nut:2174](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2174)) et mis à jour via `costs.GetCosts()` ([builder_rail.nut:2374](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2374)).
+- `error` ([task_rail.nut:1607](../ai/OpexAI/task_rail.nut#L1607)) provient de `result.error`, initialisé à `0` dans `OpexExecuteRailPlan` ([builder_rail.nut:2163](../ai/OpexAI/builder_rail.nut#L2163)).
+- `actual` ([task_rail.nut:1591](../ai/OpexAI/task_rail.nut#L1591)) provient de `result.actualCost`, initialisé à `0` ([builder_rail.nut:2174](../ai/OpexAI/builder_rail.nut#L2174)) et mis à jour via `costs.GetCosts()` ([builder_rail.nut:2374](../ai/OpexAI/builder_rail.nut#L2374)).
 
 ### 1.2 Le mécanisme de panne : comment `TRKFAIL` sort avec `error=0`
 
@@ -28,39 +28,39 @@ Le cas `endx=1` avec `error=0` est un bug d'interface géométrique entre le fra
        ok = true; // autre bout d'un franchissement deja pose
      ```
    - La boucle effectue donc un `continue` implicite (`ok = true`) sans exécuter `AIRail.BuildRail(prev, cur, next)` pour relier la tête de franchissement `tiles[last - 1]` à la sortie de quai `tiles[last] = planB.station_exit` !
-   - Aucun ordre de construction n'ayant échoué, `trackFailed` vaut `0` ([builder_rail.nut:1405, 2308](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L1405)).
-2. À la ligne [builder_rail.nut:2310-2312](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2310-L2312), le test de raccordement final est exécuté :
+   - Aucun ordre de construction n'ayant échoué, `trackFailed` vaut `0` ([builder_rail.nut:1405, 2308](../ai/OpexAI/builder_rail.nut#L1405)).
+2. À la ligne [builder_rail.nut:2310-2312](../ai/OpexAI/builder_rail.nut#L2310-L2312), le test de raccordement final est exécuté :
    ```squirrel
    local connected = trackFailed == 0 &&
        AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&
        AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);
    ```
    Comme le morceau de voie `tiles[last - 1]` vers `planB.station_exit` n'a jamais été posé, `AIRail.AreTilesConnected(...)` retourne `false` (`exit_b = 0`).
-3. Le bloc `if (!connected)` ([builder_rail.nut:2313](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2313)) est activé :
-   - Comme `trackFailed == 0`, la condition `if (trackFailed > 0 && ...)` ([builder_rail.nut:2314](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2314)) est fausse.
+3. Le bloc `if (!connected)` ([builder_rail.nut:2313](../ai/OpexAI/builder_rail.nut#L2313)) est activé :
+   - Comme `trackFailed == 0`, la condition `if (trackFailed > 0 && ...)` ([builder_rail.nut:2314](../ai/OpexAI/builder_rail.nut#L2314)) est fausse.
    - Par conséquent, `result.error` n'est jamais renseigné et conserve sa valeur par défaut `0`.
    - La ligne de décision émise est :
      `RAIL_TRACK_FAIL cause=connect failed=0 tiles=... exit_a=1 exit_b=0 ... d21=...`
-   - Le motif de sortie est affecté à `"TRKFAIL"` ([builder_rail.nut:2375](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2375)).
+   - Le motif de sortie est affecté à `"TRKFAIL"` ([builder_rail.nut:2375](../ai/OpexAI/builder_rail.nut#L2375)).
 
 ### 1.3 Le rail partiel est-il démonté ou laissé sur la carte ? L'argent est-il perdu ?
 
 Le rail partiel n'est **jamais** laissé sur la carte :
-- La ligne [builder_rail.nut:2373](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2373) appelle immédiatement `OpexRollback(tiles, planA, planB, null, null)`.
-- Dans [builder_rail.nut:1516-1540](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L1516-L1540), `OpexRollback` démolit systématiquement :
+- La ligne [builder_rail.nut:2373](../ai/OpexAI/builder_rail.nut#L2373) appelle immédiatement `OpexRollback(tiles, planA, planB, null, null)`.
+- Dans [builder_rail.nut:1516-1540](../ai/OpexAI/builder_rail.nut#L1516-L1540), `OpexRollback` démolit systématiquement :
   1. Toutes les tuiles de quai de la gare A (`planA.anchor + planA.step * i`) via `AITile.DemolishTile`.
   2. Toutes les tuiles de quai de la gare B (`planB.anchor + planB.step * i`) via `AITile.DemolishTile`.
   3. Toutes les tuiles du tracé intermédiaire (`tiles[1]` à `tiles[tiles.len() - 2]`) via `AITile.DemolishTile`.
 - **Destruction financière absolue :**
   - Dans OpenTTD, la démolition (`DemolishTile`) coûte de l'argent en plus de la construction.
-  - L'objet comptable `costs = AIAccounting()` instancié avant les gares à la ligne [builder_rail.nut:2273](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2273) enregistre à la fois les dépenses de pose (terrassement, gares, ponts, tunnels, rails) ET les dépenses de démolition du rollback.
-  - À la ligne [builder_rail.nut:2374](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2374), `result.actualCost = costs.GetCosts()` enregistre la somme totale dépensée.
+  - L'objet comptable `costs = AIAccounting()` instancié avant les gares à la ligne [builder_rail.nut:2273](../ai/OpexAI/builder_rail.nut#L2273) enregistre à la fois les dépenses de pose (terrassement, gares, ponts, tunnels, rails) ET les dépenses de démolition du rollback.
+  - À la ligne [builder_rail.nut:2374](../ai/OpexAI/builder_rail.nut#L2374), `result.actualCost = costs.GetCosts()` enregistre la somme totale dépensée.
   - **100 % de l'argent dépensé est irrémédiablement perdu** : aucun actif n'est conservé, la trésorerie est débitée (ex. 15 623 £, 12 049 £, 11 749 £), et le terrain est rendu vierge.
 
 ### 1.4 Pourquoi la 4e tentative sort-elle avec `actual=0` ?
 
 Lors de la 4e tentative (1974-12-27), le journal indique `actual=0`, `error=261` (`ERR_AREA_NOT_CLEAR`).
-Dans [builder_rail.nut:2204-2252](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2204-L2252), la fonction `OpexQuoteRailCapital` simule la construction sous `AITestMode()` (`RAIL_DEVIS`).
+Dans [builder_rail.nut:2204-2252](../ai/OpexAI/builder_rail.nut#L2204-L2252), la fonction `OpexQuoteRailCapital` simule la construction sous `AITestMode()` (`RAIL_DEVIS`).
 Sur cette tentative, la simulation de devis a échoué avec l'erreur `261` sur la tuile 44451 (`RAIL_QUOTE_FAIL reason=TRKFAIL tile=44451 err=261`).
 Comme l'échec a eu lieu dans le devis prévisionnel, l'exécution a été interrompue avant la ligne 2273 (`costs = AIAccounting()`) : aucun terrassement réel n'a eu lieu, et `result.actualCost` est resté à `0`.
 
@@ -70,7 +70,7 @@ Comme l'échec a eu lieu dans le devis prévisionnel, l'exécution a été inter
 
 ### 2.1 Que fait `_recordRailAttempt` / `_markPairAbandoned` pour un `TRKFAIL` voyageurs ?
 
-Dans [task_rail.nut:1696-1703](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1696-L1703) :
+Dans [task_rail.nut:1696-1703](../ai/OpexAI/task_rail.nut#L1696-L1703) :
 ```squirrel
 if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
                        result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL"
@@ -82,7 +82,7 @@ if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || re
 }
 ```
 Pour un échec de type `TRKFAIL` :
-1. `RAIL_GEOMETRY_GUARD` vaut `0` par défaut ([info.nut:1121](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/info.nut#L1121), [settings.nut:100](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/settings.nut#L100)).
+1. `RAIL_GEOMETRY_GUARD` vaut `0` par défaut ([info.nut:1121](../ai/OpexAI/info.nut#L1121), [settings.nut:100](../ai/OpexAI/settings.nut#L100)).
 2. `RAIL_FREIGHT_TRKFAIL_MEMORY` ne s'applique qu'au fret (`candidate.kind == "freight"`).
 3. **Pour une paire voyageurs (`pax`), `_markPairAbandoned` n'est JAMAIS appelé sur un `TRKFAIL` !**
 4. Aucun cooldown (ni `ABANDON_MEMORY`, ni C77/C80, ni `_abandonedPairs`) n'enregistre la paire. La table `this._abandonedPairs` reste totalement vierge de cette paire.
@@ -95,7 +95,7 @@ L'analyse des journaux de la graine 42 révèle la mécanique exacte :
 #### Tentative 1 : Octobre 1973
 - La recherche A* pour `pax 49565->33442` avait été initiée plusieurs mois auparavant (lorsque le vivier initial avait qualifié cette ligne).
 - Le calcul A* s'est terminé le 1973-10-17 après 6 582 itérations (`RAIL_SEARCH_END primary outcome=OK iters=6582`).
-- Dans la passe projets du 1973-10-24, `_consumeResumableRailAtPassStart` ([task_projects.nut:1230-1252](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_projects.nut#L1230-L1252)) consomme ce plan prêt à construire.
+- Dans la passe projets du 1973-10-24, `_consumeResumableRailAtPassStart` ([task_projects.nut:1230-1252](../ai/OpexAI/task_projects.nut#L1230-L1252)) consomme ce plan prêt à construire.
 - À cette date, la génération annuelle avait repuplé le portefeuille : les 40 meilleurs projets étaient des lignes fret et aériennes à fort ROI. Dans la liste triée `this._projects.best`, la paire `49565->33442` occupait la 41e position (`rank=41`).
 - La construction est lancée, échoue sur la connexion terminale B (`d21=5`, `exit_b=0`), subit un rollback qui détruit 15 623 £, et `task_projects.nut:1248` logue `PROJECT_DISCARD mode=rail rank=41 reason=TRKFAIL`.
 - Comme `candidate.kind == "pax"`, aucune mémoire d'abandon n'est enregistrée.
@@ -104,7 +104,7 @@ L'analyse des journaux de la graine 42 révèle la mécanique exacte :
 Entre l'automne 1973 et l'été 1974, OpexAI construit ses premières lignes fret et aériennes. En août 1974 :
 - Les projets aériens et routiers disponibles sont tous construits ou saturés.
 - Il ne reste plus que 33 projets dans le vivier rail.
-- Aux rangs 0 et 1 de `this._projects.best` se trouvent deux projets fret (`54044->59980` et `59980->44107`). Mais à chaque passe mensuelle, ces deux projets sont rejetés avant l'A* par `too_close_no_join` ([task_rail.nut:438-442](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L438-L442)) :
+- Aux rangs 0 et 1 de `this._projects.best` se trouvent deux projets fret (`54044->59980` et `59980->44107`). Mais à chaque passe mensuelle, ces deux projets sont rejetés avant l'A* par `too_close_no_join` ([task_rail.nut:438-442](../ai/OpexAI/task_rail.nut#L438-L442)) :
   `PROJECT_DISCARD mode=rail rank=0 reason=too_close_no_join`
   `PROJECT_DISCARD mode=rail rank=1 reason=too_close_no_join`
 - **Le rang 2 disponible est immédiatement `pax 49565->33442` !**
@@ -118,7 +118,7 @@ Entre l'automne 1973 et l'été 1974, OpexAI construit ses premières lignes fre
 - La recherche A* est lancée une 5e fois sur la même paire `49565->33442`.
 - Cette fois, le pathfinder ne trouve plus d'issue et épuise son plafond de 10 000 itérations :
   `RAIL_SEARCH type=resumable outcome=ABND iters=10000 budget=10000` (consommant 11,8 M opcodes).
-- Comme le motif est cette fois `ABND`, la condition `result.reason == "ABND"` de la ligne [task_rail.nut:1696](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1696) est enfin satisfaite !
+- Comme le motif est cette fois `ABND`, la condition `result.reason == "ABND"` de la ligne [task_rail.nut:1696](../ai/OpexAI/task_rail.nut#L1696) est enfin satisfaite !
 - La paire est inscrite dans `this._abandonedPairs` via `_markPairAbandoned` et n'est plus jamais retentée.
 
 **Bilan sur cette seule paire :** 5 recherches A* successives, ~41,4 millions d'opcodes gaspillés, 39 421 £ d'argent détruit en pure perte.
@@ -143,14 +143,14 @@ Les 4 cas observés dans le diagnostic V148 sont :
    - La sonde `probe_rail_terrain` (V101) a montré que les échecs franchissent des reliefs plus accidentés (pentes, eau).
    - Cependant, un seuil éliminatoire strict sur la rugosité rejette des lignes viables et rentables (faux positifs destructeurs pour le profit).
 3. **Prédiction A* (`pred_astar`) :**
-   - Le budget alloué par `OpexIterationBudget` ([builder_rail.nut:1832](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L1832)) dépend du profit attendu. Pour ces lignes majeures, il sature le plafond dur de 10 000 itérations.
-   - Contrairement aux `TRKFAIL` et `STNFAIL`, un `ABND` s'inscrit immédiatement dans `_abandonedPairs` ([task_rail.nut:1696](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1696)), ce qui empêche sa réexécution. Le coût reste néanmoins de ~12 M opcodes pour chaque occurrence.
+   - Le budget alloué par `OpexIterationBudget` ([builder_rail.nut:1832](../ai/OpexAI/builder_rail.nut#L1832)) dépend du profit attendu. Pour ces lignes majeures, il sature le plafond dur de 10 000 itérations.
+   - Contrairement aux `TRKFAIL` et `STNFAIL`, un `ABND` s'inscrit immédiatement dans `_abandonedPairs` ([task_rail.nut:1696](../ai/OpexAI/task_rail.nut#L1696)), ce qui empêche sa réexécution. Le coût reste néanmoins de ~12 M opcodes pour chaque occurrence.
 
 ### 3.2 Les 5 cas d'échec de gare (`STNFAIL`)
-Les 5 échecs `STNFAIL` se produisent lors de `OpexBuildRailStation` ([builder_rail.nut:2080-2084](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2080-L2084)) ou lors de la pose réelle ([builder_rail.nut:2294-2302](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L2294-L2302)) :
+Les 5 échecs `STNFAIL` se produisent lors de `OpexBuildRailStation` ([builder_rail.nut:2080-2084](../ai/OpexAI/builder_rail.nut#L2080-L2084)) ou lors de la pose réelle ([builder_rail.nut:2294-2302](../ai/OpexAI/builder_rail.nut#L2294-L2302)) :
 - Causes physiques : pente locale modifiée entre l'évaluation du vivier et la construction, expansion urbaine (maisons apparues sur l'emprise), ou dégradation de la note municipale (`TownRating` < `POOR`).
 - **Comportement mémoire :**
-  - Dans [task_rail.nut:1696-1697](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1696-L1697), `result.reason == "STNFAIL"` est explicitement listé sous `ABANDON_MEMORY` :
+  - Dans [task_rail.nut:1696-1697](../ai/OpexAI/task_rail.nut#L1696-L1697), `result.reason == "STNFAIL"` est explicitement listé sous `ABANDON_MEMORY` :
   - La paire est immédiatement marquée abandonnée et n'est pas retentée.
   - Le gaspillage d'opcodes pour un `STNFAIL` est modéré (~1,5 à 2 M opcodes par tentative, car le pathfinder A* s'arrête ou la pose avorte avant le déploiement de voie).
 
@@ -182,16 +182,16 @@ Le cas `endx=1` mis au jour dans cette autopsie est fondamentalement différent 
 
 #### Famille A : TRKFAIL en bout de tracé (`endx=1` / saut terminal vers tête de quai)
 - **Action de réparation / pose :**
-  1. *Dans `OpexBuildTrack` ([builder_rail.nut:1352-1354](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L1352-L1354)) :*
+  1. *Dans `OpexBuildTrack` ([builder_rail.nut:1352-1354](../ai/OpexAI/builder_rail.nut#L1352-L1354)) :*
      Lorsque `AIMap.DistanceManhattan(prev, cur) > 1`, au lieu de simplement exécuter `ok = true; continue;`, vérifier si `i == last - 1`. Si `i == last - 1`, poser explicitement la transition entre la tête de pont/tunnel `cur` et la sortie de quai `next = planB.station_exit` via `AIRail.BuildRail(cur, cur, next)`.
   2. *Alternative préventive sans toucher à l'A* :*
-     Dans `OpexRailPathGeometryIssue` ([builder_rail.nut:1138-1140](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/builder_rail.nut#L1138-L1140)), le cas `end_jump` est déjà identifié. Si le raccordement direct est impossible sans culée intermédiaire, rejeter avant terrassement (`actual=0`) et mémoriser la contrainte pour cette géométrie de quai précise, plutôt que de dépenser 15 000 £ en construction/démolition.
+     Dans `OpexRailPathGeometryIssue` ([builder_rail.nut:1138-1140](../ai/OpexAI/builder_rail.nut#L1138-L1140)), le cas `end_jump` est déjà identifié. Si le raccordement direct est impossible sans culée intermédiaire, rejeter avant terrassement (`actual=0`) et mémoriser la contrainte pour cette géométrie de quai précise, plutôt que de dépenser 15 000 £ en construction/démolition.
 - **Coût en opcodes attendu :** Quasi nul (< 5 000 opcodes pour poser la pièce ou vérifier le raccordement), au lieu de 7 400 000 opcodes par itération d'A* évitée.
 - **Gain financier :** Préservation intégrale du capital (sur la graine 42, évite 39 421 £ de pertes nettes et permet à la ligne de circuler dès 1973 avec ~4,8 k£/an de profit).
 
 #### Famille B : TRKFAIL voyageurs générique (Boucle de répétition infinie)
 - **Action de conservation de tracé et de régulation :**
-  - Dans [task_rail.nut:1696-1703](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1696-L1703), étendre la mémoire d'abandon temporaire aux paires voyageurs :
+  - Dans [task_rail.nut:1696-1703](../ai/OpexAI/task_rail.nut#L1696-L1703), étendre la mémoire d'abandon temporaire aux paires voyageurs :
     Ne pas autoriser une paire `pax` ayant subi un `TRKFAIL` à être réinjectée dans le portefeuille au tick suivant sans un cooldown minimal (ex. `ABANDON_COOLDOWN_DAYS = 180`).
   - Si le tracé a échoué à la pose, conserver le plan sous forme de candidat "en attente de validation physique" (ou appliquer le cooldown existant), plutôt que de relancer immédiatement le pathfinder lourd.
 - **Coût en opcodes attendu :** 0 opcode.
@@ -199,7 +199,7 @@ Le cas `endx=1` mis au jour dans cette autopsie est fondamentalement différent 
 
 #### Famille C : ABND (Épuisement du budget A*)
 - **Action :**
-  - Maintenir le comportement actuel de marquage dans `_abandonedPairs` ([task_rail.nut:1696](file:///home/deploy/projects/wt-v152-rail-trkfail/ai/OpexAI/task_rail.nut#L1696)).
+  - Maintenir le comportement actuel de marquage dans `_abandonedPairs` ([task_rail.nut:1696](../ai/OpexAI/task_rail.nut#L1696)).
   - Pré-filtrer les candidats dont l'extrémité est topologiquement bloquée (relief direct impraticable aux abords immédiats des ancres de quai) avant d'engager 10 000 itérations d'A*.
 - **Coût en opcodes attendu :** Économie nette de 11 à 12 M opcodes par cas bloqué.
 
