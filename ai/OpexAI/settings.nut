@@ -163,6 +163,8 @@ function OpexLoadSettings()
   local afcd = AIController.GetSetting("air_fleet_cadence_days");
   if (afcd >= 0) AIR_FLEET_CADENCE_DAYS = afcd;
   AIR_FLEET_COOLDOWN_PREFILTER = AIController.GetSetting("air_fleet_cooldown_prefilter") != 0;
+  local afri = AIController.GetSetting("air_fleet_routes_index");
+  if (afri >= 0) AIR_FLEET_ROUTES_INDEX = afri;
   AIR_EFFICIENCY_BATCH = AIController.GetSetting("air_efficiency_batch") != 0;
   AIR_EFFICIENCY_PREFLIGHT = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_preflight") != 0;
   AIR_EFFICIENCY_DEDUPE = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_dedupe") != 0;

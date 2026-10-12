@@ -756,6 +756,8 @@ OPEX_AIR_PLAN_PAD <- false;
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
 AIR_FLEET_COOLDOWN_PREFILTER <- true;
+/* V160 : comptage des lignes vivantes par aeroport (0 = direct O(N^2), 1 = index O(N), 2 = comparateur) */
+AIR_FLEET_ROUTES_INDEX <- 0;
 /* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
  * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
 AIR_EFFICIENCY_BATCH <- false;
