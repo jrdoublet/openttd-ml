@@ -948,6 +948,7 @@ function OpexC121KDecColdShadowCandidate(rows, project, financeCapital, kDec)
 function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
 {
   if (!C121_KDEC_COLD_SHADOW || rows == null) return;
+  SELECT_BISECT_STAMP++;
   local cold = 0;
   local warm = 0;
   local affected = 0;
@@ -983,7 +984,7 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
       }
       local shadowProject = clone project;
       shadowProject.fundScore = row.coldScore;
-      OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, AIR_EARLY_SLOT);
+      OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, AIR_EARLY_SLOT, true);
       coldRank = -1;
       for (local i = 0; i < shadowOrder.len(); i++) {
         if (shadowOrder[i] == shadowProject) { coldRank = i; break; }
@@ -1075,6 +1076,7 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
 
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
 {
+  SELECT_BISECT_STAMP++;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
   local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
@@ -1301,6 +1303,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
    * et le plancher inoperant -- on retombe sur l'ensemble finançable brut plutot que de ne rien
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
+    SELECT_BISECT_STAMP++;
     if (amortProbe != null) amortProbe.rows = [];
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
     airPairBest = {};
@@ -1534,88 +1537,151 @@ function OpexProjectIsForcedChain(project)
 }
 
 /* Insertion bornee et stable avec classe defensive C77 permanente. */
-function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false)
+function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false, forceHistoric = false)
 {
-  local projectC77Tier = OpexProjectDefensiveAirPriority(project);
-  local projectTier = projectC77Tier
-      + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
-  local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
-  local pos = best.len();
-  while (pos > 0) {
-    local prior = best[pos - 1];
-    local priorC77Tier = OpexProjectDefensiveAirPriority(prior);
-    local priorTier = priorC77Tier
-        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
-    local c118Active = C118_AIR_TERRITORIAL_EXPANSION
-        && C118_AIR_PROJECT_SNAPSHOT != null
-        && ("active" in C118_AIR_PROJECT_SNAPSHOT) && C118_AIR_PROJECT_SNAPSHOT.active;
-    if (c118Active) {
+  local c118Active = C118_AIR_TERRITORIAL_EXPANSION
+      && C118_AIR_PROJECT_SNAPSHOT != null
+      && ("active" in C118_AIR_PROJECT_SNAPSHOT) && C118_AIR_PROJECT_SNAPSHOT.active;
+  local useBisect = SELECT_BISECT_INSERT && !forceHistoric && !c118Active
+      && !(C122_AIR_REGIME_SHADOW && C121_AIR_PROJECT_REALIZATION_REGIME == 0);
+
+  local pos = 0;
+  if (useBisect) {
+    local projectC77Tier = OpexProjectDefensiveAirPriority(project);
+    local projectTier = projectC77Tier
+        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+    local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
+    local projectRevenue = ("revenueAnnual" in project) ? project.revenueAnnual : 0;
+
+    project.rawset("_bsTier", projectTier);
+    project.rawset("_bsScore", projectScore);
+    project.rawset("_bsRevenue", projectRevenue);
+    project.rawset("_bsField", field);
+    project.rawset("_bsEarly", applyEarlySlot);
+    project.rawset("_bsStamp", SELECT_BISECT_STAMP);
+
+    local lo = 0;
+    local hi = best.len();
+    while (lo < hi) {
+      local mid = (lo + hi) / 2;
+      local prior = best[mid];
+      local priorTier = 0;
+      local priorScore = 0;
+      local priorRevenue = 0;
+      if (("_bsStamp" in prior) && prior._bsStamp == SELECT_BISECT_STAMP
+          && prior._bsField == field && prior._bsEarly == applyEarlySlot) {
+        priorTier = prior._bsTier;
+        priorScore = prior._bsScore;
+        priorRevenue = prior._bsRevenue;
+      } else {
+        local priorC77Tier = OpexProjectDefensiveAirPriority(prior);
+        priorTier = priorC77Tier
+            + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
+        priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
+        priorRevenue = ("revenueAnnual" in prior) ? prior.revenueAnnual : 0;
+        prior.rawset("_bsTier", priorTier);
+        prior.rawset("_bsScore", priorScore);
+        prior.rawset("_bsRevenue", priorRevenue);
+        prior.rawset("_bsField", field);
+        prior.rawset("_bsEarly", applyEarlySlot);
+        prior.rawset("_bsStamp", SELECT_BISECT_STAMP);
+      }
+      local keepsPrior = false;
+      if (priorTier > projectTier) {
+        keepsPrior = true;
+      } else if (priorTier == projectTier) {
+        if (priorScore > projectScore) {
+          keepsPrior = true;
+        } else if (priorScore == projectScore) {
+          keepsPrior = (priorRevenue >= projectRevenue);
+        }
+      }
+      if (keepsPrior) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    pos = lo;
+  } else {
+    local projectC77Tier = OpexProjectDefensiveAirPriority(project);
+    local projectTier = projectC77Tier
+        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+    local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
+    pos = best.len();
+    while (pos > 0) {
+      local prior = best[pos - 1];
+      local priorC77Tier = OpexProjectDefensiveAirPriority(prior);
+      local priorTier = priorC77Tier
+          + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
+      if (c118Active) {
+        local projectAir = ("mode" in project) && project.mode == "air";
+        local priorAir = ("mode" in prior) && prior.mode == "air";
+        local projectNew = ("c118NewTowns" in project) ? project.c118NewTowns : 0;
+        local priorNew = ("c118NewTowns" in prior) ? prior.c118NewTowns : 0;
+        if (projectNew > 0 || priorNew > 0) {
+          if (priorNew > projectNew) break;
+          if (priorNew < projectNew) {
+            pos--;
+            continue;
+          }
+        }
+        if (projectAir && priorAir) {
+          local projectDays = ("c118NextDays" in project) ? project.c118NextDays : -1.0;
+          local priorDays = ("c118NextDays" in prior) ? prior.c118NextDays : -1.0;
+          if (projectDays >= 0 && priorDays >= 0 && priorDays != projectDays) {
+            if (priorDays < projectDays) break;
+            pos--;
+            continue;
+          }
+          if (priorDays >= 0 && projectDays < 0) break;
+          if (priorDays < 0 && projectDays >= 0) {
+            pos--;
+            continue;
+          }
+          local projectProfit = ("c118C68Profit" in project) ? project.c118C68Profit : project.profitAnnual;
+          local priorProfit = ("c118C68Profit" in prior) ? prior.c118C68Profit : prior.profitAnnual;
+          if (priorProfit > projectProfit) break;
+          if (priorProfit < projectProfit) {
+            pos--;
+            continue;
+          }
+          local projectRoi = ("c118C68Roi" in project) ? project.c118C68Roi : project.roi;
+          local priorRoi = ("c118C68Roi" in prior) ? prior.c118C68Roi : prior.roi;
+          if (priorRoi > projectRoi) break;
+          if (priorRoi < projectRoi) {
+            pos--;
+            continue;
+          }
+        }
+      }
+      if (priorTier > projectTier) break;
+      if (priorTier < projectTier) {
+        pos--;
+        continue;
+      }
+      local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
       local projectAir = ("mode" in project) && project.mode == "air";
       local priorAir = ("mode" in prior) && prior.mode == "air";
-      local projectNew = ("c118NewTowns" in project) ? project.c118NewTowns : 0;
-      local priorNew = ("c118NewTowns" in prior) ? prior.c118NewTowns : 0;
-      if (projectNew > 0 || priorNew > 0) {
-        if (priorNew > projectNew) break;
-        if (priorNew < projectNew) {
-          pos--;
-          continue;
+      /* Shadow seulement : comparer apres le verrou race sans modifier l'ordre. */
+      if (C122_AIR_REGIME_SHADOW
+          && C121_AIR_PROJECT_REALIZATION_REGIME == 0 && projectAir && priorAir) {
+        local projectRegimeTier = OpexC122AirRegimeTier(project);
+        local priorRegimeTier = OpexC122AirRegimeTier(prior);
+        local economicKeepsPrior = priorScore > projectScore
+            || (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual);
+        if (priorRegimeTier > projectRegimeTier && !economicKeepsPrior) {
+          OpexC122TraceShadow("prior", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
+        } else if (priorRegimeTier < projectRegimeTier && economicKeepsPrior) {
+          OpexC122TraceShadow("project", project, prior, projectC77Tier, priorC77Tier,
+              projectRegimeTier, priorRegimeTier, field);
         }
       }
-      if (projectAir && priorAir) {
-        local projectDays = ("c118NextDays" in project) ? project.c118NextDays : -1.0;
-        local priorDays = ("c118NextDays" in prior) ? prior.c118NextDays : -1.0;
-        if (projectDays >= 0 && priorDays >= 0 && priorDays != projectDays) {
-          if (priorDays < projectDays) break;
-          pos--;
-          continue;
-        }
-        if (priorDays >= 0 && projectDays < 0) break;
-        if (priorDays < 0 && projectDays >= 0) {
-          pos--;
-          continue;
-        }
-        local projectProfit = ("c118C68Profit" in project) ? project.c118C68Profit : project.profitAnnual;
-        local priorProfit = ("c118C68Profit" in prior) ? prior.c118C68Profit : prior.profitAnnual;
-        if (priorProfit > projectProfit) break;
-        if (priorProfit < projectProfit) {
-          pos--;
-          continue;
-        }
-        local projectRoi = ("c118C68Roi" in project) ? project.c118C68Roi : project.roi;
-        local priorRoi = ("c118C68Roi" in prior) ? prior.c118C68Roi : prior.roi;
-        if (priorRoi > projectRoi) break;
-        if (priorRoi < projectRoi) {
-          pos--;
-          continue;
-        }
-      }
-    }
-    if (priorTier > projectTier) break;
-    if (priorTier < projectTier) {
+      if (priorScore > projectScore) break;
+      if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;
       pos--;
-      continue;
     }
-    local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
-    local projectAir = ("mode" in project) && project.mode == "air";
-    local priorAir = ("mode" in prior) && prior.mode == "air";
-    /* Shadow seulement : comparer apres le verrou race sans modifier l'ordre. */
-    if (C122_AIR_REGIME_SHADOW
-        && C121_AIR_PROJECT_REALIZATION_REGIME == 0 && projectAir && priorAir) {
-      local projectRegimeTier = OpexC122AirRegimeTier(project);
-      local priorRegimeTier = OpexC122AirRegimeTier(prior);
-      local economicKeepsPrior = priorScore > projectScore
-          || (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual);
-      if (priorRegimeTier > projectRegimeTier && !economicKeepsPrior) {
-        OpexC122TraceShadow("prior", project, prior, projectC77Tier, priorC77Tier,
-            projectRegimeTier, priorRegimeTier, field);
-      } else if (priorRegimeTier < projectRegimeTier && economicKeepsPrior) {
-        OpexC122TraceShadow("project", project, prior, projectC77Tier, priorC77Tier,
-            projectRegimeTier, priorRegimeTier, field);
-      }
-    }
-    if (priorScore > projectScore) break;
-    if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;
-    pos--;
   }
   best.insert(pos, project);
   if (best.len() > limit) {

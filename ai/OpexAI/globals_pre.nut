@@ -756,6 +756,8 @@ OPEX_AIR_PLAN_PAD <- false;
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
 AIR_FLEET_COOLDOWN_PREFILTER <- true;
+/* V155: filter AIR lines refused by C121 observation/cadence before visible fleet refresh */
+AIR_FLEET_C121_PREGUARD <- false;
 /* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
  * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
 AIR_EFFICIENCY_BATCH <- false;
@@ -867,6 +869,8 @@ RAIL_END_JUMP_CONNECT <- false;
 /* Projets rail du cache : 0 historique, 1 shadow des rejets de proximite
  * que _tooClose imposerait au chantier, 2 exclusion avant TOP_K. */
 RAIL_CACHED_PROXIMITY_GATE <- 0;
+/* V156 : Revalidation incrementale du vivier indexee (0 historique, 1 indexee, 2 controle). */
+INCR_REVALIDATE_INDEX <- 0;
 /* Sondes de tentatives / refus de proximite ferroviaires, OFF par defaut. */
 RAIL_FAILURE_AUDIT <- false;
 /* Sonde locale d'acces aux quais avant A*, avec issues appariees (defaut 0). */
@@ -1061,3 +1065,8 @@ SUBSIDY_RESELECT_IF_PURGED <- true;
 V147_AIR_CATALOG_TASKS <- true;
 V147_IN_PHASE <- false;
 V147_TASK_BASE <- -1;
+
+/* V154 : insertion par dichotomie dans OpexProjectInsertDefensive (optimisation opcodes).
+ * 0 = insertion lineaire historique (defaut) ; 1 = dichotomie sur cles mises en cache. */
+SELECT_BISECT_INSERT <- false;
+SELECT_BISECT_STAMP <- 0;

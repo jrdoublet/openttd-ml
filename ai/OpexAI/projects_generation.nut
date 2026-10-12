@@ -502,9 +502,267 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
 }
 
 /* C36.1 : Point d'entree unifie de revalidation incrementale. */
-function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
+function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null, ctx = null)
 {
+  if (ctx != null) return OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx);
   return OpexCandidateStillValid(p, lines, abandonedPairs);
+}
+
+/* V156 : Construction d'un contexte d'indexation pour la revalidation incrementale du vivier.
+ * Indexe les predicats dependant de lines : doublons exacts, losange OpexOriginServed,
+ * bus pax de ville, freight busy, paires et hubs air. */
+function OpexIncrRevalidateIndexContext(lines)
+{
+  local ctx = {
+    exactLines = {},
+    servedWithRoad = {},
+    servedRailOnly = {},
+    townBusPaxServed = {},
+    roadFreightBusy = {},
+    roadFeederAirports = {},
+    airOrigins = [],
+    airTownServed = {},
+    airHubRouteCounts = {},
+    airLinePairs = {},
+    airSiteValidity = {},
+    stationLimitedTowns = {},
+  };
+  if (AIR0310_SITE_VALIDITY_CACHE) {
+    ctx.airValidityState <- OpexAir0310SiteValidityBegin(ctx.stationLimitedTowns);
+  } else {
+    ctx.airValidityState <- null;
+  }
+  if (lines == null || lines.len() == 0) return ctx;
+
+  local width = AIMap.GetMapSizeX();
+  local height = AIMap.GetMapSizeY();
+  local radius = ORIGIN_SEPARATION - 1;
+
+  foreach (line in lines) {
+    if (line == null) continue;
+    local hasOriginA = ("originA" in line);
+    local hasOriginB = ("originB" in line);
+    local hasCargo = ("cargo" in line);
+    local hasMode = ("mode" in line);
+    local mode = hasMode ? line.mode : null;
+
+    /* 1. Doublons exacts : cargo + originA + originB dans les deux sens */
+    if (hasCargo && hasOriginA && hasOriginB) {
+      ctx.exactLines.rawset(line.cargo + "|" + line.originA + "|" + line.originB, true);
+      ctx.exactLines.rawset(line.cargo + "|" + line.originB + "|" + line.originA, true);
+    }
+
+    /* 2. Index losange OpexOriginServed (rayon ORIGIN_SEPARATION - 1) */
+    local isRail = !hasMode || mode == "rail";
+    local isRoad = hasMode && mode == "road";
+    if (hasOriginA && hasOriginB && (isRail || isRoad)) {
+      local origins = [line.originA, line.originB];
+      foreach (origin in origins) {
+        if (!AIMap.IsValidTile(origin)) continue;
+        local ox = AIMap.GetTileX(origin);
+        local oy = AIMap.GetTileY(origin);
+        for (local dx = -radius; dx <= radius; dx++) {
+          local x = ox + dx;
+          if (x < 0 || x >= width) continue;
+          local dyLimit = radius - abs(dx);
+          for (local dy = -dyLimit; dy <= dyLimit; dy++) {
+            local y = oy + dy;
+            if (y < 0 || y >= height) continue;
+            local tIdx = AIMap.GetTileIndex(x, y);
+            if (isRail) ctx.servedRailOnly.rawset(tIdx, true);
+            ctx.servedWithRoad.rawset(tIdx, true);
+          }
+        }
+      }
+    }
+
+    /* 3. Aides mode route */
+    if (isRoad) {
+      if (("isFeeder" in line) && line.isFeeder && ("airportStationId" in line)) {
+        ctx.roadFeederAirports.rawset(line.airportStationId, true);
+      }
+      if (!("scrapping" in line && line.scrapping) && hasCargo && line.cargo >= 0
+          && AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) {
+        local srcTown = ("srcTown" in line && line.srcTown >= 0)
+            ? line.srcTown : (hasOriginA && AIMap.IsValidTile(line.originA) ? AITile.GetClosestTown(line.originA) : -1);
+        if (srcTown >= 0) ctx.townBusPaxServed.rawset(srcTown, true);
+        local dstTown = ("dstTown" in line && line.dstTown >= 0)
+            ? line.dstTown : (hasOriginB && AIMap.IsValidTile(line.originB) ? AITile.GetClosestTown(line.originB) : -1);
+        if (dstTown >= 0) ctx.townBusPaxServed.rawset(dstTown, true);
+      }
+    }
+
+    /* 4. Fret routier busy */
+    if ((isRail || isRoad) && hasCargo && hasOriginA && hasOriginB) {
+      ctx.roadFreightBusy.rawset(line.cargo + "|" + line.originA, true);
+      ctx.roadFreightBusy.rawset(line.cargo + "|" + line.originB, true);
+    }
+
+    /* 5. Aides mode air */
+    if (hasMode && mode == "air") {
+      if (hasOriginA && AIMap.IsValidTile(line.originA)) ctx.airOrigins.append(line.originA);
+      if (hasOriginB && AIMap.IsValidTile(line.originB)) ctx.airOrigins.append(line.originB);
+      if (hasOriginA && hasOriginB) {
+        ctx.airLinePairs.rawset(line.originA + "|" + line.originB, true);
+        ctx.airLinePairs.rawset(line.originB + "|" + line.originA, true);
+      }
+      local stA = ("stationA" in line && AIMap.IsValidTile(line.stationA)) ? AIStation.GetStationID(line.stationA) : -1;
+      local stB = ("stationB" in line && AIMap.IsValidTile(line.stationB)) ? AIStation.GetStationID(line.stationB) : -1;
+      if (stA >= 0 && AIStation.IsValidStation(stA)) {
+        if (stA in ctx.airHubRouteCounts) ctx.airHubRouteCounts[stA]++;
+        else ctx.airHubRouteCounts.rawset(stA, 1);
+      }
+      if (stB >= 0 && stB != stA && AIStation.IsValidStation(stB)) {
+        if (stB in ctx.airHubRouteCounts) ctx.airHubRouteCounts[stB]++;
+        else ctx.airHubRouteCounts.rawset(stB, 1);
+      }
+    }
+  }
+
+  return ctx;
+}
+
+/* V156 : Revalidation incrementale indexee d'un candidat du vivier contre ctx et lines.
+ * Structure de decision et court-circuits strictement equivalents a OpexCandidateStillValid. */
+function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx)
+{
+  if (p == null) return false;
+  local mode = p.mode;
+
+  /* 0. Candidat abandonne (echec de trace ou depot) */
+  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
+
+  if (mode == "road" && ("payload" in p) && p.payload != null &&
+      ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return false;
+  }
+
+  /* 1. Doublon exact avec une ligne deja batie */
+  if (("cargo" in p) && ("src" in p) && ("dst" in p)) {
+    local dupKey = p.cargo + "|" + p.src + "|" + p.dst;
+    if (dupKey in ctx.exactLines) return false;
+  }
+
+  /* 2. Mode route */
+  if (mode == "road") {
+    local isSubsidy = (("payload" in p) && p.payload != null &&
+                       ("isSubsidy" in p.payload) && p.payload.isSubsidy);
+    if (isSubsidy) {
+      local subId = p.payload.subsidyId;
+      if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
+      local today = AIDate.GetCurrentDate();
+      local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
+      local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
+      if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
+      return true;
+    }
+
+    local isFeeder = (("kind" in p) && p.kind == "feeder") ||
+                     (("payload" in p) && p.payload != null &&
+                      ("isFeeder" in p.payload) && p.payload.isFeeder);
+    if (isFeeder) {
+      local airportId = (("payload" in p) && p.payload != null && ("airportStationId" in p.payload))
+          ? p.payload.airportStationId
+          : (("src" in p) ? p.src : -1);
+      if (!AIStation.IsValidStation(airportId)) return false;
+      if (airportId in ctx.roadFeederAirports) return false;
+      return true;
+    }
+
+    if (p.kind == "pax") {
+      local endpoints = OpexGetCandidateTownEndpoints(p.payload);
+      if ((endpoints.srcTown >= 0 && (endpoints.srcTown in ctx.townBusPaxServed)) ||
+          (endpoints.dstTown >= 0 && (endpoints.dstTown in ctx.townBusPaxServed))) return false;
+    }
+    if (p.kind == "pax") {
+      local srcServed = (p.src in ctx.servedWithRoad);
+      local dstServed = (p.dst in ctx.servedWithRoad);
+      local isOriginBlocked = srcServed || dstServed;
+
+      if (C55_PAX_TRACE_PROBE) {
+        OpexC55PaxTraceObserveRevalidated(isOriginBlocked);
+      }
+
+      if (C55_ORIGIN_RELAX_PROBE) {
+        OpexC55OriginRelaxObserve("pax", lines, p.src, p.dst, srcServed, dstServed);
+      }
+      if (isOriginBlocked) return false;
+      if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
+    } else {
+      /* Fret routier */
+      if (C55_FREIGHT_ORIGIN_RELAX) {
+        local srcServed = (p.src in ctx.servedWithRoad);
+        local dstServed = (p.dst in ctx.servedWithRoad);
+        if (srcServed && dstServed) return false;
+        if (((p.cargo + "|" + p.src) in ctx.roadFreightBusy) ||
+            ((p.cargo + "|" + p.dst) in ctx.roadFreightBusy)) return false;
+      } else if (C55_ORIGIN_RELAX_PROBE) {
+        local srcServed = (p.src in ctx.servedWithRoad);
+        local dstServed = (p.dst in ctx.servedWithRoad);
+        OpexC55OriginRelaxObserve("freight", lines, p.src, p.dst, srcServed, dstServed);
+        if (srcServed || dstServed) return false;
+      } else {
+        if (p.src in ctx.servedWithRoad) return false;
+        if (p.dst in ctx.servedWithRoad) return false;
+      }
+      local towns = OpexGetCandidateTownEndpoints(p);
+      if (C60_TOWN_RATING_PROBE) {
+        if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
+        if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
+      }
+    }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
+    return true;
+  }
+
+  /* 3. Mode rail : les deux extremites servies excluent la ligne */
+  if (mode == "rail") {
+    local towns = OpexGetCandidateTownEndpoints(p);
+    if (C60_TOWN_RATING_PROBE) {
+      if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
+      if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
+    }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
+    if ((p.src in ctx.servedRailOnly) && (p.dst in ctx.servedRailOnly)) {
+      return false;
+    }
+    if (!OpexRailCachedProximityKeep(p, lines, "incremental")) return false;
+    return true;
+  }
+
+  /* 4. Mode aerien : validite du plan de lot et constructibilite des sites */
+  if (mode == "air") {
+    local plan = p.payload;
+    if (plan == null) return false;
+    if (C60_TOWN_RATING_PROBE) {
+      if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
+      if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
+    }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
+    if (!OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx)) return false;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    if (!OpexAirSiteStillBuildableIndexed(plan.siteA, plan.airport, plan.plane, reuseA, ctx)) {
+      return false;
+    }
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    if (!OpexAirSiteStillBuildableIndexed(plan.siteB, plan.airport, plan.plane, reuseB, ctx)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 5. Mode maritime : dock constructible */
+  if (mode == "water") {
+    local plan = p.payload;
+    if (plan == null || !("siteA" in plan) || !("siteB" in plan)) return false;
+    if (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
+        !OpexWaterBatchSiteStillBuildable(plan.siteB)) {
+      return false;
+    }
+    return true;
+  }
+
+  return true;
 }
 
 /* C78.2 : les sites AIR sont des predictions faites pendant un scan qui peut
@@ -512,13 +770,13 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
  * une extremite est devenue impossible ou dont la paire a ete abandonnee.
  * Plusieurs projets peuvent partager la meme extremite : une seule sonde par
  * site/type/reuse suffit pour toute la selection. */
-function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null, lines = null)
+function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null, lines = null, externalSiteValidity = null, externalStationLimitedTowns = null)
 {
   if (AIR0310_SITE_VALIDITY_CACHE)
     return OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   local live = [];
-  local siteValidity = {};
-  local stationLimitedTowns = {};
+  local siteValidity = externalSiteValidity != null ? externalSiteValidity : {};
+  local stationLimitedTowns = externalStationLimitedTowns != null ? externalStationLimitedTowns : {};
   local c120InputAir = 0;
   local c120FilteredAir = 0;
   foreach (project in alternatives) {
