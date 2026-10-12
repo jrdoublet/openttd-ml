@@ -46,7 +46,7 @@ class TestV158SettingsAndGlobals(unittest.TestCase):
         self.assertIn('"air_publish_lazy_select"', info)
         block = info[info.index('name = "air_publish_lazy_select"') :][:500]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, rf"{key} = 0\b")
+            self.assertRegex(block, rf"{key} = 1\b")
         self.assertRegex(block, r"min_value = 0\b")
         self.assertRegex(block, r"max_value = 2\b")
 

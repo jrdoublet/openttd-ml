@@ -14,7 +14,7 @@ Le code modifié le 12/10, et les deux branches en attente de banc.
 | `origin/v158-lazy-select` | `3d19c55` | V158 `air_publish_lazy_select` (resélection paresseuse à la publication AIR) |
 | `origin/v160-fleet-routes-index` | `9830fc6` | V160 `air_fleet_routes_index` (index des routes par aéroport dans `fleet.resize`) |
 
-Défauts au 12/10 : V147, V153, V154 et V156 à 1 ; V155, V158 et V160 à 0.
+Défauts au 12/10 : V147, V153, V154 et V156 à 1 ; V155, V158 et V160 à 0 (V158 passé à 1 le 12/10 au soir, après la porte B).
 
 ## Étapes
 
