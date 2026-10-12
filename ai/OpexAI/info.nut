@@ -1150,10 +1150,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "rail_end_jump_connect",
-      description = "recognize collinear bridge/tunnel jump track continuity on terminal station connection; 0 = off (default)",
+      description = "recognize collinear bridge/tunnel jump track continuity on terminal station connection; 1 = on (default since 2026-10-12, porte B 20x10), 0 = off",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });

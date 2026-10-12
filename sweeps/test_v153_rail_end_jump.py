@@ -35,12 +35,12 @@ class TestV153RailEndJump(unittest.TestCase):
         cls.settings = source("settings.nut")
         cls.builder = source("builder_rail.nut")
 
-    def test_setting_declared_and_default_off(self):
+    def test_setting_declared_and_default_on(self):
         self.assertIn('name = "rail_end_jump_connect"', self.info)
         start = self.info.index('name = "rail_end_jump_connect"')
         block = self.info[start:self.info.index("});", start)]
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"\b{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"\b{level}_value\s*=\s*1\b")
         self.assertIn("flags = AICONFIG_BOOLEAN", block)
 
     def test_global_and_setting_load(self):
