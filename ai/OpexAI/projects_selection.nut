@@ -1877,6 +1877,19 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
   stats.emptyCause <- emptyCause;
 }
 
+/* V158 : Matérialise la sélection si elle a été différée par air_publish_lazy_select. */
+function OpexEnsureSelection(owner)
+{
+  if (owner == null || owner._projects == null) return;
+  local projects = owner._projects;
+  if (!("selectionStale" in projects) || !projects.selectionStale) return;
+  local capital = OpexAvailableCapital();
+  local railStock = ("_railReadyStock" in owner) ? owner._railReadyStock : null;
+  OpexReselectProjects(projects, capital, owner._abandonedPairs, owner._lines, railStock);
+  owner._ranked = ("rail" in projects) ? projects.rail : null;
+  if ("_lazyMaterializedYear" in owner) owner._lazyMaterializedYear++;
+}
+
 /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
  * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
@@ -1884,6 +1897,9 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
 function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null)
 {
+  if (projects != null && ("selectionStale" in projects)) {
+    projects.selectionStale = false;
+  }
   local spReselect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.reselect") : null;
   if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
     railReadyStock = projects.railReadyStock;

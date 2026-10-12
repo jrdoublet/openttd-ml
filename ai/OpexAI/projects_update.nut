@@ -256,6 +256,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   projects.all = stats.odProjects;
   projects.best = funded;
+  if ("selectionStale" in projects) projects.selectionStale = false;
   if (C69_BOTTLENECK_PROBE) {
     projects.c69Best <- ::C69_LAST_AFFORDABLE;
     projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
@@ -663,14 +664,22 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   local spPubRecount = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.recount") : null;
   OpexProjectsRecountGroups(projects);
   if (spPubRecount != null) OpexSpanEnd(spPubRecount);
-  /* La caisse est lue ici, juste avant la reelection, pas pendant FromAir. */
-  local spPubCap = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.capital") : null;
-  local publishCapital = OpexAvailableCapital();
-  if (spPubCap != null) OpexSpanEnd(spPubCap);
-  local spPubSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select") : null;
-  OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, owner._lines,
+  /* V158 : selection paresseuse. Si active, on pose selectionStale et differe la reelection. */
+  if ("_lazyPubsYear" in owner) owner._lazyPubsYear++;
+  if (AIR_PUBLISH_LAZY_SELECT != 0) {
+    if ("selectionStale" in projects) projects.selectionStale = true;
+    else projects.selectionStale <- true;
+    if ("_lazyDeferredYear" in owner) owner._lazyDeferredYear++;
+  } else {
+    /* La caisse est lue ici, juste avant la reelection, pas pendant FromAir. */
+    local spPubCap = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.capital") : null;
+    local publishCapital = OpexAvailableCapital();
+    if (spPubCap != null) OpexSpanEnd(spPubCap);
+    local spPubSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select") : null;
+    OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, owner._lines,
       owner._railReadyStock);
-  if (spPubSelect != null) OpexSpanEnd(spPubSelect);
+    if (spPubSelect != null) OpexSpanEnd(spPubSelect);
+  }
   return { added = added, reconverted = reconverted, invalidated = invalidated,
       refreshed = refreshedCount };
 }

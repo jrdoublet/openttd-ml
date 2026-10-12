@@ -167,6 +167,7 @@ function OpexLoadSettings()
   AIR_EFFICIENCY_PREFLIGHT = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_preflight") != 0;
   AIR_EFFICIENCY_DEDUPE = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_dedupe") != 0;
   AIR_EFFICIENCY_RESELECT = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_reselect") != 0;
+  AIR_PUBLISH_LAZY_SELECT = AIController.GetSetting("air_publish_lazy_select");
 
   local ajsl = AIController.GetSetting("air_joined_stop_limit");
   if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
