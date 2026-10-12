@@ -69,6 +69,7 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
     c76StartRevisions = AC06_C76_SNAPSHOT_ACK && c76Full
         ? OpexAC06CaptureRevisionNumbers(owner) : null,
   };
+  if (V147_AIR_CATALOG_TASKS) OpexV147ArmPhases(owner);
   return true;
 }
 
@@ -79,8 +80,83 @@ function OpexC78RequeueInitialCatalogSlice(owner, task)
    * le rejouer au tour suivant fait progresser le bootstrap sans affamer un
    * portefeuille existant lors des regenerations ulterieures. */
   if (owner._projects != null) return;
+  if (V147_AIR_CATALOG_TASKS) return;
   task.dueCycle = owner._taskCycle;
   owner._taskCursor = 0;
+}
+
+/* V147 (CD07/B) : entrees de file des phases du rebuild AIR. L'etat reste porte par
+ * l'entree catalog (index 0) ; seule l'entree de la phase courante est activee. */
+function OpexV147ExtendQueue(owner)
+{
+  if (!V147_AIR_CATALOG_TASKS || owner._taskQueue == null || V147_TASK_BASE >= 0) return;
+  V147_TASK_BASE = owner._taskQueue.len();
+  owner._taskQueue.append({ name = "air_cat_scan", dueCycle = 2147483647, enabled = false });
+  owner._taskQueue.append({ name = "air_cat_publish", dueCycle = 2147483647, enabled = false });
+  owner._taskQueue.append({ name = "air_cat_apply", dueCycle = 2147483647, enabled = false });
+}
+
+function OpexV147CurrentPhase(s)
+{
+  if (s == null || typeof s != "table") return null;
+  if (("partialPending" in s) && s.partialPending) return "air_cat_publish";
+  if (s.phase == "apply") return "air_cat_apply";
+  return "air_cat_scan";
+}
+
+/* Active la seule phase due. Bootstrap (aucun portefeuille) : due au cycle courant avec le
+ * curseur sur elle, comme le requeue historique de l'index 0 ; sinon un pas par tour. */
+function OpexV147ArmPhases(owner)
+{
+  if (!V147_AIR_CATALOG_TASKS || V147_TASK_BASE < 0) return;
+  local catalogTask = owner._taskQueue[0];
+  local s = (("c78AirRebuild" in catalogTask) && catalogTask.c78AirRebuild != null)
+      ? catalogTask.c78AirRebuild : null;
+  local current = OpexV147CurrentPhase(s);
+  for (local i = V147_TASK_BASE; i < V147_TASK_BASE + 3; i++) {
+    local t = owner._taskQueue[i];
+    if (current != null && t.name == current) {
+      t.enabled = true;
+      if (owner._projects == null) {
+        t.dueCycle = owner._taskCycle;
+        owner._taskCursor = i;
+      } else if (t.dueCycle > owner._taskCycle + 1) {
+        t.dueCycle = owner._taskCycle + 1;
+      }
+    } else {
+      t.enabled = false;
+      t.dueCycle = 2147483647;
+    }
+  }
+}
+
+function OpexV147PhaseTask(owner)
+{
+  if (V147_TASK_BASE < 0) return null;
+  local catalogTask = owner._taskQueue[0];
+  if (!("c78AirRebuild" in catalogTask) || catalogTask.c78AirRebuild == null) return null;
+  local current = OpexV147CurrentPhase(catalogTask.c78AirRebuild);
+  for (local i = V147_TASK_BASE; i < V147_TASK_BASE + 3; i++) {
+    if (owner._taskQueue[i].name == current) return owner._taskQueue[i];
+  }
+  return null;
+}
+
+function OpexAI::_dispatchAirCatalogPhase(task, year)
+{
+  local catalogTask = this._taskQueue[0];
+  local s = (("c78AirRebuild" in catalogTask) && catalogTask.c78AirRebuild != null)
+      ? catalogTask.c78AirRebuild : null;
+  if (s == null || OpexV147CurrentPhase(s) != task.name) {
+    OpexV147ArmPhases(this);
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+    return false;
+  }
+  V147_IN_PHASE = true;
+  local ran = this._dispatchCatalog(catalogTask, year);
+  V147_IN_PHASE = false;
+  OpexV147ArmPhases(this);
+  return ran;
 }
 
 /* CD06: publication au passage suivant et apply final restent des transactions
@@ -278,6 +354,12 @@ function OpexAI::_dispatchCatalog(task, year)
     if (typeof task.c78AirRebuild == "table"
         && ("refreshReason" in task.c78AirRebuild)) {
       refreshReason = task.c78AirRebuild.refreshReason;
+    }
+    if (V147_AIR_CATALOG_TASKS && !V147_IN_PHASE) {
+      /* CD07/B : la phase courante tourne dans sa propre entree de file. */
+      OpexV147ArmPhases(this);
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
     }
     if (CATALOG_COST_PROBE && ("catalogCost" in task)) CATALOG_COST_ACTIVE = task.catalogCost;
     local spSlice = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.slice") : null;

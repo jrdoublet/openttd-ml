@@ -310,6 +310,12 @@ function OpexAI::_runNextTask()
     if (spTask != null) OpexSpanEnd(spTask);
     return ranTask;
   }
+  if (task.name == "air_cat_scan" || task.name == "air_cat_publish" || task.name == "air_cat_apply") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
+    ranTask = this._dispatchAirCatalogPhase(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
   if (task.name == "c41_water") return false;
   if (this._projects == null) {
     /* `_taskCycle` (et non `+ 1`) laissait la tache due au cycle COURANT. Or le cycle n'avance que

@@ -528,6 +528,7 @@ class OpexAI extends AIController {
   function _onStationFirstVehicle(event);
   function _c78SlotOnProjectsPass();
   function _dispatchCatalog(task, year);
+  function _dispatchAirCatalogPhase(task, year);
   function _dispatchC41RailSignals(task, year);
   function _dispatchC41RailJunction(task, year);
   function _dispatchReport(task, year);
@@ -649,6 +650,7 @@ function OpexAI::Start()
   this._startTick = AIController.GetTick();
 
   OpexLoadSettings();
+  OpexV147ExtendQueue(this);
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 
@@ -781,7 +783,10 @@ function OpexAI::Start()
             if (spResume == null && PROBE_SPAN_TRACE) spResume = OpexSpanBegin("loop.c121_catalog_resume");
             catalogPending = true;
             local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
-            this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            if (V147_AIR_CATALOG_TASKS) {
+              local phaseTask = OpexV147PhaseTask(this);
+              if (phaseTask != null) this._dispatchAirCatalogPhase(phaseTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            } else this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
             if (spCat != null) OpexSpanEnd(spCat);
             break;
           }
