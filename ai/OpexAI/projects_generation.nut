@@ -886,7 +886,11 @@ function OpexFilterRailStockGate(alternatives, railReadyStock)
     }
     kept.push(project);
   }
-  if (C80_RAIL_STOCK_WORKER && railReadyStock != null) {
+  /* V149 : pendant l'annee AIR, un trace stocke n'est pas posable ; il ne doit pas non plus
+   * prendre de capital a la selection devant l'aerien. Il y entre a la premiere reselection
+   * apres l'annee AIR. */
+  if (C80_RAIL_STOCK_WORKER && railReadyStock != null
+      && !(V149_RAIL_PIPELINE && OpexV149AirYear())) {
     foreach (pairKey, entry in railReadyStock) {
       if (entry != null && ("project" in entry) && entry.project != null)
         kept.push(entry.project);

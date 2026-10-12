@@ -1628,6 +1628,43 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v149_rail_pipeline",
+      description = "V149 unblock rail: forces the C80 rail stock gate and worker, stock of v149_stock_size ready routes, periodic revalidation with repair, stored routes held during the AIR first year; 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v149_stock_size",
+      description = "V149 capacity of the ready rail route stock (only with v149_rail_pipeline)",
+      min_value = 1, max_value = 12,
+      easy_value = 4, medium_value = 4, hard_value = 4,
+      custom_value = 4,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v149_revalidate_days",
+      description = "V149 period in days between revalidations of stored rail routes (only with v149_rail_pipeline)",
+      min_value = 7, max_value = 180,
+      easy_value = 30, medium_value = 30, hard_value = 30,
+      custom_value = 30,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v149_freight_rotation",
+      description = "V149 monthly freight cargo rotation (forces c76_freight_rotation, only with v149_rail_pipeline): 1 = on (default), 0 = off for ablation",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "c80_worker_town",
       description = "C80 tranche 2: migrate town growth to execution register worker: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

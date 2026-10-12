@@ -977,6 +977,17 @@ C80_RAIL_STOCK_GATE <- false;
  * N'a d'effet que si C80_RAIL_STOCK_GATE est actif. Défaut 0 (désactivé). */
 C80_RAIL_STOCK_WORKER <- false;
 
+/* V149 : debloquer le rail (decision utilisateur 13/10). Interrupteur maitre : force la gate et
+ * le worker C80, stock de V149_STOCK_SIZE traces prets, revalidation periodique avec reparation,
+ * traces stockes retenus pendant l'annee AIR, rotation mensuelle du cargo fret. Defaut 0 :
+ * capacite du stock 1 et chemins C80/C76 strictement inchanges. Etat transitoire (non sauve). */
+V149_RAIL_PIPELINE <- false;
+V149_STOCK_SIZE <- 4;
+V149_REVALIDATE_DAYS <- 30;
+V149_FREIGHT_ROTATION <- true;
+/* Annee de _generationStageMonth (annee AIR), copiee par l'instance ; -1 = inconnue. */
+V149_FIRST_YEAR <- -1;
+
 /* C80 air eval fast : optimisations exactes de la planification aerienne (memo d'economie,
  * memo de trajectoire/revenu, report de GetOrderDistance). Defaut 0. */
 C80_AIR_EVAL_FAST <- false;

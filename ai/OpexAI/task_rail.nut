@@ -213,6 +213,14 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         this._maybeSupersedeRailSearchForOriginReuse(candidate, i);
       }
       if (C80_RAIL_STOCK_GATE) {
+        /* V149 : jamais de rail devant l'aerien pendant l'annee AIR, meme pour un trace du stock
+         * qui n'est pas de preparation (meme test stillFirstYear que rail_prep_held). */
+        if (V149_RAIL_PIPELINE && this._v149AirYearActive()) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                  reason = "v149_air_year_held", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
         local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
         if (C80_RAIL_STOCK_WORKER && (this._railReadyStock == null
             || !(pairKey in this._railReadyStock)
@@ -275,6 +283,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             return { outcome = "rejected", discards = passDiscards };
           }
           this._c121RailPrepDropStock(candidate, reval.reason, prepOps, prepTicks);
+          if (V149_RAIL_PIPELINE) this._v149OnRevalidateFail(candidate, reval.reason);
           c121PrepPlan = false;
           if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
             if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
@@ -431,11 +440,13 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
+        if (V149_RAIL_PIPELINE) this._v149DropTooClose(candidate);
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_hard", 0, 0, 0);
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       if (close.blocking >= 0) {
+        if (V149_RAIL_PIPELINE) this._v149DropTooClose(candidate);
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_no_join", 0, 0, 0);
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
@@ -523,6 +534,14 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             if (V131_RAIL_REPAIR && (reval.reason == "v131_repair_pending" || reval.reason == "slot_busy")) {
               return { outcome = "rejected", discards = passDiscards };
             }
+            if (V149_RAIL_PIPELINE && reval.reason == "no_vehicle_slot") {
+              /* Attente comme la caisse : le trace reste en stock. */
+              if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+                passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                      reason = "vehicle_limit", extra = "" });
+              }
+              return { outcome = "rejected", discards = passDiscards };
+            }
             delete this._railReadyStock[pairKey];
             if (RAIL_PREASTAR_PROBE && ("railPreastarRid" in entry.plan)) {
               OpexRailPreAstarLog("BUILD", "rid=" + entry.plan.railPreastarRid
@@ -537,6 +556,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                                + " reason=" + reval.reason + " issue=abandoned");
               }
               if (this._activeWorker == null) this._tryStartRailStockWorker();
+            } else if (V149_RAIL_PIPELINE) {
+              /* Le creneau peut etre occupe par une autre recherche du stock : la reparation
+               * passe par la file, prioritaire au prochain demarrage du worker. */
+              this._v149OnRevalidateFail(candidate, reval.reason);
             } else {
               // Règle 3 : relancer en priorité un A* pour la même paire (nouvelle recherche)
               local started = this._startRailStockSearch(candidate, true, reval.reason);
@@ -571,6 +594,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
       }
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year);
+      if (V149_RAIL_PIPELINE) this._v149AfterBuildAttempt(candidate, result, recorded);
       if (c121PrepPlan && candidate != null && this._railReadyStock != null
           && ("kind" in candidate) && ("cargo" in candidate)
           && ("src" in candidate) && ("dst" in candidate)) {
@@ -1846,8 +1870,13 @@ function OpexAI::_tryStartRailStockWorker()
 {
   if (!C80_RAIL_STOCK_WORKER || !C80_RAIL_STOCK_GATE) return false;
   this._updateRailStockSelectionThreshold();
-  if (this._railReadyStock.len() >= 1) return false;
+  if (this._railReadyStock.len() >= OpexRailStockCapacity()) return false;
   if (this._railSearch != null) return false;
+  if (V149_RAIL_PIPELINE) {
+    /* Annee AIR : remplir le stock sur le reliquat, mais pas quand un AIR vivant est finançable. */
+    if (this._v149AirYearActive() && this._c121RailPrepAirFundableCheap()) return false;
+    if (this._v149StartRepair()) return true;
+  }
   if (this._projects == null) return false;
 
   local railCandidates = null;
@@ -1907,6 +1936,7 @@ function OpexAI::_tryStartRailStockWorker()
       continue;
     }
 
+    if (V149_RAIL_PIPELINE && this._v149WorkerSkip(candidate)) continue;
     return this._startRailStockSearch(candidate, false, null, coarseFundScore);
   }
 
@@ -2064,6 +2094,11 @@ function OpexAI::_handleRailStockSearchTimeout()
   if (("pathfinder" in state) && state.pathfinder != null) state.pathfinder = null;
   if (("segmented" in state) && state.segmented != null) state.segmented = null;
   this._railSearch = null;
+  if (V149_RAIL_PIPELINE) {
+    /* Le candidat suivant part en fin de passe projects (_v149AfterProjectsPass). */
+    OpexV149Log(this, isRepair ? "repair_fail" : "search_fail", candidate, "timeout");
+    return;
+  }
   this._tryStartRailStockWorker();
 }
 
@@ -2124,9 +2159,11 @@ function OpexAI::_handleRailStockSearchCompleted()
                        + " reason=" + repairReason + " issue=repaired");
       }
     }
+    if (V149_RAIL_PIPELINE) this._v149OnDeposit(candidate, readyFundScore, isRepair);
   } else {
     // Échec de recherche : retrait temporaire 365 jours
     this._railStockCooldown[pairKey] <- curDate + 365;
+    if (V149_RAIL_PIPELINE) OpexV149Log(this, isRepair ? "repair_fail" : "search_fail", candidate, "astar");
     if (C56_TASK_TRACE && isRepair) {
       OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
                      "src=" + candidate.src + " dst=" + candidate.dst
@@ -2149,6 +2186,7 @@ function OpexAI::_handleRailStockSearchCompleted()
 function OpexAI::_checkRailStockExpiry()
 {
   if (!C80_RAIL_STOCK_GATE || !C80_RAIL_STOCK_WORKER || this._railReadyStock == null) return;
+  if (V149_RAIL_PIPELINE) return;
   if (this._railReadyStock.len() == 0) return;
 
   local curDate = AIDate.GetCurrentDate();

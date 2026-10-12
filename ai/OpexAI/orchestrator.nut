@@ -293,6 +293,12 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
     ai._c121RailPrepHold = false;
     ai._c121RailPrepYieldLogged = false;
   }
+  /* V149 : pendant l'annee AIR, une recherche du stock cede le tick a un AIR vivant finançable
+   * (minimum fige en fin de passe), comme la preparation C121. */
+  if (V149_RAIL_PIPELINE && !prepSearch && ai._railSearch.phase == "search"
+      && ai._v149AirYearActive() && ai._c121RailPrepAirFundableCheap()) {
+    return "running";
+  }
 
   // 0. Expiration éventuelle du stock existant
   ai._checkRailStockExpiry();
@@ -346,7 +352,7 @@ function OpexWorkerRailStockCancel(worker)
       if ("segmented" in ai._railSearch && ai._railSearch.segmented != null) ai._railSearch.segmented = null;
       ai._railSearch = null;
     }
-    if (ai._railReadyStock.len() < 1) {
+    if (ai._railReadyStock.len() < OpexRailStockCapacity()) {
       ai._tryStartRailStockWorker();
     }
   }
@@ -699,7 +705,8 @@ function OpexAI::_dispatchReactiveIntention(intention)
     if (intention.kind == "c77_entity") {
       /* Si le travailleur actif est rail_search ou town_growth, exécuter la
        * régénération ciblée de l'entité de façon synchrone au lieu d'attendre. */
-      if (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "town_growth") {
+      if (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "town_growth"
+          || (V149_RAIL_PIPELINE && this._activeWorker.kind == "rail_stock")) {
         sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.c77_entity") : null;
         OpexRegenEntitySync(this, intention.payload);
         if (sp != null) OpexSpanEnd(sp);

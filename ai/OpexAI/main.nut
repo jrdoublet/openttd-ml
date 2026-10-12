@@ -158,6 +158,15 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* V149 : file de reparation, compteur de reparations par paire et revalidation periodique.
+   * Transitoires, jamais persistes (comme _railReadyStock). */
+  _v149RepairQueue = null;
+  _v149RepairCount = null;
+  _v149NextRevalidate = -1;
+  _v149RepairsStarted = 0;
+  _v149LogMonth = -1;
+  _v149SkipClose = 0;
+  _v149SkipNear = 0;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -382,6 +391,9 @@ class OpexAI extends AIController {
     this._activeSubsidies = {};
     this._railReadyStock = {};
     this._railStockCooldown = {};
+    this._v149RepairQueue = [];
+    this._v149RepairCount = {};
+    this._v149NextRevalidate = -1;
     this._railStockLastFundedScore = 0.0;
     this._railStockLastFundedDate = -1;
     this._c121RailPrepCandidates = null;
@@ -622,6 +634,20 @@ class OpexAI extends AIController {
   function _c121RailPrepAfterProjectsPass();
   function _c121RailPrepMaybeCatalog();
   function _tryStartC121RailPrepSearch();
+  function _v149AirYearActive();
+  function _v149NearStocked(candidate);
+  function _v149WorkerSkip(candidate);
+  function _v149QueueRepair(candidate, pairKey, reason);
+  function _v149StartRepair();
+  function _v149RevalidateTiles(candidate, plan);
+  function _v149DropStockEntry(pairKey, entry, reason);
+  function _v149RevalidateStock(curDate);
+  function _v149OnRevalidateFail(candidate, reason);
+  function _v149DropTooClose(candidate);
+  function _v149AfterBuildAttempt(candidate, result, recorded);
+  function _v149ExpediteProjects();
+  function _v149OnDeposit(candidate, fundScore, isRepair);
+  function _v149AfterProjectsPass();
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */
@@ -642,6 +668,7 @@ require("task_air.nut");
 require("task_projects.nut");
 require("task_rail.nut");
 require("rail_prep_c121.nut");
+require("rail_v149.nut");
 require("task_report.nut");
 require("task_road.nut");
 require("feeder_bus.nut");

@@ -67,8 +67,12 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertIn('ai._tryStartRailStockWorker();', self.orchestrator)
 
     def test_stock_capacity_n1_enforced(self):
-        self.assertIn("this._railReadyStock.len() >= 1", self.task_rail)
-        self.assertIn("this._railReadyStock.len() < 1", self.task_projects)
+        # V149 : la capacite passe par OpexRailStockCapacity(), qui vaut 1 hors
+        # v149_rail_pipeline (V149_STOCK_SIZE sinon).
+        self.assertIn("this._railReadyStock.len() >= OpexRailStockCapacity()", self.task_rail)
+        self.assertIn("this._railReadyStock.len() < OpexRailStockCapacity()", self.task_projects)
+        v149 = (ROOT / "ai/OpexAI/rail_v149.nut").read_text(encoding="utf-8")
+        self.assertIn("return V149_RAIL_PIPELINE ? V149_STOCK_SIZE : 1;", v149)
 
     def test_duration_180_days_enforced(self):
         # 1. Péremption stock 180 j

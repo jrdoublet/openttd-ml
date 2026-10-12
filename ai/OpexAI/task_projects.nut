@@ -1240,6 +1240,11 @@ function OpexAI::_consumeResumableRailAtPassStart(year, passDiscards, c49Best, c
     if (this._railSearch.phase == "build") this._handleRailStockSearchCompleted();
     return false;
   }
+  /* V149 : une recherche du stock terminee hors de son worker va au stock, jamais a la pose. */
+  if (V149_RAIL_PIPELINE && ("isStockSearch" in this._railSearch) && this._railSearch.isStockSearch) {
+    if (this._railSearch.phase == "build") this._handleRailStockSearchCompleted();
+    return false;
+  }
   local railCandidate = this._railSearch.candidate;
   local c78DiscardsLenRail = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
   local railResult = this._consumeRailSearch(year);
@@ -2104,7 +2109,8 @@ function OpexAI::_tryBuildProjects(year)
              + this._projects.stats.selectedCapital + "|B" + builtCount);
     /* L'abandon a maintenant ete consomme par la reelection/reconstruction. */
     if (hadAbandons) this._hadAbandonsThisPass = false;
-    if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
+    if (V149_RAIL_PIPELINE) this._v149AfterProjectsPass();
+    if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < OpexRailStockCapacity()) {
       this._tryStartRailStockWorker();
     }
     if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
@@ -2121,7 +2127,8 @@ function OpexAI::_tryBuildProjects(year)
     return true;
   }
   if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
-  if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
+  if (V149_RAIL_PIPELINE) this._v149AfterProjectsPass();
+  if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < OpexRailStockCapacity()) {
     this._tryStartRailStockWorker();
   }
   if (spPass != null) {
