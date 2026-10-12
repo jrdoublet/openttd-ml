@@ -118,10 +118,44 @@ function OpexAirportStationDateSpan(airportType)
   }
 }
 
+/* V160 : Construit une table StationID -> nombre de lignes air vivantes qui la desservent.
+ * Prédicat strictement identique à OpexAirLiveRoutesAtAirport.
+ * Une ligne reliant la même station aux deux bouts ne compte qu'une seule fois. */
+function OpexAirBuildRoutesIndex(lines)
+{
+  local index = {};
+  if (lines == null) return index;
+  foreach (other in lines) {
+    if (!("mode" in other) || other.mode != "air") continue;
+    local live = false;
+    if (("vehicles" in other) && other.vehicles != null) {
+      foreach (v in other.vehicles) {
+        if (AIVehicle.IsValidVehicle(v)) { live = true; break; }
+      }
+    } else if (("vehicle" in other) && AIVehicle.IsValidVehicle(other.vehicle)) {
+      live = true;
+    }
+    if (!live) continue;
+    local otherA = ("stationA" in other) ? OpexAirLineStationId(other, 0) : -1;
+    local otherB = ("stationB" in other) ? OpexAirLineStationId(other, 1) : -1;
+    local validA = AIStation.IsValidStation(otherA);
+    local validB = AIStation.IsValidStation(otherB);
+    if (validA) {
+      if (otherA in index) index[otherA]++;
+      else index.rawset(otherA, 1);
+    }
+    if (validB && (!validA || otherB != otherA)) {
+      if (otherB in index) index[otherB]++;
+      else index.rawset(otherB, 1);
+    }
+  }
+  return index;
+}
+
 /* C16 : Plafond physique de flotte aerienne derive de la CADENCE et non de la demande (docs/taches.md C16).
  * Calcule le nombre maximal d'avions qui peuvent tourner sur la ligne sans creer d'embouteillage
  * dans le ciel (holding pattern), compte tenu de la rotation aller-retour et du partage de piste. */
-function OpexAirCadenceCap(line, catalog, lines)
+function OpexAirCadenceCap(line, catalog, lines, routesIndex = null)
 {
   local speed = (("plane" in catalog) && catalog.plane != null) ? catalog.plane.speed : 1;
   local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
@@ -143,8 +177,10 @@ function OpexAirCadenceCap(line, catalog, lines)
   local trip = OpexAirTripModel(speed, capacity, distance);
   local roundTripDays = trip.roundTripDays;
 
-  local routesA = OpexAirLiveRoutesAtAirport(line.stationA, lines);
-  local routesB = OpexAirLiveRoutesAtAirport(line.stationB, lines);
+  local routesA = (routesIndex != null) ? OpexAirRoutesIndexAt(line.stationA, routesIndex)
+      : OpexAirLiveRoutesAtAirport(line.stationA, lines);
+  local routesB = (routesIndex != null) ? OpexAirRoutesIndexAt(line.stationB, routesIndex)
+      : OpexAirLiveRoutesAtAirport(line.stationB, lines);
   if (routesA < 1) routesA = 1;
   if (routesB < 1) routesB = 1;
 
@@ -161,6 +197,21 @@ function OpexAirCadenceCap(line, catalog, lines)
   if (cap < 1) cap = 1;
   if (cap > AIR_MAX_PLANES_PER_ROUTE) cap = AIR_MAX_PLANES_PER_ROUTE;
   return cap;
+}
+
+/* V160 : Variante indexee de OpexAirCadenceCap. routesIndex est une table StationID -> count
+ * construite par OpexAirBuildRoutesIndex ; null retombe sur le comptage direct. */
+function OpexAirCadenceCapIndexed(line, catalog, lines, routesIndex)
+{
+  return OpexAirCadenceCap(line, catalog, lines, routesIndex);
+}
+
+function OpexAirRoutesIndexAt(airportTile, routesIndex)
+{
+  if (airportTile == null || !AIMap.IsValidTile(airportTile)) return 0;
+  local station = AIStation.GetStationID(airportTile);
+  if (!AIStation.IsValidStation(station) || !(station in routesIndex)) return 0;
+  return routesIndex[station];
 }
 
 function OpexAirAirportAcceptsPlane(airportType, planeType)
