@@ -602,6 +602,84 @@ function OpexAirBatchPlanStillLive(plan, lines)
   }
   return true;
 }
+
+/* V156 : version indexee et memoisee de OpexAirTownServed par town.tile. */
+function OpexAirTownServedIndexed(town, lines, ctx)
+{
+  if (town == null || !("tile" in town)) return false;
+  if (town.tile in ctx.airTownServed) return ctx.airTownServed[town.tile];
+  local served = false;
+  if (lines != null) {
+    foreach (orig in ctx.airOrigins) {
+      if (AIMap.DistanceManhattan(town.tile, orig) < 15) {
+        served = true;
+        break;
+      }
+    }
+  }
+  ctx.airTownServed.rawset(town.tile, served);
+  return served;
+}
+
+/* V156 : version indexee de OpexAirBatchHubHasCapacity via airHubRouteCounts precalcule. */
+function OpexAirBatchHubHasCapacityIndexed(anchor, plane, ctx)
+{
+  if (!AIAirport.IsAirportTile(anchor) ||
+      !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(anchor), plane.planeType)) return false;
+  local station = AIStation.GetStationID(anchor);
+  if (!AIStation.IsValidStation(station)) return false;
+  local routes = (station in ctx.airHubRouteCounts) ? ctx.airHubRouteCounts[station] : 0;
+  local airportType = AIAirport.GetAirportType(anchor);
+  local maxRoutes = OpexAirAirportMaxRoutes(airportType);
+  return routes < maxRoutes;
+}
+
+/* V156 : version memoisee de la constructibilite de site air par cle (reuse|airport.type|plane.planeType|anchor). */
+function OpexAirSiteStillBuildableIndexed(site, airport, plane, reuse, ctx)
+{
+  if (site == null || airport == null || plane == null || !("anchor" in site)) return false;
+  local key = (reuse ? "R|" : "N|") + airport.type + "|" + plane.planeType + "|" + site.anchor;
+  if (AIR0310_SITE_VALIDITY_CACHE && ("airValidityState" in ctx) && ctx.airValidityState != null) {
+    return OpexAir0310SiteValidityOk(ctx.airValidityState, key, site, airport, plane, reuse, ctx.stationLimitedTowns);
+  }
+  if (key in ctx.airSiteValidity) return ctx.airSiteValidity[key];
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, reuse, ctx.stationLimitedTowns);
+  ctx.airSiteValidity.rawset(key, ok);
+  return ok;
+}
+
+/* V156 : version indexee de OpexAirBatchPlanStillLive utilisant les index de ctx. */
+function OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx)
+{
+  if (OpexAirRecoveryBlocksPlan(plan)) return false;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
+  local c83OwnSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
+  local v134SecondA = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotA" in plan) && plan.v134SecondSlotA;
+  local v134SecondB = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotB" in plan) && plan.v134SecondSlotB;
+  if (!reuseA) {
+    local servedA = OpexAirTownServedIndexed(plan.siteA.town, lines, ctx);
+    if (c83OwnSecondA || v134SecondA) {
+      if (!servedA || !OpexAirC83SecondSlotOpen(plan.siteA.town)) return false;
+    } else if (servedA) {
+      return false;
+    }
+  }
+  if (!reuseB) {
+    local servedB = OpexAirTownServedIndexed(plan.siteB.town, lines, ctx);
+    if (c83OwnSecondB || v134SecondB) {
+      if (!servedB || !OpexAirC83SecondSlotOpen(plan.siteB.town)) return false;
+    } else if (servedB) {
+      return false;
+    }
+  }
+  if (reuseA && !OpexAirBatchHubHasCapacityIndexed(plan.siteA.anchor, plan.plane, ctx)) return false;
+  if (reuseB && !OpexAirBatchHubHasCapacityIndexed(plan.siteB.anchor, plan.plane, ctx)) return false;
+  local pairKey = plan.siteA.town.tile + "|" + plan.siteB.town.tile;
+  if (pairKey in ctx.airLinePairs) return false;
+  return true;
+}
 /* C38 etape 2 : tentative synchrone air, incluant les gardes de site et de flotte. */
 function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscards, anchor, yy)
 {
@@ -1172,6 +1250,36 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       OpexAirFleetRefusal(line, year, "V");
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
       continue;
+    }
+    /* V155: pre-filter AIR lines refused by C121 observation/cadence before paying the visible fleet refresh */
+    if (AIR_FLEET_C121_PREGUARD && C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION
+        && ("targetAirPlanes" in line)) {
+      local isFirstLiveEligible = C121_AIR_FIRST_LIVE_GROWTH
+          && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
+              || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS)
+          && have == 1 && !("lastAirFleetYear" in line);
+      if (!isFirstLiveEligible) {
+        local c121Age = ("year" in line) ? year - line.year : -1;
+        if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0) {
+          if (DECISION_LOG) {
+            local reasonStr = (c121Age < 2) ? "age" : "profit";
+            OpexDecide("AIR_FLEET_PREGUARD", "line=" + line.lineId + " reason=" + reasonStr);
+          }
+          OpexAirFleetRefusal(line, year, "O");
+          if (plan != null && C69_BOTTLENECK_PROBE)
+            OpexC73RecordRejection("fleet", "c121_no_full_year_observation", 1);
+          continue;
+        }
+        if (("lastAirFleetYear" in line) && (year - line.lastAirFleetYear) < 2) {
+          if (DECISION_LOG) {
+            OpexDecide("AIR_FLEET_PREGUARD", "line=" + line.lineId + " reason=cadence");
+          }
+          OpexAirFleetRefusal(line, year, "O");
+          if (plan != null && C69_BOTTLENECK_PROBE)
+            OpexC73RecordRejection("fleet", "c121_wait_full_year_after_growth", 1);
+          continue;
+        }
+      }
     }
     OpexC121RefreshVisibleFleet(this._catalog, line, this._lines);
     if (C121_AIR_VISIBLE_COMPETITION && ("targetAirPlanes" in line) && have >= line.targetAirPlanes) {
