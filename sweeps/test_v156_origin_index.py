@@ -135,7 +135,7 @@ class TestV156Contracts(unittest.TestCase):
         block = info.split('name = "incr_revalidate_index",', 1)[1].split("});", 1)[0]
         self.assertIn("min_value = 0, max_value = 2,", block)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"\b{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"\b{level}_value\s*=\s*1\b")
 
         globals_pre = self.read("globals_pre.nut")
         self.assertIn("INCR_REVALIDATE_INDEX <- 0;", globals_pre)

@@ -263,7 +263,7 @@ class TestV154Contract(unittest.TestCase):
         self.assertEqual(self.info.count('name = "select_bisect_insert"'), 1)
         start = self.info.index('name = "select_bisect_insert"')
         block = self.info[start:self.info.index("});", start)]
-        for token in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
+        for token in ("easy_value = 1", "medium_value = 1", "hard_value = 1", "custom_value = 1"):
             self.assertIn(token, block)
         self.assertIn("flags = AICONFIG_BOOLEAN", block)
 
