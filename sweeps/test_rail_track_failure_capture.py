@@ -67,6 +67,14 @@ def without_freight_memory(body):
             '      if ("lead" in planA) fields += " leada=" + planA.lead;\n',
             '',
         ),
+        (
+            '  local connected = trackFailed == 0 &&\n'
+            '      OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], "A") &&\n'
+            '      OpexRailEndConnected(planB.station_exit, tiles[last - 1], tiles[last - 2], "B");',
+            '  local connected = trackFailed == 0 &&\n'
+            '      AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&\n'
+            '      AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);',
+        ),
     )
     for addition, original in replacements:
         if body.count(addition) != 1:

@@ -1116,6 +1116,46 @@ function OpexRailPlanContainsTile(plan, tile)
   return false;
 }
 
+/* V153 : connectivite terminale rail supportant un saut (pont/tunnel) vers le lead.
+ * outer : tuile de sortie de gare (plan.station_exit)
+ * lead : tuile d'approche / tete de pont (tiles[1] cote A, tiles[last-1] cote B)
+ * inner : tuile adjacente au trace (tiles[2] cote A, tiles[last-2] cote B) */
+function OpexRailEndConnected(outer, lead, inner, side = null)
+{
+  if (!RAIL_END_JUMP_CONNECT || AIMap.DistanceManhattan(lead, inner) <= 1) {
+    return AIRail.AreTilesConnected(outer, lead, inner);
+  }
+
+  local kind = "none";
+  if (AIBridge.IsBridgeTile(lead) && AIBridge.GetOtherBridgeEnd(lead) == inner) {
+    kind = "bridge";
+  } else if (AITunnel.IsTunnelTile(lead) && AITunnel.GetOtherTunnelEnd(lead) == inner) {
+    kind = "tunnel";
+  }
+
+  local ok = false;
+  if (kind != "none") {
+    local d = AIMap.DistanceManhattan(lead, inner);
+    local unit = (lead - inner) / d;
+    if (outer == lead + unit) {
+      local nextTile = outer + unit;
+      if (AIMap.IsValidTile(nextTile)) {
+        ok = AIRail.AreTilesConnected(lead, outer, nextTile);
+      } else {
+        ok = AIRail.IsRailTile(outer);
+      }
+    }
+  }
+
+  if (DECISION_LOG) {
+    local sideStr = (side != null) ? side : "none";
+    OpexDecide("RAIL_END_JUMP", "side=" + sideStr + " ok=" + (ok ? 1 : 0)
+        + " kind=" + kind + " lead=" + lead + " inner=" + inner + " outer=" + outer);
+  }
+
+  return ok;
+}
+
 /* Invariants geometriques verifies APRES l'A* mais AVANT tout devis/terrassement reel.
  * 1) le lead choisi par le chemin ne doit appartenir a aucune des deux emprises de gare qui
  *    seront effectivement construites ;
@@ -2308,8 +2348,8 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
-      AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&
-      AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);
+      OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], "A") &&
+      OpexRailEndConnected(planB.station_exit, tiles[last - 1], tiles[last - 2], "B");
   if (!connected) {
     if (trackFailed > 0 &&
         ((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
