@@ -1514,8 +1514,8 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v161_fleet_net_marginal",
-      description = "V161 AIR fleet growth valued by airport-level net marginal: 0 = off, 1 = observed net + game cap + C70, 2 = 1 + neighbour prior",
-      min_value = 0, max_value = 2,
+      description = "V161 cap AIR fleet growth value by a prior net of neighbour lines sharing an airport: 0 = off, 1 = on",
+      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = 0

@@ -307,9 +307,6 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
      * report year+2. */
     line.c121MarginalObserveYear <- year + 2;
   }
-  if (V161_FLEET_NET_MARGINAL > 0 && added > 0) {
-    OpexV161ArmObservation(line, this._lines, year, entry.planePrice);
-  }
   if (C50_CHRONOLOGY_PROBE) {
     OpexC50ChronologyLog("phase=fleet_built mode=air line=" + line.lineId
         + " added=" + added + " total=" + line.vehCount + " want=" + entry.want

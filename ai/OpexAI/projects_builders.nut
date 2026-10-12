@@ -231,9 +231,8 @@ function OpexProjectFromFleet(entry)
   }
 
   /* V161 : la marge C121 (ligne seule) et le profit moyen ignorent ce que l'avion retire
-   * aux voisines du meme aeroport. Remplacer par la marge nette observee a l'echelle des
-   * aeroports quand elle existe ; sinon la plafonner. Une valeur restee "model" perd
-   * l'exemption C70/C82 des renforts (v161Calibrate). C84 reste hors champ. */
+   * aux voisines du meme aeroport : plafonner par l'a priori net des voisines. Une valeur
+   * restee "model" perd l'exemption C70/C82 des renforts (v161Calibrate). C84 hors champ. */
   local v161Source = null;
   local v161Model = 0;
   if (V161_FLEET_NET_MARGINAL > 0 && !c84BelowTarget) {

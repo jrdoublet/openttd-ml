@@ -1499,9 +1499,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
         if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
         if (V161_FLEET_NET_MARGINAL > 0) {
-          /* V161 : voisines AIR vivantes partageant une gare (moyenne de partie ajustee,
-           * a priori du mode 2). Index construit une fois par passe (aucun achat en mode
-           * a blanc). */
+          /* V161 : voisines AIR vivantes partageant une gare, pour l'a priori. Index
+           * construit une fois par passe (aucun achat en mode a blanc). */
           if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
           local v161A = OpexAirLineStationId(line, 0);
           local v161B = OpexAirLineStationId(line, 1);

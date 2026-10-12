@@ -174,12 +174,6 @@ function OpexLoadSettings()
   if (v161Own >= 0) V161_PRIOR_OWN = v161Own;
   local v161Nb = AIController.GetSetting("v161_prior_neighbour");
   if (v161Nb >= 0) V161_PRIOR_NEIGHBOUR = v161Nb;
-  V161_POOL_N = 0;
-  V161_POOL_SUM = 0;
-  V161_POOL_SX = 0;
-  V161_POOL_SXX = 0;
-  V161_POOL_SXY = 0;
-  V161_TREND_PM = 1000;
   AIR_EFFICIENCY_BATCH = AIController.GetSetting("air_efficiency_batch") != 0;
   AIR_EFFICIENCY_PREFLIGHT = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_preflight") != 0;
   AIR_EFFICIENCY_DEDUPE = AIR_EFFICIENCY_BATCH || AIController.GetSetting("air_efficiency_dedupe") != 0;

@@ -239,9 +239,6 @@ function OpexAI::_reportLines(year)
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
-  /* V161 : [profit apres, profit base, temoins] et lineId -> ligne AIR relevee. */
-  local v161Trend = V161_FLEET_NET_MARGINAL > 0 ? [0, 0, 0] : null;
-  local v161ById = V161_FLEET_NET_MARGINAL > 0 ? {} : null;
   for (local i = 0; i < this._lines.len(); i++) {
     local line = this._lines[i];
     local stationA = AIStation.GetStationID(line.stationA);
@@ -392,10 +389,6 @@ function OpexAI::_reportLines(year)
         && ("c121MarginalBaselineProfit" in line) && ("c121MarginalBaselineRevenue" in line)
         && ("c121MarginalBaselineVehicles" in line) && vehCount > line.c121MarginalBaselineVehicles) {
       OpexC121ObserveLineMarginal(line, year, vehCount, profit, currentRevenue);
-    }
-    if (v161ById != null && ("mode" in line) && line.mode == "air") {
-      OpexV161ReportLine(line, year, stationA, stationB, profit, vehCount, v161Trend);
-      v161ById.rawset(line.lineId, line);
     }
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
      * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */
@@ -638,7 +631,6 @@ function OpexAI::_reportLines(year)
       OpexUpdateTownGrowthLineHealth(this, line, year, anchor, profit);
     }
   }
-  if (v161ById != null) OpexV161ObserveClusters(this._lines, v161ById, v161Trend, year);
   if (C50_CHRONOLOGY_PROBE) {
     local sumProf = 0;
     local sumRev = 0;
