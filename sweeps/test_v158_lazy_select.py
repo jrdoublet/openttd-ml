@@ -146,6 +146,8 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "task_projects.nut:OpexAI::_c83WatchAirSlotTransitions": "Appelé exclusivement dans _tryBuildProjects (après _ensureSelection)",
         "task_projects.nut:OpexAI::_c39StampFinanceable": "Appelé depuis _dispatchProjects (protégé) et post-rebuild",
         "task_projects.nut:OpexAI::_rebuildProjects": "Fin de rebuild complet (OpexBuildProjects a fraîchement sélectionné)",
+        # V149 : diagnostic DECISION_LOG appelé via _v149AfterProjectsPass, en fin de _tryBuildProjects
+        "rail_v149.nut:OpexAI::_v149IdleDiag": "Appelé exclusivement en fin de _tryBuildProjects ; lit le classement rail.best comme _tryStartRailStockWorker",
         # Sous-fonctions de task_air.nut appelées exclusivement depuis _tryBuildProjects
         "task_air.nut:OpexAI::_tryBuildAirProject": "Appelé exclusivement depuis la boucle de passage de _tryBuildProjects",
         # Sous-fonctions de task_report.nut appelées exclusivement depuis _dispatchReport ou post-rebuild
