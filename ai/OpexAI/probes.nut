@@ -2637,7 +2637,10 @@ function OpexAI::_mainLoopProfiled()
             catalogPending = true;
             continued = true;
             local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
-            this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            if (V147_AIR_CATALOG_TASKS) {
+              local phaseTask = OpexV147PhaseTask(this);
+              if (phaseTask != null) this._dispatchAirCatalogPhase(phaseTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            } else this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
             if (spCat != null) OpexSpanEnd(spCat);
             break;
           }

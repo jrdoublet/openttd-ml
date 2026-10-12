@@ -588,6 +588,7 @@ function OpexLoadSettings()
   AC06_C76_SNAPSHOT_ACK = C76_REGEN_TARGETED
       && AIController.GetSetting("ac06_c76_snapshot_ack") != 0;
   AC04_HUB_USAGE_GATE = AIController.GetSetting("ac04_hub_usage_gate") != 0;
+  V147_AIR_CATALOG_TASKS = AIController.GetSetting("v147_air_catalog_tasks") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
   C67_WATER_EXPOSURE = AIController.GetSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
