@@ -98,6 +98,9 @@ class TestC122AirRegimePriority(unittest.TestCase):
             "function OpexProjectInsertDefensive",
             "function OpexPromoteLiveDefensiveAir",
         )
+        # V157 conserve le parcours historique quand le shadow C122 est actif.
+        self.assertIn("&& !(C122_AIR_REGIME_SHADOW && C121_AIR_PROJECT_REALIZATION_REGIME == 0)", insert)
+        insert = insert[insert.index("  } else {\n    local projectC77Tier"):]
         defensive_at = insert.index("if (priorTier > projectTier) break;")
         regime_at = insert.index("OpexC122AirRegimeTier(project)")
         score_at = insert.index("local priorScore =")

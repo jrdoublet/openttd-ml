@@ -129,6 +129,10 @@ class OpexAI extends AIController {
   _taskCycle = 0;
   _ranked = null;
   _projects = null;
+  /* V158 : compteurs annuels de selection paresseuse sous DECISION_LOG. */
+  _lazyPubsYear = 0;
+  _lazyDeferredYear = 0;
+  _lazyMaterializedYear = 0;
   _generationStage = 0;
   _generationStageMonth = -1;
   _lastFreightCargo = -1;
@@ -458,6 +462,8 @@ class OpexAI extends AIController {
   function _setActiveGoodsChain(chain);
   function _tryBuildAir(year);
   function _tryBuildProjects(year);
+  function _ensureSelection();
+  function _logAirLazySelect(year);
   function _c39StampFinanceable(capital = null, isProjectsTurn = false);
   function _tryTownGrowth(year);
   function _prepareTownGrowth();

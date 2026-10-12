@@ -760,6 +760,7 @@ function OpexAI::_dispatchReactiveIntention(intention)
       if (sp != null) OpexSpanEnd(sp);
       return true;
     }
+    this._ensureSelection();
     /* Ne lancer la construction que si le premier projet financé
      * (this._projects.best[0]) touche l'entité de l'événement (OpexProjectTouchesEntity ; pour
      * une subvention, le projet isSubsidy de ce subsidyId) ; sinon abandonner l'intention
