@@ -351,6 +351,10 @@ function OpexLoadSettings()
   C116_AIR_MARGINAL_CAPITAL = AIController.GetSetting("c116_air_marginal_capital") != 0;
   C116_AIR_PROJECT_PROBE = AIController.GetSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = AIController.GetSetting("c117_air_throughput_probe") != 0;
+  local c117Lean = AIController.GetSetting("c117_lean_sampling");
+  C117_LEAN_SAMPLING = c117Lean >= 0 ? c117Lean : 0;
+  C117_LEAN_MISMATCH_TOTAL = 0;
+  C117_LEAN_MISMATCH_MONTH = -1;
   C121_STATION_FLUX_PROBE = AIController.GetSetting("c121_station_flux_probe") != 0;
   C121_VISIBLE_AIRPORT_CACHE.clear();
   C121_VISIBLE_FLEET_CACHE.clear();
@@ -454,7 +458,7 @@ function OpexLoadSettings()
     C116_AIR_PROJECT_PROBE_YEAR_COUNT = 0;
     C116_AIR_PROJECT_PROBE_SEEN = {};
   }
-  if (C117_AIR_THROUGHPUT_PROBE) {
+  if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
     C117_AIR_LAST_DATE = -1;
     C117_AIR_LINE_STATE = {};
     C117_AIR_VEHICLE_STATE = {};

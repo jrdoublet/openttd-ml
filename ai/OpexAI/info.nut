@@ -656,6 +656,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c117_lean_sampling",
+      description = "V159 opcode optimization: 0 = legacy C117 sampler (default); 1 = lean sampling when probe is off (skips unused fields, AIAirport calls and string flush); 2 = dual shadow comparison (logs C117_LEAN_MISMATCH and monthly summary)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "c121_station_flux_probe",
       description = "Passive PASS station balance: loading increases, queue changes, unknown losses and transfer risks; no fleet decisions; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
