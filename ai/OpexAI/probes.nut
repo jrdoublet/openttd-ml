@@ -281,9 +281,21 @@ function OpexC121HubDelayFlushLine(line, state)
   }
 }
 
-function OpexC117NewLineState(bucket, startDate)
+function OpexC117NewC121View(startDate)
 {
   return {
+    startDate = startDate, lastDate = startDate,
+    pax = 0, seatLegs = 0, trips = 0, tripsA = 0, tripsB = 0, profit = 0,
+    waitASum = 0, waitAN = 0, waitBSum = 0, waitBN = 0,
+    lastLive = 0, lastCap = 0, samples = 0,
+    hubResidualASum = 0.0, hubResidualASq = 0.0, hubResidualAN = 0,
+    hubResidualBSum = 0.0, hubResidualBSq = 0.0, hubResidualBN = 0
+  };
+}
+
+function OpexC117NewLineState(bucket, startDate, withLean = false)
+{
+  local state = {
     bucket = bucket, startDate = startDate, lastDate = startDate,
     pax = 0, seatLegs = 0, mail = 0, mailSeatLegs = 0,
     paxA = 0, seatLegsA = 0, mailA = 0, mailSeatLegsA = 0,
@@ -299,6 +311,8 @@ function OpexC117NewLineState(bucket, startDate)
     lastLive = 0, lastCap = 0, lastEngine = -1, engineChanges = 0,
     mixedEngineSamples = 0, invalidOrderSamples = 0, unobservedTransitions = 0
   };
+  if (withLean) state.leanView <- OpexC117NewC121View(startDate);
+  return state;
 }
 
 function OpexC121FirstLiveAggregate(history, count)
@@ -440,10 +454,61 @@ function OpexC121FirstLiveBalanced90(line)
   return ("balanced90" in holder) && holder.balanced90;
 }
 
+function OpexC117FlushLeanMonth(now)
+{
+  local curMonth = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now);
+  if (C117_LEAN_MISMATCH_MONTH < 0) {
+    C117_LEAN_MISMATCH_MONTH = curMonth;
+    return;
+  }
+  if (curMonth == C117_LEAN_MISMATCH_MONTH) return;
+  if (DECISION_LOG) {
+    OpexDecide("C117_LEAN_MISMATCH", "month=" + C117_LEAN_MISMATCH_MONTH
+        + " total=" + C117_LEAN_MISMATCH_TOTAL);
+  }
+  C117_LEAN_MISMATCH_TOTAL = 0;
+  C117_LEAN_MISMATCH_MONTH = curMonth;
+}
+
+function OpexC117CompareLeanSampling(line, state)
+{
+  local lineId = (line != null && ("lineId" in line)) ? line.lineId : -1;
+  local lean = (state != null && ("leanView" in state)) ? state.leanView : null;
+  if (state == null || lean == null) {
+    C117_LEAN_MISMATCH_TOTAL++;
+    OpexDecide("C117_LEAN_MISMATCH", "line=" + lineId + " field=missing_view");
+    return;
+  }
+  local names = ["lastLive", "lastDate", "startDate", "trips", "tripsA", "tripsB",
+      "profit", "pax", "seatLegs", "waitASum", "waitAN", "waitBSum", "waitBN",
+      "lastCap", "samples",
+      "hubResidualASum", "hubResidualASq", "hubResidualAN",
+      "hubResidualBSum", "hubResidualBSq", "hubResidualBN"];
+  foreach (name in names) {
+    if (!(name in lean) || state[name] != lean[name]) {
+      C117_LEAN_MISMATCH_TOTAL++;
+      OpexDecide("C117_LEAN_MISMATCH", "line=" + lineId + " field=" + name
+          + " hist=" + state[name]
+          + " lean=" + ((name in lean) ? lean[name] : "absent"));
+    }
+  }
+}
+
 function OpexC117FlushLine(line, state)
 {
   if (state == null || state.samples <= 0) return;
+  local flushMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   OpexC121HubDelayFlushLine(line, state);
+  local skipChain = (C117_LEAN_SAMPLING == 1 || C117_LEAN_SAMPLING == 2)
+      && !C117_AIR_THROUGHPUT_PROBE;
+  if (skipChain) {
+    if (C117_LEAN_SAMPLING == 2) OpexC117CompareLeanSampling(line, state);
+    local ageDaysLean = ("buildDate" in line) ? (state.lastDate - line.buildDate) : -1;
+    OpexC121FirstLiveObserve(line, state, ageDaysLean);
+    if (flushMark != null) OpexSpanAgg("loop.c117.flush", flushMark);
+    return;
+  }
+
   local days = state.lastDate - state.startDate;
   if (days <= 0) days = 1;
   local paxPm = state.pax.tofloat() * 30.4 / days.tofloat();
@@ -567,6 +632,7 @@ function OpexC117FlushLine(line, state)
       + " rating_a=" + ratingA + " rating_b=" + ratingB
       + " invalid_order_samples=" + state.invalidOrderSamples
       + " unobserved_transitions=" + state.unobservedTransitions);
+  if (flushMark != null) OpexSpanAgg("loop.c117.flush", flushMark);
 }
 
 function OpexC117AirThroughputStep(lines, catalog)
@@ -577,6 +643,21 @@ function OpexC117AirThroughputStep(lines, catalog)
   if (C117_AIR_LAST_DATE >= 0 && now - C117_AIR_LAST_DATE < C117_AIR_SAMPLE_DAYS) return;
   C117_AIR_LAST_DATE = now;
   local nowYear = AIDate.GetYear(now);
+  /* Mode 1 : omettre les champs hors lecteurs C121. Mode 2 : chemin historique
+   * plus vue lean comparee ; FirstLiveObserve lit l'etat historique. */
+  local skipUnused = (C117_LEAN_SAMPLING == 1) && !C117_AIR_THROUGHPUT_PROBE;
+  local dualCompare = (C117_LEAN_SAMPLING == 2) && !C117_AIR_THROUGHPUT_PROBE;
+  if (dualCompare) OpexC117FlushLeanMonth(now);
+
+  local mailActive = false;
+  local mailCargoId = -1;
+  if (!skipUnused) {
+    if (("mailCargo" in catalog) && catalog.mailCargo >= 0
+        && AICargo.IsValidCargo(catalog.mailCargo)) {
+      mailActive = true;
+      mailCargoId = catalog.mailCargo;
+    }
+  }
 
   foreach (line in lines) {
     if (line == null || !("mode" in line) || line.mode != "air"
@@ -587,14 +668,15 @@ function OpexC117AirThroughputStep(lines, catalog)
     local lineKey = line.lineId;
     local state = (lineKey in C117_AIR_LINE_STATE) ? C117_AIR_LINE_STATE[lineKey] : null;
     if (state == null) {
-      state = OpexC117NewLineState(bucket, now);
+      state = OpexC117NewLineState(bucket, now, dualCompare);
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     } else if (state.bucket != bucket) {
       local bridgeStart = state.lastDate;
       OpexC117FlushLine(line, state);
-      state = OpexC117NewLineState(bucket, bridgeStart);
+      state = OpexC117NewLineState(bucket, bridgeStart, dualCompare);
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     }
+    local leanView = (dualCompare && ("leanView" in state)) ? state.leanView : null;
 
     local live = 0;
     local totalCap = 0;
@@ -613,11 +695,10 @@ function OpexC117AirThroughputStep(lines, catalog)
         local load = cap > 0 ? AIVehicle.GetCargoLoad(v, line.cargo) : 0;
         local mailCap = 0;
         local mailLoad = 0;
-        if (("mailCargo" in catalog) && catalog.mailCargo >= 0
-            && AICargo.IsValidCargo(catalog.mailCargo)) {
-          mailCap = AIVehicle.GetCapacity(v, catalog.mailCargo);
+        if (mailActive) {
+          mailCap = AIVehicle.GetCapacity(v, mailCargoId);
           if (mailCap < 0) mailCap = 0;
-          mailLoad = mailCap > 0 ? AIVehicle.GetCargoLoad(v, catalog.mailCargo) : 0;
+          mailLoad = mailCap > 0 ? AIVehicle.GetCargoLoad(v, mailCargoId) : 0;
         }
         local inOrderList = AIOrder.IsCurrentOrderPartOfOrderList(v);
         local curOrder = inOrderList
@@ -650,20 +731,27 @@ function OpexC117AirThroughputStep(lines, catalog)
             profitDelta = (AIVehicle.GetProfitLastYear(v) - vehicleState.profitThisYear) + thisProfit;
           }
           state.profit += profitDelta;
-          state.runEst += AIVehicle.GetRunningCost(v).tofloat() * deltaDays.tofloat() / 365.25;
+          if (leanView != null) leanView.profit += profitDelta;
+          if (!skipUnused) {
+            state.runEst += AIVehicle.GetRunningCost(v).tofloat() * deltaDays.tofloat() / 365.25;
+          }
         }
         vehicleState.profitYear = nowYear;
         vehicleState.profitThisYear = thisProfit;
         vehicleState.lastDate = now;
 
         if (curOrder == AIOrder.ORDER_INVALID || curOrder < 0 || curOrder > 1) {
-          state.invalidOrderSamples++;
+          if (!skipUnused) {
+            state.invalidOrderSamples++;
+          }
           if (vehicleRunning) {
             vehicleState.legMoving = true;
             if (load > vehicleState.legPaxMax) vehicleState.legPaxMax = load;
             if (cap > vehicleState.legCap) vehicleState.legCap = cap;
-            if (mailLoad > vehicleState.legMailMax) vehicleState.legMailMax = mailLoad;
-            if (mailCap > vehicleState.legMailCap) vehicleState.legMailCap = mailCap;
+            if (!skipUnused) {
+              if (mailLoad > vehicleState.legMailMax) vehicleState.legMailMax = mailLoad;
+              if (mailCap > vehicleState.legMailCap) vehicleState.legMailCap = mailCap;
+            }
           }
           continue;
         }
@@ -672,8 +760,8 @@ function OpexC117AirThroughputStep(lines, catalog)
           vehicleState.order = curOrder;
           vehicleState.legPaxMax = vehicleRunning ? load : 0;
           vehicleState.legCap = vehicleRunning ? cap : 0;
-          vehicleState.legMailMax = vehicleRunning ? mailLoad : 0;
-          vehicleState.legMailCap = vehicleRunning ? mailCap : 0;
+          vehicleState.legMailMax = (!skipUnused && vehicleRunning) ? mailLoad : 0;
+          vehicleState.legMailCap = (!skipUnused && vehicleRunning) ? mailCap : 0;
           vehicleState.legMoving = vehicleRunning;
           vehicleState.legStartDate = now;
           vehicleState.seenTransition = false;
@@ -684,8 +772,10 @@ function OpexC117AirThroughputStep(lines, catalog)
             vehicleState.legMoving = true;
             if (load > vehicleState.legPaxMax) vehicleState.legPaxMax = load;
             if (cap > vehicleState.legCap) vehicleState.legCap = cap;
-            if (mailLoad > vehicleState.legMailMax) vehicleState.legMailMax = mailLoad;
-            if (mailCap > vehicleState.legMailCap) vehicleState.legMailCap = mailCap;
+            if (!skipUnused) {
+              if (mailLoad > vehicleState.legMailMax) vehicleState.legMailMax = mailLoad;
+              if (mailCap > vehicleState.legMailCap) vehicleState.legMailCap = mailCap;
+            }
           }
           continue;
         }
@@ -693,29 +783,44 @@ function OpexC117AirThroughputStep(lines, catalog)
         if (vehicleState.legMoving) {
           state.pax += vehicleState.legPaxMax;
           state.seatLegs += vehicleState.legCap;
-          state.mail += vehicleState.legMailMax;
-          state.mailSeatLegs += vehicleState.legMailCap;
+          if (!skipUnused) {
+            state.mail += vehicleState.legMailMax;
+            state.mailSeatLegs += vehicleState.legMailCap;
+          }
           state.trips++;
           if (vehicleState.order == 0) {
             state.tripsA++;
-            state.paxA += vehicleState.legPaxMax;
-            state.seatLegsA += vehicleState.legCap;
-            state.mailA += vehicleState.legMailMax;
-            state.mailSeatLegsA += vehicleState.legMailCap;
+            if (!skipUnused) {
+              state.paxA += vehicleState.legPaxMax;
+              state.seatLegsA += vehicleState.legCap;
+              state.mailA += vehicleState.legMailMax;
+              state.mailSeatLegsA += vehicleState.legMailCap;
+            }
           } else if (vehicleState.order == 1) {
             state.tripsB++;
-            state.paxB += vehicleState.legPaxMax;
-            state.seatLegsB += vehicleState.legCap;
-            state.mailB += vehicleState.legMailMax;
-            state.mailSeatLegsB += vehicleState.legMailCap;
+            if (!skipUnused) {
+              state.paxB += vehicleState.legPaxMax;
+              state.seatLegsB += vehicleState.legCap;
+              state.mailB += vehicleState.legMailMax;
+              state.mailSeatLegsB += vehicleState.legMailCap;
+            }
+          }
+          if (leanView != null) {
+            leanView.pax += vehicleState.legPaxMax;
+            leanView.seatLegs += vehicleState.legCap;
+            leanView.trips++;
+            if (vehicleState.order == 0) leanView.tripsA++;
+            else if (vehicleState.order == 1) leanView.tripsB++;
           }
           if (vehicleState.seenTransition) {
             local legDays = now - vehicleState.legStartDate;
             if (legDays > 0) {
-              state.legDays += legDays;
-              state.legDaysN++;
-              if (state.legDaysMin < 0 || legDays < state.legDaysMin) state.legDaysMin = legDays;
-              if (legDays > state.legDaysMax) state.legDaysMax = legDays;
+              if (!skipUnused) {
+                state.legDays += legDays;
+                state.legDaysN++;
+                if (state.legDaysMin < 0 || legDays < state.legDaysMin) state.legDaysMin = legDays;
+                if (legDays > state.legDaysMax) state.legDaysMax = legDays;
+              }
               local physical = ("c121PhysicalOneWay" in vehicleState)
                   ? vehicleState.c121PhysicalOneWay : -1.0;
               if ((C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) && physical > 0.0) {
@@ -724,51 +829,83 @@ function OpexC117AirThroughputStep(lines, catalog)
                   state.hubResidualASum += residual;
                   state.hubResidualASq += residual * residual;
                   state.hubResidualAN++;
+                  if (leanView != null) {
+                    leanView.hubResidualASum += residual;
+                    leanView.hubResidualASq += residual * residual;
+                    leanView.hubResidualAN++;
+                  }
                 } else if (vehicleState.order == 1) {
                   state.hubResidualBSum += residual;
                   state.hubResidualBSq += residual * residual;
                   state.hubResidualBN++;
+                  if (leanView != null) {
+                    leanView.hubResidualBSum += residual;
+                    leanView.hubResidualBSq += residual * residual;
+                    leanView.hubResidualBN++;
+                  }
                 }
               }
             }
           }
         } else {
-          state.unobservedTransitions++;
+          if (!skipUnused) {
+            state.unobservedTransitions++;
+          }
         }
         vehicleState.order = curOrder;
         vehicleState.legPaxMax = vehicleRunning ? load : 0;
         vehicleState.legCap = vehicleRunning ? cap : 0;
-        vehicleState.legMailMax = vehicleRunning ? mailLoad : 0;
-        vehicleState.legMailCap = vehicleRunning ? mailCap : 0;
+        vehicleState.legMailMax = (!skipUnused && vehicleRunning) ? mailLoad : 0;
+        vehicleState.legMailCap = (!skipUnused && vehicleRunning) ? mailCap : 0;
         vehicleState.legMoving = vehicleRunning;
         vehicleState.legStartDate = now;
         vehicleState.seenTransition = true;
       }
     }
 
-    if (state.lastEngine >= 0 && firstEngine >= 0 && firstEngine != state.lastEngine) state.engineChanges++;
-    if (firstEngine >= 0) state.lastEngine = firstEngine;
-    if (mixedEngine) state.mixedEngineSamples++;
+    if (!skipUnused) {
+      if (state.lastEngine >= 0 && firstEngine >= 0 && firstEngine != state.lastEngine) state.engineChanges++;
+      if (firstEngine >= 0) state.lastEngine = firstEngine;
+      if (mixedEngine) state.mixedEngineSamples++;
+      state.liveSum += live;
+      state.capSum += totalCap;
+    }
     state.samples++;
-    state.liveSum += live;
-    state.capSum += totalCap;
     state.lastLive = live;
     state.lastCap = totalCap;
     state.lastDate = now;
+    if (leanView != null) {
+      leanView.samples++;
+      leanView.lastLive = live;
+      leanView.lastCap = totalCap;
+      leanView.lastDate = now;
+    }
 
     local stationA = OpexAirLineStationId(line, 0);
     local stationB = OpexAirLineStationId(line, 1);
     if (AIStation.IsValidStation(stationA)) {
       local waitA = AIStation.GetCargoWaiting(stationA, line.cargo);
-      if (waitA >= 0) { state.waitASum += waitA; state.waitAN++; }
-      local ratingA = AIStation.GetCargoRating(stationA, line.cargo);
-      if (ratingA >= 0) { state.ratingASum += ratingA; state.ratingAN++; }
+      if (waitA >= 0) {
+        state.waitASum += waitA;
+        state.waitAN++;
+        if (leanView != null) { leanView.waitASum += waitA; leanView.waitAN++; }
+      }
+      if (!skipUnused) {
+        local ratingA = AIStation.GetCargoRating(stationA, line.cargo);
+        if (ratingA >= 0) { state.ratingASum += ratingA; state.ratingAN++; }
+      }
     }
     if (AIStation.IsValidStation(stationB)) {
       local waitB = AIStation.GetCargoWaiting(stationB, line.cargo);
-      if (waitB >= 0) { state.waitBSum += waitB; state.waitBN++; }
-      local ratingB = AIStation.GetCargoRating(stationB, line.cargo);
-      if (ratingB >= 0) { state.ratingBSum += ratingB; state.ratingBN++; }
+      if (waitB >= 0) {
+        state.waitBSum += waitB;
+        state.waitBN++;
+        if (leanView != null) { leanView.waitBSum += waitB; leanView.waitBN++; }
+      }
+      if (!skipUnused) {
+        local ratingB = AIStation.GetCargoRating(stationB, line.cargo);
+        if (ratingB >= 0) { state.ratingBSum += ratingB; state.ratingBN++; }
+      }
     }
   }
 }
