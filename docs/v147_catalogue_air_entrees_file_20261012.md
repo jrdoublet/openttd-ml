@@ -88,3 +88,11 @@ mêmes volumes construits (87 véhicules, 48–49 gares). Économie du même ban
 baisse démontrée, économie sans perte démontrée aux deux horizons. Aucune
 équivalence stricte ni gain économique revendiqués. **Défaut laissé à 0** :
 le passage à 1 et la fusion sur master relèvent de la décision utilisateur.
+
+## Adoption (12/10, décision utilisateur)
+
+**Fusionné sur master avec `v147_air_catalog_tasks=1` par défaut** (merge
+`v147-air-catalog-tasks`). Rollback : réglage à 0. Après fusion : suite hôte
+1 972/1 975 (mêmes 3 erreurs préexistantes) ; smoke 1×1 graine 42 aux défauts
+(`v147_default_smoke_20261012`) complet et sans erreur, décisions servies par
+`air_cat_scan` et `air_cat_publish`.
