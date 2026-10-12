@@ -680,7 +680,7 @@ Revue du 22/09 revérifiée sur le code le 30/09 et close pour : F-ROAD-TXN-01 (
 
 **Pistes AIR ajoutées aux tâches sur demande utilisateur du 03/10 :**
 [analyse, points de code et limites](air_pistes_20261003.md), code relu à `f6cc6ca`.
-**À approfondir — cap de routes par hub AIR (07/10)** : `air_hub_max_routes=3`
+**✅ Clos le 12/10 — cap de routes par hub AIR** : rejeu des 4 graines discriminantes sur le code courant ([autopsie](air_hub_cap_autopsie_20261012.md)) : l'optimum par graine du 07/10 ne se reproduit que sur 1/4 (déplacé par V93/V138/AC04-B–06), cap 4 perd 4/4 (congestion de piste), cap 2 2/2 ; cap 3 maintenu, pas de cap dynamique. Texte d'origine : `air_hub_max_routes=3`
 est désormais le défaut retenu après passage V102 A40×3 puis B20×10 ; les essais
 A comparables donnent cap 2 `fail_primary`, cap 3 `pass`, cap 4 `fail_primary`.
 L'analyse des 40 graines montre néanmoins un optimum terminal hétérogène (cap 2
