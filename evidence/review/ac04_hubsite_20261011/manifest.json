@@ -1,0 +1,15 @@
+{
+  "protocol": "AC04 mono-graine diagnostic; not adoption or paired economic benchmark",
+  "seed": 42,
+  "years": 3,
+  "sources_unchanged": true,
+  "source_frozen": false,
+  "raw_log_sha256": "a73fbd1571276a8a7f1d9924009621a834d42bd79584e31826f19ce67cc580b7",
+  "sha256": {
+    "phase_summary.json": "f150015b12130257ef0211c2a109866f30219d9e0b376bfeef332b4bd12fedbb",
+    "plan.json": "50904369287de70438edc5cfafeceb5d6ab9fa84e6708cb0d3b77cc687a9fca5",
+    "reference_42.log.gz": "4fc32fed1a719d4cb1f83c77a927afbde91b2b32e5d0cc552fbf0f6335d36c93",
+    "report.json": "48102738df9f8fb941c2f95a7498ad8143031707d4a1632c81d427f530740c4e"
+  },
+  "gzip_roundtrip": true
+}

@@ -1177,6 +1177,68 @@ function OpexAI::_c76AcknowledgeAllLayers()
   }
 }
 
+/* AC06 v2 adopte : la photographie C78 ne conserve que les sept compteurs
+ * de revision, sans serialiser les structures Save/Load des neuf modes. */
+function OpexAC06CaptureRevisionNumbers(owner)
+{
+  local current = owner._c76Revisions;
+  return {
+    towns = current.towns,
+    industries = current.industries,
+    lines = current.lines,
+    engines_rail = current.engines.rail,
+    engines_road = current.engines.road,
+    engines_air = current.engines.air,
+    engines_water = current.engines.water,
+  };
+}
+
+/* Versions des couches couvertes au DEBUT du scan, pas a la publication.
+ * La version v2 garde ce selecteur ; ne pas importer la table v3 rejetee. */
+function OpexAC06SnapshotLayer(snapshot, layer)
+{
+  if (layer == "towns") return snapshot.towns;
+  if (layer == "industries") return snapshot.industries;
+  if (layer == "lines") return snapshot.lines;
+  if (layer == "engines.rail") return snapshot.engines_rail;
+  if (layer == "engines.road") return snapshot.engines_road;
+  if (layer == "engines.air") return snapshot.engines_air;
+  if (layer == "engines.water") return snapshot.engines_water;
+  return 0;
+}
+
+function OpexAC06AcknowledgeSnapshot(owner, snapshot)
+{
+  if (owner == null || snapshot == null || owner._c76Revisions == null) return;
+  local ack = owner._c76AckRevisions;
+  if (ack == null) return;
+  if (snapshot.towns > ack.towns) ack.towns = snapshot.towns;
+  if (snapshot.industries > ack.industries) ack.industries = snapshot.industries;
+  if (snapshot.lines > ack.lines) ack.lines = snapshot.lines;
+  if (snapshot.engines_rail > ack.engines.rail) ack.engines.rail = snapshot.engines_rail;
+  if (snapshot.engines_road > ack.engines.road) ack.engines.road = snapshot.engines_road;
+  if (snapshot.engines_air > ack.engines.air) ack.engines.air = snapshot.engines_air;
+  if (snapshot.engines_water > ack.engines.water) ack.engines.water = snapshot.engines_water;
+
+  local modes = ["air", "rail_pax", "rail_freight", "road_pax", "road_freight",
+      "water", "fleet", "rail", "road"];
+  foreach (mode in modes) {
+    local deps = owner._c76GetModeDeps(mode);
+    if (!(mode in owner._c76ModeConsumed))
+      owner._c76ModeConsumed.rawset(mode, {});
+    local consumed = owner._c76ModeConsumed[mode];
+    local sumRev = 0;
+    foreach (layer in deps) {
+      local covered = OpexAC06SnapshotLayer(snapshot, layer);
+      local previous = layer in consumed ? consumed[layer] : 0;
+      local rev = covered > previous ? covered : previous;
+      consumed.rawset(layer, rev);
+      sumRev += rev;
+    }
+    owner._c76ModeConsumedRevision.rawset(mode, sumRev);
+  }
+}
+
 function OpexAI::_c76DoFullRegen(reason, year)
 {
   local date = AIDate.GetCurrentDate();

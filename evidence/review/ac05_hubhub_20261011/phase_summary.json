@@ -1,0 +1,66 @@
+{
+  "source": "results\\ac04_hubsite_cost_42_3y_20261011.artifacts\\reference_42.log",
+  "scope": "existing single-arm diagnostic, no new run",
+  "per_pair_opcode_cost": null,
+  "per_pair_status": "not_identifiable",
+  "notes": [
+    "hub_hub_phase_calls are phase invocations, not examined pairs",
+    "CATALOG_COST per cycle is not paired with AIR_LIGHT per invocation"
+  ],
+  "years": {
+    "1970": {
+      "exits": 516,
+      "hub_hub_phase_calls": 2,
+      "hub_hub_phase_ops": 2745,
+      "hub_hub_phase_ticks": 0,
+      "hub_hub_phase_days": 0,
+      "hub_hub_yields": 1,
+      "catalog_cost_records": 0,
+      "catalog_hub_hub_pairs": 0,
+      "peak_hub_hub_ops_per_exit": 1764
+    },
+    "1971": {
+      "exits": 700,
+      "hub_hub_phase_calls": 164,
+      "hub_hub_phase_ops": 5125855,
+      "hub_hub_phase_ticks": 533,
+      "hub_hub_phase_days": 34,
+      "hub_hub_yields": 164,
+      "catalog_cost_records": 0,
+      "catalog_hub_hub_pairs": 0,
+      "peak_hub_hub_ops_per_exit": 86312
+    },
+    "1972": {
+      "exits": 330,
+      "hub_hub_phase_calls": 232,
+      "hub_hub_phase_ops": 7372194,
+      "hub_hub_phase_ticks": 693,
+      "hub_hub_phase_days": 42,
+      "hub_hub_yields": 232,
+      "catalog_cost_records": 0,
+      "catalog_hub_hub_pairs": 0,
+      "peak_hub_hub_ops_per_exit": 79480
+    },
+    "1973": {
+      "exits": 0,
+      "hub_hub_phase_calls": 0,
+      "hub_hub_phase_ops": 0,
+      "hub_hub_phase_ticks": 0,
+      "hub_hub_phase_days": 0,
+      "hub_hub_yields": 0,
+      "catalog_cost_records": 0,
+      "catalog_hub_hub_pairs": 0,
+      "peak_hub_hub_ops_per_exit": 0
+    }
+  },
+  "totals": {
+    "exits": 1546,
+    "hub_hub_phase_calls": 398,
+    "hub_hub_phase_ops": 12500794,
+    "hub_hub_phase_ticks": 1226,
+    "hub_hub_phase_days": 76,
+    "hub_hub_yields": 397,
+    "catalog_cost_records": 0,
+    "catalog_hub_hub_pairs": 0
+  }
+}

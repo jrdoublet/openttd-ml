@@ -1,0 +1,23 @@
+{
+  "branch": "air-catalogue-fixes-staging",
+  "base": "436e1b5",
+  "source_worktree": "results/ac_fixes_worktree_20261011",
+  "adopted": false,
+  "default_new_flags": 0,
+  "runtime_smoke": false,
+  "docker_AB": false,
+  "files": {
+    "experimental_worktree.patch": {
+      "sha256": "24455998c51f0e1d621f739b85ebd90f77dbb8823200a06c8fb729c4222639d4",
+      "bytes": 14211
+    },
+    "README.md": {
+      "sha256": "ac63b8a1489ef5cad9f19505b1570b923f21e7a299f81599f1028814f9e4d952",
+      "bytes": 1172
+    },
+    "test_ac_catalogue_fixes.py": {
+      "sha256": "640824ccbf969e02ed0f668c8486d120a3d38fe90e6c648eabc98adb7de7af05",
+      "bytes": 10924
+    }
+  }
+}

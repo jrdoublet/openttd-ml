@@ -1,0 +1,66 @@
+{
+  "source": "results\\ac04_hubsite_cost_42_3y_20261011.artifacts\\reference_42.log",
+  "scope": "single unmodified observed arm",
+  "per_pair_opcode_cost": null,
+  "per_pair_status": "not_identifiable",
+  "notes": [
+    "AIR_LIGHT counts full hub_site phase (including screening and idle), not actual pairs.",
+    "CATALOG_COST emitted per completed catalog cycle and cannot be naively joined to AIR_LIGHT slices."
+  ],
+  "years": {
+    "1970": {
+      "exits": 516,
+      "phase_calls": 40,
+      "phase_ops": 403955,
+      "phase_ticks": 42,
+      "phase_days": 4,
+      "total_air_ops": 12319200,
+      "cat_cost_records": 0,
+      "cat_hub_site_pairs": 0,
+      "peak_phase_ops_per_exit": 26077
+    },
+    "1971": {
+      "exits": 700,
+      "phase_calls": 588,
+      "phase_ops": 4336781,
+      "phase_ticks": 606,
+      "phase_days": 35,
+      "total_air_ops": 15845829,
+      "cat_cost_records": 0,
+      "cat_hub_site_pairs": 0,
+      "peak_phase_ops_per_exit": 71788
+    },
+    "1972": {
+      "exits": 330,
+      "phase_calls": 238,
+      "phase_ops": 25020,
+      "phase_ticks": 3,
+      "phase_days": 0,
+      "total_air_ops": 10827564,
+      "cat_cost_records": 0,
+      "cat_hub_site_pairs": 0,
+      "peak_phase_ops_per_exit": 2455
+    },
+    "1973": {
+      "exits": 0,
+      "phase_calls": 0,
+      "phase_ops": 0,
+      "phase_ticks": 0,
+      "phase_days": 0,
+      "total_air_ops": 0,
+      "cat_cost_records": 0,
+      "cat_hub_site_pairs": 0,
+      "peak_phase_ops_per_exit": 0
+    }
+  },
+  "totals": {
+    "exits": 1546,
+    "phase_calls": 866,
+    "phase_ops": 4765756,
+    "phase_ticks": 651,
+    "phase_days": 39,
+    "total_air_ops": 38992593,
+    "cat_cost_records": 0,
+    "cat_hub_site_pairs": 0
+  }
+}

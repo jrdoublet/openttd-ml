@@ -1205,6 +1205,18 @@ function OpexAir0310HubSnapshotCount(ctx, kind)
 }
 
 /* 4. Decouverte des hubs : lignes existantes et aeroports orphelins. */
+/* AC04-B adopte : un supplement est distinct seulement par son ANCRE
+ * physique. C83 peut conserver plusieurs ancres dans la meme ville. */
+function OpexAC04ExtraSiteAlreadyKnown(sites, candidate)
+{
+  if (sites == null || candidate == null || !("anchor" in candidate)) return false;
+  foreach (site in sites) {
+    if (site != null && ("anchor" in site) && site.anchor == candidate.anchor)
+      return true;
+  }
+  return false;
+}
+
 function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
 {
   /* Bras hub : un aeroport existant, rentable et non sature (max 8 routes), plus UNE destination. */
@@ -1260,6 +1272,8 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
         }
         local extraSite = OpexAirFindSite(towns[i], airport, hubProbes, c83RequiredSlotTown);
         if (extraSite != null) {
+          if (AC04_EXTRA_SITE_DEDUP && OpexAC04ExtraSiteAlreadyKnown(sites, extraSite))
+            continue;
           if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;
           if (C83_FIXES && c83RequiredSlotTown >= 0) extraSite.c83SlotTown <- c83RequiredSlotTown;
           /* v93=1 seulement si le scan principal n'a pas deja retenu cette ville. */
@@ -1632,7 +1646,9 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
   local targetTownId = ctx.targetTownId;
 
   local hubAvgIncome = [];
-  if (AIR_HUBHUB_MARGINAL) {
+  /* AC05 adopte : C121 ignore la correction marginale V86 ; ne pas
+   * recomputer une valeur jamais lue, mais conserver la branche V86 legacy. */
+  if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS)) {
     for (local h = 0; h < hubs.len(); h++) hubAvgIncome.append(0.0);
     if (lines != null && hubs.len() > 0) {
       local hubIndexByStation = {};

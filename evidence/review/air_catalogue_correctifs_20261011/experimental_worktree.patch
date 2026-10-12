@@ -1,0 +1,281 @@
+diff --git a/ai/OpexAI/air_planning.nut b/ai/OpexAI/air_planning.nut
+index 8bed7be..1dfe010 100644
+--- a/ai/OpexAI/air_planning.nut
++++ b/ai/OpexAI/air_planning.nut
+@@ -1068,7 +1068,10 @@ function OpexAir0310RefreshHubRoutes(ctx, orphan)
+   if (hubs == null) return;
+   for (local i = 0; i < hubs.len(); i++) {
+     local isOrphan = orphan != null && i < orphan.len() && orphan[i];
+-    if (isOrphan) continue;
++    /* AC04-A : une station initialement orpheline peut gagner une ligne
++     * entre deux tranches. Rafraichir AUSSI son nombre de routes sous le
++     * correctif ; la garde RestoredHubUsable refusera une saturation. */
++    if (isOrphan && !AC04_HUB_ROUTE_FIX) continue;
+     hubs[i].routes = OpexAir0310CountStationRoutes(ctx, hubs[i].stationId);
+   }
+ }
+@@ -1205,6 +1208,19 @@ function OpexAir0310HubSnapshotCount(ctx, kind)
+ }
+ 
+ /* 4. Decouverte des hubs : lignes existantes et aeroports orphelins. */
++/* AC04-B : identite physique (tuile d'implantation), et non ville :
++ * C83 peut legitimement garder deux sites DISTINCTS dans la meme ville.
++ * Ne change aucune decision lorsque le toggle est OFF. */
++function OpexAC04ExtraSiteAlreadyKnown(sites, candidate)
++{
++  if (sites == null || candidate == null || !("anchor" in candidate)) return false;
++  foreach (site in sites) {
++    if (site != null && ("anchor" in site) && site.anchor == candidate.anchor)
++      return true;
++  }
++  return false;
++}
++
+ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
+ {
+   /* Bras hub : un aeroport existant, rentable et non sature (max 8 routes), plus UNE destination. */
+@@ -1260,6 +1276,10 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
+         }
+         local extraSite = OpexAirFindSite(towns[i], airport, hubProbes, c83RequiredSlotTown);
+         if (extraSite != null) {
++          /* AC04-B : le vivier de depart peut deja contenir ce site. Ne
++           * supprimer que la meme ANCRE : un second slot C83 reste admis. */
++          if (AC04_EXTRA_SITE_DEDUP && OpexAC04ExtraSiteAlreadyKnown(sites, extraSite))
++            continue;
+           if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;
+           if (C83_FIXES && c83RequiredSlotTown >= 0) extraSite.c83SlotTown <- c83RequiredSlotTown;
+           /* v93=1 seulement si le scan principal n'a pas deja retenu cette ville. */
+@@ -1349,6 +1369,14 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
+       if (!AIMap.IsValidTile(loc) || !AIAirport.IsAirportTile(loc)) continue;
+       local existingType = AIAirport.GetAirportType(loc);
+       if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
++      /* AC04-A : une station saturee est ignoree par la premiere boucle
++       * AVANT seenStations, puis rentrait ici comme orpheline avec routes=0.
++       * Compter les routes egalement sur ce chemin couvre les gares de lignes
++       * mortes/non parcourues et respecte le plafond deja utilise ailleurs. */
++      local orphanRoutes = AC04_HUB_ROUTE_FIX
++          ? OpexAir0310CountStationRoutes(ctx, st) : 0;
++      if (AC04_HUB_ROUTE_FIX
++          && orphanRoutes >= OpexAirAirportMaxRoutes(existingType)) continue;
+       local townId = AITile.GetClosestTown(loc);
+       if (townId < 0) continue;
+       local hubTown = null;
+@@ -1359,8 +1387,11 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
+         hubTown = { id = townId, tile = loc, pop = AITown.GetPopulation(townId) };
+       }
+       seenStations.rawset(st, true);
+-      hubs.append({ town = hubTown, anchor = loc, stationId = st, routes = 0 });
+-      if (AIR0310_HUB_SNAPSHOT) OpexAir0310NoteHubOrigin(ctx, 1);
++      hubs.append({ town = hubTown, anchor = loc, stationId = st, routes = orphanRoutes });
++      /* Une gare ayant des routes redevient actualisable a la reprise.
++       * Les vrais orphelins (zero ligne) restent historiques. */
++      if (AIR0310_HUB_SNAPSHOT)
++        OpexAir0310NoteHubOrigin(ctx, AC04_HUB_ROUTE_FIX && orphanRoutes > 0 ? 0 : 1);
+     }
+   }
+ 
+@@ -1632,7 +1663,10 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
+   local targetTownId = ctx.targetTownId;
+ 
+   local hubAvgIncome = [];
+-  if (AIR_HUBHUB_MARGINAL) {
++  /* AC05 : C121 contourne deja entierement le retrait V86 lors du choix
++   * des paires. Sous le toggle ON, eviter son pre-calcul devenu inerte.
++   * Le chemin V86 historique reste intact hors C121. */
++  if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS)) {
+     for (local h = 0; h < hubs.len(); h++) hubAvgIncome.append(0.0);
+     if (lines != null && hubs.len() > 0) {
+       local hubIndexByStation = {};
+diff --git a/ai/OpexAI/globals_pre.nut b/ai/OpexAI/globals_pre.nut
+index 28cf117..91460be 100644
+--- a/ai/OpexAI/globals_pre.nut
++++ b/ai/OpexAI/globals_pre.nut
+@@ -700,6 +700,12 @@ C76_EVENTS_SINCE_PREV <- null;
+  * 0 = regeneration mensuelle systematique historique, 1 = regeneration ciblee (defaut depuis le
+  * 2026-09-24 : economie d'opcodes et 20x10 neutre, regle d'adoption des optimisations d'opcodes). */
+ C76_REGEN_TARGETED <- true;
++/* AIR catalogue fixes staged separately; OFF keeps the validated historical
++ * portfolios unchanged until runtime, opcode and economic A/B gates pass. */
++AC04_HUB_ROUTE_FIX <- false;
++AC04_EXTRA_SITE_DEDUP <- false;
++AC06_C76_SNAPSHOT_ACK <- false;
++AC05_SKIP_UNUSED_HUB_INCOME <- false;
+ /* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
+  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
+ C78_SLOT_INTERCEPT_PROBE <- false;
+diff --git a/ai/OpexAI/info.nut b/ai/OpexAI/info.nut
+index 73b1e7f..b060cb4 100644
+--- a/ai/OpexAI/info.nut
++++ b/ai/OpexAI/info.nut
+@@ -1981,6 +1981,32 @@ class OpexAIInfo extends AIInfo {
+       step_size = 1,
+       flags = AICONFIG_BOOLEAN
+     });
++
++    /* Independent AC fixes: enable only ONE at a time during A/B qualification. */
++    AddSetting({
++      name = "ac04_hub_route_fix",
++      description = "AC04-A experimental: count active AIR routes on orphan airport stations and reject saturated hubs; default 0",
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0, flags = AICONFIG_BOOLEAN
++    });
++    AddSetting({
++      name = "ac04_extra_site_dedup",
++      description = "AC04-B experimental: avoid physically duplicate hub-to-site destinations while keeping distinct second slots; default 0",
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0, flags = AICONFIG_BOOLEAN
++    });
++    AddSetting({
++      name = "ac05_skip_unused_hub_income",
++      description = "AC05 experimental: skip V86 hub income precomputation when C121 economics ignores it; default 0",
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0, flags = AICONFIG_BOOLEAN
++    });
++    AddSetting({
++      name = "ac06_c76_snapshot_ack",
++      description = "AC06 experimental: C78 full scan acknowledges only C76 layer revisions covered by its initial refresh; default 0",
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0, flags = AICONFIG_BOOLEAN
++    });
+   }
+ }
+ 
+diff --git a/ai/OpexAI/orchestrator.nut b/ai/OpexAI/orchestrator.nut
+index 4ce2de5..3209cb0 100644
+--- a/ai/OpexAI/orchestrator.nut
++++ b/ai/OpexAI/orchestrator.nut
+@@ -1177,6 +1177,54 @@ function OpexAI::_c76AcknowledgeAllLayers()
+   }
+ }
+ 
++/* AC06 : ne jamais acquitter une revision produite APRES la photographie du
++ * catalogue. Les compteurs sont monotones ; les revisions deja consommees
++ * par un chemin reactif concurrent ne sont pas regressees. Ce helper ne
++ * modifie aucun chemin tant que ac06_c76_snapshot_ack reste a 0. */
++function OpexAC06SnapshotLayer(snapshot, layer)
++{
++  if (layer == "towns") return snapshot.towns;
++  if (layer == "industries") return snapshot.industries;
++  if (layer == "lines") return snapshot.lines;
++  if (layer == "engines.rail") return snapshot.engines_rail;
++  if (layer == "engines.road") return snapshot.engines_road;
++  if (layer == "engines.air") return snapshot.engines_air;
++  if (layer == "engines.water") return snapshot.engines_water;
++  return 0;
++}
++
++function OpexAC06AcknowledgeSnapshot(owner, snapshot)
++{
++  if (owner == null || snapshot == null || owner._c76Revisions == null) return;
++  local ack = owner._c76AckRevisions;
++  if (ack == null) return;
++  if (snapshot.towns > ack.towns) ack.towns = snapshot.towns;
++  if (snapshot.industries > ack.industries) ack.industries = snapshot.industries;
++  if (snapshot.lines > ack.lines) ack.lines = snapshot.lines;
++  if (snapshot.engines_rail > ack.engines.rail) ack.engines.rail = snapshot.engines_rail;
++  if (snapshot.engines_road > ack.engines.road) ack.engines.road = snapshot.engines_road;
++  if (snapshot.engines_air > ack.engines.air) ack.engines.air = snapshot.engines_air;
++  if (snapshot.engines_water > ack.engines.water) ack.engines.water = snapshot.engines_water;
++
++  local modes = ["air", "rail_pax", "rail_freight", "road_pax", "road_freight",
++      "water", "fleet", "rail", "road"];
++  foreach (mode in modes) {
++    local deps = owner._c76GetModeDeps(mode);
++    if (!(mode in owner._c76ModeConsumed))
++      owner._c76ModeConsumed.rawset(mode, {});
++    local consumed = owner._c76ModeConsumed[mode];
++    local sumRev = 0;
++    foreach (layer in deps) {
++      local covered = OpexAC06SnapshotLayer(snapshot, layer);
++      local previous = layer in consumed ? consumed[layer] : 0;
++      local rev = covered > previous ? covered : previous;
++      consumed.rawset(layer, rev);
++      sumRev += rev;
++    }
++    owner._c76ModeConsumedRevision.rawset(mode, sumRev);
++  }
++}
++
+ function OpexAI::_c76DoFullRegen(reason, year)
+ {
+   local date = AIDate.GetCurrentDate();
+diff --git a/ai/OpexAI/scheduler_tasks.nut b/ai/OpexAI/scheduler_tasks.nut
+index 167cdc2..fc2b790 100644
+--- a/ai/OpexAI/scheduler_tasks.nut
++++ b/ai/OpexAI/scheduler_tasks.nut
+@@ -65,6 +65,10 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
+     c76Full = c76Full,
+     c76Quarter = c76Quarter,
+     c76Reason = c76Reason,
++    /* AC06 : la version couverte est celle observee APRES le refresh
++     * initial, pas celle au moment (potentiellement tardif) de apply. */
++    c76StartRevisions = AC06_C76_SNAPSHOT_ACK && c76Full
++        ? owner._c76SaveRevisions() : null,
+   };
+   return true;
+ }
+@@ -169,7 +173,12 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
+       owner._c76RecordRegen("full", s.regenOps, regenDays, year, reason);
+     }
+     if (s.c76Full) {
+-      owner._c76AcknowledgeAllLayers();
++      if (AC06_C76_SNAPSHOT_ACK && ("c76StartRevisions" in s)
++          && s.c76StartRevisions != null) {
++        OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions);
++      } else {
++        owner._c76AcknowledgeAllLayers();
++      }
+       owner._c76LastRegenQuarter = s.c76Quarter;
+       owner._c76ForceReloadRegen = false;
+     }
+diff --git a/ai/OpexAI/settings.nut b/ai/OpexAI/settings.nut
+index 36dbc0c..8b14761 100644
+--- a/ai/OpexAI/settings.nut
++++ b/ai/OpexAI/settings.nut
+@@ -603,6 +603,11 @@ function OpexLoadSettings()
+   PORTFOLIO_FLOOR_PCT = 0;
+   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
+   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
++  AC04_HUB_ROUTE_FIX = AIController.GetSetting("ac04_hub_route_fix") != 0;
++  AC04_EXTRA_SITE_DEDUP = AIController.GetSetting("ac04_extra_site_dedup") != 0;
++  AC05_SKIP_UNUSED_HUB_INCOME = AIController.GetSetting("ac05_skip_unused_hub_income") != 0;
++  AC06_C76_SNAPSHOT_ACK = C76_REGEN_TARGETED
++      && AIController.GetSetting("ac06_c76_snapshot_ack") != 0;
+   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
+   C67_WATER_EXPOSURE = AIController.GetSetting("c67_water_exposure_probe") != 0;
+   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
+diff --git a/sweeps/test_air0310_2_hub_snapshot.py b/sweeps/test_air0310_2_hub_snapshot.py
+index f3e1d2f..9c10eb4 100644
+--- a/sweeps/test_air0310_2_hub_snapshot.py
++++ b/sweeps/test_air0310_2_hub_snapshot.py
+@@ -275,7 +275,7 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
+         self.assertIn("stationId = hub.stationId", self.copy_hubs)
+         self.assertIn("routes = hub.routes", self.copy_hubs)
+         self.assertNotIn("orphan", self.copy_hubs)
+-        self.assertIn("if (isOrphan) continue;", self.refresh)
++        self.assertIn("if (isOrphan && !AC04_HUB_ROUTE_FIX) continue;", self.refresh)
+         self.assertIn(
+             "hubs[i].routes = OpexAir0310CountStationRoutes(ctx, hubs[i].stationId);",
+             self.refresh,
+@@ -318,7 +318,7 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
+         self.assertEqual(self.hub_hub.count("local hub1 = hubs[i];"), 1)
+         self.assertEqual(self.hub_hub.count("local hub2 = hubs[j];"), 1)
+         self.assertLess(
+-            self.hub_hub.index("if (AIR_HUBHUB_MARGINAL)"),
++            self.hub_hub.index("if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS))"),
+             self.hub_hub.index("for (local i = resumeI; i < hubs.len(); i++)"),
+         )
+         self.assertIn("AICargo.GetCargoIncome(catalog.paxCargo, dist, incomeDays)", self.hub_hub)
+@@ -326,10 +326,10 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
+         self.assertNotIn("plan.plane", self.remember)
+         self.assertIn("if (!ctx.air0310HubRestored) return false;", self.skip)
+         self.assertIn("if (AIR0310_HUB_SNAPSHOT) OpexAir0310NoteHubOrigin(ctx, 0);", self.discover)
+-        self.assertIn("if (AIR0310_HUB_SNAPSHOT) OpexAir0310NoteHubOrigin(ctx, 1);", self.discover)
++        self.assertIn("OpexAir0310NoteHubOrigin(ctx, AC04_HUB_ROUTE_FIX && orphanRoutes > 0 ? 0 : 1)", self.discover)
+         self.assertLess(
+             self.discover.index("OpexAir0310NoteHubOrigin(ctx, 0);"),
+-            self.discover.index("OpexAir0310NoteHubOrigin(ctx, 1);"),
++            self.discover.index("OpexAir0310NoteHubOrigin(ctx, AC04_HUB_ROUTE_FIX && orphanRoutes > 0 ? 0 : 1)"),
+         )
+ 
+     def test_probe_counts_are_exclusive_and_gated(self):

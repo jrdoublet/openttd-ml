@@ -591,6 +591,10 @@ function OpexLoadSettings()
   PORTFOLIO_FLOOR_PCT = 0;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
+  AC04_EXTRA_SITE_DEDUP = AIController.GetSetting("ac04_extra_site_dedup") != 0;
+  AC05_SKIP_UNUSED_HUB_INCOME = AIController.GetSetting("ac05_skip_unused_hub_income") != 0;
+  AC06_C76_SNAPSHOT_ACK = C76_REGEN_TARGETED
+      && AIController.GetSetting("ac06_c76_snapshot_ack") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
   C67_WATER_EXPOSURE = AIController.GetSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;

@@ -65,6 +65,9 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
     c76Full = c76Full,
     c76Quarter = c76Quarter,
     c76Reason = c76Reason,
+    /* AC06 v2 : snapshot apres refresh initial, avant les evenements tardifs. */
+    c76StartRevisions = AC06_C76_SNAPSHOT_ACK && c76Full
+        ? OpexAC06CaptureRevisionNumbers(owner) : null,
   };
   return true;
 }
@@ -175,7 +178,12 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
       owner._c76RecordRegen("full", s.regenOps, regenDays, year, reason);
     }
     if (s.c76Full) {
-      owner._c76AcknowledgeAllLayers();
+      if (AC06_C76_SNAPSHOT_ACK && ("c76StartRevisions" in s)
+          && s.c76StartRevisions != null) {
+        OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions);
+      } else {
+        owner._c76AcknowledgeAllLayers();
+      }
       owner._c76LastRegenQuarter = s.c76Quarter;
       owner._c76ForceReloadRegen = false;
     }

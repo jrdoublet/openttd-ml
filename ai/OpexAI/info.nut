@@ -1937,6 +1937,26 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
+
+    /* AC04-B et AC05 : qualifies separement et en cumul, rollback 0. */
+    AddSetting({
+      name = "ac04_extra_site_dedup",
+      description = "AC04-B adopted: avoid physically duplicate hub-to-site anchors while keeping distinct second slots; default 1",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "ac05_skip_unused_hub_income",
+      description = "AC05 adopted: skip unused V86 hub income precomputation when C121 ignores it; default 1",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "ac06_c76_snapshot_ack",
+      description = "AC06 v2 adopted: C78 full scan acknowledges only C76 revisions covered by its initial refresh; default 1",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

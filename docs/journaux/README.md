@@ -13,6 +13,7 @@ Les autres mesures exigent toujours bundle, protocole et santé vérifiables.
 
 | Journal | Contenu / portée |
 |---|---|
+| [12 octobre](journal_2026-10-12.md) | Catalogue AIR : adoption explicite AC06 v2 malgré +32 opcodes initiaux, cumul avec AC04-B/AC05, validation Save/Load et intégration locale |
 | [11 octobre](journal_2026-10-11.md) | P0 RAIL : sonde 5×5 non qualifiée et autopsie historique 40×5 ; divergences AIR précoces, réadmission rejetée, microbench des gardes proposé |
 | [8 octobre](journal_2026-10-08.md) | C121 : mesure fantôme du flux PASS par aéroport, smoke OFF/ON sain ; bornes basses exposées, aucune recalibration de flotte |
 | [5 octobre](journal_2026-10-05.md) | Workflow de régression réparé ; piste AIR 6 close : 0 challenger meilleur sur 172 décisions (6 graines × 3 ans) |

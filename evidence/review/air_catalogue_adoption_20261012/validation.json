@@ -1,0 +1,183 @@
+{
+  "decision": "AC06 v2 explicitly adopted 2026-10-12 despite positive per-seed initial opcode overhead; AC06 v1/v3 and AC04-A remain rejected",
+  "comparison": "AC04-B=1 AC05=1 in both arms; AC06 v2 0 vs 1; probes identical",
+  "source_bundle_sha256": "caf5034cfa53ccf1dad5cd0d4f2260608e2f5f8bac80f51c22975a33c8cdb195",
+  "manifest_sha256": "d8d7491dcbce0836cd380c4dbe1d7d8d0469bcc0b1ae0065164b3d0ddf955922",
+  "seeds": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512
+  ],
+  "years": 4,
+  "all_games_healthy": true,
+  "opcode_complete_years": [
+    "1970",
+    "1971",
+    "1972"
+  ],
+  "opcode_windows": {
+    "1970": {
+      "n": 10,
+      "years": [
+        "1970"
+      ],
+      "mean_delta": 32.1,
+      "median_delta": 32.0,
+      "ratio_of_means": 1.0000005154498166,
+      "ci95_bootstrap": [
+        32.0,
+        32.3
+      ],
+      "positive": 10,
+      "negative": 0,
+      "equal": 0
+    },
+    "1970+1971": {
+      "n": 10,
+      "years": [
+        "1970",
+        "1971"
+      ],
+      "mean_delta": -2700.6,
+      "median_delta": 32.0,
+      "ratio_of_means": 0.99997847443085,
+      "ci95_bootstrap": [
+        -8166.1,
+        32.3
+      ],
+      "positive": 9,
+      "negative": 1,
+      "equal": 0
+    },
+    "1970+1971+1972": {
+      "n": 10,
+      "years": [
+        "1970",
+        "1971",
+        "1972"
+      ],
+      "mean_delta": -150863.1,
+      "median_delta": 32.0,
+      "ratio_of_means": 0.9992129017549852,
+      "ci95_bootstrap": [
+        -474393.5,
+        21765.6
+      ],
+      "positive": 9,
+      "negative": 1,
+      "equal": 0
+    }
+  },
+  "per_seed_year_executed_loop_opcode_delta": {
+    "42": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 0
+    },
+    "100": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 32
+    },
+    "7": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 72445
+    },
+    "999": {
+      "1970": 32,
+      "1971": -27327,
+      "1972": -1554102
+    },
+    "2026": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 0
+    },
+    "1": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 0
+    },
+    "17": {
+      "1970": 33,
+      "1971": 0,
+      "1972": 0
+    },
+    "73": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 0
+    },
+    "314": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 0
+    },
+    "512": {
+      "1970": 32,
+      "1971": 0,
+      "1972": 0
+    }
+  },
+  "terminal_1973_profit_year_policy_delta": {
+    "n": 10,
+    "mean": 6190.4,
+    "median": 0.0,
+    "standard_deviation": 40650.725477,
+    "standard_error": 12854.888105,
+    "mean_normal_95pct_ci": [
+      -19004.71771,
+      31385.51771
+    ],
+    "mean_student_t_95pct_ci": [
+      -22889.37511,
+      35270.17511
+    ],
+    "wins": 2,
+    "losses": 3,
+    "ties": 5,
+    "sign_test_n_excluding_ties": 5,
+    "sign_test_p": 1.0,
+    "wilcoxon_p": 1.0,
+    "mean_bootstrap_95pct_ci": [
+      -12661.9,
+      33747.4
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+  },
+  "terminal_1973_company_value_policy_ratio": {
+    "n_positive_denominator": 10,
+    "excluded_nonpositive_or_missing_denominator": 0,
+    "ratio_of_means": 1.00147,
+    "ratio_of_means_percent_change": 0.146989,
+    "mean_of_ratios": 1.003096,
+    "mean_of_ratios_percent_change": 0.309621
+  },
+  "smoke": {
+    "campaign": "ac06v2_master_smoke_20261012_r2",
+    "healthy": true,
+    "games": 2
+  },
+  "save_load": {
+    "status": "OK",
+    "seed": 512,
+    "years_a": 2,
+    "years_b": 1
+  },
+  "raw_result_files_sha256": {
+    "combo": "7299b4fc82653bdfdbddab47ed4106c77273f94ad1b6e924bc449a915988425c",
+    "opcode_analysis": "228e80f508922c70b24e6d7adeee311975857f69015e808e359d76db794097ba",
+    "smoke": "12131b432ba430c117a43a1a6c44b28eed52f58ff51ca5970dcdaa4df6038da1",
+    "save_load": "63144e2b9da939453e88842fe99430d005511edd02efd22cb551508abe25706d"
+  },
+  "limits": "Annual LOOP_OPS ends at 1972; 1973 unflushed; economic sample 10x4, no equivalence claim; observed Save/Load does not itself prove late C76 event."
+}

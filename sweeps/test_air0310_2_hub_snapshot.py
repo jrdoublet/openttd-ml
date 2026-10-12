@@ -318,7 +318,7 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         self.assertEqual(self.hub_hub.count("local hub1 = hubs[i];"), 1)
         self.assertEqual(self.hub_hub.count("local hub2 = hubs[j];"), 1)
         self.assertLess(
-            self.hub_hub.index("if (AIR_HUBHUB_MARGINAL)"),
+            self.hub_hub.index("if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS))"),
             self.hub_hub.index("for (local i = resumeI; i < hubs.len(); i++)"),
         )
         self.assertIn("AICargo.GetCargoIncome(catalog.paxCargo, dist, incomeDays)", self.hub_hub)

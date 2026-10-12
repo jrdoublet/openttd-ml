@@ -1,11 +1,17 @@
 # Tâches — travail restant
 
-**Mise à jour : 11 octobre 2026. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 12 octobre 2026. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
 
 ## État courant
+
+- **Décision du 12/10 — AC06 v2 accepté explicitement.** Le surcoût systématique **+32 opcodes par paire sur 1970–1971** est accepté par dérogation ; sur 1970–1972, moyenne isolée +4 970, IC95 [−45 543 ; +60 422]. Réglage `ac06_c76_snapshot_ack=1` en master local, rollback 0, avec AC04-B et AC05. **AC06 v1/v3 et AC04-A restent rejetés.** 125 tests verts et smoke Docker 2/2 sain. Interaction B+05+06 v2 10×4 : profit +6 190 £/an IC95 [−12 662 ; +33 747], opcodes −150 863 IC95 [−474 394 ; +21 766], mais 9/10 graines avec surcoût ; Save/Load v2 sain avec `LOAD_RECONCILE`. Cela n'établit pas une neutralité stricte du cumul. Commit demandé après ces validations, sans push. [Dossier](ac06_v2_adoption_20261012.md), [preuve](../evidence/review/air_catalogue_adoption_20261012/README.md) et [journal](journaux/journal_2026-10-12.md).
+
+- **Historique du 11/10 — intégration locale AC04-B+AC05, avant validation d'AC06 v2 le 12/10.** Les huit audits AC01–08 restent terminés. Les versions initiales **AC04-A v1 et AC06 v1 sont rejetées pour surcoût opcode démontré**. AC04-B et AC05 ont passé leurs validations isolées puis leur cumul gelé : B20×10 profit ON−OFF **+59 835 £/an**, IC95 [−75 536 ; +192 620], valeur +0,40 %, 40/40 parties saines ; `LOOP_OPS` 10×4 **−230 118 opcodes** (−0,120 %), IC95 [−897 523 ; +276 929], 5 hausses / 5 baisses. Lors de ce premier portage, **seuls** `ac04_extra_site_dedup` et `ac05_skip_unused_hub_income` étaient activés à 1 par défaut, rollback 0, 124 contrats ciblés verts. Le smoke alors réalisé (42×1) était sain 2/2 ; AC04-A v2 et AC06 v2/v3 étaient encore rejetés au critère opcode sans tolérance. **Cette décision AC06 v2 est remplacée par l'acceptation explicite du 12/10 ci-dessus.** [Validation centrale](air_catalogue_validation_finale_20261011.md) ; [pistes et protocole d'optimisation](ac_opcode_optimisation_20261011.md).
+
+- **Historique — décisions isolées AVANT le cumul validé (11/10, voir état final au-dessus).** Les huit audits restent clos. AC04-A **rejeté opcode** : 40 graines, 1970–1971 +213 974 op VM, IC95 [+72 713 ; +370 559], malgré profit +113 600 £/an sur quatre ans. AC06 **rejeté opcode** : sur 1970–1971 38/40 graines avec +opcodes, médiane +451, p exact signes 1,49×10⁻⁹ ; Save/Load OFF/ON sain mais événement C76 late-ack non exposé en VM. AC04-B (sites physiques dupliqués) et AC05 (pré-calcul V86 sous C121) **acceptés isolément seulement** : B20×10 respectifs +66 123 et +29 990 £/an, IC95 traversant zéro ; opcode global 10×4/40×4 sans hausse démontrée. **Cumul B+AC05 encore à valider séparément avant toute intégration/activation** ; tous les rapports et preuves sont conservés dans [la validation centrale](air_catalogue_validation_finale_20261011.md). Pas de commit ni push.
 
 - **Priorité AIR du premier renfort live retirée (11/10, décision utilisateur).** `c121_air_first_live_air_priority` et branche de report supprimés après le 40×3 historique `fail_primary` (+0,315 %, sans gain ni perte significative démontrés). Croissance live=1, fenêtre4 et shadow partagés préservés ; Save/Load inchangé. 72 contrats verts et smoke défauts42×1 sain sur code synchronisé. [Bilan et preuves](c121_live_air_priority_retrait_20261011.md).
 
