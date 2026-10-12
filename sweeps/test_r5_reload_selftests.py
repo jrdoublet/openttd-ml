@@ -13,8 +13,7 @@ class TestReloadSelftests(unittest.TestCase):
         cls.persist = (AI / "persist.nut").read_text(encoding="utf-8")
         # R16 : les autotests vivent dans selftests.nut, requis par main.nut.
         assert 'require("selftests.nut");' in cls.main
-        cls.source = ((AI / "orchestrator.nut").read_text(encoding="utf-8") + "\n"
-                      + (AI / "selftests.nut").read_text(encoding="utf-8"))
+        cls.source = (AI / "selftests.nut").read_text(encoding="utf-8")
 
     def body(self, name):
         body = self.source.split(f"function OpexAI::{name}()", 1)[1].split("\nfunction ", 1)[0]

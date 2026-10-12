@@ -3,10 +3,6 @@ from pathlib import Path
 import json
 import sys
 import unittest
-from pathlib import Path as _AirSrcPath
-import sys as _air_src_sys
-_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
-from air_source import read_builder_air
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
@@ -24,9 +20,18 @@ SETTINGS = ROOT / "ai" / "OpexAI" / "settings.nut"
 PROBES = ROOT / "ai" / "OpexAI" / "probes.nut"
 BUILDER = ROOT / "ai" / "OpexAI" / "builder_air.nut"
 TASK_AIR = ROOT / "ai" / "OpexAI" / "task_air.nut"
+COVERAGE = ROOT / "ai" / "OpexAI" / "air_coverage.nut"
+CONSTRUCTION = ROOT / "ai" / "OpexAI" / "air_construction.nut"
+PLANNING = ROOT / "ai" / "OpexAI" / "air_planning.nut"
+ROUTE_ECONOMICS = ROOT / "ai" / "OpexAI" / "air_route_economics.nut"
 FIXTURE = ROOT / "sweeps" / "fixtures" / "c66_control_fixture_15_3.json"
 
 class TestB9AirCatchment(unittest.TestCase):
+    def test_builder_air_requires_modules(self):
+        builder = BUILDER.read_text(encoding="utf-8")
+        for module in ("air_coverage.nut", "air_construction.nut", "air_planning.nut", "air_route_economics.nut"):
+            self.assertIn(f'require("{module}");', builder)
+
     def test_probe_is_default_off_and_loaded_once(self):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["probe_events"], 0)
@@ -44,7 +49,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertNotIn('("probe_events", 1)', runner)
 
     def test_demand_shadow_is_post_decision_and_default_off(self):
-        builder = read_builder_air()
+        coverage = COVERAGE.read_text(encoding="utf-8")
         task = TASK_AIR.read_text(encoding="utf-8")
         selected = task.index("local buildPlan = buildChoice.plan;")
         shadow = task.index("OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);")
@@ -52,14 +57,14 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertGreater(shadow, selected)
         self.assertLess(shadow, build)
         self.assertIn("OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);", task)
-        self.assertIn("!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW", builder)
-        self.assertIn("!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE", builder)
-        self.assertIn("AIR_DEMAND_SHADOW", builder)
+        self.assertIn("!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW", coverage)
+        self.assertIn("!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE", coverage)
+        self.assertIn("AIR_DEMAND_SHADOW", coverage)
         runner = (ROOT / "sweeps" / "run_b9_air_catchment_5x6.py").read_text(encoding="utf-8")
         self.assertIn('"--demand-shadow"', runner)
 
     def test_demand_shadow_uses_square_station_catchment_geometry(self):
-        src = read_builder_air()
+        src = COVERAGE.read_text(encoding="utf-8")
         start = src.index("function OpexAirB9TownCoverageTiles")
         end = src.index("function OpexAirB9DemandShadowEndpoint", start)
         shadow = src[start:end]
@@ -76,7 +81,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertNotIn("AIMap.DistanceManhattan(tile, stop) <= busRadius", shadow)
 
     def test_joined_stop_shadow_prefilters_with_aitilelist(self):
-        src = read_builder_air()
+        src = COVERAGE.read_text(encoding="utf-8")
         start = src.index("function OpexAirB9PredictJoinedStops")
         end = src.index("function OpexAirB9TownCoverageTiles", start)
         shadow = src[start:end]
@@ -98,7 +103,7 @@ class TestB9AirCatchment(unittest.TestCase):
         )
 
     def test_probe_airport_only_uses_square_catchment_not_manhattan(self):
-        src = read_builder_air()
+        src = COVERAGE.read_text(encoding="utf-8")
         start = src.index("function OpexAirCatchmentProbeEndpoint")
         end = src.index('OpexAirCatchmentLog("AIR_CATCHMENT_ENDPOINT"', start)
         probe = src[start:end]
@@ -159,7 +164,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("if (!AIR_CATCHMENT_PROBE) return;", probes[start:start + 500])
 
     def test_probe_runs_after_success_and_before_reconciliation(self):
-        src = read_builder_air()
+        src = CONSTRUCTION.read_text(encoding="utf-8")
         probe = src.index('OpexAirCatchmentLog("AIR_CATCHMENT_BUILD"')
         reconcile = src.index("OpexAirReconcileActualBuild(catalog, plan, result);")
         success = src.index("result.ok = true;", src.index("function OpexBuildAirRoute"))
@@ -169,7 +174,7 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("joinedMonthlyPaxB = 0", src)
 
     def test_probe_keeps_measurement_dimensions_separate(self):
-        src = read_builder_air()
+        src = COVERAGE.read_text(encoding="utf-8") + CONSTRUCTION.read_text(encoding="utf-8")
         for token in (
             "airport_pax_prod=", "union_pax_prod=", "airport_mail_prod=",
             "union_mail_prod=", "base_source=", "base_monthly=",
@@ -205,31 +210,32 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertGreater(sample["width"], 0)
 
     def test_air_default_planning_uses_named_proxy_not_duplicated_literal(self):
-        src = read_builder_air()
+        src = PLANNING.read_text(encoding="utf-8")
+        construction_src = CONSTRUCTION.read_text(encoding="utf-8")
         self.assertNotIn("* 22", src)
         self.assertGreaterEqual(src.count("TOWN_CATCHMENT_SHARE_PCT"), 4)
         self.assertIn(
             "local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;",
             src,
         )
-        self.assertIn("town_population_proxy", src)
+        self.assertIn("town_population_proxy", construction_src)
 
     def test_joined_stop_reconciliation_uses_union_marginal(self):
-        src = read_builder_air()
-        self.assertIn("function OpexAirJoinedMarginalProduction", src)
-        self.assertIn("joinedRawMonthlyPaxA = 0", src)
-        self.assertIn("result.joinedRawMonthlyPaxA = joinedA.monthlyPax;", src)
-        self.assertIn("result.joinedMonthlyPaxA = OpexAirJoinedMarginalProduction(", src)
+        coverage_src = COVERAGE.read_text(encoding="utf-8")
+        construction_src = CONSTRUCTION.read_text(encoding="utf-8")
+        route_econ_src = ROUTE_ECONOMICS.read_text(encoding="utf-8")
+        self.assertIn("function OpexAirJoinedMarginalProduction", coverage_src)
+        self.assertIn("joinedRawMonthlyPaxA = 0", construction_src)
+        self.assertIn("result.joinedRawMonthlyPaxA = joinedA.monthlyPax;", construction_src)
+        self.assertIn("result.joinedMonthlyPaxA = OpexAirJoinedMarginalProduction(", construction_src)
         self.assertIn(
             'local joinedMonthly = OPEX_AIR_PLAN_PAD && ("joinedMonthlyPax" in result)',
-            src,
+            route_econ_src,
         )
         ai = BUILDER.parent
         self.assertIn("OPEX_AIR_PLAN_PAD <- false;", (ai / "globals_pre.nut").read_text(encoding="utf-8"))
         self.assertIn("OPEX_AIR_PLAN_PAD = false;", (ai / "settings.nut").read_text(encoding="utf-8"))
-        reserve = src[src.index("function OpexAirReserveJoinedStops"):src.index(
-            "function OpexAirAddPlane"
-        )]
+        reserve = route_econ_src[route_econ_src.index("function OpexAirReserveJoinedStops"):]
         self.assertIn("plan.joinedStopReserve <- 0;", reserve)
         self.assertNotIn("economics.capital +=", reserve)
 

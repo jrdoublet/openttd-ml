@@ -7,10 +7,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 
 from campaign_freeze import parse_ai_settings
-from pathlib import Path as _AirSrcPath
-import sys as _air_src_sys
-_air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
-from air_source import read_builder_air
 
 INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 GLOBALS = ROOT / "ai" / "OpexAI" / "globals_pre.nut"
@@ -18,11 +14,15 @@ SETTINGS = ROOT / "ai" / "OpexAI" / "settings.nut"
 MAIN = ROOT / "ai" / "OpexAI" / "main.nut"
 PROBES = ROOT / "ai" / "OpexAI" / "probes.nut"
 TASK_AIR = ROOT / "ai" / "OpexAI" / "task_air.nut"
+COVERAGE = ROOT / "ai" / "OpexAI" / "air_coverage.nut"
 BUILDER_AIR = ROOT / "ai" / "OpexAI" / "builder_air.nut"
 RUNNER = ROOT / "sweeps" / "run_c117_air_throughput.py"
 
 
 class TestC117AirThroughput(unittest.TestCase):
+    def test_builder_air_requires_coverage(self):
+        self.assertIn('require("air_coverage.nut");', BUILDER_AIR.read_text(encoding="utf-8"))
+
     def test_default_off_and_loaded_once(self):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["c117_air_throughput_probe"], 0)
@@ -47,7 +47,7 @@ class TestC117AirThroughput(unittest.TestCase):
         self.assertGreaterEqual(src.count("C117_AIR_THROUGHPUT_PROBE"), 2)
 
     def test_shadow_is_reused_without_enabling_postbuild_catchment_probe(self):
-        src = read_builder_air()
+        src = COVERAGE.read_text(encoding="utf-8")
         start = src.index("function OpexAirB9DemandShadow")
         end = src.index("function OpexAirCatchmentProbeEndpoint", start)
         block = src[start:end]
