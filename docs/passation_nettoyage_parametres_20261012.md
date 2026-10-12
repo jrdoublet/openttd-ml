@@ -4,6 +4,15 @@ Complément courant à la [passation du11/10](passation_nettoyage_parametres_202
 
 ## Décisions réconciliées
 
+**Dernière demande du 13/10 : fusion avec master.** C120 publié au `68759f5`,
+puis intégration du distant `c309272` en `e359523` sur la branche isolée.
+287 contrats et smoke défauts42×1 sains sur arbre propre ; nouveaux défauts
+V159/V161 conservés avec V157/V158/V160, sept preuves archivées. Publication
+normale vers master demandée. Checkout principal dirty toujours préservé.
+[État d'intégration et validation](nettoyage_parametres_fusion_master_20261013.md).
+Les sections suivantes décrivent les étapes antérieures ; leurs mentions de
+C120 non committé/non poussé ou de fusion restante ne sont plus le point de reprise.
+
 **Suite du 12–13/10 :** la branche préparée C118/C119 a été poussée sur demande,
 au `a8a33fb`, après intégration des trois mises à jour documentaires V159
 d'`origin/master`. La fusion distante dans master reste à faire. Puis C120 a été
@@ -80,6 +89,12 @@ du11/10 puis du12/10. Vérifie HEAD, git status/diff et les campagnes Docker.
 Les paramètres déjà examinés et leurs décisions sont listés dans la passation
 du12/10. Ne reteste pas un retrait, ne réarme pas les politiques abandonnées.
 Les sondes/shadows sont exclus du nettoyage ; préserve les travaux parallèles P0/AC.
+État de reprise actualisé le13/10 : C120 publié au68759f5, fusion de c309272
+en e359523 validée (287 contrats et smoke42×1 sur arbre propre). Lire
+docs/nettoyage_parametres_fusion_master_20261013.md et vérifier les refs distantes.
+La publication vers master a été demandée. Le checkout principal contient
+toujours les diagnostics P0 locaux ; utiliser le checkout isolé pour la suite.
+Les mentions de C120 encore local dans les paragraphes suivants sont historiques.
 Le chantier courant se trouve dans results/c118_c119_merge_stage_20261012,
 branche codex/c118-c119-merge-20261012. Base a8a33fb déjà poussée ; C120 retiré
 localement ensuite, 269 contrats et deux smokes42×1 sains. Aucun nouveau

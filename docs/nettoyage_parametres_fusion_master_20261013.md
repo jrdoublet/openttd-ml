@@ -37,3 +37,24 @@ trimestres valides possibles la première année. Pas de preuve économique.
 Après smoke sain et audit des manifestes : publication normale vers master et
 actualisation de la branche, sans force-push, sans toucher aux fichiers locaux P0.
 Si master avance avant le push, intégrer et revalider les changements pertinents.
+
+## Résultat de validation
+
+Commit de fusion `e359523` (parents `68759f5` et `c309272`). Smoke exécuté sur
+ce commit propre (`dirty=false`) : 1/1 duel sain, Opex/AAA actifs, horizons complets,
+aucune erreur non attribuée, trois trimestres valides pour cette année initiale.
+Bundle `6f0133904565d2928e0cd73cbddc0cc2c582a340103888c9792ebb8e4a0d8eab`,
+manifest `8fcf714f73681cd75f4704cb9ae538c04cf0880f8b76126c317e4418865502e4`.
+Manifest audité : C118/C119/C120 absents, V157/V158/V159/V160/V161 et C121 à 1.
+
+[Sept preuves archivées](../evidence/review/cleanup_master_merge_20261013/README.md) :
+JSON, manifest, log moteur, contrats, audit de santé/défauts, résolution de
+l'empreinte et script d'audit reproductible ancré à `c309272`. Octets bruts/gzip
+vérifiés par SHA-256. Validation technique seulement ; les portes économiques
+des fonctionnalités intégrées ne sont pas rejouées ni requalifiées.
+
+État documentaire arrêté après validation, avant push normal vers `master` et
+la branche de nettoyage. Le checkout principal reste à son état local antérieur,
+avec les diagnostics P0 non committés ; aucune synchronisation destructive,
+aucun stash/reset, aucune suppression de branche. Pour la suite, utiliser ce
+checkout isolé ou réconcilier explicitement le travail local avant synchronisation.

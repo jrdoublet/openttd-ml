@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "purpose": "Technical merge validation, no economic qualification",
+  "artifacts": [
+    {
+      "source": "results/cleanup_master_merge_contracts_20261013.json",
+      "evidence": "evidence/review/cleanup_master_merge_20261013/results/cleanup_master_merge_contracts_20261013.json.gz",
+      "raw_bytes": 1686,
+      "raw_sha256": "b729f3aa09e81868240838c756f7b736553e6181dd5779ea82b20dc0aeecd32e",
+      "gzip_bytes": 581,
+      "gzip_sha256": "a00047bc486931a05b917f2aa869dafdd33eba651148cd8dc001f905924dc770"
+    },
+    {
+      "source": "results/cleanup_merge_fingerprint_20261013.json",
+      "evidence": "evidence/review/cleanup_master_merge_20261013/results/cleanup_merge_fingerprint_20261013.json.gz",
+      "raw_bytes": 217,
+      "raw_sha256": "c5e2b559eb73b36bdf66264ed3bf90b8807ba9dee4e005b6b28abf0fbb57bf3e",
+      "gzip_bytes": 189,
+      "gzip_sha256": "69c196ad4652aa55dc5ed7f2a3f62f63e7cfdcfb9f065601d911b287d55400d1"
+    },
+    {
+      "source": "results/cleanup_master_merge_check_20261013.py",
+      "evidence": "evidence/review/cleanup_master_merge_20261013/results/cleanup_master_merge_check_20261013.py.gz",
+      "raw_bytes": 2853,
+      "raw_sha256": "d4fb86b49be9dacbc32fd54dab298c5e0f557a9fa44ba6cd2490bfea0f9ccc6e",
+      "gzip_bytes": 1254,
+      "gzip_sha256": "1efe31168851eecb6cf7e3757aa7303d9b88ab7b7165479cb3fe788ec6364ec1"
+    },
+    {
+      "source": "results/cleanup_master_merge_audit_20261013.json",
+      "evidence": "evidence/review/cleanup_master_merge_20261013/results/cleanup_master_merge_audit_20261013.json.gz",
+      "raw_bytes": 888,
+      "raw_sha256": "acf5b139b9a62441ce67b287d670affe222deb11a407cc1e3021c752333c5457",
+      "gzip_bytes": 519,
+      "gzip_sha256": "3388ffb469a43a8220ccc8a2df7531336dde082b43835948f434eb9791efa5bc"
+    },
+    {
+      "source": "results/cleanup_master_merge_defaults_smoke_20261013_r1.json",
+      "evidence": "evidence/review/cleanup_master_merge_20261013/results/cleanup_master_merge_defaults_smoke_20261013_r1.json.gz",
+      "raw_bytes": 23967,
+      "raw_sha256": "d679ec385986e2fb86657ecd49f9b4213657cdcaeda43a55624fa9a07ccd795b",
+      "gzip_bytes": 3345,
+      "gzip_sha256": "6c5c235714f4ce35658506065be2ba38b560e70a916622e41e7e0c53c055e165"
+    },
+    {
+      "source": "results/cleanup_master_merge_defaults_smoke_20261013_r1.manifest.json",
+      "evidence": "evidence/review/cleanup_master_merge_20261013/results/cleanup_master_merge_defaults_smoke_20261013_r1.manifest.json.gz",
+      "raw_bytes": 62964,
+      "raw_sha256": "8fcf714f73681cd75f4704cb9ae538c04cf0880f8b76126c317e4418865502e4",
+      "gzip_bytes": 11932,
+      "gzip_sha256": "11941e5e76c5c9a8d283776aa35af41f2551e9f36bc8d696b8a2cc7cd9cf8258"
+    },
+    {
+      "source": "results/cleanup_master_merge_defaults_smoke_20261013_r1_engine/reference_seed42_r0.log",
+      "evidence": "evidence/review/cleanup_master_merge_20261013/results/cleanup_master_merge_defaults_smoke_20261013_r1_engine/reference_seed42_r0.log.gz",
+      "raw_bytes": 370320,
+      "raw_sha256": "afb61f943da6d536cbf8144e48a8c833bb4c26beb0b8203dd58da95a23324ad8",
+      "gzip_bytes": 42837,
+      "gzip_sha256": "5d4daaee32c6b3eaf2b78f9b65b03bc1fab9ec9e7cf3943e6ef057eb4346a106"
+    }
+  ]
+}
