@@ -652,6 +652,7 @@ class OpexAI extends AIController {
   function _v149AfterProjectsPass();
   function _v149IdleDiag();
   function _v149MaybeRegenRail();
+  function _v149ContinueCatalog(continuationTick);
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */
@@ -832,6 +833,9 @@ function OpexAI::Start()
         if (catalogPending) this._runOrchestratorTick();
         if (spMid != null) OpexSpanEnd(spMid);
       }
+      /* V149 : la boucle ci-dessus s'arrete devant toute recherche rail ; une recherche du stock
+       * laisse le catalogue AIR poursuivre. */
+      if (V149_RAIL_PIPELINE) this._v149ContinueCatalog(continuationTick);
       if (spResume != null) OpexSpanEnd(spResume);
     }
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;

@@ -304,6 +304,40 @@ class RailRegen(unittest.TestCase):
         self.assertIn("  _v149RegenMonth = -1;", _read("main.nut"))
 
 
+class AirCatalogShare(unittest.TestCase):
+    def test_catalog_continuation_unchanged_at_default(self):
+        # le predicat historique et la boucle de main.nut restent intacts ; V149 poursuit apres
+        body = _function_body(_read("scheduler_tasks.nut"), "OpexC121CatalogCanContinue")
+        self.assertIn("return C121_CATALOG_INCREMENTAL && owner._activeWorker == null", body)
+        main = _read("main.nut")
+        loop = main.index("while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))")
+        hook = main.index("if (V149_RAIL_PIPELINE) this._v149ContinueCatalog(continuationTick);")
+        self.assertLess(loop, hook)
+        self.assertLess(hook, main.index("if (spResume != null) OpexSpanEnd(spResume);"))
+        v149 = _read("rail_v149.nut")
+        pred = _function_body(v149, "OpexV149CatalogCanContinue")
+        self.assertIn("if (!C121_CATALOG_INCREMENTAL || owner._railExpansion != null) return false;", pred)
+        self.assertIn("&& !OpexV149CatalogMayPassRail(owner)) return false;", pred)
+        self.assertIn("AIController.GetOpsTillSuspend() > 2000;", pred)
+        cont = _function_body(v149, "OpexAI::_v149ContinueCatalog")
+        self.assertIn("while (catalogPending && OpexV149CatalogCanContinue(this, continuationTick)) {", cont)
+        self.assertIn("if (catalogPending) this._runOrchestratorTick();", cont)
+
+    def test_only_stock_searches_let_the_catalog_pass(self):
+        body = _function_body(_read("rail_v149.nut"), "OpexV149CatalogMayPassRail")
+        self.assertIn('if (owner._activeWorker != null && owner._activeWorker.kind != "rail_stock") return false;', body)
+        self.assertIn('return search == null || (("isStockSearch" in search) && search.isStockSearch);', body)
+        busy = _function_body(_read("rail_v149.nut"), "OpexV149AirCatalogBusy")
+        self.assertIn('if (t.name == "catalog") return ("c78AirRebuild" in t) && t.c78AirRebuild != null;', busy)
+
+    def test_no_drain_while_air_catalog_busy(self):
+        step = _function_body(_read("orchestrator.nut"), "OpexWorkerRailStockStep")
+        self.assertIn("local v149NoDrain = V149_RAIL_PIPELINE && OpexV149AirCatalogBusy(ai);", step)
+        self.assertIn("while (!v149NoDrain && ai._railSearch != null", step)
+        # la premiere tranche reste jouee
+        self.assertLess(step.index("ai._advanceRailSearchSliceWithLedgers();"), step.index("v149NoDrain"))
+
+
 class Pipeline(unittest.TestCase):
     def test_projects_pass_hooks(self):
         src = _read("task_projects.nut")

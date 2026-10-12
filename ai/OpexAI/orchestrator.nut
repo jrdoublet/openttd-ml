@@ -316,7 +316,10 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
 
   // 3. Débit sur reliquat tant que GetOpsTillSuspend() >= seuil estimé
   local minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
-  while (ai._railSearch != null && ai._railSearch.phase == "search"
+  /* V149 : pas de debit sur reliquat tant que la reconstruction AIR du catalogue a du travail ;
+   * le reliquat lui revient (opcodes libres seulement pour le rail). */
+  local v149NoDrain = V149_RAIL_PIPELINE && OpexV149AirCatalogBusy(ai);
+  while (!v149NoDrain && ai._railSearch != null && ai._railSearch.phase == "search"
          && AIController.GetOpsTillSuspend() >= minThreshold) {
     if (!prepSearch) {
       curDate = AIDate.GetCurrentDate();

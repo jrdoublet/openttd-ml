@@ -13,6 +13,59 @@
  * Le stock, la file et les compteurs sont transitoires (non sauves), comme _railReadyStock.
  */
 
+/* Partage des opcodes avec le catalogue AIR (diag 5x3 du 13/10 : sans ce partage, une recherche
+ * du stock presque permanente bloquait la poursuite du catalogue AIR incremental, qui exige
+ * _railSearch == null, et videait le reliquat de chaque tick : 0 jeu de plans AIR en 1971,
+ * chantiers AIR divises par 2 a 8, profit -444 k/an sur 5/5 graines). */
+function OpexV149AirCatalogBusy(ai)
+{
+  if (ai._taskQueue == null) return false;
+  foreach (t in ai._taskQueue) {
+    if (t.name == "catalog") return ("c78AirRebuild" in t) && t.c78AirRebuild != null;
+  }
+  return false;
+}
+
+/* La recherche en cours est une recherche du stock (neuve, reparation ou preparation C121),
+ * menee par le worker rail_stock ou en attente de lui. */
+function OpexV149CatalogMayPassRail(owner)
+{
+  if (owner._activeWorker != null && owner._activeWorker.kind != "rail_stock") return false;
+  local search = owner._railSearch;
+  return search == null || (("isStockSearch" in search) && search.isStockSearch);
+}
+
+/* Meme admission que OpexC121CatalogCanContinue, sauf qu'une recherche du stock ne bloque pas. */
+function OpexV149CatalogCanContinue(owner, continuationTick)
+{
+  if (!C121_CATALOG_INCREMENTAL || owner._railExpansion != null) return false;
+  if ((owner._activeWorker != null || owner._railSearch != null)
+      && !OpexV149CatalogMayPassRail(owner)) return false;
+  return AIController.GetTick() == continuationTick
+      && AIController.GetOpsTillSuspend() > 2000;
+}
+
+/* Poursuite du catalogue AIR dans le meme tick, apres la boucle de main.nut (meme corps). */
+function OpexAI::_v149ContinueCatalog(continuationTick)
+{
+  local catalogPending = true;
+  while (catalogPending && OpexV149CatalogCanContinue(this, continuationTick)) {
+    catalogPending = false;
+    foreach (queuedTask in this._taskQueue) {
+      if (queuedTask.name == "catalog" && ("c78AirRebuild" in queuedTask)
+          && queuedTask.c78AirRebuild != null) {
+        catalogPending = true;
+        if (V147_AIR_CATALOG_TASKS) {
+          local phaseTask = OpexV147PhaseTask(this);
+          if (phaseTask != null) this._dispatchAirCatalogPhase(phaseTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+        } else this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+        break;
+      }
+    }
+    if (catalogPending) this._runOrchestratorTick();
+  }
+}
+
 /* Capacite unique du stock de traces prets : remplace les anciens tests `len() >= 1`. */
 function OpexRailStockCapacity()
 {
