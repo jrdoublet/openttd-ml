@@ -1100,29 +1100,6 @@ function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decision
   }
   local economics = OpexC121AirEconomics(
       catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes, decisionOnly, decisionScoreFloor, openingOut, engineContext);
-  if (economics != null && decisionOnly && C121_AIR_ENGINE_REALIZATION) {
-    local factor = OpexC121EngineDecisionRealizationFactor(plan);
-    if (factor != 1.0) {
-      local oldRevenue = economics.revenueAnnual;
-      local annualCosts = oldRevenue - economics.profitAnnual;
-      local adjustedRevenue = (oldRevenue.tofloat() * factor).tointeger();
-      local adjustedProfit = adjustedRevenue - annualCosts;
-      local adjustedImmobilise = (economics.immobilise.tofloat() * factor).tointeger();
-      local adjustedTotalCapital = economics.capital + adjustedImmobilise;
-      local adjustedScore = adjustedTotalCapital > 0
-          ? adjustedProfit.tofloat() * 1000.0 / adjustedTotalCapital.tofloat() : 0.0;
-      economics.revenueAnnual = adjustedRevenue;
-      economics.profitAnnual = adjustedProfit;
-      economics.immobilise = adjustedImmobilise;
-      economics.roi = adjustedTotalCapital > 0
-          ? (adjustedProfit * 1000) / adjustedTotalCapital : 0;
-      economics.score = adjustedScore;
-      economics.decisionRevenueAnnual = adjustedRevenue;
-      economics.decisionProfitAnnual = adjustedProfit;
-      economics.decisionScore = adjustedScore;
-      economics.engineDecisionRealizationFactor <- factor;
-    }
-  }
   if (economics != null) {
     economics.engineMailKnown <- mailKnown;
     if (("decisionEconomics" in economics) && economics.decisionEconomics != null) {
@@ -1701,10 +1678,8 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = n
     mailUpperA = st.mailRawA.tofloat() < mailDirectionCapacity ? st.mailRawA.tofloat() : mailDirectionCapacity;
     mailUpperB = st.mailRawB.tofloat() < mailDirectionCapacity ? st.mailRawB.tofloat() : mailDirectionCapacity;
   }
-  local rawRevenueUpper = (12.0 * (paxUpperA + paxUpperB) * paxIncome
+  local revenueUpper = (12.0 * (paxUpperA + paxUpperB) * paxIncome
       + 12.0 * (mailUpperA + mailUpperB) * mailIncome).tointeger();
-  local revenueUpper = (rawRevenueUpper.tofloat()
-      * OpexC121EngineDecisionRealizationFactor(plan)).tointeger();
   local lifeYears = engineContext != null ? engineContext.lifeYears : ((("ageYears" in plane) && plane.ageYears > 0)
       ? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365));
   local amort = engineContext != null ? engineContext.amort : (lifeYears > 0 ? plane.price / lifeYears : 0);

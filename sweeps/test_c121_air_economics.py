@@ -33,7 +33,7 @@ class TestC121AirEconomics(unittest.TestCase):
     def test_adaptive_realization_applies_in_all_regimes(self):
         defaults = parse_ai_settings(INFO)
         factor = body(self.projects, 'function OpexC121RealizationFactor(plan)',
-                      'function OpexC121EngineDecisionRealizationFactor(plan)')
+                      'function OpexC121RealizationSums()')
         self.assertEqual(defaults['c121_air_project_realization_adaptive'], 1)
         self.assertNotIn('C121_AIR_PROJECT_REALIZATION_REGIME != 1', factor)
         self.assertIn('arm != "hubsite" && arm != "hubhub"', factor)
@@ -54,7 +54,6 @@ class TestC121AirEconomics(unittest.TestCase):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["c121_air_economics_shadow"], 0)
         self.assertEqual(defaults["c121_air_economics"], 1)
-        self.assertEqual(defaults["c121_air_engine_realization"], 0)
         self.assertEqual(defaults["c121_air_project_realization_adaptive"], 1)
         self.assertEqual(defaults["c121_air_pressure_probe"], 0)
         self.assertEqual(defaults["c121_air_defensive_floor"], 0)
@@ -65,7 +64,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("C121_AIR_ECONOMICS_SHADOW <- false;", globals_src)
         self.assertIn("C121_AIR_ECONOMICS <- false;", globals_src)
         self.assertIn("C121_AIR_GAME_ENGINE <- false;", globals_src)
-        self.assertIn("C121_AIR_ENGINE_REALIZATION <- false;", globals_src)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_ADAPTIVE <- false;", globals_src)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_MAX_OPEN_PERMILLE <- 200;", globals_src)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_MIN_CONTESTABLE_PERMILLE <- 650;", globals_src)
@@ -77,8 +75,6 @@ class TestC121AirEconomics(unittest.TestCase):
         settings = SETTINGS.read_text(encoding="utf-8")
         self.assertIn('AIController.GetSetting("c121_air_economics_shadow")', settings)
         self.assertIn('AIController.GetSetting("c121_air_economics")', settings)
-        self.assertIn('AIController.GetSetting("c121_air_engine_realization")', settings)
-        self.assertIn('AIController.GetSetting("c121_air_project_realization")', settings)
         self.assertIn('AIController.GetSetting("c121_air_project_realization_adaptive")', settings)
         self.assertIn('AIController.GetSetting("c121_air_pressure_probe")', settings)
         self.assertIn('AIController.GetSetting("c121_air_defensive_floor")', settings)
@@ -92,37 +88,15 @@ class TestC121AirEconomics(unittest.TestCase):
             "function OpexC121RealizationFactor",
             "function OpexC121RealizationSums",
         )
-        self.assertIn("C121_AIR_PROJECT_REALIZATION", project_factor)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_ADAPTIVE", project_factor)
         self.assertNotIn("OpexC121PressureAdvanceYear();", project_factor)
         self.assertNotIn("C121_AIR_PROJECT_REALIZATION_REGIME != 1", project_factor)
         self.assertIn('arm != "hubsite" && arm != "hubhub"', project_factor)
         self.assertIn("return 0.75 + 0.25 * learned;", project_factor)
-        self.assertIn("0.5 + 0.5 * learned", project_factor)
-        self.assertIn("function OpexC121EngineDecisionRealizationFactor", project_factor)
-        self.assertIn("C121_AIR_REALIZATION_FACTOR[plan.arm]", project_factor)
-        self.assertIn("return 0.5 + 0.5 * learned;", project_factor)
         self.assertIn("learned < 0.0 || learned >= 1.0", project_factor)
 
-        engine = body(
-            self.air,
-            "function OpexC121EngineEconomics",
-            "function OpexC121InitialEngineUpperScore",
-        )
-        self.assertIn("decisionOnly && C121_AIR_ENGINE_REALIZATION", engine)
-        self.assertIn("OpexC121EngineDecisionRealizationFactor(plan)", engine)
-        self.assertIn("economics.decisionScore = adjustedScore", engine)
-        self.assertIn("economics.engineDecisionRealizationFactor <- factor", engine)
-
-        upper = body(
-            self.air,
-            "function OpexC121InitialEngineUpperScore",
-            "function OpexC121ChooseRoutePlane",
-        )
-        self.assertIn("OpexC121EngineDecisionRealizationFactor(plan)", upper)
         econ = body(self.air, "function OpexC121AirEconomics", "function OpexC121EngineEconomics")
         self.assertIn("OpexC121RealizationFactor(plan)", econ)
-        self.assertNotIn("OpexC121EngineDecisionRealizationFactor(plan)", econ)
 
     def test_pressure_probe_reuses_c83_slot_cache_and_is_passive(self):
         pressure = body(
@@ -609,14 +583,13 @@ class TestC121AirEconomics(unittest.TestCase):
         recompute = body(self.projects, "function OpexC121RecomputeRealizationFactors", "function OpexC121ProjectHasRealization")
         self.assertNotIn("vehCount != c121N0", recompute)
         realization = body(self.projects, "function OpexC121RealizationFactor", "function OpexC121RealizationSums")
-        self.assertIn("C121_AIR_PROJECT_REALIZATION", realization)
+        self.assertIn("C121_AIR_PROJECT_REALIZATION_ADAPTIVE", realization)
         self.assertIn('arm != "hubsite" && arm != "hubhub"', realization)
         self.assertIn("C121_AIR_REALIZATION_FACTOR[arm]", realization)
-        self.assertIn("0.5 + 0.5 * learned", realization)
         self.assertIn("project.mode == \"fleet\"", own)
         self.assertIn("c121MarginalProfit", own)
         self.assertIn('project.mode == "fleet"', c70)
-        self.assertIn("&& OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;", c70)
+        self.assertIn("&& OpexC121ProjectHasRealization(project)) return project.profitAnnual;", c70)
         self.assertIn("return project.profitAnnual * OpexC70Factor(project);", c70)
         self.assertIn("OpexC121RecomputeRealizationFactors(this._lines)", persist)
         self.assertIn("C121_AIR_REALIZATION_FACTOR.newpair = 1.0;", settings)
@@ -866,38 +839,11 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         self.assertNotIn("break;", block)
         self.assertNotIn("projects.best.remove", block)
         self.assertNotIn("projects.best.append", block)
-
-    def test_c121_kpass_air_continue_defaults_off_and_is_c121_scoped(self):
-        info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_kpass_air_continue"')
-        self.assertIn("custom_value = 0", info[i:i + 900])
-        settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_KPASS_AIR_CONTINUE = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_kpass_air_continue") != 0;', settings)
-
-    def test_c121_kpass_air_continue_only_skips_fleet_with_fundable_air_ahead(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
-        helper = task[task.index("function OpexC121KPassFundableAirAhead"):]
-        helper = helper[:helper.index("/* C39.5")]
-        self.assertIn("local end = rank + 6;", helper)
-        self.assertIn('next.mode != "air"', helper)
-        self.assertIn("OpexAirBatchPlanStillLive(next.payload, lines)", helper)
-        self.assertIn("cap > 0 && cap <= available", helper)
-        start = task.index("local c121KPassAirAhead = null;")
-        block = task[start:task.index("break;", start) + len("break;")]
-        self.assertIn('c75StopReason == "k_pass" && project.mode == "fleet"', block)
-        self.assertIn("c121KPassAirAhead = OpexC121KPassFundableAirAhead", block)
-        self.assertIn("if (c121KPassAirAhead != null && C121_KPASS_AIR_CONTINUE)", block)
-        self.assertIn("continue;", block)
-
-    def test_c121_kpass_air_continue_keeps_opcode_parity_before_action(self):
-        task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
-        start = task.index("local c121KPassAirAhead = null;")
-        block = task[start:task.index("break;", start) + len("break;")]
-        compute = block.index("c121KPassAirAhead = OpexC121KPassFundableAirAhead")
-        gate = block.index("if (c121KPassAirAhead != null && C121_KPASS_AIR_CONTINUE)")
-        action = block.index("continue;", gate)
-        self.assertLess(compute, gate)
-        self.assertLess(gate, action)
+        call_start = task.index("if (C121_KPASS_SHADOW) {")
+        call = task[call_start:task.index("break;", call_start)]
+        self.assertIn("availCap >= 0 ? availCap : OpexAvailableCapital()", call)
+        self.assertIn("OpexC121KPassShadow(this._projects", call)
+        self.assertNotIn("continue;", call)
 
     def test_c121_kdec_cold_shadow_defaults_off_and_is_c121_scoped(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")

@@ -410,24 +410,6 @@ function OpexC121KPassShadow(projects, project, rank, projCap, kPass, available,
       + " k_pass=" + kPass + " available=" + available + tail);
 }
 
-/* C121 cadence : look-ahead pur et borne pour le causal K_pass. Il ne reordonne rien :
- * il dit seulement si, dans les cinq rangs qui suivent un bloqueur fleet, une nouvelle
- * ligne AIR encore vivante est deja finançable avec la caisse courante. */
-function OpexC121KPassFundableAirAhead(projects, rank, available, lines)
-{
-  if (projects == null || !("best" in projects) || projects.best == null || available < 0) return null;
-  local end = rank + 6;
-  if (end > projects.best.len()) end = projects.best.len();
-  for (local j = rank + 1; j < end; j++) {
-    local next = projects.best[j];
-    if (next == null || !("mode" in next) || next.mode != "air") continue;
-    if (!("payload" in next) || next.payload == null
-        || !OpexAirBatchPlanStillLive(next.payload, lines)) continue;
-    local cap = OpexProjectFinanceCapital(next);
-    if (cap > 0 && cap <= available) return { rank = j, cap = cap };
-  }
-  return null;
-}
 /* C39.5 : conserve, par cle stable, le premier jour de la fenetre courante ou un projet du
  * vivier est finançable. La table neuve purge les projets sortis du vivier et borne la memoire.
  *
@@ -1739,25 +1721,10 @@ function OpexAI::_tryBuildProjects(year)
                 + " finance=" + projCap + " threshold=" + c75KPass
                 + (availCap >= 0 ? " available=" + availCap : ""));
           }
-          local c121KPassAirAhead = null;
-          local c121StopAvailable = -1;
-          if (C121_KPASS_SHADOW || C121_KPASS_AIR_CONTINUE) {
-            c121StopAvailable = availCap >= 0 ? availCap : OpexAvailableCapital();
-            if (c75StopReason == "k_pass" && project.mode == "fleet") {
-              c121KPassAirAhead = OpexC121KPassFundableAirAhead(
-                  this._projects, i, c121StopAvailable, this._lines);
-            }
-          }
           if (C121_KPASS_SHADOW) {
+            local c121StopAvailable = availCap >= 0 ? availCap : OpexAvailableCapital();
             OpexC121KPassShadow(this._projects, project, i, projCap, c75KPass,
                                c121StopAvailable, c75StopReason);
-          }
-          if (c121KPassAirAhead != null && C121_KPASS_AIR_CONTINUE) {
-            AILog.Info("C121_KPASS_AIR_CONTINUE fleet_rank=" + i
-                + " air_rank=" + c121KPassAirAhead.rank + " fleet_cap=" + projCap
-                + " air_cap=" + c121KPassAirAhead.cap + " k_pass=" + c75KPass
-                + " available=" + c121StopAvailable);
-            continue;
           }
           break;
         }

@@ -480,8 +480,6 @@ C121_AIR_GAME_ENGINE <- false;
  * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
  * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */
 C121_GAME_ENGINE_STATE <- {};
-C121_AIR_ENGINE_REALIZATION <- false;
-C121_AIR_PROJECT_REALIZATION <- false;
 C121_AIR_PROJECT_REALIZATION_ADAPTIVE <- false;
 C121_AIR_PROJECT_REALIZATION_MIN_CONTESTABLE_PERMILLE <- 650;
 C121_AIR_PROJECT_REALIZATION_MAX_OPEN_PERMILLE <- 200;
@@ -607,13 +605,9 @@ C121_AIR_FIRST_LIVE_PRIORITY_STATE <- {};
 /* C121 cadence : shadow pass-stop/K_pass. Journalise le projet bloquant et
  * les projets suivants sans modifier l'arbitrage ni la poursuite de passe. */
 C121_KPASS_SHADOW <- false;
-/* C121 cadence : laisse le portefeuille depasser un bloqueur fleet/K_pass uniquement
- * lorsqu'un projet AIR finançable existe dans les cinq rangs suivants. */
-C121_KPASS_AIR_CONTINUE <- false;
 /* C121 cadence : shadow du cold-start K_dec. Mesure le classement contrefactuel
  * si un renfort fleet sans observation reelle conservait l'exemption C69. */
 C121_KDEC_COLD_SHADOW <- false;
-C121_KDEC_COLD_EXEMPT <- false;
 C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
 /* Derive du monde, volontairement absent de Save(). */
 C121_CATALOG_CACHE <- {};

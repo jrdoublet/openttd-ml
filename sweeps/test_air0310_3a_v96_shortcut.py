@@ -34,10 +34,8 @@ BOUND_ARITHMETIC = (
     "paxUpperB",
     "mailUpperA",
     "mailUpperB",
-    "rawRevenueUpper",
     "revenueUpper",
     "profitUpper",
-    "OpexC121EngineDecisionRealizationFactor",
 )
 
 NULL_GUARDS = (

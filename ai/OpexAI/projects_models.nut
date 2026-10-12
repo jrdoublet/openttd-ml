@@ -68,7 +68,7 @@ function OpexC121RealizationFactor(plan)
 {
   /* Les anciens essais r4/r5 appliquaient trop brutalement le facteur appris.
    * Le levier reste separe et ne corrige que les bras reutilisant un hub. */
-  if ((!C121_AIR_PROJECT_REALIZATION && !C121_AIR_PROJECT_REALIZATION_ADAPTIVE)
+  if (!C121_AIR_PROJECT_REALIZATION_ADAPTIVE
       || plan == null || !("arm" in plan)) return 1.0;
   local arm = plan.arm;
   if (arm != "hubsite" && arm != "hubhub") return 1.0;
@@ -81,26 +81,9 @@ function OpexC121RealizationFactor(plan)
    * apprise ; sans observation suffisante, learned reste 1.0. */
   local learned = C121_AIR_REALIZATION_FACTOR[arm];
   if (learned < 0.0 || learned >= 1.0) return 1.0;
-  if (C121_AIR_PROJECT_REALIZATION_ADAPTIVE) {
-    /* Appliquer seulement 25 % de l'ecart appris pour preserver la valeur et
-     * la capacite d'expansion ; le régime C121/C122 ne bloque plus ce calcul. */
-    return 0.75 + 0.25 * learned;
-  }
-  return 0.5 + 0.5 * learned;
-}
-
-/* Variante ciblee : le learner par bras ne corrige que le classement moteur.
- * Le score projet complet reste sur le facteur physique 1.0. */
-function OpexC121EngineDecisionRealizationFactor(plan)
-{
-  if (!C121_AIR_ENGINE_REALIZATION || plan == null || !("arm" in plan)
-      || !(plan.arm in C121_AIR_REALIZATION_FACTOR)) return 1.0;
-  /* Le facteur appris brut etait trop agressif : il ameliorait le gap AAA
-   * dans C121 courant, mais le 5x6 direct vs C115 faisait perdre ~9 % de
-   * valeur. Garder la direction du learner sans ecraser le modele physique. */
-  local learned = C121_AIR_REALIZATION_FACTOR[plan.arm];
-  if (learned < 0.0 || learned >= 1.0) return 1.0;
-  return 0.5 + 0.5 * learned;
+  /* Appliquer seulement 25 % de l'ecart appris pour preserver la valeur et
+   * la capacite d'expansion ; le régime C121/C122 ne bloque plus ce calcul. */
+  return 0.75 + 0.25 * learned;
 }
 
 function OpexC121RealizationSums()
@@ -153,7 +136,7 @@ function OpexC121RecomputeRealizationFactors(lines)
   OpexC121ApplyRealizationSums(sums, year, "reload");
 }
 
-function OpexC121ProjectHasRealization(project, requireObservedMarginal = true)
+function OpexC121ProjectHasRealization(project)
 {
   if (!C121_AIR_ECONOMICS || project == null || !("mode" in project)
       || !("payload" in project) || project.payload == null) return false;
@@ -164,11 +147,6 @@ function OpexC121ProjectHasRealization(project, requireObservedMarginal = true)
   }
   if (project.mode == "fleet" && ("line" in project.payload) && project.payload.line != null) {
     local line = project.payload.line;
-    /* OFF conserve exactement le test historique ci-dessous. Le classement
-     * K_dec exige une observation dans l'experience ; C70/C82 passent false
-     * pour conserver leur numerateur historique, meme a froid. */
-    if (C121_KDEC_COLD_EXEMPT && requireObservedMarginal
-        && (!("c121MarginalSamples" in line) || line.c121MarginalSamples <= 0)) return false;
     return ("c121MarginalProfit" in line) && ("c121MarginalRevenue" in line);
   }
   return false;
@@ -247,7 +225,7 @@ function OpexC70Profit(project)
     return project.profitAnnual;
   /* Eviter une seconde calibration C70/C82 apres une correction C121 non neutre. */
   if (AIR_P0_DIRECT_REALIZATION_ACTIVE && project != null && ("mode" in project)
-      && project.mode == "air" && OpexC121ProjectHasRealization(project, false)
+      && project.mode == "air" && OpexC121ProjectHasRealization(project)
       && ("realizationFactor" in project.payload.economics)
       && project.payload.economics.realizationFactor != 1.0)
     return project.profitAnnual;
@@ -255,7 +233,7 @@ function OpexC70Profit(project)
    * donc une nouvelle ligne AIR doit continuer a beneficier de la calibration
    * C70 existante. Seule la flotte C121 porte deja sa propre marge observee. */
   if (project != null && ("mode" in project) && project.mode == "fleet"
-      && OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;
+      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
   if (!C70_MODE_CALIBRATION) return project.profitAnnual;
   return project.profitAnnual * OpexC70Factor(project);
 }
@@ -267,12 +245,12 @@ function OpexC82Profit(project)
     return project.profitAnnual;
   /* Eviter une seconde calibration C70/C82 apres une correction C121 non neutre. */
   if (AIR_P0_DIRECT_REALIZATION_ACTIVE && project != null && ("mode" in project)
-      && project.mode == "air" && OpexC121ProjectHasRealization(project, false)
+      && project.mode == "air" && OpexC121ProjectHasRealization(project)
       && ("realizationFactor" in project.payload.economics)
       && project.payload.economics.realizationFactor != 1.0)
     return project.profitAnnual;
   if (project != null && ("mode" in project) && project.mode == "fleet"
-      && OpexC121ProjectHasRealization(project, false)) return project.profitAnnual;
+      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
   local e = OpexC82ProjectEngine(project);
   if (e >= 0) return project.profitAnnual * OpexC82EngineFactor(e);
   return OpexC70Profit(project);

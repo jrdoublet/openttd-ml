@@ -814,40 +814,10 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_kpass_air_continue",
-      description = "C121 cadence experiment: when a fleet reinforcement would stop the pass on K_pass but a live AIR new-line project is fundable in the next five ranks, skip only that fleet blocker and keep scanning under the normal C75 bypass rules; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c121_kdec_cold_shadow",
       description = "C121 cadence shadow: for fleet projects with zero real marginal samples, log current K_dec rank versus the counterfactual C69 fleet exemption; never changes decisions; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_kdec_cold_exempt",
-      description = "C121 experiment: preserve the C69 fleet K_dec exemption until a real marginal sample exists; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_air_engine_realization",
-      description = "C121 experimental engine-only realization correction by AIR arm; project economics unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_air_project_realization",
-      description = "C121 experimental conservative project realization correction for reused-hub AIR arms only; newpair unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({

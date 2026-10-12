@@ -389,12 +389,8 @@ function OpexLoadSettings()
       ? AIController.GetSetting("c121_air_first_live_growth_phase_years") : 0;
   C121_KPASS_SHADOW = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_kpass_shadow") != 0;
-  C121_KPASS_AIR_CONTINUE = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_kpass_air_continue") != 0;
   C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_kdec_cold_shadow") != 0;
-  C121_KDEC_COLD_EXEMPT = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_kdec_cold_exempt") != 0;
   C121_AIR_FIRST_LIVE_STATE = {};
   C121_AIR_FIRST_LIVE_OPS = 0;
   C121_AIR_FIRST_LIVE_SAMPLES = 0;
@@ -417,8 +413,6 @@ function OpexLoadSettings()
     C121_CATALOG_ARM_LEARN_REV.clear();
     C121_CATALOG_TOWN_PRIORITY.clear();
   }
-  C121_AIR_ENGINE_REALIZATION = AIController.GetSetting("c121_air_engine_realization") != 0;
-  C121_AIR_PROJECT_REALIZATION = AIController.GetSetting("c121_air_project_realization") != 0;
   C121_AIR_PROJECT_REALIZATION_ADAPTIVE = AIController.GetSetting("c121_air_project_realization_adaptive") != 0;
   AIR_P0_DIRECT_REALIZATION = AIController.GetSetting("air_p0_direct_realization") != 0;
   AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
