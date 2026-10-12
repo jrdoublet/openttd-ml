@@ -694,14 +694,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c120_air_territorial_ranking",
-      description = "C120: rank already-generated viable AIR projects by new administrative airport towns (physical slot town), then keep the existing C115 economic order; engine/economics unchanged; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c121_air_economics_shadow",
       description = "C121 passive AIR economics shadow: B9 cargo-specific PASS/MAIL demand, directional carried volume, physical cycle and C119 payment; no decision change; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

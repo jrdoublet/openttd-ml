@@ -33,18 +33,21 @@ class TestC118SharedCoverage(unittest.TestCase):
             self.assertIn(field, snippet)
 
     def test_coverage_uses_real_catchment_without_townlist(self):
-        station = body(AIR, "function OpexC118StationCoverageTowns", "function OpexC118EndpointCoverageTowns")
-        endpoint = body(AIR, "function OpexC118EndpointCoverageTowns", "function OpexC118PlanCoverageTowns")
-        coverage = station + endpoint
+        station = body(AIR, "function OpexC118StationCoverageTowns", "function OpexC118EngineFitsPlan")
+        coverage = station
         self.assertIn("AITileList_StationCoverage", station)
-        self.assertIn("OpexC118StationCoverageTowns", endpoint)
         self.assertIn("AITile.GetClosestTown", coverage)
         self.assertIn("AITile.GetCargoProduction", coverage)
         self.assertNotIn("AITownList", coverage)
         self.assertNotIn("AITownList()", coverage)
 
-    def test_new_site_coverage_cache_depends_on_airport_type(self):
-        self.assertIn('"c118AirportCoverageTowns_" + airportType', AIR)
+    def test_station_coverage_cache_follows_generation_lifetime(self):
+        reset = body(AIR, "function OpexAirResetSiteCache", "function OpexAirResetStationCoverageTownCache")
+        prepare = body(AIR, "function OpexAirPlansPrepare", "function OpexAirPlansFindSites")
+        self.assertIn("AIR_STATION_COVERAGE_TOWN_CACHE.clear()", reset)
+        self.assertIn("AIR_C121_STATION_COVERAGE_CACHE.clear()", reset)
+        self.assertIn("OpexAirResetStationCoverageTownCache()", prepare)
+        self.assertIn("stationCoverageTownCacheInit", prepare)
 
     def test_durable_sign_probe_is_parsed_by_harness(self):
         for prefix in ("C8D|", "C8R|", "C8E|", "C8C|", "C8F|", "C8T|", "C8V|"):

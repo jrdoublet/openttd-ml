@@ -139,8 +139,8 @@ class TestC122AirRegimePriority(unittest.TestCase):
 
         select = body(PROJECTS, "function OpexProjectSelectAffordable", "/* Early-slot")
         probe_at = select.index("OpexC122ProbeExposure(affordable);")
-        reorder_at = select.index("OpexC120ReorderAffordableAir(affordable);")
-        self.assertLess(probe_at, reorder_at)
+        compact_at = select.index("OpexAirBatchTownReserveCompact(affordable);")
+        self.assertLess(probe_at, compact_at)
 
     def test_exact_shadow_compares_without_reordering(self):
         insert = body(

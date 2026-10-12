@@ -91,8 +91,8 @@ def stage_bypass(folder, scenario):
     # The normal failure discard gate omits decision_log. Retain the actual
     # builder result in this test copy, without inventing errors or returns.
     text = replace_once(text,
-                        '        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({',
-                        '        if (R1_R3_TEST_ONLY || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) passDiscards.append({')
+                        '        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({',
+                        '        if (R1_R3_TEST_ONLY || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({')
     air.write_text(text, encoding="utf-8")
     tasks = target / "task_projects.nut"
     text = tasks.read_text(encoding="utf-8")

@@ -142,7 +142,7 @@ class SourceContracts(unittest.TestCase):
     def test_shadow_collects_both_admission_paths_before_compaction(self):
         s = self.source("projects_selection.nut")
         self.assertEqual(s.count("OpexAmortProbeCandidate(amortProbe, project"), 2)
-        self.assertLess(s.index("OpexAmortProbeEnd(amortProbe, affordable)"), s.index("OpexC120ReorderAffordableAir(affordable)"))
+        self.assertLess(s.index("OpexAmortProbeEnd(amortProbe, affordable)"), s.index("OpexAirBatchTownReserveCompact(affordable)"))
         self.assertIn("amortProbe.rows = []", s)
 
     def test_diagnostics_never_write_decision_fields(self):

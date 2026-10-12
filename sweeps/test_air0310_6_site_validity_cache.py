@@ -5,8 +5,7 @@ air0310_site_validity_cache vaut 0 aux quatre difficultes. A 1, et seulement
 si C121_CATALOG_INCREMENTAL est actif, OpexFilterAirAlternativesStillValid
 reutilise OpexAirSiteStillBuildable pour la cle keyA/keyB jusqu'au changement
 de mois ou jusqu'a un chantier ou une demolition d'OpexAI. A 0, le corps
-historique du filtre est le seul execute. C120_AIR_FILTER_SNAPSHOT et ses
-compteurs ne changent pas. Aucune partie n'est lancee.
+historique du filtre est le seul execute. Aucune partie n'est lancee.
 """
 from __future__ import annotations
 
@@ -22,14 +21,6 @@ SETTING = "air0310_site_validity_cache"
 GLOBAL = "AIR0310_SITE_VALIDITY_CACHE"
 INVALIDATE = "OpexAir0310InvalidateSiteValidity"
 KEY = '(reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor'
-SNAPSHOT = """  if (C120_AIR_TERRITORIAL_RANKING) {
-    C120_AIR_FILTER_SNAPSHOT = {
-      date = AIDate.GetCurrentDate(), inputAir = c120InputAir,
-      filteredAir = c120FilteredAir, liveAir = c120InputAir - c120FilteredAir,
-    };
-  }"""
-
-
 def _read(rel):
     return (ROOT / rel).read_text(encoding="utf-8")
 
@@ -211,23 +202,18 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
         self.assertTrue(after.startswith("local live = [];"))
         self.assertNotIn("AIR0310", after)
         self.assertNotIn("OpexAir0310", after)
-        self.assertIn("local siteValidity = {};", after)
-        self.assertIn("local stationLimitedTowns = {};", after)
-        self.assertEqual(self.generation.count("local siteValidity = {};"), 1)
+        # V156 permits callers to share these maps; null keeps the local fallback.
+        self.assertIn("local siteValidity = externalSiteValidity != null ? externalSiteValidity : {};", after)
+        self.assertIn("local stationLimitedTowns = externalStationLimitedTowns != null ? externalStationLimitedTowns : {};", after)
+        self.assertEqual(self.generation.count("local siteValidity = externalSiteValidity != null ? externalSiteValidity : {};"), 1)
         self.assertIn(KEY, self.hist)
         self.assertIn(KEY, self.cached)
         key_b = KEY.replace("reuseA", "reuseB").replace("siteA", "siteB")
         self.assertIn(key_b, self.hist)
         self.assertIn(key_b, self.cached)
-        self.assertEqual(self.hist.count(SNAPSHOT), 1)
-        self.assertEqual(self.cached.count(SNAPSHOT), 1)
         self.assertNotIn("local siteValidity", self.cached)
         self.assertIn("OpexAir0310SiteValidityBegin(stationLimitedTowns)", self.cached)
         self.assertEqual(self.cached.count("OpexAir0310SiteValidityOk("), 2)
-        self.assertIn("c120InputAir++", self.hist)
-        self.assertIn("c120FilteredAir++", self.hist)
-        self.assertIn("c120InputAir++", self.cached)
-        self.assertIn("c120FilteredAir++", self.cached)
         self.assertNotIn(GLOBAL, self.planning)
         self.assertIn("local siteValidity = {}", self.planning)
 

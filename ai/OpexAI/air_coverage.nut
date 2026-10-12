@@ -13,20 +13,12 @@ function OpexC121InvalidateEndpointGeometry()
 function OpexAirResetSiteCache()
 {
   AIR_SITE_CACHE.clear();
-  AIR_TERRITORIAL_COVERAGE_CACHE.clear();
-  AIR_TERRITORIAL_COVERAGE_HITS = 0;
-  AIR_TERRITORIAL_COVERAGE_MISSES = 0;
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
   AIR_C121_STATION_COVERAGE_CACHE.clear();
   if (C121_CATALOG_INCREMENTAL) OpexC121InvalidateEndpointGeometry();
   AIR_STATION_COVERAGE_HITS = 0;
   AIR_STATION_COVERAGE_MISSES = 0;
   if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
-}
-
-function OpexAirResetTerritorialCoverageCache()
-{
-  AIR_TERRITORIAL_COVERAGE_CACHE.clear();
 }
 
 function OpexAirResetStationCoverageTownCache()
@@ -93,7 +85,6 @@ function OpexAirInvalidateCachedSite(site, airport)
   local key = site.town.id + "_" + airport.type;
   if (key in AIR_SITE_CACHE && AIR_SITE_CACHE[key] == site.anchor) {
     delete AIR_SITE_CACHE[key];
-    OpexAirResetTerritorialCoverageCache();
   }
 }
 
@@ -182,85 +173,6 @@ function OpexC118StationCoverageTowns(stationId, cargo)
   return ids;
 }
 
-function OpexC118EndpointCoverageTowns(site, airport, cargo, reused)
-{
-  local ids = [];
-  if ((!C118_AIR_COVERAGE_PROBE
-      && !C120_AIR_TERRITORIAL_RANKING)
-      || site == null || airport == null || cargo < 0) return ids;
-  local airportType = airport.type;
-  if (reused && AIAirport.IsAirportTile(site.anchor)) airportType = AIAirport.GetAirportType(site.anchor);
-  local cacheKey = reused ? "c118StationCoverageTowns"
-      : "c118AirportCoverageTowns_" + airportType;
-  if (cacheKey in site) return site[cacheKey];
-
-  local seen = {};
-  local stationId = (reused && ("stationId" in site)) ? site.stationId : -1;
-  if (stationId >= 0 && AIStation.IsValidStation(stationId)) {
-    ids = OpexC118StationCoverageTowns(stationId, cargo);
-  } else {
-    if (AIMap.IsValidTile(site.anchor) && AIAirport.IsValidAirportType(airportType)) {
-      local globalKey = site.anchor + "|" + airportType + "|" + cargo;
-      if (globalKey in AIR_TERRITORIAL_COVERAGE_CACHE) {
-        AIR_TERRITORIAL_COVERAGE_HITS++;
-        local cachedIds = AIR_TERRITORIAL_COVERAGE_CACHE[globalKey];
-        site.rawset(cacheKey, cachedIds);
-        return cachedIds;
-      }
-      AIR_TERRITORIAL_COVERAGE_MISSES++;
-      local w = AIAirport.GetAirportWidth(airportType);
-      local h = AIAirport.GetAirportHeight(airportType);
-      local radius = AIAirport.GetAirportCoverageRadius(airportType);
-      local ax = AIMap.GetTileX(site.anchor);
-      local ay = AIMap.GetTileY(site.anchor);
-      local minX = ax - radius;
-      local minY = ay - radius;
-      local maxX = ax + w - 1 + radius;
-      local maxY = ay + h - 1 + radius;
-      local mapX = AIMap.GetMapSizeX();
-      local mapY = AIMap.GetMapSizeY();
-      if (minX < 0) minX = 0;
-      if (minY < 0) minY = 0;
-      if (maxX >= mapX) maxX = mapX - 1;
-      if (maxY >= mapY) maxY = mapY - 1;
-      /* Meme rectangle et meme predicate que la double boucle historique, mais
-       * l'evaluation du cargo est deleguee a AIList/Valuate. La boucle Squirrel
-       * restante ne parcourt plus que les tuiles effectivement productrices. */
-      local coverageTiles = AITileList();
-      coverageTiles.AddRectangle(
-          AIMap.GetTileIndex(minX, minY), AIMap.GetTileIndex(maxX, maxY));
-      coverageTiles.Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0);
-      coverageTiles.KeepAboveValue(0);
-      coverageTiles.Valuate(AITile.GetClosestTown);
-      foreach (tile, townId in coverageTiles) {
-        OpexC118RememberTown(ids, seen, townId);
-      }
-      AIR_TERRITORIAL_COVERAGE_CACHE.rawset(globalKey, ids);
-    }
-  }
-  site.rawset(cacheKey, ids);
-  return ids;
-}
-
-function OpexC118PlanCoverageTowns(plan, cargo)
-{
-  local ids = [];
-  if ((!C118_AIR_COVERAGE_PROBE
-      && !C120_AIR_TERRITORIAL_RANKING)
-      || plan == null || !(("siteA") in plan)
-      || !(("siteB") in plan) || !(("airport") in plan)) return ids;
-  local seen = {};
-  local reuseA = ("reuseA" in plan) && plan.reuseA;
-  local reuseB = ("reuseB" in plan) && plan.reuseB;
-  foreach (townId in OpexC118EndpointCoverageTowns(plan.siteA, plan.airport, cargo, reuseA)) {
-    OpexC118RememberTown(ids, seen, townId);
-  }
-  foreach (townId in OpexC118EndpointCoverageTowns(plan.siteB, plan.airport, cargo, reuseB)) {
-    OpexC118RememberTown(ids, seen, townId);
-  }
-  return ids;
-}
-
 function OpexC118EngineFitsPlan(plan, plane)
 {
   if (plan == null || plane == null) return false;
@@ -274,8 +186,7 @@ function OpexC118EngineFitsPlan(plan, plane)
 function OpexC118OwnCoveredTownSet(cargo)
 {
   local covered = {};
-  if ((!C118_AIR_COVERAGE_PROBE
-      && !C120_AIR_TERRITORIAL_RANKING) || cargo < 0) return covered;
+  if (!C118_AIR_COVERAGE_PROBE || cargo < 0) return covered;
   local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
   for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
     foreach (townId in OpexC118StationCoverageTowns(st, cargo)) covered.rawset(townId, true);

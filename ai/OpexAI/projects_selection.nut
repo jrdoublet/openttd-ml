@@ -1094,8 +1094,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
   alternatives = fittedAlternatives;
   local spStates = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.states") : null;
-  /* Avant plancher, preparation territoriale et filtre. */
-  OpexC120PrepareSelection(alternatives, capitalBudget);
+  /* Avant plancher et filtre. */
   /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,
    * results/bench_isolation_3y_20seeds.json). Le tri au seul RATIO profit/capital a ete mesure isole :
    * il fait bien ce qu'on lui demandait sur le volume -- 21,4 -> 27,2 gares, +27 %, le SEUL des
@@ -1386,7 +1385,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
   OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
-  OpexC120ReorderAffordableAir(affordable);
   if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);
   if (C69_BOTTLENECK_PROBE) {
     ::C69_LAST_AFFORDABLE = c69Affordable;
@@ -1408,7 +1406,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     }
     OpexC73RecordSelection(toSel, aff, sel);
   }
-  OpexC120FinalizeSelection(affordable, capitalBudget);
   if (roadFinanceExposure != null) {
     foreach (u in roadFinanceExposure.unlockedProjects) {
       local chosen = 0;
@@ -1648,13 +1645,6 @@ function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
 {
   if (projects == null || !("best" in projects)
       || projects.best == null || projects.best.len() == 0) return null;
-  /* C120 a deja classe le petit portefeuille finance. Ne laisser la promotion
-   * defensive court-circuiter cet ordre que lorsqu'il n'existe PAS de tete
-   * territoriale ; dans ce cas le comportement C115 reste strictement normal. */
-  if (C120_AIR_TERRITORIAL_RANKING
-      && ("c120NewTowns" in projects.best[0]) && projects.best[0].c120NewTowns > 0) {
-    return projects.best[0];
-  }
   local earlyState = null;
   local defensiveState = null;
   local bestIndex = -1;

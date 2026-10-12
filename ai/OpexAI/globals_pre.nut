@@ -452,14 +452,6 @@ C121_STATION_FLUX_STATE <- {};
 /* Sonde passive : mesure la couverture AIR sans modifier les decisions.
  * Le traitement territorial C118 autonome a ete retire. */
 C118_AIR_COVERAGE_PROBE <- false;
-/* C120 : experience isolee de classement territorial ADMINISTRATIF. Elle ne
- * modifie ni moteur, ni economie, ni generation AIR : seulement l'ordre des
- * projets C115 deja admis/financables, par nouvelles villes portant physiquement
- * un aeroport (ville de slot) puis ordre economique existant. */
-C120_AIR_TERRITORIAL_RANKING <- false;
-C120_AIR_SELECTION_SNAPSHOT <- null;
-C120_AIR_FILTER_SNAPSHOT <- null;
-C120_AIR_SELECT_SEQ <- 0;
 C121_AIR_ECONOMICS_SHADOW <- false;
 /* C121 : modele economique AIR unifie. Le flag decisionnel reste eteint tant
  * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
@@ -623,7 +615,6 @@ C121_AIR_HUB_DELAY_WINDOW_DAYS <- 91;
 C121_AIR_HUB_DELAY_MIN_OBS <- 2;
 C121_AIR_HUB_DELAY_UPDATE_OPS <- 0;
 C121_AIR_HUB_DELAY_UPDATE_SAMPLES <- 0;
-C120_AIR_LAST_TRACE_KEY <- "";
 /* C116.2 : snapshot tres bon marche du portefeuille AIR deja classe. Il est
  * rempli uniquement pour la sonde C104/C116 (ou C116 actif) a partir de la
  * liste `affordable` deja triee : aucune recherche de route supplementaire. */

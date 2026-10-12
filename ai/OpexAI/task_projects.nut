@@ -1344,21 +1344,6 @@ function OpexAI::_finalizeProjectsPassDiagnostics(builtCount, c49Best, c49BuiltR
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
 }
 
-/* C120 : motif d'arret de la passe pour la trace territoriale AIR. */
-function OpexC120FinalizeProjectsPass(c120AirBuilt, c120AirAttempts, c120AirLastReason,
-                                      c120AirLastReject, c75StopReason, builtCount)
-{
-  local c120StopReason = null;
-  if (c120AirBuilt) c120StopReason = "built";
-  else if (c120AirAttempts > 0 && c120AirLastReason != null) c120StopReason = c120AirLastReason;
-  else if (c75StopReason != null) c120StopReason = c75StopReason;
-  else if (builtCount > 0) c120StopReason = "other_mode_built";
-  else if (C120_AIR_SELECTION_SNAPSHOT != null) c120StopReason = C120_AIR_SELECTION_SNAPSHOT.selectionReason;
-  else c120StopReason = "no_snapshot";
-  OpexC120TracePass(c120StopReason, c120AirAttempts, c120AirBuilt,
-      c120AirLastReject, c75StopReason);
-}
-
 /* C75 : resout le motif d'arret de fin de passe, alimente C49/C75 et le retourne
  * (il sert ensuite a la sonde PROJECTS_COST). L'appelant garde C75_TRACK_PASSES. */
 function OpexAI::_finalizeC75PassOutcome(year, builtCount, c75KPassData, c75StopReason,
@@ -1469,10 +1454,6 @@ function OpexAI::_tryBuildProjects(year)
   local builtCount = 0;
   local funnelAttempted = 0;
   local passDiscards = [];
-  local c120AirAttempts = 0;
-  local c120AirBuilt = false;
-  local c120AirLastReason = null;
-  local c120AirLastReject = null;
   local c69BuiltProjects = C69_TRACK_BUILDS ? [] : null;
   local c69PassProjects = null;
   if (C69_BOTTLENECK_PROBE && this._projects != null) {
@@ -1663,7 +1644,7 @@ function OpexAI::_tryBuildProjects(year)
         && OpexV133AirPlanBlocked(project.payload)) {
       OpexV133LogBlockedTowns(project.payload);
       if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
-          || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) {
+          || C122_AIR_THREAT_PROBE) {
         local v133Plan = project.payload;
         passDiscards.append({ rank = i, mode = "air", src = v133Plan.siteA.town.tile,
                               dst = v133Plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
@@ -1682,7 +1663,7 @@ function OpexAI::_tryBuildProjects(year)
       if (c121FirstYearAirBatch) c121DeadSkipped++;
       if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveNote("batch_plan_dead", 1);
       if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
-          || C120_AIR_TERRITORIAL_RANKING || C122_AIR_THREAT_PROBE) {
+          || C122_AIR_THREAT_PROBE) {
         local plan = project.payload;
         passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile,
                               dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
@@ -1822,8 +1803,6 @@ function OpexAI::_tryBuildProjects(year)
         continue;
       }
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
-      local c120DiscardStart = C120_AIR_TERRITORIAL_RANKING ? passDiscards.len() : 0;
-      if (C120_AIR_TERRITORIAL_RANKING) c120AirAttempts++;
       local c78DiscardStart = C78_SLOT_INTERCEPT_PROBE ? passDiscards.len() : 0;
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       if (C78_SLOT_INTERCEPT_PROBE) {
@@ -1857,22 +1836,6 @@ function OpexAI::_tryBuildProjects(year)
       OpexC122ThreatNoteOutcome(project, i, attempt);
       OpexC122ThreatRetryUnbuildable(this, project, i, attempt);
       passDiscards = attempt.discards;
-      if (C120_AIR_TERRITORIAL_RANKING) {
-        if (attempt.outcome == "built") {
-          c120AirBuilt = true;
-          c120AirLastReason = "built";
-        } else {
-          c120AirLastReason = attempt.outcome;
-          for (local c120k = c120DiscardStart; c120k < passDiscards.len(); c120k++) {
-            local c120d = passDiscards[c120k];
-            if (c120d != null && ("mode" in c120d) && c120d.mode == "air"
-                && ("rank" in c120d) && c120d.rank == i && ("reason" in c120d)) {
-              c120AirLastReason = c120d.reason;
-            }
-          }
-          c120AirLastReject = c120AirLastReason;
-        }
-      }
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C78_SLOT_INTERCEPT_PROBE) {
         local c78Reason = (attempt.outcome == "built") ? "built" : "unknown";
@@ -2021,11 +1984,6 @@ function OpexAI::_tryBuildProjects(year)
       OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
     }
   }
-  }
-
-  if (C120_AIR_TERRITORIAL_RANKING) {
-    OpexC120FinalizeProjectsPass(c120AirBuilt, c120AirAttempts, c120AirLastReason,
-        c120AirLastReject, c75StopReason, builtCount);
   }
 
   this._finalizeProjectsPassDiagnostics(builtCount, c49Best, c49BuiltRanks,

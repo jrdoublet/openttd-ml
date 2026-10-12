@@ -41,7 +41,7 @@ class TestPartialFleet(unittest.TestCase):
 
     def test_fit_precedes_floor_probes_and_common_ranking(self):
         fit = self.select.index("OpexProjectFitFleetToBudget(project, capitalBudget)")
-        for marker in ("OpexC120PrepareSelection", "local floorProfit", "project.fundScore <-"):
+        for marker in ("local floorProfit", "project.fundScore <-"):
             self.assertLess(fit, self.select.index(marker))
         self.assertIn("alternatives = fittedAlternatives;", self.select)
         self.assertIn("OpexProjectInsertDefensive(affordable, project, scoreKey", self.select)

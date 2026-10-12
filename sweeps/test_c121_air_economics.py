@@ -875,10 +875,10 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         score = selection.index("project.fundScore <- OpexProjectScore")
         capture = selection.index("OpexC121KDecColdShadowCandidate", score)
         finish = selection.index("OpexC121KDecColdShadowEnd")
-        c120 = selection.index("OpexC120ReorderAffordableAir")
+        c122 = selection.index("OpexC122ProbeExposure")
         self.assertLess(score, capture)
         self.assertLess(capture, finish)
-        self.assertLess(finish, c120)
+        self.assertLess(finish, c122)
 
 
 if __name__ == "__main__":

@@ -777,23 +777,17 @@ function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null
   local live = [];
   local siteValidity = externalSiteValidity != null ? externalSiteValidity : {};
   local stationLimitedTowns = externalStationLimitedTowns != null ? externalStationLimitedTowns : {};
-  local c120InputAir = 0;
-  local c120FilteredAir = 0;
   foreach (project in alternatives) {
     if (project != null && ("mode" in project) && project.mode == "air") {
-      if (C120_AIR_TERRITORIAL_RANKING) c120InputAir++;
       if (!("payload" in project) || project.payload == null
           || OpexCandidateIsAbandoned(project, abandonedPairs)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
       local plan = project.payload;
       if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
       if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
 
@@ -806,7 +800,6 @@ function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null
             plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns));
       }
       if (!siteValidity[keyA]) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
       if (!(keyB in siteValidity)) {
@@ -814,17 +807,10 @@ function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null
             plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns));
       }
       if (!siteValidity[keyB]) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
     }
     live.append(project);
-  }
-  if (C120_AIR_TERRITORIAL_RANKING) {
-    C120_AIR_FILTER_SNAPSHOT = {
-      date = AIDate.GetCurrentDate(), inputAir = c120InputAir,
-      filteredAir = c120FilteredAir, liveAir = c120InputAir - c120FilteredAir,
-    };
   }
   return live;
 }
@@ -838,23 +824,17 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
   local live = [];
   local stationLimitedTowns = {};
   local validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
-  local c120InputAir = 0;
-  local c120FilteredAir = 0;
   foreach (project in alternatives) {
     if (project != null && ("mode" in project) && project.mode == "air") {
-      if (C120_AIR_TERRITORIAL_RANKING) c120InputAir++;
       if (!("payload" in project) || project.payload == null
           || OpexCandidateIsAbandoned(project, abandonedPairs)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
       local plan = project.payload;
       if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
       if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
 
@@ -864,22 +844,14 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
       local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
       if (!OpexAir0310SiteValidityOk(validity, keyA,
             plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
       if (!OpexAir0310SiteValidityOk(validity, keyB,
             plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns)) {
-        if (C120_AIR_TERRITORIAL_RANKING) c120FilteredAir++;
         continue;
       }
     }
     live.append(project);
-  }
-  if (C120_AIR_TERRITORIAL_RANKING) {
-    C120_AIR_FILTER_SNAPSHOT = {
-      date = AIDate.GetCurrentDate(), inputAir = c120InputAir,
-      filteredAir = c120FilteredAir, liveAir = c120InputAir - c120FilteredAir,
-    };
   }
   return live;
 }

@@ -27,17 +27,6 @@ AIR_FULL_LOAD <- 0;
 /* Cache de sites d'aeroport par ville et type d'aeroport (C33.1) */
 AIR_SITE_CACHE_ENABLED <- true;
 AIR_SITE_CACHE <- {};
-/* C118/C120 : cache exact de la liste des villes presentes dans le catchment
- * d'une emprise neuve. Contrairement au cache historique attache a l'objet
- * `site`, cette cle survit aux objets site recrees pour chaque combo moteur ET
- * aux regenerations suivantes. C'est coherent avec AIR_SITE_CACHE : tant que
- * ville/type pointe vers la meme ancre, rescanner son rectangle a chaque build
- * ne change pas la geometrie mais peut suspendre l'IA pendant des semaines.
- * Le cache est invalide avec le cache de site ; un site reel construit passe
- * ensuite par AITileList_StationCoverage, donc n'utilise plus cette prediction. */
-AIR_TERRITORIAL_COVERAGE_CACHE <- {};
-AIR_TERRITORIAL_COVERAGE_HITS <- 0;
-AIR_TERRITORIAL_COVERAGE_MISSES <- 0;
 /* Cache court pour les hubs existants : exact pendant une generation AIR,
  * invalide avant la generation suivante car une construction jointe peut
  * agrandir le catchment de station. */

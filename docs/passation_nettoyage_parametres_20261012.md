@@ -4,6 +4,20 @@ Complément courant à la [passation du11/10](passation_nettoyage_parametres_202
 
 ## Décisions réconciliées
 
+**Suite du 12–13/10 :** la branche préparée C118/C119 a été poussée sur demande,
+au `a8a33fb`, après intégration des trois mises à jour documentaires V159
+d'`origin/master`. La fusion distante dans master reste à faire. Puis C120 a été
+retiré localement dans ce même checkout isolé : 269 contrats, deux smokes 42×1
+sains, 11 événements de couverture sous sonde ON/zéro OFF, 39 preuves archivées.
+Pas de nouveau commit/push de C120 ; checkout principal et diagnostics P0 intacts.
+[Bilan du retrait C120](c120_territorial_retrait_20261012.md). Les mentions antérieures
+« aucun push » décrivent leurs étapes respectives.
+
+**Demande suivante du 13/10 :** commit et push ciblés du retrait C120 sur la
+branche isolée `codex/c118-c119-merge-20261012`. Les mentions « non committé/non
+poussé » ci-dessous décrivent l'étape de validation précédente. Ne pas absorber
+les diagnostics P0 du checkout principal ni fusionner master implicitement.
+
 **Nouvelle demande après les retraits C119/C118 :** committer ce seul chantier et préparer la fusion avec `origin/master`, en préservant V157/V158/V160 adoptés en parallèle. Publication distante non demandée à cette étape ; diagnostics P0 locaux exclus. [Archive des preuves techniques C118/C119](../evidence/review/c118_c119_cleanup_20261012/README.md).
 
 **Préparation terminée :** commit ciblé `c79bf0f`, fusion `dd826d6` de `origin/master` au `02d243f`, branche isolée `codex/c118-c119-merge-20261012` ; quatre réglages V157/V158/V160 à1,247 tests et smoke défauts42×1 sains,40 preuves archivées. Aucun push ; checkout principal et diagnostics P0 préservés. [État Git, conflits et validation](c118_c119_merge_preparation_20261012.md). Les mentions « aucun commit » des étapes antérieures sont historiques.
@@ -30,6 +44,10 @@ Complément courant à la [passation du11/10](passation_nettoyage_parametres_202
 | `c122_air_threat_retry` | **Conservé à0**, aucune suppression demandée | 40×5 instrumenté :−0,490 %, `fail_primary`,6 retries/5 graines ; [mesure](c122_threat_retry_40x5_20261012.md) |
 | `c119_air_income_model` | **Retiré localement le12/10**, sur confirmation de C121 définitivement adopté | Helper partagé et sondes préservés ;94 contrats, smoke défauts42×1 sain ; [bilan](c119_air_income_retrait_20261012.md) ; aucun commit/push de ce retrait |
 | `c118_air_territorial_expansion` | **Retiré localement et validé techniquement le12/10**, sur demande | 188 contrats verts, deux smokes42×1 défauts/sonde sains ; helpers C121/C120 et sonde conservés ; [bilan](c118_territorial_retrait_20261012.md) ; aucun commit/push |
+
+`c120_air_territorial_ranking` : retiré localement le 12–13/10, 269 contrats et
+deux smokes42×1 sains, ancien défaut0 ; cache et helpers devenus exclusifs retirés,
+sonde de couverture des gares et C121 préservés. Aucun nouveau commit/push.
 
 Les paramètres de sondes et shadows sont exclus du nettoyage par décision utilisateur. Les variantes live actives, la fenêtre4 ans, l'adaptatif/direct et les consommateurs partagés restent préservés. Aucun réglage numérique dépendant d'un parent rejeté n'est requalifié par le retrait du parent. Gain non démontré, perte significative et décision de simplification restent distincts.
 
@@ -62,6 +80,11 @@ du11/10 puis du12/10. Vérifie HEAD, git status/diff et les campagnes Docker.
 Les paramètres déjà examinés et leurs décisions sont listés dans la passation
 du12/10. Ne reteste pas un retrait, ne réarme pas les politiques abandonnées.
 Les sondes/shadows sont exclus du nettoyage ; préserve les travaux parallèles P0/AC.
+Le chantier courant se trouve dans results/c118_c119_merge_stage_20261012,
+branche codex/c118-c119-merge-20261012. Base a8a33fb déjà poussée ; C120 retiré
+localement ensuite, 269 contrats et deux smokes42×1 sains. Aucun nouveau
+commit/push de C120. Ne pas retravailler dans le master principal périmé ni
+écraser ses diagnostics P0. Lire le bilan c120_territorial_retrait_20261012.md.
 Les adoptions explicites rail_upgrade_failure_memory=1 et
 air_c121_physical_payment_days=1 restent conservées.
 
@@ -72,6 +95,9 @@ définitivement adopté. Le helper partagé OpexC119AirIncomeDays est conservé,
 c118_air_territorial_expansion est retiré localement sur demande ;188 contrats
 verts, deux smokes42×1 défauts/sonde sains, helpers C121/C120 et sonde de couverture
 conservés. Aucun commit/push de ce retrait ; aucune politique C118 à retester.
+Ces mentions de C118/C119 non committés/non poussés sont historiques : leur
+branche a depuis été publiée à a8a33fb. C120 est désormais retiré, ses helpers
+exclusifs et son cache aussi ; sonde de couverture des gares et C121 préservés.
 c122_air_threat_retry reste à0 : 40×5 instrumenté fail_primary,6 retries/5 graines.
 La réparation de site associée est une tâche distincte de diagnostic : ancre,
 motif exact, étapes C77, puis éventuelle recherche plus complète/élargie ciblée.

@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "purpose": "C120 removal technical checks and recoverable backups; no economic qualification",
+  "artifacts": [
+    {
+      "source": "results/cleanup_c120_audit_20261012.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_audit_20261012.json.gz",
+      "raw_bytes": 945,
+      "raw_sha256": "a02694c54c70df3f1748e546f82e6383e156fbee1f4bf723ffb906b39509a5f9",
+      "gzip_bytes": 543,
+      "gzip_sha256": "30e56824067a3373e121a49da92c5b48a251cbe58569ed5905fedec7df0e80a2"
+    },
+    {
+      "source": "results/cleanup_c120_check_20261012.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_check_20261012.py.gz",
+      "raw_bytes": 4955,
+      "raw_sha256": "806eeeafca20bed32aaf95fa023cb5f540d38cccf5223e5278fa7864c396d24c",
+      "gzip_bytes": 1873,
+      "gzip_sha256": "932d3486ca667a9736a23cbe24733e90715173eb10399f0e8aae6b1f5fcd238a"
+    },
+    {
+      "source": "results/cleanup_c120_contracts_20261012.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_contracts_20261012.json.gz",
+      "raw_bytes": 1474,
+      "raw_sha256": "cbc5d16175435737a08d053fca9187003e106cd37eadb0164bd41d4ec2eec7d1",
+      "gzip_bytes": 500,
+      "gzip_sha256": "9792574fee9311d2fc846f0fa3b681cf24b96965f82347e835f192b511b80129"
+    },
+    {
+      "source": "results/cleanup_c120_coverage_smoke_20261012_r1.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_coverage_smoke_20261012_r1.json.gz",
+      "raw_bytes": 23928,
+      "raw_sha256": "2ddbcd59d265a7d841e2a67be255b0436e011dd2d49cb649f0d1b64c3adb72f5",
+      "gzip_bytes": 3360,
+      "gzip_sha256": "fd1224ba3e0e0292d41405101b9f8acbc47eb34ea65235ba0b46884b35a5ad06"
+    },
+    {
+      "source": "results/cleanup_c120_coverage_smoke_20261012_r1.manifest.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_coverage_smoke_20261012_r1.manifest.json.gz",
+      "raw_bytes": 63470,
+      "raw_sha256": "e9b1ab6508e213cdbc557182e26ad054f67e90b40b276b4d5de144f940335b89",
+      "gzip_bytes": 12163,
+      "gzip_sha256": "6a45825b4e4b11bc672577b420555f0e24e005d0afce89accab111bd3aeeb801"
+    },
+    {
+      "source": "results/cleanup_c120_coverage_smoke_20261012_r1_engine/reference_seed42_r0.log",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_coverage_smoke_20261012_r1_engine/reference_seed42_r0.log.gz",
+      "raw_bytes": 356993,
+      "raw_sha256": "6ad8e993b2b9abec85ec3b6e42baa86ccac49889f2a0f27b5f65df865fb259af",
+      "gzip_bytes": 42324,
+      "gzip_sha256": "7a850bdd282aaaa1aefab6ccc162df1a20e19a23baa17ff79c327df417b7fdcb"
+    },
+    {
+      "source": "results/cleanup_c120_defaults_smoke_20261012_r1.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_defaults_smoke_20261012_r1.json.gz",
+      "raw_bytes": 23858,
+      "raw_sha256": "b5a23ef0d1c2276b006bfd5164cffab6f547d650f4f4766491befba03bb1a13e",
+      "gzip_bytes": 3350,
+      "gzip_sha256": "e1fa834dd05a7e42c7c1dce8fee2e048f8aa638c9252c135a75320527afdea74"
+    },
+    {
+      "source": "results/cleanup_c120_defaults_smoke_20261012_r1.manifest.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_defaults_smoke_20261012_r1.manifest.json.gz",
+      "raw_bytes": 63347,
+      "raw_sha256": "5fd9f094afbefb67971f899e84ed25a83b8f8849f9860c6500cab6a97e422d5f",
+      "gzip_bytes": 12142,
+      "gzip_sha256": "4f8724f077b29c4c872b8efa6e5f23b3f31efb20d101a528bcdaca0429291adb"
+    },
+    {
+      "source": "results/cleanup_c120_defaults_smoke_20261012_r1_engine/reference_seed42_r0.log",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_defaults_smoke_20261012_r1_engine/reference_seed42_r0.log.gz",
+      "raw_bytes": 356829,
+      "raw_sha256": "689785414e4f780201b1c0090460c7fc14e24a8554eb4602405901339c31cfec",
+      "gzip_bytes": 41727,
+      "gzip_sha256": "af4a4c22cbf1151bae63e963ab590707b7e617aee519df19494a95d938da63eb"
+    },
+    {
+      "source": "results/cleanup_c120_edit_20261012.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_edit_20261012.py.gz",
+      "raw_bytes": 8369,
+      "raw_sha256": "1683afd8fc6ca2ba1beb07a3eafb5ca3aa7a3f9e65b15930b6ba0fc1ce157c64",
+      "gzip_bytes": 2531,
+      "gzip_sha256": "06445df2ef689a05df5cfcfdd1f21d06bff88703501ba0f23cef2ead37163241"
+    },
+    {
+      "source": "results/cleanup_c120_smoke_audit_20261012.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_smoke_audit_20261012.json.gz",
+      "raw_bytes": 1964,
+      "raw_sha256": "483d4049de6c3be4731a392d61601f24ac93b6b276c8a284821cddb2236aea27",
+      "gzip_bytes": 659,
+      "gzip_sha256": "eb94669a1e2e4285de009857cd82f797970f643ec5fb5da616668c7835b57e8c"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_catalog_c121.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_catalog_c121.nut.gz",
+      "raw_bytes": 36033,
+      "raw_sha256": "bda8b5696a412452aa0d157aef349b72f0d00f8eaadbb5d94fc3b5bb3d680797",
+      "gzip_bytes": 7782,
+      "gzip_sha256": "3e2b632f614d0f1d8aa504be0659bb7156f71487afe2143d93608e8cfb1d5466"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_coverage.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_coverage.nut.gz",
+      "raw_bytes": 49366,
+      "raw_sha256": "a35f12b294ca158688b7906f03c9d73625fccba819819b6bb6449bbac69f1c38",
+      "gzip_bytes": 12512,
+      "gzip_sha256": "dcda86237a628a24e0823f8612c520f8435bc76023cc2e665fd7f30309aa33fe"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_economics_c121.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_economics_c121.nut.gz",
+      "raw_bytes": 130624,
+      "raw_sha256": "34711a20fb52dd34a891b0ded3ab6429acb7ea330baefdb06cf91ee91700cd5c",
+      "gzip_bytes": 24694,
+      "gzip_sha256": "76b04a18321bb624045f5cae6454c3926d90bdf132f76c78b4fccbcea81b9bad"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_planning.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/air_planning.nut.gz",
+      "raw_bytes": 137963,
+      "raw_sha256": "89b0f66cd8c3da47c5e149caa4dda13cb8d8d4c69a41478b9a19f36e2efbf454",
+      "gzip_bytes": 29074,
+      "gzip_sha256": "eebfc9a52157070d12d6b9b9ca61b06eeee09dc0ea69f2fd3cf7709a74d3715e"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/builder_air.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/builder_air.nut.gz",
+      "raw_bytes": 3369,
+      "raw_sha256": "8e1a52f3b1db892e9a3897e9b757bb4fcd242b2777e86e909a32c42024cad939",
+      "gzip_bytes": 1608,
+      "gzip_sha256": "6e2a3245800afb2a570abc2b05871aef2425a64ecdf8e36976bbe8b7cd67df4b"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/globals_pre.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/globals_pre.nut.gz",
+      "raw_bytes": 59829,
+      "raw_sha256": "d83de66040aa31c7fb8f97ff99fd435d06656f8ff9a16d6871be3a9ce05cc728",
+      "gzip_bytes": 21725,
+      "gzip_sha256": "2b7db170516f9959b21b763cf6a433da65115afbc937a8ec23a45295b0171266"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/info.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/info.nut.gz",
+      "raw_bytes": 82437,
+      "raw_sha256": "6d65f5c643755a5bfc1a96cb9d68451ce05108f887652bc472ad20eda28c4c9c",
+      "gzip_bytes": 15231,
+      "gzip_sha256": "5d983898d9ee27128f3b707e60a67975cac0d7900060f33772b89c1bdccb103d"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/persist.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/persist.nut.gz",
+      "raw_bytes": 48922,
+      "raw_sha256": "64f49474b1403f46d59074b67e20b9c699a224e2c5b67f3333c2c9d93471b8f8",
+      "gzip_bytes": 12796,
+      "gzip_sha256": "6bf18287b3c7db1b7aecf3523557c91b8b18645799b5e536d610b2197fb82139"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/projects_finance.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/projects_finance.nut.gz",
+      "raw_bytes": 11065,
+      "raw_sha256": "ba1296b1029bfa39808e9f1262bf7ee181001b516196402006da43d66237d52a",
+      "gzip_bytes": 3204,
+      "gzip_sha256": "9ff1a76e77c8ae108b0753a3ca8a3d53503c6583ae4eba606a0eb1065af2f487"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/projects_generation.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/projects_generation.nut.gz",
+      "raw_bytes": 44665,
+      "raw_sha256": "521220ec92854940b350391e0d7dce055079a9747d0882f84ee79c0826faf005",
+      "gzip_bytes": 9241,
+      "gzip_sha256": "a429103845b01ef31384876b9f7fdc7fb877af5343aea14aba6d3c0ce1fbbbd6"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/projects_selection.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/projects_selection.nut.gz",
+      "raw_bytes": 99594,
+      "raw_sha256": "325e45498ea83732397558b34f59624e881e99fc9e035c4fe3447d87b71453cc",
+      "gzip_bytes": 23807,
+      "gzip_sha256": "d19466daeb447748f3798c5cb79450248d9144219acef7635cbdcf63c1876811"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/selection_diagnostics.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/selection_diagnostics.nut.gz",
+      "raw_bytes": 7809,
+      "raw_sha256": "edb9560d9c2926fd0991387b9b66957490088fe3c0a96a0c3c89b7cf0b5926dc",
+      "gzip_bytes": 2658,
+      "gzip_sha256": "58e5372c60cb3ba8526400372ae272550f95b60e8c59ad080e16a262e1bdd4df"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/settings.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/settings.nut.gz",
+      "raw_bytes": 36342,
+      "raw_sha256": "d7659f846ba2700326c992b742079ac120126840d01e79af4be96705f8182c89",
+      "gzip_bytes": 9716,
+      "gzip_sha256": "1b554e2391220c785298e127d7845e86324dc5479c5506141fcf2f4bf2ce5a3f"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/task_air.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/task_air.nut.gz",
+      "raw_bytes": 84230,
+      "raw_sha256": "270444a21d6dd6bb38e7a153488727fb697ceac397e6211814089f60add9af05",
+      "gzip_bytes": 19324,
+      "gzip_sha256": "5bfa183ad46c7f91e09156dd6ddff630a6366da57dc4b79d39638c634989fe75"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/ai/OpexAI/task_projects.nut",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/ai/OpexAI/task_projects.nut.gz",
+      "raw_bytes": 114245,
+      "raw_sha256": "69e3070980dfe087fc60afe35ec1a9f0e64b6db1c383d53dc21d3ea156def37f",
+      "gzip_bytes": 25755,
+      "gzip_sha256": "9360275448d026414f2dae31357e6791d79bc1141aa6c7c1a41fd8f7d546aa3a"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/manifest.json",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/manifest.json.gz",
+      "raw_bytes": 4371,
+      "raw_sha256": "2e78da7cac62110f13de478cdbf8a4f4127c15679ac7d0da82e36959edec917c",
+      "gzip_bytes": 1660,
+      "gzip_sha256": "d6b00f2c419eb3a88c0f731d1a37b45dcf55aa22b8e13e7d8fd3e68f2b0e014c"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/bench_1v1_5y_20seeds.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/bench_1v1_5y_20seeds.py.gz",
+      "raw_bytes": 146326,
+      "raw_sha256": "9957c27322e98e326884ab6e9789d6a34fe75f44e0f939a74d7c96a1828ce459",
+      "gzip_bytes": 34137,
+      "gzip_sha256": "faef615e22e87b5b239882f42f478cc9e62a693c4c03246397830997878406a4"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/run_c120_territorial_5x6.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/run_c120_territorial_5x6.py.gz",
+      "raw_bytes": 886,
+      "raw_sha256": "9595618c7ccc252812fb31f312a617a9fb6c79aa5dd60ebf4ae0888b05246c8c",
+      "gzip_bytes": 405,
+      "gzip_sha256": "00450c86dffb603da9ba91d7b419d91cec1badf817d2aee69def33b5dc9e0a17"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/run_c120_territorial_smoke.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/run_c120_territorial_smoke.py.gz",
+      "raw_bytes": 864,
+      "raw_sha256": "ee4f0229b0493e7b716d556d3f44fdf7eb503d1851b9fdf24737f2b93b2c5b48",
+      "gzip_bytes": 390,
+      "gzip_sha256": "0e8d3809755bf0ed9a047053605ddeb013a75a4bafb9d131b6bc0ac9f4414a84"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/run_mechanism_fixtures.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/run_mechanism_fixtures.py.gz",
+      "raw_bytes": 15149,
+      "raw_sha256": "07339c121d0406f11b10dda321dc634683a589a9349a8a441a13b5c128172c1b",
+      "gzip_bytes": 5336,
+      "gzip_sha256": "519823d7a618ed46035be91e960833fee410097a80cd82245fdebd00e1324424"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_air0310_6_site_validity_cache.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_air0310_6_site_validity_cache.py.gz",
+      "raw_bytes": 21395,
+      "raw_sha256": "0d10faee3bbd64d973eedb3c65bb310b7da9d711ed0e1dfe244dbca14a31b233",
+      "gzip_bytes": 5410,
+      "gzip_sha256": "29bc964229b8faeacd3580277d77d45a86b6173a03b6e61a614144d50f4730fc"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_c118_air_territorial_expansion.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_c118_air_territorial_expansion.py.gz",
+      "raw_bytes": 2798,
+      "raw_sha256": "c85be9cd4941f11340c711b68c433d26b79bf17d9a4210aa682ca4dc5d54344a",
+      "gzip_bytes": 1052,
+      "gzip_sha256": "51f38df4b74b2ed4623606ad77d2762b34827f2682837b7d97e7e5ca2240ce5d"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_c120_air_territorial_ranking.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_c120_air_territorial_ranking.py.gz",
+      "raw_bytes": 9336,
+      "raw_sha256": "de7ee060bcf1cf895f4be06d90ddeee384cbcb85872427d7431e6a883df71dfb",
+      "gzip_bytes": 2229,
+      "gzip_sha256": "756a86c9989a91a49bff7375daff93b0492a43cc2e4aff212f200f3a04efb85a"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_c121_air_economics.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_c121_air_economics.py.gz",
+      "raw_bytes": 56302,
+      "raw_sha256": "f35060a3be30b569e02793773b1a8e63c3863472778c88d52f7663bb1b086a6b",
+      "gzip_bytes": 10981,
+      "gzip_sha256": "51787d0c98e3a4e9b50fc47501d3df2096f47c0d7e554baad2285d21c11499b1"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_c122_air_regime_priority.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_c122_air_regime_priority.py.gz",
+      "raw_bytes": 12620,
+      "raw_sha256": "a657a374962e4b93f2c2fc0a50725b593167ef27204c0f7932078d9b8c018fa9",
+      "gzip_bytes": 2958,
+      "gzip_sha256": "186e7db964097fb6a74fcaf2725bcb2b75da59916794e706885f7422c6f1b56a"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_r1_partial_fleet.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_r1_partial_fleet.py.gz",
+      "raw_bytes": 7488,
+      "raw_sha256": "49c7cfe0fde49545a5a5b71f6aa61cc57c0d61e9bc0563c65771ca619d5f8406",
+      "gzip_bytes": 2630,
+      "gzip_sha256": "8ddaba377914fe2f8a22430b7ca79e902fbd62a2dc9a024f8b0cb7952a37a947"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_r3_air_bypass.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_r3_air_bypass.py.gz",
+      "raw_bytes": 3746,
+      "raw_sha256": "e8300b6da3aa410e6bcd52365d1538ce7a9b587a047793ee2f7647039404c6e8",
+      "gzip_bytes": 1408,
+      "gzip_sha256": "ddea374c1a26e4d7e8f3348f70776ee03f2f7d5bfd0ac0e9a1a5feb30409ac67"
+    },
+    {
+      "source": "results/cleanup_c120_sources_backup_20261012/sweeps/test_three_lots_integration.py",
+      "evidence": "evidence/review/c120_cleanup_20261012/results/cleanup_c120_sources_backup_20261012/sweeps/test_three_lots_integration.py.gz",
+      "raw_bytes": 8043,
+      "raw_sha256": "12b2187a4d30f196459c60a440d57137d1f03c57d86622ea87afa477e89c374b",
+      "gzip_bytes": 2633,
+      "gzip_sha256": "b6ba9b1886d7e0efa4b5d3b4809c68397c3d485c995def8f5380bd605374649a"
+    }
+  ]
+}
