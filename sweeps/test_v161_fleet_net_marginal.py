@@ -62,11 +62,13 @@ def neighbours_from_index(index, station_a, station_b):
 
 
 class StaticContracts(unittest.TestCase):
-    def test_settings_declared_with_default_off(self):
+    def test_settings_declared_with_default_on(self):
+        # défaut 1 depuis le 13/10 (décision utilisateur après la porte A 40x3, +2,7 %) ;
+        # le global reste à 0 : seul info.nut porte le défaut
         block = _setting_block("v161_fleet_net_marginal")
         self.assertIn("min_value = 0, max_value = 1", block)
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 0\b")
+            self.assertRegex(block, key + r" = 1\b")
         self.assertIn("custom_value = 13000", _setting_block("v161_prior_own"))
         self.assertIn("custom_value = 2600", _setting_block("v161_prior_neighbour"))
         globals_pre = _read("globals_pre.nut")
