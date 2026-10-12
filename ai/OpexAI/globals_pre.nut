@@ -764,6 +764,8 @@ AIR_EFFICIENCY_BATCH <- false;
 AIR_EFFICIENCY_PREFLIGHT <- false;
 AIR_EFFICIENCY_DEDUPE <- false;
 AIR_EFFICIENCY_RESELECT <- false;
+/* V158 : publication AIR avec selection paresseuse (0 = desactive/defaut, 1 = actif). */
+AIR_PUBLISH_LAZY_SELECT <- 0;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;

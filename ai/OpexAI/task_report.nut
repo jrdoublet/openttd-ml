@@ -1552,3 +1552,19 @@ function OpexAI::_c76RecordAvoided(year)
       ? C76_YEAR_LEDGER[year].avoided : 1;
   OpexC76Log("phase=regen_avoided year=" + year + " avoided_count=" + avoidedCount);
 }
+
+/* V158 : rapport annuel de selection paresseuse sous DECISION_LOG */
+function OpexAI::_logAirLazySelect(year)
+{
+  if (!DECISION_LOG) return;
+  local pubs = ("_lazyPubsYear" in this) ? this._lazyPubsYear : 0;
+  local deferred = ("_lazyDeferredYear" in this) ? this._lazyDeferredYear : 0;
+  local materialized = ("_lazyMaterializedYear" in this) ? this._lazyMaterializedYear : 0;
+  OpexDecide("AIR_LAZY_SELECT", "year=" + year
+      + " pubs=" + pubs
+      + " deferred=" + deferred
+      + " materialized=" + materialized);
+  this._lazyPubsYear = 0;
+  this._lazyDeferredYear = 0;
+  this._lazyMaterializedYear = 0;
+}

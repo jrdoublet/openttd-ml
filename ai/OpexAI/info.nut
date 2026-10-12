@@ -1956,6 +1956,15 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1, flags = AICONFIG_BOOLEAN
     });
     AddSetting({
+      name = "air_publish_lazy_select",
+      description = "V158: defer AIR project reselection until selection state is read; 0 = eager (default), 1 = lazy select",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
       name = "select_bisect_insert",
       description = "V154: binary search insertion in OpexProjectInsertDefensive; 1 = on (default since 2026-10-12, V157 porte B 20x10), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
