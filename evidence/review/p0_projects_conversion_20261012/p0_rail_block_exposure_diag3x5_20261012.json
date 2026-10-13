@@ -1,0 +1,2578 @@
+{
+  "status": "diagnostic_only_not_a_policy_gate",
+  "campaign_id": "p0_rail_block_exposure_diag3x5_20261012",
+  "bundle_sha256": "8d5bddab4abe76a6d70914ea556ab1cfe9bf1cb81c7df0aa2c1d94f64ec59065",
+  "health": {
+    "games_complete": 6,
+    "failed_runs": 0,
+    "seeds": [
+      42,
+      100,
+      999
+    ]
+  },
+  "source_files_sha256": {
+    "result": "6d41e57607d822246e98ee8ef29de4465a79a2459c5fae04afc56f7257a8a18a",
+    "manifest": "dee95b2971f2bd713723749847f3fc52a7b39419f5fc9f1c60376f0eb212a9a5",
+    "p0_rail_block_exposure_shadow_seed100_r0.log": "dfad605c7d9d4ff338b61026adea25da2e47a3eae6f4694a716ab4b1c1019344",
+    "p0_rail_block_exposure_shadow_seed42_r0.log": "ae62d423751901063108c2aed76f7561fdd0bc025401eaff08776bc4f0e9dd43",
+    "p0_rail_block_exposure_shadow_seed999_r0.log": "07c17885e89cb9b5cb938a922ac7633ed4b50a47976e30ad885ff4a4c9187fd8",
+    "reference_seed100_r0.log": "fd8d1a19c2173b4159b8750239102562f4ae2a3c1b97c74ad4e425952e599e4c",
+    "reference_seed42_r0.log": "334ed64db5e55c75775a1e89a21d8003fe8f34f28536c601a2cf8b96c2ad1cae",
+    "reference_seed999_r0.log": "05f550f85f2b5e379b857c4ac46cb59167a5c72ef123d3a5e9167ac61e36fc02"
+  },
+  "probe_on_minus_off_annual_accounting_profit_noncausal": {
+    "42": {
+      "1972": {
+        "probe_on_minus_off_profit_year": -4679,
+        "off_profit_year": 2175225,
+        "on_profit_year": 2170546
+      },
+      "1973": {
+        "probe_on_minus_off_profit_year": -75831,
+        "off_profit_year": 2217266,
+        "on_profit_year": 2141435
+      },
+      "1974": {
+        "probe_on_minus_off_profit_year": -86243,
+        "off_profit_year": 2216990,
+        "on_profit_year": 2130747
+      }
+    },
+    "100": {
+      "1972": {
+        "probe_on_minus_off_profit_year": -6620,
+        "off_profit_year": 1206361,
+        "on_profit_year": 1199741
+      },
+      "1973": {
+        "probe_on_minus_off_profit_year": -22251,
+        "off_profit_year": 1329299,
+        "on_profit_year": 1307048
+      },
+      "1974": {
+        "probe_on_minus_off_profit_year": 8998,
+        "off_profit_year": 1403082,
+        "on_profit_year": 1412080
+      }
+    },
+    "999": {
+      "1972": {
+        "probe_on_minus_off_profit_year": 0,
+        "off_profit_year": 1643502,
+        "on_profit_year": 1643502
+      },
+      "1973": {
+        "probe_on_minus_off_profit_year": -48941,
+        "off_profit_year": 1695716,
+        "on_profit_year": 1646775
+      },
+      "1974": {
+        "probe_on_minus_off_profit_year": -92457,
+        "off_profit_year": 2072204,
+        "on_profit_year": 1979747
+      }
+    }
+  },
+  "annual": [
+    {
+      "seed": 42,
+      "year": 1970,
+      "dedup_episode_observations": 0,
+      "self_revisits": 0,
+      "distinct_competitor_observations": 0,
+      "unique_competitor_od_cargo_kind": 0,
+      "unique_od_details": [],
+      "quote_cash_positive_observations": 0,
+      "quote_cash_positive_unique_od": 0,
+      "quote_cash_positive_od_details": [],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 0,
+      "occupants_all": {},
+      "occupants_competing": {},
+      "branches": {},
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 42,
+      "year": 1971,
+      "dedup_episode_observations": 1,
+      "self_revisits": 1,
+      "distinct_competitor_observations": 0,
+      "unique_competitor_od_cargo_kind": 0,
+      "unique_od_details": [],
+      "quote_cash_positive_observations": 0,
+      "quote_cash_positive_unique_od": 0,
+      "quote_cash_positive_od_details": [],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 0,
+      "occupants_all": {
+        "primary/search": 1
+      },
+      "occupants_competing": {},
+      "branches": {
+        "normal": 1
+      },
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 42,
+      "year": 1972,
+      "dedup_episode_observations": 48,
+      "self_revisits": 3,
+      "distinct_competitor_observations": 45,
+      "unique_competitor_od_cargo_kind": 40,
+      "unique_od_details": [
+        [
+          "freight",
+          1,
+          4968,
+          13978
+        ],
+        [
+          "freight",
+          1,
+          22440,
+          13978
+        ],
+        [
+          "pax",
+          0,
+          6457,
+          14422
+        ],
+        [
+          "pax",
+          0,
+          6457,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          7810,
+          10926
+        ],
+        [
+          "pax",
+          0,
+          8348,
+          10926
+        ],
+        [
+          "pax",
+          0,
+          9157,
+          10926
+        ],
+        [
+          "pax",
+          0,
+          10926,
+          21394
+        ],
+        [
+          "pax",
+          0,
+          12057,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          12090,
+          14422
+        ],
+        [
+          "pax",
+          0,
+          12090,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          14422,
+          20041
+        ],
+        [
+          "pax",
+          0,
+          20041,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          21394,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          22366,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          22586,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          22642,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          22642,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          24869,
+          28461
+        ],
+        [
+          "pax",
+          0,
+          24869,
+          38955
+        ],
+        [
+          "pax",
+          0,
+          24869,
+          40461
+        ],
+        [
+          "pax",
+          0,
+          28041,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33405,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          34012
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          40153
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          42610
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          34012,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          39666,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          44107,
+          54641
+        ],
+        [
+          "pax",
+          0,
+          44107,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          52319,
+          54044
+        ],
+        [
+          "pax",
+          0,
+          52319,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          54044,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          54641,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          56708,
+          59980
+        ]
+      ],
+      "quote_cash_positive_observations": 45,
+      "quote_cash_positive_unique_od": 40,
+      "quote_cash_positive_od_details": [
+        [
+          "freight",
+          1,
+          4968,
+          13978
+        ],
+        [
+          "freight",
+          1,
+          22440,
+          13978
+        ],
+        [
+          "pax",
+          0,
+          6457,
+          14422
+        ],
+        [
+          "pax",
+          0,
+          6457,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          7810,
+          10926
+        ],
+        [
+          "pax",
+          0,
+          8348,
+          10926
+        ],
+        [
+          "pax",
+          0,
+          9157,
+          10926
+        ],
+        [
+          "pax",
+          0,
+          10926,
+          21394
+        ],
+        [
+          "pax",
+          0,
+          12057,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          12090,
+          14422
+        ],
+        [
+          "pax",
+          0,
+          12090,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          14422,
+          20041
+        ],
+        [
+          "pax",
+          0,
+          20041,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          21394,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          22366,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          22586,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          22642,
+          24869
+        ],
+        [
+          "pax",
+          0,
+          22642,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          24869,
+          28461
+        ],
+        [
+          "pax",
+          0,
+          24869,
+          38955
+        ],
+        [
+          "pax",
+          0,
+          24869,
+          40461
+        ],
+        [
+          "pax",
+          0,
+          28041,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33405,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          34012
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          40153
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          42610
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          34012,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          39666,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          44107,
+          54641
+        ],
+        [
+          "pax",
+          0,
+          44107,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          52319,
+          54044
+        ],
+        [
+          "pax",
+          0,
+          52319,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          54044,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          54641,
+          59980
+        ],
+        [
+          "pax",
+          0,
+          56708,
+          59980
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 2,
+      "competitor_rank0_observations": 2,
+      "competing_events_repeated_across_episodes": 5,
+      "max_visits_for_same_od": 3,
+      "occupants_all": {
+        "primary/search": 47,
+        "upgrade/search": 1
+      },
+      "occupants_competing": {
+        "primary/search": 44,
+        "upgrade/search": 1
+      },
+      "branches": {
+        "normal": 48
+      },
+      "max_occupant_age_days_when_known": 22,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 42,
+      "year": 1973,
+      "dedup_episode_observations": 77,
+      "self_revisits": 3,
+      "distinct_competitor_observations": 74,
+      "unique_competitor_od_cargo_kind": 26,
+      "unique_od_details": [
+        [
+          "freight",
+          5,
+          50791,
+          33405
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          42610
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          44107
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          49565
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          51219
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          52319
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          54641
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          54860
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          56708
+        ],
+        [
+          "pax",
+          0,
+          21394,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          22642,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          24291,
+          40153
+        ],
+        [
+          "pax",
+          0,
+          28041,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          33405,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          34012
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          42610
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          34012,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          39666,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          59635
+        ]
+      ],
+      "quote_cash_positive_observations": 73,
+      "quote_cash_positive_unique_od": 25,
+      "quote_cash_positive_od_details": [
+        [
+          "freight",
+          5,
+          50791,
+          33405
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          42610
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          44107
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          49565
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          51219
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          54641
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          54860
+        ],
+        [
+          "freight",
+          5,
+          50791,
+          56708
+        ],
+        [
+          "pax",
+          0,
+          21394,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          22642,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          24291,
+          40153
+        ],
+        [
+          "pax",
+          0,
+          28041,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          33405,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          34012
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          42610
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          34012,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          39666,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          59635
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 2,
+      "competitor_rank0_observations": 2,
+      "competing_events_repeated_across_episodes": 48,
+      "max_visits_for_same_od": 5,
+      "occupants_all": {
+        "primary/search": 60,
+        "upgrade/search": 17
+      },
+      "occupants_competing": {
+        "primary/search": 57,
+        "upgrade/search": 17
+      },
+      "branches": {
+        "normal": 77
+      },
+      "max_occupant_age_days_when_known": 113,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 42,
+      "year": 1974,
+      "dedup_episode_observations": 48,
+      "self_revisits": 3,
+      "distinct_competitor_observations": 45,
+      "unique_competitor_od_cargo_kind": 15,
+      "unique_od_details": [
+        [
+          "pax",
+          0,
+          21394,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          24291,
+          40153
+        ],
+        [
+          "pax",
+          0,
+          28041,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          33405,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          34012
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          42610
+        ],
+        [
+          "pax",
+          0,
+          34012,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          39666,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          59635
+        ]
+      ],
+      "quote_cash_positive_observations": 45,
+      "quote_cash_positive_unique_od": 15,
+      "quote_cash_positive_od_details": [
+        [
+          "pax",
+          0,
+          21394,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          24291,
+          40153
+        ],
+        [
+          "pax",
+          0,
+          28041,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          32963,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          33405,
+          33442
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          34012
+        ],
+        [
+          "pax",
+          0,
+          33442,
+          42610
+        ],
+        [
+          "pax",
+          0,
+          34012,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          39666,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          48086
+        ],
+        [
+          "pax",
+          0,
+          40153,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          49565
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          51421
+        ],
+        [
+          "pax",
+          0,
+          48086,
+          59635
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 30,
+      "max_visits_for_same_od": 3,
+      "occupants_all": {
+        "primary/search": 48
+      },
+      "occupants_competing": {
+        "primary/search": 45
+      },
+      "branches": {
+        "normal": 48
+      },
+      "max_occupant_age_days_when_known": 63,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 100,
+      "year": 1970,
+      "dedup_episode_observations": 0,
+      "self_revisits": 0,
+      "distinct_competitor_observations": 0,
+      "unique_competitor_od_cargo_kind": 0,
+      "unique_od_details": [],
+      "quote_cash_positive_observations": 0,
+      "quote_cash_positive_unique_od": 0,
+      "quote_cash_positive_od_details": [],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 0,
+      "occupants_all": {},
+      "occupants_competing": {},
+      "branches": {},
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 100,
+      "year": 1971,
+      "dedup_episode_observations": 0,
+      "self_revisits": 0,
+      "distinct_competitor_observations": 0,
+      "unique_competitor_od_cargo_kind": 0,
+      "unique_od_details": [],
+      "quote_cash_positive_observations": 0,
+      "quote_cash_positive_unique_od": 0,
+      "quote_cash_positive_od_details": [],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 0,
+      "occupants_all": {},
+      "occupants_competing": {},
+      "branches": {},
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 100,
+      "year": 1972,
+      "dedup_episode_observations": 8,
+      "self_revisits": 3,
+      "distinct_competitor_observations": 5,
+      "unique_competitor_od_cargo_kind": 4,
+      "unique_od_details": [
+        [
+          "freight",
+          6,
+          15063,
+          31179
+        ],
+        [
+          "freight",
+          6,
+          15063,
+          31684
+        ],
+        [
+          "pax",
+          0,
+          18741,
+          22803
+        ],
+        [
+          "pax",
+          0,
+          33632,
+          35961
+        ]
+      ],
+      "quote_cash_positive_observations": 5,
+      "quote_cash_positive_unique_od": 4,
+      "quote_cash_positive_od_details": [
+        [
+          "freight",
+          6,
+          15063,
+          31179
+        ],
+        [
+          "freight",
+          6,
+          15063,
+          31684
+        ],
+        [
+          "pax",
+          0,
+          18741,
+          22803
+        ],
+        [
+          "pax",
+          0,
+          33632,
+          35961
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 1,
+      "max_visits_for_same_od": 2,
+      "occupants_all": {
+        "primary/search": 8
+      },
+      "occupants_competing": {
+        "primary/search": 5
+      },
+      "branches": {
+        "normal": 8
+      },
+      "max_occupant_age_days_when_known": 7,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 100,
+      "year": 1973,
+      "dedup_episode_observations": 5,
+      "self_revisits": 1,
+      "distinct_competitor_observations": 4,
+      "unique_competitor_od_cargo_kind": 4,
+      "unique_od_details": [
+        [
+          "freight",
+          6,
+          15063,
+          31179
+        ],
+        [
+          "pax",
+          0,
+          12565,
+          18741
+        ],
+        [
+          "pax",
+          0,
+          15478,
+          18741
+        ],
+        [
+          "pax",
+          0,
+          33632,
+          35961
+        ]
+      ],
+      "quote_cash_positive_observations": 4,
+      "quote_cash_positive_unique_od": 4,
+      "quote_cash_positive_od_details": [
+        [
+          "freight",
+          6,
+          15063,
+          31179
+        ],
+        [
+          "pax",
+          0,
+          12565,
+          18741
+        ],
+        [
+          "pax",
+          0,
+          15478,
+          18741
+        ],
+        [
+          "pax",
+          0,
+          33632,
+          35961
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 2,
+      "competitor_rank0_observations": 2,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 1,
+      "occupants_all": {
+        "primary/search": 2,
+        "upgrade/search": 3
+      },
+      "occupants_competing": {
+        "primary/search": 1,
+        "upgrade/search": 3
+      },
+      "branches": {
+        "normal": 5
+      },
+      "max_occupant_age_days_when_known": 109,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 100,
+      "year": 1974,
+      "dedup_episode_observations": 2,
+      "self_revisits": 1,
+      "distinct_competitor_observations": 1,
+      "unique_competitor_od_cargo_kind": 1,
+      "unique_od_details": [
+        [
+          "pax",
+          0,
+          12565,
+          18741
+        ]
+      ],
+      "quote_cash_positive_observations": 1,
+      "quote_cash_positive_unique_od": 1,
+      "quote_cash_positive_od_details": [
+        [
+          "pax",
+          0,
+          12565,
+          18741
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 1,
+      "competitor_rank0_observations": 1,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 1,
+      "occupants_all": {
+        "primary/search": 1,
+        "upgrade/search": 1
+      },
+      "occupants_competing": {
+        "upgrade/search": 1
+      },
+      "branches": {
+        "normal": 2
+      },
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 999,
+      "year": 1970,
+      "dedup_episode_observations": 0,
+      "self_revisits": 0,
+      "distinct_competitor_observations": 0,
+      "unique_competitor_od_cargo_kind": 0,
+      "unique_od_details": [],
+      "quote_cash_positive_observations": 0,
+      "quote_cash_positive_unique_od": 0,
+      "quote_cash_positive_od_details": [],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 0,
+      "occupants_all": {},
+      "occupants_competing": {},
+      "branches": {},
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 999,
+      "year": 1971,
+      "dedup_episode_observations": 0,
+      "self_revisits": 0,
+      "distinct_competitor_observations": 0,
+      "unique_competitor_od_cargo_kind": 0,
+      "unique_od_details": [],
+      "quote_cash_positive_observations": 0,
+      "quote_cash_positive_unique_od": 0,
+      "quote_cash_positive_od_details": [],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 0,
+      "occupants_all": {},
+      "occupants_competing": {},
+      "branches": {},
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 999,
+      "year": 1972,
+      "dedup_episode_observations": 2,
+      "self_revisits": 0,
+      "distinct_competitor_observations": 2,
+      "unique_competitor_od_cargo_kind": 2,
+      "unique_od_details": [
+        [
+          "freight",
+          1,
+          45913,
+          62821
+        ],
+        [
+          "freight",
+          1,
+          63905,
+          43953
+        ]
+      ],
+      "quote_cash_positive_observations": 2,
+      "quote_cash_positive_unique_od": 2,
+      "quote_cash_positive_od_details": [
+        [
+          "freight",
+          1,
+          45913,
+          62821
+        ],
+        [
+          "freight",
+          1,
+          63905,
+          43953
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 1,
+      "occupants_all": {
+        "upgrade/search": 2
+      },
+      "occupants_competing": {
+        "upgrade/search": 2
+      },
+      "branches": {
+        "normal": 2
+      },
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 999,
+      "year": 1973,
+      "dedup_episode_observations": 0,
+      "self_revisits": 0,
+      "distinct_competitor_observations": 0,
+      "unique_competitor_od_cargo_kind": 0,
+      "unique_od_details": [],
+      "quote_cash_positive_observations": 0,
+      "quote_cash_positive_unique_od": 0,
+      "quote_cash_positive_od_details": [],
+      "quote_cash_positive_rank0_observations": 0,
+      "competitor_rank0_observations": 0,
+      "competing_events_repeated_across_episodes": 0,
+      "max_visits_for_same_od": 0,
+      "occupants_all": {},
+      "occupants_competing": {},
+      "branches": {},
+      "max_occupant_age_days_when_known": null,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    },
+    {
+      "seed": 999,
+      "year": 1974,
+      "dedup_episode_observations": 169,
+      "self_revisits": 4,
+      "distinct_competitor_observations": 165,
+      "unique_competitor_od_cargo_kind": 81,
+      "unique_od_details": [
+        [
+          "freight",
+          7,
+          31930,
+          20197
+        ],
+        [
+          "freight",
+          7,
+          35675,
+          55122
+        ],
+        [
+          "freight",
+          7,
+          55024,
+          59097
+        ],
+        [
+          "freight",
+          7,
+          58991,
+          53889
+        ],
+        [
+          "pax",
+          0,
+          3918,
+          11332
+        ],
+        [
+          "pax",
+          0,
+          3918,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          4512,
+          6366
+        ],
+        [
+          "pax",
+          0,
+          4512,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          6087
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          6366
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          7410
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          9917
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          14735
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          22204
+        ],
+        [
+          "pax",
+          0,
+          5696,
+          11332
+        ],
+        [
+          "pax",
+          0,
+          5696,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          5696,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          6366,
+          7410
+        ],
+        [
+          "pax",
+          0,
+          6366,
+          9917
+        ],
+        [
+          "pax",
+          0,
+          6366,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          6422,
+          11332
+        ],
+        [
+          "pax",
+          0,
+          7410,
+          9917
+        ],
+        [
+          "pax",
+          0,
+          7410,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          9917,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          12078
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          14456
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          15901
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          17981
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          23624
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          26669
+        ],
+        [
+          "pax",
+          0,
+          12078,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          12078,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          14456
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          14735
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          15901
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          17981
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          22918
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          23624
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          30034
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          33904
+        ],
+        [
+          "pax",
+          0,
+          15901,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          16072,
+          32463
+        ],
+        [
+          "pax",
+          0,
+          16072,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          19757,
+          33334
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          29608
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          32463
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          22918,
+          29608
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          32463
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          33716
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          33904
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          30034,
+          44867
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          33716
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          48855
+        ],
+        [
+          "pax",
+          0,
+          33334,
+          44867
+        ],
+        [
+          "pax",
+          0,
+          33716,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          33716,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          33904,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          48855
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          51371
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          53456
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          57548
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          46198
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          48855
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          51371
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          52119
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          53456
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          46198
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          48418
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          53599
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          55086
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          58684
+        ]
+      ],
+      "quote_cash_positive_observations": 165,
+      "quote_cash_positive_unique_od": 81,
+      "quote_cash_positive_od_details": [
+        [
+          "freight",
+          7,
+          31930,
+          20197
+        ],
+        [
+          "freight",
+          7,
+          35675,
+          55122
+        ],
+        [
+          "freight",
+          7,
+          55024,
+          59097
+        ],
+        [
+          "freight",
+          7,
+          58991,
+          53889
+        ],
+        [
+          "pax",
+          0,
+          3918,
+          11332
+        ],
+        [
+          "pax",
+          0,
+          3918,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          4512,
+          6366
+        ],
+        [
+          "pax",
+          0,
+          4512,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          6087
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          6366
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          7410
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          9917
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          14735
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          4532,
+          22204
+        ],
+        [
+          "pax",
+          0,
+          5696,
+          11332
+        ],
+        [
+          "pax",
+          0,
+          5696,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          5696,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          6366,
+          7410
+        ],
+        [
+          "pax",
+          0,
+          6366,
+          9917
+        ],
+        [
+          "pax",
+          0,
+          6366,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          6422,
+          11332
+        ],
+        [
+          "pax",
+          0,
+          7410,
+          9917
+        ],
+        [
+          "pax",
+          0,
+          7410,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          9917,
+          16072
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          12078
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          14456
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          15901
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          17981
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          23624
+        ],
+        [
+          "pax",
+          0,
+          11332,
+          26669
+        ],
+        [
+          "pax",
+          0,
+          12078,
+          12649
+        ],
+        [
+          "pax",
+          0,
+          12078,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          14456
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          14735
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          15901
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          17981
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          22918
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          23624
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          30034
+        ],
+        [
+          "pax",
+          0,
+          12649,
+          33904
+        ],
+        [
+          "pax",
+          0,
+          15901,
+          19757
+        ],
+        [
+          "pax",
+          0,
+          16072,
+          32463
+        ],
+        [
+          "pax",
+          0,
+          16072,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          19757,
+          33334
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          29608
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          32463
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          22204,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          22918,
+          29608
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          32463
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          33716
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          33904
+        ],
+        [
+          "pax",
+          0,
+          29608,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          30034,
+          44867
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          33716
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          32463,
+          48855
+        ],
+        [
+          "pax",
+          0,
+          33334,
+          44867
+        ],
+        [
+          "pax",
+          0,
+          33716,
+          36811
+        ],
+        [
+          "pax",
+          0,
+          33716,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          33904,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          39848
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          48855
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          51371
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          53456
+        ],
+        [
+          "pax",
+          0,
+          36811,
+          57548
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          46198
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          48855
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          51371
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          52119
+        ],
+        [
+          "pax",
+          0,
+          39848,
+          53456
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          46198
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          48418
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          53599
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          55086
+        ],
+        [
+          "pax",
+          0,
+          44867,
+          58684
+        ]
+      ],
+      "quote_cash_positive_rank0_observations": 4,
+      "competitor_rank0_observations": 4,
+      "competing_events_repeated_across_episodes": 84,
+      "max_visits_for_same_od": 4,
+      "occupants_all": {
+        "primary/search": 169
+      },
+      "occupants_competing": {
+        "primary/search": 165
+      },
+      "branches": {
+        "normal": 169
+      },
+      "max_occupant_age_days_when_known": 69,
+      "total_cash_above_quote_not_builder_proof": true,
+      "geometric_constructibility": "unknown",
+      "counterfactual_rail_lines": "not_measured"
+    }
+  ],
+  "limits": [
+    "Sonde ON intrusive: les evenements ON ne s'apparient pas a ceux du bras OFF.",
+    "Dedup par cle OD/cargo/kind ET _railSearch transitoire ; plusieurs episodes peuvent compter la meme OD.",
+    "self_revisit signale le projet deja dans A* : pas un chantier alternatif perdu.",
+    "OpexAvailableCapital >= budgetCapital ne garantit ni cout reel, ni ressources, ni geometrie.",
+    "Les controles constructibilite et recherche A* du projet demande n'ont pas ete executes.",
+    "Upgrade: origines indicatives sans candidat attache; dates de debut/age souvent indisponibles.",
+    "P5_BUILD_LINE mesure seulement les accroissements nets; la telemetrie ne mesure que des services actifs."
+  ]
+}

@@ -1,0 +1,1398 @@
+{
+  "source_bundle_sha256": "04af9610318c9214da9664b17d9c6326ba17e332c8f3a4bc8d3cec1342e0a59f",
+  "campaign": "p0_projects_conversion_diag3x5_20261012_r2",
+  "by_seed_probe": {
+    "42": {
+      "1970": {
+        "events": {
+          "SCHED_IDLE": 1059,
+          "AIR_LIGHT": 952,
+          "CATALOG_COST_SLICE": 385,
+          "SELECTION_LIGHT": 306,
+          "C41_SLACK_LEDGER": 1,
+          "C39_PASS_CLOCK": 2,
+          "C121_AIR_CHAIN_PASS": 126,
+          "PROJECTS_COST": 126,
+          "P2_PASS": 127,
+          "P5_RAIL_PASS": 127,
+          "P2_BUILD": 12,
+          "P5_BUILD_LINE": 10,
+          "P5_WAIT_START": 12,
+          "P2_RESOLVE": 11,
+          "P5_WAIT_END": 11,
+          "SELECT_REJECT": 24824,
+          "RAIL_PREP": 11,
+          "P5_RAIL_SEARCH": 3,
+          "C41_MONTH_BUSY": 92,
+          "C83_REACTION": 1,
+          "C121_HUB_DELAY": 9
+        },
+        "select_reject": {
+          "cash": 24217,
+          "topk": 607
+        },
+        "reject_unique_pair_month": {
+          "cash": 1189,
+          "topk": 354
+        },
+        "project_discard": {},
+        "p2_passes": 127,
+        "p2_start_empty": 113,
+        "p2_with_progress": 12,
+        "by_month": {
+          "1": {
+            "p2_passes": 6,
+            "reject_cash": 6
+          },
+          "2": {
+            "reject_cash": 247,
+            "p2_passes": 9
+          },
+          "3": {
+            "reject_cash": 2820,
+            "p2_passes": 16
+          },
+          "4": {
+            "reject_cash": 2548,
+            "p2_passes": 12,
+            "reject_topk": 7
+          },
+          "5": {
+            "reject_cash": 2762,
+            "p2_passes": 12,
+            "reject_topk": 109
+          },
+          "6": {
+            "reject_topk": 56,
+            "reject_cash": 2639,
+            "p2_passes": 11
+          },
+          "7": {
+            "reject_cash": 1429,
+            "p2_passes": 10,
+            "reject_topk": 96
+          },
+          "8": {
+            "reject_cash": 2299,
+            "p2_passes": 12,
+            "reject_topk": 75
+          },
+          "9": {
+            "reject_cash": 3248,
+            "p2_passes": 14
+          },
+          "10": {
+            "reject_topk": 115,
+            "p2_passes": 8,
+            "reject_cash": 1983
+          },
+          "11": {
+            "reject_cash": 1984,
+            "p2_passes": 6,
+            "reject_topk": 60
+          },
+          "12": {
+            "reject_cash": 2252,
+            "p2_passes": 11,
+            "reject_topk": 89
+          }
+        }
+      },
+      "1971": {
+        "events": {
+          "SELECT_REJECT": 9426,
+          "SELECTION_LIGHT": 382,
+          "C41_MONTH_BUSY": 97,
+          "PROJECTS_COST": 217,
+          "SCHED_IDLE": 1735,
+          "P2_PASS": 217,
+          "P5_RAIL_PASS": 217,
+          "AIR_LIGHT": 1481,
+          "CATALOG_COST_SLICE": 740,
+          "P2_RESOLVE": 41,
+          "P5_WAIT_END": 40,
+          "C41_SLACK_LEDGER": 11,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 23,
+          "C121_HUB_DELAY": 49,
+          "P2_BUILD": 41,
+          "P5_BUILD_LINE": 32,
+          "P5_WAIT_START": 40,
+          "RAIL_PREP": 3,
+          "P5_RAIL_SEARCH": 2
+        },
+        "select_reject": {
+          "cash": 9375,
+          "topk": 51
+        },
+        "reject_unique_pair_month": {
+          "cash": 672,
+          "topk": 26
+        },
+        "project_discard": {},
+        "p2_passes": 217,
+        "p2_start_empty": 173,
+        "p2_with_progress": 41,
+        "by_month": {
+          "1": {
+            "reject_cash": 921,
+            "p2_passes": 7,
+            "reject_topk": 51
+          },
+          "2": {
+            "reject_cash": 730,
+            "p2_passes": 4
+          },
+          "3": {
+            "reject_cash": 1778,
+            "p2_passes": 10
+          },
+          "4": {
+            "reject_cash": 1467,
+            "p2_passes": 13
+          },
+          "5": {
+            "reject_cash": 1199,
+            "p2_passes": 18
+          },
+          "6": {
+            "reject_cash": 1159,
+            "p2_passes": 22
+          },
+          "7": {
+            "reject_cash": 634,
+            "p2_passes": 21
+          },
+          "8": {
+            "reject_cash": 523,
+            "p2_passes": 24
+          },
+          "9": {
+            "reject_cash": 434,
+            "p2_passes": 22
+          },
+          "10": {
+            "p2_passes": 20,
+            "reject_cash": 257
+          },
+          "11": {
+            "p2_passes": 24,
+            "reject_cash": 244
+          },
+          "12": {
+            "p2_passes": 32,
+            "reject_cash": 29
+          }
+        }
+      },
+      "1972": {
+        "events": {
+          "AIR_LIGHT": 136,
+          "CATALOG_COST_SLICE": 67,
+          "C41_MONTH_BUSY": 44,
+          "SELECTION_LIGHT": 36,
+          "SCHED_IDLE": 349,
+          "P2_RESOLVE": 21,
+          "P5_WAIT_END": 1,
+          "C121_HUB_DELAY": 109,
+          "SELECT_REJECT": 1333,
+          "PROJECTS_COST": 43,
+          "P2_BUILD": 20,
+          "P2_PASS": 44,
+          "P5_RAIL_PASS": 44,
+          "C41_SLACK_LEDGER": 9,
+          "C41_OPPORTUNITY_LEDGER": 4,
+          "C41_ADMISSION_LEDGER": 1,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 19,
+          "P5_RAIL_SEARCH": 10,
+          "P5_BUILD_LINE": 15
+        },
+        "select_reject": {
+          "topk": 1333
+        },
+        "reject_unique_pair_month": {
+          "topk": 549
+        },
+        "project_discard": {},
+        "p2_passes": 44,
+        "p2_start_empty": 0,
+        "p2_with_progress": 20,
+        "by_month": {
+          "1": {
+            "reject_topk": 97
+          },
+          "2": {
+            "reject_topk": 194,
+            "p2_passes": 1
+          },
+          "3": {
+            "reject_topk": 290,
+            "p2_passes": 2
+          },
+          "4": {
+            "reject_topk": 382,
+            "p2_passes": 1
+          },
+          "5": {
+            "reject_topk": 269,
+            "p2_passes": 2
+          },
+          "6": {
+            "reject_topk": 81,
+            "p2_passes": 2
+          },
+          "7": {
+            "reject_topk": 20,
+            "p2_passes": 2
+          },
+          "8": {
+            "p2_passes": 6
+          },
+          "9": {
+            "p2_passes": 6
+          },
+          "10": {
+            "p2_passes": 8
+          },
+          "11": {
+            "p2_passes": 8
+          },
+          "12": {
+            "p2_passes": 6
+          }
+        }
+      },
+      "1973": {
+        "events": {
+          "AIR_LIGHT": 55,
+          "CATALOG_COST_SLICE": 27,
+          "SCHED_IDLE": 255,
+          "C121_HUB_DELAY": 133,
+          "SELECT_REJECT": 20,
+          "SELECTION_LIGHT": 65,
+          "C41_MONTH_BUSY": 20,
+          "C41_SLACK_LEDGER": 9,
+          "C41_OPPORTUNITY_LEDGER": 4,
+          "C41_ADMISSION_LEDGER": 1,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 19,
+          "PROJECTS_COST": 31,
+          "P2_BUILD": 27,
+          "P2_RESOLVE": 27,
+          "P2_PASS": 32,
+          "P5_RAIL_PASS": 32,
+          "P5_BUILD_LINE": 5,
+          "P5_RAIL_SEARCH": 1
+        },
+        "select_reject": {
+          "topk": 20
+        },
+        "reject_unique_pair_month": {
+          "topk": 14
+        },
+        "project_discard": {},
+        "p2_passes": 32,
+        "p2_start_empty": 0,
+        "p2_with_progress": 27,
+        "by_month": {
+          "1": {
+            "reject_topk": 7
+          },
+          "2": {
+            "reject_topk": 13,
+            "p2_passes": 1
+          },
+          "3": {
+            "p2_passes": 2
+          },
+          "4": {
+            "p2_passes": 2
+          },
+          "5": {
+            "p2_passes": 2
+          },
+          "6": {
+            "p2_passes": 3
+          },
+          "7": {
+            "p2_passes": 3
+          },
+          "8": {
+            "p2_passes": 3
+          },
+          "9": {
+            "p2_passes": 3
+          },
+          "10": {
+            "p2_passes": 4
+          },
+          "11": {
+            "p2_passes": 4
+          },
+          "12": {
+            "p2_passes": 5
+          }
+        }
+      },
+      "1974": {
+        "events": {
+          "SCHED_IDLE": 444,
+          "C41_MONTH_BUSY": 36,
+          "AIR_LIGHT": 156,
+          "CATALOG_COST_SLICE": 78,
+          "C41_SLACK_LEDGER": 1,
+          "C41_OPPORTUNITY_LEDGER": 9,
+          "C41_ADMISSION_LEDGER": 1,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 13,
+          "C121_HUB_DELAY": 134,
+          "SELECTION_LIGHT": 74,
+          "PROJECTS_COST": 51,
+          "P2_BUILD": 17,
+          "P2_RESOLVE": 17,
+          "P2_PASS": 55,
+          "P5_RAIL_PASS": 55,
+          "P5_BUILD_LINE": 4,
+          "P5_RAIL_SEARCH": 10
+        },
+        "select_reject": {},
+        "reject_unique_pair_month": {},
+        "project_discard": {},
+        "p2_passes": 55,
+        "p2_start_empty": 0,
+        "p2_with_progress": 17,
+        "by_month": {
+          "1": {
+            "p2_passes": 1
+          },
+          "2": {
+            "p2_passes": 2
+          },
+          "3": {
+            "p2_passes": 3
+          },
+          "4": {
+            "p2_passes": 5
+          },
+          "5": {
+            "p2_passes": 4
+          },
+          "6": {
+            "p2_passes": 5
+          },
+          "7": {
+            "p2_passes": 7
+          },
+          "8": {
+            "p2_passes": 6
+          },
+          "9": {
+            "p2_passes": 6
+          },
+          "10": {
+            "p2_passes": 6
+          },
+          "11": {
+            "p2_passes": 5
+          },
+          "12": {
+            "p2_passes": 5
+          }
+        }
+      }
+    },
+    "100": {
+      "1970": {
+        "events": {
+          "SCHED_IDLE": 937,
+          "AIR_LIGHT": 1068,
+          "CATALOG_COST_SLICE": 340,
+          "SELECTION_LIGHT": 284,
+          "C41_SLACK_LEDGER": 1,
+          "C39_PASS_CLOCK": 2,
+          "C121_AIR_CHAIN_PASS": 111,
+          "PROJECTS_COST": 110,
+          "P2_BUILD": 13,
+          "P5_BUILD_LINE": 8,
+          "P5_WAIT_START": 11,
+          "P2_PASS": 112,
+          "P5_RAIL_PASS": 112,
+          "P2_RESOLVE": 13,
+          "P5_WAIT_END": 11,
+          "SELECT_REJECT": 26946,
+          "RAIL_PREP": 11,
+          "C41_MONTH_BUSY": 92,
+          "P5_RAIL_SEARCH": 3,
+          "C83_REACTION": 2,
+          "C121_HUB_DELAY": 10
+        },
+        "select_reject": {
+          "cash": 26620,
+          "topk": 326
+        },
+        "reject_unique_pair_month": {
+          "cash": 1289,
+          "topk": 164
+        },
+        "project_discard": {},
+        "p2_passes": 112,
+        "p2_start_empty": 98,
+        "p2_with_progress": 13,
+        "by_month": {
+          "1": {
+            "p2_passes": 6,
+            "reject_cash": 6
+          },
+          "2": {
+            "reject_cash": 270,
+            "p2_passes": 11
+          },
+          "3": {
+            "reject_cash": 1077,
+            "p2_passes": 4
+          },
+          "4": {
+            "reject_cash": 2879,
+            "p2_passes": 12
+          },
+          "5": {
+            "reject_cash": 2898,
+            "p2_passes": 15
+          },
+          "6": {
+            "reject_cash": 2980,
+            "p2_passes": 11
+          },
+          "7": {
+            "reject_cash": 3062,
+            "p2_passes": 8
+          },
+          "8": {
+            "reject_cash": 3498,
+            "p2_passes": 12
+          },
+          "9": {
+            "reject_cash": 2178,
+            "p2_passes": 8,
+            "reject_topk": 161
+          },
+          "10": {
+            "reject_cash": 1993,
+            "p2_passes": 6,
+            "reject_topk": 165
+          },
+          "11": {
+            "reject_cash": 3184,
+            "p2_passes": 11
+          },
+          "12": {
+            "reject_cash": 2595,
+            "p2_passes": 8
+          }
+        }
+      },
+      "1971": {
+        "events": {
+          "SELECT_REJECT": 16520,
+          "SELECTION_LIGHT": 254,
+          "PROJECTS_COST": 181,
+          "SCHED_IDLE": 1416,
+          "P2_BUILD": 26,
+          "P5_BUILD_LINE": 22,
+          "P5_WAIT_START": 26,
+          "P2_PASS": 177,
+          "P5_RAIL_PASS": 177,
+          "AIR_LIGHT": 1307,
+          "CATALOG_COST_SLICE": 653,
+          "C41_MONTH_BUSY": 96,
+          "C41_SLACK_LEDGER": 11,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 23,
+          "P2_RESOLVE": 25,
+          "P5_WAIT_END": 25,
+          "RAIL_PREP": 3,
+          "C121_HUB_DELAY": 36
+        },
+        "select_reject": {
+          "cash": 16520
+        },
+        "reject_unique_pair_month": {
+          "cash": 1042
+        },
+        "project_discard": {},
+        "p2_passes": 177,
+        "p2_start_empty": 150,
+        "p2_with_progress": 26,
+        "by_month": {
+          "1": {
+            "reject_cash": 1545,
+            "p2_passes": 5
+          },
+          "2": {
+            "reject_cash": 1356,
+            "p2_passes": 5
+          },
+          "3": {
+            "reject_cash": 2183,
+            "p2_passes": 8
+          },
+          "4": {
+            "reject_cash": 1306,
+            "p2_passes": 6
+          },
+          "5": {
+            "p2_passes": 16,
+            "reject_cash": 2112
+          },
+          "6": {
+            "reject_cash": 1458,
+            "p2_passes": 10
+          },
+          "7": {
+            "reject_cash": 1340,
+            "p2_passes": 16
+          },
+          "8": {
+            "reject_cash": 1751,
+            "p2_passes": 18
+          },
+          "9": {
+            "reject_cash": 1831,
+            "p2_passes": 17
+          },
+          "10": {
+            "reject_cash": 763,
+            "p2_passes": 22
+          },
+          "11": {
+            "reject_cash": 702,
+            "p2_passes": 23
+          },
+          "12": {
+            "reject_cash": 173,
+            "p2_passes": 31
+          }
+        }
+      },
+      "1972": {
+        "events": {
+          "AIR_LIGHT": 253,
+          "CATALOG_COST_SLICE": 126,
+          "C41_MONTH_BUSY": 27,
+          "PROJECTS_COST": 50,
+          "SCHED_IDLE": 408,
+          "P2_PASS": 51,
+          "P5_RAIL_PASS": 51,
+          "SELECT_REJECT": 2489,
+          "SELECTION_LIGHT": 47,
+          "P2_RESOLVE": 22,
+          "P5_WAIT_END": 3,
+          "C121_HUB_DELAY": 72,
+          "C41_SLACK_LEDGER": 8,
+          "C41_OPPORTUNITY_LEDGER": 4,
+          "C41_ADMISSION_LEDGER": 1,
+          "C39_PASS_CLOCK": 11,
+          "P2_BUILD": 22,
+          "P5_BUILD_LINE": 19,
+          "P5_RAIL_SEARCH": 5,
+          "P5_WAIT_START": 3
+        },
+        "select_reject": {
+          "cash": 188,
+          "topk": 2301
+        },
+        "reject_unique_pair_month": {
+          "cash": 185,
+          "topk": 824
+        },
+        "project_discard": {},
+        "p2_passes": 51,
+        "p2_start_empty": 18,
+        "p2_with_progress": 22,
+        "by_month": {
+          "1": {
+            "p2_passes": 1,
+            "reject_cash": 180
+          },
+          "2": {
+            "reject_topk": 542
+          },
+          "3": {
+            "reject_topk": 455,
+            "p2_passes": 1
+          },
+          "4": {
+            "reject_topk": 416,
+            "p2_passes": 2
+          },
+          "5": {
+            "reject_topk": 382,
+            "p2_passes": 1
+          },
+          "6": {
+            "reject_topk": 377,
+            "p2_passes": 2
+          },
+          "7": {
+            "reject_topk": 114,
+            "p2_passes": 3
+          },
+          "8": {
+            "reject_topk": 15,
+            "p2_passes": 4,
+            "reject_cash": 2
+          },
+          "9": {
+            "p2_passes": 1
+          },
+          "10": {
+            "p2_passes": 8
+          },
+          "11": {
+            "p2_passes": 6
+          },
+          "12": {
+            "p2_passes": 22,
+            "reject_cash": 6
+          }
+        }
+      },
+      "1973": {
+        "events": {
+          "C121_HUB_DELAY": 101,
+          "AIR_LIGHT": 368,
+          "SELECT_REJECT": 424,
+          "SELECTION_LIGHT": 91,
+          "CATALOG_COST_SLICE": 183,
+          "C41_MONTH_BUSY": 58,
+          "PROJECTS_COST": 71,
+          "SCHED_IDLE": 597,
+          "P2_BUILD": 26,
+          "P2_RESOLVE": 27,
+          "P2_PASS": 75,
+          "P5_RAIL_PASS": 75,
+          "P5_WAIT_END": 12,
+          "C41_SLACK_LEDGER": 9,
+          "C41_OPPORTUNITY_LEDGER": 6,
+          "C41_ADMISSION_LEDGER": 1,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 19,
+          "P5_BUILD_LINE": 6,
+          "P5_RAIL_SEARCH": 16,
+          "P5_WAIT_START": 11,
+          "C41_RAIL_CASH_RELEASE": 2
+        },
+        "select_reject": {
+          "cash": 424
+        },
+        "reject_unique_pair_month": {
+          "cash": 73
+        },
+        "project_discard": {},
+        "p2_passes": 75,
+        "p2_start_empty": 22,
+        "p2_with_progress": 26,
+        "by_month": {
+          "1": {
+            "reject_cash": 6,
+            "p2_passes": 1
+          },
+          "2": {
+            "p2_passes": 3
+          },
+          "3": {
+            "p2_passes": 6,
+            "reject_cash": 38
+          },
+          "4": {
+            "reject_cash": 32,
+            "p2_passes": 3
+          },
+          "5": {
+            "reject_cash": 103,
+            "p2_passes": 7
+          },
+          "6": {
+            "p2_passes": 6,
+            "reject_cash": 75
+          },
+          "7": {
+            "reject_cash": 86,
+            "p2_passes": 7
+          },
+          "8": {
+            "reject_cash": 78,
+            "p2_passes": 16
+          },
+          "9": {
+            "reject_cash": 6,
+            "p2_passes": 5
+          },
+          "10": {
+            "p2_passes": 7
+          },
+          "11": {
+            "p2_passes": 6
+          },
+          "12": {
+            "p2_passes": 8
+          }
+        }
+      },
+      "1974": {
+        "events": {
+          "C41_SLACK_LEDGER": 9,
+          "C41_OPPORTUNITY_LEDGER": 9,
+          "C41_ADMISSION_LEDGER": 1,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 21,
+          "SCHED_IDLE": 554,
+          "C121_HUB_DELAY": 121,
+          "C41_MONTH_BUSY": 30,
+          "SELECTION_LIGHT": 89,
+          "PROJECTS_COST": 64,
+          "P2_BUILD": 18,
+          "P2_RESOLVE": 18,
+          "P2_PASS": 69,
+          "P5_RAIL_PASS": 69,
+          "AIR_LIGHT": 230,
+          "CATALOG_COST_SLICE": 115,
+          "P5_RAIL_SEARCH": 15,
+          "P5_BUILD_LINE": 4
+        },
+        "select_reject": {},
+        "reject_unique_pair_month": {},
+        "project_discard": {},
+        "p2_passes": 69,
+        "p2_start_empty": 0,
+        "p2_with_progress": 18,
+        "by_month": {
+          "1": {
+            "p2_passes": 2
+          },
+          "2": {
+            "p2_passes": 4
+          },
+          "3": {
+            "p2_passes": 4
+          },
+          "4": {
+            "p2_passes": 4
+          },
+          "5": {
+            "p2_passes": 7
+          },
+          "6": {
+            "p2_passes": 7
+          },
+          "7": {
+            "p2_passes": 6
+          },
+          "8": {
+            "p2_passes": 5
+          },
+          "9": {
+            "p2_passes": 7
+          },
+          "10": {
+            "p2_passes": 7
+          },
+          "11": {
+            "p2_passes": 5
+          },
+          "12": {
+            "p2_passes": 11
+          }
+        }
+      }
+    },
+    "999": {
+      "1970": {
+        "events": {
+          "SCHED_IDLE": 1009,
+          "AIR_LIGHT": 1570,
+          "CATALOG_COST_SLICE": 363,
+          "SELECTION_LIGHT": 310,
+          "C41_SLACK_LEDGER": 1,
+          "C39_PASS_CLOCK": 2,
+          "C121_AIR_CHAIN_PASS": 117,
+          "PROJECTS_COST": 117,
+          "P2_BUILD": 8,
+          "P5_BUILD_LINE": 6,
+          "P5_WAIT_START": 8,
+          "P2_PASS": 121,
+          "P5_RAIL_PASS": 121,
+          "P2_RESOLVE": 7,
+          "P5_WAIT_END": 7,
+          "SELECT_REJECT": 25277,
+          "RAIL_PREP": 10,
+          "P5_RAIL_SEARCH": 2,
+          "C41_MONTH_BUSY": 92,
+          "C83_REACTION": 4,
+          "C121_HUB_DELAY": 8
+        },
+        "select_reject": {
+          "cash": 25185,
+          "topk": 92
+        },
+        "reject_unique_pair_month": {
+          "cash": 963,
+          "topk": 87
+        },
+        "project_discard": {},
+        "p2_passes": 121,
+        "p2_start_empty": 112,
+        "p2_with_progress": 8,
+        "by_month": {
+          "1": {
+            "p2_passes": 5,
+            "reject_cash": 10
+          },
+          "2": {
+            "p2_passes": 13,
+            "reject_cash": 396
+          },
+          "3": {
+            "reject_cash": 998,
+            "p2_passes": 4
+          },
+          "4": {
+            "p2_passes": 14,
+            "reject_cash": 2799
+          },
+          "5": {
+            "reject_cash": 3221,
+            "p2_passes": 12
+          },
+          "6": {
+            "reject_cash": 1441,
+            "p2_passes": 5
+          },
+          "7": {
+            "reject_cash": 1390,
+            "p2_passes": 5
+          },
+          "8": {
+            "reject_cash": 3058,
+            "p2_passes": 11,
+            "reject_topk": 56
+          },
+          "9": {
+            "reject_cash": 3026,
+            "p2_passes": 10
+          },
+          "10": {
+            "reject_cash": 3621,
+            "p2_passes": 14
+          },
+          "11": {
+            "reject_cash": 2215,
+            "p2_passes": 9,
+            "reject_topk": 36
+          },
+          "12": {
+            "reject_cash": 3010,
+            "p2_passes": 19
+          }
+        }
+      },
+      "1971": {
+        "events": {
+          "SELECT_REJECT": 22736,
+          "SELECTION_LIGHT": 375,
+          "SCHED_IDLE": 1306,
+          "AIR_LIGHT": 946,
+          "CATALOG_COST_SLICE": 473,
+          "C41_MONTH_BUSY": 97,
+          "C41_SLACK_LEDGER": 11,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 23,
+          "P2_RESOLVE": 21,
+          "P5_WAIT_END": 20,
+          "PROJECTS_COST": 163,
+          "P2_BUILD": 21,
+          "P5_BUILD_LINE": 15,
+          "P2_PASS": 163,
+          "P5_RAIL_PASS": 163,
+          "RAIL_PREP": 3,
+          "P5_WAIT_START": 20,
+          "P5_RAIL_SEARCH": 7,
+          "C41_RAIL_CASH_RELEASE": 1,
+          "C121_HUB_DELAY": 25
+        },
+        "select_reject": {
+          "cash": 22573,
+          "topk": 163
+        },
+        "reject_unique_pair_month": {
+          "cash": 1039,
+          "topk": 116
+        },
+        "project_discard": {},
+        "p2_passes": 163,
+        "p2_start_empty": 140,
+        "p2_with_progress": 21,
+        "by_month": {
+          "1": {
+            "reject_cash": 1269,
+            "reject_topk": 29,
+            "p2_passes": 8
+          },
+          "2": {
+            "reject_cash": 1849,
+            "p2_passes": 9
+          },
+          "3": {
+            "reject_cash": 1928,
+            "p2_passes": 8,
+            "reject_topk": 63
+          },
+          "4": {
+            "reject_cash": 2145,
+            "p2_passes": 18,
+            "reject_topk": 11
+          },
+          "5": {
+            "reject_cash": 1874,
+            "p2_passes": 14,
+            "reject_topk": 15
+          },
+          "6": {
+            "reject_cash": 2372,
+            "p2_passes": 19,
+            "reject_topk": 7
+          },
+          "7": {
+            "reject_topk": 2,
+            "reject_cash": 2488,
+            "p2_passes": 14
+          },
+          "8": {
+            "reject_cash": 1842,
+            "p2_passes": 15
+          },
+          "9": {
+            "p2_passes": 18,
+            "reject_cash": 1468
+          },
+          "10": {
+            "reject_cash": 2061,
+            "p2_passes": 13
+          },
+          "11": {
+            "reject_cash": 1879,
+            "p2_passes": 12,
+            "reject_topk": 17
+          },
+          "12": {
+            "reject_cash": 1398,
+            "p2_passes": 15,
+            "reject_topk": 19
+          }
+        }
+      },
+      "1972": {
+        "events": {
+          "AIR_LIGHT": 82,
+          "SELECT_REJECT": 4997,
+          "SELECTION_LIGHT": 33,
+          "CATALOG_COST_SLICE": 40,
+          "C41_MONTH_BUSY": 44,
+          "SCHED_IDLE": 129,
+          "P2_RESOLVE": 16,
+          "P5_WAIT_END": 1,
+          "C121_HUB_DELAY": 52,
+          "PROJECTS_COST": 15,
+          "P2_BUILD": 15,
+          "P5_BUILD_LINE": 17,
+          "P2_PASS": 16,
+          "P5_RAIL_PASS": 16,
+          "C41_SLACK_LEDGER": 9,
+          "C41_OPPORTUNITY_LEDGER": 4,
+          "C41_ADMISSION_LEDGER": 1,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 18,
+          "P5_RAIL_SEARCH": 12
+        },
+        "select_reject": {
+          "cash": 602,
+          "topk": 4395
+        },
+        "reject_unique_pair_month": {
+          "cash": 602,
+          "topk": 2042
+        },
+        "project_discard": {},
+        "p2_passes": 16,
+        "p2_start_empty": 0,
+        "p2_with_progress": 15,
+        "by_month": {
+          "2": {
+            "reject_cash": 602
+          },
+          "3": {
+            "reject_topk": 966,
+            "p2_passes": 1
+          },
+          "4": {
+            "reject_topk": 855
+          },
+          "5": {
+            "reject_topk": 744,
+            "p2_passes": 1
+          },
+          "6": {
+            "reject_topk": 504,
+            "p2_passes": 1
+          },
+          "7": {
+            "reject_topk": 473,
+            "p2_passes": 2
+          },
+          "8": {
+            "reject_topk": 341,
+            "p2_passes": 1
+          },
+          "9": {
+            "reject_topk": 298,
+            "p2_passes": 2
+          },
+          "10": {
+            "reject_topk": 162,
+            "p2_passes": 2
+          },
+          "11": {
+            "reject_topk": 48,
+            "p2_passes": 3
+          },
+          "12": {
+            "reject_topk": 4,
+            "p2_passes": 3
+          }
+        }
+      },
+      "1973": {
+        "events": {
+          "P5_RAIL_SEARCH": 1,
+          "SCHED_IDLE": 65,
+          "AIR_LIGHT": 80,
+          "SELECT_REJECT": 2888,
+          "SELECTION_LIGHT": 17,
+          "C121_HUB_DELAY": 60,
+          "C41_MONTH_BUSY": 50,
+          "PROJECTS_COST": 8,
+          "P2_BUILD": 8,
+          "P5_BUILD_LINE": 9,
+          "P2_RESOLVE": 8,
+          "P2_PASS": 8,
+          "P5_RAIL_PASS": 8,
+          "CATALOG_COST_SLICE": 39,
+          "C41_SLACK_LEDGER": 9,
+          "C41_OPPORTUNITY_LEDGER": 6,
+          "C41_ADMISSION_LEDGER": 1,
+          "C41_RAIL_SLICE_LEDGER": 1,
+          "C39_PASS_CLOCK": 19
+        },
+        "select_reject": {
+          "topk": 2888
+        },
+        "reject_unique_pair_month": {
+          "topk": 1420
+        },
+        "project_discard": {},
+        "p2_passes": 8,
+        "p2_start_empty": 0,
+        "p2_with_progress": 8,
+        "by_month": {
+          "2": {
+            "reject_topk": 361
+          },
+          "6": {
+            "reject_topk": 24
+          },
+          "7": {
+            "reject_topk": 421,
+            "p2_passes": 1
+          },
+          "8": {
+            "reject_topk": 444,
+            "p2_passes": 1
+          },
+          "9": {
+            "reject_topk": 557,
+            "p2_passes": 2
+          },
+          "10": {
+            "reject_topk": 485,
+            "p2_passes": 1
+          },
+          "11": {
+            "reject_topk": 308,
+            "p2_passes": 1
+          },
+          "12": {
+            "reject_topk": 288,
+            "p2_passes": 2
+          }
+        }
+      },
+      "1974": {
+        "events": {
+          "SELECT_REJECT": 1678,
+          "SELECTION_LIGHT": 44,
+          "PROJECTS_COST": 20,
+          "SCHED_IDLE": 167,
+          "P2_BUILD": 20,
+          "P5_BUILD_LINE": 8,
+          "P2_RESOLVE": 20,
+          "P2_PASS": 21,
+          "P5_RAIL_PASS": 21,
+          "AIR_LIGHT": 52,
+          "CATALOG_COST_SLICE": 26,
+          "C41_MONTH_BUSY": 29,
+          "C121_HUB_DELAY": 119,
+          "C41_SLACK_LEDGER": 8,
+          "C41_OPPORTUNITY_LEDGER": 6,
+          "C41_ADMISSION_LEDGER": 1,
+          "C39_PASS_CLOCK": 8,
+          "P5_RAIL_SEARCH": 1
+        },
+        "select_reject": {
+          "topk": 1678
+        },
+        "reject_unique_pair_month": {
+          "topk": 554
+        },
+        "project_discard": {},
+        "p2_passes": 21,
+        "p2_start_empty": 0,
+        "p2_with_progress": 20,
+        "by_month": {
+          "1": {
+            "reject_topk": 138,
+            "p2_passes": 1
+          },
+          "2": {
+            "reject_topk": 173,
+            "p2_passes": 1
+          },
+          "3": {
+            "reject_topk": 330,
+            "p2_passes": 1
+          },
+          "4": {
+            "reject_topk": 214,
+            "p2_passes": 1
+          },
+          "5": {
+            "reject_topk": 209,
+            "p2_passes": 2
+          },
+          "6": {
+            "reject_topk": 172,
+            "p2_passes": 1
+          },
+          "7": {
+            "reject_topk": 174,
+            "p2_passes": 2
+          },
+          "8": {
+            "reject_topk": 124,
+            "p2_passes": 2
+          },
+          "9": {
+            "reject_topk": 62,
+            "p2_passes": 2
+          },
+          "10": {
+            "reject_topk": 40,
+            "p2_passes": 3
+          },
+          "11": {
+            "reject_topk": 28,
+            "p2_passes": 2
+          },
+          "12": {
+            "reject_topk": 14,
+            "p2_passes": 3
+          }
+        }
+      }
+    }
+  },
+  "paired_active_services": {
+    "42/1970": {
+      "opex": {
+        "air": 9
+      },
+      "aaa": {
+        "air": 6,
+        "road": 1
+      }
+    },
+    "42/1971": {
+      "opex": {
+        "air": 36,
+        "rail": 3
+      },
+      "aaa": {
+        "air": 10,
+        "rail": 4,
+        "road": 38
+      }
+    },
+    "42/1972": {
+      "opex": {
+        "air": 51,
+        "rail": 4,
+        "road": 1
+      },
+      "aaa": {
+        "air": 11,
+        "rail": 8,
+        "road": 60
+      }
+    },
+    "42/1973": {
+      "opex": {
+        "air": 56,
+        "rail": 5,
+        "road": 2
+      },
+      "aaa": {
+        "air": 13,
+        "rail": 13,
+        "road": 79
+      }
+    },
+    "42/1974": {
+      "opex": {
+        "air": 56,
+        "rail": 7,
+        "road": 2
+      },
+      "aaa": {
+        "air": 13,
+        "rail": 16,
+        "road": 81
+      }
+    },
+    "100/1970": {
+      "opex": {
+        "air": 7
+      },
+      "aaa": {
+        "air": 5
+      }
+    },
+    "100/1971": {
+      "opex": {
+        "air": 23,
+        "rail": 3
+      },
+      "aaa": {
+        "air": 11,
+        "rail": 3,
+        "road": 3
+      }
+    },
+    "100/1972": {
+      "opex": {
+        "air": 39,
+        "rail": 5,
+        "water": 1
+      },
+      "aaa": {
+        "air": 13,
+        "rail": 6,
+        "road": 59
+      }
+    },
+    "100/1973": {
+      "opex": {
+        "air": 46,
+        "rail": 6,
+        "water": 1
+      },
+      "aaa": {
+        "air": 13,
+        "rail": 7,
+        "road": 67
+      }
+    },
+    "100/1974": {
+      "opex": {
+        "air": 46,
+        "rail": 9,
+        "water": 1
+      },
+      "aaa": {
+        "air": 13,
+        "rail": 13,
+        "road": 73
+      }
+    },
+    "999/1970": {
+      "opex": {
+        "air": 6
+      },
+      "aaa": {
+        "air": 8
+      }
+    },
+    "999/1971": {
+      "opex": {
+        "air": 17,
+        "rail": 2
+      },
+      "aaa": {
+        "air": 13,
+        "rail": 8,
+        "road": 32
+      }
+    },
+    "999/1972": {
+      "opex": {
+        "air": 34,
+        "rail": 2
+      },
+      "aaa": {
+        "air": 15,
+        "rail": 11,
+        "road": 64
+      }
+    },
+    "999/1973": {
+      "opex": {
+        "air": 42,
+        "rail": 4,
+        "road": 1
+      },
+      "aaa": {
+        "air": 19,
+        "rail": 19,
+        "road": 101
+      }
+    },
+    "999/1974": {
+      "opex": {
+        "air": 49,
+        "rail": 4,
+        "road": 1
+      },
+      "aaa": {
+        "air": 19,
+        "rail": 23,
+        "road": 111
+      }
+    }
+  },
+  "limitations": [
+    "SELECT_REJECT records each scanned rejection; repeated candidates and selections multiply counts, so neither attempts nor lost construction opportunities.",
+    "PROJECT_DISCARD may be sampled only on the monthly decision-log trigger; absence is not proof of no failures.",
+    "P2_PASS reports end-of-dispatch delta, not constructibility or actual attempts per mode.",
+    "Line telemetry reconstructs services with primary vehicles/orders and cannot show gross constructions, scrapped lines or profitability by project.",
+    "The source bundle has intrusive probes and may not reproduce the uninstrumented reference trajectory."
+  ]
+}

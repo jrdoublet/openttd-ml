@@ -1,0 +1,3067 @@
+{
+  "seeds": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    12345,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309
+  ],
+  "years": [
+    1970,
+    1971,
+    1972,
+    1973
+  ],
+  "by_seed": {
+    "42": {
+      "1970": {
+        "reference": {
+          "ticks": 6838,
+          "budget": 68380000,
+          "occupied_top": 64336797,
+          "sleep_left": 3709246,
+          "remaining_gap": 333957,
+          "by_post": {
+            "events": 26804,
+            "rail_throughput": 126394,
+            "c117_skip": 35532,
+            "c117_sample": 473129,
+            "catalog_continuation": 52830777,
+            "orchestrator": 10838731,
+            "catalog_continuation_check": 5430
+          }
+        },
+        "variant": {
+          "ticks": 6756,
+          "budget": 67560000,
+          "occupied_top": 63315384,
+          "sleep_left": 3939215,
+          "remaining_gap": 305401,
+          "by_post": {
+            "events": 27231,
+            "rail_throughput": 126530,
+            "c117_skip": 35847,
+            "c117_sample": 493004,
+            "catalog_continuation": 51410310,
+            "orchestrator": 11217095,
+            "catalog_continuation_check": 5367
+          }
+        },
+        "delta_occupied": -1021413,
+        "delta_budget": -820000,
+        "delta_sleep_left": 229969
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6661,
+          "budget": 66610000,
+          "occupied_top": 61616293,
+          "sleep_left": 4591538,
+          "remaining_gap": 402169,
+          "by_post": {
+            "events": 29950,
+            "rail_throughput": 28170,
+            "c117_skip": 41076,
+            "c117_sample": 2010903,
+            "catalog_continuation": 37319142,
+            "orchestrator": 22180692,
+            "catalog_continuation_check": 6360
+          }
+        },
+        "variant": {
+          "ticks": 6743,
+          "budget": 67430000,
+          "occupied_top": 62318224,
+          "sleep_left": 4723699,
+          "remaining_gap": 388077,
+          "by_post": {
+            "events": 31385,
+            "rail_throughput": 39778,
+            "c117_skip": 43722,
+            "c117_sample": 2107288,
+            "catalog_continuation": 37208818,
+            "orchestrator": 22880359,
+            "catalog_continuation_check": 6874
+          }
+        },
+        "delta_occupied": 701931,
+        "delta_budget": 820000,
+        "delta_sleep_left": 132161
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6877,
+          "budget": 68770000,
+          "occupied_top": 67046164,
+          "sleep_left": 1598378,
+          "remaining_gap": 125458,
+          "by_post": {
+            "events": 19835,
+            "rail_throughput": 16285,
+            "c117_skip": 11529,
+            "c117_sample": 2838607,
+            "catalog_continuation": 15941950,
+            "orchestrator": 48208931,
+            "catalog_continuation_check": 9027
+          }
+        },
+        "variant": {
+          "ticks": 6901,
+          "budget": 69010000,
+          "occupied_top": 67508223,
+          "sleep_left": 1425294,
+          "remaining_gap": 76483,
+          "by_post": {
+            "events": 19402,
+            "rail_throughput": 14480,
+            "c117_skip": 9765,
+            "c117_sample": 3060554,
+            "catalog_continuation": 13706548,
+            "orchestrator": 50641486,
+            "catalog_continuation_check": 8335,
+            "save_projection": 47653
+          }
+        },
+        "delta_occupied": 462059,
+        "delta_budget": 240000,
+        "delta_sleep_left": -173084
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6651,
+          "budget": 66510000,
+          "occupied_top": 65275643,
+          "sleep_left": 1120963,
+          "remaining_gap": 113394,
+          "by_post": {
+            "events": 17554,
+            "rail_throughput": 11732,
+            "c117_skip": 9135,
+            "c117_sample": 3090834,
+            "catalog_continuation": 31672404,
+            "orchestrator": 30307154,
+            "catalog_continuation_check": 5874,
+            "save_projection": 160956
+          }
+        },
+        "variant": {
+          "ticks": 6659,
+          "budget": 66590000,
+          "occupied_top": 64228843,
+          "sleep_left": 2189421,
+          "remaining_gap": 171736,
+          "by_post": {
+            "events": 21261,
+            "rail_throughput": 29013,
+            "c117_skip": 18333,
+            "c117_sample": 5775341,
+            "catalog_continuation": 3939257,
+            "orchestrator": 53756182,
+            "catalog_continuation_check": 27103,
+            "save_projection": 662353
+          }
+        },
+        "delta_occupied": -1046800,
+        "delta_budget": 80000,
+        "delta_sleep_left": 1068458
+      }
+    },
+    "100": {
+      "1970": {
+        "reference": {
+          "ticks": 6811,
+          "budget": 68110000,
+          "occupied_top": 63151748,
+          "sleep_left": 4614759,
+          "remaining_gap": 343493,
+          "by_post": {
+            "events": 29629,
+            "rail_throughput": 129910,
+            "c117_skip": 40824,
+            "c117_sample": 487818,
+            "catalog_continuation": 48090966,
+            "orchestrator": 14359131,
+            "catalog_continuation_check": 13470
+          }
+        },
+        "variant": {
+          "ticks": 6751,
+          "budget": 67510000,
+          "occupied_top": 62713336,
+          "sleep_left": 4448834,
+          "remaining_gap": 347830,
+          "by_post": {
+            "events": 28759,
+            "rail_throughput": 129365,
+            "c117_skip": 39942,
+            "c117_sample": 477075,
+            "catalog_continuation": 46145607,
+            "orchestrator": 15879433,
+            "catalog_continuation_check": 13155
+          }
+        },
+        "delta_occupied": -438412,
+        "delta_budget": -600000,
+        "delta_sleep_left": -165925
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6688,
+          "budget": 66880000,
+          "occupied_top": 62512350,
+          "sleep_left": 4120134,
+          "remaining_gap": 247516,
+          "by_post": {
+            "events": 24528,
+            "rail_throughput": 42679,
+            "c117_skip": 33453,
+            "c117_sample": 1356687,
+            "catalog_continuation": 43902083,
+            "orchestrator": 17150904,
+            "catalog_continuation_check": 2016
+          }
+        },
+        "variant": {
+          "ticks": 6748,
+          "budget": 67480000,
+          "occupied_top": 63207146,
+          "sleep_left": 4045922,
+          "remaining_gap": 226932,
+          "by_post": {
+            "events": 24523,
+            "rail_throughput": 32611,
+            "c117_skip": 33453,
+            "c117_sample": 1400443,
+            "catalog_continuation": 44773265,
+            "orchestrator": 16940902,
+            "catalog_continuation_check": 1949
+          }
+        },
+        "delta_occupied": 694796,
+        "delta_budget": 600000,
+        "delta_sleep_left": -74212
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6776,
+          "budget": 67760000,
+          "occupied_top": 64549059,
+          "sleep_left": 2988216,
+          "remaining_gap": 222725,
+          "by_post": {
+            "events": 27184,
+            "rail_throughput": 58973,
+            "c117_skip": 26964,
+            "c117_sample": 2915773,
+            "catalog_continuation": 8924381,
+            "orchestrator": 52572296,
+            "catalog_continuation_check": 23488
+          }
+        },
+        "variant": {
+          "ticks": 6779,
+          "budget": 67790000,
+          "occupied_top": 65455353,
+          "sleep_left": 2194683,
+          "remaining_gap": 139964,
+          "by_post": {
+            "events": 23991,
+            "rail_throughput": 35403,
+            "c117_skip": 17073,
+            "c117_sample": 2239365,
+            "catalog_continuation": 1532978,
+            "orchestrator": 61591511,
+            "catalog_continuation_check": 15032
+          }
+        },
+        "delta_occupied": 906294,
+        "delta_budget": 30000,
+        "delta_sleep_left": -793533
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 65124641,
+          "sleep_left": 2202836,
+          "remaining_gap": 192523,
+          "by_post": {
+            "events": 38002,
+            "rail_throughput": 29928,
+            "c117_skip": 17325,
+            "c117_sample": 3676031,
+            "catalog_continuation": 150994,
+            "orchestrator": 61184014,
+            "catalog_continuation_check": 28347
+          }
+        },
+        "variant": {
+          "ticks": 6860,
+          "budget": 68600000,
+          "occupied_top": 62942911,
+          "sleep_left": 5303185,
+          "remaining_gap": 353904,
+          "by_post": {
+            "events": 37527,
+            "rail_throughput": 40338,
+            "c117_skip": 43092,
+            "c117_sample": 3990765,
+            "catalog_continuation": 11301935,
+            "orchestrator": 47514512,
+            "catalog_continuation_check": 14742
+          }
+        },
+        "delta_occupied": -2181730,
+        "delta_budget": 1080000,
+        "delta_sleep_left": 3100349
+      }
+    },
+    "7": {
+      "1970": {
+        "reference": {
+          "ticks": 6797,
+          "budget": 67970000,
+          "occupied_top": 61567549,
+          "sleep_left": 5976100,
+          "remaining_gap": 426351,
+          "by_post": {
+            "events": 37942,
+            "rail_throughput": 36405,
+            "c117_skip": 55125,
+            "c117_sample": 456087,
+            "catalog_continuation": 42120555,
+            "orchestrator": 18844645,
+            "catalog_continuation_check": 16790
+          }
+        },
+        "variant": {
+          "ticks": 6756,
+          "budget": 67560000,
+          "occupied_top": 61951152,
+          "sleep_left": 5131724,
+          "remaining_gap": 477124,
+          "by_post": {
+            "events": 35283,
+            "rail_throughput": 33581,
+            "c117_skip": 49770,
+            "c117_sample": 461341,
+            "catalog_continuation": 43508744,
+            "orchestrator": 17851825,
+            "catalog_continuation_check": 10608
+          }
+        },
+        "delta_occupied": 383603,
+        "delta_budget": -410000,
+        "delta_sleep_left": -844376
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6709,
+          "budget": 67090000,
+          "occupied_top": 62376954,
+          "sleep_left": 4279304,
+          "remaining_gap": 433742,
+          "by_post": {
+            "events": 31152,
+            "rail_throughput": 27100,
+            "c117_skip": 41391,
+            "c117_sample": 2110561,
+            "catalog_continuation": 46679673,
+            "orchestrator": 13480215,
+            "catalog_continuation_check": 6862
+          }
+        },
+        "variant": {
+          "ticks": 7026,
+          "budget": 70260000,
+          "occupied_top": 65430657,
+          "sleep_left": 4444961,
+          "remaining_gap": 384382,
+          "by_post": {
+            "events": 31419,
+            "rail_throughput": 27133,
+            "c117_skip": 41328,
+            "c117_sample": 2156913,
+            "catalog_continuation": 51504983,
+            "orchestrator": 11664534,
+            "catalog_continuation_check": 4347
+          }
+        },
+        "delta_occupied": 3053703,
+        "delta_budget": 3170000,
+        "delta_sleep_left": 165657
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6850,
+          "budget": 68500000,
+          "occupied_top": 60037165,
+          "sleep_left": 7991782,
+          "remaining_gap": 471053,
+          "by_post": {
+            "events": 51954,
+            "rail_throughput": 43939,
+            "c117_skip": 70686,
+            "c117_sample": 5734949,
+            "catalog_continuation": 33778718,
+            "orchestrator": 20355497,
+            "catalog_continuation_check": 1422
+          }
+        },
+        "variant": {
+          "ticks": 6667,
+          "budget": 66670000,
+          "occupied_top": 59759878,
+          "sleep_left": 6525618,
+          "remaining_gap": 384504,
+          "by_post": {
+            "events": 40709,
+            "rail_throughput": 41902,
+            "c117_skip": 51471,
+            "c117_sample": 4845207,
+            "catalog_continuation": 22398744,
+            "orchestrator": 32369223,
+            "catalog_continuation_check": 12622
+          }
+        },
+        "delta_occupied": -277287,
+        "delta_budget": -1830000,
+        "delta_sleep_left": -1466164
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6705,
+          "budget": 67050000,
+          "occupied_top": 65528330,
+          "sleep_left": 1451552,
+          "remaining_gap": 70118,
+          "by_post": {
+            "events": 37543,
+            "rail_throughput": 7723,
+            "c117_skip": 7938,
+            "c117_sample": 3284066,
+            "catalog_continuation": 3425644,
+            "orchestrator": 58738419,
+            "catalog_continuation_check": 26997
+          }
+        },
+        "variant": {
+          "ticks": 6589,
+          "budget": 65890000,
+          "occupied_top": 64401857,
+          "sleep_left": 1381298,
+          "remaining_gap": 106845,
+          "by_post": {
+            "events": 21752,
+            "rail_throughput": 18115,
+            "c117_skip": 9450,
+            "c117_sample": 3761391,
+            "orchestrator": 60579970,
+            "catalog_continuation_check": 11179
+          }
+        },
+        "delta_occupied": -1126473,
+        "delta_budget": -1160000,
+        "delta_sleep_left": -70254
+      }
+    },
+    "999": {
+      "1970": {
+        "reference": {
+          "ticks": 6750,
+          "budget": 67500000,
+          "occupied_top": 60906362,
+          "sleep_left": 6121530,
+          "remaining_gap": 472108,
+          "by_post": {
+            "events": 36629,
+            "rail_throughput": 126322,
+            "c117_skip": 54684,
+            "c117_sample": 302388,
+            "catalog_continuation": 41998226,
+            "orchestrator": 18364421,
+            "catalog_continuation_check": 23692
+          }
+        },
+        "variant": {
+          "ticks": 6768,
+          "budget": 67680000,
+          "occupied_top": 61683699,
+          "sleep_left": 5583497,
+          "remaining_gap": 412804,
+          "by_post": {
+            "events": 34336,
+            "rail_throughput": 124453,
+            "c117_skip": 50904,
+            "c117_sample": 303083,
+            "catalog_continuation": 45244565,
+            "orchestrator": 15906423,
+            "catalog_continuation_check": 19935
+          }
+        },
+        "delta_occupied": 777337,
+        "delta_budget": 180000,
+        "delta_sleep_left": -538033
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6908,
+          "budget": 69080000,
+          "occupied_top": 64980703,
+          "sleep_left": 3720268,
+          "remaining_gap": 379029,
+          "by_post": {
+            "events": 26921,
+            "rail_throughput": 32851,
+            "c117_skip": 33012,
+            "c117_sample": 922628,
+            "catalog_continuation": 48673856,
+            "orchestrator": 15289104,
+            "catalog_continuation_check": 2331
+          }
+        },
+        "variant": {
+          "ticks": 6735,
+          "budget": 67350000,
+          "occupied_top": 62883625,
+          "sleep_left": 4102303,
+          "remaining_gap": 364072,
+          "by_post": {
+            "events": 27951,
+            "rail_throughput": 45264,
+            "c117_skip": 37611,
+            "c117_sample": 999391,
+            "catalog_continuation": 50112035,
+            "orchestrator": 11658478,
+            "catalog_continuation_check": 2895
+          }
+        },
+        "delta_occupied": -2097078,
+        "delta_budget": -1730000,
+        "delta_sleep_left": 382035
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6689,
+          "budget": 66890000,
+          "occupied_top": 66482807,
+          "sleep_left": 406365,
+          "remaining_gap": 828,
+          "by_post": {
+            "events": 10322,
+            "rail_throughput": 12860,
+            "c117_skip": 1890,
+            "c117_sample": 680432,
+            "catalog_continuation": 12590599,
+            "orchestrator": 53185273,
+            "catalog_continuation_check": 1431
+          }
+        },
+        "variant": {
+          "ticks": 6770,
+          "budget": 67700000,
+          "occupied_top": 66606575,
+          "sleep_left": 1021864,
+          "remaining_gap": 71561,
+          "by_post": {
+            "events": 19390,
+            "rail_throughput": 12737,
+            "c117_skip": 7182,
+            "c117_sample": 1249625,
+            "catalog_continuation": 6687061,
+            "orchestrator": 58612788,
+            "catalog_continuation_check": 17792
+          }
+        },
+        "delta_occupied": 123768,
+        "delta_budget": 810000,
+        "delta_sleep_left": 615499
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6681,
+          "budget": 66810000,
+          "occupied_top": 66012248,
+          "sleep_left": 744948,
+          "remaining_gap": 52804,
+          "by_post": {
+            "events": 15214,
+            "rail_throughput": 8778,
+            "c117_skip": 4536,
+            "c117_sample": 1267942,
+            "catalog_continuation": 154152,
+            "orchestrator": 64556198,
+            "catalog_continuation_check": 5428
+          }
+        },
+        "variant": {
+          "ticks": 6869,
+          "budget": 68690000,
+          "occupied_top": 67923509,
+          "sleep_left": 714708,
+          "remaining_gap": 51783,
+          "by_post": {
+            "events": 10164,
+            "rail_throughput": 8094,
+            "c117_skip": 4473,
+            "c117_sample": 1629075,
+            "catalog_continuation": 5378150,
+            "orchestrator": 60888797,
+            "catalog_continuation_check": 4756
+          }
+        },
+        "delta_occupied": 1911261,
+        "delta_budget": 1880000,
+        "delta_sleep_left": -30240
+      }
+    },
+    "2026": {
+      "1970": {
+        "reference": {
+          "ticks": 6783,
+          "budget": 67830000,
+          "occupied_top": 62456006,
+          "sleep_left": 4981159,
+          "remaining_gap": 392835,
+          "by_post": {
+            "events": 33306,
+            "rail_throughput": 161651,
+            "c117_skip": 47439,
+            "c117_sample": 419587,
+            "catalog_continuation": 45832736,
+            "orchestrator": 15948317,
+            "catalog_continuation_check": 12970
+          }
+        },
+        "variant": {
+          "ticks": 6748,
+          "budget": 67480000,
+          "occupied_top": 61982019,
+          "sleep_left": 5134091,
+          "remaining_gap": 363890,
+          "by_post": {
+            "events": 33565,
+            "rail_throughput": 171750,
+            "c117_skip": 47565,
+            "c117_sample": 423315,
+            "catalog_continuation": 42616750,
+            "orchestrator": 18675852,
+            "catalog_continuation_check": 13222
+          }
+        },
+        "delta_occupied": -473987,
+        "delta_budget": -350000,
+        "delta_sleep_left": 152932
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6717,
+          "budget": 67170000,
+          "occupied_top": 62171475,
+          "sleep_left": 4599366,
+          "remaining_gap": 399159,
+          "by_post": {
+            "events": 31937,
+            "rail_throughput": 33058,
+            "c117_skip": 43659,
+            "c117_sample": 1519743,
+            "catalog_continuation": 35558009,
+            "orchestrator": 24975313,
+            "catalog_continuation_check": 9756
+          }
+        },
+        "variant": {
+          "ticks": 6751,
+          "budget": 67510000,
+          "occupied_top": 61989697,
+          "sleep_left": 5092594,
+          "remaining_gap": 427709,
+          "by_post": {
+            "events": 34171,
+            "rail_throughput": 39548,
+            "c117_skip": 48447,
+            "c117_sample": 1392601,
+            "catalog_continuation": 35456640,
+            "orchestrator": 25004784,
+            "catalog_continuation_check": 13506
+          }
+        },
+        "delta_occupied": -181778,
+        "delta_budget": 340000,
+        "delta_sleep_left": 493228
+      },
+      "1972": {
+        "reference": {
+          "ticks": 7892,
+          "budget": 78920000,
+          "occupied_top": 78547065,
+          "sleep_left": 352442,
+          "remaining_gap": 20493,
+          "by_post": {
+            "events": 27706,
+            "rail_throughput": 3753,
+            "c117_skip": 1827,
+            "c117_sample": 894363,
+            "catalog_continuation": 17717002,
+            "orchestrator": 59900281,
+            "catalog_continuation_check": 2133
+          }
+        },
+        "variant": {
+          "ticks": 6775,
+          "budget": 67750000,
+          "occupied_top": 67122126,
+          "sleep_left": 563154,
+          "remaining_gap": 64720,
+          "by_post": {
+            "events": 13341,
+            "rail_throughput": 6487,
+            "c117_skip": 3654,
+            "c117_sample": 1164203,
+            "catalog_continuation": 12898175,
+            "orchestrator": 53032493,
+            "catalog_continuation_check": 3773
+          }
+        },
+        "delta_occupied": -11424939,
+        "delta_budget": -11170000,
+        "delta_sleep_left": 210712
+      },
+      "1973": {
+        "reference": {
+          "ticks": 5956,
+          "budget": 59560000,
+          "occupied_top": 59140147,
+          "sleep_left": 377305,
+          "remaining_gap": 42548,
+          "by_post": {
+            "events": 29022,
+            "rail_throughput": 4651,
+            "c117_skip": 2205,
+            "c117_sample": 1021809,
+            "orchestrator": 58079633,
+            "catalog_continuation_check": 2827
+          }
+        },
+        "variant": {
+          "ticks": 6838,
+          "budget": 68380000,
+          "occupied_top": 67796078,
+          "sleep_left": 542120,
+          "remaining_gap": 41802,
+          "by_post": {
+            "events": 14010,
+            "rail_throughput": 5788,
+            "c117_skip": 3276,
+            "c117_sample": 1441167,
+            "catalog_continuation": 4608489,
+            "orchestrator": 61719650,
+            "catalog_continuation_check": 3698
+          }
+        },
+        "delta_occupied": 8655931,
+        "delta_budget": 8820000,
+        "delta_sleep_left": 164815
+      }
+    },
+    "1": {
+      "1970": {
+        "reference": {
+          "ticks": 6747,
+          "budget": 67470000,
+          "occupied_top": 62547697,
+          "sleep_left": 4554865,
+          "remaining_gap": 367438,
+          "by_post": {
+            "events": 31700,
+            "rail_throughput": 106655,
+            "c117_skip": 43470,
+            "c117_sample": 446084,
+            "catalog_continuation": 48231259,
+            "orchestrator": 13679980,
+            "catalog_continuation_check": 8549
+          }
+        },
+        "variant": {
+          "ticks": 6760,
+          "budget": 67600000,
+          "occupied_top": 62186756,
+          "sleep_left": 5036610,
+          "remaining_gap": 376634,
+          "by_post": {
+            "events": 32716,
+            "rail_throughput": 117544,
+            "c117_skip": 44856,
+            "c117_sample": 469534,
+            "catalog_continuation": 49643353,
+            "orchestrator": 11869091,
+            "catalog_continuation_check": 9662
+          }
+        },
+        "delta_occupied": -360941,
+        "delta_budget": 130000,
+        "delta_sleep_left": 481745
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6754,
+          "budget": 67540000,
+          "occupied_top": 61696150,
+          "sleep_left": 5429151,
+          "remaining_gap": 414699,
+          "by_post": {
+            "events": 34564,
+            "rail_throughput": 31084,
+            "c117_skip": 47502,
+            "c117_sample": 2683451,
+            "catalog_continuation": 47814703,
+            "orchestrator": 11080623,
+            "catalog_continuation_check": 4223
+          }
+        },
+        "variant": {
+          "ticks": 6751,
+          "budget": 67510000,
+          "occupied_top": 62235307,
+          "sleep_left": 4919610,
+          "remaining_gap": 355083,
+          "by_post": {
+            "events": 34990,
+            "rail_throughput": 49211,
+            "c117_skip": 44541,
+            "c117_sample": 2563796,
+            "catalog_continuation": 44939133,
+            "orchestrator": 14597833,
+            "catalog_continuation_check": 5803
+          }
+        },
+        "delta_occupied": 539157,
+        "delta_budget": -30000,
+        "delta_sleep_left": -509541
+      },
+      "1972": {
+        "reference": {
+          "ticks": 7089,
+          "budget": 70890000,
+          "occupied_top": 58247813,
+          "sleep_left": 11949303,
+          "remaining_gap": 692884,
+          "by_post": {
+            "events": 72552,
+            "rail_throughput": 75112,
+            "c117_skip": 108612,
+            "c117_sample": 5344607,
+            "catalog_continuation": 30578316,
+            "orchestrator": 22037672,
+            "catalog_continuation_check": 30942
+          }
+        },
+        "variant": {
+          "ticks": 6759,
+          "budget": 67590000,
+          "occupied_top": 55222944,
+          "sleep_left": 11688332,
+          "remaining_gap": 678724,
+          "by_post": {
+            "events": 71640,
+            "rail_throughput": 62904,
+            "c117_skip": 104769,
+            "c117_sample": 5224153,
+            "catalog_continuation": 26245514,
+            "orchestrator": 23463953,
+            "catalog_continuation_check": 50011
+          }
+        },
+        "delta_occupied": -3024869,
+        "delta_budget": -3300000,
+        "delta_sleep_left": -260971
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6462,
+          "budget": 64620000,
+          "occupied_top": 63043374,
+          "sleep_left": 1461273,
+          "remaining_gap": 115353,
+          "by_post": {
+            "events": 34564,
+            "rail_throughput": 15677,
+            "c117_skip": 9009,
+            "c117_sample": 4070219,
+            "catalog_continuation": 9483550,
+            "orchestrator": 49421739,
+            "catalog_continuation_check": 8616
+          }
+        },
+        "variant": {
+          "ticks": 6758,
+          "budget": 67580000,
+          "occupied_top": 66200015,
+          "sleep_left": 1301384,
+          "remaining_gap": 78601,
+          "by_post": {
+            "events": 35346,
+            "rail_throughput": 10059,
+            "c117_skip": 8631,
+            "c117_sample": 3421356,
+            "catalog_continuation": 24122273,
+            "orchestrator": 38536446,
+            "catalog_continuation_check": 14293,
+            "save_projection": 51611
+          }
+        },
+        "delta_occupied": 3156641,
+        "delta_budget": 2960000,
+        "delta_sleep_left": -159889
+      }
+    },
+    "17": {
+      "1970": {
+        "reference": {
+          "ticks": 6763,
+          "budget": 67630000,
+          "occupied_top": 62821608,
+          "sleep_left": 4420580,
+          "remaining_gap": 387812,
+          "by_post": {
+            "events": 28763,
+            "rail_throughput": 120385,
+            "c117_skip": 39816,
+            "c117_sample": 333039,
+            "catalog_continuation": 47931086,
+            "orchestrator": 14357329,
+            "catalog_continuation_check": 11190
+          }
+        },
+        "variant": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 62674731,
+          "sleep_left": 4436479,
+          "remaining_gap": 408790,
+          "by_post": {
+            "events": 29817,
+            "rail_throughput": 121439,
+            "c117_skip": 41139,
+            "c117_sample": 367755,
+            "catalog_continuation": 48603073,
+            "orchestrator": 13500360,
+            "catalog_continuation_check": 11148
+          }
+        },
+        "delta_occupied": -146877,
+        "delta_budget": -110000,
+        "delta_sleep_left": 15899
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6780,
+          "budget": 67800000,
+          "occupied_top": 64480714,
+          "sleep_left": 3084913,
+          "remaining_gap": 234373,
+          "by_post": {
+            "events": 21200,
+            "rail_throughput": 18570,
+            "c117_skip": 25578,
+            "c117_sample": 930945,
+            "catalog_continuation": 52020509,
+            "orchestrator": 11462279,
+            "catalog_continuation_check": 1633
+          }
+        },
+        "variant": {
+          "ticks": 6783,
+          "budget": 67830000,
+          "occupied_top": 64667755,
+          "sleep_left": 2949233,
+          "remaining_gap": 213012,
+          "by_post": {
+            "events": 20847,
+            "rail_throughput": 17478,
+            "c117_skip": 24381,
+            "c117_sample": 930009,
+            "catalog_continuation": 51689112,
+            "orchestrator": 11983537,
+            "catalog_continuation_check": 2391
+          }
+        },
+        "delta_occupied": 187041,
+        "delta_budget": 30000,
+        "delta_sleep_left": -135680
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6728,
+          "budget": 67280000,
+          "occupied_top": 65900519,
+          "sleep_left": 1302961,
+          "remaining_gap": 76520,
+          "by_post": {
+            "events": 16425,
+            "rail_throughput": 141231,
+            "c117_skip": 9135,
+            "c117_sample": 1207246,
+            "catalog_continuation": 9694121,
+            "orchestrator": 54814311,
+            "catalog_continuation_check": 18050
+          }
+        },
+        "variant": {
+          "ticks": 6737,
+          "budget": 67370000,
+          "occupied_top": 62707376,
+          "sleep_left": 4404560,
+          "remaining_gap": 258064,
+          "by_post": {
+            "events": 29871,
+            "rail_throughput": 29388,
+            "c117_skip": 33075,
+            "c117_sample": 2342361,
+            "catalog_continuation": 22029498,
+            "orchestrator": 38218252,
+            "catalog_continuation_check": 24931
+          }
+        },
+        "delta_occupied": -3193143,
+        "delta_budget": 90000,
+        "delta_sleep_left": 3101599
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6801,
+          "budget": 68010000,
+          "occupied_top": 66032846,
+          "sleep_left": 1871919,
+          "remaining_gap": 105235,
+          "by_post": {
+            "events": 35346,
+            "rail_throughput": 20062,
+            "c117_skip": 14553,
+            "c117_sample": 2058925,
+            "catalog_continuation": 5076817,
+            "orchestrator": 58805471,
+            "catalog_continuation_check": 21672
+          }
+        },
+        "variant": {
+          "ticks": 7044,
+          "budget": 70440000,
+          "occupied_top": 68958035,
+          "sleep_left": 1376833,
+          "remaining_gap": 105132,
+          "by_post": {
+            "events": 33800,
+            "rail_throughput": 27158,
+            "c117_skip": 9828,
+            "c117_sample": 2154957,
+            "catalog_continuation": 1734030,
+            "orchestrator": 64987674,
+            "catalog_continuation_check": 10588
+          }
+        },
+        "delta_occupied": 2925189,
+        "delta_budget": 2430000,
+        "delta_sleep_left": -495086
+      }
+    },
+    "73": {
+      "1970": {
+        "reference": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 61074739,
+          "sleep_left": 5986268,
+          "remaining_gap": 458993,
+          "by_post": {
+            "events": 37068,
+            "rail_throughput": 143545,
+            "c117_skip": 54117,
+            "c117_sample": 503392,
+            "catalog_continuation": 41152801,
+            "orchestrator": 19162649,
+            "catalog_continuation_check": 21167
+          }
+        },
+        "variant": {
+          "ticks": 6761,
+          "budget": 67610000,
+          "occupied_top": 61775073,
+          "sleep_left": 5354853,
+          "remaining_gap": 480074,
+          "by_post": {
+            "events": 35395,
+            "rail_throughput": 141711,
+            "c117_skip": 50400,
+            "c117_sample": 505773,
+            "catalog_continuation": 46164646,
+            "orchestrator": 14861313,
+            "catalog_continuation_check": 15835
+          }
+        },
+        "delta_occupied": 700334,
+        "delta_budget": 90000,
+        "delta_sleep_left": -631415
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6748,
+          "budget": 67480000,
+          "occupied_top": 63092984,
+          "sleep_left": 4098215,
+          "remaining_gap": 288801,
+          "by_post": {
+            "events": 29217,
+            "rail_throughput": 45117,
+            "c117_skip": 37170,
+            "c117_sample": 1653798,
+            "catalog_continuation": 45192783,
+            "orchestrator": 16129736,
+            "catalog_continuation_check": 5163
+          }
+        },
+        "variant": {
+          "ticks": 6738,
+          "budget": 67380000,
+          "occupied_top": 60695114,
+          "sleep_left": 6225782,
+          "remaining_gap": 459104,
+          "by_post": {
+            "events": 37966,
+            "rail_throughput": 45987,
+            "c117_skip": 54117,
+            "c117_sample": 2034780,
+            "catalog_continuation": 39979318,
+            "orchestrator": 18528870,
+            "catalog_continuation_check": 14076
+          }
+        },
+        "delta_occupied": -2397870,
+        "delta_budget": -100000,
+        "delta_sleep_left": 2127567
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6819,
+          "budget": 68190000,
+          "occupied_top": 67667022,
+          "sleep_left": 473586,
+          "remaining_gap": 49392,
+          "by_post": {
+            "events": 15513,
+            "rail_throughput": 78208,
+            "c117_skip": 2898,
+            "c117_sample": 1485989,
+            "catalog_continuation": 9562342,
+            "orchestrator": 56519031,
+            "catalog_continuation_check": 3041
+          }
+        },
+        "variant": {
+          "ticks": 6773,
+          "budget": 67730000,
+          "occupied_top": 55788238,
+          "sleep_left": 11373973,
+          "remaining_gap": 567789,
+          "by_post": {
+            "events": 80103,
+            "rail_throughput": 123428,
+            "c117_skip": 89460,
+            "c117_sample": 5615909,
+            "catalog_continuation": 31967867,
+            "orchestrator": 17907646,
+            "catalog_continuation_check": 3825
+          }
+        },
+        "delta_occupied": -11878784,
+        "delta_budget": -460000,
+        "delta_sleep_left": 10900387
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6919,
+          "budget": 69190000,
+          "occupied_top": 68446945,
+          "sleep_left": 710983,
+          "remaining_gap": 32072,
+          "by_post": {
+            "events": 16023,
+            "rail_throughput": 66820,
+            "c117_skip": 4536,
+            "c117_sample": 2059707,
+            "orchestrator": 66294476,
+            "catalog_continuation_check": 5383
+          }
+        },
+        "variant": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 65370564,
+          "sleep_left": 2002427,
+          "remaining_gap": 147009,
+          "by_post": {
+            "events": 18788,
+            "rail_throughput": 128696,
+            "c117_skip": 14931,
+            "c117_sample": 4801286,
+            "catalog_continuation": 14855216,
+            "orchestrator": 45477578,
+            "catalog_continuation_check": 20829,
+            "save_projection": 53240
+          }
+        },
+        "delta_occupied": -3076381,
+        "delta_budget": -1670000,
+        "delta_sleep_left": 1291444
+      }
+    },
+    "314": {
+      "1970": {
+        "reference": {
+          "ticks": 6833,
+          "budget": 68330000,
+          "occupied_top": 62473259,
+          "sleep_left": 5383006,
+          "remaining_gap": 473735,
+          "by_post": {
+            "events": 34620,
+            "rail_throughput": 144772,
+            "c117_skip": 49644,
+            "c117_sample": 449110,
+            "catalog_continuation": 48592006,
+            "orchestrator": 13188372,
+            "catalog_continuation_check": 14735
+          }
+        },
+        "variant": {
+          "ticks": 6767,
+          "budget": 67670000,
+          "occupied_top": 61739978,
+          "sleep_left": 5476003,
+          "remaining_gap": 454019,
+          "by_post": {
+            "events": 35540,
+            "rail_throughput": 145759,
+            "c117_skip": 51156,
+            "c117_sample": 471770,
+            "catalog_continuation": 46374159,
+            "orchestrator": 14646670,
+            "catalog_continuation_check": 14924
+          }
+        },
+        "delta_occupied": -733281,
+        "delta_budget": -660000,
+        "delta_sleep_left": 92997
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6667,
+          "budget": 66670000,
+          "occupied_top": 61830699,
+          "sleep_left": 4574562,
+          "remaining_gap": 264739,
+          "by_post": {
+            "events": 31470,
+            "rail_throughput": 37777,
+            "c117_skip": 40257,
+            "c117_sample": 1525657,
+            "catalog_continuation": 39637716,
+            "orchestrator": 20545186,
+            "catalog_continuation_check": 12636
+          }
+        },
+        "variant": {
+          "ticks": 6746,
+          "budget": 67460000,
+          "occupied_top": 63327067,
+          "sleep_left": 3828078,
+          "remaining_gap": 304855,
+          "by_post": {
+            "events": 27861,
+            "rail_throughput": 45333,
+            "c117_skip": 36666,
+            "c117_sample": 1477250,
+            "catalog_continuation": 45892149,
+            "orchestrator": 15842357,
+            "catalog_continuation_check": 5451
+          }
+        },
+        "delta_occupied": 1496368,
+        "delta_budget": 790000,
+        "delta_sleep_left": -746484
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6802,
+          "budget": 68020000,
+          "occupied_top": 67059120,
+          "sleep_left": 915951,
+          "remaining_gap": 44929,
+          "by_post": {
+            "events": 16804,
+            "rail_throughput": 7285,
+            "c117_skip": 5859,
+            "c117_sample": 1086746,
+            "catalog_continuation": 4086351,
+            "orchestrator": 61850768,
+            "catalog_continuation_check": 5307
+          }
+        },
+        "variant": {
+          "ticks": 6929,
+          "budget": 69290000,
+          "occupied_top": 68617703,
+          "sleep_left": 615520,
+          "remaining_gap": 56777,
+          "by_post": {
+            "events": 12824,
+            "rail_throughput": 7405,
+            "c117_skip": 4158,
+            "c117_sample": 1154440,
+            "catalog_continuation": 4942166,
+            "orchestrator": 62492277,
+            "catalog_continuation_check": 4433
+          }
+        },
+        "delta_occupied": 1558583,
+        "delta_budget": 1270000,
+        "delta_sleep_left": -300431
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6743,
+          "budget": 67430000,
+          "occupied_top": 66799305,
+          "sleep_left": 585326,
+          "remaining_gap": 45369,
+          "by_post": {
+            "events": 9457,
+            "rail_throughput": 7350,
+            "c117_skip": 3780,
+            "c117_sample": 1537256,
+            "orchestrator": 65236954,
+            "catalog_continuation_check": 4508
+          }
+        },
+        "variant": {
+          "ticks": 6619,
+          "budget": 66190000,
+          "occupied_top": 65468054,
+          "sleep_left": 691642,
+          "remaining_gap": 30304,
+          "by_post": {
+            "events": 17857,
+            "rail_throughput": 18401,
+            "c117_skip": 4347,
+            "c117_sample": 1692109,
+            "orchestrator": 63730188,
+            "catalog_continuation_check": 5152
+          }
+        },
+        "delta_occupied": -1331251,
+        "delta_budget": -1240000,
+        "delta_sleep_left": 106316
+      }
+    },
+    "512": {
+      "1970": {
+        "reference": {
+          "ticks": 6884,
+          "budget": 68840000,
+          "occupied_top": 64472462,
+          "sleep_left": 4038402,
+          "remaining_gap": 329136,
+          "by_post": {
+            "events": 26767,
+            "rail_throughput": 123425,
+            "c117_skip": 36288,
+            "c117_sample": 254439,
+            "catalog_continuation": 54332235,
+            "orchestrator": 9690519,
+            "catalog_continuation_check": 8789
+          }
+        },
+        "variant": {
+          "ticks": 6814,
+          "budget": 68140000,
+          "occupied_top": 63814497,
+          "sleep_left": 3998467,
+          "remaining_gap": 327036,
+          "by_post": {
+            "events": 26237,
+            "rail_throughput": 133221,
+            "c117_skip": 35910,
+            "c117_sample": 254485,
+            "catalog_continuation": 54422896,
+            "orchestrator": 8933085,
+            "catalog_continuation_check": 8663
+          }
+        },
+        "delta_occupied": -657965,
+        "delta_budget": -700000,
+        "delta_sleep_left": -39935
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6618,
+          "budget": 66180000,
+          "occupied_top": 63075072,
+          "sleep_left": 2904719,
+          "remaining_gap": 200209,
+          "by_post": {
+            "events": 19438,
+            "rail_throughput": 17460,
+            "c117_skip": 23373,
+            "c117_sample": 523357,
+            "catalog_continuation": 51628174,
+            "orchestrator": 10858183,
+            "catalog_continuation_check": 5087
+          }
+        },
+        "variant": {
+          "ticks": 6690,
+          "budget": 66900000,
+          "occupied_top": 63734008,
+          "sleep_left": 2959431,
+          "remaining_gap": 206561,
+          "by_post": {
+            "events": 19912,
+            "rail_throughput": 18068,
+            "c117_skip": 24255,
+            "c117_sample": 571399,
+            "catalog_continuation": 49610233,
+            "orchestrator": 13484366,
+            "catalog_continuation_check": 5775
+          }
+        },
+        "delta_occupied": 658936,
+        "delta_budget": 720000,
+        "delta_sleep_left": 54712
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6768,
+          "budget": 67680000,
+          "occupied_top": 66031505,
+          "sleep_left": 1509248,
+          "remaining_gap": 139247,
+          "by_post": {
+            "events": 16530,
+            "rail_throughput": 18538,
+            "c117_skip": 12348,
+            "c117_sample": 682905,
+            "catalog_continuation": 12590315,
+            "orchestrator": 52699612,
+            "catalog_continuation_check": 11257
+          }
+        },
+        "variant": {
+          "ticks": 6783,
+          "budget": 67830000,
+          "occupied_top": 65780137,
+          "sleep_left": 1918012,
+          "remaining_gap": 131851,
+          "by_post": {
+            "events": 19402,
+            "rail_throughput": 21686,
+            "c117_skip": 16317,
+            "c117_sample": 833979,
+            "catalog_continuation": 9646489,
+            "orchestrator": 55218840,
+            "catalog_continuation_check": 23424
+          }
+        },
+        "delta_occupied": -251368,
+        "delta_budget": 150000,
+        "delta_sleep_left": 408764
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6760,
+          "budget": 67600000,
+          "occupied_top": 66025036,
+          "sleep_left": 1481622,
+          "remaining_gap": 93342,
+          "by_post": {
+            "events": 14903,
+            "rail_throughput": 11613,
+            "c117_skip": 9576,
+            "c117_sample": 898600,
+            "catalog_continuation": 17692408,
+            "orchestrator": 47392445,
+            "catalog_continuation_check": 5491
+          }
+        },
+        "variant": {
+          "ticks": 6737,
+          "budget": 67370000,
+          "occupied_top": 66218780,
+          "sleep_left": 1048715,
+          "remaining_gap": 102505,
+          "by_post": {
+            "events": 14266,
+            "rail_throughput": 8864,
+            "c117_skip": 7686,
+            "c117_sample": 889044,
+            "catalog_continuation": 30630464,
+            "orchestrator": 34664662,
+            "catalog_continuation_check": 3794
+          }
+        },
+        "delta_occupied": 193744,
+        "delta_budget": -230000,
+        "delta_sleep_left": -432907
+      }
+    },
+    "1024": {
+      "1970": {
+        "reference": {
+          "ticks": 6794,
+          "budget": 67940000,
+          "occupied_top": 64926705,
+          "sleep_left": 2758373,
+          "remaining_gap": 254922,
+          "by_post": {
+            "events": 20707,
+            "rail_throughput": 142094,
+            "c117_skip": 25452,
+            "c117_sample": 352878,
+            "catalog_continuation": 58531146,
+            "orchestrator": 5853678,
+            "catalog_continuation_check": 750
+          }
+        },
+        "variant": {
+          "ticks": 6765,
+          "budget": 67650000,
+          "occupied_top": 64494205,
+          "sleep_left": 2890269,
+          "remaining_gap": 265526,
+          "by_post": {
+            "events": 22150,
+            "rail_throughput": 143113,
+            "c117_skip": 26712,
+            "c117_sample": 382030,
+            "catalog_continuation": 58486801,
+            "orchestrator": 5432649,
+            "catalog_continuation_check": 750
+          }
+        },
+        "delta_occupied": -432500,
+        "delta_budget": -290000,
+        "delta_sleep_left": 131896
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6706,
+          "budget": 67060000,
+          "occupied_top": 63635258,
+          "sleep_left": 3197067,
+          "remaining_gap": 227675,
+          "by_post": {
+            "events": 22120,
+            "rail_throughput": 17921,
+            "c117_skip": 24759,
+            "c117_sample": 931396,
+            "catalog_continuation": 46835560,
+            "orchestrator": 15801612,
+            "catalog_continuation_check": 1890
+          }
+        },
+        "variant": {
+          "ticks": 6822,
+          "budget": 68220000,
+          "occupied_top": 63731221,
+          "sleep_left": 4227237,
+          "remaining_gap": 261542,
+          "by_post": {
+            "events": 25550,
+            "rail_throughput": 32168,
+            "c117_skip": 33264,
+            "c117_sample": 908711,
+            "catalog_continuation": 45595809,
+            "orchestrator": 17124897,
+            "catalog_continuation_check": 10822
+          }
+        },
+        "delta_occupied": 95963,
+        "delta_budget": 1160000,
+        "delta_sleep_left": 1030170
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6781,
+          "budget": 67810000,
+          "occupied_top": 63077260,
+          "sleep_left": 4342054,
+          "remaining_gap": 390686,
+          "by_post": {
+            "events": 30683,
+            "rail_throughput": 32303,
+            "c117_skip": 37800,
+            "c117_sample": 2622872,
+            "catalog_continuation": 24189335,
+            "orchestrator": 36150904,
+            "catalog_continuation_check": 13363
+          }
+        },
+        "variant": {
+          "ticks": 6686,
+          "budget": 66860000,
+          "occupied_top": 60675834,
+          "sleep_left": 5768272,
+          "remaining_gap": 415894,
+          "by_post": {
+            "events": 40298,
+            "rail_throughput": 33851,
+            "c117_skip": 52101,
+            "c117_sample": 2615861,
+            "catalog_continuation": 39017690,
+            "orchestrator": 18909380,
+            "catalog_continuation_check": 6653
+          }
+        },
+        "delta_occupied": -2401426,
+        "delta_budget": -950000,
+        "delta_sleep_left": 1426218
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6743,
+          "budget": 67430000,
+          "occupied_top": 64961571,
+          "sleep_left": 2290169,
+          "remaining_gap": 178260,
+          "by_post": {
+            "events": 23210,
+            "rail_throughput": 28138,
+            "c117_skip": 18648,
+            "c117_sample": 3678594,
+            "catalog_continuation": 7676981,
+            "orchestrator": 53509367,
+            "catalog_continuation_check": 26633
+          }
+        },
+        "variant": {
+          "ticks": 6750,
+          "budget": 67500000,
+          "occupied_top": 65163441,
+          "sleep_left": 2166102,
+          "remaining_gap": 170457,
+          "by_post": {
+            "events": 44495,
+            "rail_throughput": 37009,
+            "c117_skip": 17388,
+            "c117_sample": 4056318,
+            "catalog_continuation": 8716875,
+            "orchestrator": 52275229,
+            "catalog_continuation_check": 16127
+          }
+        },
+        "delta_occupied": 201870,
+        "delta_budget": 70000,
+        "delta_sleep_left": -124067
+      }
+    },
+    "1337": {
+      "1970": {
+        "reference": {
+          "ticks": 6747,
+          "budget": 67470000,
+          "occupied_top": 62921898,
+          "sleep_left": 4178725,
+          "remaining_gap": 369377,
+          "by_post": {
+            "events": 30398,
+            "rail_throughput": 48251,
+            "c117_skip": 41958,
+            "c117_sample": 491302,
+            "catalog_continuation": 54359595,
+            "orchestrator": 7943983,
+            "catalog_continuation_check": 6411
+          }
+        },
+        "variant": {
+          "ticks": 6812,
+          "budget": 68120000,
+          "occupied_top": 63309323,
+          "sleep_left": 4407066,
+          "remaining_gap": 403611,
+          "by_post": {
+            "events": 30872,
+            "rail_throughput": 58661,
+            "c117_skip": 42273,
+            "c117_sample": 509731,
+            "catalog_continuation": 52109469,
+            "orchestrator": 10551386,
+            "catalog_continuation_check": 6931
+          }
+        },
+        "delta_occupied": 387425,
+        "delta_budget": 650000,
+        "delta_sleep_left": 228341
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 62425733,
+          "sleep_left": 4698773,
+          "remaining_gap": 395494,
+          "by_post": {
+            "events": 33151,
+            "rail_throughput": 40228,
+            "c117_skip": 46998,
+            "c117_sample": 2132161,
+            "catalog_continuation": 43835213,
+            "orchestrator": 16329613,
+            "catalog_continuation_check": 8369
+          }
+        },
+        "variant": {
+          "ticks": 6691,
+          "budget": 66910000,
+          "occupied_top": 62306499,
+          "sleep_left": 4248365,
+          "remaining_gap": 355136,
+          "by_post": {
+            "events": 33089,
+            "rail_throughput": 37308,
+            "c117_skip": 41454,
+            "c117_sample": 2057807,
+            "catalog_continuation": 43938058,
+            "orchestrator": 16191800,
+            "catalog_continuation_check": 6983
+          }
+        },
+        "delta_occupied": -119234,
+        "delta_budget": -610000,
+        "delta_sleep_left": -450408
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6784,
+          "budget": 67840000,
+          "occupied_top": 66536421,
+          "sleep_left": 1185948,
+          "remaining_gap": 117631,
+          "by_post": {
+            "events": 10656,
+            "rail_throughput": 13785,
+            "c117_skip": 7938,
+            "c117_sample": 2441299,
+            "catalog_continuation": 2481890,
+            "orchestrator": 61572324,
+            "catalog_continuation_check": 8529
+          }
+        },
+        "variant": {
+          "ticks": 6870,
+          "budget": 68700000,
+          "occupied_top": 67848844,
+          "sleep_left": 789796,
+          "remaining_gap": 61360,
+          "by_post": {
+            "events": 19001,
+            "rail_throughput": 10442,
+            "c117_skip": 5544,
+            "c117_sample": 2099926,
+            "catalog_continuation": 6192411,
+            "orchestrator": 59515310,
+            "catalog_continuation_check": 6210
+          }
+        },
+        "delta_occupied": 1312423,
+        "delta_budget": 860000,
+        "delta_sleep_left": -396152
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6802,
+          "budget": 68020000,
+          "occupied_top": 67183787,
+          "sleep_left": 771983,
+          "remaining_gap": 64230,
+          "by_post": {
+            "events": 11173,
+            "rail_throughput": 9227,
+            "c117_skip": 4536,
+            "c117_sample": 2756107,
+            "orchestrator": 64397086,
+            "catalog_continuation_check": 5658
+          }
+        },
+        "variant": {
+          "ticks": 6656,
+          "budget": 66560000,
+          "occupied_top": 65807754,
+          "sleep_left": 711205,
+          "remaining_gap": 41041,
+          "by_post": {
+            "events": 12581,
+            "rail_throughput": 8517,
+            "c117_skip": 4221,
+            "c117_sample": 2368117,
+            "orchestrator": 63409074,
+            "catalog_continuation_check": 5244
+          }
+        },
+        "delta_occupied": -1376033,
+        "delta_budget": -1460000,
+        "delta_sleep_left": -60778
+      }
+    },
+    "4096": {
+      "1970": {
+        "reference": {
+          "ticks": 6751,
+          "budget": 67510000,
+          "occupied_top": 63309398,
+          "sleep_left": 3883818,
+          "remaining_gap": 316784,
+          "by_post": {
+            "events": 27565,
+            "rail_throughput": 25984,
+            "c117_skip": 36225,
+            "c117_sample": 453184,
+            "catalog_continuation": 47812438,
+            "orchestrator": 14947086,
+            "catalog_continuation_check": 6916
+          }
+        },
+        "variant": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 63343805,
+          "sleep_left": 3871173,
+          "remaining_gap": 305022,
+          "by_post": {
+            "events": 27179,
+            "rail_throughput": 35813,
+            "c117_skip": 35721,
+            "c117_sample": 459881,
+            "catalog_continuation": 50044725,
+            "orchestrator": 12733569,
+            "catalog_continuation_check": 6917
+          }
+        },
+        "delta_occupied": 34407,
+        "delta_budget": 10000,
+        "delta_sleep_left": -12645
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6760,
+          "budget": 67600000,
+          "occupied_top": 61541669,
+          "sleep_left": 5690233,
+          "remaining_gap": 368098,
+          "by_post": {
+            "events": 35276,
+            "rail_throughput": 41946,
+            "c117_skip": 49014,
+            "c117_sample": 1958940,
+            "catalog_continuation": 40170070,
+            "orchestrator": 19271598,
+            "catalog_continuation_check": 14825
+          }
+        },
+        "variant": {
+          "ticks": 6790,
+          "budget": 67900000,
+          "occupied_top": 62016528,
+          "sleep_left": 5529576,
+          "remaining_gap": 353896,
+          "by_post": {
+            "events": 34573,
+            "rail_throughput": 42172,
+            "c117_skip": 48636,
+            "c117_sample": 1562738,
+            "catalog_continuation": 35558310,
+            "orchestrator": 24755712,
+            "catalog_continuation_check": 14387
+          }
+        },
+        "delta_occupied": 474859,
+        "delta_budget": 300000,
+        "delta_sleep_left": -160657
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6761,
+          "budget": 67610000,
+          "occupied_top": 57956726,
+          "sleep_left": 9044054,
+          "remaining_gap": 609220,
+          "by_post": {
+            "events": 59268,
+            "rail_throughput": 54677,
+            "c117_skip": 87822,
+            "c117_sample": 5793236,
+            "catalog_continuation": 33345802,
+            "orchestrator": 18611899,
+            "catalog_continuation_check": 4022
+          }
+        },
+        "variant": {
+          "ticks": 6954,
+          "budget": 69540000,
+          "occupied_top": 68807388,
+          "sleep_left": 662209,
+          "remaining_gap": 70403,
+          "by_post": {
+            "events": 15032,
+            "rail_throughput": 7850,
+            "c117_skip": 4410,
+            "c117_sample": 1455415,
+            "catalog_continuation": 6226342,
+            "orchestrator": 61093584,
+            "catalog_continuation_check": 4755
+          }
+        },
+        "delta_occupied": 10850662,
+        "delta_budget": 1930000,
+        "delta_sleep_left": -8381845
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6755,
+          "budget": 67550000,
+          "occupied_top": 66198001,
+          "sleep_left": 1260028,
+          "remaining_gap": 91971,
+          "by_post": {
+            "events": 17052,
+            "rail_throughput": 128840,
+            "c117_skip": 8694,
+            "c117_sample": 4080426,
+            "catalog_continuation": 11423056,
+            "orchestrator": 50480563,
+            "catalog_continuation_check": 7630,
+            "save_projection": 51740
+          }
+        },
+        "variant": {
+          "ticks": 6554,
+          "budget": 65540000,
+          "occupied_top": 65120734,
+          "sleep_left": 398303,
+          "remaining_gap": 20963,
+          "by_post": {
+            "events": 8062,
+            "rail_throughput": 2089,
+            "c117_skip": 1953,
+            "c117_sample": 1317701,
+            "catalog_continuation": 28909040,
+            "orchestrator": 34881303,
+            "catalog_continuation_check": 586
+          }
+        },
+        "delta_occupied": -1077267,
+        "delta_budget": -2010000,
+        "delta_sleep_left": -861725
+      }
+    },
+    "8191": {
+      "1970": {
+        "reference": {
+          "ticks": 6748,
+          "budget": 67480000,
+          "occupied_top": 61858005,
+          "sleep_left": 5236105,
+          "remaining_gap": 385890,
+          "by_post": {
+            "events": 34264,
+            "rail_throughput": 168187,
+            "c117_skip": 48195,
+            "c117_sample": 454627,
+            "catalog_continuation": 38561639,
+            "orchestrator": 22571878,
+            "catalog_continuation_check": 19215
+          }
+        },
+        "variant": {
+          "ticks": 6750,
+          "budget": 67500000,
+          "occupied_top": 61692501,
+          "sleep_left": 5378887,
+          "remaining_gap": 428612,
+          "by_post": {
+            "events": 35651,
+            "rail_throughput": 169409,
+            "c117_skip": 50211,
+            "c117_sample": 470951,
+            "catalog_continuation": 35578824,
+            "orchestrator": 25367866,
+            "catalog_continuation_check": 19589
+          }
+        },
+        "delta_occupied": -165504,
+        "delta_budget": 20000,
+        "delta_sleep_left": 142782
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6756,
+          "budget": 67560000,
+          "occupied_top": 62413857,
+          "sleep_left": 4766115,
+          "remaining_gap": 380028,
+          "by_post": {
+            "events": 33440,
+            "rail_throughput": 37680,
+            "c117_skip": 41706,
+            "c117_sample": 2038727,
+            "catalog_continuation": 48017612,
+            "orchestrator": 12240722,
+            "catalog_continuation_check": 3970
+          }
+        },
+        "variant": {
+          "ticks": 6754,
+          "budget": 67540000,
+          "occupied_top": 62337889,
+          "sleep_left": 4859398,
+          "remaining_gap": 342713,
+          "by_post": {
+            "events": 32490,
+            "rail_throughput": 37916,
+            "c117_skip": 42399,
+            "c117_sample": 2039126,
+            "catalog_continuation": 48485947,
+            "orchestrator": 11696681,
+            "catalog_continuation_check": 3330
+          }
+        },
+        "delta_occupied": -75968,
+        "delta_budget": -20000,
+        "delta_sleep_left": 93283
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6769,
+          "budget": 67690000,
+          "occupied_top": 66399079,
+          "sleep_left": 1194108,
+          "remaining_gap": 96813,
+          "by_post": {
+            "events": 16635,
+            "rail_throughput": 15686,
+            "c117_skip": 9387,
+            "c117_sample": 2491857,
+            "catalog_continuation": 6900825,
+            "orchestrator": 56955240,
+            "catalog_continuation_check": 9449
+          }
+        },
+        "variant": {
+          "ticks": 7083,
+          "budget": 70830000,
+          "occupied_top": 63157304,
+          "sleep_left": 7256155,
+          "remaining_gap": 416541,
+          "by_post": {
+            "events": 47419,
+            "rail_throughput": 46907,
+            "c117_skip": 60165,
+            "c117_sample": 4969800,
+            "catalog_continuation": 20544636,
+            "orchestrator": 37476055,
+            "catalog_continuation_check": 12322
+          }
+        },
+        "delta_occupied": -3241775,
+        "delta_budget": 3140000,
+        "delta_sleep_left": 6062047
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6796,
+          "budget": 67960000,
+          "occupied_top": 67179122,
+          "sleep_left": 725601,
+          "remaining_gap": 55277,
+          "by_post": {
+            "events": 28896,
+            "rail_throughput": 9413,
+            "c117_skip": 4725,
+            "c117_sample": 2624816,
+            "orchestrator": 64505486,
+            "catalog_continuation_check": 5786
+          }
+        },
+        "variant": {
+          "ticks": 6468,
+          "budget": 64680000,
+          "occupied_top": 63400391,
+          "sleep_left": 1194086,
+          "remaining_gap": 85523,
+          "by_post": {
+            "events": 35751,
+            "rail_throughput": 15661,
+            "c117_skip": 8001,
+            "c117_sample": 3483127,
+            "catalog_continuation": 1419646,
+            "orchestrator": 58428692,
+            "catalog_continuation_check": 9513
+          }
+        },
+        "delta_occupied": -3778731,
+        "delta_budget": -3280000,
+        "delta_sleep_left": 468485
+      }
+    },
+    "12345": {
+      "1970": {
+        "reference": {
+          "ticks": 6756,
+          "budget": 67560000,
+          "occupied_top": 63708019,
+          "sleep_left": 3508189,
+          "remaining_gap": 343792,
+          "by_post": {
+            "events": 25236,
+            "rail_throughput": 23910,
+            "c117_skip": 33264,
+            "c117_sample": 394352,
+            "catalog_continuation": 55693114,
+            "orchestrator": 7535387,
+            "catalog_continuation_check": 2756
+          }
+        },
+        "variant": {
+          "ticks": 6765,
+          "budget": 67650000,
+          "occupied_top": 63257353,
+          "sleep_left": 3998101,
+          "remaining_gap": 394546,
+          "by_post": {
+            "events": 27242,
+            "rail_throughput": 25913,
+            "c117_skip": 36918,
+            "c117_sample": 396541,
+            "catalog_continuation": 53878038,
+            "orchestrator": 8885681,
+            "catalog_continuation_check": 7020
+          }
+        },
+        "delta_occupied": -450666,
+        "delta_budget": 90000,
+        "delta_sleep_left": 489912
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6748,
+          "budget": 67480000,
+          "occupied_top": 62087891,
+          "sleep_left": 5108490,
+          "remaining_gap": 283619,
+          "by_post": {
+            "events": 30400,
+            "rail_throughput": 27458,
+            "c117_skip": 41643,
+            "c117_sample": 919382,
+            "catalog_continuation": 44269450,
+            "orchestrator": 16786120,
+            "catalog_continuation_check": 13438
+          }
+        },
+        "variant": {
+          "ticks": 6735,
+          "budget": 67350000,
+          "occupied_top": 62168080,
+          "sleep_left": 4869865,
+          "remaining_gap": 312055,
+          "by_post": {
+            "events": 28199,
+            "rail_throughput": 36374,
+            "c117_skip": 39501,
+            "c117_sample": 973767,
+            "catalog_continuation": 48150063,
+            "orchestrator": 12929826,
+            "catalog_continuation_check": 10350
+          }
+        },
+        "delta_occupied": 80189,
+        "delta_budget": -130000,
+        "delta_sleep_left": -238625
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6768,
+          "budget": 67680000,
+          "occupied_top": 63035404,
+          "sleep_left": 4288432,
+          "remaining_gap": 356164,
+          "by_post": {
+            "events": 35359,
+            "rail_throughput": 33661,
+            "c117_skip": 38367,
+            "c117_sample": 2286063,
+            "catalog_continuation": 28304080,
+            "orchestrator": 32324138,
+            "catalog_continuation_check": 13736
+          }
+        },
+        "variant": {
+          "ticks": 6776,
+          "budget": 67760000,
+          "occupied_top": 66806656,
+          "sleep_left": 892601,
+          "remaining_gap": 60743,
+          "by_post": {
+            "events": 13809,
+            "rail_throughput": 9865,
+            "c117_skip": 5355,
+            "c117_sample": 1116268,
+            "catalog_continuation": 7799448,
+            "orchestrator": 57856005,
+            "catalog_continuation_check": 5906
+          }
+        },
+        "delta_occupied": 3771252,
+        "delta_budget": 80000,
+        "delta_sleep_left": -3395831
+      },
+      "1973": {
+        "reference": {
+          "ticks": 7083,
+          "budget": 70830000,
+          "occupied_top": 68450160,
+          "sleep_left": 2219686,
+          "remaining_gap": 160154,
+          "by_post": {
+            "events": 17908,
+            "rail_throughput": 26747,
+            "c117_skip": 17577,
+            "c117_sample": 3412869,
+            "catalog_continuation": 13526459,
+            "orchestrator": 51433132,
+            "catalog_continuation_check": 15468
+          }
+        },
+        "variant": {
+          "ticks": 6754,
+          "budget": 67540000,
+          "occupied_top": 66125897,
+          "sleep_left": 1329302,
+          "remaining_gap": 84801,
+          "by_post": {
+            "events": 48753,
+            "rail_throughput": 13283,
+            "c117_skip": 8694,
+            "c117_sample": 2439660,
+            "catalog_continuation": 8267264,
+            "orchestrator": 55340192,
+            "catalog_continuation_check": 8051
+          }
+        },
+        "delta_occupied": -2324263,
+        "delta_budget": -3290000,
+        "delta_sleep_left": -890384
+      }
+    },
+    "54321": {
+      "1970": {
+        "reference": {
+          "ticks": 6765,
+          "budget": 67650000,
+          "occupied_top": 62915481,
+          "sleep_left": 4374799,
+          "remaining_gap": 359720,
+          "by_post": {
+            "events": 29352,
+            "rail_throughput": 142069,
+            "c117_skip": 40005,
+            "c117_sample": 445071,
+            "catalog_continuation": 49149932,
+            "orchestrator": 13101367,
+            "catalog_continuation_check": 7685
+          }
+        },
+        "variant": {
+          "ticks": 6748,
+          "budget": 67480000,
+          "occupied_top": 63729861,
+          "sleep_left": 3419024,
+          "remaining_gap": 331115,
+          "by_post": {
+            "events": 25083,
+            "rail_throughput": 137381,
+            "c117_skip": 31374,
+            "c117_sample": 432058,
+            "catalog_continuation": 54105385,
+            "orchestrator": 8996439,
+            "catalog_continuation_check": 2141
+          }
+        },
+        "delta_occupied": 814380,
+        "delta_budget": -170000,
+        "delta_sleep_left": -955775
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6763,
+          "budget": 67630000,
+          "occupied_top": 62749336,
+          "sleep_left": 4514276,
+          "remaining_gap": 366388,
+          "by_post": {
+            "events": 30966,
+            "rail_throughput": 26355,
+            "c117_skip": 39942,
+            "c117_sample": 2318804,
+            "catalog_continuation": 47987514,
+            "orchestrator": 12341405,
+            "catalog_continuation_check": 4350
+          }
+        },
+        "variant": {
+          "ticks": 6774,
+          "budget": 67740000,
+          "occupied_top": 62755618,
+          "sleep_left": 4564835,
+          "remaining_gap": 419547,
+          "by_post": {
+            "events": 32029,
+            "rail_throughput": 37644,
+            "c117_skip": 42462,
+            "c117_sample": 1897039,
+            "catalog_continuation": 42047981,
+            "orchestrator": 18693737,
+            "catalog_continuation_check": 4726
+          }
+        },
+        "delta_occupied": 6282,
+        "delta_budget": 110000,
+        "delta_sleep_left": 50559
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6750,
+          "budget": 67500000,
+          "occupied_top": 61539419,
+          "sleep_left": 5695613,
+          "remaining_gap": 264968,
+          "by_post": {
+            "events": 39972,
+            "rail_throughput": 119817,
+            "c117_skip": 50715,
+            "c117_sample": 4112818,
+            "catalog_continuation": 18415326,
+            "orchestrator": 38789039,
+            "catalog_continuation_check": 11732
+          }
+        },
+        "variant": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 65471555,
+          "sleep_left": 1902811,
+          "remaining_gap": 145634,
+          "by_post": {
+            "events": 21316,
+            "rail_throughput": 22839,
+            "c117_skip": 13923,
+            "c117_sample": 3450332,
+            "catalog_continuation": 4694609,
+            "orchestrator": 57208255,
+            "catalog_continuation_check": 13709,
+            "save_projection": 46572
+          }
+        },
+        "delta_occupied": 3932136,
+        "delta_budget": 20000,
+        "delta_sleep_left": -3792802
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6790,
+          "budget": 67900000,
+          "occupied_top": 67258058,
+          "sleep_left": 606339,
+          "remaining_gap": 35603,
+          "by_post": {
+            "events": 12494,
+            "rail_throughput": 4167,
+            "c117_skip": 2961,
+            "c117_sample": 2331789,
+            "catalog_continuation": 23185865,
+            "orchestrator": 41719012,
+            "catalog_continuation_check": 1770
+          }
+        },
+        "variant": {
+          "ticks": 6787,
+          "budget": 67870000,
+          "occupied_top": 66299584,
+          "sleep_left": 1429561,
+          "remaining_gap": 140855,
+          "by_post": {
+            "events": 37075,
+            "rail_throughput": 15231,
+            "c117_skip": 12348,
+            "c117_sample": 3397195,
+            "catalog_continuation": 10917114,
+            "orchestrator": 51397891,
+            "catalog_continuation_check": 7729,
+            "save_projection": 515001
+          }
+        },
+        "delta_occupied": -958474,
+        "delta_budget": -30000,
+        "delta_sleep_left": 823222
+      }
+    },
+    "65537": {
+      "1970": {
+        "reference": {
+          "ticks": 6765,
+          "budget": 67650000,
+          "occupied_top": 64383656,
+          "sleep_left": 2980405,
+          "remaining_gap": 285939,
+          "by_post": {
+            "events": 21827,
+            "rail_throughput": 141537,
+            "c117_skip": 26712,
+            "c117_sample": 326312,
+            "catalog_continuation": 54200440,
+            "orchestrator": 9665090,
+            "catalog_continuation_check": 1738
+          }
+        },
+        "variant": {
+          "ticks": 6766,
+          "budget": 67660000,
+          "occupied_top": 64275446,
+          "sleep_left": 3115807,
+          "remaining_gap": 268747,
+          "by_post": {
+            "events": 22262,
+            "rail_throughput": 141810,
+            "c117_skip": 27216,
+            "c117_sample": 327650,
+            "catalog_continuation": 54016009,
+            "orchestrator": 9738698,
+            "catalog_continuation_check": 1801
+          }
+        },
+        "delta_occupied": -108210,
+        "delta_budget": 10000,
+        "delta_sleep_left": 135402
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6744,
+          "budget": 67440000,
+          "occupied_top": 63527104,
+          "sleep_left": 3663380,
+          "remaining_gap": 249516,
+          "by_post": {
+            "events": 24810,
+            "rail_throughput": 21669,
+            "c117_skip": 31122,
+            "c117_sample": 707669,
+            "catalog_continuation": 47445118,
+            "orchestrator": 15288395,
+            "catalog_continuation_check": 8321
+          }
+        },
+        "variant": {
+          "ticks": 6734,
+          "budget": 67340000,
+          "occupied_top": 63348402,
+          "sleep_left": 3731106,
+          "remaining_gap": 260492,
+          "by_post": {
+            "events": 24298,
+            "rail_throughput": 31771,
+            "c117_skip": 31248,
+            "c117_sample": 669895,
+            "catalog_continuation": 48104153,
+            "orchestrator": 14478554,
+            "catalog_continuation_check": 8483
+          }
+        },
+        "delta_occupied": -178702,
+        "delta_budget": -100000,
+        "delta_sleep_left": 67726
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6765,
+          "budget": 67650000,
+          "occupied_top": 61227793,
+          "sleep_left": 6004688,
+          "remaining_gap": 417519,
+          "by_post": {
+            "events": 41019,
+            "rail_throughput": 41660,
+            "c117_skip": 55629,
+            "c117_sample": 2446411,
+            "catalog_continuation": 32692680,
+            "orchestrator": 25936957,
+            "catalog_continuation_check": 13437
+          }
+        },
+        "variant": {
+          "ticks": 6771,
+          "budget": 67710000,
+          "occupied_top": 65946929,
+          "sleep_left": 1642789,
+          "remaining_gap": 120282,
+          "by_post": {
+            "events": 22031,
+            "rail_throughput": 17685,
+            "c117_skip": 13545,
+            "c117_sample": 1096117,
+            "catalog_continuation": 9115365,
+            "orchestrator": 55662670,
+            "catalog_continuation_check": 19516
+          }
+        },
+        "delta_occupied": 4719136,
+        "delta_budget": 60000,
+        "delta_sleep_left": -4361899
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6750,
+          "budget": 67500000,
+          "occupied_top": 64560021,
+          "sleep_left": 2751291,
+          "remaining_gap": 188688,
+          "by_post": {
+            "events": 25578,
+            "rail_throughput": 30224,
+            "c117_skip": 22365,
+            "c117_sample": 3992673,
+            "catalog_continuation": 6810231,
+            "orchestrator": 53660449,
+            "catalog_continuation_check": 18501
+          }
+        },
+        "variant": {
+          "ticks": 6862,
+          "budget": 68620000,
+          "occupied_top": 67999078,
+          "sleep_left": 567385,
+          "remaining_gap": 53537,
+          "by_post": {
+            "events": 11988,
+            "rail_throughput": 6753,
+            "c117_skip": 3465,
+            "c117_sample": 1163937,
+            "orchestrator": 66808657,
+            "catalog_continuation_check": 4278
+          }
+        },
+        "delta_occupied": 3439057,
+        "delta_budget": 1120000,
+        "delta_sleep_left": -2183906
+      }
+    },
+    "123456": {
+      "1970": {
+        "reference": {
+          "ticks": 6843,
+          "budget": 68430000,
+          "occupied_top": 64300263,
+          "sleep_left": 3828614,
+          "remaining_gap": 301123,
+          "by_post": {
+            "events": 25258,
+            "rail_throughput": 105386,
+            "c117_skip": 32949,
+            "c117_sample": 395195,
+            "catalog_continuation": 51708054,
+            "orchestrator": 12026057,
+            "catalog_continuation_check": 7364
+          }
+        },
+        "variant": {
+          "ticks": 6753,
+          "budget": 67530000,
+          "occupied_top": 63432014,
+          "sleep_left": 3771902,
+          "remaining_gap": 326084,
+          "by_post": {
+            "events": 25668,
+            "rail_throughput": 105860,
+            "c117_skip": 33768,
+            "c117_sample": 399935,
+            "catalog_continuation": 51208792,
+            "orchestrator": 11650817,
+            "catalog_continuation_check": 7174
+          }
+        },
+        "delta_occupied": -868249,
+        "delta_budget": -900000,
+        "delta_sleep_left": -56712
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6658,
+          "budget": 66580000,
+          "occupied_top": 62727998,
+          "sleep_left": 3559742,
+          "remaining_gap": 292260,
+          "by_post": {
+            "events": 24132,
+            "rail_throughput": 21219,
+            "c117_skip": 30744,
+            "c117_sample": 1209989,
+            "catalog_continuation": 52588868,
+            "orchestrator": 8851281,
+            "catalog_continuation_check": 1765
+          }
+        },
+        "variant": {
+          "ticks": 6941,
+          "budget": 69410000,
+          "occupied_top": 64885884,
+          "sleep_left": 4185948,
+          "remaining_gap": 338168,
+          "by_post": {
+            "events": 27702,
+            "rail_throughput": 24652,
+            "c117_skip": 36666,
+            "c117_sample": 1303021,
+            "catalog_continuation": 55554969,
+            "orchestrator": 7936291,
+            "catalog_continuation_check": 2583
+          }
+        },
+        "delta_occupied": 2157886,
+        "delta_budget": 2830000,
+        "delta_sleep_left": 626206
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6839,
+          "budget": 68390000,
+          "occupied_top": 68061286,
+          "sleep_left": 312832,
+          "remaining_gap": 15882,
+          "by_post": {
+            "events": 8745,
+            "rail_throughput": 2040,
+            "c117_skip": 1575,
+            "c117_sample": 669907,
+            "catalog_continuation": 33306708,
+            "orchestrator": 34071478,
+            "catalog_continuation_check": 833
+          }
+        },
+        "variant": {
+          "ticks": 6643,
+          "budget": 66430000,
+          "occupied_top": 65687145,
+          "sleep_left": 677604,
+          "remaining_gap": 65251,
+          "by_post": {
+            "events": 12948,
+            "rail_throughput": 9171,
+            "c117_skip": 5040,
+            "c117_sample": 1302600,
+            "catalog_continuation": 9046359,
+            "orchestrator": 55305506,
+            "catalog_continuation_check": 5521
+          }
+        },
+        "delta_occupied": -2374141,
+        "delta_budget": -1960000,
+        "delta_sleep_left": 364772
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6833,
+          "budget": 68330000,
+          "occupied_top": 67910474,
+          "sleep_left": 407321,
+          "remaining_gap": 12205,
+          "by_post": {
+            "events": 11211,
+            "rail_throughput": 4350,
+            "c117_skip": 2331,
+            "c117_sample": 952200,
+            "catalog_continuation": 80312,
+            "orchestrator": 66847310,
+            "catalog_continuation_check": 12760
+          }
+        },
+        "variant": {
+          "ticks": 6686,
+          "budget": 66860000,
+          "occupied_top": 65710932,
+          "sleep_left": 1084642,
+          "remaining_gap": 64426,
+          "by_post": {
+            "events": 15009,
+            "rail_throughput": 13242,
+            "c117_skip": 7119,
+            "c117_sample": 2665445,
+            "orchestrator": 63001837,
+            "catalog_continuation_check": 8280
+          }
+        },
+        "delta_occupied": -2199542,
+        "delta_budget": -1470000,
+        "delta_sleep_left": 677321
+      }
+    },
+    "424242": {
+      "1970": {
+        "reference": {
+          "ticks": 6751,
+          "budget": 67510000,
+          "occupied_top": 63011752,
+          "sleep_left": 4115184,
+          "remaining_gap": 383064,
+          "by_post": {
+            "events": 29464,
+            "rail_throughput": 143530,
+            "c117_skip": 40509,
+            "c117_sample": 400635,
+            "catalog_continuation": 53939664,
+            "orchestrator": 8452342,
+            "catalog_continuation_check": 5608
+          }
+        },
+        "variant": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 62816604,
+          "sleep_left": 4328662,
+          "remaining_gap": 374734,
+          "by_post": {
+            "events": 30912,
+            "rail_throughput": 134653,
+            "c117_skip": 42399,
+            "c117_sample": 423781,
+            "catalog_continuation": 53423892,
+            "orchestrator": 8755107,
+            "catalog_continuation_check": 5860
+          }
+        },
+        "delta_occupied": -195148,
+        "delta_budget": 10000,
+        "delta_sleep_left": 213478
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6749,
+          "budget": 67490000,
+          "occupied_top": 62680049,
+          "sleep_left": 4438616,
+          "remaining_gap": 371335,
+          "by_post": {
+            "events": 30949,
+            "rail_throughput": 26965,
+            "c117_skip": 40887,
+            "c117_sample": 1618087,
+            "catalog_continuation": 44029188,
+            "orchestrator": 16928301,
+            "catalog_continuation_check": 5672
+          }
+        },
+        "variant": {
+          "ticks": 6748,
+          "budget": 67480000,
+          "occupied_top": 61809313,
+          "sleep_left": 5248267,
+          "remaining_gap": 422420,
+          "by_post": {
+            "events": 33816,
+            "rail_throughput": 30909,
+            "c117_skip": 48321,
+            "c117_sample": 1741457,
+            "catalog_continuation": 43317099,
+            "orchestrator": 16631043,
+            "catalog_continuation_check": 6668
+          }
+        },
+        "delta_occupied": -870736,
+        "delta_budget": -10000,
+        "delta_sleep_left": 809651
+      },
+      "1972": {
+        "reference": {
+          "ticks": 6774,
+          "budget": 67740000,
+          "occupied_top": 66366954,
+          "sleep_left": 1294754,
+          "remaining_gap": 78292,
+          "by_post": {
+            "events": 16001,
+            "rail_throughput": 25991,
+            "c117_skip": 9513,
+            "c117_sample": 2202570,
+            "catalog_continuation": 9673132,
+            "orchestrator": 54430023,
+            "catalog_continuation_check": 9724
+          }
+        },
+        "variant": {
+          "ticks": 6810,
+          "budget": 68100000,
+          "occupied_top": 66460288,
+          "sleep_left": 1517543,
+          "remaining_gap": 122169,
+          "by_post": {
+            "events": 17249,
+            "rail_throughput": 28579,
+            "c117_skip": 10899,
+            "c117_sample": 2797644,
+            "catalog_continuation": 7249963,
+            "orchestrator": 56334544,
+            "catalog_continuation_check": 21410
+          }
+        },
+        "delta_occupied": 93334,
+        "delta_budget": 360000,
+        "delta_sleep_left": 222789
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6916,
+          "budget": 69160000,
+          "occupied_top": 68443684,
+          "sleep_left": 677110,
+          "remaining_gap": 39206,
+          "by_post": {
+            "events": 12579,
+            "rail_throughput": 7916,
+            "c117_skip": 4221,
+            "c117_sample": 1899671,
+            "orchestrator": 66514282,
+            "catalog_continuation_check": 5015
+          }
+        },
+        "variant": {
+          "ticks": 6713,
+          "budget": 67130000,
+          "occupied_top": 64665255,
+          "sleep_left": 2265820,
+          "remaining_gap": 198925,
+          "by_post": {
+            "events": 23733,
+            "rail_throughput": 75443,
+            "c117_skip": 18963,
+            "c117_sample": 5314393,
+            "catalog_continuation": 5561066,
+            "orchestrator": 53315491,
+            "catalog_continuation_check": 27594,
+            "save_projection": 328572
+          }
+        },
+        "delta_occupied": -3778429,
+        "delta_budget": -2030000,
+        "delta_sleep_left": 1588710
+      }
+    },
+    "8675309": {
+      "1970": {
+        "reference": {
+          "ticks": 6752,
+          "budget": 67520000,
+          "occupied_top": 63510256,
+          "sleep_left": 3679154,
+          "remaining_gap": 330590,
+          "by_post": {
+            "events": 24271,
+            "rail_throughput": 116331,
+            "c117_skip": 31185,
+            "c117_sample": 390102,
+            "catalog_continuation": 48070784,
+            "orchestrator": 14871153,
+            "catalog_continuation_check": 6430
+          }
+        },
+        "variant": {
+          "ticks": 6747,
+          "budget": 67470000,
+          "occupied_top": 63521128,
+          "sleep_left": 3622631,
+          "remaining_gap": 326241,
+          "by_post": {
+            "events": 24359,
+            "rail_throughput": 116875,
+            "c117_skip": 32004,
+            "c117_sample": 402465,
+            "catalog_continuation": 49240673,
+            "orchestrator": 13698133,
+            "catalog_continuation_check": 6619
+          }
+        },
+        "delta_occupied": 10872,
+        "delta_budget": -50000,
+        "delta_sleep_left": -56523
+      },
+      "1971": {
+        "reference": {
+          "ticks": 6750,
+          "budget": 67500000,
+          "occupied_top": 64326635,
+          "sleep_left": 2961791,
+          "remaining_gap": 211574,
+          "by_post": {
+            "events": 19072,
+            "rail_throughput": 17342,
+            "c117_skip": 23373,
+            "c117_sample": 914669,
+            "catalog_continuation": 55639862,
+            "orchestrator": 7710867,
+            "catalog_continuation_check": 1450
+          }
+        },
+        "variant": {
+          "ticks": 6758,
+          "budget": 67580000,
+          "occupied_top": 64279240,
+          "sleep_left": 3083835,
+          "remaining_gap": 216925,
+          "by_post": {
+            "events": 19565,
+            "rail_throughput": 17850,
+            "c117_skip": 24885,
+            "c117_sample": 1002032,
+            "catalog_continuation": 53562997,
+            "orchestrator": 9650152,
+            "catalog_continuation_check": 1759
+          }
+        },
+        "delta_occupied": -47395,
+        "delta_budget": 80000,
+        "delta_sleep_left": 122044
+      },
+      "1972": {
+        "reference": {
+          "ticks": 7013,
+          "budget": 70130000,
+          "occupied_top": 69567874,
+          "sleep_left": 532115,
+          "remaining_gap": 30011,
+          "by_post": {
+            "events": 8035,
+            "rail_throughput": 5749,
+            "c117_skip": 3087,
+            "c117_sample": 816409,
+            "catalog_continuation": 5493183,
+            "orchestrator": 63238007,
+            "catalog_continuation_check": 3404
+          }
+        },
+        "variant": {
+          "ticks": 6766,
+          "budget": 67660000,
+          "occupied_top": 60377836,
+          "sleep_left": 6780573,
+          "remaining_gap": 501591,
+          "by_post": {
+            "events": 43732,
+            "rail_throughput": 39802,
+            "c117_skip": 59283,
+            "c117_sample": 3030295,
+            "catalog_continuation": 36663796,
+            "orchestrator": 20532955,
+            "catalog_continuation_check": 7973
+          }
+        },
+        "delta_occupied": -9190038,
+        "delta_budget": -2470000,
+        "delta_sleep_left": 6248458
+      },
+      "1973": {
+        "reference": {
+          "ticks": 6689,
+          "budget": 66890000,
+          "occupied_top": 65512723,
+          "sleep_left": 1266568,
+          "remaining_gap": 110709,
+          "by_post": {
+            "events": 35669,
+            "rail_throughput": 16767,
+            "c117_skip": 9702,
+            "c117_sample": 2366763,
+            "orchestrator": 63073436,
+            "catalog_continuation_check": 10386
+          }
+        },
+        "variant": {
+          "ticks": 6763,
+          "budget": 67630000,
+          "occupied_top": 65288995,
+          "sleep_left": 2171277,
+          "remaining_gap": 169728,
+          "by_post": {
+            "events": 37302,
+            "rail_throughput": 25415,
+            "c117_skip": 17514,
+            "c117_sample": 3968208,
+            "catalog_continuation": 8165629,
+            "orchestrator": 53059695,
+            "catalog_continuation_check": 15232
+          }
+        },
+        "delta_occupied": -223728,
+        "delta_budget": 740000,
+        "delta_sleep_left": 904709
+      }
+    }
+  },
+  "paired_delta_occupied_by_seed": {
+    "42": -904223,
+    "100": -1019052,
+    "7": 2033546,
+    "999": 715288,
+    "2026": -3424773,
+    "1": 309988,
+    "17": -227790,
+    "73": -16652701,
+    "314": 990419,
+    "512": -56653,
+    "1024": -2536093,
+    "1337": 204581,
+    "4096": 10282661,
+    "8191": -7261978,
+    "12345": 1076512,
+    "54321": 3794324,
+    "65537": 7871281,
+    "123456": -3284046,
+    "424242": -4750979,
+    "8675309": -9450289
+  },
+  "mean_delta_occupied": -1114498.85,
+  "median_delta_occupied": -142221.5,
+  "wins_lower_occupied": 11,
+  "losses_higher_occupied": 9,
+  "equal_occupied": 0,
+  "ci95_bootstrap_mean_delta": [
+    -3645648.31,
+    1296171.29
+  ],
+  "mean_reference_occupied": 257051257.75,
+  "notes": [
+    "Only top-level LOOP_OPS categories are added. Never add sleep_left, tg_*, C39 or SPAN.",
+    "Occupied budget tick-windows include command waits and yields; not exclusive VM CPU instructions.",
+    "The 1979 closing report requires simulating a further year; these annual windows cover 1970-1978 in a 10-year run.",
+    "A/B trajectories may diverge so global occupied reductions can reflect less economically useful work."
+  ]
+}

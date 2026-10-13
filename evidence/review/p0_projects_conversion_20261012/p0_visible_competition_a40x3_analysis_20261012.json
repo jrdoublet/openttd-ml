@@ -1,0 +1,363 @@
+{
+  "campaign": "p0_visible_competition_a40x3_20261012",
+  "bundle": "04af9610318c9214da9664b17d9c6326ba17e332c8f3a4bc8d3cec1342e0a59f",
+  "harness_gate_verdict": "fail_primary",
+  "paired_seeds": 40,
+  "healthy_games": 80,
+  "snapshot_count": 480,
+  "economic_metric": "profit_year",
+  "primary": {
+    "policy_delta": {
+      "n": 40,
+      "mean": -48485.3,
+      "median": -45291.5,
+      "standard_deviation": 194246.392755,
+      "standard_error": 30713.051419,
+      "mean_normal_95pct_ci": [
+        -108681.774636,
+        11711.174636
+      ],
+      "mean_student_t_95pct_ci": [
+        -110608.312687,
+        13637.712687
+      ],
+      "wins": 15,
+      "losses": 25,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.15386,
+      "wilcoxon_p": 0.12139880184622598,
+      "mean_bootstrap_95pct_ci": [
+        -107413.225,
+        11065.45
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+      "n_positive_denominator": 40,
+      "excluded_nonpositive_or_missing_denominator": 0,
+      "ratio_of_means": 0.974766,
+      "ratio_of_means_percent_change": -2.523447,
+      "mean_of_ratios": 0.986999,
+      "mean_of_ratios_percent_change": -1.300145
+    },
+    "reference_opex_minus_aaahogex": {
+      "n": 40,
+      "mean": -107671.525,
+      "median": -94520.0,
+      "standard_deviation": 691444.68087,
+      "standard_error": 109327.003378,
+      "mean_normal_95pct_ci": [
+        -321948.514158,
+        106605.464158
+      ],
+      "mean_student_t_95pct_ci": [
+        -328806.27079,
+        113463.22079
+      ],
+      "wins": 18,
+      "losses": 22,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.635828,
+      "wilcoxon_p": 0.3138070678778604,
+      "mean_bootstrap_95pct_ci": [
+        -315342.55,
+        103665.1
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+      "n": 40,
+      "mean": -225080.375,
+      "median": -213019.0,
+      "standard_deviation": 531454.067702,
+      "standard_error": 84030.266285,
+      "mean_normal_95pct_ci": [
+        -389776.67053,
+        -60384.07947
+      ],
+      "mean_student_t_95pct_ci": [
+        -395047.638342,
+        -55113.111658
+      ],
+      "wins": 13,
+      "losses": 27,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.038477,
+      "wilcoxon_p": 0.015876221947110025,
+      "mean_bootstrap_95pct_ci": [
+        -387601.225,
+        -62804.025
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+      "n": 40,
+      "mean": -117408.85,
+      "median": -104119.5,
+      "standard_deviation": 408684.281648,
+      "standard_error": 64618.658696,
+      "mean_normal_95pct_ci": [
+        -244059.093773,
+        9241.393773
+      ],
+      "mean_student_t_95pct_ci": [
+        -248112.429376,
+        13294.729376
+      ],
+      "wins": 13,
+      "losses": 27,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.038477,
+      "wilcoxon_p": 0.12471638389069994,
+      "mean_bootstrap_95pct_ci": [
+        -247429.0,
+        1130.85
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    }
+  },
+  "company_value": {
+    "policy_delta": {
+      "n": 40,
+      "mean": -118402.325,
+      "median": -124252.5,
+      "standard_deviation": 377346.531101,
+      "standard_error": 59663.725272,
+      "mean_normal_95pct_ci": [
+        -235341.077717,
+        -1463.572283
+      ],
+      "mean_student_t_95pct_ci": [
+        -239083.605134,
+        2278.955134
+      ],
+      "wins": 12,
+      "losses": 28,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.016589,
+      "wilcoxon_p": 0.0141080951798358,
+      "mean_bootstrap_95pct_ci": [
+        -230556.05,
+        147.2
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+      "n_positive_denominator": 40,
+      "excluded_nonpositive_or_missing_denominator": 0,
+      "ratio_of_means": 0.964773,
+      "ratio_of_means_percent_change": -3.522661,
+      "mean_of_ratios": 0.977033,
+      "mean_of_ratios_percent_change": -2.296714
+    },
+    "reference_opex_minus_aaahogex": {
+      "n": 40,
+      "mean": 326738.45,
+      "median": 371378.5,
+      "standard_deviation": 1021302.49723,
+      "standard_error": 161482.103563,
+      "mean_normal_95pct_ci": [
+        10239.342868,
+        643237.557132
+      ],
+      "mean_student_t_95pct_ci": [
+        110.052462,
+        653366.847538
+      ],
+      "wins": 27,
+      "losses": 13,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.038477,
+      "wilcoxon_p": 0.062184092836105265,
+      "mean_bootstrap_95pct_ci": [
+        21571.85,
+        638759.1
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+      "n": 40,
+      "mean": 208856.575,
+      "median": 296938.0,
+      "standard_deviation": 870551.20783,
+      "standard_error": 137646.231828,
+      "mean_normal_95pct_ci": [
+        -60925.08199,
+        478638.23199
+      ],
+      "mean_student_t_95pct_ci": [
+        -69559.219302,
+        487272.369302
+      ],
+      "wins": 25,
+      "losses": 15,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.15386,
+      "wilcoxon_p": 0.13868038851069286,
+      "mean_bootstrap_95pct_ci": [
+        -57230.1,
+        475107.45
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+      "n": 40,
+      "mean": -117881.875,
+      "median": -197984.5,
+      "standard_deviation": 562481.78416,
+      "standard_error": 88936.179015,
+      "mean_normal_95pct_ci": [
+        -292193.582792,
+        56429.832792
+      ],
+      "mean_student_t_95pct_ci": [
+        -297772.283868,
+        62008.533868
+      ],
+      "wins": 15,
+      "losses": 25,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 40,
+      "sign_test_p": 0.15386,
+      "wilcoxon_p": 0.17869641572360706,
+      "mean_bootstrap_95pct_ci": [
+        -291260.35,
+        54540.875
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    }
+  },
+  "annual": {
+    "1970": {
+      "mean_profit_year_opex_reference": 329040.55,
+      "mean_profit_year_opex_variant": 329160.78,
+      "mean_profit_year_variant_minus_ref": 120.22,
+      "mean_opex_minus_aaa_reference": 26292.65,
+      "mean_opex_minus_aaa_variant": 24881.3,
+      "active_services_reference_OpexAI_air_mean": 6.675,
+      "active_services_reference_OpexAI_air_n": 40,
+      "active_services_reference_OpexAI_rail_mean": 0,
+      "active_services_reference_OpexAI_rail_n": 40,
+      "active_services_reference_OpexAI_road_mean": 0,
+      "active_services_reference_OpexAI_road_n": 40,
+      "active_services_reference_AAAHogEx_air_mean": 6.1,
+      "active_services_reference_AAAHogEx_air_n": 40,
+      "active_services_reference_AAAHogEx_rail_mean": 0.25,
+      "active_services_reference_AAAHogEx_rail_n": 40,
+      "active_services_reference_AAAHogEx_road_mean": 0.275,
+      "active_services_reference_AAAHogEx_road_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_air_mean": 6.675,
+      "active_services_c121_air_visible_competition_OpexAI_air_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_rail_mean": 0,
+      "active_services_c121_air_visible_competition_OpexAI_rail_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_road_mean": 0,
+      "active_services_c121_air_visible_competition_OpexAI_road_n": 40,
+      "active_services_c121_air_visible_competition_AAAHogEx_air_mean": 6.1,
+      "active_services_c121_air_visible_competition_AAAHogEx_air_n": 40,
+      "active_services_c121_air_visible_competition_AAAHogEx_rail_mean": 0.325,
+      "active_services_c121_air_visible_competition_AAAHogEx_rail_n": 40,
+      "active_services_c121_air_visible_competition_AAAHogEx_road_mean": 0.375,
+      "active_services_c121_air_visible_competition_AAAHogEx_road_n": 40
+    },
+    "1971": {
+      "mean_profit_year_opex_reference": 1288292.6,
+      "mean_profit_year_opex_variant": 1343993.73,
+      "mean_profit_year_variant_minus_ref": 55701.12,
+      "mean_opex_minus_aaa_reference": -96588.65,
+      "mean_opex_minus_aaa_variant": -68900.1,
+      "active_services_reference_OpexAI_air_mean": 24.05,
+      "active_services_reference_OpexAI_air_n": 40,
+      "active_services_reference_OpexAI_rail_mean": 2.375,
+      "active_services_reference_OpexAI_rail_n": 40,
+      "active_services_reference_OpexAI_road_mean": 0.425,
+      "active_services_reference_OpexAI_road_n": 40,
+      "active_services_reference_AAAHogEx_air_mean": 12.6,
+      "active_services_reference_AAAHogEx_air_n": 40,
+      "active_services_reference_AAAHogEx_rail_mean": 5.425,
+      "active_services_reference_AAAHogEx_rail_n": 40,
+      "active_services_reference_AAAHogEx_road_mean": 15.325,
+      "active_services_reference_AAAHogEx_road_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_air_mean": 23.225,
+      "active_services_c121_air_visible_competition_OpexAI_air_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_rail_mean": 2.375,
+      "active_services_c121_air_visible_competition_OpexAI_rail_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_road_mean": 0.45,
+      "active_services_c121_air_visible_competition_OpexAI_road_n": 40,
+      "active_services_c121_air_visible_competition_AAAHogEx_air_mean": 12.486,
+      "active_services_c121_air_visible_competition_AAAHogEx_air_n": 37,
+      "active_services_c121_air_visible_competition_AAAHogEx_rail_mean": 5.946,
+      "active_services_c121_air_visible_competition_AAAHogEx_rail_n": 37,
+      "active_services_c121_air_visible_competition_AAAHogEx_road_mean": 15.243,
+      "active_services_c121_air_visible_competition_AAAHogEx_road_n": 37
+    },
+    "1972": {
+      "mean_profit_year_opex_reference": 1921391.9,
+      "mean_profit_year_opex_variant": 1872906.6,
+      "mean_profit_year_variant_minus_ref": -48485.3,
+      "mean_opex_minus_aaa_reference": -107671.52,
+      "mean_opex_minus_aaa_variant": -225080.38,
+      "active_services_reference_OpexAI_air_mean": 36.789,
+      "active_services_reference_OpexAI_air_n": 38,
+      "active_services_reference_OpexAI_rail_mean": 3.105,
+      "active_services_reference_OpexAI_rail_n": 38,
+      "active_services_reference_OpexAI_road_mean": 0.658,
+      "active_services_reference_OpexAI_road_n": 38,
+      "active_services_reference_AAAHogEx_air_mean": 14.211,
+      "active_services_reference_AAAHogEx_air_n": 38,
+      "active_services_reference_AAAHogEx_rail_mean": 10.211,
+      "active_services_reference_AAAHogEx_rail_n": 38,
+      "active_services_reference_AAAHogEx_road_mean": 57.737,
+      "active_services_reference_AAAHogEx_road_n": 38,
+      "active_services_c121_air_visible_competition_OpexAI_air_mean": 31.35,
+      "active_services_c121_air_visible_competition_OpexAI_air_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_rail_mean": 2.7,
+      "active_services_c121_air_visible_competition_OpexAI_rail_n": 40,
+      "active_services_c121_air_visible_competition_OpexAI_road_mean": 0.5,
+      "active_services_c121_air_visible_competition_OpexAI_road_n": 40,
+      "active_services_c121_air_visible_competition_AAAHogEx_air_mean": 14.205,
+      "active_services_c121_air_visible_competition_AAAHogEx_air_n": 39,
+      "active_services_c121_air_visible_competition_AAAHogEx_rail_mean": 10.641,
+      "active_services_c121_air_visible_competition_AAAHogEx_rail_n": 39,
+      "active_services_c121_air_visible_competition_AAAHogEx_road_mean": 57.41,
+      "active_services_c121_air_visible_competition_AAAHogEx_road_n": 39
+    }
+  },
+  "loop_ops_top_level": {
+    "1970": {
+      "n": 40,
+      "mean_delta_top_level": 157485.92,
+      "variant_lower": 15,
+      "variant_higher": 25
+    },
+    "1971": {
+      "n": 40,
+      "mean_delta_top_level": 2112045.25,
+      "variant_lower": 6,
+      "variant_higher": 34
+    }
+  },
+  "limitations": [
+    "The V102 harness decides the full gate using Wilcoxon exact, mean useful gain and value guard.",
+    "A40×3 ends in 1972 and CANNOT establish changed profits or construction in 1973.",
+    "Annual service snapshots count currently active grouped services, NOT raw new line builds.",
+    "LOOP_OPS top-level is occupancy and may include command/wait, not precise useful Squirrel VM instructions.",
+    "The existing C121 visible-competition toggle alters demand estimates for both new AIR projects and existing fleet; attribution to one alone unproven.",
+    "The old c121_visible_flux flag (previously rejected) is independent and not under test here.",
+    "Diagnostic probes/script-debug are identical across arms but can alter trajectories relative to probe-free games."
+  ]
+}

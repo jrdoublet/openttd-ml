@@ -1,0 +1,3823 @@
+{
+  "seeds": [
+    42,
+    100,
+    999,
+    1234,
+    5678
+  ],
+  "by_seed": {
+    "42": {
+      "by_year": {
+        "1970": {
+          "unprofiled_paired_economy": {
+            "date": "1970-12-01",
+            "opex": {
+              "profit_year": 468574,
+              "value": 414186,
+              "air_vehicles": 13,
+              "rail_vehicles": 0,
+              "airports": 17,
+              "rail_stations": 0,
+              "stations": 17,
+              "vehicles": 13
+            },
+            "aaa": {
+              "profit_year": 340394,
+              "value": 324522,
+              "air_vehicles": 12,
+              "rail_vehicles": 0,
+              "airports": 12,
+              "rail_stations": 0,
+              "stations": 13,
+              "vehicles": 14
+            },
+            "opex_minus_aaa": {
+              "profit_year": 128180,
+              "value": 89664,
+              "air_vehicles": 1,
+              "rail_vehicles": 0,
+              "airports": 5,
+              "rail_stations": 0,
+              "stations": 4,
+              "vehicles": -1
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 138,
+            "start_empty": 126,
+            "start_nonempty_no_build": 1,
+            "passes_built": 11,
+            "units_built": 11,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 9
+          },
+          "profiled_paid_astar_calls": 3,
+          "profiled_astar_window_ops": 1617432,
+          "profiled_astar_wait_days": 11,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 6,
+              "initial_pool_empty": 3,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 9,
+              "initial_pool_empty": 9,
+              "post_pool_empty": 9,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 18,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 18,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 13,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 11,
+              "initial_pool_empty": 11,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 14,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 8,
+              "initial_pool_empty": 6,
+              "post_pool_empty": 8,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 14,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 15,
+              "initial_pool_empty": 15,
+              "post_pool_empty": 15,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 6,
+              "initial_pool_empty": 5,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 10,
+              "initial_pool_empty": 8,
+              "post_pool_empty": 9,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 14,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 2
+            },
+            "10": {
+              "air": 1
+            },
+            "11": {
+              "air": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 2
+            },
+            "8": {
+              "air": 1
+            }
+          }
+        },
+        "1971": {
+          "unprofiled_paired_economy": {
+            "date": "1971-12-01",
+            "opex": {
+              "profit_year": 1734719,
+              "value": 2293804,
+              "air_vehicles": 53,
+              "rail_vehicles": 1,
+              "airports": 30,
+              "rail_stations": 2,
+              "stations": 34,
+              "vehicles": 56
+            },
+            "aaa": {
+              "profit_year": 1251372,
+              "value": 1274625,
+              "air_vehicles": 18,
+              "rail_vehicles": 5,
+              "airports": 20,
+              "rail_stations": 10,
+              "stations": 50,
+              "vehicles": 61
+            },
+            "opex_minus_aaa": {
+              "profit_year": 483347,
+              "value": 1019179,
+              "air_vehicles": 35,
+              "rail_vehicles": -4,
+              "airports": 10,
+              "rail_stations": -8,
+              "stations": -16,
+              "vehicles": -5
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 210,
+            "start_empty": 167,
+            "start_nonempty_no_build": 6,
+            "passes_built": 39,
+            "units_built": 41,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 3
+          },
+          "profiled_net_new_line_events": {
+            "air": 27,
+            "rail": 3,
+            "road": 1
+          },
+          "profiled_paid_astar_calls": 2,
+          "profiled_astar_window_ops": 1925371,
+          "profiled_astar_wait_days": 24,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 2,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 1,
+              "rail_built": 1
+            },
+            "2": {
+              "passes": 5,
+              "initial_pool_empty": 2,
+              "post_pool_empty": 3,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 2,
+              "rail_built": 1
+            },
+            "3": {
+              "passes": 7,
+              "initial_pool_empty": 4,
+              "post_pool_empty": 7,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 1
+            },
+            "4": {
+              "passes": 4,
+              "initial_pool_empty": 1,
+              "post_pool_empty": 2,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 21,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 20,
+              "initial_pool_empty": 17,
+              "post_pool_empty": 20,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 26,
+              "initial_pool_empty": 24,
+              "post_pool_empty": 26,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 21,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 27,
+              "initial_pool_empty": 22,
+              "post_pool_empty": 27,
+              "passes_with_physical_progress": 5,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 29,
+              "initial_pool_empty": 25,
+              "post_pool_empty": 29,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 21,
+              "initial_pool_empty": 14,
+              "post_pool_empty": 19,
+              "passes_with_physical_progress": 5,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 26,
+              "initial_pool_empty": 22,
+              "post_pool_empty": 26,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 2,
+              "rail": 1
+            },
+            "10": {
+              "air": 3
+            },
+            "11": {
+              "air": 4
+            },
+            "12": {
+              "air": 2
+            },
+            "2": {
+              "rail": 1
+            },
+            "3": {
+              "air": 1,
+              "rail": 1
+            },
+            "4": {
+              "air": 3,
+              "road": 1
+            },
+            "5": {
+              "air": 2
+            },
+            "6": {
+              "air": 3
+            },
+            "7": {
+              "air": 1
+            },
+            "8": {
+              "air": 2
+            },
+            "9": {
+              "air": 4
+            }
+          }
+        },
+        "1972": {
+          "unprofiled_paired_economy": {
+            "date": "1972-12-01",
+            "opex": {
+              "profit_year": 1956412,
+              "value": 4133180,
+              "air_vehicles": 76,
+              "rail_vehicles": 6,
+              "airports": 38,
+              "rail_stations": 12,
+              "stations": 54,
+              "vehicles": 86
+            },
+            "aaa": {
+              "profit_year": 1986217,
+              "value": 2730286,
+              "air_vehicles": 29,
+              "rail_vehicles": 9,
+              "airports": 28,
+              "rail_stations": 18,
+              "stations": 114,
+              "vehicles": 165
+            },
+            "opex_minus_aaa": {
+              "profit_year": -29805,
+              "value": 1402894,
+              "air_vehicles": 47,
+              "rail_vehicles": -3,
+              "airports": 10,
+              "rail_stations": -6,
+              "stations": -60,
+              "vehicles": -79
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 296,
+            "start_empty": 276,
+            "start_nonempty_no_build": 0,
+            "passes_built": 20,
+            "units_built": 20,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 14
+          },
+          "profiled_paid_astar_calls": 0,
+          "profiled_astar_window_ops": 0,
+          "profiled_astar_wait_days": 0,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 5,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 2,
+              "passes_with_physical_progress": 5,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 27,
+              "initial_pool_empty": 25,
+              "post_pool_empty": 27,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 27,
+              "initial_pool_empty": 24,
+              "post_pool_empty": 26,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 29,
+              "initial_pool_empty": 28,
+              "post_pool_empty": 29,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 27,
+              "initial_pool_empty": 25,
+              "post_pool_empty": 27,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 28,
+              "initial_pool_empty": 27,
+              "post_pool_empty": 28,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 22,
+              "initial_pool_empty": 21,
+              "post_pool_empty": 22,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 29,
+              "initial_pool_empty": 29,
+              "post_pool_empty": 29,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 23,
+              "initial_pool_empty": 21,
+              "post_pool_empty": 23,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 26,
+              "initial_pool_empty": 24,
+              "post_pool_empty": 26,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 26,
+              "initial_pool_empty": 25,
+              "post_pool_empty": 26,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 27,
+              "initial_pool_empty": 27,
+              "post_pool_empty": 27,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "air": 2
+            },
+            "11": {
+              "air": 1
+            },
+            "2": {
+              "air": 1
+            },
+            "3": {
+              "air": 3
+            },
+            "4": {
+              "air": 1
+            },
+            "5": {
+              "air": 2
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 1
+            },
+            "9": {
+              "air": 2
+            }
+          }
+        },
+        "1973": {
+          "unprofiled_paired_economy": {
+            "date": "1973-12-01",
+            "opex": {
+              "profit_year": 1801404,
+              "value": 5910882,
+              "air_vehicles": 110,
+              "rail_vehicles": 7,
+              "airports": 38,
+              "rail_stations": 14,
+              "stations": 56,
+              "vehicles": 121
+            },
+            "aaa": {
+              "profit_year": 2484888,
+              "value": 3849033,
+              "air_vehicles": 33,
+              "rail_vehicles": 19,
+              "airports": 30,
+              "rail_stations": 27,
+              "stations": 139,
+              "vehicles": 198
+            },
+            "opex_minus_aaa": {
+              "profit_year": -683484,
+              "value": 2061849,
+              "air_vehicles": 77,
+              "rail_vehicles": -12,
+              "airports": 8,
+              "rail_stations": -13,
+              "stations": -83,
+              "vehicles": -77
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 47,
+            "start_empty": 0,
+            "start_nonempty_no_build": 9,
+            "passes_built": 38,
+            "units_built": 38,
+            "rail_pool_nonempty_after": 47,
+            "rail_fundable_after": 47,
+            "rail_constructed": 4
+          },
+          "profiled_net_new_line_events": {
+            "air": 5,
+            "rail": 4,
+            "road": 1
+          },
+          "profiled_paid_astar_calls": 5,
+          "profiled_astar_window_ops": 6901607,
+          "profiled_astar_wait_days": 96,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 1
+            },
+            "6": {
+              "passes": 4,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 4,
+              "rail_fundable_after": 4,
+              "rail_selected_after": 4,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 6,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 6,
+              "rail_nonempty_after": 6,
+              "rail_fundable_after": 6,
+              "rail_selected_after": 6,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 6,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 6,
+              "rail_nonempty_after": 6,
+              "rail_fundable_after": 6,
+              "rail_selected_after": 6,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 5,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 5,
+              "rail_fundable_after": 5,
+              "rail_selected_after": 5,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 4,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 4,
+              "rail_fundable_after": 4,
+              "rail_selected_after": 4,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 5,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 5,
+              "rail_fundable_after": 5,
+              "rail_selected_after": 5,
+              "rail_built": 2
+            },
+            "12": {
+              "passes": 6,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 6,
+              "rail_fundable_after": 6,
+              "rail_selected_after": 6,
+              "rail_built": 1
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "road": 1
+            },
+            "11": {
+              "rail": 2
+            },
+            "12": {
+              "air": 1,
+              "rail": 1
+            },
+            "5": {
+              "rail": 1
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 1
+            },
+            "9": {
+              "air": 2
+            }
+          }
+        }
+      },
+      "first_observed_negative_gap_month_from_1971": {
+        "profit_year": "1972-11-01",
+        "value": null,
+        "air_vehicles": null,
+        "airports": null,
+        "rail_vehicles": "1971-09-01",
+        "rail_stations": "1971-09-01"
+      }
+    },
+    "100": {
+      "by_year": {
+        "1970": {
+          "unprofiled_paired_economy": {
+            "date": "1970-12-01",
+            "opex": {
+              "profit_year": 351862,
+              "value": 344366,
+              "air_vehicles": 11,
+              "rail_vehicles": 0,
+              "airports": 13,
+              "rail_stations": 0,
+              "stations": 13,
+              "vehicles": 11
+            },
+            "aaa": {
+              "profit_year": 235695,
+              "value": 233504,
+              "air_vehicles": 10,
+              "rail_vehicles": 0,
+              "airports": 10,
+              "rail_stations": 2,
+              "stations": 12,
+              "vehicles": 12
+            },
+            "opex_minus_aaa": {
+              "profit_year": 116167,
+              "value": 110862,
+              "air_vehicles": 1,
+              "rail_vehicles": 0,
+              "airports": 3,
+              "rail_stations": -2,
+              "stations": 1,
+              "vehicles": -1
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 116,
+            "start_empty": 103,
+            "start_nonempty_no_build": 1,
+            "passes_built": 12,
+            "units_built": 12,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 8
+          },
+          "profiled_paid_astar_calls": 3,
+          "profiled_astar_window_ops": 2131407,
+          "profiled_astar_wait_days": 13,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 6,
+              "initial_pool_empty": 2,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 12,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 5,
+              "initial_pool_empty": 5,
+              "post_pool_empty": 5,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 13,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 17,
+              "initial_pool_empty": 16,
+              "post_pool_empty": 17,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 6,
+              "initial_pool_empty": 6,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 7,
+              "initial_pool_empty": 5,
+              "post_pool_empty": 7,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 10,
+              "initial_pool_empty": 9,
+              "post_pool_empty": 10,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 14,
+              "initial_pool_empty": 14,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 5,
+              "initial_pool_empty": 3,
+              "post_pool_empty": 5,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 9,
+              "initial_pool_empty": 8,
+              "post_pool_empty": 9,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 12,
+              "initial_pool_empty": 11,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 3
+            },
+            "10": {
+              "air": 1
+            },
+            "11": {
+              "air": 1
+            },
+            "12": {
+              "air": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "8": {
+              "air": 1
+            }
+          }
+        },
+        "1971": {
+          "unprofiled_paired_economy": {
+            "date": "1971-12-01",
+            "opex": {
+              "profit_year": 910618,
+              "value": 1184457,
+              "air_vehicles": 28,
+              "rail_vehicles": 3,
+              "airports": 22,
+              "rail_stations": 6,
+              "stations": 28,
+              "vehicles": 31
+            },
+            "aaa": {
+              "profit_year": 1035915,
+              "value": 1062985,
+              "air_vehicles": 24,
+              "rail_vehicles": 4,
+              "airports": 26,
+              "rail_stations": 8,
+              "stations": 37,
+              "vehicles": 36
+            },
+            "opex_minus_aaa": {
+              "profit_year": -125297,
+              "value": 121472,
+              "air_vehicles": 4,
+              "rail_vehicles": -1,
+              "airports": -4,
+              "rail_stations": -2,
+              "stations": -9,
+              "vehicles": -5
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 192,
+            "start_empty": 168,
+            "start_nonempty_no_build": 0,
+            "passes_built": 24,
+            "units_built": 24,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 3
+          },
+          "profiled_net_new_line_events": {
+            "air": 17,
+            "rail": 3
+          },
+          "profiled_paid_astar_calls": 0,
+          "profiled_astar_window_ops": 0,
+          "profiled_astar_wait_days": 0,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 6,
+              "initial_pool_empty": 4,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 1
+            },
+            "2": {
+              "passes": 6,
+              "initial_pool_empty": 4,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 1
+            },
+            "3": {
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 1,
+              "passes": 11,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 1
+            },
+            "4": {
+              "passes": 12,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 14,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 15,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 15,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 17,
+              "initial_pool_empty": 16,
+              "post_pool_empty": 17,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 14,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 21,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0,
+              "passes": 24,
+              "initial_pool_empty": 22,
+              "post_pool_empty": 24,
+              "passes_with_physical_progress": 2
+            },
+            "11": {
+              "passes": 25,
+              "initial_pool_empty": 22,
+              "post_pool_empty": 25,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 27,
+              "initial_pool_empty": 24,
+              "post_pool_empty": 27,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 1,
+              "rail": 1
+            },
+            "10": {
+              "air": 1
+            },
+            "11": {
+              "air": 3
+            },
+            "12": {
+              "air": 3
+            },
+            "2": {
+              "rail": 2
+            },
+            "3": {
+              "air": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "5": {
+              "air": 1
+            },
+            "6": {
+              "air": 1
+            },
+            "8": {
+              "air": 2
+            },
+            "9": {
+              "air": 3
+            }
+          }
+        },
+        "1972": {
+          "unprofiled_paired_economy": {
+            "date": "1972-12-01",
+            "opex": {
+              "profit_year": 1206361,
+              "value": 2446995,
+              "air_vehicles": 49,
+              "rail_vehicles": 7,
+              "airports": 27,
+              "rail_stations": 12,
+              "stations": 41,
+              "vehicles": 58
+            },
+            "aaa": {
+              "profit_year": 1523172,
+              "value": 2393771,
+              "air_vehicles": 29,
+              "rail_vehicles": 9,
+              "airports": 30,
+              "rail_stations": 16,
+              "stations": 97,
+              "vehicles": 148
+            },
+            "opex_minus_aaa": {
+              "profit_year": -316811,
+              "value": 53224,
+              "air_vehicles": 20,
+              "rail_vehicles": -2,
+              "airports": -3,
+              "rail_stations": -4,
+              "stations": -56,
+              "vehicles": -90
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 50,
+            "start_empty": 20,
+            "start_nonempty_no_build": 12,
+            "passes_built": 18,
+            "units_built": 19,
+            "rail_pool_nonempty_after": 49,
+            "rail_fundable_after": 47,
+            "rail_constructed": 2
+          },
+          "profiled_net_new_line_events": {
+            "air": 11,
+            "rail": 2
+          },
+          "profiled_paid_astar_calls": 2,
+          "profiled_astar_window_ops": 18693639,
+          "profiled_astar_wait_days": 263,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 1,
+              "initial_pool_empty": 1,
+              "post_pool_empty": 1,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 4,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 4,
+              "rail_fundable_after": 4,
+              "rail_selected_after": 3,
+              "rail_built": 1
+            },
+            "8": {
+              "passes": 5,
+              "initial_pool_empty": 2,
+              "post_pool_empty": 3,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 5,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 9,
+              "initial_pool_empty": 9,
+              "post_pool_empty": 9,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 9,
+              "rail_fundable_after": 9,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 10,
+              "initial_pool_empty": 8,
+              "post_pool_empty": 7,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 10,
+              "rail_fundable_after": 10,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 7,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 7,
+              "rail_fundable_after": 7,
+              "rail_selected_after": 7,
+              "rail_built": 1
+            },
+            "12": {
+              "passes": 6,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 6,
+              "rail_fundable_after": 6,
+              "rail_selected_after": 6,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "air": 1
+            },
+            "11": {
+              "air": 1,
+              "rail": 1
+            },
+            "12": {
+              "air": 1
+            },
+            "2": {
+              "air": 1
+            },
+            "5": {
+              "air": 3
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 3,
+              "rail": 1
+            }
+          }
+        },
+        "1973": {
+          "unprofiled_paired_economy": {
+            "date": "1973-12-01",
+            "opex": {
+              "profit_year": 1329299,
+              "value": 3610446,
+              "air_vehicles": 70,
+              "rail_vehicles": 9,
+              "airports": 31,
+              "rail_stations": 16,
+              "stations": 49,
+              "vehicles": 81
+            },
+            "aaa": {
+              "profit_year": 1911321,
+              "value": 3204283,
+              "air_vehicles": 31,
+              "rail_vehicles": 14,
+              "airports": 30,
+              "rail_stations": 23,
+              "stations": 120,
+              "vehicles": 162
+            },
+            "opex_minus_aaa": {
+              "profit_year": -582022,
+              "value": 406163,
+              "air_vehicles": 39,
+              "rail_vehicles": -5,
+              "airports": 1,
+              "rail_stations": -7,
+              "stations": -71,
+              "vehicles": -81
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 135,
+            "start_empty": 72,
+            "start_nonempty_no_build": 33,
+            "passes_built": 31,
+            "units_built": 32,
+            "rail_pool_nonempty_after": 135,
+            "rail_fundable_after": 94,
+            "rail_constructed": 3
+          },
+          "profiled_net_new_line_events": {
+            "air": 10,
+            "rail": 3,
+            "water": 1
+          },
+          "profiled_paid_astar_calls": 4,
+          "profiled_astar_window_ops": 13016836,
+          "profiled_astar_wait_days": 175,
+          "profiled_monthly_admissions": {
+            "2": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 4,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 4,
+              "rail_fundable_after": 4,
+              "rail_selected_after": 4,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 5,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 5,
+              "rail_nonempty_after": 5,
+              "rail_fundable_after": 5,
+              "rail_selected_after": 5,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 6,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 1,
+              "passes_with_physical_progress": 5,
+              "rail_nonempty_after": 6,
+              "rail_fundable_after": 5,
+              "rail_selected_after": 5,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 21,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 21,
+              "rail_fundable_after": 4,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 21,
+              "initial_pool_empty": 17,
+              "post_pool_empty": 20,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 21,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 1,
+              "rail_built": 1
+            },
+            "9": {
+              "passes": 18,
+              "initial_pool_empty": 15,
+              "post_pool_empty": 17,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 18,
+              "rail_fundable_after": 15,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 21,
+              "initial_pool_empty": 16,
+              "post_pool_empty": 17,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 21,
+              "rail_fundable_after": 21,
+              "rail_selected_after": 4,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 7,
+              "initial_pool_empty": 6,
+              "post_pool_empty": 5,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 7,
+              "rail_fundable_after": 6,
+              "rail_selected_after": 2,
+              "rail_built": 1
+            },
+            "12": {
+              "passes": 28,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 28,
+              "rail_fundable_after": 28,
+              "rail_selected_after": 28,
+              "rail_built": 1
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "air": 3,
+              "water": 1
+            },
+            "11": {
+              "rail": 1
+            },
+            "12": {
+              "rail": 1
+            },
+            "3": {
+              "air": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "5": {
+              "air": 1
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 1
+            },
+            "8": {
+              "air": 1,
+              "rail": 1
+            },
+            "9": {
+              "air": 1
+            }
+          }
+        }
+      },
+      "first_observed_negative_gap_month_from_1971": {
+        "profit_year": "1971-08-01",
+        "value": "1973-02-01",
+        "air_vehicles": null,
+        "airports": "1971-11-01",
+        "rail_vehicles": "1971-01-01",
+        "rail_stations": "1971-01-01"
+      }
+    },
+    "999": {
+      "by_year": {
+        "1970": {
+          "unprofiled_paired_economy": {
+            "date": "1970-12-01",
+            "opex": {
+              "profit_year": 266246,
+              "value": 298711,
+              "air_vehicles": 8,
+              "rail_vehicles": 0,
+              "airports": 8,
+              "rail_stations": 0,
+              "stations": 8,
+              "vehicles": 8
+            },
+            "aaa": {
+              "profit_year": 441049,
+              "value": 435974,
+              "air_vehicles": 16,
+              "rail_vehicles": 0,
+              "airports": 16,
+              "rail_stations": 0,
+              "stations": 17,
+              "vehicles": 18
+            },
+            "opex_minus_aaa": {
+              "profit_year": -174803,
+              "value": -137263,
+              "air_vehicles": -8,
+              "rail_vehicles": 0,
+              "airports": -8,
+              "rail_stations": 0,
+              "stations": -9,
+              "vehicles": -10
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 144,
+            "start_empty": 135,
+            "start_nonempty_no_build": 1,
+            "passes_built": 8,
+            "units_built": 8,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 6
+          },
+          "profiled_paid_astar_calls": 2,
+          "profiled_astar_window_ops": 2756210,
+          "profiled_astar_wait_days": 19,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 5,
+              "initial_pool_empty": 3,
+              "post_pool_empty": 5,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 13,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 6,
+              "initial_pool_empty": 6,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 14,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 14,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 6,
+              "initial_pool_empty": 6,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 5,
+              "initial_pool_empty": 4,
+              "post_pool_empty": 5,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 16,
+              "initial_pool_empty": 15,
+              "post_pool_empty": 16,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 18,
+              "initial_pool_empty": 17,
+              "post_pool_empty": 18,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 18,
+              "initial_pool_empty": 17,
+              "post_pool_empty": 18,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 18,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 18,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 11,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 2
+            },
+            "12": {
+              "air": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "7": {
+              "air": 1
+            },
+            "9": {
+              "air": 1
+            }
+          }
+        },
+        "1971": {
+          "unprofiled_paired_economy": {
+            "date": "1971-12-01",
+            "opex": {
+              "profit_year": 1235485,
+              "value": 1469422,
+              "air_vehicles": 21,
+              "rail_vehicles": 2,
+              "airports": 23,
+              "rail_stations": 4,
+              "stations": 31,
+              "vehicles": 27
+            },
+            "aaa": {
+              "profit_year": 1769310,
+              "value": 2106306,
+              "air_vehicles": 29,
+              "rail_vehicles": 8,
+              "airports": 30,
+              "rail_stations": 15,
+              "stations": 77,
+              "vehicles": 99
+            },
+            "opex_minus_aaa": {
+              "profit_year": -533825,
+              "value": -636884,
+              "air_vehicles": -8,
+              "rail_vehicles": -6,
+              "airports": -7,
+              "rail_stations": -11,
+              "stations": -46,
+              "vehicles": -72
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 167,
+            "start_empty": 129,
+            "start_nonempty_no_build": 19,
+            "passes_built": 19,
+            "units_built": 19,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 2
+          },
+          "profiled_net_new_line_events": {
+            "air": 12,
+            "rail": 2,
+            "road": 1
+          },
+          "profiled_paid_astar_calls": 0,
+          "profiled_astar_window_ops": 0,
+          "profiled_astar_wait_days": 0,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 3,
+              "initial_pool_empty": 1,
+              "post_pool_empty": 1,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 2,
+              "rail_built": 1
+            },
+            "2": {
+              "passes": 10,
+              "initial_pool_empty": 1,
+              "post_pool_empty": 3,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 7,
+              "rail_built": 1
+            },
+            "3": {
+              "passes": 7,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 7,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 12,
+              "initial_pool_empty": 5,
+              "post_pool_empty": 5,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 7,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 12,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 21,
+              "initial_pool_empty": 20,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 15,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 15,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 17,
+              "initial_pool_empty": 17,
+              "post_pool_empty": 17,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 11,
+              "initial_pool_empty": 8,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 21,
+              "initial_pool_empty": 20,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 17,
+              "initial_pool_empty": 14,
+              "post_pool_empty": 17,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 21,
+              "initial_pool_empty": 20,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "rail": 1
+            },
+            "10": {
+              "air": 1
+            },
+            "11": {
+              "air": 2
+            },
+            "12": {
+              "air": 1
+            },
+            "2": {
+              "rail": 1
+            },
+            "3": {
+              "road": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "5": {
+              "air": 2
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 1
+            },
+            "9": {
+              "air": 3
+            }
+          }
+        },
+        "1972": {
+          "unprofiled_paired_economy": {
+            "date": "1972-12-01",
+            "opex": {
+              "profit_year": 1696143,
+              "value": 3096799,
+              "air_vehicles": 34,
+              "rail_vehicles": 2,
+              "airports": 31,
+              "rail_stations": 4,
+              "stations": 39,
+              "vehicles": 40
+            },
+            "aaa": {
+              "profit_year": 2672614,
+              "value": 3749889,
+              "air_vehicles": 38,
+              "rail_vehicles": 15,
+              "airports": 34,
+              "rail_stations": 26,
+              "stations": 135,
+              "vehicles": 184
+            },
+            "opex_minus_aaa": {
+              "profit_year": -976471,
+              "value": -653090,
+              "air_vehicles": -4,
+              "rail_vehicles": -13,
+              "airports": -3,
+              "rail_stations": -22,
+              "stations": -96,
+              "vehicles": -144
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 12,
+            "start_empty": 0,
+            "start_nonempty_no_build": 0,
+            "passes_built": 12,
+            "units_built": 12,
+            "rail_pool_nonempty_after": 12,
+            "rail_fundable_after": 12,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 9
+          },
+          "profiled_paid_astar_calls": 0,
+          "profiled_astar_window_ops": 0,
+          "profiled_astar_wait_days": 0,
+          "profiled_monthly_admissions": {
+            "5": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "air": 2
+            },
+            "11": {
+              "air": 1
+            },
+            "5": {
+              "air": 1
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 1
+            },
+            "8": {
+              "air": 1
+            },
+            "9": {
+              "air": 2
+            }
+          }
+        },
+        "1973": {
+          "unprofiled_paired_economy": {
+            "date": "1973-12-01",
+            "opex": {
+              "profit_year": 1802634,
+              "value": 4869236,
+              "air_vehicles": 56,
+              "rail_vehicles": 3,
+              "airports": 34,
+              "rail_stations": 4,
+              "stations": 42,
+              "vehicles": 63
+            },
+            "aaa": {
+              "profit_year": 3422886,
+              "value": 6303688,
+              "air_vehicles": 53,
+              "rail_vehicles": 23,
+              "airports": 44,
+              "rail_stations": 39,
+              "stations": 189,
+              "vehicles": 264
+            },
+            "opex_minus_aaa": {
+              "profit_year": -1620252,
+              "value": -1434452,
+              "air_vehicles": 3,
+              "rail_vehicles": -20,
+              "airports": -10,
+              "rail_stations": -35,
+              "stations": -147,
+              "vehicles": -201
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 6,
+            "start_empty": 0,
+            "start_nonempty_no_build": 0,
+            "passes_built": 6,
+            "units_built": 6,
+            "rail_pool_nonempty_after": 6,
+            "rail_fundable_after": 6,
+            "rail_constructed": 1
+          },
+          "profiled_net_new_line_events": {
+            "air": 3,
+            "rail": 1
+          },
+          "profiled_paid_astar_calls": 0,
+          "profiled_astar_window_ops": 0,
+          "profiled_astar_wait_days": 0,
+          "profiled_monthly_admissions": {
+            "7": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 1
+            },
+            "8": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "11": {
+              "air": 1
+            },
+            "12": {
+              "air": 1
+            },
+            "7": {
+              "rail": 1
+            },
+            "8": {
+              "air": 1
+            }
+          }
+        }
+      },
+      "first_observed_negative_gap_month_from_1971": {
+        "profit_year": "1971-02-01",
+        "value": "1971-01-01",
+        "air_vehicles": "1971-01-01",
+        "airports": "1971-01-01",
+        "rail_vehicles": "1971-01-01",
+        "rail_stations": "1971-01-01"
+      }
+    },
+    "1234": {
+      "by_year": {
+        "1970": {
+          "unprofiled_paired_economy": {
+            "date": "1970-12-01",
+            "opex": {
+              "profit_year": 249700,
+              "value": 238397,
+              "air_vehicles": 9,
+              "rail_vehicles": 0,
+              "airports": 9,
+              "rail_stations": 0,
+              "stations": 9,
+              "vehicles": 9
+            },
+            "aaa": {
+              "profit_year": 205868,
+              "value": 201912,
+              "air_vehicles": 10,
+              "rail_vehicles": 0,
+              "airports": 10,
+              "rail_stations": 0,
+              "stations": 10,
+              "vehicles": 10
+            },
+            "opex_minus_aaa": {
+              "profit_year": 43832,
+              "value": 36485,
+              "air_vehicles": -1,
+              "rail_vehicles": 0,
+              "airports": -1,
+              "rail_stations": 0,
+              "stations": -1,
+              "vehicles": -1
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 135,
+            "start_empty": 125,
+            "start_nonempty_no_build": 0,
+            "passes_built": 10,
+            "units_built": 10,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 6
+          },
+          "profiled_paid_astar_calls": 3,
+          "profiled_astar_window_ops": 7317500,
+          "profiled_astar_wait_days": 48,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 6,
+              "initial_pool_empty": 3,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 8,
+              "initial_pool_empty": 8,
+              "post_pool_empty": 8,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 3,
+              "initial_pool_empty": 3,
+              "post_pool_empty": 3,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 19,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 19,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 19,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 19,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 14,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 12,
+              "initial_pool_empty": 11,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 13,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 10,
+              "initial_pool_empty": 9,
+              "post_pool_empty": 10,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 11,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 12,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 8,
+              "initial_pool_empty": 7,
+              "post_pool_empty": 8,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 3
+            },
+            "12": {
+              "air": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "9": {
+              "air": 1
+            }
+          }
+        },
+        "1971": {
+          "unprofiled_paired_economy": {
+            "date": "1971-12-01",
+            "opex": {
+              "profit_year": 661457,
+              "value": 760418,
+              "air_vehicles": 19,
+              "rail_vehicles": 3,
+              "airports": 22,
+              "rail_stations": 6,
+              "stations": 28,
+              "vehicles": 22
+            },
+            "aaa": {
+              "profit_year": 948523,
+              "value": 1046107,
+              "air_vehicles": 23,
+              "rail_vehicles": 3,
+              "airports": 24,
+              "rail_stations": 4,
+              "stations": 29,
+              "vehicles": 30
+            },
+            "opex_minus_aaa": {
+              "profit_year": -287066,
+              "value": -285689,
+              "air_vehicles": -4,
+              "rail_vehicles": 0,
+              "airports": -2,
+              "rail_stations": 2,
+              "stations": -1,
+              "vehicles": -8
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 120,
+            "start_empty": 100,
+            "start_nonempty_no_build": 4,
+            "passes_built": 16,
+            "units_built": 16,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 1
+          },
+          "profiled_net_new_line_events": {
+            "air": 10,
+            "rail": 1
+          },
+          "profiled_paid_astar_calls": 0,
+          "profiled_astar_window_ops": 0,
+          "profiled_astar_wait_days": 0,
+          "profiled_monthly_admissions": {
+            "2": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 1,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 1
+            },
+            "3": {
+              "passes": 11,
+              "initial_pool_empty": 9,
+              "post_pool_empty": 10,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 6,
+              "initial_pool_empty": 4,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 11,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 8,
+              "initial_pool_empty": 7,
+              "post_pool_empty": 8,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 13,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 11,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 10,
+              "initial_pool_empty": 7,
+              "post_pool_empty": 10,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 13,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 15,
+              "initial_pool_empty": 11,
+              "post_pool_empty": 14,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 20,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 20,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "air": 1
+            },
+            "11": {
+              "air": 2
+            },
+            "12": {
+              "air": 2
+            },
+            "2": {
+              "rail": 1
+            },
+            "4": {
+              "air": 1
+            },
+            "5": {
+              "air": 1
+            },
+            "8": {
+              "air": 1
+            },
+            "9": {
+              "air": 2
+            }
+          }
+        },
+        "1972": {
+          "unprofiled_paired_economy": {
+            "date": "1972-12-01",
+            "opex": {
+              "profit_year": 1277622,
+              "value": 1877596,
+              "air_vehicles": 39,
+              "rail_vehicles": 3,
+              "airports": 31,
+              "rail_stations": 6,
+              "stations": 37,
+              "vehicles": 42
+            },
+            "aaa": {
+              "profit_year": 1499318,
+              "value": 2384423,
+              "air_vehicles": 36,
+              "rail_vehicles": 10,
+              "airports": 32,
+              "rail_stations": 17,
+              "stations": 81,
+              "vehicles": 103
+            },
+            "opex_minus_aaa": {
+              "profit_year": -221696,
+              "value": -506827,
+              "air_vehicles": 3,
+              "rail_vehicles": -7,
+              "airports": -1,
+              "rail_stations": -11,
+              "stations": -44,
+              "vehicles": -61
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 11,
+            "start_empty": 0,
+            "start_nonempty_no_build": 1,
+            "passes_built": 10,
+            "units_built": 16,
+            "rail_pool_nonempty_after": 10,
+            "rail_fundable_after": 10,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 14
+          },
+          "profiled_paid_astar_calls": 1,
+          "profiled_astar_window_ops": 4413253,
+          "profiled_astar_wait_days": 221,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 1,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 1
+            },
+            "10": {
+              "air": 1
+            },
+            "12": {
+              "air": 8
+            },
+            "5": {
+              "air": 1
+            },
+            "6": {
+              "air": 1
+            },
+            "8": {
+              "air": 1
+            },
+            "9": {
+              "air": 1
+            }
+          }
+        },
+        "1973": {
+          "unprofiled_paired_economy": {
+            "date": "1973-12-01",
+            "opex": {
+              "profit_year": 1273909,
+              "value": 3237987,
+              "air_vehicles": 63,
+              "rail_vehicles": 5,
+              "airports": 36,
+              "rail_stations": 8,
+              "stations": 44,
+              "vehicles": 68
+            },
+            "aaa": {
+              "profit_year": 2160978,
+              "value": 3694059,
+              "air_vehicles": 39,
+              "rail_vehicles": 15,
+              "airports": 34,
+              "rail_stations": 29,
+              "stations": 130,
+              "vehicles": 171
+            },
+            "opex_minus_aaa": {
+              "profit_year": -887069,
+              "value": -456072,
+              "air_vehicles": 24,
+              "rail_vehicles": -10,
+              "airports": 2,
+              "rail_stations": -21,
+              "stations": -86,
+              "vehicles": -103
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 20,
+            "start_empty": 0,
+            "start_nonempty_no_build": 3,
+            "passes_built": 17,
+            "units_built": 22,
+            "rail_pool_nonempty_after": 20,
+            "rail_fundable_after": 20,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 15,
+            "road": 1
+          },
+          "profiled_paid_astar_calls": 1,
+          "profiled_astar_window_ops": 4432648,
+          "profiled_astar_wait_days": 221,
+          "profiled_monthly_admissions": {
+            "4": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 5,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 5,
+              "rail_fundable_after": 5,
+              "rail_selected_after": 5,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "air": 2
+            },
+            "11": {
+              "air": 3
+            },
+            "12": {
+              "air": 2,
+              "road": 1
+            },
+            "4": {
+              "air": 6
+            },
+            "7": {
+              "air": 1
+            },
+            "9": {
+              "air": 1
+            }
+          }
+        }
+      },
+      "first_observed_negative_gap_month_from_1971": {
+        "profit_year": "1971-02-01",
+        "value": "1971-02-01",
+        "air_vehicles": "1971-01-01",
+        "airports": "1971-01-01",
+        "rail_vehicles": "1972-01-01",
+        "rail_stations": "1972-02-01"
+      }
+    },
+    "5678": {
+      "by_year": {
+        "1970": {
+          "unprofiled_paired_economy": {
+            "date": "1970-12-01",
+            "opex": {
+              "profit_year": 383205,
+              "value": 274754,
+              "air_vehicles": 10,
+              "rail_vehicles": 0,
+              "airports": 15,
+              "rail_stations": 0,
+              "stations": 15,
+              "vehicles": 10
+            },
+            "aaa": {
+              "profit_year": 494265,
+              "value": 500358,
+              "air_vehicles": 16,
+              "rail_vehicles": 1,
+              "airports": 16,
+              "rail_stations": 2,
+              "stations": 17,
+              "vehicles": 17
+            },
+            "opex_minus_aaa": {
+              "profit_year": -111060,
+              "value": -225604,
+              "air_vehicles": -6,
+              "rail_vehicles": -1,
+              "airports": -1,
+              "rail_stations": -2,
+              "stations": -2,
+              "vehicles": -7
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 162,
+            "start_empty": 151,
+            "start_nonempty_no_build": 2,
+            "passes_built": 9,
+            "units_built": 9,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 8
+          },
+          "profiled_paid_astar_calls": 3,
+          "profiled_astar_window_ops": 1046459,
+          "profiled_astar_wait_days": 7,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 6,
+              "initial_pool_empty": 3,
+              "post_pool_empty": 6,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 21,
+              "initial_pool_empty": 21,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 10,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 10,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 13,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 11,
+              "initial_pool_empty": 11,
+              "post_pool_empty": 11,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 13,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 13,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 12,
+              "initial_pool_empty": 11,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 9,
+              "initial_pool_empty": 8,
+              "post_pool_empty": 8,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 17,
+              "initial_pool_empty": 16,
+              "post_pool_empty": 17,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 20,
+              "initial_pool_empty": 19,
+              "post_pool_empty": 20,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 18,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 18,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 12,
+              "initial_pool_empty": 10,
+              "post_pool_empty": 12,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 2
+            },
+            "10": {
+              "air": 1
+            },
+            "12": {
+              "air": 2
+            },
+            "6": {
+              "air": 1
+            },
+            "8": {
+              "air": 1
+            },
+            "9": {
+              "air": 1
+            }
+          }
+        },
+        "1971": {
+          "unprofiled_paired_economy": {
+            "date": "1971-12-01",
+            "opex": {
+              "profit_year": 1712506,
+              "value": 1882228,
+              "air_vehicles": 44,
+              "rail_vehicles": 2,
+              "airports": 38,
+              "rail_stations": 4,
+              "stations": 46,
+              "vehicles": 50
+            },
+            "aaa": {
+              "profit_year": 1888109,
+              "value": 2122587,
+              "air_vehicles": 23,
+              "rail_vehicles": 8,
+              "airports": 22,
+              "rail_stations": 17,
+              "stations": 79,
+              "vehicles": 104
+            },
+            "opex_minus_aaa": {
+              "profit_year": -175603,
+              "value": -240359,
+              "air_vehicles": 21,
+              "rail_vehicles": -6,
+              "airports": 16,
+              "rail_stations": -13,
+              "stations": -33,
+              "vehicles": -54
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 242,
+            "start_empty": 157,
+            "start_nonempty_no_build": 42,
+            "passes_built": 43,
+            "units_built": 44,
+            "rail_pool_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_constructed": 0
+          },
+          "profiled_net_new_line_events": {
+            "air": 29,
+            "road": 2
+          },
+          "profiled_paid_astar_calls": 1,
+          "profiled_astar_window_ops": 1128448,
+          "profiled_astar_wait_days": 24,
+          "profiled_monthly_admissions": {
+            "1": {
+              "passes": 10,
+              "initial_pool_empty": 6,
+              "post_pool_empty": 9,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "2": {
+              "passes": 8,
+              "initial_pool_empty": 2,
+              "post_pool_empty": 2,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 6,
+              "rail_built": 0
+            },
+            "3": {
+              "passes": 9,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 1,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 7,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 9,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 1,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 8,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 19,
+              "initial_pool_empty": 12,
+              "post_pool_empty": 15,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 4,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 19,
+              "initial_pool_empty": 13,
+              "post_pool_empty": 16,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 24,
+              "initial_pool_empty": 18,
+              "post_pool_empty": 21,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 30,
+              "initial_pool_empty": 17,
+              "post_pool_empty": 20,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 10,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 29,
+              "initial_pool_empty": 23,
+              "post_pool_empty": 29,
+              "passes_with_physical_progress": 6,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 32,
+              "initial_pool_empty": 27,
+              "post_pool_empty": 32,
+              "passes_with_physical_progress": 5,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 25,
+              "initial_pool_empty": 15,
+              "post_pool_empty": 19,
+              "passes_with_physical_progress": 5,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 6,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 28,
+              "initial_pool_empty": 24,
+              "post_pool_empty": 28,
+              "passes_with_physical_progress": 4,
+              "rail_nonempty_after": 0,
+              "rail_fundable_after": 0,
+              "rail_selected_after": 0,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "1": {
+              "air": 1
+            },
+            "10": {
+              "air": 3
+            },
+            "11": {
+              "air": 5
+            },
+            "12": {
+              "air": 2
+            },
+            "3": {
+              "air": 2,
+              "road": 1
+            },
+            "4": {
+              "air": 2,
+              "road": 1
+            },
+            "5": {
+              "air": 2
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 3
+            },
+            "8": {
+              "air": 4
+            },
+            "9": {
+              "air": 4
+            }
+          }
+        },
+        "1972": {
+          "unprofiled_paired_economy": {
+            "date": "1972-12-01",
+            "opex": {
+              "profit_year": 2713247,
+              "value": 4446621,
+              "air_vehicles": 65,
+              "rail_vehicles": 5,
+              "airports": 42,
+              "rail_stations": 8,
+              "stations": 54,
+              "vehicles": 74
+            },
+            "aaa": {
+              "profit_year": 2477019,
+              "value": 3541951,
+              "air_vehicles": 35,
+              "rail_vehicles": 10,
+              "airports": 28,
+              "rail_stations": 19,
+              "stations": 116,
+              "vehicles": 168
+            },
+            "opex_minus_aaa": {
+              "profit_year": 236228,
+              "value": 904670,
+              "air_vehicles": 30,
+              "rail_vehicles": -5,
+              "airports": 14,
+              "rail_stations": -11,
+              "stations": -62,
+              "vehicles": -94
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 34,
+            "start_empty": 0,
+            "start_nonempty_no_build": 13,
+            "passes_built": 21,
+            "units_built": 22,
+            "rail_pool_nonempty_after": 34,
+            "rail_fundable_after": 34,
+            "rail_constructed": 4
+          },
+          "profiled_net_new_line_events": {
+            "air": 12,
+            "rail": 4
+          },
+          "profiled_paid_astar_calls": 5,
+          "profiled_astar_window_ops": 8844072,
+          "profiled_astar_wait_days": 204,
+          "profiled_monthly_admissions": {
+            "3": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "4": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 3,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 3,
+              "rail_fundable_after": 3,
+              "rail_selected_after": 3,
+              "rail_built": 0
+            },
+            "10": {
+              "passes": 4,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 4,
+              "rail_fundable_after": 4,
+              "rail_selected_after": 4,
+              "rail_built": 3
+            },
+            "11": {
+              "passes": 5,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 3,
+              "rail_nonempty_after": 5,
+              "rail_fundable_after": 5,
+              "rail_selected_after": 5,
+              "rail_built": 1
+            },
+            "12": {
+              "passes": 9,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 0,
+              "rail_nonempty_after": 9,
+              "rail_fundable_after": 9,
+              "rail_selected_after": 9,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "rail": 3
+            },
+            "11": {
+              "air": 2,
+              "rail": 1
+            },
+            "3": {
+              "air": 2
+            },
+            "6": {
+              "air": 1
+            },
+            "7": {
+              "air": 3
+            },
+            "8": {
+              "air": 1
+            },
+            "9": {
+              "air": 3
+            }
+          }
+        },
+        "1973": {
+          "unprofiled_paired_economy": {
+            "date": "1973-12-01",
+            "opex": {
+              "profit_year": 2708400,
+              "value": 7092212,
+              "air_vehicles": 95,
+              "rail_vehicles": 6,
+              "airports": 43,
+              "rail_stations": 10,
+              "stations": 57,
+              "vehicles": 105
+            },
+            "aaa": {
+              "profit_year": 2916632,
+              "value": 5271493,
+              "air_vehicles": 38,
+              "rail_vehicles": 20,
+              "airports": 34,
+              "rail_stations": 32,
+              "stations": 159,
+              "vehicles": 241
+            },
+            "opex_minus_aaa": {
+              "profit_year": -208232,
+              "value": 1820719,
+              "air_vehicles": 57,
+              "rail_vehicles": -14,
+              "airports": 9,
+              "rail_stations": -22,
+              "stations": -102,
+              "vehicles": -136
+            }
+          },
+          "profiled_admission_after_dispatch": {
+            "passes": 15,
+            "start_empty": 0,
+            "start_nonempty_no_build": 0,
+            "passes_built": 15,
+            "units_built": 16,
+            "rail_pool_nonempty_after": 15,
+            "rail_fundable_after": 15,
+            "rail_constructed": 1
+          },
+          "profiled_net_new_line_events": {
+            "air": 3,
+            "rail": 1,
+            "road": 1
+          },
+          "profiled_paid_astar_calls": 1,
+          "profiled_astar_window_ops": 10363817,
+          "profiled_astar_wait_days": 294,
+          "profiled_monthly_admissions": {
+            "4": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "5": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "6": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "7": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "8": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "9": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 1
+            },
+            "10": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            },
+            "11": {
+              "passes": 1,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 1,
+              "rail_nonempty_after": 1,
+              "rail_fundable_after": 1,
+              "rail_selected_after": 1,
+              "rail_built": 0
+            },
+            "12": {
+              "passes": 2,
+              "initial_pool_empty": 0,
+              "post_pool_empty": 0,
+              "passes_with_physical_progress": 2,
+              "rail_nonempty_after": 2,
+              "rail_fundable_after": 2,
+              "rail_selected_after": 2,
+              "rail_built": 0
+            }
+          },
+          "profiled_monthly_line_events": {
+            "10": {
+              "road": 1
+            },
+            "4": {
+              "air": 3
+            },
+            "9": {
+              "rail": 1
+            }
+          }
+        }
+      },
+      "first_observed_negative_gap_month_from_1971": {
+        "profit_year": "1971-02-01",
+        "value": "1971-01-01",
+        "air_vehicles": "1971-01-01",
+        "airports": "1971-01-01",
+        "rail_vehicles": "1971-01-01",
+        "rail_stations": "1971-01-01"
+      }
+    }
+  },
+  "limitations": [
+    "P2/P5 logs are from a profiled campaign and MUST NOT be causally joined to the unprofiled C66 economic trajectory.",
+    "first_negative_gap_month means earliest valid paired checkpoint where OpexAI < AAA, not first divergent AI decision. Profit requires 4 valid quarters on both arms.",
+    "P2 rail affordability is measured after dispatch and does not prove construction feasibility when admitted.",
+    "P5 line events measure positive NET changes to _lines, not gross builds, survival or profitability.",
+    "Rail/AIR active services and complete construction failures cannot be reconstructed from the annual C66 stocks.",
+    "Projects build_ops measures waiting and NoAI commands, not raw Squirrel VM instructions."
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "campaign": "p0_abandon_skip_b20x10_20261012",
+  "policy": "reference",
+  "source_bundle_sha256": "6f4657e035f799123fc1a1df4decda57ccf2ea41fda3404b528679f37bdc5f05",
+  "by_year": {
+    "1971": {
+      "n": 20,
+      "excluded_seeds": [],
+      "mean_vehicle_profit_by_mode_gbp": {
+        "OpexAI": {
+          "air": 1339645.45,
+          "rail": 48220.26,
+          "road": 2891.84
+        },
+        "AAAHogEx": {
+          "air": 1337839.41,
+          "rail": 45100.89,
+          "road": 3878.09
+        }
+      },
+      "mean_opex_minus_aaa_by_mode_gbp": {
+        "air": 1806.04,
+        "rail": 3119.36,
+        "road": -986.25
+      },
+      "mean_active_services": {
+        "OpexAI": {
+          "air": 24.4,
+          "rail": 2.55,
+          "road": 0.55
+        },
+        "AAAHogEx": {
+          "air": 12.25,
+          "rail": 5.3,
+          "road": 14.55
+        }
+      }
+    },
+    "1972": {
+      "n": 20,
+      "excluded_seeds": [],
+      "mean_vehicle_profit_by_mode_gbp": {
+        "OpexAI": {
+          "air": 1696845.46,
+          "rail": 62428.81,
+          "road": 4186.51
+        },
+        "AAAHogEx": {
+          "air": 1499150.45,
+          "rail": 265347.56,
+          "road": -1796.72
+        }
+      },
+      "mean_opex_minus_aaa_by_mode_gbp": {
+        "air": 197695.01,
+        "rail": -202918.75,
+        "road": 5983.23
+      },
+      "mean_active_services": {
+        "OpexAI": {
+          "air": 38.65,
+          "rail": 3.05,
+          "road": 0.8
+        },
+        "AAAHogEx": {
+          "air": 14.1,
+          "rail": 10.25,
+          "road": 55.1
+        }
+      }
+    },
+    "1973": {
+      "n": 19,
+      "excluded_seeds": [
+        12345
+      ],
+      "mean_vehicle_profit_by_mode_gbp": {
+        "OpexAI": {
+          "air": 1684988.71,
+          "rail": 73303.08,
+          "road": 4568.32
+        },
+        "AAAHogEx": {
+          "air": 1916189.45,
+          "rail": 425147.13,
+          "road": -12219.33
+        }
+      },
+      "mean_opex_minus_aaa_by_mode_gbp": {
+        "air": -231200.74,
+        "rail": -351844.05,
+        "road": 16787.66
+      },
+      "mean_active_services": {
+        "OpexAI": {
+          "air": 44.737,
+          "rail": 4.263,
+          "road": 1.211
+        },
+        "AAAHogEx": {
+          "air": 15.842,
+          "rail": 14.947,
+          "road": 76.737
+        }
+      }
+    }
+  },
+  "same_seed_growth": {
+    "1971_to_1972": {
+      "n": 20,
+      "excluded": [],
+      "mean_change_vehicle_profit_by_mode_gbp": {
+        "OpexAI": {
+          "air": 357200.01,
+          "rail": 14208.55,
+          "road": 1294.67
+        },
+        "AAAHogEx": {
+          "air": 161311.04,
+          "rail": 220246.67,
+          "road": -5674.81
+        }
+      }
+    },
+    "1972_to_1973": {
+      "n": 19,
+      "excluded": [
+        12345
+      ],
+      "mean_change_vehicle_profit_by_mode_gbp": {
+        "OpexAI": {
+          "air": -32298.6,
+          "rail": 10958.16,
+          "road": 161.48
+        },
+        "AAAHogEx": {
+          "air": 410612.79,
+          "rail": 152171.86,
+          "road": -10583.73
+        }
+      }
+    }
+  },
+  "limitations": [
+    "This is year-to-date profit attributed to vehicles in ACTIVE services at December checkpoint.",
+    "Not trailing-four-quarter company profit_year or profit gained from new projects.",
+    "Station/network/loan costs and indirect feeder benefits are not attributed to modes here.",
+    "Incomplete AAA snapshots cause BOTH companies for that seed/year to be excluded.",
+    "Line-telemetry groups may merge services with same station pair; line construction events unavailable.",
+    "This campaign has the same LOOP_OPS probes on both economic policy arms but probes may alter trajectories."
+  ]
+}

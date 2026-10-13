@@ -1,0 +1,1238 @@
+{
+  "campaign": "p0_abandon_skip_b20x10_20261012",
+  "policy": "reference",
+  "source_bundle_sha256": "6f4657e035f799123fc1a1df4decda57ccf2ea41fda3404b528679f37bdc5f05",
+  "year": 1973,
+  "paired_seeds": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309
+  ],
+  "excluded": [
+    12345
+  ],
+  "aggregates": {
+    "OpexAI": {
+      "continuing": {
+        "mean_aircraft_per_seed": 55.053,
+        "total_aircraft_observations": 1046,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 1435042.23,
+        "pooled_ytd_profit_per_aircraft_gbp": 26066.73
+      },
+      "not_seen_prior_december": {
+        "mean_aircraft_per_seed": 22.632,
+        "total_aircraft_observations": 430,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 249946.48,
+        "pooled_ytd_profit_per_aircraft_gbp": 11044.15
+      },
+      "continuing_same_ids_prior_year": {
+        "mean_aircraft_per_seed": 55.053,
+        "total_aircraft_observations": 1046,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 1689360.32,
+        "pooled_ytd_profit_per_aircraft_gbp": 30686.28
+      },
+      "all": {
+        "mean_aircraft_per_seed": 77.684,
+        "total_aircraft_observations": 1476,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 1684988.71,
+        "pooled_ytd_profit_per_aircraft_gbp": 21690.23
+      },
+      "continuing_same_ids_change_gbp_per_seed": -254318.09,
+      "newly_observed_fraction_of_current": 0.2913
+    },
+    "AAAHogEx": {
+      "continuing": {
+        "mean_aircraft_per_seed": 26.632,
+        "total_aircraft_observations": 506,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 1683915.69,
+        "pooled_ytd_profit_per_aircraft_gbp": 63230.04
+      },
+      "not_seen_prior_december": {
+        "mean_aircraft_per_seed": 10.737,
+        "total_aircraft_observations": 204,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 232273.76,
+        "pooled_ytd_profit_per_aircraft_gbp": 21633.34
+      },
+      "continuing_same_ids_prior_year": {
+        "mean_aircraft_per_seed": 26.632,
+        "total_aircraft_observations": 506,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 1337649.36,
+        "pooled_ytd_profit_per_aircraft_gbp": 50227.94
+      },
+      "all": {
+        "mean_aircraft_per_seed": 37.368,
+        "total_aircraft_observations": 710,
+        "mean_vehicle_ytd_profit_per_seed_gbp": 1916189.45,
+        "pooled_ytd_profit_per_aircraft_gbp": 51278.31
+      },
+      "continuing_same_ids_change_gbp_per_seed": 346266.33,
+      "newly_observed_fraction_of_current": 0.2873
+    }
+  },
+  "per_seed": {
+    "42": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 68,
+          "sum_profit_gbp": 1547129.09,
+          "mean_profit_gbp_per_plane": 22751.9,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 30,
+          "sum_profit_gbp": 310082.19,
+          "mean_profit_gbp_per_plane": 10336.07,
+          "negative_planes": 4
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 98,
+          "sum_profit_gbp": 1857211.29,
+          "mean_profit_gbp_per_plane": 18951.14,
+          "negative_planes": 5
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 68,
+          "sum_profit_gbp": 1588555.88,
+          "mean_profit_gbp_per_plane": 23361.12,
+          "negative_planes": 9
+        },
+        "continuing_profit_change_same_ids_gbp": -41426.79,
+        "continuing_profit_change_per_plane_gbp": -609.22
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 21,
+          "sum_profit_gbp": 1480240.8,
+          "mean_profit_gbp_per_plane": 70487.66,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 11,
+          "sum_profit_gbp": 382841.29,
+          "mean_profit_gbp_per_plane": 34803.75,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 9,
+        "all": {
+          "planes": 32,
+          "sum_profit_gbp": 1863082.09,
+          "mean_profit_gbp_per_plane": 58221.32,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 21,
+          "sum_profit_gbp": 1348562.07,
+          "mean_profit_gbp_per_plane": 64217.24,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": 131678.73,
+        "continuing_profit_change_per_plane_gbp": 6270.42
+      }
+    },
+    "100": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 48,
+          "sum_profit_gbp": 1024253.13,
+          "mean_profit_gbp_per_plane": 21338.61,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 36,
+          "sum_profit_gbp": 287601.32,
+          "mean_profit_gbp_per_plane": 7988.93,
+          "negative_planes": 4
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 84,
+          "sum_profit_gbp": 1311854.44,
+          "mean_profit_gbp_per_plane": 15617.31,
+          "negative_planes": 4
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 48,
+          "sum_profit_gbp": 1271667.59,
+          "mean_profit_gbp_per_plane": 26493.07,
+          "negative_planes": 4
+        },
+        "continuing_profit_change_same_ids_gbp": -247414.46,
+        "continuing_profit_change_per_plane_gbp": -5154.47
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 20,
+          "sum_profit_gbp": 1023657.46,
+          "mean_profit_gbp_per_plane": 51182.87,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 11,
+          "sum_profit_gbp": 157459.36,
+          "mean_profit_gbp_per_plane": 14314.49,
+          "negative_planes": 3
+        },
+        "prior_december_not_seen_now": 6,
+        "all": {
+          "planes": 31,
+          "sum_profit_gbp": 1181116.82,
+          "mean_profit_gbp_per_plane": 38100.54,
+          "negative_planes": 3
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 20,
+          "sum_profit_gbp": 770513.96,
+          "mean_profit_gbp_per_plane": 38525.7,
+          "negative_planes": 0
+        },
+        "continuing_profit_change_same_ids_gbp": 253143.5,
+        "continuing_profit_change_per_plane_gbp": 12657.17
+      }
+    },
+    "7": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 65,
+          "sum_profit_gbp": 1727220.65,
+          "mean_profit_gbp_per_plane": 26572.63,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 27,
+          "sum_profit_gbp": 400088.93,
+          "mean_profit_gbp_per_plane": 14818.11,
+          "negative_planes": 3
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 92,
+          "sum_profit_gbp": 2127309.58,
+          "mean_profit_gbp_per_plane": 23122.93,
+          "negative_planes": 4
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 65,
+          "sum_profit_gbp": 2199360.52,
+          "mean_profit_gbp_per_plane": 33836.32,
+          "negative_planes": 4
+        },
+        "continuing_profit_change_same_ids_gbp": -472139.87,
+        "continuing_profit_change_per_plane_gbp": -7263.69
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 33,
+          "sum_profit_gbp": 2371402.73,
+          "mean_profit_gbp_per_plane": 71860.69,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 15,
+          "sum_profit_gbp": 181972.86,
+          "mean_profit_gbp_per_plane": 12131.52,
+          "negative_planes": 9
+        },
+        "prior_december_not_seen_now": 8,
+        "all": {
+          "planes": 48,
+          "sum_profit_gbp": 2553375.58,
+          "mean_profit_gbp_per_plane": 53195.32,
+          "negative_planes": 9
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 33,
+          "sum_profit_gbp": 1658885.7,
+          "mean_profit_gbp_per_plane": 50269.26,
+          "negative_planes": 3
+        },
+        "continuing_profit_change_same_ids_gbp": 712517.02,
+        "continuing_profit_change_per_plane_gbp": 21591.42
+      }
+    },
+    "999": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 29,
+          "sum_profit_gbp": 1064028.67,
+          "mean_profit_gbp_per_plane": 36690.64,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 14,
+          "sum_profit_gbp": 215157.48,
+          "mean_profit_gbp_per_plane": 15368.39,
+          "negative_planes": 2
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 43,
+          "sum_profit_gbp": 1279186.15,
+          "mean_profit_gbp_per_plane": 29748.52,
+          "negative_planes": 2
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 29,
+          "sum_profit_gbp": 1155537.05,
+          "mean_profit_gbp_per_plane": 39846.11,
+          "negative_planes": 3
+        },
+        "continuing_profit_change_same_ids_gbp": -91508.38,
+        "continuing_profit_change_per_plane_gbp": -3155.46
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 39,
+          "sum_profit_gbp": 2987959.42,
+          "mean_profit_gbp_per_plane": 76614.34,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 9,
+          "sum_profit_gbp": 222112.5,
+          "mean_profit_gbp_per_plane": 24679.17,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 7,
+        "all": {
+          "planes": 48,
+          "sum_profit_gbp": 3210071.92,
+          "mean_profit_gbp_per_plane": 66876.5,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 39,
+          "sum_profit_gbp": 2622474.79,
+          "mean_profit_gbp_per_plane": 67242.94,
+          "negative_planes": 7
+        },
+        "continuing_profit_change_same_ids_gbp": 365484.63,
+        "continuing_profit_change_per_plane_gbp": 9371.4
+      }
+    },
+    "2026": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 55,
+          "sum_profit_gbp": 1590446.3,
+          "mean_profit_gbp_per_plane": 28917.21,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 15,
+          "sum_profit_gbp": 126615.66,
+          "mean_profit_gbp_per_plane": 8441.04,
+          "negative_planes": 2
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 70,
+          "sum_profit_gbp": 1717061.96,
+          "mean_profit_gbp_per_plane": 24529.46,
+          "negative_planes": 3
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 55,
+          "sum_profit_gbp": 1762034.42,
+          "mean_profit_gbp_per_plane": 32036.99,
+          "negative_planes": 3
+        },
+        "continuing_profit_change_same_ids_gbp": -171588.12,
+        "continuing_profit_change_per_plane_gbp": -3119.78
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 22,
+          "sum_profit_gbp": 1736898.23,
+          "mean_profit_gbp_per_plane": 78949.92,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 16,
+          "sum_profit_gbp": 225680.41,
+          "mean_profit_gbp_per_plane": 14105.03,
+          "negative_planes": 8
+        },
+        "prior_december_not_seen_now": 4,
+        "all": {
+          "planes": 38,
+          "sum_profit_gbp": 1962578.64,
+          "mean_profit_gbp_per_plane": 51646.81,
+          "negative_planes": 8
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 22,
+          "sum_profit_gbp": 1223763.79,
+          "mean_profit_gbp_per_plane": 55625.63,
+          "negative_planes": 6
+        },
+        "continuing_profit_change_same_ids_gbp": 513134.44,
+        "continuing_profit_change_per_plane_gbp": 23324.29
+      }
+    },
+    "1": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 74,
+          "sum_profit_gbp": 2274463.98,
+          "mean_profit_gbp_per_plane": 30736.0,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 21,
+          "sum_profit_gbp": 110595.34,
+          "mean_profit_gbp_per_plane": 5266.44,
+          "negative_planes": 8
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 95,
+          "sum_profit_gbp": 2385059.32,
+          "mean_profit_gbp_per_plane": 25105.89,
+          "negative_planes": 9
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 74,
+          "sum_profit_gbp": 2501467.43,
+          "mean_profit_gbp_per_plane": 33803.61,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": -227003.45,
+        "continuing_profit_change_per_plane_gbp": -3067.61
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 31,
+          "sum_profit_gbp": 1908470.01,
+          "mean_profit_gbp_per_plane": 61563.55,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 7,
+          "sum_profit_gbp": 99924.52,
+          "mean_profit_gbp_per_plane": 14274.93,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 3,
+        "all": {
+          "planes": 38,
+          "sum_profit_gbp": 2008394.52,
+          "mean_profit_gbp_per_plane": 52852.49,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 31,
+          "sum_profit_gbp": 1319225.8,
+          "mean_profit_gbp_per_plane": 42555.67,
+          "negative_planes": 7
+        },
+        "continuing_profit_change_same_ids_gbp": 589244.2,
+        "continuing_profit_change_per_plane_gbp": 19007.88
+      }
+    },
+    "17": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 35,
+          "sum_profit_gbp": 850152.36,
+          "mean_profit_gbp_per_plane": 24290.07,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 20,
+          "sum_profit_gbp": 158123.04,
+          "mean_profit_gbp_per_plane": 7906.15,
+          "negative_planes": 5
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 55,
+          "sum_profit_gbp": 1008275.4,
+          "mean_profit_gbp_per_plane": 18332.28,
+          "negative_planes": 6
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 35,
+          "sum_profit_gbp": 1070986.09,
+          "mean_profit_gbp_per_plane": 30599.6,
+          "negative_planes": 6
+        },
+        "continuing_profit_change_same_ids_gbp": -220833.73,
+        "continuing_profit_change_per_plane_gbp": -6309.54
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 30,
+          "sum_profit_gbp": 1493217.69,
+          "mean_profit_gbp_per_plane": 49773.92,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 3,
+          "sum_profit_gbp": 61867.95,
+          "mean_profit_gbp_per_plane": 20622.65,
+          "negative_planes": 0
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 33,
+          "sum_profit_gbp": 1555085.63,
+          "mean_profit_gbp_per_plane": 47123.81,
+          "negative_planes": 0
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 30,
+          "sum_profit_gbp": 823357.56,
+          "mean_profit_gbp_per_plane": 27445.25,
+          "negative_planes": 8
+        },
+        "continuing_profit_change_same_ids_gbp": 669860.13,
+        "continuing_profit_change_per_plane_gbp": 22328.67
+      }
+    },
+    "73": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 66,
+          "sum_profit_gbp": 1771897.35,
+          "mean_profit_gbp_per_plane": 26846.93,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 23,
+          "sum_profit_gbp": 361559.93,
+          "mean_profit_gbp_per_plane": 15720.0,
+          "negative_planes": 4
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 89,
+          "sum_profit_gbp": 2133457.27,
+          "mean_profit_gbp_per_plane": 23971.43,
+          "negative_planes": 4
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 66,
+          "sum_profit_gbp": 2282785.79,
+          "mean_profit_gbp_per_plane": 34587.66,
+          "negative_planes": 5
+        },
+        "continuing_profit_change_same_ids_gbp": -510888.45,
+        "continuing_profit_change_per_plane_gbp": -7740.73
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 39,
+          "sum_profit_gbp": 2624102.71,
+          "mean_profit_gbp_per_plane": 67284.68,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 4,
+          "sum_profit_gbp": 113302.96,
+          "mean_profit_gbp_per_plane": 28325.74,
+          "negative_planes": 0
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 43,
+          "sum_profit_gbp": 2737405.67,
+          "mean_profit_gbp_per_plane": 63660.6,
+          "negative_planes": 0
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 39,
+          "sum_profit_gbp": 1781916.6,
+          "mean_profit_gbp_per_plane": 45690.17,
+          "negative_planes": 6
+        },
+        "continuing_profit_change_same_ids_gbp": 842186.11,
+        "continuing_profit_change_per_plane_gbp": 21594.52
+      }
+    },
+    "314": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 59,
+          "sum_profit_gbp": 1548877.76,
+          "mean_profit_gbp_per_plane": 26252.17,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 31,
+          "sum_profit_gbp": 450396.05,
+          "mean_profit_gbp_per_plane": 14528.9,
+          "negative_planes": 4
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 90,
+          "sum_profit_gbp": 1999273.8,
+          "mean_profit_gbp_per_plane": 22214.15,
+          "negative_planes": 4
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 59,
+          "sum_profit_gbp": 2084319.3,
+          "mean_profit_gbp_per_plane": 35327.45,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": -535441.54,
+        "continuing_profit_change_per_plane_gbp": -9075.28
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 25,
+          "sum_profit_gbp": 1598008.04,
+          "mean_profit_gbp_per_plane": 63920.32,
+          "negative_planes": 3
+        },
+        "not_seen_prior_december": {
+          "planes": 13,
+          "sum_profit_gbp": 556127.7,
+          "mean_profit_gbp_per_plane": 42779.05,
+          "negative_planes": 3
+        },
+        "prior_december_not_seen_now": 5,
+        "all": {
+          "planes": 38,
+          "sum_profit_gbp": 2154135.74,
+          "mean_profit_gbp_per_plane": 56687.78,
+          "negative_planes": 6
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 25,
+          "sum_profit_gbp": 1197625.55,
+          "mean_profit_gbp_per_plane": 47905.02,
+          "negative_planes": 6
+        },
+        "continuing_profit_change_same_ids_gbp": 400382.48,
+        "continuing_profit_change_per_plane_gbp": 16015.3
+      }
+    },
+    "512": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 19,
+          "sum_profit_gbp": 509055.58,
+          "mean_profit_gbp_per_plane": 26792.4,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 13,
+          "sum_profit_gbp": 163554.68,
+          "mean_profit_gbp_per_plane": 12581.13,
+          "negative_planes": 3
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 32,
+          "sum_profit_gbp": 672610.26,
+          "mean_profit_gbp_per_plane": 21019.07,
+          "negative_planes": 3
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 19,
+          "sum_profit_gbp": 704035.46,
+          "mean_profit_gbp_per_plane": 37054.5,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": -194979.88,
+        "continuing_profit_change_per_plane_gbp": -10262.1
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 21,
+          "sum_profit_gbp": 1261450.83,
+          "mean_profit_gbp_per_plane": 60069.09,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 11,
+          "sum_profit_gbp": 134631.64,
+          "mean_profit_gbp_per_plane": 12239.24,
+          "negative_planes": 2
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 32,
+          "sum_profit_gbp": 1396082.46,
+          "mean_profit_gbp_per_plane": 43627.58,
+          "negative_planes": 2
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 21,
+          "sum_profit_gbp": 1267076.93,
+          "mean_profit_gbp_per_plane": 60337.0,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": -5626.11,
+        "continuing_profit_change_per_plane_gbp": -267.91
+      }
+    },
+    "1024": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 56,
+          "sum_profit_gbp": 1385756.12,
+          "mean_profit_gbp_per_plane": 24745.65,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 18,
+          "sum_profit_gbp": 218740.04,
+          "mean_profit_gbp_per_plane": 12152.22,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 74,
+          "sum_profit_gbp": 1604496.16,
+          "mean_profit_gbp_per_plane": 21682.38,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 56,
+          "sum_profit_gbp": 1558568.89,
+          "mean_profit_gbp_per_plane": 27831.59,
+          "negative_planes": 4
+        },
+        "continuing_profit_change_same_ids_gbp": -172812.77,
+        "continuing_profit_change_per_plane_gbp": -3085.94
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 21,
+          "sum_profit_gbp": 1098821.98,
+          "mean_profit_gbp_per_plane": 52324.86,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 10,
+          "sum_profit_gbp": 255471.07,
+          "mean_profit_gbp_per_plane": 25547.11,
+          "negative_planes": 2
+        },
+        "prior_december_not_seen_now": 3,
+        "all": {
+          "planes": 31,
+          "sum_profit_gbp": 1354293.05,
+          "mean_profit_gbp_per_plane": 43686.87,
+          "negative_planes": 2
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 21,
+          "sum_profit_gbp": 824501.88,
+          "mean_profit_gbp_per_plane": 39261.99,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": 274320.1,
+        "continuing_profit_change_per_plane_gbp": 13062.86
+      }
+    },
+    "1337": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 62,
+          "sum_profit_gbp": 1603828.2,
+          "mean_profit_gbp_per_plane": 25868.2,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 16,
+          "sum_profit_gbp": 182619.64,
+          "mean_profit_gbp_per_plane": 11413.73,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 78,
+          "sum_profit_gbp": 1786447.84,
+          "mean_profit_gbp_per_plane": 22903.18,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 62,
+          "sum_profit_gbp": 1960073.82,
+          "mean_profit_gbp_per_plane": 31614.09,
+          "negative_planes": 4
+        },
+        "continuing_profit_change_same_ids_gbp": -356245.62,
+        "continuing_profit_change_per_plane_gbp": -5745.9
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 20,
+          "sum_profit_gbp": 1251895.71,
+          "mean_profit_gbp_per_plane": 62594.79,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 12,
+          "sum_profit_gbp": 291151.75,
+          "mean_profit_gbp_per_plane": 24262.65,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 32,
+          "sum_profit_gbp": 1543047.46,
+          "mean_profit_gbp_per_plane": 48220.23,
+          "negative_planes": 2
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 20,
+          "sum_profit_gbp": 1035450.7,
+          "mean_profit_gbp_per_plane": 51772.53,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": 216445.01,
+        "continuing_profit_change_per_plane_gbp": 10822.25
+      }
+    },
+    "4096": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 79,
+          "sum_profit_gbp": 1847137.57,
+          "mean_profit_gbp_per_plane": 23381.49,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 28,
+          "sum_profit_gbp": 266394.56,
+          "mean_profit_gbp_per_plane": 9514.09,
+          "negative_planes": 5
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 107,
+          "sum_profit_gbp": 2113532.13,
+          "mean_profit_gbp_per_plane": 19752.64,
+          "negative_planes": 5
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 79,
+          "sum_profit_gbp": 2330339.05,
+          "mean_profit_gbp_per_plane": 29497.96,
+          "negative_planes": 1
+        },
+        "continuing_profit_change_same_ids_gbp": -483201.48,
+        "continuing_profit_change_per_plane_gbp": -6116.47
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 25,
+          "sum_profit_gbp": 1405613.7,
+          "mean_profit_gbp_per_plane": 56224.55,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 11,
+          "sum_profit_gbp": 285194.1,
+          "mean_profit_gbp_per_plane": 25926.74,
+          "negative_planes": 6
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 36,
+          "sum_profit_gbp": 1690807.8,
+          "mean_profit_gbp_per_plane": 46966.88,
+          "negative_planes": 6
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 25,
+          "sum_profit_gbp": 1232114.75,
+          "mean_profit_gbp_per_plane": 49284.59,
+          "negative_planes": 1
+        },
+        "continuing_profit_change_same_ids_gbp": 173498.95,
+        "continuing_profit_change_per_plane_gbp": 6939.96
+      }
+    },
+    "8191": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 57,
+          "sum_profit_gbp": 1654944.46,
+          "mean_profit_gbp_per_plane": 29034.11,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 20,
+          "sum_profit_gbp": 267016.52,
+          "mean_profit_gbp_per_plane": 13350.83,
+          "negative_planes": 2
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 77,
+          "sum_profit_gbp": 1921960.98,
+          "mean_profit_gbp_per_plane": 24960.53,
+          "negative_planes": 2
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 57,
+          "sum_profit_gbp": 1966825.82,
+          "mean_profit_gbp_per_plane": 34505.72,
+          "negative_planes": 4
+        },
+        "continuing_profit_change_same_ids_gbp": -311881.36,
+        "continuing_profit_change_per_plane_gbp": -5471.6
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 25,
+          "sum_profit_gbp": 1320240.36,
+          "mean_profit_gbp_per_plane": 52809.61,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 15,
+          "sum_profit_gbp": 138343.85,
+          "mean_profit_gbp_per_plane": 9222.92,
+          "negative_planes": 7
+        },
+        "prior_december_not_seen_now": 7,
+        "all": {
+          "planes": 40,
+          "sum_profit_gbp": 1458584.21,
+          "mean_profit_gbp_per_plane": 36464.61,
+          "negative_planes": 7
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 25,
+          "sum_profit_gbp": 1311697.85,
+          "mean_profit_gbp_per_plane": 52467.91,
+          "negative_planes": 1
+        },
+        "continuing_profit_change_same_ids_gbp": 8542.51,
+        "continuing_profit_change_per_plane_gbp": 341.7
+      }
+    },
+    "54321": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 69,
+          "sum_profit_gbp": 1468881.24,
+          "mean_profit_gbp_per_plane": 21288.13,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 33,
+          "sum_profit_gbp": 386558.73,
+          "mean_profit_gbp_per_plane": 11713.9,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 1,
+        "all": {
+          "planes": 102,
+          "sum_profit_gbp": 1855439.98,
+          "mean_profit_gbp_per_plane": 18190.59,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 69,
+          "sum_profit_gbp": 1806135.8,
+          "mean_profit_gbp_per_plane": 26175.88,
+          "negative_planes": 0
+        },
+        "continuing_profit_change_same_ids_gbp": -337254.56,
+        "continuing_profit_change_per_plane_gbp": -4887.75
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 20,
+          "sum_profit_gbp": 1021383.87,
+          "mean_profit_gbp_per_plane": 51069.19,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 5,
+          "sum_profit_gbp": 170329.39,
+          "mean_profit_gbp_per_plane": 34065.88,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 4,
+        "all": {
+          "planes": 25,
+          "sum_profit_gbp": 1191713.26,
+          "mean_profit_gbp_per_plane": 47668.53,
+          "negative_planes": 2
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 20,
+          "sum_profit_gbp": 922869.64,
+          "mean_profit_gbp_per_plane": 46143.48,
+          "negative_planes": 1
+        },
+        "continuing_profit_change_same_ids_gbp": 98514.23,
+        "continuing_profit_change_per_plane_gbp": 4925.71
+      }
+    },
+    "65537": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 43,
+          "sum_profit_gbp": 1198037.38,
+          "mean_profit_gbp_per_plane": 27861.33,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 14,
+          "sum_profit_gbp": 188120.72,
+          "mean_profit_gbp_per_plane": 13437.19,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 57,
+          "sum_profit_gbp": 1386158.11,
+          "mean_profit_gbp_per_plane": 24318.56,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 43,
+          "sum_profit_gbp": 1166875.17,
+          "mean_profit_gbp_per_plane": 27136.63,
+          "negative_planes": 7
+        },
+        "continuing_profit_change_same_ids_gbp": 31162.21,
+        "continuing_profit_change_per_plane_gbp": 724.7
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 34,
+          "sum_profit_gbp": 1831854.22,
+          "mean_profit_gbp_per_plane": 53878.07,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 14,
+          "sum_profit_gbp": 344863.38,
+          "mean_profit_gbp_per_plane": 24633.1,
+          "negative_planes": 1
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 48,
+          "sum_profit_gbp": 2176717.6,
+          "mean_profit_gbp_per_plane": 45348.28,
+          "negative_planes": 1
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 34,
+          "sum_profit_gbp": 1304750.92,
+          "mean_profit_gbp_per_plane": 38375.03,
+          "negative_planes": 4
+        },
+        "continuing_profit_change_same_ids_gbp": 527103.3,
+        "continuing_profit_change_per_plane_gbp": 15503.04
+      }
+    },
+    "123456": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 42,
+          "sum_profit_gbp": 1209971.23,
+          "mean_profit_gbp_per_plane": 28808.84,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 12,
+          "sum_profit_gbp": 90358.15,
+          "mean_profit_gbp_per_plane": 7529.85,
+          "negative_planes": 3
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 54,
+          "sum_profit_gbp": 1300329.38,
+          "mean_profit_gbp_per_plane": 24080.17,
+          "negative_planes": 3
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 42,
+          "sum_profit_gbp": 1487297.36,
+          "mean_profit_gbp_per_plane": 35411.84,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": -277326.12,
+        "continuing_profit_change_per_plane_gbp": -6603.0
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 20,
+          "sum_profit_gbp": 1417139.32,
+          "mean_profit_gbp_per_plane": 70856.97,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 16,
+          "sum_profit_gbp": 401062.41,
+          "mean_profit_gbp_per_plane": 25066.4,
+          "negative_planes": 2
+        },
+        "prior_december_not_seen_now": 4,
+        "all": {
+          "planes": 36,
+          "sum_profit_gbp": 1818201.72,
+          "mean_profit_gbp_per_plane": 50505.6,
+          "negative_planes": 2
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 20,
+          "sum_profit_gbp": 1254463.76,
+          "mean_profit_gbp_per_plane": 62723.19,
+          "negative_planes": 2
+        },
+        "continuing_profit_change_same_ids_gbp": 162675.56,
+        "continuing_profit_change_per_plane_gbp": 8133.78
+      }
+    },
+    "424242": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 63,
+          "sum_profit_gbp": 1620715.35,
+          "mean_profit_gbp_per_plane": 25725.64,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 34,
+          "sum_profit_gbp": 348856.98,
+          "mean_profit_gbp_per_plane": 10260.5,
+          "negative_planes": 4
+        },
+        "prior_december_not_seen_now": 2,
+        "all": {
+          "planes": 97,
+          "sum_profit_gbp": 1969572.33,
+          "mean_profit_gbp_per_plane": 20304.87,
+          "negative_planes": 4
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 63,
+          "sum_profit_gbp": 1806203.76,
+          "mean_profit_gbp_per_plane": 28669.9,
+          "negative_planes": 0
+        },
+        "continuing_profit_change_same_ids_gbp": -185488.41,
+        "continuing_profit_change_per_plane_gbp": -2944.26
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 26,
+          "sum_profit_gbp": 2230542.8,
+          "mean_profit_gbp_per_plane": 85790.11,
+          "negative_planes": 2
+        },
+        "not_seen_prior_december": {
+          "planes": 11,
+          "sum_profit_gbp": 240958.93,
+          "mean_profit_gbp_per_plane": 21905.36,
+          "negative_planes": 5
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 37,
+          "sum_profit_gbp": 2471501.73,
+          "mean_profit_gbp_per_plane": 66797.34,
+          "negative_planes": 7
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 26,
+          "sum_profit_gbp": 1637417.85,
+          "mean_profit_gbp_per_plane": 62977.61,
+          "negative_planes": 3
+        },
+        "continuing_profit_change_same_ids_gbp": 593124.95,
+        "continuing_profit_change_per_plane_gbp": 22812.5
+      }
+    },
+    "8675309": {
+      "OpexAI": {
+        "continuing": {
+          "planes": 57,
+          "sum_profit_gbp": 1369005.97,
+          "mean_profit_gbp_per_plane": 24017.65,
+          "negative_planes": 0
+        },
+        "not_seen_prior_december": {
+          "planes": 25,
+          "sum_profit_gbp": 216543.07,
+          "mean_profit_gbp_per_plane": 8661.72,
+          "negative_planes": 3
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 82,
+          "sum_profit_gbp": 1585549.04,
+          "mean_profit_gbp_per_plane": 19335.96,
+          "negative_planes": 3
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 57,
+          "sum_profit_gbp": 1394776.9,
+          "mean_profit_gbp_per_plane": 24469.77,
+          "negative_planes": 5
+        },
+        "continuing_profit_change_same_ids_gbp": -25770.93,
+        "continuing_profit_change_per_plane_gbp": -452.12
+      },
+      "AAAHogEx": {
+        "continuing": {
+          "planes": 34,
+          "sum_profit_gbp": 1931498.28,
+          "mean_profit_gbp_per_plane": 56808.77,
+          "negative_planes": 1
+        },
+        "not_seen_prior_december": {
+          "planes": 10,
+          "sum_profit_gbp": 149905.32,
+          "mean_profit_gbp_per_plane": 14990.53,
+          "negative_planes": 2
+        },
+        "prior_december_not_seen_now": 0,
+        "all": {
+          "planes": 44,
+          "sum_profit_gbp": 2081403.61,
+          "mean_profit_gbp_per_plane": 47304.63,
+          "negative_planes": 3
+        },
+        "continuing_same_ids_prior_year": {
+          "planes": 34,
+          "sum_profit_gbp": 1878667.7,
+          "mean_profit_gbp_per_plane": 55254.93,
+          "negative_planes": 4
+        },
+        "continuing_profit_change_same_ids_gbp": 52830.58,
+        "continuing_profit_change_per_plane_gbp": 1553.84
+      }
+    }
+  },
+  "limitations": [
+    "Identified by annual December active AIR vehicle IDs; not purchase or new-service timestamps.",
+    "Not seen previously also covers replacements, reassignments or earlier telemetry invisibility.",
+    "Current-year profits of newly observed vehicles can cover fewer operating months than incumbents.",
+    "Vehicle YTD profit does not include all company revenues/costs and is not profit_year.",
+    "Surviving-vehicle change is selected on survival and cannot identify causes of fleet saturation.",
+    "No A/B causal comparison of air_fleet or capital allocation policy is asserted."
+  ]
+}

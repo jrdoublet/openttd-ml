@@ -1,0 +1,5631 @@
+{
+  "campaign_id": "p0_topk_binary_noprobe_b20x10_20261012",
+  "bundle": "def46d6313e572fa4b4067b383b64e841009cec22c8d03c855ea563f33cb8d80",
+  "source": "C66 summary and games JSON, plus optional monthly JSONL (no line event telemetry)",
+  "reference_policy": "reference",
+  "variant_policy": "p0_topk_binary",
+  "qa": {
+    "expected_pairs": 20,
+    "observed_pairs": 20,
+    "valid_pairs": 20,
+    "invalid_pairs": [],
+    "campaign_issues": [],
+    "pairs_with_activity_warnings": 0,
+    "pairwise_health_complete": true,
+    "complete_monthly_checkpoint_pairs": 20,
+    "monthly_checkpoints_available": true,
+    "retained_ib_proxy_paired_n": 20,
+    "retained_ib_proxy_mean_delta": 3.85,
+    "non_famine_indirect_screen": "no_health_or_stagnation_warning_detected",
+    "strict_non_famine_certified": false,
+    "strict_non_famine_reason": "C66 final physical stocks and monthly-change counters do not record AIR/RAIL line builds or their survival timeline",
+    "line_build_coverage": "unavailable",
+    "next_qa": [
+      "Verify 20 paired seeds, full 1979-12 checkpoint, per-arm health and physical decode.",
+      "Review per-mode monthly stock rises and falls: counts reflect net stock changes, not new lines.",
+      "Retained IB B<n> counts successful portfolio projects of unknown mode; signs can be overwritten and are not a complete build history.",
+      "Inspect AIR/RAIL opening/closing events in explicitly collected line telemetry before claiming construction continuity.",
+      "Inspect warning pairs, economic outcomes, and game trajectory; stock deltas do not prove causal effect."
+    ]
+  },
+  "aggregates": {
+    "company_value": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": -118542.15,
+      "worse": 12,
+      "better": 8,
+      "equal": 0
+    },
+    "profit_year": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": -8341.25,
+      "worse": 11,
+      "better": 9,
+      "equal": 0
+    },
+    "primary_vehicles": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 2.95,
+      "worse": 7,
+      "better": 13,
+      "equal": 0
+    },
+    "n_vehicles": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 2.95,
+      "worse": 7,
+      "better": 13,
+      "equal": 0
+    },
+    "n_stations": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 1.75,
+      "worse": 6,
+      "better": 11,
+      "equal": 3
+    },
+    "months_of_bankruptcy": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.0,
+      "worse": 0,
+      "better": 0,
+      "equal": 20
+    },
+    "air_vehicles_final_stock": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 2.0,
+      "worse": 9,
+      "better": 11,
+      "equal": 0
+    },
+    "rail_vehicles_final_stock": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 1.45,
+      "worse": 5,
+      "better": 10,
+      "equal": 5
+    },
+    "air_stations_final_stock": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.0,
+      "worse": 6,
+      "better": 7,
+      "equal": 7
+    },
+    "rail_stations_final_stock": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 2.5,
+      "worse": 4,
+      "better": 11,
+      "equal": 5
+    }
+  },
+  "monthly_stock_trend_aggregates": {
+    "air_vehicles_positive_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": -3.9
+    },
+    "air_vehicles_net_positive_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 3.3
+    },
+    "air_vehicles_negative_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 1.3
+    },
+    "air_vehicles_net_negative_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 1.3
+    },
+    "rail_vehicles_positive_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 1.55
+    },
+    "rail_vehicles_net_positive_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 1.5
+    },
+    "rail_vehicles_negative_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.05
+    },
+    "rail_vehicles_net_negative_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.05
+    },
+    "airports_positive_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.3
+    },
+    "airports_net_positive_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.0
+    },
+    "airports_negative_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.0
+    },
+    "airports_net_negative_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.0
+    },
+    "rail_stations_positive_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 1.65
+    },
+    "rail_stations_net_positive_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 3.0
+    },
+    "rail_stations_negative_change_months": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.15
+    },
+    "rail_stations_net_negative_stock_deltas_sum": {
+      "paired_n": 20,
+      "mean_variant_minus_reference": 0.5
+    }
+  },
+  "per_seed": [
+    {
+      "seed": 1,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 21205037,
+          "profit_year": 3556230,
+          "primary_vehicles": 156,
+          "n_vehicles": 156,
+          "n_stations": 52,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 146,
+            "stations": 38
+          },
+          "rail": {
+            "vehicles": 6,
+            "stations": 10
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 67,
+          "network_changes": 21,
+          "months_since_fleet_or_network_change": 6,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 146,
+              "positive_change_months": 61,
+              "net_positive_stock_deltas_sum": 152,
+              "negative_change_months": 5,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 6
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 6,
+              "positive_change_months": 5,
+              "net_positive_stock_deltas_sum": 6,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 31
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 38,
+              "positive_change_months": 17,
+              "net_positive_stock_deltas_sum": 38,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 16
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 10,
+              "positive_change_months": 4,
+              "net_positive_stock_deltas_sum": 10,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 31
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 164,
+            "retained_by_year": {
+              "1970": 10,
+              "1971": 47,
+              "1972": 16,
+              "1973": 37,
+              "1974": 9,
+              "1975": 18,
+              "1976": 3,
+              "1977": 10,
+              "1978": 6,
+              "1979": 8
+            },
+            "panels_parsed": 175
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 21099129,
+          "profit_year": 3494124,
+          "primary_vehicles": 168,
+          "n_vehicles": 168,
+          "n_stations": 60,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 155,
+            "stations": 40
+          },
+          "rail": {
+            "vehicles": 9,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 71,
+          "network_changes": 28,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 155,
+              "positive_change_months": 57,
+              "net_positive_stock_deltas_sum": 161,
+              "negative_change_months": 6,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 7
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 9,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 9,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 40,
+              "positive_change_months": 17,
+              "net_positive_stock_deltas_sum": 40,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 54
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 177,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 41,
+              "1972": 27,
+              "1973": 32,
+              "1974": 19,
+              "1975": 16,
+              "1976": 8,
+              "1977": 12,
+              "1978": 4,
+              "1979": 7
+            },
+            "panels_parsed": 184
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -105908,
+        "profit_year": -62106,
+        "primary_vehicles": 12,
+        "n_vehicles": 12,
+        "n_stations": 8,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 9,
+        "air_stations_final_stock": 2,
+        "rail_vehicles_final_stock": 3,
+        "rail_stations_final_stock": 6,
+        "checkpoint_fleet_changes": 4,
+        "checkpoint_network_changes": 7,
+        "checkpoint_months_since_fleet_or_network_change": -6,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -4,
+        "air_vehicles_net_positive_stock_deltas_sum": 9,
+        "air_vehicles_negative_change_months": 1,
+        "air_vehicles_net_negative_stock_deltas_sum": 0,
+        "rail_vehicles_positive_change_months": 3,
+        "rail_vehicles_net_positive_stock_deltas_sum": 3,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 0,
+        "airports_net_positive_stock_deltas_sum": 2,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 3,
+        "rail_stations_net_positive_stock_deltas_sum": 6,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 164,
+          "retained_by_year": {
+            "1970": 10,
+            "1971": 47,
+            "1972": 16,
+            "1973": 37,
+            "1974": 9,
+            "1975": 18,
+            "1976": 3,
+            "1977": 10,
+            "1978": 6,
+            "1979": 8
+          },
+          "panels_parsed": 175
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 177,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 41,
+            "1972": 27,
+            "1973": 32,
+            "1974": 19,
+            "1975": 16,
+            "1976": 8,
+            "1977": 12,
+            "1978": 4,
+            "1979": 7
+          },
+          "panels_parsed": 184
+        },
+        "delta_retained_total": 13,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 7,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 22821343,
+          "profit_year": 3869247,
+          "primary_vehicles": 181,
+          "n_vehicles": 181,
+          "n_stations": 68,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 165,
+            "stations": 40
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 26
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 89,
+          "network_changes": 30,
+          "months_since_fleet_or_network_change": 1,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 165,
+              "positive_change_months": 77,
+              "net_positive_stock_deltas_sum": 170,
+              "negative_change_months": 5,
+              "net_negative_stock_deltas_sum": 5,
+              "months_since_positive_stock_change": 4
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 12,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 12
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 40,
+              "positive_change_months": 18,
+              "net_positive_stock_deltas_sum": 40,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 89
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 26,
+              "positive_change_months": 11,
+              "net_positive_stock_deltas_sum": 26,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 12
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 187,
+            "retained_by_year": {
+              "1970": 12,
+              "1971": 46,
+              "1972": 19,
+              "1973": 30,
+              "1974": 22,
+              "1975": 15,
+              "1976": 6,
+              "1977": 17,
+              "1978": 10,
+              "1979": 10
+            },
+            "panels_parsed": 171
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 22175070,
+          "profit_year": 4128412,
+          "primary_vehicles": 191,
+          "n_vehicles": 191,
+          "n_stations": 63,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 177,
+            "stations": 41
+          },
+          "rail": {
+            "vehicles": 12,
+            "stations": 20
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 87,
+          "network_changes": 27,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 177,
+              "positive_change_months": 72,
+              "net_positive_stock_deltas_sum": 187,
+              "negative_change_months": 10,
+              "net_negative_stock_deltas_sum": 10,
+              "months_since_positive_stock_change": 1
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 12,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 12,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 16
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 41,
+              "positive_change_months": 19,
+              "net_positive_stock_deltas_sum": 41,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 75
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 16
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 202,
+            "retained_by_year": {
+              "1970": 13,
+              "1971": 44,
+              "1972": 24,
+              "1973": 36,
+              "1974": 21,
+              "1975": 16,
+              "1976": 12,
+              "1977": 11,
+              "1978": 6,
+              "1979": 19
+            },
+            "panels_parsed": 183
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -646273,
+        "profit_year": 259165,
+        "primary_vehicles": 10,
+        "n_vehicles": 10,
+        "n_stations": -5,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 12,
+        "air_stations_final_stock": 1,
+        "rail_vehicles_final_stock": -2,
+        "rail_stations_final_stock": -6,
+        "checkpoint_fleet_changes": -2,
+        "checkpoint_network_changes": -3,
+        "checkpoint_months_since_fleet_or_network_change": -1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -5,
+        "air_vehicles_net_positive_stock_deltas_sum": 17,
+        "air_vehicles_negative_change_months": 5,
+        "air_vehicles_net_negative_stock_deltas_sum": 5,
+        "rail_vehicles_positive_change_months": -2,
+        "rail_vehicles_net_positive_stock_deltas_sum": -2,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 1,
+        "airports_net_positive_stock_deltas_sum": 1,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": -4,
+        "rail_stations_net_positive_stock_deltas_sum": -6,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 187,
+          "retained_by_year": {
+            "1970": 12,
+            "1971": 46,
+            "1972": 19,
+            "1973": 30,
+            "1974": 22,
+            "1975": 15,
+            "1976": 6,
+            "1977": 17,
+            "1978": 10,
+            "1979": 10
+          },
+          "panels_parsed": 171
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 202,
+          "retained_by_year": {
+            "1970": 13,
+            "1971": 44,
+            "1972": 24,
+            "1973": 36,
+            "1974": 21,
+            "1975": 16,
+            "1976": 12,
+            "1977": 11,
+            "1978": 6,
+            "1979": 19
+          },
+          "panels_parsed": 183
+        },
+        "delta_retained_total": 15,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 17,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 12457081,
+          "profit_year": 2696213,
+          "primary_vehicles": 120,
+          "n_vehicles": 120,
+          "n_stations": 53,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 107,
+            "stations": 31
+          },
+          "rail": {
+            "vehicles": 9,
+            "stations": 18
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 76,
+          "network_changes": 34,
+          "months_since_fleet_or_network_change": 4,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 107,
+              "positive_change_months": 69,
+              "net_positive_stock_deltas_sum": 109,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 2,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 9,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 9,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 4
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 31,
+              "positive_change_months": 22,
+              "net_positive_stock_deltas_sum": 31,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 65
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 18,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 18,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 4
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 120,
+            "retained_by_year": {
+              "1970": 9,
+              "1971": 15,
+              "1972": 16,
+              "1973": 18,
+              "1974": 21,
+              "1975": 14,
+              "1976": 11,
+              "1977": 6,
+              "1978": 7,
+              "1979": 3
+            },
+            "panels_parsed": 144
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 11919565,
+          "profit_year": 2444022,
+          "primary_vehicles": 116,
+          "n_vehicles": 116,
+          "n_stations": 50,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 104,
+            "stations": 30
+          },
+          "rail": {
+            "vehicles": 8,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 75,
+          "network_changes": 29,
+          "months_since_fleet_or_network_change": 3,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 104,
+              "positive_change_months": 65,
+              "net_positive_stock_deltas_sum": 109,
+              "negative_change_months": 5,
+              "net_negative_stock_deltas_sum": 5,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 8,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 8,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 3
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 30,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 30,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 72
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 3
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 120,
+            "retained_by_year": {
+              "1970": 9,
+              "1971": 15,
+              "1972": 18,
+              "1973": 18,
+              "1974": 21,
+              "1975": 12,
+              "1976": 13,
+              "1977": 6,
+              "1978": 5,
+              "1979": 3
+            },
+            "panels_parsed": 135
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -537516,
+        "profit_year": -252191,
+        "primary_vehicles": -4,
+        "n_vehicles": -4,
+        "n_stations": -3,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -3,
+        "air_stations_final_stock": -1,
+        "rail_vehicles_final_stock": -1,
+        "rail_stations_final_stock": -2,
+        "checkpoint_fleet_changes": -1,
+        "checkpoint_network_changes": -5,
+        "checkpoint_months_since_fleet_or_network_change": -1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -4,
+        "air_vehicles_net_positive_stock_deltas_sum": 0,
+        "air_vehicles_negative_change_months": 3,
+        "air_vehicles_net_negative_stock_deltas_sum": 3,
+        "rail_vehicles_positive_change_months": -1,
+        "rail_vehicles_net_positive_stock_deltas_sum": -1,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": -1,
+        "airports_net_positive_stock_deltas_sum": -1,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": -1,
+        "rail_stations_net_positive_stock_deltas_sum": -2,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 120,
+          "retained_by_year": {
+            "1970": 9,
+            "1971": 15,
+            "1972": 16,
+            "1973": 18,
+            "1974": 21,
+            "1975": 14,
+            "1976": 11,
+            "1977": 6,
+            "1978": 7,
+            "1979": 3
+          },
+          "panels_parsed": 144
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 120,
+          "retained_by_year": {
+            "1970": 9,
+            "1971": 15,
+            "1972": 18,
+            "1973": 18,
+            "1974": 21,
+            "1975": 12,
+            "1976": 13,
+            "1977": 6,
+            "1978": 5,
+            "1979": 3
+          },
+          "panels_parsed": 135
+        },
+        "delta_retained_total": 0,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 42,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 18192894,
+          "profit_year": 3432071,
+          "primary_vehicles": 174,
+          "n_vehicles": 174,
+          "n_stations": 74,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 152,
+            "stations": 40
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 26
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 66,
+          "network_changes": 35,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 152,
+              "positive_change_months": 55,
+              "net_positive_stock_deltas_sum": 158,
+              "negative_change_months": 6,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 13,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 14
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 40,
+              "positive_change_months": 18,
+              "net_positive_stock_deltas_sum": 40,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 27
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 26,
+              "positive_change_months": 12,
+              "net_positive_stock_deltas_sum": 26,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 14
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 180,
+            "retained_by_year": {
+              "1970": 14,
+              "1971": 42,
+              "1972": 27,
+              "1973": 39,
+              "1974": 9,
+              "1975": 20,
+              "1976": 5,
+              "1977": 12,
+              "1978": 5,
+              "1979": 7
+            },
+            "panels_parsed": 177
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 16950862,
+          "profit_year": 3061946,
+          "primary_vehicles": 177,
+          "n_vehicles": 177,
+          "n_stations": 74,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 154,
+            "stations": 40
+          },
+          "rail": {
+            "vehicles": 17,
+            "stations": 28
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 77,
+          "network_changes": 33,
+          "months_since_fleet_or_network_change": 2,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 154,
+              "positive_change_months": 63,
+              "net_positive_stock_deltas_sum": 163,
+              "negative_change_months": 9,
+              "net_negative_stock_deltas_sum": 9,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 17,
+              "positive_change_months": 16,
+              "net_positive_stock_deltas_sum": 17,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 17
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 40,
+              "positive_change_months": 18,
+              "net_positive_stock_deltas_sum": 40,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 63
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 28,
+              "positive_change_months": 13,
+              "net_positive_stock_deltas_sum": 28,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 18
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 186,
+            "retained_by_year": {
+              "1970": 14,
+              "1971": 43,
+              "1972": 26,
+              "1973": 36,
+              "1974": 19,
+              "1975": 19,
+              "1976": 7,
+              "1977": 10,
+              "1978": 6,
+              "1979": 6
+            },
+            "panels_parsed": 185
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -1242032,
+        "profit_year": -370125,
+        "primary_vehicles": 3,
+        "n_vehicles": 3,
+        "n_stations": 0,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 2,
+        "air_stations_final_stock": 0,
+        "rail_vehicles_final_stock": 3,
+        "rail_stations_final_stock": 2,
+        "checkpoint_fleet_changes": 11,
+        "checkpoint_network_changes": -2,
+        "checkpoint_months_since_fleet_or_network_change": 2,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": 8,
+        "air_vehicles_net_positive_stock_deltas_sum": 5,
+        "air_vehicles_negative_change_months": 3,
+        "air_vehicles_net_negative_stock_deltas_sum": 3,
+        "rail_vehicles_positive_change_months": 3,
+        "rail_vehicles_net_positive_stock_deltas_sum": 3,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 0,
+        "airports_net_positive_stock_deltas_sum": 0,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 1,
+        "rail_stations_net_positive_stock_deltas_sum": 2,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 180,
+          "retained_by_year": {
+            "1970": 14,
+            "1971": 42,
+            "1972": 27,
+            "1973": 39,
+            "1974": 9,
+            "1975": 20,
+            "1976": 5,
+            "1977": 12,
+            "1978": 5,
+            "1979": 7
+          },
+          "panels_parsed": 177
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 186,
+          "retained_by_year": {
+            "1970": 14,
+            "1971": 43,
+            "1972": 26,
+            "1973": 36,
+            "1974": 19,
+            "1975": 19,
+            "1976": 7,
+            "1977": 10,
+            "1978": 6,
+            "1979": 6
+          },
+          "panels_parsed": 185
+        },
+        "delta_retained_total": 6,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 73,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 19516836,
+          "profit_year": 3329574,
+          "primary_vehicles": 165,
+          "n_vehicles": 165,
+          "n_stations": 55,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 154,
+            "stations": 39
+          },
+          "rail": {
+            "vehicles": 7,
+            "stations": 12
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 77,
+          "network_changes": 24,
+          "months_since_fleet_or_network_change": 7,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 154,
+              "positive_change_months": 70,
+              "net_positive_stock_deltas_sum": 158,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 7
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 7,
+              "positive_change_months": 6,
+              "net_positive_stock_deltas_sum": 7,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 35
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 39,
+              "positive_change_months": 19,
+              "net_positive_stock_deltas_sum": 39,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 71
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 12,
+              "positive_change_months": 5,
+              "net_positive_stock_deltas_sum": 12,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 36
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 171,
+            "retained_by_year": {
+              "1970": 12,
+              "1971": 32,
+              "1972": 18,
+              "1973": 24,
+              "1974": 19,
+              "1975": 24,
+              "1976": 14,
+              "1977": 13,
+              "1978": 7,
+              "1979": 8
+            },
+            "panels_parsed": 150
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 22455559,
+          "profit_year": 4033063,
+          "primary_vehicles": 182,
+          "n_vehicles": 182,
+          "n_stations": 61,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 169,
+            "stations": 41
+          },
+          "rail": {
+            "vehicles": 9,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 82,
+          "network_changes": 27,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 169,
+              "positive_change_months": 72,
+              "net_positive_stock_deltas_sum": 178,
+              "negative_change_months": 9,
+              "net_negative_stock_deltas_sum": 9,
+              "months_since_positive_stock_change": 5
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 9,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 9,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 3
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 41,
+              "positive_change_months": 19,
+              "net_positive_stock_deltas_sum": 41,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 73
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 3
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 193,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 35,
+              "1972": 23,
+              "1973": 34,
+              "1974": 24,
+              "1975": 19,
+              "1976": 13,
+              "1977": 13,
+              "1978": 8,
+              "1979": 13
+            },
+            "panels_parsed": 163
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 2938723,
+        "profit_year": 703489,
+        "primary_vehicles": 17,
+        "n_vehicles": 17,
+        "n_stations": 6,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 15,
+        "air_stations_final_stock": 2,
+        "rail_vehicles_final_stock": 2,
+        "rail_stations_final_stock": 4,
+        "checkpoint_fleet_changes": 5,
+        "checkpoint_network_changes": 3,
+        "checkpoint_months_since_fleet_or_network_change": -7,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": 2,
+        "air_vehicles_net_positive_stock_deltas_sum": 20,
+        "air_vehicles_negative_change_months": 6,
+        "air_vehicles_net_negative_stock_deltas_sum": 5,
+        "rail_vehicles_positive_change_months": 2,
+        "rail_vehicles_net_positive_stock_deltas_sum": 2,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 0,
+        "airports_net_positive_stock_deltas_sum": 2,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 2,
+        "rail_stations_net_positive_stock_deltas_sum": 4,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 171,
+          "retained_by_year": {
+            "1970": 12,
+            "1971": 32,
+            "1972": 18,
+            "1973": 24,
+            "1974": 19,
+            "1975": 24,
+            "1976": 14,
+            "1977": 13,
+            "1978": 7,
+            "1979": 8
+          },
+          "panels_parsed": 150
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 193,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 35,
+            "1972": 23,
+            "1973": 34,
+            "1974": 24,
+            "1975": 19,
+            "1976": 13,
+            "1977": 13,
+            "1978": 8,
+            "1979": 13
+          },
+          "panels_parsed": 163
+        },
+        "delta_retained_total": 22,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 100,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 9087189,
+          "profit_year": 1787251,
+          "primary_vehicles": 119,
+          "n_vehicles": 119,
+          "n_stations": 59,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 104,
+            "stations": 33
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 24
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 72,
+          "network_changes": 30,
+          "months_since_fleet_or_network_change": 4,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 104,
+              "positive_change_months": 58,
+              "net_positive_stock_deltas_sum": 112,
+              "negative_change_months": 8,
+              "net_negative_stock_deltas_sum": 8,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 12,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 7
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 33,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 33,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 54
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 24,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 24,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 7
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 131,
+            "retained_by_year": {
+              "1970": 12,
+              "1971": 21,
+              "1972": 18,
+              "1973": 28,
+              "1974": 12,
+              "1975": 15,
+              "1976": 5,
+              "1977": 10,
+              "1978": 3,
+              "1979": 7
+            },
+            "panels_parsed": 149
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 9683831,
+          "profit_year": 1745822,
+          "primary_vehicles": 118,
+          "n_vehicles": 118,
+          "n_stations": 53,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 106,
+            "stations": 34
+          },
+          "rail": {
+            "vehicles": 10,
+            "stations": 17
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 72,
+          "network_changes": 33,
+          "months_since_fleet_or_network_change": 5,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 106,
+              "positive_change_months": 57,
+              "net_positive_stock_deltas_sum": 117,
+              "negative_change_months": 10,
+              "net_negative_stock_deltas_sum": 11,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 10,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 10,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 7
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 34,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 34,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 72
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 17,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 3,
+              "months_since_positive_stock_change": 7
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 137,
+            "retained_by_year": {
+              "1970": 12,
+              "1971": 24,
+              "1972": 23,
+              "1973": 30,
+              "1974": 10,
+              "1975": 15,
+              "1976": 6,
+              "1977": 6,
+              "1978": 5,
+              "1979": 6
+            },
+            "panels_parsed": 157
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 596642,
+        "profit_year": -41429,
+        "primary_vehicles": -1,
+        "n_vehicles": -1,
+        "n_stations": -6,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 2,
+        "air_stations_final_stock": 1,
+        "rail_vehicles_final_stock": -4,
+        "rail_stations_final_stock": -7,
+        "checkpoint_fleet_changes": 0,
+        "checkpoint_network_changes": 3,
+        "checkpoint_months_since_fleet_or_network_change": 1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -1,
+        "air_vehicles_net_positive_stock_deltas_sum": 5,
+        "air_vehicles_negative_change_months": 2,
+        "air_vehicles_net_negative_stock_deltas_sum": 3,
+        "rail_vehicles_positive_change_months": -2,
+        "rail_vehicles_net_positive_stock_deltas_sum": -4,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 0,
+        "airports_net_positive_stock_deltas_sum": 1,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 0,
+        "rail_stations_net_positive_stock_deltas_sum": -4,
+        "rail_stations_negative_change_months": 2,
+        "rail_stations_net_negative_stock_deltas_sum": 3
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 131,
+          "retained_by_year": {
+            "1970": 12,
+            "1971": 21,
+            "1972": 18,
+            "1973": 28,
+            "1974": 12,
+            "1975": 15,
+            "1976": 5,
+            "1977": 10,
+            "1978": 3,
+            "1979": 7
+          },
+          "panels_parsed": 149
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 137,
+          "retained_by_year": {
+            "1970": 12,
+            "1971": 24,
+            "1972": 23,
+            "1973": 30,
+            "1974": 10,
+            "1975": 15,
+            "1976": 6,
+            "1977": 6,
+            "1978": 5,
+            "1979": 6
+          },
+          "panels_parsed": 157
+        },
+        "delta_retained_total": 6,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 314,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 22189847,
+          "profit_year": 3894388,
+          "primary_vehicles": 190,
+          "n_vehicles": 190,
+          "n_stations": 66,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 172,
+            "stations": 41
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 21
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 84,
+          "network_changes": 36,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 172,
+              "positive_change_months": 75,
+              "net_positive_stock_deltas_sum": 177,
+              "negative_change_months": 4,
+              "net_negative_stock_deltas_sum": 5,
+              "months_since_positive_stock_change": 1
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 14,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 41,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 41,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 79
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 21,
+              "positive_change_months": 11,
+              "net_positive_stock_deltas_sum": 22,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 1,
+              "months_since_positive_stock_change": 1
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 192,
+            "retained_by_year": {
+              "1970": 12,
+              "1971": 36,
+              "1972": 20,
+              "1973": 29,
+              "1974": 24,
+              "1975": 19,
+              "1976": 18,
+              "1977": 15,
+              "1978": 9,
+              "1979": 10
+            },
+            "panels_parsed": 175
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 19141942,
+          "profit_year": 3374016,
+          "primary_vehicles": 177,
+          "n_vehicles": 177,
+          "n_stations": 68,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 161,
+            "stations": 42
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 24
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 74,
+          "network_changes": 30,
+          "months_since_fleet_or_network_change": 1,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 161,
+              "positive_change_months": 63,
+              "net_positive_stock_deltas_sum": 165,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 14,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 18
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 42,
+              "positive_change_months": 20,
+              "net_positive_stock_deltas_sum": 42,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 85
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 24,
+              "positive_change_months": 11,
+              "net_positive_stock_deltas_sum": 24,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 18
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 183,
+            "retained_by_year": {
+              "1970": 12,
+              "1971": 34,
+              "1972": 27,
+              "1973": 33,
+              "1974": 27,
+              "1975": 18,
+              "1976": 8,
+              "1977": 14,
+              "1978": 5,
+              "1979": 5
+            },
+            "panels_parsed": 172
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -3047905,
+        "profit_year": -520372,
+        "primary_vehicles": -13,
+        "n_vehicles": -13,
+        "n_stations": 2,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -11,
+        "air_stations_final_stock": 1,
+        "rail_vehicles_final_stock": 0,
+        "rail_stations_final_stock": 3,
+        "checkpoint_fleet_changes": -10,
+        "checkpoint_network_changes": -6,
+        "checkpoint_months_since_fleet_or_network_change": 1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -12,
+        "air_vehicles_net_positive_stock_deltas_sum": -12,
+        "air_vehicles_negative_change_months": -1,
+        "air_vehicles_net_negative_stock_deltas_sum": -1,
+        "rail_vehicles_positive_change_months": 0,
+        "rail_vehicles_net_positive_stock_deltas_sum": 0,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": -1,
+        "airports_net_positive_stock_deltas_sum": 1,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 0,
+        "rail_stations_net_positive_stock_deltas_sum": 2,
+        "rail_stations_negative_change_months": -1,
+        "rail_stations_net_negative_stock_deltas_sum": -1
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 192,
+          "retained_by_year": {
+            "1970": 12,
+            "1971": 36,
+            "1972": 20,
+            "1973": 29,
+            "1974": 24,
+            "1975": 19,
+            "1976": 18,
+            "1977": 15,
+            "1978": 9,
+            "1979": 10
+          },
+          "panels_parsed": 175
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 183,
+          "retained_by_year": {
+            "1970": 12,
+            "1971": 34,
+            "1972": 27,
+            "1973": 33,
+            "1974": 27,
+            "1975": 18,
+            "1976": 8,
+            "1977": 14,
+            "1978": 5,
+            "1979": 5
+          },
+          "panels_parsed": 172
+        },
+        "delta_retained_total": -9,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 512,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 7476984,
+          "profit_year": 1683145,
+          "primary_vehicles": 125,
+          "n_vehicles": 125,
+          "n_stations": 68,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 102,
+            "stations": 34
+          },
+          "rail": {
+            "vehicles": 17,
+            "stations": 26
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 84,
+          "network_changes": 37,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 102,
+              "positive_change_months": 72,
+              "net_positive_stock_deltas_sum": 102,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 17,
+              "positive_change_months": 15,
+              "net_positive_stock_deltas_sum": 17,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 4
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 34,
+              "positive_change_months": 23,
+              "net_positive_stock_deltas_sum": 34,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 29
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 26,
+              "positive_change_months": 11,
+              "net_positive_stock_deltas_sum": 26,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 4
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 121,
+            "retained_by_year": {
+              "1970": 6,
+              "1971": 9,
+              "1972": 11,
+              "1973": 13,
+              "1974": 13,
+              "1975": 14,
+              "1976": 17,
+              "1977": 17,
+              "1978": 6,
+              "1979": 15
+            },
+            "panels_parsed": 150
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 8633603,
+          "profit_year": 1984642,
+          "primary_vehicles": 111,
+          "n_vehicles": 111,
+          "n_stations": 63,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 91,
+            "stations": 31
+          },
+          "rail": {
+            "vehicles": 16,
+            "stations": 28
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 67,
+          "network_changes": 32,
+          "months_since_fleet_or_network_change": 4,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 91,
+              "positive_change_months": 58,
+              "net_positive_stock_deltas_sum": 93,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 2,
+              "months_since_positive_stock_change": 7
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 13,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 28
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 31,
+              "positive_change_months": 18,
+              "net_positive_stock_deltas_sum": 31,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 28,
+              "positive_change_months": 13,
+              "net_positive_stock_deltas_sum": 30,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 2,
+              "months_since_positive_stock_change": 7
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 112,
+            "retained_by_year": {
+              "1970": 6,
+              "1971": 11,
+              "1972": 11,
+              "1973": 12,
+              "1974": 15,
+              "1975": 19,
+              "1976": 13,
+              "1977": 13,
+              "1978": 7,
+              "1979": 5
+            },
+            "panels_parsed": 153
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 1156619,
+        "profit_year": 301497,
+        "primary_vehicles": -14,
+        "n_vehicles": -14,
+        "n_stations": -5,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -11,
+        "air_stations_final_stock": -3,
+        "rail_vehicles_final_stock": -1,
+        "rail_stations_final_stock": 2,
+        "checkpoint_fleet_changes": -17,
+        "checkpoint_network_changes": -5,
+        "checkpoint_months_since_fleet_or_network_change": 4,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -14,
+        "air_vehicles_net_positive_stock_deltas_sum": -9,
+        "air_vehicles_negative_change_months": 2,
+        "air_vehicles_net_negative_stock_deltas_sum": 2,
+        "rail_vehicles_positive_change_months": -2,
+        "rail_vehicles_net_positive_stock_deltas_sum": -1,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": -5,
+        "airports_net_positive_stock_deltas_sum": -3,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 2,
+        "rail_stations_net_positive_stock_deltas_sum": 4,
+        "rail_stations_negative_change_months": 1,
+        "rail_stations_net_negative_stock_deltas_sum": 2
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 121,
+          "retained_by_year": {
+            "1970": 6,
+            "1971": 9,
+            "1972": 11,
+            "1973": 13,
+            "1974": 13,
+            "1975": 14,
+            "1976": 17,
+            "1977": 17,
+            "1978": 6,
+            "1979": 15
+          },
+          "panels_parsed": 150
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 112,
+          "retained_by_year": {
+            "1970": 6,
+            "1971": 11,
+            "1972": 11,
+            "1973": 12,
+            "1974": 15,
+            "1975": 19,
+            "1976": 13,
+            "1977": 13,
+            "1978": 7,
+            "1979": 5
+          },
+          "panels_parsed": 153
+        },
+        "delta_retained_total": -9,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 999,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 15939573,
+          "profit_year": 3391915,
+          "primary_vehicles": 153,
+          "n_vehicles": 153,
+          "n_stations": 65,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 132,
+            "stations": 38
+          },
+          "rail": {
+            "vehicles": 9,
+            "stations": 15
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 76,
+          "network_changes": 40,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 132,
+              "positive_change_months": 73,
+              "net_positive_stock_deltas_sum": 135,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 3,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 9,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 9,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 38,
+              "positive_change_months": 24,
+              "net_positive_stock_deltas_sum": 38,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 71
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 15,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 18,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 3,
+              "months_since_positive_stock_change": 0
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 153,
+            "retained_by_year": {
+              "1970": 8,
+              "1971": 19,
+              "1972": 27,
+              "1973": 22,
+              "1974": 25,
+              "1975": 12,
+              "1976": 17,
+              "1977": 9,
+              "1978": 9,
+              "1979": 5
+            },
+            "panels_parsed": 164
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 18246637,
+          "profit_year": 3781990,
+          "primary_vehicles": 154,
+          "n_vehicles": 154,
+          "n_stations": 52,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 143,
+            "stations": 36
+          },
+          "rail": {
+            "vehicles": 7,
+            "stations": 12
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 78,
+          "network_changes": 32,
+          "months_since_fleet_or_network_change": 3,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 143,
+              "positive_change_months": 72,
+              "net_positive_stock_deltas_sum": 145,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 2,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 7,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 7,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 3
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 36,
+              "positive_change_months": 24,
+              "net_positive_stock_deltas_sum": 36,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 65
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 12,
+              "positive_change_months": 6,
+              "net_positive_stock_deltas_sum": 12,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 17
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 158,
+            "retained_by_year": {
+              "1970": 8,
+              "1971": 17,
+              "1972": 17,
+              "1973": 29,
+              "1974": 19,
+              "1975": 19,
+              "1976": 17,
+              "1977": 12,
+              "1978": 12,
+              "1979": 8
+            },
+            "panels_parsed": 150
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 2307064,
+        "profit_year": 390075,
+        "primary_vehicles": 1,
+        "n_vehicles": 1,
+        "n_stations": -13,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 11,
+        "air_stations_final_stock": -2,
+        "rail_vehicles_final_stock": -2,
+        "rail_stations_final_stock": -3,
+        "checkpoint_fleet_changes": 2,
+        "checkpoint_network_changes": -8,
+        "checkpoint_months_since_fleet_or_network_change": 3,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -1,
+        "air_vehicles_net_positive_stock_deltas_sum": 10,
+        "air_vehicles_negative_change_months": -1,
+        "air_vehicles_net_negative_stock_deltas_sum": -1,
+        "rail_vehicles_positive_change_months": -1,
+        "rail_vehicles_net_positive_stock_deltas_sum": -2,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 0,
+        "airports_net_positive_stock_deltas_sum": -2,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": -2,
+        "rail_stations_net_positive_stock_deltas_sum": -6,
+        "rail_stations_negative_change_months": -2,
+        "rail_stations_net_negative_stock_deltas_sum": -3
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 153,
+          "retained_by_year": {
+            "1970": 8,
+            "1971": 19,
+            "1972": 27,
+            "1973": 22,
+            "1974": 25,
+            "1975": 12,
+            "1976": 17,
+            "1977": 9,
+            "1978": 9,
+            "1979": 5
+          },
+          "panels_parsed": 164
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 158,
+          "retained_by_year": {
+            "1970": 8,
+            "1971": 17,
+            "1972": 17,
+            "1973": 29,
+            "1974": 19,
+            "1975": 19,
+            "1976": 17,
+            "1977": 12,
+            "1978": 12,
+            "1979": 8
+          },
+          "panels_parsed": 150
+        },
+        "delta_retained_total": 5,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 1024,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 13576146,
+          "profit_year": 2431501,
+          "primary_vehicles": 173,
+          "n_vehicles": 173,
+          "n_stations": 65,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 155,
+            "stations": 39
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 22
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 65,
+          "network_changes": 29,
+          "months_since_fleet_or_network_change": 9,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 155,
+              "positive_change_months": 57,
+              "net_positive_stock_deltas_sum": 159,
+              "negative_change_months": 4,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 13,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 12
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 39,
+              "positive_change_months": 20,
+              "net_positive_stock_deltas_sum": 39,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 19
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 22,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 22,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 16
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 178,
+            "retained_by_year": {
+              "1970": 9,
+              "1971": 22,
+              "1972": 38,
+              "1973": 21,
+              "1974": 29,
+              "1975": 15,
+              "1976": 16,
+              "1977": 8,
+              "1978": 15,
+              "1979": 5
+            },
+            "panels_parsed": 183
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 13037951,
+          "profit_year": 2431137,
+          "primary_vehicles": 164,
+          "n_vehicles": 164,
+          "n_stations": 68,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 140,
+            "stations": 36
+          },
+          "rail": {
+            "vehicles": 16,
+            "stations": 24
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 71,
+          "network_changes": 35,
+          "months_since_fleet_or_network_change": 8,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 140,
+              "positive_change_months": 60,
+              "net_positive_stock_deltas_sum": 145,
+              "negative_change_months": 5,
+              "net_negative_stock_deltas_sum": 5,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 14,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 15
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 36,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 36,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 77
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 24,
+              "positive_change_months": 12,
+              "net_positive_stock_deltas_sum": 24,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 15
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 168,
+            "retained_by_year": {
+              "1970": 9,
+              "1971": 23,
+              "1972": 36,
+              "1973": 23,
+              "1974": 31,
+              "1975": 9,
+              "1976": 17,
+              "1977": 6,
+              "1978": 10,
+              "1979": 4
+            },
+            "panels_parsed": 179
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -538195,
+        "profit_year": -364,
+        "primary_vehicles": -9,
+        "n_vehicles": -9,
+        "n_stations": 3,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -15,
+        "air_stations_final_stock": -3,
+        "rail_vehicles_final_stock": 2,
+        "rail_stations_final_stock": 2,
+        "checkpoint_fleet_changes": 6,
+        "checkpoint_network_changes": 6,
+        "checkpoint_months_since_fleet_or_network_change": -1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": 3,
+        "air_vehicles_net_positive_stock_deltas_sum": -14,
+        "air_vehicles_negative_change_months": 1,
+        "air_vehicles_net_negative_stock_deltas_sum": 1,
+        "rail_vehicles_positive_change_months": 1,
+        "rail_vehicles_net_positive_stock_deltas_sum": 2,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 1,
+        "airports_net_positive_stock_deltas_sum": -3,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 2,
+        "rail_stations_net_positive_stock_deltas_sum": 2,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 178,
+          "retained_by_year": {
+            "1970": 9,
+            "1971": 22,
+            "1972": 38,
+            "1973": 21,
+            "1974": 29,
+            "1975": 15,
+            "1976": 16,
+            "1977": 8,
+            "1978": 15,
+            "1979": 5
+          },
+          "panels_parsed": 183
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 168,
+          "retained_by_year": {
+            "1970": 9,
+            "1971": 23,
+            "1972": 36,
+            "1973": 23,
+            "1974": 31,
+            "1975": 9,
+            "1976": 17,
+            "1977": 6,
+            "1978": 10,
+            "1979": 4
+          },
+          "panels_parsed": 179
+        },
+        "delta_retained_total": -10,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 1337,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 19895948,
+          "profit_year": 3436459,
+          "primary_vehicles": 196,
+          "n_vehicles": 196,
+          "n_stations": 66,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 181,
+            "stations": 44
+          },
+          "rail": {
+            "vehicles": 9,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 81,
+          "network_changes": 26,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 181,
+              "positive_change_months": 70,
+              "net_positive_stock_deltas_sum": 189,
+              "negative_change_months": 6,
+              "net_negative_stock_deltas_sum": 8,
+              "months_since_positive_stock_change": 7
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 9,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 9,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 35
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 44,
+              "positive_change_months": 18,
+              "net_positive_stock_deltas_sum": 44,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 83
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 6,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 35
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 206,
+            "retained_by_year": {
+              "1970": 13,
+              "1971": 44,
+              "1972": 17,
+              "1973": 32,
+              "1974": 21,
+              "1975": 30,
+              "1976": 15,
+              "1977": 15,
+              "1978": 7,
+              "1979": 12
+            },
+            "panels_parsed": 163
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 21103508,
+          "profit_year": 3664185,
+          "primary_vehicles": 193,
+          "n_vehicles": 193,
+          "n_stations": 66,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 178,
+            "stations": 44
+          },
+          "rail": {
+            "vehicles": 9,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 76,
+          "network_changes": 36,
+          "months_since_fleet_or_network_change": 9,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 178,
+              "positive_change_months": 69,
+              "net_positive_stock_deltas_sum": 182,
+              "negative_change_months": 4,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 9,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 9,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 18
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 44,
+              "positive_change_months": 20,
+              "net_positive_stock_deltas_sum": 44,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 52
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 18
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 200,
+            "retained_by_year": {
+              "1970": 12,
+              "1971": 44,
+              "1972": 22,
+              "1973": 24,
+              "1974": 25,
+              "1975": 28,
+              "1976": 19,
+              "1977": 11,
+              "1978": 9,
+              "1979": 6
+            },
+            "panels_parsed": 176
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 1207560,
+        "profit_year": 227726,
+        "primary_vehicles": -3,
+        "n_vehicles": -3,
+        "n_stations": 0,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -3,
+        "air_stations_final_stock": 0,
+        "rail_vehicles_final_stock": 0,
+        "rail_stations_final_stock": 0,
+        "checkpoint_fleet_changes": -5,
+        "checkpoint_network_changes": 10,
+        "checkpoint_months_since_fleet_or_network_change": 9,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -1,
+        "air_vehicles_net_positive_stock_deltas_sum": -7,
+        "air_vehicles_negative_change_months": -2,
+        "air_vehicles_net_negative_stock_deltas_sum": -4,
+        "rail_vehicles_positive_change_months": 1,
+        "rail_vehicles_net_positive_stock_deltas_sum": 0,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 2,
+        "airports_net_positive_stock_deltas_sum": 0,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 4,
+        "rail_stations_net_positive_stock_deltas_sum": 4,
+        "rail_stations_negative_change_months": 2,
+        "rail_stations_net_negative_stock_deltas_sum": 4
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 206,
+          "retained_by_year": {
+            "1970": 13,
+            "1971": 44,
+            "1972": 17,
+            "1973": 32,
+            "1974": 21,
+            "1975": 30,
+            "1976": 15,
+            "1977": 15,
+            "1978": 7,
+            "1979": 12
+          },
+          "panels_parsed": 163
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 200,
+          "retained_by_year": {
+            "1970": 12,
+            "1971": 44,
+            "1972": 22,
+            "1973": 24,
+            "1974": 25,
+            "1975": 28,
+            "1976": 19,
+            "1977": 11,
+            "1978": 9,
+            "1979": 6
+          },
+          "panels_parsed": 176
+        },
+        "delta_retained_total": -6,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 2026,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 19523578,
+          "profit_year": 3843759,
+          "primary_vehicles": 163,
+          "n_vehicles": 163,
+          "n_stations": 67,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 147,
+            "stations": 43
+          },
+          "rail": {
+            "vehicles": 8,
+            "stations": 15
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 87,
+          "network_changes": 34,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 147,
+              "positive_change_months": 78,
+              "net_positive_stock_deltas_sum": 151,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 4
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 8,
+              "positive_change_months": 6,
+              "net_positive_stock_deltas_sum": 8,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 27
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 43,
+              "positive_change_months": 20,
+              "net_positive_stock_deltas_sum": 43,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 13
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 15,
+              "positive_change_months": 6,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 1,
+              "months_since_positive_stock_change": 27
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 171,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 31,
+              "1972": 13,
+              "1973": 19,
+              "1974": 13,
+              "1975": 19,
+              "1976": 20,
+              "1977": 15,
+              "1978": 17,
+              "1979": 13
+            },
+            "panels_parsed": 145
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 17720799,
+          "profit_year": 3343238,
+          "primary_vehicles": 167,
+          "n_vehicles": 167,
+          "n_stations": 72,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 146,
+            "stations": 42
+          },
+          "rail": {
+            "vehicles": 11,
+            "stations": 20
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 90,
+          "network_changes": 33,
+          "months_since_fleet_or_network_change": 4,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 146,
+              "positive_change_months": 75,
+              "net_positive_stock_deltas_sum": 155,
+              "negative_change_months": 9,
+              "net_negative_stock_deltas_sum": 9,
+              "months_since_positive_stock_change": 6
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 11,
+              "positive_change_months": 11,
+              "net_positive_stock_deltas_sum": 11,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 14
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 42,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 42,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 55
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 9,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 14
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 172,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 30,
+              "1972": 10,
+              "1973": 14,
+              "1974": 21,
+              "1975": 26,
+              "1976": 17,
+              "1977": 20,
+              "1978": 10,
+              "1979": 13
+            },
+            "panels_parsed": 157
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -1802779,
+        "profit_year": -500521,
+        "primary_vehicles": 4,
+        "n_vehicles": 4,
+        "n_stations": 5,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -1,
+        "air_stations_final_stock": -1,
+        "rail_vehicles_final_stock": 3,
+        "rail_stations_final_stock": 5,
+        "checkpoint_fleet_changes": 3,
+        "checkpoint_network_changes": -1,
+        "checkpoint_months_since_fleet_or_network_change": 4,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -3,
+        "air_vehicles_net_positive_stock_deltas_sum": 4,
+        "air_vehicles_negative_change_months": 6,
+        "air_vehicles_net_negative_stock_deltas_sum": 5,
+        "rail_vehicles_positive_change_months": 5,
+        "rail_vehicles_net_positive_stock_deltas_sum": 3,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 1,
+        "airports_net_positive_stock_deltas_sum": -1,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 3,
+        "rail_stations_net_positive_stock_deltas_sum": 4,
+        "rail_stations_negative_change_months": -1,
+        "rail_stations_net_negative_stock_deltas_sum": -1
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 171,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 31,
+            "1972": 13,
+            "1973": 19,
+            "1974": 13,
+            "1975": 19,
+            "1976": 20,
+            "1977": 15,
+            "1978": 17,
+            "1979": 13
+          },
+          "panels_parsed": 145
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 172,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 30,
+            "1972": 10,
+            "1973": 14,
+            "1974": 21,
+            "1975": 26,
+            "1976": 17,
+            "1977": 20,
+            "1978": 10,
+            "1979": 13
+          },
+          "panels_parsed": 157
+        },
+        "delta_retained_total": 1,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 4096,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 22111939,
+          "profit_year": 3913707,
+          "primary_vehicles": 186,
+          "n_vehicles": 186,
+          "n_stations": 55,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 178,
+            "stations": 44
+          },
+          "rail": {
+            "vehicles": 4,
+            "stations": 7
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 85,
+          "network_changes": 24,
+          "months_since_fleet_or_network_change": 2,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 178,
+              "positive_change_months": 78,
+              "net_positive_stock_deltas_sum": 184,
+              "negative_change_months": 5,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 7
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 4,
+              "positive_change_months": 4,
+              "net_positive_stock_deltas_sum": 4,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 14
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 44,
+              "positive_change_months": 16,
+              "net_positive_stock_deltas_sum": 44,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 87
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 7,
+              "positive_change_months": 4,
+              "net_positive_stock_deltas_sum": 8,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 1,
+              "months_since_positive_stock_change": 14
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 196,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 41,
+              "1972": 21,
+              "1973": 14,
+              "1974": 18,
+              "1975": 19,
+              "1976": 23,
+              "1977": 18,
+              "1978": 20,
+              "1979": 11
+            },
+            "panels_parsed": 162
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 21447659,
+          "profit_year": 3725498,
+          "primary_vehicles": 215,
+          "n_vehicles": 215,
+          "n_stations": 64,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 200,
+            "stations": 44
+          },
+          "rail": {
+            "vehicles": 11,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 90,
+          "network_changes": 26,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 200,
+              "positive_change_months": 83,
+              "net_positive_stock_deltas_sum": 203,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 3,
+              "months_since_positive_stock_change": 2
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 11,
+              "positive_change_months": 9,
+              "net_positive_stock_deltas_sum": 11,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 44,
+              "positive_change_months": 15,
+              "net_positive_stock_deltas_sum": 44,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 72
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 219,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 42,
+              "1972": 24,
+              "1973": 23,
+              "1974": 19,
+              "1975": 28,
+              "1976": 25,
+              "1977": 24,
+              "1978": 13,
+              "1979": 10
+            },
+            "panels_parsed": 180
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -664280,
+        "profit_year": -188209,
+        "primary_vehicles": 29,
+        "n_vehicles": 29,
+        "n_stations": 9,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 22,
+        "air_stations_final_stock": 0,
+        "rail_vehicles_final_stock": 7,
+        "rail_stations_final_stock": 9,
+        "checkpoint_fleet_changes": 5,
+        "checkpoint_network_changes": 2,
+        "checkpoint_months_since_fleet_or_network_change": -2,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": 5,
+        "air_vehicles_net_positive_stock_deltas_sum": 19,
+        "air_vehicles_negative_change_months": -2,
+        "air_vehicles_net_negative_stock_deltas_sum": -3,
+        "rail_vehicles_positive_change_months": 5,
+        "rail_vehicles_net_positive_stock_deltas_sum": 7,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": -1,
+        "airports_net_positive_stock_deltas_sum": 0,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 4,
+        "rail_stations_net_positive_stock_deltas_sum": 8,
+        "rail_stations_negative_change_months": -1,
+        "rail_stations_net_negative_stock_deltas_sum": -1
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 196,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 41,
+            "1972": 21,
+            "1973": 14,
+            "1974": 18,
+            "1975": 19,
+            "1976": 23,
+            "1977": 18,
+            "1978": 20,
+            "1979": 11
+          },
+          "panels_parsed": 162
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 219,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 42,
+            "1972": 24,
+            "1973": 23,
+            "1974": 19,
+            "1975": 28,
+            "1976": 25,
+            "1977": 24,
+            "1978": 13,
+            "1979": 10
+          },
+          "panels_parsed": 180
+        },
+        "delta_retained_total": 23,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 8191,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 18483629,
+          "profit_year": 3190243,
+          "primary_vehicles": 172,
+          "n_vehicles": 172,
+          "n_stations": 63,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 159,
+            "stations": 43
+          },
+          "rail": {
+            "vehicles": 10,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 83,
+          "network_changes": 24,
+          "months_since_fleet_or_network_change": 2,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 159,
+              "positive_change_months": 72,
+              "net_positive_stock_deltas_sum": 167,
+              "negative_change_months": 7,
+              "net_negative_stock_deltas_sum": 8,
+              "months_since_positive_stock_change": 7
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 10,
+              "positive_change_months": 9,
+              "net_positive_stock_deltas_sum": 10,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 13
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 43,
+              "positive_change_months": 17,
+              "net_positive_stock_deltas_sum": 43,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 73
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 14
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 184,
+            "retained_by_year": {
+              "1970": 13,
+              "1971": 44,
+              "1972": 21,
+              "1973": 24,
+              "1974": 31,
+              "1975": 19,
+              "1976": 7,
+              "1977": 11,
+              "1978": 9,
+              "1979": 5
+            },
+            "panels_parsed": 178
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 18933847,
+          "profit_year": 3407536,
+          "primary_vehicles": 175,
+          "n_vehicles": 175,
+          "n_stations": 67,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 158,
+            "stations": 43
+          },
+          "rail": {
+            "vehicles": 10,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 75,
+          "network_changes": 34,
+          "months_since_fleet_or_network_change": 3,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 158,
+              "positive_change_months": 60,
+              "net_positive_stock_deltas_sum": 165,
+              "negative_change_months": 5,
+              "net_negative_stock_deltas_sum": 7,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 10,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 11,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 1,
+              "months_since_positive_stock_change": 4
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 43,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 43,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 44
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 4
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 185,
+            "retained_by_year": {
+              "1970": 13,
+              "1971": 42,
+              "1972": 23,
+              "1973": 39,
+              "1974": 16,
+              "1975": 24,
+              "1976": 5,
+              "1977": 14,
+              "1978": 1,
+              "1979": 8
+            },
+            "panels_parsed": 157
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 450218,
+        "profit_year": 217293,
+        "primary_vehicles": 3,
+        "n_vehicles": 3,
+        "n_stations": 4,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -1,
+        "air_stations_final_stock": 0,
+        "rail_vehicles_final_stock": 0,
+        "rail_stations_final_stock": 0,
+        "checkpoint_fleet_changes": -8,
+        "checkpoint_network_changes": 10,
+        "checkpoint_months_since_fleet_or_network_change": 1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -12,
+        "air_vehicles_net_positive_stock_deltas_sum": -2,
+        "air_vehicles_negative_change_months": -2,
+        "air_vehicles_net_negative_stock_deltas_sum": -1,
+        "rail_vehicles_positive_change_months": 1,
+        "rail_vehicles_net_positive_stock_deltas_sum": 1,
+        "rail_vehicles_negative_change_months": 1,
+        "rail_vehicles_net_negative_stock_deltas_sum": 1,
+        "airports_positive_change_months": 4,
+        "airports_net_positive_stock_deltas_sum": 0,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 0,
+        "rail_stations_net_positive_stock_deltas_sum": 0,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 184,
+          "retained_by_year": {
+            "1970": 13,
+            "1971": 44,
+            "1972": 21,
+            "1973": 24,
+            "1974": 31,
+            "1975": 19,
+            "1976": 7,
+            "1977": 11,
+            "1978": 9,
+            "1979": 5
+          },
+          "panels_parsed": 178
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 185,
+          "retained_by_year": {
+            "1970": 13,
+            "1971": 42,
+            "1972": 23,
+            "1973": 39,
+            "1974": 16,
+            "1975": 24,
+            "1976": 5,
+            "1977": 14,
+            "1978": 1,
+            "1979": 8
+          },
+          "panels_parsed": 157
+        },
+        "delta_retained_total": 1,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 12345,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 11620441,
+          "profit_year": 2285918,
+          "primary_vehicles": 145,
+          "n_vehicles": 145,
+          "n_stations": 67,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 122,
+            "stations": 33
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 24
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 70,
+          "network_changes": 35,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 38,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 122,
+              "positive_change_months": 56,
+              "net_positive_stock_deltas_sum": 128,
+              "negative_change_months": 6,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 7
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 13,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 13
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 33,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 33,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 12
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 24,
+              "positive_change_months": 11,
+              "net_positive_stock_deltas_sum": 24,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 13
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 149,
+            "retained_by_year": {
+              "1970": 9,
+              "1971": 15,
+              "1972": 23,
+              "1973": 33,
+              "1974": 17,
+              "1975": 20,
+              "1976": 13,
+              "1977": 9,
+              "1978": 5,
+              "1979": 5
+            },
+            "panels_parsed": 146
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 11192087,
+          "profit_year": 2191666,
+          "primary_vehicles": 146,
+          "n_vehicles": 146,
+          "n_stations": 66,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 125,
+            "stations": 36
+          },
+          "rail": {
+            "vehicles": 16,
+            "stations": 24
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 75,
+          "network_changes": 35,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 125,
+              "positive_change_months": 56,
+              "net_positive_stock_deltas_sum": 138,
+              "negative_change_months": 11,
+              "net_negative_stock_deltas_sum": 13,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 14,
+              "net_positive_stock_deltas_sum": 16,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 35
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 36,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 36,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 74
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 24,
+              "positive_change_months": 11,
+              "net_positive_stock_deltas_sum": 24,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 39
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 155,
+            "retained_by_year": {
+              "1970": 8,
+              "1971": 19,
+              "1972": 27,
+              "1973": 31,
+              "1974": 22,
+              "1975": 20,
+              "1976": 10,
+              "1977": 8,
+              "1978": 5,
+              "1979": 5
+            },
+            "panels_parsed": 162
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -428354,
+        "profit_year": -94252,
+        "primary_vehicles": 1,
+        "n_vehicles": 1,
+        "n_stations": -1,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 3,
+        "air_stations_final_stock": 3,
+        "rail_vehicles_final_stock": 2,
+        "rail_stations_final_stock": 0,
+        "checkpoint_fleet_changes": 5,
+        "checkpoint_network_changes": 0,
+        "checkpoint_months_since_fleet_or_network_change": 0,
+        "checkpoint_value_increases": 1
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": 0,
+        "air_vehicles_net_positive_stock_deltas_sum": 10,
+        "air_vehicles_negative_change_months": 5,
+        "air_vehicles_net_negative_stock_deltas_sum": 7,
+        "rail_vehicles_positive_change_months": 1,
+        "rail_vehicles_net_positive_stock_deltas_sum": 2,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 0,
+        "airports_net_positive_stock_deltas_sum": 3,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 0,
+        "rail_stations_net_positive_stock_deltas_sum": 0,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 149,
+          "retained_by_year": {
+            "1970": 9,
+            "1971": 15,
+            "1972": 23,
+            "1973": 33,
+            "1974": 17,
+            "1975": 20,
+            "1976": 13,
+            "1977": 9,
+            "1978": 5,
+            "1979": 5
+          },
+          "panels_parsed": 146
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 155,
+          "retained_by_year": {
+            "1970": 8,
+            "1971": 19,
+            "1972": 27,
+            "1973": 31,
+            "1974": 22,
+            "1975": 20,
+            "1976": 10,
+            "1977": 8,
+            "1978": 5,
+            "1979": 5
+          },
+          "panels_parsed": 162
+        },
+        "delta_retained_total": 6,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 54321,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 17573707,
+          "profit_year": 2951934,
+          "primary_vehicles": 181,
+          "n_vehicles": 181,
+          "n_stations": 72,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 159,
+            "stations": 40
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 20
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 77,
+          "network_changes": 32,
+          "months_since_fleet_or_network_change": 3,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 159,
+              "positive_change_months": 64,
+              "net_positive_stock_deltas_sum": 165,
+              "negative_change_months": 6,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 12,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 11
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 40,
+              "positive_change_months": 18,
+              "net_positive_stock_deltas_sum": 40,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 80
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 22,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 2,
+              "months_since_positive_stock_change": 11
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 184,
+            "retained_by_year": {
+              "1970": 13,
+              "1971": 40,
+              "1972": 22,
+              "1973": 40,
+              "1974": 16,
+              "1975": 20,
+              "1976": 9,
+              "1977": 13,
+              "1978": 6,
+              "1979": 5
+            },
+            "panels_parsed": 169
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 18869690,
+          "profit_year": 3307309,
+          "primary_vehicles": 197,
+          "n_vehicles": 197,
+          "n_stations": 78,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 171,
+            "stations": 40
+          },
+          "rail": {
+            "vehicles": 20,
+            "stations": 30
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 81,
+          "network_changes": 39,
+          "months_since_fleet_or_network_change": 3,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 171,
+              "positive_change_months": 63,
+              "net_positive_stock_deltas_sum": 177,
+              "negative_change_months": 5,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 6
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 17,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 16
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 40,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 40,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 75
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 30,
+              "positive_change_months": 16,
+              "net_positive_stock_deltas_sum": 34,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 16
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 200,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 42,
+              "1972": 22,
+              "1973": 42,
+              "1974": 13,
+              "1975": 25,
+              "1976": 11,
+              "1977": 15,
+              "1978": 8,
+              "1979": 11
+            },
+            "panels_parsed": 183
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 1295983,
+        "profit_year": 355375,
+        "primary_vehicles": 16,
+        "n_vehicles": 16,
+        "n_stations": 6,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 12,
+        "air_stations_final_stock": 0,
+        "rail_vehicles_final_stock": 6,
+        "rail_stations_final_stock": 10,
+        "checkpoint_fleet_changes": 4,
+        "checkpoint_network_changes": 7,
+        "checkpoint_months_since_fleet_or_network_change": 0,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -1,
+        "air_vehicles_net_positive_stock_deltas_sum": 12,
+        "air_vehicles_negative_change_months": -1,
+        "air_vehicles_net_negative_stock_deltas_sum": 0,
+        "rail_vehicles_positive_change_months": 5,
+        "rail_vehicles_net_positive_stock_deltas_sum": 6,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 3,
+        "airports_net_positive_stock_deltas_sum": 0,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 6,
+        "rail_stations_net_positive_stock_deltas_sum": 12,
+        "rail_stations_negative_change_months": 1,
+        "rail_stations_net_negative_stock_deltas_sum": 2
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 184,
+          "retained_by_year": {
+            "1970": 13,
+            "1971": 40,
+            "1972": 22,
+            "1973": 40,
+            "1974": 16,
+            "1975": 20,
+            "1976": 9,
+            "1977": 13,
+            "1978": 6,
+            "1979": 5
+          },
+          "panels_parsed": 169
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 200,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 42,
+            "1972": 22,
+            "1973": 42,
+            "1974": 13,
+            "1975": 25,
+            "1976": 11,
+            "1977": 15,
+            "1978": 8,
+            "1979": 11
+          },
+          "panels_parsed": 183
+        },
+        "delta_retained_total": 16,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 65537,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 12447799,
+          "profit_year": 2709099,
+          "primary_vehicles": 140,
+          "n_vehicles": 140,
+          "n_stations": 60,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 125,
+            "stations": 37
+          },
+          "rail": {
+            "vehicles": 11,
+            "stations": 19
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 72,
+          "network_changes": 35,
+          "months_since_fleet_or_network_change": 2,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 125,
+              "positive_change_months": 61,
+              "net_positive_stock_deltas_sum": 129,
+              "negative_change_months": 4,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 6
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 11,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 11,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 32
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 37,
+              "positive_change_months": 22,
+              "net_positive_stock_deltas_sum": 37,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 28
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 19,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 1,
+              "months_since_positive_stock_change": 32
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 154,
+            "retained_by_year": {
+              "1970": 7,
+              "1971": 16,
+              "1972": 18,
+              "1973": 27,
+              "1974": 20,
+              "1975": 23,
+              "1976": 10,
+              "1977": 16,
+              "1978": 6,
+              "1979": 11
+            },
+            "panels_parsed": 154
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 9710278,
+          "profit_year": 1986164,
+          "primary_vehicles": 147,
+          "n_vehicles": 147,
+          "n_stations": 65,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 129,
+            "stations": 35
+          },
+          "rail": {
+            "vehicles": 14,
+            "stations": 26
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 70,
+          "network_changes": 38,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 129,
+              "positive_change_months": 58,
+              "net_positive_stock_deltas_sum": 136,
+              "negative_change_months": 6,
+              "net_negative_stock_deltas_sum": 7,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 14,
+              "positive_change_months": 12,
+              "net_positive_stock_deltas_sum": 14,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 7
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 35,
+              "positive_change_months": 20,
+              "net_positive_stock_deltas_sum": 35,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 73
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 26,
+              "positive_change_months": 15,
+              "net_positive_stock_deltas_sum": 34,
+              "negative_change_months": 4,
+              "net_negative_stock_deltas_sum": 8,
+              "months_since_positive_stock_change": 7
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 157,
+            "retained_by_year": {
+              "1970": 7,
+              "1971": 15,
+              "1972": 31,
+              "1973": 24,
+              "1974": 30,
+              "1975": 10,
+              "1976": 16,
+              "1977": 11,
+              "1978": 10,
+              "1979": 3
+            },
+            "panels_parsed": 171
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -2737521,
+        "profit_year": -722935,
+        "primary_vehicles": 7,
+        "n_vehicles": 7,
+        "n_stations": 5,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 4,
+        "air_stations_final_stock": -2,
+        "rail_vehicles_final_stock": 3,
+        "rail_stations_final_stock": 7,
+        "checkpoint_fleet_changes": -2,
+        "checkpoint_network_changes": 3,
+        "checkpoint_months_since_fleet_or_network_change": -2,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -3,
+        "air_vehicles_net_positive_stock_deltas_sum": 7,
+        "air_vehicles_negative_change_months": 2,
+        "air_vehicles_net_negative_stock_deltas_sum": 3,
+        "rail_vehicles_positive_change_months": 2,
+        "rail_vehicles_net_positive_stock_deltas_sum": 3,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": -2,
+        "airports_net_positive_stock_deltas_sum": -2,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 5,
+        "rail_stations_net_positive_stock_deltas_sum": 14,
+        "rail_stations_negative_change_months": 3,
+        "rail_stations_net_negative_stock_deltas_sum": 7
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 154,
+          "retained_by_year": {
+            "1970": 7,
+            "1971": 16,
+            "1972": 18,
+            "1973": 27,
+            "1974": 20,
+            "1975": 23,
+            "1976": 10,
+            "1977": 16,
+            "1978": 6,
+            "1979": 11
+          },
+          "panels_parsed": 154
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 157,
+          "retained_by_year": {
+            "1970": 7,
+            "1971": 15,
+            "1972": 31,
+            "1973": 24,
+            "1974": 30,
+            "1975": 10,
+            "1976": 16,
+            "1977": 11,
+            "1978": 10,
+            "1979": 3
+          },
+          "panels_parsed": 171
+        },
+        "delta_retained_total": 3,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 123456,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 14469401,
+          "profit_year": 2768167,
+          "primary_vehicles": 164,
+          "n_vehicles": 164,
+          "n_stations": 64,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 148,
+            "stations": 42
+          },
+          "rail": {
+            "vehicles": 10,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 75,
+          "network_changes": 36,
+          "months_since_fleet_or_network_change": 1,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 148,
+              "positive_change_months": 63,
+              "net_positive_stock_deltas_sum": 156,
+              "negative_change_months": 7,
+              "net_negative_stock_deltas_sum": 8,
+              "months_since_positive_stock_change": 1
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 10,
+              "positive_change_months": 7,
+              "net_positive_stock_deltas_sum": 10,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 32
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 42,
+              "positive_change_months": 19,
+              "net_positive_stock_deltas_sum": 42,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 16
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 9,
+              "net_positive_stock_deltas_sum": 22,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 25
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 172,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 29,
+              "1972": 35,
+              "1973": 22,
+              "1974": 25,
+              "1975": 11,
+              "1976": 17,
+              "1977": 4,
+              "1978": 13,
+              "1979": 5
+            },
+            "panels_parsed": 167
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 14113180,
+          "profit_year": 2799087,
+          "primary_vehicles": 174,
+          "n_vehicles": 174,
+          "n_stations": 64,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 158,
+            "stations": 42
+          },
+          "rail": {
+            "vehicles": 10,
+            "stations": 16
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 70,
+          "network_changes": 33,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 158,
+              "positive_change_months": 62,
+              "net_positive_stock_deltas_sum": 164,
+              "negative_change_months": 6,
+              "net_negative_stock_deltas_sum": 6,
+              "months_since_positive_stock_change": 8
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 10,
+              "positive_change_months": 8,
+              "net_positive_stock_deltas_sum": 10,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 2
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 42,
+              "positive_change_months": 23,
+              "net_positive_stock_deltas_sum": 42,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 74
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 16,
+              "positive_change_months": 9,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 2,
+              "net_negative_stock_deltas_sum": 4,
+              "months_since_positive_stock_change": 2
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 181,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 29,
+              "1972": 21,
+              "1973": 38,
+              "1974": 21,
+              "1975": 23,
+              "1976": 10,
+              "1977": 15,
+              "1978": 6,
+              "1979": 7
+            },
+            "panels_parsed": 150
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -356221,
+        "profit_year": 30920,
+        "primary_vehicles": 10,
+        "n_vehicles": 10,
+        "n_stations": 0,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": 10,
+        "air_stations_final_stock": 0,
+        "rail_vehicles_final_stock": 0,
+        "rail_stations_final_stock": 0,
+        "checkpoint_fleet_changes": -5,
+        "checkpoint_network_changes": -3,
+        "checkpoint_months_since_fleet_or_network_change": -1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -1,
+        "air_vehicles_net_positive_stock_deltas_sum": 8,
+        "air_vehicles_negative_change_months": -1,
+        "air_vehicles_net_negative_stock_deltas_sum": -2,
+        "rail_vehicles_positive_change_months": 1,
+        "rail_vehicles_net_positive_stock_deltas_sum": 0,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 4,
+        "airports_net_positive_stock_deltas_sum": 0,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 0,
+        "rail_stations_net_positive_stock_deltas_sum": -2,
+        "rail_stations_negative_change_months": -1,
+        "rail_stations_net_negative_stock_deltas_sum": -2
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 172,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 29,
+            "1972": 35,
+            "1973": 22,
+            "1974": 25,
+            "1975": 11,
+            "1976": 17,
+            "1977": 4,
+            "1978": 13,
+            "1979": 5
+          },
+          "panels_parsed": 167
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 181,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 29,
+            "1972": 21,
+            "1973": 38,
+            "1974": 21,
+            "1975": 23,
+            "1976": 10,
+            "1977": 15,
+            "1978": 6,
+            "1979": 7
+          },
+          "panels_parsed": 150
+        },
+        "delta_retained_total": 9,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 424242,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 21013058,
+          "profit_year": 3715561,
+          "primary_vehicles": 188,
+          "n_vehicles": 188,
+          "n_stations": 63,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 175,
+            "stations": 43
+          },
+          "rail": {
+            "vehicles": 13,
+            "stations": 20
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 96,
+          "network_changes": 33,
+          "months_since_fleet_or_network_change": 2,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 175,
+              "positive_change_months": 89,
+              "net_positive_stock_deltas_sum": 178,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 3,
+              "months_since_positive_stock_change": 4
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 13,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 13,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 12
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 43,
+              "positive_change_months": 24,
+              "net_positive_stock_deltas_sum": 43,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 51
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 9,
+              "net_positive_stock_deltas_sum": 22,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 2,
+              "months_since_positive_stock_change": 12
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 196,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 36,
+              "1972": 16,
+              "1973": 22,
+              "1974": 17,
+              "1975": 27,
+              "1976": 24,
+              "1977": 18,
+              "1978": 14,
+              "1979": 11
+            },
+            "panels_parsed": 167
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 20264376,
+          "profit_year": 3580413,
+          "primary_vehicles": 189,
+          "n_vehicles": 189,
+          "n_stations": 65,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 174,
+            "stations": 43
+          },
+          "rail": {
+            "vehicles": 13,
+            "stations": 20
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 76,
+          "network_changes": 32,
+          "months_since_fleet_or_network_change": 1,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 174,
+              "positive_change_months": 65,
+              "net_positive_stock_deltas_sum": 182,
+              "negative_change_months": 7,
+              "net_negative_stock_deltas_sum": 8,
+              "months_since_positive_stock_change": 5
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 13,
+              "positive_change_months": 12,
+              "net_positive_stock_deltas_sum": 13,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 21
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 43,
+              "positive_change_months": 23,
+              "net_positive_stock_deltas_sum": 43,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 77
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 22,
+              "negative_change_months": 1,
+              "net_negative_stock_deltas_sum": 2,
+              "months_since_positive_stock_change": 21
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 195,
+            "retained_by_year": {
+              "1970": 11,
+              "1971": 37,
+              "1972": 27,
+              "1973": 36,
+              "1974": 20,
+              "1975": 22,
+              "1976": 12,
+              "1977": 15,
+              "1978": 5,
+              "1979": 10
+            },
+            "panels_parsed": 160
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": -748682,
+        "profit_year": -135148,
+        "primary_vehicles": 1,
+        "n_vehicles": 1,
+        "n_stations": 2,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -1,
+        "air_stations_final_stock": 0,
+        "rail_vehicles_final_stock": 0,
+        "rail_stations_final_stock": 0,
+        "checkpoint_fleet_changes": -20,
+        "checkpoint_network_changes": -1,
+        "checkpoint_months_since_fleet_or_network_change": -1,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -24,
+        "air_vehicles_net_positive_stock_deltas_sum": 4,
+        "air_vehicles_negative_change_months": 4,
+        "air_vehicles_net_negative_stock_deltas_sum": 5,
+        "rail_vehicles_positive_change_months": 2,
+        "rail_vehicles_net_positive_stock_deltas_sum": 0,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": -1,
+        "airports_net_positive_stock_deltas_sum": 0,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 1,
+        "rail_stations_net_positive_stock_deltas_sum": 0,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 196,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 36,
+            "1972": 16,
+            "1973": 22,
+            "1974": 17,
+            "1975": 27,
+            "1976": 24,
+            "1977": 18,
+            "1978": 14,
+            "1979": 11
+          },
+          "panels_parsed": 167
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 195,
+          "retained_by_year": {
+            "1970": 11,
+            "1971": 37,
+            "1972": 27,
+            "1973": 36,
+            "1974": 20,
+            "1975": 22,
+            "1976": 12,
+            "1977": 15,
+            "1978": 5,
+            "1979": 10
+          },
+          "panels_parsed": 160
+        },
+        "delta_retained_total": -1,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    },
+    {
+      "seed": 8675309,
+      "repeat": 0,
+      "valid_pair": true,
+      "issues": [],
+      "warnings": [],
+      "reference": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 15053765,
+          "profit_year": 2994943,
+          "primary_vehicles": 178,
+          "n_vehicles": 178,
+          "n_stations": 65,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 158,
+            "stations": 37
+          },
+          "rail": {
+            "vehicles": 12,
+            "stations": 20
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 80,
+          "network_changes": 33,
+          "months_since_fleet_or_network_change": 0,
+          "value_increases": 39,
+          "signal": "active",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 158,
+              "positive_change_months": 65,
+              "net_positive_stock_deltas_sum": 165,
+              "negative_change_months": 7,
+              "net_negative_stock_deltas_sum": 7,
+              "months_since_positive_stock_change": 6
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 12,
+              "positive_change_months": 10,
+              "net_positive_stock_deltas_sum": 12,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 37,
+              "positive_change_months": 20,
+              "net_positive_stock_deltas_sum": 37,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 63
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 9,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 0
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 183,
+            "retained_by_year": {
+              "1970": 10,
+              "1971": 18,
+              "1972": 17,
+              "1973": 30,
+              "1974": 25,
+              "1975": 28,
+              "1976": 11,
+              "1977": 20,
+              "1978": 8,
+              "1979": 16
+            },
+            "panels_parsed": 150
+          }
+        }
+      },
+      "variant": {
+        "healthy": true,
+        "issues": [],
+        "warnings": [],
+        "metrics": {
+          "company_value": 15585779,
+          "profit_year": 3230230,
+          "primary_vehicles": 167,
+          "n_vehicles": 167,
+          "n_stations": 83,
+          "months_of_bankruptcy": 0
+        },
+        "physical_final_stocks": {
+          "air": {
+            "vehicles": 142,
+            "stations": 39
+          },
+          "rail": {
+            "vehicles": 20,
+            "stations": 38
+          }
+        },
+        "activity_checkpoint_deltas": {
+          "fleet_changes": 68,
+          "network_changes": 43,
+          "months_since_fleet_or_network_change": 4,
+          "value_increases": 39,
+          "signal": "earning_without_expansion",
+          "n_checkpoints": 120
+        },
+        "checkpoints": {
+          "status": "complete",
+          "issues": [],
+          "monthly_stock_changes": {
+            "air_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 142,
+              "positive_change_months": 55,
+              "net_positive_stock_deltas_sum": 145,
+              "negative_change_months": 3,
+              "net_negative_stock_deltas_sum": 3,
+              "months_since_positive_stock_change": 9
+            },
+            "rail_vehicles": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 20,
+              "positive_change_months": 17,
+              "net_positive_stock_deltas_sum": 20,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 4
+            },
+            "airports": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 39,
+              "positive_change_months": 21,
+              "net_positive_stock_deltas_sum": 39,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 67
+            },
+            "rail_stations": {
+              "complete_monthly_decode": true,
+              "first_stock": 0,
+              "final_stock": 38,
+              "positive_change_months": 16,
+              "net_positive_stock_deltas_sum": 38,
+              "negative_change_months": 0,
+              "net_negative_stock_deltas_sum": 0,
+              "months_since_positive_stock_change": 4
+            }
+          },
+          "retained_ib_project_pass_proxy": {
+            "status": "retained_sign_proxy_only",
+            "retained_total": 169,
+            "retained_by_year": {
+              "1970": 10,
+              "1971": 20,
+              "1972": 16,
+              "1973": 31,
+              "1974": 20,
+              "1975": 23,
+              "1976": 20,
+              "1977": 12,
+              "1978": 11,
+              "1979": 6
+            },
+            "panels_parsed": 142
+          }
+        }
+      },
+      "variant_minus_reference": {
+        "company_value": 532014,
+        "profit_year": 235287,
+        "primary_vehicles": -11,
+        "n_vehicles": -11,
+        "n_stations": 18,
+        "months_of_bankruptcy": 0,
+        "air_vehicles_final_stock": -16,
+        "air_stations_final_stock": 2,
+        "rail_vehicles_final_stock": 8,
+        "rail_stations_final_stock": 18,
+        "checkpoint_fleet_changes": -12,
+        "checkpoint_network_changes": 10,
+        "checkpoint_months_since_fleet_or_network_change": 4,
+        "checkpoint_value_increases": 0
+      },
+      "checkpoint_stock_change_deltas": {
+        "air_vehicles_positive_change_months": -10,
+        "air_vehicles_net_positive_stock_deltas_sum": -20,
+        "air_vehicles_negative_change_months": -4,
+        "air_vehicles_net_negative_stock_deltas_sum": -4,
+        "rail_vehicles_positive_change_months": 7,
+        "rail_vehicles_net_positive_stock_deltas_sum": 8,
+        "rail_vehicles_negative_change_months": 0,
+        "rail_vehicles_net_negative_stock_deltas_sum": 0,
+        "airports_positive_change_months": 1,
+        "airports_net_positive_stock_deltas_sum": 2,
+        "airports_negative_change_months": 0,
+        "airports_net_negative_stock_deltas_sum": 0,
+        "rail_stations_positive_change_months": 7,
+        "rail_stations_net_positive_stock_deltas_sum": 18,
+        "rail_stations_negative_change_months": 0,
+        "rail_stations_net_negative_stock_deltas_sum": 0
+      },
+      "retained_ib_project_pass_proxy": {
+        "reference": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 183,
+          "retained_by_year": {
+            "1970": 10,
+            "1971": 18,
+            "1972": 17,
+            "1973": 30,
+            "1974": 25,
+            "1975": 28,
+            "1976": 11,
+            "1977": 20,
+            "1978": 8,
+            "1979": 16
+          },
+          "panels_parsed": 150
+        },
+        "variant": {
+          "status": "retained_sign_proxy_only",
+          "retained_total": 169,
+          "retained_by_year": {
+            "1970": 10,
+            "1971": 20,
+            "1972": 16,
+            "1973": 31,
+            "1974": 20,
+            "1975": 23,
+            "1976": 20,
+            "1977": 12,
+            "1978": 11,
+            "1979": 6
+          },
+          "panels_parsed": 142
+        },
+        "delta_retained_total": -14,
+        "status": "observed_retained_signs_not_total_builds"
+      },
+      "line_builds_air_rail": {
+        "reference": null,
+        "variant": null,
+        "delta": null,
+        "status": "not_measured_by_this_C66_summary"
+      }
+    }
+  ]
+}

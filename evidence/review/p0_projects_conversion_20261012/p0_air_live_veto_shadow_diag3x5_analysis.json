@@ -1,0 +1,1220 @@
+{
+  "engine_logs": "results\\p0_air_veto_shadow_stage_20261012\\results\\p0_air_live_veto_shadow_diag3x5_20261012_engine",
+  "policy": "p0_air_live_veto_reason_shadow",
+  "by_seed": {
+    "42": {
+      "events": 106,
+      "years": {
+        "1970": {
+          "logged_veto_replays": 18,
+          "unique_od_arm_in_sample": 18,
+          "unique_od_arm_day_in_sample": 18,
+          "observed_tick_stage_passes": 7,
+          "stage": {
+            "projects": 18
+          },
+          "arms": {
+            "hubsite": 2,
+            "newpair": 16
+          },
+          "first_reason": {
+            "servedA": 10,
+            "servedB": 8
+          },
+          "all_reason_occurrences": {
+            "servedA": 10,
+            "servedB": 8
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1970-01-17",
+              "tick": "301",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "24869",
+              "dst": "59980",
+              "first": "servedA"
+            },
+            {
+              "date": "1970-04-14",
+              "tick": "1906",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "48086",
+              "dst": "33442",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-04-14",
+              "tick": "1906",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "10926",
+              "dst": "33442",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-06-02",
+              "tick": "2815",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "40153",
+              "dst": "6457",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-07-11",
+              "tick": "3540",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "40153",
+              "dst": "3094",
+              "first": "servedA"
+            },
+            {
+              "date": "1970-07-11",
+              "tick": "3540",
+              "rank": "2",
+              "arm": "newpair",
+              "src": "40153",
+              "dst": "5900",
+              "first": "servedA"
+            },
+            {
+              "date": "1970-07-11",
+              "tick": "3540",
+              "rank": "3",
+              "arm": "newpair",
+              "src": "40153",
+              "dst": "12090",
+              "first": "servedA"
+            },
+            {
+              "date": "1970-07-11",
+              "tick": "3540",
+              "rank": "4",
+              "arm": "newpair",
+              "src": "54044",
+              "dst": "40153",
+              "first": "servedB"
+            }
+          ]
+        },
+        "1971": {
+          "logged_veto_replays": 70,
+          "unique_od_arm_in_sample": 70,
+          "unique_od_arm_day_in_sample": 70,
+          "observed_tick_stage_passes": 38,
+          "stage": {
+            "projects": 70
+          },
+          "arms": {
+            "hubhub": 46,
+            "hubsite": 19,
+            "newpair": 5
+          },
+          "first_reason": {
+            "capA": 48,
+            "servedA": 2,
+            "servedB": 20
+          },
+          "all_reason_occurrences": {
+            "capA": 48,
+            "servedA": 2,
+            "servedB": 20
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1971-02-16",
+              "tick": "7618",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "28461",
+              "dst": "59635",
+              "first": "servedB"
+            },
+            {
+              "date": "1971-03-06",
+              "tick": "7951",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "28461",
+              "dst": "34012",
+              "first": "servedB"
+            },
+            {
+              "date": "1971-03-06",
+              "tick": "7951",
+              "rank": "2",
+              "arm": "newpair",
+              "src": "52319",
+              "dst": "7810",
+              "first": "servedA"
+            },
+            {
+              "date": "1971-03-06",
+              "tick": "7951",
+              "rank": "3",
+              "arm": "newpair",
+              "src": "28461",
+              "dst": "52319",
+              "first": "servedB"
+            },
+            {
+              "date": "1971-03-06",
+              "tick": "7952",
+              "rank": "4",
+              "arm": "newpair",
+              "src": "34012",
+              "dst": "5200",
+              "first": "servedA"
+            },
+            {
+              "date": "1971-03-30",
+              "tick": "8390",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "48086",
+              "dst": "22586",
+              "first": "capA"
+            },
+            {
+              "date": "1971-03-30",
+              "tick": "8390",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "48086",
+              "dst": "20041",
+              "first": "capA"
+            },
+            {
+              "date": "1971-04-29",
+              "tick": "8948",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "24869",
+              "dst": "56708",
+              "first": "servedB"
+            }
+          ]
+        },
+        "1972": {
+          "logged_veto_replays": 18,
+          "unique_od_arm_in_sample": 18,
+          "unique_od_arm_day_in_sample": 18,
+          "observed_tick_stage_passes": 9,
+          "stage": {
+            "projects": 18
+          },
+          "arms": {
+            "hubhub": 5,
+            "hubsite": 10,
+            "newpair": 3
+          },
+          "first_reason": {
+            "capA": 4,
+            "capB": 1,
+            "secondA_closed": 2,
+            "secondB_closed": 10,
+            "servedA": 1
+          },
+          "all_reason_occurrences": {
+            "capA": 4,
+            "capB": 1,
+            "linkedOD": 1,
+            "secondA_closed": 2,
+            "secondB_closed": 10,
+            "servedA": 1
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1972-02-11",
+              "tick": "14264",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "7810",
+              "dst": "44107",
+              "first": "secondB_closed"
+            },
+            {
+              "date": "1972-02-11",
+              "tick": "14265",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "9157",
+              "dst": "44107",
+              "first": "secondB_closed"
+            },
+            {
+              "date": "1972-02-11",
+              "tick": "14265",
+              "rank": "3",
+              "arm": "hubsite",
+              "src": "34012",
+              "dst": "44107",
+              "first": "secondB_closed"
+            },
+            {
+              "date": "1972-02-11",
+              "tick": "14265",
+              "rank": "4",
+              "arm": "newpair",
+              "src": "44107",
+              "dst": "8348",
+              "first": "secondA_closed"
+            },
+            {
+              "date": "1972-02-11",
+              "tick": "14266",
+              "rank": "5",
+              "arm": "hubsite",
+              "src": "39666",
+              "dst": "44107",
+              "first": "secondB_closed"
+            },
+            {
+              "date": "1972-02-11",
+              "tick": "14266",
+              "rank": "6",
+              "arm": "newpair",
+              "src": "44107",
+              "dst": "28041",
+              "first": "secondA_closed"
+            },
+            {
+              "date": "1972-02-11",
+              "tick": "14266",
+              "rank": "7",
+              "arm": "hubsite",
+              "src": "21394",
+              "dst": "44107",
+              "first": "secondB_closed"
+            },
+            {
+              "date": "1972-02-11",
+              "tick": "14266",
+              "rank": "8",
+              "arm": "hubsite",
+              "src": "32963",
+              "dst": "44107",
+              "first": "secondB_closed"
+            }
+          ]
+        }
+      }
+    },
+    "100": {
+      "events": 66,
+      "years": {
+        "1970": {
+          "logged_veto_replays": 14,
+          "unique_od_arm_in_sample": 14,
+          "unique_od_arm_day_in_sample": 14,
+          "observed_tick_stage_passes": 5,
+          "stage": {
+            "projects": 14
+          },
+          "arms": {
+            "hubsite": 6,
+            "newpair": 8
+          },
+          "first_reason": {
+            "servedA": 8,
+            "servedB": 6
+          },
+          "all_reason_occurrences": {
+            "servedA": 8,
+            "servedB": 6
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1970-01-17",
+              "tick": "301",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "18741",
+              "dst": "46727",
+              "first": "servedA"
+            },
+            {
+              "date": "1970-01-19",
+              "tick": "345",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "46727",
+              "dst": "21717",
+              "first": "servedA"
+            },
+            {
+              "date": "1970-04-23",
+              "tick": "2075",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "50103",
+              "dst": "59176",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-04-23",
+              "tick": "2075",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "46727",
+              "dst": "59176",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-04-23",
+              "tick": "2075",
+              "rank": "3",
+              "arm": "hubsite",
+              "src": "18741",
+              "dst": "59176",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-08-15",
+              "tick": "4184",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "22803",
+              "dst": "21717",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-08-15",
+              "tick": "4184",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "18741",
+              "dst": "21717",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-08-15",
+              "tick": "4184",
+              "rank": "3",
+              "arm": "hubsite",
+              "src": "50103",
+              "dst": "21717",
+              "first": "servedB"
+            }
+          ]
+        },
+        "1971": {
+          "logged_veto_replays": 3,
+          "unique_od_arm_in_sample": 3,
+          "unique_od_arm_day_in_sample": 3,
+          "observed_tick_stage_passes": 2,
+          "stage": {
+            "projects": 3
+          },
+          "arms": {
+            "hubhub": 3
+          },
+          "first_reason": {
+            "capA": 3
+          },
+          "all_reason_occurrences": {
+            "capA": 3
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1971-09-07",
+              "tick": "11368",
+              "rank": "1",
+              "arm": "hubhub",
+              "src": "50103",
+              "dst": "30443",
+              "first": "capA"
+            },
+            {
+              "date": "1971-09-15",
+              "tick": "11517",
+              "rank": "1",
+              "arm": "hubhub",
+              "src": "30443",
+              "dst": "38199",
+              "first": "capA"
+            },
+            {
+              "date": "1971-09-15",
+              "tick": "11517",
+              "rank": "2",
+              "arm": "hubhub",
+              "src": "30443",
+              "dst": "20909",
+              "first": "capA"
+            }
+          ]
+        },
+        "1972": {
+          "logged_veto_replays": 19,
+          "unique_od_arm_in_sample": 19,
+          "unique_od_arm_day_in_sample": 19,
+          "observed_tick_stage_passes": 12,
+          "stage": {
+            "projects": 19
+          },
+          "arms": {
+            "hubhub": 3,
+            "hubsite": 8,
+            "newpair": 8
+          },
+          "first_reason": {
+            "capA": 9,
+            "servedA": 8,
+            "servedB": 2
+          },
+          "all_reason_occurrences": {
+            "capA": 9,
+            "servedA": 8,
+            "servedB": 2
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1972-05-20",
+              "tick": "16109",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "32953",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-05-20",
+              "tick": "16109",
+              "rank": "2",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "55398",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-05-20",
+              "tick": "16110",
+              "rank": "3",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "35961",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-05-20",
+              "tick": "16110",
+              "rank": "4",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "27565",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-05-20",
+              "tick": "16110",
+              "rank": "5",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "27842",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-05-20",
+              "tick": "16111",
+              "rank": "6",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "20161",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-05-20",
+              "tick": "16111",
+              "rank": "7",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "15598",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-05-20",
+              "tick": "16111",
+              "rank": "8",
+              "arm": "newpair",
+              "src": "20546",
+              "dst": "6311",
+              "first": "servedA"
+            }
+          ]
+        },
+        "1973": {
+          "logged_veto_replays": 26,
+          "unique_od_arm_in_sample": 14,
+          "unique_od_arm_day_in_sample": 26,
+          "observed_tick_stage_passes": 14,
+          "stage": {
+            "projects": 26
+          },
+          "arms": {
+            "hubhub": 25,
+            "hubsite": 1
+          },
+          "first_reason": {
+            "capA": 24,
+            "capB": 2
+          },
+          "all_reason_occurrences": {
+            "capA": 24,
+            "capB": 12,
+            "linkedOD": 12
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1973-10-28",
+              "tick": "25836",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "41042",
+              "dst": "20161",
+              "first": "capA"
+            },
+            {
+              "date": "1973-10-28",
+              "tick": "25836",
+              "rank": "3",
+              "arm": "hubhub",
+              "src": "41042",
+              "dst": "9822",
+              "first": "capA"
+            },
+            {
+              "date": "1973-12-21",
+              "tick": "26833",
+              "rank": "0",
+              "arm": "hubhub",
+              "src": "20546",
+              "dst": "42897",
+              "first": "capB"
+            },
+            {
+              "date": "1973-12-21",
+              "tick": "26833",
+              "rank": "1",
+              "arm": "hubhub",
+              "src": "43447",
+              "dst": "9292",
+              "first": "capA"
+            },
+            {
+              "date": "1973-12-21",
+              "tick": "26834",
+              "rank": "2",
+              "arm": "hubhub",
+              "src": "53485",
+              "dst": "9292",
+              "first": "capA"
+            },
+            {
+              "date": "1973-12-21",
+              "tick": "26834",
+              "rank": "3",
+              "arm": "hubhub",
+              "src": "53485",
+              "dst": "15478",
+              "first": "capA"
+            },
+            {
+              "date": "1973-12-21",
+              "tick": "26835",
+              "rank": "4",
+              "arm": "hubhub",
+              "src": "43447",
+              "dst": "20546",
+              "first": "capA"
+            },
+            {
+              "date": "1973-12-21",
+              "tick": "26835",
+              "rank": "5",
+              "arm": "hubhub",
+              "src": "53485",
+              "dst": "26430",
+              "first": "capA"
+            }
+          ]
+        },
+        "1974": {
+          "logged_veto_replays": 4,
+          "unique_od_arm_in_sample": 4,
+          "unique_od_arm_day_in_sample": 4,
+          "observed_tick_stage_passes": 2,
+          "stage": {
+            "projects": 4
+          },
+          "arms": {
+            "hubhub": 1,
+            "hubsite": 3
+          },
+          "first_reason": {
+            "capA": 3,
+            "servedB": 1
+          },
+          "all_reason_occurrences": {
+            "capA": 3,
+            "servedB": 1
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1974-03-03",
+              "tick": "28165",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "26430",
+              "dst": "20161",
+              "first": "capA"
+            },
+            {
+              "date": "1974-03-03",
+              "tick": "28165",
+              "rank": "2",
+              "arm": "hubhub",
+              "src": "20909",
+              "dst": "20546",
+              "first": "capA"
+            },
+            {
+              "date": "1974-04-13",
+              "tick": "28922",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "20546",
+              "dst": "20161",
+              "first": "capA"
+            },
+            {
+              "date": "1974-04-13",
+              "tick": "28922",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "15478",
+              "dst": "27565",
+              "first": "servedB"
+            }
+          ]
+        }
+      }
+    },
+    "999": {
+      "events": 101,
+      "years": {
+        "1970": {
+          "logged_veto_replays": 21,
+          "unique_od_arm_in_sample": 21,
+          "unique_od_arm_day_in_sample": 21,
+          "observed_tick_stage_passes": 5,
+          "stage": {
+            "projects": 21
+          },
+          "arms": {
+            "hubsite": 8,
+            "newpair": 13
+          },
+          "first_reason": {
+            "servedA": 13,
+            "servedB": 8
+          },
+          "all_reason_occurrences": {
+            "servedA": 13,
+            "servedB": 8
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1970-01-14",
+              "tick": "248",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "12649",
+              "dst": "29608",
+              "first": "servedA"
+            },
+            {
+              "date": "1970-07-24",
+              "tick": "3782",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "36811",
+              "dst": "44867",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-07-24",
+              "tick": "3782",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "12649",
+              "dst": "44867",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-07-24",
+              "tick": "3782",
+              "rank": "3",
+              "arm": "hubsite",
+              "src": "39848",
+              "dst": "44867",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-10-25",
+              "tick": "5512",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "55086",
+              "dst": "4532",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-10-25",
+              "tick": "5512",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "36811",
+              "dst": "4532",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-10-25",
+              "tick": "5512",
+              "rank": "3",
+              "arm": "hubsite",
+              "src": "29608",
+              "dst": "4532",
+              "first": "servedB"
+            },
+            {
+              "date": "1970-10-25",
+              "tick": "5512",
+              "rank": "4",
+              "arm": "hubsite",
+              "src": "39848",
+              "dst": "4532",
+              "first": "servedB"
+            }
+          ]
+        },
+        "1971": {
+          "logged_veto_replays": 13,
+          "unique_od_arm_in_sample": 13,
+          "unique_od_arm_day_in_sample": 13,
+          "observed_tick_stage_passes": 5,
+          "stage": {
+            "projects": 13
+          },
+          "arms": {
+            "hubsite": 5,
+            "newpair": 8
+          },
+          "first_reason": {
+            "capA": 5,
+            "servedA": 5,
+            "servedB": 3
+          },
+          "all_reason_occurrences": {
+            "capA": 5,
+            "servedA": 5,
+            "servedB": 3
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1971-04-30",
+              "tick": "8954",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "6422",
+              "dst": "51371",
+              "first": "servedA"
+            },
+            {
+              "date": "1971-04-30",
+              "tick": "8954",
+              "rank": "2",
+              "arm": "newpair",
+              "src": "6422",
+              "dst": "52119",
+              "first": "servedA"
+            },
+            {
+              "date": "1971-05-24",
+              "tick": "9407",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "9917",
+              "dst": "55578",
+              "first": "servedA"
+            },
+            {
+              "date": "1971-05-24",
+              "tick": "9407",
+              "rank": "2",
+              "arm": "newpair",
+              "src": "53599",
+              "dst": "16072",
+              "first": "servedA"
+            },
+            {
+              "date": "1971-05-24",
+              "tick": "9407",
+              "rank": "3",
+              "arm": "newpair",
+              "src": "9917",
+              "dst": "48418",
+              "first": "servedA"
+            },
+            {
+              "date": "1971-08-06",
+              "tick": "10772",
+              "rank": "1",
+              "arm": "newpair",
+              "src": "15901",
+              "dst": "58343",
+              "first": "servedB"
+            },
+            {
+              "date": "1971-08-06",
+              "tick": "10772",
+              "rank": "2",
+              "arm": "newpair",
+              "src": "22918",
+              "dst": "58343",
+              "first": "servedB"
+            },
+            {
+              "date": "1971-08-06",
+              "tick": "10772",
+              "rank": "3",
+              "arm": "newpair",
+              "src": "17981",
+              "dst": "58343",
+              "first": "servedB"
+            }
+          ]
+        },
+        "1972": {
+          "logged_veto_replays": 25,
+          "unique_od_arm_in_sample": 25,
+          "unique_od_arm_day_in_sample": 25,
+          "observed_tick_stage_passes": 18,
+          "stage": {
+            "projects": 25
+          },
+          "arms": {
+            "hubhub": 6,
+            "hubsite": 15,
+            "newpair": 4
+          },
+          "first_reason": {
+            "capA": 7,
+            "capB": 1,
+            "servedA": 2,
+            "servedB": 15
+          },
+          "all_reason_occurrences": {
+            "capA": 7,
+            "capB": 1,
+            "servedA": 2,
+            "servedB": 15
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1972-04-15",
+              "tick": "15462",
+              "rank": "3",
+              "arm": "newpair",
+              "src": "29608",
+              "dst": "19757",
+              "first": "servedB"
+            },
+            {
+              "date": "1972-04-15",
+              "tick": "15462",
+              "rank": "4",
+              "arm": "hubsite",
+              "src": "29608",
+              "dst": "19757",
+              "first": "servedB"
+            },
+            {
+              "date": "1972-04-15",
+              "tick": "15464",
+              "rank": "6",
+              "arm": "newpair",
+              "src": "19757",
+              "dst": "6366",
+              "first": "servedA"
+            },
+            {
+              "date": "1972-09-07",
+              "tick": "18147",
+              "rank": "1",
+              "arm": "hubhub",
+              "src": "4532",
+              "dst": "48418",
+              "first": "capA"
+            },
+            {
+              "date": "1972-09-07",
+              "tick": "18148",
+              "rank": "3",
+              "arm": "hubsite",
+              "src": "4532",
+              "dst": "26669",
+              "first": "capA"
+            },
+            {
+              "date": "1972-11-04",
+              "tick": "19212",
+              "rank": "1",
+              "arm": "hubsite",
+              "src": "48418",
+              "dst": "22918",
+              "first": "servedB"
+            },
+            {
+              "date": "1972-11-04",
+              "tick": "19212",
+              "rank": "2",
+              "arm": "hubsite",
+              "src": "48855",
+              "dst": "22918",
+              "first": "servedB"
+            },
+            {
+              "date": "1972-11-04",
+              "tick": "19213",
+              "rank": "3",
+              "arm": "hubsite",
+              "src": "58343",
+              "dst": "22918",
+              "first": "servedB"
+            }
+          ]
+        },
+        "1973": {
+          "logged_veto_replays": 20,
+          "unique_od_arm_in_sample": 20,
+          "unique_od_arm_day_in_sample": 20,
+          "observed_tick_stage_passes": 18,
+          "stage": {
+            "projects": 20
+          },
+          "arms": {
+            "hubhub": 16,
+            "hubsite": 4
+          },
+          "first_reason": {
+            "capA": 18,
+            "capB": 2
+          },
+          "all_reason_occurrences": {
+            "capA": 18,
+            "capB": 2
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1973-05-08",
+              "tick": "22628",
+              "rank": "5",
+              "arm": "hubsite",
+              "src": "16072",
+              "dst": "58403",
+              "first": "capA"
+            },
+            {
+              "date": "1973-05-08",
+              "tick": "22629",
+              "rank": "6",
+              "arm": "hubhub",
+              "src": "16072",
+              "dst": "58684",
+              "first": "capA"
+            },
+            {
+              "date": "1973-05-08",
+              "tick": "22642",
+              "rank": "9",
+              "arm": "hubhub",
+              "src": "16072",
+              "dst": "60761",
+              "first": "capA"
+            },
+            {
+              "date": "1973-05-09",
+              "tick": "22644",
+              "rank": "14",
+              "arm": "hubhub",
+              "src": "16072",
+              "dst": "5696",
+              "first": "capA"
+            },
+            {
+              "date": "1973-05-09",
+              "tick": "22648",
+              "rank": "24",
+              "arm": "hubhub",
+              "src": "16072",
+              "dst": "33904",
+              "first": "capA"
+            },
+            {
+              "date": "1973-05-09",
+              "tick": "22648",
+              "rank": "25",
+              "arm": "hubhub",
+              "src": "12078",
+              "dst": "16072",
+              "first": "capB"
+            },
+            {
+              "date": "1973-05-09",
+              "tick": "22649",
+              "rank": "26",
+              "arm": "hubhub",
+              "src": "16072",
+              "dst": "19757",
+              "first": "capA"
+            },
+            {
+              "date": "1973-05-09",
+              "tick": "22652",
+              "rank": "32",
+              "arm": "hubhub",
+              "src": "51371",
+              "dst": "16072",
+              "first": "capB"
+            }
+          ]
+        },
+        "1974": {
+          "logged_veto_replays": 22,
+          "unique_od_arm_in_sample": 22,
+          "unique_od_arm_day_in_sample": 22,
+          "observed_tick_stage_passes": 19,
+          "stage": {
+            "projects": 22
+          },
+          "arms": {
+            "hubhub": 6,
+            "hubsite": 12,
+            "newpair": 4
+          },
+          "first_reason": {
+            "capA": 8,
+            "capB": 1,
+            "servedA": 2,
+            "servedB": 11
+          },
+          "all_reason_occurrences": {
+            "capA": 8,
+            "capB": 1,
+            "servedA": 2,
+            "servedB": 11
+          },
+          "ambiguous_replay_none": 0,
+          "example_first_8": [
+            {
+              "date": "1974-05-17",
+              "tick": "29559",
+              "rank": "10",
+              "arm": "hubhub",
+              "src": "9917",
+              "dst": "60761",
+              "first": "capA"
+            },
+            {
+              "date": "1974-05-17",
+              "tick": "29561",
+              "rank": "14",
+              "arm": "hubsite",
+              "src": "9917",
+              "dst": "30034",
+              "first": "capA"
+            },
+            {
+              "date": "1974-05-17",
+              "tick": "29562",
+              "rank": "16",
+              "arm": "hubsite",
+              "src": "9917",
+              "dst": "23624",
+              "first": "capA"
+            },
+            {
+              "date": "1974-05-18",
+              "tick": "29563",
+              "rank": "18",
+              "arm": "hubhub",
+              "src": "9917",
+              "dst": "55578",
+              "first": "capA"
+            },
+            {
+              "date": "1974-05-18",
+              "tick": "29563",
+              "rank": "19",
+              "arm": "hubsite",
+              "src": "3918",
+              "dst": "58403",
+              "first": "servedB"
+            },
+            {
+              "date": "1974-05-18",
+              "tick": "29564",
+              "rank": "20",
+              "arm": "newpair",
+              "src": "22204",
+              "dst": "58403",
+              "first": "servedB"
+            },
+            {
+              "date": "1974-05-18",
+              "tick": "29565",
+              "rank": "22",
+              "arm": "hubhub",
+              "src": "9917",
+              "dst": "26669",
+              "first": "capA"
+            },
+            {
+              "date": "1974-05-18",
+              "tick": "29565",
+              "rank": "23",
+              "arm": "hubhub",
+              "src": "9917",
+              "dst": "52119",
+              "first": "capA"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Logs emitted only from intentionally bounded retrospectively diagnosed veto samples.",
+    "No extrapolation of observed reason frequencies to all candidate OD or years.",
+    "The shadow may alter simulation timing; do not event-pair this run to different probe flags.",
+    "Reason labels reflect a second live recheck AFTER the initial boolean veto.",
+    "A veto may be normal after earlier successful construction in the same batch.",
+    "No project counterfactual geometry, profit, live finance, or construction is proven."
+  ]
+}

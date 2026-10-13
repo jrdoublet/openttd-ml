@@ -170,8 +170,11 @@ class C83FixesContractTests(unittest.TestCase):
                       body(self.projects, "function OpexReselectProjects("))
         self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines)",
                       body(self.projects, "function OpexBuildProjects("))
-        self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines)",
-                      body(self.projects, "function OpexIncrementalUpdateProjects("))
+        incremental = body(self.projects, "function OpexIncrementalUpdateProjects(")
+        # L'index de revalidation fournit désormais deux caches facultatifs :
+        # vérifier le filtre et les trois arguments métier sans figer l'arity.
+        self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines,", incremental)
+        self.assertIn("extValidity, extTownLim)", incremental)
 
     def test_no_site_outcomes_are_log_only(self):
         sites = body(self.air, "function OpexAirPlansFindSites(")

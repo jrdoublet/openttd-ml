@@ -1,0 +1,51 @@
+﻿diff --git a/ai/OpexAI/probes.nut b/ai/OpexAI/probes.nut
+index 39d4b5a..c6c6338 100644
+--- a/ai/OpexAI/probes.nut
++++ b/ai/OpexAI/probes.nut
+@@ -2607,7 +2607,20 @@ function OpexAI::_mainLoopProfiled()
+     this._processEvents();
+     if (spEvents != null) OpexSpanEnd(spEvents);
+     OpexLoopProfAdd("events", mark);
+-    if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
++    /* Maintenir la parite avec main.nut : la projection Save faisait auparavant
++     * defaut dans cette copie instrumentee de la boucle (>= 64 lignes). */
++    if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) {
++      mark = OpexOpsMeasureBegin();
++      local spSave = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.save_projection") : null;
++      this._refreshSaveProjection();
++      if (spSave != null) OpexSpanEnd(spSave);
++      OpexLoopProfAdd("save_projection", mark);
++    } else if (this._saveProjection != null) this._saveProjection = null;
++    if (C121_STATION_FLUX_PROBE) {
++      mark = OpexOpsMeasureBegin();
++      OpexC121StationFluxStep(this._catalog);
++      OpexLoopProfAdd("station_flux", mark);
++    }
+     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+       local before = C117_AIR_LAST_DATE;
+       mark = OpexOpsMeasureBegin();
+@@ -2665,7 +2678,23 @@ function OpexAI::_mainLoopProfiled()
+       if (spC67 != null) OpexSpanEnd(spC67);
+       OpexLoopProfAdd("c67_hook", mark);
+     }
+-    OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
++    /* Comptage purement observatoire : plafond du budget qui pourrait etre
++     * offert a un micro-worker au prochain Sleep. Ce n'est PAS du travail
++     * execute ni une promesse qu'un worker peut progresser.
++     * C67: seuil 4000 et reserve 3000 (task_terrain.nut). La classe signale
++     * uniquement un travailleur actif ou une recherche rail suspendue ; elle
++     * n'implique ni admissibilite, ni progression possible dans ce tick. */
++    local leftAtSleep = AIController.GetOpsTillSuspend();
++    OpexLoopProfAddRaw("sleep_left", leftAtSleep, 0);
++    local opportunityKind = "no_pending_worker";
++    if (this._activeWorker != null) opportunityKind = "active_" + this._activeWorker.kind;
++    else if (this._railSearch != null) opportunityKind = "pending_rail_search";
++    else if (C67_SLACK_HOOK && this._c67Terrain != null
++             && !this._c67BgIdle) opportunityKind = "pending_c67";
++    OpexLoopProfAddRaw("sleep_ctx_" + opportunityKind, leftAtSleep, 0);
++    local microCap = leftAtSleep >= C67_SLACK_MIN
++        ? leftAtSleep - C67_SLACK_RESERVE : 0;
++    OpexLoopProfAddRaw("sleep_cap3k_" + opportunityKind, microCap, 0);
+     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
+     AIController.Sleep(1);
+     if (spSleep != null) OpexSpanEnd(spSleep);

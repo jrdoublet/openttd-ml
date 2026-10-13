@@ -1,0 +1,170 @@
+{
+  "seeds": [
+    42,
+    100,
+    999,
+    1234,
+    5678
+  ],
+  "by_seed": {
+    "42": {
+      "1970": {
+        "calls": 1648,
+        "old_ops": 4234277,
+        "new_ops": 1081537,
+        "mismatches": 0,
+        "reduction_pct": 74.4576
+      },
+      "1971": {
+        "calls": 1406,
+        "old_ops": 2337968,
+        "new_ops": 760595,
+        "mismatches": 0,
+        "reduction_pct": 67.4677
+      },
+      "1972": {
+        "calls": 5223,
+        "old_ops": 10282945,
+        "new_ops": 3393438,
+        "mismatches": 0,
+        "reduction_pct": 66.9994
+      },
+      "1973": {
+        "calls": 5561,
+        "old_ops": 10338089,
+        "new_ops": 2825508,
+        "mismatches": 0,
+        "reduction_pct": 72.669
+      }
+    },
+    "100": {
+      "1970": {
+        "calls": 882,
+        "old_ops": 2090902,
+        "new_ops": 582016,
+        "mismatches": 0,
+        "reduction_pct": 72.1644
+      },
+      "1971": {
+        "calls": 1257,
+        "old_ops": 2017985,
+        "new_ops": 703233,
+        "mismatches": 0,
+        "reduction_pct": 65.1517
+      },
+      "1972": {
+        "calls": 3982,
+        "old_ops": 8232206,
+        "new_ops": 2635897,
+        "mismatches": 0,
+        "reduction_pct": 67.9807
+      },
+      "1973": {
+        "calls": 2102,
+        "old_ops": 3082836,
+        "new_ops": 970088,
+        "mismatches": 0,
+        "reduction_pct": 68.5326
+      }
+    },
+    "999": {
+      "1970": {
+        "calls": 870,
+        "old_ops": 1971491,
+        "new_ops": 567137,
+        "mismatches": 0,
+        "reduction_pct": 71.2331
+      },
+      "1971": {
+        "calls": 1516,
+        "old_ops": 2496695,
+        "new_ops": 786405,
+        "mismatches": 0,
+        "reduction_pct": 68.5022
+      },
+      "1972": {
+        "calls": 8744,
+        "old_ops": 13736653,
+        "new_ops": 6107580,
+        "mismatches": 0,
+        "reduction_pct": 55.5381
+      },
+      "1973": {
+        "calls": 6710,
+        "old_ops": 11194009,
+        "new_ops": 4613460,
+        "mismatches": 0,
+        "reduction_pct": 58.7863
+      }
+    },
+    "1234": {
+      "1970": {
+        "calls": 233,
+        "old_ops": 370833,
+        "new_ops": 141327,
+        "mismatches": 0,
+        "reduction_pct": 61.8893
+      },
+      "1971": {
+        "calls": 1516,
+        "old_ops": 3366145,
+        "new_ops": 957737,
+        "mismatches": 0,
+        "reduction_pct": 71.548
+      },
+      "1972": {
+        "calls": 1402,
+        "old_ops": 2268343,
+        "new_ops": 748620,
+        "mismatches": 0,
+        "reduction_pct": 66.9971
+      },
+      "1973": {
+        "calls": 4499,
+        "old_ops": 9037145,
+        "new_ops": 2950635,
+        "mismatches": 0,
+        "reduction_pct": 67.3499
+      }
+    },
+    "5678": {
+      "1970": {
+        "calls": 1126,
+        "old_ops": 2536758,
+        "new_ops": 716367,
+        "mismatches": 0,
+        "reduction_pct": 71.7605
+      },
+      "1971": {
+        "calls": 1740,
+        "old_ops": 2434271,
+        "new_ops": 822645,
+        "mismatches": 0,
+        "reduction_pct": 66.2057
+      },
+      "1972": {
+        "calls": 382,
+        "old_ops": 272263,
+        "new_ops": 151494,
+        "mismatches": 0,
+        "reduction_pct": 44.3575
+      },
+      "1973": {
+        "calls": 7060,
+        "old_ops": 11388211,
+        "new_ops": 3068330,
+        "mismatches": 0,
+        "reduction_pct": 73.057
+      }
+    }
+  },
+  "all_mismatches": 0,
+  "calls": 57859,
+  "old_ops": 103690025,
+  "new_ops": 34584049,
+  "limitations": [
+    "Instrumented time-window opcodes, not actual Squirrel instructions.",
+    "A check trace preserves the historical chosen list but pays both comparator costs.",
+    "5 years are necessary to close register 1973; coverage per seed/year must be complete."
+  ]
+}

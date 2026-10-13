@@ -161,9 +161,15 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertEqual(execute.count("OpexBuildTrack(tiles, plan.structures, trackFailure)"), 1)
         self.assertIn(
             "local connected = trackFailed == 0 &&\n"
-            "      AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&\n"
-            "      AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);",
+            '      OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], "A") &&\n'
+            '      OpexRailEndConnected(planB.station_exit, tiles[last - 1], tiles[last - 2], "B");',
             execute)
+        # V153 admet les extrémités sautées (pont/tunnel) ; un segment
+        # contigu continue d'utiliser le contrôle AIRail historique.
+        helper = rail[rail.index("function OpexRailEndConnected("):
+                      rail.index("\nfunction ", rail.index("function OpexRailEndConnected(") + 1)]
+        self.assertIn("!RAIL_END_JUMP_CONNECT || AIMap.DistanceManhattan(lead, inner) <= 1", helper)
+        self.assertIn("return AIRail.AreTilesConnected(outer, lead, inner);", helper)
         track_at = execute.index('OpexDecide("RAIL_TRACK_FAIL"')
         track_log = execute[execute.rindex("if (!connected)", 0, track_at):
                             execute.index('result.reason = "TRKFAIL"', track_at)]

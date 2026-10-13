@@ -38,9 +38,16 @@ class StationProbeTests(unittest.TestCase):
         block = info.split('name = "c121_station_flux_probe"', 1)[1].split("});", 1)[0]
         for level in ("easy", "medium", "hard", "custom"):
             self.assertIn(level + "_value = 0", block)
-        for file in ("main.nut", "probes.nut"):
-            self.assertIn("if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);",
-                          (ROOT / file).read_text(encoding="utf8"))
+        main = (ROOT / "main.nut").read_text(encoding="utf8")
+        profile = (ROOT / "probes.nut").read_text(encoding="utf8")
+        self.assertIn("if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);", main)
+        # La boucle instrumentée peut encadrer la même action d'une mesure
+        # d'opcodes, mais le déclenchement reste strictement sous le flag.
+        flagged = profile.split("if (C121_STATION_FLUX_PROBE) {", 1)
+        self.assertEqual(len(flagged), 2)
+        body = flagged[1].split("}", 1)[0]
+        self.assertIn("OpexC121StationFluxStep(this._catalog);", body)
+        self.assertIn('OpexLoopProfAdd("station_flux", mark);', body)
         self.assertNotIn("C121_STATION_FLUX_STATE", (ROOT / "persist.nut").read_text(encoding="utf8"))
 
 

@@ -1,0 +1,557 @@
+{
+  "by_seed_year": {
+    "42/1971": {
+      "opex": {
+        "air": {
+          "services": 36,
+          "primary_vehicles": 50,
+          "vehicle_profit_this_year_gbp": 1840049.69,
+          "vehicle_profit_last_year_gbp": 775493.87
+        },
+        "rail": {
+          "services": 3,
+          "primary_vehicles": 3,
+          "vehicle_profit_this_year_gbp": 32644.85,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 10,
+          "primary_vehicles": 18,
+          "vehicle_profit_this_year_gbp": 1166375.77,
+          "vehicle_profit_last_year_gbp": 662227.07
+        },
+        "rail": {
+          "services": 4,
+          "primary_vehicles": 4,
+          "vehicle_profit_this_year_gbp": 5528.34,
+          "vehicle_profit_last_year_gbp": 0.0
+        },
+        "road": {
+          "services": 38,
+          "primary_vehicles": 71,
+          "vehicle_profit_this_year_gbp": -271.28,
+          "vehicle_profit_last_year_gbp": -42.35
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 26,
+          "primary_vehicles": 32,
+          "vehicle_profit_this_year_gbp": 673673.92,
+          "vehicle_profit_last_year_gbp": 113266.8
+        },
+        "rail": {
+          "services": -1,
+          "primary_vehicles": -1,
+          "vehicle_profit_this_year_gbp": 27116.51,
+          "vehicle_profit_last_year_gbp": 0.0
+        },
+        "road": {
+          "services": -38,
+          "primary_vehicles": -71,
+          "vehicle_profit_this_year_gbp": 271.28,
+          "vehicle_profit_last_year_gbp": 42.35
+        }
+      }
+    },
+    "42/1972": {
+      "opex": {
+        "air": {
+          "services": 51,
+          "primary_vehicles": 71,
+          "vehicle_profit_this_year_gbp": 1958843.41,
+          "vehicle_profit_last_year_gbp": 2050897.42
+        },
+        "rail": {
+          "services": 4,
+          "primary_vehicles": 6,
+          "vehicle_profit_this_year_gbp": 65986.84,
+          "vehicle_profit_last_year_gbp": 35024.02
+        },
+        "road": {
+          "services": 1,
+          "primary_vehicles": 2,
+          "vehicle_profit_this_year_gbp": 1018.61,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 11,
+          "primary_vehicles": 24,
+          "vehicle_profit_this_year_gbp": 1674425.36,
+          "vehicle_profit_last_year_gbp": 1296912.21
+        },
+        "rail": {
+          "services": 8,
+          "primary_vehicles": 8,
+          "vehicle_profit_this_year_gbp": 221276.0,
+          "vehicle_profit_last_year_gbp": 6877.54
+        },
+        "road": {
+          "services": 60,
+          "primary_vehicles": 101,
+          "vehicle_profit_this_year_gbp": 1603.46,
+          "vehicle_profit_last_year_gbp": -195.36
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 40,
+          "primary_vehicles": 47,
+          "vehicle_profit_this_year_gbp": 284418.05,
+          "vehicle_profit_last_year_gbp": 753985.21
+        },
+        "rail": {
+          "services": -4,
+          "primary_vehicles": -2,
+          "vehicle_profit_this_year_gbp": -155289.16,
+          "vehicle_profit_last_year_gbp": 28146.48
+        },
+        "road": {
+          "services": -59,
+          "primary_vehicles": -99,
+          "vehicle_profit_this_year_gbp": -584.85,
+          "vehicle_profit_last_year_gbp": 195.36
+        }
+      }
+    },
+    "42/1973": {
+      "opex": {
+        "air": {
+          "services": 56,
+          "primary_vehicles": 109,
+          "vehicle_profit_this_year_gbp": 1972536.41,
+          "vehicle_profit_last_year_gbp": 2122290.04
+        },
+        "rail": {
+          "services": 5,
+          "primary_vehicles": 7,
+          "vehicle_profit_this_year_gbp": 101322.26,
+          "vehicle_profit_last_year_gbp": 75600.8
+        },
+        "road": {
+          "services": 2,
+          "primary_vehicles": 4,
+          "vehicle_profit_this_year_gbp": 7565.66,
+          "vehicle_profit_last_year_gbp": 1576.16
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 13,
+          "primary_vehicles": 31,
+          "vehicle_profit_this_year_gbp": 1840278.57,
+          "vehicle_profit_last_year_gbp": 1667568.33
+        },
+        "rail": {
+          "services": 13,
+          "primary_vehicles": 17,
+          "vehicle_profit_this_year_gbp": 292227.25,
+          "vehicle_profit_last_year_gbp": 170114.94
+        },
+        "road": {
+          "services": 79,
+          "primary_vehicles": 140,
+          "vehicle_profit_this_year_gbp": -10434.34,
+          "vehicle_profit_last_year_gbp": -3569.65
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 43,
+          "primary_vehicles": 78,
+          "vehicle_profit_this_year_gbp": 132257.84,
+          "vehicle_profit_last_year_gbp": 454721.71
+        },
+        "rail": {
+          "services": -8,
+          "primary_vehicles": -10,
+          "vehicle_profit_this_year_gbp": -190904.99,
+          "vehicle_profit_last_year_gbp": -94514.14
+        },
+        "road": {
+          "services": -77,
+          "primary_vehicles": -136,
+          "vehicle_profit_this_year_gbp": 18000.0,
+          "vehicle_profit_last_year_gbp": 5145.81
+        }
+      }
+    },
+    "100/1971": {
+      "opex": {
+        "air": {
+          "services": 23,
+          "primary_vehicles": 32,
+          "vehicle_profit_this_year_gbp": 1015960.9,
+          "vehicle_profit_last_year_gbp": 552726.99
+        },
+        "rail": {
+          "services": 3,
+          "primary_vehicles": 3,
+          "vehicle_profit_this_year_gbp": 51576.27,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 11,
+          "primary_vehicles": 23,
+          "vehicle_profit_this_year_gbp": 840769.71,
+          "vehicle_profit_last_year_gbp": 386781.92
+        },
+        "rail": {
+          "services": 3,
+          "primary_vehicles": 3,
+          "vehicle_profit_this_year_gbp": 139519.11,
+          "vehicle_profit_last_year_gbp": 0.0
+        },
+        "road": {
+          "services": 3,
+          "primary_vehicles": 7,
+          "vehicle_profit_this_year_gbp": 1632.96,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 12,
+          "primary_vehicles": 9,
+          "vehicle_profit_this_year_gbp": 175191.19,
+          "vehicle_profit_last_year_gbp": 165945.07
+        },
+        "rail": {
+          "services": 0,
+          "primary_vehicles": 0,
+          "vehicle_profit_this_year_gbp": -87942.84,
+          "vehicle_profit_last_year_gbp": 0.0
+        },
+        "road": {
+          "services": -3,
+          "primary_vehicles": -7,
+          "vehicle_profit_this_year_gbp": -1632.96,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      }
+    },
+    "100/1972": {
+      "opex": {
+        "air": {
+          "services": 39,
+          "primary_vehicles": 53,
+          "vehicle_profit_this_year_gbp": 1191678.59,
+          "vehicle_profit_last_year_gbp": 1163953.14
+        },
+        "rail": {
+          "services": 5,
+          "primary_vehicles": 5,
+          "vehicle_profit_this_year_gbp": 60803.26,
+          "vehicle_profit_last_year_gbp": 56715.45
+        },
+        "water": {
+          "services": 1,
+          "primary_vehicles": 1,
+          "vehicle_profit_this_year_gbp": 159.02,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 13,
+          "primary_vehicles": 28,
+          "vehicle_profit_this_year_gbp": 1223656.02,
+          "vehicle_profit_last_year_gbp": 823371.84
+        },
+        "rail": {
+          "services": 6,
+          "primary_vehicles": 6,
+          "vehicle_profit_this_year_gbp": 271959.18,
+          "vehicle_profit_last_year_gbp": 195153.0
+        },
+        "road": {
+          "services": 59,
+          "primary_vehicles": 117,
+          "vehicle_profit_this_year_gbp": -2088.32,
+          "vehicle_profit_last_year_gbp": -133.97
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 26,
+          "primary_vehicles": 25,
+          "vehicle_profit_this_year_gbp": -31977.43,
+          "vehicle_profit_last_year_gbp": 340581.3
+        },
+        "rail": {
+          "services": -1,
+          "primary_vehicles": -1,
+          "vehicle_profit_this_year_gbp": -211155.92,
+          "vehicle_profit_last_year_gbp": -138437.55
+        },
+        "road": {
+          "services": -59,
+          "primary_vehicles": -117,
+          "vehicle_profit_this_year_gbp": 2088.32,
+          "vehicle_profit_last_year_gbp": 133.97
+        },
+        "water": {
+          "services": 1,
+          "primary_vehicles": 1,
+          "vehicle_profit_this_year_gbp": 159.02,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      }
+    },
+    "100/1973": {
+      "opex": {
+        "air": {
+          "services": 46,
+          "primary_vehicles": 82,
+          "vehicle_profit_this_year_gbp": 1224795.48,
+          "vehicle_profit_last_year_gbp": 1311184.73
+        },
+        "rail": {
+          "services": 6,
+          "primary_vehicles": 7,
+          "vehicle_profit_this_year_gbp": 86187.84,
+          "vehicle_profit_last_year_gbp": 76738.77
+        },
+        "water": {
+          "services": 1,
+          "primary_vehicles": 1,
+          "vehicle_profit_this_year_gbp": 3151.95,
+          "vehicle_profit_last_year_gbp": 542.31
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 13,
+          "primary_vehicles": 30,
+          "vehicle_profit_this_year_gbp": 1263096.3,
+          "vehicle_profit_last_year_gbp": 1278448.75
+        },
+        "rail": {
+          "services": 7,
+          "primary_vehicles": 8,
+          "vehicle_profit_this_year_gbp": 407902.59,
+          "vehicle_profit_last_year_gbp": 353813.09
+        },
+        "road": {
+          "services": 67,
+          "primary_vehicles": 110,
+          "vehicle_profit_this_year_gbp": 3578.93,
+          "vehicle_profit_last_year_gbp": -2145.06
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 33,
+          "primary_vehicles": 52,
+          "vehicle_profit_this_year_gbp": -38300.82,
+          "vehicle_profit_last_year_gbp": 32735.98
+        },
+        "rail": {
+          "services": -1,
+          "primary_vehicles": -1,
+          "vehicle_profit_this_year_gbp": -321714.75,
+          "vehicle_profit_last_year_gbp": -277074.32
+        },
+        "road": {
+          "services": -67,
+          "primary_vehicles": -110,
+          "vehicle_profit_this_year_gbp": -3578.93,
+          "vehicle_profit_last_year_gbp": 2145.06
+        },
+        "water": {
+          "services": 1,
+          "primary_vehicles": 1,
+          "vehicle_profit_this_year_gbp": 3151.95,
+          "vehicle_profit_last_year_gbp": 542.31
+        }
+      }
+    },
+    "999/1971": {
+      "opex": {
+        "air": {
+          "services": 17,
+          "primary_vehicles": 25,
+          "vehicle_profit_this_year_gbp": 1220661.08,
+          "vehicle_profit_last_year_gbp": 501488.43
+        },
+        "rail": {
+          "services": 2,
+          "primary_vehicles": 2,
+          "vehicle_profit_this_year_gbp": 62308.78,
+          "vehicle_profit_last_year_gbp": 0.0
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 13,
+          "primary_vehicles": 22,
+          "vehicle_profit_this_year_gbp": 1445922.3,
+          "vehicle_profit_last_year_gbp": 768141.85
+        },
+        "rail": {
+          "services": 8,
+          "primary_vehicles": 8,
+          "vehicle_profit_this_year_gbp": 34346.68,
+          "vehicle_profit_last_year_gbp": 0.0
+        },
+        "road": {
+          "services": 32,
+          "primary_vehicles": 70,
+          "vehicle_profit_this_year_gbp": 2820.13,
+          "vehicle_profit_last_year_gbp": -51.68
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 4,
+          "primary_vehicles": 3,
+          "vehicle_profit_this_year_gbp": -225261.22,
+          "vehicle_profit_last_year_gbp": -266653.42
+        },
+        "rail": {
+          "services": -6,
+          "primary_vehicles": -6,
+          "vehicle_profit_this_year_gbp": 27962.1,
+          "vehicle_profit_last_year_gbp": 0.0
+        },
+        "road": {
+          "services": -32,
+          "primary_vehicles": -70,
+          "vehicle_profit_this_year_gbp": -2820.13,
+          "vehicle_profit_last_year_gbp": 51.68
+        }
+      }
+    },
+    "999/1972": {
+      "opex": {
+        "air": {
+          "services": 34,
+          "primary_vehicles": 44,
+          "vehicle_profit_this_year_gbp": 1550572.61,
+          "vehicle_profit_last_year_gbp": 1382621.18
+        },
+        "rail": {
+          "services": 2,
+          "primary_vehicles": 2,
+          "vehicle_profit_this_year_gbp": 68129.49,
+          "vehicle_profit_last_year_gbp": 70002.9
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 15,
+          "primary_vehicles": 38,
+          "vehicle_profit_this_year_gbp": 1903822.68,
+          "vehicle_profit_last_year_gbp": 1277672.45
+        },
+        "rail": {
+          "services": 11,
+          "primary_vehicles": 12,
+          "vehicle_profit_this_year_gbp": 273988.32,
+          "vehicle_profit_last_year_gbp": 86803.17
+        },
+        "road": {
+          "services": 64,
+          "primary_vehicles": 112,
+          "vehicle_profit_this_year_gbp": -9697.91,
+          "vehicle_profit_last_year_gbp": 941.84
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 19,
+          "primary_vehicles": 6,
+          "vehicle_profit_this_year_gbp": -353250.07,
+          "vehicle_profit_last_year_gbp": 104948.73
+        },
+        "rail": {
+          "services": -9,
+          "primary_vehicles": -10,
+          "vehicle_profit_this_year_gbp": -205858.83,
+          "vehicle_profit_last_year_gbp": -16800.27
+        },
+        "road": {
+          "services": -64,
+          "primary_vehicles": -112,
+          "vehicle_profit_this_year_gbp": 9697.91,
+          "vehicle_profit_last_year_gbp": -941.84
+        }
+      }
+    },
+    "999/1973": {
+      "opex": {
+        "air": {
+          "services": 42,
+          "primary_vehicles": 65,
+          "vehicle_profit_this_year_gbp": 1743642.85,
+          "vehicle_profit_last_year_gbp": 1725960.39
+        },
+        "rail": {
+          "services": 4,
+          "primary_vehicles": 4,
+          "vehicle_profit_this_year_gbp": 119082.82,
+          "vehicle_profit_last_year_gbp": 73586.01
+        },
+        "road": {
+          "services": 1,
+          "primary_vehicles": 2,
+          "vehicle_profit_this_year_gbp": 5584.06,
+          "vehicle_profit_last_year_gbp": -48.93
+        }
+      },
+      "aaa": {
+        "air": {
+          "services": 19,
+          "primary_vehicles": 43,
+          "vehicle_profit_this_year_gbp": 2047232.37,
+          "vehicle_profit_last_year_gbp": 1804443.7
+        },
+        "rail": {
+          "services": 19,
+          "primary_vehicles": 27,
+          "vehicle_profit_this_year_gbp": 270633.91,
+          "vehicle_profit_last_year_gbp": 253303.23
+        },
+        "road": {
+          "services": 101,
+          "primary_vehicles": 176,
+          "vehicle_profit_this_year_gbp": -18248.78,
+          "vehicle_profit_last_year_gbp": -9156.12
+        }
+      },
+      "opex_minus_aaa": {
+        "air": {
+          "services": 23,
+          "primary_vehicles": 22,
+          "vehicle_profit_this_year_gbp": -303589.52,
+          "vehicle_profit_last_year_gbp": -78483.31
+        },
+        "rail": {
+          "services": -15,
+          "primary_vehicles": -23,
+          "vehicle_profit_this_year_gbp": -151551.09,
+          "vehicle_profit_last_year_gbp": -179717.22
+        },
+        "road": {
+          "services": -100,
+          "primary_vehicles": -174,
+          "vehicle_profit_this_year_gbp": 23832.84,
+          "vehicle_profit_last_year_gbp": 9107.19
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Only ACTIVE services with primary vehicles and resolved orders are represented; idle or unvehicled lines are absent.",
+    "A vehicle can appear in only one service in a snapshot; uniqueness enforced.",
+    "Vehicle profit_this_year_gbp is year-to-date from December savegame, not trailing-four-quarters company profit_year.",
+    "Mode attribution helps describe composition, but not marginal ROI or true counterfactual constructibility.",
+    "The paired campaign is heavily instrumented and economically nonneutral relative to the uninstrumented baseline."
+  ]
+}

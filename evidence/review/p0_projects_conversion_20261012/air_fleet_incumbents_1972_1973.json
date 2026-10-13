@@ -1,0 +1,1675 @@
+{
+  "by_seed": {
+    "42": {
+      "aggregates": {
+        "expanded": {
+          "matched_services": 33,
+          "surviving_aircraft": 43,
+          "total_incumbent_profit_change_gbp": -330000.93,
+          "mean_change_per_survivor_gbp": -7674.44
+        },
+        "unchanged": {
+          "matched_services": 18,
+          "surviving_aircraft": 28,
+          "total_incumbent_profit_change_gbp": 40161.04,
+          "mean_change_per_survivor_gbp": 1434.32
+        },
+        "contracted": {
+          "matched_services": 0,
+          "surviving_aircraft": 0,
+          "total_incumbent_profit_change_gbp": 0,
+          "mean_change_per_survivor_gbp": null
+        }
+      },
+      "paired_services": [
+        {
+          "station_ids": [
+            0,
+            1
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": 3196.13,
+          "incumbent_profit_change_per_plane_gbp": 1065.38
+        },
+        {
+          "station_ids": [
+            0,
+            10
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": 24542.79,
+          "incumbent_profit_change_per_plane_gbp": 8180.93
+        },
+        {
+          "station_ids": [
+            0,
+            50
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -34425.41,
+          "incumbent_profit_change_per_plane_gbp": -17212.71
+        },
+        {
+          "station_ids": [
+            1,
+            12
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -33077.21,
+          "incumbent_profit_change_per_plane_gbp": -33077.21
+        },
+        {
+          "station_ids": [
+            1,
+            51
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -40080.41,
+          "incumbent_profit_change_per_plane_gbp": -20040.21
+        },
+        {
+          "station_ids": [
+            2,
+            3
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": -53545.02,
+          "incumbent_profit_change_per_plane_gbp": -17848.34
+        },
+        {
+          "station_ids": [
+            2,
+            53
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -12841.41,
+          "incumbent_profit_change_per_plane_gbp": -6420.71
+        },
+        {
+          "station_ids": [
+            2,
+            55
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -50834.41,
+          "incumbent_profit_change_per_plane_gbp": -25417.21
+        },
+        {
+          "station_ids": [
+            3,
+            28
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -4141.21,
+          "incumbent_profit_change_per_plane_gbp": -4141.21
+        },
+        {
+          "station_ids": [
+            3,
+            58
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 16158.79,
+          "incumbent_profit_change_per_plane_gbp": 16158.79
+        },
+        {
+          "station_ids": [
+            10,
+            15
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -15158.21,
+          "incumbent_profit_change_per_plane_gbp": -15158.21
+        },
+        {
+          "station_ids": [
+            10,
+            79
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -5945.21,
+          "incumbent_profit_change_per_plane_gbp": -5945.21
+        },
+        {
+          "station_ids": [
+            11,
+            12
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": 5293.78,
+          "incumbent_profit_change_per_plane_gbp": 1764.59
+        },
+        {
+          "station_ids": [
+            11,
+            21
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -23374.21,
+          "incumbent_profit_change_per_plane_gbp": -23374.21
+        },
+        {
+          "station_ids": [
+            11,
+            57
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -13304.21,
+          "incumbent_profit_change_per_plane_gbp": -13304.21
+        },
+        {
+          "station_ids": [
+            12,
+            73
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -3451.21,
+          "incumbent_profit_change_per_plane_gbp": -3451.21
+        },
+        {
+          "station_ids": [
+            14,
+            15
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -30699.41,
+          "incumbent_profit_change_per_plane_gbp": -15349.71
+        },
+        {
+          "station_ids": [
+            14,
+            51
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 3854.79,
+          "incumbent_profit_change_per_plane_gbp": 3854.79
+        },
+        {
+          "station_ids": [
+            14,
+            64
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -4118.21,
+          "incumbent_profit_change_per_plane_gbp": -4118.21
+        },
+        {
+          "station_ids": [
+            15,
+            70
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -14458.21,
+          "incumbent_profit_change_per_plane_gbp": -14458.21
+        },
+        {
+          "station_ids": [
+            16,
+            17
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": -65457.91,
+          "incumbent_profit_change_per_plane_gbp": -21819.3
+        },
+        {
+          "station_ids": [
+            16,
+            38
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -31843.21,
+          "incumbent_profit_change_per_plane_gbp": -31843.21
+        },
+        {
+          "station_ids": [
+            16,
+            80
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 1312.79,
+          "incumbent_profit_change_per_plane_gbp": 1312.79
+        },
+        {
+          "station_ids": [
+            17,
+            28
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 16642.79,
+          "incumbent_profit_change_per_plane_gbp": 16642.79
+        },
+        {
+          "station_ids": [
+            17,
+            33
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 10164.79,
+          "incumbent_profit_change_per_plane_gbp": 10164.79
+        },
+        {
+          "station_ids": [
+            21,
+            22
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -29220.41,
+          "incumbent_profit_change_per_plane_gbp": -14610.21
+        },
+        {
+          "station_ids": [
+            21,
+            38
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -13033.21,
+          "incumbent_profit_change_per_plane_gbp": -13033.21
+        },
+        {
+          "station_ids": [
+            22,
+            25
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 7028.79,
+          "incumbent_profit_change_per_plane_gbp": 7028.79
+        },
+        {
+          "station_ids": [
+            22,
+            81
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -2088.21,
+          "incumbent_profit_change_per_plane_gbp": -2088.21
+        },
+        {
+          "station_ids": [
+            25,
+            26
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": 16975.59,
+          "incumbent_profit_change_per_plane_gbp": 8487.79
+        },
+        {
+          "station_ids": [
+            25,
+            75
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -19127.21,
+          "incumbent_profit_change_per_plane_gbp": -19127.21
+        },
+        {
+          "station_ids": [
+            26,
+            36
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -20658.21,
+          "incumbent_profit_change_per_plane_gbp": -20658.21
+        },
+        {
+          "station_ids": [
+            26,
+            53
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -581.23,
+          "incumbent_profit_change_per_plane_gbp": -581.23
+        },
+        {
+          "station_ids": [
+            28,
+            29
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": 16717.59,
+          "incumbent_profit_change_per_plane_gbp": 8358.79
+        },
+        {
+          "station_ids": [
+            29,
+            50
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -18035.21,
+          "incumbent_profit_change_per_plane_gbp": -18035.21
+        },
+        {
+          "station_ids": [
+            29,
+            58
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 2932.79,
+          "incumbent_profit_change_per_plane_gbp": 2932.79
+        },
+        {
+          "station_ids": [
+            33,
+            34
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": 27632.59,
+          "incumbent_profit_change_per_plane_gbp": 13816.29
+        },
+        {
+          "station_ids": [
+            33,
+            36
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -1991.21,
+          "incumbent_profit_change_per_plane_gbp": -1991.21
+        },
+        {
+          "station_ids": [
+            34,
+            37
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 20489.89,
+          "incumbent_profit_change_per_plane_gbp": 20489.89
+        },
+        {
+          "station_ids": [
+            34,
+            73
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 13557.98,
+          "incumbent_profit_change_per_plane_gbp": 13557.98
+        },
+        {
+          "station_ids": [
+            36,
+            37
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -25539.41,
+          "incumbent_profit_change_per_plane_gbp": -12769.71
+        },
+        {
+          "station_ids": [
+            37,
+            57
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 1039.44,
+          "incumbent_profit_change_per_plane_gbp": 1039.44
+        },
+        {
+          "station_ids": [
+            38,
+            39
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -4065.21,
+          "incumbent_profit_change_per_plane_gbp": -4065.21
+        },
+        {
+          "station_ids": [
+            39,
+            53
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 13506.64,
+          "incumbent_profit_change_per_plane_gbp": 13506.64
+        },
+        {
+          "station_ids": [
+            39,
+            75
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 5053.34,
+          "incumbent_profit_change_per_plane_gbp": 5053.34
+        },
+        {
+          "station_ids": [
+            50,
+            64
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 25465.88,
+          "incumbent_profit_change_per_plane_gbp": 25465.88
+        },
+        {
+          "station_ids": [
+            51,
+            70
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 7873.5,
+          "incumbent_profit_change_per_plane_gbp": 7873.5
+        },
+        {
+          "station_ids": [
+            55,
+            126
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 14485.08,
+          "incumbent_profit_change_per_plane_gbp": 14485.08
+        },
+        {
+          "station_ids": [
+            58,
+            130
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 1698.47,
+          "incumbent_profit_change_per_plane_gbp": 1698.47
+        },
+        {
+          "station_ids": [
+            70,
+            129
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 22880.19,
+          "incumbent_profit_change_per_plane_gbp": 22880.19
+        },
+        {
+          "station_ids": [
+            79,
+            80
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 2750.3,
+          "incumbent_profit_change_per_plane_gbp": 2750.3
+        }
+      ],
+      "unpaired_prior": 0,
+      "unpaired_current": 5
+    },
+    "100": {
+      "aggregates": {
+        "expanded": {
+          "matched_services": 22,
+          "surviving_aircraft": 26,
+          "total_incumbent_profit_change_gbp": -284671.42,
+          "mean_change_per_survivor_gbp": -10948.9
+        },
+        "unchanged": {
+          "matched_services": 15,
+          "surviving_aircraft": 25,
+          "total_incumbent_profit_change_gbp": 58926.1,
+          "mean_change_per_survivor_gbp": 2357.04
+        },
+        "contracted": {
+          "matched_services": 0,
+          "surviving_aircraft": 0,
+          "total_incumbent_profit_change_gbp": 0,
+          "mean_change_per_survivor_gbp": null
+        }
+      },
+      "paired_services": [
+        {
+          "station_ids": [
+            0,
+            1
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": 5365.39,
+          "incumbent_profit_change_per_plane_gbp": 1788.46
+        },
+        {
+          "station_ids": [
+            0,
+            22
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -50852.41,
+          "incumbent_profit_change_per_plane_gbp": -25426.21
+        },
+        {
+          "station_ids": [
+            0,
+            25
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -20860.41,
+          "incumbent_profit_change_per_plane_gbp": -10430.21
+        },
+        {
+          "station_ids": [
+            1,
+            3
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -12918.21,
+          "incumbent_profit_change_per_plane_gbp": -12918.21
+        },
+        {
+          "station_ids": [
+            1,
+            34
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -7707.21,
+          "incumbent_profit_change_per_plane_gbp": -7707.21
+        },
+        {
+          "station_ids": [
+            2,
+            3
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": -55808.53,
+          "incumbent_profit_change_per_plane_gbp": -18602.84
+        },
+        {
+          "station_ids": [
+            2,
+            12
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -13450.21,
+          "incumbent_profit_change_per_plane_gbp": -13450.21
+        },
+        {
+          "station_ids": [
+            2,
+            13
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": -870.65,
+          "incumbent_profit_change_per_plane_gbp": -290.22
+        },
+        {
+          "station_ids": [
+            3,
+            38
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -21276.21,
+          "incumbent_profit_change_per_plane_gbp": -21276.21
+        },
+        {
+          "station_ids": [
+            4,
+            5
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": -5579.19,
+          "incumbent_profit_change_per_plane_gbp": -1859.73
+        },
+        {
+          "station_ids": [
+            4,
+            12
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": -15114.26,
+          "incumbent_profit_change_per_plane_gbp": -5038.09
+        },
+        {
+          "station_ids": [
+            4,
+            40
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -38.21,
+          "incumbent_profit_change_per_plane_gbp": -38.21
+        },
+        {
+          "station_ids": [
+            5,
+            19
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -22671.21,
+          "incumbent_profit_change_per_plane_gbp": -22671.21
+        },
+        {
+          "station_ids": [
+            5,
+            96
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 8302.57,
+          "incumbent_profit_change_per_plane_gbp": 8302.57
+        },
+        {
+          "station_ids": [
+            12,
+            43
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 896.79,
+          "incumbent_profit_change_per_plane_gbp": 896.79
+        },
+        {
+          "station_ids": [
+            13,
+            16
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -5306.21,
+          "incumbent_profit_change_per_plane_gbp": -5306.21
+        },
+        {
+          "station_ids": [
+            13,
+            47
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 4406.79,
+          "incumbent_profit_change_per_plane_gbp": 4406.79
+        },
+        {
+          "station_ids": [
+            16,
+            17
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -69190.41,
+          "incumbent_profit_change_per_plane_gbp": -34595.21
+        },
+        {
+          "station_ids": [
+            16,
+            25
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -2801.21,
+          "incumbent_profit_change_per_plane_gbp": -2801.21
+        },
+        {
+          "station_ids": [
+            17,
+            56
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -14492.21,
+          "incumbent_profit_change_per_plane_gbp": -14492.21
+        },
+        {
+          "station_ids": [
+            17,
+            93
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 6225.07,
+          "incumbent_profit_change_per_plane_gbp": 6225.07
+        },
+        {
+          "station_ids": [
+            19,
+            20
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -9758.41,
+          "incumbent_profit_change_per_plane_gbp": -4879.21
+        },
+        {
+          "station_ids": [
+            19,
+            46
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 22129.79,
+          "incumbent_profit_change_per_plane_gbp": 22129.79
+        },
+        {
+          "station_ids": [
+            20,
+            34
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 9793.79,
+          "incumbent_profit_change_per_plane_gbp": 9793.79
+        },
+        {
+          "station_ids": [
+            20,
+            64
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -6297.76,
+          "incumbent_profit_change_per_plane_gbp": -6297.76
+        },
+        {
+          "station_ids": [
+            22,
+            38
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -3312.21,
+          "incumbent_profit_change_per_plane_gbp": -3312.21
+        },
+        {
+          "station_ids": [
+            22,
+            47
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 4723.79,
+          "incumbent_profit_change_per_plane_gbp": 4723.79
+        },
+        {
+          "station_ids": [
+            25,
+            56
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -31995.21,
+          "incumbent_profit_change_per_plane_gbp": -31995.21
+        },
+        {
+          "station_ids": [
+            34,
+            46
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -40083.21,
+          "incumbent_profit_change_per_plane_gbp": -40083.21
+        },
+        {
+          "station_ids": [
+            38,
+            98
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 17121.23,
+          "incumbent_profit_change_per_plane_gbp": 17121.23
+        },
+        {
+          "station_ids": [
+            40,
+            43
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 90.79,
+          "incumbent_profit_change_per_plane_gbp": 90.79
+        },
+        {
+          "station_ids": [
+            40,
+            105
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 28570.63,
+          "incumbent_profit_change_per_plane_gbp": 28570.63
+        },
+        {
+          "station_ids": [
+            43,
+            107
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 9220.28,
+          "incumbent_profit_change_per_plane_gbp": 9220.28
+        },
+        {
+          "station_ids": [
+            46,
+            102
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 12327.77,
+          "incumbent_profit_change_per_plane_gbp": 12327.77
+        },
+        {
+          "station_ids": [
+            56,
+            95
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 20626.56,
+          "incumbent_profit_change_per_plane_gbp": 20626.56
+        },
+        {
+          "station_ids": [
+            64,
+            101
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 14331.44,
+          "incumbent_profit_change_per_plane_gbp": 14331.44
+        },
+        {
+          "station_ids": [
+            124,
+            125
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 20505.55,
+          "incumbent_profit_change_per_plane_gbp": 20505.55
+        }
+      ],
+      "unpaired_prior": 2,
+      "unpaired_current": 9
+    },
+    "999": {
+      "aggregates": {
+        "expanded": {
+          "matched_services": 13,
+          "surviving_aircraft": 19,
+          "total_incumbent_profit_change_gbp": -246144.72,
+          "mean_change_per_survivor_gbp": -12954.99
+        },
+        "unchanged": {
+          "matched_services": 21,
+          "surviving_aircraft": 25,
+          "total_incumbent_profit_change_gbp": 145754.88,
+          "mean_change_per_survivor_gbp": 5830.2
+        },
+        "contracted": {
+          "matched_services": 0,
+          "surviving_aircraft": 0,
+          "total_incumbent_profit_change_gbp": 0,
+          "mean_change_per_survivor_gbp": null
+        }
+      },
+      "paired_services": [
+        {
+          "station_ids": [
+            0,
+            1
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": 4772.98,
+          "incumbent_profit_change_per_plane_gbp": 2386.49
+        },
+        {
+          "station_ids": [
+            0,
+            9
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 2,
+          "after_vehicles": 2,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -22336.57,
+          "incumbent_profit_change_per_plane_gbp": -11168.28
+        },
+        {
+          "station_ids": [
+            0,
+            78
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 7998.49,
+          "incumbent_profit_change_per_plane_gbp": 7998.49
+        },
+        {
+          "station_ids": [
+            1,
+            73
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -65386.51,
+          "incumbent_profit_change_per_plane_gbp": -65386.51
+        },
+        {
+          "station_ids": [
+            1,
+            140
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -402.1,
+          "incumbent_profit_change_per_plane_gbp": -402.1
+        },
+        {
+          "station_ids": [
+            2,
+            3
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 3,
+          "after_vehicles": 3,
+          "surviving_planes": 3,
+          "incumbent_profit_change_gbp": 29977.91,
+          "incumbent_profit_change_per_plane_gbp": 9992.64
+        },
+        {
+          "station_ids": [
+            2,
+            110
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -15374.51,
+          "incumbent_profit_change_per_plane_gbp": -15374.51
+        },
+        {
+          "station_ids": [
+            2,
+            163
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 15246.16,
+          "incumbent_profit_change_per_plane_gbp": 15246.16
+        },
+        {
+          "station_ids": [
+            3,
+            14
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -68524.02,
+          "incumbent_profit_change_per_plane_gbp": -34262.01
+        },
+        {
+          "station_ids": [
+            3,
+            53
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 20619.2,
+          "incumbent_profit_change_per_plane_gbp": 20619.2
+        },
+        {
+          "station_ids": [
+            9,
+            130
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -26594.51,
+          "incumbent_profit_change_per_plane_gbp": -26594.51
+        },
+        {
+          "station_ids": [
+            9,
+            162
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 20612.68,
+          "incumbent_profit_change_per_plane_gbp": 20612.68
+        },
+        {
+          "station_ids": [
+            14,
+            123
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -19210.51,
+          "incumbent_profit_change_per_plane_gbp": -19210.51
+        },
+        {
+          "station_ids": [
+            14,
+            141
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 9560.46,
+          "incumbent_profit_change_per_plane_gbp": 9560.46
+        },
+        {
+          "station_ids": [
+            16,
+            17
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": 12816.98,
+          "incumbent_profit_change_per_plane_gbp": 6408.49
+        },
+        {
+          "station_ids": [
+            16,
+            81
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -39971.51,
+          "incumbent_profit_change_per_plane_gbp": -39971.51
+        },
+        {
+          "station_ids": [
+            16,
+            105
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 1,
+          "after_vehicles": 2,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -32327.51,
+          "incumbent_profit_change_per_plane_gbp": -32327.51
+        },
+        {
+          "station_ids": [
+            17,
+            43
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 39035.77,
+          "incumbent_profit_change_per_plane_gbp": 39035.77
+        },
+        {
+          "station_ids": [
+            17,
+            89
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -45079.51,
+          "incumbent_profit_change_per_plane_gbp": -45079.51
+        },
+        {
+          "station_ids": [
+            24,
+            25
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -34161.02,
+          "incumbent_profit_change_per_plane_gbp": -17080.51
+        },
+        {
+          "station_ids": [
+            24,
+            30
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 26655.77,
+          "incumbent_profit_change_per_plane_gbp": 26655.77
+        },
+        {
+          "station_ids": [
+            25,
+            144
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 6912.15,
+          "incumbent_profit_change_per_plane_gbp": 6912.15
+        },
+        {
+          "station_ids": [
+            30,
+            31
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": -16316.02,
+          "incumbent_profit_change_per_plane_gbp": -8158.01
+        },
+        {
+          "station_ids": [
+            31,
+            149
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 1733.38,
+          "incumbent_profit_change_per_plane_gbp": 1733.38
+        },
+        {
+          "station_ids": [
+            44,
+            45
+          ],
+          "category": "expanded",
+          "fleet_change": 1,
+          "before_vehicles": 2,
+          "after_vehicles": 3,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": 9977.98,
+          "incumbent_profit_change_per_plane_gbp": 4988.99
+        },
+        {
+          "station_ids": [
+            45,
+            110
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 11101.52,
+          "incumbent_profit_change_per_plane_gbp": 11101.52
+        },
+        {
+          "station_ids": [
+            47,
+            48
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 2,
+          "after_vehicles": 2,
+          "surviving_planes": 2,
+          "incumbent_profit_change_gbp": 3153.98,
+          "incumbent_profit_change_per_plane_gbp": 1576.99
+        },
+        {
+          "station_ids": [
+            47,
+            78
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 25971.95,
+          "incumbent_profit_change_per_plane_gbp": 25971.95
+        },
+        {
+          "station_ids": [
+            48,
+            158
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 34463.12,
+          "incumbent_profit_change_per_plane_gbp": 34463.12
+        },
+        {
+          "station_ids": [
+            51,
+            150
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -11380.11,
+          "incumbent_profit_change_per_plane_gbp": -11380.11
+        },
+        {
+          "station_ids": [
+            52,
+            53
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -25761.51,
+          "incumbent_profit_change_per_plane_gbp": -25761.51
+        },
+        {
+          "station_ids": [
+            66,
+            67
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": -24867.51,
+          "incumbent_profit_change_per_plane_gbp": -24867.51
+        },
+        {
+          "station_ids": [
+            67,
+            160
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 47226.75,
+          "incumbent_profit_change_per_plane_gbp": 47226.75
+        },
+        {
+          "station_ids": [
+            73,
+            89
+          ],
+          "category": "unchanged",
+          "fleet_change": 0,
+          "before_vehicles": 1,
+          "after_vehicles": 1,
+          "surviving_planes": 1,
+          "incumbent_profit_change_gbp": 19466.36,
+          "incumbent_profit_change_per_plane_gbp": 19466.36
+        }
+      ],
+      "unpaired_prior": 0,
+      "unpaired_current": 8
+    }
+  },
+  "limitations": [
+    "Same station IDs and vehicle IDs across annual December checkpoints; restructured/renumbered stations and temporarily unassigned vehicles are excluded.",
+    "A positive aircraft count change between Decembers is only net active fleet growth, NOT an exact purchase count or date.",
+    "Profit of surviving aircraft compared within same station-key service removes new-fleet-age dilution, not changes in market demand or external competition.",
+    "Association of aircraft growth with incumbent profit changes DOES NOT show adding an aircraft caused the change.",
+    "Only three games with intrusive C66 probes and one 1972-to-1973 interval, not a qualification sample."
+  ]
+}

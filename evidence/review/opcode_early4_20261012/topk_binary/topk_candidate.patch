@@ -1,0 +1,163 @@
+diff --git a/ai/OpexAI/globals_pre.nut b/ai/OpexAI/globals_pre.nut
+index 2a84fdf..3809565 100644
+--- a/ai/OpexAI/globals_pre.nut
++++ b/ai/OpexAI/globals_pre.nut
+@@ -534,6 +534,10 @@ CATALOG_COST_PROBE <- false;
+ PROBE_LOOP_OPS <- false;
+ /* Sonde probe_span_trace : intervalles dates des micro-taches. Defaut 0, aucun effet. */
+ PROBE_SPAN_TRACE <- false;
++/* P0 Top-K binary stable : OFF aux quatre difficultes jusqu'a qualification C66. */
++P0_TOPK_BINARY <- false;
++P0_TOPK_BINARY_CHECK <- false;
++P0_TOPK_BINARY_PROF <- null;
+ /* Sonde passive de la table de moteurs C121. Defaut 0 : aucun log, aucune ecriture. */
+ PROBE_C121_ENGINE_TABLE <- false;
+ C121_ENGTAB_PASS <- 0;
+diff --git a/ai/OpexAI/info.nut b/ai/OpexAI/info.nut
+index 503d028..5d25dd2 100644
+--- a/ai/OpexAI/info.nut
++++ b/ai/OpexAI/info.nut
+@@ -131,6 +131,20 @@ class OpexAIInfo extends AIInfo {
+       flags = AICONFIG_BOOLEAN
+     });
+ 
++    AddSetting({
++      name = "p0_topk_binary",
++      description = "Experimental stable binary Top-K insertion, unchanged scoring and priorities; 0 = off (default)",
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0, flags = AICONFIG_BOOLEAN
++    });
++
++    AddSetting({
++      name = "p0_topk_binary_check",
++      description = "Diagnostic Top-K old/new same-input comparisons; keeps historical output; 0 = off (default)",
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0, flags = AICONFIG_BOOLEAN
++    });
++
+     AddSetting({
+       name = "probe_c121_engine_table",
+       description = "Log already-computed C121 engine scans and plan context for an offline engine table; 0 = off (default)",
+diff --git a/ai/OpexAI/projects_selection.nut b/ai/OpexAI/projects_selection.nut
+index ef99236..1427a5f 100644
+--- a/ai/OpexAI/projects_selection.nut
++++ b/ai/OpexAI/projects_selection.nut
+@@ -1328,7 +1328,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
+         OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+       }
+     } else {
+-      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
++      OpexP0TopKInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+     }
+     if (insertMark != null) {
+       OpexSpanAgg("pub.select.score.insert", insertMark);
+@@ -1408,7 +1408,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
+             OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+           }
+         } else {
+-          OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
++          OpexP0TopKInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+         }
+       if (insertMark != null) {
+         OpexSpanAgg("pub.select.score.insert", insertMark);
+@@ -1681,6 +1681,86 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot
+   }
+ }
+ 
++/* P0 : recherche binaire stable de la position d'insertion dans le cas
++ * lexicographique ordinaire (C77 / V88 / bonus early slot). Fallback legacy
++ * pour les comparateurs C118 et C122, ou les modes de diagnostic de rejets. */
++function OpexP0TopKBinaryInsert(best, project, field, limit, applyEarlySlot)
++{
++  local newTier = OpexProjectDefensiveAirPriority(project)
++      + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
++  local newScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
++  local lo = 0, hi = best.len();
++  while (lo < hi) {
++    local mid = (lo + hi) / 2;
++    local prior = best[mid];
++    local oldTier = OpexProjectDefensiveAirPriority(prior)
++        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
++    local oldScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
++    if (oldTier > newTier
++        || (oldTier == newTier
++            && (oldScore > newScore
++                || (oldScore == newScore && prior.revenueAnnual >= project.revenueAnnual)))) {
++      lo = mid + 1;
++    } else hi = mid;
++  }
++  best.insert(lo, project);
++  if (best.len() > limit) best.pop();
++}
++
++function OpexP0TopKRecord(oldOps, newOps, mismatch)
++{
++  local year = AIDate.GetYear(AIDate.GetCurrentDate());
++  if (P0_TOPK_BINARY_PROF == null) {
++    P0_TOPK_BINARY_PROF = {year = year, calls = 0, oldOps = 0, newOps = 0, mismatches = 0};
++  }
++  if (P0_TOPK_BINARY_PROF.year != year) {
++    local p = P0_TOPK_BINARY_PROF;
++    AILog.Info("P0_TOPK_BINARY year=" + p.year + " calls=" + p.calls
++        + " old_ops=" + p.oldOps + " new_ops=" + p.newOps
++        + " mismatches=" + p.mismatches);
++    P0_TOPK_BINARY_PROF = {year = year, calls = 0, oldOps = 0, newOps = 0, mismatches = 0};
++  }
++  local s = P0_TOPK_BINARY_PROF;
++  s.calls++;
++  s.oldOps += oldOps;
++  s.newOps += newOps;
++  if (mismatch) s.mismatches++;
++}
++
++function OpexP0TopKInsert(best, project, field, limit, applyEarlySlot = false)
++{
++  if (!P0_TOPK_BINARY && !P0_TOPK_BINARY_CHECK) {
++    OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot);
++    return;
++  }
++  local c118 = C118_AIR_TERRITORIAL_EXPANSION && C118_AIR_PROJECT_SNAPSHOT != null
++      && ("active" in C118_AIR_PROJECT_SNAPSHOT) && C118_AIR_PROJECT_SNAPSHOT.active;
++  if (c118 || C122_AIR_REGIME_PRIORITY || C122_AIR_REGIME_SHADOW
++      || AIR_EFFICIENCY_DEDUPE || PROBE_SELECT_REJECT) {
++    OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot);
++    return;
++  }
++  if (P0_TOPK_BINARY_CHECK) {
++    local copyBest = [];
++    foreach (prior in best) copyBest.append(prior);
++    local oldMark = OpexOpsMeasureBegin();
++    OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot);
++    local oldOps = OpexOpsMeasureEnd(oldMark);
++    local newMark = OpexOpsMeasureBegin();
++    OpexP0TopKBinaryInsert(copyBest, project, field, limit, applyEarlySlot);
++    local newOps = OpexOpsMeasureEnd(newMark);
++    local mismatch = copyBest.len() != best.len();
++    if (!mismatch) {
++      for (local i = 0; i < best.len(); i++) {
++        if (best[i] != copyBest[i]) { mismatch = true; break; }
++      }
++    }
++    OpexP0TopKRecord(oldOps, newOps, mismatch);
++    return; /* check force TOUJOURS le resultat historique */
++  }
++  OpexP0TopKBinaryInsert(best, project, field, limit, applyEarlySlot);
++}
++
+ /* C78 / course defensive live : `best` peut survivre plusieurs passages projects
+  * sans repasser par OpexReselectProjects. Rafraichir uniquement ce petit ensemble
+  * deja finance (PROJECT_TOP_K, 64 par defaut) permet donc de reagir a l'arrivee
+diff --git a/ai/OpexAI/settings.nut b/ai/OpexAI/settings.nut
+index d8dd4b8..780efd3 100644
+--- a/ai/OpexAI/settings.nut
++++ b/ai/OpexAI/settings.nut
+@@ -194,6 +194,9 @@ function OpexLoadSettings()
+   CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
+   PROBE_LOOP_OPS = AIController.GetSetting("probe_loop_ops") != 0;
+   PROBE_SPAN_TRACE = AIController.GetSetting("probe_span_trace") != 0;
++  P0_TOPK_BINARY = AIController.GetSetting("p0_topk_binary") != 0;
++  P0_TOPK_BINARY_CHECK = AIController.GetSetting("p0_topk_binary_check") != 0;
++  P0_TOPK_BINARY_PROF = null;
+   PROBE_C121_ENGINE_TABLE = AIController.GetSetting("probe_c121_engine_table") != 0;
+   PROBE_AIR_ENGINE_DEPTH = AIController.GetSetting("probe_air_engine_depth") != 0;
+   PROBE_AIR_FINANCE_MARGIN = AIController.GetSetting("probe_air_finance_margin") != 0;

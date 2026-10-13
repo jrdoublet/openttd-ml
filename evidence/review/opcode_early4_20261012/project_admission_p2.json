@@ -1,0 +1,2891 @@
+{
+  "by_seed": {
+    "42": {
+      "1970": {
+        "passes": 138,
+        "start_empty": 126,
+        "start_nonempty_no_build": 1,
+        "passes_built": 11,
+        "units_built": 11,
+        "post_empty": 137,
+        "reasons": {
+          "no_candidate_built": 1,
+          "list_end": 11,
+          "empty_pool": 126
+        },
+        "rail_passes": 138,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 0,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 3,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 10,
+        "wait_immediate": 1,
+        "wait_resolved": 10,
+        "wait_days_total": 326,
+        "wait_resolved_by": {
+          "catalog": 5,
+          "scrap": 2,
+          "air_fleet": 2,
+          "refleet": 1
+        },
+        "months": {
+          "1": {
+            "passes": 6,
+            "initial_pool_empty": 3,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 9,
+            "initial_pool_empty": 9,
+            "post_pool_empty": 9,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 18,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 18,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 13,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 11,
+            "initial_pool_empty": 11,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 14,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 8,
+            "initial_pool_empty": 6,
+            "post_pool_empty": 8,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 14,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 15,
+            "initial_pool_empty": 15,
+            "post_pool_empty": 15,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 6,
+            "initial_pool_empty": 5,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 10,
+            "initial_pool_empty": 8,
+            "post_pool_empty": 9,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 14,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1971": {
+        "passes": 210,
+        "start_empty": 167,
+        "start_nonempty_no_build": 6,
+        "passes_built": 39,
+        "units_built": 41,
+        "post_empty": 203,
+        "reasons": {
+          "list_end": 37,
+          "no_candidate_built": 6,
+          "empty_pool": 167
+        },
+        "rail_passes": 210,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 3,
+        "rail_constructed": 3,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 36,
+        "wait_immediate": 3,
+        "wait_resolved": 36,
+        "wait_days_total": 213,
+        "wait_resolved_by": {
+          "catalog": 11,
+          "air_fleet": 10,
+          "expand": 2,
+          "refleet": 3,
+          "scrap": 1,
+          "repay": 2,
+          "report": 5,
+          "projects": 2
+        },
+        "months": {
+          "1": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 2,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 1,
+            "rail_built": 1
+          },
+          "2": {
+            "passes": 5,
+            "initial_pool_empty": 2,
+            "post_pool_empty": 3,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 2,
+            "rail_built": 1
+          },
+          "3": {
+            "passes": 7,
+            "initial_pool_empty": 4,
+            "post_pool_empty": 7,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 1
+          },
+          "4": {
+            "passes": 4,
+            "initial_pool_empty": 1,
+            "post_pool_empty": 2,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 21,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 20,
+            "initial_pool_empty": 17,
+            "post_pool_empty": 20,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 26,
+            "initial_pool_empty": 24,
+            "post_pool_empty": 26,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 21,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 27,
+            "initial_pool_empty": 22,
+            "post_pool_empty": 27,
+            "passes_with_physical_progress": 5,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 29,
+            "initial_pool_empty": 25,
+            "post_pool_empty": 29,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 21,
+            "initial_pool_empty": 14,
+            "post_pool_empty": 19,
+            "passes_with_physical_progress": 5,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 26,
+            "initial_pool_empty": 22,
+            "post_pool_empty": 26,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1972": {
+        "passes": 296,
+        "start_empty": 276,
+        "start_nonempty_no_build": 0,
+        "passes_built": 20,
+        "units_built": 20,
+        "post_empty": 292,
+        "reasons": {
+          "list_end": 20,
+          "empty_pool": 276
+        },
+        "rail_passes": 296,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 0,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 254,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 16,
+        "wait_immediate": 4,
+        "wait_resolved": 15,
+        "wait_days_total": 340,
+        "wait_resolved_by": {
+          "expand": 1,
+          "air_fleet": 1,
+          "catalog": 7,
+          "report": 4,
+          "scrap": 1,
+          "refleet": 1
+        },
+        "months": {
+          "1": {
+            "passes": 5,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 2,
+            "passes_with_physical_progress": 5,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 27,
+            "initial_pool_empty": 25,
+            "post_pool_empty": 27,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 27,
+            "initial_pool_empty": 24,
+            "post_pool_empty": 26,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 29,
+            "initial_pool_empty": 28,
+            "post_pool_empty": 29,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 27,
+            "initial_pool_empty": 25,
+            "post_pool_empty": 27,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 28,
+            "initial_pool_empty": 27,
+            "post_pool_empty": 28,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 22,
+            "initial_pool_empty": 21,
+            "post_pool_empty": 22,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 29,
+            "initial_pool_empty": 29,
+            "post_pool_empty": 29,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 23,
+            "initial_pool_empty": 21,
+            "post_pool_empty": 23,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 26,
+            "initial_pool_empty": 24,
+            "post_pool_empty": 26,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 26,
+            "initial_pool_empty": 25,
+            "post_pool_empty": 26,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 27,
+            "initial_pool_empty": 27,
+            "post_pool_empty": 27,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1973": {
+        "passes": 47,
+        "start_empty": 0,
+        "start_nonempty_no_build": 9,
+        "passes_built": 38,
+        "units_built": 38,
+        "post_empty": 0,
+        "reasons": {
+          "list_end": 38,
+          "no_candidate_built": 9
+        },
+        "rail_passes": 47,
+        "rail_pool_nonempty_after": 47,
+        "rail_fundable_after": 47,
+        "rail_selected_after": 47,
+        "rail_constructed": 4,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 1666,
+        "wait_started": 0,
+        "wait_immediate": 38,
+        "wait_resolved": 1,
+        "wait_days_total": 51,
+        "wait_resolved_by": {
+          "projects": 1
+        },
+        "months": {
+          "1": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 1
+          },
+          "6": {
+            "passes": 4,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 4,
+            "rail_fundable_after": 4,
+            "rail_selected_after": 4,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 6,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 6,
+            "rail_nonempty_after": 6,
+            "rail_fundable_after": 6,
+            "rail_selected_after": 6,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 6,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 6,
+            "rail_nonempty_after": 6,
+            "rail_fundable_after": 6,
+            "rail_selected_after": 6,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 5,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 5,
+            "rail_fundable_after": 5,
+            "rail_selected_after": 5,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 4,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 4,
+            "rail_fundable_after": 4,
+            "rail_selected_after": 4,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 5,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 5,
+            "rail_fundable_after": 5,
+            "rail_selected_after": 5,
+            "rail_built": 2
+          },
+          "12": {
+            "passes": 6,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 6,
+            "rail_fundable_after": 6,
+            "rail_selected_after": 6,
+            "rail_built": 1
+          }
+        }
+      }
+    },
+    "100": {
+      "1970": {
+        "passes": 116,
+        "start_empty": 103,
+        "start_nonempty_no_build": 1,
+        "passes_built": 12,
+        "units_built": 12,
+        "post_empty": 116,
+        "reasons": {
+          "list_end": 12,
+          "no_candidate_built": 1,
+          "empty_pool": 103
+        },
+        "rail_passes": 116,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 0,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 4,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 12,
+        "wait_immediate": 0,
+        "wait_resolved": 11,
+        "wait_days_total": 278,
+        "wait_resolved_by": {
+          "catalog": 5,
+          "refleet": 2,
+          "air_fleet": 2,
+          "expand": 1,
+          "repay": 1
+        },
+        "months": {
+          "1": {
+            "passes": 6,
+            "initial_pool_empty": 2,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 12,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 5,
+            "initial_pool_empty": 5,
+            "post_pool_empty": 5,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 13,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 17,
+            "initial_pool_empty": 16,
+            "post_pool_empty": 17,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 6,
+            "initial_pool_empty": 6,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 7,
+            "initial_pool_empty": 5,
+            "post_pool_empty": 7,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 10,
+            "initial_pool_empty": 9,
+            "post_pool_empty": 10,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 14,
+            "initial_pool_empty": 14,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 5,
+            "initial_pool_empty": 3,
+            "post_pool_empty": 5,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 9,
+            "initial_pool_empty": 8,
+            "post_pool_empty": 9,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 12,
+            "initial_pool_empty": 11,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1971": {
+        "passes": 192,
+        "start_empty": 168,
+        "start_nonempty_no_build": 0,
+        "passes_built": 24,
+        "units_built": 24,
+        "post_empty": 192,
+        "reasons": {
+          "empty_pool": 168,
+          "list_end": 24
+        },
+        "rail_passes": 192,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 0,
+        "rail_constructed": 3,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 24,
+        "wait_immediate": 0,
+        "wait_resolved": 24,
+        "wait_days_total": 314,
+        "wait_resolved_by": {
+          "catalog": 7,
+          "expand": 3,
+          "scrap": 6,
+          "refleet": 2,
+          "air_fleet": 5,
+          "repay": 1
+        },
+        "months": {
+          "1": {
+            "passes": 6,
+            "initial_pool_empty": 4,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 1
+          },
+          "2": {
+            "passes": 6,
+            "initial_pool_empty": 4,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 1
+          },
+          "3": {
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 1,
+            "passes": 11,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 1
+          },
+          "4": {
+            "passes": 12,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 14,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 15,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 15,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 17,
+            "initial_pool_empty": 16,
+            "post_pool_empty": 17,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 14,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 21,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0,
+            "passes": 24,
+            "initial_pool_empty": 22,
+            "post_pool_empty": 24,
+            "passes_with_physical_progress": 2
+          },
+          "11": {
+            "passes": 25,
+            "initial_pool_empty": 22,
+            "post_pool_empty": 25,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 27,
+            "initial_pool_empty": 24,
+            "post_pool_empty": 27,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1972": {
+        "passes": 50,
+        "start_empty": 20,
+        "start_nonempty_no_build": 12,
+        "passes_built": 18,
+        "units_built": 19,
+        "post_empty": 20,
+        "reasons": {
+          "empty_pool": 20,
+          "list_end": 18,
+          "no_candidate_built": 12
+        },
+        "rail_passes": 50,
+        "rail_pool_nonempty_after": 49,
+        "rail_fundable_after": 47,
+        "rail_selected_after": 29,
+        "rail_constructed": 2,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 1703,
+        "wait_started": 1,
+        "wait_immediate": 17,
+        "wait_resolved": 2,
+        "wait_days_total": 89,
+        "wait_resolved_by": {
+          "expand": 1,
+          "projects": 1
+        },
+        "months": {
+          "1": {
+            "passes": 1,
+            "initial_pool_empty": 1,
+            "post_pool_empty": 1,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 4,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 4,
+            "rail_fundable_after": 4,
+            "rail_selected_after": 3,
+            "rail_built": 1
+          },
+          "8": {
+            "passes": 5,
+            "initial_pool_empty": 2,
+            "post_pool_empty": 3,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 5,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 9,
+            "initial_pool_empty": 9,
+            "post_pool_empty": 9,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 9,
+            "rail_fundable_after": 9,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 10,
+            "initial_pool_empty": 8,
+            "post_pool_empty": 7,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 10,
+            "rail_fundable_after": 10,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 7,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 7,
+            "rail_fundable_after": 7,
+            "rail_selected_after": 7,
+            "rail_built": 1
+          },
+          "12": {
+            "passes": 6,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 6,
+            "rail_fundable_after": 6,
+            "rail_selected_after": 6,
+            "rail_built": 0
+          }
+        }
+      },
+      "1973": {
+        "passes": 135,
+        "start_empty": 72,
+        "start_nonempty_no_build": 33,
+        "passes_built": 31,
+        "units_built": 32,
+        "post_empty": 81,
+        "reasons": {
+          "list_end": 30,
+          "no_candidate_built": 33,
+          "empty_pool": 72
+        },
+        "rail_passes": 135,
+        "rail_pool_nonempty_after": 135,
+        "rail_fundable_after": 94,
+        "rail_selected_after": 54,
+        "rail_constructed": 3,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 566,
+        "wait_started": 10,
+        "wait_immediate": 21,
+        "wait_resolved": 10,
+        "wait_days_total": 111,
+        "wait_resolved_by": {
+          "air_fleet": 7,
+          "catalog": 1,
+          "scrap": 1,
+          "projects": 1
+        },
+        "months": {
+          "2": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 4,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 4,
+            "rail_fundable_after": 4,
+            "rail_selected_after": 4,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 5,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 5,
+            "rail_nonempty_after": 5,
+            "rail_fundable_after": 5,
+            "rail_selected_after": 5,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 6,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 1,
+            "passes_with_physical_progress": 5,
+            "rail_nonempty_after": 6,
+            "rail_fundable_after": 5,
+            "rail_selected_after": 5,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 21,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 21,
+            "rail_fundable_after": 4,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 21,
+            "initial_pool_empty": 17,
+            "post_pool_empty": 20,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 21,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 1,
+            "rail_built": 1
+          },
+          "9": {
+            "passes": 18,
+            "initial_pool_empty": 15,
+            "post_pool_empty": 17,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 18,
+            "rail_fundable_after": 15,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 21,
+            "initial_pool_empty": 16,
+            "post_pool_empty": 17,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 21,
+            "rail_fundable_after": 21,
+            "rail_selected_after": 4,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 7,
+            "initial_pool_empty": 6,
+            "post_pool_empty": 5,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 7,
+            "rail_fundable_after": 6,
+            "rail_selected_after": 2,
+            "rail_built": 1
+          },
+          "12": {
+            "passes": 28,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 28,
+            "rail_fundable_after": 28,
+            "rail_selected_after": 28,
+            "rail_built": 1
+          }
+        }
+      }
+    },
+    "999": {
+      "1970": {
+        "passes": 144,
+        "start_empty": 135,
+        "start_nonempty_no_build": 1,
+        "passes_built": 8,
+        "units_built": 8,
+        "post_empty": 144,
+        "reasons": {
+          "list_end": 8,
+          "empty_pool": 135,
+          "no_candidate_built": 1
+        },
+        "rail_passes": 144,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 0,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 2,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 8,
+        "wait_immediate": 0,
+        "wait_resolved": 7,
+        "wait_days_total": 283,
+        "wait_resolved_by": {
+          "scrap": 2,
+          "refleet": 1,
+          "catalog": 3,
+          "air_fleet": 1
+        },
+        "months": {
+          "1": {
+            "passes": 5,
+            "initial_pool_empty": 3,
+            "post_pool_empty": 5,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 13,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 6,
+            "initial_pool_empty": 6,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 14,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 14,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 6,
+            "initial_pool_empty": 6,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 5,
+            "initial_pool_empty": 4,
+            "post_pool_empty": 5,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 16,
+            "initial_pool_empty": 15,
+            "post_pool_empty": 16,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 18,
+            "initial_pool_empty": 17,
+            "post_pool_empty": 18,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 18,
+            "initial_pool_empty": 17,
+            "post_pool_empty": 18,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 18,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 18,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 11,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1971": {
+        "passes": 167,
+        "start_empty": 129,
+        "start_nonempty_no_build": 19,
+        "passes_built": 19,
+        "units_built": 19,
+        "post_empty": 144,
+        "reasons": {
+          "empty_pool": 129,
+          "list_end": 19,
+          "no_candidate_built": 19
+        },
+        "rail_passes": 167,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 23,
+        "rail_constructed": 2,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 15,
+        "wait_immediate": 4,
+        "wait_resolved": 12,
+        "wait_days_total": 163,
+        "wait_resolved_by": {
+          "catalog": 3,
+          "refleet": 3,
+          "scrap": 2,
+          "air_fleet": 2,
+          "expand": 1,
+          "report": 1
+        },
+        "months": {
+          "1": {
+            "passes": 3,
+            "initial_pool_empty": 1,
+            "post_pool_empty": 1,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 2,
+            "rail_built": 1
+          },
+          "2": {
+            "passes": 10,
+            "initial_pool_empty": 1,
+            "post_pool_empty": 3,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 7,
+            "rail_built": 1
+          },
+          "3": {
+            "passes": 7,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 7,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 12,
+            "initial_pool_empty": 5,
+            "post_pool_empty": 5,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 7,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 12,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 21,
+            "initial_pool_empty": 20,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 15,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 15,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 17,
+            "initial_pool_empty": 17,
+            "post_pool_empty": 17,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 11,
+            "initial_pool_empty": 8,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 21,
+            "initial_pool_empty": 20,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 17,
+            "initial_pool_empty": 14,
+            "post_pool_empty": 17,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 21,
+            "initial_pool_empty": 20,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1972": {
+        "passes": 12,
+        "start_empty": 0,
+        "start_nonempty_no_build": 0,
+        "passes_built": 12,
+        "units_built": 12,
+        "post_empty": 0,
+        "reasons": {
+          "list_end": 12
+        },
+        "rail_passes": 12,
+        "rail_pool_nonempty_after": 12,
+        "rail_fundable_after": 12,
+        "rail_selected_after": 11,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 972,
+        "wait_started": 0,
+        "wait_immediate": 12,
+        "wait_resolved": 4,
+        "wait_days_total": 448,
+        "wait_resolved_by": {
+          "refleet": 4
+        },
+        "months": {
+          "5": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          }
+        }
+      },
+      "1973": {
+        "passes": 6,
+        "start_empty": 0,
+        "start_nonempty_no_build": 0,
+        "passes_built": 6,
+        "units_built": 6,
+        "post_empty": 0,
+        "reasons": {
+          "list_end": 6
+        },
+        "rail_passes": 6,
+        "rail_pool_nonempty_after": 6,
+        "rail_fundable_after": 6,
+        "rail_selected_after": 6,
+        "rail_constructed": 1,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 552,
+        "wait_started": 0,
+        "wait_immediate": 6,
+        "wait_resolved": 0,
+        "wait_days_total": 0,
+        "wait_resolved_by": {},
+        "months": {
+          "7": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 1
+          },
+          "8": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          }
+        }
+      }
+    },
+    "1234": {
+      "1970": {
+        "passes": 135,
+        "start_empty": 125,
+        "start_nonempty_no_build": 0,
+        "passes_built": 10,
+        "units_built": 10,
+        "post_empty": 135,
+        "reasons": {
+          "list_end": 10,
+          "empty_pool": 125
+        },
+        "rail_passes": 135,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 0,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 4,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 10,
+        "wait_immediate": 0,
+        "wait_resolved": 9,
+        "wait_days_total": 322,
+        "wait_resolved_by": {
+          "scrap": 3,
+          "expand": 1,
+          "refleet": 1,
+          "catalog": 2,
+          "repay": 1,
+          "air_fleet": 1
+        },
+        "months": {
+          "1": {
+            "passes": 6,
+            "initial_pool_empty": 3,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 8,
+            "initial_pool_empty": 8,
+            "post_pool_empty": 8,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 3,
+            "initial_pool_empty": 3,
+            "post_pool_empty": 3,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 19,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 19,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 19,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 19,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 14,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 12,
+            "initial_pool_empty": 11,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 13,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 10,
+            "initial_pool_empty": 9,
+            "post_pool_empty": 10,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 11,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 12,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 8,
+            "initial_pool_empty": 7,
+            "post_pool_empty": 8,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1971": {
+        "passes": 120,
+        "start_empty": 100,
+        "start_nonempty_no_build": 4,
+        "passes_built": 16,
+        "units_built": 16,
+        "post_empty": 117,
+        "reasons": {
+          "list_end": 16,
+          "no_candidate_built": 4,
+          "empty_pool": 100
+        },
+        "rail_passes": 120,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 1,
+        "rail_constructed": 1,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 15,
+        "wait_immediate": 1,
+        "wait_resolved": 16,
+        "wait_days_total": 281,
+        "wait_resolved_by": {
+          "expand": 1,
+          "repay": 1,
+          "catalog": 8,
+          "refleet": 2,
+          "air_fleet": 2,
+          "scrap": 2
+        },
+        "months": {
+          "2": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 1,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 1
+          },
+          "3": {
+            "passes": 11,
+            "initial_pool_empty": 9,
+            "post_pool_empty": 10,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 6,
+            "initial_pool_empty": 4,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 11,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 8,
+            "initial_pool_empty": 7,
+            "post_pool_empty": 8,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 13,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 11,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 10,
+            "initial_pool_empty": 7,
+            "post_pool_empty": 10,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 13,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 15,
+            "initial_pool_empty": 11,
+            "post_pool_empty": 14,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 20,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 20,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1972": {
+        "passes": 11,
+        "start_empty": 0,
+        "start_nonempty_no_build": 1,
+        "passes_built": 10,
+        "units_built": 16,
+        "post_empty": 1,
+        "reasons": {
+          "list_end": 10,
+          "no_candidate_built": 1
+        },
+        "rail_passes": 11,
+        "rail_pool_nonempty_after": 10,
+        "rail_fundable_after": 10,
+        "rail_selected_after": 9,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 530,
+        "wait_started": 1,
+        "wait_immediate": 9,
+        "wait_resolved": 1,
+        "wait_days_total": 68,
+        "wait_resolved_by": {
+          "expand": 1
+        },
+        "months": {
+          "1": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 1,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          }
+        }
+      },
+      "1973": {
+        "passes": 20,
+        "start_empty": 0,
+        "start_nonempty_no_build": 3,
+        "passes_built": 17,
+        "units_built": 22,
+        "post_empty": 0,
+        "reasons": {
+          "list_end": 17,
+          "no_candidate_built": 3
+        },
+        "rail_passes": 20,
+        "rail_pool_nonempty_after": 20,
+        "rail_fundable_after": 20,
+        "rail_selected_after": 20,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 936,
+        "wait_started": 0,
+        "wait_immediate": 17,
+        "wait_resolved": 0,
+        "wait_days_total": 0,
+        "wait_resolved_by": {},
+        "months": {
+          "4": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 5,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 5,
+            "rail_fundable_after": 5,
+            "rail_selected_after": 5,
+            "rail_built": 0
+          }
+        }
+      }
+    },
+    "5678": {
+      "1970": {
+        "passes": 162,
+        "start_empty": 151,
+        "start_nonempty_no_build": 2,
+        "passes_built": 9,
+        "units_built": 9,
+        "post_empty": 161,
+        "reasons": {
+          "list_end": 9,
+          "no_candidate_built": 2,
+          "empty_pool": 151
+        },
+        "rail_passes": 162,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 0,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 3,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 8,
+        "wait_immediate": 1,
+        "wait_resolved": 8,
+        "wait_days_total": 260,
+        "wait_resolved_by": {
+          "catalog": 3,
+          "scrap": 3,
+          "refleet": 2
+        },
+        "months": {
+          "1": {
+            "passes": 6,
+            "initial_pool_empty": 3,
+            "post_pool_empty": 6,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 21,
+            "initial_pool_empty": 21,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 10,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 10,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 13,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 11,
+            "initial_pool_empty": 11,
+            "post_pool_empty": 11,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 13,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 13,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 12,
+            "initial_pool_empty": 11,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 9,
+            "initial_pool_empty": 8,
+            "post_pool_empty": 8,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 17,
+            "initial_pool_empty": 16,
+            "post_pool_empty": 17,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 20,
+            "initial_pool_empty": 19,
+            "post_pool_empty": 20,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 18,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 18,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 12,
+            "initial_pool_empty": 10,
+            "post_pool_empty": 12,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1971": {
+        "passes": 242,
+        "start_empty": 157,
+        "start_nonempty_no_build": 42,
+        "passes_built": 43,
+        "units_built": 44,
+        "post_empty": 193,
+        "reasons": {
+          "list_end": 43,
+          "empty_pool": 157,
+          "no_candidate_built": 42
+        },
+        "rail_passes": 242,
+        "rail_pool_nonempty_after": 0,
+        "rail_fundable_after": 0,
+        "rail_selected_after": 48,
+        "rail_constructed": 0,
+        "rail_no_alternatives_after": 50,
+        "rail_alternatives_total_after": 0,
+        "wait_started": 36,
+        "wait_immediate": 7,
+        "wait_resolved": 35,
+        "wait_days_total": 171,
+        "wait_resolved_by": {
+          "catalog": 17,
+          "air_fleet": 8,
+          "expand": 4,
+          "repay": 1,
+          "refleet": 2,
+          "scrap": 1,
+          "report": 2
+        },
+        "months": {
+          "1": {
+            "passes": 10,
+            "initial_pool_empty": 6,
+            "post_pool_empty": 9,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "2": {
+            "passes": 8,
+            "initial_pool_empty": 2,
+            "post_pool_empty": 2,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 6,
+            "rail_built": 0
+          },
+          "3": {
+            "passes": 9,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 1,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 7,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 9,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 1,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 8,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 19,
+            "initial_pool_empty": 12,
+            "post_pool_empty": 15,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 4,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 19,
+            "initial_pool_empty": 13,
+            "post_pool_empty": 16,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 24,
+            "initial_pool_empty": 18,
+            "post_pool_empty": 21,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 30,
+            "initial_pool_empty": 17,
+            "post_pool_empty": 20,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 10,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 29,
+            "initial_pool_empty": 23,
+            "post_pool_empty": 29,
+            "passes_with_physical_progress": 6,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 32,
+            "initial_pool_empty": 27,
+            "post_pool_empty": 32,
+            "passes_with_physical_progress": 5,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 25,
+            "initial_pool_empty": 15,
+            "post_pool_empty": 19,
+            "passes_with_physical_progress": 5,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 6,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 28,
+            "initial_pool_empty": 24,
+            "post_pool_empty": 28,
+            "passes_with_physical_progress": 4,
+            "rail_nonempty_after": 0,
+            "rail_fundable_after": 0,
+            "rail_selected_after": 0,
+            "rail_built": 0
+          }
+        }
+      },
+      "1972": {
+        "passes": 34,
+        "start_empty": 0,
+        "start_nonempty_no_build": 13,
+        "passes_built": 21,
+        "units_built": 22,
+        "post_empty": 0,
+        "reasons": {
+          "list_end": 21,
+          "no_candidate_built": 13
+        },
+        "rail_passes": 34,
+        "rail_pool_nonempty_after": 34,
+        "rail_fundable_after": 34,
+        "rail_selected_after": 34,
+        "rail_constructed": 4,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 2675,
+        "wait_started": 0,
+        "wait_immediate": 21,
+        "wait_resolved": 1,
+        "wait_days_total": 43,
+        "wait_resolved_by": {
+          "catalog": 1
+        },
+        "months": {
+          "3": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "4": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 3,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 3,
+            "rail_fundable_after": 3,
+            "rail_selected_after": 3,
+            "rail_built": 0
+          },
+          "10": {
+            "passes": 4,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 4,
+            "rail_fundable_after": 4,
+            "rail_selected_after": 4,
+            "rail_built": 3
+          },
+          "11": {
+            "passes": 5,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 3,
+            "rail_nonempty_after": 5,
+            "rail_fundable_after": 5,
+            "rail_selected_after": 5,
+            "rail_built": 1
+          },
+          "12": {
+            "passes": 9,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 0,
+            "rail_nonempty_after": 9,
+            "rail_fundable_after": 9,
+            "rail_selected_after": 9,
+            "rail_built": 0
+          }
+        }
+      },
+      "1973": {
+        "passes": 15,
+        "start_empty": 0,
+        "start_nonempty_no_build": 0,
+        "passes_built": 15,
+        "units_built": 16,
+        "post_empty": 0,
+        "reasons": {
+          "list_end": 15
+        },
+        "rail_passes": 15,
+        "rail_pool_nonempty_after": 15,
+        "rail_fundable_after": 15,
+        "rail_selected_after": 15,
+        "rail_constructed": 1,
+        "rail_no_alternatives_after": 0,
+        "rail_alternatives_total_after": 844,
+        "wait_started": 0,
+        "wait_immediate": 15,
+        "wait_resolved": 0,
+        "wait_days_total": 0,
+        "wait_resolved_by": {},
+        "months": {
+          "4": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "5": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "6": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "7": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "8": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "9": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 1
+          },
+          "10": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          },
+          "11": {
+            "passes": 1,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 1,
+            "rail_nonempty_after": 1,
+            "rail_fundable_after": 1,
+            "rail_selected_after": 1,
+            "rail_built": 0
+          },
+          "12": {
+            "passes": 2,
+            "initial_pool_empty": 0,
+            "post_pool_empty": 0,
+            "passes_with_physical_progress": 2,
+            "rail_nonempty_after": 2,
+            "rail_fundable_after": 2,
+            "rail_selected_after": 2,
+            "rail_built": 0
+          }
+        }
+      }
+    }
+  },
+  "average": {
+    "1970": {
+      "passes": 139,
+      "start_empty": 128,
+      "start_nonempty_no_build": 1,
+      "passes_built": 10,
+      "units_built": 10,
+      "post_empty": 138.6,
+      "rail_passes": 139,
+      "rail_pool_nonempty_after": 0,
+      "rail_fundable_after": 0,
+      "rail_selected_after": 0,
+      "rail_constructed": 0,
+      "rail_no_alternatives_after": 3.2,
+      "rail_alternatives_total_after": 0,
+      "wait_started": 9.6,
+      "wait_immediate": 0.4,
+      "wait_resolved": 9,
+      "wait_days_total": 293.8
+    },
+    "1971": {
+      "passes": 186.2,
+      "start_empty": 144.2,
+      "start_nonempty_no_build": 14.2,
+      "passes_built": 28.2,
+      "units_built": 28.8,
+      "post_empty": 169.8,
+      "rail_passes": 186.2,
+      "rail_pool_nonempty_after": 0,
+      "rail_fundable_after": 0,
+      "rail_selected_after": 15,
+      "rail_constructed": 1.8,
+      "rail_no_alternatives_after": 10,
+      "rail_alternatives_total_after": 0,
+      "wait_started": 25.2,
+      "wait_immediate": 3,
+      "wait_resolved": 24.6,
+      "wait_days_total": 228.4
+    },
+    "1972": {
+      "passes": 80.6,
+      "start_empty": 59.2,
+      "start_nonempty_no_build": 5.2,
+      "passes_built": 16.2,
+      "units_built": 17.8,
+      "post_empty": 62.6,
+      "rail_passes": 80.6,
+      "rail_pool_nonempty_after": 21,
+      "rail_fundable_after": 20.6,
+      "rail_selected_after": 16.6,
+      "rail_constructed": 1.2,
+      "rail_no_alternatives_after": 50.8,
+      "rail_alternatives_total_after": 1176,
+      "wait_started": 3.6,
+      "wait_immediate": 12.6,
+      "wait_resolved": 4.6,
+      "wait_days_total": 197.6
+    },
+    "1973": {
+      "passes": 44.6,
+      "start_empty": 14.4,
+      "start_nonempty_no_build": 9,
+      "passes_built": 21.4,
+      "units_built": 22.8,
+      "post_empty": 16.2,
+      "rail_passes": 44.6,
+      "rail_pool_nonempty_after": 44.6,
+      "rail_fundable_after": 36.4,
+      "rail_selected_after": 28.4,
+      "rail_constructed": 1.8,
+      "rail_no_alternatives_after": 0,
+      "rail_alternatives_total_after": 912.8,
+      "wait_started": 2,
+      "wait_immediate": 19.4,
+      "wait_resolved": 2.2,
+      "wait_days_total": 32.4
+    }
+  },
+  "seeds": [
+    42,
+    100,
+    999,
+    1234,
+    5678
+  ],
+  "cautions": [
+    "P2_PASS counters are physical delta only, may count fleet vehicle purchases and omit scrapped lines.",
+    "P5_RAIL_PASS alternatives/financing are recorded AFTER the projects dispatch; do not read as its input.",
+    "P2 stop is an observational label based on in_best and built delta; not a root-cause reason.",
+    "P2_RESOLVE waiting episodes can cross accounting years; resolution attributed to closing year.",
+    "Profiled seed trajectories cannot be combined with the unsounded economic reference as one game."
+  ]
+}

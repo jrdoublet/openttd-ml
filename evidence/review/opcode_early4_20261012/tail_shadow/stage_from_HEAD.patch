@@ -1,0 +1,248 @@
+diff --git a/ai/OpexAI/globals_pre.nut b/ai/OpexAI/globals_pre.nut
+index 2a84fdf..12018e9 100644
+--- a/ai/OpexAI/globals_pre.nut
++++ b/ai/OpexAI/globals_pre.nut
+@@ -532,6 +532,9 @@ C121_AIR_PLAN_PERF <- null;
+ CATALOG_COST_PROBE <- false;
+ /* Sonde probe_loop_ops : agregats annuels d'opcodes de la boucle principale (diagnostic). */
+ PROBE_LOOP_OPS <- false;
++/* P0: shadow du budget micro-worker en fin de tick. Aucun ordonnanceur ni commande. */
++PROBE_TAIL_SHADOW <- false;
++OPEX_TAIL_SHADOW <- null;
+ /* Sonde probe_span_trace : intervalles dates des micro-taches. Defaut 0, aucun effet. */
+ PROBE_SPAN_TRACE <- false;
+ /* Sonde passive de la table de moteurs C121. Defaut 0 : aucun log, aucune ecriture. */
+diff --git a/ai/OpexAI/info.nut b/ai/OpexAI/info.nut
+index 503d028..fadf936 100644
+--- a/ai/OpexAI/info.nut
++++ b/ai/OpexAI/info.nut
+@@ -123,6 +123,14 @@ class OpexAIInfo extends AIInfo {
+       flags = AICONFIG_BOOLEAN
+     });
+ 
++    AddSetting({
++      name = "probe_tail_shadow",
++      description = "Passive tail worker budget/readiness UNKNOWN audit (requires probe_loop_ops); yearly aggregates only, off by default",
++      easy_value = 0, medium_value = 0, hard_value = 0,
++      custom_value = 0,
++      flags = AICONFIG_BOOLEAN
++    });
++
+     AddSetting({
+       name = "probe_span_trace",
+       description = "Log dated nested spans of OpexAI micro-tasks (ticks and opcodes); 1 = on, 0 = off (default)",
+diff --git a/ai/OpexAI/probes.nut b/ai/OpexAI/probes.nut
+index 39d4b5a..346d66d 100644
+--- a/ai/OpexAI/probes.nut
++++ b/ai/OpexAI/probes.nut
+@@ -2563,6 +2563,135 @@ function OpexLoopProfAdd(post, mark)
+   OpexLoopProfAddRaw(post, OpexOpsMeasureEnd(mark), AIController.GetTick() - mark.tick);
+ }
+ 
++/* P0 tail shadow. Ne fait que lire des états O(1), jamais appeler step(),
++ * GetVehicle*, map, pathfinder, ni produire une commande. Un plafond d'opcodes
++ * représente une opportunité conditionnelle : les fonctions NoAI peuvent
++ * suspendre et une garde O(1) ne suffit PAS à prouver un worker prêt. */
++function OpexTailShadowClass(worker, search, prepHold, reactiveCount, c67)
++{
++  local kind = "none";
++  if (worker != null) {
++    kind = ("kind" in worker) ? worker.kind : "other";
++    if (kind != "rail_search" && kind != "rail_stock"
++        && kind != "regen_candidates" && kind != "town_growth"
++        && kind != "noop") kind = "other";
++  }
++  local phase = "none";
++  local prep = false;
++  if (search != null) {
++    phase = ("phase" in search) ? search.phase : "other";
++    if (phase != "search" && phase != "build") phase = "other";
++    prep = ("isC121RailPrep" in search) && search.isC121RailPrep;
++  }
++  /* Un hold hors contexte de prep doit aussi être visible, sans l'inférer prêt. */
++  local hold = prepHold;
++  local reactive = reactiveCount > 0;
++  /* UNKNOWN n'est jamais assimilé à READY sur la seule présence d'un état. */
++  local readiness = (worker != null || search != null || reactive || c67 != "off")
++      ? "unknown" : "none";
++  local key = kind + (prep ? (hold ? ".prep_hold" : ".prep")
++      : (hold ? ".orphan_hold" : ""))
++      + "|rail_" + phase + "|rq_" + (reactive ? "yes" : "no") + "|c67_" + c67;
++  return { key = key, readiness = readiness, reactive = reactive,
++           prep = prep, hold = hold, phase = phase, kind = kind };
++}
++
++function OpexTailShadowBudget(left)
++{
++  return left >= C67_SLACK_MIN ? left - C67_SLACK_RESERVE : 0;
++}
++
++function OpexTailShadowOps(startTick, startLeft, endTick, endLeft)
++{
++  local elapsed = endTick - startTick;
++  if (elapsed < 0) return 0;
++  if (elapsed == 0) return startLeft > endLeft ? startLeft - endLeft : 0;
++  return startLeft + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - endLeft);
++}
++
++function OpexTailShadowEnsure()
++{
++  if (OPEX_TAIL_SHADOW == null) {
++    OPEX_TAIL_SHADOW = { low = 0, high = 0, crosses = 0,
++        guardOps = 0, guardMax = 0, beforeCap = 0, afterCap = 0,
++        unknown = 0, other = 0, buckets = {} };
++  }
++  return OPEX_TAIL_SHADOW;
++}
++
++function OpexTailShadowFlush(year)
++{
++  if (!PROBE_TAIL_SHADOW || OPEX_TAIL_SHADOW == null) return;
++  local s = OPEX_TAIL_SHADOW;
++  AILog.Info("TAIL_SHADOW y=" + year + " kind=total high=" + s.high
++      + " low=" + s.low + " crosses=" + s.crosses
++      + " guard_ops=" + s.guardOps + " guard_max=" + s.guardMax
++      + " before_cap=" + s.beforeCap + " after_cap=" + s.afterCap
++      + " unknown=" + s.unknown + " other=" + s.other);
++  foreach (key, e in s.buckets) {
++    AILog.Info("TAIL_SHADOW y=" + year + " kind=bucket state=" + key
++        + " n=" + e.n + " cap=" + e.cap + " cap_after=" + e.capAfter
++        + " guard_ops=" + e.guardOps + " crosses=" + e.crosses
++        + " rq_sum=" + e.reactiveSum + " rq_max=" + e.reactiveMax);
++  }
++  OPEX_TAIL_SHADOW = null;
++}
++
++function OpexTailShadowSample(ai)
++{
++  /* Mesuré APRES les compteurs historiques sleep_left ; aucun worker lancé. */
++  local tick0 = AIController.GetTick();
++  local left0 = AIController.GetOpsTillSuspend();
++  if (left0 < C67_SLACK_MIN) {
++    local lowState = OpexTailShadowEnsure();
++    lowState.low++;
++    return;
++  }
++
++  local s = OpexTailShadowEnsure();
++  /* C67 a déjà eu son tour en amont de cet échantillon. Un état 'hook' ou
++   * 'background' ne démontre pas de travail réellement faisable dans le reste. */
++  local c67 = "off";
++  if (C67_SLACK_HOOK) {
++    if (C67_TERRAIN_MAP && ai._c67Terrain != null && !ai._c67BgIdle)
++      c67 = "background";
++    else if (C67_WATER_EXPOSURE) c67 = "water";
++    else c67 = "hook";
++  }
++  local rqLen = ai._reactiveQueue != null ? ai._reactiveQueue.len() : 0;
++  local sample = OpexTailShadowClass(ai._activeWorker, ai._railSearch,
++      ai._c121RailPrepHold, rqLen, c67);
++  local e = (sample.key in s.buckets) ? s.buckets[sample.key] : null;
++  if (e == null) {
++    e = { n = 0, cap = 0, capAfter = 0, guardOps = 0,
++          crosses = 0, reactiveSum = 0, reactiveMax = 0 };
++    s.buckets.rawset(sample.key, e);
++  }
++  e.n++;
++  e.reactiveSum += rqLen;
++  if (rqLen > e.reactiveMax) e.reactiveMax = rqLen;
++  if (sample.readiness == "unknown") s.unknown++;
++  if (sample.kind == "other") s.other++;
++  local beforeCap = OpexTailShadowBudget(left0);
++
++  local tick1 = AIController.GetTick();
++  local left1 = AIController.GetOpsTillSuspend();
++  local guardOps = OpexTailShadowOps(tick0, left0, tick1, left1);
++  local crossed = tick1 != tick0;
++  /* Si la sonde a traversé le tick, tout prétendu plafond est annulé. */
++  local afterCap = crossed ? 0 : OpexTailShadowBudget(left1);
++  s.high++;
++  s.beforeCap += beforeCap;
++  s.afterCap += afterCap;
++  s.guardOps += guardOps;
++  if (guardOps > s.guardMax) s.guardMax = guardOps;
++  if (crossed) s.crosses++;
++  e.cap += beforeCap;
++  e.capAfter += afterCap;
++  e.guardOps += guardOps;
++  if (crossed) e.crosses++;
++}
++
+ function OpexLoopProfFlushIfNewYear()
+ {
+   local year = AIDate.GetYear(AIDate.GetCurrentDate());
+@@ -2581,6 +2710,7 @@ function OpexLoopProfFlushIfNewYear()
+           + " ops=" + e.ops + " tk=" + e.ticks + " max=" + e.max);
+     }
+   }
++  if (PROBE_TAIL_SHADOW) OpexTailShadowFlush(OPEX_LOOP_PROF_YEAR);
+   OPEX_LOOP_PROF = {};
+   OPEX_LOOP_PROF_YEAR = year;
+   OPEX_LOOP_PROF_TICK0 = tick;
+@@ -2607,7 +2737,20 @@ function OpexAI::_mainLoopProfiled()
+     this._processEvents();
+     if (spEvents != null) OpexSpanEnd(spEvents);
+     OpexLoopProfAdd("events", mark);
+-    if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
++    /* Maintenir la parite avec main.nut : la projection Save faisait auparavant
++     * defaut dans cette copie instrumentee de la boucle (>= 64 lignes). */
++    if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) {
++      mark = OpexOpsMeasureBegin();
++      local spSave = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.save_projection") : null;
++      this._refreshSaveProjection();
++      if (spSave != null) OpexSpanEnd(spSave);
++      OpexLoopProfAdd("save_projection", mark);
++    } else if (this._saveProjection != null) this._saveProjection = null;
++    if (C121_STATION_FLUX_PROBE) {
++      mark = OpexOpsMeasureBegin();
++      OpexC121StationFluxStep(this._catalog);
++      OpexLoopProfAdd("station_flux", mark);
++    }
+     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+       local before = C117_AIR_LAST_DATE;
+       mark = OpexOpsMeasureBegin();
+@@ -2665,7 +2808,30 @@ function OpexAI::_mainLoopProfiled()
+       if (spC67 != null) OpexSpanEnd(spC67);
+       OpexLoopProfAdd("c67_hook", mark);
+     }
+-    OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
++    /* Comptage purement observatoire : plafond du budget qui pourrait etre
++     * offert a un micro-worker au prochain Sleep. Ce n'est PAS du travail
++     * execute ni une promesse qu'un worker peut progresser.
++     * C67: seuil 4000 et reserve 3000 (task_terrain.nut). La classe signale
++     * uniquement un travailleur actif ou une recherche rail suspendue ; elle
++     * n'implique ni admissibilite, ni progression possible dans ce tick. */
++    local leftAtSleep = AIController.GetOpsTillSuspend();
++    OpexLoopProfAddRaw("sleep_left", leftAtSleep, 0);
++    local opportunityKind = "no_pending_worker";
++    if (this._activeWorker != null) opportunityKind = "active_" + this._activeWorker.kind;
++    else if (this._railSearch != null) opportunityKind = "pending_rail_search";
++    else if (C67_SLACK_HOOK && this._c67Terrain != null
++             && !this._c67BgIdle) opportunityKind = "pending_c67";
++    OpexLoopProfAddRaw("sleep_ctx_" + opportunityKind, leftAtSleep, 0);
++    local microCap = leftAtSleep >= C67_SLACK_MIN
++        ? leftAtSleep - C67_SLACK_RESERVE : 0;
++    OpexLoopProfAddRaw("sleep_cap3k_" + opportunityKind, microCap, 0);
++    if (PROBE_TAIL_SHADOW) {
++      /* LOOP_OPS mesure l'appel entier (y compris le ledger shadow) ;
++       * TAIL_SHADOW.guard_ops mesure son cœur jusqu'au dernier relevé VM. */
++      local tailMark = OpexOpsMeasureBegin();
++      OpexTailShadowSample(this);
++      OpexLoopProfAdd("tail_shadow", tailMark);
++    }
+     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
+     AIController.Sleep(1);
+     if (spSleep != null) OpexSpanEnd(spSleep);
+diff --git a/ai/OpexAI/settings.nut b/ai/OpexAI/settings.nut
+index d8dd4b8..c7f2ead 100644
+--- a/ai/OpexAI/settings.nut
++++ b/ai/OpexAI/settings.nut
+@@ -193,6 +193,8 @@ function OpexLoadSettings()
+   local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
+   CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
+   PROBE_LOOP_OPS = AIController.GetSetting("probe_loop_ops") != 0;
++  PROBE_TAIL_SHADOW = PROBE_LOOP_OPS && AIController.GetSetting("probe_tail_shadow") != 0;
++  OPEX_TAIL_SHADOW = null;
+   PROBE_SPAN_TRACE = AIController.GetSetting("probe_span_trace") != 0;
+   PROBE_C121_ENGINE_TABLE = AIController.GetSetting("probe_c121_engine_table") != 0;
+   PROBE_AIR_ENGINE_DEPTH = AIController.GetSetting("probe_air_engine_depth") != 0;

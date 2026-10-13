@@ -1,0 +1,881 @@
+{
+  "seeds": [
+    42,
+    100,
+    999,
+    1234,
+    5678
+  ],
+  "by_seed": {
+    "42": {
+      "1970": {
+        "lines_by_mode": {
+          "air": 9
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 2
+          },
+          "10": {
+            "air": 1
+          },
+          "11": {
+            "air": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 2
+          },
+          "8": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 9,
+        "search_outcome": {
+          "cancelled": 3
+        },
+        "search_paid_outcome": {
+          "cancelled": 3
+        },
+        "search_calls": 3,
+        "search_paid_calls": 3,
+        "search_window_ops": 1617432,
+        "search_days": 11
+      },
+      "1971": {
+        "lines_by_mode": {
+          "air": 27,
+          "rail": 3,
+          "road": 1
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 2,
+            "rail": 1
+          },
+          "10": {
+            "air": 3
+          },
+          "11": {
+            "air": 4
+          },
+          "12": {
+            "air": 2
+          },
+          "2": {
+            "rail": 1
+          },
+          "3": {
+            "air": 1,
+            "rail": 1
+          },
+          "4": {
+            "air": 3,
+            "road": 1
+          },
+          "5": {
+            "air": 2
+          },
+          "6": {
+            "air": 3
+          },
+          "7": {
+            "air": 1
+          },
+          "8": {
+            "air": 2
+          },
+          "9": {
+            "air": 4
+          }
+        },
+        "unique_mode_src_dst": 31,
+        "search_outcome": {
+          "OK": 2,
+          "cancelled": 1
+        },
+        "search_paid_outcome": {
+          "OK": 1,
+          "cancelled": 1
+        },
+        "search_calls": 3,
+        "search_paid_calls": 2,
+        "search_window_ops": 1925371,
+        "search_days": 24
+      },
+      "1972": {
+        "lines_by_mode": {
+          "air": 14
+        },
+        "lines_by_month": {
+          "10": {
+            "air": 2
+          },
+          "11": {
+            "air": 1
+          },
+          "2": {
+            "air": 1
+          },
+          "3": {
+            "air": 3
+          },
+          "4": {
+            "air": 1
+          },
+          "5": {
+            "air": 2
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 1
+          },
+          "9": {
+            "air": 2
+          }
+        },
+        "unique_mode_src_dst": 14,
+        "search_outcome": {},
+        "search_paid_outcome": {},
+        "search_calls": 0,
+        "search_paid_calls": 0,
+        "search_window_ops": 0,
+        "search_days": 0
+      },
+      "1973": {
+        "lines_by_mode": {
+          "air": 5,
+          "rail": 4,
+          "road": 1
+        },
+        "lines_by_month": {
+          "10": {
+            "road": 1
+          },
+          "11": {
+            "rail": 2
+          },
+          "12": {
+            "air": 1,
+            "rail": 1
+          },
+          "5": {
+            "rail": 1
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 1
+          },
+          "9": {
+            "air": 2
+          }
+        },
+        "unique_mode_src_dst": 10,
+        "search_outcome": {
+          "OK": 26
+        },
+        "search_paid_outcome": {
+          "OK": 5
+        },
+        "search_calls": 26,
+        "search_paid_calls": 5,
+        "search_window_ops": 6901607,
+        "search_days": 96
+      }
+    },
+    "100": {
+      "1970": {
+        "lines_by_mode": {
+          "air": 8
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 3
+          },
+          "10": {
+            "air": 1
+          },
+          "11": {
+            "air": 1
+          },
+          "12": {
+            "air": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "8": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 8,
+        "search_outcome": {
+          "cancelled": 3
+        },
+        "search_paid_outcome": {
+          "cancelled": 3
+        },
+        "search_calls": 3,
+        "search_paid_calls": 3,
+        "search_window_ops": 2131407,
+        "search_days": 13
+      },
+      "1971": {
+        "lines_by_mode": {
+          "air": 17,
+          "rail": 3
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 1,
+            "rail": 1
+          },
+          "10": {
+            "air": 1
+          },
+          "11": {
+            "air": 3
+          },
+          "12": {
+            "air": 3
+          },
+          "2": {
+            "rail": 2
+          },
+          "3": {
+            "air": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "5": {
+            "air": 1
+          },
+          "6": {
+            "air": 1
+          },
+          "8": {
+            "air": 2
+          },
+          "9": {
+            "air": 3
+          }
+        },
+        "unique_mode_src_dst": 20,
+        "search_outcome": {},
+        "search_paid_outcome": {},
+        "search_calls": 0,
+        "search_paid_calls": 0,
+        "search_window_ops": 0,
+        "search_days": 0
+      },
+      "1972": {
+        "lines_by_mode": {
+          "air": 11,
+          "rail": 2
+        },
+        "lines_by_month": {
+          "10": {
+            "air": 1
+          },
+          "11": {
+            "air": 1,
+            "rail": 1
+          },
+          "12": {
+            "air": 1
+          },
+          "2": {
+            "air": 1
+          },
+          "5": {
+            "air": 3
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 3,
+            "rail": 1
+          }
+        },
+        "unique_mode_src_dst": 13,
+        "search_outcome": {
+          "ABND": 1,
+          "OK": 7
+        },
+        "search_paid_outcome": {
+          "ABND": 1,
+          "OK": 1
+        },
+        "search_calls": 8,
+        "search_paid_calls": 2,
+        "search_window_ops": 18693639,
+        "search_days": 263
+      },
+      "1973": {
+        "lines_by_mode": {
+          "air": 10,
+          "rail": 3,
+          "water": 1
+        },
+        "lines_by_month": {
+          "10": {
+            "air": 3,
+            "water": 1
+          },
+          "11": {
+            "rail": 1
+          },
+          "12": {
+            "rail": 1
+          },
+          "3": {
+            "air": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "5": {
+            "air": 1
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 1
+          },
+          "8": {
+            "air": 1,
+            "rail": 1
+          },
+          "9": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 14,
+        "search_outcome": {
+          "OK": 12,
+          "cancelled": 1
+        },
+        "search_paid_outcome": {
+          "OK": 3,
+          "cancelled": 1
+        },
+        "search_calls": 13,
+        "search_paid_calls": 4,
+        "search_window_ops": 13016836,
+        "search_days": 175
+      }
+    },
+    "999": {
+      "1970": {
+        "lines_by_mode": {
+          "air": 6
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 2
+          },
+          "12": {
+            "air": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "7": {
+            "air": 1
+          },
+          "9": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 6,
+        "search_outcome": {
+          "cancelled": 2
+        },
+        "search_paid_outcome": {
+          "cancelled": 2
+        },
+        "search_calls": 2,
+        "search_paid_calls": 2,
+        "search_window_ops": 2756210,
+        "search_days": 19
+      },
+      "1971": {
+        "lines_by_mode": {
+          "air": 12,
+          "rail": 2,
+          "road": 1
+        },
+        "lines_by_month": {
+          "1": {
+            "rail": 1
+          },
+          "10": {
+            "air": 1
+          },
+          "11": {
+            "air": 2
+          },
+          "12": {
+            "air": 1
+          },
+          "2": {
+            "rail": 1
+          },
+          "3": {
+            "road": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "5": {
+            "air": 2
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 1
+          },
+          "9": {
+            "air": 3
+          }
+        },
+        "unique_mode_src_dst": 15,
+        "search_outcome": {},
+        "search_paid_outcome": {},
+        "search_calls": 0,
+        "search_paid_calls": 0,
+        "search_window_ops": 0,
+        "search_days": 0
+      },
+      "1972": {
+        "lines_by_mode": {
+          "air": 9
+        },
+        "lines_by_month": {
+          "10": {
+            "air": 2
+          },
+          "11": {
+            "air": 1
+          },
+          "5": {
+            "air": 1
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 1
+          },
+          "8": {
+            "air": 1
+          },
+          "9": {
+            "air": 2
+          }
+        },
+        "unique_mode_src_dst": 9,
+        "search_outcome": {},
+        "search_paid_outcome": {},
+        "search_calls": 0,
+        "search_paid_calls": 0,
+        "search_window_ops": 0,
+        "search_days": 0
+      },
+      "1973": {
+        "lines_by_mode": {
+          "air": 3,
+          "rail": 1
+        },
+        "lines_by_month": {
+          "11": {
+            "air": 1
+          },
+          "12": {
+            "air": 1
+          },
+          "7": {
+            "rail": 1
+          },
+          "8": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 4,
+        "search_outcome": {},
+        "search_paid_outcome": {},
+        "search_calls": 0,
+        "search_paid_calls": 0,
+        "search_window_ops": 0,
+        "search_days": 0
+      }
+    },
+    "1234": {
+      "1970": {
+        "lines_by_mode": {
+          "air": 6
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 3
+          },
+          "12": {
+            "air": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "9": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 6,
+        "search_outcome": {
+          "cancelled": 3
+        },
+        "search_paid_outcome": {
+          "cancelled": 3
+        },
+        "search_calls": 3,
+        "search_paid_calls": 3,
+        "search_window_ops": 7317500,
+        "search_days": 48
+      },
+      "1971": {
+        "lines_by_mode": {
+          "air": 10,
+          "rail": 1
+        },
+        "lines_by_month": {
+          "10": {
+            "air": 1
+          },
+          "11": {
+            "air": 2
+          },
+          "12": {
+            "air": 2
+          },
+          "2": {
+            "rail": 1
+          },
+          "4": {
+            "air": 1
+          },
+          "5": {
+            "air": 1
+          },
+          "8": {
+            "air": 1
+          },
+          "9": {
+            "air": 2
+          }
+        },
+        "unique_mode_src_dst": 11,
+        "search_outcome": {},
+        "search_paid_outcome": {},
+        "search_calls": 0,
+        "search_paid_calls": 0,
+        "search_window_ops": 0,
+        "search_days": 0
+      },
+      "1972": {
+        "lines_by_mode": {
+          "air": 14
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 1
+          },
+          "10": {
+            "air": 1
+          },
+          "12": {
+            "air": 8
+          },
+          "5": {
+            "air": 1
+          },
+          "6": {
+            "air": 1
+          },
+          "8": {
+            "air": 1
+          },
+          "9": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 14,
+        "search_outcome": {
+          "OK": 1
+        },
+        "search_paid_outcome": {
+          "OK": 1
+        },
+        "search_calls": 1,
+        "search_paid_calls": 1,
+        "search_window_ops": 4413253,
+        "search_days": 221
+      },
+      "1973": {
+        "lines_by_mode": {
+          "air": 15,
+          "road": 1
+        },
+        "lines_by_month": {
+          "10": {
+            "air": 2
+          },
+          "11": {
+            "air": 3
+          },
+          "12": {
+            "air": 2,
+            "road": 1
+          },
+          "4": {
+            "air": 6
+          },
+          "7": {
+            "air": 1
+          },
+          "9": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 16,
+        "search_outcome": {
+          "OK": 5
+        },
+        "search_paid_outcome": {
+          "OK": 1
+        },
+        "search_calls": 5,
+        "search_paid_calls": 1,
+        "search_window_ops": 4432648,
+        "search_days": 221
+      }
+    },
+    "5678": {
+      "1970": {
+        "lines_by_mode": {
+          "air": 8
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 2
+          },
+          "10": {
+            "air": 1
+          },
+          "12": {
+            "air": 2
+          },
+          "6": {
+            "air": 1
+          },
+          "8": {
+            "air": 1
+          },
+          "9": {
+            "air": 1
+          }
+        },
+        "unique_mode_src_dst": 8,
+        "search_outcome": {
+          "cancelled": 3
+        },
+        "search_paid_outcome": {
+          "cancelled": 3
+        },
+        "search_calls": 3,
+        "search_paid_calls": 3,
+        "search_window_ops": 1046459,
+        "search_days": 7
+      },
+      "1971": {
+        "lines_by_mode": {
+          "air": 29,
+          "road": 2
+        },
+        "lines_by_month": {
+          "1": {
+            "air": 1
+          },
+          "10": {
+            "air": 3
+          },
+          "11": {
+            "air": 5
+          },
+          "12": {
+            "air": 2
+          },
+          "3": {
+            "air": 2,
+            "road": 1
+          },
+          "4": {
+            "air": 2,
+            "road": 1
+          },
+          "5": {
+            "air": 2
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 3
+          },
+          "8": {
+            "air": 4
+          },
+          "9": {
+            "air": 4
+          }
+        },
+        "unique_mode_src_dst": 31,
+        "search_outcome": {
+          "OK": 5
+        },
+        "search_paid_outcome": {
+          "OK": 1
+        },
+        "search_calls": 5,
+        "search_paid_calls": 1,
+        "search_window_ops": 1128448,
+        "search_days": 24
+      },
+      "1972": {
+        "lines_by_mode": {
+          "air": 12,
+          "rail": 4
+        },
+        "lines_by_month": {
+          "10": {
+            "rail": 3
+          },
+          "11": {
+            "air": 2,
+            "rail": 1
+          },
+          "3": {
+            "air": 2
+          },
+          "6": {
+            "air": 1
+          },
+          "7": {
+            "air": 3
+          },
+          "8": {
+            "air": 1
+          },
+          "9": {
+            "air": 3
+          }
+        },
+        "unique_mode_src_dst": 16,
+        "search_outcome": {
+          "OK": 14,
+          "cancelled": 1
+        },
+        "search_paid_outcome": {
+          "OK": 4,
+          "cancelled": 1
+        },
+        "search_calls": 15,
+        "search_paid_calls": 5,
+        "search_window_ops": 8844072,
+        "search_days": 204
+      },
+      "1973": {
+        "lines_by_mode": {
+          "air": 3,
+          "rail": 1,
+          "road": 1
+        },
+        "lines_by_month": {
+          "10": {
+            "road": 1
+          },
+          "4": {
+            "air": 3
+          },
+          "9": {
+            "rail": 1
+          }
+        },
+        "unique_mode_src_dst": 5,
+        "search_outcome": {
+          "OK": 5
+        },
+        "search_paid_outcome": {
+          "OK": 1
+        },
+        "search_calls": 5,
+        "search_paid_calls": 1,
+        "search_window_ops": 10363817,
+        "search_days": 294
+      }
+    }
+  },
+  "mean": {
+    "1970": {
+      "lines_air": 7.4,
+      "search_calls": 2.8,
+      "search_paid_calls": 2.8,
+      "search_window_ops": 2973801.6,
+      "search_days": 19.6
+    },
+    "1971": {
+      "lines_air": 19,
+      "lines_rail": 1.8,
+      "lines_road": 0.8,
+      "search_calls": 1.6,
+      "search_paid_calls": 0.6,
+      "search_window_ops": 610763.8,
+      "search_days": 9.6
+    },
+    "1972": {
+      "lines_air": 12,
+      "lines_rail": 1.2,
+      "search_calls": 4.8,
+      "search_paid_calls": 1.6,
+      "search_window_ops": 6390192.8,
+      "search_days": 137.6
+    },
+    "1973": {
+      "lines_air": 7.2,
+      "lines_rail": 1.8,
+      "lines_road": 0.6,
+      "lines_water": 0.2,
+      "search_calls": 9.8,
+      "search_paid_calls": 2.2,
+      "search_window_ops": 6942981.6,
+      "search_days": 157.2
+    }
+  },
+  "notes": [
+    "Profiled logs differ economically from unsounded baseline; line counts are not from economic baseline.",
+    "P5_BUILD_LINE counts events, not necessarily physically operating profitable routes at year-end.",
+    "P5_RAIL_SEARCH includes zero-op replays; only nonzero ops are summed, but they overlap C39.",
+    "Other projects built, including fleet, do not produce P5_BUILD_LINE and cannot be inferred from line count."
+  ]
+}

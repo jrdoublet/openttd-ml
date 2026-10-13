@@ -1,0 +1,4 @@
+# Les preuves diagnostiques sont archivees avec leurs octets exacts.
+# Ne jamais normaliser les fins de ligne des JSON, patchs ni manifestes geles.
+evidence/review/opcode_early4_20261012/** -text
+evidence/review/p0_projects_conversion_20261012/** -text

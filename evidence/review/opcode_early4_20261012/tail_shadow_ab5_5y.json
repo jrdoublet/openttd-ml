@@ -1,0 +1,1899 @@
+{
+  "seeds": [
+    42,
+    100,
+    999,
+    1234,
+    5678
+  ],
+  "by_seed": {
+    "42": {
+      "reference": {
+        "yearly": {
+          "1970": {
+            "loops": 716,
+            "sleep_left": 3670420,
+            "raw_cap": 1799827,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1971": {
+            "loops": 805,
+            "sleep_left": 4569804,
+            "raw_cap": 2501630,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1972": {
+            "loops": 281,
+            "sleep_left": 1707615,
+            "raw_cap": 946236,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1973": {
+            "loops": 403,
+            "sleep_left": 2244565,
+            "raw_cap": 1160918,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          }
+        },
+        "duplicate_records": 0
+      },
+      "variant": {
+        "yearly": {
+          "1970": {
+            "loops": 729,
+            "sleep_left": 3805919,
+            "raw_cap": 1897653,
+            "shadow_ops": 103735,
+            "shadow_ticks_crossed": 4,
+            "shadow_calls": 729,
+            "total": {
+              "y": 1970,
+              "kind": "total",
+              "high": 439,
+              "low": 290,
+              "crosses": 0,
+              "guard_ops": 60927,
+              "guard_max": 189,
+              "before_cap": 1876723,
+              "after_cap": 1808200,
+              "unknown": 83,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_yes|c67_off",
+                "n": 1,
+                "cap": 5484,
+                "cap_after": 5318,
+                "guard_ops": 166,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_none|rq_no|c67_off",
+                "n": 68,
+                "cap": 319433,
+                "cap_after": 309410,
+                "guard_ops": 10023,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 356,
+                "cap": 1493326,
+                "cap_after": 1437287,
+                "guard_ops": 48443,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "rail_stock.prep|rail_search|rq_no|c67_off",
+                "n": 14,
+                "cap": 58480,
+                "cap_after": 56185,
+                "guard_ops": 2295,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 439,
+            "unknown_after_cap": 370913,
+            "none_after_cap": 1437287,
+            "valid_sample_accounting": true
+          },
+          "1971": {
+            "loops": 771,
+            "sleep_left": 4475878,
+            "raw_cap": 2454969,
+            "shadow_ops": 129761,
+            "shadow_ticks_crossed": 3,
+            "shadow_calls": 771,
+            "total": {
+              "y": 1971,
+              "kind": "total",
+              "high": 528,
+              "low": 243,
+              "crosses": 0,
+              "guard_ops": 72192,
+              "guard_max": 178,
+              "before_cap": 2420163,
+              "after_cap": 2342261,
+              "unknown": 23,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 505,
+                "cap": 2325396,
+                "cap_after": 2252920,
+                "guard_ops": 68707,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 2,
+                "cap": 3861,
+                "cap_after": 3532,
+                "guard_ops": 329,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 21,
+                "cap": 90906,
+                "cap_after": 85809,
+                "guard_ops": 3156,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 528,
+            "unknown_after_cap": 89341,
+            "none_after_cap": 2252920,
+            "valid_sample_accounting": true
+          },
+          "1972": {
+            "loops": 311,
+            "sleep_left": 1773411,
+            "raw_cap": 945654,
+            "shadow_ops": 60542,
+            "shadow_ticks_crossed": 2,
+            "shadow_calls": 311,
+            "total": {
+              "y": 1972,
+              "kind": "total",
+              "high": 213,
+              "low": 98,
+              "crosses": 0,
+              "guard_ops": 31368,
+              "guard_max": 197,
+              "before_cap": 953397,
+              "after_cap": 918237,
+              "unknown": 172,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 9,
+                "cap": 46067,
+                "cap_after": 44681,
+                "guard_ops": 1386,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 41,
+                "cap": 186646,
+                "cap_after": 180061,
+                "guard_ops": 5637,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 161,
+                "cap": 711610,
+                "cap_after": 684750,
+                "guard_ops": 24016,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 2,
+                "cap": 9074,
+                "cap_after": 8745,
+                "guard_ops": 329,
+                "crosses": 0,
+                "rq_sum": 2,
+                "rq_max": 1
+              }
+            ],
+            "bucket_sample_sum": 213,
+            "unknown_after_cap": 738176,
+            "none_after_cap": 180061,
+            "valid_sample_accounting": true
+          },
+          "1973": {
+            "loops": 276,
+            "sleep_left": 1664089,
+            "raw_cap": 919043,
+            "shadow_ops": 46963,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 276,
+            "total": {
+              "y": 1973,
+              "kind": "total",
+              "high": 200,
+              "low": 76,
+              "crosses": 0,
+              "guard_ops": 29553,
+              "guard_max": 210,
+              "before_cap": 919737,
+              "after_cap": 886534,
+              "unknown": 168,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 1,
+                "cap": 6653,
+                "cap_after": 6474,
+                "guard_ops": 179,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 32,
+                "cap": 152404,
+                "cap_after": 148025,
+                "guard_ops": 4379,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 155,
+                "cap": 711354,
+                "cap_after": 686435,
+                "guard_ops": 23156,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 12,
+                "cap": 49326,
+                "cap_after": 45600,
+                "guard_ops": 1839,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 200,
+            "unknown_after_cap": 738509,
+            "none_after_cap": 148025,
+            "valid_sample_accounting": true
+          }
+        },
+        "duplicate_records": 0
+      }
+    },
+    "100": {
+      "reference": {
+        "yearly": {
+          "1970": {
+            "loops": 818,
+            "sleep_left": 4670215,
+            "raw_cap": 2505662,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1971": {
+            "loops": 652,
+            "sleep_left": 3956866,
+            "raw_cap": 2224457,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1972": {
+            "loops": 385,
+            "sleep_left": 2264398,
+            "raw_cap": 1229441,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1973": {
+            "loops": 498,
+            "sleep_left": 2693534,
+            "raw_cap": 1368226,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          }
+        },
+        "duplicate_records": 0
+      },
+      "variant": {
+        "yearly": {
+          "1970": {
+            "loops": 806,
+            "sleep_left": 4658356,
+            "raw_cap": 2513457,
+            "shadow_ops": 133829,
+            "shadow_ticks_crossed": 5,
+            "shadow_calls": 806,
+            "total": {
+              "y": 1970,
+              "kind": "total",
+              "high": 529,
+              "low": 277,
+              "crosses": 1,
+              "guard_ops": 84962,
+              "guard_max": 10147,
+              "before_cap": 2475264,
+              "after_cap": 2387105,
+              "unknown": 244,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_yes|c67_off",
+                "n": 2,
+                "cap": 5747,
+                "cap_after": 5444,
+                "guard_ops": 303,
+                "crosses": 0,
+                "rq_sum": 2,
+                "rq_max": 1
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_none|rq_no|c67_off",
+                "n": 228,
+                "cap": 1087977,
+                "cap_after": 1044771,
+                "guard_ops": 43543,
+                "crosses": 1,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 285,
+                "cap": 1321397,
+                "cap_after": 1279042,
+                "guard_ops": 38821,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "rail_stock.prep|rail_search|rq_no|c67_off",
+                "n": 14,
+                "cap": 60143,
+                "cap_after": 57848,
+                "guard_ops": 2295,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 529,
+            "unknown_after_cap": 1108063,
+            "none_after_cap": 1279042,
+            "valid_sample_accounting": true
+          },
+          "1971": {
+            "loops": 662,
+            "sleep_left": 4079055,
+            "raw_cap": 2309555,
+            "shadow_ops": 107451,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 662,
+            "total": {
+              "y": 1971,
+              "kind": "total",
+              "high": 482,
+              "low": 180,
+              "crosses": 0,
+              "guard_ops": 65613,
+              "guard_max": 197,
+              "before_cap": 2265665,
+              "after_cap": 2190737,
+              "unknown": 0,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 482,
+                "cap": 2265665,
+                "cap_after": 2190737,
+                "guard_ops": 65613,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 482,
+            "unknown_after_cap": 0,
+            "none_after_cap": 2190737,
+            "valid_sample_accounting": true
+          },
+          "1972": {
+            "loops": 702,
+            "sleep_left": 4048297,
+            "raw_cap": 2151258,
+            "shadow_ops": 120951,
+            "shadow_ticks_crossed": 4,
+            "shadow_calls": 702,
+            "total": {
+              "y": 1972,
+              "kind": "total",
+              "high": 536,
+              "low": 166,
+              "crosses": 0,
+              "guard_ops": 75684,
+              "guard_max": 197,
+              "before_cap": 2141531,
+              "after_cap": 2058433,
+              "unknown": 201,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 1,
+                "cap": 5016,
+                "cap_after": 4837,
+                "guard_ops": 179,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 335,
+                "cap": 1313886,
+                "cap_after": 1266398,
+                "guard_ops": 45621,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 185,
+                "cap": 739077,
+                "cap_after": 705938,
+                "guard_ops": 27592,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 15,
+                "cap": 83552,
+                "cap_after": 81260,
+                "guard_ops": 2292,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 536,
+            "unknown_after_cap": 792035,
+            "none_after_cap": 1266398,
+            "valid_sample_accounting": true
+          },
+          "1973": {
+            "loops": 810,
+            "sleep_left": 4772324,
+            "raw_cap": 2537371,
+            "shadow_ops": 144744,
+            "shadow_ticks_crossed": 3,
+            "shadow_calls": 810,
+            "total": {
+              "y": 1973,
+              "kind": "total",
+              "high": 655,
+              "low": 155,
+              "crosses": 0,
+              "guard_ops": 91197,
+              "guard_max": 197,
+              "before_cap": 2474824,
+              "after_cap": 2378079,
+              "unknown": 147,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 1,
+                "cap": 1968,
+                "cap_after": 1789,
+                "guard_ops": 179,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_none|rq_no|c67_off",
+                "n": 1,
+                "cap": 1433,
+                "cap_after": 1259,
+                "guard_ops": 174,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 508,
+                "cap": 1868821,
+                "cap_after": 1799672,
+                "guard_ops": 69149,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 18,
+                "cap": 94519,
+                "cap_after": 91774,
+                "guard_ops": 2745,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 127,
+                "cap": 508083,
+                "cap_after": 483585,
+                "guard_ops": 18950,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 655,
+            "unknown_after_cap": 578407,
+            "none_after_cap": 1799672,
+            "valid_sample_accounting": true
+          }
+        },
+        "duplicate_records": 0
+      }
+    },
+    "999": {
+      "reference": {
+        "yearly": {
+          "1970": {
+            "loops": 1026,
+            "sleep_left": 6086957,
+            "raw_cap": 3290416,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1971": {
+            "loops": 601,
+            "sleep_left": 3111922,
+            "raw_cap": 1591650,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1972": {
+            "loops": 65,
+            "sleep_left": 430834,
+            "raw_cap": 252658,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1973": {
+            "loops": 129,
+            "sleep_left": 828297,
+            "raw_cap": 470124,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          }
+        },
+        "duplicate_records": 0
+      },
+      "variant": {
+        "yearly": {
+          "1970": {
+            "loops": 1026,
+            "sleep_left": 5993483,
+            "raw_cap": 3241686,
+            "shadow_ops": 165267,
+            "shadow_ticks_crossed": 2,
+            "shadow_calls": 1026,
+            "total": {
+              "y": 1970,
+              "kind": "total",
+              "high": 709,
+              "low": 317,
+              "crosses": 0,
+              "guard_ops": 101755,
+              "guard_max": 189,
+              "before_cap": 3228895,
+              "after_cap": 3114800,
+              "unknown": 441,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_yes|c67_off",
+                "n": 2,
+                "cap": 9166,
+                "cap_after": 8863,
+                "guard_ops": 303,
+                "crosses": 0,
+                "rq_sum": 2,
+                "rq_max": 1
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_none|rq_no|c67_off",
+                "n": 413,
+                "cap": 1955119,
+                "cap_after": 1887721,
+                "guard_ops": 60738,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 268,
+                "cap": 1166673,
+                "cap_after": 1125488,
+                "guard_ops": 36475,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "rail_stock.prep|rail_search|rq_no|c67_off",
+                "n": 26,
+                "cap": 97937,
+                "cap_after": 92728,
+                "guard_ops": 4239,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 709,
+            "unknown_after_cap": 1989312,
+            "none_after_cap": 1125488,
+            "valid_sample_accounting": true
+          },
+          "1971": {
+            "loops": 693,
+            "sleep_left": 3683755,
+            "raw_cap": 1903534,
+            "shadow_ops": 107077,
+            "shadow_ticks_crossed": 4,
+            "shadow_calls": 693,
+            "total": {
+              "y": 1971,
+              "kind": "total",
+              "high": 415,
+              "low": 278,
+              "crosses": 0,
+              "guard_ops": 56501,
+              "guard_max": 197,
+              "before_cap": 1913077,
+              "after_cap": 1849053,
+              "unknown": 0,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 415,
+                "cap": 1913077,
+                "cap_after": 1849053,
+                "guard_ops": 56501,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 415,
+            "unknown_after_cap": 0,
+            "none_after_cap": 1849053,
+            "valid_sample_accounting": true
+          },
+          "1972": {
+            "loops": 657,
+            "sleep_left": 3622706,
+            "raw_cap": 1994278,
+            "shadow_ops": 109877,
+            "shadow_ticks_crossed": 8,
+            "shadow_calls": 657,
+            "total": {
+              "y": 1972,
+              "kind": "total",
+              "high": 432,
+              "low": 225,
+              "crosses": 0,
+              "guard_ops": 60010,
+              "guard_max": 197,
+              "before_cap": 1983478,
+              "after_cap": 1920659,
+              "unknown": 90,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 342,
+                "cap": 1565677,
+                "cap_after": 1517259,
+                "guard_ops": 46573,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 90,
+                "cap": 417801,
+                "cap_after": 403400,
+                "guard_ops": 13437,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 432,
+            "unknown_after_cap": 403400,
+            "none_after_cap": 1517259,
+            "valid_sample_accounting": true
+          },
+          "1973": {
+            "loops": 156,
+            "sleep_left": 928273,
+            "raw_cap": 505806,
+            "shadow_ops": 24989,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 156,
+            "total": {
+              "y": 1973,
+              "kind": "total",
+              "high": 103,
+              "low": 53,
+              "crosses": 0,
+              "guard_ops": 15508,
+              "guard_max": 210,
+              "before_cap": 503088,
+              "after_cap": 486720,
+              "unknown": 100,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 4,
+                "cap": 24761,
+                "cap_after": 24130,
+                "guard_ops": 631,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 90,
+                "cap": 428186,
+                "cap_after": 413855,
+                "guard_ops": 13471,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 3,
+                "cap": 18158,
+                "cap_after": 17723,
+                "guard_ops": 435,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_search|rq_yes|c67_off",
+                "n": 1,
+                "cap": 4925,
+                "cap_after": 4733,
+                "guard_ops": 192,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 5,
+                "cap": 27058,
+                "cap_after": 26279,
+                "guard_ops": 779,
+                "crosses": 0,
+                "rq_sum": 8,
+                "rq_max": 2
+              }
+            ],
+            "bucket_sample_sum": 103,
+            "unknown_after_cap": 468997,
+            "none_after_cap": 17723,
+            "valid_sample_accounting": true
+          }
+        },
+        "duplicate_records": 0
+      }
+    },
+    "1234": {
+      "reference": {
+        "yearly": {
+          "1970": {
+            "loops": 755,
+            "sleep_left": 4185230,
+            "raw_cap": 2198736,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1971": {
+            "loops": 866,
+            "sleep_left": 5542125,
+            "raw_cap": 3188250,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1972": {
+            "loops": 956,
+            "sleep_left": 5667655,
+            "raw_cap": 3184745,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1973": {
+            "loops": 223,
+            "sleep_left": 1328112,
+            "raw_cap": 723131,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          }
+        },
+        "duplicate_records": 0
+      },
+      "variant": {
+        "yearly": {
+          "1970": {
+            "loops": 755,
+            "sleep_left": 4059822,
+            "raw_cap": 2116450,
+            "shadow_ops": 133664,
+            "shadow_ticks_crossed": 7,
+            "shadow_calls": 755,
+            "total": {
+              "y": 1970,
+              "kind": "total",
+              "high": 475,
+              "low": 280,
+              "crosses": 0,
+              "guard_ops": 68593,
+              "guard_max": 192,
+              "before_cap": 2154575,
+              "after_cap": 2080443,
+              "unknown": 204,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "rail_stock.prep|rail_search|rq_yes|c67_off",
+                "n": 6,
+                "cap": 24731,
+                "cap_after": 23724,
+                "guard_ops": 1007,
+                "crosses": 0,
+                "rq_sum": 6,
+                "rq_max": 1
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_none|rq_no|c67_off",
+                "n": 98,
+                "cap": 479200,
+                "cap_after": 464767,
+                "guard_ops": 14433,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 271,
+                "cap": 1175320,
+                "cap_after": 1133876,
+                "guard_ops": 36883,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "rail_stock.prep_hold|rail_search|rq_no|c67_off",
+                "n": 16,
+                "cap": 92377,
+                "cap_after": 89742,
+                "guard_ops": 2635,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "rail_stock.prep|rail_search|rq_no|c67_off",
+                "n": 84,
+                "cap": 382947,
+                "cap_after": 368334,
+                "guard_ops": 13635,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 475,
+            "unknown_after_cap": 946567,
+            "none_after_cap": 1133876,
+            "valid_sample_accounting": true
+          },
+          "1971": {
+            "loops": 681,
+            "sleep_left": 3962147,
+            "raw_cap": 2170653,
+            "shadow_ops": 106422,
+            "shadow_ticks_crossed": 1,
+            "shadow_calls": 681,
+            "total": {
+              "y": 1971,
+              "kind": "total",
+              "high": 461,
+              "low": 220,
+              "crosses": 0,
+              "guard_ops": 64591,
+              "guard_max": 178,
+              "before_cap": 2132934,
+              "after_cap": 2065576,
+              "unknown": 158,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_yes|c67_off",
+                "n": 1,
+                "cap": 3372,
+                "cap_after": 3206,
+                "guard_ops": 166,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 7,
+                "cap": 29010,
+                "cap_after": 27047,
+                "guard_ops": 1084,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_none|rq_no|c67_off",
+                "n": 149,
+                "cap": 709230,
+                "cap_after": 687300,
+                "guard_ops": 21930,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 303,
+                "cap": 1388657,
+                "cap_after": 1345534,
+                "guard_ops": 41235,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 1,
+                "cap": 2665,
+                "cap_after": 2489,
+                "guard_ops": 176,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 461,
+            "unknown_after_cap": 720042,
+            "none_after_cap": 1345534,
+            "valid_sample_accounting": true
+          },
+          "1972": {
+            "loops": 999,
+            "sleep_left": 5949107,
+            "raw_cap": 3271001,
+            "shadow_ops": 168165,
+            "shadow_ticks_crossed": 5,
+            "shadow_calls": 999,
+            "total": {
+              "y": 1972,
+              "kind": "total",
+              "high": 756,
+              "low": 243,
+              "crosses": 0,
+              "guard_ops": 103986,
+              "guard_max": 197,
+              "before_cap": 3260087,
+              "after_cap": 3151422,
+              "unknown": 81,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 675,
+                "cap": 2885564,
+                "cap_after": 2789024,
+                "guard_ops": 91861,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 1,
+                "cap": 6277,
+                "cap_after": 6099,
+                "guard_ops": 178,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 80,
+                "cap": 368246,
+                "cap_after": 356299,
+                "guard_ops": 11947,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 756,
+            "unknown_after_cap": 362398,
+            "none_after_cap": 2789024,
+            "valid_sample_accounting": true
+          },
+          "1973": {
+            "loops": 309,
+            "sleep_left": 1733113,
+            "raw_cap": 907095,
+            "shadow_ops": 48141,
+            "shadow_ticks_crossed": 1,
+            "shadow_calls": 309,
+            "total": {
+              "y": 1973,
+              "kind": "total",
+              "high": 200,
+              "low": 109,
+              "crosses": 0,
+              "guard_ops": 29512,
+              "guard_max": 197,
+              "before_cap": 887062,
+              "after_cap": 851917,
+              "unknown": 165,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 1,
+                "cap": 5228,
+                "cap_after": 5049,
+                "guard_ops": 179,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 35,
+                "cap": 168366,
+                "cap_after": 163545,
+                "guard_ops": 4821,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 153,
+                "cap": 662439,
+                "cap_after": 633982,
+                "guard_ops": 22824,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 11,
+                "cap": 51029,
+                "cap_after": 49341,
+                "guard_ops": 1688,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 200,
+            "unknown_after_cap": 688372,
+            "none_after_cap": 163545,
+            "valid_sample_accounting": true
+          }
+        },
+        "duplicate_records": 0
+      }
+    },
+    "5678": {
+      "reference": {
+        "yearly": {
+          "1970": {
+            "loops": 788,
+            "sleep_left": 4448319,
+            "raw_cap": 2309814,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1971": {
+            "loops": 975,
+            "sleep_left": 5917048,
+            "raw_cap": 3391961,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1972": {
+            "loops": 86,
+            "sleep_left": 568874,
+            "raw_cap": 332106,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          },
+          "1973": {
+            "loops": 91,
+            "sleep_left": 550090,
+            "raw_cap": 302515,
+            "shadow_ops": 0,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 0,
+            "total": {},
+            "buckets": [],
+            "bucket_sample_sum": 0,
+            "unknown_after_cap": 0,
+            "none_after_cap": 0,
+            "valid_sample_accounting": false
+          }
+        },
+        "duplicate_records": 0
+      },
+      "variant": {
+        "yearly": {
+          "1970": {
+            "loops": 770,
+            "sleep_left": 4157147,
+            "raw_cap": 2146135,
+            "shadow_ops": 133691,
+            "shadow_ticks_crossed": 7,
+            "shadow_calls": 770,
+            "total": {
+              "y": 1970,
+              "kind": "total",
+              "high": 487,
+              "low": 283,
+              "crosses": 0,
+              "guard_ops": 67671,
+              "guard_max": 197,
+              "before_cap": 2154334,
+              "after_cap": 2079208,
+              "unknown": 105,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_yes|c67_off",
+                "n": 1,
+                "cap": 4811,
+                "cap_after": 4645,
+                "guard_ops": 166,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "regen_candidates|rail_none|rq_no|c67_off",
+                "n": 94,
+                "cap": 450195,
+                "cap_after": 436350,
+                "guard_ops": 13845,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 382,
+                "cap": 1663304,
+                "cap_after": 1604682,
+                "guard_ops": 52013,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1970,
+                "kind": "bucket",
+                "state": "rail_stock.prep|rail_search|rq_no|c67_off",
+                "n": 10,
+                "cap": 36024,
+                "cap_after": 33531,
+                "guard_ops": 1647,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 487,
+            "unknown_after_cap": 474526,
+            "none_after_cap": 1604682,
+            "valid_sample_accounting": true
+          },
+          "1971": {
+            "loops": 807,
+            "sleep_left": 4747701,
+            "raw_cap": 2638033,
+            "shadow_ops": 128771,
+            "shadow_ticks_crossed": 3,
+            "shadow_calls": 807,
+            "total": {
+              "y": 1971,
+              "kind": "total",
+              "high": 573,
+              "low": 234,
+              "crosses": 3,
+              "guard_ops": 108287,
+              "guard_max": 10136,
+              "before_cap": 2651960,
+              "after_cap": 2543570,
+              "unknown": 18,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 555,
+                "cap": 2562633,
+                "cap_after": 2457986,
+                "guard_ops": 105541,
+                "crosses": 3,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 5,
+                "cap": 23394,
+                "cap_after": 22612,
+                "guard_ops": 782,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1971,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 13,
+                "cap": 65933,
+                "cap_after": 62972,
+                "guard_ops": 1964,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 573,
+            "unknown_after_cap": 85584,
+            "none_after_cap": 2457986,
+            "valid_sample_accounting": true
+          },
+          "1972": {
+            "loops": 212,
+            "sleep_left": 1308818,
+            "raw_cap": 725606,
+            "shadow_ops": 35473,
+            "shadow_ticks_crossed": 0,
+            "shadow_calls": 212,
+            "total": {
+              "y": 1972,
+              "kind": "total",
+              "high": 150,
+              "low": 62,
+              "crosses": 0,
+              "guard_ops": 22229,
+              "guard_max": 197,
+              "before_cap": 708467,
+              "after_cap": 684417,
+              "unknown": 128,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 1,
+                "cap": 3471,
+                "cap_after": 3292,
+                "guard_ops": 179,
+                "crosses": 0,
+                "rq_sum": 1,
+                "rq_max": 1
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_none|rq_no|c67_off",
+                "n": 22,
+                "cap": 111342,
+                "cap_after": 108289,
+                "guard_ops": 3053,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 117,
+                "cap": 550995,
+                "cap_after": 531714,
+                "guard_ops": 17460,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1972,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 10,
+                "cap": 42659,
+                "cap_after": 41122,
+                "guard_ops": 1537,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 150,
+            "unknown_after_cap": 576128,
+            "none_after_cap": 108289,
+            "valid_sample_accounting": true
+          },
+          "1973": {
+            "loops": 112,
+            "sleep_left": 697853,
+            "raw_cap": 382232,
+            "shadow_ops": 19633,
+            "shadow_ticks_crossed": 1,
+            "shadow_calls": 112,
+            "total": {
+              "y": 1973,
+              "kind": "total",
+              "high": 83,
+              "low": 29,
+              "crosses": 0,
+              "guard_ops": 12499,
+              "guard_max": 210,
+              "before_cap": 383114,
+              "after_cap": 369716,
+              "unknown": 83,
+              "other": 0
+            },
+            "buckets": [
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_yes|c67_off",
+                "n": 3,
+                "cap": 13597,
+                "cap_after": 13118,
+                "guard_ops": 479,
+                "crosses": 0,
+                "rq_sum": 6,
+                "rq_max": 2
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_build|rq_no|c67_off",
+                "n": 6,
+                "cap": 27103,
+                "cap_after": 26170,
+                "guard_ops": 933,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              },
+              {
+                "y": 1973,
+                "kind": "bucket",
+                "state": "none|rail_search|rq_no|c67_off",
+                "n": 74,
+                "cap": 342414,
+                "cap_after": 330428,
+                "guard_ops": 11087,
+                "crosses": 0,
+                "rq_sum": 0,
+                "rq_max": 0
+              }
+            ],
+            "bucket_sample_sum": 83,
+            "unknown_after_cap": 369716,
+            "none_after_cap": 0,
+            "valid_sample_accounting": true
+          }
+        },
+        "duplicate_records": 0
+      }
+    }
+  },
+  "annual_mean": {
+    "1970": {
+      "reference": {
+        "loops": 820.6,
+        "sleep_left": 4612228.2,
+        "raw_cap": 2420891,
+        "shadow_ops": 0,
+        "shadow_ticks_crossed": 0,
+        "shadow_calls": 0,
+        "unknown_after_cap": 0,
+        "none_after_cap": 0
+      },
+      "variant": {
+        "loops": 817.2,
+        "sleep_left": 4534945.4,
+        "raw_cap": 2383076.2,
+        "shadow_ops": 134037.2,
+        "shadow_ticks_crossed": 5,
+        "shadow_calls": 817.2,
+        "unknown_after_cap": 977876.2,
+        "none_after_cap": 1316075,
+        "sample": {
+          "high": 527.8,
+          "low": 289.4,
+          "crosses": 0.2,
+          "guard_ops": 76781.6,
+          "guard_max": 2182.8,
+          "before_cap": 2377958.2,
+          "after_cap": 2293951.2,
+          "unknown": 215.4,
+          "other": 0
+        },
+        "all_samples_reconciled": true
+      }
+    },
+    "1971": {
+      "reference": {
+        "loops": 779.8,
+        "sleep_left": 4619553,
+        "raw_cap": 2579589.6,
+        "shadow_ops": 0,
+        "shadow_ticks_crossed": 0,
+        "shadow_calls": 0,
+        "unknown_after_cap": 0,
+        "none_after_cap": 0
+      },
+      "variant": {
+        "loops": 722.8,
+        "sleep_left": 4189707.2,
+        "raw_cap": 2295348.8,
+        "shadow_ops": 115896.4,
+        "shadow_ticks_crossed": 2.2,
+        "shadow_calls": 722.8,
+        "unknown_after_cap": 178993.4,
+        "none_after_cap": 2019246,
+        "sample": {
+          "high": 491.8,
+          "low": 231,
+          "crosses": 0.6,
+          "guard_ops": 73436.8,
+          "guard_max": 2177.2,
+          "before_cap": 2276759.8,
+          "after_cap": 2198239.4,
+          "unknown": 39.8,
+          "other": 0
+        },
+        "all_samples_reconciled": true
+      }
+    },
+    "1972": {
+      "reference": {
+        "loops": 354.6,
+        "sleep_left": 2127875.2,
+        "raw_cap": 1189037.2,
+        "shadow_ops": 0,
+        "shadow_ticks_crossed": 0,
+        "shadow_calls": 0,
+        "unknown_after_cap": 0,
+        "none_after_cap": 0
+      },
+      "variant": {
+        "loops": 576.2,
+        "sleep_left": 3340467.8,
+        "raw_cap": 1817559.4,
+        "shadow_ops": 99001.6,
+        "shadow_ticks_crossed": 3.8,
+        "shadow_calls": 576.2,
+        "unknown_after_cap": 574427.4,
+        "none_after_cap": 1172206.2,
+        "sample": {
+          "high": 417.4,
+          "low": 158.8,
+          "crosses": 0,
+          "guard_ops": 58655.4,
+          "guard_max": 197,
+          "before_cap": 1809392,
+          "after_cap": 1746633.6,
+          "unknown": 134.4,
+          "other": 0
+        },
+        "all_samples_reconciled": true
+      }
+    },
+    "1973": {
+      "reference": {
+        "loops": 268.8,
+        "sleep_left": 1528919.6,
+        "raw_cap": 804982.8,
+        "shadow_ops": 0,
+        "shadow_ticks_crossed": 0,
+        "shadow_calls": 0,
+        "unknown_after_cap": 0,
+        "none_after_cap": 0
+      },
+      "variant": {
+        "loops": 332.6,
+        "sleep_left": 1959130.4,
+        "raw_cap": 1050309.4,
+        "shadow_ops": 56894,
+        "shadow_ticks_crossed": 1,
+        "shadow_calls": 332.6,
+        "unknown_after_cap": 568800.2,
+        "none_after_cap": 425793,
+        "sample": {
+          "high": 248.2,
+          "low": 84.4,
+          "crosses": 0,
+          "guard_ops": 35653.8,
+          "guard_max": 204.8,
+          "before_cap": 1033565,
+          "after_cap": 994593.2,
+          "unknown": 132.6,
+          "other": 0
+        },
+        "all_samples_reconciled": true
+      }
+    }
+  },
+  "limitations": [
+    "A/B arms can diverge economically and in scheduler trajectory; compare same-seed values descriptively only.",
+    "TAIL_SHADOW.before_cap is not actually runnable work, after_cap subtracts internal guard only.",
+    "UNKNOWN means potentially pending but no certified readiness; zero recovered worker opcodes.",
+    "tail_shadow_ticks_crossed covers full hook metering, not the narrower crosses within guard."
+  ]
+}

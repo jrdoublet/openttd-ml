@@ -1,0 +1,641 @@
+{
+  "campaign": "p0_abandon_skip_b20x10_20261012",
+  "bundle": "6f4657e035f799123fc1a1df4decda57ccf2ea41fda3404b528679f37bdc5f05",
+  "health": {
+    "games": 40,
+    "paired_seeds": 20,
+    "summary_company_rows": 80,
+    "annual_active_service_snapshots": 800,
+    "unresolved_vehicle_snapshots": 9,
+    "unresolved_vehicle_details": [
+      {
+        "policy": "reference",
+        "arm": "AAAHogEx",
+        "seed": 100,
+        "year": 1979,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "reference",
+        "arm": "AAAHogEx",
+        "seed": 512,
+        "year": 1979,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "p0_abandon_second_check_skip",
+        "arm": "AAAHogEx",
+        "seed": 1024,
+        "year": 1972,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "reference",
+        "arm": "AAAHogEx",
+        "seed": 8191,
+        "year": 1977,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "reference",
+        "arm": "AAAHogEx",
+        "seed": 12345,
+        "year": 1973,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "p0_abandon_second_check_skip",
+        "arm": "AAAHogEx",
+        "seed": 12345,
+        "year": 1973,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "reference",
+        "arm": "AAAHogEx",
+        "seed": 65537,
+        "year": 1974,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "p0_abandon_second_check_skip",
+        "arm": "AAAHogEx",
+        "seed": 424242,
+        "year": 1971,
+        "vehicle_count": 1
+      },
+      {
+        "policy": "p0_abandon_second_check_skip",
+        "arm": "AAAHogEx",
+        "seed": 424242,
+        "year": 1972,
+        "vehicle_count": 1
+      }
+    ],
+    "script_errors": 0,
+    "failed_runs": 0
+  },
+  "terminal": {
+    "profit_delta": {
+      "n": 20,
+      "mean": -67847.35,
+      "median": 36168.0,
+      "standard_deviation": 405254.987187,
+      "standard_error": 90617.769957,
+      "mean_normal_95pct_ci": [
+        -245454.915475,
+        109760.215475
+      ],
+      "mean_student_t_95pct_ci": [
+        -257512.517347,
+        121817.817347
+      ],
+      "wins": 11,
+      "losses": 9,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 20,
+      "sign_test_p": 0.823803,
+      "wilcoxon_p": 0.9854354858398438,
+      "mean_bootstrap_95pct_ci": [
+        -247234.45,
+        97157.8
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "profit_ratio": {
+      "n_positive_denominator": 20,
+      "excluded_nonpositive_or_missing_denominator": 0,
+      "ratio_of_means": 0.978518,
+      "ratio_of_means_percent_change": -2.148161,
+      "mean_of_ratios": 0.98319,
+      "mean_of_ratios_percent_change": -1.68096
+    },
+    "company_value_delta": {
+      "n": 20,
+      "mean": -174623.8,
+      "median": -79647.0,
+      "standard_deviation": 1460420.780456,
+      "standard_error": 326560.014085,
+      "mean_normal_95pct_ci": [
+        -814669.666398,
+        465422.066398
+      ],
+      "mean_student_t_95pct_ci": [
+        -858121.746921,
+        508874.146921
+      ],
+      "wins": 10,
+      "losses": 10,
+      "ties": 0,
+      "sign_test_n_excluding_ties": 20,
+      "sign_test_p": 1.0,
+      "wilcoxon_p": 0.7011814117431641,
+      "mean_bootstrap_95pct_ci": [
+        -802655.9,
+        436727.95
+      ],
+      "bootstrap_resamples": 20000,
+      "bootstrap_seed": 0
+    },
+    "company_value_ratio": {
+      "n_positive_denominator": 20,
+      "excluded_nonpositive_or_missing_denominator": 0,
+      "ratio_of_means": 0.989744,
+      "ratio_of_means_percent_change": -1.025626,
+      "mean_of_ratios": 0.988109,
+      "mean_of_ratios_percent_change": -1.18911
+    },
+    "harness_non_erosion_verdict": "pass",
+    "not_an_adoption_verdict": true
+  },
+  "annual_trajectory": {
+    "1970": {
+      "opex_profit_ref_mean": 342463.55,
+      "opex_profit_variant_mean": 356557.1,
+      "opex_profit_variant_minus_ref_mean": 14093.55,
+      "opex_vs_aaa_ref_gap_mean": 26874.2,
+      "opex_vs_aaa_variant_gap_mean": 39780.85,
+      "active_reference_OpexAI_air_mean": 6.8,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 0,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 0,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 6.15,
+      "active_reference_AAAHogEx_air_qualified_n": 20,
+      "active_reference_AAAHogEx_rail_mean": 0.4,
+      "active_reference_AAAHogEx_rail_qualified_n": 20,
+      "active_reference_AAAHogEx_road_mean": 0.2,
+      "active_reference_AAAHogEx_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 7,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 0,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 0,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 6.05,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 0.45,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 0.15,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 20
+    },
+    "1971": {
+      "opex_profit_ref_mean": 1305933.05,
+      "opex_profit_variant_mean": 1336430.55,
+      "opex_profit_variant_minus_ref_mean": 30497.5,
+      "opex_vs_aaa_ref_gap_mean": -56097.45,
+      "opex_vs_aaa_variant_gap_mean": -64829.4,
+      "active_reference_OpexAI_air_mean": 24.4,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 2.55,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 0.55,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 12.25,
+      "active_reference_AAAHogEx_air_qualified_n": 20,
+      "active_reference_AAAHogEx_rail_mean": 5.3,
+      "active_reference_AAAHogEx_rail_qualified_n": 20,
+      "active_reference_AAAHogEx_road_mean": 14.55,
+      "active_reference_AAAHogEx_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 25.35,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 2.6,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 0.5,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 12.263,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 19,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 6.211,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 19,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 14.842,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 19
+    },
+    "1972": {
+      "opex_profit_ref_mean": 1925369.6,
+      "opex_profit_variant_mean": 1948517.8,
+      "opex_profit_variant_minus_ref_mean": 23148.2,
+      "opex_vs_aaa_ref_gap_mean": -60027.65,
+      "opex_vs_aaa_variant_gap_mean": -143340.1,
+      "active_reference_OpexAI_air_mean": 38.65,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 3.05,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 0.8,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 14.1,
+      "active_reference_AAAHogEx_air_qualified_n": 20,
+      "active_reference_AAAHogEx_rail_mean": 10.25,
+      "active_reference_AAAHogEx_rail_qualified_n": 20,
+      "active_reference_AAAHogEx_road_mean": 55.1,
+      "active_reference_AAAHogEx_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 40.45,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 3.3,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 0.9,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 13.778,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 18,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 11.278,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 18,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 56.389,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 18
+    },
+    "1973": {
+      "opex_profit_ref_mean": 1920910.2,
+      "opex_profit_variant_mean": 1949149,
+      "opex_profit_variant_minus_ref_mean": 28238.8,
+      "opex_vs_aaa_ref_gap_mean": -586453.3,
+      "opex_vs_aaa_variant_gap_mean": -675582.6,
+      "active_reference_OpexAI_air_mean": 44.75,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 4.4,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 1.15,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 15.842,
+      "active_reference_AAAHogEx_air_qualified_n": 19,
+      "active_reference_AAAHogEx_rail_mean": 14.947,
+      "active_reference_AAAHogEx_rail_qualified_n": 19,
+      "active_reference_AAAHogEx_road_mean": 76.737,
+      "active_reference_AAAHogEx_road_qualified_n": 19,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 47.6,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 4.7,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 1.35,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 15.789,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 19,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 16.211,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 19,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 74.421,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 19
+    },
+    "1974": {
+      "opex_profit_ref_mean": 1973911.45,
+      "opex_profit_variant_mean": 2040246.2,
+      "opex_profit_variant_minus_ref_mean": 66334.75,
+      "opex_vs_aaa_ref_gap_mean": -1188881.4,
+      "opex_vs_aaa_variant_gap_mean": -1166370.95,
+      "active_reference_OpexAI_air_mean": 48.75,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 6.1,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 1.45,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 16.316,
+      "active_reference_AAAHogEx_air_qualified_n": 19,
+      "active_reference_AAAHogEx_rail_mean": 18.895,
+      "active_reference_AAAHogEx_rail_qualified_n": 19,
+      "active_reference_AAAHogEx_road_mean": 84.368,
+      "active_reference_AAAHogEx_road_qualified_n": 19,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 50.85,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 6,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 1.65,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 16.65,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 20.05,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 81.15,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 20
+    },
+    "1975": {
+      "opex_profit_ref_mean": 2159266.7,
+      "opex_profit_variant_mean": 2192420.7,
+      "opex_profit_variant_minus_ref_mean": 33154,
+      "opex_vs_aaa_ref_gap_mean": -1981977.2,
+      "opex_vs_aaa_variant_gap_mean": -2133025.75,
+      "active_reference_OpexAI_air_mean": 50.75,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 7.05,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 1.7,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 16.55,
+      "active_reference_AAAHogEx_air_qualified_n": 20,
+      "active_reference_AAAHogEx_rail_mean": 22.2,
+      "active_reference_AAAHogEx_rail_qualified_n": 20,
+      "active_reference_AAAHogEx_road_mean": 88.05,
+      "active_reference_AAAHogEx_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 52.9,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 7.15,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 2.05,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 17,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 23,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 85.15,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 20
+    },
+    "1976": {
+      "opex_profit_ref_mean": 2374263.55,
+      "opex_profit_variant_mean": 2391720.7,
+      "opex_profit_variant_minus_ref_mean": 17457.15,
+      "opex_vs_aaa_ref_gap_mean": -2911099.3,
+      "opex_vs_aaa_variant_gap_mean": -3097415.7,
+      "active_reference_OpexAI_air_mean": 51.85,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 8,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 2,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 16.95,
+      "active_reference_AAAHogEx_air_qualified_n": 20,
+      "active_reference_AAAHogEx_rail_mean": 25.8,
+      "active_reference_AAAHogEx_rail_qualified_n": 20,
+      "active_reference_AAAHogEx_road_mean": 91.05,
+      "active_reference_AAAHogEx_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 53.95,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 7.85,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 2.15,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 17.35,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 25.6,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 89.9,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 20
+    },
+    "1977": {
+      "opex_profit_ref_mean": 2665966.25,
+      "opex_profit_variant_mean": 2598605.05,
+      "opex_profit_variant_minus_ref_mean": -67361.2,
+      "opex_vs_aaa_ref_gap_mean": -3721134.55,
+      "opex_vs_aaa_variant_gap_mean": -4007236.2,
+      "active_reference_OpexAI_air_mean": 52.6,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 8.8,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 2.05,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 17.316,
+      "active_reference_AAAHogEx_air_qualified_n": 19,
+      "active_reference_AAAHogEx_rail_mean": 28.579,
+      "active_reference_AAAHogEx_rail_qualified_n": 19,
+      "active_reference_AAAHogEx_road_mean": 94.105,
+      "active_reference_AAAHogEx_road_qualified_n": 19,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 54.5,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 8.3,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 2.3,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 17.7,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 28,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 93.55,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 20
+    },
+    "1978": {
+      "opex_profit_ref_mean": 2903487.1,
+      "opex_profit_variant_mean": 2805548.4,
+      "opex_profit_variant_minus_ref_mean": -97938.7,
+      "opex_vs_aaa_ref_gap_mean": -4456938.75,
+      "opex_vs_aaa_variant_gap_mean": -4476835.9,
+      "active_reference_OpexAI_air_mean": 53.1,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 9.35,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 2.05,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 17.7,
+      "active_reference_AAAHogEx_air_qualified_n": 20,
+      "active_reference_AAAHogEx_rail_mean": 30.9,
+      "active_reference_AAAHogEx_rail_qualified_n": 20,
+      "active_reference_AAAHogEx_road_mean": 98.8,
+      "active_reference_AAAHogEx_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 54.55,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 8.8,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 2.45,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 17.85,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 30.25,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 95.85,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 20
+    },
+    "1979": {
+      "opex_profit_ref_mean": 3158391.6,
+      "opex_profit_variant_mean": 3090544.25,
+      "opex_profit_variant_minus_ref_mean": -67847.35,
+      "opex_vs_aaa_ref_gap_mean": -5287420.7,
+      "opex_vs_aaa_variant_gap_mean": -5205786.5,
+      "active_reference_OpexAI_air_mean": 53.4,
+      "active_reference_OpexAI_air_qualified_n": 20,
+      "active_reference_OpexAI_rail_mean": 9.75,
+      "active_reference_OpexAI_rail_qualified_n": 20,
+      "active_reference_OpexAI_road_mean": 2.05,
+      "active_reference_OpexAI_road_qualified_n": 20,
+      "active_reference_AAAHogEx_air_mean": 18.278,
+      "active_reference_AAAHogEx_air_qualified_n": 18,
+      "active_reference_AAAHogEx_rail_mean": 31.944,
+      "active_reference_AAAHogEx_rail_qualified_n": 18,
+      "active_reference_AAAHogEx_road_mean": 103.056,
+      "active_reference_AAAHogEx_road_qualified_n": 18,
+      "active_p0_abandon_second_check_skip_OpexAI_air_mean": 54.3,
+      "active_p0_abandon_second_check_skip_OpexAI_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_mean": 9.15,
+      "active_p0_abandon_second_check_skip_OpexAI_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_OpexAI_road_mean": 2.55,
+      "active_p0_abandon_second_check_skip_OpexAI_road_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_mean": 18.1,
+      "active_p0_abandon_second_check_skip_AAAHogEx_air_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_mean": 32.7,
+      "active_p0_abandon_second_check_skip_AAAHogEx_rail_qualified_n": 20,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_mean": 98.5,
+      "active_p0_abandon_second_check_skip_AAAHogEx_road_qualified_n": 20
+    }
+  },
+  "top_level_loop_ops": {
+    "all_years_1970_1978_delta": {
+      "n": 20,
+      "mean": -476602.2,
+      "median": -644541.5,
+      "wins_variant_lower": 13,
+      "losses_variant_higher": 7,
+      "ties": 0,
+      "bootstrap95_mean": [
+        -2729975.697,
+        1845582.389
+      ]
+    },
+    "by_year": {
+      "1970": {
+        "n": 20,
+        "mean": -15341.9,
+        "median": -92001.5,
+        "wins_variant_lower": 12,
+        "losses_variant_higher": 8,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -199087.279,
+          193248.597
+        ]
+      },
+      "1971": {
+        "n": 20,
+        "mean": -75640.9,
+        "median": 182892.5,
+        "wins_variant_lower": 9,
+        "losses_variant_higher": 11,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -404748.79,
+          247120.767
+        ]
+      },
+      "1972": {
+        "n": 20,
+        "mean": -535281.05,
+        "median": -748782.0,
+        "wins_variant_lower": 11,
+        "losses_variant_higher": 9,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -2378166.12,
+          1306238.869
+        ]
+      },
+      "1973": {
+        "n": 20,
+        "mean": -165921.6,
+        "median": -293860.0,
+        "wins_variant_lower": 11,
+        "losses_variant_higher": 9,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -1338151.399,
+          1080014.414
+        ]
+      },
+      "1974": {
+        "n": 20,
+        "mean": 501794.65,
+        "median": 22818.5,
+        "wins_variant_lower": 9,
+        "losses_variant_higher": 11,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -495514.594,
+          1578378.51
+        ]
+      },
+      "1975": {
+        "n": 20,
+        "mean": -237259.15,
+        "median": -189492.5,
+        "wins_variant_lower": 12,
+        "losses_variant_higher": 8,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -1264441.85,
+          819340.992
+        ]
+      },
+      "1976": {
+        "n": 20,
+        "mean": -918067.85,
+        "median": -408326.5,
+        "wins_variant_lower": 15,
+        "losses_variant_higher": 5,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -1886903.021,
+          22218.329
+        ]
+      },
+      "1977": {
+        "n": 20,
+        "mean": 1081464.35,
+        "median": 301130.5,
+        "wins_variant_lower": 7,
+        "losses_variant_higher": 13,
+        "ties": 0,
+        "bootstrap95_mean": [
+          184906.715,
+          2264501.401
+        ]
+      },
+      "1978": {
+        "n": 20,
+        "mean": -112348.75,
+        "median": 170263.5,
+        "wins_variant_lower": 8,
+        "losses_variant_higher": 12,
+        "ties": 0,
+        "bootstrap95_mean": [
+          -1300487.154,
+          913434.421
+        ]
+      }
+    },
+    "ref_mean_occupied_1970_1978": 585181441.8,
+    "variant_mean_occupied_1970_1978": 584704839.6
+  },
+  "per_seed_42_100_999": {
+    "42": {
+      "profit_by_year": {
+        "1970": 9535,
+        "1971": 160319,
+        "1972": 318502,
+        "1973": 150983
+      },
+      "occupied_by_year": {
+        "1970": -197008,
+        "1971": -1201797,
+        "1972": 182318,
+        "1973": -1715843
+      }
+    },
+    "100": {
+      "profit_by_year": {
+        "1970": -18348,
+        "1971": -91730,
+        "1972": -163866,
+        "1973": -88446
+      },
+      "occupied_by_year": {
+        "1970": 66770,
+        "1971": 402915,
+        "1972": -3437695,
+        "1973": -515071
+      }
+    },
+    "999": {
+      "profit_by_year": {
+        "1970": 80752,
+        "1971": 117353,
+        "1972": 262982,
+        "1973": 363047
+      },
+      "occupied_by_year": {
+        "1970": -13945,
+        "1971": -540797,
+        "1972": -2285946,
+        "1973": -5151510
+      }
+    }
+  },
+  "limitations": [
+    "LOOP_OPS top-level is non-overlapping and approximates tick-window occupation; not pure VM instructions.",
+    "1979 terminal profit requires a 1979 simulation; LOOP_OPS closures cover 1970-1978.",
+    "Yearly active services are not construction counts or unique new project attempts.",
+    "No strict economic conversion causality follows from a narrow duplicate-check change.",
+    "Separate policy maps may diverge, including AAAHogEx trajectories; pair the two Opex arms by seed only."
+  ]
+}

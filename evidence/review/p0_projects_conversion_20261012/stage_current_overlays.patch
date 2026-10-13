@@ -1,0 +1,156 @@
+﻿diff --git a/ai/OpexAI/air_planning.nut b/ai/OpexAI/air_planning.nut
+index 21c3509..ea80674 100644
+--- a/ai/OpexAI/air_planning.nut
++++ b/ai/OpexAI/air_planning.nut
+@@ -2802,10 +2802,7 @@ function OpexC121EngTabEmitPlan(plan, routeChoice)
+       && routeChoice.decisionEconomics != null) ? routeChoice.decisionEconomics : null;
+   local portfolio = (routeChoice != null && ("portfolioEconomics" in routeChoice)
+       && routeChoice.portfolioEconomics != null) ? routeChoice.portfolioEconomics : null;
+-  local rankObj = opening;
+-  if (!C121_AIR_INITIAL_PROJECT_ECONOMICS) {
+-    if (decision != null) rankObj = decision;
+-  }
++  local rankObj = decision != null ? decision : opening;
+   local eng = -1;
+   if (routeChoice != null && ("plane" in routeChoice) && routeChoice.plane != null
+       && ("id" in routeChoice.plane)) eng = routeChoice.plane.id;
+@@ -2831,7 +2828,6 @@ function OpexC121EngTabEmitPlan(plan, routeChoice)
+     n2P = OpexC121EngTabNum(C121_ENGTAB_N2, "profitAnnual");
+     n2C = OpexC121EngTabNum(C121_ENGTAB_N2, "capital");
+   }
+-  local initFlag = C121_AIR_INITIAL_PROJECT_ECONOMICS ? 1 : 0;
+   local splitFlag = 0;
+   local ge = 0;
+   local geEst = -1;
+@@ -2866,7 +2862,7 @@ function OpexC121EngTabEmitPlan(plan, routeChoice)
+       + " C_n2=" + n2C
+       + " imm=" + OpexC121EngTabNum(rankObj, "immobilise")
+       + " kdec=" + OpexC121EngTabNum(rankObj, "decisionKDec")
+-      + " init=" + initFlag
++      + " init=0"
+       + " split=" + splitFlag
+       + " ge=" + ge
+       + " ge_est=" + geEst);
+diff --git a/ai/OpexAI/probes.nut b/ai/OpexAI/probes.nut
+index 39d4b5a..c6c6338 100644
+--- a/ai/OpexAI/probes.nut
++++ b/ai/OpexAI/probes.nut
+@@ -2607,7 +2607,20 @@ function OpexAI::_mainLoopProfiled()
+     this._processEvents();
+     if (spEvents != null) OpexSpanEnd(spEvents);
+     OpexLoopProfAdd("events", mark);
+-    if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
++    /* Maintenir la parite avec main.nut : la projection Save faisait auparavant
++     * defaut dans cette copie instrumentee de la boucle (>= 64 lignes). */
++    if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) {
++      mark = OpexOpsMeasureBegin();
++      local spSave = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.save_projection") : null;
++      this._refreshSaveProjection();
++      if (spSave != null) OpexSpanEnd(spSave);
++      OpexLoopProfAdd("save_projection", mark);
++    } else if (this._saveProjection != null) this._saveProjection = null;
++    if (C121_STATION_FLUX_PROBE) {
++      mark = OpexOpsMeasureBegin();
++      OpexC121StationFluxStep(this._catalog);
++      OpexLoopProfAdd("station_flux", mark);
++    }
+     if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
+       local before = C117_AIR_LAST_DATE;
+       mark = OpexOpsMeasureBegin();
+@@ -2665,7 +2678,23 @@ function OpexAI::_mainLoopProfiled()
+       if (spC67 != null) OpexSpanEnd(spC67);
+       OpexLoopProfAdd("c67_hook", mark);
+     }
+-    OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
++    /* Comptage purement observatoire : plafond du budget qui pourrait etre
++     * offert a un micro-worker au prochain Sleep. Ce n'est PAS du travail
++     * execute ni une promesse qu'un worker peut progresser.
++     * C67: seuil 4000 et reserve 3000 (task_terrain.nut). La classe signale
++     * uniquement un travailleur actif ou une recherche rail suspendue ; elle
++     * n'implique ni admissibilite, ni progression possible dans ce tick. */
++    local leftAtSleep = AIController.GetOpsTillSuspend();
++    OpexLoopProfAddRaw("sleep_left", leftAtSleep, 0);
++    local opportunityKind = "no_pending_worker";
++    if (this._activeWorker != null) opportunityKind = "active_" + this._activeWorker.kind;
++    else if (this._railSearch != null) opportunityKind = "pending_rail_search";
++    else if (C67_SLACK_HOOK && this._c67Terrain != null
++             && !this._c67BgIdle) opportunityKind = "pending_c67";
++    OpexLoopProfAddRaw("sleep_ctx_" + opportunityKind, leftAtSleep, 0);
++    local microCap = leftAtSleep >= C67_SLACK_MIN
++        ? leftAtSleep - C67_SLACK_RESERVE : 0;
++    OpexLoopProfAddRaw("sleep_cap3k_" + opportunityKind, microCap, 0);
+     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
+     AIController.Sleep(1);
+     if (spSleep != null) OpexSpanEnd(spSleep);
+diff --git a/ai/OpexAI/projects_builders.nut b/ai/OpexAI/projects_builders.nut
+index 0fca4d0..49cf3ba 100644
+--- a/ai/OpexAI/projects_builders.nut
++++ b/ai/OpexAI/projects_builders.nut
+@@ -276,13 +276,6 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
+   if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
+     decisionBudgetCapital += decisionEconomics.immobilise;
+   }
+-  /* C121 peut isoler strictement l'economie du projet execute maintenant : une
+-   * nouvelle ligne construit un seul avion. Les avions suivants sont deja des
+-   * projets flotte marginaux concurrents, donc crediter ici la croisiere future
+-   * peut compter deux fois la meme valeur. Le mode historique reste le defaut. */
+-  local useInitialProjectEconomics = C121_AIR_ECONOMICS && C121_AIR_INITIAL_PROJECT_ECONOMICS;
+-  local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;
+-  local projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital;
+   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
+    * que sur les opcodes encore necessaires pour construire le projet. */
+   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
+@@ -290,14 +283,13 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
+     mode = "air", kind = "pax", cargo = catalog.paxCargo,
+     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
+     distance = plan.distance, capital = economics.capital,
+-    budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
+-    decisionConstructionCapital = useInitialProjectEconomics
+-        ? economics.capital : decisionEconomics.capital,
+-    profitAnnual = projectEconomics.profitAnnual,
+-    revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
++    budgetCapital = budgetCapital, decisionFinanceCapital = decisionBudgetCapital,
++    decisionConstructionCapital = decisionEconomics.capital,
++    profitAnnual = decisionEconomics.profitAnnual,
++    revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi,
+     expectedOpcodes = expectedOps,
+-    budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital),
+-    opcodeScore = OpexProjectScore(projectEconomics.revenueAnnual, expectedOps),
++    budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
++    opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
+     planningOpcodes = planningOps,
+     economicsDate = AIDate.GetCurrentDate(),
+   };
+@@ -345,11 +337,6 @@ function OpexProjectFromAir(catalog, plan, planningOps)
+   if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
+     decisionBudgetCapital += decisionEconomics.immobilise;
+   }
+-  /* Option experimentale : classer le projet sur ce qui est construit maintenant
+-   * (N=1). Les renforcements futurs restent des projets flotte independants. */
+-  local useInitialProjectEconomics = C121_AIR_ECONOMICS && C121_AIR_INITIAL_PROJECT_ECONOMICS;
+-  local projectEconomics = useInitialProjectEconomics ? economics : decisionEconomics;
+-  local projectDecisionBudgetCapital = useInitialProjectEconomics ? budgetCapital : decisionBudgetCapital;
+   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
+    * que sur les opcodes encore necessaires pour construire le projet. */
+   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
+@@ -357,14 +344,13 @@ function OpexProjectFromAir(catalog, plan, planningOps)
+     mode = "air", kind = "pax", cargo = catalog.paxCargo,
+     src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
+     distance = plan.distance, capital = economics.capital,
+-    budgetCapital = budgetCapital, decisionFinanceCapital = projectDecisionBudgetCapital,
+-    decisionConstructionCapital = useInitialProjectEconomics
+-        ? economics.capital : decisionEconomics.capital,
+-    profitAnnual = projectEconomics.profitAnnual,
+-    revenueAnnual = projectEconomics.revenueAnnual, roi = projectEconomics.roi,
++    budgetCapital = budgetCapital, decisionFinanceCapital = decisionBudgetCapital,
++    decisionConstructionCapital = decisionEconomics.capital,
++    profitAnnual = decisionEconomics.profitAnnual,
++    revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi,
+     expectedOpcodes = expectedOps,
+-    budgetScore = OpexProjectScore(projectEconomics.revenueAnnual, projectDecisionBudgetCapital),
+-    opcodeScore = OpexProjectScore(projectEconomics.revenueAnnual, expectedOps),
++    budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
++    opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
+     planningOpcodes = planningOps,
+     economicsDate = AIDate.GetCurrentDate(),
+   };

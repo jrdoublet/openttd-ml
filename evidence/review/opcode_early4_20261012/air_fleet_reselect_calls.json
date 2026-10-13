@@ -1,0 +1,1724 @@
+{
+  "seeds": [
+    42,
+    100,
+    999,
+    1234,
+    5678
+  ],
+  "by_seed": {
+    "42": {
+      "years": {
+        "1970": {
+          "catalog": {
+            "calls": 175,
+            "task_window_ops": 8660969,
+            "reselect_calls": 125,
+            "reselect_ops": 6489835,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 62
+          },
+          "report": {
+            "calls": 138,
+            "task_window_ops": 331466,
+            "reselect_calls": 4,
+            "reselect_ops": 163672,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 4
+          },
+          "scrap": {
+            "calls": 138,
+            "task_window_ops": 127286,
+            "reselect_calls": 62,
+            "reselect_ops": 3211208,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 62
+          },
+          "air": {
+            "calls": 1,
+            "task_window_ops": 542,
+            "reselect_calls": 1,
+            "reselect_ops": 6165,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "air_fleet": {
+            "calls": 138,
+            "task_window_ops": 579038,
+            "reselect_calls": 11,
+            "reselect_ops": 1073757,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 8
+          },
+          "projects": {
+            "calls": 138,
+            "task_window_ops": 11112728,
+            "reselect_calls": 54,
+            "reselect_ops": 2945276,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 49
+          },
+          "expand": {
+            "calls": 138,
+            "task_window_ops": 1102124,
+            "reselect_calls": 7,
+            "reselect_ops": 317227,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 6
+          },
+          "refleet": {
+            "calls": 138,
+            "task_window_ops": 121131,
+            "reselect_calls": 47,
+            "reselect_ops": 2216532,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 47
+          },
+          "town_growth": {
+            "calls": 1,
+            "task_window_ops": 563,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 138,
+            "task_window_ops": 192785,
+            "reselect_calls": 3,
+            "reselect_ops": 138329,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 3
+          }
+        },
+        "1971": {
+          "catalog": {
+            "calls": 211,
+            "task_window_ops": 5638519,
+            "reselect_calls": 76,
+            "reselect_ops": 2378802,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 24
+          },
+          "report": {
+            "calls": 211,
+            "task_window_ops": 1095948,
+            "reselect_calls": 14,
+            "reselect_ops": 303542,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 14
+          },
+          "scrap": {
+            "calls": 211,
+            "task_window_ops": 432102,
+            "reselect_calls": 26,
+            "reselect_ops": 717709,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 26
+          },
+          "air_fleet": {
+            "calls": 211,
+            "task_window_ops": 3419860,
+            "reselect_calls": 60,
+            "reselect_ops": 965055,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 13
+          },
+          "projects": {
+            "calls": 210,
+            "task_window_ops": 22463887,
+            "reselect_calls": 28,
+            "reselect_ops": 1384954,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 14
+          },
+          "expand": {
+            "calls": 210,
+            "task_window_ops": 1736018,
+            "reselect_calls": 20,
+            "reselect_ops": 589848,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 19
+          },
+          "refleet": {
+            "calls": 210,
+            "task_window_ops": 549049,
+            "reselect_calls": 12,
+            "reselect_ops": 541574,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 12
+          },
+          "repay": {
+            "calls": 210,
+            "task_window_ops": 357993,
+            "reselect_calls": 8,
+            "reselect_ops": 148350,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 8
+          }
+        },
+        "1972": {
+          "projects": {
+            "calls": 296,
+            "task_window_ops": 7114277,
+            "reselect_calls": 4,
+            "reselect_ops": 47693,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 296,
+            "task_window_ops": 11045723,
+            "reselect_calls": 2,
+            "reselect_ops": 9824,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "refleet": {
+            "calls": 296,
+            "task_window_ops": 1212274,
+            "reselect_calls": 5,
+            "reselect_ops": 25897,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "repay": {
+            "calls": 296,
+            "task_window_ops": 697740,
+            "reselect_calls": 1,
+            "reselect_ops": 2338,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 296,
+            "task_window_ops": 4120881,
+            "reselect_calls": 12,
+            "reselect_ops": 110621,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "report": {
+            "calls": 296,
+            "task_window_ops": 3089060,
+            "reselect_calls": 3,
+            "reselect_ops": 10477,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 3
+          },
+          "scrap": {
+            "calls": 296,
+            "task_window_ops": 914001,
+            "reselect_calls": 2,
+            "reselect_ops": 11159,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "air_fleet": {
+            "calls": 295,
+            "task_window_ops": 10965054,
+            "reselect_calls": 8,
+            "reselect_ops": 96728,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        },
+        "1973": {
+          "air_fleet": {
+            "calls": 47,
+            "task_window_ops": 14467586,
+            "reselect_calls": 46,
+            "reselect_ops": 4967168,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "projects": {
+            "calls": 47,
+            "task_window_ops": 28819829,
+            "reselect_calls": 1,
+            "reselect_ops": 203515,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 47,
+            "task_window_ops": 838547,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "refleet": {
+            "calls": 47,
+            "task_window_ops": 251587,
+            "reselect_calls": 1,
+            "reselect_ops": 128793,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "repay": {
+            "calls": 47,
+            "task_window_ops": 184035,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 46,
+            "task_window_ops": 884025,
+            "reselect_calls": 2,
+            "reselect_ops": 156617,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "report": {
+            "calls": 46,
+            "task_window_ops": 3480721,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 46,
+            "task_window_ops": 178779,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        }
+      },
+      "unassigned": 0
+    },
+    "100": {
+      "years": {
+        "1970": {
+          "catalog": {
+            "calls": 152,
+            "task_window_ops": 8026238,
+            "reselect_calls": 98,
+            "reselect_ops": 5195843,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 44
+          },
+          "report": {
+            "calls": 117,
+            "task_window_ops": 317277,
+            "reselect_calls": 5,
+            "reselect_ops": 215616,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 5
+          },
+          "scrap": {
+            "calls": 117,
+            "task_window_ops": 115498,
+            "reselect_calls": 48,
+            "reselect_ops": 3071499,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 48
+          },
+          "air": {
+            "calls": 1,
+            "task_window_ops": 542,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 117,
+            "task_window_ops": 1126399,
+            "reselect_calls": 16,
+            "reselect_ops": 753006,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 4
+          },
+          "projects": {
+            "calls": 116,
+            "task_window_ops": 10656695,
+            "reselect_calls": 43,
+            "reselect_ops": 1841181,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 36
+          },
+          "expand": {
+            "calls": 116,
+            "task_window_ops": 940186,
+            "reselect_calls": 13,
+            "reselect_ops": 667828,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 11
+          },
+          "refleet": {
+            "calls": 116,
+            "task_window_ops": 99260,
+            "reselect_calls": 41,
+            "reselect_ops": 1817110,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 41
+          },
+          "town_growth": {
+            "calls": 1,
+            "task_window_ops": 581,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 116,
+            "task_window_ops": 176875,
+            "reselect_calls": 4,
+            "reselect_ops": 256142,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 4
+          }
+        },
+        "1971": {
+          "projects": {
+            "calls": 192,
+            "task_window_ops": 18606475,
+            "reselect_calls": 39,
+            "reselect_ops": 1687848,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 33
+          },
+          "expand": {
+            "calls": 192,
+            "task_window_ops": 1628659,
+            "reselect_calls": 18,
+            "reselect_ops": 618654,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 18
+          },
+          "refleet": {
+            "calls": 192,
+            "task_window_ops": 321319,
+            "reselect_calls": 30,
+            "reselect_ops": 1294689,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 30
+          },
+          "repay": {
+            "calls": 192,
+            "task_window_ops": 302436,
+            "reselect_calls": 7,
+            "reselect_ops": 250028,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 7
+          },
+          "catalog": {
+            "calls": 192,
+            "task_window_ops": 6653818,
+            "reselect_calls": 94,
+            "reselect_ops": 4109656,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 39
+          },
+          "report": {
+            "calls": 192,
+            "task_window_ops": 997687,
+            "reselect_calls": 11,
+            "reselect_ops": 374337,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 11
+          },
+          "scrap": {
+            "calls": 192,
+            "task_window_ops": 310514,
+            "reselect_calls": 30,
+            "reselect_ops": 1285445,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 30
+          },
+          "air_fleet": {
+            "calls": 192,
+            "task_window_ops": 2373247,
+            "reselect_calls": 25,
+            "reselect_ops": 1213687,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 10
+          }
+        },
+        "1972": {
+          "projects": {
+            "calls": 50,
+            "task_window_ops": 22899541,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 50,
+            "task_window_ops": 138706,
+            "reselect_calls": 1,
+            "reselect_ops": 258389,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "refleet": {
+            "calls": 50,
+            "task_window_ops": 141348,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 50,
+            "task_window_ops": 149392,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 50,
+            "task_window_ops": 983156,
+            "reselect_calls": 2,
+            "reselect_ops": 95799,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "report": {
+            "calls": 49,
+            "task_window_ops": 2027973,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 49,
+            "task_window_ops": 129456,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 49,
+            "task_window_ops": 7181074,
+            "reselect_calls": 15,
+            "reselect_ops": 5474547,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        },
+        "1973": {
+          "report": {
+            "calls": 135,
+            "task_window_ops": 2930876,
+            "reselect_calls": 2,
+            "reselect_ops": 341042,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "scrap": {
+            "calls": 135,
+            "task_window_ops": 451410,
+            "reselect_calls": 1,
+            "reselect_ops": 18270,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "air_fleet": {
+            "calls": 135,
+            "task_window_ops": 11398925,
+            "reselect_calls": 65,
+            "reselect_ops": 3738967,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "projects": {
+            "calls": 135,
+            "task_window_ops": 18635774,
+            "reselect_calls": 5,
+            "reselect_ops": 50362,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 3
+          },
+          "expand": {
+            "calls": 135,
+            "task_window_ops": 1780662,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "refleet": {
+            "calls": 135,
+            "task_window_ops": 488632,
+            "reselect_calls": 5,
+            "reselect_ops": 514257,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "repay": {
+            "calls": 135,
+            "task_window_ops": 372443,
+            "reselect_calls": 1,
+            "reselect_ops": 230387,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "catalog": {
+            "calls": 134,
+            "task_window_ops": 2056675,
+            "reselect_calls": 8,
+            "reselect_ops": 100376,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 4
+          }
+        }
+      },
+      "unassigned": 0
+    },
+    "999": {
+      "years": {
+        "1970": {
+          "catalog": {
+            "calls": 184,
+            "task_window_ops": 7723069,
+            "reselect_calls": 118,
+            "reselect_ops": 4245256,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 43
+          },
+          "report": {
+            "calls": 145,
+            "task_window_ops": 328044,
+            "reselect_calls": 12,
+            "reselect_ops": 287295,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 12
+          },
+          "scrap": {
+            "calls": 145,
+            "task_window_ops": 124754,
+            "reselect_calls": 58,
+            "reselect_ops": 2368295,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 58
+          },
+          "air": {
+            "calls": 1,
+            "task_window_ops": 10542,
+            "reselect_calls": 1,
+            "reselect_ops": 5358,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 145,
+            "task_window_ops": 2492847,
+            "reselect_calls": 52,
+            "reselect_ops": 1417501,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 6
+          },
+          "projects": {
+            "calls": 144,
+            "task_window_ops": 6680209,
+            "reselect_calls": 47,
+            "reselect_ops": 1777225,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 44
+          },
+          "expand": {
+            "calls": 144,
+            "task_window_ops": 1153860,
+            "reselect_calls": 21,
+            "reselect_ops": 911702,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 20
+          },
+          "refleet": {
+            "calls": 144,
+            "task_window_ops": 116134,
+            "reselect_calls": 51,
+            "reselect_ops": 1588946,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 51
+          },
+          "town_growth": {
+            "calls": 1,
+            "task_window_ops": 599,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 144,
+            "task_window_ops": 194885,
+            "reselect_calls": 14,
+            "reselect_ops": 335085,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 14
+          }
+        },
+        "1971": {
+          "projects": {
+            "calls": 167,
+            "task_window_ops": 16516912,
+            "reselect_calls": 41,
+            "reselect_ops": 1837414,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 30
+          },
+          "expand": {
+            "calls": 166,
+            "task_window_ops": 1365530,
+            "reselect_calls": 21,
+            "reselect_ops": 600938,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 21
+          },
+          "refleet": {
+            "calls": 166,
+            "task_window_ops": 418634,
+            "reselect_calls": 34,
+            "reselect_ops": 1476985,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 34
+          },
+          "repay": {
+            "calls": 166,
+            "task_window_ops": 260017,
+            "reselect_calls": 13,
+            "reselect_ops": 386642,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 13
+          },
+          "catalog": {
+            "calls": 166,
+            "task_window_ops": 6033533,
+            "reselect_calls": 110,
+            "reselect_ops": 4203979,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 46
+          },
+          "report": {
+            "calls": 166,
+            "task_window_ops": 802391,
+            "reselect_calls": 16,
+            "reselect_ops": 575720,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 16
+          },
+          "scrap": {
+            "calls": 166,
+            "task_window_ops": 239213,
+            "reselect_calls": 49,
+            "reselect_ops": 2402362,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 49
+          },
+          "air_fleet": {
+            "calls": 166,
+            "task_window_ops": 1968462,
+            "reselect_calls": 34,
+            "reselect_ops": 1245703,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 16
+          }
+        },
+        "1972": {
+          "expand": {
+            "calls": 13,
+            "task_window_ops": 212204,
+            "reselect_calls": 2,
+            "reselect_ops": 947121,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "refleet": {
+            "calls": 13,
+            "task_window_ops": 41143,
+            "reselect_calls": 2,
+            "reselect_ops": 2856082,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "repay": {
+            "calls": 12,
+            "task_window_ops": 117773,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 12,
+            "task_window_ops": 1865029,
+            "reselect_calls": 1,
+            "reselect_ops": 1400473,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "report": {
+            "calls": 12,
+            "task_window_ops": 1686527,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 12,
+            "task_window_ops": 24240,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 12,
+            "task_window_ops": 12767082,
+            "reselect_calls": 12,
+            "reselect_ops": 10950942,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "projects": {
+            "calls": 12,
+            "task_window_ops": 29882790,
+            "reselect_calls": 1,
+            "reselect_ops": 1420928,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        },
+        "1973": {
+          "repay": {
+            "calls": 7,
+            "task_window_ops": 46233,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 7,
+            "task_window_ops": 300155,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "report": {
+            "calls": 7,
+            "task_window_ops": 2137038,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 7,
+            "task_window_ops": 17534,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 7,
+            "task_window_ops": 9561488,
+            "reselect_calls": 7,
+            "reselect_ops": 7877673,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "projects": {
+            "calls": 6,
+            "task_window_ops": 37523973,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 6,
+            "task_window_ops": 9836,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "refleet": {
+            "calls": 6,
+            "task_window_ops": 22196,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        }
+      },
+      "unassigned": 0
+    },
+    "1234": {
+      "years": {
+        "1970": {
+          "catalog": {
+            "calls": 175,
+            "task_window_ops": 7699238,
+            "reselect_calls": 106,
+            "reselect_ops": 4405426,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 41
+          },
+          "report": {
+            "calls": 135,
+            "task_window_ops": 328815,
+            "reselect_calls": 8,
+            "reselect_ops": 186707,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 8
+          },
+          "scrap": {
+            "calls": 135,
+            "task_window_ops": 117221,
+            "reselect_calls": 50,
+            "reselect_ops": 3024337,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 50
+          },
+          "air": {
+            "calls": 1,
+            "task_window_ops": 542,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 135,
+            "task_window_ops": 2751572,
+            "reselect_calls": 62,
+            "reselect_ops": 1371987,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "projects": {
+            "calls": 135,
+            "task_window_ops": 9236534,
+            "reselect_calls": 38,
+            "reselect_ops": 1789528,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 36
+          },
+          "expand": {
+            "calls": 134,
+            "task_window_ops": 1005476,
+            "reselect_calls": 13,
+            "reselect_ops": 376719,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 11
+          },
+          "refleet": {
+            "calls": 134,
+            "task_window_ops": 109431,
+            "reselect_calls": 42,
+            "reselect_ops": 1891830,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 42
+          },
+          "town_growth": {
+            "calls": 1,
+            "task_window_ops": 581,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 134,
+            "task_window_ops": 196895,
+            "reselect_calls": 12,
+            "reselect_ops": 328702,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 12
+          }
+        },
+        "1971": {
+          "expand": {
+            "calls": 121,
+            "task_window_ops": 1000122,
+            "reselect_calls": 12,
+            "reselect_ops": 1418664,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 10
+          },
+          "refleet": {
+            "calls": 121,
+            "task_window_ops": 208720,
+            "reselect_calls": 26,
+            "reselect_ops": 1378684,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 26
+          },
+          "repay": {
+            "calls": 121,
+            "task_window_ops": 213791,
+            "reselect_calls": 8,
+            "reselect_ops": 334610,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 8
+          },
+          "catalog": {
+            "calls": 121,
+            "task_window_ops": 5189278,
+            "reselect_calls": 87,
+            "reselect_ops": 4611203,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 40
+          },
+          "report": {
+            "calls": 121,
+            "task_window_ops": 801238,
+            "reselect_calls": 7,
+            "reselect_ops": 313223,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 6
+          },
+          "scrap": {
+            "calls": 121,
+            "task_window_ops": 163706,
+            "reselect_calls": 39,
+            "reselect_ops": 2160299,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 39
+          },
+          "air_fleet": {
+            "calls": 121,
+            "task_window_ops": 1692982,
+            "reselect_calls": 29,
+            "reselect_ops": 2289601,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 11
+          },
+          "projects": {
+            "calls": 120,
+            "task_window_ops": 16121497,
+            "reselect_calls": 34,
+            "reselect_ops": 1815246,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 27
+          }
+        },
+        "1972": {
+          "projects": {
+            "calls": 11,
+            "task_window_ops": 28121938,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 11,
+            "task_window_ops": 107455,
+            "reselect_calls": 3,
+            "reselect_ops": 3488430,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 3
+          },
+          "refleet": {
+            "calls": 11,
+            "task_window_ops": 29822,
+            "reselect_calls": 1,
+            "reselect_ops": 1517316,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "repay": {
+            "calls": 10,
+            "task_window_ops": 151493,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 10,
+            "task_window_ops": 298160,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "report": {
+            "calls": 10,
+            "task_window_ops": 1583078,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 10,
+            "task_window_ops": 20756,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 10,
+            "task_window_ops": 12455283,
+            "reselect_calls": 9,
+            "reselect_ops": 9815298,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        },
+        "1973": {
+          "repay": {
+            "calls": 21,
+            "task_window_ops": 95439,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 21,
+            "task_window_ops": 491555,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "report": {
+            "calls": 21,
+            "task_window_ops": 2296263,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 21,
+            "task_window_ops": 65050,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 20,
+            "task_window_ops": 7922696,
+            "reselect_calls": 10,
+            "reselect_ops": 6532138,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "projects": {
+            "calls": 20,
+            "task_window_ops": 31165992,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 20,
+            "task_window_ops": 40191,
+            "reselect_calls": 2,
+            "reselect_ops": 735196,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 2
+          },
+          "refleet": {
+            "calls": 20,
+            "task_window_ops": 78784,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        }
+      },
+      "unassigned": 0
+    },
+    "5678": {
+      "years": {
+        "1970": {
+          "catalog": {
+            "calls": 204,
+            "task_window_ops": 9251737,
+            "reselect_calls": 149,
+            "reselect_ops": 5958257,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 54
+          },
+          "report": {
+            "calls": 163,
+            "task_window_ops": 430433,
+            "reselect_calls": 5,
+            "reselect_ops": 176435,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 5
+          },
+          "scrap": {
+            "calls": 163,
+            "task_window_ops": 141305,
+            "reselect_calls": 68,
+            "reselect_ops": 2725557,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 68
+          },
+          "air": {
+            "calls": 1,
+            "task_window_ops": 542,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 163,
+            "task_window_ops": 1021753,
+            "reselect_calls": 18,
+            "reselect_ops": 666980,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 6
+          },
+          "projects": {
+            "calls": 162,
+            "task_window_ops": 8744186,
+            "reselect_calls": 70,
+            "reselect_ops": 3484038,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 62
+          },
+          "expand": {
+            "calls": 162,
+            "task_window_ops": 1401180,
+            "reselect_calls": 8,
+            "reselect_ops": 476329,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 8
+          },
+          "refleet": {
+            "calls": 162,
+            "task_window_ops": 131512,
+            "reselect_calls": 56,
+            "reselect_ops": 2782001,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 56
+          },
+          "town_growth": {
+            "calls": 1,
+            "task_window_ops": 599,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 162,
+            "task_window_ops": 196567,
+            "reselect_calls": 7,
+            "reselect_ops": 439868,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 7
+          }
+        },
+        "1971": {
+          "projects": {
+            "calls": 242,
+            "task_window_ops": 17655984,
+            "reselect_calls": 35,
+            "reselect_ops": 1160397,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 18
+          },
+          "expand": {
+            "calls": 242,
+            "task_window_ops": 1976195,
+            "reselect_calls": 22,
+            "reselect_ops": 235119,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 12
+          },
+          "refleet": {
+            "calls": 242,
+            "task_window_ops": 736537,
+            "reselect_calls": 25,
+            "reselect_ops": 479069,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 23
+          },
+          "repay": {
+            "calls": 242,
+            "task_window_ops": 377840,
+            "reselect_calls": 10,
+            "reselect_ops": 393137,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 10
+          },
+          "catalog": {
+            "calls": 241,
+            "task_window_ops": 5453940,
+            "reselect_calls": 85,
+            "reselect_ops": 2057722,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 21
+          },
+          "report": {
+            "calls": 241,
+            "task_window_ops": 1124200,
+            "reselect_calls": 16,
+            "reselect_ops": 242638,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 16
+          },
+          "scrap": {
+            "calls": 241,
+            "task_window_ops": 470275,
+            "reselect_calls": 35,
+            "reselect_ops": 762117,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 35
+          },
+          "air_fleet": {
+            "calls": 241,
+            "task_window_ops": 3920607,
+            "reselect_calls": 66,
+            "reselect_ops": 1175918,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 5
+          }
+        },
+        "1972": {
+          "catalog": {
+            "calls": 35,
+            "task_window_ops": 1574826,
+            "reselect_calls": 1,
+            "reselect_ops": 603247,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "report": {
+            "calls": 34,
+            "task_window_ops": 2594854,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 34,
+            "task_window_ops": 112605,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 34,
+            "task_window_ops": 6590013,
+            "reselect_calls": 8,
+            "reselect_ops": 4591861,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "projects": {
+            "calls": 34,
+            "task_window_ops": 28706403,
+            "reselect_calls": 1,
+            "reselect_ops": 666120,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 34,
+            "task_window_ops": 186515,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "refleet": {
+            "calls": 34,
+            "task_window_ops": 156922,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 34,
+            "task_window_ops": 164224,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        },
+        "1973": {
+          "report": {
+            "calls": 16,
+            "task_window_ops": 3455548,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "scrap": {
+            "calls": 16,
+            "task_window_ops": 65089,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "air_fleet": {
+            "calls": 16,
+            "task_window_ops": 11080764,
+            "reselect_calls": 16,
+            "reselect_ops": 6706606,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "projects": {
+            "calls": 15,
+            "task_window_ops": 28829038,
+            "reselect_calls": 5,
+            "reselect_ops": 2954940,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "expand": {
+            "calls": 15,
+            "task_window_ops": 38720,
+            "reselect_calls": 1,
+            "reselect_ops": 421048,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 1
+          },
+          "refleet": {
+            "calls": 15,
+            "task_window_ops": 84062,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "repay": {
+            "calls": 15,
+            "task_window_ops": 71113,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          },
+          "catalog": {
+            "calls": 15,
+            "task_window_ops": 342472,
+            "reselect_calls": 0,
+            "reselect_ops": 0,
+            "unassigned_selection_calls": 0,
+            "oversized_attributions": 0
+          }
+        }
+      },
+      "unassigned": 0
+    }
+  },
+  "average": {
+    "1970": {
+      "air": {
+        "calls": 1,
+        "task_window_ops": 2542,
+        "reselect_calls": 0.4,
+        "reselect_ops": 2304.6,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.2
+      },
+      "air_fleet": {
+        "calls": 139.6,
+        "task_window_ops": 1594321.8,
+        "reselect_calls": 31.8,
+        "reselect_ops": 1056646.2,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 5.2
+      },
+      "catalog": {
+        "calls": 178,
+        "task_window_ops": 8272250.2,
+        "reselect_calls": 119.2,
+        "reselect_ops": 5258923.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 48.8
+      },
+      "expand": {
+        "calls": 138.8,
+        "task_window_ops": 1120565.2,
+        "reselect_calls": 12.4,
+        "reselect_ops": 549961,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 11.2
+      },
+      "projects": {
+        "calls": 139,
+        "task_window_ops": 9286070.4,
+        "reselect_calls": 50.4,
+        "reselect_ops": 2367449.6,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 45.4
+      },
+      "refleet": {
+        "calls": 138.8,
+        "task_window_ops": 115493.6,
+        "reselect_calls": 47.4,
+        "reselect_ops": 2059283.8,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 47.4
+      },
+      "repay": {
+        "calls": 138.8,
+        "task_window_ops": 191601.4,
+        "reselect_calls": 8,
+        "reselect_ops": 299625.2,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 8
+      },
+      "report": {
+        "calls": 139.6,
+        "task_window_ops": 347207,
+        "reselect_calls": 6.8,
+        "reselect_ops": 205945,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 6.8
+      },
+      "scrap": {
+        "calls": 139.6,
+        "task_window_ops": 125212.8,
+        "reselect_calls": 57.2,
+        "reselect_ops": 2880179.2,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 57.2
+      },
+      "town_growth": {
+        "calls": 1,
+        "task_window_ops": 584.6,
+        "reselect_calls": 0,
+        "reselect_ops": 0,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0
+      }
+    },
+    "1971": {
+      "air_fleet": {
+        "calls": 186.2,
+        "task_window_ops": 2675031.6,
+        "reselect_calls": 42.8,
+        "reselect_ops": 1377992.8,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 11
+      },
+      "catalog": {
+        "calls": 186.2,
+        "task_window_ops": 5793817.6,
+        "reselect_calls": 90.4,
+        "reselect_ops": 3472272.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 34
+      },
+      "expand": {
+        "calls": 186.2,
+        "task_window_ops": 1541304.8,
+        "reselect_calls": 18.6,
+        "reselect_ops": 692644.6,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 16
+      },
+      "projects": {
+        "calls": 186.2,
+        "task_window_ops": 18272951,
+        "reselect_calls": 35.4,
+        "reselect_ops": 1577171.8,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 24.4
+      },
+      "refleet": {
+        "calls": 186.2,
+        "task_window_ops": 446851.8,
+        "reselect_calls": 25.4,
+        "reselect_ops": 1034200.2,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 25
+      },
+      "repay": {
+        "calls": 186.2,
+        "task_window_ops": 302415.4,
+        "reselect_calls": 9.2,
+        "reselect_ops": 302553.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 9.2
+      },
+      "report": {
+        "calls": 186.2,
+        "task_window_ops": 964292.8,
+        "reselect_calls": 12.8,
+        "reselect_ops": 361892,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 12.6
+      },
+      "scrap": {
+        "calls": 186.2,
+        "task_window_ops": 323162,
+        "reselect_calls": 35.8,
+        "reselect_ops": 1465586.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 35.8
+      }
+    },
+    "1972": {
+      "air_fleet": {
+        "calls": 80,
+        "task_window_ops": 9991701.2,
+        "reselect_calls": 10.4,
+        "reselect_ops": 6185875.2,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0
+      },
+      "catalog": {
+        "calls": 80.6,
+        "task_window_ops": 1768410.4,
+        "reselect_calls": 3.2,
+        "reselect_ops": 442028,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.4
+      },
+      "expand": {
+        "calls": 80.8,
+        "task_window_ops": 2338120.6,
+        "reselect_calls": 1.6,
+        "reselect_ops": 940752.8,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 1.4
+      },
+      "projects": {
+        "calls": 80.6,
+        "task_window_ops": 23344989.8,
+        "reselect_calls": 1.2,
+        "reselect_ops": 426948.2,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0
+      },
+      "refleet": {
+        "calls": 80.8,
+        "task_window_ops": 316301.8,
+        "reselect_calls": 1.6,
+        "reselect_ops": 879859,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.8
+      },
+      "repay": {
+        "calls": 80.4,
+        "task_window_ops": 256124.4,
+        "reselect_calls": 0.2,
+        "reselect_ops": 467.6,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0
+      },
+      "report": {
+        "calls": 80.2,
+        "task_window_ops": 2196298.4,
+        "reselect_calls": 0.6,
+        "reselect_ops": 2095.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.6
+      },
+      "scrap": {
+        "calls": 80.2,
+        "task_window_ops": 240211.6,
+        "reselect_calls": 0.4,
+        "reselect_ops": 2231.8,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.4
+      }
+    },
+    "1973": {
+      "air_fleet": {
+        "calls": 45,
+        "task_window_ops": 10886291.8,
+        "reselect_calls": 28.8,
+        "reselect_ops": 5964510.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0
+      },
+      "catalog": {
+        "calls": 44.6,
+        "task_window_ops": 814976.4,
+        "reselect_calls": 2,
+        "reselect_ops": 51398.6,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.8
+      },
+      "expand": {
+        "calls": 44.6,
+        "task_window_ops": 541591.2,
+        "reselect_calls": 0.6,
+        "reselect_ops": 231248.8,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.6
+      },
+      "projects": {
+        "calls": 44.6,
+        "task_window_ops": 28994921.2,
+        "reselect_calls": 2.2,
+        "reselect_ops": 641763.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.6
+      },
+      "refleet": {
+        "calls": 44.6,
+        "task_window_ops": 185052.2,
+        "reselect_calls": 1.2,
+        "reselect_ops": 128610,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.6
+      },
+      "repay": {
+        "calls": 45,
+        "task_window_ops": 153852.6,
+        "reselect_calls": 0.2,
+        "reselect_ops": 46077.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.2
+      },
+      "report": {
+        "calls": 45,
+        "task_window_ops": 2860089.2,
+        "reselect_calls": 0.4,
+        "reselect_ops": 68208.4,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.4
+      },
+      "scrap": {
+        "calls": 45,
+        "task_window_ops": 155572.4,
+        "reselect_calls": 0.2,
+        "reselect_ops": 3654,
+        "unassigned_selection_calls": 0,
+        "oversized_attributions": 0.2
+      }
+    }
+  },
+  "notes": [
+    "Only reselect calls preceding the next SCHED_IDLE line are attributed to that task.",
+    "Nested scheduler invocations could make order-based attribution ambiguous.",
+    "SCHED_IDLE's no_work classifier compares project object identity and vehicle count, not its best/candidateGroups contents.",
+    "These are measured window ops, not exclusively executed Squirrel VM instructions."
+  ]
+}

@@ -1,0 +1,2071 @@
+{
+  "by_seed": {
+    "42": {
+      "1970": {
+        "funnel": {
+          "events": 118,
+          "considered": 7952,
+          "accepted": 519,
+          "funded": 15,
+          "attempted": 15,
+          "built": 12
+        },
+        "funnel_reason": {
+          "build_failed": 1,
+          "siteA_unbuildable": 1,
+          "build_error_air_263": 1,
+          "build_failed_air_AFAIL": 1,
+          "batch_plan_dead": 17
+        },
+        "discards": {
+          "air/build_failed": 4,
+          "air/siteA_unbuildable": 1
+        },
+        "fallback": {},
+        "builds": {
+          "air": 9
+        },
+        "chosen": {
+          "air": 10
+        },
+        "p2": {
+          "visits": 118,
+          "initially_empty": 106
+        },
+        "discard_unique_OD_month": {
+          "air/build_failed": 2,
+          "air/siteA_unbuildable": 1
+        },
+        "per_month": {
+          "01": {
+            "discard_air_build_failed": 2,
+            "discard_air_siteA_unbuildable": 1,
+            "funnel_events": 6,
+            "considered": 12,
+            "accepted": 5,
+            "funded": 4,
+            "attempted": 4,
+            "built": 2,
+            "line_event_air": 2
+          },
+          "02": {
+            "funnel_events": 7,
+            "considered": 69,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "03": {
+            "funnel_events": 14,
+            "considered": 952,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "04": {
+            "funnel_events": 9,
+            "considered": 715,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "05": {
+            "funnel_events": 11,
+            "considered": 986,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "06": {
+            "funnel_events": 13,
+            "considered": 883,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "07": {
+            "funnel_events": 7,
+            "considered": 520,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "08": {
+            "funnel_events": 13,
+            "considered": 905,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "09": {
+            "funnel_events": 12,
+            "considered": 892,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "10": {
+            "funnel_events": 8,
+            "considered": 678,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "11": {
+            "funnel_events": 6,
+            "considered": 541,
+            "accepted": 65,
+            "funded": 3,
+            "attempted": 3,
+            "built": 2,
+            "discard_air_build_failed": 2,
+            "line_event_air": 1
+          },
+          "12": {
+            "funnel_events": 12,
+            "considered": 799,
+            "accepted": 65,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2
+          }
+        }
+      },
+      "1971": {
+        "funnel": {
+          "events": 173,
+          "considered": 3418,
+          "accepted": 603,
+          "funded": 55,
+          "attempted": 95,
+          "built": 40
+        },
+        "funnel_reason": {
+          "search_in_progress": 1,
+          "build_failed": 2,
+          "build_failed_air_BFAIL": 2,
+          "build_error_air_258": 1,
+          "batch_plan_dead": 67,
+          "plan_failed": 2,
+          "plan_failed_road_TRACEX": 2,
+          "siteB_unbuildable": 3,
+          "insufficient_cash": 40,
+          "build_error_air_263": 1
+        },
+        "discards": {
+          "air/build_failed": 4,
+          "road/plan_failed": 4,
+          "air/insufficient_cash": 4
+        },
+        "fallback": {},
+        "builds": {
+          "air": 28,
+          "rail": 3,
+          "road": 1
+        },
+        "chosen": {
+          "rail": 2,
+          "air": 27,
+          "road": 1
+        },
+        "p2": {
+          "visits": 172,
+          "initially_empty": 129
+        },
+        "discard_unique_OD_month": {
+          "air/build_failed": 3,
+          "road/plan_failed": 2,
+          "air/insufficient_cash": 4
+        },
+        "per_month": {
+          "01": {
+            "line_event_air": 1,
+            "funnel_events": 3,
+            "considered": 138,
+            "accepted": 50,
+            "funded": 4,
+            "attempted": 4,
+            "built": 2,
+            "line_event_rail": 1
+          },
+          "02": {
+            "funnel_events": 6,
+            "considered": 241,
+            "accepted": 46,
+            "funded": 5,
+            "attempted": 5,
+            "built": 3,
+            "line_event_rail": 2,
+            "discard_air_build_failed": 1
+          },
+          "03": {
+            "funnel_events": 13,
+            "considered": 445,
+            "accepted": 88,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 2
+          },
+          "04": {
+            "funnel_events": 13,
+            "considered": 503,
+            "accepted": 21,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 2
+          },
+          "05": {
+            "discard_road_plan_failed": 2,
+            "funnel_events": 16,
+            "considered": 501,
+            "accepted": 33,
+            "funded": 3,
+            "attempted": 3,
+            "built": 2,
+            "line_event_air": 2
+          },
+          "06": {
+            "discard_road_plan_failed": 2,
+            "funnel_events": 16,
+            "considered": 342,
+            "accepted": 53,
+            "funded": 7,
+            "attempted": 20,
+            "built": 2,
+            "line_event_air": 2,
+            "discard_air_build_failed": 1
+          },
+          "07": {
+            "discard_air_build_failed": 2,
+            "discard_air_insufficient_cash": 4,
+            "funnel_events": 16,
+            "considered": 234,
+            "accepted": 83,
+            "funded": 9,
+            "attempted": 36,
+            "built": 4,
+            "line_event_air": 4
+          },
+          "08": {
+            "funnel_events": 19,
+            "considered": 242,
+            "accepted": 45,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 3
+          },
+          "09": {
+            "funnel_events": 17,
+            "considered": 206,
+            "accepted": 25,
+            "funded": 4,
+            "attempted": 4,
+            "built": 4,
+            "line_event_air": 3
+          },
+          "10": {
+            "funnel_events": 17,
+            "considered": 227,
+            "accepted": 73,
+            "funded": 5,
+            "attempted": 5,
+            "built": 5,
+            "line_event_air": 3
+          },
+          "11": {
+            "funnel_events": 15,
+            "considered": 173,
+            "accepted": 51,
+            "funded": 5,
+            "attempted": 5,
+            "built": 5,
+            "line_event_air": 3,
+            "line_event_road": 1
+          },
+          "12": {
+            "funnel_events": 22,
+            "considered": 166,
+            "accepted": 35,
+            "funded": 4,
+            "attempted": 4,
+            "built": 4,
+            "line_event_air": 3
+          }
+        }
+      },
+      "1972": {
+        "funnel": {
+          "events": 290,
+          "considered": 325,
+          "accepted": 184,
+          "funded": 21,
+          "attempted": 21,
+          "built": 20
+        },
+        "funnel_reason": {
+          "batch_plan_dead": 31,
+          "plan_failed": 1,
+          "plan_failed_road_TRACEX": 1
+        },
+        "discards": {
+          "air/batch_plan_dead": 2,
+          "road/plan_failed": 2
+        },
+        "fallback": {},
+        "builds": {
+          "air": 14
+        },
+        "chosen": {
+          "air": 14
+        },
+        "p2": {
+          "visits": 289,
+          "initially_empty": 252
+        },
+        "discard_unique_OD_month": {
+          "air/batch_plan_dead": 2,
+          "road/plan_failed": 1
+        },
+        "per_month": {
+          "01": {
+            "funnel_events": 2,
+            "considered": 39,
+            "accepted": 39,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2
+          },
+          "02": {
+            "funnel_events": 12,
+            "considered": 184,
+            "accepted": 97,
+            "funded": 5,
+            "attempted": 5,
+            "built": 5,
+            "line_event_air": 1
+          },
+          "03": {
+            "funnel_events": 28,
+            "considered": 72,
+            "accepted": 18,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2,
+            "line_event_air": 2
+          },
+          "04": {
+            "discard_air_batch_plan_dead": 2,
+            "funnel_events": 24,
+            "considered": 17,
+            "accepted": 17,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 3
+          },
+          "05": {
+            "funnel_events": 26,
+            "considered": 5,
+            "accepted": 5,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 3
+          },
+          "06": {
+            "funnel_events": 26,
+            "considered": 4,
+            "accepted": 4,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2,
+            "line_event_air": 2
+          },
+          "07": {
+            "funnel_events": 29,
+            "considered": 1,
+            "accepted": 1,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "08": {
+            "funnel_events": 27,
+            "considered": 2,
+            "accepted": 2,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2,
+            "line_event_air": 2
+          },
+          "09": {
+            "discard_road_plan_failed": 2,
+            "funnel_events": 25,
+            "considered": 1,
+            "accepted": 1,
+            "funded": 1,
+            "attempted": 1,
+            "built": 0
+          },
+          "10": {
+            "funnel_events": 30,
+            "considered": 0,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "11": {
+            "funnel_events": 30,
+            "considered": 0,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "12": {
+            "funnel_events": 31,
+            "considered": 0,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          }
+        }
+      },
+      "1973": {
+        "funnel": {
+          "events": 29,
+          "considered": 1999,
+          "accepted": 1762,
+          "funded": 33,
+          "attempted": 33,
+          "built": 30
+        },
+        "funnel_reason": {
+          "build_failed": 1,
+          "build_failed_air_BFAIL": 1,
+          "build_error_air_263": 1
+        },
+        "discards": {
+          "rail/search_in_progress": 1,
+          "air/build_failed": 1
+        },
+        "fallback": {},
+        "builds": {
+          "air": 3,
+          "rail": 1
+        },
+        "chosen": {
+          "air": 3,
+          "rail": 1
+        },
+        "p2": {
+          "visits": 29,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "rail/search_in_progress": 1,
+          "air/build_failed": 1
+        },
+        "per_month": {
+          "02": {
+            "funnel_events": 1,
+            "considered": 98,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1
+          },
+          "03": {
+            "funnel_events": 3,
+            "considered": 288,
+            "accepted": 192,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3
+          },
+          "04": {
+            "funnel_events": 2,
+            "considered": 177,
+            "accepted": 128,
+            "funded": 4,
+            "attempted": 4,
+            "built": 3,
+            "line_event_air": 1
+          },
+          "05": {
+            "discard_rail_search_in_progress": 1,
+            "funnel_events": 1,
+            "considered": 79,
+            "accepted": 64,
+            "funded": 2,
+            "attempted": 2,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "06": {
+            "funnel_events": 3,
+            "considered": 212,
+            "accepted": 192,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_rail": 1
+          },
+          "07": {
+            "funnel_events": 2,
+            "considered": 139,
+            "accepted": 128,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2
+          },
+          "08": {
+            "funnel_events": 2,
+            "considered": 139,
+            "accepted": 128,
+            "funded": 3,
+            "attempted": 3,
+            "built": 2,
+            "discard_air_build_failed": 1
+          },
+          "09": {
+            "funnel_events": 3,
+            "considered": 192,
+            "accepted": 191,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3
+          },
+          "10": {
+            "funnel_events": 4,
+            "considered": 239,
+            "accepted": 239,
+            "funded": 4,
+            "attempted": 4,
+            "built": 4,
+            "line_event_air": 1
+          },
+          "11": {
+            "funnel_events": 4,
+            "considered": 226,
+            "accepted": 226,
+            "funded": 4,
+            "attempted": 4,
+            "built": 4
+          },
+          "12": {
+            "funnel_events": 4,
+            "considered": 210,
+            "accepted": 210,
+            "funded": 4,
+            "attempted": 4,
+            "built": 4
+          }
+        }
+      },
+      "1974": {
+        "funnel": {
+          "events": 39,
+          "considered": 1778,
+          "accepted": 1778,
+          "funded": 526,
+          "attempted": 526,
+          "built": 27
+        },
+        "funnel_reason": {
+          "batch_plan_dead": 2,
+          "search_in_progress": 446
+        },
+        "discards": {
+          "rail/too_close_no_join": 45,
+          "rail/search_in_progress": 9,
+          "rail/STNFAIL": 1,
+          "rail/abandoned_pair": 1
+        },
+        "fallback": {},
+        "builds": {
+          "road": 1,
+          "air": 2,
+          "rail": 4
+        },
+        "chosen": {
+          "road": 1,
+          "air": 2,
+          "rail": 6
+        },
+        "p2": {
+          "visits": 39,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "rail/too_close_no_join": 42,
+          "rail/search_in_progress": 9,
+          "rail/STNFAIL": 1,
+          "rail/abandoned_pair": 1
+        },
+        "per_month": {
+          "01": {
+            "funnel_events": 1,
+            "considered": 50,
+            "accepted": 50,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1
+          },
+          "02": {
+            "funnel_events": 2,
+            "considered": 125,
+            "accepted": 125,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_road": 1
+          },
+          "03": {
+            "funnel_events": 3,
+            "considered": 177,
+            "accepted": 177,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3
+          },
+          "04": {
+            "funnel_events": 3,
+            "considered": 168,
+            "accepted": 168,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3
+          },
+          "05": {
+            "funnel_events": 3,
+            "considered": 156,
+            "accepted": 156,
+            "funded": 4,
+            "attempted": 4,
+            "built": 2,
+            "line_event_air": 1
+          },
+          "06": {
+            "funnel_events": 3,
+            "considered": 150,
+            "accepted": 150,
+            "funded": 7,
+            "attempted": 7,
+            "built": 3,
+            "line_event_air": 1
+          },
+          "07": {
+            "funnel_events": 3,
+            "considered": 141,
+            "accepted": 141,
+            "funded": 34,
+            "attempted": 34,
+            "built": 3
+          },
+          "08": {
+            "funnel_events": 3,
+            "considered": 132,
+            "accepted": 132,
+            "funded": 25,
+            "attempted": 25,
+            "built": 2,
+            "line_event_rail": 1,
+            "discard_rail_too_close_no_join": 3
+          },
+          "09": {
+            "funnel_events": 4,
+            "considered": 166,
+            "accepted": 166,
+            "funded": 139,
+            "attempted": 139,
+            "built": 4
+          },
+          "10": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 3,
+            "considered": 116,
+            "accepted": 116,
+            "funded": 46,
+            "attempted": 46,
+            "built": 1,
+            "discard_rail_STNFAIL": 1,
+            "discard_rail_too_close_no_join": 7,
+            "discard_rail_abandoned_pair": 1,
+            "line_event_rail": 1
+          },
+          "11": {
+            "funnel_events": 6,
+            "considered": 221,
+            "accepted": 221,
+            "funded": 135,
+            "attempted": 135,
+            "built": 1,
+            "discard_rail_search_in_progress": 3,
+            "line_event_rail": 1,
+            "discard_rail_too_close_no_join": 17
+          },
+          "12": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 5,
+            "considered": 176,
+            "accepted": 176,
+            "funded": 126,
+            "attempted": 126,
+            "built": 1,
+            "line_event_rail": 1,
+            "discard_rail_too_close_no_join": 18
+          }
+        }
+      }
+    },
+    "100": {
+      "1970": {
+        "funnel": {
+          "events": 99,
+          "considered": 8411,
+          "accepted": 282,
+          "funded": 36,
+          "attempted": 36,
+          "built": 12
+        },
+        "funnel_reason": {
+          "batch_plan_dead": 13,
+          "build_failed": 1,
+          "siteA_unbuildable": 1,
+          "build_error_air_263": 1,
+          "build_failed_air_AFAIL": 1
+        },
+        "discards": {
+          "air/build_failed": 1,
+          "air/insufficient_cash": 19,
+          "air/siteB_unbuildable": 3
+        },
+        "fallback": {},
+        "builds": {
+          "air": 9
+        },
+        "chosen": {
+          "air": 9
+        },
+        "p2": {
+          "visits": 101,
+          "initially_empty": 88
+        },
+        "discard_unique_OD_month": {
+          "air/build_failed": 1,
+          "air/insufficient_cash": 19,
+          "air/siteB_unbuildable": 3
+        },
+        "per_month": {
+          "01": {
+            "funnel_events": 5,
+            "considered": 10,
+            "accepted": 8,
+            "funded": 5,
+            "attempted": 5,
+            "built": 3,
+            "line_event_air": 3,
+            "discard_air_build_failed": 1
+          },
+          "02": {
+            "funnel_events": 10,
+            "considered": 95,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "03": {
+            "funnel_events": 3,
+            "considered": 262,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "04": {
+            "funnel_events": 10,
+            "considered": 1033,
+            "accepted": 9,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "05": {
+            "funnel_events": 11,
+            "considered": 1109,
+            "accepted": 1,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1
+          },
+          "06": {
+            "funnel_events": 9,
+            "considered": 995,
+            "accepted": 5,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "07": {
+            "funnel_events": 9,
+            "considered": 791,
+            "accepted": 3,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2
+          },
+          "08": {
+            "funnel_events": 12,
+            "considered": 1330,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "09": {
+            "funnel_events": 5,
+            "considered": 543,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "10": {
+            "funnel_events": 6,
+            "considered": 607,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "11": {
+            "discard_air_insufficient_cash": 19,
+            "discard_air_siteB_unbuildable": 3,
+            "funnel_events": 10,
+            "considered": 826,
+            "accepted": 64,
+            "funded": 23,
+            "attempted": 23,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "12": {
+            "funnel_events": 9,
+            "considered": 810,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          }
+        }
+      },
+      "1971": {
+        "funnel": {
+          "events": 135,
+          "considered": 7444,
+          "accepted": 458,
+          "funded": 56,
+          "attempted": 110,
+          "built": 24
+        },
+        "funnel_reason": {
+          "cash_at_build": 1,
+          "build_failed": 2,
+          "insufficient_cash": 53,
+          "build_error_air_257": 2,
+          "build_failed_air_PLANE": 2,
+          "batch_plan_dead": 39
+        },
+        "discards": {
+          "air/build_failed": 5,
+          "air/siteB_unbuildable": 2,
+          "air/insufficient_cash": 29,
+          "air/batch_plan_dead": 2
+        },
+        "fallback": {},
+        "builds": {
+          "rail": 3,
+          "air": 16
+        },
+        "chosen": {
+          "air": 16
+        },
+        "p2": {
+          "visits": 135,
+          "initially_empty": 110
+        },
+        "discard_unique_OD_month": {
+          "air/build_failed": 3,
+          "air/siteB_unbuildable": 2,
+          "air/insufficient_cash": 29,
+          "air/batch_plan_dead": 2
+        },
+        "per_month": {
+          "01": {
+            "funnel_events": 5,
+            "considered": 430,
+            "accepted": 6,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2,
+            "line_event_rail": 1
+          },
+          "02": {
+            "funnel_events": 5,
+            "considered": 471,
+            "accepted": 3,
+            "funded": 2,
+            "attempted": 3,
+            "built": 2,
+            "line_event_rail": 2
+          },
+          "03": {
+            "funnel_events": 9,
+            "considered": 742,
+            "accepted": 38,
+            "funded": 2,
+            "attempted": 18,
+            "built": 1,
+            "line_event_air": 1,
+            "discard_air_build_failed": 1
+          },
+          "04": {
+            "funnel_events": 7,
+            "considered": 656,
+            "accepted": 4,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3
+          },
+          "05": {
+            "funnel_events": 9,
+            "considered": 823,
+            "accepted": 46,
+            "funded": 2,
+            "attempted": 2,
+            "built": 1,
+            "discard_air_build_failed": 2,
+            "line_event_air": 1
+          },
+          "06": {
+            "funnel_events": 6,
+            "considered": 465,
+            "accepted": 41,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "07": {
+            "funnel_events": 15,
+            "considered": 764,
+            "accepted": 65,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 2
+          },
+          "08": {
+            "funnel_events": 11,
+            "considered": 540,
+            "accepted": 96,
+            "funded": 31,
+            "attempted": 31,
+            "built": 2,
+            "discard_air_siteB_unbuildable": 2,
+            "line_event_air": 2,
+            "discard_air_insufficient_cash": 27
+          },
+          "09": {
+            "funnel_events": 12,
+            "considered": 576,
+            "accepted": 92,
+            "funded": 2,
+            "attempted": 39,
+            "built": 1,
+            "discard_air_build_failed": 2,
+            "discard_air_insufficient_cash": 2,
+            "line_event_air": 1
+          },
+          "10": {
+            "funnel_events": 19,
+            "considered": 827,
+            "accepted": 16,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2,
+            "line_event_air": 2
+          },
+          "11": {
+            "funnel_events": 18,
+            "considered": 625,
+            "accepted": 17,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 3,
+            "discard_air_batch_plan_dead": 1
+          },
+          "12": {
+            "funnel_events": 19,
+            "considered": 525,
+            "accepted": 34,
+            "funded": 3,
+            "attempted": 3,
+            "built": 3,
+            "line_event_air": 3,
+            "discard_air_batch_plan_dead": 1
+          }
+        }
+      },
+      "1972": {
+        "funnel": {
+          "events": 12,
+          "considered": 1966,
+          "accepted": 764,
+          "funded": 272,
+          "attempted": 272,
+          "built": 13
+        },
+        "funnel_reason": {
+          "search_in_progress": 51,
+          "batch_plan_dead": 2
+        },
+        "discards": {
+          "rail/search_in_progress": 232,
+          "road/plan_failed": 4
+        },
+        "fallback": {
+          "1->5": 1
+        },
+        "builds": {
+          "air": 8,
+          "road": 1
+        },
+        "chosen": {
+          "rail": 1,
+          "air": 9,
+          "road": 1
+        },
+        "p2": {
+          "visits": 12,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "rail/search_in_progress": 103,
+          "road/plan_failed": 3
+        },
+        "per_month": {
+          "01": {},
+          "03": {},
+          "04": {
+            "funnel_events": 1,
+            "considered": 266,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 0
+          },
+          "05": {
+            "funnel_events": 1,
+            "considered": 267,
+            "accepted": 64,
+            "funded": 11,
+            "attempted": 11,
+            "built": 1
+          },
+          "06": {
+            "funnel_events": 1,
+            "considered": 251,
+            "accepted": 64,
+            "funded": 21,
+            "attempted": 21,
+            "built": 1
+          },
+          "07": {
+            "funnel_events": 1,
+            "considered": 217,
+            "accepted": 64,
+            "funded": 22,
+            "attempted": 22,
+            "built": 1
+          },
+          "08": {},
+          "09": {
+            "discard_rail_search_in_progress": 50,
+            "funnel_events": 2,
+            "considered": 381,
+            "accepted": 128,
+            "funded": 53,
+            "attempted": 53,
+            "built": 3,
+            "line_event_air": 1
+          },
+          "10": {
+            "line_event_air": 2,
+            "discard_road_plan_failed": 2,
+            "discard_rail_search_in_progress": 26,
+            "funnel_events": 1,
+            "considered": 141,
+            "accepted": 64,
+            "funded": 28,
+            "attempted": 28,
+            "built": 1
+          },
+          "11": {
+            "discard_rail_search_in_progress": 78,
+            "funnel_events": 3,
+            "considered": 309,
+            "accepted": 192,
+            "funded": 81,
+            "attempted": 81,
+            "built": 3,
+            "line_event_air": 2
+          },
+          "12": {
+            "line_event_air": 3,
+            "discard_rail_search_in_progress": 78,
+            "funnel_events": 2,
+            "considered": 134,
+            "accepted": 124,
+            "funded": 55,
+            "attempted": 55,
+            "built": 3,
+            "line_event_road": 1,
+            "discard_road_plan_failed": 2
+          }
+        }
+      },
+      "1973": {
+        "funnel": {
+          "events": 28,
+          "considered": 1509,
+          "accepted": 1268,
+          "funded": 156,
+          "attempted": 156,
+          "built": 33
+        },
+        "funnel_reason": {
+          "abandoned_pair": 10,
+          "plan_failed": 3,
+          "batch_plan_dead": 61,
+          "plan_failed_road_TRACEX": 3,
+          "search_in_progress": 69,
+          "fleet_grow_failed": 6
+        },
+        "discards": {
+          "road/plan_failed": 1,
+          "rail/search_in_progress": 3,
+          "rail/ABND": 1,
+          "fleet/fleet_grow_failed": 4
+        },
+        "fallback": {},
+        "builds": {
+          "air": 12,
+          "rail": 1
+        },
+        "chosen": {
+          "air": 11,
+          "rail": 1
+        },
+        "p2": {
+          "visits": 28,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "road/plan_failed": 1,
+          "rail/search_in_progress": 3,
+          "rail/ABND": 1,
+          "fleet/fleet_grow_failed": 2
+        },
+        "per_month": {
+          "01": {
+            "discard_road_plan_failed": 1,
+            "funnel_events": 1,
+            "considered": 55,
+            "accepted": 55,
+            "funded": 40,
+            "attempted": 40,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "03": {
+            "funnel_events": 2,
+            "considered": 240,
+            "accepted": 128,
+            "funded": 12,
+            "attempted": 12,
+            "built": 12,
+            "line_event_air": 3
+          },
+          "04": {
+            "funnel_events": 2,
+            "considered": 183,
+            "accepted": 128,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2
+          },
+          "05": {
+            "funnel_events": 1,
+            "considered": 93,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1
+          },
+          "06": {
+            "line_event_air": 1,
+            "funnel_events": 2,
+            "considered": 149,
+            "accepted": 128,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2
+          },
+          "07": {
+            "funnel_events": 2,
+            "considered": 145,
+            "accepted": 128,
+            "funded": 4,
+            "attempted": 4,
+            "built": 2
+          },
+          "08": {
+            "discard_rail_search_in_progress": 1,
+            "funnel_events": 2,
+            "considered": 131,
+            "accepted": 124,
+            "funded": 4,
+            "attempted": 4,
+            "built": 2,
+            "line_event_air": 1
+          },
+          "09": {
+            "funnel_events": 3,
+            "considered": 175,
+            "accepted": 175,
+            "funded": 6,
+            "attempted": 6,
+            "built": 2,
+            "discard_rail_ABND": 1,
+            "discard_rail_search_in_progress": 1
+          },
+          "10": {
+            "line_event_air": 1,
+            "funnel_events": 3,
+            "considered": 140,
+            "accepted": 140,
+            "funded": 4,
+            "attempted": 4,
+            "built": 3,
+            "line_event_rail": 1
+          },
+          "11": {
+            "line_event_air": 4,
+            "discard_fleet_fleet_grow_failed": 3,
+            "funnel_events": 4,
+            "considered": 99,
+            "accepted": 99,
+            "funded": 9,
+            "attempted": 9,
+            "built": 4,
+            "discard_rail_search_in_progress": 1
+          },
+          "12": {
+            "discard_fleet_fleet_grow_failed": 1,
+            "funnel_events": 6,
+            "considered": 99,
+            "accepted": 99,
+            "funded": 72,
+            "attempted": 72,
+            "built": 2,
+            "line_event_air": 1
+          }
+        }
+      },
+      "1974": {
+        "funnel": {
+          "events": 57,
+          "considered": 1553,
+          "accepted": 1553,
+          "funded": 1325,
+          "attempted": 1325,
+          "built": 11
+        },
+        "funnel_reason": {
+          "fleet_grow_failed": 1,
+          "search_in_progress": 1233
+        },
+        "discards": {
+          "fleet/fleet_grow_failed": 1,
+          "rail/search_in_progress": 97,
+          "road/plan_failed": 2,
+          "rail/STNFAIL": 1,
+          "rail/ABND": 1
+        },
+        "fallback": {},
+        "builds": {
+          "air": 2,
+          "road": 2
+        },
+        "chosen": {
+          "rail": 3,
+          "air": 2,
+          "road": 2
+        },
+        "p2": {
+          "visits": 57,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "fleet/fleet_grow_failed": 1,
+          "rail/search_in_progress": 77,
+          "road/plan_failed": 1,
+          "rail/STNFAIL": 1,
+          "rail/ABND": 1
+        },
+        "per_month": {
+          "01": {
+            "discard_fleet_fleet_grow_failed": 1,
+            "discard_rail_search_in_progress": 2,
+            "funnel_events": 2,
+            "considered": 38,
+            "accepted": 38,
+            "funded": 18,
+            "attempted": 18,
+            "built": 2
+          },
+          "02": {
+            "funnel_events": 5,
+            "considered": 90,
+            "accepted": 90,
+            "funded": 16,
+            "attempted": 16,
+            "built": 5
+          },
+          "03": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 7,
+            "considered": 105,
+            "accepted": 105,
+            "funded": 105,
+            "attempted": 105,
+            "built": 0
+          },
+          "04": {
+            "funnel_events": 2,
+            "considered": 54,
+            "accepted": 54,
+            "funded": 9,
+            "attempted": 9,
+            "built": 1,
+            "discard_rail_search_in_progress": 7,
+            "line_event_air": 1
+          },
+          "05": {
+            "discard_rail_search_in_progress": 44,
+            "funnel_events": 5,
+            "considered": 154,
+            "accepted": 154,
+            "funded": 107,
+            "attempted": 107,
+            "built": 2,
+            "line_event_road": 1,
+            "discard_road_plan_failed": 2,
+            "line_event_air": 1,
+            "discard_rail_STNFAIL": 1
+          },
+          "06": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 4,
+            "considered": 112,
+            "accepted": 112,
+            "funded": 112,
+            "attempted": 112,
+            "built": 0
+          },
+          "07": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 7,
+            "considered": 196,
+            "accepted": 196,
+            "funded": 196,
+            "attempted": 196,
+            "built": 0
+          },
+          "08": {
+            "discard_rail_search_in_progress": 23,
+            "funnel_events": 2,
+            "considered": 68,
+            "accepted": 68,
+            "funded": 56,
+            "attempted": 56,
+            "built": 1,
+            "line_event_road": 1
+          },
+          "09": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 6,
+            "considered": 192,
+            "accepted": 192,
+            "funded": 192,
+            "attempted": 192,
+            "built": 0
+          },
+          "10": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 6,
+            "considered": 192,
+            "accepted": 192,
+            "funded": 162,
+            "attempted": 162,
+            "built": 0,
+            "discard_rail_ABND": 1
+          },
+          "11": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 6,
+            "considered": 192,
+            "accepted": 192,
+            "funded": 192,
+            "attempted": 192,
+            "built": 0
+          },
+          "12": {
+            "discard_rail_search_in_progress": 3,
+            "funnel_events": 5,
+            "considered": 160,
+            "accepted": 160,
+            "funded": 160,
+            "attempted": 160,
+            "built": 0
+          }
+        }
+      }
+    },
+    "999": {
+      "1970": {
+        "funnel": {
+          "events": 114,
+          "considered": 7843,
+          "accepted": 264,
+          "funded": 37,
+          "attempted": 74,
+          "built": 7
+        },
+        "funnel_reason": {
+          "batch_plan_dead": 12,
+          "build_failed": 3,
+          "siteA_unbuildable": 24,
+          "build_failed_air_BFAIL": 2,
+          "build_error_air_263": 3,
+          "siteB_unbuildable": 3,
+          "insufficient_cash": 37,
+          "build_failed_air_AFAIL": 1
+        },
+        "discards": {
+          "air/build_failed": 4,
+          "air/insufficient_cash": 1,
+          "air/siteA_unbuildable": 1
+        },
+        "fallback": {},
+        "builds": {
+          "air": 4
+        },
+        "chosen": {
+          "air": 5
+        },
+        "p2": {
+          "visits": 115,
+          "initially_empty": 107
+        },
+        "discard_unique_OD_month": {
+          "air/build_failed": 3,
+          "air/insufficient_cash": 1,
+          "air/siteA_unbuildable": 1
+        },
+        "per_month": {
+          "01": {
+            "funnel_events": 5,
+            "considered": 14,
+            "accepted": 4,
+            "funded": 3,
+            "attempted": 3,
+            "built": 1,
+            "line_event_air": 1,
+            "discard_air_build_failed": 1
+          },
+          "02": {
+            "funnel_events": 12,
+            "considered": 162,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "03": {
+            "funnel_events": 5,
+            "considered": 243,
+            "accepted": 2,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "04": {
+            "funnel_events": 16,
+            "considered": 1066,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "05": {
+            "funnel_events": 13,
+            "considered": 1313,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "06": {
+            "funnel_events": 7,
+            "considered": 615,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "07": {
+            "funnel_events": 15,
+            "considered": 1286,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "08": {
+            "funnel_events": 6,
+            "considered": 600,
+            "accepted": 65,
+            "funded": 28,
+            "attempted": 65,
+            "built": 1,
+            "discard_air_build_failed": 2,
+            "discard_air_insufficient_cash": 1,
+            "discard_air_siteA_unbuildable": 1
+          },
+          "09": {
+            "funnel_events": 13,
+            "considered": 1129,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "10": {
+            "funnel_events": 3,
+            "considered": 274,
+            "accepted": 0,
+            "funded": 0,
+            "attempted": 0,
+            "built": 0
+          },
+          "11": {
+            "discard_air_build_failed": 1,
+            "funnel_events": 9,
+            "considered": 571,
+            "accepted": 64,
+            "funded": 2,
+            "attempted": 2,
+            "built": 1
+          },
+          "12": {
+            "funnel_events": 10,
+            "considered": 570,
+            "accepted": 65,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2,
+            "line_event_air": 1
+          }
+        }
+      },
+      "1971": {
+        "funnel": {
+          "events": 117,
+          "considered": 8848,
+          "accepted": 686,
+          "funded": 108,
+          "attempted": 159,
+          "built": 15
+        },
+        "funnel_reason": {
+          "too_close_no_join": 82,
+          "plan_failed": 1,
+          "plan_failed_road_TRACEX": 1,
+          "batch_plan_dead": 30,
+          "build_failed": 1,
+          "siteA_unbuildable": 6,
+          "insufficient_cash": 51,
+          "build_error_air_263": 1,
+          "build_failed_air_AFAIL": 1
+        },
+        "discards": {
+          "road/plan_failed": 2,
+          "rail/too_close_no_join": 8,
+          "air/build_failed": 4,
+          "air/insufficient_cash": 1,
+          "air/siteA_unbuildable": 1,
+          "air/siteB_unbuildable": 1
+        },
+        "fallback": {},
+        "builds": {
+          "rail": 2,
+          "air": 8,
+          "road": 1
+        },
+        "chosen": {
+          "air": 8,
+          "road": 1
+        },
+        "p2": {
+          "visits": 116,
+          "initially_empty": 19
+        },
+        "discard_unique_OD_month": {
+          "road/plan_failed": 1,
+          "rail/too_close_no_join": 8,
+          "air/build_failed": 2,
+          "air/insufficient_cash": 1,
+          "air/siteA_unbuildable": 1,
+          "air/siteB_unbuildable": 1
+        },
+        "per_month": {
+          "01": {
+            "funnel_events": 9,
+            "considered": 696,
+            "accepted": 2,
+            "funded": 2,
+            "attempted": 2,
+            "built": 1,
+            "line_event_rail": 1
+          },
+          "02": {
+            "funnel_events": 8,
+            "considered": 760,
+            "accepted": 5,
+            "funded": 4,
+            "attempted": 4,
+            "built": 1,
+            "line_event_rail": 1,
+            "discard_road_plan_failed": 2
+          },
+          "03": {
+            "discard_rail_too_close_no_join": 1,
+            "funnel_events": 11,
+            "considered": 1290,
+            "accepted": 11,
+            "funded": 11,
+            "attempted": 11,
+            "built": 0
+          },
+          "04": {
+            "discard_rail_too_close_no_join": 1,
+            "funnel_events": 5,
+            "considered": 670,
+            "accepted": 5,
+            "funded": 5,
+            "attempted": 5,
+            "built": 0
+          },
+          "05": {
+            "funnel_events": 5,
+            "considered": 381,
+            "accepted": 131,
+            "funded": 6,
+            "attempted": 6,
+            "built": 3,
+            "line_event_air": 2,
+            "discard_rail_too_close_no_join": 1,
+            "line_event_road": 1
+          },
+          "06": {
+            "discard_rail_too_close_no_join": 1,
+            "funnel_events": 16,
+            "considered": 1018,
+            "accepted": 13,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1
+          },
+          "07": {
+            "discard_rail_too_close_no_join": 1,
+            "funnel_events": 9,
+            "considered": 608,
+            "accepted": 72,
+            "funded": 9,
+            "attempted": 9,
+            "built": 1
+          },
+          "08": {
+            "funnel_events": 9,
+            "considered": 606,
+            "accepted": 135,
+            "funded": 9,
+            "attempted": 9,
+            "built": 2,
+            "line_event_air": 1
+          },
+          "09": {
+            "line_event_air": 1,
+            "discard_rail_too_close_no_join": 1,
+            "funnel_events": 12,
+            "considered": 756,
+            "accepted": 12,
+            "funded": 12,
+            "attempted": 12,
+            "built": 0
+          },
+          "10": {
+            "funnel_events": 9,
+            "considered": 461,
+            "accepted": 184,
+            "funded": 16,
+            "attempted": 67,
+            "built": 2,
+            "line_event_air": 2,
+            "discard_air_build_failed": 2,
+            "discard_air_insufficient_cash": 1,
+            "discard_air_siteA_unbuildable": 1
+          },
+          "11": {
+            "discard_rail_too_close_no_join": 1,
+            "funnel_events": 14,
+            "considered": 887,
+            "accepted": 12,
+            "funded": 10,
+            "attempted": 10,
+            "built": 2
+          },
+          "12": {
+            "discard_rail_too_close_no_join": 1,
+            "funnel_events": 10,
+            "considered": 715,
+            "accepted": 104,
+            "funded": 12,
+            "attempted": 12,
+            "built": 2,
+            "line_event_air": 2,
+            "discard_air_build_failed": 2,
+            "discard_air_siteB_unbuildable": 1
+          }
+        }
+      },
+      "1972": {
+        "funnel": {
+          "events": 3,
+          "considered": 2046,
+          "accepted": 192,
+          "funded": 6,
+          "attempted": 6,
+          "built": 3
+        },
+        "funnel_reason": {
+          "siteB_unbuildable": 1,
+          "batch_plan_dead": 3
+        },
+        "discards": {
+          "air/build_failed": 2
+        },
+        "fallback": {},
+        "builds": {
+          "air": 2
+        },
+        "chosen": {
+          "air": 2,
+          "rail": 1
+        },
+        "p2": {
+          "visits": 3,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "air/build_failed": 1
+        },
+        "per_month": {
+          "05": {
+            "discard_air_build_failed": 2,
+            "funnel_events": 1,
+            "considered": 820,
+            "accepted": 64,
+            "funded": 3,
+            "attempted": 3,
+            "built": 1
+          },
+          "06": {
+            "line_event_air": 1
+          },
+          "09": {
+            "funnel_events": 1,
+            "considered": 656,
+            "accepted": 64,
+            "funded": 2,
+            "attempted": 2,
+            "built": 2
+          },
+          "10": {
+            "line_event_air": 1
+          },
+          "12": {
+            "funnel_events": 1,
+            "considered": 570,
+            "accepted": 64,
+            "funded": 1,
+            "attempted": 1,
+            "built": 0
+          }
+        }
+      },
+      "1973": {
+        "funnel": {
+          "events": 4,
+          "considered": 1954,
+          "accepted": 256,
+          "funded": 77,
+          "attempted": 77,
+          "built": 18
+        },
+        "funnel_reason": {
+          "batch_plan_dead": 20,
+          "search_in_progress": 25
+        },
+        "discards": {
+          "rail/search_in_progress": 30,
+          "air/batch_plan_dead": 78,
+          "air/build_failed": 2,
+          "air/siteA_unbuildable": 2,
+          "air/siteB_unbuildable": 1
+        },
+        "fallback": {},
+        "builds": {
+          "air": 14
+        },
+        "chosen": {
+          "air": 14
+        },
+        "p2": {
+          "visits": 4,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "rail/search_in_progress": 30,
+          "air/batch_plan_dead": 77,
+          "air/build_failed": 1,
+          "air/siteA_unbuildable": 2,
+          "air/siteB_unbuildable": 1
+        },
+        "per_month": {
+          "01": {
+            "discard_rail_search_in_progress": 2,
+            "discard_air_batch_plan_dead": 46,
+            "funnel_events": 1,
+            "considered": 570,
+            "accepted": 64,
+            "funded": 10,
+            "attempted": 10,
+            "built": 8
+          },
+          "02": {
+            "line_event_air": 7
+          },
+          "06": {
+            "discard_air_build_failed": 2,
+            "discard_air_batch_plan_dead": 32,
+            "discard_rail_search_in_progress": 19,
+            "discard_air_siteA_unbuildable": 2,
+            "discard_air_siteB_unbuildable": 1,
+            "funnel_events": 1,
+            "considered": 627,
+            "accepted": 64,
+            "funded": 31,
+            "attempted": 31,
+            "built": 8
+          },
+          "07": {
+            "line_event_air": 6
+          },
+          "08": {
+            "funnel_events": 1,
+            "considered": 390,
+            "accepted": 64,
+            "funded": 24,
+            "attempted": 24,
+            "built": 1
+          },
+          "09": {},
+          "12": {
+            "discard_rail_search_in_progress": 9,
+            "funnel_events": 1,
+            "considered": 367,
+            "accepted": 64,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1,
+            "line_event_air": 1
+          }
+        }
+      },
+      "1974": {
+        "funnel": {
+          "events": 8,
+          "considered": 1982,
+          "accepted": 512,
+          "funded": 87,
+          "attempted": 87,
+          "built": 9
+        },
+        "funnel_reason": {
+          "search_in_progress": 22,
+          "batch_plan_dead": 16
+        },
+        "discards": {
+          "rail/search_in_progress": 55
+        },
+        "fallback": {},
+        "builds": {
+          "air": 5,
+          "rail": 1
+        },
+        "chosen": {
+          "air": 5,
+          "rail": 1
+        },
+        "p2": {
+          "visits": 8,
+          "initially_empty": 0
+        },
+        "discard_unique_OD_month": {
+          "rail/search_in_progress": 55
+        },
+        "per_month": {
+          "02": {
+            "funnel_events": 1,
+            "considered": 337,
+            "accepted": 64,
+            "funded": 13,
+            "attempted": 13,
+            "built": 2
+          },
+          "03": {
+            "discard_rail_search_in_progress": 11,
+            "funnel_events": 1,
+            "considered": 315,
+            "accepted": 64,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1
+          },
+          "04": {
+            "line_event_air": 1
+          },
+          "05": {
+            "discard_rail_search_in_progress": 11,
+            "funnel_events": 1,
+            "considered": 282,
+            "accepted": 64,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "06": {
+            "discard_rail_search_in_progress": 11,
+            "funnel_events": 1,
+            "considered": 249,
+            "accepted": 64,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "07": {
+            "discard_rail_search_in_progress": 11,
+            "funnel_events": 1,
+            "considered": 219,
+            "accepted": 64,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1,
+            "line_event_air": 1
+          },
+          "08": {},
+          "10": {
+            "funnel_events": 1,
+            "considered": 193,
+            "accepted": 64,
+            "funded": 2,
+            "attempted": 2,
+            "built": 1,
+            "line_event_rail": 1
+          },
+          "11": {
+            "funnel_events": 1,
+            "considered": 194,
+            "accepted": 64,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1
+          },
+          "12": {
+            "discard_rail_search_in_progress": 11,
+            "funnel_events": 1,
+            "considered": 193,
+            "accepted": 64,
+            "funded": 12,
+            "attempted": 12,
+            "built": 1,
+            "line_event_air": 1
+          }
+        }
+      }
+    }
+  },
+  "limitations": [
+    "MONTHLY_FUNNEL rows are per projects pass (NOT once a month), despite label. Sum of considered candidates repeats the same portfolio.",
+    "PROJECT_DISCARD logs are controlled by DECISION_LOG and may omit repeated physical refusals; counters are NOT unique failed alternatives.",
+    "P5_BUILD_LINE records NET _lines increments, not gross physical builds or survival.",
+    "One observed candidate or even a funded rank does not prove physical constructibility or annual profit.",
+    "These games use intrusive decision_log, probe_portfolio and scheduler instrumentation; cannot be joined to unprofiled economic trajectories."
+  ]
+}
