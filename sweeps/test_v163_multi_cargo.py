@@ -111,6 +111,16 @@ class StaticContracts(unittest.TestCase):
         self.assertIn("line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)", src)
         self.assertEqual(src.count("OpexV163WagonsPrice(this._catalog, line)"), 2)
 
+    def test_probe_decision_log_only(self):
+        src = _read("task_report.nut")
+        start = src.index("V163 : le second cargo est-il reellement charge")
+        dl = src.rfind("if (DECISION_LOG) {", 0, start)
+        self.assertGreater(dl, 0)
+        # la sonde vit dans le bloc DECISION_LOG de LINE_REVENUE, avant l'appel
+        self.assertLess(start, src.index('OpexDecide("LINE_REVENUE"', dl))
+        self.assertIn("AIVehicle.GetCargoLoad(v, line.cargo2)", src)
+        self.assertIn('" wait2_a=" + AIStation.GetCargoWaiting(stationA, line.cargo2)', src)
+
 
 class SizingModel(unittest.TestCase):
     def test_prorata_production(self):
