@@ -86,10 +86,10 @@ class TestAir0310_6EngineDepth(unittest.TestCase):
         self.assertEqual(self.globals.count("PROBE_AIR_ENGINE_DEPTH"), 1)
         self.assertEqual(self.globals.count("AIR_ENGINE_DEPTH_SCAN"), 1)
         self.assertEqual(self.globals.count("AIR_ENGINE_DEPTH_CHALLENGER"), 1)
-        needle = 'AIController.GetSetting("probe_air_engine_depth")'
+        needle = 'OpexProbeSetting("probe_air_engine_depth")'
         self.assertEqual(self.settings.count(needle), 1)
         self.assertIn(
-            'PROBE_AIR_ENGINE_DEPTH = AIController.GetSetting("probe_air_engine_depth") != 0;',
+            'PROBE_AIR_ENGINE_DEPTH = OpexProbeSetting("probe_air_engine_depth") != 0;',
             self.settings,
         )
         self.assertNotIn("PROBE_AIR_ENGINE_DEPTH <-", self.settings)

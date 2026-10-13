@@ -65,7 +65,7 @@ class TestV90FastPathfinderContract(unittest.TestCase):
     def test_settings_loaded_in_settings_nut(self):
         settings = _read("ai/OpexAI/settings.nut")
         self.assertIn('V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;', settings)
-        self.assertIn('V90_PATHFINDER_CHECK = AIController.GetSetting("v90_pathfinder_check") != 0;', settings)
+        self.assertIn('V90_PATHFINDER_CHECK = OpexProbeSetting("v90_pathfinder_check") != 0;', settings)
 
     def test_campaign_freeze_includes_v90_settings(self):
         defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")

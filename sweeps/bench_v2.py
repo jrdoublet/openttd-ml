@@ -140,6 +140,13 @@ def parse_opex_variant(name):
             # Les AISign sont la seule instrumentation recuperee par OpenTTDLab.
             if value != 1:
                 raise ValueError("debug_signs doit rester a 1")
+        elif key == "probes":
+            # V167 : masque de bits (ai/OpexAI/settings.nut) ; le bit 1 vaut tout sauf 256. Les
+            # panneaux (bit 2) doivent rester actifs pour la meme raison que debug_signs.
+            if not 0 <= value <= 511:
+                raise ValueError("probes doit etre entre 0 et 511")
+            if not value & 3:
+                raise ValueError("probes doit garder les panneaux (bit 2, ou bit 1 = tout)")
         elif key == "pathfinder_sleep_ticks":
             if not 0 <= value <= 10:
                 raise ValueError("pathfinder_sleep_ticks doit etre entre 0 et 10")

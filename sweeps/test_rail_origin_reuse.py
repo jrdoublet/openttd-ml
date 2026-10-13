@@ -65,7 +65,7 @@ class TestRailOriginReuse(unittest.TestCase):
             self.assertIn(f"{name} = 0", block)
         self.assertIn("RAIL_ORIGIN_EXPOSURE_SHADOW <- false;", self.globals)
         self.assertIn(
-            'RAIL_ORIGIN_EXPOSURE_SHADOW = AIController.GetSetting("rail_origin_exposure_shadow") != 0;',
+            'RAIL_ORIGIN_EXPOSURE_SHADOW = OpexProbeSetting("rail_origin_exposure_shadow") != 0;',
             self.settings,
         )
         self.assertNotIn("RAIL_ORIGIN_REUSE && AIController.GetSetting", self.settings[
@@ -82,7 +82,7 @@ class TestRailOriginReuse(unittest.TestCase):
         self.assertIn("RAIL_ORIGIN_EXPOSURE_DETAIL_SHADOW <- false;", self.globals)
         self.assertIn(
             'RAIL_ORIGIN_EXPOSURE_DETAIL_SHADOW = RAIL_ORIGIN_EXPOSURE_SHADOW\n'
-            '      && AIController.GetSetting("rail_origin_exposure_detail_shadow") != 0;',
+            '      && OpexProbeSetting("rail_origin_exposure_detail_shadow") != 0;',
             self.settings,
         )
 
@@ -195,8 +195,10 @@ class TestRailOriginReuse(unittest.TestCase):
             for name in ("easy_value", "medium_value", "hard_value", "custom_value"):
                 self.assertIn(f"{name} = 0", block)
             self.assertIn(f"{symbol} <- false;", self.globals)
+            # V167 : la sonde passe par OpexProbeSetting (groupe rail du reglage probes)
+            reader = "OpexProbeSetting" if setting.endswith("_shadow") else "AIController.GetSetting"
             self.assertIn(
-                f'{symbol} = RAIL_ORIGIN_REUSE\n      && AIController.GetSetting("{setting}") != 0;',
+                f'{symbol} = RAIL_ORIGIN_REUSE\n      && {reader}("{setting}") != 0;',
                 self.settings,
             )
 

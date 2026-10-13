@@ -28,7 +28,7 @@ class TestC117AirThroughput(unittest.TestCase):
         self.assertEqual(defaults["c117_air_throughput_probe"], 0)
         self.assertIn("C117_AIR_THROUGHPUT_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
         self.assertIn(
-            'C117_AIR_THROUGHPUT_PROBE = AIController.GetSetting("c117_air_throughput_probe") != 0;',
+            'C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;',
             SETTINGS.read_text(encoding="utf-8"),
         )
 

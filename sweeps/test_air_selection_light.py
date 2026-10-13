@@ -211,7 +211,7 @@ class SourceContracts(unittest.TestCase):
     def test_gate_declared_and_loaded_existing_default_off(self):
         root = light.ROOT / "ai/OpexAI"
         self.assertIn("CATALOG_COST_PROBE <- false;", (root / "globals_pre.nut").read_text())
-        self.assertIn('CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;',
+        self.assertIn('CATALOG_COST_PROBE = OpexProbeSetting("catalog_cost_probe") != 0;',
                       (root / "settings.nut").read_text())
         self.assertIn("CATALOG_COST_PROBE ? OpexAirLightBegin", self.wrapper)
         self.assertIn("OPEX_AIR_LIGHT_SEQ <- 0;", self.source)
