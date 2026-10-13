@@ -467,7 +467,9 @@ premiers écarts clean apparaissent en 1973, après publication.
 987653 **+55 835** £/an. Premières divergences monétaires en
 1972-08, 1972-12, 1973-03, 1972-04, 1972-05 respectivement, donc
 toutes **postérieures** au premier facteur C70 vyear non neutre publié
-en janvier 1972. La chronologie est compatible avec une influence
+entre le **10 janvier et le 6 juin 1972 selon la graine** (date
+inférée de la dernière trace `OPEX` immédiatement précédente, et non
+du seul numéro d'exercice). La chronologie est compatible avec une influence
 du score, mais elle ne prouve ni une inversion C77 précise ni un
 profit marginal d'une construction contrefactuelle. L'analyseur
 reproductible du stage est
@@ -481,6 +483,51 @@ P4 véhicule-année techniquement viable mais non convaincant sur deux
 5×5 complémentaires et sensible au bruit d'ordonnancement. N'intégrer
 aucun flag comportemental dans `master` sans une nouvelle hypothèse
 testable et de nouvelles preuves de gain terminal robuste.
+
+### Nouveaux rapprochements événementiels et test de causalité (suite)
+
+Variante et analyseur conservés sur la branche distante expérimentale
+`codex/scores-p4-vyear-experimental-20261013` ; données dérivées
+`docs/scores_p4_causal_exposure_20261013.json`, script
+`sweeps/analyse_scores_p4_causal_exposure_20261013.py`, **7 tests ciblés
+verts** et suite complète hôte précédente **2 133 tests OK**.
+Le rapprochement exact se fait par **politique / graine / chronologie /
+mode / cargo / OD**, par identifiant de ligne `AIR_BUILD/RAIL_BUILD →
+LINE_REVENUE`, et par `age>=2` pour les réalisations matures ; un
+`PROJECT_CHOSEN` n'est jamais assimilé à une construction.
+
+**Différence décisive :** les décalages de la **même OD** dans le calendrier
+ne sont plus faussement comptés comme des changements de projet. Les
+premiers choix d'une **OD réellement différente** interviennent aux
+dates 1972-08-02 (314159), 1972-11-02 (271828), 1973-03-08 (161803),
+1972-04-03 (123457), 1972-04-23 (987653). Seule 987653 a son
+premier changement d'OD avant toute divergence *mensuelle de trésorerie*
+observée dans **les deux compagnies du duel**. Pour 271828, AAAHogEx
+diverge déjà au 1er novembre, avant la décision du 2 novembre, bien
+que la caisse Opex reste apparemment identique jusqu'au 1er décembre.
+**Aucune des cinq graines ne construit une OD différente avant
+le premier écart de caisse mensuel de l'une ou l'autre compagnie.**
+Les écarts intra-mensuels restent inconnus, donc aucun contrefactuel
+C77 même état et aucune causalité de score ne sont démontrés.
+
+**Échantillon de réalisation :** AIR/RAIL ont respectivement
+58/67, 63/61, 56/52, 64/69, 72/75 constructions (référence/ON)
+dans les cinq graines. **328 paires de lignes-années matures de même
+mode/cargo/OD** sont retrouvées entre politiques. **280** ont la même
+date de construction et le même nombre de véhicules au rapport,
+mais **219/280** affichent des profits de ligne différents. Ni
+véhicules/ordres identiques ni neutralité du réseau ne sont garantis ;
+les 328 paires restent corrélées sur cinq graines et ne sont pas
+328 observations indépendantes d'un effet marginal.
+
+**Point d'appui concret suivant :** instrumenter, sous flag OFF par défaut,
+une confrontation des classements **au même instant et dans le même monde**
+à l'emplacement C77 : ensemble réellement finançable, mêmes priorités,
+K_dec, coût de financement, facteur C70 alternatif et tête effective,
+puis lier l'épisode au constructeur réel et à `lineId`/reprise RAIL.
+Une telle sonde et un replay depuis une sauvegarde gelée sont les
+prochaines épreuves nécessaires avant de financer d'autres gates
+40×5 ou d'inférer un bénéfice contrefactuel.
 
 **Critère inchangé :** seules les parties appariées à cinq ans avec
 sondes OFF, budget VM contrôlé, Save/Load valide, valeur d'entreprise,
