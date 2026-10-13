@@ -25,7 +25,7 @@ class RoadFinanceUnbiasContracts(unittest.TestCase):
             src("settings.nut"),
         )
         self.assertIn(
-            'ROAD_FINANCE_GATE_SHADOW_P0 = AIController.GetSetting("road_finance_gate_shadow_p0") != 0;',
+            'ROAD_FINANCE_GATE_SHADOW_P0 = OpexProbeSetting("road_finance_gate_shadow_p0") != 0;',
             src("settings.nut"),
         )
 

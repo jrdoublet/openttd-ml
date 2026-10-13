@@ -14,7 +14,7 @@ class ShadowSafety(unittest.TestCase):
             self.assertIn(f"{name}_value = 0", part)
         self.assertIn("AIR_BFAIL_PRECHECK_SHADOW <- false;",
                       (ROOT / "globals_pre.nut").read_text(encoding="utf-8"))
-        self.assertIn('AIR_BFAIL_PRECHECK_SHADOW = AIController.GetSetting("air_bfail_precheck_shadow") != 0;',
+        self.assertIn('AIR_BFAIL_PRECHECK_SHADOW = OpexProbeSetting("air_bfail_precheck_shadow") != 0;',
                       (ROOT / "settings.nut").read_text(encoding="utf-8"))
 
     def test_shadow_never_takes_preb_path(self):

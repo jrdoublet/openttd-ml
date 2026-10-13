@@ -13,7 +13,7 @@ class FreightSelectionShadowContract(unittest.TestCase):
         info = (ROOT / "info.nut").read_text(encoding="utf-8")
         globals_pre = (ROOT / "globals_pre.nut").read_text(encoding="utf-8")
         self.assertIn("RAIL_FREIGHT_SELECT_SHADOW <- false;", globals_pre)
-        self.assertIn('RAIL_FREIGHT_SELECT_SHADOW = AIController.GetSetting("rail_freight_select_shadow") != 0;', settings)
+        self.assertIn('RAIL_FREIGHT_SELECT_SHADOW = OpexProbeSetting("rail_freight_select_shadow") != 0;', settings)
         cfg = info.split('name = "rail_freight_select_shadow",', 1)[1].split("});", 1)[0]
         for difficulty in ("easy", "medium", "hard", "custom"):
             self.assertRegex(cfg, rf"\b{difficulty}_value\s*=\s*0\b")

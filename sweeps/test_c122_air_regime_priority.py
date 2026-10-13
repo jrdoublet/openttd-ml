@@ -28,11 +28,11 @@ class TestC122AirRegimePriority(unittest.TestCase):
         self.assertIn("C122_AIR_THREAT_PROBE <- false;", GLOBALS)
         self.assertIn("C122_AIR_THREAT_RETRY <- false;", GLOBALS)
         self.assertIn(
-            'C122_AIR_REGIME_SHADOW = AIController.GetSetting("c122_air_regime_shadow") != 0;',
+            'C122_AIR_REGIME_SHADOW = OpexProbeSetting("c122_air_regime_shadow") != 0;',
             SETTINGS,
         )
         self.assertIn('C122_AIR_THREAT_RETRY = AIController.GetSetting("c122_air_threat_retry") != 0;', SETTINGS)
-        self.assertIn('C122_AIR_THREAT_PROBE = AIController.GetSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;', SETTINGS)
+        self.assertIn('C122_AIR_THREAT_PROBE = OpexProbeSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;', SETTINGS)
         shadow_pos = INFO.index('name = "c122_air_regime_shadow"')
         shadow_block = INFO[shadow_pos:shadow_pos + 700]
         for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):

@@ -52,7 +52,7 @@ class TestEventBacklogProbe(unittest.TestCase):
         self.assertEqual(self.globals_src.count("PROBE_EVENT_BACKLOG <-"), 1)
 
     def test_settings_loading(self):
-        needle = 'PROBE_EVENT_BACKLOG = AIController.GetSetting("probe_event_backlog") != 0;'
+        needle = 'PROBE_EVENT_BACKLOG = OpexProbeSetting("probe_event_backlog") != 0;'
         self.assertIn(needle, self.settings_src)
         self.assertEqual(self.settings_src.count(needle), 1)
         self.assertNotIn("PROBE_EVENT_BACKLOG <-", self.settings_src)

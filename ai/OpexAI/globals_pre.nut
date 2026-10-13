@@ -40,6 +40,8 @@ CLEAN_DENSITY_SCORE <- true;
  * l'instrumentation de sweeps/*.py passe par ces panneaux, AILog.Info n'etant pas capture par
  * OpenTTDLab. On ne les coupe que pour une partie avec des humains. */
 DEBUG_SIGNS <- true;
+/* V167 : masque du reglage `probes` apres expansion du bit 1 (voir settings.nut). */
+OPEX_PROBE_MASK <- 2;
 /* P0 AIR : journal des achats effectivement realises et de leur provenance de score.
  * OFF par defaut, diagnostic seulement, aucune lecture par le classement. */
 AIR_P0_MARGIN_PROBE <- false;

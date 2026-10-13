@@ -21,8 +21,8 @@ class ProbeSelectRejectTests(unittest.TestCase):
         self.assertIn("PROBE_SELECT_REJECT <- false;", GLOBALS)
 
     def test_setting_loaded_once_in_settings_nut(self):
-        self.assertEqual(SETTINGS.count('AIController.GetSetting("probe_select_reject")'), 1)
-        self.assertIn('PROBE_SELECT_REJECT = AIController.GetSetting("probe_select_reject") != 0;', SETTINGS)
+        self.assertEqual(SETTINGS.count('OpexProbeSetting("probe_select_reject")'), 1)
+        self.assertIn('PROBE_SELECT_REJECT = OpexProbeSetting("probe_select_reject") != 0;', SETTINGS)
 
     def test_helpers_present_in_projects_selection(self):
         self.assertIn("function OpexSelectRejectScore(project, kDec)", SELECTION)

@@ -133,12 +133,14 @@ class TestV141CatalogIncremental(unittest.TestCase):
             self.assertEqual(spec["default"], default)
             self.assertEqual(self.globals.count(f"{global_name} <- false;"), 1)
             self.assertEqual(self.globals.count(f"{global_name} <-"), 1)
+            # V167 : la verification passe par OpexProbeSetting (groupe 256 du reglage probes)
+            reader = "OpexProbeSetting" if name == CHECK_SETTING else "AIController.GetSetting"
             self.assertEqual(
-                self.settings.count(f'AIController.GetSetting("{name}")'), 1
+                self.settings.count(f'Setting("{name}")'), 1
             )
             self.assertIn(
                 f"{global_name} = C121_CATALOG_INCREMENTAL\n"
-                f'      && AIController.GetSetting("{name}") != 0;',
+                f'      && {reader}("{name}") != 0;',
                 self.settings,
             )
             self.assertNotIn(f"{global_name} <-", self.settings)

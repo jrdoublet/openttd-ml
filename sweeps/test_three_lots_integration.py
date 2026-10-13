@@ -137,7 +137,9 @@ class SourceContracts(unittest.TestCase):
         for difficulty in ("easy", "medium", "hard", "custom"):
             self.assertIn(f"{difficulty}_value = 0", info)
         self.assertIn("min_value = 0, max_value = 2", info)
-        self.assertEqual(self.source("settings.nut").count('GetSetting("fleet_amort_shadow_probe")'), 1)
+        # V167 : lu par OpexProbeSetting (groupe AIR du reglage probes)
+        self.assertEqual(self.source("settings.nut").count('OpexProbeSetting("fleet_amort_shadow_probe")'), 1)
+        self.assertEqual(self.source("settings.nut").count('Setting("fleet_amort_shadow_probe")'), 1)
 
     def test_shadow_collects_both_admission_paths_before_compaction(self):
         s = self.source("projects_selection.nut")

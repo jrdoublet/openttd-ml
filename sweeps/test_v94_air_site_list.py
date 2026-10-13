@@ -117,7 +117,7 @@ class TestV94AirSiteListContract(unittest.TestCase):
             settings,
         )
         self.assertIn(
-            'V94_AIR_SITE_CHECK = AIController.GetSetting("v94_air_site_check") != 0;',
+            'V94_AIR_SITE_CHECK = OpexProbeSetting("v94_air_site_check") != 0;',
             settings,
         )
         self.assertIn("V94_AIR_SITE_LIST <- true;", globals_pre)

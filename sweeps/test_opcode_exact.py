@@ -64,7 +64,7 @@ class OpcodeExactContractTests(unittest.TestCase):
             self.settings,
         )
         self.assertIn(
-            'EXP_OPCODE_EXACT_CHECK = AIController.GetSetting("exp_opcode_exact_check") != 0;',
+            'EXP_OPCODE_EXACT_CHECK = OpexProbeSetting("exp_opcode_exact_check") != 0;',
             self.settings,
         )
         self.assertIn(

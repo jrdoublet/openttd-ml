@@ -15,7 +15,19 @@ class OpexAIInfo extends AIInfo {
   {
     /* --- 1. Systeme et instrumentation --- */
 
-    /* Panneaux de diagnostic. Defaut ACTIF (requis par les sweeps pour collecter les metriques). */
+    /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).
+     * Defaut 2 = panneaux seuls, le comportement historique. */
+    AddSetting({
+      name = "probes",
+      description = "Diagnostics bitmask: 0 none, 1 everything except 256 (signs, log, groups 8-128), 2 signs (default), 4 decision log, 8 opcodes/scheduler, 16 air, 32 rail, 64 road/water/costs, 128 events/portfolio, 256 double-computation checks; any probe group also enables the log; never changes decisions",
+      min_value = 0, max_value = 511,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2,
+      flags = 0
+    });
+
+    /* Panneaux de diagnostic. Defaut ACTIF (requis par les sweeps pour collecter les metriques).
+     * V167 : n'agit plus que comme veto (0) du bit 2 de probes. */
     AddSetting({
       name = "debug_signs",
       description = "Diagnostic signs on the map: 1 = current behaviour (required by sweeps/), 0 = none (use when playing with humans)",

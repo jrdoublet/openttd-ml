@@ -301,7 +301,7 @@ class ProbeContractTests(unittest.TestCase):
         self.assertIn("C121_ENGTAB_N2 <- null;", globals_pre)
         settings = (AI / "settings.nut").read_text(encoding="utf-8")
         self.assertIn(
-            'PROBE_C121_ENGINE_TABLE = AIController.GetSetting("probe_c121_engine_table") != 0;',
+            'PROBE_C121_ENGINE_TABLE = OpexProbeSetting("probe_c121_engine_table") != 0;',
             settings)
         planning = (AI / "air_planning.nut").read_text(encoding="utf-8")
         econ = (AI / "air_economics_c121.nut").read_text(encoding="utf-8")

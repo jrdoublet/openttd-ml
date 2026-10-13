@@ -131,10 +131,10 @@ class TestAirFinanceMarginProbe(unittest.TestCase):
         self.assertIn("AIR_FINANCE_MARGIN_YEAR <- -1;", self.globals)
         self.assertEqual(self.globals.count("PROBE_AIR_FINANCE_MARGIN"), 1)
         self.assertEqual(self.globals.count("AIR_FINANCE_MARGIN_YEAR"), 1)
-        needle = 'AIController.GetSetting("probe_air_finance_margin")'
+        needle = 'OpexProbeSetting("probe_air_finance_margin")'
         self.assertEqual(self.settings.count(needle), 1)
         self.assertIn(
-            'PROBE_AIR_FINANCE_MARGIN = AIController.GetSetting("probe_air_finance_margin") != 0;',
+            'PROBE_AIR_FINANCE_MARGIN = OpexProbeSetting("probe_air_finance_margin") != 0;',
             self.settings,
         )
         self.assertNotIn("PROBE_AIR_FINANCE_MARGIN <-", self.settings)

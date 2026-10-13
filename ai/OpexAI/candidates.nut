@@ -710,7 +710,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
   /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
    * prÃ©coces de OpexLineEconomics restent visibles comme reliquat de prÃ©paration. */
-  local freightEconomicsMark = (kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
+  local freightEconomicsMark = (profile != null && kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
