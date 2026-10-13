@@ -1710,7 +1710,15 @@ function OpexPromoteLiveDefensiveAirStock(projects, capitalBudget)
   if (projects != null && ("candidateGroups" in projects) && ("railStockAI" in projects)) {
     local ai = projects.railStockAI;
     ai._checkRailStockExpiry();
-    OpexReselectProjects(projects, capitalBudget, ai._abandonedPairs, ai._lines, ai._railReadyStock);
+    /* V149 : la reselection forcee ne sert qu'a fusionner un stock qui a change ; stock identique,
+     * la selection paresseuse suffit (diag V149 n°3 : ~140 reselections de plus en 1970, ~3 M). */
+    local v149Sig = V149_RAIL_PIPELINE ? OpexV149RailStockSignature(ai._railReadyStock) : null;
+    if (v149Sig != null && v149Sig == ai._v149StockSig) {
+      OpexEnsureSelection(ai);
+    } else {
+      OpexReselectProjects(projects, capitalBudget, ai._abandonedPairs, ai._lines, ai._railReadyStock);
+      if (v149Sig != null) ai._v149StockSig = v149Sig;
+    }
     ai._updateRailStockSelectionThreshold();
     if (C56_TASK_TRACE) {
       local funded = 0;

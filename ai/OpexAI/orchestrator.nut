@@ -311,8 +311,22 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
     return "done";
   }
 
+  /* V149 : pendant la reconstruction AIR du catalogue, l'A* du stock ne prend que
+   * V149_ASTAR_SHARE % des ticks : apres une tranche de dt ticks, la suivante attend
+   * dt * (100 - part) / part ticks (diag V149 n°3 : 29 a 63 % des ticks de 1971 en A*). */
+  local v149Cap = V149_RAIL_PIPELINE && V149_ASTAR_SHARE < 100 && ai._railSearch.phase == "search"
+      && OpexV149AirCatalogBusy(ai);
+  if (v149Cap && AIController.GetTick() < ai._v149RailNextTick) return "running";
+  local v149SliceTick = AIController.GetTick();
+
   // 2. Première tranche d'A*
   ai._advanceRailSearchSliceWithLedgers();
+  if (v149Cap) {
+    local v149Now = AIController.GetTick();
+    local v149Dt = v149Now - v149SliceTick;
+    if (v149Dt < 1) v149Dt = 1;
+    ai._v149RailNextTick = v149Now + v149Dt * (100 - V149_ASTAR_SHARE) / V149_ASTAR_SHARE;
+  }
 
   // 3. Débit sur reliquat tant que GetOpsTillSuspend() >= seuil estimé
   local minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;

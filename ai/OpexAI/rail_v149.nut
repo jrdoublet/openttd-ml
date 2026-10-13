@@ -26,6 +26,18 @@ function OpexV149AirCatalogBusy(ai)
   return false;
 }
 
+/* Signature du stock (cles triees) : la reselection forcee de C80 n'a lieu que si elle change. */
+function OpexV149RailStockSignature(stock)
+{
+  if (stock == null) return "-";
+  local keys = [];
+  foreach (k, entry in stock) keys.push("" + k);
+  keys.sort();
+  local sig = "" + keys.len();
+  foreach (k in keys) sig += "|" + k;
+  return sig;
+}
+
 /* La recherche en cours est une recherche du stock (neuve, reparation ou preparation C121),
  * menee par le worker rail_stock ou en attente de lui. */
 function OpexV149CatalogMayPassRail(owner)

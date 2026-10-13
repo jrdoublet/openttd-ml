@@ -91,7 +91,8 @@ class Settings(unittest.TestCase):
             self.assertRegex(block, key + r" = 0\b")
         for name, lo, hi, default in (("v149_stock_size", 1, 12, 4),
                                       ("v149_revalidate_days", 7, 180, 30),
-                                      ("v149_freight_rotation", 0, 1, 1)):
+                                      ("v149_freight_rotation", 0, 1, 1),
+                                      ("v149_astar_share", 5, 100, 20)):
             block = _setting_block(name)
             self.assertIn("min_value = %d, max_value = %d" % (lo, hi), block, name)
             for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
@@ -99,6 +100,7 @@ class Settings(unittest.TestCase):
         globals_pre = _read("globals_pre.nut")
         for line in ("V149_RAIL_PIPELINE <- false;", "V149_STOCK_SIZE <- 4;",
                      "V149_REVALIDATE_DAYS <- 30;", "V149_FREIGHT_ROTATION <- true;",
+                     "V149_ASTAR_SHARE <- 20;",
                      "V149_FIRST_YEAR <- -1;"):
             self.assertIn(line, globals_pre)
 
@@ -109,6 +111,8 @@ class Settings(unittest.TestCase):
                                    r'if \(v149Size >= 1\) V149_STOCK_SIZE = v149Size;')
         self.assertRegex(settings, r'local v149Days = AIController\.GetSetting\("v149_revalidate_days"\);\s*'
                                    r'if \(v149Days >= 1\) V149_REVALIDATE_DAYS = v149Days;')
+        self.assertRegex(settings, r'local v149Share = AIController\.GetSetting\("v149_astar_share"\);\s*'
+                                   r'if \(v149Share >= 1\) V149_ASTAR_SHARE = v149Share;')
         block = settings[settings.index("  if (V149_RAIL_PIPELINE) {"):]
         block = block[:block.index("  }\n") + 4]
         self.assertIn("C80_RAIL_STOCK_GATE = true;", block)
@@ -378,6 +382,53 @@ class AirCatalogShare(unittest.TestCase):
         self.assertIn("while (!v149NoDrain && ai._railSearch != null", step)
         # la premiere tranche reste jouee
         self.assertLess(step.index("ai._advanceRailSearchSliceWithLedgers();"), step.index("v149NoDrain"))
+
+
+def next_astar_tick(now, dt, share):
+    """Modele du plafond V149 : tick a partir duquel la tranche suivante peut jouer."""
+    dt = max(1, dt)
+    return now + dt * (100 - share) // share
+
+
+class AstarShare(unittest.TestCase):
+    def test_cap_before_first_slice_after_timeout(self):
+        step = _function_body(_read("orchestrator.nut"), "OpexWorkerRailStockStep")
+        self.assertIn("local v149Cap = V149_RAIL_PIPELINE && V149_ASTAR_SHARE < 100 && "
+                      "ai._railSearch.phase == \"search\"\n      && OpexV149AirCatalogBusy(ai);", step)
+        self.assertIn('if (v149Cap && AIController.GetTick() < ai._v149RailNextTick) return "running";', step)
+        self.assertIn("ai._v149RailNextTick = v149Now + v149Dt * (100 - V149_ASTAR_SHARE) / V149_ASTAR_SHARE;", step)
+        # le delai de 180 jours reste verifie avant le plafond, la tranche suit le plafond
+        self.assertLess(step.index("ai._handleRailStockSearchTimeout();"), step.index("local v149Cap"))
+        self.assertLess(step.index('ai._v149RailNextTick) return "running";'),
+                        step.index("ai._advanceRailSearchSliceWithLedgers();"))
+        main = _read("main.nut")
+        self.assertIn("_v149RailNextTick = 0;", main)
+
+    def test_model(self):
+        # 20 % : une tranche de 10 ticks (finie au tick 1000) en libere 40 ; part = dt / (dt + attente)
+        self.assertEqual(next_astar_tick(1000, 10, 20), 1040)
+        for share in (5, 10, 20, 50):
+            wait = next_astar_tick(0, 10, share)
+            self.assertAlmostEqual(10 / (10 + wait), share / 100, places=2)
+        self.assertEqual(next_astar_tick(7, 0, 20), 11)
+        self.assertEqual(next_astar_tick(7, 3, 100), 7)
+
+
+class ForcedReselect(unittest.TestCase):
+    def test_reselect_only_when_stock_changes(self):
+        body = _function_body(_read("projects_selection.nut"), "OpexPromoteLiveDefensiveAirStock")
+        self.assertIn("local v149Sig = V149_RAIL_PIPELINE ? OpexV149RailStockSignature(ai._railReadyStock) : null;", body)
+        self.assertIn("if (v149Sig != null && v149Sig == ai._v149StockSig) {\n      OpexEnsureSelection(ai);", body)
+        self.assertIn("if (v149Sig != null) ai._v149StockSig = v149Sig;", body)
+        # hors V149, la reselection forcee historique est intacte
+        self.assertIn("      OpexReselectProjects(projects, capitalBudget, ai._abandonedPairs, ai._lines, ai._railReadyStock);", body)
+        self.assertIn("_v149StockSig = null;", _read("main.nut"))
+
+    def test_signature_is_order_free(self):
+        sig = _function_body(_read("rail_v149.nut"), "OpexV149RailStockSignature")
+        self.assertIn('if (stock == null) return "-";', sig)
+        self.assertIn("keys.sort();", sig)
+        self.assertIn('local sig = "" + keys.len();', sig)
 
 
 class Pipeline(unittest.TestCase):
