@@ -833,6 +833,7 @@ function OpexAI::_expandRailLines(year)
             local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
             if (secondTrain.ok) {
               line.vehicles.append(secondTrain.train);
+              if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
               line.trains = line.vehicles.len();
               line.vehCount <- line.vehicles.len();
               if (C50_CHRONOLOGY_PROBE) {
@@ -896,6 +897,7 @@ function OpexAI::_expandRailLines(year)
                 line.rawset("platformA2", upgrade.platformA2);
                 line.rawset("platformB2", upgrade.platformB2);
                 line.vehicles.append(upgrade.train);
+                if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
                 line.trains = line.vehicles.len();
                 line.vehCount <- line.vehicles.len();
                 if (C50_CHRONOLOGY_PROBE) {
@@ -1799,6 +1801,7 @@ function OpexAI::_consumeRailUpgrade()
     line.rawset("platformA2", upgrade.platformA2);
     line.rawset("platformB2", upgrade.platformB2);
     line.vehicles.append(upgrade.train);
+    if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
     line.trains = line.vehicles.len();
     line.vehCount <- line.vehicles.len();
     if (C50_CHRONOLOGY_PROBE) {

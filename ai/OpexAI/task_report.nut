@@ -124,6 +124,82 @@ function OpexC70PublishModeFactors(c70Sums, year)
   }
 }
 
+/* P4 : marqueur d'evenement conservant deux annees. Un crash/autoreplace en janvier ne
+ * doit pas effacer la preuve d'un changement de l'exercice clos en decembre. */
+function OpexC70P4MarkMutation(line)
+{
+  if (!SCORE_C70_COHORT_PROBE || line == null) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (!("p4C70MutationYear" in line) || line.p4C70MutationYear != year) {
+    line.p4C70MutationPreviousYear <- ("p4C70MutationYear" in line) ? line.p4C70MutationYear : -1;
+    line.p4C70MutationYear <- year;
+  }
+}
+
+/* P4 sonde PASSIVE : une annee a IDs constants et vehicules assez ages est seulement
+ * candidate a la stabilite. Les achats+ventes entre deux rapports, la route reconstruite
+ * par ordres et des evenements perdus peuvent encore la contaminer. Ne JAMAIS employer
+ * `same_ids` comme garde d'apprentissage sans un journal exhaustif des mutations. */
+function OpexC70P4ObserveLine(line, year, vehicles, vehicleType, profit, vehCount, sums)
+{
+  if (!("mode" in line) || !(line.mode in sums) || !("lineId" in line)) return;
+  local ids = [];
+  local young = 0;
+  local dayFloor = AIDate.GetCurrentDate() - AIDate.GetDate(year - 1, 1, 1);
+  foreach (v in vehicles) {
+    if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != vehicleType) continue;
+    ids.append(v);
+    if (AIVehicle.GetAge(v) < dayFloor) young++;
+  }
+  ids.sort();
+  local seen = ("p4C70Year" in line) && line.p4C70Year == year - 1
+      && ("p4C70Ids" in line) && line.p4C70Ids != null;
+  local same = seen && ids.len() == line.p4C70Ids.len();
+  if (same) {
+    for (local j = 0; j < ids.len(); j++) {
+      if (ids[j] != line.p4C70Ids[j]) { same = false; break; }
+    }
+  }
+  local mutated = (("p4C70MutationYear" in line) && line.p4C70MutationYear == year - 1)
+      || (("p4C70MutationPreviousYear" in line) && line.p4C70MutationPreviousYear == year - 1);
+  local cN0 = ("trains0" in line) ? line.trains0 : 0;
+  local cPred = ("predicted" in line) ? line.predicted : 0;
+  local age = ("year" in line) ? year - line.year : -1;
+  local comparable = age >= 2 && cN0 > 0 && cPred > 0 && vehCount > 0;
+  local potentialStable = comparable && seen && same && young == 0 && !mutated;
+  local ratioPm = "NA";
+  if (comparable) {
+    local cAmort = ("predAmort" in line) ? line.predAmort : 0;
+    local real = profit.tofloat() * cN0 / vehCount - cAmort;
+    ratioPm = (real * 1000.0 / cPred.tofloat()).tointeger().tostring();
+    sums[line.mode][0]++;
+    if (potentialStable) {
+      if (!("p4C70Real" in line)) { line.p4C70Real <- 0.0; line.p4C70Pred <- 0.0; }
+      line.p4C70Real += real;
+      line.p4C70Pred += cPred.tofloat();
+      sums[line.mode][5]++;
+    }
+    /* Meme unite que C70 : une ligne = un ratio de cumuls, pas une moyenne
+     * d'annees. Conserver les annees stables precedentes si l'annee est instable. */
+    if (("p4C70Pred" in line) && line.p4C70Pred > 0) {
+      sums[line.mode][1]++;
+      sums[line.mode][2] += line.p4C70Real.tofloat() / line.p4C70Pred.tofloat();
+    }
+    if (!seen) sums[line.mode][3]++;
+    if (mutated) sums[line.mode][4]++;
+  }
+  if (SCORE_C70_COHORT_LOG) AILog.Info("P4_C70_LINE exercise=" + (year - 1) + " line=" + line.lineId
+      + " mode=" + line.mode + " age=" + age + " n0=" + cN0 + " n=" + vehCount
+      + " prev=" + (seen ? line.p4C70Ids.len() : -1) + " same_ids=" + (same ? 1 : 0)
+      + " young=" + young + " event_mut=" + (mutated ? 1 : 0)
+      + " candidate=" + (potentialStable ? 1 : 0)
+      + " ratio_pm=" + ratioPm);
+  /* Conserver le snapshot de toute ligne pour le prochain exercice, y compris non mature.
+   * Table de ligne et tableau d'IDs serialisables sous SAVE_FULL_STATE. */
+  line.p4C70Ids <- ids;
+  line.p4C70Year <- year;
+}
+
 /* C82 / C110 : publication des facteurs par moteur (etat global lu par le choix d'avion). */
 function OpexC82PublishEngineFactors(c82Sums, year)
 {
@@ -234,6 +310,8 @@ function OpexAI::_reportLines(year)
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
+  local p4C70Sums = SCORE_C70_COHORT_PROBE ? { rail = [0, 0, 0.0, 0, 0, 0], road = [0, 0, 0.0, 0, 0, 0],
+      air = [0, 0, 0.0, 0, 0, 0], water = [0, 0, 0.0, 0, 0, 0] } : null;
   local c82Sums = (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) ? {} : null;
   local c121RealizationSums = C121_AIR_ECONOMICS ? OpexC121RealizationSums() : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
@@ -423,6 +501,9 @@ function OpexAI::_reportLines(year)
     /* C70 / C82 : accumulation de calibration (effet metier, cf. OpexC70C82AccumulateLine). */
     if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
       OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums, c82Sums);
+    }
+    if (p4C70Sums != null) {
+      OpexC70P4ObserveLine(line, year, vehicles, vehicleType, profit, vehCount, p4C70Sums);
     }
     if (C69_BOTTLENECK_PROBE) {
       local lMode = ("mode" in line) ? line.mode : "unknown";
@@ -651,6 +732,43 @@ function OpexAI::_reportLines(year)
   }
   if (C70_MODE_CALIBRATION) {
     OpexC70PublishModeFactors(c70Sums, year);
+  }
+  if (p4C70Sums != null) {
+    foreach (mode, acc in p4C70Sums) {
+      local stableK = (acc[2] + 1.0) / (acc[1] + 1).tofloat();
+      local legacyK = C70_MODE_FACTOR[mode];
+      if (SCORE_P4_FLIP_SHADOW) {
+        SCORE_P4_FLIP_LEGACY_K[mode] = legacyK;
+        SCORE_P4_FLIP_STABLE_K[mode] = stableK;
+        AILog.Info("P4_FLIP_FACTOR exercise=" + (year - 1) + " mode=" + mode
+            + " legacy_k=" + legacyK + " stable_k=" + stableK
+            + " candidate_n=" + acc[1] + " candidate_year=" + acc[5]);
+      }
+      if (SCORE_C70_STABLE_COHORT && C70_MODE_CALIBRATION)
+        C70_MODE_FACTOR[mode] = stableK;
+      if (SCORE_C70_COHORT_LOG) AILog.Info("P4_C70_SUM exercise=" + (year - 1) + " mode=" + mode
+          + " eligible=" + acc[0] + " candidate_year=" + acc[5]
+          + " candidate_cumulative_lines=" + acc[1]
+          + " missing_previous=" + acc[3] + " event_mut=" + acc[4]
+          + " candidate_k=" + stableK + " legacy_k=" + legacyK);
+    }
+  }
+  if (SCORE_P4_FLIP_SHADOW) {
+    /* Rapport borne : le silence de P4_FLIP_HEAD n'est pas confondu avec une
+     * absence de select reel, et un mismatch est visible meme apres le 1er. */
+    AILog.Info("P4_FLIP_SUMMARY report_year=" + year
+        + " selects=" + SCORE_P4_FLIP_SELECTS
+        + " verified=" + SCORE_P4_FLIP_VERIFIED_SELECTS
+        + " skipped=" + SCORE_P4_FLIP_SKIPPED
+        + " mismatch=" + SCORE_P4_FLIP_MISMATCHES
+        + " head_changes=" + SCORE_P4_FLIP_HEAD_CHANGES
+        + " attempts=" + SCORE_P4_FLIP_ATTEMPTS);
+    SCORE_P4_FLIP_SELECTS = 0;
+    SCORE_P4_FLIP_VERIFIED_SELECTS = 0;
+    SCORE_P4_FLIP_SKIPPED = 0;
+    SCORE_P4_FLIP_MISMATCHES = 0;
+    SCORE_P4_FLIP_HEAD_CHANGES = 0;
+    SCORE_P4_FLIP_ATTEMPTS = 0;
   }
   if (c121RealizationSums != null) {
     OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual");
@@ -883,6 +1001,7 @@ function OpexAI::_scrapRetiredVehicles(year)
     local started = ("startedDate" in ticket) ? ticket.startedDate : now;
     if (AIVehicle.IsStoppedInDepot(vehicle)) {
       if (AIVehicle.SellVehicle(vehicle)) {
+        if (SCORE_C70_COHORT_PROBE && ownerLine != null) OpexC70P4MarkMutation(ownerLine);
         removeTickets.append(vehicle);
         clearStreaks.append(vehicle);
         if (C52_UNPROFITABLE_LOG || DECISION_LOG) {

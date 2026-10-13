@@ -1074,12 +1074,161 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
   OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=topk rank=" + limit + " score=" + score + " top=" + topScore);
 }
 
+/* P4 shadow : recalcul sans toucher au profit, fundScore, choix de moteur, ni cache des projets.
+ * Ces exemptions DOIVENT rester synchronisees avec OpexC70Profit/OpexC82Profit. */
+function OpexP4FlipCalibratedProfit(project, k)
+{
+  if (("profitIsObserved" in project) && project.profitIsObserved) return project.profitAnnual;
+  if (AIR_P0_DIRECT_REALIZATION_ACTIVE && project.mode == "air"
+      && OpexC121ProjectHasRealization(project)
+      && ("realizationFactor" in project.payload.economics)
+      && project.payload.economics.realizationFactor != 1.0) return project.profitAnnual;
+  if (project.mode == "fleet" && !("v161Calibrate" in project)
+      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
+  if (C82_ENGINE_CALIBRATION) {
+    local engine = OpexC82ProjectEngine(project);
+    if (engine >= 0) return project.profitAnnual * OpexC82EngineFactor(engine);
+  }
+  if (!C70_MODE_CALIBRATION) return project.profitAnnual;
+  return project.profitAnnual * k;
+}
+
+function OpexP4FlipModeFactor(project, stable)
+{
+  local mode = project.mode == "fleet" ? "air" : project.mode;
+  local factors = stable ? SCORE_P4_FLIP_STABLE_K : SCORE_P4_FLIP_LEGACY_K;
+  return (mode in factors) ? factors[mode] : 1.0;
+}
+
+/* Comparateur EXACT du selecteur : clones sans caches bisect herites, meme insertion
+ * C77/V88, bonus early-slot, revenu en tie-break et dedup OD optionnel. */
+function OpexP4FlipRank(rows, stable, limit)
+{
+  local best = [];
+  local airPairBest = {};
+  foreach (row in rows) {
+    local project = clone row.project;
+    project.rawset("_p4Source", row.project);
+    project.rawset("_p4Denom", row.denom);
+    project.rawset("_p4Ordinal", row.ordinal);
+    /* La copie porte possiblement un cache du classement ACTIF. Ne pas le reutiliser. */
+    if ("_bsStamp" in project) project._bsStamp = -1;
+    project.fundScore = OpexProjectScore(OpexP4FlipCalibratedProfit(project,
+        OpexP4FlipModeFactor(project, stable)), row.denom);
+    if (AIR_EFFICIENCY_DEDUPE && project.mode == "air") {
+      local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+      if (pairKey in airPairBest) {
+        local prior = airPairBest[pairKey];
+        local pairBest = [prior];
+        OpexProjectInsertDefensive(pairBest, project, "fundScore", 1, AIR_EARLY_SLOT);
+        if (pairBest[0] != prior) {
+          airPairBest[pairKey] = pairBest[0];
+          for (local i = best.len() - 1; i >= 0; i--) {
+            if (best[i] == prior) { best.remove(i); break; }
+          }
+          OpexProjectInsertDefensive(best, pairBest[0], "fundScore", limit, AIR_EARLY_SLOT);
+        }
+      } else {
+        airPairBest.rawset(pairKey, project);
+        OpexProjectInsertDefensive(best, project, "fundScore", limit, AIR_EARLY_SLOT);
+      }
+    } else {
+      OpexProjectInsertDefensive(best, project, "fundScore", limit, AIR_EARLY_SLOT);
+    }
+  }
+  return best;
+}
+
+function OpexP4FlipProjectKey(p)
+{
+  local key = p.mode + "/" + p.kind + "/" + p.cargo + "/" + p.src + "/" + p.dst;
+  if (p.mode == "air" || p.mode == "fleet")
+    key += "/E" + OpexC82ProjectEngine(p);
+  if (p.mode == "fleet" && ("payload" in p) && p.payload != null
+      && ("line" in p.payload) && p.payload.line != null
+      && ("lineId" in p.payload.line)) key += "/L" + p.payload.line.lineId;
+  if (("payload" in p) && p.payload != null && ("arm" in p.payload)) key += "/" + p.payload.arm;
+  return key + "/" + p.capital + "/" + p.profitAnnual;
+}
+
+/* Diagnostic au SEUL select reel, apres fallback. Ne publie qu'un changement de
+ * tete entre projets finançables et de meme classe C77/V88. Aucun projet vivant mute. */
+function OpexP4FlipObserve(rows, selected, capitalBudget, limit, kDec)
+{
+  SCORE_P4_FLIP_SELECTS++;
+  if (rows.len() < 2 || selected.len() == 0) {
+    SCORE_P4_FLIP_SKIPPED++;
+    SCORE_P4_FLIP_LAST = null;
+    SCORE_P4_FLIP_LAST_SIG = "";
+    return;
+  }
+  local legacy = OpexP4FlipRank(rows, false, limit);
+  local stable = OpexP4FlipRank(rows, true, limit);
+  if (legacy.len() == 0 || stable.len() == 0) {
+    SCORE_P4_FLIP_SKIPPED++;
+    SCORE_P4_FLIP_LAST = null;
+    SCORE_P4_FLIP_LAST_SIG = "";
+    return;
+  }
+  local lh = legacy[0]._p4Source;
+  local sh = stable[0]._p4Source;
+  local actual = SCORE_C70_STABLE_COHORT ? sh : lh;
+  if (selected[0] != actual) {
+    SCORE_P4_FLIP_LAST = null;
+    SCORE_P4_FLIP_LAST_SIG = "";
+    SCORE_P4_FLIP_MISMATCHES++;
+    if (!SCORE_P4_FLIP_CONTRACT_WARNED) {
+      SCORE_P4_FLIP_CONTRACT_WARNED = true;
+      AILog.Info("P4_FLIP_CONTRACT mismatch=active_head replica_invalid");
+    }
+    return;
+  }
+  SCORE_P4_FLIP_VERIFIED_SELECTS++;
+  if (lh == sh) { SCORE_P4_FLIP_LAST = null; SCORE_P4_FLIP_LAST_SIG = ""; return; }
+  local lt = OpexProjectDefensiveAirPriority(lh);
+  local st = OpexProjectDefensiveAirPriority(sh);
+  if (lt != st || OpexProjectIsForcedChain(lh) != OpexProjectIsForcedChain(sh)) {
+    SCORE_P4_FLIP_LAST = null;
+    SCORE_P4_FLIP_LAST_SIG = "";
+    return;
+  }
+  /* L'ordinal distingue deux plans de meme OD/cout/profit/arm dans ce vivier. */
+  local lk = OpexP4FlipProjectKey(lh) + "/idx" + legacy[0]._p4Ordinal;
+  local sk = OpexP4FlipProjectKey(sh) + "/idx" + stable[0]._p4Ordinal;
+  local sig = lk + "=>" + sk;
+  /* A previous constructor entry terminates the previous episode. The same
+   * pair reselected after the attempt is a new economic decision, not the
+   * continuation of the old one. Do not suppress its attempt forever. */
+  if (sig == SCORE_P4_FLIP_LAST_SIG
+      && SCORE_P4_FLIP_LAST != null && !SCORE_P4_FLIP_LAST.attempted) {
+    if (SCORE_P4_FLIP_LAST != null) SCORE_P4_FLIP_LAST.head = selected[0];
+    return;
+  }
+  SCORE_P4_FLIP_LAST_SIG = sig;
+  SCORE_P4_FLIP_NEXT_ID++;
+  SCORE_P4_FLIP_HEAD_CHANGES++;
+  SCORE_P4_FLIP_LAST = { id = SCORE_P4_FLIP_NEXT_ID, head = selected[0], attempted = false };
+  local now = AIDate.GetCurrentDate();
+  AILog.Info("P4_FLIP_HEAD id=" + SCORE_P4_FLIP_NEXT_ID
+      + " year=" + AIDate.GetYear(now) + " month=" + AIDate.GetMonth(now)
+      + " tier=" + lt + " k_dec=" + kDec + " budget=" + capitalBudget
+      + " legacy=" + lk + " stable=" + sk
+      + " legacy_finance=" + OpexProjectFinanceCapital(lh)
+      + " stable_finance=" + OpexProjectFinanceCapital(sh)
+      + " legacy_denom=" + legacy[0]._p4Denom
+      + " stable_denom=" + stable[0]._p4Denom
+      + " legacy_score=" + OpexProjectSelectionScore(legacy[0], "fundScore")
+      + " stable_score=" + OpexProjectSelectionScore(stable[0], "fundScore")
+      + " actual=" + (SCORE_C70_STABLE_COHORT ? "stable" : "legacy"));
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
 {
   SELECT_BISECT_STAMP++;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
   local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
+  local p4FlipEligible = (SCORE_P4_FLIP_SHADOW && realSelection && C70_MODE_CALIBRATION) ? [] : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
    * les modes. Le budget fourni a deja soustrait la reserve de tresorerie. */
   local fittedAlternatives = [];
@@ -1240,6 +1389,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
         (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
+    if (p4FlipEligible != null) p4FlipEligible.append({ project = project,
+        ordinal = p4FlipEligible.len(), denom =
+        (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+            ? kDec : scoreDecisionFinanceCapital });
     OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
     if (C121_CATALOG_INCREMENTAL && project.mode == "air"
         && ("payload" in project) && project.payload != null
@@ -1296,6 +1449,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
    * et le plancher inoperant -- on retombe sur l'ensemble finançable brut plutot que de ne rien
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
+    if (p4FlipEligible != null) p4FlipEligible.clear();
     SELECT_BISECT_STAMP++;
     if (amortProbe != null) amortProbe.rows = [];
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
@@ -1329,6 +1483,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
           (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);
+      if (p4FlipEligible != null) p4FlipEligible.append({ project = project,
+          ordinal = p4FlipEligible.len(), denom =
+          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+              ? kDec : scoreDecisionFinanceCapital });
       OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
       if (fundMark != null) {
         OpexSpanAgg("pub.select.score.fund_score", fundMark);
@@ -1435,6 +1593,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     }
   }
   if (PROBE_AIR_FINANCE_MARGIN) OpexAirFinanceMarginLogSelect(alternatives, affordable, capitalBudget);
+  if (p4FlipEligible != null) OpexP4FlipObserve(p4FlipEligible, affordable, capitalBudget, limit, kDec);
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;

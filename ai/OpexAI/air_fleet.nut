@@ -84,6 +84,7 @@ function OpexAirRebuildFleet(line, hangar, engineId, count, cargo)
     restored.append(aircraft);
   }
   if (restored.len() == 0) return 0;
+  if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
   line.vehicles = restored;
   line.vehicle = restored[0];
   line.refleetEngine = engineId;
@@ -125,6 +126,7 @@ function OpexAirReplaceFleet(line, hangar, catalog, plane, count)
   foreach (v in old) {
     if (!AIVehicle.SellVehicle(v)) kept.append(v);
   }
+  if (SCORE_C70_COHORT_PROBE && kept.len() != old.len()) OpexC70P4MarkMutation(line);
   if (kept.len() > 0) {
     line.vehicles = kept;
     line.vehicle = kept[0];
@@ -467,6 +469,7 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
     result.reason = "START"; return result;
   }
   line.vehicles.append(extra);
+  if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
   result.added = 1;
   result.reason = "OK";
   return result;
@@ -510,6 +513,7 @@ function OpexAirRefleetCrashedPlane(line)
   if (!("vehicles" in line)) line.vehicles <- [];
   else if (line.vehicles == null) line.vehicles = [];
   line.vehicles.append(plane);
+  if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
   if ("vehicle" in line) line.vehicle = plane;
   else line.vehicle <- plane;
   result.added = 1; result.reason = "OK";

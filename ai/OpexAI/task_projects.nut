@@ -1,3 +1,24 @@
+/* P4 evidence: exact constructor outcome of the selected head, not inferred
+ * from nearby AIR/RAIL logs. All calls under the OFF-by-default shadow flag.
+ * A pending A* is NOT a built rail: see P4_FLIP_RESUME when available. */
+function OpexP4FlipTraceOutcome(project, year, rank, outcome, lineBefore, lines)
+{
+  if (!SCORE_P4_FLIP_SHADOW || SCORE_P4_FLIP_LAST == null
+      || SCORE_P4_FLIP_LAST.head != project || !SCORE_P4_FLIP_LAST.attempted) return;
+  if (("outcomeLogged" in SCORE_P4_FLIP_LAST) && SCORE_P4_FLIP_LAST.outcomeLogged) return;
+  SCORE_P4_FLIP_LAST.outcomeLogged <- true;
+  local lineAfter = (lines != null) ? lines.len() : lineBefore;
+  local newLine = -1;
+  if (lines != null && lineAfter > lineBefore && lines[lineAfter - 1] != null
+      && ("lineId" in lines[lineAfter - 1]))
+    newLine = lines[lineAfter - 1].lineId;
+  AILog.Info("P4_FLIP_OUTCOME id=" + SCORE_P4_FLIP_LAST.id + " year=" + year
+      + " rank=" + rank + " outcome=" + outcome
+      + " line_before=" + lineBefore + " line_after=" + lineAfter
+      + " line_delta=" + (lineAfter - lineBefore) + " new_line=" + newLine
+      + " project=" + OpexP4FlipProjectKey(project));
+}
+
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
 /* Tous les appels ci-dessous sont sous R1_R3_TEST_ONLY, declare dans le module
  * de selection deja charge. Aucun nouveau membre de classe ni reglage commun. */
@@ -1520,9 +1541,20 @@ function OpexAI::_tryBuildProjects(year)
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
       this._railSearch.kind == "primary" && this._railSearch.phase == "build"
       && !c77DeferCompletedRail) {
+    local p4RailCompletionId = (SCORE_P4_FLIP_SHADOW
+        && ("p4FlipTraceId" in this._railSearch))
+        ? this._railSearch.p4FlipTraceId : -1;
     local spAstarBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.build") : null;
     local railBuilt = this._consumeResumableRailAtPassStart(year, passDiscards, c49Best,
         c49BuiltRanks, c75BuiltKeys, c69BuiltProjects);
+    if (SCORE_P4_FLIP_SHADOW && p4RailCompletionId >= 0) {
+      local newRail = -1;
+      if (railBuilt && this._lines != null && this._lines.len() > 0)
+        newRail = this._lines[this._lines.len() - 1].lineId;
+      AILog.Info("P4_FLIP_RESUME id=" + p4RailCompletionId + " year=" + year
+          + " outcome=" + (railBuilt ? "built" : "not_built")
+          + " mode=rail new_line=" + newRail + " note=resumable_completion_only");
+    }
     if (spAstarBuild != null) OpexSpanEnd(spAstarBuild);
     if (railBuilt && PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=rail built=1");
     if (MONTHLY_FUNNEL) funnelAttempted++;
@@ -1744,6 +1776,19 @@ function OpexAI::_tryBuildProjects(year)
       }
     }
 
+    /* La promotion C83, les suppressions live, K_pass et C80 ont deja ete
+     * traverses (test caisse explicite seulement sous C75 multi-build).
+     * Une ligne ici = passage a la branche constructeur, pas build prouve. */
+    if (SCORE_P4_FLIP_SHADOW && SCORE_P4_FLIP_LAST != null
+        && !SCORE_P4_FLIP_LAST.attempted && SCORE_P4_FLIP_LAST.head == project) {
+      SCORE_P4_FLIP_LAST.attempted = true;
+      SCORE_P4_FLIP_ATTEMPTS++;
+      AILog.Info("P4_FLIP_ATTEMPT id=" + SCORE_P4_FLIP_LAST.id
+          + " year=" + year + " rank=" + i + " built_before=" + builtCount
+          + " finance=" + OpexProjectFinanceCapital(project)
+          + " available=" + OpexAvailableCapital()
+          + " project=" + OpexP4FlipProjectKey(project));
+    }
     local mode = project.mode;
     local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
     local liveBuiltCount = builtCount;
@@ -1752,7 +1797,10 @@ function OpexAI::_tryBuildProjects(year)
     if (mode == "fleet") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
+      local p4Before = SCORE_P4_FLIP_SHADOW ? this._lines.len() : -1;
       local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+      if (SCORE_P4_FLIP_SHADOW)
+        OpexP4FlipTraceOutcome(project, year, i, attempt.outcome, p4Before, this._lines);
       passDiscards = attempt.discards;
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
@@ -1817,8 +1865,11 @@ function OpexAI::_tryBuildProjects(year)
       local r1r3LinesBefore = R1_R3_TEST_ONLY ? this._lines.len() : 0;
       if (R1_R3_TEST_ONLY) OpexR1R3AirTrace(this, project, i, "attempt", "executor",
           c75BypassConsumed, c75BypassConsumed, liveBuiltCount, r1r3Threshold);
+      local p4Before = SCORE_P4_FLIP_SHADOW ? this._lines.len() : -1;
       local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                 anchor, yy);
+      if (SCORE_P4_FLIP_SHADOW)
+        OpexP4FlipTraceOutcome(project, year, i, attempt.outcome, p4Before, this._lines);
       if (R1_R3_TEST_ONLY) {
         local reason = attempt.outcome;
         local error = "unknown";
@@ -1884,7 +1935,10 @@ function OpexAI::_tryBuildProjects(year)
     } else if (mode == "road") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
+      local p4Before = SCORE_P4_FLIP_SHADOW ? this._lines.len() : -1;
       local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+      if (SCORE_P4_FLIP_SHADOW)
+        OpexP4FlipTraceOutcome(project, year, i, attempt.outcome, p4Before, this._lines);
       passDiscards = attempt.discards;
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
@@ -1901,8 +1955,15 @@ function OpexAI::_tryBuildProjects(year)
     } else if (mode == "rail") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
+      local p4Before = SCORE_P4_FLIP_SHADOW ? this._lines.len() : -1;
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
                                                  anchor, yy);
+      if (SCORE_P4_FLIP_SHADOW) {
+        OpexP4FlipTraceOutcome(project, year, i, attempt.outcome, p4Before, this._lines);
+        if (attempt.outcome == "pending" && SCORE_P4_FLIP_LAST != null
+            && SCORE_P4_FLIP_LAST.head == project && this._railSearch != null)
+          this._railSearch.p4FlipTraceId <- SCORE_P4_FLIP_LAST.id;
+      }
       passDiscards = attempt.discards;
       if (RAIL_FAILURE_AUDIT) {
         local outcomeReason = attempt.outcome;
@@ -1956,8 +2017,11 @@ function OpexAI::_tryBuildProjects(year)
       }
     } else if (mode == "water") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      local p4Before = SCORE_P4_FLIP_SHADOW ? this._lines.len() : -1;
       local attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
                                                   anchor, yy);
+      if (SCORE_P4_FLIP_SHADOW)
+        OpexP4FlipTraceOutcome(project, year, i, attempt.outcome, p4Before, this._lines);
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
