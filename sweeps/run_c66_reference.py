@@ -13,6 +13,11 @@ from pathlib import Path
 import subprocess
 import sys
 
+try:
+    from sweeps.campaign_freeze import parse_aaahogex_settings
+except ImportError:
+    from campaign_freeze import parse_aaahogex_settings
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -46,6 +51,28 @@ def container_archive_destination(destination, mount_root, container_workdir, ca
 
 def _output(args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
+
+
+def inject_probes(spec: str | None, probes: int) -> str:
+    """V167 : ajoute probes=N a une politique OpexAI[...] (ou a la politique par defaut)."""
+    if not 0 <= probes <= 511:
+        raise ValueError("--probes doit etre entre 0 et 511")
+    if not probes & 3:
+        raise ValueError("--probes doit garder les panneaux (bit 2, ou bit 1 = tout)")
+    if spec is None:
+        return f"OpexAI[probes={probes}]"
+    if not (spec.startswith("OpexAI[") and spec.endswith("]")):
+        raise ValueError(f"--probes exige une politique OpexAI[cle=valeur], pas {spec}")
+    body = spec[len("OpexAI["):-1]
+    keys = [item.split("=", 1)[0] for item in body.split(",") if item]
+    if "probes" in keys:
+        raise ValueError(f"--probes et probes= dans {spec} : un seul des deux")
+    return f"OpexAI[{body},probes={probes}]" if body else f"OpexAI[probes={probes}]"
+
+
+def probes_need_script_debug(probes: int) -> bool:
+    """Tout bit hors panneaux (2) ecrit dans le journal, illisible sans -d script=4."""
+    return (probes & ~2) != 0
 
 
 def main():
@@ -85,6 +112,10 @@ def main():
     parser.add_argument("--retain-savegames", help="Diagnostic: dossier de copie des sauvegardes dans le conteneur")
     parser.add_argument("--line-telemetry-monthly", action="store_true")
     parser.add_argument("--script-debug", action="store_true")
+    parser.add_argument("--probes", type=int,
+                        help="V167 : injecte probes=N dans les deux bras OpexAI (somme de bits, "
+                             "voir ai/OpexAI/settings.nut) ; tout bit hors panneaux active "
+                             "--script-debug, sans quoi le journal moteur reste vide.")
     parser.add_argument("--cpus", type=int, default=3)
     parser.add_argument("--network",
                         help="Mode reseau Docker (ex. 'host'). Non precise = pont Docker par "
@@ -99,7 +130,33 @@ def main():
                              "Pic observe sous 800 Mo meme a 10 workers en duel 10 ans ; "
                              "sur le VPS, 3 workers avec 2 Go suffisent.")
     parser.add_argument("--out")
+    parser.add_argument(
+        "--aaahogex-setting",
+        action="append",
+        default=[],
+        dest="aaahogex_settings",
+        help="Reglage AAAHogEx NOM=VALEUR (repetable, verifie dans info.nut)",
+    )
     args = parser.parse_args()
+
+    if args.aaahogex_settings:
+        info_path = ROOT / "ai" / "AAAHogEx-115" / "info.nut"
+        if not info_path.is_file():
+            parser.error(f"fichier info.nut d'AAAHogEx introuvable: {info_path}")
+        try:
+            parse_aaahogex_settings(args.aaahogex_settings, info_path)
+        except ValueError as exc:
+            parser.error(str(exc))
+
+    if args.probes is not None:
+        try:
+            args.reference = inject_probes(args.reference, args.probes)
+            if args.variant is not None:
+                args.variant = inject_probes(args.variant, args.probes)
+        except ValueError as exc:
+            parser.error(str(exc))
+        if probes_need_script_debug(args.probes):
+            args.script_debug = True
 
     # V102 : echouer AVANT de demarrer Docker. On ne peut pas importer
     # c66_threshold_specification_error ici (bench_1v1_5y_20seeds tire openttdlab, absent de
@@ -178,6 +235,8 @@ def main():
         benchmark += ["--required-years", str(args.required_years)]
     if args.out is not None:
         benchmark += ["--out", args.out]
+    for setting in args.aaahogex_settings:
+        benchmark += ["--aaahogex-setting", setting]
 
     command = [
         "docker", "run", "--rm",

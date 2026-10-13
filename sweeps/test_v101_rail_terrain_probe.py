@@ -78,10 +78,10 @@ class TestRailTerrainProbeContract(unittest.TestCase):
     def test_global_declared_and_loaded_once(self):
         self.assertIn("RAIL_TERRAIN_PROBE <- false;", self.globals)
         self.assertEqual(self.globals.count("RAIL_TERRAIN_PROBE <-"), 1)
-        needle = 'AIController.GetSetting("probe_rail_terrain")'
+        needle = 'OpexProbeSetting("probe_rail_terrain")'
         self.assertEqual(self.settings.count(needle), 1)
         self.assertIn(
-            'RAIL_TERRAIN_PROBE = AIController.GetSetting("probe_rail_terrain") != 0;',
+            'RAIL_TERRAIN_PROBE = OpexProbeSetting("probe_rail_terrain") != 0;',
             self.settings,
         )
         self.assertNotIn("RAIL_TERRAIN_PROBE <-", self.settings)

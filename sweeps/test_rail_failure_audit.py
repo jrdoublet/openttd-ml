@@ -14,7 +14,7 @@ class RailFailureAuditTest(unittest.TestCase):
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(block, rf"\b{level}_value\s*=\s*0\b")
         self.assertIn('RAIL_FAILURE_AUDIT <- false;', (ROOT / "globals_pre.nut").read_text(encoding="utf-8"))
-        self.assertIn('RAIL_FAILURE_AUDIT = AIController.GetSetting("rail_failure_audit") != 0;',
+        self.assertIn('RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;',
                       (ROOT / "settings.nut").read_text(encoding="utf-8"))
         rail = (ROOT / "task_rail.nut").read_text(encoding="utf-8")
         self.assertEqual(rail.count('OpexRailFailureAudit("precheck",'), 4)

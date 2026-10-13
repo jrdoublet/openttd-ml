@@ -50,7 +50,7 @@ class TestV95AirPost73Probe(unittest.TestCase):
         self.assertTrue(specs["v95_air_post73_probe"]["boolean"])
         self.assertIn("V95_AIR_POST73_PROBE <- false;", self.globals)
         self.assertIn(
-            'V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;',
+            'V95_AIR_POST73_PROBE = OpexProbeSetting("v95_air_post73_probe") != 0;',
             self.settings,
         )
 

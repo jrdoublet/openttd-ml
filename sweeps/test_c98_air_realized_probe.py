@@ -24,7 +24,7 @@ class C98AirRealizedProbeTests(unittest.TestCase):
         self.assertIn("hard_value = 0", snippet)
         self.assertIn("custom_value = 0", snippet)
         self.assertIn(
-            'C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;',
+            'C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;',
             SETTINGS,
         )
 

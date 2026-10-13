@@ -639,6 +639,8 @@ function OpexCatalog::_refreshAir()
   this.airPlaneChoicesByAirport = {};
   this.airPlaneFrontierByAirport = {};
   if (this.paxCargo < 0) return;
+  /* V166 : mode AIR coupe = catalogue vide, le meme chemin que sans appareil disponible. */
+  if (!MODE_AIR) return;
 
   local airportLargeTypes = [
     { type = AIAirport.AT_INTERNATIONAL, allowBig = true, name = "INTERNATIONAL" },
@@ -771,6 +773,8 @@ function OpexCatalog::_refreshWater()
   this.costDock = AIMarine.GetBuildCost(AIMarine.BT_DOCK);
   this.costWaterDepot = AIMarine.GetBuildCost(AIMarine.BT_DEPOT);
   if (this.paxCargo < 0) return;
+  /* V166 : mode EAU coupe = aucune coque au catalogue. */
+  if (!MODE_WATER) return;
   local engines = AIEngineList(AIVehicle.VT_WATER);
   engines.Valuate(AIEngine.IsBuildable);
   engines.KeepValue(1);
@@ -1121,6 +1125,11 @@ function OpexCatalog::refresh(budget, year)
     this._refreshRoad();
     if (spStep != null) OpexSpanEnd(spStep);
     budget.end("cat_road");
+  } else if (AIR_JOINED_STOPS && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {
+    /* Sans catalogue route, aucun type de route courant n'est pose : les arrets joints aux
+     * aeroports (et leur prevision B9) echouaient alors tous en silence. Ce sont des arrets de
+     * l'aeroport, sans vehicule routier : un banc air seul (mode_road = 0) doit les garder. */
+    AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
   }
 
   budget.begin();

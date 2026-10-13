@@ -20,7 +20,7 @@ class TestCatalogCostProbe(unittest.TestCase):
         self.assertEqual(parse_ai_settings(AI / "info.nut")["catalog_cost_probe"], 0)
         settings = (AI / "settings.nut").read_text(encoding="utf-8")
         globals_src = (AI / "globals_pre.nut").read_text(encoding="utf-8")
-        self.assertIn('CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;', settings)
+        self.assertIn('CATALOG_COST_PROBE = OpexProbeSetting("catalog_cost_probe") != 0;', settings)
         self.assertIn("CATALOG_COST_PROBE <- false;", globals_src)
         self.assertIn("CATALOG_COST_ACTIVE <- null;", globals_src)
 

@@ -1,13 +1,91 @@
+/* V167 : un seul reglage entier `probes` pilote panneaux, journal et sondes (somme de bits).
+ *   1 = tout : panneaux, journal et groupes 8 a 128 (pas les verifications 256)
+ *   2 = panneaux (avec veto de debug_signs=0)   4 = journal de decision
+ *   8 = opcodes et ordonnanceur   16 = AIR   32 = rail   64 = route, eau et couts
+ *   128 = evenements et portefeuille   256 = verifications par double calcul
+ * Tout groupe de sondes active aussi le journal. Les anciens reglages individuels restent lus :
+ * une sonde est active si son groupe l'est OU si son reglage propre est non nul. Seules les
+ * sondes sans effet sur les decisions sont groupees. */
+OPEX_PROBE_GROUPS <- {
+  probe_scheduler = 8,
+  probe_loop_ops = 8,
+  probe_span_trace = 8,
+  probe_event_backlog = 8,
+  catalog_cost_probe = 8,
+  probe_candidates_road = 8,
+  probe_candidates_rail = 8,
+  probe_catalogue = 8,
+  air_p0_margin_probe = 16,
+  probe_c121_engine_table = 16,
+  probe_air_engine_depth = 16,
+  probe_air_finance_margin = 16,
+  probe_select_reject = 16,
+  fleet_amort_shadow_probe = 16,
+  v95_air_post73_probe = 16,
+  air_bfail_precheck_shadow = 16,
+  air_site_stale_shadow = 16,
+  c97_air_c69_engine_probe = 16,
+  c98_air_realized_probe = 16,
+  c104_air_c100_compare_probe = 16,
+  c116_air_project_probe = 16,
+  c117_air_throughput_probe = 16,
+  c121_station_flux_probe = 16,
+  c118_air_coverage_probe = 16,
+  c121_air_economics_shadow = 16,
+  c121_air_first_live_shadow = 16,
+  c121_kpass_shadow = 16,
+  c121_kdec_cold_shadow = 16,
+  c121_air_pressure_probe = 16,
+  c121_air_engine_replay_shadow = 16,
+  c122_air_regime_shadow = 16,
+  c122_air_threat_probe = 16,
+  b9_air_catchment_probe = 16,
+  b9_air_demand_shadow = 16,
+  probe_rail_search = 32,
+  rail_freight_select_shadow = 32,
+  rail_failure_audit = 32,
+  probe_rail_preastar = 32,
+  rail_origin_exposure_shadow = 32,
+  rail_origin_exposure_detail_shadow = 32,
+  rail_origin_reuse_air_priority_shadow = 32,
+  probe_rail_terrain = 32,
+  probe_cost = 64,
+  road_finance_gate_shadow_p0 = 64,
+  road_quote_components_shadow_p0 = 64,
+  c67_water_exposure_probe = 64,
+  probe_events = 128,
+  probe_vehicle_lost = 128,
+  probe_portfolio = 128,
+  exp_opcode_exact_check = 256,
+  v90_pathfinder_check = 256,
+  v129_rail_astar_check = 256,
+  v94_air_site_check = 256,
+  v141_catalog_incremental_check = 256,
+};
+
+function OpexProbeSetting(name)
+{
+  local value = AIController.GetSetting(name);
+  if (value <= 0 && (OPEX_PROBE_MASK & OPEX_PROBE_GROUPS[name]) != 0) return 1;
+  return value;
+}
+
 /* C65 passe 2 & regroupement macro-politiques : lecture unique des reglages.
  * Fonction libre : n'affecte que des globales. Les mutations d'instance
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
   /* --- 1. Systeme et persistance --- */
-  DEBUG_SIGNS = AIController.GetSetting("debug_signs") != 0;
-  AIR_P0_MARGIN_PROBE = AIController.GetSetting("air_p0_margin_probe") != 0;
+  local probes = AIController.GetSetting("probes");
+  if (probes < 0) probes = 2;
+  if ((probes & 1) != 0) probes = probes | 254;
+  OPEX_PROBE_MASK = probes;
+  DEBUG_SIGNS = (probes & 2) != 0
+      && AIController.GetSetting("debug_signs") != 0;
+  AIR_P0_MARGIN_PROBE = OpexProbeSetting("air_p0_margin_probe") != 0;
   AIR_P0_SECOND_STEP_MARGINAL = AIController.GetSetting("air_p0_second_step_marginal") != 0;
-  DECISION_LOG = AIController.GetSetting("decision_log") != 0;
+  DECISION_LOG = (probes & 508) != 0
+      || AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
   SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
   /* Résolution au chargement : aucun test ajouté aux boucles de génération au défaut. */
@@ -31,6 +109,15 @@ function OpexLoadSettings()
   // C68: air route plane selection
   AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;
 
+  // V166 : interrupteurs de mode, lus avant les faisceaux policy_* qui en dependent.
+  MODE_AIR = AIController.GetSetting("mode_air") != 0;
+  MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
+  MODE_ROAD = AIController.GetSetting("mode_road") != 0;
+  MODE_WATER = AIController.GetSetting("mode_water") != 0;
+  V168_RAIL_MAX_DIST = AIController.GetSetting("v168_rail_max_dist");
+  if (V168_RAIL_MAX_DIST < 0) V168_RAIL_MAX_DIST = 0;
+  V171_RAIL_KNOTS = AIController.GetSetting("v171_rail_knots") != 0 ? 1 : 0;
+
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
   RAIL_DEVIS = polRail;
@@ -44,7 +131,7 @@ function OpexLoadSettings()
 
   // 4. policy_road : road mode, street drive-through stops, refleet, fleet fix, overlap filtering
   local polRoad = AIController.GetSetting("policy_road") != 0;
-  ROAD_BUILD_ENABLED = polRoad;
+  ROAD_BUILD_ENABLED = polRoad && MODE_ROAD;
   ROAD_REFLEET = polRoad;
   ROAD_FLEET_FIX = polRoad;
   PRICING_ROAD_OPS = polRoad;
@@ -81,8 +168,8 @@ function OpexLoadSettings()
   CAPITAL_CALIBRATION = polPort;
   CAPITAL_QUOTE_LEARNING = AIController.GetSetting("capital_quote_learning") != 0;
   ROAD_FINANCE_UNBIAS_P0 = AIController.GetSetting("road_finance_unbias_p0") != 0;
-  ROAD_FINANCE_GATE_SHADOW_P0 = AIController.GetSetting("road_finance_gate_shadow_p0") != 0;
-  ROAD_QUOTE_COMPONENTS_SHADOW_P0 = AIController.GetSetting("road_quote_components_shadow_p0") != 0;
+  ROAD_FINANCE_GATE_SHADOW_P0 = OpexProbeSetting("road_finance_gate_shadow_p0") != 0;
+  ROAD_QUOTE_COMPONENTS_SHADOW_P0 = OpexProbeSetting("road_quote_components_shadow_p0") != 0;
   DYNAMIC_CASH_RESERVE = polPort;
   C53_ORDER_NONSTOP = polPort;
   EVENT_CATALOG_INVALIDATE = polPort;
@@ -105,13 +192,13 @@ function OpexLoadSettings()
   RAIL_END_JUMP_CONNECT = AIController.GetSetting("rail_end_jump_connect") != 0;
   RAIL_CACHED_PROXIMITY_GATE = AIController.GetSetting("rail_cached_proximity_gate");
   INCR_REVALIDATE_INDEX = AIController.GetSetting("incr_revalidate_index");
-  RAIL_FAILURE_AUDIT = AIController.GetSetting("rail_failure_audit") != 0;
-  RAIL_PREASTAR_PROBE = AIController.GetSetting("probe_rail_preastar") != 0;
+  RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;
+  RAIL_PREASTAR_PROBE = OpexProbeSetting("probe_rail_preastar") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
   RAIL_ORIGIN_REUSE = AIController.GetSetting("rail_origin_reuse") != 0;
-  RAIL_ORIGIN_EXPOSURE_SHADOW = AIController.GetSetting("rail_origin_exposure_shadow") != 0;
+  RAIL_ORIGIN_EXPOSURE_SHADOW = OpexProbeSetting("rail_origin_exposure_shadow") != 0;
   RAIL_ORIGIN_EXPOSURE_DETAIL_SHADOW = RAIL_ORIGIN_EXPOSURE_SHADOW
-      && AIController.GetSetting("rail_origin_exposure_detail_shadow") != 0;
+      && OpexProbeSetting("rail_origin_exposure_detail_shadow") != 0;
   RAIL_TARGET_CARGO_PREFILTER = AIController.GetSetting("rail_target_cargo_prefilter") != 0;
   RAIL_ORIGIN_REUSE_FALLBACK = AIController.GetSetting("rail_origin_reuse_fallback") != 0;
   RAIL_ORIGIN_REUSE_PAX = AIController.GetSetting("rail_origin_reuse_pax") != 0;
@@ -121,14 +208,14 @@ function OpexLoadSettings()
   RAIL_ORIGIN_REUSE_CROSS_CARGO = RAIL_ORIGIN_REUSE
       && AIController.GetSetting("rail_origin_reuse_cross_cargo") != 0;
   RAIL_ORIGIN_REUSE_AIR_PRIORITY_SHADOW = RAIL_ORIGIN_REUSE
-      && AIController.GetSetting("rail_origin_reuse_air_priority_shadow") != 0;
+      && OpexProbeSetting("rail_origin_reuse_air_priority_shadow") != 0;
   RAIL_ORIGIN_REUSE_AIR_PRIORITY = RAIL_ORIGIN_REUSE
       && AIController.GetSetting("rail_origin_reuse_air_priority") != 0;
   RAIL_ORIGIN_REUSE_SEARCH_CAP = RAIL_ORIGIN_REUSE
       ? AIController.GetSetting("rail_origin_reuse_search_cap_k") * 1000 : 0;
   RAIL_ORIGIN_REUSE_SEARCH_SUPERSEDE = RAIL_ORIGIN_REUSE
       && AIController.GetSetting("rail_origin_reuse_search_supersede") != 0;
-  RAIL_TERRAIN_PROBE = AIController.GetSetting("probe_rail_terrain") != 0;
+  RAIL_TERRAIN_PROBE = OpexProbeSetting("probe_rail_terrain") != 0;
 
   local acd = AIController.GetSetting("abandon_cooldown_days");
   if (acd >= 0) ABANDON_COOLDOWN_DAYS = acd;
@@ -197,21 +284,21 @@ function OpexLoadSettings()
   /* --- 4. Sondes de diagnostic unifiees (9 groupes) --- */
 
   // 1. probe_cost : rail_cost_probe, air_cost_probe, road_cost_probe
-  local probeCost = AIController.GetSetting("probe_cost") != 0;
+  local probeCost = OpexProbeSetting("probe_cost") != 0;
   RAIL_COST_PROBE = probeCost;
   AIR_COST_PROBE = probeCost;
   ROAD_COST_PROBE = probeCost;
 
   // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C41_SLICE
-  local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
-  CATALOG_COST_PROBE = AIController.GetSetting("catalog_cost_probe") != 0;
-  PROBE_LOOP_OPS = AIController.GetSetting("probe_loop_ops") != 0;
-  PROBE_SPAN_TRACE = AIController.GetSetting("probe_span_trace") != 0;
-  PROBE_C121_ENGINE_TABLE = AIController.GetSetting("probe_c121_engine_table") != 0;
-  PROBE_AIR_ENGINE_DEPTH = AIController.GetSetting("probe_air_engine_depth") != 0;
-  PROBE_AIR_FINANCE_MARGIN = AIController.GetSetting("probe_air_finance_margin") != 0;
-  PROBE_EVENT_BACKLOG = AIController.GetSetting("probe_event_backlog") != 0;
-  PROBE_SELECT_REJECT = AIController.GetSetting("probe_select_reject") != 0;
+  local probeScheduler = OpexProbeSetting("probe_scheduler") != 0;
+  CATALOG_COST_PROBE = OpexProbeSetting("catalog_cost_probe") != 0;
+  PROBE_LOOP_OPS = OpexProbeSetting("probe_loop_ops") != 0;
+  PROBE_SPAN_TRACE = OpexProbeSetting("probe_span_trace") != 0;
+  PROBE_C121_ENGINE_TABLE = OpexProbeSetting("probe_c121_engine_table") != 0;
+  PROBE_AIR_ENGINE_DEPTH = OpexProbeSetting("probe_air_engine_depth") != 0;
+  PROBE_AIR_FINANCE_MARGIN = OpexProbeSetting("probe_air_finance_margin") != 0;
+  PROBE_EVENT_BACKLOG = OpexProbeSetting("probe_event_backlog") != 0;
+  PROBE_SELECT_REJECT = OpexProbeSetting("probe_select_reject") != 0;
   if (PROBE_EVENT_BACKLOG) {
     EVENT_BACKLOG_CALLS = 0;
     EVENT_BACKLOG_EVENTS = 0;
@@ -221,7 +308,7 @@ function OpexLoadSettings()
     EVENT_BACKLOG_MONTH = -1;
   }
   EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;
-  EXP_OPCODE_EXACT_CHECK = AIController.GetSetting("exp_opcode_exact_check") != 0;
+  EXP_OPCODE_EXACT_CHECK = OpexProbeSetting("exp_opcode_exact_check") != 0;
   EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;
   if (EXP_OPCODE_EXACT_ON) {
     OPCODE_EXACT_STATS = null;
@@ -232,7 +319,7 @@ function OpexLoadSettings()
     OPCODE_EXACT_SITE_NAME = null;
     OPCODE_EXACT_PLAN_ONCE = null;
   }
-  FLEET_AMORT_SHADOW_PROBE = AIController.GetSetting("fleet_amort_shadow_probe");
+  FLEET_AMORT_SHADOW_PROBE = OpexProbeSetting("fleet_amort_shadow_probe");
   R19_FAULT_INJECT = AIController.GetSetting("r19_fault_inject");
   C41_SLACK_LEDGER = probeScheduler;
   C41_MONTHLY_BUSY_LEDGER = probeScheduler;
@@ -244,13 +331,13 @@ function OpexLoadSettings()
   V95_SCHED_IDLE_LEDGER = probeScheduler;
 
   // 3. probe_candidates_road : profiles pax, freight, town sinks, feeder
-  local probeCandRoad = AIController.GetSetting("probe_candidates_road") != 0;
+  local probeCandRoad = OpexProbeSetting("probe_candidates_road") != 0;
   C41_ROAD_CANDIDATE_PROFILE = probeCandRoad;
   C41_ROAD_FREIGHT_PROFILE = probeCandRoad;
   C41_ROAD_FREIGHT_TOWN_PROFILE = probeCandRoad;
 
   // 4. probe_candidates_rail : profiles pax, freight, speeds, cruise, economics
-  local probeCandRail = AIController.GetSetting("probe_candidates_rail") != 0;
+  local probeCandRail = OpexProbeSetting("probe_candidates_rail") != 0;
   C41_RAIL_PORTFOLIO_PROFILE = probeCandRail;
   C41_RAIL_CANDIDATE_PROFILE = probeCandRail;
   C41_RAIL_PAX_PROFILE = probeCandRail;
@@ -271,7 +358,7 @@ function OpexLoadSettings()
   C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE = probeCandRail;
 
   // 5. probe_catalogue : invalidations C39, delta, air reason, C41 revision, water candidate/plans/site
-  local probeCat = AIController.GetSetting("probe_catalogue") != 0;
+  local probeCat = OpexProbeSetting("probe_catalogue") != 0;
   C39_INVALIDATION_PROBE = probeCat;
   C39_DECISION_DELTA_PROBE = probeCat;
   C39_AIR_REASON_PROBE = probeCat;
@@ -282,13 +369,13 @@ function OpexLoadSettings()
   if (C39_INVALIDATION_PROBE) OpexC76Reset();
 
   // 6. probe_rail_search : domination, fallthrough, projects cadence
-  local probeRailSearch = AIController.GetSetting("probe_rail_search") != 0;
+  local probeRailSearch = OpexProbeSetting("probe_rail_search") != 0;
   C41_RAIL_DOMINATION_PROBE = probeRailSearch;
   C41_PROJECTS_FALLTHROUGH_PROBE = probeRailSearch;
   C39_PROJECTS_CADENCE_PROBE = probeRailSearch;
 
   // 7. probe_vehicle_lost : diagnostic vehicules perdus rail/global
-  local probeLost = AIController.GetSetting("probe_vehicle_lost") != 0;
+  local probeLost = OpexProbeSetting("probe_vehicle_lost") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = probeLost;
   C41_RAIL_LOST_PHYSICAL_PROBE = probeLost;
   C41_RAIL_LOST_CONNECTIVITY_PROBE = probeLost;
@@ -296,8 +383,8 @@ function OpexLoadSettings()
   C41_VEHICLE_LOST_PROBE = probeLost;
 
   // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, reserves, origin relax, town rating
-  local probePort = AIController.GetSetting("probe_portfolio") != 0;
-  RAIL_FREIGHT_SELECT_SHADOW = AIController.GetSetting("rail_freight_select_shadow") != 0;
+  local probePort = OpexProbeSetting("probe_portfolio") != 0;
+  RAIL_FREIGHT_SELECT_SHADOW = OpexProbeSetting("rail_freight_select_shadow") != 0;
   C49_SCARCITY_LEDGER = probePort;
   C50_CHRONOLOGY_PROBE = probePort;
   if (C50_CHRONOLOGY_PROBE) {
@@ -325,7 +412,7 @@ function OpexLoadSettings()
   V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;
   V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;
   V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
-  V95_AIR_POST73_PROBE = AIController.GetSetting("v95_air_post73_probe") != 0;
+  V95_AIR_POST73_PROBE = OpexProbeSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
   V134_AIR_P2P_SATURATED_HUB = AIController.GetSetting("v134_air_p2p_saturated_hub") != 0;
   V133_AIR_BUILD_RETRY = AIController.GetSetting("v133_air_build_retry") != 0;
@@ -333,18 +420,18 @@ function OpexLoadSettings()
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;
   AIR_BFAIL_DISPOSE_ORPHAN = AIController.GetSetting("air_bfail_dispose_orphan") != 0;
-  AIR_BFAIL_PRECHECK_SHADOW = AIController.GetSetting("air_bfail_precheck_shadow") != 0;
+  AIR_BFAIL_PRECHECK_SHADOW = OpexProbeSetting("air_bfail_precheck_shadow") != 0;
   local ascmp = AIController.GetSetting("air_site_cost_margin_pct");
   if (ascmp >= 0) AIR_SITE_COST_MARGIN_PCT = ascmp;
   AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN = AIController.GetSetting("air_site_quote_keep_legacy_margin") != 0;
-  AIR_SITE_STALE_SHADOW = AIController.GetSetting("air_site_stale_shadow") != 0;
-  C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;
-  C98_AIR_REALIZED_PROBE = AIController.GetSetting("c98_air_realized_probe") != 0;
+  AIR_SITE_STALE_SHADOW = OpexProbeSetting("air_site_stale_shadow") != 0;
+  C97_AIR_C69_ENGINE_PROBE = OpexProbeSetting("c97_air_c69_engine_probe") != 0;
+  C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
   C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;
   C100_AIR_TRIP_PHYSICAL = AIController.GetSetting("c100_air_trip_physical") != 0;
   C101_AIR_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c101_air_physical_engine_choice") != 0;
   C103_AIR_C100_RANK_REPLAY = AIController.GetSetting("c103_air_c100_rank_replay") != 0;
-  C104_AIR_C100_COMPARE_PROBE = AIController.GetSetting("c104_air_c100_compare_probe") != 0;
+  C104_AIR_C100_COMPARE_PROBE = OpexProbeSetting("c104_air_c100_compare_probe") != 0;
   C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS = AIController.GetSetting("c105_air_replay_choice_physical_economics") != 0;
   C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c106_air_marginal_physical_engine_choice") != 0;
   C108_AIR_ONESTEP_PHYSICAL_ECONOMICS = AIController.GetSetting("c108_air_onestep_physical_economics") != 0;
@@ -355,21 +442,20 @@ function OpexLoadSettings()
   C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;
   C114_AIR_C100_FULL_REPLAY = AIController.GetSetting("c114_air_c100_full_replay") != 0;
   C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
-  C116_AIR_MARGINAL_CAPITAL = AIController.GetSetting("c116_air_marginal_capital") != 0;
-  C116_AIR_PROJECT_PROBE = AIController.GetSetting("c116_air_project_probe") != 0;
-  C117_AIR_THROUGHPUT_PROBE = AIController.GetSetting("c117_air_throughput_probe") != 0;
+  C116_AIR_PROJECT_PROBE = OpexProbeSetting("c116_air_project_probe") != 0;
+  C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;
   local c117Lean = AIController.GetSetting("c117_lean_sampling");
   C117_LEAN_SAMPLING = c117Lean >= 0 ? c117Lean : 0;
   C117_LEAN_MISMATCH_TOTAL = 0;
   C117_LEAN_MISMATCH_MONTH = -1;
-  C121_STATION_FLUX_PROBE = AIController.GetSetting("c121_station_flux_probe") != 0;
+  C121_STATION_FLUX_PROBE = OpexProbeSetting("c121_station_flux_probe") != 0;
   C121_VISIBLE_AIRPORT_CACHE.clear();
   C121_VISIBLE_FLEET_CACHE.clear();
   C121_STATION_FLUX_LAST_DATE = -1;
   C121_STATION_FLUX_STATE = {};
-  C118_AIR_COVERAGE_PROBE = AIController.GetSetting("c118_air_coverage_probe") != 0;
+  C118_AIR_COVERAGE_PROBE = OpexProbeSetting("c118_air_coverage_probe") != 0;
   AIR_C121_PHYSICAL_PAYMENT_DAYS = AIController.GetSetting("air_c121_physical_payment_days") != 0;
-  C121_AIR_ECONOMICS_SHADOW = AIController.GetSetting("c121_air_economics_shadow") != 0;
+  C121_AIR_ECONOMICS_SHADOW = OpexProbeSetting("c121_air_economics_shadow") != 0;
   C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
   C121_AIR_VISIBLE_COMPETITION = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_visible_competition") != 0;
@@ -388,21 +474,25 @@ function OpexLoadSettings()
   C121_FLAT_BOOTSTRAP = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("c121_flat_bootstrap") != 0;
   if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;
+  /* V166 : sans avion, l'annee 1 "AIR seul" ne genererait rien ; sans rail, sa
+   * preparation rail est sans objet. */
+  if (!MODE_AIR) C121_CATALOG_AIR_FIRST_YEAR = false;
   C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR
       && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;
+  if (!MODE_RAIL) C121_AIR_FIRST_YEAR_RAIL_PREP = false;
   C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
   C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_first_live_shadow") != 0;
+      && OpexProbeSetting("c121_air_first_live_shadow") != 0;
   C121_AIR_FIRST_LIVE_GROWTH = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_first_live_growth") != 0;
   C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH
       ? AIController.GetSetting("c121_air_first_live_growth_phase_years") : 0;
   C121_KPASS_SHADOW = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_kpass_shadow") != 0;
+      && OpexProbeSetting("c121_kpass_shadow") != 0;
   C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_kdec_cold_shadow") != 0;
+      && OpexProbeSetting("c121_kdec_cold_shadow") != 0;
   C121_AIR_FIRST_LIVE_STATE = {};
   C121_AIR_FIRST_LIVE_OPS = 0;
   C121_AIR_FIRST_LIVE_SAMPLES = 0;
@@ -430,7 +520,7 @@ function OpexLoadSettings()
   AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
   C121_AIR_P0_DIRECT_FACTOR.hubsite = 1.0;
   C121_AIR_P0_DIRECT_FACTOR.hubhub = 1.0;
-  C121_AIR_PRESSURE_PROBE = AIController.GetSetting("c121_air_pressure_probe") != 0;
+  C121_AIR_PRESSURE_PROBE = OpexProbeSetting("c121_air_pressure_probe") != 0;
   C121_AIR_PRESSURE_SNAPSHOT = null;
   C121_AIR_PRESSURE_ACCUM = null;
   C121_AIR_PRESSURE_PREV = null;
@@ -439,10 +529,10 @@ function OpexLoadSettings()
    * filtre des profits negatifs hors exemptions existantes. Les calculs executes
    * peuvent changer la cadence d'opcodes ; ne pas supprimer la branche. */
   C121_AIR_DEFENSIVE_FLOOR = AIController.GetSetting("c121_air_defensive_floor") != 0;
-  C121_AIR_ENGINE_REPLAY_SHADOW = AIController.GetSetting("c121_air_engine_replay_shadow") != 0;
-  C122_AIR_REGIME_SHADOW = AIController.GetSetting("c122_air_regime_shadow") != 0;
+  C121_AIR_ENGINE_REPLAY_SHADOW = OpexProbeSetting("c121_air_engine_replay_shadow") != 0;
+  C122_AIR_REGIME_SHADOW = OpexProbeSetting("c122_air_regime_shadow") != 0;
   C122_AIR_THREAT_RETRY = AIController.GetSetting("c122_air_threat_retry") != 0;
-  C122_AIR_THREAT_PROBE = AIController.GetSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;
+  C122_AIR_THREAT_PROBE = OpexProbeSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;
   C122_AIR_THREAT_WATCH.clear();
   C122_AIR_THREAT_SEQ = 0;
   C122_AIR_THREAT_RETRY_COUNT = 0;
@@ -472,7 +562,7 @@ function OpexLoadSettings()
   V88_STEP2_CASH_RESERVE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_cash_reserve") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
-      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY || C116_AIR_MARGINAL_CAPITAL;
+      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY;
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
@@ -539,9 +629,9 @@ function OpexLoadSettings()
   }
 
   // 9. probe_events : C52 autoreplace, exposure, crash, unprofitable, first vehicle, C56 task trace, air fleet/catchment, equipment roi, vehicle orders
-  local probeEvents = AIController.GetSetting("probe_events") != 0;
-  local b9CatchmentProbe = AIController.GetSetting("b9_air_catchment_probe") != 0;
-  B9_AIR_DEMAND_SHADOW = AIController.GetSetting("b9_air_demand_shadow") != 0;
+  local probeEvents = OpexProbeSetting("probe_events") != 0;
+  local b9CatchmentProbe = OpexProbeSetting("b9_air_catchment_probe") != 0;
+  B9_AIR_DEMAND_SHADOW = OpexProbeSetting("b9_air_demand_shadow") != 0;
   C52_AUTOREPLACE_LOG = probeEvents;
   if (C52_AUTOREPLACE_LOG) {
     C52_AUTOREPLACE_LEDGER = {
@@ -598,7 +688,7 @@ function OpexLoadSettings()
   AC04_HUB_USAGE_GATE = AIController.GetSetting("ac04_hub_usage_gate") != 0;
   V147_AIR_CATALOG_TASKS = AIController.GetSetting("v147_air_catalog_tasks") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
-  C67_WATER_EXPOSURE = AIController.GetSetting("c67_water_exposure_probe") != 0;
+  C67_WATER_EXPOSURE = OpexProbeSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
   /* C77 corrige est permanent et repose sur le socle du double registre. */
   C80_WORKER_RAIL = AIController.GetSetting("c80_worker_rail") != 0;
@@ -632,7 +722,7 @@ function OpexLoadSettings()
   V141_CATALOG_INCREMENTAL = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("v141_catalog_incremental") != 0;
   V141_CATALOG_INCREMENTAL_CHECK = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("v141_catalog_incremental_check") != 0;
+      && OpexProbeSetting("v141_catalog_incremental_check") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
@@ -640,15 +730,15 @@ function OpexLoadSettings()
   V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
   if (C80_RAIL_STOCK_WORKER) V89_RAIL_SEARCH_THROUGHPUT = false;
   V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;
-  V90_PATHFINDER_CHECK = AIController.GetSetting("v90_pathfinder_check") != 0;
+  V90_PATHFINDER_CHECK = OpexProbeSetting("v90_pathfinder_check") != 0;
   local astarWeight = AIController.GetSetting("v91_astar_weight_pct");
   V91_ASTAR_WEIGHT_PCT = (astarWeight != null && astarWeight >= 100 && astarWeight <= 300) ? astarWeight : 100;
   V129_RAIL_ASTAR_EXACT_OPT = AIController.GetSetting("v129_rail_astar_exact_opt") != 0;
-  V129_RAIL_ASTAR_CHECK = AIController.GetSetting("v129_rail_astar_check") != 0;
+  V129_RAIL_ASTAR_CHECK = OpexProbeSetting("v129_rail_astar_check") != 0;
   local railBias = AIController.GetSetting("rail_finance_bias_pct");
   RAIL_FINANCE_BIAS_PCT = (railBias != null && railBias >= 90 && railBias <= 200) ? railBias : 100;
   V94_AIR_SITE_LIST = AIController.GetSetting("v94_air_site_list") != 0;
-  V94_AIR_SITE_CHECK = AIController.GetSetting("v94_air_site_check") != 0;
+  V94_AIR_SITE_CHECK = OpexProbeSetting("v94_air_site_check") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;

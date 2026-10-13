@@ -97,10 +97,12 @@ const PAX_NEAR_RATIO = 1;
  */
 KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];
 KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];
+/* V171 : table de noeuds recalibree sur le p90 des iterations (campagnes rail contre rail V166/V168). */
+KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];
 
 function OpexRailIterations(distance)
 {
-  local knots = KNOT_ITERATIONS_V1;
+  local knots = (V171_RAIL_KNOTS != 0) ? KNOT_ITERATIONS_V2 : KNOT_ITERATIONS_V1;
   local n = KNOT_DISTANCE.len();
   if (distance <= KNOT_DISTANCE[0]) return knots[0];
   for (local i = 1; i < n; i++) {
@@ -377,6 +379,10 @@ function OpexRefreshEpochBounds(catalog)
 
   local iterCap = (HARD_ITERATION_CAP * 12) / 10;
   local railMax = OpexRailDistanceForIterations(iterCap);
+  /* V168 : la table de noeuds date d'un ancien A* ; au banc rail contre rail du 13/10, les
+   * recherches de 80-94 tuiles prennent 2 204 iterations medianes contre 7 745 predites, et
+   * AAAHogEx pose ses lignes a 117 tuiles medianes. Le reglage remplace la borne derivee. */
+  if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
   if (railMax < roadMax) railMax = roadMax;
 
   /* Si le rail s'amortit des le bassin, la bande exclusive route est vide. On
@@ -451,6 +457,7 @@ function OpexCatalogBounds(catalog)
   local busR = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
   local roadMin = (busR * 2) + 1;
   local railMax = OpexRailDistanceForIterations((HARD_ITERATION_CAP * 12) / 10);
+  if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
   return {
     roadMin = roadMin, roadMax = roadMin, roadGenMax = railMax, railMin = roadMin,
     railAirOverlapMin = railMax, railMax = railMax, airMax = 0, airMin = railMax,
@@ -661,7 +668,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   /* Plafond A* avant l'economie : les paires trop longues etaient evaluees puis rejetees. */
   local iterations = OpexRailIterations(distance);
-  if (iterations > (HARD_ITERATION_CAP * 12) / 10) {
+  if (V168_RAIL_MAX_DIST <= 0 && iterations > (HARD_ITERATION_CAP * 12) / 10) {
     stats.distanceLong++;
     return null;
   }
@@ -710,7 +717,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
   /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
    * prÃ©coces de OpexLineEconomics restent visibles comme reliquat de prÃ©paration. */
-  local freightEconomicsMark = (kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
+  local freightEconomicsMark = (profile != null && kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache,
                                       null, null, secondary);
   if (profile != null) {
@@ -1969,7 +1976,7 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
             local goodsDist = AIMap.DistanceManhattan(factory.tile, town.tile);
             if (goodsDist > bounds.railMax) continue;
             local itersGoods = OpexRailIterations(goodsDist);
-            if (itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;
+            if (V168_RAIL_MAX_DIST <= 0 && itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;
 
             local candGoods = OpexMakeCandidate(catalog, "freight", goodsCargo, factory.tile,
                                                 town.tile, goodsMonthly, false, stats, false, profile, cruiseCache);
@@ -2118,6 +2125,11 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   local prePair = (RAIL_ORIGIN_EXPOSURE_SHADOW && DECISION_LOG) ? OpexRailPrePairStats() : null;
   if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
+  /* V166 : seul point d'entree des candidats rail (pax, fret, chaine de marchandises). */
+  if (!MODE_RAIL) {
+    generatePax = false;
+    generateFreight = false;
+  }
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generatePax) {

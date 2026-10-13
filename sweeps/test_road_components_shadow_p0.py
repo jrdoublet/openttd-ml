@@ -19,7 +19,7 @@ class RoadComponentsContracts(unittest.TestCase):
         self.assertIsNotNone(group)
         for k in ("easy_value", "medium_value", "hard_value", "custom_value"):
             self.assertRegex(group.group(1), rf"\b{k}\s*=\s*0\b")
-        self.assertIn('ROAD_QUOTE_COMPONENTS_SHADOW_P0 = AIController.GetSetting(',
+        self.assertIn('ROAD_QUOTE_COMPONENTS_SHADOW_P0 = OpexProbeSetting(',
                       source("settings.nut"))
         self.assertIn('ROAD_QUOTE_COMPONENTS_SHADOW_P0 <- false;',
                       source("globals_pre.nut"))

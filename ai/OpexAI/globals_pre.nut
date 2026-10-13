@@ -4,6 +4,19 @@
  * decision. Le defaut vrai est celui de info.nut ; 0 reconstitue la baseline sans route, dont le
  * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
 ROAD_BUILD_ENABLED <- true;
+/* V166 : interrupteurs de mode (bancs mono-mode, rail contre rail, air contre air). Un mode a faux
+ * ne genere ni candidat ni balayage de catalogue et ne construit rien ; les quatre a vrai = defaut. */
+MODE_AIR <- true;
+MODE_RAIL <- true;
+MODE_ROAD <- true;
+MODE_WATER <- true;
+/* V168 : borne de distance des candidats rail. 160 = defaut (portes A et B du 13/10) ; 0 = derivee
+ * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
+ * d'iterations predites. */
+V168_RAIL_MAX_DIST <- 160;
+/* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
+ * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
+V171_RAIL_KNOTS <- 0;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;
@@ -34,6 +47,8 @@ CLEAN_DENSITY_SCORE <- true;
  * l'instrumentation de sweeps/*.py passe par ces panneaux, AILog.Info n'etant pas capture par
  * OpenTTDLab. On ne les coupe que pour une partie avec des humains. */
 DEBUG_SIGNS <- true;
+/* V167 : masque du reglage `probes` apres expansion du bit 1 (voir settings.nut). */
+OPEX_PROBE_MASK <- 2;
 /* P0 AIR : journal des achats effectivement realises et de leur provenance de score.
  * OFF par defaut, diagnostic seulement, aucune lecture par le classement. */
 AIR_P0_MARGIN_PROBE <- false;
@@ -422,11 +437,6 @@ C114_AIR_C100_FULL_REPLAY <- false;
  * Le replay n'est utilise que tant que le capital du choix C68 depasse K_dec ;
  * aucun seuil de caisse, d'annee ou d'EngineID n'est introduit. */
 C115_AIR_C100_CAPITAL_REPLAY <- false;
-/* C116.4 : decouplage complet portefeuille/equipement. Generation, admission,
- * classement et fundScore restent strictement C68 ; seulement apres selection
- * du projet, un moteur moins cher peut etre achete si son economie de capital
- * couvre le gap du meilleur projet AIR non financable du snapshot courant. */
-C116_AIR_MARGINAL_CAPITAL <- false;
 /* C116.3 diagnostic leger : observe sous le vrai temoin C115 le meilleur runner
  * C68, les projets debloques par son economie de capital et l'auto-deblocage de
  * la route courante. Aucun recalcul moteur supplementaire. */

@@ -23,7 +23,7 @@ class C115CapitalReplayTests(unittest.TestCase):
         self.assertIn('AIController.GetSetting("c115_air_c100_capital_replay")', SETTINGS)
 
     def test_tracks_builds_for_endogenous_kdec(self):
-        self.assertIn("|| C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY || C116_AIR_MARGINAL_CAPITAL;", SETTINGS)
+        self.assertIn("|| C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY;", SETTINGS)
 
     def test_replay_only_when_c68_capital_exceeds_kdec(self):
         start = AIR.index("function OpexC115ChooseRoutePlane(")
@@ -53,7 +53,7 @@ class C115CapitalReplayTests(unittest.TestCase):
         end = AIR.index("function OpexC101ChooseRoutePlane", start)
         body = AIR[start:end]
         self.assertIn("C111_AIR_C100_DECISION_SHADOW", body)
-        self.assertIn("(C115_AIR_C100_CAPITAL_REPLAY && !C116_AIR_MARGINAL_CAPITAL)", body)
+        self.assertIn("C115_AIR_C100_CAPITAL_REPLAY", body)
 
 
 if __name__ == "__main__":

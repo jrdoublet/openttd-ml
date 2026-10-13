@@ -40,7 +40,7 @@ class C97AirC69EngineTests(unittest.TestCase):
         for token in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
             self.assertIn(token, block)
         self.assertIn(
-            'C97_AIR_C69_ENGINE_PROBE = AIController.GetSetting("c97_air_c69_engine_probe") != 0;',
+            'C97_AIR_C69_ENGINE_PROBE = OpexProbeSetting("c97_air_c69_engine_probe") != 0;',
             SETTINGS,
         )
 

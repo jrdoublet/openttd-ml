@@ -15,7 +15,19 @@ class OpexAIInfo extends AIInfo {
   {
     /* --- 1. Systeme et instrumentation --- */
 
-    /* Panneaux de diagnostic. Defaut ACTIF (requis par les sweeps pour collecter les metriques). */
+    /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).
+     * Defaut 2 = panneaux seuls, le comportement historique. */
+    AddSetting({
+      name = "probes",
+      description = "Diagnostics bitmask: 0 none, 1 everything except 256 (signs, log, groups 8-128), 2 signs (default), 4 decision log, 8 opcodes/scheduler, 16 air, 32 rail, 64 road/water/costs, 128 events/portfolio, 256 double-computation checks; any probe group also enables the log; never changes decisions",
+      min_value = 0, max_value = 511,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2,
+      flags = 0
+    });
+
+    /* Panneaux de diagnostic. Defaut ACTIF (requis par les sweeps pour collecter les metriques).
+     * V167 : n'agit plus que comme veto (0) du bit 2 de probes. */
     AddSetting({
       name = "debug_signs",
       description = "Diagnostic signs on the map: 1 = current behaviour (required by sweeps/), 0 = none (use when playing with humans)",
@@ -632,14 +644,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c116_air_marginal_capital",
-      description = "C116.4: keep strict C68 economics for AIR portfolio ranking/admission, then after selection buy the highest-profit cheaper engine that saves enough capital to cover the cached gap of the best pending AIR project; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c116_air_project_probe",
       description = "C116 passive lightweight probe: reuse C115/C68 engine scan to measure AIR/global/self project unlock opportunity; no decision change; 1 = enabled, 0 = default",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -1016,6 +1020,55 @@ class OpexAIInfo extends AIInfo {
       description = "Road transport policy: drive-through stops on existing streets, overlap filtering: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "mode_air",
+      description = "V166: Air mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "mode_rail",
+      description = "V166: Rail mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "mode_road",
+      description = "V166: Road (buses, trucks, airport feeder buses) mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "mode_water",
+      description = "V166: Water (ships, docks) mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v168_rail_max_dist",
+      description = "V168: rail candidate maximum distance in tiles. 160 = default (qualified 13/10: gate A 40x3 +152.7 k/yr, gate B 20x10 pass); 0 = historical bound derived from the A* iteration cap through the knot table (94 tiles at a 10k cap); N = use N tiles and drop the knot-table iteration filter (the per-search A* cap still applies)",
+      min_value = 0, max_value = 512,
+      easy_value = 160, medium_value = 160, hard_value = 160,
+      custom_value = 160,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v171_rail_knots",
+      description = "V171: recalibrated rail A* iteration knot table (V2). 0 = historical V1 table (default); 1 = V2 table fitted on rail-vs-rail p90 iterations",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

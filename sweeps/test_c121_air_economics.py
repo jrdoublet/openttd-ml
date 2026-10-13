@@ -73,12 +73,12 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("C121_AIR_PROJECT_REALIZATION_REGIME <- -1;", globals_src)
         self.assertIn("C121_AIR_PRESSURE_PROBE <- false;", globals_src)
         settings = SETTINGS.read_text(encoding="utf-8")
-        self.assertIn('AIController.GetSetting("c121_air_economics_shadow")', settings)
+        self.assertIn('OpexProbeSetting("c121_air_economics_shadow")', settings)
         self.assertIn('AIController.GetSetting("c121_air_economics")', settings)
         self.assertIn('AIController.GetSetting("c121_air_project_realization_adaptive")', settings)
-        self.assertIn('AIController.GetSetting("c121_air_pressure_probe")', settings)
+        self.assertIn('OpexProbeSetting("c121_air_pressure_probe")', settings)
         self.assertIn('AIController.GetSetting("c121_air_defensive_floor")', settings)
-        self.assertIn('AIController.GetSetting("c121_air_engine_replay_shadow")', settings)
+        self.assertIn('OpexProbeSetting("c121_air_engine_replay_shadow")', settings)
         self.assertIn('AIController.GetSetting("c121_air_game_engine")', settings)
 
     def test_realization_toggles_are_scoped(self):
@@ -548,8 +548,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('C121_AIR_ECONOMICS && ("c121Demand" in plan)', reconcile)
         self.assertIn("OpexC121EngineEconomics(catalog, plan, plan.plane, actualPlanes)", reconcile)
 
-        c116 = body(self.air, "function OpexC116ChooseBuildPlan", "function OpexAirChooseRoutePlaneFull")
-        self.assertIn("if (C121_AIR_ECONOMICS) return unchanged;", c116)
 
     def test_causal_realization_learning_stays_shadow_and_keeps_air_calibration(self):
         globals_src = GLOBALS.read_text(encoding="utf-8")
@@ -743,7 +741,7 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         i = info.index('name = "c121_air_first_live_shadow"')
         self.assertIn("custom_value = 0", info[i:i + 600])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_first_live_shadow") != 0;', settings)
+        self.assertIn('C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS\n      && OpexProbeSetting("c121_air_first_live_shadow") != 0;', settings)
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
         self.assertNotIn("C121_AIR_FIRST_LIVE_SHADOW", task)
 
@@ -826,7 +824,7 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         i = info.index('name = "c121_kpass_shadow"')
         self.assertIn("custom_value = 0", info[i:i + 700])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_KPASS_SHADOW = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_kpass_shadow") != 0;', settings)
+        self.assertIn('C121_KPASS_SHADOW = C121_AIR_ECONOMICS\n      && OpexProbeSetting("c121_kpass_shadow") != 0;', settings)
         task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
         self.assertIn("function OpexC121KPassShadow(projects, project, rank, projCap, kPass, available, reason)", task)
         self.assertIn('AILog.Info("C121_KPASS_SHADOW reason="', task)
@@ -846,7 +844,7 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         i = info.index('name = "c121_kdec_cold_shadow"')
         self.assertIn("custom_value = 0", info[i:i + 800])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_kdec_cold_shadow") != 0;', settings)
+        self.assertIn('C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS\n      && OpexProbeSetting("c121_kdec_cold_shadow") != 0;', settings)
 
     def test_c121_kdec_cold_shadow_uses_samples_not_estimate_presence(self):
         projects = (ROOT / "ai" / "OpexAI" / "projects_selection.nut").read_text(encoding="utf-8")

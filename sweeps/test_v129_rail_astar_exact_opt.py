@@ -71,8 +71,10 @@ class TestV129Settings(unittest.TestCase):
         settings = _read("ai/OpexAI/settings.nut")
         for name, glob_name in (("v129_rail_astar_exact_opt", "V129_RAIL_ASTAR_EXACT_OPT"),
                                 ("v129_rail_astar_check", "V129_RAIL_ASTAR_CHECK")):
-            self.assertIn(f'{glob_name} = AIController.GetSetting("{name}") != 0;', settings)
-            total = sum(_read(str(p.relative_to(ROOT))).count(f'GetSetting("{name}")')
+            # V167 : la verification passe par OpexProbeSetting (groupe 256 du reglage probes)
+            reader = "OpexProbeSetting" if name.endswith("_check") else "AIController.GetSetting"
+            self.assertIn(f'{glob_name} = {reader}("{name}") != 0;', settings)
+            total = sum(_read(str(p.relative_to(ROOT))).count(f'Setting("{name}")')
                         for p in (ROOT / "ai/OpexAI").rglob("*.nut"))
             self.assertEqual(total, 1)
 
