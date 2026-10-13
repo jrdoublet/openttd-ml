@@ -23,6 +23,15 @@ function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget,
   local flips = 0;
   local affordable = 0;
   local bestProfit = null;
+  /* V165 : meilleur projet du vivier et meilleur AIR (score de financement), finançables ou non,
+   * pour mesurer la bande des seuils de tresorerie (marge AIR, reserve) au moment du choix. */
+  local top = null;
+  local airTop = null;
+  foreach (p in alternatives) {
+    if (p == null || !("fundScore" in p)) continue;
+    if (top == null || p.fundScore > top.fundScore) top = p;
+    if (("mode" in p) && p.mode == "air" && (airTop == null || p.fundScore > airTop.fundScore)) airTop = p;
+  }
   foreach (p in alternatives) {
     if (p == null) continue;
     local cap = OpexProjectFinanceCapital(p);
@@ -89,7 +98,18 @@ function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget,
       + " same_live_choice=" + sameLive + " live_profit_delta=" + (liveProfit - actualProfit)
       + " actual_live_affordable=" + actualLiveAffordable
       + " actual_age_days=" + actualAge + " actual_recycled=" + actualRecycled
-      + " pool_recycled=" + poolRecycled);
+      + " pool_recycled=" + poolRecycled
+      + " top_mode=" + (top != null ? top.mode : "none")
+      + " top_score=" + (top != null ? top.fundScore : 0)
+      + " top_fin=" + (top != null ? OpexProjectFinanceCapital(top) : 0)
+      + " air_top_score=" + (airTop != null ? airTop.fundScore : 0)
+      + " air_top_fin=" + (airTop != null ? OpexProjectFinanceCapital(airTop) : 0)
+      + " air_top_cap=" + (airTop != null ? airTop.capital : 0)
+      + " air_top_arm=" + ((airTop != null && ("payload" in airTop) && airTop.payload != null
+          && ("arm" in airTop.payload)) ? airTop.payload.arm : "-")
+      + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+      + " loan=" + AICompany.GetLoanAmount() + " max_loan=" + AICompany.GetMaxLoanAmount()
+      + " reserve=" + OpexCashReserve());
 }
 
 /* B6/06.11 -- oracle passif "cache vs generation fraiche".
