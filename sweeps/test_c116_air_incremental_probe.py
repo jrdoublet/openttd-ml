@@ -45,66 +45,11 @@ class C116IncrementalProbeTests(unittest.TestCase):
         self.assertNotIn("forcePhysicalTiming", body)
         self.assertNotIn("forceC100RankReplay", body)
 
-    def test_active_setting_is_off_by_default_and_decouples_generation_from_c115(self):
-        self.assertIn("C116_AIR_MARGINAL_CAPITAL <- false;", GLOBALS)
-        start = INFO.index('name = "c116_air_marginal_capital"')
-        snippet = INFO[start:start + 700]
-        for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(field, snippet)
-        self.assertIn('AIController.GetSetting("c116_air_marginal_capital")', SETTINGS)
-        start = AIR.index("function OpexAirChooseRoutePlaneFull(")
-        end = AIR.index("function OpexM3ProbeAirEquipment", start)
-        body = AIR[start:end]
-        c115 = body.index("if (C115_AIR_C100_CAPITAL_REPLAY")
-        self.assertIn("!C116_AIR_MARGINAL_CAPITAL", body[c115:])
-        self.assertNotIn("OpexC116ChooseBuildPlan", body)
-        self.assertNotIn("OpexC116ChooseRoutePlane", body)
-
-        memo_start = AIR.index("function OpexAirChooseRoutePlane(")
-        memo_end = AIR.index("function OpexC101ChooseRoutePlane", memo_start)
-        memo = AIR[memo_start:memo_end]
-        self.assertIn("(C115_AIR_C100_CAPITAL_REPLAY && !C116_AIR_MARGINAL_CAPITAL)", memo)
-        self.assertNotIn("|| C116_AIR_MARGINAL_CAPITAL", memo)
-
-    def test_active_build_choice_uses_exact_pending_project_gap(self):
-        start = AIR.index("function OpexC116BestPendingAirProject()")
-        end = AIR.index("function OpexAirChooseRoutePlaneFull(", start)
-        body = AIR[start:end]
-        self.assertIn("C116_AIR_PROJECT_SNAPSHOT.unlockable", body)
-        self.assertIn("point.hurdle > best.hurdle", body)
-        self.assertIn("local target = OpexC116BestPendingAirProject();", body)
-        self.assertIn("deltaCapital < target.gap", body)
-        self.assertIn("plane.price >= baselinePlane.price", body)
-        self.assertIn("economics.profitAnnual > runner.economics.profitAnnual", body)
-        self.assertIn("buildPlan.plane = runner.plane", body)
-        self.assertIn("buildPlan.economics = runner.economics", body)
-        self.assertNotIn("OpexAvailableCapital()", body)
-        self.assertNotIn("decisionFinance > available", body)
-        self.assertNotIn("marginalRoi", body)
-        self.assertNotIn("forcePhysicalTiming", body)
-        self.assertNotIn("forceC100RankReplay", body)
-        self.assertNotIn("OpexAirPlans", body)
-
-    def test_build_choice_keeps_ranked_plan_immutable_and_retargets_c84(self):
-        start = AIR.index("function OpexC116ChooseBuildPlan(")
-        end = AIR.index("function OpexAirChooseRoutePlaneFull(", start)
-        body = AIR[start:end]
-        self.assertIn("local buildPlan = {};", body)
-        self.assertIn("foreach (k, v in plan) buildPlan[k] <- v;", body)
-        self.assertNotIn("plan.plane = runner.plane", body)
-        self.assertNotIn("plan.economics = runner.economics", body)
-        self.assertIn("if (C84_AIR_TARGET_FLEET)", body)
-        self.assertIn("OpexAirTargetEconomics", body)
-        self.assertIn("buildPlan.targetPlanes", body)
-        self.assertIn("V92_AIR_SERVICE_CHOICE", body)
-        self.assertIn("C85_AIR_EQUIPMENT_FRONTIER", body)
-
     def test_post_selection_path_uses_build_plan_only_for_execution(self):
         start = TASK_AIR.index("function OpexAI::_tryBuildAirProject(")
         end = TASK_AIR.index("function OpexAirFleetRefusal", start)
         body = TASK_AIR[start:end]
-        choose = body.index("local buildChoice = OpexC116ChooseBuildPlan")
-        self.assertIn("OpexC116ChooseBuildPlan(this._catalog, plan)", body[choose:])
+        choose = body.index("local buildPlan = plan;")
         cash = body.index("local money = AICompany.GetBankBalance", choose)
         build = body.index("OpexBuildAirRoute(this._catalog, this._budget, buildPlan", cash)
         self.assertLess(choose, cash)
@@ -115,15 +60,6 @@ class C116IncrementalProbeTests(unittest.TestCase):
         self.assertIn("cost=\" + buildPlan.capital", body)
         self.assertIn("planeId = buildPlan.plane.id", body)
         self.assertIn("refleetEngine = AIVehicle.GetEngineType(result.vehicle)", body)
-
-    def test_active_unlockable_project_lookup_is_cached_only(self):
-        start = AIR.index("function OpexC116UnlockedProjectOpportunity(")
-        end = AIR.index("function OpexC116ChooseBuildPlan(", start)
-        body = AIR[start:end]
-        self.assertIn("C116_AIR_PROJECT_SNAPSHOT.unlockable", body)
-        self.assertIn("point.gap > deltaCapital", body)
-        self.assertNotIn("OpexAirPlans", body)
-        self.assertNotIn("OpexAirEconomics", body)
 
     def test_c104_logs_c116_candidates(self):
         start = AIR.index("function OpexC104ProbeAirEngineCompare(")

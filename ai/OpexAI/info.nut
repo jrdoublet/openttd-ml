@@ -632,14 +632,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c116_air_marginal_capital",
-      description = "C116.4: keep strict C68 economics for AIR portfolio ranking/admission, then after selection buy the highest-profit cheaper engine that saves enough capital to cover the cached gap of the best pending AIR project; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c116_air_project_probe",
       description = "C116 passive lightweight probe: reuse C115/C68 engine scan to measure AIR/global/self project unlock opportunity; no decision change; 1 = enabled, 0 = default",
       easy_value = 0, medium_value = 0, hard_value = 0,

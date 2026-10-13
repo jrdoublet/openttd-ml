@@ -422,11 +422,6 @@ C114_AIR_C100_FULL_REPLAY <- false;
  * Le replay n'est utilise que tant que le capital du choix C68 depasse K_dec ;
  * aucun seuil de caisse, d'annee ou d'EngineID n'est introduit. */
 C115_AIR_C100_CAPITAL_REPLAY <- false;
-/* C116.4 : decouplage complet portefeuille/equipement. Generation, admission,
- * classement et fundScore restent strictement C68 ; seulement apres selection
- * du projet, un moteur moins cher peut etre achete si son economie de capital
- * couvre le gap du meilleur projet AIR non financable du snapshot courant. */
-C116_AIR_MARGINAL_CAPITAL <- false;
 /* C116.3 diagnostic leger : observe sous le vrai temoin C115 le meilleur runner
  * C68, les projets debloques par son economie de capital et l'auto-deblocage de
  * la route courante. Aucun recalcul moteur supplementaire. */
