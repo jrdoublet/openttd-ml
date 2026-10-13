@@ -1993,6 +1993,12 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "v163_multi_cargo",
+      description = "V163: a rail freight train also carries a second cargo produced by its source industry and accepted by its destination industry (e.g. GRAI + LVST farm to factory), wagons sized per cargo; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

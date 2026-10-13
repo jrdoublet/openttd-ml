@@ -1579,9 +1579,31 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   }
 }
 
-function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength, startVehicles = true)
+/* V163 : prix des wagons du second cargo d'une ligne ou d'un candidat (0 sans second cargo). */
+function OpexV163WagonsPrice(catalog, line)
+{
+  if (!("wagons2" in line) || line.wagons2 <= 0 || !("cargo2" in line)) return 0;
+  if (!(line.cargo2 in catalog.wagonByCargo)) return 0;
+  return line.wagons2 * catalog.wagonByCargo[line.cargo2].price;
+}
+
+/* V163 : (cargo2, wagons2) a passer a OpexBuildTrains pour une ligne ou un candidat. */
+function OpexV163Cargo2(line)
+{
+  return (("wagons2" in line) && line.wagons2 > 0 && ("cargo2" in line)) ? line.cargo2 : -1;
+}
+function OpexV163Wagons2(line)
+{
+  return (("wagons2" in line) && line.wagons2 > 0 && ("cargo2" in line)) ? line.wagons2 : 0;
+}
+
+function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength, startVehicles = true,
+                         cargo2 = -1, wagons2 = 0)
 {
   local wagon = catalog.wagonByCargo[cargo];
+  /* V163 : wagons du second cargo, attaches derriere ceux du premier dans la meme rame. */
+  local wagon2 = (wagons2 > 0 && (cargo2 in catalog.wagonByCargo)) ? catalog.wagonByCargo[cargo2] : null;
+  if (wagon2 == null) wagons2 = 0;
   local built = 0;
   local vehicles = [];          // locomotives tete : identite persistante de la ligne
   local rollbackVehicles = [];  // tete ET wagons isoles : cleanup atomique si MoveWagon echoue
@@ -1596,7 +1618,7 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
    * optimiste que le quai bati. */
   local nominalMaxWagons = OpexRailNominalMaxWagons(platformLength);
   local trainLengthLimit = platformLength * 16;
-  if (wagons < 1 || wagons > nominalMaxWagons || trainLengthLimit < 1) {
+  if (wagons < 1 || wagons + wagons2 > nominalMaxWagons || trainLengthLimit < 1) {
     return { built = 0, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
              failed = true, failure = "LENGTH", error = 0, diag = diag };
   }
@@ -1647,8 +1669,8 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
     rollbackVehicles.append(train);
     local trainLength = AIVehicle.GetLength(train);
     measuredLocoLength = trainLength;
-    for (local w = 0; w < wagons; w++) {
-      local car = AIVehicle.BuildVehicle(depotTile, wagon.id);
+    for (local w = 0; w < wagons + wagons2; w++) {
+      local car = AIVehicle.BuildVehicle(depotTile, w < wagons ? wagon.id : wagon2.id);
       if (AIVehicle.IsValidVehicle(car)) {
         rollbackVehicles.append(car);
         local carLength = AIVehicle.GetLength(car);
@@ -1865,7 +1887,8 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hard
   plan.slopeRelaxed = platformPlans.slopeRelaxed ? 1 : 0;
 
   local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
-                                      candidate.monthly, candidate.kind, plan.length);
+                                      candidate.monthly, candidate.kind, plan.length,
+                                      null, null, null, null, null, OpexV163CandidateSecondary(candidate));
   if (economics == null) { plan.reason = "ECON"; return plan; }
   plan.capital = economics.capital;
   OpexApplyRailEconomics(candidate, economics);
@@ -1929,7 +1952,8 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   if (routeDistance > 0) {
     local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
                                         candidate.monthly, candidate.kind, plan.length,
-                                        routeDistance);
+                                        routeDistance, null, null, null, null,
+                                        OpexV163CandidateSecondary(candidate));
     if (EQUIPMENT_ROI_PROBE) {
       OpexM3ProbeRailEquipment(catalog, candidate, plan.length, routeDistance, economics);
     }
@@ -2178,7 +2202,8 @@ function OpexQuoteRailCapital(catalog, candidate, plan, failure = null)
   if (vehicleCost <= 0 && ("loco" in candidate) && candidate.loco != null &&
       (candidate.cargo in catalog.wagonByCargo)) {
     vehicleCost = candidate.trains * (candidate.loco.price
-        + candidate.wagons * catalog.wagonByCargo[candidate.cargo].price);
+        + candidate.wagons * catalog.wagonByCargo[candidate.cargo].price
+        + OpexV163WagonsPrice(catalog, candidate));
   }
   return realInfra + depotCost + vehicleCost;
 }
@@ -2467,11 +2492,13 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   budget.begin();
   local trains = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot,
                                  planA.station_exit, planB.station_exit, 1, candidate.loco,
-                                 candidate.wagons, candidate.platformLength, false);
+                                 candidate.wagons, candidate.platformLength, false,
+                                 OpexV163Cargo2(candidate), OpexV163Wagons2(candidate));
   if (!trains.failed && trains.built > 0 && want == 2 && depot2 != null) {
     local second = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot2,
                                    planA2.station_exit, planB2.station_exit, 1, candidate.loco,
-                                   candidate.wagons, candidate.platformLength, false);
+                                   candidate.wagons, candidate.platformLength, false,
+                                   OpexV163Cargo2(candidate), OpexV163Wagons2(candidate));
     if (second.failed || second.built == 0) {
       foreach (vehicle in trains.rollbackVehicles) second.rollbackVehicles.append(vehicle);
       trains = second;
@@ -2675,7 +2702,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
   if (wagon == null) { result.reason = "NOWAGON"; return result; }
   local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
   local trackCost = tiles2.len() * catalog.costTrackPerTile + (planA2.length + planB2.length) * catalog.costStation + depotCost;
-  local trainCost = line.loco.price + line.wagons * wagon.price;
+  local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(catalog, line);
   local totalNeeded = trackCost + trainCost + cashReserve;
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < totalNeeded) {
     result.reason = "CASH";
@@ -2718,7 +2745,8 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
 
   local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, depot2,
                                     planA2.station_exit, planB2.station_exit, 1,
-                                    line.loco, line.wagons, line.platformLength, true);
+                                    line.loco, line.wagons, line.platformLength, true,
+                                    OpexV163Cargo2(line), OpexV163Wagons2(line));
   if (newTrains.failed || newTrains.built == 0) {
     OpexRollback(tiles2, planA2, planB2, depot2, newTrains.rollbackVehicles);
     result.reason = "TRAINFAIL";
@@ -2766,14 +2794,15 @@ function OpexBuildSecondTrain(catalog, line, cashReserve)
   }
   local wagon = (line.cargo in catalog.wagonByCargo) ? catalog.wagonByCargo[line.cargo] : null;
   if (wagon == null) { result.reason = "NOWAGON"; return result; }
-  local trainCost = line.loco.price + line.wagons * wagon.price;
+  local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(catalog, line);
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < trainCost + cashReserve) {
     result.reason = "CASH"; return result;
   }
   local stA = (("stationA2" in line) && line.stationA2 != null) ? line.stationA2 : line.stationA;
   local stB = (("stationB2" in line) && line.stationB2 != null) ? line.stationB2 : line.stationB;
   local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, line.depot2,
-                                    stA, stB, 1, line.loco, line.wagons, line.platformLength, true);
+                                    stA, stB, 1, line.loco, line.wagons, line.platformLength, true,
+                                    OpexV163Cargo2(line), OpexV163Wagons2(line));
   if (newTrains.failed || newTrains.built == 0) {
     OpexRollback(null, null, null, null, newTrains.rollbackVehicles);
     result.reason = "TRAINFAIL"; return result;

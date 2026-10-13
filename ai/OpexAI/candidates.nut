@@ -638,7 +638,7 @@ function OpexC60ObserveTownRating(mode, phase, townId)
   return allowed;
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -711,7 +711,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
    * prÃ©coces de OpexLineEconomics restent visibles comme reliquat de prÃ©paration. */
   local freightEconomicsMark = (kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
-  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache);
+  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache,
+                                      null, null, secondary);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
     profile.paxEconomicsCalls++;
@@ -771,7 +772,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local effectiveRoi = (economics.roi * freightBonus) / 100;
 
   stats.accepted++;
-  return {
+  local candidate = {
     mode = "rail",
     kind = kind,            // "pax" ou "freight"
     cargo = cargo,
@@ -816,6 +817,16 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     opcodeRatio = opcodeRatio,
     isLowRatio = isLowRatio,
   };
+  /* V163 : le second cargo n'est garde que s'il a trouve place dans la rame. */
+  if (("wagons2" in economics) && economics.wagons2 > 0) {
+    candidate.cargo2 <- economics.cargo2;
+    candidate.monthly2 <- economics.monthly2;
+    candidate.wagons2 <- economics.wagons2;
+    candidate.perTrain2 <- economics.perTrain2;
+    candidate.carried2 <- economics.carried2;
+    candidate.revenue2 <- economics.revenue2;
+  }
+  return candidate;
 }
 
 /* Famille pax_near : meme tableau qu'un candidat classe, ratio = 1 (sous MIN_RATIO),
@@ -1775,8 +1786,11 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+        local secondary = V163_MULTI_CARGO
+            ? OpexV163SecondaryCargo(catalog, source.id, industries[di].id, cargo) : null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                            industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache);
+                                            industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache,
+                                            secondary);
         if (profile != null) {
           profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
           profile.freightIndustryCandidateCalls++;

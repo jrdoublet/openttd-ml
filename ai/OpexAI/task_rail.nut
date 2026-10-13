@@ -753,7 +753,7 @@ function OpexAI::_expandRailLines(year)
     if (!("lastProfit" in line) || line.lastProfit <= 0 ||
         !("lastRevenue" in line) || line.lastRevenue <= 0) continue;
     if (!(line.cargo in this._catalog.wagonByCargo)) continue;
-    if (line.wagons >= OpexRailNominalMaxWagons(line.platformLength)) continue;
+    if (line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)) continue;
     nEligible++;
 
     local oldEcon = OpexRailFixedConsist(this._catalog, line.cargo, line.distance,
@@ -826,7 +826,7 @@ function OpexAI::_expandRailLines(year)
 
         // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
         if (("doubleTrack" in line) && line.doubleTrack == 1 && ("depot2" in line) && line.depot2 != null) {
-          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(this._catalog, line);
           local need = trainCost + OpexCashReserve();
           local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
           if (money >= need) {
@@ -865,7 +865,7 @@ function OpexAI::_expandRailLines(year)
               && (OpexRailUpgradeRejectKey(line.lineId) in this._abandonedPairs)) continue;
           local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
           local trackCost = line.distance * this._catalog.costTrackPerTile + 2 * line.platformLength * this._catalog.costStation + depotCost;
-          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(this._catalog, line);
           local need = trackCost + trainCost + OpexCashReserve();
           local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
           if (money >= need) {
@@ -1603,7 +1603,10 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                  + " reuse_alt=" + ((("joinMatchedAlternate" in candidate) && candidate.joinMatchedAlternate) ? 1 : 0)
                  + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
                  + " pred_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
-                 + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons);
+                 + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons
+                 + ((("wagons2" in candidate) && candidate.wagons2 > 0)
+                    ? " cargo2=" + AICargo.GetCargoLabel(candidate.cargo2) + " wagons2=" + candidate.wagons2
+                      + " pred_revenue2=" + candidate.revenue2 : ""));
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
     }
@@ -1686,6 +1689,14 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
     });
+    /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */
+    if (("wagons2" in candidate) && candidate.wagons2 > 0) {
+      local built = this._lines[this._lines.len() - 1];
+      built.cargo2 <- candidate.cargo2;
+      built.wagons2 <- candidate.wagons2;
+      built.monthly2 <- candidate.monthly2;
+      built.predRevenue2 <- candidate.revenue2;
+    }
     this._nextLineId++;
     if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
     return true;
