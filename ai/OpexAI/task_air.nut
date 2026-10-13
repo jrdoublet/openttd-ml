@@ -749,18 +749,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       local spChoose = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.choose_plan") : null;
-      local buildChoice = OpexC116ChooseBuildPlan(this._catalog, plan);
+      local buildPlan = plan;
       if (spChoose != null) OpexSpanEnd(spChoose);
-      local buildPlan = buildChoice.plan;
-      if (buildChoice.changed && DECISION_LOG) {
-        OpexDecide("C116_EQUIPMENT", "rank=" + i
-            + " arm=" + (("arm" in plan) ? plan.arm : "unknown")
-            + " base_engine=" + plan.plane.id + " engine=" + buildPlan.plane.id
-            + " gap=" + buildPlan.c116TargetGap
-            + " dC=" + buildChoice.deltaCapital + " dP=" + buildChoice.deltaProfit
-            + " base_C=" + buildPlan.c116BaselineCapital + " C=" + buildPlan.economics.capital
-            + " base_P=" + buildPlan.c116BaselineProfit + " P=" + buildPlan.economics.profitAnnual);
-      }
 
       local spCash = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.cash") : null;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);

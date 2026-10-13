@@ -1,5 +1,8 @@
 # Passation — paramètres OpexAI examinés au12/10
 
+**Dernière étape du 13/10 : C116 supprimé localement sur demande**, après fusion publiée au `e8285c4`. 283 contrats, smoke défauts42×1 sain ; sondes conservées. Aucun commit/push de C116. [Bilan](c116_marginal_capital_retrait_20261013.md).
+
+
 Complément courant à la [passation du11/10](passation_nettoyage_parametres_20261011.md). `docs/taches.md` reste la seule liste autoritaire du travail restant. Les mentions « aucun commit/push » dans les rapports décrivent leur étape de validation antérieure ; la publication ciblée a été demandée explicitement le12/10.
 
 ## Décisions réconciliées

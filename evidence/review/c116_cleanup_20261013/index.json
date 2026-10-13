@@ -1,0 +1,86 @@
+[
+  {
+    "source": "results/cleanup_c116_defaults_smoke_20261013_r3.json",
+    "archive": "cleanup_c116_defaults_smoke_20261013_r3.json.gz",
+    "raw_bytes": 23059,
+    "raw_sha256": "a4031ba7a9909823e7e06e86afe52e351d503fa5091c6443ca5d71db1c308d8c",
+    "gzip_sha256": "9945369be400bb0790ab64a6b8486258f2addd195e3af774111257b13a8d98c5"
+  },
+  {
+    "source": "results/cleanup_c116_defaults_smoke_20261013_r3.manifest.json",
+    "archive": "cleanup_c116_defaults_smoke_20261013_r3.manifest.json.gz",
+    "raw_bytes": 63325,
+    "raw_sha256": "82ea89f3638223f7c58ab8ddddb30c2c62f5b4afc5eb2c47a6b3b4b957028d49",
+    "gzip_sha256": "1fdb6b7c3ca07b49c14d9685238463c60697ed4bc31fdb9d66a2c2744ac88d2e"
+  },
+  {
+    "source": "results/cleanup_c116_contracts_20261013.json",
+    "archive": "cleanup_c116_contracts_20261013.json.gz",
+    "raw_bytes": 1648,
+    "raw_sha256": "406b95f507faf6c00cba94429e7438fe01988dcf5370fcc26dc9093a2d6c5b70",
+    "gzip_sha256": "3615fe14afa98a03fa9cab6e1b5152ece24c8a7f4553af6ba85b6f2455ee278e"
+  },
+  {
+    "source": "results/c116_before_20261013/sha256.json",
+    "archive": "sha256.json.gz",
+    "raw_bytes": 1850,
+    "raw_sha256": "1b1ef33887720395cb0e9929ca170c6d0b8f6fcd30c2a8613f25da1f5f82c96d",
+    "gzip_sha256": "2726bcb0d254e18a6fafbeb5df6836d6f93371018999bb7c52ceba7ed908258c"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_decoupled_5x6.py",
+    "archive": "run_c116_decoupled_5x6.py.gz",
+    "raw_bytes": 865,
+    "raw_sha256": "e22844d1d7fb7b47efbf4c138b6b7fe8d39a459895406204d9ec17c6de131504",
+    "gzip_sha256": "bbf22e80935d6f27f7eecd2d21cf784593c9489e74d29056975b564ee4b43daf"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_decoupled_smoke.py",
+    "archive": "run_c116_decoupled_smoke.py.gz",
+    "raw_bytes": 846,
+    "raw_sha256": "1e38e9f16b5fe38b6252137df7a3d3402d380c68204daa3fe55b3665901b4d47",
+    "gzip_sha256": "92c6f8509577c0df9ff72061316495a92eb2637fec82c553ee503cf72adc9db5"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_exact_gap_5x6.py",
+    "archive": "run_c116_exact_gap_5x6.py.gz",
+    "raw_bytes": 851,
+    "raw_sha256": "c6f3e2771d8138037030bde3c28b1dce2b2527fed2aea9c4884061702c337f38",
+    "gzip_sha256": "bb7e958709e5d06afc37c6b9baaa63d816ab12e8ef99bd51818ca78837dc07ee"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_exact_gap_smoke.py",
+    "archive": "run_c116_exact_gap_smoke.py.gz",
+    "raw_bytes": 832,
+    "raw_sha256": "c1d57a528a5a4d361ef110c69c8b75b80533baf43527174ea671d8286299e9e7",
+    "gzip_sha256": "247410eb791838afec71f4407063f9e6a7b005eb2a1e074a1e7ed76d25dae10f"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_marginal_capital_5x6.py",
+    "archive": "run_c116_marginal_capital_5x6.py.gz",
+    "raw_bytes": 872,
+    "raw_sha256": "f0936b7db68c2567fe27d3c52ca3a0b79ccb42205d38913b12ab521afda544db",
+    "gzip_sha256": "5c061ac0cb7937f1f622a38e517d6d43be1665e55ead9cf13d521efebf62351a"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_marginal_capital_smoke.py",
+    "archive": "run_c116_marginal_capital_smoke.py.gz",
+    "raw_bytes": 853,
+    "raw_sha256": "f45c954d764b88c4f56239dbc99f4536388cf4d72dde9456580dc03a508d0235",
+    "gzip_sha256": "cc25b097543a7a10ee4e9189cd67037ff550f594dd7815b42eef4e023db8e70b"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_project_opp_5x6.py",
+    "archive": "run_c116_project_opp_5x6.py.gz",
+    "raw_bytes": 863,
+    "raw_sha256": "0896bce4247bdc4f4d73742f65a6081bb3e544cb0f978f9068e5a0e8029599c3",
+    "gzip_sha256": "c0599a774ee9c535398a27dfde49de4055ac9dc4b1a44ec4239818044c6d41b5"
+  },
+  {
+    "source": "results/c116_before_20261013/sweeps/run_c116_project_opp_smoke.py",
+    "archive": "run_c116_project_opp_smoke.py.gz",
+    "raw_bytes": 844,
+    "raw_sha256": "aee5114006382b3bf082cc1d62e020f1e31eeea118b95550fdf91cf433cc4428",
+    "gzip_sha256": "2543e5d17693610f82cf81d5efee8ac57afe07b324776662d4361315677d4aa6"
+  }
+]

@@ -548,8 +548,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('C121_AIR_ECONOMICS && ("c121Demand" in plan)', reconcile)
         self.assertIn("OpexC121EngineEconomics(catalog, plan, plan.plane, actualPlanes)", reconcile)
 
-        c116 = body(self.air, "function OpexC116ChooseBuildPlan", "function OpexAirChooseRoutePlaneFull")
-        self.assertIn("if (C121_AIR_ECONOMICS) return unchanged;", c116)
 
     def test_causal_realization_learning_stays_shadow_and_keeps_air_calibration(self):
         globals_src = GLOBALS.read_text(encoding="utf-8")
