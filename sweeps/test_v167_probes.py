@@ -146,6 +146,14 @@ class Groups(unittest.TestCase):
         self.assertIn("return value;", helper)
 
 
+class LatentProbeCrashes(unittest.TestCase):
+    def test_freight_economics_mark_needs_profile(self):
+        # smoke probes=511 du 13/10 : la preparation rail C121 appelle OpexBuildCandidates sans
+        # profil ; la marque fret etait posee quand meme, puis profile.freightEconomicsOps plantait
+        body = _function_body(_read("candidates.nut"), "OpexMakeCandidate")
+        self.assertIn('local freightEconomicsMark = (profile != null && kind == "freight" && (', body)
+
+
 class Loading(unittest.TestCase):
     def test_mask_read_before_first_probe(self):
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
