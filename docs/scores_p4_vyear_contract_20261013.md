@@ -4,11 +4,13 @@
 
 ## Isolation et décision
 
-Worktree `results/scores_p4_adjust_stage_20261013` depuis `c2a5be3` (HEAD détachée),
+Worktree `results/scores_p4_adjust_stage_20261013` créé depuis `c2a5be3`,
 avec les **10 overlays comportementaux P4** repris à l'identique du stage testé
 avant les seules modifications P4-adjust. AAAHogEx-115 est copié (ignoré de Git).
 Ni `master`, ni le stage de P4 testé ne sont modifiés ; le rapport consolidé
-de la branche de diagnostic est mis à jour séparément. Aucun commit/push.
+de la branche de diagnostic est mis à jour séparément. La variante a été
+archivée sur `origin/codex/scores-p4-vyear-experimental-20261013` sans merge
+sur `master` ; les résultats économiques ne l'autorisent pas.
 
 P4 `score_c70_stable_cohort` est rejeté sur 40×5 (**−43 730 £/an** en profit
 terminal moyen, 18V/21D/1E). P4-adjust n'est pas son adoption : c'est une
@@ -335,9 +337,10 @@ expériences appariées *intra-campagne* n'autorisent pas de comparaison
 causale *inter-campagnes*, car sondes/logs et cadence changent. Le clean
 présente encore un premier écart de caisse **1971-09** sur 314159, avant
 premier facteur vyear actif. Le matched a des premiers écarts monétaires
-entre **avril 1972 et mars 1973** sur les cinq graines, après première
-publication possible du facteur vyear en janvier 1972 : cette chronologie
-reste nécessaire mais non suffisante pour établir des flips/builds causaux.
+entre **avril 1972 et mars 1973** sur les cinq graines, après les premières
+publications effectives observées du facteur vyear **du 10 janvier au
+6 juin 1972 selon la graine** : cette chronologie reste nécessaire mais
+non suffisante pour établir des flips/builds causaux.
 
 Preuves et analyseur local (aucun Docker supplémentaire requis) :
 `sweeps/analyse_scores_p4_vyear_effect_20261013.py`,
@@ -345,3 +348,76 @@ Preuves et analyseur local (aucun Docker supplémentaire requis) :
 ainsi que les JSON/JSONL/logs engine des deux campagnes. **Aucune gate 40×5
 ni intégration n'est déclenchée par ces résultats de développement** ;
 un signal économique robuste ou une hypothèse causale nouvelle serait requis.
+
+## Audit événementiel complémentaire : choix ≠ calendrier ≠ nouvelle ligne
+
+Le script `sweeps/analyse_scores_p4_causal_exposure_20261013.py` rapproche,
+sur les **10 journaux du 5×5 matched**, `P4_VYEAR_MODE`,
+`PROJECT_CHOSEN`, `AIR_BUILD`/`RAIL_BUILD`, `LINE_REVENUE`, et les
+snapshots de trésorerie mensuels. Il compare séparément un désaccord
+**date+OD** et un véritable premier désaccord **d'identité OD** dans les
+séquences de choix et de construction ; le rang dans le journal ne
+reconstitue pas le classement C77 d'un même état. Le marqueur BUILD
+avec `line` est obligatoire avant qu'une ligne soit comptée comme
+construite, et les revenus ne sont joints que par cet ID au sein du
+même bras ; un rapport de ligne n'est retenu comme mature qu'à `age>=2`.
+
+| Seed | Première publication C70-vyear non neutre (dernière date OPEX tracée) | Première caisse Opex / AAA différente | Premier choix autre OD | Première construction autre OD |
+|---|---|---|---|---|
+| 314159 | 1972-06-06 | 1972-08-01 / 1972-09-01 | 1972-08-02 | 1972-08-02 |
+| 271828 | 1972-01-10 | 1972-12-01 / **1972-11-01** | 1972-11-02 | 1972-11-02 |
+| 161803 | 1972-01-12 | 1973-03-01 / 1973-04-01 | 1973-03-08 | 1973-03-08 |
+| 123457 | 1972-03-04 | 1972-04-01 / 1972-05-01 | 1972-04-03 | 1972-04-03 |
+| 987653 | 1972-04-08 | 1972-05-01 / 1972-06-01 | **1972-04-23** | 1972-05-05 |
+
+Pour 314159/161803/123457, le premier choix du même OD se décale
+dans le calendrier et le premier **changement d'OD** intervient alors
+que la trésorerie Opex mensuelle est **déjà divergente** : celui-ci ne
+peut être identifié comme le premier mécanisme causal. Pour 271828,
+le premier autre OD intervient le 2 novembre 1972 avant le premier
+écart de caisse Opex, **mais AAAHogEx avait déjà divergé au checkpoint
+du 1er novembre**. Ainsi **une seule graine, 987653**, présente une
+première identité OD différente **avant** tout écart de trésorerie
+mensuel des deux compagnies, le 23 avril 1972. Cependant sa première
+construction d'un OD différent n'arrive que le 5 mai, après la
+divergence de caisse Opex le 1er mai. **0/5 construction d'OD différent
+avant toute divergence financière mensuelle des deux compagnies.**
+Ces constats ne prouvent pas l'absence d'effet du facteur, mais ne
+permettent **aucune attribution marginale sûre** : une divergence
+physique intra-mensuelle peut en outre précéder le premier relevé
+de caisse, et la même admissibilité C77/K_dec/capital au moment du
+choix n'est pas reconstituée.
+
+Constructions explicites AIR+RAIL observées par politique (ref/on) :
+314159 **58/67**, 271828 **63/61**, 161803 **56/52**,
+123457 **64/69**, 987653 **72/75**. Lien aux revenus de lignes
+à âge ≥2 : respectivement **33/34**, **41/44**, **28/28**, **53/59**,
+**50/55** lignes construites (ref/on). Ce relevé ne prouve pas
+combien de lignes nouvelles sont marginalement rentables pour la
+compagnie, ni celles que l'autre politique aurait construites.
+
+Appariement **même mode/cargo/OD et année mature** sur les deux bras :
+**53, 68, 46, 72, 89**, soit **328 paires de lignes-années**.
+Parmi elles **280** ont la même date de construction ET le même
+nombre de véhicules au relevé, mais **219/280** ont malgré tout un
+profit de ligne différent. Le même OD et le même compte de véhicules
+ne garantissent ni moteur/ordres/temps d'exploitation identiques,
+ni absence de concurrence/cannibalisation, et les lignes survivantes
+sont sélectionnées. **Ces 328 sont des observations répétées de
+5 graines, pas 328 répliques statistiques indépendantes.**
+
+**Conclusion expérimentale :** plus précis que le simple premier écart
+mensuel, cet audit identifie **1 graine à potentiel d'exposition
+avant divergence financière mensuelle du duel** mais zéro
+contrefactuel de même état C77 prouvé et zéro
+rendement réseau marginal attribuable. La prochaine expérience utile
+est un *shadow* sans choix modifié qui capture **au même instant**
+les projets tous simultanément financables, leur tier C77, K_dec,
+les facteurs C70 legacy/vyear, les scores de chaque alternative et
+l'identité de la tête réelle, puis le choix réellement tenté et
+la construction/réconciliation par lineId. Une comparaison
+ON/OFF entre calendriers divergents ne remplace pas ce replay.
+
+Fichier de preuve compact contenant toutes les liaisons et lignes-années :
+`docs/scores_p4_causal_exposure_20261013.json` ; 7/7 tests ciblés
+`test_analyse_scores_p4_causal_exposure_20261013.py` verts.
