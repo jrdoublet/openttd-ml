@@ -7,8 +7,9 @@ noeuds ancienne (7 745 iterations predites a 81 tuiles ; 2 204 mesurees en media
 alors qu'AAAHogEx pose ses lignes rail a 117 tuiles medianes.
 
 Contrats statiques :
-1. `v168_rail_max_dist` declare (entier 0..512, defaut 0) et lu une fois dans OpexLoadSettings.
-2. Au defaut, chemin historique : la borne derivee de la table et les deux filtres d'iterations
+1. `v168_rail_max_dist` declare (entier 0..512, defaut 160 depuis les portes A et B du 13/10) et lu
+   une fois dans OpexLoadSettings.
+2. A 0, chemin historique : la borne derivee de la table et les deux filtres d'iterations
    predites restent en place.
 3. Hors defaut, la valeur remplace la borne dans les deux fonctions de bornes, et les deux
    filtres d'iterations predites (candidat et chaine marchandises) sont leves ; la borne de
@@ -48,15 +49,15 @@ def _function_body(source: str, name: str) -> str:
 class Declaration(unittest.TestCase):
     def test_setting(self):
         spec = parse_ai_setting_specs(AI / "info.nut")["v168_rail_max_dist"]
-        self.assertEqual(spec["default"], 0)
+        self.assertEqual(spec["default"], 160)
         self.assertFalse(spec["boolean"])
         self.assertEqual((spec["min_value"], spec["max_value"]), (0, 512))
         block = _read("info.nut").split('name = "v168_rail_max_dist"', 1)[1].split("});", 1)[0]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 0\b")
+            self.assertRegex(block, key + r" = 160\b")
 
     def test_loaded_once(self):
-        self.assertIn("V168_RAIL_MAX_DIST <- 0;", _read("globals_pre.nut"))
+        self.assertIn("V168_RAIL_MAX_DIST <- 160;", _read("globals_pre.nut"))
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
         self.assertEqual(body.count('AIController.GetSetting("v168_rail_max_dist")'), 1)
         self.assertIn("if (V168_RAIL_MAX_DIST < 0) V168_RAIL_MAX_DIST = 0;", body)

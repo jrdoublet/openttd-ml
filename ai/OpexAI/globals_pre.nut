@@ -10,9 +10,10 @@ MODE_AIR <- true;
 MODE_RAIL <- true;
 MODE_ROAD <- true;
 MODE_WATER <- true;
-/* V168 : borne de distance des candidats rail. 0 = derivee du plafond d'A* par la table de
- * noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre d'iterations predites. */
-V168_RAIL_MAX_DIST <- 0;
+/* V168 : borne de distance des candidats rail. 160 = defaut (portes A et B du 13/10) ; 0 = derivee
+ * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
+ * d'iterations predites. */
+V168_RAIL_MAX_DIST <- 160;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;
