@@ -912,6 +912,84 @@ function OpexProjectFundProfit(project)
   return calibrated;
 }
 
+/* P2 : chaque entree ici a passe le filtre de cash ET le plancher courant,
+ * et a recu le score utilise par le trieur C77. Log avant l'insertion bornee,
+ * pour ne perdre ni la 6eme alternative ni les concurrents hors TOP_K.
+ * Un pass est un appel de selection, pas un achat ni une graine independante. */
+function OpexScoreColdPriorTrace(project, pass, ordinal, phase, budget, kDec,
+    decisionFinance, denom)
+{
+  if (!SCORE_COLD_PRIOR_SHADOW || pass <= 0) return;
+  local payload = ("payload" in project) ? project.payload : null;
+  local arm = payload != null && ("arm" in payload) ? payload.arm : "none";
+  local observed = ("profitIsObserved" in project) && project.profitIsObserved;
+  local c121Real = OpexC121ProjectHasRealization(project);
+  local realizationFactor = "unknown";
+  if (project.mode == "air" && payload != null && ("economics" in payload)
+      && payload.economics != null && ("realizationFactor" in payload.economics))
+    realizationFactor = payload.economics.realizationFactor;
+  local v161Source = ("v161Source" in project) ? project.v161Source : "none";
+  local fundProfit = OpexProjectFundProfit(project);
+  local factor = project.profitAnnual != 0
+      ? fundProfit.tofloat() / project.profitAnnual.tofloat() : 0.0;
+  local c77 = OpexProjectDefensiveAirPriority(project);
+  local tier = c77 + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+  local bonus = ("earlySlotBonusPct" in project) ? project.earlySlotBonusPct : 0;
+  local rankScore = AIR_EARLY_SLOT ? OpexProjectSelectionScore(project, "fundScore") : project.fundScore;
+  local lineId = -1;
+  local engineId = -1;
+  if (project.mode == "air" && payload != null && ("plane" in payload)
+      && payload.plane != null && ("id" in payload.plane)) engineId = payload.plane.id;
+  if (project.mode == "fleet" && payload != null && ("line" in payload)
+      && payload.line != null && ("lineId" in payload.line)) lineId = payload.line.lineId;
+  local cargo = ("cargo" in project) ? project.cargo : -1;
+  AILog.Info("SCORE_COLD_P2_CAND pass=" + pass + " ordinal=" + ordinal + " phase=" + phase
+      + " mode=" + project.mode + " kind=" + project.kind + " arm=" + arm
+      + " src=" + project.src + " dst=" + project.dst + " cargo=" + cargo
+      + " line=" + lineId + " engine=" + engineId + " c77=" + c77 + " tier=" + tier
+      + " raw_profit=" + project.profitAnnual + " fund_profit=" + fundProfit
+      + " factor=" + factor + " observed=" + (observed ? 1 : 0)
+      + " c121_real=" + (c121Real ? 1 : 0) + " realization_factor=" + realizationFactor
+      + " v161_source=" + v161Source + " finance=" + OpexProjectFinanceCapital(project)
+      + " decision_finance=" + decisionFinance + " score_denom=" + denom
+      + " budget_capital=" + project.budgetCapital
+      + " capital=" + project.capital
+      + " budget=" + budget + " k_dec=" + kDec
+      + " bonus=" + bonus + " score=" + project.fundScore
+      + " rank_score=" + rankScore + " revenue=" + project.revenueAnnual);
+}
+
+function OpexScoreColdPriorTraceHead(pass, affordable, budget, kDec, floorProfit, limit, eligible, fallback)
+{
+  if (!SCORE_COLD_PRIOR_SHADOW || pass <= 0) return;
+  local top = affordable.len() > 0 ? affordable[0] : null;
+  local now = AIDate.GetCurrentDate();
+  local fields = "SCORE_COLD_P2_HEAD pass=" + pass + " year=" + AIDate.GetYear(now)
+      + " month=" + AIDate.GetMonth(now) + " day=" + AIDate.GetDayOfMonth(now)
+      + " budget=" + budget + " k_dec=" + kDec + " floor=" + floorProfit
+      + " top_k=" + limit + " eligible=" + eligible + " retained=" + affordable.len()
+      + " fallback=" + (fallback ? 1 : 0)
+      + " dedupe=" + (AIR_EFFICIENCY_DEDUPE ? 1 : 0);
+  if (top == null) { AILog.Info(fields + " head_mode=none"); return; }
+  local arm = ("payload" in top) && top.payload != null && ("arm" in top.payload)
+      ? top.payload.arm : "none";
+  local headEngine = -1;
+  local headLine = -1;
+  if (top.mode == "air" && ("payload" in top) && top.payload != null
+      && ("plane" in top.payload) && top.payload.plane != null
+      && ("id" in top.payload.plane)) headEngine = top.payload.plane.id;
+  if (top.mode == "fleet" && ("payload" in top) && top.payload != null
+      && ("line" in top.payload) && top.payload.line != null
+      && ("lineId" in top.payload.line)) headLine = top.payload.line.lineId;
+  AILog.Info(fields + " head_mode=" + top.mode + " head_kind=" + top.kind
+      + " head_arm=" + arm + " head_src=" + top.src + " head_dst=" + top.dst
+      + " head_cargo=" + top.cargo + " head_engine=" + headEngine
+      + " head_line=" + headLine
+      + " head_tier=" + (OpexProjectDefensiveAirPriority(top)
+          + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(top)) ? 1000 : 0))
+      + " head_score=" + (AIR_EARLY_SLOT ? OpexProjectSelectionScore(top, "fundScore") : top.fundScore));
+}
+
 /* C121 cadence : mesurer le biais de cold-start K_dec sans toucher au projet
  * vivant. Le builder marque explicitement samples<=0 comme non observe ; la
  * presence de c121MarginalProfit/Revenue seule ne constitue donc pas une
@@ -1077,6 +1155,15 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
 {
   SELECT_BISECT_STAMP++;
+  /* Date 1970/71: aucune ligne ouverte depuis le depart 1970 ne dispose
+   * encore d'un exercice age>=2 pour calibrer C70. Trace seulement le choix
+   * reel (les passes de diagnostic/planification ne sont pas des achats). */
+  local coldPriorPass = 0;
+  if (SCORE_COLD_PRIOR_SHADOW && realSelection
+      && AIDate.GetYear(AIDate.GetCurrentDate()) <= 1971)
+    coldPriorPass = ++SCORE_COLD_PRIOR_PASS;
+  local coldPriorOrdinal = 0;
+  local coldPriorFallback = false;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
   local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
@@ -1240,6 +1327,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
         (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
+    if (coldPriorPass > 0) OpexScoreColdPriorTrace(project, coldPriorPass, ++coldPriorOrdinal,
+        "main", capitalBudget, kDec, scoreDecisionFinanceCapital,
+        (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+            ? kDec : scoreDecisionFinanceCapital);
     OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
     if (C121_CATALOG_INCREMENTAL && project.mode == "air"
         && ("payload" in project) && project.payload != null
@@ -1296,6 +1387,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
    * et le plancher inoperant -- on retombe sur l'ensemble finançable brut plutot que de ne rien
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
+    coldPriorFallback = true;
     SELECT_BISECT_STAMP++;
     if (amortProbe != null) amortProbe.rows = [];
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
@@ -1327,6 +1419,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
       project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
+          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+              ? kDec : scoreDecisionFinanceCapital);
+      if (coldPriorPass > 0) OpexScoreColdPriorTrace(project, coldPriorPass, ++coldPriorOrdinal,
+          "fallback", capitalBudget, kDec, scoreDecisionFinanceCapital,
           (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);
       OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
@@ -1435,6 +1531,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     }
   }
   if (PROBE_AIR_FINANCE_MARGIN) OpexAirFinanceMarginLogSelect(alternatives, affordable, capitalBudget);
+  if (coldPriorPass > 0) OpexScoreColdPriorTraceHead(coldPriorPass, affordable,
+      capitalBudget, kDec, floorProfit, limit, coldPriorOrdinal, coldPriorFallback);
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;

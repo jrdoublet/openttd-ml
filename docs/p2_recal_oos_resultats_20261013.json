@@ -1,0 +1,1148 @@
+{
+  "LOSO_flips_by_profile": {
+    "amort_adjusted": {
+      "baseline_mismatch": 0,
+      "distinct_service_C77": 3,
+      "head_flips": 3
+    },
+    "amort_same_price": {
+      "baseline_mismatch": 0,
+      "distinct_service_C77": 3,
+      "head_flips": 3
+    },
+    "raw": {
+      "baseline_mismatch": 0,
+      "distinct_service_C77": 3,
+      "head_flips": 3
+    }
+  },
+  "amort_adjusted_cluster_bootstrap": {
+    "by_family": {
+      "hubhub": {
+        "ci95": [
+          0.47876332219209183,
+          0.5145956568394161
+        ],
+        "nonempty_resamples": 18481,
+        "support_seed_count": 2
+      },
+      "hubsite": {
+        "ci95": [
+          0.31469039872444426,
+          0.4154109031121629
+        ],
+        "nonempty_resamples": 20000,
+        "support_seed_count": 5
+      },
+      "newpair": {
+        "ci95": [
+          0.19019009437149487,
+          0.4963444586279256
+        ],
+        "nonempty_resamples": 19996,
+        "support_seed_count": 4
+      }
+    },
+    "method": "paired map-seed cluster bootstrap; median of seed medians; no iid lines",
+    "newpair_over_hubsite": {
+      "ci95": [
+        0.5814746304510231,
+        1.4690477294705606
+      ],
+      "fraction_above_1": 0.8526205241048209,
+      "resamples_valid": 19996
+    },
+    "resamples": 20000,
+    "seed": 0
+  },
+  "amort_adjusted_ratio_by_family": {
+    "hubhub": {
+      "lines": 9,
+      "median_of_lines_descriptive_only": 0.47876332219209183,
+      "median_of_seed_medians": 0.49667948951575397,
+      "per_seed_lines": {
+        "123457": 7,
+        "987653": 2
+      },
+      "per_seed_medians": {
+        "123457": 0.47876332219209183,
+        "987653": 0.5145956568394161
+      },
+      "seeds": 2
+    },
+    "hubsite": {
+      "lines": 28,
+      "median_of_lines_descriptive_only": 0.38142627103751736,
+      "median_of_seed_medians": 0.38720036816199127,
+      "per_seed_lines": {
+        "123457": 4,
+        "161803": 7,
+        "271828": 8,
+        "314159": 2,
+        "987653": 7
+      },
+      "per_seed_medians": {
+        "123457": 0.40993366636621076,
+        "161803": 0.3270823599371363,
+        "271828": 0.31469039872444426,
+        "314159": 0.4154109031121629,
+        "987653": 0.38720036816199127
+      },
+      "seeds": 5
+    },
+    "newpair": {
+      "lines": 6,
+      "median_of_lines_descriptive_only": 0.46697979085106345,
+      "median_of_seed_medians": 0.4492576886878774,
+      "per_seed_lines": {
+        "123457": 1,
+        "271828": 1,
+        "314159": 2,
+        "987653": 2
+      },
+      "per_seed_medians": {
+        "123457": 0.48049959821552274,
+        "271828": 0.19019009437149487,
+        "314159": 0.418015779160232,
+        "987653": 0.4963444586279256
+      },
+      "seeds": 4
+    }
+  },
+  "behavior_policy_justified": false,
+  "calibration_ready": false,
+  "campaign_id": "scores_p2_dev5x5_20261013",
+  "counts": {
+    "all_mature_line_years": 327,
+    "distinct_development_seeds": 5,
+    "provisional_line_years": 57,
+    "unique_provisional_lines": 43
+  },
+  "development_validation_seed_overlap": [],
+  "economic_profit_5y_effect_observed": false,
+  "equal_candidate_purchase_lines": 41,
+  "holdout_by_seed": {
+    "123457": {
+      "amort_adjusted": {
+        "factors": {
+          "air:hubsite": 0.35714136404956376,
+          "air:newpair": 0.418015779160232
+        },
+        "head_changes": [],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 5,
+          "neutral_1_median": 0.5703443588581785,
+          "predicted_median": 0.07251427709225772
+        },
+        "heldout_line_count": 12,
+        "replay_counts": {
+          "complete_passes": 40,
+          "empty_passes": 362
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 1,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "amort_same_price": {
+        "factors": {
+          "air:hubsite": 0.35714136404956376,
+          "air:newpair": 0.418015779160232
+        },
+        "head_changes": [],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 5,
+          "neutral_1_median": 0.5703443588581785,
+          "predicted_median": 0.07251427709225772
+        },
+        "heldout_line_count": 12,
+        "replay_counts": {
+          "complete_passes": 40,
+          "empty_passes": 362
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 1,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "baseline": {
+        "complete_passes": 40,
+        "empty_passes": 362
+      },
+      "exposure": {
+        "air_head_passes": 27,
+        "complete_nonempty_passes": 40,
+        "rail_head_passes": 3,
+        "same_tier_different_service_challenger_passes": 29,
+        "same_tier_eligible_air_challenger_passes": 24,
+        "same_tier_rail_challenger_passes": 3,
+        "tier_0_head_passes": 38,
+        "tier_2_head_passes": 2
+      },
+      "heldout_families": {
+        "hubhub": 7,
+        "hubsite": 4,
+        "newpair": 1
+      },
+      "heldout_line_count": 12,
+      "raw": {
+        "factors": {
+          "air:hubsite": 0.37722842858231365,
+          "air:newpair": 0.43248513235557084
+        },
+        "head_changes": [],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 5,
+          "neutral_1_median": 0.5533703948973545,
+          "predicted_median": 0.06940117652033179
+        },
+        "heldout_line_count": 12,
+        "replay_counts": {
+          "complete_passes": 40,
+          "empty_passes": 362
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 1,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "shrinkage_sensitivity_NOT_policy": {
+        "0.0": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.25": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.5": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.75": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "1.0": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        }
+      },
+      "train_line_count": 31
+    },
+    "161803": {
+      "amort_adjusted": {
+        "factors": {
+          "air:hubsite": 0.39856701726410104,
+          "air:newpair": 0.4492576886878774
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "16326",
+              "49193",
+              "0",
+              "223",
+              "-1"
+            ],
+            "after_score": 1698.0782,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "61276",
+              "16326",
+              "0",
+              "223",
+              "-1"
+            ],
+            "before_score": 1712.2864,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "6",
+            "month": "9",
+            "pass": "296",
+            "priority": 2,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1971-09-08"
+            },
+            "year": "1971"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 7,
+          "neutral_1_median": 0.6729176400628637,
+          "predicted_median": 0.14197934739336854
+        },
+        "heldout_line_count": 7,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 35,
+          "different_service_head_flips": 1,
+          "empty_passes": 319,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 4
+        }
+      },
+      "amort_same_price": {
+        "factors": {
+          "air:hubsite": 0.39856701726410104,
+          "air:newpair": 0.418015779160232
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "16326",
+              "49193",
+              "0",
+              "223",
+              "-1"
+            ],
+            "after_score": 1698.0782,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "61276",
+              "16326",
+              "0",
+              "223",
+              "-1"
+            ],
+            "before_score": 1712.2864,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "6",
+            "month": "9",
+            "pass": "296",
+            "priority": 2,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1971-09-08"
+            },
+            "year": "1971"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 7,
+          "neutral_1_median": 0.6729176400628637,
+          "predicted_median": 0.14197934739336854
+        },
+        "heldout_line_count": 7,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 35,
+          "different_service_head_flips": 1,
+          "empty_passes": 319,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "baseline": {
+        "complete_passes": 35,
+        "empty_passes": 319
+      },
+      "exposure": {
+        "air_head_passes": 19,
+        "complete_nonempty_passes": 35,
+        "rail_head_passes": 4,
+        "same_tier_different_service_challenger_passes": 21,
+        "same_tier_eligible_air_challenger_passes": 17,
+        "same_tier_rail_challenger_passes": 3,
+        "tier_0_head_passes": 28,
+        "tier_2_head_passes": 7
+      },
+      "heldout_families": {
+        "hubsite": 7
+      },
+      "heldout_line_count": 7,
+      "raw": {
+        "factors": {
+          "air:hubsite": 0.41728386934732664,
+          "air:newpair": 0.46323957357616163
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "16326",
+              "49193",
+              "0",
+              "223",
+              "-1"
+            ],
+            "after_score": 1698.0782,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "61276",
+              "16326",
+              "0",
+              "223",
+              "-1"
+            ],
+            "before_score": 1712.2864,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "6",
+            "month": "9",
+            "pass": "296",
+            "priority": 2,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1971-09-08"
+            },
+            "year": "1971"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 7,
+          "neutral_1_median": 0.6522320859703521,
+          "predicted_median": 0.14455433669900047
+        },
+        "heldout_line_count": 7,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 35,
+          "different_service_head_flips": 1,
+          "empty_passes": 319,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 4
+        }
+      },
+      "shrinkage_sensitivity_NOT_policy": {
+        "0.0": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.25": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        },
+        "0.5": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        },
+        "0.75": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        },
+        "1.0": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        }
+      },
+      "train_line_count": 36
+    },
+    "271828": {
+      "amort_adjusted": {
+        "factors": {
+          "air:hubsite": 0.39856701726410104,
+          "air:newpair": 0.48049959821552274
+        },
+        "head_changes": [],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 9,
+          "neutral_1_median": 0.7084698344591656,
+          "predicted_median": 0.11030612839494508
+        },
+        "heldout_line_count": 9,
+        "replay_counts": {
+          "complete_passes": 43,
+          "empty_passes": 361
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "amort_same_price": {
+        "factors": {
+          "air:hubsite": 0.39856701726410104
+        },
+        "head_changes": [],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 8,
+          "neutral_1_median": 0.6853096012755557,
+          "predicted_median": 0.10867149005910587
+        },
+        "heldout_line_count": 9,
+        "replay_counts": {
+          "complete_passes": 43,
+          "empty_passes": 361
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 2
+        }
+      },
+      "baseline": {
+        "complete_passes": 43,
+        "empty_passes": 361
+      },
+      "exposure": {
+        "air_head_passes": 24,
+        "complete_nonempty_passes": 43,
+        "rail_head_passes": 4,
+        "same_tier_different_service_challenger_passes": 25,
+        "same_tier_eligible_air_challenger_passes": 22,
+        "same_tier_rail_challenger_passes": 2,
+        "tier_0_head_passes": 39,
+        "tier_2_head_passes": 4
+      },
+      "heldout_families": {
+        "hubsite": 8,
+        "newpair": 1
+      },
+      "heldout_line_count": 9,
+      "raw": {
+        "factors": {
+          "air:hubsite": 0.41728386934732664,
+          "air:newpair": 0.4939940147967525
+        },
+        "head_changes": [],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 9,
+          "neutral_1_median": 0.6884888727499092,
+          "predicted_median": 0.10740063887181273
+        },
+        "heldout_line_count": 9,
+        "replay_counts": {
+          "complete_passes": 43,
+          "empty_passes": 361
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "shrinkage_sensitivity_NOT_policy": {
+        "0.0": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.25": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.5": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.75": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "1.0": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        }
+      },
+      "train_line_count": 34
+    },
+    "314159": {
+      "amort_adjusted": {
+        "factors": {
+          "air:hubsite": 0.35714136404956376,
+          "air:newpair": 0.48049959821552274
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "34988",
+              "6934",
+              "0",
+              "228",
+              "-1"
+            ],
+            "after_score": 2220.0317,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "56868",
+              "34988",
+              "0",
+              "228",
+              "-1"
+            ],
+            "before_score": 2318.3464,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "19",
+            "month": "12",
+            "pass": "174",
+            "priority": 2,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1970-12-21"
+            },
+            "year": "1970"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 4,
+          "neutral_1_median": 0.5845890968878371,
+          "predicted_median": 0.09791977615978018
+        },
+        "heldout_line_count": 4,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 34,
+          "different_service_head_flips": 1,
+          "empty_passes": 369,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "amort_same_price": {
+        "factors": {
+          "air:hubsite": 0.35714136404956376
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "34988",
+              "6934",
+              "0",
+              "228",
+              "-1"
+            ],
+            "after_score": 2220.0317,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "56868",
+              "34988",
+              "0",
+              "228",
+              "-1"
+            ],
+            "before_score": 2318.3464,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "19",
+            "month": "12",
+            "pass": "174",
+            "priority": 2,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1970-12-21"
+            },
+            "year": "1970"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 2,
+          "neutral_1_median": 0.5845890968878371,
+          "predicted_median": 0.0582695390625991
+        },
+        "heldout_line_count": 4,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 34,
+          "different_service_head_flips": 1,
+          "empty_passes": 369,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 2
+        }
+      },
+      "baseline": {
+        "complete_passes": 34,
+        "empty_passes": 369
+      },
+      "exposure": {
+        "air_head_passes": 18,
+        "complete_nonempty_passes": 34,
+        "rail_head_passes": 3,
+        "same_tier_different_service_challenger_passes": 19,
+        "same_tier_eligible_air_challenger_passes": 15,
+        "same_tier_rail_challenger_passes": 2,
+        "tier_0_head_passes": 27,
+        "tier_2_head_passes": 7
+      },
+      "heldout_families": {
+        "hubsite": 2,
+        "newpair": 2
+      },
+      "heldout_line_count": 4,
+      "raw": {
+        "factors": {
+          "air:hubsite": 0.37722842858231365,
+          "air:newpair": 0.4939940147967525
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "34988",
+              "6934",
+              "0",
+              "228",
+              "-1"
+            ],
+            "after_score": 2220.0317,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "56868",
+              "34988",
+              "0",
+              "228",
+              "-1"
+            ],
+            "before_score": 2318.3464,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "19",
+            "month": "12",
+            "pass": "174",
+            "priority": 2,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1970-12-21"
+            },
+            "year": "1970"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 4,
+          "neutral_1_median": 0.561578097227203,
+          "predicted_median": 0.10302492915479564
+        },
+        "heldout_line_count": 4,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 34,
+          "different_service_head_flips": 1,
+          "empty_passes": 369,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 2,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "shrinkage_sensitivity_NOT_policy": {
+        "0.0": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.25": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.5": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        },
+        "0.75": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        },
+        "1.0": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        }
+      },
+      "train_line_count": 39
+    },
+    "987653": {
+      "amort_adjusted": {
+        "factors": {
+          "air:hubsite": 0.36850801315167353,
+          "air:newpair": 0.418015779160232
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "22228",
+              "59431",
+              "0",
+              "223",
+              "-1"
+            ],
+            "after_score": 1086.7369,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "14027",
+              "59431",
+              "0",
+              "223",
+              "-1"
+            ],
+            "before_score": 1211.3037,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "18",
+            "month": "10",
+            "pass": "379",
+            "priority": 0,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1971-10-19"
+            },
+            "year": "1971"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 9,
+          "neutral_1_median": 0.5465400165133958,
+          "predicted_median": 0.08727021541641389
+        },
+        "heldout_line_count": 11,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 50,
+          "different_service_head_flips": 1,
+          "empty_passes": 393,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 1,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "amort_same_price": {
+        "factors": {
+          "air:hubsite": 0.36850801315167353
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "22228",
+              "59431",
+              "0",
+              "223",
+              "-1"
+            ],
+            "after_score": 1086.7369,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "14027",
+              "59431",
+              "0",
+              "223",
+              "-1"
+            ],
+            "before_score": 1211.3037,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "18",
+            "month": "10",
+            "pass": "379",
+            "priority": 0,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1971-10-19"
+            },
+            "year": "1971"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 7,
+          "neutral_1_median": 0.6127996318380087,
+          "predicted_median": 0.08727021541641389
+        },
+        "heldout_line_count": 11,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 50,
+          "different_service_head_flips": 1,
+          "empty_passes": 393,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 1,
+          "hubsite": 4,
+          "newpair": 2
+        }
+      },
+      "baseline": {
+        "complete_passes": 50,
+        "empty_passes": 393
+      },
+      "exposure": {
+        "air_head_passes": 31,
+        "complete_nonempty_passes": 50,
+        "rail_head_passes": 4,
+        "same_tier_different_service_challenger_passes": 32,
+        "same_tier_eligible_air_challenger_passes": 30,
+        "same_tier_rail_challenger_passes": 2,
+        "tier_0_head_passes": 46,
+        "tier_2_head_passes": 4
+      },
+      "heldout_families": {
+        "hubhub": 2,
+        "hubsite": 7,
+        "newpair": 2
+      },
+      "heldout_line_count": 11,
+      "raw": {
+        "factors": {
+          "air:hubsite": 0.38782335479466085,
+          "air:newpair": 0.43248513235557084
+        },
+        "head_changes": [
+          {
+            "after": "air:newpair",
+            "after_key": [
+              "air",
+              "pax",
+              "newpair",
+              "22228",
+              "59431",
+              "0",
+              "223",
+              "-1"
+            ],
+            "after_score": 1086.7369,
+            "before": "air:hubsite",
+            "before_key": [
+              "air",
+              "pax",
+              "hubsite",
+              "14027",
+              "59431",
+              "0",
+              "223",
+              "-1"
+            ],
+            "before_score": 1211.3037,
+            "build_confirmed": false,
+            "candidate_was_affordable": true,
+            "day": "18",
+            "month": "10",
+            "pass": "379",
+            "priority": 0,
+            "same_service": false,
+            "same_tier": true,
+            "witness": {
+              "counterfactual_built": null,
+              "witness_alternative_air_build_count": 0,
+              "witness_legacy_air_build_date": "1971-10-19"
+            },
+            "year": "1971"
+          }
+        ],
+        "heldout_abs_ratio_errors": {
+          "lines_covered": 9,
+          "neutral_1_median": 0.532674458332147,
+          "predicted_median": 0.08756954768806186
+        },
+        "heldout_line_count": 11,
+        "replay_counts": {
+          "actionable_same_tier_od_flips": 1,
+          "complete_passes": 50,
+          "different_service_head_flips": 1,
+          "empty_passes": 393,
+          "head_flips": 1
+        },
+        "train_seed_count_by_family": {
+          "hubhub": 1,
+          "hubsite": 4,
+          "newpair": 3
+        }
+      },
+      "shrinkage_sensitivity_NOT_policy": {
+        "0.0": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.25": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.5": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "0.75": {
+          "distinct_service_C77": 0,
+          "head_flips": 0
+        },
+        "1.0": {
+          "distinct_service_C77": 1,
+          "head_flips": 1
+        }
+      },
+      "train_line_count": 32
+    }
+  },
+  "provenance": "C121_BUILD actual_amort; LINE_REVENUE annual real_prof; P2 election→purchase join",
+  "raw_ratio_by_family": {
+    "hubhub": {
+      "lines": 9,
+      "median_of_lines_descriptive_only": 0.5094753105883837,
+      "median_of_seed_medians": 0.5216436568074678,
+      "per_seed_lines": {
+        "123457": 7,
+        "987653": 2
+      },
+      "per_seed_medians": {
+        "123457": 0.5094753105883837,
+        "987653": 0.5338120030265519
+      },
+      "seeds": 2
+    },
+    "hubsite": {
+      "lines": 28,
+      "median_of_lines_descriptive_only": 0.4023701943082136,
+      "median_of_seed_medians": 0.4066889431349794,
+      "per_seed_lines": {
+        "123457": 4,
+        "161803": 7,
+        "271828": 8,
+        "314159": 2,
+        "987653": 7
+      },
+      "per_seed_medians": {
+        "123457": 0.42787879555967384,
+        "161803": 0.34776791402964785,
+        "271828": 0.33540350056634616,
+        "314159": 0.438421902772797,
+        "987653": 0.4066889431349794
+      },
+      "seeds": 5
+    },
+    "newpair": {
+      "lines": 6,
+      "median_of_lines_descriptive_only": 0.4806597782323027,
+      "median_of_seed_medians": 0.46323957357616163,
+      "per_seed_lines": {
+        "123457": 1,
+        "271828": 1,
+        "314159": 2,
+        "987653": 2
+      },
+      "per_seed_medians": {
+        "123457": 0.4939940147967525,
+        "271828": 0.20115880988310547,
+        "314159": 0.43248513235557084,
+        "987653": 0.5096972967778202
+      },
+      "seeds": 4
+    }
+  },
+  "reserved_40_validation_seeds_checked": true,
+  "seeds": [
+    123457,
+    161803,
+    271828,
+    314159,
+    987653
+  ],
+  "shrinkage_flips_sensitivity_NOT_selected": {
+    "0.0": 0,
+    "0.25": 1,
+    "0.5": 2,
+    "0.75": 2,
+    "1.0": 3
+  },
+  "source_bundle_sha256": "e9f750665f438d28f82a6e7cd93659a04472eedd4899ae6b6688289e2b708227",
+  "uncontrolled": [
+    "C121 hub externality and competing-lines cannibalization cannot be allocated to LINE_REVENUE",
+    "A matched vehicle count and logged FLEET_PROJECT exclude neither silent buy/sell nor crash",
+    "The 5 independent development seeds are not an independent economic 40x5 validation",
+    "Replaying a real C77 head never proves that alternative can actually be built",
+    "No same-bundle rail freight/passenger outcome is available for reliable cross-modal factors"
+  ]
+}

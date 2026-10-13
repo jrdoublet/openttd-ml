@@ -683,6 +683,10 @@ C78_SLOT_PASS_COUNTER <- 0;
 MONTHLY_FUNNEL <- false;
 /* Diagnostic freight ranking; isolated and off by default. No saved state. */
 RAIL_FREIGHT_SELECT_SHADOW <- false;
+/* P2 : expose tous les candidats effectivement admissibles au choix 1970-71.
+ * Diagnostic pur, sans apprentissage, absent de Save et des caches de projet. */
+SCORE_COLD_PRIOR_SHADOW <- false;
+SCORE_COLD_PRIOR_PASS <- 0;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
 /* B3 : test du plafond routier remis à l'échelle par le temps passé à quai. Défaut 0 tant que

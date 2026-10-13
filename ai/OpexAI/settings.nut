@@ -297,6 +297,8 @@ function OpexLoadSettings()
   // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, reserves, origin relax, town rating
   local probePort = AIController.GetSetting("probe_portfolio") != 0;
   RAIL_FREIGHT_SELECT_SHADOW = AIController.GetSetting("rail_freight_select_shadow") != 0;
+  SCORE_COLD_PRIOR_SHADOW = AIController.GetSetting("score_cold_prior_shadow") != 0;
+  SCORE_COLD_PRIOR_PASS = 0;
   C49_SCARCITY_LEDGER = probePort;
   C50_CHRONOLOGY_PROBE = probePort;
   if (C50_CHRONOLOGY_PROBE) {

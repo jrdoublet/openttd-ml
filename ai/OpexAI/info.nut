@@ -270,6 +270,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "score_cold_prior_shadow",
+      description = "P2 diagnostic: complete affordable 1970-71 portfolio scores, origins and C77 classes per selection; 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c69_fleet_demand_batch",
       description = "C69: allow air fleet expansion batch size to match measured waiting demand without the 4-plane cap; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
