@@ -31,6 +31,12 @@ function OpexLoadSettings()
   // C68: air route plane selection
   AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;
 
+  // V166 : interrupteurs de mode, lus avant les faisceaux policy_* qui en dependent.
+  MODE_AIR = AIController.GetSetting("mode_air") != 0;
+  MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
+  MODE_ROAD = AIController.GetSetting("mode_road") != 0;
+  MODE_WATER = AIController.GetSetting("mode_water") != 0;
+
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
   RAIL_DEVIS = polRail;
@@ -44,7 +50,7 @@ function OpexLoadSettings()
 
   // 4. policy_road : road mode, street drive-through stops, refleet, fleet fix, overlap filtering
   local polRoad = AIController.GetSetting("policy_road") != 0;
-  ROAD_BUILD_ENABLED = polRoad;
+  ROAD_BUILD_ENABLED = polRoad && MODE_ROAD;
   ROAD_REFLEET = polRoad;
   ROAD_FLEET_FIX = polRoad;
   PRICING_ROAD_OPS = polRoad;
@@ -386,8 +392,12 @@ function OpexLoadSettings()
   C121_FLAT_BOOTSTRAP = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("c121_flat_bootstrap") != 0;
   if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;
+  /* V166 : sans avion, l'annee 1 "AIR seul" ne genererait rien ; sans rail, sa
+   * preparation rail est sans objet. */
+  if (!MODE_AIR) C121_CATALOG_AIR_FIRST_YEAR = false;
   C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR
       && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;
+  if (!MODE_RAIL) C121_AIR_FIRST_YEAR_RAIL_PREP = false;
   C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;

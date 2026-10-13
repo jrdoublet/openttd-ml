@@ -13,6 +13,11 @@ from pathlib import Path
 import subprocess
 import sys
 
+try:
+    from sweeps.campaign_freeze import parse_aaahogex_settings
+except ImportError:
+    from campaign_freeze import parse_aaahogex_settings
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -99,7 +104,23 @@ def main():
                              "Pic observe sous 800 Mo meme a 10 workers en duel 10 ans ; "
                              "sur le VPS, 3 workers avec 2 Go suffisent.")
     parser.add_argument("--out")
+    parser.add_argument(
+        "--aaahogex-setting",
+        action="append",
+        default=[],
+        dest="aaahogex_settings",
+        help="Reglage AAAHogEx NOM=VALEUR (repetable, verifie dans info.nut)",
+    )
     args = parser.parse_args()
+
+    if args.aaahogex_settings:
+        info_path = ROOT / "ai" / "AAAHogEx-115" / "info.nut"
+        if not info_path.is_file():
+            parser.error(f"fichier info.nut d'AAAHogEx introuvable: {info_path}")
+        try:
+            parse_aaahogex_settings(args.aaahogex_settings, info_path)
+        except ValueError as exc:
+            parser.error(str(exc))
 
     # V102 : echouer AVANT de demarrer Docker. On ne peut pas importer
     # c66_threshold_specification_error ici (bench_1v1_5y_20seeds tire openttdlab, absent de
@@ -178,6 +199,8 @@ def main():
         benchmark += ["--required-years", str(args.required_years)]
     if args.out is not None:
         benchmark += ["--out", args.out]
+    for setting in args.aaahogex_settings:
+        benchmark += ["--aaahogex-setting", setting]
 
     command = [
         "docker", "run", "--rm",

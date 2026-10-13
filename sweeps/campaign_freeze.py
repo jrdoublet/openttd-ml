@@ -180,6 +180,51 @@ def parse_ai_settings(info_path: Path) -> dict:
     }
 
 
+def parse_aaahogex_settings(raw_settings, info_path: Path | None = None) -> tuple[tuple[str, int], ...]:
+    """Parse and validate AAAHogEx settings, returning only differences from defaults.
+
+    Accepts a sequence of 'NOM=VALEUR' strings or (name, int_value) pairs, or a dict.
+    Rejects:
+      - unknown settings (not declared via AddSetting in info.nut)
+      - non-integer values
+      - duplicate setting names
+    Omits values equal to declared defaults to keep OpenTTD config string short.
+    Returns a sorted tuple of (name, int_value) pairs.
+    """
+    if info_path is None:
+        info_path = Path(__file__).resolve().parents[1] / "ai" / "AAAHogEx-115" / "info.nut"
+    defaults = parse_ai_settings(info_path)
+    if not raw_settings:
+        return ()
+
+    parsed: dict[str, int] = {}
+    items = raw_settings.items() if isinstance(raw_settings, dict) else raw_settings
+    for item in items:
+        if isinstance(item, (tuple, list)) and len(item) == 2 and not isinstance(item, str):
+            nom, raw_val = item
+        elif isinstance(item, str):
+            if "=" not in item:
+                raise ValueError(f"--aaahogex-setting attend le format NOM=VALEUR, obtenu: {item!r}")
+            nom, raw_val = item.split("=", 1)
+        else:
+            raise ValueError(f"format de reglage AAAHogEx inattendu: {item!r}")
+
+        nom = str(nom)
+        if nom in parsed:
+            raise ValueError(f"reglage AAAHogEx duplique: {nom!r}")
+        if nom not in defaults:
+            raise ValueError(f"reglage AAAHogEx non declare dans info.nut: {nom!r}")
+        try:
+            val = int(raw_val)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(
+                f"valeur entiere attendue pour le reglage AAAHogEx {nom!r}, obtenu: {raw_val!r}"
+            ) from exc
+        parsed[nom] = val
+
+    return tuple(sorted((k, v) for k, v in parsed.items() if v != defaults[k]))
+
+
 def effective_ai_settings(info_path: Path, explicit=()) -> dict:
     defaults = parse_ai_settings(info_path)
     explicit_dict = dict(explicit or ())
@@ -364,6 +409,7 @@ def prepare_frozen_campaign(
     starting_year: int,
     config_text: str,
     opex_explicit_settings=(),
+    aaahogex_explicit_settings=(),
     library_specs=(),
     harness_files=(),
     openttd_version: str,
@@ -474,7 +520,7 @@ def prepare_frozen_campaign(
         }
 
     opex_settings = reference_policy["settings"]
-    aaahogex_settings = effective_ai_settings(aaahogex_dir / "info.nut", ())
+    aaahogex_settings = effective_ai_settings(aaahogex_dir / "info.nut", aaahogex_explicit_settings)
     runtime = _runtime_metadata(root, docker_image, docker_image_id)
 
     games = []
@@ -491,6 +537,9 @@ def prepare_frozen_campaign(
                         "1": {"ai": "AAAHogEx", "policy_id": "AAAHogEx"},
                     },
                 })
+
+    if execution_options is not None and "aaahogex_settings" not in execution_options:
+        execution_options["aaahogex_settings"] = []
 
     manifest = {
         "schema_version": MANIFEST_SCHEMA_VERSION,

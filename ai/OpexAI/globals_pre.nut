@@ -4,6 +4,12 @@
  * decision. Le defaut vrai est celui de info.nut ; 0 reconstitue la baseline sans route, dont le
  * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
 ROAD_BUILD_ENABLED <- true;
+/* V166 : interrupteurs de mode (bancs mono-mode, rail contre rail, air contre air). Un mode a faux
+ * ne genere ni candidat ni balayage de catalogue et ne construit rien ; les quatre a vrai = defaut. */
+MODE_AIR <- true;
+MODE_RAIL <- true;
+MODE_ROAD <- true;
+MODE_WATER <- true;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;
