@@ -1065,6 +1065,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v171_rail_knots",
+      description = "V171: recalibrated rail A* iteration knot table (V2). 0 = historical V1 table (default); 1 = V2 table fitted on rail-vs-rail p90 iterations",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "policy_air",
       description = "Aviation policy: portfolio arbitration, runway cadence cap, joined bus stops, hub reuse: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
