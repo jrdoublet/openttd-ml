@@ -603,7 +603,8 @@ function OpexV163SecondaryCargo(catalog, sourceId, sinkId, cargo)
 {
   if (!AIIndustry.IsValidIndustry(sourceId) || !AIIndustry.IsValidIndustry(sinkId)) return null;
   local best = null;
-  foreach (c, val in AICargoList_IndustryProducing(sourceId)) {
+  local produced = AICargoList_IndustryProducing(sourceId);
+  for (local c = produced.Begin(); !produced.IsEnd(); c = produced.Next()) {
     if (c == cargo || !(c in catalog.wagonByCargo)) continue;
     if (AIIndustry.IsCargoAccepted(sinkId, c) != AIIndustry.CAS_ACCEPTED) continue;
     local monthly = AIIndustry.GetLastMonthProduction(sourceId, c);
