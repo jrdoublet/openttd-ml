@@ -377,6 +377,10 @@ function OpexRefreshEpochBounds(catalog)
 
   local iterCap = (HARD_ITERATION_CAP * 12) / 10;
   local railMax = OpexRailDistanceForIterations(iterCap);
+  /* V168 : la table de noeuds date d'un ancien A* ; au banc rail contre rail du 13/10, les
+   * recherches de 80-94 tuiles prennent 2 204 iterations medianes contre 7 745 predites, et
+   * AAAHogEx pose ses lignes a 117 tuiles medianes. Le reglage remplace la borne derivee. */
+  if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
   if (railMax < roadMax) railMax = roadMax;
 
   /* Si le rail s'amortit des le bassin, la bande exclusive route est vide. On
@@ -451,6 +455,7 @@ function OpexCatalogBounds(catalog)
   local busR = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
   local roadMin = (busR * 2) + 1;
   local railMax = OpexRailDistanceForIterations((HARD_ITERATION_CAP * 12) / 10);
+  if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
   return {
     roadMin = roadMin, roadMax = roadMin, roadGenMax = railMax, railMin = roadMin,
     railAirOverlapMin = railMax, railMax = railMax, airMax = 0, airMin = railMax,
@@ -661,7 +666,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   /* Plafond A* avant l'economie : les paires trop longues etaient evaluees puis rejetees. */
   local iterations = OpexRailIterations(distance);
-  if (iterations > (HARD_ITERATION_CAP * 12) / 10) {
+  if (V168_RAIL_MAX_DIST <= 0 && iterations > (HARD_ITERATION_CAP * 12) / 10) {
     stats.distanceLong++;
     return null;
   }
@@ -1954,7 +1959,7 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
             local goodsDist = AIMap.DistanceManhattan(factory.tile, town.tile);
             if (goodsDist > bounds.railMax) continue;
             local itersGoods = OpexRailIterations(goodsDist);
-            if (itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;
+            if (V168_RAIL_MAX_DIST <= 0 && itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;
 
             local candGoods = OpexMakeCandidate(catalog, "freight", goodsCargo, factory.tile,
                                                 town.tile, goodsMonthly, false, stats, false, profile, cruiseCache);
