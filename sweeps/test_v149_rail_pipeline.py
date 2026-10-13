@@ -288,10 +288,10 @@ class AirYear(unittest.TestCase):
 
 
 class RailRegen(unittest.TestCase):
-    def test_monthly_rail_only_regen_outside_catalog(self):
+    def test_rail_only_regen_outside_catalog(self):
         src = _read("rail_v149.nut")
         body = _function_body(src, "OpexAI::_v149MaybeRegenRail")
-        self.assertIn("if (!V149_FREIGHT_ROTATION) return;", body)
+        self.assertIn("if (!V149_FREIGHT_ROTATION || !this._v149WorkerDry) return;", body)
         self.assertIn("if (ym == this._v149RegenMonth) return;", body)
         self.assertIn("if (this._v149AirYearActive() && month < 10) return;", body)
         self.assertIn('this._projects.rawset("freightCargo", freightCargos[nextCargo]);', body)
@@ -302,6 +302,48 @@ class RailRegen(unittest.TestCase):
         after = _function_body(src, "OpexAI::_v149AfterProjectsPass")
         self.assertLess(after.index("this._v149MaybeRegenRail();"), after.index("this._v149RevalidateStock(curDate);"))
         self.assertIn("  _v149RegenMonth = -1;", _read("main.nut"))
+
+    def test_regen_only_when_worker_dry_and_idle(self):
+        src = _read("rail_v149.nut")
+        body = _function_body(src, "OpexAI::_v149MaybeRegenRail")
+        self.assertIn("if (this._activeWorker != null || this._railSearch != null\n"
+                      "      || this._railReadyStock.len() >= OpexRailStockCapacity()) return;", body)
+        # un vivier remplace depuis (reconstruction complete) doit d'abord etre parcouru
+        self.assertIn("if (pool != this._v149DryPool) {\n    this._v149WorkerDry = false;\n    return;", body)
+        self.assertLess(body.index("pool != this._v149DryPool"), body.index("this._v149RegenMonth = ym;"))
+        # le worker retente sur le vivier neuf
+        self.assertLess(body.index("OpexRegenerateModeProjects("), body.index("this._v149WorkerDry = false;\n  if (freightCargos"))
+        dry = _function_body(src, "OpexAI::_v149MarkDry")
+        self.assertIn("this._v149WorkerDry = true;", dry)
+        self.assertIn("this._v149DryPool = ", dry)
+        main = _read("main.nut")
+        for line in ("  _v149WorkerDry = true;", "  _v149DryPool = null;", "  function _v149MarkDry();"):
+            self.assertIn(line, main)
+
+    def test_worker_marks_dry_on_exhaustion_and_clears_on_start(self):
+        start = _function_body(_read("task_rail.nut"), "OpexAI::_tryStartRailStockWorker")
+        self.assertEqual(start.count("if (V149_RAIL_PIPELINE) this._v149MarkDry();"), 2)
+        self.assertIn("if (V149_RAIL_PIPELINE) this._v149WorkerDry = false;\n"
+                      "    return this._startRailStockSearch(candidate, false, null, coarseFundScore);", start)
+        # le second marquage est apres la boucle des candidats
+        self.assertGreater(start.rindex("this._v149MarkDry();"), start.index("foreach (candidate in railCandidates)"))
+
+    def test_regen_without_pax(self):
+        body = _function_body(_read("rail_v149.nut"), "OpexAI::_v149MaybeRegenRail")
+        on = body.index("V149_REGEN_NO_PAX = true;")
+        call = body.index("OpexRegenerateModeProjects(")
+        off = body.index("V149_REGEN_NO_PAX = false;")
+        self.assertLess(on, call)
+        self.assertLess(call, off)
+        self.assertIn("V149_REGEN_NO_PAX <- false;", _read("globals_pre.nut"))
+        gen = _function_body(_read("projects_generation.nut"), "OpexGenerateModeProjects")
+        self.assertIn('local generatePax = (!targeted || entityKind == "town") && !V149_REGEN_NO_PAX;', gen)
+
+    def test_air_minimum_refreshed_weekly(self):
+        after = _function_body(_read("rail_v149.nut"), "OpexAI::_v149AfterProjectsPass")
+        self.assertIn("curDate >= this._v149NextAirMin", after)
+        self.assertLess(after.index("this._v149NextAirMin = curDate + 7;"), after.index("this._c121CheapestLivingAirCap();"))
+        self.assertIn("  _v149NextAirMin = -1;", _read("main.nut"))
 
 
 class AirCatalogShare(unittest.TestCase):

@@ -979,12 +979,16 @@ C80_RAIL_STOCK_WORKER <- false;
 
 /* V149 : debloquer le rail (decision utilisateur 13/10). Interrupteur maitre : force la gate et
  * le worker C80, stock de V149_STOCK_SIZE traces prets, revalidation periodique avec reparation,
- * traces stockes retenus pendant l'annee AIR, regeneration mensuelle du vivier rail. Defaut 0 :
+ * traces stockes retenus pendant l'annee AIR, regeneration du vivier rail fret quand le worker
+ * n'a plus de candidat (une fois par mois au plus). Defaut 0 :
  * capacite du stock 1 et chemins C80/C76 strictement inchanges. Etat transitoire (non sauve). */
 V149_RAIL_PIPELINE <- false;
 V149_STOCK_SIZE <- 4;
 V149_REVALIDATE_DAYS <- 30;
 V149_FREIGHT_ROTATION <- true;
+/* Vrai pendant la seule regeneration V149 : OpexGenerateModeProjects ne genere pas le rail
+ * voyageurs (2 k£/an realises contre 21 a 26 k£ pour le fret, diagnostic V149 du 13/10). */
+V149_REGEN_NO_PAX <- false;
 /* Annee de _generationStageMonth (annee AIR), copiee par l'instance ; -1 = inconnue. */
 V149_FIRST_YEAR <- -1;
 

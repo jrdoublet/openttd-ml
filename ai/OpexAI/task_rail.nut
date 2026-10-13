@@ -1887,7 +1887,10 @@ function OpexAI::_tryStartRailStockWorker()
       railCandidates = this._projects.rail.candidates;
     }
   }
-  if (railCandidates == null || railCandidates.len() == 0) return false;
+  if (railCandidates == null || railCandidates.len() == 0) {
+    if (V149_RAIL_PIPELINE) this._v149MarkDry();
+    return false;
+  }
 
   // Seuil de score grossier : fundScore du dernier projet financé lors de la dernière sélection non vide.
   // Question posée : « ce candidat aurait-il été financé à la dernière vraie sélection ? ».
@@ -1937,9 +1940,12 @@ function OpexAI::_tryStartRailStockWorker()
     }
 
     if (V149_RAIL_PIPELINE && this._v149WorkerSkip(candidate)) continue;
+    if (V149_RAIL_PIPELINE) this._v149WorkerDry = false;
     return this._startRailStockSearch(candidate, false, null, coarseFundScore);
   }
 
+  /* V149 : aucun candidat demarrable, le vivier rail est a regenerer (_v149MaybeRegenRail). */
+  if (V149_RAIL_PIPELINE) this._v149MarkDry();
   return false;
 }
 

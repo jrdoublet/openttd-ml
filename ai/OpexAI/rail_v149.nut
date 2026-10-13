@@ -378,16 +378,35 @@ function OpexAI::_v149OnDeposit(candidate, fundScore, isRepair)
   this._v149ExpediteProjects();
 }
 
-/* Point 0 : regeneration mensuelle du vivier rail (cargo fret tournant), hors de la tache
- * catalogue. Sous le catalogue AIR incremental, la tache catalogue reste dans sa reconstruction
- * AIR : le portefeuille complet (rail et route) n'est reconstruit qu'en janvier 1972 au plus tot
- * (diag 5x5 du 13/10) et la rotation C76 n'est jamais atteinte. projects.rail, que lit le worker,
- * reste donc vide toute l'annee 1971. Meme appel que _c76RotateFreight, rail seulement (la route
- * n'est pas un chantier autonome). Pendant l'annee AIR, a partir d'octobre seulement : le stock
- * se remplit pour janvier, la gate garde les projets rail sans trace hors de la selection. */
+/* Point 0 : regeneration du vivier rail fret (cargo tournant), hors de la tache catalogue.
+ * Sous le catalogue AIR incremental, la tache catalogue reste dans sa reconstruction AIR : le
+ * portefeuille complet (rail et route) n'est reconstruit qu'en janvier 1972 au plus tot (diag 5x5
+ * du 13/10) et la rotation C76 n'est jamais atteinte. projects.rail, que lit le worker, reste donc
+ * vide toute l'annee 1971. Meme appel que _c76RotateFreight, rail seulement (la route n'est pas
+ * un chantier autonome) et sans le rail voyageurs. Seulement quand la derniere tentative du
+ * worker n'a trouve aucun candidat demarrable, une fois par mois au plus : une regeneration
+ * mensuelle systematique coutait 1,2 a 1,35 M d'opcodes, 15 M par an, et affamait le catalogue
+ * AIR (diag 5x3 n°2 du 13/10). Pendant l'annee AIR, a partir d'octobre seulement : le stock se
+ * remplit pour janvier, la gate garde les projets rail sans trace hors de la selection. */
+/* Le worker n'a trouve aucun candidat demarrable dans ce vivier. */
+function OpexAI::_v149MarkDry()
+{
+  this._v149WorkerDry = true;
+  this._v149DryPool = (this._projects != null && ("rail" in this._projects)) ? this._projects.rail : null;
+}
+
 function OpexAI::_v149MaybeRegenRail()
 {
-  if (!V149_FREIGHT_ROTATION) return;
+  if (!V149_FREIGHT_ROTATION || !this._v149WorkerDry) return;
+  /* Vivier remplace depuis (reconstruction complete du portefeuille) : le worker doit d'abord
+   * le parcourir. */
+  local pool = (this._projects != null && ("rail" in this._projects)) ? this._projects.rail : null;
+  if (pool != this._v149DryPool) {
+    this._v149WorkerDry = false;
+    return;
+  }
+  if (this._activeWorker != null || this._railSearch != null
+      || this._railReadyStock.len() >= OpexRailStockCapacity()) return;
   local date = AIDate.GetCurrentDate();
   local month = AIDate.GetMonth(date);
   local ym = AIDate.GetYear(date) * 12 + month;
@@ -410,8 +429,12 @@ function OpexAI::_v149MaybeRegenRail()
     this._projects.rawset("freightCargo", freightCargos[nextCargo]);
   }
   local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+  V149_REGEN_NO_PAX = true;
   this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
       this._lines, this._abandonedPairs, "rail", null, null, -1);
+  V149_REGEN_NO_PAX = false;
+  /* Le worker retente sur le vivier neuf ; il le redira sec s'il n'y trouve rien. */
+  this._v149WorkerDry = false;
   if (freightCargos.len() > 0 && ("freightCargo" in this._projects) && this._projects.freightCargo != null)
     this._lastFreightCargo = this._projects.freightCargo;
   this._ranked = this._projects.rail;
@@ -438,7 +461,8 @@ function OpexAI::_v149IdleDiag()
   else if (this._v149AirYearActive() && this._c121RailPrepAirFundableCheap()) why = "air_hold";
   local n = 0, stock = 0, cool = 0, abnd = 0, cost = 0, ind = 0, thr = 0, close = 0, near = 0, ok = 0;
   local list = null;
-  if (this._projects != null && ("rail" in this._projects) && this._projects.rail != null) {
+  /* Filtres rejoues seulement quand le worker est libre : sinon la ligne n'explique rien. */
+  if (why == "free" && this._projects != null && ("rail" in this._projects) && this._projects.rail != null) {
     if (("best" in this._projects.rail) && this._projects.rail.best != null && this._projects.rail.best.len() > 0)
       list = this._projects.rail.best;
     else if (("candidates" in this._projects.rail) && this._projects.rail.candidates != null)
@@ -472,7 +496,7 @@ function OpexAI::_v149IdleDiag()
   return "idle=" + why + " cands=" + (list == null ? -1 : n) + " f_stock=" + stock + " f_cool=" + cool
       + " f_abnd=" + abnd + " f_cost=" + cost + " f_ind=" + ind + " f_thr=" + thr
       + " f_close=" + close + " f_near=" + near + " eligible=" + ok
-      + " threshold=" + this._railStockLastFundedScore;
+      + " threshold=" + this._railStockLastFundedScore + " dry=" + (this._v149WorkerDry ? 1 : 0);
 }
 
 /* Fin de passe projects (avant le demarrage du worker) : minimum AIR de l'annee AIR,
@@ -482,16 +506,26 @@ function OpexAI::_v149AfterProjectsPass()
   local curDate = AIDate.GetCurrentDate();
   /* Le worker cede a l'AIR finançable (_c121RailPrepAirFundableCheap) : rafraichir le minimum
    * quand la preparation C121 ne le fait pas (reglage coupe, ou stock deja a son maximum). */
-  if (this._v149AirYearActive()
+  /* Une fois par semaine au plus : un parcours du portefeuille a chaque passe coutait 2 M
+   * d'opcodes en 1970 (smoke span du 13/10) ; la caisse, elle, est relue a chaque test. */
+  if (this._v149AirYearActive() && curDate >= this._v149NextAirMin
       && (!C121_AIR_FIRST_YEAR_RAIL_PREP || this._railReadyStock.len() >= C121_RAIL_PREP_MAX)) {
+    this._v149NextAirMin = curDate + 7;
+    local spMin = PROBE_SPAN_TRACE ? OpexSpanBegin("v149.airmin") : null;
     this._c121CheapestLivingAirCap();
+    if (spMin != null) OpexSpanEnd(spMin);
   }
+  local spRegen = PROBE_SPAN_TRACE ? OpexSpanBegin("v149.regen") : null;
   this._v149MaybeRegenRail();
+  if (spRegen != null) OpexSpanEnd(spRegen);
+  local spReval = PROBE_SPAN_TRACE ? OpexSpanBegin("v149.reval") : null;
   this._v149RevalidateStock(curDate);
+  if (spReval != null) OpexSpanEnd(spReval);
   if (DECISION_LOG) {
     local ym = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
     if (ym != this._v149LogMonth) {
       this._v149LogMonth = ym;
+      local spDiag = PROBE_SPAN_TRACE ? OpexSpanBegin("v149.diag") : null;
       OpexDecide("V149_STOCK_MONTH", "size=" + this._railReadyStock.len()
           + " cap=" + OpexRailStockCapacity() + " queue=" + this._v149RepairQueue.len()
           + " repairs=" + this._v149RepairsStarted
@@ -499,6 +533,7 @@ function OpexAI::_v149AfterProjectsPass()
           + " held=" + (this._v149AirYearActive() ? 1 : 0)
           + " skip_close=" + this._v149SkipClose + " skip_near=" + this._v149SkipNear
           + " " + this._v149IdleDiag());
+      if (spDiag != null) OpexSpanEnd(spDiag);
     }
   }
 }

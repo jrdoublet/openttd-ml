@@ -2111,7 +2111,9 @@ function OpexAI::_tryBuildProjects(year)
     if (hadAbandons) this._hadAbandonsThisPass = false;
     if (V149_RAIL_PIPELINE) this._v149AfterProjectsPass();
     if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < OpexRailStockCapacity()) {
+      local spStart = PROBE_SPAN_TRACE ? OpexSpanBegin("v149.worker_start") : null;
       this._tryStartRailStockWorker();
+      if (spStart != null) OpexSpanEnd(spStart);
     }
     if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
     if (spPass != null) {
@@ -2129,7 +2131,9 @@ function OpexAI::_tryBuildProjects(year)
   if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
   if (V149_RAIL_PIPELINE) this._v149AfterProjectsPass();
   if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < OpexRailStockCapacity()) {
+    local spStart = PROBE_SPAN_TRACE ? OpexSpanBegin("v149.worker_start") : null;
     this._tryStartRailStockWorker();
+    if (spStart != null) OpexSpanEnd(spStart);
   }
   if (spPass != null) {
     local stopTokIdle = c75StopReason != null ? c75StopReason : (builtCount > 0 ? "built" : "list_end");
