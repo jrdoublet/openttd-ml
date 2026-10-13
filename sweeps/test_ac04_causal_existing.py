@@ -18,6 +18,12 @@ SOURCES = (
     "ac04a_opcode_loop_10x4_20261011_phase_summary.json",
     "ac04a_extension30_opcode_loop_10x4_20261011_phase_summary.json",
 )
+# Dans un worktree sous results/, les archives AC04 ignorees par Git sont
+# stockees dans le worktree frere, pas dans le dossier local.
+if not all((BASE / filename).is_file() for filename in SOURCES):
+    sibling = ROOT.parents[1] / "results/ac_fixes_worktree_20261011/results"
+    if all((sibling / filename).is_file() for filename in SOURCES):
+        BASE = sibling
 WINDOWS = (("1970", "1971"), ("1970", "1971", "1972"))
 
 

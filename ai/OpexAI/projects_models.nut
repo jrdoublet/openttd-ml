@@ -47,9 +47,16 @@ function OpexProjectPairKey(kind, cargo, src, dst)
 function OpexC70RecomputeFactors(lines)
 {
   local sums = { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] };
+  local stableSums = SCORE_C70_STABLE_COHORT
+      ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
   if (lines != null) {
     foreach (line in lines) {
       if (line == null || !("mode" in line) || !(line.mode in sums)) continue;
+      if (stableSums != null && ("p4C70Pred" in line) && ("p4C70Real" in line)
+          && line.p4C70Pred > 0) {
+        stableSums[line.mode][0] += line.p4C70Real.tofloat() / line.p4C70Pred.tofloat();
+        stableSums[line.mode][1]++;
+      }
       if (!("c70Pred" in line) || !("c70Real" in line) || line.c70Pred <= 0) continue;
       sums[line.mode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
       sums[line.mode][1]++;
@@ -57,6 +64,10 @@ function OpexC70RecomputeFactors(lines)
   }
   foreach (m, acc in sums) {
     C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+    if (stableSums != null) {
+      local stableAcc = stableSums[m];
+      C70_MODE_FACTOR[m] = (stableAcc[0] + 1.0) / (stableAcc[1] + 1).tofloat();
+    }
     OpexC69Log("phase=c70_reload mode=" + m + " lines=" + acc[1] + " k=" + C70_MODE_FACTOR[m]);
   }
 }

@@ -686,6 +686,7 @@ function OpexWaterRefleetCrashedShip(line)
   if (!("vehicles" in line)) line.vehicles <- [];
   else if (line.vehicles == null) line.vehicles = [];
   line.vehicles.append(ship);
+  if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
   if ("vehicle" in line) line.vehicle = ship;
   else line.vehicle <- ship;
   result.added = 1; result.reason = "OK";
