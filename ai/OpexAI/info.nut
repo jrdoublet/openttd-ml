@@ -300,6 +300,30 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "score_c70_cohort_probe",
+      description = "P4: passive annual C70 fleet-ID/vehicle-age cohort diagnostics, no change to calibration; default 0",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "score_c70_stable_cohort",
+      description = "P4 experimental: calibrate C70 from prospectively stable-looking yearly fleet cohorts; zero default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "score_c70_vyear_cohort",
+      description = "P4 adjust: conservative complete-incumbent vehicle-year C70 panel, neutral fallback; requires full save; default 0",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "score_c70_vyear_measure_shadow",
+      description = "P4 adjust: match full vehicle-year measurement, markers, Save/Load and factor calculation without applying C70 factor; default 0",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
 
     AddSetting({
       name = "c72_plane_choice",

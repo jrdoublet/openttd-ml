@@ -305,6 +305,14 @@ function OpexLoadSettings()
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
+  SCORE_C70_STABLE_COHORT = AIController.GetSetting("score_c70_stable_cohort") != 0;
+  SCORE_C70_VYEAR_COHORT = AIController.GetSetting("score_c70_vyear_cohort") != 0
+      && !SCORE_C70_STABLE_COHORT && SAVE_FULL_STATE;
+  SCORE_C70_VYEAR_MEASURE_SHADOW = AIController.GetSetting("score_c70_vyear_measure_shadow") != 0
+      && !SCORE_C70_STABLE_COHORT && SAVE_FULL_STATE;
+  SCORE_C70_VYEAR_MEASURE = SCORE_C70_VYEAR_COHORT || SCORE_C70_VYEAR_MEASURE_SHADOW;
+  SCORE_C70_COHORT_LOG = AIController.GetSetting("score_c70_cohort_probe") != 0;
+  SCORE_C70_COHORT_PROBE = SCORE_C70_COHORT_LOG || SCORE_C70_STABLE_COHORT;
   C82_ENGINE_CALIBRATION = AIController.GetSetting("c82_engine_calibration") != 0;
   C70_PROFIT_CALIBRATED = C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION;
   ::OpexCalibratedProfit <- C82_ENGINE_CALIBRATION ? OpexC82Profit : OpexC70Profit;

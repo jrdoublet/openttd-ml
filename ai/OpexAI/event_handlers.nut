@@ -12,6 +12,8 @@ function OpexAI::_onVehicleCrashed(event)
     local line = OpexFindLineForVehicle(this._lines, vehicle, site);
     local lineId = line != null ? line.lineId : -1;
     local mode = line != null && ("mode" in line) ? line.mode : "unknown";
+    if (line != null && SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
+    if (line != null && SCORE_C70_VYEAR_MEASURE) OpexC70VYearMarkStructuralMutation(line);
 
     if (C52_CRASH_LOG || DECISION_LOG) {
       OpexDecide("VEHICLE_CRASHED", "vehicle=" + vehicle + " reason=" + reason
@@ -100,6 +102,16 @@ function OpexAI::_onVehicleAutoreplaced(event)
       local mode = "unknown";
       foreach (line in this._lines) {
         local lineMode = ("mode" in line) ? line.mode : "unknown";
+        if (SCORE_C70_COHORT_PROBE || SCORE_C70_VYEAR_MEASURE) {
+          local p4Found = (("vehicle" in line) && line.vehicle == oldVehicle);
+          if (!p4Found && ("vehicles" in line) && line.vehicles != null) {
+            foreach (p4Known in line.vehicles) {
+              if (p4Known == oldVehicle) { p4Found = true; break; }
+            }
+          }
+          if (p4Found && SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
+          if (p4Found && SCORE_C70_VYEAR_MEASURE) OpexC70VYearMarkStructuralMutation(line);
+        }
         if ("vehicles" in line) {
           local hasNew = false;
           foreach (vehicle in line.vehicles) {

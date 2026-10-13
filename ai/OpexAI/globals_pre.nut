@@ -259,6 +259,19 @@ C63_INVEST_LEDGER <- null;
 /* C70 : facteur realise/predit par mode, recalcule au rapport annuel. 1.0 hors reglage. */
 C70_MODE_CALIBRATION <- false;
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
+/* P4 : comparaison diagnostique de cohortes annuelles a IDs constants. Sans effet de score. */
+SCORE_C70_COHORT_PROBE <- false;
+/* P4 experimental: a full-year stable cohort changes C70 ranking only. */
+SCORE_C70_STABLE_COHORT <- false;
+/* Explicit diagnostic logging separated from the policy's intrinsic collection. */
+SCORE_C70_COHORT_LOG <- false;
+/* P4 adjustment experimental: full surviving incumbent vehicle-year panel;
+ * never claim to infer profit of lost/sold vehicles. */
+SCORE_C70_VYEAR_COHORT <- false;
+/* P4 matched-shadow: same heavy measurement work in both arms, but only
+ * SCORE_C70_VYEAR_COHORT is allowed to publish a behavioral C70 factor. */
+SCORE_C70_VYEAR_MEASURE_SHADOW <- false;
+SCORE_C70_VYEAR_MEASURE <- false;
 /* C82 : facteur realise/predit par moteur d'avion, recalcule au rapport annuel. 1.0 hors reglage ou si absent. */
 C82_ENGINE_CALIBRATION <- false;
 /* C70 ou C82 : score sur le profit calibre. Calcule une fois dans OpexLoadSettings pour que la

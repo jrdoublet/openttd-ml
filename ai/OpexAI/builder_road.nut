@@ -1253,6 +1253,7 @@ function OpexRoadRefleet(catalog, line, have, target)
     }
   }
   if (result.added == 0) { result.reason = "START"; return result; }
+  if (SCORE_C70_COHORT_PROBE) OpexC70P4MarkMutation(line);
   result.after = have + result.added;
   return result;
 }

@@ -47,9 +47,16 @@ function OpexProjectPairKey(kind, cargo, src, dst)
 function OpexC70RecomputeFactors(lines)
 {
   local sums = { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] };
+  local stableSums = SCORE_C70_STABLE_COHORT
+      ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
   if (lines != null) {
     foreach (line in lines) {
       if (line == null || !("mode" in line) || !(line.mode in sums)) continue;
+      if (stableSums != null && ("p4C70Pred" in line) && ("p4C70Real" in line)
+          && line.p4C70Pred > 0) {
+        stableSums[line.mode][0] += line.p4C70Real.tofloat() / line.p4C70Pred.tofloat();
+        stableSums[line.mode][1]++;
+      }
       if (!("c70Pred" in line) || !("c70Real" in line) || line.c70Pred <= 0) continue;
       sums[line.mode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
       sums[line.mode][1]++;
@@ -57,7 +64,63 @@ function OpexC70RecomputeFactors(lines)
   }
   foreach (m, acc in sums) {
     C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+    if (stableSums != null) {
+      local stableAcc = stableSums[m];
+      C70_MODE_FACTOR[m] = (stableAcc[0] + 1.0) / (stableAcc[1] + 1).tofloat();
+    }
     OpexC69Log("phase=c70_reload mode=" + m + " lines=" + acc[1] + " k=" + C70_MODE_FACTOR[m]);
+  }
+}
+
+/* P4-adjust: jamais une simple moyenne des seuls survivants. Chaque ligne
+ * economiquement comparable a exactement une voix : panel complet si valide,
+ * sinon facteur NEUTRE = 1 (y compris attrition, absence de snapshot ou
+ * premier exercice). Deux pseudo-lignes neutres regulierisent l'ensemble.
+ * Les observations sont des ratios par incumbent-vehicle-year en permille,
+ * sans precision flottante stockee dans Save. La mesure est calculee AUSSI
+ * dans le bras shadow, mais seul le flag economique autorise la publication. */
+function OpexC70VYearRecomputeFactors(lines, reportYear)
+{
+  local sums = { rail = [0.0, 0, 0, 0], road = [0.0, 0, 0, 0],
+      air = [0.0, 0, 0, 0], water = [0.0, 0, 0, 0] };
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || !(line.mode in sums)) continue;
+      local age = ("year" in line) ? reportYear - line.year : -1;
+      if (age < 2 || !("predicted" in line) || line.predicted <= 0
+          || !("trains0" in line) || line.trains0 <= 0) continue;
+      local acc = sums[line.mode];
+      local state = ("p4VYear" in line) ? line.p4VYear : null;
+      if (state != null && ("version" in state) && state.version == 2
+          && ("reportYear" in state) && state.reportYear == reportYear
+          && ("valid" in state) && state.valid == 1
+          && ("count" in state) && state.count > 0 && ("sumPm" in state)) {
+        acc[0] += state.sumPm.tofloat() / (1000.0 * state.count);
+        acc[2]++;
+      } else {
+        acc[0] += 1.0;
+        acc[3]++;
+      }
+      acc[1]++;
+    }
+  }
+  foreach (mode, acc in sums) {
+    local measuredK = (acc[0] + 2.0) / (acc[1] + 2).tofloat();
+    local legacyK = C70_MODE_FACTOR[mode];
+    /* Sans au moins une observation de flotte complete, le retour neutre
+     * ne doit PAS ecraser C70 historique (ROAD n'a pas de panel explicite).
+     * Avec couverture positive, les lignes non mesurables restent neutres. */
+    local effectiveK = acc[2] > 0 ? measuredK : legacyK;
+    /* Une affectation pour CHAQUE bras mesureur, meme au cold-start ou le
+     * facteur vaut 1 : reduire le decalage VM avant la premiere observation.
+     * Le shadow reecrit sa valeur historique, sans appliquer effectiveK. */
+    C70_MODE_FACTOR[mode] = (SCORE_C70_VYEAR_COHORT ? effectiveK : legacyK);
+    if (SCORE_C70_COHORT_LOG)
+      AILog.Info("P4_VYEAR_MODE exercise=" + (reportYear - 1) + " mode=" + mode
+          + " covered=" + acc[2] + " neutral=" + acc[3]
+          + " comparable=" + acc[1] + " factor=" + effectiveK
+          + " measured_k=" + measuredK + " fallback_legacy=" + (acc[2] == 0 ? 1 : 0)
+          + " legacy_k=" + legacyK + " applied=" + (SCORE_C70_VYEAR_COHORT ? 1 : 0));
   }
 }
 

@@ -682,6 +682,42 @@ function OpexSaveProjectLine(line)
   return serializableLine;
 }
 
+/* Variant ON uniquement : supprimer la copie obsolete du cache mensuel. Le
+ * chemin historique OpexSaveProjectLine reste exactement intact sous OFF. */
+function OpexSaveProjectLineVYear(line)
+{
+  local projected = OpexSaveProjectLine(line);
+  if ("p4VYear" in projected) delete projected.p4VYear;
+  return projected;
+}
+
+/* Validation unique au Load : ne pas laisser une sauvegarde ancienne ou
+ * corrompue casser le rapport annuel en dereferencant entry[3]. Les tableaux
+ * d'ID sont petits, les tests n'appellent jamais le monde OpenTTD. */
+function OpexP4VYearStateValid(state)
+{
+  if (state == null || typeof state != "table" || !("version" in state)
+      || state.version != 2 || !("snapshot" in state)
+      || typeof state.snapshot != "array" || !("sumPm" in state)
+      || typeof state.sumPm != "integer" || !("count" in state)
+      || typeof state.count != "integer" || state.count < 0 || state.count > 20
+      || !("reportYear" in state) || typeof state.reportYear != "integer"
+      || !("valid" in state) || typeof state.valid != "integer"
+      || (state.valid != 0 && state.valid != 1)
+      || !("dirtyYear" in state) || typeof state.dirtyYear != "integer"
+      || !("dirtyPriorYear" in state) || typeof state.dirtyPriorYear != "integer"
+      || state.dirtyYear < -1 || state.dirtyPriorYear < -1
+      || state.sumPm < -500 * state.count || state.sumPm > 2500 * state.count
+      || (state.valid == 1 && (state.count == 0 || state.snapshot.len() == 0))) return false;
+  foreach (entry in state.snapshot) {
+    if (typeof entry != "array" || entry.len() < 6
+        || typeof entry[3] != "integer" || entry[3] <= 0
+        || entry.len() != 4 + 2 * entry[3]) return false;
+    foreach (value in entry) if (typeof value != "integer") return false;
+  }
+  return true;
+}
+
 /* Projection mensuelle des lignes hors de Save(). Save() s'execute sous un
  * plafond fixe de 100k opcodes ; recopier champ par champ ~150 lignes l'a
  * depasse (graine 314, mi-1978 : "This script took too long to Save", script
@@ -701,7 +737,8 @@ function OpexAI::_refreshSaveProjection()
   this._saveProjectionMonth = month;
   local cache = {};
   foreach (line in this._lines) {
-    if (line != null && typeof line == "table") cache[line] <- OpexSaveProjectLine(line);
+    if (line != null && typeof line == "table")
+      cache[line] <- (SCORE_C70_VYEAR_MEASURE ? OpexSaveProjectLineVYear(line) : OpexSaveProjectLine(line));
   }
   this._saveProjection = cache;
 }
@@ -781,6 +818,10 @@ function OpexAI::Save()
    * flottes. Les champs scalarises restants sont serialisables; les tableaux (VehicleID) et
    * tables des lignes actuelles ne contiennent que des entiers/booleens/null. */
   local saveLines = this._lines;
+  /* P4-adjust : sidecar fraiche NON-cachee pour des etats entiers compacts.
+   * _saveProjection mensuelle peut dater d'avant le rapport; sauver la table
+   * vivante dans la meme boucle O(n lignes), meme au-dela de 64 lignes. */
+  local p4Adjust = SCORE_C70_VYEAR_MEASURE ? {} : null;
   if (this._lines != null) {
     /* Les lignes deja projetees par _refreshSaveProjection sont reprises telles
      * quelles : Save() ne fait plus qu'une recherche par ligne. Seules les lignes
@@ -788,6 +829,9 @@ function OpexAI::Save()
     local cache = this._saveProjection;
     local projectedLines = [];
     foreach (line in this._lines) {
+      if (p4Adjust != null && line != null && typeof line == "table"
+          && ("lineId" in line) && ("p4VYear" in line))
+        p4Adjust.rawset(line.lineId, line.p4VYear);
       if (line == null || typeof line != "table") {
         projectedLines.append(line);
         continue;
@@ -796,7 +840,10 @@ function OpexAI::Save()
         projectedLines.append(cache[line]);
         continue;
       }
-      projectedLines.append(OpexSaveProjectLine(line));
+      if (SCORE_C70_VYEAR_MEASURE)
+        projectedLines.append(OpexSaveProjectLineVYear(line));
+      else
+        projectedLines.append(OpexSaveProjectLine(line));
     }
     saveLines = projectedLines;
   }
@@ -833,6 +880,7 @@ function OpexAI::Save()
     activeGoodsChain = OpexSaveGoodsChain(this._activeGoodsChain),
     stateVersion = 2,
   };
+  if (p4Adjust != null) saveObj.p4Adjust <- p4Adjust;
   saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
   saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
   if (C76_REGEN_TARGETED) {
@@ -874,6 +922,8 @@ function OpexAI::Load(version, data)
     foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
   }
   if ("lines" in data) this._pendingLines = data.lines;
+  /* Load() precede Settings : restaurer brut, verifier seulement au reconcile. */
+  this._reloadP4Adjust = ("p4Adjust" in data) ? data.p4Adjust : null;
   if ("abandonCounts" in data && data.abandonCounts != null) this._abandonCounts = data.abandonCounts;
   if ("lastRepayMonth" in data) this._lastRepayMonth = data.lastRepayMonth;
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
@@ -1007,9 +1057,26 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._lines = liveLines;
   this._pendingLines = null;
+  if (SCORE_C70_VYEAR_MEASURE) {
+    foreach (line in this._lines) {
+      if ("p4VYear" in line) delete line.p4VYear;
+    }
+  }
+  if (SCORE_C70_VYEAR_MEASURE && this._reloadP4Adjust != null
+      && typeof this._reloadP4Adjust == "table") {
+    foreach (line in this._lines) {
+      if (!("lineId" in line) || !(line.lineId in this._reloadP4Adjust)) continue;
+      local state = this._reloadP4Adjust[line.lineId];
+      if (!OpexP4VYearStateValid(state)) continue;
+      line.p4VYear <- state;
+    }
+  }
+  this._reloadP4Adjust = null;
   /* C70/C82 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
   if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
+  if (C70_MODE_CALIBRATION && SCORE_C70_VYEAR_MEASURE)
+    OpexC70VYearRecomputeFactors(this._lines, this._lastReportYear);
   if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) OpexC82RecomputeFactors(this._lines);
   if (C121_AIR_ECONOMICS) OpexC121RecomputeRealizationFactors(this._lines);
 

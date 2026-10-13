@@ -306,6 +306,8 @@ class OpexAI extends AIController {
   /* Dates C69/C75 lues dans la sauvegarde, restaurees par _reconcileAfterLoad(). */
   _reloadC69BuildDates = null;
   _reloadC75PassDates = null;
+  /* P4-adjust: state table sidecar loaded before settings, verified after Load. */
+  _reloadP4Adjust = null;
   /* C83 preempt : lus dans la sauvegarde, appliques apres les reglages. */
   _reloadC83PreemptTown = null;
   _reloadC83PreemptStopped = null;
