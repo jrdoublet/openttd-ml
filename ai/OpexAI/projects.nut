@@ -176,6 +176,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     doWater = false;
     doAir = true;
   }
+  if (!MODE_RAIL) {
+    doFreight = false;
+    doPaxRail = false;
+  }
   local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL
       : (generationStage == OPEX_STAGE_RAIL_ONLY ? PAX_BAND_RAIL_ONLY : PAX_BAND_ALL);
   local airBand = generationStage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
