@@ -62,19 +62,25 @@ class StaticContracts(unittest.TestCase):
 
     def test_generation_guarded(self):
         body = _function_body(_read("candidates.nut"), "OpexFreightCandidates")
-        self.assertIn("local secondary = V163_MULTI_CARGO\n"
-                      "            ? OpexV163SecondaryCargo(catalog, source.id, industries[di].id, cargo) : null;",
+        self.assertIn("local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;",
                       body)
+        self.assertIn("local secondary = (others2 != null && others2.len() > 0)\n"
+                      "            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;", body)
         self.assertEqual(body.count("OpexV163SecondaryCargo"), 1)
+        # la liste des cargos produits se calcule hors de la boucle des destinations
+        self.assertLess(body.index("OpexV163SourceOtherCargos"), body.index("for (local k = 0; k < sinks.len(); k++)",
+                                                                             body.index("OpexV163SourceOtherCargos") - 400))
         reeval = _function_body(_read("economy.nut"), "OpexV163CandidateSecondary")
         self.assertIn("if (!V163_MULTI_CARGO", reeval)
 
     def test_secondary_cargo_selection(self):
+        others = _function_body(_read("economy.nut"), "OpexV163SourceOtherCargos")
+        self.assertIn("c == cargo", others)
+        self.assertIn("(c in catalog.wagonByCargo)", others)
+        self.assertIn("monthly <= 0", others)
         body = _function_body(_read("economy.nut"), "OpexV163SecondaryCargo")
-        self.assertIn("c == cargo", body)
-        self.assertIn("AIIndustry.IsCargoAccepted(sinkId, c) != AIIndustry.CAS_ACCEPTED", body)
-        self.assertIn("(c in catalog.wagonByCargo)", body)
-        self.assertIn("monthly <= 0", body)
+        self.assertIn("AIIndustry.IsCargoAccepted(sinkId, o.cargo) != AIIndustry.CAS_ACCEPTED", body)
+        self.assertIn("o.monthly > best.monthly", body)
 
     def test_builder_reevaluations_keep_secondary(self):
         src = _read("builder_rail.nut")

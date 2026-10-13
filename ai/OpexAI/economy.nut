@@ -599,17 +599,29 @@ function OpexV163CandidateSecondary(candidate)
 
 /* V163 : cargo produit par la source, autre que `cargo`, accepte par l'industrie destination et
  * transportable par wagon ; le plus produit le mois dernier. null s'il n'y en a pas. */
-function OpexV163SecondaryCargo(catalog, sourceId, sinkId, cargo)
+function OpexV163SourceOtherCargos(catalog, sourceId, cargo)
 {
-  if (!AIIndustry.IsValidIndustry(sourceId) || !AIIndustry.IsValidIndustry(sinkId)) return null;
-  local best = null;
+  /* Une fois par source : les autres cargos produits, transportables, avec une production.
+   * Hors ferme la liste est vide et la boucle des destinations ne paie plus rien. */
+  local out = [];
+  if (!AIIndustry.IsValidIndustry(sourceId)) return out;
   local produced = AICargoList_IndustryProducing(sourceId);
   for (local c = produced.Begin(); !produced.IsEnd(); c = produced.Next()) {
     if (c == cargo || !(c in catalog.wagonByCargo)) continue;
-    if (AIIndustry.IsCargoAccepted(sinkId, c) != AIIndustry.CAS_ACCEPTED) continue;
     local monthly = AIIndustry.GetLastMonthProduction(sourceId, c);
     if (monthly <= 0) continue;
-    if (best == null || monthly > best.monthly) best = { cargo = c, monthly = monthly };
+    out.append({ cargo = c, monthly = monthly });
+  }
+  return out;
+}
+
+function OpexV163SecondaryCargo(others, sinkId)
+{
+  if (!AIIndustry.IsValidIndustry(sinkId)) return null;
+  local best = null;
+  foreach (o in others) {
+    if (AIIndustry.IsCargoAccepted(sinkId, o.cargo) != AIIndustry.CAS_ACCEPTED) continue;
+    if (best == null || o.monthly > best.monthly) best = o;
   }
   return best;
 }

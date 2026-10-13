@@ -1750,6 +1750,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
+      local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
@@ -1786,8 +1787,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
-        local secondary = V163_MULTI_CARGO
-            ? OpexV163SecondaryCargo(catalog, source.id, industries[di].id, cargo) : null;
+        local secondary = (others2 != null && others2.len() > 0)
+            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache,
                                             secondary);
