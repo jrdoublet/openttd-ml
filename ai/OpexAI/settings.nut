@@ -615,8 +615,6 @@ function OpexLoadSettings()
   local v149Days = AIController.GetSetting("v149_revalidate_days");
   if (v149Days >= 1) V149_REVALIDATE_DAYS = v149Days;
   V149_FREIGHT_ROTATION = AIController.GetSetting("v149_freight_rotation") != 0;
-  local v149Share = AIController.GetSetting("v149_astar_share");
-  if (v149Share >= 1) V149_ASTAR_SHARE = v149Share;
   if (V149_RAIL_PIPELINE) {
     C80_RAIL_STOCK_GATE = true;
     C80_RAIL_STOCK_WORKER = true;

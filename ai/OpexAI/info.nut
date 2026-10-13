@@ -1665,16 +1665,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v149_astar_share",
-      description = "V149 maximum share (percent of AI ticks) of the rail stock A* while the AIR catalog rebuild runs; 100 = no cap (only with v149_rail_pipeline)",
-      min_value = 5, max_value = 100,
-      easy_value = 20, medium_value = 20, hard_value = 20,
-      custom_value = 20,
-      step_size = 5,
-      flags = 0
-    });
-
-    AddSetting({
       name = "c80_worker_town",
       description = "C80 tranche 2: migrate town growth to execution register worker: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

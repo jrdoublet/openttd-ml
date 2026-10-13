@@ -91,8 +91,7 @@ class Settings(unittest.TestCase):
             self.assertRegex(block, key + r" = 0\b")
         for name, lo, hi, default in (("v149_stock_size", 1, 12, 4),
                                       ("v149_revalidate_days", 7, 180, 30),
-                                      ("v149_freight_rotation", 0, 1, 1),
-                                      ("v149_astar_share", 5, 100, 20)):
+                                      ("v149_freight_rotation", 0, 1, 1)):
             block = _setting_block(name)
             self.assertIn("min_value = %d, max_value = %d" % (lo, hi), block, name)
             for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
@@ -100,7 +99,7 @@ class Settings(unittest.TestCase):
         globals_pre = _read("globals_pre.nut")
         for line in ("V149_RAIL_PIPELINE <- false;", "V149_STOCK_SIZE <- 4;",
                      "V149_REVALIDATE_DAYS <- 30;", "V149_FREIGHT_ROTATION <- true;",
-                     "V149_ASTAR_SHARE <- 20;",
+                     "V149_LEFTOVER_MARGIN <- 500;",
                      "V149_FIRST_YEAR <- -1;"):
             self.assertIn(line, globals_pre)
 
@@ -111,8 +110,6 @@ class Settings(unittest.TestCase):
                                    r'if \(v149Size >= 1\) V149_STOCK_SIZE = v149Size;')
         self.assertRegex(settings, r'local v149Days = AIController\.GetSetting\("v149_revalidate_days"\);\s*'
                                    r'if \(v149Days >= 1\) V149_REVALIDATE_DAYS = v149Days;')
-        self.assertRegex(settings, r'local v149Share = AIController\.GetSetting\("v149_astar_share"\);\s*'
-                                   r'if \(v149Share >= 1\) V149_ASTAR_SHARE = v149Share;')
         block = settings[settings.index("  if (V149_RAIL_PIPELINE) {"):]
         block = block[:block.index("  }\n") + 4]
         self.assertIn("C80_RAIL_STOCK_GATE = true;", block)
@@ -376,43 +373,51 @@ class AirCatalogShare(unittest.TestCase):
         busy = _function_body(_read("rail_v149.nut"), "OpexV149AirCatalogBusy")
         self.assertIn('if (t.name == "catalog") return ("c78AirRebuild" in t) && t.c78AirRebuild != null;', busy)
 
-    def test_no_drain_while_air_catalog_busy(self):
+    def test_stock_worker_takes_only_the_tick_leftover(self):
         step = _function_body(_read("orchestrator.nut"), "OpexWorkerRailStockStep")
-        self.assertIn("local v149NoDrain = V149_RAIL_PIPELINE && OpexV149AirCatalogBusy(ai);", step)
-        self.assertIn("while (!v149NoDrain && ai._railSearch != null", step)
-        # la premiere tranche reste jouee
-        self.assertLess(step.index("ai._advanceRailSearchSliceWithLedgers();"), step.index("v149NoDrain"))
+        self.assertIn("local v149Leftover = V149_RAIL_PIPELINE && !prepSearch;", step)
+        self.assertIn("if (v149Leftover && !ai._v149CatalogTurn) ai._v149LeftoverSearch();", step)
+        # la tranche fixe et le debit historique ne jouent plus pour le stock V149
+        self.assertIn("if (!v149Leftover) ai._advanceRailSearchSliceWithLedgers();", step)
+        self.assertIn("while (!v149Leftover && ai._railSearch != null", step)
+        # le delai de 180 jours reste verifie avant
+        self.assertLess(step.index("ai._handleRailStockSearchTimeout();"), step.index("local v149Leftover"))
+        self.assertNotIn("v149NoDrain", step)
 
 
-def next_astar_tick(now, dt, share):
-    """Modele du plafond V149 : tick a partir duquel la tranche suivante peut jouer."""
-    dt = max(1, dt)
-    return now + dt * (100 - share) // share
+def leftover_iters(ops_left, iter_ops, margin=500, slice_max=50):
+    """Modele de _v149LeftoverSearch : iterations jouables dans le reliquat du tick."""
+    return min(slice_max, max(0, (ops_left - margin) // iter_ops))
 
 
-class AstarShare(unittest.TestCase):
-    def test_cap_before_first_slice_after_timeout(self):
-        step = _function_body(_read("orchestrator.nut"), "OpexWorkerRailStockStep")
-        self.assertIn("local v149Cap = V149_RAIL_PIPELINE && V149_ASTAR_SHARE < 100 && "
-                      "ai._railSearch.phase == \"search\"\n      && OpexV149AirCatalogBusy(ai);", step)
-        self.assertIn('if (v149Cap && AIController.GetTick() < ai._v149RailNextTick) return "running";', step)
-        self.assertIn("ai._v149RailNextTick = v149Now + v149Dt * (100 - V149_ASTAR_SHARE) / V149_ASTAR_SHARE;", step)
-        # le delai de 180 jours reste verifie avant le plafond, la tranche suit le plafond
-        self.assertLess(step.index("ai._handleRailStockSearchTimeout();"), step.index("local v149Cap"))
-        self.assertLess(step.index('ai._v149RailNextTick) return "running";'),
-                        step.index("ai._advanceRailSearchSliceWithLedgers();"))
+class LeftoverSearch(unittest.TestCase):
+    def test_slices_bounded_by_ops_till_suspend(self):
+        body = _function_body(_read("rail_v149.nut"), "OpexAI::_v149LeftoverSearch")
+        self.assertIn("local iters = (AIController.GetOpsTillSuspend() - V149_LEFTOVER_MARGIN) / this._v149IterOps;", body)
+        self.assertIn("if (iters < 1) return;", body)
+        self.assertIn("if (iters > RAIL_SEARCH_SLICE) iters = RAIL_SEARCH_SLICE;", body)
+        self.assertIn("this._v149SliceIters = iters;\n    this._advanceRailSearchSliceWithLedgers();\n"
+                      "    this._v149SliceIters = 0;", body)
+        self.assertIn("this._v149IterOps = (3 * this._v149IterOps + perIter) / 4;", body)
+        cont = _function_body(_read("task_rail.nut"), "OpexAI::_continueRailSearch")
+        self.assertIn("local sliceSize = (V149_RAIL_PIPELINE && this._v149SliceIters > 0) ? this._v149SliceIters : RAIL_SEARCH_SLICE;", cont)
+        self.assertIn("slice = OpexAdvanceSegmentedSearch(state.segmented, sliceSize, deadlineTick);", cont)
         main = _read("main.nut")
-        self.assertIn("_v149RailNextTick = 0;", main)
+        for line in ("_v149CatalogTurn = false;", "_v149SliceIters = 0;", "_v149IterOps = 2500;",
+                     "function _v149LeftoverSearch();"):
+            self.assertIn(line, main)
+
+    def test_catalog_continuation_has_priority(self):
+        cont = _function_body(_read("rail_v149.nut"), "OpexAI::_v149ContinueCatalog")
+        self.assertLess(cont.index("this._v149CatalogTurn = true;"), cont.index("while (catalogPending"))
+        self.assertTrue(cont.rstrip().endswith("this._v149CatalogTurn = false;\n}"))
 
     def test_model(self):
-        # 20 % : une tranche de 10 ticks (finie au tick 1000) en libere 40 ; part = dt / (dt + attente)
-        self.assertEqual(next_astar_tick(1000, 10, 20), 1040)
-        for share in (5, 10, 20, 50):
-            wait = next_astar_tick(0, 10, share)
-            self.assertAlmostEqual(10 / (10 + wait), share / 100, places=2)
-        self.assertEqual(next_astar_tick(7, 0, 20), 11)
-        self.assertEqual(next_astar_tick(7, 3, 100), 7)
-
+        self.assertEqual(leftover_iters(10000, 2000), 4)
+        self.assertEqual(leftover_iters(2400, 2000), 0)
+        self.assertEqual(leftover_iters(2500, 2000), 1)
+        self.assertEqual(leftover_iters(10 ** 6, 300), 50)
+        self.assertEqual(leftover_iters(-50, 2000), 0)
 
 class ForcedReselect(unittest.TestCase):
     def test_reselect_only_when_stock_changes(self):

@@ -172,7 +172,9 @@ class OpexAI extends AIController {
   _v149WorkerDry = true;
   _v149DryPool = null;
   _v149NextAirMin = -1;
-_v149RailNextTick = 0;
+_v149CatalogTurn = false;
+_v149SliceIters = 0;
+_v149IterOps = 2500;
 _v149StockSig = null;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
@@ -658,6 +660,7 @@ _v149StockSig = null;
   function _v149IdleDiag();
   function _v149MaybeRegenRail();
   function _v149MarkDry();
+  function _v149LeftoverSearch();
   function _v149ContinueCatalog(continuationTick);
 }
 

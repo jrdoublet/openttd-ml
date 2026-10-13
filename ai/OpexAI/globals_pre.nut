@@ -986,11 +986,9 @@ V149_RAIL_PIPELINE <- false;
 V149_STOCK_SIZE <- 4;
 V149_REVALIDATE_DAYS <- 30;
 V149_FREIGHT_ROTATION <- true;
-/* Part maximale (en %) des ticks de l'IA donnee a l'A* du stock pendant la reconstruction AIR du
- * catalogue ; 100 = sans plafond. Une tranche de 50 iterations dure ~10 ticks et cassait la
- * poursuite du catalogue dans le meme tick (diag V149 n°3 du 13/10 : 3 a 9 cycles de taches par
- * mois en 1971 contre 14 a 21 sans V149). */
-V149_ASTAR_SHARE <- 20;
+/* Opcodes gardes en reserve dans le reliquat du tick avant une tranche d'A* du worker du stock
+ * (le worker ne prend que le reliquat du tick en cours). */
+V149_LEFTOVER_MARGIN <- 500;
 /* Vrai pendant la seule regeneration V149 : OpexGenerateModeProjects ne genere pas le rail
  * voyageurs (2 k£/an realises contre 21 a 26 k£ pour le fret, diagnostic V149 du 13/10). */
 V149_REGEN_NO_PAX <- false;

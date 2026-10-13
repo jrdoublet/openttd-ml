@@ -1304,11 +1304,13 @@ function OpexAI::_continueRailSearch()
   }
   local slice;
   local spentBefore = state.spent;
+  /* V149 : tranche bornee au reliquat du tick par le worker du stock (_v149LeftoverSearch). */
+  local sliceSize = (V149_RAIL_PIPELINE && this._v149SliceIters > 0) ? this._v149SliceIters : RAIL_SEARCH_SLICE;
   if (("segmented" in state) && state.segmented != null) {
-    slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
+    slice = OpexAdvanceSegmentedSearch(state.segmented, sliceSize, deadlineTick);
   } else {
     slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
-                                      deadlineTick, RAIL_SEARCH_SLICE);
+                                      deadlineTick, sliceSize);
   }
   /* spent est le CUMUL de toutes les tranches : c'est le denominateur du classement. */
   state.spent = slice.iterations;

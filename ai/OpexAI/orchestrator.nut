@@ -311,29 +311,19 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
     return "done";
   }
 
-  /* V149 : pendant la reconstruction AIR du catalogue, l'A* du stock ne prend que
-   * V149_ASTAR_SHARE % des ticks : apres une tranche de dt ticks, la suivante attend
-   * dt * (100 - part) / part ticks (diag V149 n°3 : 29 a 63 % des ticks de 1971 en A*). */
-  local v149Cap = V149_RAIL_PIPELINE && V149_ASTAR_SHARE < 100 && ai._railSearch.phase == "search"
-      && OpexV149AirCatalogBusy(ai);
-  if (v149Cap && AIController.GetTick() < ai._v149RailNextTick) return "running";
-  local v149SliceTick = AIController.GetTick();
+  /* V149 : un worker ne prend que le reliquat du tick en cours (rappel utilisateur du 13/10) ;
+   * la tranche fixe de 50 iterations durait ~10 ticks (diag V149 n°3 : 29 a 63 % des ticks de
+   * 1971 en A*, 3 a 9 cycles de taches par mois contre 14 a 21). Rien pendant la poursuite du
+   * catalogue AIR, prioritaire sur ce reliquat. La preparation C121 garde le chemin historique. */
+  local v149Leftover = V149_RAIL_PIPELINE && !prepSearch;
+  if (v149Leftover && !ai._v149CatalogTurn) ai._v149LeftoverSearch();
 
   // 2. Première tranche d'A*
-  ai._advanceRailSearchSliceWithLedgers();
-  if (v149Cap) {
-    local v149Now = AIController.GetTick();
-    local v149Dt = v149Now - v149SliceTick;
-    if (v149Dt < 1) v149Dt = 1;
-    ai._v149RailNextTick = v149Now + v149Dt * (100 - V149_ASTAR_SHARE) / V149_ASTAR_SHARE;
-  }
+  if (!v149Leftover) ai._advanceRailSearchSliceWithLedgers();
 
   // 3. Débit sur reliquat tant que GetOpsTillSuspend() >= seuil estimé
   local minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
-  /* V149 : pas de debit sur reliquat tant que la reconstruction AIR du catalogue a du travail ;
-   * le reliquat lui revient (opcodes libres seulement pour le rail). */
-  local v149NoDrain = V149_RAIL_PIPELINE && OpexV149AirCatalogBusy(ai);
-  while (!v149NoDrain && ai._railSearch != null && ai._railSearch.phase == "search"
+  while (!v149Leftover && ai._railSearch != null && ai._railSearch.phase == "search"
          && AIController.GetOpsTillSuspend() >= minThreshold) {
     if (!prepSearch) {
       curDate = AIDate.GetCurrentDate();

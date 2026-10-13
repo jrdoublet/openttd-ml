@@ -61,6 +61,8 @@ function OpexV149CatalogCanContinue(owner, continuationTick)
 function OpexAI::_v149ContinueCatalog(continuationTick)
 {
   local catalogPending = true;
+  /* Le reliquat du tick revient d'abord au catalogue AIR : le worker du stock n'y joue pas. */
+  this._v149CatalogTurn = true;
   while (catalogPending && OpexV149CatalogCanContinue(this, continuationTick)) {
     catalogPending = false;
     foreach (queuedTask in this._taskQueue) {
@@ -75,6 +77,31 @@ function OpexAI::_v149ContinueCatalog(continuationTick)
       }
     }
     if (catalogPending) this._runOrchestratorTick();
+  }
+  this._v149CatalogTurn = false;
+}
+
+/* Le worker du stock ne prend que le reliquat du tick en cours : des tranches de quelques
+ * iterations tant que GetOpsTillSuspend() couvre leur cout estime (moyenne glissante des opcodes
+ * par iteration, ~2 000 mesures au diag n°3), jamais une tranche qui deborde sur les ticks
+ * suivants. La recherche segmentee (defaut) respecte la taille ; l'A* classique joue par 50. */
+function OpexAI::_v149LeftoverSearch()
+{
+  while (this._railSearch != null && this._railSearch.phase == "search") {
+    local iters = (AIController.GetOpsTillSuspend() - V149_LEFTOVER_MARGIN) / this._v149IterOps;
+    if (iters < 1) return;
+    if (iters > RAIL_SEARCH_SLICE) iters = RAIL_SEARCH_SLICE;
+    local state = this._railSearch;
+    local before = state.spent;
+    local mark = OpexOpsMeasureBegin();
+    this._v149SliceIters = iters;
+    this._advanceRailSearchSliceWithLedgers();
+    this._v149SliceIters = 0;
+    local done = state.spent - before;
+    if (done <= 0) return;
+    local perIter = OpexOpsMeasureEnd(mark) / done;
+    this._v149IterOps = (3 * this._v149IterOps + perIter) / 4;
+    if (this._v149IterOps < 300) this._v149IterOps = 300;
   }
 }
 
