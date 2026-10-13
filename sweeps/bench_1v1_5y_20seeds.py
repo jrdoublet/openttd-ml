@@ -78,6 +78,7 @@ from frozen_harness import launch_frozen_campaign
 from campaign_freeze import (
     default_campaign_id,
     fingerprint_tree,
+    parse_aaahogex_settings,
     parse_ai_settings,
     prepare_frozen_campaign,
     validate_policy_settings,
@@ -1255,13 +1256,32 @@ def keep(row):
     return (rec0, rec1)
 
 
-def make_experiments_plan(seeds, years, repeats=1, campaign=None, policy_id="reference", policies=None):
+def make_experiments_plan(seeds, years, repeats=1, campaign=None, policy_id="reference", policies=None, aaahogex_settings=None):
     from openttdlab import local_folder
     cfg = campaign.manifest["configuration"]["raw"] if campaign is not None else make_cfg(STARTING_YEAR)
     days = 365 * years
     opex_dir = campaign.opex_dir if campaign is not None else ROOT / "ai" / "OpexAI"
     aaahogex_dir = campaign.aaahogex_dir if campaign is not None else ROOT / "ai" / AAAHOGEX_DIR
-    aaahogex = local_folder(str(aaahogex_dir), "AAAHogEx", ())
+    aaahogex_info_path = aaahogex_dir / "info.nut"
+
+    if aaahogex_settings is None and campaign is not None:
+        manifest = getattr(campaign, "manifest", None)
+        if isinstance(manifest, dict):
+            options = manifest.get("execution", {}).get("options", {})
+            if "aaahogex_settings" in options:
+                aaahogex_settings = options["aaahogex_settings"]
+            elif "adversary" in manifest:
+                explicit = manifest.get("adversary", {}).get("settings", {}).get("explicit", {})
+                aaahogex_settings = tuple(sorted(explicit.items()))
+
+    if not aaahogex_settings:
+        aaahogex_explicit = ()
+    elif aaahogex_info_path.is_file():
+        aaahogex_explicit = parse_aaahogex_settings(aaahogex_settings, aaahogex_info_path)
+    else:
+        raise ValueError(f"reglages AAAHogEx demandes mais info.nut introuvable: {aaahogex_info_path}")
+
+    aaahogex = local_folder(str(aaahogex_dir), "AAAHogEx", aaahogex_explicit)
     if policies is None:
         policies = ({"id": policy_id, "explicit_settings": ()},)
 
@@ -2212,6 +2232,13 @@ def main():
         "--engine-timeout", type=int, default=DEFAULT_ENGINE_TIMEOUT_SEC,
         help="Timeout subprocess OpenTTD par partie, en secondes (0 = aucun)",
     )
+    parser.add_argument(
+        "--aaahogex-setting",
+        action="append",
+        default=[],
+        dest="aaahogex_settings",
+        help="Reglage AAAHogEx NOM=VALEUR (repetable, verifie dans info.nut)",
+    )
     args = parser.parse_args()
     if args.seeds is None:
         try:
@@ -2294,6 +2321,14 @@ def main():
     campaign_id = args.campaign or (args.out.stem if args.out is not None else default_campaign_id())
     out = args.out or (ROOT / "results" / f"{campaign_id}.json")
     cfg = make_cfg(STARTING_YEAR)
+    aaahogex_explicit_settings = ()
+    if args.aaahogex_settings:
+        try:
+            aaahogex_explicit_settings = parse_aaahogex_settings(
+                args.aaahogex_settings, ROOT / "ai" / AAAHOGEX_DIR / "info.nut"
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
     campaign = prepare_frozen_campaign(
         root=ROOT,
         out_path=out,
@@ -2305,6 +2340,7 @@ def main():
         starting_year=STARTING_YEAR,
         config_text=cfg,
         opex_explicit_settings=tuple(reference_settings),
+        aaahogex_explicit_settings=aaahogex_explicit_settings,
         library_specs=LIBRARY_SPECS,
         harness_files=CAMPAIGN_HARNESS_FILES,
         openttd_version=OPENTTD_VERSION,
@@ -2360,6 +2396,8 @@ def frozen_execution_inputs(campaign):
          "explicit_settings": tuple(policy["settings"]["explicit"].items())}
         for policy in manifest["policies"]
     ]
+    if not hasattr(args, "aaahogex_settings"):
+        args.aaahogex_settings = []
     return args, policies
 
 
@@ -2405,6 +2443,7 @@ def execute_frozen_campaign(campaign):
         campaign=campaign,
         policy_id=args.policy_id,
         policies=policies,
+        aaahogex_settings=getattr(args, "aaahogex_settings", ()),
     )
     for experiment in exps:
         experiment["engine_log_path"] = str(engine_log_path_for(
@@ -2641,6 +2680,7 @@ def execute_frozen_campaign(campaign):
             }
             for policy in policies
         ],
+        "aaahogex_settings": list(getattr(args, "aaahogex_settings", [])),
         "arms": list(ARMS),
         "design": (
             "Deux duels partagés séparés, référence puis variante, chacun OpexAI slot 0 vs AAAHogEx slot 1"
