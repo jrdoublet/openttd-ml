@@ -108,6 +108,9 @@ class Gates(unittest.TestCase):
         self.assertLess(override, gate)
         self.assertLess(gate, body.index("if (doPaxRail || doFreight) {"))
         self.assertRegex(body[gate:gate + 80], r"doFreight = false;\s*doPaxRail = false;")
+        for flag, mode in (("doRoad", "ROAD"), ("doAir", "AIR"), ("doWater", "WATER")):
+            line = "if (!MODE_" + mode + ") " + flag + " = false;"
+            self.assertLess(body.index(line), body.index('OpexDecide("BOOTSTRAP_STAGE"'))
 
     def test_road_gate(self):
         settings = _read("settings.nut")
