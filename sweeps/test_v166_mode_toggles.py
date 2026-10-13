@@ -124,6 +124,16 @@ class Gates(unittest.TestCase):
         road = _function_body(_read("task_road.nut"), "OpexAI::_tryBuildRoadProject")
         self.assertLess(road.index("if (!ROAD_BUILD_ENABLED"), road.index("_tryBuildFeederProject"))
 
+    def test_road_off_keeps_airport_joined_stops(self):
+        # sans catalogue route, le type de route courant reste pose pour les arrets joints aux
+        # aeroports : sans lui, BuildDriveThroughRoadStation echoue (0 arret en air seul, 13/10)
+        refresh = _function_body(_read("catalog.nut"), "OpexCatalog::refresh")
+        gate = refresh.index("if (ROAD_BUILD_ENABLED) {")
+        other = refresh.index("} else if (AIR_JOINED_STOPS && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {")
+        self.assertLess(gate, other)
+        self.assertLess(refresh.index("this._refreshRoad();"), other)
+        self.assertIn("AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);", refresh[other:other + 600])
+
     def test_first_year_air_only_needs_air(self):
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
         first_year = body.index("C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL")
