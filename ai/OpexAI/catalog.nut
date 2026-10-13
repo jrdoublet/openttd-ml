@@ -1125,6 +1125,11 @@ function OpexCatalog::refresh(budget, year)
     this._refreshRoad();
     if (spStep != null) OpexSpanEnd(spStep);
     budget.end("cat_road");
+  } else if (AIR_JOINED_STOPS && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {
+    /* Sans catalogue route, aucun type de route courant n'est pose : les arrets joints aux
+     * aeroports (et leur prevision B9) echouaient alors tous en silence. Ce sont des arrets de
+     * l'aeroport, sans vehicule routier : un banc air seul (mode_road = 0) doit les garder. */
+    AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);
   }
 
   budget.begin();
