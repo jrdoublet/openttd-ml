@@ -1144,3 +1144,36 @@ la pose réelle et l'économie dans un contrefactuel apparié. **Aucune
 politique adoptée, aucun défaut modifié, aucune porte V102, aucun
 commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
 `results/air_bfail_geometry_6x3_20261009_r3_analysis.json`.
+
+**SCORES P2–P4, 13/10 — étude complète des pistes disponibles, sans adoption :**
+document de décision `docs/scores_estimateurs_resultats_20261013.md`.
+Objectif prioritaire inchangé : `profit_year` terminal à cinq ans ; seuls
+des gains économiques robustes peuvent être intégrés. P3 séparateur de
+tampon AIR **rejeté** sur 40×5 (−58 916 £/an), P4 cohortes stables
+**rejeté** sur 40×5 (−43 730 £/an). P2 recalibré sur 43 lignes
+distinctes/5 graines, avec amortissement C121 et bootstrap par graine :
+`newpair/hubsite` IC95 **[0,5815 ; 1,4690]**, alternatives jamais
+construites dans le témoin ; **aucun coefficient initial recevable**.
+La sonde P4 C77 relie 30 flips → 18 tentatives → 9 builds vérifiés
+sur 5×5 avec instrumentation (diagnostic, non causal net).
+
+Nouveau P4 véhicule-année en worktree isolé
+`results/scores_p4_adjust_stage_20261013`, flags
+`score_c70_vyear_cohort=0` et `score_c70_vyear_measure_shadow=0`
+sur les quatre difficultés ; mesure des incumbents sans pénaliser
+automatiquement l'expansion de flotte, retour neutre si attrition,
+sidecar Save/Load version 2. **2 127 tests hôte verts**, vrai
+Save→Load à **80 lignes sauvegardées** (`79` conservées), facteur AIR
+préservé exactement ; réserve budget Save vers 150 lignes.
+La comparaison A/A montre une variabilité calendrier/opcodes dès le
+13 août 1971 sans intervention, avec conséquences économiques ; ne pas
+attribuer mécaniquement les changements de trajectoire au score.
+Deux A/B stricts **5×5 successifs** sur bundle identique au sein de
+chaque banc, 10/10 parties saines chacun : **clean +19 040 £/an**
+(3V/2D, IC95 [−23 876 ; +68 704], p=0,625), **matched-shadow
+−19 231 £/an** (2V/3D, IC95 [−81 546 ; +43 083], p=0,625).
+Les deux échouent le seuil de gain utile +4 % et n'établissent pas
+de levier score rentable ; pas de gate 40×5 du nouveau candidat
+sans signal plus crédible. **Aucun flag économique intégré, aucun
+changement de `master` ; P1/V165 conservé.** Le chantier P0 général (AIR/RAIL)
+reste distinct et ouvert.
