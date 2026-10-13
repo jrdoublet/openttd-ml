@@ -1074,12 +1074,81 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
   OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=topk rank=" + limit + " score=" + score + " top=" + topScore);
 }
 
+/* Sonde P3 : les deux tris utilisent les MEMES candidats deja eligibles,
+ * les memes tiers C77, early-slot et tie-break revenu. forceHistoric evite
+ * d'ecrire les caches de tri binaire sur les projets en cours de selection. */
+function OpexP3BufferShadowAdd(state, project, profit, baseCap, kDec, fleetExempt, limit)
+{
+  if (state == null) return;
+  local variantCap = OpexProjectScoreCapital(project, baseCap, true);
+  local baseDenom = (C69_DECISION_BOTTLENECK && kDec > baseCap && !fleetExempt)
+      ? kDec : baseCap;
+  local variantDenom = (C69_DECISION_BOTTLENECK && kDec > variantCap && !fleetExempt)
+      ? kDec : variantCap;
+  local baseScore = OpexProjectScore(profit, baseDenom);
+  local variantScore = OpexProjectScore(profit, variantDenom);
+  local copy = clone project;
+  copy.p3Origin <- project;
+  copy.p3Base <- baseScore;
+  copy.p3Variant <- variantScore;
+  state.eligible++;
+  if (project.mode == "air") state.air++;
+  if (variantScore != baseScore) state.affected++;
+  if (!("rows" in state)) state.rows <- [];
+  state.rows.append({ project = project, baseCap = baseCap, variantCap = variantCap,
+      baseScore = baseScore, variantScore = variantScore });
+  OpexProjectInsertDefensive(state.base, copy, "p3Base", limit, AIR_EARLY_SLOT, true);
+  OpexProjectInsertDefensive(state.variant, copy, "p3Variant", limit, AIR_EARLY_SLOT, true);
+}
+
+function OpexP3BufferShadowEnd(state, selected, capitalBudget, kDec)
+{
+  if (state == null) return;
+  local base = state.base.len() > 0 ? state.base[0].p3Origin : null;
+  local variant = state.variant.len() > 0 ? state.variant[0].p3Origin : null;
+  local actual = selected.len() > 0 ? selected[0] : null;
+  local flip = base != variant;
+  local agrees = (SCORE_AIR_BUFFER_SEPARATE ? variant : base) == actual;
+  local current = AIDate.GetCurrentDate();
+  local stamp = " year=" + AIDate.GetYear(current)
+      + " month=" + AIDate.GetMonth(current) + " day=" + AIDate.GetDayOfMonth(current);
+  AILog.Info("P3_PORTFOLIO eligible=" + state.eligible + " air=" + state.air
+      + " affected=" + state.affected + " head_flip=" + (flip ? 1 : 0)
+      + " head_match=" + (agrees ? 1 : 0)
+      + " base_mode=" + (base != null ? base.mode : "none")
+      + " variant_mode=" + (variant != null ? variant.mode : "none")
+      + " budget=" + capitalBudget + " k_dec=" + kDec + stamp);
+  foreach (r in state.rows) {
+    local p = r.project;
+    local tier = OpexProjectDefensiveAirPriority(p)
+        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(p)) ? 1000 : 0);
+    local rank0 = -1, rank1 = -1;
+    for (local i = 0; i < state.base.len(); i++) {
+      if (state.base[i].p3Origin == p) { rank0 = i; break; }
+    }
+    for (local i = 0; i < state.variant.len(); i++) {
+      if (state.variant[i].p3Origin == p) { rank1 = i; break; }
+    }
+    if (r.baseScore == r.variantScore && rank0 == rank1 && !flip) continue;
+    local arm = (p.mode == "air" && ("payload" in p) && p.payload != null
+        && ("arm" in p.payload)) ? p.payload.arm : "none";
+    AILog.Info("P3_CANDIDATE mode=" + p.mode + " arm=" + arm
+        + " kind=" + p.kind + " src=" + p.src + " dst=" + p.dst
+        + " tier=" + tier + " finance=" + OpexProjectFinanceCapital(p)
+        + " cap0=" + r.baseCap + " cap1=" + r.variantCap
+        + " score0=" + r.baseScore + " score1=" + r.variantScore
+        + " rank0=" + rank0 + " rank1=" + rank1 + stamp);
+  }
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
 {
   SELECT_BISECT_STAMP++;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
   local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
+  local p3Shadow = (SCORE_AIR_BUFFER_SHADOW && realSelection)
+      ? { base = [], variant = [], rows = [], eligible = 0, affected = 0, air = 0 } : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
    * les modes. Le budget fourni a deja soustrait la reserve de tresorerie. */
   local fittedAlternatives = [];
@@ -1229,7 +1298,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     if (project.mode == "air" && ("decisionFinanceCapital" in project)
         && project.decisionFinanceCapital > 0)
       decisionFinanceCapital = OpexCapitalQuoteDecisionFinance(project, project.decisionFinanceCapital);
-    local scoreDecisionFinanceCapital = decisionFinanceCapital;
+    local scoreDecisionFinanceCapital = OpexProjectScoreCapital(project,
+        decisionFinanceCapital, SCORE_AIR_BUFFER_SEPARATE);
     /* C121 : un renfort d'avion est un vrai projet economique concurrent d'une
      * nouvelle ligne. L'exemption historique C69 lui donnerait un denominateur
      * ~= prix avion alors que les lignes AIR sont bornees par K_dec, ce qui
@@ -1237,15 +1307,30 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
      * chemins legacy/C84, mais pas pour une flotte portant une marge C121. */
     local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
         && !OpexC121ProjectHasRealization(project);
-    project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
+    local p3FundProfit = OpexProjectFundProfit(project);
+    project.fundScore <- OpexProjectScore(p3FundProfit,
         (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
+    OpexP3BufferShadowAdd(p3Shadow, project, p3FundProfit, decisionFinanceCapital,
+        kDec, fleetExemptDecision, limit);
     OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
     if (C121_CATALOG_INCREMENTAL && project.mode == "air"
         && ("payload" in project) && project.payload != null
         && ("c121CatalogKey" in project.payload)
-        && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
-      C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
+        && project.payload.c121CatalogKey in C121_CATALOG_CACHE) {
+      /* P3 ne modifie que le tri final. Le catalogue incrémental utilise
+       * lastScore pour ORDONNER la découverte de villes sales : lui transmettre
+       * le score P3 changerait en plus la génération de projets, hors périmètre
+       * de la variante. En P3 ON, conserver ici le score legacy du même objet. */
+      local catalogScore = project.fundScore;
+      if (SCORE_AIR_BUFFER_SEPARATE) {
+        local catalogDenom = (C69_DECISION_BOTTLENECK
+            && kDec > decisionFinanceCapital && !fleetExemptDecision)
+            ? kDec : decisionFinanceCapital;
+        catalogScore = OpexProjectScore(p3FundProfit, catalogDenom);
+      }
+      C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = catalogScore;
+    }
     if (fundMark != null) {
       OpexSpanAgg("pub.select.score.fund_score", fundMark);
       fundMark = null;
@@ -1301,6 +1386,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
     airPairBest = {};
     if (c121KDecColdRows != null) c121KDecColdRows.clear();
+    if (p3Shadow != null) p3Shadow = { base = [], variant = [], rows = [], eligible = 0,
+        affected = 0, air = 0 };
     foreach (project in alternatives) {
       local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local slotMark = null;
@@ -1323,12 +1410,16 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       if (project.mode == "air" && ("decisionFinanceCapital" in project)
           && project.decisionFinanceCapital > 0)
         decisionFinanceCapital = OpexCapitalQuoteDecisionFinance(project, project.decisionFinanceCapital);
-      local scoreDecisionFinanceCapital = decisionFinanceCapital;
+      local scoreDecisionFinanceCapital = OpexProjectScoreCapital(project,
+          decisionFinanceCapital, SCORE_AIR_BUFFER_SEPARATE);
       local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
-      project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
+      local p3FundProfit = OpexProjectFundProfit(project);
+      project.fundScore <- OpexProjectScore(p3FundProfit,
           (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);
+      OpexP3BufferShadowAdd(p3Shadow, project, p3FundProfit, decisionFinanceCapital,
+          kDec, fleetExemptDecision, limit);
       OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
       if (fundMark != null) {
         OpexSpanAgg("pub.select.score.fund_score", fundMark);
@@ -1383,6 +1474,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         + " selected=" + roadSelected);
   }
   if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
+  OpexP3BufferShadowEnd(p3Shadow, affordable, capitalBudget, kDec);
   OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
   if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);

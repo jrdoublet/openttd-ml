@@ -269,3 +269,25 @@ function OpexProjectScore(value, cost)
   if (value <= 0 || cost <= 0) return 0.0;
   return (value.tofloat() * 1000.0) / cost;
 }
+
+/* P3 : la marge AIR est du cash necessaire a l'execution et reste dans
+ * budgetCapital/FinanceCapital. Pour le score seul, la marge ne correspond
+ * ni a l'avion ni au site achetes. La profondeur est celle du devis decisionnel
+ * et on conserve les immobilisations et un eventuel supplement du devis.
+ * Le mode OFF doit etre rigoureusement identique au denominateur historique. */
+function OpexProjectScoreCapital(project, decisionFinanceCapital, separate)
+{
+  if (!separate || project == null || !("mode" in project) || project.mode != "air"
+      || !("payload" in project) || project.payload == null
+      || !("decisionConstructionCapital" in project)
+      || project.decisionConstructionCapital <= 0) return decisionFinanceCapital;
+  local plan = project.payload;
+  if (!("reuseA" in plan) || !("reuseB" in plan)) return decisionFinanceCapital;
+  local newAirports = (plan.reuseA ? 0 : 1) + (plan.reuseB ? 0 : 1);
+  local margin = OpexAirRequiredMargin(newAirports, plan);
+  if (margin <= 0 || decisionFinanceCapital <= margin) return decisionFinanceCapital;
+  local scoreCapital = decisionFinanceCapital - margin;
+  if (scoreCapital < project.decisionConstructionCapital)
+    scoreCapital = project.decisionConstructionCapital;
+  return scoreCapital;
+}

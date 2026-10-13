@@ -35,10 +35,11 @@ class TestB6PortfolioCausality(unittest.TestCase):
         self.assertIn('"fundScore"', select)
         # 9e29951 : le split C121 (defaut 0) factorise profit et capital de
         # classement ; hors split ils restent calibre C70 et decisionFinanceCapital.
-        self.assertIn("OpexProjectScore(OpexProjectFundProfit(project),", select)
+        self.assertIn("local p3FundProfit = OpexProjectFundProfit(project);", select)
+        self.assertIn("OpexProjectScore(p3FundProfit,", select)
         flat = " ".join(select.split())
         self.assertIn('(C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision) ? kDec : scoreDecisionFinanceCapital', flat)
-        self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", select)
+        self.assertIn("local scoreDecisionFinanceCapital = OpexProjectScoreCapital(project,", select)
         fund = body(self.projects, "function OpexProjectFundProfit(")
         self.assertIn("C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual", fund)
         self.assertIn("return calibrated;", fund)

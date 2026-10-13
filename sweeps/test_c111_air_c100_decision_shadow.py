@@ -73,9 +73,13 @@ class C111AirC100DecisionShadowTests(unittest.TestCase):
         self.assertIn("if (financeCapital > capitalBudget) continue;", body)
         self.assertIn("local decisionFinanceCapital = financeCapital;", body)
         self.assertIn("project.decisionFinanceCapital", body)
-        # 9e29951 : le capital de classement est scoreDecisionFinanceCapital,
-        # egal a decisionFinanceCapital hors split C121 (defaut 0).
-        self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", body)
+        # P3 conserve la tresorerie reelle et le devis decisionnel C111 ;
+        # le helper de score renvoie le capital historique lorsque P3 est OFF.
+        self.assertIn("local scoreDecisionFinanceCapital = OpexProjectScoreCapital(project,", body)
+        self.assertIn("decisionFinanceCapital, SCORE_AIR_BUFFER_SEPARATE);", body)
+        model = (ROOT / "ai" / "OpexAI" / "projects_models.nut").read_text(encoding="utf-8")
+        self.assertIn('if (!separate || project == null || !("mode" in project) || project.mode != "air"', model)
+        self.assertIn('|| project.decisionConstructionCapital <= 0) return decisionFinanceCapital;', model)
         self.assertIn("kDec > scoreDecisionFinanceCapital", body)
 
     def test_shadow_is_propagated_to_all_air_plan_families(self):

@@ -112,12 +112,17 @@ class TestPartialFleet(unittest.TestCase):
     def test_c121_and_c69_scoring_stay_in_common_selector(self):
         self.assertIn("local c121BelowTarget = C121_AIR_ECONOMICS", self.fit)
         self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.select)
-        # 9e29951 : profit et capital de classement passent par le split C121
-        # (defaut 0), qui retombe sur l'expression historique hors split.
-        self.assertIn("OpexProjectScore(OpexProjectFundProfit(project),", self.select)
+        # P3 extrait le profit calibre UNE fois pour les deux scores ;
+        # la flotte R1 reste dans le selecteur et le helper capital ne
+        # s'applique qu'a AIR si l'option P3 est active.
+        self.assertIn("local p3FundProfit = OpexProjectFundProfit(project);", self.select)
+        self.assertIn("project.fundScore <- OpexProjectScore(p3FundProfit,", self.select)
         flat = " ".join(self.select.split())
         self.assertIn("!fleetExemptDecision) ? kDec : scoreDecisionFinanceCapital", flat)
-        self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", self.select)
+        self.assertIn("local scoreDecisionFinanceCapital = OpexProjectScoreCapital(project,", self.select)
+        self.assertIn("decisionFinanceCapital, SCORE_AIR_BUFFER_SEPARATE);", self.select)
+        model = (ROOT / "ai" / "OpexAI" / "projects_models.nut").read_text(encoding="utf-8")
+        self.assertIn('!separate || project == null || !("mode" in project) || project.mode != "air"', model)
         fund = function(self.projects, "OpexProjectFundProfit")
         self.assertIn("C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual", fund)
         self.assertIn("return calibrated;", fund)

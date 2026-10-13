@@ -377,7 +377,10 @@ class TestV126RequiredMargin(unittest.TestCase):
                 calls.append((rel, match.group(1).strip()))
         one_argument = [call for call in calls if "," not in call[1]]
         self.assertEqual(one_argument, [("ai/OpexAI/task_air.nut", "st.newAirportCount")])
-        self.assertEqual(len(calls), 6)
+        self.assertEqual(len(calls), 7)
+        # P3 ajoute un lecteur de marge exclusivement pour son dénominateur
+        # économique; aucun ancien appel de financement V126 n'est retiré.
+        self.assertIn(("ai/OpexAI/projects_models.nut", "newAirports, plan"), calls)
 
     def test_other_margin_copies_are_out_of_scope(self):
         for rel in (

@@ -1993,6 +1993,18 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "score_air_buffer_separate",
+      description = "P3: separate recoverable AIR cash margin from score denominator; cash checks unchanged; default 0",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "score_air_buffer_shadow",
+      description = "P3: compare same-priority affordable rankings with/without AIR score buffer, diagnostic only; default 0",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

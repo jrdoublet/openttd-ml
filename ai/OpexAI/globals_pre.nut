@@ -588,6 +588,10 @@ C121_KPASS_SHADOW <- false;
 /* C121 cadence : shadow du cold-start K_dec. Mesure le classement contrefactuel
  * si un renfort fleet sans observation reelle conservait l'exemption C69. */
 C121_KDEC_COLD_SHADOW <- false;
+/* P3 score-only : conserve integralement le capital exigible et la marge AIR. */
+SCORE_AIR_BUFFER_SEPARATE <- false;
+/* Sonde contrefactuelle P3. Tri des projets eligibles a priorite C77 identique. */
+SCORE_AIR_BUFFER_SHADOW <- false;
 C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
 /* Derive du monde, volontairement absent de Save(). */
 C121_CATALOG_CACHE <- {};
