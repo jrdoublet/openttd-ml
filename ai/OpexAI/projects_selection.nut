@@ -801,7 +801,7 @@ function OpexC116ObserveAirPortfolioOpportunity(snapshot, project, financeCapita
 
 function OpexC116RememberAirPortfolioOpportunity(affordable, capitalBudget, snapshot)
 {
-  if (!C104_AIR_C100_COMPARE_PROBE && !C116_AIR_MARGINAL_CAPITAL && !C116_AIR_PROJECT_PROBE) return;
+  if (!C104_AIR_C100_COMPARE_PROBE && !C116_AIR_PROJECT_PROBE) return;
   if (snapshot == null) snapshot = { date = AIDate.GetCurrentDate(), budget = capitalBudget,
       topMode = "none", top = null, air = [], unlockable = [], unlockableAny = [] };
   if ((C104_AIR_C100_COMPARE_PROBE || C116_AIR_PROJECT_PROBE)
@@ -1121,7 +1121,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
 
   local affordable = [];
-  local c116Snapshot = (C104_AIR_C100_COMPARE_PROBE || C116_AIR_MARGINAL_CAPITAL || C116_AIR_PROJECT_PROBE)
+  local c116Snapshot = (C104_AIR_C100_COMPARE_PROBE || C116_AIR_PROJECT_PROBE)
       ? { date = AIDate.GetCurrentDate(), budget = capitalBudget,
           topMode = "none", top = null, air = [], unlockable = [], unlockableAny = [] }
       : null;

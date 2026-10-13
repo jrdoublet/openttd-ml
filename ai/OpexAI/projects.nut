@@ -176,6 +176,15 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     doWater = false;
     doAir = true;
   }
+  /* V166 : les sources sont deja coupees (catalogue, ROAD_BUILD_ENABLED, generateur rail) ;
+   * masquer aussi les drapeaux garde la trace BOOTSTRAP_STAGE fidele. */
+  if (!MODE_RAIL) {
+    doFreight = false;
+    doPaxRail = false;
+  }
+  if (!MODE_ROAD) doRoad = false;
+  if (!MODE_AIR) doAir = false;
+  if (!MODE_WATER) doWater = false;
   local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL
       : (generationStage == OPEX_STAGE_RAIL_ONLY ? PAX_BAND_RAIL_ONLY : PAX_BAND_ALL);
   local airBand = generationStage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY

@@ -2103,6 +2103,11 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   local prePair = (RAIL_ORIGIN_EXPOSURE_SHADOW && DECISION_LOG) ? OpexRailPrePairStats() : null;
   if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
+  /* V166 : seul point d'entree des candidats rail (pax, fret, chaine de marchandises). */
+  if (!MODE_RAIL) {
+    generatePax = false;
+    generateFreight = false;
+  }
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generatePax) {

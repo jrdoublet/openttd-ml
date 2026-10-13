@@ -31,6 +31,12 @@ function OpexLoadSettings()
   // C68: air route plane selection
   AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;
 
+  // V166 : interrupteurs de mode, lus avant les faisceaux policy_* qui en dependent.
+  MODE_AIR = AIController.GetSetting("mode_air") != 0;
+  MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
+  MODE_ROAD = AIController.GetSetting("mode_road") != 0;
+  MODE_WATER = AIController.GetSetting("mode_water") != 0;
+
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
   RAIL_DEVIS = polRail;
@@ -44,7 +50,7 @@ function OpexLoadSettings()
 
   // 4. policy_road : road mode, street drive-through stops, refleet, fleet fix, overlap filtering
   local polRoad = AIController.GetSetting("policy_road") != 0;
-  ROAD_BUILD_ENABLED = polRoad;
+  ROAD_BUILD_ENABLED = polRoad && MODE_ROAD;
   ROAD_REFLEET = polRoad;
   ROAD_FLEET_FIX = polRoad;
   PRICING_ROAD_OPS = polRoad;
@@ -354,7 +360,6 @@ function OpexLoadSettings()
   C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;
   C114_AIR_C100_FULL_REPLAY = AIController.GetSetting("c114_air_c100_full_replay") != 0;
   C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
-  C116_AIR_MARGINAL_CAPITAL = AIController.GetSetting("c116_air_marginal_capital") != 0;
   C116_AIR_PROJECT_PROBE = AIController.GetSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = AIController.GetSetting("c117_air_throughput_probe") != 0;
   local c117Lean = AIController.GetSetting("c117_lean_sampling");
@@ -387,8 +392,12 @@ function OpexLoadSettings()
   C121_FLAT_BOOTSTRAP = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("c121_flat_bootstrap") != 0;
   if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;
+  /* V166 : sans avion, l'annee 1 "AIR seul" ne genererait rien ; sans rail, sa
+   * preparation rail est sans objet. */
+  if (!MODE_AIR) C121_CATALOG_AIR_FIRST_YEAR = false;
   C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR
       && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;
+  if (!MODE_RAIL) C121_AIR_FIRST_YEAR_RAIL_PREP = false;
   C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
@@ -471,7 +480,7 @@ function OpexLoadSettings()
   V88_STEP2_CASH_RESERVE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_cash_reserve") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
-      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY || C116_AIR_MARGINAL_CAPITAL;
+      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY;
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
