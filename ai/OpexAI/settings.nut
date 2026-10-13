@@ -114,6 +114,8 @@ function OpexLoadSettings()
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
   MODE_ROAD = AIController.GetSetting("mode_road") != 0;
   MODE_WATER = AIController.GetSetting("mode_water") != 0;
+  V168_RAIL_MAX_DIST = AIController.GetSetting("v168_rail_max_dist");
+  if (V168_RAIL_MAX_DIST < 0) V168_RAIL_MAX_DIST = 0;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
