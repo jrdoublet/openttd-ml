@@ -1912,7 +1912,7 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
-      flags = CONFIG_BOOLEAN
+      flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
