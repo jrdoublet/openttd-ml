@@ -2218,7 +2218,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     /* Cumul : les iterations de la seconde voie s'ajoutent au denominateur, pas le remplacent. */
     plan.iterations += dual.iterations;
     plan.doubleSkip = dual.skip;
-    plan.doubleReason <- dual.reason;
+    plan.doubleReason <- ("reason" in dual) ? dual.reason : "";
     if ("step" in dual) plan.doubleStep <- dual.step;
     if (dual.ok) {
       plan.doubleTrack = 1;
