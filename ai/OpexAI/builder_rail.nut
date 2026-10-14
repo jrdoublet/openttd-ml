@@ -2858,6 +2858,7 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hard
   if (economics == null) { plan.reason = "ECON"; return plan; }
   plan.capital = economics.capital;
   OpexApplyRailEconomics(candidate, economics);
+  plan.capital = candidate.capital;
   plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio, hardCap);
   plan.iterationBudget = plan.budgetInfo.budget;
   return plan;
@@ -2931,6 +2932,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     if (economics != null) {
       plan.capital = economics.capital;
       OpexApplyRailEconomics(candidate, economics);
+      plan.capital = candidate.capital;
     }
   }
 

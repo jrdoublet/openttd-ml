@@ -899,6 +899,97 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
   return fitted;
 }
 
+/* V204 : departage de candidats pour reduction de rame sous contrainte budgetaire. */
+function OpexV204CompareProjects(a, b)
+{
+  local sa = ("budgetScore" in a) ? a.budgetScore : (("roi" in a) ? a.roi : 0);
+  local sb = ("budgetScore" in b) ? b.budgetScore : (("roi" in b) ? b.roi : 0);
+  if (sa != sb) return (sa > sb) ? -1 : 1;
+  local pa = ("profitAnnual" in a) ? a.profitAnnual : 0;
+  local pb = ("profitAnnual" in b) ? b.profitAnnual : 0;
+  if (pa != pb) return (pa > pb) ? -1 : 1;
+  return 0;
+}
+
+/* V204 : si aucun candidat rail n'est finançable, reduire la rame des meilleurs candidats fret. */
+function OpexV204FitRailAlternativesToBudget(alternatives, capitalBudget)
+{
+  if (V204_SHRINK_TO_FIT <= 0 || alternatives == null) return alternatives;
+  local hasFundableRail = false;
+  foreach (project in alternatives) {
+    if (project != null && ("mode" in project) && project.mode == "rail") {
+      if (OpexProjectFinanceCapital(project) <= capitalBudget) {
+        hasFundableRail = true;
+        break;
+      }
+    }
+  }
+  if (hasFundableRail) return alternatives;
+
+  local freightRail = [];
+  foreach (project in alternatives) {
+    if (project != null && ("mode" in project) && project.mode == "rail"
+        && ("kind" in project) && project.kind == "freight"
+        && ("payload" in project) && project.payload != null) {
+      freightRail.append(project);
+    }
+  }
+  if (freightRail.len() == 0) return alternatives;
+
+  freightRail.sort(OpexV204CompareProjects);
+
+  foreach (project in freightRail) {
+    local candidate = project.payload;
+    local origWagons = ("v204FullWagons" in candidate) ? candidate.v204FullWagons : (("wagons" in candidate) ? candidate.wagons : 0);
+    if (origWagons <= V204_SHRINK_TO_FIT) {
+      if (DECISION_LOG) {
+        OpexDecide("V204", "step=shrink ok=0 wagons=" + origWagons + "->" + origWagons
+                   + " capital=" + candidate.capital + " budget=" + capitalBudget);
+      }
+      continue;
+    }
+    local shrunkOk = false;
+    local bestW = origWagons;
+    for (local w = origWagons - 1; w >= V204_SHRINK_TO_FIT; w--) {
+      local testEcon = OpexRailShrinkEconomics(candidate, w);
+      if (testEcon != null) {
+        local testProject = {
+          mode = "rail",
+          capital = testEcon.capital,
+          budgetCapital = testEcon.budgetCapital
+        };
+        if (OpexProjectFinanceCapital(testProject) <= capitalBudget && testEcon.capital <= capitalBudget) {
+          bestW = w;
+          shrunkOk = true;
+          break;
+        }
+      }
+    }
+    if (shrunkOk) {
+      candidate.v204Shrunk <- true;
+      candidate.v204FullWagons <- origWagons;
+      OpexRailShrinkEconomicsInPlace(candidate, bestW);
+      project.capital = candidate.capital;
+      project.budgetCapital = (("budgetCapital" in candidate) ? candidate.budgetCapital : candidate.capital);
+      project.profitAnnual = candidate.profitAnnual;
+      project.revenueAnnual = candidate.revenueAnnual;
+      project.roi = candidate.roi;
+      project.budgetScore = OpexProjectScore(project.revenueAnnual, project.budgetCapital);
+      project.opcodeScore = OpexProjectScore(project.revenueAnnual, project.expectedOpcodes);
+      if (DECISION_LOG) {
+        OpexDecide("V204", "step=shrink ok=1 wagons=" + origWagons + "->" + bestW
+                   + " capital=" + candidate.capital + " budget=" + capitalBudget);
+      }
+    } else {
+      if (DECISION_LOG) {
+        OpexDecide("V204", "step=shrink ok=0 wagons=" + origWagons + "->" + V204_SHRINK_TO_FIT
+                   + " capital=" + candidate.capital + " budget=" + capitalBudget);
+      }
+    }
+  }
+  return alternatives;
+}
+
 /* C121 split : le plancher absolu continue de lire project.profitAnnual, qui
  * represente la valeur long terme max-profit. Seul le classement fundScore peut
  * consommer la profondeur portfolio. La calibration C70/C82 est multiplicative
@@ -1093,6 +1184,9 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     if (fitMark != null) OpexSpanAgg("pub.select.score.fit", fitMark);
   }
   alternatives = fittedAlternatives;
+  if (V204_SHRINK_TO_FIT > 0) {
+    alternatives = OpexV204FitRailAlternativesToBudget(alternatives, capitalBudget);
+  }
   local spStates = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.states") : null;
   /* Avant plancher et filtre. */
   /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,

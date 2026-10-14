@@ -571,6 +571,11 @@ function OpexRailSecondTrainMarginal(catalog, line, infraCapital)
  * ensemble apres la seconde evaluation. */
 function OpexApplyRailEconomics(candidate, economics)
 {
+  local isV204Shrunk = ("v204Shrunk" in candidate) && candidate.v204Shrunk;
+  local shrunkWagons = isV204Shrunk ? candidate.wagons : 0;
+  local origPlatformLength = isV204Shrunk ? candidate.platformLength : 0;
+  local fullWagons = isV204Shrunk ? (("v204FullWagons" in candidate) ? candidate.v204FullWagons : economics.wagons) : 0;
+
   candidate.oneWayDays = economics.oneWayDays;
   candidate.trains = economics.trains;
   candidate.wagons = economics.wagons;
@@ -606,6 +611,123 @@ function OpexApplyRailEconomics(candidate, economics)
   } else if ("wagons2" in candidate) {
     candidate.wagons2 = 0;
   }
+  if (isV204Shrunk && shrunkWagons > 0 && shrunkWagons < candidate.wagons) {
+    candidate.v204Shrunk <- true;
+    candidate.v204FullWagons <- fullWagons;
+    if (origPlatformLength > 0) candidate.platformLength = origPlatformLength;
+    OpexRailShrinkEconomicsInPlace(candidate, shrunkWagons);
+  }
+}
+
+/* V204 : recalcul d'economie a rame reduite pour candidat rail.
+ * Recalcule vehicleCost, capital, budgetCapital, perTrain, monthlyCapacity, carried,
+ * revenueAnnual, amortAnnual, profitAnnual, roi.
+ * Ne modifie pas la longueur de quai (platformLength reste celle d'origine pour allongement futur).
+ * Retourne une table avec les metriques recalculees, sans muter candidate. */
+function OpexRailShrinkEconomics(candidate, targetWagons)
+{
+  if (candidate == null || targetWagons < 1) return null;
+  local origWagons = ("v204FullWagons" in candidate) ? candidate.v204FullWagons : (("wagons" in candidate) ? candidate.wagons : 0);
+  if (origWagons <= 0) return null;
+  if (targetWagons >= origWagons) {
+    return {
+      wagons = origWagons,
+      vehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0,
+      capital = ("capital" in candidate) ? candidate.capital : 0,
+      budgetCapital = ("budgetCapital" in candidate) ? candidate.budgetCapital : (("capital" in candidate) ? candidate.capital : 0),
+      perTrain = ("perTrain" in candidate) ? candidate.perTrain : 0,
+      monthlyCapacity = ("monthlyCapacity" in candidate) ? candidate.monthlyCapacity : 0,
+      carried = ("carried" in candidate) ? candidate.carried : 0,
+      revenueAnnual = ("revenueAnnual" in candidate) ? candidate.revenueAnnual : 0,
+      runningAnnual = ("runningAnnual" in candidate) ? candidate.runningAnnual : 0,
+      amortAnnual = ("amortAnnual" in candidate) ? candidate.amortAnnual : 0,
+      profitAnnual = ("profitAnnual" in candidate) ? candidate.profitAnnual : 0,
+      roi = ("roi" in candidate) ? candidate.roi : 0
+    };
+  }
+
+  local trains = ("trains" in candidate && candidate.trains > 0) ? candidate.trains : 1;
+  local locoPrice = (("loco" in candidate) && candidate.loco != null && ("price" in candidate.loco)) ? candidate.loco.price : 0;
+  local totalLocoPrice = trains * locoPrice;
+  local totalOrigWagons = trains * origWagons;
+  local origVehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0;
+  local wagonPrice = totalOrigWagons > 0 ? ((origVehicleCost - totalLocoPrice) / totalOrigWagons) : 0;
+  if (wagonPrice < 0) wagonPrice = 0;
+
+  local newVehicleCost = totalLocoPrice + trains * targetWagons * wagonPrice;
+  local deltaCost = origVehicleCost - newVehicleCost;
+  if (deltaCost < 0) deltaCost = 0;
+
+  local origCapital = ("capital" in candidate) ? candidate.capital : 0;
+  local newCapital = origCapital - deltaCost;
+  if (newCapital < 0) newCapital = 0;
+  local origBudgetCapital = ("budgetCapital" in candidate) ? candidate.budgetCapital : origCapital;
+  local newBudgetCapital = origBudgetCapital - deltaCost;
+  if (newBudgetCapital < 0) newBudgetCapital = 0;
+
+  local origPerTrain = ("perTrain" in candidate) ? candidate.perTrain : 0;
+  local newPerTrain = (origPerTrain * targetWagons) / origWagons;
+  local origMonthlyCap = ("monthlyCapacity" in candidate) ? candidate.monthlyCapacity : 0;
+  local newMonthlyCapacity = (origMonthlyCap * targetWagons) / origWagons;
+
+  local offered = ("offered" in candidate) ? candidate.offered : (("monthly" in candidate) ? candidate.monthly : (("carried" in candidate) ? candidate.carried : 0));
+  local newCarried = (offered < newMonthlyCapacity) ? offered : newMonthlyCapacity;
+  if (newCarried < 0) newCarried = 0;
+
+  local origCarried = ("carried" in candidate) ? candidate.carried : 0;
+  local origRevenue = ("revenueAnnual" in candidate) ? candidate.revenueAnnual : 0;
+  local newRevenueAnnual = (origCarried > 0)
+      ? ((origRevenue.tofloat() * newCarried) / origCarried).tointeger()
+      : 0;
+  if (newRevenueAnnual < 0) newRevenueAnnual = 0;
+
+  local locoLife = (("loco" in candidate) && candidate.loco != null && ("ageYears" in candidate.loco) && candidate.loco.ageYears > 0) ? candidate.loco.ageYears : 20;
+  local deltaAmort = deltaCost / locoLife;
+  local origAmort = ("amortAnnual" in candidate) ? candidate.amortAnnual : 0;
+  local newAmortAnnual = origAmort - deltaAmort;
+  if (newAmortAnnual < 0) newAmortAnnual = 0;
+
+  local newRunningAnnual = ("runningAnnual" in candidate) ? candidate.runningAnnual : 0;
+  local newProfitAnnual = newRevenueAnnual - newRunningAnnual - newAmortAnnual;
+
+  local immobilise = ("immobilise" in candidate) ? candidate.immobilise : 0;
+  local newTotalCapital = newCapital + immobilise;
+  local newRoi = (newProfitAnnual > 0 && newTotalCapital > 0) ? ((newProfitAnnual * 1000) / newTotalCapital) : 0;
+
+  return {
+    wagons = targetWagons,
+    vehicleCost = newVehicleCost,
+    capital = newCapital,
+    budgetCapital = newBudgetCapital,
+    perTrain = newPerTrain,
+    monthlyCapacity = newMonthlyCapacity,
+    carried = newCarried,
+    revenueAnnual = newRevenueAnnual,
+    runningAnnual = newRunningAnnual,
+    amortAnnual = newAmortAnnual,
+    profitAnnual = newProfitAnnual,
+    roi = newRoi
+  };
+}
+
+/* V204 : applique les metriques reduites sur le candidat en place. */
+function OpexRailShrinkEconomicsInPlace(candidate, targetWagons)
+{
+  local shrunk = OpexRailShrinkEconomics(candidate, targetWagons);
+  if (shrunk == null) return candidate;
+  candidate.wagons = shrunk.wagons;
+  candidate.vehicleCost = shrunk.vehicleCost;
+  candidate.capital = shrunk.capital;
+  if ("budgetCapital" in candidate) candidate.budgetCapital = shrunk.budgetCapital;
+  candidate.perTrain = shrunk.perTrain;
+  candidate.monthlyCapacity = shrunk.monthlyCapacity;
+  candidate.carried = shrunk.carried;
+  candidate.revenueAnnual = shrunk.revenueAnnual;
+  candidate.runningAnnual = shrunk.runningAnnual;
+  candidate.amortAnnual = shrunk.amortAnnual;
+  candidate.profitAnnual = shrunk.profitAnnual;
+  candidate.roi = shrunk.roi;
+  return candidate;
 }
 
 /* V163 : second cargo memorise sur un candidat rail, a repasser a OpexLineEconomics quand le

@@ -822,6 +822,72 @@ function OpexAI::_expandRailLines(year)
   }
   if (best == null) {
     if (RAIL_REFLEET) {
+      if (V204_SHRINK_TO_FIT > 0) {
+        foreach (line in this._lines) {
+          if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line)) continue;
+          if (!("v204Shrunk" in line) || !line.v204Shrunk) continue;
+          if (!("v204FullWagons" in line) || line.wagons >= line.v204FullWagons) {
+            line.v204Shrunk = false;
+            continue;
+          }
+          if (("scrapping" in line) && line.scrapping) continue;
+          if (!(line.cargo in this._catalog.wagonByCargo)) continue;
+
+          local missingWagons = line.v204FullWagons - line.wagons;
+          local wagon = this._catalog.wagonByCargo[line.cargo];
+          local wagonPrice = (wagon != null && ("price" in wagon)) ? wagon.price : 0;
+          local trainCost = missingWagons * wagonPrice;
+          local need = trainCost + OpexCashReserve();
+          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          if (money < need) {
+            if (DECISION_LOG) {
+              OpexDecide("V204", "step=grow ok=0 wagons=" + line.wagons + "->" + line.v204FullWagons
+                         + " capital=" + need + " budget=" + money);
+            }
+            continue;
+          }
+
+          local targetVehicle = null;
+          if ("vehicles" in line) {
+            foreach (v in line.vehicles) {
+              if (AIVehicle.IsValidVehicle(v) && AIVehicle.IsPrimaryVehicle(v)
+                  && AIVehicle.GetVehicleType(v) == AIVehicle.VT_RAIL) {
+                targetVehicle = v;
+                break;
+              }
+            }
+          }
+          if (targetVehicle != null && AIVehicle.IsStoppedInDepot(targetVehicle)) {
+            local depotTile = AIVehicle.GetLocation(targetVehicle);
+            local added = 0;
+            for (local m = 0; m < missingWagons; m++) {
+              local car = AIVehicle.BuildVehicle(depotTile, wagon.id);
+              if (AIVehicle.IsValidVehicle(car)) {
+                if (AIVehicle.MoveWagon(car, 0, targetVehicle, 0)) {
+                  added++;
+                } else {
+                  AIVehicle.SellVehicle(car);
+                  break;
+                }
+              } else {
+                break;
+              }
+            }
+            if (added > 0) {
+              local oldW = line.wagons;
+              line.wagons += added;
+              if (line.wagons >= line.v204FullWagons) {
+                line.v204Shrunk = false;
+              }
+              AIVehicle.StartStopVehicle(targetVehicle);
+              if (DECISION_LOG) {
+                OpexDecide("V204", "step=grow ok=1 wagons=" + oldW + "->" + line.wagons
+                           + " capital=" + need + " budget=" + money);
+              }
+            }
+          }
+        }
+      }
       foreach (line in this._lines) {
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         if (V181_RAIL_MAX_TRAINS <= 0) {
@@ -1932,6 +1998,11 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       built.wagons2 <- candidate.wagons2;
       built.monthly2 <- candidate.monthly2;
       built.predRevenue2 <- candidate.revenue2;
+    }
+    if (("v204Shrunk" in candidate) && candidate.v204Shrunk) {
+      local built = this._lines[this._lines.len() - 1];
+      built.v204Shrunk <- true;
+      built.v204FullWagons <- ("v204FullWagons" in candidate) ? candidate.v204FullWagons : candidate.wagons;
     }
     this._nextLineId++;
     if (DECISION_LOG && OpexV190Active() && candidate.kind == "freight") {

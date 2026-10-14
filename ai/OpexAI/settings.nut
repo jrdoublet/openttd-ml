@@ -153,6 +153,8 @@ function OpexLoadSettings()
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
   V197_GUIDED_DOUBLE = AIController.GetSetting("v197_guided_double") != 0;
   V198_TEMPLATE_DOUBLE = AIController.GetSetting("v198_template_double") != 0;
+  local v204Shrink = AIController.GetSetting("v204_shrink_to_fit");
+  V204_SHRINK_TO_FIT = (v204Shrink != null && v204Shrink >= 0) ? v204Shrink : 0;
   V200_DOUBLE_CASH_K = AIController.GetSetting("v200_double_cash_k");
   if (V200_DOUBLE_CASH_K < 0) V200_DOUBLE_CASH_K = 0;
   V199_ROBUST_BUILD = AIController.GetSetting("v199_robust_build") != 0;
