@@ -1,0 +1,1618 @@
+{
+  "claim": "descriptive_only_not_same_tick_not_marginal",
+  "source_version": "7ecbabe8ff4154dfd62184a5d6d1e33db3bbccbf",
+  "capital_threshold": 100000,
+  "seed_results": {
+    "42": {
+      "arms": {
+        "hub_shadow_historical": {
+          "pool_snapshots": 139,
+          "zero_candidate_snapshots": 3,
+          "zero_pool_capital_ge_threshold": 2,
+          "high_capital_events": [
+            {
+              "line": 353,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 294102,
+              "preceding_physical": null,
+              "next_physical": {
+                "line": 439,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-16",
+                "lines_after": 86
+              },
+              "approx_days_to_next_physical": 2
+            },
+            {
+              "line": 440,
+              "last_logged_game_date": "1970-01-16",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 174975,
+              "preceding_physical": {
+                "line": 439,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-16",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 469,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_after": 29
+              },
+              "approx_days_to_next_physical": 3
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 343,
+              "exposure_year": 1969,
+              "quotes": 4,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 0
+            },
+            {
+              "line": 2024,
+              "exposure_year": 1970,
+              "quotes": 1098,
+              "positive_quotes": 54,
+              "maximum_model_gain": 134437,
+              "applied": 0
+            },
+            {
+              "line": 4824,
+              "exposure_year": 1971,
+              "quotes": 1262,
+              "positive_quotes": 1047,
+              "maximum_model_gain": 211649,
+              "applied": 0
+            },
+            {
+              "line": 9837,
+              "exposure_year": 1972,
+              "quotes": 206,
+              "positive_quotes": 136,
+              "maximum_model_gain": 53947,
+              "applied": 0
+            },
+            {
+              "line": 11643,
+              "exposure_year": 1973,
+              "quotes": 58,
+              "positive_quotes": 38,
+              "maximum_model_gain": 7043,
+              "applied": 0
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        },
+        "hub_signed_positive": {
+          "pool_snapshots": 119,
+          "zero_candidate_snapshots": 5,
+          "zero_pool_capital_ge_threshold": 3,
+          "high_capital_events": [
+            {
+              "line": 353,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 294102,
+              "preceding_physical": null,
+              "next_physical": {
+                "line": 439,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-16",
+                "lines_after": 86
+              },
+              "approx_days_to_next_physical": 2
+            },
+            {
+              "line": 440,
+              "last_logged_game_date": "1970-01-16",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 174975,
+              "preceding_physical": {
+                "line": 439,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-16",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 469,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_after": 29
+              },
+              "approx_days_to_next_physical": 3
+            },
+            {
+              "line": 6900,
+              "last_logged_game_date": "1972-05-01",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 114237,
+              "preceding_physical": {
+                "line": 6204,
+                "kind": "fleet_add",
+                "line_id": 1,
+                "arm": null,
+                "last_logged_game_date": "1972-04-10",
+                "lines_before": 696
+              },
+              "next_physical": {
+                "line": 9659,
+                "kind": "air_build",
+                "line_id": 59,
+                "arm": "newpair",
+                "last_logged_game_date": "1972-11-26",
+                "lines_after": 2759
+              },
+              "approx_days_to_next_physical": 209
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 343,
+              "exposure_year": 1969,
+              "quotes": 4,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 1
+            },
+            {
+              "line": 2142,
+              "exposure_year": 1970,
+              "quotes": 1116,
+              "positive_quotes": 33,
+              "maximum_model_gain": 118637,
+              "applied": 1
+            },
+            {
+              "line": 5352,
+              "exposure_year": 1971,
+              "quotes": 1036,
+              "positive_quotes": 921,
+              "maximum_model_gain": 218815,
+              "applied": 1
+            },
+            {
+              "line": 10440,
+              "exposure_year": 1972,
+              "quotes": 303,
+              "positive_quotes": 188,
+              "maximum_model_gain": 57919,
+              "applied": 1
+            },
+            {
+              "line": 11884,
+              "exposure_year": 1973,
+              "quotes": 93,
+              "positive_quotes": 75,
+              "maximum_model_gain": 15660,
+              "applied": 1
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        }
+      },
+      "first_cache_sequence_mismatch_index_zero_based": 3,
+      "first_cache_sequence_mismatch_rows": {
+        "hub_shadow_historical": {
+          "line": 1358,
+          "last_logged_game_date": "1970-04-05",
+          "candidates": 91,
+          "od": 91,
+          "selected": 0,
+          "capital_remaining": 5971,
+          "preceding_physical": {
+            "line": 1357,
+            "kind": "air_build",
+            "line_id": 2,
+            "arm": "hubsite",
+            "last_logged_game_date": "1970-04-05",
+            "lines_before": 1
+          }
+        },
+        "hub_signed_positive": {
+          "line": 1358,
+          "last_logged_game_date": "1970-04-05",
+          "candidates": 91,
+          "od": 91,
+          "selected": 0,
+          "capital_remaining": 46289,
+          "preceding_physical": {
+            "line": 1357,
+            "kind": "air_build",
+            "line_id": 2,
+            "arm": "hubsite",
+            "last_logged_game_date": "1970-04-05",
+            "lines_before": 1
+          }
+        }
+      }
+    },
+    "100": {
+      "arms": {
+        "hub_shadow_historical": {
+          "pool_snapshots": 109,
+          "zero_candidate_snapshots": 4,
+          "zero_pool_capital_ge_threshold": 3,
+          "high_capital_events": [
+            {
+              "line": 449,
+              "last_logged_game_date": "1970-01-17",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 219580,
+              "preceding_physical": {
+                "line": 448,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-17",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 475,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_after": 26
+              },
+              "approx_days_to_next_physical": 2
+            },
+            {
+              "line": 480,
+              "last_logged_game_date": "1970-01-19",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 141434,
+              "preceding_physical": {
+                "line": 475,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_before": 5
+              },
+              "next_physical": {
+                "line": 514,
+                "kind": "air_build",
+                "line_id": 2,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-22",
+                "lines_after": 34
+              },
+              "approx_days_to_next_physical": 3
+            },
+            {
+              "line": 498,
+              "last_logged_game_date": "1970-01-20",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 133795,
+              "preceding_physical": {
+                "line": 475,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_before": 23
+              },
+              "next_physical": {
+                "line": 514,
+                "kind": "air_build",
+                "line_id": 2,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-22",
+                "lines_after": 16
+              },
+              "approx_days_to_next_physical": 2
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 433,
+              "exposure_year": 1969,
+              "quotes": 12,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 0
+            },
+            {
+              "line": 2122,
+              "exposure_year": 1970,
+              "quotes": 1038,
+              "positive_quotes": 150,
+              "maximum_model_gain": 97956,
+              "applied": 0
+            },
+            {
+              "line": 3873,
+              "exposure_year": 1971,
+              "quotes": 678,
+              "positive_quotes": 537,
+              "maximum_model_gain": 185412,
+              "applied": 0
+            },
+            {
+              "line": 7498,
+              "exposure_year": 1972,
+              "quotes": 689,
+              "positive_quotes": 487,
+              "maximum_model_gain": 127744,
+              "applied": 0
+            },
+            {
+              "line": 10277,
+              "exposure_year": 1973,
+              "quotes": 197,
+              "positive_quotes": 150,
+              "maximum_model_gain": 24975,
+              "applied": 0
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        },
+        "hub_signed_positive": {
+          "pool_snapshots": 99,
+          "zero_candidate_snapshots": 4,
+          "zero_pool_capital_ge_threshold": 3,
+          "high_capital_events": [
+            {
+              "line": 449,
+              "last_logged_game_date": "1970-01-17",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 219580,
+              "preceding_physical": {
+                "line": 448,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-17",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 475,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_after": 26
+              },
+              "approx_days_to_next_physical": 2
+            },
+            {
+              "line": 480,
+              "last_logged_game_date": "1970-01-19",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 141434,
+              "preceding_physical": {
+                "line": 475,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_before": 5
+              },
+              "next_physical": {
+                "line": 514,
+                "kind": "air_build",
+                "line_id": 2,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-22",
+                "lines_after": 34
+              },
+              "approx_days_to_next_physical": 3
+            },
+            {
+              "line": 498,
+              "last_logged_game_date": "1970-01-20",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 133795,
+              "preceding_physical": {
+                "line": 475,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-19",
+                "lines_before": 23
+              },
+              "next_physical": {
+                "line": 514,
+                "kind": "air_build",
+                "line_id": 2,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-22",
+                "lines_after": 16
+              },
+              "approx_days_to_next_physical": 2
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 433,
+              "exposure_year": 1969,
+              "quotes": 12,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 1
+            },
+            {
+              "line": 2123,
+              "exposure_year": 1970,
+              "quotes": 1033,
+              "positive_quotes": 145,
+              "maximum_model_gain": 98396,
+              "applied": 1
+            },
+            {
+              "line": 3717,
+              "exposure_year": 1971,
+              "quotes": 635,
+              "positive_quotes": 484,
+              "maximum_model_gain": 185301,
+              "applied": 1
+            },
+            {
+              "line": 8321,
+              "exposure_year": 1972,
+              "quotes": 763,
+              "positive_quotes": 553,
+              "maximum_model_gain": 89695,
+              "applied": 1
+            },
+            {
+              "line": 10246,
+              "exposure_year": 1973,
+              "quotes": 451,
+              "positive_quotes": 380,
+              "maximum_model_gain": 26550,
+              "applied": 1
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        }
+      },
+      "first_cache_sequence_mismatch_index_zero_based": 12,
+      "first_cache_sequence_mismatch_rows": {
+        "hub_shadow_historical": {
+          "line": 1988,
+          "last_logged_game_date": "1970-11-19",
+          "candidates": 166,
+          "od": 166,
+          "selected": 0,
+          "capital_remaining": 14248,
+          "preceding_physical": {
+            "line": 1956,
+            "kind": "air_build",
+            "line_id": 7,
+            "arm": "hubsite",
+            "last_logged_game_date": "1970-11-17",
+            "lines_before": 32
+          }
+        },
+        "hub_signed_positive": {
+          "line": 1987,
+          "last_logged_game_date": "1970-11-18",
+          "candidates": 165,
+          "od": 165,
+          "selected": 0,
+          "capital_remaining": 13717,
+          "preceding_physical": {
+            "line": 1956,
+            "kind": "air_build",
+            "line_id": 7,
+            "arm": "hubsite",
+            "last_logged_game_date": "1970-11-17",
+            "lines_before": 31
+          }
+        }
+      }
+    },
+    "999": {
+      "arms": {
+        "hub_shadow_historical": {
+          "pool_snapshots": 83,
+          "zero_candidate_snapshots": 2,
+          "zero_pool_capital_ge_threshold": 2,
+          "high_capital_events": [
+            {
+              "line": 354,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 134924,
+              "preceding_physical": {
+                "line": 352,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 2
+              },
+              "next_physical": {
+                "line": 1362,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "hubsite",
+                "last_logged_game_date": "1970-03-20",
+                "lines_after": 1008
+              },
+              "approx_days_to_next_physical": 65
+            },
+            {
+              "line": 447,
+              "last_logged_game_date": "1970-01-15",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 110921,
+              "preceding_physical": {
+                "line": 352,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 95
+              },
+              "next_physical": {
+                "line": 1362,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "hubsite",
+                "last_logged_game_date": "1970-03-20",
+                "lines_after": 915
+              },
+              "approx_days_to_next_physical": 64
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 323,
+              "exposure_year": 1969,
+              "quotes": 6,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 0
+            },
+            {
+              "line": 2168,
+              "exposure_year": 1970,
+              "quotes": 1241,
+              "positive_quotes": 22,
+              "maximum_model_gain": 119720,
+              "applied": 0
+            },
+            {
+              "line": 5922,
+              "exposure_year": 1971,
+              "quotes": 2203,
+              "positive_quotes": 1277,
+              "maximum_model_gain": 230353,
+              "applied": 0
+            },
+            {
+              "line": 9334,
+              "exposure_year": 1972,
+              "quotes": 218,
+              "positive_quotes": 85,
+              "maximum_model_gain": 114621,
+              "applied": 0
+            },
+            {
+              "line": 11606,
+              "exposure_year": 1973,
+              "quotes": 1300,
+              "positive_quotes": 1171,
+              "maximum_model_gain": 69257,
+              "applied": 0
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        },
+        "hub_signed_positive": {
+          "pool_snapshots": 104,
+          "zero_candidate_snapshots": 2,
+          "zero_pool_capital_ge_threshold": 2,
+          "high_capital_events": [
+            {
+              "line": 354,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 134924,
+              "preceding_physical": {
+                "line": 352,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 2
+              },
+              "next_physical": {
+                "line": 1362,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "hubsite",
+                "last_logged_game_date": "1970-03-20",
+                "lines_after": 1008
+              },
+              "approx_days_to_next_physical": 65
+            },
+            {
+              "line": 447,
+              "last_logged_game_date": "1970-01-15",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 110921,
+              "preceding_physical": {
+                "line": 352,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 95
+              },
+              "next_physical": {
+                "line": 1362,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "hubsite",
+                "last_logged_game_date": "1970-03-20",
+                "lines_after": 915
+              },
+              "approx_days_to_next_physical": 64
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 323,
+              "exposure_year": 1969,
+              "quotes": 6,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 1
+            },
+            {
+              "line": 2150,
+              "exposure_year": 1970,
+              "quotes": 1222,
+              "positive_quotes": 42,
+              "maximum_model_gain": 119720,
+              "applied": 1
+            },
+            {
+              "line": 5886,
+              "exposure_year": 1971,
+              "quotes": 2438,
+              "positive_quotes": 1224,
+              "maximum_model_gain": 287330,
+              "applied": 1
+            },
+            {
+              "line": 9713,
+              "exposure_year": 1972,
+              "quotes": 955,
+              "positive_quotes": 776,
+              "maximum_model_gain": 119137,
+              "applied": 1
+            },
+            {
+              "line": 11484,
+              "exposure_year": 1973,
+              "quotes": 170,
+              "positive_quotes": 145,
+              "maximum_model_gain": 104536,
+              "applied": 1
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        }
+      },
+      "first_cache_sequence_mismatch_index_zero_based": 4,
+      "first_cache_sequence_mismatch_rows": {
+        "hub_shadow_historical": {
+          "line": 1500,
+          "last_logged_game_date": "1970-06-30",
+          "candidates": 51,
+          "od": 51,
+          "selected": 0,
+          "capital_remaining": 40707,
+          "preceding_physical": {
+            "line": 1491,
+            "kind": "air_build",
+            "line_id": 2,
+            "arm": "newpair",
+            "last_logged_game_date": "1970-06-28",
+            "lines_before": 9
+          }
+        },
+        "hub_signed_positive": {
+          "line": 1492,
+          "last_logged_game_date": "1970-06-28",
+          "candidates": 80,
+          "od": 80,
+          "selected": 0,
+          "capital_remaining": 57743,
+          "preceding_physical": {
+            "line": 1491,
+            "kind": "air_build",
+            "line_id": 2,
+            "arm": "hubsite",
+            "last_logged_game_date": "1970-06-28",
+            "lines_before": 1
+          }
+        }
+      }
+    },
+    "1234": {
+      "arms": {
+        "hub_shadow_historical": {
+          "pool_snapshots": 118,
+          "zero_candidate_snapshots": 3,
+          "zero_pool_capital_ge_threshold": 2,
+          "high_capital_events": [
+            {
+              "line": 354,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 200427,
+              "preceding_physical": {
+                "line": 352,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 2
+              },
+              "next_physical": {
+                "line": 452,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-15",
+                "lines_after": 98
+              },
+              "approx_days_to_next_physical": 1
+            },
+            {
+              "line": 453,
+              "last_logged_game_date": "1970-01-15",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 121963,
+              "preceding_physical": {
+                "line": 452,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-15",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 469,
+                "kind": "air_build",
+                "line_id": 2,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-18",
+                "lines_after": 16
+              },
+              "approx_days_to_next_physical": 3
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 323,
+              "exposure_year": 1969,
+              "quotes": 13,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 0
+            },
+            {
+              "line": 2119,
+              "exposure_year": 1970,
+              "quotes": 888,
+              "positive_quotes": 6,
+              "maximum_model_gain": 11156,
+              "applied": 0
+            },
+            {
+              "line": 4411,
+              "exposure_year": 1971,
+              "quotes": 2168,
+              "positive_quotes": 1270,
+              "maximum_model_gain": 147117,
+              "applied": 0
+            },
+            {
+              "line": 8527,
+              "exposure_year": 1972,
+              "quotes": 1201,
+              "positive_quotes": 989,
+              "maximum_model_gain": 155527,
+              "applied": 0
+            },
+            {
+              "line": 11909,
+              "exposure_year": 1973,
+              "quotes": 285,
+              "positive_quotes": 225,
+              "maximum_model_gain": 105372,
+              "applied": 0
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        },
+        "hub_signed_positive": {
+          "pool_snapshots": 97,
+          "zero_candidate_snapshots": 5,
+          "zero_pool_capital_ge_threshold": 2,
+          "high_capital_events": [
+            {
+              "line": 354,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 200427,
+              "preceding_physical": {
+                "line": 352,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 2
+              },
+              "next_physical": {
+                "line": 452,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-15",
+                "lines_after": 98
+              },
+              "approx_days_to_next_physical": 1
+            },
+            {
+              "line": 453,
+              "last_logged_game_date": "1970-01-15",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 121963,
+              "preceding_physical": {
+                "line": 452,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-15",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 469,
+                "kind": "air_build",
+                "line_id": 2,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-18",
+                "lines_after": 16
+              },
+              "approx_days_to_next_physical": 3
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 323,
+              "exposure_year": 1969,
+              "quotes": 13,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 1
+            },
+            {
+              "line": 2119,
+              "exposure_year": 1970,
+              "quotes": 888,
+              "positive_quotes": 6,
+              "maximum_model_gain": 11156,
+              "applied": 1
+            },
+            {
+              "line": 4008,
+              "exposure_year": 1971,
+              "quotes": 2308,
+              "positive_quotes": 1331,
+              "maximum_model_gain": 187405,
+              "applied": 1
+            },
+            {
+              "line": 8444,
+              "exposure_year": 1972,
+              "quotes": 1056,
+              "positive_quotes": 785,
+              "maximum_model_gain": 128116,
+              "applied": 1
+            },
+            {
+              "line": 12335,
+              "exposure_year": 1973,
+              "quotes": 410,
+              "positive_quotes": 305,
+              "maximum_model_gain": 107921,
+              "applied": 1
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        }
+      },
+      "first_cache_sequence_mismatch_index_zero_based": 10,
+      "first_cache_sequence_mismatch_rows": {
+        "hub_shadow_historical": {
+          "line": 2275,
+          "last_logged_game_date": "1971-02-28",
+          "candidates": 146,
+          "od": 146,
+          "selected": 4,
+          "capital_remaining": 0,
+          "preceding_physical": {
+            "line": 2265,
+            "kind": "air_build",
+            "line_id": 6,
+            "arm": "hubsite",
+            "last_logged_game_date": "1971-02-18",
+            "lines_before": 10
+          }
+        },
+        "hub_signed_positive": {
+          "line": 2275,
+          "last_logged_game_date": "1971-02-28",
+          "candidates": 174,
+          "od": 174,
+          "selected": 4,
+          "capital_remaining": 0,
+          "preceding_physical": {
+            "line": 2274,
+            "kind": "air_build",
+            "line_id": 6,
+            "arm": "hubsite",
+            "last_logged_game_date": "1971-02-28",
+            "lines_before": 1
+          }
+        }
+      }
+    },
+    "5678": {
+      "arms": {
+        "hub_shadow_historical": {
+          "pool_snapshots": 144,
+          "zero_candidate_snapshots": 4,
+          "zero_pool_capital_ge_threshold": 1,
+          "high_capital_events": [
+            {
+              "line": 354,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 181416,
+              "preceding_physical": {
+                "line": 353,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 443,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-15",
+                "lines_after": 89
+              },
+              "approx_days_to_next_physical": 1
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 323,
+              "exposure_year": 1969,
+              "quotes": 8,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 0
+            },
+            {
+              "line": 2029,
+              "exposure_year": 1970,
+              "quotes": 1132,
+              "positive_quotes": 7,
+              "maximum_model_gain": 71105,
+              "applied": 0
+            },
+            {
+              "line": 6514,
+              "exposure_year": 1971,
+              "quotes": 1564,
+              "positive_quotes": 1249,
+              "maximum_model_gain": 208762,
+              "applied": 0
+            },
+            {
+              "line": 8559,
+              "exposure_year": 1972,
+              "quotes": 541,
+              "positive_quotes": 460,
+              "maximum_model_gain": 121457,
+              "applied": 0
+            },
+            {
+              "line": 10665,
+              "exposure_year": 1973,
+              "quotes": 138,
+              "positive_quotes": 115,
+              "maximum_model_gain": 38347,
+              "applied": 0
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        },
+        "hub_signed_positive": {
+          "pool_snapshots": 119,
+          "zero_candidate_snapshots": 20,
+          "zero_pool_capital_ge_threshold": 14,
+          "high_capital_events": [
+            {
+              "line": 354,
+              "last_logged_game_date": "1970-01-14",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 181416,
+              "preceding_physical": {
+                "line": 353,
+                "kind": "air_build",
+                "line_id": 0,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-14",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 443,
+                "kind": "air_build",
+                "line_id": 1,
+                "arm": "newpair",
+                "last_logged_game_date": "1970-01-15",
+                "lines_after": 89
+              },
+              "approx_days_to_next_physical": 1
+            },
+            {
+              "line": 5465,
+              "last_logged_game_date": "1972-02-16",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 112440,
+              "preceding_physical": {
+                "line": 5464,
+                "kind": "fleet_add",
+                "line_id": 3,
+                "arm": null,
+                "last_logged_game_date": "1972-02-16",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 6134,
+                "kind": "air_build",
+                "line_id": 49,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-03-03",
+                "lines_after": 669
+              },
+              "approx_days_to_next_physical": 16
+            },
+            {
+              "line": 6145,
+              "last_logged_game_date": "1972-03-05",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 210920,
+              "preceding_physical": {
+                "line": 6134,
+                "kind": "air_build",
+                "line_id": 49,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-03-03",
+                "lines_before": 11
+              },
+              "next_physical": {
+                "line": 6442,
+                "kind": "air_build",
+                "line_id": 50,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-03-27",
+                "lines_after": 297
+              },
+              "approx_days_to_next_physical": 22
+            },
+            {
+              "line": 6502,
+              "last_logged_game_date": "1972-03-29",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 354604,
+              "preceding_physical": {
+                "line": 6492,
+                "kind": "fleet_add",
+                "line_id": 34,
+                "arm": null,
+                "last_logged_game_date": "1972-03-29",
+                "lines_before": 10
+              },
+              "next_physical": {
+                "line": 6779,
+                "kind": "air_build",
+                "line_id": 51,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-04-19",
+                "lines_after": 277
+              },
+              "approx_days_to_next_physical": 21
+            },
+            {
+              "line": 6781,
+              "last_logged_game_date": "1972-04-20",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 349538,
+              "preceding_physical": {
+                "line": 6779,
+                "kind": "air_build",
+                "line_id": 51,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-04-19",
+                "lines_before": 2
+              },
+              "next_physical": {
+                "line": 6965,
+                "kind": "air_build",
+                "line_id": 52,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-05-09",
+                "lines_after": 184
+              },
+              "approx_days_to_next_physical": 19
+            },
+            {
+              "line": 6966,
+              "last_logged_game_date": "1972-05-09",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 357354,
+              "preceding_physical": {
+                "line": 6965,
+                "kind": "air_build",
+                "line_id": 52,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-05-09",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 7249,
+                "kind": "air_build",
+                "line_id": 53,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-06-03",
+                "lines_after": 283
+              },
+              "approx_days_to_next_physical": 25
+            },
+            {
+              "line": 7263,
+              "last_logged_game_date": "1972-06-03",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 476895,
+              "preceding_physical": {
+                "line": 7249,
+                "kind": "air_build",
+                "line_id": 53,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-06-03",
+                "lines_before": 14
+              },
+              "next_physical": {
+                "line": 7302,
+                "kind": "fleet_add",
+                "line_id": 45,
+                "arm": null,
+                "last_logged_game_date": "1972-06-05",
+                "lines_after": 39
+              },
+              "approx_days_to_next_physical": 2
+            },
+            {
+              "line": 7340,
+              "last_logged_game_date": "1972-06-07",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 412932,
+              "preceding_physical": {
+                "line": 7336,
+                "kind": "fleet_add",
+                "line_id": 44,
+                "arm": null,
+                "last_logged_game_date": "1972-06-06",
+                "lines_before": 4
+              },
+              "next_physical": {
+                "line": 7747,
+                "kind": "air_build",
+                "line_id": 54,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-06-24",
+                "lines_after": 407
+              },
+              "approx_days_to_next_physical": 17
+            },
+            {
+              "line": 7756,
+              "last_logged_game_date": "1972-06-24",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 498929,
+              "preceding_physical": {
+                "line": 7747,
+                "kind": "air_build",
+                "line_id": 54,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-06-24",
+                "lines_before": 9
+              },
+              "next_physical": {
+                "line": 8005,
+                "kind": "air_build",
+                "line_id": 55,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-07-18",
+                "lines_after": 249
+              },
+              "approx_days_to_next_physical": 24
+            },
+            {
+              "line": 8006,
+              "last_logged_game_date": "1972-07-18",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 637798,
+              "preceding_physical": {
+                "line": 8005,
+                "kind": "air_build",
+                "line_id": 55,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-07-18",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 8286,
+                "kind": "air_build",
+                "line_id": 56,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-08-11",
+                "lines_after": 280
+              },
+              "approx_days_to_next_physical": 24
+            },
+            {
+              "line": 8288,
+              "last_logged_game_date": "1972-08-12",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 759657,
+              "preceding_physical": {
+                "line": 8286,
+                "kind": "air_build",
+                "line_id": 56,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-08-11",
+                "lines_before": 2
+              },
+              "next_physical": {
+                "line": 9253,
+                "kind": "air_build",
+                "line_id": 57,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-09-12",
+                "lines_after": 965
+              },
+              "approx_days_to_next_physical": 31
+            },
+            {
+              "line": 9258,
+              "last_logged_game_date": "1972-09-12",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 951375,
+              "preceding_physical": {
+                "line": 9253,
+                "kind": "air_build",
+                "line_id": 57,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-09-12",
+                "lines_before": 5
+              },
+              "next_physical": {
+                "line": 9718,
+                "kind": "air_build",
+                "line_id": 58,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-10-19",
+                "lines_after": 460
+              },
+              "approx_days_to_next_physical": 37
+            },
+            {
+              "line": 9719,
+              "last_logged_game_date": "1972-10-19",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 1172585,
+              "preceding_physical": {
+                "line": 9718,
+                "kind": "air_build",
+                "line_id": 58,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-10-19",
+                "lines_before": 1
+              },
+              "next_physical": {
+                "line": 10503,
+                "kind": "air_build",
+                "line_id": 59,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-12-25",
+                "lines_after": 784
+              },
+              "approx_days_to_next_physical": 67
+            },
+            {
+              "line": 10517,
+              "last_logged_game_date": "1972-12-25",
+              "candidates": 0,
+              "od": 0,
+              "selected": 0,
+              "capital_remaining": 1608597,
+              "preceding_physical": {
+                "line": 10503,
+                "kind": "air_build",
+                "line_id": 59,
+                "arm": "hubhub",
+                "last_logged_game_date": "1972-12-25",
+                "lines_before": 14
+              },
+              "next_physical": {
+                "line": 10948,
+                "kind": "air_build",
+                "line_id": 60,
+                "arm": "newpair",
+                "last_logged_game_date": "1973-02-07",
+                "lines_after": 431
+              },
+              "approx_days_to_next_physical": 44
+            }
+          ],
+          "hub_annual_reports": [
+            {
+              "line": 323,
+              "exposure_year": 1969,
+              "quotes": 8,
+              "positive_quotes": 0,
+              "maximum_model_gain": 0,
+              "applied": 1
+            },
+            {
+              "line": 2030,
+              "exposure_year": 1970,
+              "quotes": 1146,
+              "positive_quotes": 7,
+              "maximum_model_gain": 71105,
+              "applied": 1
+            },
+            {
+              "line": 4995,
+              "exposure_year": 1971,
+              "quotes": 973,
+              "positive_quotes": 716,
+              "maximum_model_gain": 223374,
+              "applied": 1
+            },
+            {
+              "line": 10914,
+              "exposure_year": 1972,
+              "quotes": 338,
+              "positive_quotes": 218,
+              "maximum_model_gain": 72605,
+              "applied": 1
+            },
+            {
+              "line": 12922,
+              "exposure_year": 1973,
+              "quotes": 110,
+              "positive_quotes": 71,
+              "maximum_model_gain": 32724,
+              "applied": 1
+            }
+          ],
+          "first_nonzero_hub_quote_year": 1970
+        }
+      },
+      "first_cache_sequence_mismatch_index_zero_based": 2,
+      "first_cache_sequence_mismatch_rows": {
+        "hub_shadow_historical": {
+          "line": 1258,
+          "last_logged_game_date": "1970-04-13",
+          "candidates": 47,
+          "od": 47,
+          "selected": 0,
+          "capital_remaining": 39703,
+          "preceding_physical": {
+            "line": 1256,
+            "kind": "air_build",
+            "line_id": 2,
+            "arm": "newpair",
+            "last_logged_game_date": "1970-04-03",
+            "lines_before": 2
+          }
+        },
+        "hub_signed_positive": {
+          "line": 1237,
+          "last_logged_game_date": "1970-03-09",
+          "candidates": 36,
+          "od": 36,
+          "selected": 0,
+          "capital_remaining": 86167,
+          "preceding_physical": {
+            "line": 443,
+            "kind": "air_build",
+            "line_id": 1,
+            "arm": "newpair",
+            "last_logged_game_date": "1970-01-15",
+            "lines_before": 794
+          }
+        }
+      }
+    }
+  },
+  "v166_physical_base": {
+    "run_month_rows": {
+      "('OpexAI', 161803, 0)": 60,
+      "('AAAHogEx', 161803, 0)": 60,
+      "('OpexAI', 314159, 0)": 60,
+      "('AAAHogEx', 314159, 0)": 60
+    },
+    "referenced_engine_logs_not_preserved": [
+      "v166_physical_baseline_seed161803_r0.log",
+      "v166_physical_baseline_seed314159_r0.log"
+    ]
+  },
+  "recovered_recent_49m_benchmark": {
+    "manifest_branches": [
+      "aa0",
+      "aa1",
+      "variant"
+    ],
+    "complete_replays_present": {
+      "aa0": {
+        "rows": 49,
+        "last_date": "1975-01-01",
+        "dedicated": true,
+        "unexpected_companies": [],
+        "load_reconcile_seen": true,
+        "terminal_checkpoint_observed": true,
+        "script_failures": [],
+        "opex_terminal": {
+          "company_value": 5543810,
+          "profit_year": 1974739,
+          "profit_year_coverage": "complete",
+          "money": 961669,
+          "current_loan": 0,
+          "n_vehicles": 107,
+          "n_stations": 69,
+          "primary_vehicles_by_mode": {
+            "rail": 11,
+            "road": 3,
+            "air": 93,
+            "water": 0
+          },
+          "air_primary_vehicles": 93,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "performance_history": 655
+        }
+      }
+    },
+    "original_snapshot_date": "1971-01-01",
+    "same_historical_tick": false,
+    "historical_source_exact": false,
+    "historical_source_mismatches": [
+      "air_fleet.nut",
+      "air_recovery.nut",
+      "builder_rail.nut",
+      "builder_road.nut",
+      "builder_water.nut",
+      "event_handlers.nut",
+      "globals_pre.nut",
+      "info.nut",
+      "main.nut",
+      "p4_exits_probe.nut",
+      "persist.nut",
+      "projects_models.nut",
+      "projects_selection.nut",
+      "settings.nut",
+      "task_air.nut",
+      "task_projects.nut",
+      "task_rail.nut",
+      "task_report.nut"
+    ],
+    "paired_comparison_possible": false
+  },
+  "limitations": [
+    "cache candidates=0 means no survivors/injections after an incremental pass, not absence of all feasible projects",
+    "H3 OFF has the V166 economic policy but additional H3 shadow instrumentation; it is not an untouched default V166 run",
+    "cached capital remaining is after reserve and after funded projects, not proof any challenger is viable",
+    "annual hub exposure is not the date of the first credit/decision and cache index mismatch is not a causal first divergence",
+    "V166 physical monthly JSONL does not supply the exact candidateGroups or VM tick of a rejected head"
+  ]
+}
