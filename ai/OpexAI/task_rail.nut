@@ -163,6 +163,11 @@ function OpexAI::_maybeSupersedeRailSearchForOriginReuse(candidate, rank)
   if (("pathfinder" in state) && state.pathfinder != null) state.pathfinder = null;
   if (("segmented" in state) && state.segmented != null) state.segmented = null;
   this._railSearch = null;
+  if (V184_RAIL_SEARCH_SLOTS > 1 && ("slotIndex" in state) && this._v184RailSlots != null
+      && state.slotIndex >= 0 && state.slotIndex < this._v184RailSlots.len()) {
+    this._v184RailSlots[state.slotIndex] = null;
+    this._v184SyncRailSearch();
+  }
   if (C80_WORKER_RAIL && this._activeWorker != null
       && this._activeWorker.kind == "rail_search") {
     this._activeWorker = null;
@@ -252,7 +257,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
          * seconde, et laisser air/route du portefeuille tourner. Un trace de preparation
          * deja depose a son railPlan : on le pose sans nouvel A*, meme si une autre
          * recherche occupe le slot. */
-        if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !c121PrepPlan) {
+        local searchBlocked = (V184_RAIL_SEARCH_SLOTS > 1)
+            ? !this._v184CanStartRailSearch(candidate)
+            : (this._railSearch != null);
+        if (RAIL_SEARCH_RESUMABLE && searchBlocked && !c121PrepPlan) {
           if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
           if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
@@ -1275,14 +1283,20 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   if (RAIL_SEGMENTED_SEARCH) {
     segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight);
     if (segmented == null) {
-      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
+      if (DECISION_LOG) {
+        local slotStr = (V184_RAIL_SEARCH_SLOTS > 1) ? (" slot=" + (this._v184FindFreeSlot() >= 0 ? this._v184FindFreeSlot() : 0)) : "";
+        OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget + slotStr);
+      }
       plan.reason = "NOPA";
       return { pending = false, plan = plan };
     }
   } else {
     pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight);
     if (pathfinder == null) {
-      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
+      if (DECISION_LOG) {
+        local slotStr = (V184_RAIL_SEARCH_SLOTS > 1) ? (" slot=" + (this._v184FindFreeSlot() >= 0 ? this._v184FindFreeSlot() : 0)) : "";
+        OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget + slotStr);
+      }
       plan.reason = "NOPA";
       return { pending = false, plan = plan };
     }
@@ -1296,6 +1310,8 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     else candidate.v89SelectedTick = curTick;
   }
   local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.start") : null;
+  local slotIndex = (V184_RAIL_SEARCH_SLOTS > 1) ? this._v184FindFreeSlot() : 0;
+  if (slotIndex < 0) slotIndex = 0;
   this._railSearch = {
     kind = "primary",
     phase = "search",
@@ -1314,7 +1330,11 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     posPacked = posPacked,
     startDate = curDate,
     startTick = curTick,
+    slotIndex = slotIndex,
   };
+  if (V184_RAIL_SEARCH_SLOTS > 1 && this._v184RailSlots != null && slotIndex < this._v184RailSlots.len()) {
+    this._v184RailSlots[slotIndex] = this._railSearch;
+  }
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "primary", plan.plansA, plan.plansB);
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
@@ -1340,6 +1360,10 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     OpexSpanEvent("astar_ready", "kind=primary");
   }
   if (this._railSearch == null) {
+    if (V184_RAIL_SEARCH_SLOTS > 1 && this._v184RailSlots != null && slotIndex < this._v184RailSlots.len()) {
+      this._v184RailSlots[slotIndex] = null;
+      this._v184SyncRailSearch();
+    }
     if (C80_WORKER_RAIL && this._activeWorker != null && this._activeWorker.kind == "rail_search") {
       this._activeWorker = null;
     }
@@ -1347,7 +1371,12 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   }
   if (this._railSearch.phase == "build") {
     local completed = candidate.railPlan;
-    this._railSearch = null;
+    if (V184_RAIL_SEARCH_SLOTS > 1 && this._v184RailSlots != null && slotIndex < this._v184RailSlots.len()) {
+      this._v184RailSlots[slotIndex] = null;
+      this._v184SyncRailSearch();
+    } else {
+      this._railSearch = null;
+    }
     if (C80_WORKER_RAIL && this._activeWorker != null && this._activeWorker.kind == "rail_search") {
       this._activeWorker = null;
     }
@@ -1459,7 +1488,8 @@ function OpexAI::_continueRailSearch()
   }
 
   if (DECISION_LOG) {
-    OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);
+    local slotStr = (V184_RAIL_SEARCH_SLOTS > 1 && ("slotIndex" in state)) ? (" slot=" + state.slotIndex) : "";
+    OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget + slotStr);
   }
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, slice.stop);
 
@@ -3420,4 +3450,119 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
   }
 
   return { ok = true, reason = "ok" };
+}
+
+/* V184 : gestion des créneaux de recherche A* rail simultanés (v184_rail_search_slots). */
+
+function OpexAI::_v184InitRailSlots()
+{
+  if (V184_RAIL_SEARCH_SLOTS > 1) {
+    this._v184RailSlots = array(V184_RAIL_SEARCH_SLOTS, null);
+    this._v184SlotCursor = 0;
+  } else {
+    this._v184RailSlots = null;
+    this._v184SlotCursor = 0;
+  }
+}
+
+function OpexAI::_v184FindFreeSlot()
+{
+  if (this._v184RailSlots == null) return 0;
+  local n = this._v184RailSlots.len();
+  for (local i = 0; i < n; i++) {
+    if (this._v184RailSlots[i] == null) return i;
+  }
+  return -1;
+}
+
+function OpexAI::_v184ActiveSearchCount()
+{
+  if (this._v184RailSlots == null) return (this._railSearch != null ? 1 : 0);
+  local count = 0;
+  foreach (s in this._v184RailSlots) {
+    if (s != null) count++;
+  }
+  return count;
+}
+
+function OpexAI::_v184CanStartRailSearch(candidate)
+{
+  if (candidate == null) return false;
+  if (this._railSearch != null && ("kind" in this._railSearch) && this._railSearch.kind != "primary") return false;
+  if (this._v184FindFreeSlot() < 0) return false;
+
+  local totalNeed = ("capital" in candidate) ? candidate.capital : 0;
+  local activeCount = 0;
+  if (this._v184RailSlots != null) {
+    foreach (s in this._v184RailSlots) {
+      if (s == null) continue;
+      activeCount++;
+      if ("candidate" in s && s.candidate != null) {
+        local other = s.candidate;
+        if ("capital" in other) totalNeed += other.capital;
+        if (candidate.src == other.src && candidate.dst == other.dst && candidate.cargo == other.cargo) return false;
+        local dSrcSrc = AIMap.DistanceManhattan(candidate.src, other.src);
+        local dDstDst = AIMap.DistanceManhattan(candidate.dst, other.dst);
+        local dSrcDst = AIMap.DistanceManhattan(candidate.src, other.dst);
+        local dDstSrc = AIMap.DistanceManhattan(candidate.dst, other.src);
+        if (dSrcSrc < MIN_SEPARATION || dDstDst < MIN_SEPARATION
+            || (dSrcDst < MIN_SEPARATION && dDstSrc < MIN_SEPARATION)) {
+          return false;
+        }
+      }
+    }
+  }
+  if (activeCount > 0 && OpexAvailableCapital() < totalNeed) return false;
+  return true;
+}
+
+function OpexAI::_v184SelectNextSearchSlot()
+{
+  if (V184_RAIL_SEARCH_SLOTS <= 1 || this._v184RailSlots == null) return;
+  local n = this._v184RailSlots.len();
+  for (local i = 0; i < n; i++) {
+    local idx = (this._v184SlotCursor + i) % n;
+    local s = this._v184RailSlots[idx];
+    if (s != null && ("phase" in s) && s.phase == "search") {
+      this._v184SlotCursor = (idx + 1) % n;
+      this._railSearch = s;
+      return;
+    }
+  }
+  this._v184SyncRailSearch();
+}
+
+function OpexAI::_v184SyncRailSearch()
+{
+  if (V184_RAIL_SEARCH_SLOTS <= 1 || this._v184RailSlots == null) return;
+  if (this._railSearch != null && ("phase" in this._railSearch) && this._railSearch.phase == "search") {
+    foreach (s in this._v184RailSlots) {
+      if (s == this._railSearch) return;
+    }
+  }
+  for (local i = 0; i < this._v184RailSlots.len(); i++) {
+    local s = this._v184RailSlots[i];
+    if (s != null && ("phase" in s) && s.phase == "search") {
+      this._railSearch = s;
+      return;
+    }
+  }
+  for (local i = 0; i < this._v184RailSlots.len(); i++) {
+    local s = this._v184RailSlots[i];
+    if (s != null) {
+      this._railSearch = s;
+      return;
+    }
+  }
+  this._railSearch = null;
+}
+
+function OpexAI::_v184FindSlotByPhase(targetPhase)
+{
+  if (this._v184RailSlots == null) return -1;
+  for (local i = 0; i < this._v184RailSlots.len(); i++) {
+    local s = this._v184RailSlots[i];
+    if (s != null && ("phase" in s) && s.phase == targetPhase) return i;
+  }
+  return -1;
 }

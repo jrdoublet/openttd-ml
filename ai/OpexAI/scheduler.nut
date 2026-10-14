@@ -395,6 +395,9 @@ function OpexAI::_runNextTask()
  * Partagé entre le travailleur "rail_search" (orchestrateur) et le chemin legacy. */
 function OpexAI::_advanceRailSearchSliceWithLedgers()
 {
+  if (V184_RAIL_SEARCH_SLOTS > 1) {
+    this._v184SelectNextSearchSlot();
+  }
   if (this._railSearch == null) return;
   local spanSlice = null;
   /* C41.46 : n'encadrer que les passes qui font REELLEMENT avancer l'A* -- phase == "search".
@@ -449,6 +452,9 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
   if (spanSlice != null) OpexSpanAgg("astar.slice", spanSlice);
   if (PROBE_SPAN_TRACE && this._railSearch != null && this._railSearch.phase == "build") {
     OpexSpanEvent("astar_ready", "kind=" + this._railSearch.kind);
+  }
+  if (V184_RAIL_SEARCH_SLOTS > 1) {
+    this._v184SyncRailSearch();
   }
 }
 

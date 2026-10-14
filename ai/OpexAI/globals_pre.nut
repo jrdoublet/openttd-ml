@@ -23,6 +23,8 @@ V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
 V181_RAIL_MAX_TRAINS <- 0;
+/* V184 : nombre de creneaux de recherche A* rail simultanes (1..4, defaut 1). */
+V184_RAIL_SEARCH_SLOTS <- 1;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;

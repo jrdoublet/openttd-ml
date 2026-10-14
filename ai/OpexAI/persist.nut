@@ -1020,6 +1020,11 @@ function OpexAI::_reconcileAfterLoad()
   local droppedRailSearch = this._reloadDroppedRailSearch ? 1 : 0;
   if (this._reloadDroppedRailSearch) {
     this._railSearch = null;
+    if (V184_RAIL_SEARCH_SLOTS > 1 && this._v184RailSlots != null) {
+      for (local k = 0; k < this._v184RailSlots.len(); k++) {
+        this._v184RailSlots[k] = null;
+      }
+    }
     this._projects = null;
     this._ranked = null;
     this._portfolioInvalidated = true;
@@ -1034,6 +1039,7 @@ function OpexAI::_reconcileAfterLoad()
     }
   }
   this._reloadDroppedRailSearch = false;
+  this._v184InitRailSlots();
 
   /* C80 : au rechargement, un travailleur "rail_search" ou "rail_stock" restauré sans
    * _railSearch (qui n'est pas sauvegardé) doit être abandonné proprement. */
