@@ -1056,6 +1056,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v182_rail_freight_min_dist",
+      description = "V182: minimum distance in tiles for rail freight candidates (generation filter); 0 = inert (default)",
+      min_value = 0, max_value = 512,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v177_rail_pax_min_dist",
       description = "V177: minimum distance in tiles for rail passenger candidates (generation filter); 0 = inert (default)",
       min_value = 0, max_value = 512,

@@ -671,6 +671,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   } else if (distance > bounds.railMax) {
     stats.distanceLong++;
     return null;
+  } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST) {
+    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972). */
+    stats.distanceShort++;
+    return null;
   }
   /* Plafond A* avant l'economie : les paires trop longues etaient evaluees puis rejetees. */
   local iterations = OpexRailIterations(distance);
