@@ -1907,6 +1907,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v192_rail_time_denom_pct",
+      description = "V192: rail score denominator = capital x (1 + pct/100 x (distance/100)^2), proxy of build time (0 = off)",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v184_rail_search_slots",
       description = "V184: number of concurrent primary rail A* search slots (1..4, default 1)",
       min_value = 1, max_value = 4,

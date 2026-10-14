@@ -26,6 +26,8 @@ V180_START_YEAR <- -1;
 V181_RAIL_MAX_TRAINS <- 0;
 /* V184 : nombre de creneaux de recherche A* rail simultanes (1..4, defaut 1). */
 V184_RAIL_SEARCH_SLOTS <- 1;
+/* V192 : denominateur rail ~ temps de chantier (0 = inerte). */
+V192_RAIL_TIME_DENOM_PCT <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
 V186_RAIL_SEARCH_SLICES <- 1;
 /* V187 : second train / doublement autorises pendant une recherche A* de ligne neuve. */
