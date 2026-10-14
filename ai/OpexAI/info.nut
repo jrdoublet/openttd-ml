@@ -1056,6 +1056,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v183_rail_all_freight",
+      description = "V183: rail freight generation covers every freight cargo at once instead of one cargo per pass; 0 = inert (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v182_rail_freight_min_dist",
       description = "V182: minimum distance in tiles for rail freight candidates (generation filter); 0 = inert (default)",
       min_value = 0, max_value = 512,

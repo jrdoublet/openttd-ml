@@ -12,7 +12,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   };
   local freightCargo = (projects != null && ("freightCargo" in projects))
       ? projects.freightCargo : null;
-  if (freightCargo == null) {
+  if (freightCargo == null && !V183_RAIL_ALL_FREIGHT) {
     local freightOrder = OpexFreightCargoOrder(catalog);
     if (freightOrder.len() > 0) freightCargo = freightOrder[0];
   }

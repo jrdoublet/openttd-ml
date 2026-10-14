@@ -1446,7 +1446,7 @@ function OpexAI::_c76RotateFreight(year)
     }
   }
   local mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-  this._projects.rawset("freightCargo", freightCargos[nextCargo]);
+  this._projects.rawset("freightCargo", V183_RAIL_ALL_FREIGHT ? null : freightCargos[nextCargo]);
   /* Rail d'abord : son repli sur un cargo sans candidat publie le cargo reel, que la route
    * reprend ensuite. Chaque appel se termine par OpexReselectProjects. */
   foreach (mode in ["rail", "road"]) {

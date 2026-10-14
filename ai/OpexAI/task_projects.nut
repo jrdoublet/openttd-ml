@@ -2204,6 +2204,8 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
       freightCargo = freightCargos[nextCargo];
     }
   }
+  /* V183 : tous les cargos fret dans la meme passe (null = pas de filtre de cargo). */
+  if (V183_RAIL_ALL_FREIGHT) freightCargo = null;
   if (C80_RAIL_STOCK_GATE) {
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
         fleetPlan, this._abandonedPairs, stage, prior,
