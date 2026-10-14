@@ -1189,3 +1189,7 @@ commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
 - 6 correctifs successifs (coverage, coins de nivellement, nivellement au mieux, extrémités de la voie 2, table de résultat, coût hors sondes A* : un AIAccounting imbriqué NE suffit PAS à isoler les sondes de l'A*, mesuré 0,4-2,3 M£ fictifs par recherche).
 - Smoke h : 2 lignes doubles complètes (coûts réels 116 k et 105 k£, 4 trains sur la 1re), mais −322 k£/an contre la pile B : trésorerie 300 k→18 k£ dès 11/1970, puis `PORTFOLIO_EMPTY` jusqu'en 1972 (2 lignes doubles + 2 simples contre 13 lignes en pile B).
 - AAA en rail seul (40 graines) : voie unique 86 % en 1970, 69 % en 1971, 53 % en 1972. Son estimateur (`estimator.nut` 1765-1825) évalue chaque route en simple (demi-infrastructure, 1 train) ET en double, garde la meilleure valeur et exige ligne + trains finançables. Prochaine étape : choix simple/double par candidat selon la caisse et la valeur.
+
+### Piste utilisateur 14/10 : HogNet (fork d'AAAHogEx, github.com/kakakul/AAAHogEx branche HogNet, cloné dans ../ext/hognet)
+- Objectif réseau plutôt que profit ; utile pour la mécanique : tronc + branches fret (≤ 5 branches/tronc), `FourWayJunction` (railbuilder.nut:3834) posé avant les trains, embranchement ≥ 12 tuiles d'une gare, dépôts des deux côtés, plafond 26 trains par gare de destination, rames longues plutôt que nombreuses, détection de trains bloqués.
+- Plan : V200 = branches sur troncs doubles à la HogNet, après le choix simple/double par candidat.
