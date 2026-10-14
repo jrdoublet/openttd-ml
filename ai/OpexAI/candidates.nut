@@ -34,6 +34,16 @@ const PAX_BAND_ROUTE_ONLY = 4;
  * des NewGRF. La valeur comparee est le revenu brut d'un meme trajet de 20
  * tuiles, sans retard, afin de classer le prix du cargo et non la qualite d'une
  * liaison particuliere. Le cargoId ne sert qu'a rendre les ex-aequo stables. */
+/* V194 : une de nos gares rail est-elle a moins de MIN_SEPARATION de la tuile ? */
+function OpexV194NearOwnRailStation(tile)
+{
+  local stations = AIStationList(AIStation.STATION_TRAIN);
+  foreach (st, _ in stations) {
+    if (AIMap.DistanceManhattan(AIStation.GetLocation(st), tile) < MIN_SEPARATION) return true;
+  }
+  return false;
+}
+
 function OpexFreightCargoOrder(catalog)
 {
   local ranked = [];
@@ -671,8 +681,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   } else if (distance > bounds.railMax) {
     stats.distanceLong++;
     return null;
-  } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST) {
-    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972). */
+  } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
+             && !(V194_SHORT_TO_SERVED_DST && OpexV194NearOwnRailStation(dst))) {
+    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972).
+     * V194 : exempte le fret court vers une de nos gares rail (rattachement V178). */
     stats.distanceShort++;
     return null;
   }
