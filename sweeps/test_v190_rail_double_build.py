@@ -97,16 +97,19 @@ class Declaration(unittest.TestCase):
 class InertDefault(unittest.TestCase):
     def test_economy_inert_at_default(self):
         econ_body = _function_body(_read("economy.nut"), "OpexLineEconomics")
-        self.assertIn('if (V190_RAIL_DOUBLE_BUILD && kind == "freight")', econ_body)
-        self.assertIn('local startTrains = (V190_RAIL_DOUBLE_BUILD && kind == "freight") ? 2 : 1;', econ_body)
+        self.assertTrue('if (V190_RAIL_DOUBLE_BUILD && kind == "freight")' in econ_body or
+                        'if (OpexV190Active() && kind == "freight")' in econ_body)
+        self.assertTrue('local startTrains = (V190_RAIL_DOUBLE_BUILD && kind == "freight") ? 2 : 1;' in econ_body or
+                        'local startTrains = (OpexV190Active() && kind == "freight") ? 2 : 1;' in econ_body)
 
     def test_builder_inert_at_default(self):
         complete_body = _function_body(_read("builder_rail.nut"), "OpexCompleteRailRouteAfterSearch")
-        self.assertIn('if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight")', complete_body)
+        self.assertTrue('if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight")' in complete_body or
+                        'OpexV190Active() && candidate.kind == "freight"' in complete_body)
 
     def test_expand_inert_at_default(self):
         expand_body = _function_body(_read("task_rail.nut"), "OpexAI::_expandRailLines")
-        self.assertIn("!V190_RAIL_DOUBLE_BUILD", expand_body)
+        self.assertTrue("!V190_RAIL_DOUBLE_BUILD" in expand_body or "!OpexV190Active()" in expand_body)
         self.assertIn("if (V181_RAIL_MAX_TRAINS <= 0)", expand_body)
 
 
@@ -141,7 +144,8 @@ class PresenceDesEtapes(unittest.TestCase):
     def test_candidate_capital_and_predicted_trains(self):
         econ_body = _function_body(self.econ, "OpexLineEconomics")
         self.assertIn("2 * travelDist * effectiveTrackCost + 4 * platformLength * catalog.costStation", econ_body)
-        self.assertIn("local startTrains = (V190_RAIL_DOUBLE_BUILD && kind == " + '"freight") ? 2 : 1;', econ_body)
+        self.assertTrue('local startTrains = (V190_RAIL_DOUBLE_BUILD && kind == "freight") ? 2 : 1;' in econ_body or
+                        'local startTrains = (OpexV190Active() && kind == "freight") ? 2 : 1;' in econ_body)
 
     def test_expand_rail_cloning_and_conditions(self):
         expand_body = _function_body(self.task, "OpexAI::_expandRailLines")
@@ -152,7 +156,7 @@ class PresenceDesEtapes(unittest.TestCase):
 
     def test_expand_not_blocked_by_rail_search(self):
         expand_body = _function_body(self.task, "OpexAI::_expandRailLines")
-        self.assertIn("!V190_RAIL_DOUBLE_BUILD", expand_body)
+        self.assertTrue("!V190_RAIL_DOUBLE_BUILD" in expand_body or "!OpexV190Active()" in expand_body)
 
     def test_station_selection_double_platform_filter(self):
         plans_body = _function_body(self.builder, "OpexStationPlans")
@@ -160,7 +164,8 @@ class PresenceDesEtapes(unittest.TestCase):
         self.assertIn("OpexV190FindParallelPlatformPlans(", plans_body)
 
         try_body = _function_body(self.builder, "OpexRailTryPlatformLength")
-        self.assertIn('V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight"', try_body)
+        self.assertTrue('V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight"' in try_body or
+                        'OpexV190Active() && candidate.kind == "freight"' in try_body)
         self.assertIn("isDoubleFreight && plansA.len() == 0", try_body)
         self.assertIn("isDoubleFreight && plansB.len() == 0", try_body)
 
@@ -202,7 +207,8 @@ class SquirrelKeywordSafety(unittest.TestCase):
     def test_no_reserved_keywords(self):
         files_to_check = [
             ("builder_rail.nut", ["OpexV190FindParallelPlatformPlans", "OpexV190CollectParallelTiles",
-                                  "OpexV190MergeIgnoredTiles", "OpexV190PlanDoubleTrack",
+                                  "OpexV190MergeIgnoredTiles", "OpexV190TraceParallelTrack",
+                                  "OpexV190PlanDoubleTrack",
                                   "OpexExecuteRailPlan", "OpexV190ExecuteRailPlan",
                                   "OpexV190RollbackDoubleTrack", "OpexV190VerifyPrimaryTrackIntact",
                                   "OpexConvertDoubleTrackToLoop"]),

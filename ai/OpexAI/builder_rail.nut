@@ -1505,8 +1505,159 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   return acc;
 }
 
-/* V190 : Planifie la seconde voie d'une ligne neuve SANS modifier la carte. */
-function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, deadlineTick)
+/* V190 : Calcule une tuile decalee de (px, py) avec validation des bornes de carte. */
+function OpexV190MakeTile(origTile, px, py)
+{
+  local x = AIMap.GetTileX(origTile) + px;
+  local y = AIMap.GetTileY(origTile) + py;
+  if (x < 0 || y < 0 || x >= AIMap.GetMapSizeX() || y >= AIMap.GetMapSizeY()) return null;
+  local t = AIMap.GetTileIndex(x, y);
+  if (!AIMap.IsValidTile(t)) return null;
+  return t;
+}
+
+/* V190 : Vecteur perpendiculaire normalise pour la direction (dx, dy) selon le cote side (+1 ou -1). */
+function OpexV190GetPerp(dx, dy, side)
+{
+  return { x = -side * dy, y = side * dx };
+}
+
+/* V190 : Trace la seconde voie par decalage parallele adjacent continu de la premiere voie.
+ * Gere les virages interieurs (coupe d'angle), virages exterieurs (contournement continu),
+ * et les ponts/tunnels paralleles avec verification sous AITestMode. */
+function OpexV190TraceParallelTrack(tiles1, planA, planB, planA2, planB2, side, structures1 = null)
+{
+  local n1 = tiles1.len();
+  if (n1 < 3) return null;
+
+  local tiles2 = [];
+  local structures2 = [];
+  local hitSet = {};
+
+  tiles2.append(planA2.station_exit);
+  hitSet[planA2.station_exit] <- true;
+  tiles2.append(planA2.lead);
+  hitSet[planA2.lead] <- true;
+
+  for (local i = 1; i < n1 - 1; i++) {
+    local prev1 = tiles1[i - 1];
+    local cur1 = tiles1[i];
+    local next1 = tiles1[i + 1];
+
+    local manhNext = AIMap.DistanceManhattan(cur1, next1);
+    if (manhNext > 1) {
+      // Franchissement (pont ou tunnel)
+      local dx = AIMap.GetTileX(next1) - AIMap.GetTileX(cur1);
+      local dy = AIMap.GetTileY(next1) - AIMap.GetTileY(cur1);
+      local udx = (dx != 0) ? (dx > 0 ? 1 : -1) : 0;
+      local udy = (dy != 0) ? (dy > 0 ? 1 : -1) : 0;
+      local perp = OpexV190GetPerp(udx, udy, side);
+      local start2 = OpexV190MakeTile(cur1, perp.x, perp.y);
+      local end2 = OpexV190MakeTile(next1, perp.x, perp.y);
+      if (start2 == null || end2 == null) return null;
+
+      if (tiles2.top() != start2) {
+        if (AIMap.DistanceManhattan(tiles2.top(), start2) != 1) return null;
+        tiles2.append(start2);
+        hitSet[start2] <- true;
+      }
+
+      local plannedKind = OpexPlannedStructureKind(structures1, cur1, next1);
+      local structKind = plannedKind;
+      {
+        local testMode = AITestMode();
+        if (plannedKind == "tunnel" || (plannedKind == null && AITunnel.GetOtherTunnelEnd(start2) == end2)) {
+          if (!AITunnel.BuildTunnel(AIVehicle.VT_RAIL, start2)) return null;
+          structKind = "tunnel";
+        } else {
+          local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(start2, end2) + 1);
+          bridges.Valuate(AIBridge.GetMaxSpeed);
+          bridges.Sort(AIList.SORT_BY_VALUE, false);
+          if (bridges.IsEmpty() || !AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), start2, end2)) return null;
+          structKind = "bridge";
+        }
+      }
+      structures2.append({ start = start2, end = end2, kind = structKind });
+      tiles2.append(end2);
+      hitSet[end2] <- true;
+      continue;
+    }
+
+    local manhPrev = AIMap.DistanceManhattan(prev1, cur1);
+    local udx_in = 0;
+    local udy_in = 0;
+    if (manhPrev > 1) {
+      local dx_in = AIMap.GetTileX(cur1) - AIMap.GetTileX(prev1);
+      local dy_in = AIMap.GetTileY(cur1) - AIMap.GetTileY(prev1);
+      udx_in = (dx_in != 0) ? (dx_in > 0 ? 1 : -1) : 0;
+      udy_in = (dy_in != 0) ? (dy_in > 0 ? 1 : -1) : 0;
+    } else {
+      udx_in = AIMap.GetTileX(cur1) - AIMap.GetTileX(prev1);
+      udy_in = AIMap.GetTileY(cur1) - AIMap.GetTileY(prev1);
+    }
+
+    local udx_out = AIMap.GetTileX(next1) - AIMap.GetTileX(cur1);
+    local udy_out = AIMap.GetTileY(next1) - AIMap.GetTileY(cur1);
+
+    local perp_in = OpexV190GetPerp(udx_in, udy_in, side);
+    local perp_out = OpexV190GetPerp(udx_out, udy_out, side);
+
+    if (udx_in == udx_out && udy_in == udy_out) {
+      local p = OpexV190MakeTile(cur1, perp_in.x, perp_in.y);
+      if (p == null) return null;
+      if (tiles2.top() != p) {
+        if (AIMap.DistanceManhattan(tiles2.top(), p) != 1) return null;
+        tiles2.append(p);
+        hitSet[p] <- true;
+      }
+    } else {
+      local cross = udx_in * udy_out - udy_in * udx_out;
+      if (cross == side) {
+        // Virage interieur : point de coupe d'angle
+        local p = OpexV190MakeTile(cur1, perp_in.x + perp_out.x, perp_in.y + perp_out.y);
+        if (p == null) return null;
+        if (tiles2.top() != p) {
+          if (AIMap.DistanceManhattan(tiles2.top(), p) != 1) return null;
+          tiles2.append(p);
+          hitSet[p] <- true;
+        }
+      } else {
+        // Virage exterieur : contournement continu sans coupure
+        local p1 = OpexV190MakeTile(cur1, perp_in.x, perp_in.y);
+        local p2 = OpexV190MakeTile(cur1, perp_in.x + perp_out.x, perp_in.y + perp_out.y);
+        local p3 = OpexV190MakeTile(cur1, perp_out.x, perp_out.y);
+        if (p1 == null || p2 == null || p3 == null) return null;
+        local pts = [p1, p2, p3];
+        foreach (pt in pts) {
+          if (tiles2.top() != pt) {
+            if (AIMap.DistanceManhattan(tiles2.top(), pt) != 1) return null;
+            tiles2.append(pt);
+            hitSet[pt] <- true;
+          }
+        }
+      }
+    }
+  }
+
+  // Raccordement gare B (lead puis station_exit)
+  if (tiles2.top() != planB2.lead) {
+    if (AIMap.DistanceManhattan(tiles2.top(), planB2.lead) != 1) return null;
+    tiles2.append(planB2.lead);
+    hitSet[planB2.lead] <- true;
+  }
+  if (tiles2.top() != planB2.station_exit) {
+    if (AIMap.DistanceManhattan(tiles2.top(), planB2.station_exit) != 1) return null;
+    tiles2.append(planB2.station_exit);
+    hitSet[planB2.station_exit] <- true;
+  }
+
+  return { tiles = tiles2, structures = structures2 };
+}
+
+/* V190 : Planifie la seconde voie d'une ligne neuve SANS modifier la carte.
+ * Tente d'abord le trace parallele direct (0 opcode de recherche, alignement garanti).
+ * En cas d'obstacle infranchissable en parallele direct, bascule sur recherche A*. */
+function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, deadlineTick, structures = null)
 {
   local acc = { ok = false, skip = 2, reason = "NOPARALLEL", step = "NONE", tiles = null, planA = null, planB = null,
                 iterations = 0, structures = null };
@@ -1537,6 +1688,108 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
     return acc;
   }
 
+  // 1. Essai du trace parallele direct
+  local bestTrace = null;
+  local bestPlanA2 = null;
+  local bestPlanB2 = null;
+
+  local dirA = planA.lead - planA.station_exit;
+  local dxA = AIMap.GetTileX(dirA);
+  local dyA = AIMap.GetTileY(dirA);
+
+  local dirB = planB.lead - planB.station_exit;
+  local dxB = AIMap.GetTileX(dirB);
+  local dyB = AIMap.GetTileY(dirB);
+
+  foreach (pA in dualA) {
+    local offA = pA.station_exit - planA.station_exit;
+    local oxA = AIMap.GetTileX(offA);
+    local oyA = AIMap.GetTileY(offA);
+    local side = dxA * oyA - dyA * oxA;
+    if (side != 1 && side != -1) continue;
+
+    local targetOxB = -side * dyB;
+    local targetOyB = side * dxB;
+
+    foreach (pB in dualB) {
+      local offB = pB.station_exit - planB.station_exit;
+      local oxB = AIMap.GetTileX(offB);
+      local oyB = AIMap.GetTileY(offB);
+      if (oxB != targetOxB || oyB != targetOyB) continue;
+
+      local trace = OpexV190TraceParallelTrack(tiles, planA, planB, pA, pB, side, structures);
+      if (trace == null) continue;
+
+      local candidateTiles = trace.tiles;
+      local candidateStructures = trace.structures;
+      if (candidateTiles.len() < 3) continue;
+
+      // Verification collision avec forbidden (voie 1 et quais)
+      local hit = false;
+      for (local i = 1; i < candidateTiles.len() - 1; i++) {
+        if (candidateTiles[i] in forbidden) { hit = true; break; }
+      }
+      if (hit) continue;
+
+      if (!OpexJoinPathIsDedicated(candidateTiles)) continue;
+
+      // Verification constructibilite complete sous AITestMode
+      local testFails = OpexTestRailTrack(candidateTiles, candidateStructures);
+      if (testFails > 0) continue;
+
+      local lastIdx = candidateTiles.len() - 1;
+      if (!OpexRailEndConnected(pA.station_exit, candidateTiles[1], candidateTiles[2], "A")) continue;
+      if (!OpexRailEndConnected(pB.station_exit, candidateTiles[lastIdx - 1], candidateTiles[lastIdx - 2], "B")) continue;
+
+      // Verification aiguillages de sortie sous AITestMode
+      local swOutA = false;
+      local swOutB = false;
+      {
+        local testMode = AITestMode();
+        for (local i2 = 1; i2 <= 6 && i2 < candidateTiles.len() - 2; i2++) {
+          for (local i1 = 1; i1 <= 6 && i1 < tiles.len() - 2; i1++) {
+            if (OpexV181TryBuildSwitch(candidateTiles[i2 - 1], candidateTiles[i2], tiles[i1], tiles[i1 + 1], null, true)) {
+              swOutA = true; break;
+            }
+          }
+          if (swOutA) break;
+        }
+        for (local d1 = 1; d1 <= 6; d1++) {
+          local i1 = tiles.len() - 1 - d1;
+          if (i1 <= 1) continue;
+          for (local d2 = 1; d2 <= 6; d2++) {
+            local i2 = candidateTiles.len() - 1 - d2;
+            if (i2 <= 1) continue;
+            if (OpexV181TryBuildSwitch(tiles[i1 + 1], tiles[i1], candidateTiles[i2], candidateTiles[i2 - 1], null, true)) {
+              swOutB = true; break;
+            }
+          }
+          if (swOutB) break;
+        }
+      }
+      if (!swOutA || !swOutB) continue;
+
+      bestTrace = trace;
+      bestPlanA2 = pA;
+      bestPlanB2 = pB;
+      break;
+    }
+    if (bestTrace != null) break;
+  }
+
+  if (bestTrace != null) {
+    acc.ok = true;
+    acc.skip = 0;
+    acc.reason = "OK";
+    acc.step = "PARALLEL_TRACE_OK";
+    acc.tiles = bestTrace.tiles;
+    acc.planA = bestPlanA2;
+    acc.planB = bestPlanB2;
+    acc.structures = bestTrace.structures;
+    return acc;
+  }
+
+  // 2. Repli : recherche A*
   local ignored = [];
   foreach (tile, ignoredVal in forbidden) ignored.append(tile);
   local searchWeight = OpexRailAstarWeight(AIMap.DistanceManhattan(planA.station_exit, planB.station_exit));
@@ -2234,7 +2487,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
         : AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN);
     local dual = null;
     if (OpexV190Active() && candidate.kind == "freight") {
-      dual = OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, remain, dualDeadline);
+      dual = OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, remain, dualDeadline, plan.structures);
     } else {
       dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null, 0,
                                 remain, dualDeadline, []);
@@ -3242,7 +3495,29 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;
   }
 
-  local depot = OpexBuildDepot(tiles);
+  local tiles2 = plan.tiles2;
+  local planA2 = plan.planA2;
+  local planB2 = plan.planB2;
+
+  local forbiddenDepot1 = {};
+  if (plan.doubleTrack == 1 && tiles2 != null) {
+    foreach (tile in tiles2) forbiddenDepot1[tile] <- true;
+    if (planA2 != null) {
+      for (local i = 0; i < planA2.length; i++) forbiddenDepot1[planA2.anchor + planA2.step * i] <- true;
+      if ("station_exit" in planA2) forbiddenDepot1[planA2.station_exit] <- true;
+      if ("lead" in planA2) forbiddenDepot1[planA2.lead] <- true;
+    }
+    if (planB2 != null) {
+      for (local i = 0; i < planB2.length; i++) forbiddenDepot1[planB2.anchor + planB2.step * i] <- true;
+      if ("station_exit" in planB2) forbiddenDepot1[planB2.station_exit] <- true;
+      if ("lead" in planB2) forbiddenDepot1[planB2.lead] <- true;
+    }
+    // Interdire les 4 premieres tuiles a A et a B pour les aiguillages de croisement
+    for (local k = 1; k <= 4 && k < tiles.len() - 1; k++) forbiddenDepot1[tiles[k]] <- true;
+    for (local k = tiles.len() - 2; k >= tiles.len() - 5 && k >= 1; k--) forbiddenDepot1[tiles[k]] <- true;
+  }
+
+  local depot = OpexBuildDepot(tiles, forbiddenDepot1);
   result.opcodes += budget.end("build_track");
   if (depot == null) {
     OpexRollback(tiles, planA, planB, null, null);
@@ -3253,9 +3528,6 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local primaryCost = costs.GetCosts();
   costs = null;
 
-  local tiles2 = plan.tiles2;
-  local planA2 = plan.planA2;
-  local planB2 = plan.planB2;
   local depot2 = null;
   local doubleCost = 0;
   local okD = false;
@@ -3303,12 +3575,24 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
         forbiddenD[depot] <- true;
         local depotFront = AIRail.GetRailDepotFrontTile(depot);
         if (AIMap.IsValidTile(depotFront)) forbiddenD[depotFront] <- true;
+        if (planA != null) {
+          for (local i = 0; i < planA.length; i++) forbiddenD[planA.anchor + planA.step * i] <- true;
+          if ("station_exit" in planA) forbiddenD[planA.station_exit] <- true;
+          if ("lead" in planA) forbiddenD[planA.lead] <- true;
+        }
+        if (planB != null) {
+          for (local i = 0; i < planB.length; i++) forbiddenD[planB.anchor + planB.step * i] <- true;
+          if ("station_exit" in planB) forbiddenD[planB.station_exit] <- true;
+          if ("lead" in planB) forbiddenD[planB.lead] <- true;
+        }
+        for (local k = 1; k <= 4 && k < tiles2.len() - 1; k++) forbiddenD[tiles2[k]] <- true;
+        for (local k = tiles2.len() - 2; k >= tiles2.len() - 5 && k >= 1; k--) forbiddenD[tiles2[k]] <- true;
         depot2 = OpexBuildDepot(tiles2, forbiddenD);
-        if (depot2 != null) {
-          local second = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot2,
-                                         planA2.station_exit, planB2.station_exit, 1, candidate.loco,
-                                         candidate.wagons, candidate.platformLength, false);
-          if (!second.failed && second.built > 0) {
+        local trainDepot = (depot2 != null) ? depot2 : depot;
+        local second = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, trainDepot,
+                                       planA2.station_exit, planB2.station_exit, 1, candidate.loco,
+                                       candidate.wagons, candidate.platformLength, false);
+        if (!second.failed && second.built > 0) {
             secondRollbackVehicles = second.rollbackVehicles;
             local loopLine = {
               mode = "rail",
@@ -3337,7 +3621,6 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
           }
         }
       }
-    }
     if (!okD) {
       local failReason = (!okA2 || !okB2) ? "STN2FAIL" : (tFail != 0 || !conn2 ? "TRK2FAIL" : (depot2 == null ? "DEP2FAIL" : "LOOPFAIL"));
       local failDetail = "NONE";
@@ -3941,8 +4224,8 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     local testMode = AITestMode();
 
     // Gare A : switch outbound (Quai 2 -> Voie 1 vers B)
-    for (local i2 = 1; i2 <= 4 && i2 < last2 - 2; i2++) {
-      for (local i1 = 1; i1 <= 4 && i1 < last1 - 2; i1++) {
+    for (local i2 = 1; i2 <= 6 && i2 < last2 - 2; i2++) {
+      for (local i1 = 1; i1 <= 6 && i1 < last1 - 2; i1++) {
         if (OpexV181TryBuildSwitch(tiles2[i2 - 1], tiles2[i2], tiles1[i1], tiles1[i1 + 1], null, true)) {
           switchOutA = { fromIdx = i2, toIdx = i1 };
           break;
@@ -3953,9 +4236,9 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
 
     // Gare A : switch inbound (Voie 2 venant de B -> Quai 1)
     if (switchOutA != null) {
-      for (local i2 = 1; i2 <= 5 && i2 < last2 - 2; i2++) {
+      for (local i2 = 1; i2 <= 6 && i2 < last2 - 2; i2++) {
         if (i2 == switchOutA.fromIdx) continue;
-        for (local i1 = 1; i1 <= 5 && i1 < last1 - 2; i1++) {
+        for (local i1 = 1; i1 <= 6 && i1 < last1 - 2; i1++) {
           if (i1 == switchOutA.toIdx) continue;
           if (OpexV181TryBuildSwitch(tiles2[i2 + 1], tiles2[i2], tiles1[i1], tiles1[i1 - 1], null, true)) {
             switchInA = { fromIdx = i2, toIdx = i1 };
@@ -3967,10 +4250,10 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     }
 
     // Gare B : switch outbound (Quai 1 -> Voie 2 vers A)
-    for (local d1 = 1; d1 <= 4; d1++) {
+    for (local d1 = 1; d1 <= 6; d1++) {
       local i1 = last1 - d1;
       if (i1 <= 1) continue;
-      for (local d2 = 1; d2 <= 4; d2++) {
+      for (local d2 = 1; d2 <= 6; d2++) {
         local i2 = last2 - d2;
         if (i2 <= 1) continue;
         if (OpexV181TryBuildSwitch(tiles1[i1 + 1], tiles1[i1], tiles2[i2], tiles2[i2 - 1], null, true)) {
@@ -3983,10 +4266,10 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
 
     // Gare B : switch inbound (Voie 1 venant de A -> Quai 2)
     if (switchOutB != null) {
-      for (local d1 = 1; d1 <= 5; d1++) {
+      for (local d1 = 1; d1 <= 6; d1++) {
         local i1 = last1 - d1;
         if (i1 <= 1 || i1 == switchOutB.fromIdx) continue;
-        for (local d2 = 1; d2 <= 5; d2++) {
+        for (local d2 = 1; d2 <= 6; d2++) {
           local i2 = last2 - d2;
           if (i2 <= 1 || i2 == switchOutB.toIdx) continue;
           if (OpexV181TryBuildSwitch(tiles1[i1 - 1], tiles1[i1], tiles2[i2], tiles2[i2 + 1], null, true)) {
@@ -3999,11 +4282,9 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     }
   }
 
-  if (switchOutA == null || switchInA == null || switchOutB == null || switchInB == null) {
+  if (switchOutA == null || switchOutB == null) {
     if (loopDiag != null) {
-      loopDiag.step <- (switchOutA == null ? "NO_SW_OUT_A"
-                     : (switchInA == null ? "NO_SW_IN_A"
-                     : (switchOutB == null ? "NO_SW_OUT_B" : "NO_SW_IN_B")));
+      loopDiag.step <- (switchOutA == null ? "NO_SW_OUT_A" : "NO_SW_OUT_B");
     }
     return false;
   }
@@ -4018,8 +4299,9 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_A";
   }
-  if (buildOk && !OpexV181TryBuildSwitch(tiles2[switchInA.fromIdx + 1], tiles2[switchInA.fromIdx],
-                                        tiles1[switchInA.toIdx], tiles1[switchInA.toIdx - 1], placedTracks, false)) {
+  if (buildOk && switchInA != null &&
+      !OpexV181TryBuildSwitch(tiles2[switchInA.fromIdx + 1], tiles2[switchInA.fromIdx],
+                              tiles1[switchInA.toIdx], tiles1[switchInA.toIdx - 1], placedTracks, false)) {
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_IN_A";
   }
@@ -4028,8 +4310,9 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_B";
   }
-  if (buildOk && !OpexV181TryBuildSwitch(tiles1[switchInB.fromIdx - 1], tiles1[switchInB.fromIdx],
-                                        tiles2[switchInB.toIdx], tiles2[switchInB.toIdx + 1], placedTracks, false)) {
+  if (buildOk && switchInB != null &&
+      !OpexV181TryBuildSwitch(tiles1[switchInB.fromIdx - 1], tiles1[switchInB.fromIdx],
+                              tiles2[switchInB.toIdx], tiles2[switchInB.toIdx + 1], placedTracks, false)) {
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_IN_B";
   }
@@ -4042,8 +4325,21 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
   }
 
   // 3. Pose des signaux a sens unique le long des voies et entrees de gare
-  local startIdx1 = (switchOutA.toIdx > switchInA.toIdx ? switchOutA.toIdx : switchInA.toIdx) + 1;
-  local endIdx1 = (switchOutB.fromIdx < switchInB.fromIdx ? switchOutB.fromIdx : switchInB.fromIdx) - 1;
+  local maxA1 = switchOutA.toIdx;
+  if (switchInA != null && switchInA.toIdx > maxA1) maxA1 = switchInA.toIdx;
+  local startIdx1 = maxA1 + 1;
+
+  local minB1 = switchOutB.fromIdx;
+  if (switchInB != null && switchInB.fromIdx < minB1) minB1 = switchInB.fromIdx;
+  local endIdx1 = minB1 - 1;
+
+  local maxA2 = switchOutA.fromIdx;
+  if (switchInA != null && switchInA.fromIdx > maxA2) maxA2 = switchInA.fromIdx;
+  local startIdx2 = maxA2 + 1;
+
+  local minB2 = switchOutB.toIdx;
+  if (switchInB != null && switchInB.toIdx < minB2) minB2 = switchInB.toIdx;
+  local endIdx2 = minB2 - 1;
 
   if (endIdx1 >= startIdx1) {
     OpexV181BuildOneWaySignal(tiles1[endIdx1], tiles1[endIdx1 - 1]);
