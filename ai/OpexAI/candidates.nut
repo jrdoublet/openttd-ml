@@ -1513,6 +1513,7 @@ function OpexRailOriginReuseEvaluatePax(catalog, lines, deferred, out, stats,
       out.append(candidate);
     }
   }
+  if (DECISION_LOG) OpexDecide("V203", "step=scan lines=" + dbg.lines + " ok=" + dbg.ok + " near=" + dbg.near + " unserved=" + dbg.unserved + " made=" + dbg.made + " tk=" + targetKind + " fc=" + freightCargo);
 }
 
 function OpexRailOriginReuseEvaluateFreight(catalog, lines, deferred,
@@ -1922,8 +1923,10 @@ function OpexRailFeederCandidates(catalog, lines, out, stats, profile = null, cr
   if (!V203_RAIL_FEEDERS || lines == null) return;
   local industries = catalog.industries;
   local seenPairs = {};
+  local dbg = { lines = 0, ok = 0, near = 0, unserved = 0, made = 0 };
 
   foreach (line in lines) {
+    dbg.lines++;
     if (!("kind" in line) || line.kind != "freight") continue;
     if (("mode" in line) && line.mode != "rail") continue;
     if (!("lineId" in line)) continue;
@@ -1933,6 +1936,7 @@ function OpexRailFeederCandidates(catalog, lines, out, stats, profile = null, cr
 
     local destTile = line.stationB;
     local cargo = line.cargo;
+    dbg.ok++;
     if (!(cargo in catalog.producers)) continue;
     local sources = catalog.producers[cargo];
 
@@ -1944,10 +1948,12 @@ function OpexRailFeederCandidates(catalog, lines, out, stats, profile = null, cr
       // Rayon <= 100 tuiles de D et >= 20 tuiles
       local dist = AIMap.DistanceManhattan(source.tile, destTile);
       if (dist < 20 || dist > 100) continue;
+      dbg.near++;
 
       // Non deja desservies par nous
       local ss = (served != null && si < served.len()) ? served[si] : OpexOriginService(lines, source.tile);
       if (ss != null) continue;
+      dbg.unserved++;
 
       // Non la meme origine ou gare que la ligne existante
       if (("originA" in line) && AIMap.DistanceManhattan(source.tile, line.originA) < ORIGIN_SEPARATION) continue;
@@ -1975,6 +1981,7 @@ function OpexRailFeederCandidates(catalog, lines, out, stats, profile = null, cr
       local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                           destTile, monthly, true, stats, false, profile, cruiseCache);
       if (candidate == null) continue;
+      dbg.made++;
 
       // Marquage V203
       candidate.feederOf <- line.lineId;
