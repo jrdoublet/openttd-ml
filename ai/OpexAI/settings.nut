@@ -116,6 +116,8 @@ function OpexLoadSettings()
   MODE_WATER = AIController.GetSetting("mode_water") != 0;
   V168_RAIL_MAX_DIST = AIController.GetSetting("v168_rail_max_dist");
   if (V168_RAIL_MAX_DIST < 0) V168_RAIL_MAX_DIST = 0;
+  V177_RAIL_PAX_MIN_DIST = AIController.GetSetting("v177_rail_pax_min_dist");
+  if (V177_RAIL_PAX_MIN_DIST < 0) V177_RAIL_PAX_MIN_DIST = 0;
   V171_RAIL_KNOTS = AIController.GetSetting("v171_rail_knots") != 0 ? 1 : 0;
   local longWeightPct = AIController.GetSetting("v172_rail_long_weight_pct");
   V172_RAIL_LONG_WEIGHT_PCT = (longWeightPct != null && longWeightPct >= 0 && longWeightPct <= 300) ? longWeightPct : 0;

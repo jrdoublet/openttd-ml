@@ -1056,6 +1056,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v177_rail_pax_min_dist",
+      description = "V177: minimum distance in tiles for rail passenger candidates (generation filter); 0 = inert (default)",
+      min_value = 0, max_value = 512,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v168_rail_max_dist",
       description = "V168: rail candidate maximum distance in tiles. 160 = default (qualified 13/10: gate A 40x3 +152.7 k/yr, gate B 20x10 pass); 0 = historical bound derived from the A* iteration cap through the knot table (94 tiles at a 10k cap); N = use N tiles and drop the knot-table iteration filter (the per-search A* cap still applies)",
       min_value = 0, max_value = 512,

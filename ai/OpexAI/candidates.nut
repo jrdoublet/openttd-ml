@@ -658,6 +658,12 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceShort++;
       return null;
     }
+    /* V177 : en rail seul, les lignes pax courtes rendent 0,19 du capital contre 0,69 pour le
+     * fret long (banc railseul_origin_reuse_10x3_20261014) ; 0 = inerte. */
+    if (V177_RAIL_PAX_MIN_DIST > 0 && distance < V177_RAIL_PAX_MIN_DIST) {
+      stats.distanceShort++;
+      return null;
+    }
     if (distance > bounds.railMax) {
       stats.distanceLong++;
       return null;
