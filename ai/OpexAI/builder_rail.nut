@@ -412,7 +412,7 @@ function OpexAddRailSearchOps(candidate, ops)
 
 /* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
-function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
+function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, corridor = null)
 {
   local sources = [];
   local goals = [];
@@ -434,6 +434,9 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
     pathfinder = RailPathFinder();
   }
   pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+  if (corridor != null && ("SetCorridor" in pathfinder)) {
+    pathfinder.SetCorridor(corridor);
+  }
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
   return pathfinder;
 }
@@ -738,7 +741,7 @@ function OpexTrySegmentedBacktrack(state)
 /* Cree l'etat d'une recherche segmentee. Table passee en parametre : Squirrel ici
  * ne capture pas les locales englobantes (piege 6). pathfinder reste null jusqu'au
  * premier segment : le closed set ne survit jamais d'un segment a l'autre. */
-function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null)
+function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, corridor = null)
 {
   local sources = [];
   local goals = [];
@@ -755,6 +758,7 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     activeSources = sources,
     goals = goals,
     ignoredTiles = ignoredTiles == null ? [] : ignoredTiles,
+    corridor = corridor,
     destinationCenter = OpexDestinationCenter(plansB),
     prefix = null,
     structures = [],
@@ -811,6 +815,9 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       }
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+      if (("corridor" in state) && state.corridor != null && ("SetCorridor" in pathfinder)) {
+        pathfinder.SetCorridor(state.corridor);
+      }
       local ignored = OpexSegmentIgnoredTiles(state);
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);
       state.pathfinder = pathfinder;
@@ -986,11 +993,11 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
  *
  * rail_segmented_search=1 : meme enveloppe, mais chaque A* vise les quais finals et s'arrete
  * a 2000 iterations. Defaut 0 = A* classique inchange (table de cout, plafond A3). */
-function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
+function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null, corridor = null)
 {
   local res;
   if (RAIL_SEGMENTED_SEARCH) {
-    local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles);
+    local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles, corridor);
     if (state == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
       return { path = null, iterations = 0, stop = "NOPA" };
@@ -998,7 +1005,7 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTi
     /* sliceIters = iterationBudget : une seule avancee jusqu'au chemin / ABND / DEAD / NOPA. */
     res = OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
   } else {
-    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles);
+    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles, corridor);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
       return { path = null, iterations = 0, stop = "NOPA" };
@@ -2577,13 +2584,154 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
   return OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
 }
 
+/* V175 : Recupere la liste des tuiles de la premiere voie d'une ligne.
+ * Reutilise line.trackTiles si present, ou retrace le reseau ferre existant sur la carte
+ * entre platformA.station_exit et platformB.station_exit par un parcours direct. */
+function OpexGetLineTrackTiles(line)
+{
+  if (line == null) return [];
+  if (("trackTiles" in line) && line.trackTiles != null && line.trackTiles.len() > 0) {
+    return line.trackTiles;
+  }
+  if (!("platformA" in line) || !("platformB" in line) || line.platformA == null || line.platformB == null) return [];
+  local start = line.platformA.station_exit;
+  local goal = line.platformB.station_exit;
+  if (!AIMap.IsValidTile(start) || !AIMap.IsValidTile(goal)) return [];
+
+  local visited = {};
+  local parent = {};
+  local queue = [start];
+  visited[start] <- true;
+  local qHead = 0;
+  local found = false;
+  local selfCompany = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local offsets = [AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
+                   AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1)];
+
+  while (qHead < queue.len() && queue.len() < 2000) {
+    local cur = queue[qHead++];
+    if (cur == goal) { found = true; break; }
+
+    if (AITunnel.IsTunnelTile(cur)) {
+      local other = AITunnel.GetOtherTunnelEnd(cur);
+      if (AIMap.IsValidTile(other) && !(other in visited)) {
+        visited[other] <- true;
+        parent[other] <- cur;
+        queue.append(other);
+      }
+    }
+    if (AIBridge.IsBridgeTile(cur)) {
+      local other = AIBridge.GetOtherBridgeEnd(cur);
+      if (AIMap.IsValidTile(other) && !(other in visited)) {
+        visited[other] <- true;
+        parent[other] <- cur;
+        queue.append(other);
+      }
+    }
+    foreach (off in offsets) {
+      local nextTile = cur + off;
+      if (!AIMap.IsValidTile(nextTile) || (nextTile in visited)) continue;
+      if (AIRail.IsRailTile(nextTile) || AITunnel.IsTunnelTile(nextTile) || AIBridge.IsBridgeTile(nextTile)) {
+        if (AITile.GetOwner(nextTile) == selfCompany) {
+          visited[nextTile] <- true;
+          parent[nextTile] <- cur;
+          queue.append(nextTile);
+        }
+      }
+    }
+  }
+
+  if (!found) {
+    local fallbackTiles = [];
+    foreach (t, _ in visited) fallbackTiles.append(t);
+    return fallbackTiles;
+  }
+
+  local path = [];
+  local curr = goal;
+  while (curr in parent) {
+    path.append(curr);
+    curr = parent[curr];
+  }
+  path.append(start);
+  path.reverse();
+  line.trackTiles <- path;
+  return path;
+}
+
+/* V175 : Precalcule par BFS le couloir autorise pour la seconde voie a distance <= radius
+ * de la premiere voie (plateformes et voie courante). Table de hachage [tile] = distance. */
+function OpexBuildTwinCorridor(line, radius)
+{
+  if (radius <= 0) return null;
+  local corridor = {};
+  local frontier = [];
+
+  local trackTiles = OpexGetLineTrackTiles(line);
+  foreach (t in trackTiles) {
+    if (AIMap.IsValidTile(t) && !(t in corridor)) {
+      corridor[t] <- 0;
+      frontier.append(t);
+    }
+  }
+
+  if (("platformA" in line) && line.platformA != null) {
+    local pA = line.platformA;
+    for (local i = 0; i < pA.length; i++) {
+      local t = pA.anchor + pA.step * i;
+      if (AIMap.IsValidTile(t) && !(t in corridor)) {
+        corridor[t] <- 0;
+        frontier.append(t);
+      }
+    }
+    if (("lead" in pA) && AIMap.IsValidTile(pA.lead) && !(pA.lead in corridor)) {
+      corridor[pA.lead] <- 0;
+      frontier.append(pA.lead);
+    }
+  }
+  if (("platformB" in line) && line.platformB != null) {
+    local pB = line.platformB;
+    for (local i = 0; i < pB.length; i++) {
+      local t = pB.anchor + pB.step * i;
+      if (AIMap.IsValidTile(t) && !(t in corridor)) {
+        corridor[t] <- 0;
+        frontier.append(t);
+      }
+    }
+    if (("lead" in pB) && AIMap.IsValidTile(pB.lead) && !(pB.lead in corridor)) {
+      corridor[pB.lead] <- 0;
+      frontier.append(pB.lead);
+    }
+  }
+
+  if (frontier.len() == 0) return null;
+
+  local offsets = [AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
+                   AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1)];
+  for (local r = 1; r <= radius; r++) {
+    local nextFrontier = [];
+    foreach (t in frontier) {
+      foreach (off in offsets) {
+        local nb = t + off;
+        if (AIMap.IsValidTile(nb) && !(nb in corridor)) {
+          corridor[nb] <- r;
+          nextFrontier.append(nb);
+        }
+      }
+    }
+    frontier = nextFrontier;
+  }
+
+  return corridor;
+}
+
 /* Prepare la recherche de seconde voie d'une ligne existante, SANS lancer l'A*.
  * ok=false => pas de pathfinder a poser (raison dans .reason). */
 function OpexPrepareUpgradeSearch(line, hardCap = 10000)
 {
   local prep = { ok = false, reason = "", dualA = null, dualB = null, ignored = null,
                  forbidden = null, iterationBudget = hardCap, planA = null, planB = null,
-                 stationIdA = -1, stationIdB = -1 };
+                 stationIdA = -1, stationIdB = -1, corridor = null };
   if (line == null || (("doubleTrack" in line) && line.doubleTrack == 1)) {
     prep.reason = "ALREADY_DOUBLE";
     return prep;
@@ -2635,6 +2783,24 @@ function OpexPrepareUpgradeSearch(line, hardCap = 10000)
   prep.planB = planB;
   prep.stationIdA = stationIdA;
   prep.stationIdB = stationIdB;
+
+  /* V175 : Couloir de recherche seconde voie */
+  if (V175_RAIL_TWIN_CORRIDOR > 0) {
+    prep.corridor = OpexBuildTwinCorridor(line, V175_RAIL_TWIN_CORRIDOR);
+    if (prep.corridor != null) {
+      foreach (p in dualA) {
+        prep.corridor[p.lead] <- 0;
+        prep.corridor[p.station_exit] <- 0;
+      }
+      foreach (p in dualB) {
+        prep.corridor[p.lead] <- 0;
+        prep.corridor[p.station_exit] <- 0;
+      }
+    }
+  } else {
+    prep.corridor = null;
+  }
+
   return prep;
 }
 
@@ -2750,11 +2916,26 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
   local prep = OpexPrepareUpgradeSearch(line, hardCap);
   if (!prep.ok) {
     result.reason = prep.reason;
+    result.corridorUsed <- 0;
     return result;
   }
   local deadlineTick = AIController.GetTick() + hardCap / 3 + BUILD_TICK_MARGIN;
-  local search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored);
-  return OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, search, prep);
+  local search = null;
+  local corrVal = 0;
+  if (V175_RAIL_TWIN_CORRIDOR > 0 && ("corridor" in prep) && prep.corridor != null) {
+    corrVal = V175_RAIL_TWIN_CORRIDOR;
+    search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored, prep.corridor);
+    if (search.path == false || search.path == null) {
+      /* Repli sur la recherche actuelle sans couloir */
+      corrVal = "fallback";
+      search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored, null);
+    }
+  } else {
+    search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored, null);
+  }
+  result = OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, search, prep);
+  result.corridorUsed <- corrVal;
+  return result;
 }
 
 /* Construit un 2e train sur une ligne deja doublee avec depot2 valide. */

@@ -886,7 +886,8 @@ function OpexAI::_expandRailLines(year)
               local anchor = AIMap.GetTileIndex(1, 1);
               OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + upgrade.reason);
               if (DECISION_LOG) {
-                OpexDecide("RAIL_EXPAND", "action=double_track line=" + line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
+                local corrVal = ("corridorUsed" in upgrade) ? upgrade.corridorUsed : 0;
+                OpexDecide("RAIL_EXPAND", "action=double_track line=" + line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0) + " corr=" + corrVal);
               }
               if (upgrade.ok) {
                 line.rawset("doubleTrack", 1);
@@ -1362,8 +1363,43 @@ function OpexAI::_continueRailSearch()
     return;
   }
 
+  if (state.kind == "upgrade") {
+    if (slice.stop != "OK" && ("corridor" in state) && state.corridor > 0
+        && (!("corridorFallback" in state) || !state.corridorFallback)) {
+      /* Repli sur la recherche actuelle sans couloir */
+      state.corridorFallback <- true;
+      if (DECISION_LOG) {
+        OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent
+                   + " budget=" + state.iterationBudget + " kind=upgrade corr=" + state.corridor + "_fail");
+      }
+      if (C56_TASK_TRACE) {
+        OpexC56TaskLog("RAIL_SEARCH_END", "upgrade", this._taskCycle,
+                       "outcome=" + slice.stop + " result=corridor_fail iters=" + state.spent
+                       + " len=0 weight=" + ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100)
+                       + " budget=" + state.iterationBudget
+                       + " corr=" + state.corridor + "_fail");
+      }
+      state.spent = 0;
+      if (RAIL_SEGMENTED_SEARCH) {
+        state.segmented = OpexCreateSegmentedSearch(state.prep.dualA, state.prep.dualB, state.iterationBudget, state.prep.ignored, null);
+      } else {
+        state.pathfinder = OpexCreateRailPathfinder(state.prep.dualA, state.prep.dualB, state.prep.ignored, null);
+      }
+      state.safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS;
+      this._continueRailSearch();
+      return;
+    }
+  }
+
+  local corrTag = "0";
+  if (state.kind == "upgrade" && ("corridor" in state) && state.corridor > 0) {
+    corrTag = (("corridorFallback" in state) && state.corridorFallback) ? "fallback" : state.corridor.tostring();
+  }
+  if (state.kind == "upgrade") state.corridorTag <- corrTag;
+
   if (DECISION_LOG) {
-    OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);
+    local corrPart = (state.kind == "upgrade") ? (" kind=upgrade corr=" + corrTag) : "";
+    OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget + corrPart);
   }
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, slice.stop);
 
@@ -1419,7 +1455,8 @@ function OpexAI::_continueRailSearch()
       OpexC56TaskLog("RAIL_SEARCH_END", "upgrade", this._taskCycle,
                      "outcome=" + outcome + " result=" + result + " iters=" + state.spent
                      + " len=" + pathLen + " weight=" + weightUsed
-                     + " budget=" + state.iterationBudget);
+                     + " budget=" + state.iterationBudget
+                     + " corr=" + corrTag);
     }
     /* `search` n'existe pas dans l'etat initial : en Squirrel, une nouvelle
      * cle de table exige `<-`, sinon le premier upgrade leve une exception. */
@@ -1671,6 +1708,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       headwayDays = candidate.headwayDays, stationRating = candidate.stationRating,
       vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
       depot = result.depot,
+      trackTiles = ("trackTiles" in result && result.trackTiles != null) ? result.trackTiles : null,
       doubleTrack = ("doubleTrack" in result) ? result.doubleTrack : 0,
       depot2 = ("depot2" in result) ? result.depot2 : null,
       stationA2 = ("stationA2" in result) ? result.stationA2 : null,
@@ -1706,10 +1744,11 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 }
 function OpexAI::_startRailUpgradeSearch(line, prep)
 {
+  local corridor = ("corridor" in prep) ? prep.corridor : null;
   local pathfinder = null;
   local segmented = null;
   if (RAIL_SEGMENTED_SEARCH) {
-    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored);
+    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, corridor);
     if (segmented == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
@@ -1717,7 +1756,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
       return;
     }
   } else {
-    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored);
+    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, corridor);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
@@ -1736,6 +1775,8 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
     safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS,
     line = line,
     prep = prep,
+    corridor = (corridor != null) ? V175_RAIL_TWIN_CORRIDOR : 0,
+    corridorFallback = false,
   };
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "upgrade", prep.dualA, prep.dualB);
   if (C80_WORKER_RAIL) {
@@ -1785,10 +1826,12 @@ function OpexAI::_consumeRailUpgrade()
     }
     return;
   }
+  local corrVal = ("corridorTag" in state) ? state.corridorTag : 0;
+  upgrade.corridorUsed <- corrVal;
   local anchor = AIMap.GetTileIndex(1, 1);
   OpexSign(anchor, "RU|" + (year % 100) + "|" + state.line.lineId + "|" + upgrade.reason);
   if (DECISION_LOG) {
-    OpexDecide("RAIL_EXPAND", "action=double_track line=" + state.line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
+    OpexDecide("RAIL_EXPAND", "action=double_track line=" + state.line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0) + " corr=" + corrVal);
   }
   if (upgrade.ok) {
     local line = state.line;

@@ -655,6 +655,7 @@ OPEX_SAVE_LINE_SKIP <- {
   c121TargetCarriedPax = true, c121TargetCarriedMail = true,
   c121TargetCarried = true, c121TargetRevenueAnnual = true,
   c121TargetProfitAnnual = true, c121TargetPlanes = true,
+  trackTiles = true,
 };
 
 /* Copie serialisable d'une ligne. `clone` copie la table en natif ; on ne

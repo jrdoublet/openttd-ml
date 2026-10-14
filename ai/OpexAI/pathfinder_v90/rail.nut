@@ -42,6 +42,9 @@ class OpexRailPathFinderV90
 	/* V91 : Poids heuristique (pourcentage, 100 = non pondéré V90) */
 	_weight = 100;
 
+	/* V175 : Couloir de recherche seconde voie (table [tile] = true/dist) */
+	_corridor = null;
+
 	/* V90 : Constantes et précalculs par instance */
 	_mapSizeX = null;
 	_offsets = null;
@@ -193,6 +196,11 @@ function OpexRailPathFinderV90::SetWeight(weight)
 	this._weight = (weight >= 100) ? weight : 100;
 	local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
 	this._pathfinder._estimate_callback = target_fn;
+}
+
+function OpexRailPathFinderV90::SetCorridor(corridor)
+{
+	this._corridor = corridor;
 }
 
 function OpexRailPathFinderV90::InitializePath(sources, goals, ignored_tiles = [])
@@ -455,6 +463,7 @@ function OpexRailPathFinderV90::_Neighbours(path, cur_node, self)
 	} else if (path.GetParent() != null && AIMap.DistanceManhattan(cur_node, path.GetParent().GetTile()) > 1) {
 		local other_end = path.GetParent().GetTile();
 		local next_tile = cur_node + (cur_node - other_end) / AIMap.DistanceManhattan(cur_node, other_end);
+		if (self._corridor != null && !(next_tile in self._corridor)) return [];
 		foreach (offset in offsets) {
 			if (AIRail.BuildRail(cur_node, next_tile, next_tile + offset)) {
 				tiles.push([next_tile, self._GetDirection(other_end, cur_node, next_tile, true)]);
@@ -469,6 +478,8 @@ function OpexRailPathFinderV90::_Neighbours(path, cur_node, self)
 			/* Disallow 90 degree turns */
 			if (path.GetParent() != null && path.GetParent().GetParent() != null &&
 				next_tile - cur_node == path.GetParent().GetParent().GetTile() - path.GetParent().GetTile()) continue;
+			/* V175 : Couloir de seconde voie */
+			if (self._corridor != null && !(next_tile in self._corridor)) continue;
 			/* We add them to the to the neighbours-list if we can build a rail to
 			 *  them and no rail exists there. */
 			if ((path.GetParent() == null || AIRail.BuildRail(path.GetParent().GetTile(), cur_node, next_tile))) {
@@ -482,6 +493,7 @@ function OpexRailPathFinderV90::_Neighbours(path, cur_node, self)
 		if (path.GetParent() != null && path.GetParent().GetParent() != null) {
 			local bridges = self._GetTunnelsBridges(path.GetParent().GetTile(), cur_node, self._GetDirection(path.GetParent().GetParent().GetTile(), path.GetParent().GetTile(), cur_node, true));
 			foreach (tile in bridges) {
+				if (self._corridor != null && !(tile[0] in self._corridor)) continue;
 				tiles.push(tile);
 			}
 		}
@@ -639,6 +651,11 @@ class OpexRailPathfinderCheckerV90
 		this._v90.InitializePath(sources, goals, ignored_tiles);
 		this._pathfinder = this._v90._pathfinder;
 		this._isWeighted = (this._v90._weight > 100);
+	}
+
+	function SetCorridor(corridor)
+	{
+		this._v90.SetCorridor(corridor);
 	}
 
 	function FindPath(iterations)

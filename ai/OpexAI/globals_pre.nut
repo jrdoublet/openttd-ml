@@ -17,6 +17,9 @@ V168_RAIL_MAX_DIST <- 160;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;
+/* V175 : couloir de recherche de la seconde voie (demi-largeur en tuiles).
+ * 0 = inerte (defaut, A* 2D classique) ; 1..3 = tuiles a distance <= N de la premiere voie. */
+V175_RAIL_TWIN_CORRIDOR <- 0;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;

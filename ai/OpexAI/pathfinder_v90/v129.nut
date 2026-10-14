@@ -511,6 +511,7 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 		} else if (par != null && AIMap.DistanceManhattan(cur_node, par._tile) > 1) {
 			local other_end = par._tile;
 			local next_tile = cur_node + (cur_node - other_end) / AIMap.DistanceManhattan(cur_node, other_end);
+			if (self._corridor != null && !(next_tile in self._corridor)) return [];
 			foreach (offset in self._offsets) {
 				if (AIRail.BuildRail(cur_node, next_tile, next_tile + offset)) {
 					tiles.push([next_tile, self._GetDirection(other_end, cur_node, next_tile, true)]);
@@ -521,7 +522,9 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 			local dirIdx = self._dirIdx;
 			if (par == null) {
 				for (local i = 0; i < 4; i++) {
-					tiles.push([cur_node + offsets[i], 1 << (4 + dirIdx[i])]);
+					local next_tile = cur_node + offsets[i];
+					if (self._corridor != null && !(next_tile in self._corridor)) continue;
+					tiles.push([next_tile, 1 << (4 + dirIdx[i])]);
 				}
 			} else {
 				local par_tile = par._tile;
@@ -535,6 +538,8 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 					if (next_tile == par_tile) continue;
 					/* Disallow 90 degree turns */
 					if (gp != null && offset == blocked) continue;
+					/* V175 : Couloir de seconde voie */
+					if (self._corridor != null && !(next_tile in self._corridor)) continue;
 					if (AIRail.BuildRail(par_tile, cur_node, next_tile)) {
 						tiles.push([next_tile, 1 << (shift0 + dirIdx[i])]);
 					}
@@ -557,6 +562,7 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 		for (local i = 2; i < this._max_bridge_length; i++) {
 			if (i in bridgeTable) {
 				local target = cur_node + i * (cur_node - last_node);
+				if (this._corridor != null && !(target in this._corridor)) continue;
 				if (AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridgeTable[i], cur_node, target)) {
 					if (bridge_dir == null) bridge_dir = this._GetDirection(gp_tile, last_node, cur_node, true);
 					tiles.push([target, bridge_dir]);
@@ -567,6 +573,7 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 		if (slope != AITile.SLOPE_SW && slope != AITile.SLOPE_NW && slope != AITile.SLOPE_SE && slope != AITile.SLOPE_NE) return;
 		local other_tunnel_end = AITunnel.GetOtherTunnelEnd(cur_node);
 		if (!AIMap.IsValidTile(other_tunnel_end)) return;
+		if (this._corridor != null && !(other_tunnel_end in this._corridor)) return;
 
 		local tunnel_length = AIMap.DistanceManhattan(cur_node, other_tunnel_end);
 		local prev_tile = cur_node + (cur_node - other_tunnel_end) / tunnel_length;
@@ -627,6 +634,12 @@ class OpexRailPathfinderCheckerV129
 	}
 
 	function LastConsumed() { return this._consumed; }
+
+	function SetCorridor(corridor)
+	{
+		this._v90.SetCorridor(corridor);
+		this._v129.SetCorridor(corridor);
+	}
 
 	function _Note(desc)
 	{

@@ -1073,6 +1073,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v175_rail_twin_corridor",
+      description = "V175: twin track search corridor half-width in tiles around the first track. 0 = inert (default, unconstrained 2D A*); 1..3 = restrict second track exploration to distance <= N tiles from first track with unconstrained fallback",
+      min_value = 0, max_value = 3,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "policy_air",
       description = "Aviation policy: portfolio arbitration, runway cadence cap, joined bus stops, hub reuse: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
