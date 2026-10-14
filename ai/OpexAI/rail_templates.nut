@@ -609,8 +609,23 @@ function OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, f
 /* Construction d'une ligne complete V198 avec gabarits de gare et double voie guidee. */
 function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 {
-  local result = { ok = false, reason = "", trains = 0, vehicles = [], actualCost = 0,
-                   capital = candidate.capital };
+  local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
+                   error = 0, diag = null, trains = 0, vehicles = [],
+                   stationA = null, stationB = null, depot = null,
+                   platformA = null, platformB = null, trainLength = 0, wagons = candidate.wagons,
+                   platformLength = plan.length, locoLength = 0, wagonLength = 0,
+                   wantedPlatformLength = candidate.platformLength, plansA = plan.plansA.len(),
+                   plansB = plan.plansB.len(), slopeRelaxed = plan.slopeRelaxed,
+                   siteClear = plan.siteClear, siteCargo = plan.siteCargo, siteCmd = plan.siteCmd,
+                   siteKind = candidate.kind == "pax" ? "P" : "F",
+                   capacitySignalsOk = 0, capacitySignalsFail = 0, capacitySignalSegments = 0, capacitySignalFailures = [],
+                   doubleTrack = plan.doubleTrack, doubleSkip = plan.doubleSkip,
+                   doubleTiles = plan.doubleTiles, doubleDepot = plan.doubleDepot,
+                   capital = plan.capital, money = 0, actualCost = 0,
+                   budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget,
+                   segmentedSegments = plan.segmentedSegments,
+                   segmentedBacktracks = plan.segmentedBacktracks,
+                   segmentedLocalChoices = plan.segmentedLocalChoices };
 
   // 1. Recherche et validation des emplacements des deux gabarits
   local srcTemplate = OpexFindSourceTemplateSite(catalog, candidate, plan.length);
@@ -768,19 +783,27 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   result.reason = "OK";
   result.trains = trains.built;
   result.vehicles = trains.vehicles;
+  result.trainLength = trains.trainLength;
+  result.locoLength = trains.locoLength;
+  result.wagonLength = trains.wagonLength;
+  result.error = trains.error;
+  result.diag = trains.diag;
+  OpexApplyRailActualCapital(candidate, costs.GetCosts());
   result.actualCost = costs.GetCosts();
   result.capital = result.actualCost;
   result.stationA = builtSrc.platformTile;
   result.stationB = builtDst.platformTile;
   result.depot = builtSrc.depotTile;
-  result.doubleTrack <- 1;
+  result.doubleTrack = 1;
   result.loop <- 1;
   result.v181Loop <- true;
   result.stationA2 <- builtSrc.platformTile;
   result.stationB2 <- builtDst.platformTile;
   result.depot2 <- builtSrc.depotTile;
-  result.platformA <- { anchor = builtSrc.platformTile, length = plan.length };
-  result.platformB <- { anchor = builtDst.platformTile, length = plan.length };
+  result.platformA = { anchor = builtSrc.platformTile, length = plan.length, direction = null, step = null,
+                       station_exit = builtSrc.depPrev, lead = builtSrc.depTile };
+  result.platformB = { anchor = builtDst.platformTile, length = plan.length, direction = null, step = null,
+                       station_exit = builtDst.arrNext, lead = builtDst.arrTile };
   result.platformA2 <- result.platformA;
   result.platformB2 <- result.platformB;
   result.tiles <- tiles1;

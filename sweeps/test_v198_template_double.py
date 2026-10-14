@@ -204,7 +204,7 @@ class ExecutionAndRollback(unittest.TestCase):
 
     def test_train_creation_and_shared_orders_compatibility(self):
         self.assertIn("OpexBuildTrains(", self.exec_body)
-        self.assertIn("result.doubleTrack <- 1;", self.exec_body)
+        self.assertIn("result.doubleTrack = 1;", self.exec_body)
         self.assertIn("result.loop <- 1;", self.exec_body)
         self.assertIn("result.v181Loop <- true;", self.exec_body)
         self.assertIn("result.stationA2 <- builtSrc.platformTile;", self.exec_body)
