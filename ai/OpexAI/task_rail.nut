@@ -840,6 +840,10 @@ function OpexAI::_expandRailLines(year)
 
         if (line.trains < 2 && line.vehicles.len() < 2) {
           local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
+          if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
+            OpexDecide("V187_REFLEET", "line=" + line.lineId + " waiting=" + waiting + " thr=" + backlogThreshold
+                       + " profit=" + line.lastProfit + " dbl=" + ((("doubleTrack" in line) && line.doubleTrack == 1) ? 1 : 0));
+          }
           if (waiting < backlogThreshold) continue;
 
           // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
