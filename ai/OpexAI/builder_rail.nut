@@ -3252,7 +3252,7 @@ function OpexV200WantDouble(candidate, cashReserve)
 {
   if (V200_DOUBLE_CASH_K <= 0) return true;
   local capital = ("capital" in candidate) ? candidate.capital : 0;
-  local need = capital * 2 + cashReserve + V200_DOUBLE_CASH_K * 1000;
+  local need = capital * 2 + cashReserve;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local ok = money >= need;
   if (DECISION_LOG) OpexDecide("V200", "double=" + (ok ? 1 : 0) + " money=" + money + " need=" + need);
