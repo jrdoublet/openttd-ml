@@ -126,6 +126,9 @@ function OpexLoadSettings()
   V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
   V179_RAIL_GEN_DEST_SERVED = AIController.GetSetting("v179_rail_gen_dest_served") != 0;
   local wagonBoost = AIController.GetSetting("v180_rail_wagon_boost_pct");
+  local boostDelay = AIController.GetSetting("v180_rail_wagon_boost_delay");
+  V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
+  if (V180_START_YEAR < 0) V180_START_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
   V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
