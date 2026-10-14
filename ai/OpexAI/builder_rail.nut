@@ -2994,7 +2994,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   } else {
     if (DECISION_LOG) {
-      OpexDecide("V190", "action=fallback_single line=" + candidate.src + "->" + candidate.dst + " trains=1 reason=NOPLAN2");
+      OpexDecide("V190", "action=fallback_single line=" + candidate.src + "->" + candidate.dst + " trains=1 reason=NOPLAN2 skip=" + (("doubleSkip" in plan) ? plan.doubleSkip : -1));
     }
   }
 
