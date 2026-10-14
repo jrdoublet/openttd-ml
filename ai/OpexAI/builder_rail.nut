@@ -1991,9 +1991,235 @@ function OpexRailCaptureTrackFailure(failure, tiles, i, cur, kind, err, manhPrev
  * dup_index). Ces lectures restent dans le `if` deja garde : sonde eteinte ou
  * echec deja enregistre, aucun appel. connect = BuildRail vrai mais
  * AreTilesConnected faux. */
-function OpexBuildTrack(tiles, structures = null, failure = null)
+/* V199 : verification si une tuile genante peut etre demolie (arbres, maisons autorisees, hors rail adverse). */
+function OpexV199CanDemolishTile(tile)
+{
+  if (!AIMap.IsValidTile(tile)) return false;
+  if (AITile.HasTransportType(tile, AITile.TRANSPORT_RAIL)) {
+    if (!AICompany.IsMine(AITile.GetOwner(tile))) return false;
+    if (AIRail.IsRailStationTile(tile) || AIRail.IsRailDepotTile(tile)) return false;
+  }
+  if (AITile.IsWaterTile(tile)) return false;
+  local testMode = AITestMode();
+  return AITile.DemolishTile(tile);
+}
+
+/* V199 : reprise locale de pose rail par A* bornee (budget <= 20%) vers une tuile 5 a 15 cases plus loin (ou la fin). */
+function OpexV199RetryToBuild(tiles, failIdx, initialBudget, retriesCount, failure = null, options = null)
+{
+  local L = tiles.len();
+  if (failIdx <= 0 || failIdx >= L - 1) return null;
+
+  local startTile = tiles[failIdx - 1];
+  local startPrev = (failIdx >= 2) ? tiles[failIdx - 2] : null;
+  local faultyTile = tiles[failIdx];
+
+  local ignored = [faultyTile];
+  for (local k = 0; k < failIdx - 1; k++) {
+    ignored.append(tiles[k]);
+  }
+
+  local budgetCap = (initialBudget != null && initialBudget > 0) ? initialBudget : 5000;
+  local retryBudget = (budgetCap * 20) / 100;
+  if (retryBudget < 200) retryBudget = 200;
+  local deadlineTick = AIController.GetTick() + retryBudget / 3 + BUILD_TICK_MARGIN;
+
+  local targetIndices = [];
+  local step10 = failIdx + 10;
+  if (step10 < L - 1) {
+    targetIndices.append(step10);
+  } else {
+    local step5 = failIdx + 5;
+    if (step5 < L - 1) targetIndices.append(step5);
+  }
+  if (targetIndices.len() == 0 || targetIndices[targetIndices.len() - 1] != L - 1) {
+    targetIndices.append(L - 1);
+  }
+
+  local sourcesPlans = [{ lead = startTile, station_exit = (startPrev != null ? startPrev : startTile) }];
+
+  foreach (targetIdx in targetIndices) {
+    local tIdx = targetIdx;
+    while (tIdx < L - 1 && AIMap.DistanceManhattan(tiles[tIdx], tiles[tIdx + 1]) > 1) {
+      tIdx++;
+    }
+    local targetTile = tiles[tIdx];
+    local targetNext = (tIdx < L - 1) ? tiles[tIdx + 1] : tiles[tIdx - 1];
+    local goalsPlans = [{ lead = targetTile, station_exit = targetNext }];
+
+    local preCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    local preAccounting = null;
+    local preAccountingCost = 0;
+    if (options != null && ("accounting" in options) && options.accounting != null) {
+      preAccounting = options.accounting;
+      preAccountingCost = preAccounting.GetCosts();
+    }
+
+    local pathfinder = OpexCreateRailPathfinder(sourcesPlans, goalsPlans, ignored, 100);
+    if (pathfinder == null) continue;
+
+    local advance = OpexAdvanceRailPathfinder(pathfinder, 0, retryBudget, deadlineTick, retryBudget);
+
+    if (preAccounting != null && options != null && ("retrySearchCost" in options)) {
+      local deltaAcc = preAccounting.GetCosts() - preAccountingCost;
+      if (deltaAcc > 0) options.retrySearchCost += deltaAcc;
+    }
+
+    if (advance.path != false && advance.path != null) {
+      local subTiles = OpexPathTiles(advance.path);
+      if (subTiles != null && subTiles.len() >= 2) {
+        local startPos = 0;
+        for (local s = 0; s < subTiles.len(); s++) {
+          if (subTiles[s] == startTile) {
+            startPos = s;
+            break;
+          }
+        }
+        local newTiles = [];
+        for (local k = 0; k < failIdx; k++) newTiles.append(tiles[k]);
+        for (local s = startPos + 1; s < subTiles.len(); s++) newTiles.append(subTiles[s]);
+        for (local k = tIdx + 1; k < L; k++) newTiles.append(tiles[k]);
+
+        local retryCost = preCash - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        if (retryCost < 0) retryCost = 0;
+
+        if (DECISION_LOG) {
+          OpexDecide("V199", "step=retry ok=1 n=" + retriesCount + " cost=" + retryCost);
+        }
+        return { ok = true, tiles = newTiles, resumeIdx = failIdx };
+      }
+    }
+  }
+
+  // Echec de la reprise : demolir proprement ce qui a ete pose
+  for (local k = failIdx - 1; k >= 1; k--) {
+    local t = tiles[k];
+    if (AIMap.IsValidTile(t) && AICompany.IsMine(AITile.GetOwner(t))) {
+      if (AIRail.IsRailTile(t) || AIBridge.IsBridgeTile(t) || AITunnel.IsTunnelTile(t)) {
+        AITile.DemolishTile(t);
+      }
+    }
+  }
+
+  if (DECISION_LOG) {
+    OpexDecide("V199", "step=retry ok=0 n=" + retriesCount + " cost=0");
+  }
+  return { ok = false };
+}
+
+/* V199 : nivellement de la bande laterale cote retour apres pose de voie 1 (RebuildForHomeward ameliore). */
+function OpexV199RebuildForHomeward(tiles1, side = 1, budgetK = 20)
+{
+  if (!V199_ROBUST_BUILD) return 0;
+  if (tiles1 == null || tiles1.len() < 2) return 0;
+
+  local maxCost = budgetK * 1000;
+  local totalCost = 0;
+  local leveledCount = 0;
+
+  for (local i = 0; i < tiles1.len() - 1; i++) {
+    if (totalCost >= maxCost) break;
+
+    local cur = tiles1[i];
+    local nxt = tiles1[i + 1];
+    local d = AIMap.DistanceManhattan(cur, nxt);
+    if (d != 1) continue; // Sauter ponts et tunnels
+
+    if (AIBridge.IsBridgeTile(cur) || AIBridge.IsBridgeTile(nxt) ||
+        AITunnel.IsTunnelTile(cur) || AITunnel.IsTunnelTile(nxt)) {
+      continue;
+    }
+
+    local dx = AIMap.GetTileX(nxt) - AIMap.GetTileX(cur);
+    local dy = AIMap.GetTileY(nxt) - AIMap.GetTileY(cur);
+    local perp = OpexV190GetPerp(dx, dy, side);
+    local revCur = OpexV190MakeTile(cur, perp.x, perp.y);
+    local revNxt = OpexV190MakeTile(nxt, perp.x, perp.y);
+
+    if (revCur == null || revNxt == null) continue;
+    if (!AIMap.IsValidTile(revCur) || !AIMap.IsValidTile(revNxt)) continue;
+
+    // Sauter cotes, eau, ponts, tunnels, tuiles non constructibles
+    if (AITile.IsCoastTile(revCur) || AITile.IsCoastTile(revNxt) ||
+        AITile.IsWaterTile(revCur) || AITile.IsWaterTile(revNxt) ||
+        AITile.IsCoastTile(cur) || AITile.IsCoastTile(nxt)) {
+      continue;
+    }
+    if (AIBridge.IsBridgeTile(revCur) || AIBridge.IsBridgeTile(revNxt) ||
+        AITunnel.IsTunnelTile(revCur) || AITunnel.IsTunnelTile(revNxt)) {
+      continue;
+    }
+    if (!AITile.IsBuildable(revCur) || !AITile.IsBuildable(revNxt)) continue;
+    if (AITile.HasTransportType(revCur, AITile.TRANSPORT_RAIL) ||
+        AITile.HasTransportType(revNxt, AITile.TRANSPORT_RAIL)) {
+      continue;
+    }
+
+    local slope1 = AITile.GetSlope(cur);
+    local slopeRev = AITile.GetSlope(revCur);
+    local h1 = AITile.GetMaxHeight(cur);
+    local hRev = AITile.GetMaxHeight(revCur);
+
+    if (slopeRev != slope1 || hRev != h1) {
+      local preCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local leveled = false;
+
+      if (slope1 == AITile.SLOPE_FLAT) {
+        leveled = AITile.LevelTiles(cur, revCur);
+      } else {
+        local corners = [AITile.CORNER_W, AITile.CORNER_S, AITile.CORNER_E, AITile.CORNER_N];
+        local slopes = [AITile.SLOPE_W, AITile.SLOPE_S, AITile.SLOPE_E, AITile.SLOPE_N];
+        for (local cIdx = 0; cIdx < 4; cIdx++) {
+          local c = corners[cIdx];
+          local s = slopes[cIdx];
+          local hc = AITile.GetCornerHeight(cur, c);
+          local hr = AITile.GetCornerHeight(revCur, c);
+          if (hr > hc) {
+            if (AITile.LowerTile(revCur, s)) leveled = true;
+          } else if (hr < hc) {
+            if (AITile.RaiseTile(revCur, s)) leveled = true;
+          }
+        }
+      }
+
+      local postCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local cost = preCash - postCash;
+      if (cost > 0) totalCost += cost;
+      if (leveled) leveledCount++;
+    }
+  }
+
+  if (DECISION_LOG) {
+    OpexDecide("V199", "step=level ok=" + (leveledCount > 0 ? 1 : 0) +
+               " n=" + leveledCount + " cost=" + totalCost);
+  }
+  return totalCost;
+}
+
+/* Pose la voie sur les cases intermediaires. Les extremites sont les sorties de quai.
+ * `structures` propage le kind retenu sous AITestMode : GetOtherTunnelEnd sur une paire
+ * eloignee a pris un tunnel naturel a la place d'un pont (TRKFAIL, prototype 4/9 -> 7/9).
+ * Tableau vide ou null = deduction classique, A* inchange.
+ * `failure` optionnel : null (defaut) n'ecrit rien. Sinon, au premier segment refuse
+ * seulement (cles neuves en <-) : index, tile, kind (rail|bridge|tunnel|connect),
+ * error, manh_prev, manh_next, puis l'etat de `cur` apres l'echec
+ * (is_buildable, is_rail, is_station, is_road, is_water, owner_self, slope,
+ * dup_index). Ces lectures restent dans le `if` deja garde : sonde eteinte ou
+ * echec deja enregistre, aucun appel. connect = BuildRail vrai mais
+ * AreTilesConnected faux.
+ * `options` optionnel (V199) : isDouble, trainLength, initialBudget, accounting, retrySearchCost. */
+function OpexBuildTrack(tiles, structures = null, failure = null, options = null)
 {
   local failed = 0;
+  local isDouble = (options != null && ("isDouble" in options)) ? options.isDouble : false;
+  local trainLen = (options != null && ("trainLength" in options)) ? options.trainLength : 3;
+  local initialBudget = (options != null && ("initialBudget" in options)) ? options.initialBudget : 5000;
+  local signalN = max(4, trainLen + 1);
+
+  local signalDist = 0;
+  local signalsBuiltCount = 0;
+  local retriesCount = 0;
+
   for (local i = 1; i < tiles.len() - 1; i++) {
     local prev = tiles[i - 1];
     local cur = tiles[i];
@@ -2033,6 +2259,97 @@ function OpexBuildTrack(tiles, structures = null, failure = null)
         }
       }
     }
+
+    // V199 : Demolition avant reprise locale si ERR_AREA_NOT_CLEAR
+    if (!ok && V199_ROBUST_BUILD && AIError.GetLastError() == AIError.ERR_AREA_NOT_CLEAR) {
+      if (AIMap.DistanceManhattan(cur, next) > 1) {
+        local dx = AIMap.GetTileX(next) - AIMap.GetTileX(cur);
+        local dy = AIMap.GetTileY(next) - AIMap.GetTileY(cur);
+        local dist = AIMap.DistanceManhattan(cur, next);
+        local udx = (dx != 0) ? (dx > 0 ? 1 : -1) : 0;
+        local udy = (dy != 0) ? (dy > 0 ? 1 : -1) : 0;
+        local demAny = false;
+        local preCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        for (local s = 1; s < dist; s++) {
+          local midTile = OpexV190MakeTile(cur, udx * s, udy * s);
+          if (midTile != null && OpexV199CanDemolishTile(midTile)) {
+            if (AITile.DemolishTile(midTile)) demAny = true;
+          }
+        }
+        if (demAny) {
+          local bridges = AIBridgeList_Length(dist + 1);
+          bridges.Valuate(AIBridge.GetMaxSpeed);
+          bridges.Sort(AIList.SORT_BY_VALUE, false);
+          ok = !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
+          local demCost = preCash - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          if (demCost < 0) demCost = 0;
+          if (DECISION_LOG) {
+            OpexDecide("V199", "step=demolish ok=" + (ok ? 1 : 0) + " n=1 cost=" + demCost);
+          }
+        }
+      } else if (OpexV199CanDemolishTile(cur)) {
+        local preCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        local demOk = AITile.DemolishTile(cur);
+        local demCost = preCash - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        if (demCost < 0) demCost = 0;
+        if (demOk) {
+          ok = AIRail.BuildRail(prev, cur, next);
+          if (ok && AIMap.DistanceManhattan(prev, cur) == 1 &&
+              AIMap.DistanceManhattan(cur, next) == 1 &&
+              !AIRail.AreTilesConnected(prev, cur, next)) {
+            ok = false;
+          }
+          if (DECISION_LOG) {
+            OpexDecide("V199", "step=demolish ok=" + (ok ? 1 : 0) + " n=1 cost=" + demCost);
+          }
+        }
+      }
+    }
+
+    // V199 : Reprise locale (RetryToBuild) quand la pose echoue
+    if (!ok && V199_ROBUST_BUILD) {
+      if (retriesCount < 3) {
+        retriesCount++;
+        local retryResult = OpexV199RetryToBuild(tiles, i, initialBudget, retriesCount, failure, options);
+        if (retryResult != null && retryResult.ok) {
+          local newTiles = retryResult.tiles;
+          tiles.clear();
+          foreach (t in newTiles) tiles.append(t);
+          i = retryResult.resumeIdx - 1;
+          continue;
+        } else {
+          if (failure != null && !("index" in failure)) {
+            local err = AIError.GetLastError();
+            local manhPrev = AIMap.DistanceManhattan(prev, cur);
+            local manhNext = AIMap.DistanceManhattan(cur, next);
+            OpexRailCaptureTrackFailure(failure, tiles, i, cur, "rail", err, manhPrev, manhNext);
+          }
+          failed++;
+          return failed;
+        }
+      } else {
+        for (local k = i - 1; k >= 1; k--) {
+          local t = tiles[k];
+          if (AIMap.IsValidTile(t) && AICompany.IsMine(AITile.GetOwner(t))) {
+            if (AIRail.IsRailTile(t) || AIBridge.IsBridgeTile(t) || AITunnel.IsTunnelTile(t)) {
+              AITile.DemolishTile(t);
+            }
+          }
+        }
+        if (DECISION_LOG) {
+          OpexDecide("V199", "step=retry ok=0 n=" + retriesCount + " cost=0");
+        }
+        if (failure != null && !("index" in failure)) {
+          local err = AIError.GetLastError();
+          local manhPrev = AIMap.DistanceManhattan(prev, cur);
+          local manhNext = AIMap.DistanceManhattan(cur, next);
+          OpexRailCaptureTrackFailure(failure, tiles, i, cur, "rail", err, manhPrev, manhNext);
+        }
+        failed++;
+        return failed;
+      }
+    }
+
     if (!ok) {
       failed++;
       if (failure != null && !("index" in failure)) {
@@ -2052,8 +2369,37 @@ function OpexBuildTrack(tiles, structures = null, failure = null)
         }
         OpexRailCaptureTrackFailure(failure, tiles, i, cur, segmentKind, err, manhPrev, manhNext);
       }
+    } else if (V199_ROBUST_BUILD && isDouble) {
+      if (AIRail.IsRailTile(cur) && !AIBridge.IsBridgeTile(cur) && !AITunnel.IsTunnelTile(cur) &&
+          AIMap.DistanceManhattan(prev, cur) == 1) {
+        signalDist++;
+        local placed = false;
+        if (signalDist >= signalN) {
+          if (AIRail.BuildSignal(cur, prev, AIRail.SIGNALTYPE_PBS_ONEWAY)) {
+            signalDist = 0;
+            signalsBuiltCount++;
+            placed = true;
+          }
+        }
+        if (!placed) {
+          local isCrest = (AITile.GetMaxHeight(cur) > AITile.GetMaxHeight(prev)) &&
+                          (AITile.GetMaxHeight(cur) >= AITile.GetMaxHeight(next));
+          if (isCrest && signalDist >= 2) {
+            if (AIRail.BuildSignal(cur, prev, AIRail.SIGNALTYPE_PBS_ONEWAY)) {
+              signalDist = 2;
+              signalsBuiltCount++;
+            }
+          }
+        }
+      }
     }
   }
+
+  if (V199_ROBUST_BUILD && signalsBuiltCount > 0 && DECISION_LOG) {
+    local sigCost = signalsBuiltCount * 100;
+    OpexDecide("V199", "step=signal ok=1 n=" + signalsBuiltCount + " cost=" + sigCost);
+  }
+
   return failed;
 }
 
@@ -3141,6 +3487,9 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   if (plan.doubleTrack == 1 && tiles2 != null && planA2 != null && planB2 != null) {
     local dCosts = AIAccounting();
+    if (V199_ROBUST_BUILD) {
+      OpexV199RebuildForHomeward(tiles, 1, V199_LEVEL_BUDGET_K);
+    }
     for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
     for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
     local okA2 = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length,
@@ -3148,7 +3497,8 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     local okB2 = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length,
                                         AIStation.GetStationID(planB.anchor));
     if (okA2 && okB2) {
-      local tFail = OpexBuildTrack(tiles2, plan.structures2);
+      local trackOpt2 = { isDouble = true, trainLength = candidate.platformLength, initialBudget = plan.iterationBudget };
+      local tFail = OpexBuildTrack(tiles2, plan.structures2, null, trackOpt2);
       local l2 = tiles2.len() - 1;
       local conn2 = tFail == 0 &&
           AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]) &&
@@ -3583,7 +3933,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local trackFailure = null;
   if (DECISION_LOG || RAIL_GEOMETRY_GUARD
       || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight")) trackFailure = {};
-  local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);
+  local trackOpt1 = { isDouble = (plan.doubleTrack == 1), trainLength = candidate.platformLength, initialBudget = plan.iterationBudget };
+  local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure, trackOpt1);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
       OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], "A") &&
@@ -3615,6 +3966,20 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local tiles2 = plan.tiles2;
   local planA2 = plan.planA2;
   local planB2 = plan.planB2;
+
+  if (V199_ROBUST_BUILD && plan.doubleTrack == 1) {
+    local side = 1;
+    if (planA2 != null && ("direction" in planA) && ("station_exit" in planA) && ("station_exit" in planA2)) {
+      local offA = planA2.station_exit - planA.station_exit;
+      local oxA = AIMap.GetTileX(offA);
+      local oyA = AIMap.GetTileY(offA);
+      local dxA = (planA.direction == 0) ? 0 : 1;
+      local dyA = (planA.direction == 0) ? 1 : 0;
+      local s = dxA * oyA - dyA * oxA;
+      if (s == 1 || s == -1) side = s;
+    }
+    OpexV199RebuildForHomeward(tiles, side, V199_LEVEL_BUDGET_K);
+  }
 
   local forbiddenDepot1 = {};
   if (plan.doubleTrack == 1 && tiles2 != null) {
@@ -3681,7 +4046,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     local loopDiag = {};
     local secondRollbackVehicles = null;
     if (okA2 && okB2) {
-      tFail = OpexBuildTrack(tiles2, plan.structures2, trackFailure2);
+      local trackOpt2 = { isDouble = true, trainLength = candidate.platformLength, initialBudget = plan.iterationBudget };
+      tFail = OpexBuildTrack(tiles2, plan.structures2, trackFailure2, trackOpt2);
       local l2 = tiles2.len() - 1;
       connExitA2 = AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]);
       connExitB2 = AIRail.AreTilesConnected(tiles2[l2 - 2], tiles2[l2 - 1], planB2.station_exit);

@@ -745,7 +745,9 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   if (DECISION_LOG) OpexDecide("V198", "step=cost at=search2 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 5. Pose des voies 1 et 2
-  local fail1 = OpexBuildTrack(tiles1, structures1);
+  local trackOpt1 = { isDouble = true, trainLength = plan.length, initialBudget = plan.iterationBudget, accounting = costs, retrySearchCost = 0 };
+  local fail1 = OpexBuildTrack(tiles1, structures1, null, trackOpt1);
+  if (("retrySearchCost" in trackOpt1)) searchCostV198 += trackOpt1.retrySearchCost;
   if (fail1 > 0) {
     if (DECISION_LOG) OpexDecide("V198", "step=build_track1 ok=0 reason=TRKFAIL1 failed=" + fail1);
     OpexDemolishTrack(tiles1);
@@ -755,7 +757,15 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
 
   if (DECISION_LOG) OpexDecide("V198", "step=cost at=track1 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-  local fail2 = OpexBuildTrack(tiles2, structures2);
+
+  // V199 : RebuildForHomeward nivellement bande laterale cote retour
+  if (V199_ROBUST_BUILD) {
+    OpexV199RebuildForHomeward(tiles1, 1, V199_LEVEL_BUDGET_K);
+  }
+
+  local trackOpt2 = { isDouble = true, trainLength = plan.length, initialBudget = plan.iterationBudget, accounting = costs, retrySearchCost = 0 };
+  local fail2 = OpexBuildTrack(tiles2, structures2, null, trackOpt2);
+  if (("retrySearchCost" in trackOpt2)) searchCostV198 += trackOpt2.retrySearchCost;
   if (fail2 > 0) {
     if (DECISION_LOG) OpexDecide("V198", "step=build_track2 ok=0 reason=TRKFAIL2 failed=" + fail2);
     OpexDemolishTrack(tiles2);

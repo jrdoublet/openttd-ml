@@ -83,6 +83,16 @@ def without_freight_memory(body):
     return body
 
 
+def without_v199(body):
+    """Project the current builder onto the pre-V199 capture contract."""
+    body = re.sub(r'local isDouble = .*?local retriesCount = 0;', '', body, flags=re.S)
+    body = re.sub(r'// V199 : Demolition.*?// V199 : Reprise locale', '// V199 : Reprise locale', body, flags=re.S)
+    body = re.sub(r'// V199 : Reprise locale.*?if \(!ok\) \{', 'if (!ok) {', body, flags=re.S)
+    body = re.sub(r'\} else if \(V199_ROBUST_BUILD && isDouble\) \{.*?\}\n  \}', '}\n  }', body, flags=re.S)
+    body = re.sub(r'if \(V199_ROBUST_BUILD && signalsBuiltCount > 0.*?\n  \}', '', body, flags=re.S)
+    return body
+
+
 class TestRailTrackFailureCapture(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -97,7 +107,7 @@ class TestRailTrackFailureCapture(unittest.TestCase):
             self.assertEqual(body.count(call), 1)
             body = body.replace(call, helper.replace("failure.kind <- kind;",
                                                     "failure.kind <- " + kind + ";"))
-        self.assertEqual(digest(body), PRE_EXTRACTION_HASHES["OpexBuildTrack"])
+        self.assertEqual(digest(without_v199(body)), PRE_EXTRACTION_HASHES["OpexBuildTrack"])
 
     def test_testmode_twin_is_unchanged(self):
         self.assertEqual(digest(function_body(self.source, "OpexTestRailTrack")),

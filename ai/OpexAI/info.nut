@@ -1972,6 +1972,24 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v199_robust_build",
+      description = "V199: robust rail track laying inspired by AAAHogEx (retry, homeward level, online signals, clear area); 0 = inert default, 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v199_level_budget_k",
+      description = "V199: spending cap for homeward lateral strip leveling in kGBP (default 20 = 20 kGBP)",
+      min_value = 0, max_value = 200,
+      easy_value = 20, medium_value = 20, hard_value = 20,
+      custom_value = 20,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v190_rail_double_build",
       description = "V190: build freight rail lines directly as double-track loop from start (0 = inert default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
