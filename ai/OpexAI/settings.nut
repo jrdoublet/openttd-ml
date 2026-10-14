@@ -144,6 +144,9 @@ function OpexLoadSettings()
   V187_RAIL_REFLEET_DURING_SEARCH = AIController.GetSetting("v187_rail_refleet_during_search") != 0;
   V188_RAIL_JOIN_SLOPES = AIController.GetSetting("v188_rail_join_slopes") != 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
+  local v190Delay = AIController.GetSetting("v190_rail_double_delay");
+  if (v190Delay == null || v190Delay < 0) v190Delay = 0;
+  V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
 

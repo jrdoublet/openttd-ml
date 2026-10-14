@@ -1925,6 +1925,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v190_rail_double_delay",
+      description = "V190: years after game start before freight lines are built double (0..5, default 0)",
+      min_value = 0, max_value = 5,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v190_rail_max_trains",
       description = "V190: maximum trains per double-track freight rail line (2..8, default 4)",
       min_value = 2, max_value = 8,

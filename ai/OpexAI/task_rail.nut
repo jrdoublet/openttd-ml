@@ -746,7 +746,7 @@ function OpexAI::_expandRailLines(year)
    * JAMAIS gagner un second train ni une seconde voie. Desormais inconditionnel. */
   if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
-  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !V187_RAIL_REFLEET_DURING_SEARCH && !V190_RAIL_DOUBLE_BUILD) return;
+  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !V187_RAIL_REFLEET_DURING_SEARCH && !OpexV190Active()) return;
   this._budget.begin();
   local best = null;
   local nEligible = 0;
@@ -825,18 +825,18 @@ function OpexAI::_expandRailLines(year)
       foreach (line in this._lines) {
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         if (V181_RAIL_MAX_TRAINS <= 0) {
-          if (!V190_RAIL_DOUBLE_BUILD || line.kind != "freight") {
+          if (!OpexV190Active() || line.kind != "freight") {
             if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
           } else {
             if (line.trains >= V190_RAIL_MAX_TRAINS || line.vehicles.len() >= V190_RAIL_MAX_TRAINS) continue;
           }
         } else {
-          local maxAllowed = (V190_RAIL_DOUBLE_BUILD && line.kind == "freight") ? V190_RAIL_MAX_TRAINS : V181_RAIL_MAX_TRAINS;
+          local maxAllowed = (OpexV190Active() && line.kind == "freight") ? V190_RAIL_MAX_TRAINS : V181_RAIL_MAX_TRAINS;
           if (line.trains >= maxAllowed || line.vehicles.len() >= maxAllowed) continue;
         }
         if (("scrapping" in line) && line.scrapping) continue;
         local hasProfit = ("lastProfit" in line) && line.lastProfit > 0;
-        local over6Months = (V190_RAIL_DOUBLE_BUILD && line.kind == "freight")
+        local over6Months = (OpexV190Active() && line.kind == "freight")
             && (("buildDate" in line) ? (AIDate.GetCurrentDate() - line.buildDate > 180) : (("year" in line) && (year - line.year >= 1)));
         if (!hasProfit && !over6Months) continue;
         if (!(line.cargo in this._catalog.wagonByCargo)) continue;
@@ -1039,7 +1039,7 @@ function OpexAI::_expandRailLines(year)
           return;
         }
         // Cas 4 : V190 trains supplementaires par clonage sur ligne fret en boucle des la construction
-        else if (V190_RAIL_DOUBLE_BUILD && line.kind == "freight" && line.trains >= 2 &&
+        else if (OpexV190Active() && line.kind == "freight" && line.trains >= 2 &&
                  line.trains < V190_RAIL_MAX_TRAINS &&
                  ("doubleTrack" in line) && line.doubleTrack == 1) {
           if (("v181LoopFailed" in line) && line.v181LoopFailed) continue;
@@ -1376,7 +1376,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
-  if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+  if (OpexV190Active() && candidate.kind == "freight") {
     clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
   }
   local searchWeight = OpexRailAstarWeight(candidate.distance);
@@ -1921,7 +1921,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       lineId = idx,
     });
     this._nextLineId++;
-    if (DECISION_LOG && V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+    if (DECISION_LOG && OpexV190Active() && candidate.kind == "freight") {
       if (("v181Loop" in result) && result.v181Loop) {
         OpexDecide("V190", "action=build_double line=" + idx + " trains=" + result.trains + " reason=OK");
       } else {
@@ -2193,7 +2193,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
-  if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+  if (OpexV190Active() && candidate.kind == "freight") {
     clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
   }
   local searchWeight = OpexRailAstarWeight(candidate.distance);

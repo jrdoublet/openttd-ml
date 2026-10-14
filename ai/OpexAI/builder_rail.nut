@@ -396,7 +396,7 @@ function OpexJoinPlatformPlans(platform, stationId, stats = null)
  * cet environnement ne capturent pas les locaux englobants -- d'ou une fonction libre. */
 function OpexRailTryPlatformLength(catalog, candidate, length, statsA, statsB)
 {
-  local isDoubleFreight = (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight");
+  local isDoubleFreight = (OpexV190Active() && candidate.kind == "freight");
   local plansA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
                                   MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true,
                                   statsA, isDoubleFreight);
@@ -2198,7 +2198,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     }
   }
 
-  if (candidate.trains > 1 || (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight")) {
+  if (candidate.trains > 1 || (OpexV190Active() && candidate.kind == "freight")) {
     local remain = plan.iterationBudget - plan.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
     /* Sous rail_search_resumable, la borne tick historique tuerait cette seconde recherche
@@ -2209,7 +2209,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
         ? AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS
         : AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN);
     local dual = null;
-    if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+    if (OpexV190Active() && candidate.kind == "freight") {
       dual = OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, remain, dualDeadline);
     } else {
       dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null, 0,
@@ -2337,7 +2337,7 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap
   budget.begin();
   local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
-  if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+  if (OpexV190Active() && candidate.kind == "freight") {
     clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
   }
   local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick, clearanceTiles);
@@ -2431,7 +2431,7 @@ function OpexSimulateRailInfraCost(plan, failure = null)
         return OpexRailQuoteFailure(failure, "TRKFAIL", cur, error);
       }
     }
-    if (V190_RAIL_DOUBLE_BUILD && ("doubleTrack" in plan) && plan.doubleTrack == 1
+    if (OpexV190Active() && ("doubleTrack" in plan) && plan.doubleTrack == 1
         && ("tiles2" in plan) && plan.tiles2 != null
         && ("planA2" in plan) && plan.planA2 != null
         && ("planB2" in plan) && plan.planB2 != null) {
@@ -2484,7 +2484,7 @@ function OpexQuoteRailCapital(catalog, candidate, plan, failure = null)
   if (realInfra == null) return null;
   if (realInfra <= 0) return 0;
   local depotCost = catalog.costRailDepot + 2 * catalog.costTrackPerTile;
-  if (V190_RAIL_DOUBLE_BUILD && ("doubleTrack" in plan) && plan.doubleTrack == 1) {
+  if (OpexV190Active() && ("doubleTrack" in plan) && plan.doubleTrack == 1) {
     depotCost = 2 * depotCost;
   }
   local vehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0;
@@ -2888,7 +2888,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
              segmentedBacktracks = plan.segmentedBacktracks,
              segmentedLocalChoices = plan.segmentedLocalChoices };
   }
-  if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+  if (OpexV190Active() && candidate.kind == "freight") {
     return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
   }
   return OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);

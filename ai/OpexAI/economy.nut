@@ -289,7 +289,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation
       + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
-  if (V190_RAIL_DOUBLE_BUILD && kind == "freight") {
+  if (OpexV190Active() && kind == "freight") {
     infraCost = 2 * travelDist * effectiveTrackCost + 4 * platformLength * catalog.costStation
         + (RAIL_DEPOT_COST ? 2 * catalog.costRailDepot : 0);
   }
@@ -308,7 +308,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
-  local startTrains = (V190_RAIL_DOUBLE_BUILD && kind == "freight") ? 2 : 1;
+  local startTrains = (OpexV190Active() && kind == "freight") ? 2 : 1;
   for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;
