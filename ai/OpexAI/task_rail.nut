@@ -890,9 +890,16 @@ function OpexAI::_expandRailLines(year)
             local trainCost = line.loco.price + line.wagons * wagon.price;
             local need = trackCost + trainCost + OpexCashReserve();
             local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+            if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
+              OpexDecide("V187_UPGRADE", "line=" + line.lineId + " need=" + need + " money=" + money
+                         + " search=" + (this._railSearch != null ? 1 : 0));
+            }
             if (money >= need) {
               if (RAIL_SEARCH_RESUMABLE) {
                 local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
+                if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
+                  OpexDecide("V187_PREP", "line=" + line.lineId + " ok=" + (prep.ok ? 1 : 0) + " reason=" + (("reason" in prep) ? prep.reason : "-"));
+                }
                 local anchor = AIMap.GetTileIndex(1, 1);
                 if (!prep.ok) {
                   if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
