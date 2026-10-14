@@ -895,7 +895,9 @@ function OpexAI::_expandRailLines(year)
                          + " search=" + (this._railSearch != null ? 1 : 0));
             }
             if (money >= need) {
-              if (RAIL_SEARCH_RESUMABLE) {
+              /* V187 : une recherche de ligne neuve occupe _railSearch -> doublement bloquant,
+               * qui ne touche pas a l'etat reprenable. */
+              if (RAIL_SEARCH_RESUMABLE && !(V187_RAIL_REFLEET_DURING_SEARCH && this._railSearch != null)) {
                 local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
                 if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
                   OpexDecide("V187_PREP", "line=" + line.lineId + " ok=" + (prep.ok ? 1 : 0) + " reason=" + (("reason" in prep) ? prep.reason : "-"));
