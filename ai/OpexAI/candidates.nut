@@ -1974,6 +1974,7 @@ function OpexRailTransferFeederCandidates(catalog, lines, out, stats, profile = 
       }
     }
     local remainingCapacity = monthlyCapacityL - alreadyLoaded;
+    if (DECISION_LOG) OpexDecide("V205", "step=cap line=" + line.lineId + " capL=" + monthlyCapacityL + " loaded=" + alreadyLoaded + " rem=" + remainingCapacity);
     if (remainingCapacity <= 0) continue;
 
     foreach (si in sources) {
