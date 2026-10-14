@@ -141,6 +141,7 @@ function OpexLoadSettings()
   V184_RAIL_SEARCH_SLOTS = (railSlots != null && railSlots >= 1 && railSlots <= 4) ? railSlots : 1;
   local railSlices = AIController.GetSetting("v186_rail_search_slices");
   V186_RAIL_SEARCH_SLICES = (railSlices != null && railSlices >= 1 && railSlices <= 16) ? railSlices : 1;
+  V187_RAIL_REFLEET_DURING_SEARCH = AIController.GetSetting("v187_rail_refleet_during_search") != 0;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;

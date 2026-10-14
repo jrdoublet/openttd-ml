@@ -746,7 +746,7 @@ function OpexAI::_expandRailLines(year)
    * JAMAIS gagner un second train ni une seconde voie. Desormais inconditionnel. */
   if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
-  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) return;
+  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !V187_RAIL_REFLEET_DURING_SEARCH) return;
   this._budget.begin();
   local best = null;
   local nEligible = 0;
