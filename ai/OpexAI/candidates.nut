@@ -1529,6 +1529,7 @@ function OpexRailOriginReuseEvaluateFreight(catalog, lines, deferred,
   for (local i = 0; i < industries.len(); i++) {
     served.append(OpexOriginService(lines, industries[i].tile));
   }
+  if (DECISION_LOG) OpexDecide("V203", "step=enter flag=" + V203_RAIL_FEEDERS + " lines=" + (lines == null ? -1 : lines.len()));
   local townServiceCache = C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE ? {} : null;
   foreach (cargo, sources in catalog.producers) {
     if (deferred.freightCargo != null && cargo != deferred.freightCargo) continue;
