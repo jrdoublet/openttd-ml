@@ -2073,7 +2073,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     }
   }
 
-  if (candidate.trains > 1) {
+  if (candidate.trains > 1 || (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight")) {
     local remain = plan.iterationBudget - plan.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
     /* Sous rail_search_resumable, la borne tick historique tuerait cette seconde recherche
