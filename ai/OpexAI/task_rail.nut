@@ -1201,6 +1201,10 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     else candidate.v89SelectedTick = curTick;
   }
   local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.start") : null;
+  local revProbe = null;
+  if (V174_RAIL_REVERSE_PROBE > 0) {
+    revProbe = OpexCreateRailPathfinder(plan.plansB, plan.plansA, clearanceTiles);
+  }
   this._railSearch = {
     kind = "primary",
     phase = "search",
@@ -1218,6 +1222,11 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     posPacked = posPacked,
     startDate = curDate,
     startTick = curTick,
+    revProbe = revProbe,
+    revSpent = 0,
+    revBudget = (V174_RAIL_REVERSE_PROBE > plan.iterationBudget) ? plan.iterationBudget : V174_RAIL_REVERSE_PROBE,
+    revDone = (revProbe == null),
+    revFound = false,
   };
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "primary", plan.plansA, plan.plansB);
   if (C56_TASK_TRACE) {
@@ -1280,11 +1289,44 @@ function OpexAI::_continueRailSearch()
   }
   local slice;
   local spentBefore = state.spent;
-  if (("segmented" in state) && state.segmented != null) {
-    slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
+  if (state.kind == "primary" && ("revProbe" in state) && state.revProbe != null && !state.revDone) {
+    local revSliceIters = RAIL_SEARCH_SLICE;
+    if (state.revBudget - state.revSpent < revSliceIters) {
+      revSliceIters = state.revBudget - state.revSpent;
+    }
+    local revResult = OpexAdvanceRailPathfinder(state.revProbe, state.revSpent, state.revBudget, deadlineTick, revSliceIters);
+    local revUsed = revResult.iterations - state.revSpent;
+    state.revSpent = revResult.iterations;
+    state.spent += revUsed;
+    if (revResult.path != false && revResult.path != null) {
+      state.revFound = true;
+      state.revDone = true;
+      state.revProbe = null;
+      local rawTiles = OpexPathTiles(revResult.path);
+      rawTiles.reverse();
+      slice = { path = revResult.path, tiles = rawTiles, iterations = state.spent, stop = "OK", done = true, rev = 1 };
+    } else if (revResult.stop == "NOPA" || state.revSpent >= state.revBudget) {
+      state.revDone = true;
+      state.revProbe = null;
+      slice = { path = false, iterations = state.spent, stop = "CONT", done = false, rev = 0 };
+    } else {
+      slice = { path = false, iterations = state.spent, stop = "CONT", done = false, rev = 0 };
+    }
   } else {
-    slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
-                                      deadlineTick, RAIL_SEARCH_SLICE);
+    if (("segmented" in state) && state.segmented != null) {
+      if (("revSpent" in state) && state.revSpent > 0 && state.segmented.iterations == 0) {
+        state.segmented.iterationBudget = state.iterationBudget - state.revSpent;
+        if (state.segmented.iterationBudget < 0) state.segmented.iterationBudget = 0;
+      }
+      slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
+      if (("revSpent" in state) && state.revSpent > 0) {
+        slice.iterations += state.revSpent;
+      }
+    } else {
+      slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
+                                        deadlineTick, RAIL_SEARCH_SLICE);
+    }
+    slice.rev <- 0;
   }
   /* spent est le CUMUL de toutes les tranches : c'est le denominateur du classement. */
   state.spent = slice.iterations;
@@ -1323,6 +1365,7 @@ function OpexAI::_continueRailSearch()
      * kind == "primary" seulement : une recherche d'upgrade n'a ni candidate ni profit/capital
      * au meme sens (state.line, pas state.candidate). */
     if (C41_RAIL_DOMINATION_PROBE && state.kind == "primary"
+        && (!("revDone" in state) || state.revDone)
         && ("segmented" in state) && state.segmented != null) {
       this._ensureSelection();
       local seg = state.segmented;
@@ -1594,7 +1637,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                + " iters=" + result.iterations + " ops=" + result.opcodes
                + " search_ops=" + (("searchOps" in candidate) ? candidate.searchOps : -1)
                + " startx=" + (("startx" in result) ? result.startx : -1)
-               + " endx=" + (("endx" in result) ? result.endx : -1));
+               + " endx=" + (("endx" in result) ? result.endx : -1)
+               + " rev=" + ((("rev" in result) && result.rev) ? 1 : 0));
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst

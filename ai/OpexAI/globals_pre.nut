@@ -17,6 +17,9 @@ V168_RAIL_MAX_DIST <- 160;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;
+/* V174 : sonde inverse A* rail B->A. 0 = desactive (defaut) ;
+ * 1..1000 = budget d'iterations de la sonde inverse. */
+V174_RAIL_REVERSE_PROBE <- 0;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;

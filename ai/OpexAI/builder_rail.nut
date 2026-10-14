@@ -989,19 +989,39 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
 function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
 {
   local res;
+  local revSpent = 0;
+  if (V174_RAIL_REVERSE_PROBE > 0) {
+    local revBudget = (V174_RAIL_REVERSE_PROBE > iterationBudget) ? iterationBudget : V174_RAIL_REVERSE_PROBE;
+    local revPathfinder = OpexCreateRailPathfinder(plansB, plansA, ignoredTiles);
+    if (revPathfinder != null) {
+      local revResult = OpexAdvanceRailPathfinder(revPathfinder, 0, revBudget, deadlineTick, revBudget);
+      revSpent = revResult.iterations;
+      if (revResult.path != false && revResult.path != null) {
+        local rawTiles = OpexPathTiles(revResult.path);
+        rawTiles.reverse();
+        if (DECISION_LOG) {
+          OpexDecide("RAIL_SEARCH", "type=blocking outcome=OK iters=" + revSpent + " budget=" + iterationBudget);
+        }
+        return { path = revResult.path, tiles = rawTiles, iterations = revSpent, stop = "OK", rev = 1 };
+      }
+      iterationBudget -= revSpent;
+      if (iterationBudget < 0) iterationBudget = 0;
+    }
+  }
+
   if (RAIL_SEGMENTED_SEARCH) {
     local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles);
     if (state == null) {
-      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
-      return { path = null, iterations = 0, stop = "NOPA" };
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=" + revSpent + " budget=" + (iterationBudget + revSpent));
+      return { path = null, iterations = revSpent, stop = "NOPA", rev = 0 };
     }
     /* sliceIters = iterationBudget : une seule avancee jusqu'au chemin / ABND / DEAD / NOPA. */
     res = OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
   } else {
     local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles);
     if (pathfinder == null) {
-      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
-      return { path = null, iterations = 0, stop = "NOPA" };
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=" + revSpent + " budget=" + (iterationBudget + revSpent));
+      return { path = null, iterations = revSpent, stop = "NOPA", rev = 0 };
     }
     /* sliceIters = iterationBudget : une seule "tranche" aussi longue que le budget, donc le
      * while interne ne s'arrete plus que sur chemin / ABND / DEAD, comme avant A4. */
@@ -1009,8 +1029,10 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTi
                                              iterationBudget);
     res = { path = result.path, iterations = result.iterations, stop = result.stop };
   }
+  res.iterations += revSpent;
+  res.rev <- 0;
   if (DECISION_LOG) {
-    OpexDecide("RAIL_SEARCH", "type=blocking outcome=" + res.stop + " iters=" + res.iterations + " budget=" + iterationBudget);
+    OpexDecide("RAIL_SEARCH", "type=blocking outcome=" + res.stop + " iters=" + res.iterations + " budget=" + (iterationBudget + revSpent));
   }
   return res;
 }
@@ -1884,6 +1906,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     plan.segmentedBacktracks = search.backtracks;
     plan.segmentedLocalChoices = search.localChoices;
   }
+  plan.rev <- (("rev" in search) && search.rev) ? 1 : 0;
   if (search.path == false || search.path == null) { plan.reason = search.stop; return plan; }
 
   local tiles = OpexResolveSearchTiles(search);
@@ -2572,9 +2595,12 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
              budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget,
              segmentedSegments = plan.segmentedSegments,
              segmentedBacktracks = plan.segmentedBacktracks,
-             segmentedLocalChoices = plan.segmentedLocalChoices };
+             segmentedLocalChoices = plan.segmentedLocalChoices,
+             rev = (("rev" in plan) && plan.rev) ? 1 : 0 };
   }
-  return OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
+  local result = OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
+  result.rev <- (("rev" in plan) && plan.rev) ? 1 : 0;
+  return result;
 }
 
 /* Prepare la recherche de seconde voie d'une ligne existante, SANS lancer l'A*.

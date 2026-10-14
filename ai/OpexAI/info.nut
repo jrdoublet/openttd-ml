@@ -1073,6 +1073,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v174_rail_reverse_probe",
+      description = "V174: rail reverse probe iteration budget B->A (0 = disabled/default, 1..1000 = iteration budget)",
+      min_value = 0, max_value = 1000,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "policy_air",
       description = "Aviation policy: portfolio arbitration, runway cadence cap, joined bus stops, hub reuse: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
