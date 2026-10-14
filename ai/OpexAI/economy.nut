@@ -217,6 +217,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local consistMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
+  /* V180 : rame plus longue que l'offre calibree a 50 % (chargement complet, note qui monte). */
+  if (V180_RAIL_WAGON_BOOST_PCT > 0) calibrationOffered = calibrationOffered * (100 + V180_RAIL_WAGON_BOOST_PCT) / 100.0;
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
   if (wagons < 1) wagons = 1;

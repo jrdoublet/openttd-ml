@@ -125,6 +125,8 @@ function OpexLoadSettings()
   V172_RAIL_LONG_WEIGHT_DIST = (longWeightDist != null && longWeightDist >= 0 && longWeightDist <= 512) ? longWeightDist : 100;
   V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
   V179_RAIL_GEN_DEST_SERVED = AIController.GetSetting("v179_rail_gen_dest_served") != 0;
+  local wagonBoost = AIController.GetSetting("v180_rail_wagon_boost_pct");
+  V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;

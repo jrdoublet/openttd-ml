@@ -1065,6 +1065,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v180_rail_wagon_boost_pct",
+      description = "V180: rail consist sizing offers N% more cargo than the 50% rating calibration (bigger trains); 0 = inert (default)",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 25,
+      flags = 0
+    });
+    AddSetting({
       name = "v179_rail_gen_dest_served",
       description = "V179: rail freight generator keeps pairs whose destination industry is already served (fresh source), for V178 to attach; 0 = inert (default)",
       min_value = 0, max_value = 1,
