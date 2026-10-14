@@ -685,8 +685,14 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   foreach (t in tiles1) forbidden[t] <- true;
   foreach (t in builtSrc.allTiles) forbidden[t] <- true;
   foreach (t in builtDst.allTiles) forbidden[t] <- true;
+  // Les extremites de la voie 2 appartiennent aux gabarits : ne pas les interdire.
+  foreach (t in [builtDst.depTile, builtDst.depPrev, builtSrc.arrTile, builtSrc.arrNext]) {
+    if (t != null && (t in forbidden)) delete forbidden[t];
+  }
   local ignored2 = [];
   foreach (t, _ in forbidden) ignored2.append(t);
+  // Echeance propre a la voie 2 (celle de la voie 1 est deja consommee).
+  deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
 
   local guideTiles = OpexV197BuildGuideTiles(tiles1, 1, forbidden);
   local plansA2 = [{ lead = builtDst.depTile, station_exit = builtDst.depPrev }];
