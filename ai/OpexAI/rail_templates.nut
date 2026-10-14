@@ -187,7 +187,8 @@ function OpexTemplateCheckOrLevel(tiles, isRealMode = false)
   }
   if (allFlat) return true;
   local startTile = AIMap.GetTileIndex(minX, minY);
-  local endTile = AIMap.GetTileIndex(maxX, maxY);
+  // LevelTiles nivelle les COINS : le coin oppose est (maxX+1, maxY+1), comme AAA (d1,d2,d3).
+  local endTile = AIMap.GetTileIndex(maxX + 1, maxY + 1);
   if (!AIMap.IsValidTile(startTile) || !AIMap.IsValidTile(endTile)) return false;
   if (!isRealMode) {
     if (AITile.LevelTiles(startTile, endTile)) return true;
