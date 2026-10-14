@@ -1513,7 +1513,6 @@ function OpexRailOriginReuseEvaluatePax(catalog, lines, deferred, out, stats,
       out.append(candidate);
     }
   }
-  if (DECISION_LOG) OpexDecide("V203", "step=scan lines=" + dbg.lines + " ok=" + dbg.ok + " near=" + dbg.near + " unserved=" + dbg.unserved + " made=" + dbg.made + " tk=" + targetKind + " fc=" + freightCargo);
 }
 
 function OpexRailOriginReuseEvaluateFreight(catalog, lines, deferred,
@@ -2020,6 +2019,7 @@ function OpexRailFeederCandidates(catalog, lines, out, stats, profile = null, cr
       out.append(candidate);
     }
   }
+  if (DECISION_LOG) OpexDecide("V203", "step=scan lines=" + dbg.lines + " ok=" + dbg.ok + " near=" + dbg.near + " unserved=" + dbg.unserved + " made=" + dbg.made + " tk=" + targetKind + " fc=" + freightCargo);
 }
 
 /* V88 : Chaines industrielles completes de biens :
