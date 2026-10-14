@@ -1909,6 +1909,109 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       }
     }
   }
+
+  /* V203 : rabattements ferroviaires (feeders) vers nos gares sources fret */
+  if (V203_RAIL_FEEDERS && lines != null) {
+    OpexRailFeederCandidates(catalog, lines, out, stats, profile, cruiseCache, freightCargo, targetKind, targetId, abandonedPairs, served);
+  }
+}
+
+/* V203 : rabattements ferroviaires (feeders) vers nos gares sources fret existantes */
+function OpexRailFeederCandidates(catalog, lines, out, stats, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, abandonedPairs = null, served = null)
+{
+  if (!V203_RAIL_FEEDERS || lines == null) return;
+  local industries = catalog.industries;
+  local seenPairs = {};
+
+  foreach (line in lines) {
+    if (!("kind" in line) || line.kind != "freight") continue;
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (!("lineId" in line)) continue;
+    if (!("stationB" in line) || line.stationB == null || !AIMap.IsValidTile(line.stationB)) continue;
+    if (!("cargo" in line) || !AICargo.IsValidCargo(line.cargo)) continue;
+    if (freightCargo != null && line.cargo != freightCargo) continue;
+
+    local destTile = line.stationB;
+    local cargo = line.cargo;
+    if (!(cargo in catalog.producers)) continue;
+    local sources = catalog.producers[cargo];
+
+    foreach (si in sources) {
+      if (si < 0 || si >= industries.len()) continue;
+      local source = industries[si];
+      if (source == null || !("tile" in source) || !AIMap.IsValidTile(source.tile)) continue;
+
+      // Rayon <= 100 tuiles de D et >= 20 tuiles
+      local dist = AIMap.DistanceManhattan(source.tile, destTile);
+      if (dist < 20 || dist > 100) continue;
+
+      // Non deja desservies par nous
+      local ss = (served != null && si < served.len()) ? served[si] : OpexOriginService(lines, source.tile);
+      if (ss != null) continue;
+
+      // Non la meme origine ou gare que la ligne existante
+      if (("originA" in line) && AIMap.DistanceManhattan(source.tile, line.originA) < ORIGIN_SEPARATION) continue;
+      if (("stationA" in line) && line.stationA != null && AIMap.IsValidTile(line.stationA) && AIMap.DistanceManhattan(source.tile, line.stationA) < MIN_SEPARATION) continue;
+
+      local pairKey = source.id + "_" + destTile;
+      if (pairKey in seenPairs) continue;
+      seenPairs[pairKey] <- true;
+
+      // Filtre target
+      if (targetKind == "town") continue;
+      if (targetKind == "industry" && targetId >= 0 && source.id != targetId && (("dstIndustry" in line) ? line.dstIndustry != targetId : true)) continue;
+
+      // Memoire d'abandon
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        local aKey = "freight|" + cargo + "|" + source.id + "|s" + destTile;
+        if (aKey in abandonedPairs) continue;
+      }
+
+      // Production mensuelle
+      local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
+      if (monthly <= 0) continue;
+
+      // Generation candidat
+      local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
+                                          destTile, monthly, true, stats, false, profile, cruiseCache);
+      if (candidate == null) continue;
+
+      // Marquage V203
+      candidate.feederOf <- line.lineId;
+      candidate.joinDest <- destTile;
+      if (("platformB" in line) && line.platformB != null) {
+        candidate.joinPlatform <- line.platformB;
+      }
+      local stId = OpexLineStationId(line, "B");
+      if (stId >= 0) {
+        candidate.joinStationId <- stId;
+      } else {
+        stId = AIStation.GetStationID(destTile);
+        if (AIStation.IsValidStation(stId)) candidate.joinStationId <- stId;
+      }
+      candidate.joinLineId <- line.lineId;
+      candidate.joinEnd <- "B";
+      candidate.originServed = true;
+      candidate.srcIndustry <- source.id;
+      if (("dstIndustry" in line) && line.dstIndustry >= 0) {
+        candidate.dstIndustry <- line.dstIndustry;
+      }
+
+      // Economie : le capital du candidat n'inclut pas la gare destination si jointe (moins cher)
+      local savedCost = candidate.platformLength * catalog.costStation;
+      candidate.capital -= savedCost;
+      if (candidate.capital < 1) candidate.capital = 1;
+      candidate.roi = (candidate.profitAnnual * 100) / candidate.capital;
+      local adjustedRoi = (((candidate.roi * candidate.turnoverBonus) / 100) * candidate.freightBonus) / 100;
+      candidate.ratio = candidate.opcodeRatio + (adjustedRoi * 15);
+
+      if (DECISION_LOG) {
+        OpexDecide("V203", "step=gen ok=1 line=" + line.lineId + " cargo=" + cargo);
+      }
+
+      out.append(candidate);
+    }
+  }
 }
 
 /* V88 : Chaines industrielles completes de biens :

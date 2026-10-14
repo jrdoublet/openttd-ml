@@ -324,6 +324,7 @@ function OpexAI::_tooClose(candidate)
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
   local isSharedDest = V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest == 1;
+  local isV203Feeder = V203_RAIL_FEEDERS && (("joinDest" in candidate) || ("feederOf" in candidate));
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
   local originA = -1;
@@ -335,6 +336,7 @@ function OpexAI::_tooClose(candidate)
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
         if (isSharedDest && entry[0] == "B") continue;
+        if (isV203Feeder && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
         if (d >= ORIGIN_SEPARATION) continue;
         if (entry[0] == "A") originA = OpexRememberClosest(d, ORIGIN_SEPARATION, originA);
@@ -354,9 +356,11 @@ function OpexAI::_tooClose(candidate)
       local stationId = OpexLineStationId(line, lineEnd);
       if (stationId < 0) continue;
       if (isSharedDest && stationId == joinStationId) continue;
+      if (isV203Feeder && (stationId == joinStationId || (("joinDest" in candidate) && lineEnd == "B" && line.stationB == candidate.joinDest))) continue;
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
         if (isSharedDest && entry[0] == "B") continue;
+        if (isV203Feeder && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);
         blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);
       }

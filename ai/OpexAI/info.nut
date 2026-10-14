@@ -1972,6 +1972,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v203_rail_feeders",
+      description = "V203: rail freight feeders to existing served destination stations (0 = off default, 1 = on)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v200_double_cash_k",
       description = "V200: double-track machinery only when cash net of loan >= this (k GBP) and cash >= 2x single quote + reserve; 0 = always (inert)",
       min_value = 0, max_value = 2000, step_size = 25,

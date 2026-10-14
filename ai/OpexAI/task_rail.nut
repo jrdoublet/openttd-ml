@@ -1840,8 +1840,16 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                  + ((("wagons2" in candidate) && candidate.wagons2 > 0)
                     ? " cargo2=" + AICargo.GetCargoLabel(candidate.cargo2) + " wagons2=" + candidate.wagons2
                       + " pred_revenue2=" + candidate.revenue2 : ""));
+      if (DECISION_LOG && ("joinDest" in candidate)) {
+        local fLineId = ("feederOf" in candidate) ? candidate.feederOf : -1;
+        OpexDecide("V203", "step=build ok=1 line=" + fLineId + " cargo=" + candidate.cargo);
+      }
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
+      if (DECISION_LOG && ("joinDest" in candidate)) {
+        local fLineId = ("feederOf" in candidate) ? candidate.feederOf : -1;
+        OpexDecide("V203", "step=build ok=0 line=" + fLineId + " cargo=" + candidate.cargo);
+      }
     }
   }
 
@@ -1923,6 +1931,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       lastLiveVehicles = result.trains, suspectedCrashes = 0,
       isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
+      feederOf = ("feederOf" in candidate) ? candidate.feederOf : -1,
+      joinDest = ("joinDest" in candidate) ? candidate.joinDest : null,
       lineId = idx,
     });
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */

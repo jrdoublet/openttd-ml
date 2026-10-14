@@ -466,7 +466,8 @@ function OpexRailPlatformPlans(catalog, candidate)
      * actuel : seul un candidat marque originServed + joinEnd est strict ici. */
     local strictOriginReuseJoin = RAIL_ORIGIN_REUSE
         && ("originServed" in candidate) && candidate.originServed
-        && ("joinEnd" in candidate);
+        && ("joinEnd" in candidate)
+        && !("joinDest" in candidate);
     if (V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest) {
       strictOriginReuseJoin = true;
     }
@@ -507,11 +508,24 @@ function OpexRailPlatformPlans(catalog, candidate)
         }
         sawB = true;
       }
+      if (("joinDest" in candidate) && (!joinHasA || !joinHasB)) {
+        if (DECISION_LOG) {
+          local lineId = ("feederOf" in candidate) ? candidate.feederOf : -1;
+          local cargo = ("cargo" in candidate) ? candidate.cargo : -1;
+          OpexDecide("V203", "step=join_fail ok=0 line=" + lineId + " cargo=" + cargo);
+        }
+      }
     }
     if (strictOriginReuseJoin) {
       return { plansA = null, plansB = null, length = jointLength,
                slopeRelaxed = 0, reason = OpexRailSiteReason(joinHasA, joinHasB),
                statsA = statsA, statsB = statsB };
+    }
+  } else if (("joinDest" in candidate)) {
+    if (DECISION_LOG) {
+      local lineId = ("feederOf" in candidate) ? candidate.feederOf : -1;
+      local cargo = ("cargo" in candidate) ? candidate.cargo : -1;
+      OpexDecide("V203", "step=join_fail ok=0 line=" + lineId + " cargo=" + cargo);
     }
   }
 
