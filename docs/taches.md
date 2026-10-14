@@ -1199,3 +1199,5 @@ commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
 - V200 seuil 150 k£ net (`v200d`) : −4,3 k£/an, 5/5, IC [−57 ; +44 k] : neutre, mais une seule tentative double en 3 ans (12/1972) ; la caisse nette n'atteint pas 150 k£ avant fin 1972. **Conclusion : à 3 ans et avec notre trésorerie, la double voie ne peut pas être le levier.** Branche `v197-double-voie-guidee` conservée pour l'horizon 10 ans.
 - Lancé : borne rail 300 contre 220 (`dist300_railseul_10x3_20261015`, master, plafond 5 par défaut).
 - Borne rail 300 contre 220 (`dist300_railseul_10x3_20261015`, depuis wt-v197-dbl, défauts V19x à 0) : +10,4 k£/an, médiane −12,0 k, 5/5, p = 0,92, IC [−72 ; +94 k] : **neutre**, piste close.
+- V201 branches fret sur tronc double (HogNet) livré par agy, branche `v201-branches-tronc` (`cf4d79c`), non testé : dépend de troncs doubles absents à 3 ans ; réservé à l'horizon 10 ans.
+- V202 lancé (agy, `wt-v202-evitements`) : voie unique + évitements PBS pour 2-3 trains par ligne (AAA 29,6 trains contre 14,2 ; 45 contre 35 k£/train/an : l'écart est surtout le nombre de trains).
