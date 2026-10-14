@@ -1212,3 +1212,6 @@ Constat annexe : en 1972 la pile B a 200-330 k£ de caisse oisive (graine 42, re
 
 ### V202k (évitements + `v202_cash_k=150`) — 10×3 négatif, V202 clos (15/10)
 `v202k_railseul_10x3_20261015` : −51,5 k£/an, médiane −29,0 k, 3/7/0, p=0,13, IC95 [−104,7 ; −7,1] k, **0 clone** : le seuil de caisse nette n'est jamais franchi avec un évitement disponible ; la perte vient du coût des recherches de fenêtre (opcodes). V202 clos à 3 ans.
+
+### `rail_origin_reuse=1` en rail seul — 10×3 neutre/négatif (15/10)
+`reuse_railseul_10x3_20261015` contre pile B : −30,7 k£/an, médiane −40,6 k, 4/6/0, p=0,32, IC95 [−84,9 ; +25,2] k. Lignes posées 147 contre 144 : relâcher `origin_served` n'apporte pas de volume. Clos.
