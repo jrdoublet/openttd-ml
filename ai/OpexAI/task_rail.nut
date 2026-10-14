@@ -1927,7 +1927,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       } else {
         local rsn = ("doubleReason" in result) ? result.doubleReason : (result.doubleTrack == 1 ? "TRACK2FAIL" : "NOPLAN2");
         local skp = ("doubleSkip" in result) ? result.doubleSkip : -1;
-        OpexDecide("V190", "action=fallback_single line=" + idx + " trains=" + result.trains + " reason=" + rsn + " skip=" + skp);
+        local stp = ("doubleStep" in result) ? result.doubleStep : "NONE";
+        OpexDecide("V190", "action=fallback_single line=" + idx + " trains=" + result.trains + " reason=" + rsn + " step=" + stp + " skip=" + skp);
       }
     }
     if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);

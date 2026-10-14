@@ -130,12 +130,13 @@ class PresenceDesEtapes(unittest.TestCase):
 
     def test_crossovers_and_one_way_signals(self):
         exec_body = _function_body(self.builder, "OpexV190ExecuteRailPlan")
-        self.assertIn("OpexConvertDoubleTrackToLoop(loopLine)", exec_body)
+        self.assertIn("OpexConvertDoubleTrackToLoop(loopLine", exec_body)
 
     def test_fallback_to_single_track_on_failure(self):
         exec_body = _function_body(self.builder, "OpexV190ExecuteRailPlan")
-        self.assertIn("OpexRollback(tiles2, planA2, planB2, depot2, null);", exec_body)
+        self.assertIn("OpexV190RollbackDoubleTrack(", exec_body)
         self.assertIn("LOOPFAIL", exec_body)
+        self.assertIn("PRIMARY_BROKEN", exec_body)
 
     def test_candidate_capital_and_predicted_trains(self):
         econ_body = _function_body(self.econ, "OpexLineEconomics")
@@ -186,6 +187,8 @@ class PresenceDesEtapes(unittest.TestCase):
         self.assertIn('OpexDecide("V190", "action=fallback_single', builder_code)
         self.assertIn('skip=', builder_code)
         self.assertIn('reason=', builder_code)
+        self.assertIn('step=', builder_code)
+        self.assertIn('step=', task_code)
         self.assertIn('OpexDecide("V190", "action=add_train', task_code)
 
     def test_plan_double_track_granular_reasons(self):
@@ -200,7 +203,9 @@ class SquirrelKeywordSafety(unittest.TestCase):
         files_to_check = [
             ("builder_rail.nut", ["OpexV190FindParallelPlatformPlans", "OpexV190CollectParallelTiles",
                                   "OpexV190MergeIgnoredTiles", "OpexV190PlanDoubleTrack",
-                                  "OpexExecuteRailPlan", "OpexV190ExecuteRailPlan"]),
+                                  "OpexExecuteRailPlan", "OpexV190ExecuteRailPlan",
+                                  "OpexV190RollbackDoubleTrack", "OpexV190VerifyPrimaryTrackIntact",
+                                  "OpexConvertDoubleTrackToLoop"]),
             ("task_rail.nut", ["OpexAI::_expandRailLines", "OpexAI::_recordRailAttempt"]),
             ("economy.nut", ["OpexLineEconomics"]),
         ]
