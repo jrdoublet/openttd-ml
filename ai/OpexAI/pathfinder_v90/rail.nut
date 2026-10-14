@@ -410,26 +410,26 @@ function OpexRailPathFinderV90::_Cost(path, new_tile, new_direction, self)
 			local mapX = AIMap.GetMapSizeX();
 			local mapY = AIMap.GetMapSizeY();
 			if (x_new < 0 || y_new < 0 || x_new >= mapX || y_new >= mapY) {
-				step_cost += 3000;
+				step_cost += 400;
 			} else {
 				local lat_new = AIMap.GetTileIndex(x_new, y_new);
 				if (!AIMap.IsValidTile(lat_new) || !AITile.IsBuildable(lat_new)) {
-					step_cost += 3000;
+					step_cost += 400;
 				} else if (dist > 1) {
 					local x_prev = AIMap.GetTileX(prev_tile) + px;
 					local y_prev = AIMap.GetTileY(prev_tile) + py;
 					if (x_prev < 0 || y_prev < 0 || x_prev >= mapX || y_prev >= mapY) {
-						step_cost += 3000;
+						step_cost += 400;
 					} else {
 						local lat_prev = AIMap.GetTileIndex(x_prev, y_prev);
 						if (!AIMap.IsValidTile(lat_prev) || !AITile.IsBuildable(lat_prev)) {
-							step_cost += 3000;
+							step_cost += 400;
 						}
 					}
 				} else {
 					local slope = AITile.GetSlope(lat_new);
 					if (slope != AITile.SLOPE_FLAT && slope != AITile.GetSlope(new_tile)) {
-						step_cost += 3000;
+						step_cost += 400;
 					}
 				}
 			}

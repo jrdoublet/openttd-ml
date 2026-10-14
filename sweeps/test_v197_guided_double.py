@@ -133,9 +133,9 @@ class PresenceDesDeuxOptions(unittest.TestCase):
         self.assertIn("(step_cost * 5) / 10", self.rail_nut)
         self.assertIn("(step_cost * 5) / 10", self.v129_nut)
 
-        # Check heavy penalty (3000) for lateral tile unbuildable or slope incompatible
-        self.assertIn("step_cost += 3000", self.rail_nut)
-        self.assertIn("step_cost += 3000", self.v129_nut)
+        # Check heavy penalty (400) for lateral tile unbuildable or slope incompatible
+        self.assertIn("step_cost += 400", self.rail_nut)
+        self.assertIn("step_cost += 400", self.v129_nut)
 
     def test_build_guide_tiles_function(self):
         self.assertIn("function OpexV197BuildGuideTiles(tiles, side, forbidden)", self.builder)
