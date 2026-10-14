@@ -2053,6 +2053,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v202_cash_k",
+      description = "V202: passing loops only when cash net of loan >= this (k GBP) + cost; 0 = no gate",
+      min_value = 0, max_value = 2000, step_size = 25,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v202_passing_loops",
       description = "V202: single-track freight passing loops with PBS signals for 2-3 trains (0 = inert default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

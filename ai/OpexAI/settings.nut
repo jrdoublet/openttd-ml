@@ -165,6 +165,8 @@ function OpexLoadSettings()
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
 
   V202_PASSING_LOOPS = AIController.GetSetting("v202_passing_loops") != 0;
+  V202_CASH_K = AIController.GetSetting("v202_cash_k");
+  if (V202_CASH_K == null || V202_CASH_K < 0) V202_CASH_K = 0;
   local v202Dist = AIController.GetSetting("v202_second_loop_dist");
   V202_SECOND_LOOP_DIST = (v202Dist != null && v202Dist >= 50 && v202Dist <= 500) ? v202Dist : 120;
 
