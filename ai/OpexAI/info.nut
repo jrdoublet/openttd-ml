@@ -1120,8 +1120,8 @@ class OpexAIInfo extends AIInfo {
       name = "pathfinder_hard_cap_k",
       description = "Hard pathfinder iteration cap, in thousands (docs/taches.md A3): 10 = default, 40 = pre-A3",
       min_value = 5, max_value = 100,
-      easy_value = 10, medium_value = 10, hard_value = 10,
-      custom_value = 10,
+      easy_value = 5, medium_value = 5, hard_value = 5,
+      custom_value = 5,
       step_size = 5,
       flags = 0
     });
