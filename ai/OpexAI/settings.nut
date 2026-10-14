@@ -124,6 +124,7 @@ function OpexLoadSettings()
   local longWeightDist = AIController.GetSetting("v172_rail_long_weight_dist");
   V172_RAIL_LONG_WEIGHT_DIST = (longWeightDist != null && longWeightDist >= 0 && longWeightDist <= 512) ? longWeightDist : 100;
   V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
+  V179_RAIL_GEN_DEST_SERVED = AIController.GetSetting("v179_rail_gen_dest_served") != 0;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;

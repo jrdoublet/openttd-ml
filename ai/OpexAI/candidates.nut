@@ -1778,7 +1778,9 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (prePair != null) prePair.freightIndustryPairs++;
         stats.pairsTotal++;
         local sd = served[di];
-        if (ss != null || sd != null) {
+        /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache. */
+        local v179Keep = V179_RAIL_GEN_DEST_SERVED && ss == null && sd != null;
+        if (!v179Keep && (ss != null || sd != null)) {
           stats.pairsOriginServed++;
           if (RAIL_ORIGIN_EXPOSURE_SHADOW) {
             if (!("originExposureFreight" in stats)) stats.originExposureFreight <- OpexRailOriginExposureStats();
@@ -1795,7 +1797,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           profile.freightIndustryCandidateCalls++;
         }
         if (candidate != null) {
-          OpexRailAttachOriginReuse(candidate, ss, sd);
+          if (v179Keep) candidate.v179DestServed <- 1;
+          else OpexRailAttachOriginReuse(candidate, ss, sd);
           out.append(candidate);
         }
       }

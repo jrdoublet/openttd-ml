@@ -1065,6 +1065,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v179_rail_gen_dest_served",
+      description = "V179: rail freight generator keeps pairs whose destination industry is already served (fresh source), for V178 to attach; 0 = inert (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
       name = "v178_rail_shared_dest",
       description = "V178: freight candidates share accepting rail station when destination is within MIN_SEPARATION of our existing station; 0 = inert (default)",
       min_value = 0, max_value = 1,
