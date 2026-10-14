@@ -4982,7 +4982,7 @@ function OpexV202FindPassingLoopWindow(tiles, trainLength, minIdx, maxIdx, forbi
         if (!AITile.IsBuildable(pk)) { sideOk = false; break; }
         local owner = AITile.GetOwner(pk);
         local ownerSelf = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
-        if (owner != AICompany.COMPANY_UNOWNED && owner != ownerSelf) { sideOk = false; break; }
+        if (owner != AICompany.COMPANY_INVALID && owner != ownerSelf) { sideOk = false; break; }
       }
       if (!sideOk) continue;
 
