@@ -66,6 +66,7 @@ V190_RAIL_MAX_TRAINS <- 4;
 /* V202 : voie unique avec evitements PBS pour 2-3 trains par ligne. */
 V202_PASSING_LOOPS <- false;
 V202_CASH_K <- 0;
+V202_CASH_GROSS <- false;
 V202_SECOND_LOOP_DIST <- 120;
 function OpexV202Active()
 {

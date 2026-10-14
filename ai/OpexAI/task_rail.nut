@@ -1278,7 +1278,7 @@ function OpexAI::OpexV202TryPassingLoop(line, year, isSecondLoop = false)
   local costEst = trainCost + loopCostEst;
   local need = costEst + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (V202_CASH_K > 0 && money - AICompany.GetLoanAmount() < V202_CASH_K * 1000 + costEst) {
+  if (V202_CASH_K > 0 && money - (V202_CASH_GROSS ? 0 : AICompany.GetLoanAmount()) < V202_CASH_K * 1000 + costEst) {
     if (DECISION_LOG) OpexDecide("V202", "step=cashk ok=0 reason=CASHK money=" + money + " line=" + line.lineId);
     return false;
   }

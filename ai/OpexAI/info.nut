@@ -2053,6 +2053,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v202_cash_gross",
+      description = "V202: v202_cash_k compares gross cash (loan included) instead of cash net of loan",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v202_cash_k",
       description = "V202: passing loops only when cash net of loan >= this (k GBP) + cost; 0 = no gate",
       min_value = 0, max_value = 2000, step_size = 25,
