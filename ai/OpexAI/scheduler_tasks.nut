@@ -1097,7 +1097,7 @@ function OpexAI::_dispatchExpand(task, year)
    * (second train, passage en double voie) vit a l'interieur de _expandRailLines. La desactiver
    * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1.
    * Desormais inconditionnel : on ne desactive que si les DEUX sont eteints. */
-  if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+  if (!RAIL_EXPAND && !RAIL_REFLEET && !OpexV201Active()) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
   this._expandRailLines(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;

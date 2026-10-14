@@ -780,6 +780,12 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   OpexBuildBlockSignals(tiles1, OPEX_TEMPLATE_SIGNAL_INTERVAL);
   OpexBuildBlockSignals(tiles2, OPEX_TEMPLATE_SIGNAL_INTERVAL);
 
+  // V201 : tentative de pose d'une jonction a 4 branches sur le tronc avant mise en service des trains
+  local v201Junction = null;
+  if (OpexV201Active()) {
+    v201Junction = OpexV201TryBuildJunction(tiles1, tiles2, builtSrc, builtDst, plan.length);
+  }
+
   if (DECISION_LOG) OpexDecide("V198", "step=cost at=signals cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 7. Construction d'un train avec ordres : plein chargement source, dechargement destination
   local exitA = builtSrc.platformTile;
@@ -790,6 +796,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
                                  OpexV163Cargo2(candidate), OpexV163Wagons2(candidate));
   if (trains.failed || trains.built == 0) {
     if (DECISION_LOG) OpexDecide("V198", "step=build_train ok=0 reason=TRAINFAIL");
+    if (v201Junction != null) OpexV201DemolishJunction(v201Junction);
     if (("rollbackVehicles" in trains) && trains.rollbackVehicles != null) {
       foreach (v in trains.rollbackVehicles) {
         if (AIVehicle.IsValidVehicle(v)) AIVehicle.SellVehicle(v);
@@ -825,6 +832,8 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   result.stationB = builtDst.platformTile;
   result.depot = builtSrc.depotTile;
   result.doubleTrack = 1;
+  result.v198 <- true;
+  result.v201Junction <- v201Junction;
   result.loop <- 1;
   result.v181Loop <- true;
   result.stationA2 <- builtSrc.platformTile;

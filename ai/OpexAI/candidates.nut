@@ -2202,6 +2202,9 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
       OpexGoodsChainCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
                                freightCargo, targetKind, targetId);
     }
+    if (OpexV201Active()) {
+      OpexV201BranchCandidates(catalog, lines, all, stats, abandonedPairs);
+    }
   }
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);

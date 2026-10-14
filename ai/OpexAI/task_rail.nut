@@ -740,6 +740,9 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
  * la demande pax surestimee du catalogue. */
 function OpexAI::_expandRailLines(year)
 {
+  if (OpexV201Active()) {
+    OpexV201CheckStuckTrains(this._lines, AIDate.GetCurrentDate(), this._v201StuckVehicles);
+  }
   /* G6§1 : la garde d'entree coupait TOUT sur !RAIL_EXPAND, y compris le bloc RAIL_REFLEET
    * plus bas -- seul site d'appel de OpexBuildSecondTrain et OpexUpgradeRailLineToDoubleTrack.
    * Avec les defauts livres (rail_expand = 0, rail_refleet = 1) aucune ligne rail ne pouvait donc
@@ -1924,7 +1927,24 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
+      v198 = ("v198" in result) ? result.v198 : false,
+      v201Junction = ("v201Junction" in result) ? result.v201Junction : null,
+      v201Branch = (("v201Branch" in result) && result.v201Branch) || (("branch" in candidate) && candidate.branch == 1),
+      v201BranchCount = 0,
+      trunkLineId = ("trunkLineId" in result) ? result.trunkLineId : (("trunkLineId" in candidate) ? candidate.trunkLineId : -1),
     });
+    if ((("v201Branch" in result) && result.v201Branch) || (("branch" in candidate) && candidate.branch == 1)) {
+      local tId = ("trunkLineId" in result) ? result.trunkLineId : (("trunkLineId" in candidate) ? candidate.trunkLineId : -1);
+      if (tId >= 0) {
+        foreach (tl in this._lines) {
+          if (tl.lineId == tId) {
+            if (!("v201BranchCount" in tl)) tl.v201BranchCount <- 0;
+            tl.v201BranchCount++;
+            break;
+          }
+        }
+      }
+    }
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */
     if (("wagons2" in candidate) && candidate.wagons2 > 0) {
       local built = this._lines[this._lines.len() - 1];

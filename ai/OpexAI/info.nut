@@ -1999,6 +1999,34 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v201_branches",
+      description = "V201: freight branches on double trunk with 4-way junctions inspired by HogNet; 0 = inert default, 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v201_max_dest_trains",
+      description = "V201: max trains per destination station for freight branches; default 12",
+      min_value = 1, max_value = 50,
+      easy_value = 12, medium_value = 12, hard_value = 12,
+      custom_value = 12,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v201_stuck_days",
+      description = "V201: days without moving in station throat before stuck train is sent to depot; default 20",
+      min_value = 5, max_value = 100,
+      easy_value = 20, medium_value = 20, hard_value = 20,
+      custom_value = 20,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v190_rail_double_build",
       description = "V190: build freight rail lines directly as double-track loop from start (0 = inert default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

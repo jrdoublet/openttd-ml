@@ -56,6 +56,7 @@ require("pathfinder_v90/rail.nut");
 require("pathfinder_v90/v129.nut");
 require("builder_rail.nut");
 require("rail_templates.nut");
+require("v201_branches.nut");
 require("builder_air.nut");
 require("builder_water.nut");
 require("builder_road.nut");
@@ -348,6 +349,7 @@ class OpexAI extends AIController {
   _c83PreemptRace = null;
   _c83PreemptQueued = -1;
   _c83PreemptEnqueued = 0;
+  _v201StuckVehicles = null;
 
   constructor()
   {
@@ -382,6 +384,7 @@ class OpexAI extends AIController {
     this._abandonCounts = {};
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
+    this._v201StuckVehicles = {};
     OpexAirResetSiteCache();
     this._activeSubsidies = {};
     this._railReadyStock = {};

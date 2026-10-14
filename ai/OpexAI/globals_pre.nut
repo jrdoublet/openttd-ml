@@ -58,6 +58,14 @@ function OpexV198Active()
 {
   return V198_TEMPLATE_DOUBLE && OpexV190Active();
 }
+/* V201 : branches fret sur tronc double inspirées de HogNet. */
+V201_BRANCHES <- false;
+V201_MAX_DEST_TRAINS <- 12;
+V201_STUCK_DAYS <- 20;
+function OpexV201Active()
+{
+  return V201_BRANCHES && OpexV198Active();
+}
 V190_RAIL_MAX_TRAINS <- 4;
 /* V188 : pentes tolerees pour les quais joints paralleles. */
 V188_RAIL_JOIN_SLOPES <- false;

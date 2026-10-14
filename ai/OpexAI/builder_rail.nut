@@ -3623,6 +3623,12 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
   if (DECISION_LOG && !("modelCapital" in candidate)
       && !(("capitalIsActual" in candidate) && candidate.capitalIsActual))
     candidate.modelCapital <- candidate.capital;
+  /* V201 : si candidat branche, execution dediee sans A* de tronc */
+  if (("branch" in candidate) && candidate.branch == 1) {
+    local branchPlan = (("railPlan" in candidate) && candidate.railPlan != null) ? candidate.railPlan : { ok = true, iterations = 0, opcodes = 0, cost = 0, tiles = [] };
+    return OpexV201ExecuteBranchPlan(catalog, budget, candidate, branchPlan, cashReserve);
+  }
+
   local plan = null;
   if (("railPlan" in candidate) && candidate.railPlan != null) {
     plan = candidate.railPlan;
