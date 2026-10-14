@@ -1222,3 +1222,6 @@ Constat annexe : en 1972 la pile B a 200-330 k£ de caisse oisive (graine 42, re
 
 ### Coût de ligne AAAHogEx en rail seul (graine 42, 15/10)
 Journal AAA (`price:… usable:…`) : 4 routes avant mai 1970, chacune ~58-66 k£ de caisse consommée dont 35-44 k£ de train — **même coût unitaire que nous (57-86 k£)**. Sa caisse remonte de 66 k à 153 k£ entre mai et septembre 1970 (4 routes, ~65 k£/train/an annualisé). 18 routes posées en 3 ans (19 `isSingle:true`) pour 31 véhicules, contre ~14 lignes / 14 trains chez nous. L'écart n'est pas le coût de la ligne mais (1) le rendement des premières routes et (2) les trains ajoutés aux routes existantes (~1,7/route). Piste suivante : comparer graine par graine le profit réalisé de nos 4 premières lignes contre les 4 premières d'AAA (cargo, distance, délai avant 1er revenu).
+
+### V204 rame réduite pour tenir le budget — 10×3 négatif (15/10)
+Branche `v204-rame-ajustee` (agy `30aada7`), `v204_shrink_to_fit=3`. Smoke graine 42 sain. 10×3 `v204_railseul_10x3_20261015` contre pile B : −45,5 k£/an, médiane −36,0 k, 3/7/0, p=0,16, IC95 [−95,9 ; −1,5] k. 51 réductions réussies sur 4 718 tentatives, 96 rallongements refusés. Même au minimum de 3 wagons, le capital (voie + gares) dépasse le budget : réduire la rame ne débloque pas la caisse. Défaut 0, clos.
