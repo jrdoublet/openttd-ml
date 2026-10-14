@@ -196,10 +196,8 @@ function OpexTemplateCheckOrLevel(tiles, isRealMode = false)
     if (err == AITile.ERR_AREA_ALREADY_FLAT) return true;
     return false;
   }
+  // Nivellement au mieux : les poses de quai et de rail (fondations) tranchent ensuite.
   AITile.LevelTiles(startTile, endTile);
-  foreach (t in tiles) {
-    if (AITile.GetSlope(t) != AITile.SLOPE_FLAT) return false;
-  }
   return true;
 }
 
