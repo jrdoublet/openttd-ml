@@ -242,12 +242,13 @@ function OpexJoinPlatformPlans(platform, stationId, stats = null)
       for (local farExit = 0; farExit <= 1; farExit++) {
         local stationExit = farExit != 0 ? anchor + platform.step * (length - 1) : anchor;
         local lead = farExit != 0 ? stationExit + platform.step : stationExit - platform.step;
+        /* V188 : pente toleree, le BuildRailStation en mode test tranche (fondations). */
         local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead) &&
-            AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
+            (V188_RAIL_JOIN_SLOPES || AITile.GetSlope(lead) == AITile.SLOPE_FLAT);
         for (local i = 0; i < length && usable; i++) {
           local tile = anchor + platform.step * i;
           usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile) &&
-              AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
+              (V188_RAIL_JOIN_SLOPES || AITile.GetSlope(tile) == AITile.SLOPE_FLAT);
         }
         if (!usable) continue;
         if (stats != null) {

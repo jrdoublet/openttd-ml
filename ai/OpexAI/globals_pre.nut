@@ -30,6 +30,8 @@ V184_RAIL_SEARCH_SLOTS <- 1;
 V186_RAIL_SEARCH_SLICES <- 1;
 /* V187 : second train / doublement autorises pendant une recherche A* de ligne neuve. */
 V187_RAIL_REFLEET_DURING_SEARCH <- false;
+/* V188 : pentes tolerees pour les quais joints paralleles. */
+V188_RAIL_JOIN_SLOPES <- false;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;
