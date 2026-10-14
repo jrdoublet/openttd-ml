@@ -1917,6 +1917,24 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v190_rail_double_build",
+      description = "V190: build freight rail lines directly as double-track loop from start (0 = inert default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v190_rail_max_trains",
+      description = "V190: maximum trains per double-track freight rail line (2..8, default 4)",
+      min_value = 2, max_value = 8,
+      easy_value = 4, medium_value = 4, hard_value = 4,
+      custom_value = 4,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v188_rail_join_slopes",
       description = "V188: allow sloped tiles for joined parallel rail platforms (double track) (0 = flat only)",
       easy_value = 0, medium_value = 0, hard_value = 0,

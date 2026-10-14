@@ -746,7 +746,7 @@ function OpexAI::_expandRailLines(year)
    * JAMAIS gagner un second train ni une seconde voie. Desormais inconditionnel. */
   if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
-  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !V187_RAIL_REFLEET_DURING_SEARCH) return;
+  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !V187_RAIL_REFLEET_DURING_SEARCH && !V190_RAIL_DOUBLE_BUILD) return;
   this._budget.begin();
   local best = null;
   local nEligible = 0;
@@ -825,12 +825,20 @@ function OpexAI::_expandRailLines(year)
       foreach (line in this._lines) {
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         if (V181_RAIL_MAX_TRAINS <= 0) {
-          if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
+          if (!V190_RAIL_DOUBLE_BUILD || line.kind != "freight") {
+            if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
+          } else {
+            if (line.trains >= V190_RAIL_MAX_TRAINS || line.vehicles.len() >= V190_RAIL_MAX_TRAINS) continue;
+          }
         } else {
-          if (line.trains >= V181_RAIL_MAX_TRAINS || line.vehicles.len() >= V181_RAIL_MAX_TRAINS) continue;
+          local maxAllowed = (V190_RAIL_DOUBLE_BUILD && line.kind == "freight") ? V190_RAIL_MAX_TRAINS : V181_RAIL_MAX_TRAINS;
+          if (line.trains >= maxAllowed || line.vehicles.len() >= maxAllowed) continue;
         }
         if (("scrapping" in line) && line.scrapping) continue;
-        if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+        local hasProfit = ("lastProfit" in line) && line.lastProfit > 0;
+        local over6Months = (V190_RAIL_DOUBLE_BUILD && line.kind == "freight")
+            && (("buildDate" in line) ? (AIDate.GetCurrentDate() - line.buildDate > 180) : (("year" in line) && (year - line.year >= 1)));
+        if (!hasProfit && !over6Months) continue;
         if (!(line.cargo in this._catalog.wagonByCargo)) continue;
 
         local wagon = this._catalog.wagonByCargo[line.cargo];
@@ -1026,6 +1034,85 @@ function OpexAI::_expandRailLines(year)
           local anchor = AIMap.GetTileIndex(1, 1);
           OpexSign(anchor, "RC|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
           if (DECISION_LOG) {
+            OpexDecide("RAIL_EXPAND", "action=clone line=" + line.lineId + " trains=" + line.trains);
+          }
+          return;
+        }
+        // Cas 4 : V190 trains supplementaires par clonage sur ligne fret en boucle des la construction
+        else if (V190_RAIL_DOUBLE_BUILD && line.kind == "freight" && line.trains >= 2 &&
+                 line.trains < V190_RAIL_MAX_TRAINS &&
+                 ("doubleTrack" in line) && line.doubleTrack == 1) {
+          if (("v181LoopFailed" in line) && line.v181LoopFailed) continue;
+
+          local trainCapacity = line.wagons * wagon.capacity;
+          local stockHalf = (waiting > (trainCapacity / 2));
+          local departFull = (line.kind == "freight");
+          if (!stockHalf && !departFull) continue;
+
+          local srcStationId = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;
+          local srcStationId2 = ("stationA2" in line && line.stationA2 != null) ? AIStation.GetStationID(line.stationA2) : AIStation.STATION_INVALID;
+          local dstStationId = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : AIStation.STATION_INVALID;
+          local dstStationId2 = ("stationB2" in line && line.stationB2 != null) ? AIStation.GetStationID(line.stationB2) : AIStation.STATION_INVALID;
+          if (!AIStation.IsValidStation(srcStationId) || !AIStation.IsValidStation(dstStationId)) continue;
+          if (srcStationId != srcStationId2 || dstStationId != dstStationId2) continue;
+
+          local trainWaitingAtSource = false;
+          foreach (v in line.vehicles) {
+            if (AIVehicle.IsValidVehicle(v)) {
+              local vLoc = AIVehicle.GetLocation(v);
+              if (AIMap.IsValidTile(vLoc) && AIStation.GetStationID(vLoc) == srcStationId) {
+                trainWaitingAtSource = true;
+                break;
+              }
+            }
+          }
+          if (trainWaitingAtSource) continue;
+
+          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local need = trainCost + OpexCashReserve() + 1000;
+          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          if (money < need) continue;
+          if (!OpexRailVehicleSlotAvailable()) continue;
+
+          if (!("v181Loop" in line) || !line.v181Loop) {
+            local loopOk = OpexConvertDoubleTrackToLoop(line);
+            if (!loopOk) {
+              line.v181LoopFailed <- true;
+              continue;
+            }
+            line.v181Loop <- true;
+          }
+
+          local targetDepot = null;
+          local modelTrain = null;
+          local preferDepot2 = (line.vehicles.len() % 2 == 1);
+          if (preferDepot2 && ("depot2" in line) && line.depot2 != null && AIRail.IsRailDepotTile(line.depot2)) {
+            targetDepot = line.depot2;
+            modelTrain = (line.vehicles.len() > 1) ? line.vehicles[1] : line.vehicles[0];
+          } else if (("depot" in line) && line.depot != null && AIRail.IsRailDepotTile(line.depot)) {
+            targetDepot = line.depot;
+            modelTrain = line.vehicles[0];
+          } else if (("depot2" in line) && line.depot2 != null && AIRail.IsRailDepotTile(line.depot2)) {
+            targetDepot = line.depot2;
+            modelTrain = (line.vehicles.len() > 1) ? line.vehicles[1] : line.vehicles[0];
+          }
+          if (targetDepot == null || modelTrain == null || !AIVehicle.IsValidVehicle(modelTrain)) continue;
+
+          local extraTrain = AIVehicle.CloneVehicle(targetDepot, modelTrain, true);
+          if (!AIVehicle.IsValidVehicle(extraTrain)) continue;
+
+          if (!AIVehicle.StartStopVehicle(extraTrain)) {
+            AIVehicle.SellVehicle(extraTrain);
+            continue;
+          }
+
+          line.vehicles.append(extraTrain);
+          line.trains = line.vehicles.len();
+          line.vehCount <- line.vehicles.len();
+          local anchor = AIMap.GetTileIndex(1, 1);
+          OpexSign(anchor, "RC|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
+          if (DECISION_LOG) {
+            OpexDecide("V190", "action=add_train line=" + line.lineId + " trains=" + line.trains + " reason=OK");
             OpexDecide("RAIL_EXPAND", "action=clone line=" + line.lineId + " trains=" + line.trains);
           }
           return;
@@ -1804,6 +1891,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       cargo = candidate.cargo,
       predicted = candidate.profitAnnual, iterations = result.iterations,
       trains = result.trains, trains0 = result.trains, distance = candidate.distance, year = year,
+      buildDate = AIDate.GetCurrentDate(),
       predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
       predAmort = candidate.amortAnnual, predCarried = candidate.carried,
       predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
@@ -1814,6 +1902,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
       depot = result.depot,
       doubleTrack = ("doubleTrack" in result) ? result.doubleTrack : 0,
+      v181Loop = ("v181Loop" in result) ? result.v181Loop : false,
       depot2 = ("depot2" in result) ? result.depot2 : null,
       stationA2 = ("stationA2" in result) ? result.stationA2 : null,
       stationB2 = ("stationB2" in result) ? result.stationB2 : null,
@@ -1829,6 +1918,13 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       lineId = idx,
     });
     this._nextLineId++;
+    if (DECISION_LOG && V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+      if (("v181Loop" in result) && result.v181Loop) {
+        OpexDecide("V190", "action=build_double line=" + idx + " trains=" + result.trains + " reason=OK");
+      } else {
+        OpexDecide("V190", "action=fallback_single line=" + idx + " trains=" + result.trains + " reason=" + (result.doubleTrack == 1 ? "TRACK2FAIL" : "NOPLAN2"));
+      }
+    }
     if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
     return true;
   }
