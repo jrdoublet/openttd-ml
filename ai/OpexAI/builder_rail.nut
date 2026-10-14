@@ -434,6 +434,9 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
     pathfinder = RailPathFinder();
   }
   pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+  if (V173_RAIL_MAX_BRIDGE > 0) pathfinder.cost.max_bridge_length = V173_RAIL_MAX_BRIDGE;
+  if (V173_RAIL_MAX_TUNNEL > 0) pathfinder.cost.max_tunnel_length = V173_RAIL_MAX_TUNNEL;
+  if (V173_RAIL_TUNNEL_COST >= 0) pathfinder.cost.tunnel_per_tile = V173_RAIL_TUNNEL_COST;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
   return pathfinder;
 }
@@ -811,6 +814,9 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       }
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+      if (V173_RAIL_MAX_BRIDGE > 0) pathfinder.cost.max_bridge_length = V173_RAIL_MAX_BRIDGE;
+      if (V173_RAIL_MAX_TUNNEL > 0) pathfinder.cost.max_tunnel_length = V173_RAIL_MAX_TUNNEL;
+      if (V173_RAIL_TUNNEL_COST >= 0) pathfinder.cost.tunnel_per_tile = V173_RAIL_TUNNEL_COST;
       local ignored = OpexSegmentIgnoredTiles(state);
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);
       state.pathfinder = pathfinder;

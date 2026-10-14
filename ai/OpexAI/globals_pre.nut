@@ -17,6 +17,12 @@ V168_RAIL_MAX_DIST <- 160;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;
+/* V173 : portees max de ponts/tunnels et cout tunnel du pathfinder rail (style AAAHogEx).
+ * 0 = inerte / historique (ponts 6, tunnels 6) ; >0 = nouvelle portee (jusqu'a 30).
+ * Cout tunnel : -1 = inerte / historique (120) ; >=0 = nouveau cout unitaire (0 = gratuit). */
+V173_RAIL_MAX_BRIDGE <- 0;
+V173_RAIL_MAX_TUNNEL <- 0;
+V173_RAIL_TUNNEL_COST <- -1;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;

@@ -1073,6 +1073,33 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v173_rail_max_bridge",
+      description = "V173: maximum rail bridge length in tiles. 0 = inert / default (historical 6 tiles); N = allow bridges up to N tiles (up to 30)",
+      min_value = 0, max_value = 30,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v173_rail_max_tunnel",
+      description = "V173: maximum rail tunnel length in tiles. 0 = inert / default (historical 6 tiles); N = allow tunnels up to N tiles (up to 30)",
+      min_value = 0, max_value = 30,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v173_rail_tunnel_cost",
+      description = "V173: rail pathfinder tunnel cost per tile. -1 = unchanged / default (historical 120); >= 0 replaces 120 (0 = free tunnels like AAAHogEx)",
+      min_value = -1, max_value = 200,
+      easy_value = -1, medium_value = -1, hard_value = -1,
+      custom_value = -1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "policy_air",
       description = "Aviation policy: portfolio arbitration, runway cadence cap, joined bus stops, hub reuse: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,

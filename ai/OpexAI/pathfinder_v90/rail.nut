@@ -64,10 +64,10 @@ class OpexRailPathFinderV90
 		this._cost_turn = 50;
 		this._cost_slope = 100;
 		this._cost_bridge_per_tile = 150;
-		this._cost_tunnel_per_tile = 120;
+		this._cost_tunnel_per_tile = (V173_RAIL_TUNNEL_COST >= 0) ? V173_RAIL_TUNNEL_COST : 120;
 		this._cost_coast = 20;
-		this._max_bridge_length = 6;
-		this._max_tunnel_length = 6;
+		this._max_bridge_length = (V173_RAIL_MAX_BRIDGE > 0) ? V173_RAIL_MAX_BRIDGE : 6;
+		this._max_tunnel_length = (V173_RAIL_MAX_TUNNEL > 0) ? V173_RAIL_MAX_TUNNEL : 6;
 		this._weight = (weight != null) ? weight : V91_ASTAR_WEIGHT_PCT;
 		local estimate_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
 		this._pathfinder = this._aystar_class(this._Cost, estimate_fn, this._Neighbours, this._CheckDirection, this, this, this, this);
@@ -608,6 +608,9 @@ class OpexRailPathfinderCheckerV90
 	{
 		this._orig = RailPathFinder();
 		this._v90 = OpexRailPathFinderV90(weight);
+		if (V173_RAIL_MAX_BRIDGE > 0) this._orig.cost.max_bridge_length = V173_RAIL_MAX_BRIDGE;
+		if (V173_RAIL_MAX_TUNNEL > 0) this._orig.cost.max_tunnel_length = V173_RAIL_MAX_TUNNEL;
+		if (V173_RAIL_TUNNEL_COST >= 0) this._orig.cost.tunnel_per_tile = V173_RAIL_TUNNEL_COST;
 		this.cost = this.Cost(this);
 		this._pathfinder = this._v90._pathfinder;
 		this._stepCount = 0;
