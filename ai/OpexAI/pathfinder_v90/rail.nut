@@ -55,6 +55,8 @@ class OpexRailPathFinderV90
 	_cache_tunnel = null;
 	_cache_rail = null;
 	_cache_buildable = null;
+	_outwardSide = null;
+	_guideTiles = null;
 
 	constructor(weight = null)
 	{
@@ -334,68 +336,107 @@ function OpexRailPathFinderV90::_Cost(path, new_tile, new_direction, self)
 	if (path == null) return 0;
 
 	local prev_tile = path.GetTile();
+	local par = path.GetParent();
 
-	/* If the new tile is a bridge / tunnel tile, check whether we came from the other
-	 *  end of the bridge / tunnel or if we just entered the bridge / tunnel. */
+	local step_cost = 0;
 	if (self._IsBridge(new_tile)) {
 		if (AIBridge.GetOtherBridgeEnd(new_tile) != prev_tile) {
-			local cost = path.GetCost() + self._cost_tile;
-			if (path.GetParent() != null && path.GetParent().GetTile() - prev_tile != prev_tile - new_tile) cost += self._cost_turn;
-			return cost;
-		}
-		return path.GetCost() + AIMap.DistanceManhattan(new_tile, prev_tile) * self._cost_tile + self._GetBridgeNumSlopes(new_tile, prev_tile) * self._cost_slope;
-	}
-	if (self._IsTunnel(new_tile)) {
-		if (AITunnel.GetOtherTunnelEnd(new_tile) != prev_tile) {
-			local cost = path.GetCost() + self._cost_tile;
-			if (path.GetParent() != null && path.GetParent().GetTile() - prev_tile != prev_tile - new_tile) cost += self._cost_turn;
-			return cost;
-		}
-		return path.GetCost() + AIMap.DistanceManhattan(new_tile, prev_tile) * self._cost_tile;
-	}
-
-	/* If the two tiles are more then 1 tile apart, the pathfinder wants a bridge or tunnel
-	 *  to be build. It isn't an existing bridge / tunnel, as that case is already handled. */
-	local distManhattan = AIMap.DistanceManhattan(new_tile, prev_tile);
-	if (distManhattan > 1) {
-		/* Check if we should build a bridge or a tunnel. */
-		local cost = path.GetCost();
-		if (AITunnel.GetOtherTunnelEnd(new_tile) == prev_tile) {
-			cost += distManhattan * (self._cost_tile + self._cost_tunnel_per_tile);
+			step_cost = self._cost_tile;
+			if (par != null && par.GetTile() - prev_tile != prev_tile - new_tile) step_cost += self._cost_turn;
 		} else {
-			cost += distManhattan * (self._cost_tile + self._cost_bridge_per_tile) + self._GetBridgeNumSlopes(new_tile, prev_tile) * self._cost_slope;
+			step_cost = AIMap.DistanceManhattan(new_tile, prev_tile) * self._cost_tile + self._GetBridgeNumSlopes(new_tile, prev_tile) * self._cost_slope;
 		}
-		if (path.GetParent() != null && path.GetParent().GetParent() != null &&
-				path.GetParent().GetParent().GetTile() - path.GetParent().GetTile() != max(AIMap.GetTileX(prev_tile) - AIMap.GetTileX(new_tile), AIMap.GetTileY(prev_tile) - AIMap.GetTileY(new_tile)) / distManhattan) {
-			cost += self._cost_turn;
+	} else if (self._IsTunnel(new_tile)) {
+		if (AITunnel.GetOtherTunnelEnd(new_tile) != prev_tile) {
+			step_cost = self._cost_tile;
+			if (par != null && par.GetTile() - prev_tile != prev_tile - new_tile) step_cost += self._cost_turn;
+		} else {
+			step_cost = AIMap.DistanceManhattan(new_tile, prev_tile) * self._cost_tile;
 		}
-		return cost;
+	} else {
+		local distManhattan = AIMap.DistanceManhattan(new_tile, prev_tile);
+		if (distManhattan > 1) {
+			if (AITunnel.GetOtherTunnelEnd(new_tile) == prev_tile) {
+				step_cost = distManhattan * (self._cost_tile + self._cost_tunnel_per_tile);
+			} else {
+				step_cost = distManhattan * (self._cost_tile + self._cost_bridge_per_tile) + self._GetBridgeNumSlopes(new_tile, prev_tile) * self._cost_slope;
+			}
+			if (par != null && par.GetParent() != null &&
+					par.GetParent().GetTile() - par.GetTile() != max(AIMap.GetTileX(prev_tile) - AIMap.GetTileX(new_tile), AIMap.GetTileY(prev_tile) - AIMap.GetTileY(new_tile)) / distManhattan) {
+				step_cost += self._cost_turn;
+			}
+		} else {
+			step_cost = self._cost_tile;
+			if (par != null && AIMap.DistanceManhattan(par.GetTile(), prev_tile) == 1 && par.GetTile() - prev_tile != prev_tile - new_tile) step_cost = self._cost_diagonal_tile;
+			if (par != null && par.GetParent() != null &&
+					AIMap.DistanceManhattan(new_tile, par.GetParent().GetTile()) == 3 &&
+					par.GetParent().GetTile() - par.GetTile() != prev_tile - new_tile) {
+				step_cost += self._cost_turn;
+			}
+
+			if (self._IsCoast(new_tile)) {
+				step_cost += self._cost_coast;
+			}
+
+			if (par != null && !self._IsBridge(prev_tile) && !self._IsTunnel(prev_tile) &&
+					self._IsSlopedRail(par.GetTile(), prev_tile, new_tile)) {
+				step_cost += self._cost_slope;
+			}
+		}
 	}
 
-	/* Check for a turn. We do this by substracting the TileID of the current
-	 *  node from the TileID of the previous node and comparing that to the
-	 *  difference between the tile before the previous node and the node before
-	 *  that. */
-	local cost = self._cost_tile;
-	if (path.GetParent() != null && AIMap.DistanceManhattan(path.GetParent().GetTile(), prev_tile) == 1 && path.GetParent().GetTile() - prev_tile != prev_tile - new_tile) cost = self._cost_diagonal_tile;
-	if (path.GetParent() != null && path.GetParent().GetParent() != null &&
-			AIMap.DistanceManhattan(new_tile, path.GetParent().GetParent().GetTile()) == 3 &&
-			path.GetParent().GetParent().GetTile() - path.GetParent().GetTile() != prev_tile - new_tile) {
-		cost += self._cost_turn;
+	if (self._guideTiles != null) {
+		if (self._guideTiles.rawin(new_tile)) {
+			local level = self._guideTiles[new_tile];
+			if (level == 0) {
+				step_cost = (step_cost * 5) / 10;
+			} else {
+				step_cost = (step_cost * (5 + level)) / 10;
+			}
+		} else {
+			step_cost = step_cost * 2;
+		}
 	}
 
-	/* Check if the new tile is a coast tile. */
-	if (self._IsCoast(new_tile)) {
-		cost += self._cost_coast;
+	if (self._outwardSide != null) {
+		local dist = AIMap.DistanceManhattan(new_tile, prev_tile);
+		if (dist >= 1) {
+			local dx = (AIMap.GetTileX(new_tile) - AIMap.GetTileX(prev_tile)) / dist;
+			local dy = (AIMap.GetTileY(new_tile) - AIMap.GetTileY(prev_tile)) / dist;
+			local px = -self._outwardSide * dy;
+			local py = self._outwardSide * dx;
+			local x_new = AIMap.GetTileX(new_tile) + px;
+			local y_new = AIMap.GetTileY(new_tile) + py;
+			local mapX = AIMap.GetMapSizeX();
+			local mapY = AIMap.GetMapSizeY();
+			if (x_new < 0 || y_new < 0 || x_new >= mapX || y_new >= mapY) {
+				step_cost += 3000;
+			} else {
+				local lat_new = AIMap.GetTileIndex(x_new, y_new);
+				if (!AIMap.IsValidTile(lat_new) || !AITile.IsBuildable(lat_new)) {
+					step_cost += 3000;
+				} else if (dist > 1) {
+					local x_prev = AIMap.GetTileX(prev_tile) + px;
+					local y_prev = AIMap.GetTileY(prev_tile) + py;
+					if (x_prev < 0 || y_prev < 0 || x_prev >= mapX || y_prev >= mapY) {
+						step_cost += 3000;
+					} else {
+						local lat_prev = AIMap.GetTileIndex(x_prev, y_prev);
+						if (!AIMap.IsValidTile(lat_prev) || !AITile.IsBuildable(lat_prev)) {
+							step_cost += 3000;
+						}
+					}
+				} else {
+					local slope = AITile.GetSlope(lat_new);
+					if (slope != AITile.SLOPE_FLAT && slope != AITile.GetSlope(new_tile)) {
+						step_cost += 3000;
+					}
+				}
+			}
+		}
 	}
 
-	/* Check if the last tile was sloped. */
-	if (path.GetParent() != null && !self._IsBridge(prev_tile) && !self._IsTunnel(prev_tile) &&
-			self._IsSlopedRail(path.GetParent().GetTile(), prev_tile, new_tile)) {
-		cost += self._cost_slope;
-	}
-
-	return path.GetCost() + cost;
+	return path.GetCost() + step_cost;
 }
 
 function OpexRailPathFinderV90::_Estimate(cur_tile, cur_direction, goal_tiles, self)
@@ -603,6 +644,8 @@ class OpexRailPathfinderCheckerV90
 	_isWeighted = false;
 	cost = null;
 	_pathfinder = null;
+	_outwardSide = null;
+	_guideTiles = null;
 
 	constructor(weight = null)
 	{
@@ -625,6 +668,8 @@ class OpexRailPathfinderCheckerV90
 
 	function InitializePath(sources, goals, ignored_tiles = [])
 	{
+		this._v90._outwardSide = this._outwardSide;
+		this._v90._guideTiles = this._guideTiles;
 		this._stepCount = 0;
 		this._stepCountOrig = 0;
 		this._stepCountV90 = 0;

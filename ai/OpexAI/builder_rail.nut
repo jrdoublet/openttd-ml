@@ -555,7 +555,7 @@ function OpexRailAstarWeight(dist = null)
 
 /* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
-function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null)
+function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
 {
   local sources = [];
   local goals = [];
@@ -587,6 +587,8 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   if (V90_FAST_PATHFINDER && weight != null) {
     pathfinder.cost.astar_weight_pct = weight;
   }
+  if (outwardSide != null) pathfinder._outwardSide = outwardSide;
+  if (guideTiles != null) pathfinder._guideTiles = guideTiles;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
   return pathfinder;
 }
@@ -891,7 +893,7 @@ function OpexTrySegmentedBacktrack(state)
 /* Cree l'etat d'une recherche segmentee. Table passee en parametre : Squirrel ici
  * ne capture pas les locales englobantes (piege 6). pathfinder reste null jusqu'au
  * premier segment : le closed set ne survit jamais d'un segment a l'autre. */
-function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null)
+function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
 {
   local sources = [];
   local goals = [];
@@ -934,6 +936,8 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     bridgeTests = 0,
     tunnelTests = 0,
     weight = weight,
+    outwardSide = outwardSide,
+    guideTiles = guideTiles,
   };
 }
 
@@ -976,6 +980,8 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       if (V90_FAST_PATHFINDER && ("weight" in state) && state.weight != null) {
         pathfinder.cost.astar_weight_pct = state.weight;
       }
+      if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
+      if (("guideTiles" in state) && state.guideTiles != null) pathfinder._guideTiles = state.guideTiles;
       local ignored = OpexSegmentIgnoredTiles(state);
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);
       state.pathfinder = pathfinder;
@@ -1151,11 +1157,11 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
  *
  * rail_segmented_search=1 : meme enveloppe, mais chaque A* vise les quais finals et s'arrete
  * a 2000 iterations. Defaut 0 = A* classique inchange (table de cout, plafond A3). */
-function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null, weight = null)
+function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
 {
   local res;
   if (RAIL_SEGMENTED_SEARCH) {
-    local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles, weight);
+    local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles, weight, outwardSide, guideTiles);
     if (state == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
       return { path = null, iterations = 0, stop = "NOPA" };
@@ -1163,7 +1169,7 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTi
     /* sliceIters = iterationBudget : une seule avancee jusqu'au chemin / ABND / DEAD / NOPA. */
     res = OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
   } else {
-    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles, weight);
+    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles, weight, outwardSide, guideTiles);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
       return { path = null, iterations = 0, stop = "NOPA" };
@@ -1654,6 +1660,86 @@ function OpexV190TraceParallelTrack(tiles1, planA, planB, planA2, planB2, side, 
   return { tiles = tiles2, structures = structures2 };
 }
 
+/* V197 : Construit la carte guideTiles (niveaux 0..8) autour de la voie 1. */
+function OpexV197BuildGuideTiles(tiles, side, forbidden)
+{
+  local guide = {};
+  if (tiles == null || tiles.len() < 2) return guide;
+
+  // Niveau 0 : tuiles adjacentes sur le cote retour (side)
+  for (local i = 0; i < tiles.len() - 1; i++) {
+    local cur = tiles[i];
+    local nxt = tiles[i + 1];
+    local d = AIMap.DistanceManhattan(cur, nxt);
+    if (d > 1) {
+      local dx = AIMap.GetTileX(nxt) - AIMap.GetTileX(cur);
+      local dy = AIMap.GetTileY(nxt) - AIMap.GetTileY(cur);
+      local udx = (dx != 0) ? (dx > 0 ? 1 : -1) : 0;
+      local udy = (dy != 0) ? (dy > 0 ? 1 : -1) : 0;
+      local perp = OpexV190GetPerp(udx, udy, side);
+      for (local step = 0; step <= d; step++) {
+        local t = OpexV190MakeTile(cur, udx * step + perp.x, udy * step + perp.y);
+        if (t != null && !guide.rawin(t) && (forbidden == null || !forbidden.rawin(t))) {
+          guide.rawset(t, 0);
+        }
+      }
+    } else if (d == 1) {
+      local dx = AIMap.GetTileX(nxt) - AIMap.GetTileX(cur);
+      local dy = AIMap.GetTileY(nxt) - AIMap.GetTileY(cur);
+      local perp = OpexV190GetPerp(dx, dy, side);
+      local adj1 = OpexV190MakeTile(cur, perp.x, perp.y);
+      if (adj1 != null && !guide.rawin(adj1) && (forbidden == null || !forbidden.rawin(adj1))) {
+        guide.rawset(adj1, 0);
+      }
+      local adj2 = OpexV190MakeTile(nxt, perp.x, perp.y);
+      if (adj2 != null && !guide.rawin(adj2) && (forbidden == null || !forbidden.rawin(adj2))) {
+        guide.rawset(adj2, 0);
+      }
+      if (i > 0) {
+        local prv = tiles[i - 1];
+        if (AIMap.DistanceManhattan(prv, cur) == 1) {
+          local dx_in = AIMap.GetTileX(cur) - AIMap.GetTileX(prv);
+          local dy_in = AIMap.GetTileY(cur) - AIMap.GetTileY(prv);
+          local perp_in = OpexV190GetPerp(dx_in, dy_in, side);
+          local corner = OpexV190MakeTile(cur, perp_in.x + perp.x, perp_in.y + perp.y);
+          if (corner != null && !guide.rawin(corner) && (forbidden == null || !forbidden.rawin(corner))) {
+            guide.rawset(corner, 0);
+          }
+        }
+      }
+    }
+  }
+
+  // Anneaux 1..8 par propagation 4-voisins
+  local ringTiles = [];
+  foreach (tile, _ in guide) ringTiles.append(tile);
+
+  local dirOffsets = [
+    AIMap.GetTileIndex(0, 1),
+    AIMap.GetTileIndex(0, -1),
+    AIMap.GetTileIndex(1, 0),
+    AIMap.GetTileIndex(-1, 0)
+  ];
+
+  for (local ring = 1; ring <= 8; ring++) {
+    local nextRing = [];
+    foreach (t in ringTiles) {
+      foreach (off in dirOffsets) {
+        local neighbor = t + off;
+        if (AIMap.IsValidTile(neighbor) && AIMap.DistanceManhattan(t, neighbor) == 1 &&
+            !guide.rawin(neighbor) && (forbidden == null || !forbidden.rawin(neighbor))) {
+          guide.rawset(neighbor, ring);
+          nextRing.append(neighbor);
+        }
+      }
+    }
+    ringTiles = nextRing;
+    if (ringTiles.len() == 0) break;
+  }
+
+  return guide;
+}
+
 /* V190 : Planifie la seconde voie d'une ligne neuve SANS modifier la carte.
  * Tente d'abord le trace parallele direct (0 opcode de recherche, alignement garanti).
  * En cas d'obstacle infranchissable en parallele direct, bascule sur recherche A*. */
@@ -1778,6 +1864,9 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
   }
 
   if (bestTrace != null) {
+    if (DECISION_LOG && V197_GUIDED_DOUBLE) {
+      OpexDecide("V197", "track=2 ok=1 iters=0 reason=PARALLEL_OK");
+    }
     acc.ok = true;
     acc.skip = 0;
     acc.reason = "OK";
@@ -1793,12 +1882,16 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
   local ignored = [];
   foreach (tile, ignoredVal in forbidden) ignored.append(tile);
   local searchWeight = OpexRailAstarWeight(AIMap.DistanceManhattan(planA.station_exit, planB.station_exit));
-  local search = OpexSearchPath(dualA, dualB, iterationBudget, deadlineTick, ignored, searchWeight);
+  local guideTiles = V197_GUIDED_DOUBLE ? OpexV197BuildGuideTiles(tiles, 1, forbidden) : null;
+  local search = OpexSearchPath(dualA, dualB, iterationBudget, deadlineTick, ignored, searchWeight, null, guideTiles);
   acc.iterations = search.iterations;
   if (search.path == false || search.path == null) {
     acc.skip = 3;
     acc.reason = "NOPATH2";
     acc.step = ("stop" in search) ? ("SEARCH_" + search.stop) : "SEARCH_NOPATH";
+    if (DECISION_LOG && V197_GUIDED_DOUBLE) {
+      OpexDecide("V197", "track=2 ok=0 iters=" + search.iterations + " reason=" + acc.reason);
+    }
     return acc;
   }
 
@@ -1808,6 +1901,9 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
     acc.skip = 9;
     acc.reason = "SHORT2";
     acc.step = "SHORT2";
+    if (DECISION_LOG && V197_GUIDED_DOUBLE) {
+      OpexDecide("V197", "track=2 ok=0 iters=" + acc.iterations + " reason=" + acc.reason);
+    }
     return acc;
   }
   local planA2 = OpexMatchPlan(dualA, tiles2[0]);
@@ -1816,12 +1912,18 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
     acc.skip = 9;
     acc.reason = "NOMATCH2";
     acc.step = (planA2 == null && planB2 == null) ? "NOMATCH_AB" : (planA2 == null ? "NOMATCH_A" : "NOMATCH_B");
+    if (DECISION_LOG && V197_GUIDED_DOUBLE) {
+      OpexDecide("V197", "track=2 ok=0 iters=" + acc.iterations + " reason=" + acc.reason);
+    }
     return acc;
   }
   if (!OpexJoinPathIsDedicated(tiles2)) {
     acc.skip = 8;
     acc.reason = "NOTDEDICATED2";
     acc.step = "NOT_DEDICATED";
+    if (DECISION_LOG && V197_GUIDED_DOUBLE) {
+      OpexDecide("V197", "track=2 ok=0 iters=" + acc.iterations + " reason=" + acc.reason);
+    }
     return acc;
   }
   for (local i = 1; i < tiles2.len() - 1; i++) {
@@ -1829,6 +1931,9 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
       acc.skip = 8;
       acc.reason = "HITFORBIDDEN2";
       acc.step = "HIT_FORBIDDEN_idx" + i;
+      if (DECISION_LOG && V197_GUIDED_DOUBLE) {
+        OpexDecide("V197", "track=2 ok=0 iters=" + acc.iterations + " reason=" + acc.reason);
+      }
       return acc;
     }
   }
@@ -1841,6 +1946,9 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
   acc.planA = planA2;
   acc.planB = planB2;
   acc.structures = structures2;
+  if (DECISION_LOG && V197_GUIDED_DOUBLE) {
+    OpexDecide("V197", "track=2 ok=1 iters=" + acc.iterations + " reason=OK");
+  }
   return acc;
 }
 
@@ -2419,6 +2527,11 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     plan.segmentedBacktracks = search.backtracks;
     plan.segmentedLocalChoices = search.localChoices;
   }
+  if (DECISION_LOG && V197_GUIDED_DOUBLE && OpexV190Active() && candidate != null && ("kind" in candidate) && candidate.kind == "freight") {
+    local track1Ok = (search.path != false && search.path != null) ? 1 : 0;
+    local track1Reason = ("stop" in search) ? search.stop : (track1Ok ? "OK" : "NOPA");
+    OpexDecide("V197", "track=1 ok=" + track1Ok + " iters=" + search.iterations + " reason=" + track1Reason);
+  }
   if (search.path == false || search.path == null) { plan.reason = search.stop; return plan; }
 
   local tiles = OpexResolveSearchTiles(search);
@@ -2617,7 +2730,8 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap
   if (OpexV190Active() && candidate.kind == "freight") {
     clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
   }
-  local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick, clearanceTiles);
+  local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
+  local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick, clearanceTiles, null, outwardSide, null);
   local searchOps = budget.end("build_search");
   plan.opcodes += searchOps;
   if (DECISION_LOG) OpexAddRailSearchOps(candidate, searchOps);
@@ -4282,9 +4396,15 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     }
   }
 
-  if (switchOutA == null || switchOutB == null) {
+  if (switchOutA == null || !("fromIdx" in switchOutA) || !("toIdx" in switchOutA) ||
+      switchInA == null || !("fromIdx" in switchInA) || !("toIdx" in switchInA) ||
+      switchOutB == null || !("fromIdx" in switchOutB) || !("toIdx" in switchOutB) ||
+      switchInB == null || !("fromIdx" in switchInB) || !("toIdx" in switchInB)) {
     if (loopDiag != null) {
-      loopDiag.step <- (switchOutA == null ? "NO_SW_OUT_A" : "NO_SW_OUT_B");
+      if (switchOutA == null || !("fromIdx" in switchOutA) || !("toIdx" in switchOutA)) loopDiag.step <- "NO_SW_OUT_A";
+      else if (switchInA == null || !("fromIdx" in switchInA) || !("toIdx" in switchInA)) loopDiag.step <- "NO_SW_IN_A";
+      else if (switchOutB == null || !("fromIdx" in switchOutB) || !("toIdx" in switchOutB)) loopDiag.step <- "NO_SW_OUT_B";
+      else loopDiag.step <- "NO_SW_IN_B";
     }
     return false;
   }
@@ -4299,7 +4419,7 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_A";
   }
-  if (buildOk && switchInA != null &&
+  if (buildOk &&
       !OpexV181TryBuildSwitch(tiles2[switchInA.fromIdx + 1], tiles2[switchInA.fromIdx],
                               tiles1[switchInA.toIdx], tiles1[switchInA.toIdx - 1], placedTracks, false)) {
     buildOk = false;
@@ -4310,7 +4430,7 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_B";
   }
-  if (buildOk && switchInB != null &&
+  if (buildOk &&
       !OpexV181TryBuildSwitch(tiles1[switchInB.fromIdx - 1], tiles1[switchInB.fromIdx],
                               tiles2[switchInB.toIdx], tiles2[switchInB.toIdx + 1], placedTracks, false)) {
     buildOk = false;
@@ -4325,20 +4445,16 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
   }
 
   // 3. Pose des signaux a sens unique le long des voies et entrees de gare
-  local maxA1 = switchOutA.toIdx;
-  if (switchInA != null && switchInA.toIdx > maxA1) maxA1 = switchInA.toIdx;
+  local maxA1 = switchOutA.toIdx > switchInA.toIdx ? switchOutA.toIdx : switchInA.toIdx;
   local startIdx1 = maxA1 + 1;
 
-  local minB1 = switchOutB.fromIdx;
-  if (switchInB != null && switchInB.fromIdx < minB1) minB1 = switchInB.fromIdx;
+  local minB1 = switchOutB.fromIdx < switchInB.fromIdx ? switchOutB.fromIdx : switchInB.fromIdx;
   local endIdx1 = minB1 - 1;
 
-  local maxA2 = switchOutA.fromIdx;
-  if (switchInA != null && switchInA.fromIdx > maxA2) maxA2 = switchInA.fromIdx;
+  local maxA2 = switchOutA.fromIdx > switchInA.fromIdx ? switchOutA.fromIdx : switchInA.fromIdx;
   local startIdx2 = maxA2 + 1;
 
-  local minB2 = switchOutB.toIdx;
-  if (switchInB != null && switchInB.toIdx < minB2) minB2 = switchInB.toIdx;
+  local minB2 = switchOutB.toIdx < switchInB.toIdx ? switchOutB.toIdx : switchInB.toIdx;
   local endIdx2 = minB2 - 1;
 
   if (endIdx1 >= startIdx1) {
@@ -4349,9 +4465,6 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
       placedSignals.append({ tile = tiles1[k], front = tiles1[k - 1] });
     }
   }
-
-  local startIdx2 = (switchOutA.fromIdx > switchInA.fromIdx ? switchOutA.fromIdx : switchInA.fromIdx) + 1;
-  local endIdx2 = (switchOutB.toIdx < switchInB.toIdx ? switchOutB.toIdx : switchInB.toIdx) - 1;
 
   if (endIdx2 >= startIdx2) {
     OpexV181BuildOneWaySignal(tiles2[startIdx2], tiles2[startIdx2 + 1]);
@@ -4364,7 +4477,8 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
 
   // 4. Unification des ordres partages pour tous les trains existants
   local ordersOk = true;
-  local firstTrain = line.vehicles[0];
+  if (("vehicles" in line) && line.vehicles != null && line.vehicles.len() > 0) {
+    local firstTrain = line.vehicles[0];
   if (AIVehicle.IsValidVehicle(firstTrain)) {
     for (local vIdx = 1; vIdx < line.vehicles.len(); vIdx++) {
       local otherTrain = line.vehicles[vIdx];
@@ -4382,6 +4496,7 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
         }
       }
     }
+  }
   }
 
   if (!ordersOk) {

@@ -40,6 +40,8 @@ V186_RAIL_SEARCH_SLICES <- 1;
 V187_RAIL_REFLEET_DURING_SEARCH <- false;
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
+/* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
+V197_GUIDED_DOUBLE <- false;
 /* V190 : annee a partir de laquelle la double voie est posee (annee de depart + delai). */
 V190_FROM_YEAR <- 0;
 function OpexV190Active()
