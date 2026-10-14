@@ -1529,7 +1529,6 @@ function OpexRailOriginReuseEvaluateFreight(catalog, lines, deferred,
   for (local i = 0; i < industries.len(); i++) {
     served.append(OpexOriginService(lines, industries[i].tile));
   }
-  if (DECISION_LOG) OpexDecide("V203", "step=enter flag=" + V203_RAIL_FEEDERS + " lines=" + (lines == null ? -1 : lines.len()));
   local townServiceCache = C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE ? {} : null;
   foreach (cargo, sources in catalog.producers) {
     if (deferred.freightCargo != null && cargo != deferred.freightCargo) continue;
@@ -1913,6 +1912,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   }
 
   /* V203 : rabattements ferroviaires (feeders) vers nos gares sources fret */
+  if (DECISION_LOG) OpexDecide("V203", "step=enter flag=" + V203_RAIL_FEEDERS + " lines=" + (lines == null ? -1 : lines.len()));
   if (V203_RAIL_FEEDERS && lines != null) {
     OpexRailFeederCandidates(catalog, lines, out, stats, profile, cruiseCache, freightCargo, targetKind, targetId, abandonedPairs, served);
   }
