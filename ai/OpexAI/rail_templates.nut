@@ -664,6 +664,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   // 2. Pose reelle des deux gares
   local costs = AIAccounting();
+  local searchCostV198 = 0;
   local builtSrc = OpexBuildSourceTemplateReal(srcTemplate);
   if (!builtSrc.ok) {
     if (DECISION_LOG) OpexDecide("V198", "step=build_src ok=0 reason=" + builtSrc.reason);
@@ -684,7 +685,9 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local plansA1 = [{ lead = builtSrc.depTile, station_exit = builtSrc.depPrev }];
   local plansB1 = [{ lead = builtDst.arrTile, station_exit = builtDst.arrNext }];
   local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
+  local preCost_search1 = costs.GetCosts();
   local search1 = OpexV198ShieldedSearch(plansA1, plansB1, plan.iterationBudget, deadlineTick, null, null, 1, null);
+  searchCostV198 += costs.GetCosts() - preCost_search1;
   if (search1.path == null || search1.path == false) {
     local stopReason = ("stop" in search1) ? search1.stop : "NOPA1";
     if (DECISION_LOG) OpexDecide("V198", "step=path_track1 ok=0 reason=" + stopReason);
@@ -720,7 +723,9 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local guideTiles = OpexV197BuildGuideTiles(tiles1, 1, forbidden);
   local plansA2 = [{ lead = builtDst.depTile, station_exit = builtDst.depPrev }];
   local plansB2 = [{ lead = builtSrc.arrTile, station_exit = builtSrc.arrNext }];
+  local preCost_search2 = costs.GetCosts();
   local search2 = OpexV198ShieldedSearch(plansA2, plansB2, plan.iterationBudget, deadlineTick, ignored2, null, null, guideTiles);
+  searchCostV198 += costs.GetCosts() - preCost_search2;
   if (search2.path == null || search2.path == false) {
     local stopReason = ("stop" in search2) ? search2.stop : "NOPA2";
     if (DECISION_LOG) OpexDecide("V198", "step=path_track2 ok=0 reason=" + stopReason);
@@ -803,8 +808,8 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   result.wagonLength = trains.wagonLength;
   result.error = trains.error;
   result.diag = trains.diag;
-  OpexApplyRailActualCapital(candidate, costs.GetCosts());
-  result.actualCost = costs.GetCosts();
+  OpexApplyRailActualCapital(candidate, costs.GetCosts() - searchCostV198);
+  result.actualCost = costs.GetCosts() - searchCostV198;
   result.capital = result.actualCost;
   result.stationA = builtSrc.platformTile;
   result.stationB = builtDst.platformTile;
