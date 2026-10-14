@@ -1909,6 +1909,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
       depot = result.depot,
       doubleTrack = ("doubleTrack" in result) ? result.doubleTrack : 0,
+      loop = ("loop" in result) ? result.loop : 0,
       v181Loop = ("v181Loop" in result) ? result.v181Loop : false,
       depot2 = ("depot2" in result) ? result.depot2 : null,
       stationA2 = ("stationA2" in result) ? result.stationA2 : null,

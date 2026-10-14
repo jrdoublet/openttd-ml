@@ -2588,7 +2588,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     }
   }
 
-  if (candidate.trains > 1 || (OpexV190Active() && candidate.kind == "freight")) {
+  if (!OpexV198Active() && (candidate.trains > 1 || (OpexV190Active() && candidate.kind == "freight"))) {
     local remain = plan.iterationBudget - plan.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
     /* Sous rail_search_resumable, la borne tick historique tuerait cette seconde recherche
@@ -3281,6 +3281,9 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
              segmentedSegments = plan.segmentedSegments,
              segmentedBacktracks = plan.segmentedBacktracks,
              segmentedLocalChoices = plan.segmentedLocalChoices };
+  }
+  if (OpexV198Active() && candidate.kind == "freight") {
+    return OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
   }
   if (OpexV190Active() && candidate.kind == "freight") {
     return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);

@@ -321,7 +321,13 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation
       + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
-  if (OpexV190Active() && kind == "freight") {
+  if (OpexV198Active() && kind == "freight") {
+    local signalCost = ("costRailSignal" in catalog) ? catalog.costRailSignal : (catalog.costTrackPerTile / 4);
+    local numSignals = (2 * travelDist / 7) + 6;
+    infraCost = 2 * travelDist * effectiveTrackCost + 3 * platformLength * catalog.costStation
+        + 12 * effectiveTrackCost + numSignals * signalCost
+        + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
+  } else if (OpexV190Active() && kind == "freight") {
     infraCost = 2 * travelDist * effectiveTrackCost + 4 * platformLength * catalog.costStation
         + (RAIL_DEPOT_COST ? 2 * catalog.costRailDepot : 0);
   }

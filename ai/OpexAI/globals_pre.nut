@@ -42,11 +42,17 @@ V187_RAIL_REFLEET_DURING_SEARCH <- false;
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
 V197_GUIDED_DOUBLE <- false;
+/* V198 : double voie par gabarits de gare (boucle source + gare traversante destination). */
+V198_TEMPLATE_DOUBLE <- false;
 /* V190 : annee a partir de laquelle la double voie est posee (annee de depart + delai). */
 V190_FROM_YEAR <- 0;
 function OpexV190Active()
 {
   return V190_RAIL_DOUBLE_BUILD && AIDate.GetYear(AIDate.GetCurrentDate()) >= V190_FROM_YEAR;
+}
+function OpexV198Active()
+{
+  return V198_TEMPLATE_DOUBLE && OpexV190Active();
 }
 V190_RAIL_MAX_TRAINS <- 4;
 /* V188 : pentes tolerees pour les quais joints paralleles. */

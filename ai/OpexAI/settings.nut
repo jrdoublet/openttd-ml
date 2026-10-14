@@ -152,6 +152,7 @@ function OpexLoadSettings()
   V188_RAIL_JOIN_SLOPES = AIController.GetSetting("v188_rail_join_slopes") != 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
   V197_GUIDED_DOUBLE = AIController.GetSetting("v197_guided_double") != 0;
+  V198_TEMPLATE_DOUBLE = AIController.GetSetting("v198_template_double") != 0;
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");
   if (v190Delay == null || v190Delay < 0) v190Delay = 0;
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;

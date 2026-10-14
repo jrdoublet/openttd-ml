@@ -1964,6 +1964,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v198_template_double",
+      description = "V198: double track using station templates (loop source + through destination); 0 = inert default, 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v190_rail_double_build",
       description = "V190: build freight rail lines directly as double-track loop from start (0 = inert default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
