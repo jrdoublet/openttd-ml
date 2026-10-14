@@ -1215,3 +1215,7 @@ Constat annexe : en 1972 la pile B a 200-330 k£ de caisse oisive (graine 42, re
 
 ### `rail_origin_reuse=1` en rail seul — 10×3 neutre/négatif (15/10)
 `reuse_railseul_10x3_20261015` contre pile B : −30,7 k£/an, médiane −40,6 k, 4/6/0, p=0,32, IC95 [−84,9 ; +25,2] k. Lignes posées 147 contre 144 : relâcher `origin_served` n'apporte pas de volume. Clos.
+
+### Poids A* longues recherches (`v172_rail_long_weight_pct`) en rail seul (15/10)
+- 100 (A* exact) contre 200 : **banc invalide**, 6/10 graines `inactive_company` (aucune ligne en 3 ans) ; confirme que 200 est indispensable. (J'avais pris à tort ce réglage pour un poids de longueur de ligne.)
+- 300 contre 200 (`w300_railseul_10x3_20261015`) : −52,6 k£/an, médiane −41,1 k, 1/9/0, p=0,064, IC95 [−110,6 ; +0,5] k ; lignes 146 contre 143. Plus glouton ne pose pas plus et coûte. 200 reste l'optimum local. Clos.
