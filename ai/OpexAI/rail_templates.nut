@@ -679,6 +679,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, builtDst.reason);
   }
 
+  if (DECISION_LOG) OpexDecide("V198", "step=cost at=stations cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 3. Voie 1 : A* de source.depart vers dest.arrivee avec outwardSide (V197)
   local plansA1 = [{ lead = builtSrc.depTile, station_exit = builtSrc.depPrev }];
   local plansB1 = [{ lead = builtDst.arrTile, station_exit = builtDst.arrNext }];
@@ -701,6 +702,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
   if (DECISION_LOG) OpexDecide("V198", "step=path_track1 ok=1 reason=OK len=" + tiles1.len());
 
+  if (DECISION_LOG) OpexDecide("V198", "step=cost at=search1 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 4. Voie 2 : A* de dest.depart vers source.arrivee avec guideTiles et tuiles interdites
   local forbidden = {};
   foreach (t in tiles1) forbidden[t] <- true;
@@ -736,6 +738,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
   if (DECISION_LOG) OpexDecide("V198", "step=path_track2 ok=1 reason=OK len=" + tiles2.len());
 
+  if (DECISION_LOG) OpexDecide("V198", "step=cost at=search2 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 5. Pose des voies 1 et 2
   local fail1 = OpexBuildTrack(tiles1, structures1);
   if (fail1 > 0) {
@@ -746,6 +749,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "TRKFAIL1");
   }
 
+  if (DECISION_LOG) OpexDecide("V198", "step=cost at=track1 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   local fail2 = OpexBuildTrack(tiles2, structures2);
   if (fail2 > 0) {
     if (DECISION_LOG) OpexDecide("V198", "step=build_track2 ok=0 reason=TRKFAIL2 failed=" + fail2);
@@ -756,10 +760,12 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "TRKFAIL2");
   }
 
+  if (DECISION_LOG) OpexDecide("V198", "step=cost at=track2 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 6. Signaux de cantonnement a sens unique tous les ~7 tuiles
   OpexBuildBlockSignals(tiles1, OPEX_TEMPLATE_SIGNAL_INTERVAL);
   OpexBuildBlockSignals(tiles2, OPEX_TEMPLATE_SIGNAL_INTERVAL);
 
+  if (DECISION_LOG) OpexDecide("V198", "step=cost at=signals cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 7. Construction d'un train avec ordres : plein chargement source, dechargement destination
   local exitA = builtSrc.platformTile;
   local exitB = builtDst.platformTile;
@@ -786,6 +792,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "TRAINFAIL");
   }
 
+  if (DECISION_LOG) OpexDecide("V198", "step=cost at=trains cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   // 8. Finalisation et metadonnees pour le clonage et l'expansion
   result.ok = true;
   result.reason = "OK";
