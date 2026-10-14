@@ -1973,8 +1973,24 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
           local goodsMonthly = (candInput.carried * OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT).tointeger();
           if (goodsMonthly <= 0) continue;
 
-          /* Associer les villes acceptatrices de biens */
-          foreach (town in townSinks) {
+          /* Associer les villes acceptatrices de biens.
+           * V193 : au plus V193_CHAIN_TOWNS villes (les plus peuplees dans la fenetre de distance),
+           * et une seule chaine retenue par paire source -> usine. Inerte a 0. */
+          local chainTowns = townSinks;
+          local bestChain = null;
+          if (V193_CHAIN_TOWNS > 0) {
+            chainTowns = [];
+            foreach (town in townSinks) {
+              local dGoods = AIMap.DistanceManhattan(factory.tile, town.tile);
+              if (dGoods > bounds.railMax || dGoods < 40) continue;
+              local pop = AITown.GetPopulation(town.id);
+              local pos = chainTowns.len();
+              while (pos > 0 && chainTowns[pos - 1].pop < pop) pos--;
+              chainTowns.insert(pos, { tile = town.tile, id = town.id, pop = pop });
+              if (chainTowns.len() > V193_CHAIN_TOWNS) chainTowns.pop();
+            }
+          }
+          foreach (town in chainTowns) {
             if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
 
             /* Verifier l'abandon sur le troncon biens (cle G9§1 : t<townId>) */
@@ -2042,12 +2058,24 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
 
             /* Test V88 : garantir le passage du plafond TOP_K (tri par ratio). */
             if (V88_CHAIN_FORCE) chainCandidate.ratio = 1000000000;
+            if (V193_CHAIN_TOWNS > 0) {
+              if (bestChain == null || chainCandidate.profitAnnual > bestChain.profitAnnual) bestChain = chainCandidate;
+              continue;
+            }
             stats.accepted++;
             if (DECISION_LOG) {
               OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + cargoIn + " out=" + goodsCargo
                          + " town=" + town.id + " P=" + totalProfit + " C=" + totalCapital + " roi=" + chainRoi);
             }
             out.append(chainCandidate);
+          }
+          if (bestChain != null) {
+            stats.accepted++;
+            if (DECISION_LOG) {
+              OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + cargoIn + " town=" + bestChain.dstTown
+                         + " P=" + bestChain.profitAnnual + " C=" + bestChain.capital + " roi=" + bestChain.roi + " v193=1");
+            }
+            out.append(bestChain);
           }
         }
       }

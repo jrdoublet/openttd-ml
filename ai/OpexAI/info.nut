@@ -1907,6 +1907,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v193_chain_towns",
+      description = "V193: V88 goods chain generation evaluates at most N most populated towns per source->factory and keeps the best chain (0 = unbounded, default)",
+      min_value = 0, max_value = 10,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v192_rail_time_denom_pct",
       description = "V192: rail score denominator = capital x (1 + pct/100 x (distance/100)^2), proxy of build time (0 = off)",
       min_value = 0, max_value = 400,
