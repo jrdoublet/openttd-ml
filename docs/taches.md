@@ -1184,3 +1184,8 @@ commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
 - **Correction :** « AAA ne pose pas de rabattement en rail seul » était faux pour le rail. Il ne pose pas de rabattement routier, mais il pose des rabattements ferroviaires vers ses gares existantes.
 - Appariement par extrémités (rayon 12 tuiles) : 44 construites aussi par nous, 25 tentées et échouées (13 ABND), 105 classées mais non choisies, 452 dont une seule extrémité est connue de nous, 119 jamais générées (79 passagers, 31 courrier).
 - Pistes : (1) rabattement ferroviaire vers nos gares de source (`T:`, ~4/graine) ; (2) passagers et courrier, absents chez nous (V177 à 512) ; (3) lignes au-delà de 220 tuiles ; (4) multi-trains par double voie (V197/V198 en cours).
+
+### V198 gabarits de gare (14/10 nuit) — smokes 1×1 graine 42
+- 6 correctifs successifs (coverage, coins de nivellement, nivellement au mieux, extrémités de la voie 2, table de résultat, coût hors sondes A* : un AIAccounting imbriqué NE suffit PAS à isoler les sondes de l'A*, mesuré 0,4-2,3 M£ fictifs par recherche).
+- Smoke h : 2 lignes doubles complètes (coûts réels 116 k et 105 k£, 4 trains sur la 1re), mais −322 k£/an contre la pile B : trésorerie 300 k→18 k£ dès 11/1970, puis `PORTFOLIO_EMPTY` jusqu'en 1972 (2 lignes doubles + 2 simples contre 13 lignes en pile B).
+- AAA en rail seul (40 graines) : voie unique 86 % en 1970, 69 % en 1971, 53 % en 1972. Son estimateur (`estimator.nut` 1765-1825) évalue chaque route en simple (demi-infrastructure, 1 train) ET en double, garde la meilleure valeur et exige ligne + trains finançables. Prochaine étape : choix simple/double par candidat selon la caisse et la valeur.
