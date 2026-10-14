@@ -410,9 +410,21 @@ function OpexAddRailSearchOps(candidate, ops)
   else candidate.searchOps <- ops;
 }
 
+/* V172 : poids heuristique A* rail adaptatif a la distance Manhattan de la recherche.
+ * Si v172_rail_long_weight_pct > 0 et distance >= v172_rail_long_weight_dist,
+ * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT. */
+function OpexRailAstarWeight(dist = null)
+{
+  if (!V90_FAST_PATHFINDER) return 100;
+  if (dist != null && V172_RAIL_LONG_WEIGHT_PCT > 0 && dist >= V172_RAIL_LONG_WEIGHT_DIST) {
+    return V172_RAIL_LONG_WEIGHT_PCT;
+  }
+  return V91_ASTAR_WEIGHT_PCT;
+}
+
 /* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
-function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
+function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null)
 {
   local sources = [];
   local goals = [];
@@ -421,6 +433,13 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
   foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
   foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
   if (sources.len() == 0 || goals.len() == 0) return null;
+  if (weight == null) {
+    local dist = 0;
+    if (plansA.len() > 0 && plansB.len() > 0) {
+      dist = AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead);
+    }
+    weight = OpexRailAstarWeight(dist);
+  }
   local pathfinder;
   if (V90_FAST_PATHFINDER) {
     if (V129_RAIL_ASTAR_EXACT_OPT) {
@@ -434,6 +453,9 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
     pathfinder = RailPathFinder();
   }
   pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+  if (V90_FAST_PATHFINDER && weight != null) {
+    pathfinder.cost.astar_weight_pct = weight;
+  }
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
   return pathfinder;
 }
@@ -738,7 +760,7 @@ function OpexTrySegmentedBacktrack(state)
 /* Cree l'etat d'une recherche segmentee. Table passee en parametre : Squirrel ici
  * ne capture pas les locales englobantes (piege 6). pathfinder reste null jusqu'au
  * premier segment : le closed set ne survit jamais d'un segment a l'autre. */
-function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null)
+function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null)
 {
   local sources = [];
   local goals = [];
@@ -750,6 +772,14 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
    * avec iterationBudget ; le plafond historique reste pour un cap plus haut. */
   local timeSafe = SEGMENTED_TIME_SAFE_ITERS;
   if (iterationBudget < timeSafe) timeSafe = iterationBudget;
+
+  if (weight == null) {
+    local dist = 0;
+    if (plansA.len() > 0 && plansB.len() > 0) {
+      dist = AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead);
+    }
+    weight = OpexRailAstarWeight(dist);
+  }
 
   return {
     activeSources = sources,
@@ -772,6 +802,7 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     localChoices = 0,
     bridgeTests = 0,
     tunnelTests = 0,
+    weight = weight,
   };
 }
 
@@ -811,6 +842,9 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       }
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+      if (V90_FAST_PATHFINDER && ("weight" in state) && state.weight != null) {
+        pathfinder.cost.astar_weight_pct = state.weight;
+      }
       local ignored = OpexSegmentIgnoredTiles(state);
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);
       state.pathfinder = pathfinder;
@@ -986,11 +1020,11 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
  *
  * rail_segmented_search=1 : meme enveloppe, mais chaque A* vise les quais finals et s'arrete
  * a 2000 iterations. Defaut 0 = A* classique inchange (table de cout, plafond A3). */
-function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
+function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null, weight = null)
 {
   local res;
   if (RAIL_SEGMENTED_SEARCH) {
-    local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles);
+    local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles, weight);
     if (state == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
       return { path = null, iterations = 0, stop = "NOPA" };
@@ -998,7 +1032,7 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTi
     /* sliceIters = iterationBudget : une seule avancee jusqu'au chemin / ABND / DEAD / NOPA. */
     res = OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
   } else {
-    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles);
+    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles, weight);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
       return { path = null, iterations = 0, stop = "NOPA" };
@@ -2753,7 +2787,8 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
     return result;
   }
   local deadlineTick = AIController.GetTick() + hardCap / 3 + BUILD_TICK_MARGIN;
-  local search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored);
+  local searchWeight = OpexRailAstarWeight(line.distance);
+  local search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored, searchWeight);
   return OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, search, prep);
 }
 

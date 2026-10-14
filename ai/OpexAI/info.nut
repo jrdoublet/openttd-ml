@@ -1073,6 +1073,24 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v172_rail_long_weight_pct",
+      description = "V172: rail A* heuristic weight percentage for long searches (>= v172_rail_long_weight_dist tiles). 0 = inert (uses v91_astar_weight_pct, default); 100..300 = override weight percentage",
+      min_value = 0, max_value = 300,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v172_rail_long_weight_dist",
+      description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
+      min_value = 0, max_value = 512,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
+      flags = 0
+    });
+
+    AddSetting({
       name = "policy_air",
       description = "Aviation policy: portfolio arbitration, runway cadence cap, joined bus stops, hub reuse: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,

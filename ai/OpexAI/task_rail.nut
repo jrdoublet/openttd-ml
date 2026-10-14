@@ -1175,17 +1175,19 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
+  local searchWeight = OpexRailAstarWeight(candidate.distance);
+  candidate.searchWeight <- searchWeight;
   local pathfinder = null;
   local segmented = null;
   if (RAIL_SEGMENTED_SEARCH) {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles);
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight);
     if (segmented == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       plan.reason = "NOPA";
       return { pending = false, plan = plan };
     }
   } else {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles);
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       plan.reason = "NOPA";
@@ -1206,6 +1208,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     phase = "search",
     pathfinder = pathfinder,
     segmented = segmented,
+    weight = searchWeight,
     spent = 0,
     iterationBudget = plan.iterationBudget,
     /* Borne horaire large : le budget d'iterations est la vraie limite (piege 1). */
@@ -1380,7 +1383,7 @@ function OpexAI::_continueRailSearch()
       local outcome = slice.stop;
       local result = (outcome == "OK") ? "found" : ((outcome == "ABND" || outcome == "DEAD") ? "cap" : "none");
       local pathLen = (outcome == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
-      local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
+      local weightUsed = ("weight" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);
       OpexC56TaskLog("RAIL_SEARCH_END", "primary", this._taskCycle,
                      "src=" + state.candidate.src + " dst=" + state.candidate.dst
                      + " outcome=" + outcome + " result=" + result + " iters=" + state.spent
@@ -1391,12 +1394,12 @@ function OpexAI::_continueRailSearch()
     if (V88_GOODS_CHAIN && (DECISION_LOG || C56_TASK_TRACE) && state.candidate != null) {
       if (("isChainStep1" in state.candidate) && state.candidate.isChainStep1) {
         local pathLen = (slice.stop == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
-        local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
+        local weightUsed = ("weight" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);
         OpexV88Log("CHAIN_SEARCH_END", "step=1 iters=" + state.spent + " len=" + pathLen
                    + " weight=" + weightUsed + " outcome=" + slice.stop);
       } else if (("isChainStep2" in state.candidate) && state.candidate.isChainStep2) {
         local pathLen = (slice.stop == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
-        local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
+        local weightUsed = ("weight" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);
         OpexV88Log("CHAIN_SEARCH_END", "step=2 iters=" + state.spent + " len=" + pathLen
                    + " weight=" + weightUsed + " outcome=" + slice.stop);
       }
@@ -1415,7 +1418,7 @@ function OpexAI::_continueRailSearch()
       local outcome = slice.stop;
       local result = (outcome == "OK") ? "found" : ((outcome == "ABND" || outcome == "DEAD") ? "cap" : "none");
       local pathLen = (outcome == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
-      local weightUsed = (V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100;
+      local weightUsed = ("weight" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);
       OpexC56TaskLog("RAIL_SEARCH_END", "upgrade", this._taskCycle,
                      "outcome=" + outcome + " result=" + result + " iters=" + state.spent
                      + " len=" + pathLen + " weight=" + weightUsed
@@ -1594,7 +1597,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                + " iters=" + result.iterations + " ops=" + result.opcodes
                + " search_ops=" + (("searchOps" in candidate) ? candidate.searchOps : -1)
                + " startx=" + (("startx" in result) ? result.startx : -1)
-               + " endx=" + (("endx" in result) ? result.endx : -1));
+               + " endx=" + (("endx" in result) ? result.endx : -1)
+               + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V90_FAST_PATHFINDER ? V91_ASTAR_WEIGHT_PCT : 100)));
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
@@ -1706,10 +1710,12 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 }
 function OpexAI::_startRailUpgradeSearch(line, prep)
 {
+  local searchWeight = OpexRailAstarWeight(line.distance);
+  line.searchWeight <- searchWeight;
   local pathfinder = null;
   local segmented = null;
   if (RAIL_SEGMENTED_SEARCH) {
-    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored);
+    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight);
     if (segmented == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
@@ -1717,7 +1723,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
       return;
     }
   } else {
-    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored);
+    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, searchWeight);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
@@ -1731,6 +1737,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
     phase = "search",
     pathfinder = pathfinder,
     segmented = segmented,
+    weight = searchWeight,
     spent = 0,
     iterationBudget = prep.iterationBudget,
     safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS,
@@ -1946,10 +1953,12 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
+  local searchWeight = OpexRailAstarWeight(candidate.distance);
+  candidate.searchWeight <- searchWeight;
   local pathfinder = null;
   local segmented = null;
   if (RAIL_SEGMENTED_SEARCH) {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles);
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight);
     if (segmented == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -1961,7 +1970,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
       return false;
     }
   } else {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles);
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight);
     if (pathfinder == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -1981,6 +1990,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     phase = "search",
     pathfinder = pathfinder,
     segmented = segmented,
+    weight = searchWeight,
     spent = 0,
     iterationBudget = plan.iterationBudget,
     safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS,

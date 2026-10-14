@@ -117,6 +117,10 @@ function OpexLoadSettings()
   V168_RAIL_MAX_DIST = AIController.GetSetting("v168_rail_max_dist");
   if (V168_RAIL_MAX_DIST < 0) V168_RAIL_MAX_DIST = 0;
   V171_RAIL_KNOTS = AIController.GetSetting("v171_rail_knots") != 0 ? 1 : 0;
+  local longWeightPct = AIController.GetSetting("v172_rail_long_weight_pct");
+  V172_RAIL_LONG_WEIGHT_PCT = (longWeightPct != null && longWeightPct >= 0 && longWeightPct <= 300) ? longWeightPct : 0;
+  local longWeightDist = AIController.GetSetting("v172_rail_long_weight_dist");
+  V172_RAIL_LONG_WEIGHT_DIST = (longWeightDist != null && longWeightDist >= 0 && longWeightDist <= 512) ? longWeightDist : 100;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
