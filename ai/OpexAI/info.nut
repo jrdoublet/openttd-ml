@@ -1917,6 +1917,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v186_rail_search_slices",
+      description = "V186: rail A* slices advanced per scheduler pass (1..16, default 1 = historical)",
+      min_value = 1, max_value = 16,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v90_fast_pathfinder",
       description = "V90: optimized vendorized rail pathfinder (identical routes): 1 = enabled (default), 0 = BaNaNaS RailPathFinder",
       easy_value = 1, medium_value = 1, hard_value = 1,

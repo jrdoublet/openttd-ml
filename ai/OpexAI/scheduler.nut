@@ -256,6 +256,11 @@ function OpexAI::_runNextTask()
   if (this._railSearch != null && !this._railWorkerSteppedThisTick
       && !(C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold)) {
     this._advanceRailSearchSliceWithLedgers();
+    /* V186 : tranches supplementaires dans le meme passage (la recherche peut finir entre deux). */
+    for (local extra = 1; extra < V186_RAIL_SEARCH_SLICES && this._railSearch != null
+         && this._railSearch.phase == "search"; extra++) {
+      this._advanceRailSearchSliceWithLedgers();
+    }
     if (V89_RAIL_SEARCH_THROUGHPUT) {
       this._advanceRailSearchThroughput();
     }
