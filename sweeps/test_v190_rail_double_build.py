@@ -135,7 +135,7 @@ class PresenceDesEtapes(unittest.TestCase):
     def test_fallback_to_single_track_on_failure(self):
         exec_body = _function_body(self.builder, "OpexV190ExecuteRailPlan")
         self.assertIn("OpexRollback(tiles2, planA2, planB2, depot2, null);", exec_body)
-        self.assertIn('reason=LOOPFAIL', exec_body)
+        self.assertIn("LOOPFAIL", exec_body)
 
     def test_candidate_capital_and_predicted_trains(self):
         econ_body = _function_body(self.econ, "OpexLineEconomics")
@@ -153,18 +153,54 @@ class PresenceDesEtapes(unittest.TestCase):
         expand_body = _function_body(self.task, "OpexAI::_expandRailLines")
         self.assertIn("!V190_RAIL_DOUBLE_BUILD", expand_body)
 
+    def test_station_selection_double_platform_filter(self):
+        plans_body = _function_body(self.builder, "OpexStationPlans")
+        self.assertIn("requireDouble = false", plans_body)
+        self.assertIn("OpexV190FindParallelPlatformPlans(", plans_body)
+
+        try_body = _function_body(self.builder, "OpexRailTryPlatformLength")
+        self.assertIn('V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight"', try_body)
+        self.assertIn("isDoubleFreight && plansA.len() == 0", try_body)
+        self.assertIn("isDoubleFreight && plansB.len() == 0", try_body)
+
+    def test_first_track_pathfinder_forbids_second_platform_tiles(self):
+        self.assertIn("function OpexV190CollectParallelTiles(", self.builder)
+        self.assertIn("function OpexV190MergeIgnoredTiles(", self.builder)
+
+        collect_body = _function_body(self.builder, "OpexV190CollectParallelTiles")
+        self.assertIn("reserved[p2.lead] <- true;", collect_body)
+        self.assertIn("reserved[t] <- true;", collect_body)
+        self.assertIn("delete reserved[plan.lead];", collect_body)
+        self.assertIn("delete reserved[plan.station_exit];", collect_body)
+
+        plan_route_body = _function_body(self.builder, "OpexPlanRailRoute")
+        self.assertIn("OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB)", plan_route_body)
+
+        task_search_body = _function_body(self.task, "OpexAI::_startRailSearch")
+        self.assertIn("OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB)", task_search_body)
+
     def test_decision_log_format(self):
         builder_code = self.builder
         task_code = self.task
         self.assertIn('OpexDecide("V190", "action=build_double', builder_code)
         self.assertIn('OpexDecide("V190", "action=fallback_single', builder_code)
+        self.assertIn('skip=', builder_code)
+        self.assertIn('reason=', builder_code)
         self.assertIn('OpexDecide("V190", "action=add_train', task_code)
+
+    def test_plan_double_track_granular_reasons(self):
+        plan_body = _function_body(self.builder, "OpexV190PlanDoubleTrack")
+        self.assertIn("NOPLATFORM_A", plan_body)
+        self.assertIn("NOPLATFORM_B", plan_body)
+        self.assertIn("NOPATH2", plan_body)
 
 
 class SquirrelKeywordSafety(unittest.TestCase):
     def test_no_reserved_keywords(self):
         files_to_check = [
-            ("builder_rail.nut", ["OpexV190FindParallelPlatformPlans", "OpexV190PlanDoubleTrack", "OpexExecuteRailPlan"]),
+            ("builder_rail.nut", ["OpexV190FindParallelPlatformPlans", "OpexV190CollectParallelTiles",
+                                  "OpexV190MergeIgnoredTiles", "OpexV190PlanDoubleTrack",
+                                  "OpexExecuteRailPlan", "OpexV190ExecuteRailPlan"]),
             ("task_rail.nut", ["OpexAI::_expandRailLines", "OpexAI::_recordRailAttempt"]),
             ("economy.nut", ["OpexLineEconomics"]),
         ]

@@ -1376,6 +1376,9 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
+  if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+    clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
+  }
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
   local pathfinder = null;
@@ -1922,7 +1925,9 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       if (("v181Loop" in result) && result.v181Loop) {
         OpexDecide("V190", "action=build_double line=" + idx + " trains=" + result.trains + " reason=OK");
       } else {
-        OpexDecide("V190", "action=fallback_single line=" + idx + " trains=" + result.trains + " reason=" + (result.doubleTrack == 1 ? "TRACK2FAIL" : "NOPLAN2"));
+        local rsn = ("doubleReason" in result) ? result.doubleReason : (result.doubleTrack == 1 ? "TRACK2FAIL" : "NOPLAN2");
+        local skp = ("doubleSkip" in result) ? result.doubleSkip : -1;
+        OpexDecide("V190", "action=fallback_single line=" + idx + " trains=" + result.trains + " reason=" + rsn + " skip=" + skp);
       }
     }
     if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
@@ -2187,6 +2192,9 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
+  if (V190_RAIL_DOUBLE_BUILD && candidate.kind == "freight") {
+    clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
+  }
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
   local pathfinder = null;
