@@ -1209,3 +1209,6 @@ Branche `v202-evitements-pbs` (`8cde6c3`, correctif `COMPANY_UNOWNED`→`COMPANY
 ### V203 rabattements fret (feeders) — redondant, clos (15/10)
 Branche `v203-rabattements` (agy `3f177c8` + compteurs). Diagnostic 1 an graine 42 : le générateur ne trouve presque aucune source du même cargo à 20-100 tuiles d'une destination desservie et non desservie elle-même (`ok=2 near=1-2 unserved=1 made=0`). V178 `rail_shared_dest` génère déjà les 2es sources vers une destination existante (ex. 2e COAL vers dst 39241 en 02/1970). Pas de banc.
 Constat annexe : en 1972 la pile B a 200-330 k£ de caisse oisive (graine 42, remboursement refusé sous plancher 300 k£), le vivier rejette surtout `origin_served`. Les lignes à `real_rev` ≪ `pred_rev` dans LINE_REVENUE 1972 sont des lignes bâties mi-1971 (5 mois roulés), pas des lignes mortes.
+
+### V202k (évitements + `v202_cash_k=150`) — 10×3 négatif, V202 clos (15/10)
+`v202k_railseul_10x3_20261015` : −51,5 k£/an, médiane −29,0 k, 3/7/0, p=0,13, IC95 [−104,7 ; −7,1] k, **0 clone** : le seuil de caisse nette n'est jamais franchi avec un évitement disponible ; la perte vient du coût des recherches de fenêtre (opcodes). V202 clos à 3 ans.
