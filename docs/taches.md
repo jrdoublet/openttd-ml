@@ -13,9 +13,12 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   1 469 k£**,0V/20D,13 trains contre28,7. Services lisibles sur19 paires terminales :
   200 contre363 ; charbon69,5 contre247,7 unités/train, marchés/distances différents.
   Opex285 tentatives/216 poses/69 échecs (38 OD distinctes par graine/kind), médiane
-  choix→succès16 jours. **Suite proposée, pas encore lancée : audit du dimensionnement
-  des rames fret et des marchés choisis**, avec exposition et contrefactuel avant
-  correctif ; ne pas déduire un gain de l'allongement des trains ni réactiver V149.
+  choix→succès16 jours. **Audit des rames fret terminé, sans correctif justifié** :
+  52/52 lignes charbon suivies1970→1972 gardent la même capacité/train,21 ajoutent
+  des trains ; dimensionnement initial à50 % de production, croissance des wagons
+  OFF. Marchés différents, cycle/quais/production exacte non collectés : aucune
+  causalité ni adoption. Suite conditionnelle : collecte ciblée puis contrefactuel,
+  non lancée. [Audit et limites](v166_audit_rames_fret_20261013.md).
   Air contre air reste à faire. Aucun défaut changé, aucun push. [Résultats, limites
   et30 preuves vérifiées](v166_rail_vs_rail_20x3_20261013.md).
 

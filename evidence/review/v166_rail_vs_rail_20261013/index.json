@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "scope": "V166 rail-only descriptive 20x3, no adoption",
+  "entries": [
+    {
+      "source": "results/v166_rail_vs_rail_smoke_20261013_r1.json",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_smoke_20261013_r1.json.gz",
+      "raw_bytes": 51146,
+      "raw_sha256": "bfabfb53dd270779a92285d13a0d410fe21b22f4231cc0ea99ca58e5eff4f849",
+      "gzip_bytes": 5945,
+      "gzip_sha256": "7afe2e20c257a66374dbbb42876793f3135859fb601457e0ef587a13b1acd193"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_smoke_20261013_r1.manifest.json",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_smoke_20261013_r1.manifest.json.gz",
+      "raw_bytes": 63656,
+      "raw_sha256": "dc9c16b8a921d580f3f408b2e2fffd46cbfd8e353b6318e83b2a6e3ce50b2c2f",
+      "gzip_bytes": 12090,
+      "gzip_sha256": "149ce36145ddff0f22cb654e1cf0250b7f2a94fd574a24988d8707a2e50dc5c7"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_smoke_20261013_r1.jsonl",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_smoke_20261013_r1.jsonl.gz",
+      "raw_bytes": 123482,
+      "raw_sha256": "767831de6e65cbecd1621f9842eedf649db4b5e3370f67df0fc00111304a186e",
+      "gzip_bytes": 6215,
+      "gzip_sha256": "f2b16a46f68fb67716318e7c1e12067592f78508d41c5f5acf7374c038c3b6a2"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1.json",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1.json.gz",
+      "raw_bytes": 2744452,
+      "raw_sha256": "abb2c96fc2d2b5dacea6ec6487485909847cb1701299890d177a714aafef7438",
+      "gzip_bytes": 178264,
+      "gzip_sha256": "93a4dd790446269a7e351ecb033e953741c7d7c31def85c32831a748b4001a0b"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1.manifest.json",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1.manifest.json.gz",
+      "raw_bytes": 71192,
+      "raw_sha256": "15a4ba2c509766c416c350dd255013c868323d676567d9eaac078d5064c666ca",
+      "gzip_bytes": 12463,
+      "gzip_sha256": "46f4728c28cd67f4254bc129d0cab3150ab9d0ecf193e2b589146309ce1dc232"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1.jsonl",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1.jsonl.gz",
+      "raw_bytes": 8355513,
+      "raw_sha256": "40507d9e8367eb3b2be7a6d013aad3852df97e92bcc6b0dbf28b316f848a3b5e",
+      "gzip_bytes": 596809,
+      "gzip_sha256": "547168e0aa1985e26c6a9687ab7147068b6c53a04acf84b283df64ce5822d886"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_analysis.json",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_analysis.json.gz",
+      "raw_bytes": 614446,
+      "raw_sha256": "ad5a30a32dd757b47a7c1e052ae8f8f99463662231a44e78f575094942ee50bf",
+      "gzip_bytes": 46505,
+      "gzip_sha256": "30892da369050fffda669e441c7f77c4e202259ebfe2d1194610f06f9031b6b6"
+    },
+    {
+      "source": "results/analyse_v166_rail_vs_rail_20261013.py",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/analyse_v166_rail_vs_rail_20261013.py.gz",
+      "raw_bytes": 7927,
+      "raw_sha256": "c3ea735c91cbca80d1b7a5fef7819072f39d3825f6cafe2018a3256fe8a1c352",
+      "gzip_bytes": 3026,
+      "gzip_sha256": "46a139bcba1455de954ad47849ecdfda46597a77812321ab6e3b9af299d143a1"
+    },
+    {
+      "source": "results/run_v166_rail_vs_rail_20261013.ps1",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/run_v166_rail_vs_rail_20261013.ps1.gz",
+      "raw_bytes": 1396,
+      "raw_sha256": "1716a9f252452c2b90f673046bbedb0722ce27d17244af2830c9522da50cfd97",
+      "gzip_bytes": 735,
+      "gzip_sha256": "5c85938a5169db923d5b6c8fe4419cc96aedeca36a2cc7a6990bac34eae2d2c2"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_smoke_20261013_r1_engine/rail_only_seed42_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_smoke_20261013_r1_engine/rail_only_seed42_r0.log.gz",
+      "raw_bytes": 286499,
+      "raw_sha256": "886b03a5687cd748cbb050d98c53e8f6b612466d4277a233ab686830c037f06c",
+      "gzip_bytes": 33000,
+      "gzip_sha256": "d12886e50589ac25182986fc42c17f36c3dce6002bd6ee232c8ef7dbf0b209b0"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed100_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed100_r0.log.gz",
+      "raw_bytes": 759719,
+      "raw_sha256": "c0277ca90ba793360abc5a1be028360a878bb35d359b89acb0c7d2d59e31e131",
+      "gzip_bytes": 80028,
+      "gzip_sha256": "e822ff2b76cf946a4b775afd0014d6c91a04a8914e70a4bc71f86327cf864ca2"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed1024_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed1024_r0.log.gz",
+      "raw_bytes": 749008,
+      "raw_sha256": "00b387d0406bddf451c583e1ef442ed24debddcbc590c380269a5c8fd9e90f0d",
+      "gzip_bytes": 82551,
+      "gzip_sha256": "3977dd03ac41c69a7eb17fd0c783a5f58a2c8e4d3d04ee07288f6ce885605828"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed123456_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed123456_r0.log.gz",
+      "raw_bytes": 914804,
+      "raw_sha256": "4f0bb320ae5c054e2cd33b2f646a7403eb59414c914d7c7df8bf0a882fc501b0",
+      "gzip_bytes": 105929,
+      "gzip_sha256": "a6334b5c0a0e8a6ae6b039a558cbf1a2f59ce42f86601d02ea857e0cd158805a"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed12345_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed12345_r0.log.gz",
+      "raw_bytes": 1053015,
+      "raw_sha256": "896d848cc27f9ccff57f67aad9df8458f2464944841819bf2a7dd22e8bde4a12",
+      "gzip_bytes": 118610,
+      "gzip_sha256": "7b7eb824c8d3f05bd2f24de673b252ecd59780b95f0c0b429dc002b40c1bad4d"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed1337_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed1337_r0.log.gz",
+      "raw_bytes": 794197,
+      "raw_sha256": "03ab061032e0f9404be6a759dbeb382f11978d71f18300e85bcfbd152222aa9b",
+      "gzip_bytes": 87645,
+      "gzip_sha256": "4c64209386f3a870515ed55a3836f07df38bcbeee9e8a8ed6a8f3e51744b1159"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed17_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed17_r0.log.gz",
+      "raw_bytes": 760014,
+      "raw_sha256": "a87c536c7cb8f4a86645681c27f2eb1ad4ac24b532d08fd21f71508ff51760ad",
+      "gzip_bytes": 85810,
+      "gzip_sha256": "b48b7708a7370dc9a09a3388d26719aadacb664e2efd66952ecf314914e574f6"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed1_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed1_r0.log.gz",
+      "raw_bytes": 732001,
+      "raw_sha256": "f4252c204948f887479f05138d515efdb9235e40beb9e8e287693742ac5e5ff0",
+      "gzip_bytes": 80258,
+      "gzip_sha256": "631d8ba8e0c819e1bf05901881a65b6df782cd8500233d38cccb9128625e4a2c"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed2026_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed2026_r0.log.gz",
+      "raw_bytes": 847643,
+      "raw_sha256": "0f396295fbe697dc3aae82efbaa6f325f7654bebdd8d5b0b9f8315f914f49b97",
+      "gzip_bytes": 100507,
+      "gzip_sha256": "1e2211e313cedd9a55611ae2800beab6dd74e58b401e744d23a20b8de4b6d680"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed314_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed314_r0.log.gz",
+      "raw_bytes": 777933,
+      "raw_sha256": "4e22f859aef217cb9ef86c7ffd39f9bc0cff5a5017c9e0c3a7b995483cb8df3d",
+      "gzip_bytes": 89595,
+      "gzip_sha256": "b4f34f39fabcf20b925e939d49a56abddc3724f1494fcbf70ced995fa783d7a8"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed4096_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed4096_r0.log.gz",
+      "raw_bytes": 751872,
+      "raw_sha256": "744d75968e755bf15b09df307f63b3607acfb56559091cad504ae91fe5699781",
+      "gzip_bytes": 83899,
+      "gzip_sha256": "7679ff7d75e444f69719c83c205ab3cf98f73fdf9e10eba9a7d50611e1ed0b9b"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed424242_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed424242_r0.log.gz",
+      "raw_bytes": 817018,
+      "raw_sha256": "95799413d0196ad4abd12036c66eaadd9728484769e399b58e969e09bba48f47",
+      "gzip_bytes": 89551,
+      "gzip_sha256": "53cc842385d70963b6b58afaa15dcb7a98e3fad74e5e16ceebc2bc70bbb4778e"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed42_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed42_r0.log.gz",
+      "raw_bytes": 916612,
+      "raw_sha256": "1302bbf6c8c8ee51306e8c6cffbf58cb0dac0a8a124e0d0714abd3645074e0a5",
+      "gzip_bytes": 103366,
+      "gzip_sha256": "8a6396e9fa12b98775134facc664c7e805dabab02ab73983f3430ec68b0fcbdc"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed512_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed512_r0.log.gz",
+      "raw_bytes": 875043,
+      "raw_sha256": "49001d9255935946c80b776b6ad1835f85556097414f97a73458bd2004d9d757",
+      "gzip_bytes": 96720,
+      "gzip_sha256": "3dd9159bfbf8780973a7e9ecdbef08f1a34fe00a84d6c503f269a07d444c1266"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed54321_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed54321_r0.log.gz",
+      "raw_bytes": 839390,
+      "raw_sha256": "df2f4730c559f5a59b2ee88bdbb4471580831b0a805864dfc2f917337b128c3e",
+      "gzip_bytes": 91571,
+      "gzip_sha256": "69bb687b2a6b19a4e6aceddbf5f8ecd669476cf6a66b0b81d4116fb6224afc22"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed65537_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed65537_r0.log.gz",
+      "raw_bytes": 837026,
+      "raw_sha256": "ea99048373e657e3e093399821ad9683559c89fc813235a9df492f541907ba24",
+      "gzip_bytes": 92998,
+      "gzip_sha256": "10cbf8951d67b8093a4499f3e45d40925c7dc276ceebc89d134aaf1a7d539bd1"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed73_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed73_r0.log.gz",
+      "raw_bytes": 835032,
+      "raw_sha256": "007df0129c05d90a66f233fc352b91dc1505a2f4e9696fa88aa2ddec1e4031fb",
+      "gzip_bytes": 93162,
+      "gzip_sha256": "f877f43ffd2948c96ca136f0fb0e1f2e4ac7f9a566cb6c2f86c06479406cdec6"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed7_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed7_r0.log.gz",
+      "raw_bytes": 1027458,
+      "raw_sha256": "3ffb8db70a459c15c62cc1bd7758ef32b6f6ce0660038b48f64c1feeec311cdc",
+      "gzip_bytes": 114063,
+      "gzip_sha256": "0aaf433dba4569862bb4c1e475af5485126eb8824f70d1f1e15837359cbd3de0"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed8191_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed8191_r0.log.gz",
+      "raw_bytes": 945249,
+      "raw_sha256": "da0217eaf39224a840ecaf67877b3a7780282d382cb057ecf9a13ffc983e0f1a",
+      "gzip_bytes": 103391,
+      "gzip_sha256": "ec88866f1ce1efd5cd7696649c1a7d7e9b5d4463adc93c0d997829f6490e6997"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed8675309_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed8675309_r0.log.gz",
+      "raw_bytes": 758745,
+      "raw_sha256": "fa68d7d4c0e16db0325a8ca2f649d5de8e164d2aeca99ffebb5fe0924f8bc738",
+      "gzip_bytes": 83906,
+      "gzip_sha256": "3bda7911792ac39eec291ac19eb30925cdc48e6191dc643a9e6a530bdebebb70"
+    },
+    {
+      "source": "results/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed999_r0.log",
+      "archive": "evidence/review/v166_rail_vs_rail_20261013/v166_rail_vs_rail_20x3_20261013_r1_engine/rail_only_seed999_r0.log.gz",
+      "raw_bytes": 833427,
+      "raw_sha256": "2bccced8b9f7cbfb4e8b18e40da23e0bf3608caffe988891b1c500605edd8402",
+      "gzip_bytes": 95778,
+      "gzip_sha256": "0c92c8d854373d00aa3f29c25089690f80b8e47c951be85b6547f9b176858912"
+    }
+  ]
+}
