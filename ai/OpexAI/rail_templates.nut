@@ -606,6 +606,14 @@ function OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, f
   return OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
 }
 
+/* Les sondes en mode test de l'A* s'ajoutent au compteur AIAccounting englobant :
+ * un AIAccounting imbrique, detruit au retour, les isole du cout reel de la ligne. */
+function OpexV198ShieldedSearch(plansA, plansB, iterationBudget, deadlineTick, ignored, weight, outwardSide, guideTiles)
+{
+  local shield = AIAccounting();
+  return OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignored, weight, outwardSide, guideTiles);
+}
+
 /* Construction d'une ligne complete V198 avec gabarits de gare et double voie guidee. */
 function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 {
@@ -675,7 +683,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local plansA1 = [{ lead = builtSrc.depTile, station_exit = builtSrc.depPrev }];
   local plansB1 = [{ lead = builtDst.arrTile, station_exit = builtDst.arrNext }];
   local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
-  local search1 = OpexSearchPath(plansA1, plansB1, plan.iterationBudget, deadlineTick, null, null, 1, null);
+  local search1 = OpexV198ShieldedSearch(plansA1, plansB1, plan.iterationBudget, deadlineTick, null, null, 1, null);
   if (search1.path == null || search1.path == false) {
     local stopReason = ("stop" in search1) ? search1.stop : "NOPA1";
     if (DECISION_LOG) OpexDecide("V198", "step=path_track1 ok=0 reason=" + stopReason);
@@ -710,7 +718,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local guideTiles = OpexV197BuildGuideTiles(tiles1, 1, forbidden);
   local plansA2 = [{ lead = builtDst.depTile, station_exit = builtDst.depPrev }];
   local plansB2 = [{ lead = builtSrc.arrTile, station_exit = builtSrc.arrNext }];
-  local search2 = OpexSearchPath(plansA2, plansB2, plan.iterationBudget, deadlineTick, ignored2, null, null, guideTiles);
+  local search2 = OpexV198ShieldedSearch(plansA2, plansB2, plan.iterationBudget, deadlineTick, ignored2, null, null, guideTiles);
   if (search2.path == null || search2.path == false) {
     local stopReason = ("stop" in search2) ? search2.stop : "NOPA2";
     if (DECISION_LOG) OpexDecide("V198", "step=path_track2 ok=0 reason=" + stopReason);
