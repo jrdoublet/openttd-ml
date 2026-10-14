@@ -2599,7 +2599,7 @@ function OpexGetLineTrackTiles(line)
   if (!AIMap.IsValidTile(start) || !AIMap.IsValidTile(goal)) return [];
 
   local visited = {};
-  local parent = {};
+  local prevOf = {};
   local queue = [start];
   visited[start] <- true;
   local qHead = 0;
@@ -2616,7 +2616,7 @@ function OpexGetLineTrackTiles(line)
       local other = AITunnel.GetOtherTunnelEnd(cur);
       if (AIMap.IsValidTile(other) && !(other in visited)) {
         visited[other] <- true;
-        parent[other] <- cur;
+        prevOf[other] <- cur;
         queue.append(other);
       }
     }
@@ -2624,7 +2624,7 @@ function OpexGetLineTrackTiles(line)
       local other = AIBridge.GetOtherBridgeEnd(cur);
       if (AIMap.IsValidTile(other) && !(other in visited)) {
         visited[other] <- true;
-        parent[other] <- cur;
+        prevOf[other] <- cur;
         queue.append(other);
       }
     }
@@ -2634,7 +2634,7 @@ function OpexGetLineTrackTiles(line)
       if (AIRail.IsRailTile(nextTile) || AITunnel.IsTunnelTile(nextTile) || AIBridge.IsBridgeTile(nextTile)) {
         if (AITile.GetOwner(nextTile) == selfCompany) {
           visited[nextTile] <- true;
-          parent[nextTile] <- cur;
+          prevOf[nextTile] <- cur;
           queue.append(nextTile);
         }
       }
@@ -2649,9 +2649,9 @@ function OpexGetLineTrackTiles(line)
 
   local path = [];
   local curr = goal;
-  while (curr in parent) {
+  while (curr in prevOf) {
     path.append(curr);
-    curr = parent[curr];
+    curr = prevOf[curr];
   }
   path.append(start);
   path.reverse();
