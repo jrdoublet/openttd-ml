@@ -1146,6 +1146,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
   if (spStates != null) OpexSpanEnd(spStates);
 
+  local v176Active = false;
+  if (V176_RAIL_CASH_RANK_K > 0) {
+    v176Active = OpexAvailableCapital() > (V176_RAIL_CASH_RANK_K * 1000);
+  }
+
   foreach (project in alternatives) {
     local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local slotMark = null;
@@ -1237,9 +1242,16 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
      * chemins legacy/C84, mais pas pour une flotte portant une marge C121. */
     local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
         && !OpexC121ProjectHasRealization(project);
-    project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
-        (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-            ? kDec : scoreDecisionFinanceCapital);
+    local isV176Rail = v176Active && project.mode == "rail";
+    if (isV176Rail) {
+      project.fundScore <- OpexProjectFundProfit(project);
+      project.v176 <- 1;
+    } else {
+      if (V176_RAIL_CASH_RANK_K > 0 && ("v176" in project)) project.v176 = 0;
+      project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
+          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+              ? kDec : scoreDecisionFinanceCapital);
+    }
     OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
     if (C121_CATALOG_INCREMENTAL && project.mode == "air"
         && ("payload" in project) && project.payload != null
@@ -1326,9 +1338,16 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       local scoreDecisionFinanceCapital = decisionFinanceCapital;
       local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
-      project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
-          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-              ? kDec : scoreDecisionFinanceCapital);
+      local isV176Rail = v176Active && project.mode == "rail";
+      if (isV176Rail) {
+        project.fundScore <- OpexProjectFundProfit(project);
+        project.v176 <- 1;
+      } else {
+        if (V176_RAIL_CASH_RANK_K > 0 && ("v176" in project)) project.v176 = 0;
+        project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
+            (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+                ? kDec : scoreDecisionFinanceCapital);
+      }
       OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
       if (fundMark != null) {
         OpexSpanAgg("pub.select.score.fund_score", fundMark);

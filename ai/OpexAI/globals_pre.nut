@@ -14,6 +14,7 @@ MODE_WATER <- true;
  * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
  * d'iterations predites. */
 V168_RAIL_MAX_DIST <- 160;
+V176_RAIL_CASH_RANK_K <- 0;
 V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
 V178_RAIL_SHARED_DEST <- false;

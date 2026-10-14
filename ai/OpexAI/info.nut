@@ -1065,6 +1065,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v176_rail_cash_rank_k",
+      description = "V176: cash threshold in kGBP to rank fundable rail projects by absolute calibrated profit; 0 = inert (default)",
+      min_value = 0, max_value = 2000,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v177_rail_pax_min_dist",
       description = "V177: minimum distance in tiles for rail passenger candidates (generation filter); 0 = inert (default)",
       min_value = 0, max_value = 512,

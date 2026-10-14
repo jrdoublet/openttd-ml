@@ -120,6 +120,9 @@ function OpexLoadSettings()
   if (V177_RAIL_PAX_MIN_DIST < 0) V177_RAIL_PAX_MIN_DIST = 0;
   local freightMin = AIController.GetSetting("v182_rail_freight_min_dist");
   V182_RAIL_FREIGHT_MIN_DIST = (freightMin != null && freightMin > 0) ? freightMin : 0;
+  local cashRankK = AIController.GetSetting("v176_rail_cash_rank_k");
+  V176_RAIL_CASH_RANK_K = (cashRankK != null && cashRankK > 0) ? cashRankK : 0;
+  if (V176_RAIL_CASH_RANK_K > 2000) V176_RAIL_CASH_RANK_K = 2000;
   V171_RAIL_KNOTS = AIController.GetSetting("v171_rail_knots") != 0 ? 1 : 0;
   local longWeightPct = AIController.GetSetting("v172_rail_long_weight_pct");
   V172_RAIL_LONG_WEIGHT_PCT = (longWeightPct != null && longWeightPct >= 0 && longWeightPct <= 300) ? longWeightPct : 0;

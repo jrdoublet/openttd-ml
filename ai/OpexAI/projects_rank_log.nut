@@ -24,7 +24,8 @@ function OpexLogPortfolioRank(projects)
         ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + (("roadBerthCapacity" in p.payload) ? p.payload.roadBerthCapacity : 2)
            + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
         : "";
-    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet);
+    local v176Tag = (("v176" in p) && p.v176) ? " v176=1" : "";
+    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet + v176Tag);
   }
 }
 
@@ -78,7 +79,8 @@ function OpexLogPortfolioRankWithTension(projects)
         ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + (("roadBerthCapacity" in p.payload) ? p.payload.roadBerthCapacity : 2)
            + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
         : "";
-    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet);
+    local v176Tag = (("v176" in p) && p.v176) ? " v176=1" : "";
+    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet + v176Tag);
   }
   foreach (fields in lines) OpexDecide("TENSION", fields);
   /* Les quatre mesures foncieres cote a cote : le stock d'origines libres (celui qui est
