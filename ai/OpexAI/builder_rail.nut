@@ -3089,10 +3089,12 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
     local okA2 = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stIdA_exist);
     local okB2 = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length, stIdB_exist);
+    local tFail = -1;
+    local conn2 = false;
     if (okA2 && okB2) {
-      local tFail = OpexBuildTrack(tiles2, plan.structures2);
+      tFail = OpexBuildTrack(tiles2, plan.structures2);
       local l2 = tiles2.len() - 1;
-      local conn2 = tFail == 0 &&
+      conn2 = tFail == 0 &&
           AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]) &&
           AIRail.AreTilesConnected(tiles2[l2 - 2], tiles2[l2 - 1], planB2.station_exit);
       if (conn2) {
@@ -3137,9 +3139,9 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
       }
     }
     if (!okD) {
+      local failReason = (!okA2 || !okB2) ? "STN2FAIL" : (tFail != 0 || !conn2 ? "TRK2FAIL" : (depot2 == null ? "DEP2FAIL" : "LOOPFAIL"));
       OpexRollback(tiles2, planA2, planB2, depot2, null);
       tiles2 = null; planA2 = null; planB2 = null; depot2 = null;
-      local failReason = (!okA2 || !okB2) ? "STN2FAIL" : (tFail > 0 || !conn2 ? "TRK2FAIL" : (depot2 == null ? "DEP2FAIL" : "LOOPFAIL"));
       result.doubleReason = failReason;
       result.doubleSkip = 4;
       if (DECISION_LOG) {
