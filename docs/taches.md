@@ -1231,3 +1231,6 @@ Journal `RouteBuilder` d'AAA : une fois un tronc posé (ex. Floss Diesel), il po
 
 ### V205 transfert vers ligne existante — sans objet tant que nos lignes sont saturées (15/10)
 Branche `v205-transfert-hub` (agy `98ab978`). Smoke graine 42 sain mais 0 candidat ; diagnostic : **toutes nos lignes sont déjà au-dessus de leur capacité** (capacité mensuelle 58-140 contre production 81-168, ex. ligne 0 : 140 contre 168). Un feeder en transfert n'a aucune place sans trains/rames en plus sur le tronc ; or rallonger les rames est déjà réfuté (V180 +100 % −150 k, refait ce jour par erreur : `boost100_railseul_10x3_20261015` −164,9 k£/an, 0/9, p=0,004) et ajouter des trains exige double voie ou évitements (réfutés à 3 ans). Le transfert à la AAA suppose un tronc multi-trains : horizon 10 ans avec V197-V201. Défaut 0.
+
+### V202g (évitements, seuil 150 k£ sur caisse BRUTE) — 10×3 négatif (15/10)
+`v202g_railseul_10x3_20261015` : −51,5 k£/an, médiane −29,0 k, 3/7/0, p=0,13 ; 4 clones seulement sur 10 graines (2 031 refus de seuil). La caisse brute ne dépasse 150 k£ + coût (~200 k£) que fin 1972 : trop tard pour payer à 3 ans. Le coût vient des 2 035 recherches de fenêtre. Fil « plus de trains par ligne à 3 ans » clos.
