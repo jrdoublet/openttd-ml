@@ -1065,6 +1065,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v178_rail_shared_dest",
+      description = "V178: freight candidates share accepting rail station when destination is within MIN_SEPARATION of our existing station; 0 = inert (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v168_rail_max_dist",
       description = "V168: rail candidate maximum distance in tiles. 160 = default (qualified 13/10: gate A 40x3 +152.7 k/yr, gate B 20x10 pass); 0 = historical bound derived from the A* iteration cap through the knot table (94 tiles at a 10k cap); N = use N tiles and drop the knot-table iteration filter (the per-search A* cap still applies)",
       min_value = 0, max_value = 512,

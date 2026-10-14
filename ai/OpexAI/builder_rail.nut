@@ -339,6 +339,9 @@ function OpexRailPlatformPlans(catalog, candidate)
     local strictOriginReuseJoin = RAIL_ORIGIN_REUSE
         && ("originServed" in candidate) && candidate.originServed
         && ("joinEnd" in candidate);
+    if (V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest) {
+      strictOriginReuseJoin = true;
+    }
     if (!joinB) {
       local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
       joinHasA = jointPlansA.len() > 0;

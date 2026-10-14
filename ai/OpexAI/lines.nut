@@ -322,6 +322,8 @@ function OpexAI::_tooClose(candidate)
 {
   /* V88 : la ligne d intrant d une chaine partage volontairement la gare de l usine. */
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
+  local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
+  local isSharedDest = V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest == 1;
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
   local originA = -1;
@@ -332,6 +334,7 @@ function OpexAI::_tooClose(candidate)
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
+        if (isSharedDest && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
         if (d >= ORIGIN_SEPARATION) continue;
         if (entry[0] == "A") originA = OpexRememberClosest(d, ORIGIN_SEPARATION, originA);
@@ -350,14 +353,92 @@ function OpexAI::_tooClose(candidate)
     foreach (lineEnd in ["A", "B"]) {
       local stationId = OpexLineStationId(line, lineEnd);
       if (stationId < 0) continue;
+      if (isSharedDest && stationId == joinStationId) continue;
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
+        if (isSharedDest && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);
         blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);
       }
     }
   }
   return { hard = -1, blocking = blocking };
+}
+
+/* V178 : rattache un candidat fret a une gare rail existante qui accepte son cargo si la destination
+ * est a moins de MIN_SEPARATION, tout en exigeant une source neuve. */
+function OpexAI::_tryAttachSharedDest(candidate)
+{
+  if (!V178_RAIL_SHARED_DEST) return false;
+  if (candidate == null) return false;
+  if (!("kind" in candidate) || candidate.kind != "freight") return false;
+  if (!("cargo" in candidate) || !AICargo.IsValidCargo(candidate.cargo)) return false;
+  if (!("src" in candidate) || !("dst" in candidate)) return false;
+  if (("joinPlatform" in candidate) && candidate.joinPlatform != null) return false;
+
+  /* L'extremite source doit rester neuve : aucune origine a moins de ORIGIN_SEPARATION
+   * ni gare rail a moins de MIN_SEPARATION. */
+  foreach (line in this._lines) {
+    if (("mode" in line) && line.mode != "rail") continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local originTile = lineEnd == "A" ? line.originA : line.originB;
+      if (AIMap.DistanceManhattan(candidate.src, originTile) < ORIGIN_SEPARATION) return false;
+      local stationId = OpexLineStationId(line, lineEnd);
+      if (stationId >= 0) {
+        local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
+        if (AIMap.DistanceManhattan(candidate.src, stationTile) < MIN_SEPARATION) return false;
+      }
+    }
+  }
+
+  /* Cherche parmi nos gares rail existantes une gare a moins de MIN_SEPARATION de candidate.dst
+   * qui accepte candidate.cargo. */
+  local bestMatch = null;
+  local bestDist = MIN_SEPARATION;
+  foreach (line in this._lines) {
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (!("lineId" in line)) continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local stationId = OpexLineStationId(line, lineEnd);
+      if (stationId < 0 || !AIStation.IsValidStation(stationId)) continue;
+      local platformKey = lineEnd == "A" ? "platformA" : "platformB";
+      if (!(platformKey in line) || line[platformKey] == null) continue;
+      local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
+      local dStation = AIMap.DistanceManhattan(candidate.dst, stationTile);
+      local originTile = lineEnd == "A" ? line.originA : line.originB;
+      local dOrigin = AIMap.DistanceManhattan(candidate.dst, originTile);
+      if (dStation >= MIN_SEPARATION && dOrigin >= ORIGIN_SEPARATION) continue;
+
+      local accepts = false;
+      if (("cargo" in line) && line.cargo == candidate.cargo) {
+        accepts = true;
+      } else {
+        local accepting = AICargoList_StationAccepting(stationId);
+        if (accepting.HasItem(candidate.cargo)) accepts = true;
+      }
+      if (!accepts) continue;
+
+      if (dStation < bestDist) {
+        bestDist = dStation;
+        bestMatch = {
+          line = line,
+          lineEnd = lineEnd,
+          stationId = stationId,
+          platform = line[platformKey]
+        };
+      }
+    }
+  }
+
+  if (bestMatch == null) return false;
+
+  candidate.joinPlatform <- bestMatch.platform;
+  candidate.joinStationId <- bestMatch.stationId;
+  candidate.joinLineId <- bestMatch.line.lineId;
+  candidate.joinEnd <- "B";
+  candidate.originServed <- true;
+  candidate.shared_dest <- 1;
+  return true;
 }
 function OpexAI::_findLineById(lineId)
 {

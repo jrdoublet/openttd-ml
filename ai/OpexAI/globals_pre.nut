@@ -15,6 +15,7 @@ MODE_WATER <- true;
  * d'iterations predites. */
 V168_RAIL_MAX_DIST <- 160;
 V177_RAIL_PAX_MIN_DIST <- 0;
+V178_RAIL_SHARED_DEST <- false;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;

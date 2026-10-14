@@ -429,6 +429,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
+      if (V178_RAIL_SHARED_DEST && !("joinPlatform" in candidate)) {
+        this._tryAttachSharedDest(candidate);
+      }
+
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_hard", 0, 0, 0);
@@ -1586,6 +1590,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)
                + " reuse_alt=" + ((("joinMatchedAlternate" in candidate) && candidate.joinMatchedAlternate) ? 1 : 0)
                + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
+               + " shared_dest=" + ((("shared_dest" in candidate) && candidate.shared_dest) ? 1 : 0)
                + " pred_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
                + " pred_roi=" + (("roi" in candidate) ? candidate.roi : -1)
                + " pred_astar=" + (("iterations" in candidate) ? candidate.iterations : -1)
@@ -1606,6 +1611,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                  + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)
                  + " reuse_alt=" + ((("joinMatchedAlternate" in candidate) && candidate.joinMatchedAlternate) ? 1 : 0)
                  + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
+                 + " shared_dest=" + ((("shared_dest" in candidate) && candidate.shared_dest) ? 1 : 0)
                  + " pred_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
                  + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons);
     } else {
