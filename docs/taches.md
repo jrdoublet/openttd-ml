@@ -1219,3 +1219,6 @@ Constat annexe : en 1972 la pile B a 200-330 k£ de caisse oisive (graine 42, re
 ### Poids A* longues recherches (`v172_rail_long_weight_pct`) en rail seul (15/10)
 - 100 (A* exact) contre 200 : **banc invalide**, 6/10 graines `inactive_company` (aucune ligne en 3 ans) ; confirme que 200 est indispensable. (J'avais pris à tort ce réglage pour un poids de longueur de ligne.)
 - 300 contre 200 (`w300_railseul_10x3_20261015`) : −52,6 k£/an, médiane −41,1 k, 1/9/0, p=0,064, IC95 [−110,6 ; +0,5] k ; lignes 146 contre 143. Plus glouton ne pose pas plus et coûte. 200 reste l'optimum local. Clos.
+
+### Coût de ligne AAAHogEx en rail seul (graine 42, 15/10)
+Journal AAA (`price:… usable:…`) : 4 routes avant mai 1970, chacune ~58-66 k£ de caisse consommée dont 35-44 k£ de train — **même coût unitaire que nous (57-86 k£)**. Sa caisse remonte de 66 k à 153 k£ entre mai et septembre 1970 (4 routes, ~65 k£/train/an annualisé). 18 routes posées en 3 ans (19 `isSingle:true`) pour 31 véhicules, contre ~14 lignes / 14 trains chez nous. L'écart n'est pas le coût de la ligne mais (1) le rendement des premières routes et (2) les trains ajoutés aux routes existantes (~1,7/route). Piste suivante : comparer graine par graine le profit réalisé de nos 4 premières lignes contre les 4 premières d'AAA (cargo, distance, délai avant 1er revenu).
