@@ -294,6 +294,7 @@ function OpexRailCachedProximity(project, lines)
   if (("isChain" in candidate) && candidate.isChain) return null;
   if (!("src" in candidate) || !("dst" in candidate)) return null;
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
+  local isV205Feeder = V205_RAIL_TRANSFER && (("v205TransferTo" in candidate) || ("joinDest" in candidate));
   local entries = [["A", candidate.src], ["B", candidate.dst]];
   local originA = -1;
   local originB = -1;
@@ -303,6 +304,7 @@ function OpexRailCachedProximity(project, lines)
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
+        if (isV205Feeder && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
         if (d >= ORIGIN_SEPARATION) continue;
         if (entry[0] == "A") originA = OpexRememberClosest(d, ORIGIN_SEPARATION, originA);
@@ -319,8 +321,10 @@ function OpexRailCachedProximity(project, lines)
     foreach (lineEnd in ["A", "B"]) {
       local stationId = OpexLineStationId(line, lineEnd);
       if (stationId < 0) continue;
+      if (isV205Feeder && ((("joinStationId" in candidate) && stationId == candidate.joinStationId) || (("joinDest" in candidate) && lineEnd == "A" && line.stationA == candidate.joinDest))) continue;
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
+        if (isV205Feeder && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);
         blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);
       }

@@ -2300,6 +2300,15 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "v205_rail_transfer",
+      description = "V205: feeder rail freight lines transferring cargo to existing mainline source station; 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

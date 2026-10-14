@@ -48,6 +48,8 @@ V200_DOUBLE_CASH_K <- 0;
 /* V199 : robustesse de pose rail a la maniere d'AAAHogEx (reprise locale, nivellement homeward, signaux en ligne, demolition). */
 V199_ROBUST_BUILD <- false;
 V199_LEVEL_BUDGET_K <- 20;
+/* V205 : rabattements en transfert vers une gare d'origine d'une ligne existante. */
+V205_RAIL_TRANSFER <- false;
 /* V190 : annee a partir de laquelle la double voie est posee (annee de depart + delai). */
 V190_FROM_YEAR <- 0;
 function OpexV190Active()

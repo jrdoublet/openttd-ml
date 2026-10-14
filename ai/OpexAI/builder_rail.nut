@@ -449,6 +449,21 @@ function OpexRailPlatformPlans(catalog, candidate)
   local sawA = false;
   local sawB = false;
 
+  /* V205 : la gare destination du feeder est un quai joint a la gare source de L. */
+  if (V205_RAIL_TRANSFER && ("v205TransferTo" in candidate)) {
+    if (!("joinPlatform" in candidate) || candidate.joinPlatform == null ||
+        !("joinStationId" in candidate) || candidate.joinStationId < 0) {
+      if (DECISION_LOG) {
+        local fLineId = ("v205FeederLineId" in candidate) ? candidate.v205FeederLineId : -1;
+        local tDist = ("v205TotalDist" in candidate) ? candidate.v205TotalDist : -1;
+        local oDist = ("v205OwnDist" in candidate) ? candidate.v205OwnDist : -1;
+        OpexDecide("V205", "step=join_fail ok=0 line=" + candidate.v205TransferTo + " feeder=" + fLineId + " cargo=" + candidate.cargo + " total_dist=" + tDist + " own_dist=" + oDist);
+      }
+      return { plansA = null, plansB = null, length = wanted,
+               slopeRelaxed = 0, reason = "JOINFAIL", statsA = statsA, statsB = statsB };
+    }
+  }
+
   /* V88 + rail_origin_reuse : si le candidat dispose d'un quai joint a une gare existante.
    * Historiquement V88 joint toujours A. `joinEnd=B` permet une extension vers une origine deja
    * servie sans inverser src/dst (interdit pour le fret). */
@@ -468,6 +483,9 @@ function OpexRailPlatformPlans(catalog, candidate)
         && ("originServed" in candidate) && candidate.originServed
         && ("joinEnd" in candidate);
     if (V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest) {
+      strictOriginReuseJoin = true;
+    }
+    if (V205_RAIL_TRANSFER && ("v205TransferTo" in candidate)) {
       strictOriginReuseJoin = true;
     }
     if (!joinB) {
@@ -509,10 +527,28 @@ function OpexRailPlatformPlans(catalog, candidate)
       }
     }
     if (strictOriginReuseJoin) {
+      if (DECISION_LOG && V205_RAIL_TRANSFER && ("v205TransferTo" in candidate)) {
+        local fLineId = ("v205FeederLineId" in candidate) ? candidate.v205FeederLineId : -1;
+        local tDist = ("v205TotalDist" in candidate) ? candidate.v205TotalDist : -1;
+        local oDist = ("v205OwnDist" in candidate) ? candidate.v205OwnDist : -1;
+        OpexDecide("V205", "step=join_fail ok=0 line=" + candidate.v205TransferTo + " feeder=" + fLineId + " cargo=" + candidate.cargo + " total_dist=" + tDist + " own_dist=" + oDist);
+      }
       return { plansA = null, plansB = null, length = jointLength,
                slopeRelaxed = 0, reason = OpexRailSiteReason(joinHasA, joinHasB),
                statsA = statsA, statsB = statsB };
     }
+  }
+
+  /* V205 : pas de repli en ligne directe si jointure impossible */
+  if (V205_RAIL_TRANSFER && ("v205TransferTo" in candidate)) {
+    if (DECISION_LOG) {
+      local fLineId = ("v205FeederLineId" in candidate) ? candidate.v205FeederLineId : -1;
+      local tDist = ("v205TotalDist" in candidate) ? candidate.v205TotalDist : -1;
+      local oDist = ("v205OwnDist" in candidate) ? candidate.v205OwnDist : -1;
+      OpexDecide("V205", "step=join_fail ok=0 line=" + candidate.v205TransferTo + " feeder=" + fLineId + " cargo=" + candidate.cargo + " total_dist=" + tDist + " own_dist=" + oDist);
+    }
+    return { plansA = null, plansB = null, length = wanted,
+             slopeRelaxed = 0, reason = "JOINFAIL", statsA = statsA, statsB = statsB };
   }
 
   for (local length = wanted; length >= floor; length--) {
@@ -2564,7 +2600,7 @@ function OpexV163Wagons2(line)
 }
 
 function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength, startVehicles = true,
-                         cargo2 = -1, wagons2 = 0)
+                         cargo2 = -1, wagons2 = 0, isTransferFeeder = false, v205Context = null)
 {
   local wagon = catalog.wagonByCargo[cargo];
   /* V163 : wagons du second cargo, attaches derriere ceux du premier dans la meme rame. */
@@ -2590,10 +2626,14 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
   }
   /* Ordres de chargement : pour le fret (sens unique), seule la source attend le plein chargement.
    * Pour les passagers, PAX_FULL_LOAD=1 force le plein chargement aux deux bouts (patron trAIns).
-   * C53 : C53_ORDER_NOLOAD interdit tout rechargement au puits pour les convois de fret (OF_NO_LOAD). */
+   * C53 : C53_ORDER_NOLOAD interdit tout rechargement au puits pour les convois de fret (OF_NO_LOAD).
+   * V205 : gare jointe en transfert et sans chargement (OF_TRANSFER | OF_NO_LOAD). */
   local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
   local flagsA = ((kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
   local destFreightFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
+  if (isTransferFeeder) {
+    destFreightFlags = AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
+  }
   local flagsB = ((kind == "freight") ? destFreightFlags : ((kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY)) | nonstopFlag;
   for (local i = 0; i < wanted; i++) {
     local train = AIVehicle.BuildVehicle(depotTile, loco.id);
@@ -2676,6 +2716,14 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
                failed = true, failure = "ORDER", error = !okB ? AIError.GetLastError() : 0, diag = diag };
     }
     built++;
+    if (DECISION_LOG && isTransferFeeder && v205Context != null) {
+      local lId = ("line" in v205Context) ? v205Context.line : -1;
+      local fId = ("feeder" in v205Context) ? v205Context.feeder : -1;
+      local cId = ("cargo" in v205Context) ? v205Context.cargo : -1;
+      local tD = ("total_dist" in v205Context) ? v205Context.total_dist : -1;
+      local oD = ("own_dist" in v205Context) ? v205Context.own_dist : -1;
+      OpexDecide("V205", "step=orders ok=1 line=" + lId + " feeder=" + fId + " cargo=" + cId + " total_dist=" + tD + " own_dist=" + oD);
+    }
   }
   /* Pas de train lance avant que la transaction entiere soit certaine : voir OpexRollback.
    * La double voie construit un convoi par depot puis les demarre ensemble. */
@@ -3531,15 +3579,25 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   local postPathCosts = AIAccounting();
   budget.begin();
+  local isTransferFeeder = V205_RAIL_TRANSFER && ("v205TransferTo" in candidate);
+  local v205Ctx = isTransferFeeder ? {
+    line = candidate.v205TransferTo,
+    feeder = ("v205FeederLineId" in candidate) ? candidate.v205FeederLineId : -1,
+    cargo = candidate.cargo,
+    total_dist = ("v205TotalDist" in candidate) ? candidate.v205TotalDist : -1,
+    own_dist = ("v205OwnDist" in candidate) ? candidate.v205OwnDist : -1
+  } : null;
   local trains = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot,
                                  planA.station_exit, planB.station_exit, 1, candidate.loco,
                                  candidate.wagons, candidate.platformLength, false,
-                                 OpexV163Cargo2(candidate), OpexV163Wagons2(candidate));
+                                 OpexV163Cargo2(candidate), OpexV163Wagons2(candidate),
+                                 isTransferFeeder, v205Ctx);
   if (!trains.failed && trains.built > 0 && want == 2 && depot2 != null) {
     local second = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot2,
                                    planA2.station_exit, planB2.station_exit, 1, candidate.loco,
                                    candidate.wagons, candidate.platformLength, false,
-                                   OpexV163Cargo2(candidate), OpexV163Wagons2(candidate));
+                                   OpexV163Cargo2(candidate), OpexV163Wagons2(candidate),
+                                   isTransferFeeder, v205Ctx);
     if (second.failed || second.built == 0) {
       foreach (vehicle in trains.rollbackVehicles) second.rollbackVehicles.append(vehicle);
       trains = second;
@@ -4030,10 +4088,19 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   local postPathCosts = AIAccounting();
   budget.begin();
+  local isTransferFeeder = V205_RAIL_TRANSFER && ("v205TransferTo" in candidate);
+  local v205Ctx = isTransferFeeder ? {
+    line = candidate.v205TransferTo,
+    feeder = ("v205FeederLineId" in candidate) ? candidate.v205FeederLineId : -1,
+    cargo = candidate.cargo,
+    total_dist = ("v205TotalDist" in candidate) ? candidate.v205TotalDist : -1,
+    own_dist = ("v205OwnDist" in candidate) ? candidate.v205OwnDist : -1
+  } : null;
 
   local trains = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot,
                                  planA.station_exit, planB.station_exit, 1, candidate.loco,
-                                 candidate.wagons, candidate.platformLength, false);
+                                 candidate.wagons, candidate.platformLength, false,
+                                 -1, 0, isTransferFeeder, v205Ctx);
   if (trains.failed || trains.built == 0) {
     result.opcodes += budget.end("build_trains");
     result.error = trains.error;

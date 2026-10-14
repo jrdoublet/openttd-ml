@@ -1909,6 +1909,165 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       }
     }
   }
+
+  /* V205 : rabattements en transfert vers une gare d'origine fret existante */
+  if (V205_RAIL_TRANSFER && lines != null) {
+    OpexRailTransferFeederCandidates(catalog, lines, out, stats, profile, cruiseCache, freightCargo, targetKind, targetId, abandonedPairs, served);
+  }
+}
+
+/* V205 : rabattements ferroviaires en transfert vers nos gares d'origine fret existantes */
+function OpexRailTransferFeederCandidates(catalog, lines, out, stats, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, abandonedPairs = null, served = null)
+{
+  if (!V205_RAIL_TRANSFER || lines == null) return;
+  local industries = catalog.industries;
+  local seenPairs = {};
+
+  foreach (line in lines) {
+    if (!("kind" in line) || line.kind != "freight") continue;
+    if (("mode" in line) && line.mode != "rail") continue;
+    if (!("lineId" in line)) continue;
+    if (!("stationA" in line) || line.stationA == null || !AIMap.IsValidTile(line.stationA)) continue;
+    if (!("stationB" in line) || line.stationB == null || !AIMap.IsValidTile(line.stationB)) continue;
+    if (!("platformA" in line) || line.platformA == null) continue;
+    if (!("cargo" in line) || !AICargo.IsValidCargo(line.cargo)) continue;
+    if (("v205TransferTo" in line) && line.v205TransferTo >= 0) continue;
+    if (freightCargo != null && line.cargo != freightCargo) continue;
+
+    local stId = OpexLineStationId(line, "A");
+    if (stId < 0) {
+      stId = AIStation.GetStationID(line.stationA);
+    }
+    if (!AIStation.IsValidStation(stId)) continue;
+
+    local cargo = line.cargo;
+    if (!(cargo in catalog.producers)) continue;
+    local sources = catalog.producers[cargo];
+
+    local stationA = line.stationA;
+    local stationB = line.stationB;
+    local lineDist = AIMap.DistanceManhattan(stationA, stationB);
+
+    /* Capacite de la ligne L */
+    local numTrains = ("trains" in line) ? line.trains : (("vehicles" in line) ? line.vehicles.len() : 1);
+    if (numTrains < 1) numTrains = 1;
+    local lineWagons = ("wagons" in line && line.wagons > 0) ? line.wagons : 1;
+    local lineOneWayDays = ("predOneWayDays" in line && line.predOneWayDays > 0) ? line.predOneWayDays : 1;
+    local wagon = (cargo in catalog.wagonByCargo) ? catalog.wagonByCargo[cargo] : null;
+    local wagonCap = (wagon != null && ("capacity" in wagon)) ? wagon.capacity : (("wagonId" in line) ? AIEngine.GetCapacity(line.wagonId) : 0);
+    if (wagonCap <= 0) continue;
+
+    local monthlyCapacityL = (numTrains * lineWagons * wagonCap * (30.0 / (2.0 * lineOneWayDays))).tointeger();
+
+    local alreadyLoaded = 0;
+    if (("srcIndustry" in line) && line.srcIndustry >= 0 && AIIndustry.IsValidIndustry(line.srcIndustry)) {
+      alreadyLoaded = AIIndustry.GetLastMonthProduction(line.srcIndustry, cargo);
+    }
+    if (alreadyLoaded <= 0 && ("monthly" in line)) {
+      alreadyLoaded = line.monthly;
+    }
+    foreach (otherLine in lines) {
+      if (("v205TransferTo" in otherLine) && otherLine.v205TransferTo == line.lineId) {
+        if (("monthly" in otherLine) && otherLine.monthly > 0) {
+          alreadyLoaded += otherLine.monthly;
+        }
+      }
+    }
+    local remainingCapacity = monthlyCapacityL - alreadyLoaded;
+    if (remainingCapacity <= 0) continue;
+
+    foreach (si in sources) {
+      if (si < 0 || si >= industries.len()) continue;
+      local source = industries[si];
+      if (source == null || !("tile" in source) || !AIMap.IsValidTile(source.tile)) continue;
+
+      /* Rayon 25-90 tuiles de stationA */
+      local ownDist = AIMap.DistanceManhattan(source.tile, stationA);
+      if (ownDist < 25 || ownDist > 90) continue;
+
+      /* Plus loin de la destination que la gare source n'en est proche :
+       * dist(src_feeder, stationB) > dist(stationA, stationB) * 0.8 */
+      local totalDist = AIMap.DistanceManhattan(source.tile, stationB);
+      if (totalDist <= lineDist * 0.8) continue;
+
+      /* Non desservie par nous */
+      local ss = (served != null && si < served.len()) ? served[si] : OpexOriginService(lines, source.tile);
+      if (ss != null) continue;
+
+      /* Non la meme origine ou gare que la ligne existante */
+      if (("originA" in line) && AIMap.DistanceManhattan(source.tile, line.originA) < ORIGIN_SEPARATION) continue;
+      if (AIMap.DistanceManhattan(source.tile, stationA) < MIN_SEPARATION) continue;
+
+      local pairKey = source.id + "_" + line.lineId;
+      if (pairKey in seenPairs) continue;
+      seenPairs[pairKey] <- true;
+
+      /* Filtre target */
+      if (targetKind == "town") continue;
+      if (targetKind == "industry" && targetId >= 0 && source.id != targetId && (("dstIndustry" in line) ? line.dstIndustry != targetId : true)) continue;
+
+      /* Memoire d'abandon */
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        local aKey = "freight|" + cargo + "|" + source.id + "|s" + stationA;
+        if (aKey in abandonedPairs) continue;
+      }
+
+      /* Production feeder plafonnee par la capacite restante de L */
+      local sourceMonthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
+      if (sourceMonthly <= 0) continue;
+      local feederMonthly = sourceMonthly > remainingCapacity ? remainingCapacity : sourceMonthly;
+      if (feederMonthly <= 0) continue;
+
+      /* Generation du candidat court */
+      local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
+                                          stationA, feederMonthly, true, stats, false, profile, cruiseCache);
+      if (candidate == null) continue;
+
+      /* Marquage V205 */
+      candidate.v205TransferTo <- line.lineId;
+      candidate.joinDest <- stationA;
+      candidate.v205TotalDist <- totalDist;
+      candidate.v205OwnDist <- ownDist;
+      candidate.joinPlatform <- line.platformA;
+      candidate.joinStationId <- stId;
+      candidate.joinLineId <- line.lineId;
+      candidate.joinEnd <- "B";
+      candidate.originServed = true;
+      candidate.srcIndustry <- source.id;
+      if (("dstIndustry" in line) && line.dstIndustry >= 0) {
+        candidate.dstIndustry <- line.dstIndustry;
+      }
+
+      /* Economie : revenu predit sur distance totale et temps total */
+      local totalOneWayDays = candidate.oneWayDays + lineOneWayDays;
+      local totalIncomeDays = OpexCeilDiv(totalOneWayDays, 1);
+      local unitIncome = AICargo.GetCargoIncome(cargo, totalDist, totalIncomeDays);
+      candidate.revenueAnnual = (12 * candidate.carried * unitIncome).tointeger();
+
+      /* Capital = ligne courte seulement (gare destination jointe, pas de nouvelle gare) */
+      local savedCost = candidate.platformLength * catalog.costStation;
+      candidate.capital -= savedCost;
+      if (candidate.capital < 1) candidate.capital = 1;
+
+      local locoLife = (candidate.loco != null && ("ageYears" in candidate.loco) && candidate.loco.ageYears > 0) ? candidate.loco.ageYears : 20;
+      candidate.amortAnnual = candidate.vehicleCost / locoLife + (((candidate.capital - candidate.vehicleCost) * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
+      if (candidate.amortAnnual < 0) candidate.amortAnnual = 0;
+      candidate.profitAnnual = candidate.revenueAnnual - candidate.runningAnnual - candidate.amortAnnual;
+      candidate.roi = (candidate.profitAnnual > 0) ? (candidate.profitAnnual * 1000) / candidate.capital : 0;
+
+      local iterations = OpexRailIterations(candidate.distance);
+      if (iterations < 1) iterations = 1;
+      candidate.opcodeRatio = (candidate.profitAnnual * 1000) / iterations;
+      local adjustedRoi = (((candidate.roi * candidate.turnoverBonus) / 100) * candidate.freightBonus) / 100;
+      candidate.ratio = candidate.opcodeRatio + (adjustedRoi * 15);
+
+      if (DECISION_LOG) {
+        OpexDecide("V205", "step=gen ok=1 line=" + line.lineId + " feeder=-1 cargo=" + cargo + " total_dist=" + totalDist + " own_dist=" + ownDist);
+      }
+
+      out.append(candidate);
+    }
+  }
 }
 
 /* V88 : Chaines industrielles completes de biens :

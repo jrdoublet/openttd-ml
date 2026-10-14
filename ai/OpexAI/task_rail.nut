@@ -567,6 +567,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             candidate.rawset("railPreastarRid", entry.plan.railPreastarRid);
         }
       }
+      if (V205_RAIL_TRANSFER && ("v205TransferTo" in candidate)) {
+        candidate.v205FeederLineId <- this._nextLineId;
+      }
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
                                    OpexCashReserve(), hardCap);
       if (result.reason == "CASH") {
@@ -1697,6 +1700,9 @@ function OpexAI::_consumeRailSearch(year)
     }
   }
 
+  if (V205_RAIL_TRANSFER && ("v205TransferTo" in candidate)) {
+    candidate.v205FeederLineId <- this._nextLineId;
+  }
   local result = OpexBuildLine(this._catalog, this._budget, candidate, state.alternativeRatio,
                                OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
@@ -1843,6 +1849,13 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
     }
+    if (DECISION_LOG && V205_RAIL_TRANSFER && ("v205TransferTo" in candidate)) {
+      local targetLine = candidate.v205TransferTo;
+      local tDist = ("v205TotalDist" in candidate) ? candidate.v205TotalDist : -1;
+      local oDist = ("v205OwnDist" in candidate) ? candidate.v205OwnDist : -1;
+      local fId = result.ok ? this._nextLineId : (("v205FeederLineId" in candidate) ? candidate.v205FeederLineId : this._nextLineId);
+      OpexDecide("V205", "step=build ok=" + (result.ok ? 1 : 0) + " line=" + targetLine + " feeder=" + fId + " cargo=" + candidate.cargo + " total_dist=" + tDist + " own_dist=" + oDist);
+    }
   }
 
   if (result.ok) {
@@ -1923,6 +1936,10 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       lastLiveVehicles = result.trains, suspectedCrashes = 0,
       isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
+      v205TransferTo = ("v205TransferTo" in candidate) ? candidate.v205TransferTo : -1,
+      joinDest = ("joinDest" in candidate) ? candidate.joinDest : null,
+      v205TotalDist = ("v205TotalDist" in candidate) ? candidate.v205TotalDist : -1,
+      v205OwnDist = ("v205OwnDist" in candidate) ? candidate.v205OwnDist : -1,
       lineId = idx,
     });
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */
