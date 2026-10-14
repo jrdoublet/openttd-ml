@@ -1056,6 +1056,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v185_rail_short_freight_pct",
+      description = "V185: predicted revenue of rail freight lines shorter than 100 tiles scaled to N% (realised/predicted calibration); 0 = inert (default)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v183_rail_all_freight",
       description = "V183: rail freight generation covers every freight cargo at once instead of one cargo per pass; 0 = inert (default)",
       min_value = 0, max_value = 1,
