@@ -1234,3 +1234,6 @@ Branche `v205-transfert-hub` (agy `98ab978`). Smoke graine 42 sain mais 0 candid
 
 ### V202g (évitements, seuil 150 k£ sur caisse BRUTE) — 10×3 négatif (15/10)
 `v202g_railseul_10x3_20261015` : −51,5 k£/an, médiane −29,0 k, 3/7/0, p=0,13 ; 4 clones seulement sur 10 graines (2 031 refus de seuil). La caisse brute ne dépasse 150 k£ + coût (~200 k£) que fin 1972 : trop tard pour payer à 3 ans. Le coût vient des 2 035 recherches de fenêtre. Fil « plus de trains par ligne à 3 ans » clos.
+
+### Passagers ≥ 150 tuiles (`v177_rail_pax_min_dist=150` contre 512) — neutre (15/10)
+`pax150_railseul_10x3_20261015` : −16,4 k£/an, médiane −13,4 k, 4/6/0, p=0,70, IC95 [−90,8 ; +54,9] k. Clos.
