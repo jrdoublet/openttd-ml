@@ -1205,3 +1205,7 @@ commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
 ### V202 évitements PBS — 10×3 rail seul négatif (15/10)
 Branche `v202-evitements-pbs` (`8cde6c3`, correctif `COMPANY_UNOWNED`→`COMPANY_INVALID`). Smoke graine 42 : mécanisme OK (2 évitements, 3 trains ligne 0), surtout bloqué par la caisse.
 10×3 `v202_railseul_10x3_20261015` contre pile B : **−56,1 k£/an**, médiane −58,4 k, 4/6/0, p=0,16, IC95 [−108,9 ; −4,8] k. 15 clones seulement sur 10 graines. Pas de porte A ; défaut 0. Même mur que la double voie : à 3 ans la caisse va aux lignes neuves.
+
+### V203 rabattements fret (feeders) — redondant, clos (15/10)
+Branche `v203-rabattements` (agy `3f177c8` + compteurs). Diagnostic 1 an graine 42 : le générateur ne trouve presque aucune source du même cargo à 20-100 tuiles d'une destination desservie et non desservie elle-même (`ok=2 near=1-2 unserved=1 made=0`). V178 `rail_shared_dest` génère déjà les 2es sources vers une destination existante (ex. 2e COAL vers dst 39241 en 02/1970). Pas de banc.
+Constat annexe : en 1972 la pile B a 200-330 k£ de caisse oisive (graine 42, remboursement refusé sous plancher 300 k£), le vivier rejette surtout `origin_served`. Les lignes à `real_rev` ≪ `pred_rev` dans LINE_REVENUE 1972 sont des lignes bâties mi-1971 (5 mois roulés), pas des lignes mortes.
