@@ -816,7 +816,11 @@ function OpexAI::_expandRailLines(year)
     if (RAIL_REFLEET) {
       foreach (line in this._lines) {
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
-        if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
+        if (V181_RAIL_MAX_TRAINS <= 0) {
+          if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
+        } else {
+          if (line.trains >= V181_RAIL_MAX_TRAINS || line.vehicles.len() >= V181_RAIL_MAX_TRAINS) continue;
+        }
         if (("scrapping" in line) && line.scrapping) continue;
         if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
         if (!(line.cargo in this._catalog.wagonByCargo)) continue;
@@ -825,100 +829,165 @@ function OpexAI::_expandRailLines(year)
         local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
         local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
         local waiting = line.kind == "freight" ? waitingA : waitingA + waitingB;
-        local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
-        if (waiting < backlogThreshold) continue;
 
-        // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
-        if (("doubleTrack" in line) && line.doubleTrack == 1 && ("depot2" in line) && line.depot2 != null) {
-          local trainCost = line.loco.price + line.wagons * wagon.price;
-          local need = trainCost + OpexCashReserve();
-          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-          if (money >= need) {
-            local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
-            if (secondTrain.ok) {
-              line.vehicles.append(secondTrain.train);
-              line.trains = line.vehicles.len();
-              line.vehCount <- line.vehicles.len();
-              if (C50_CHRONOLOGY_PROBE) {
-                if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.second_built++;
-                OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-              }
-              local anchor = AIMap.GetTileIndex(1, 1);
-              OpexSign(anchor, "RD|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
-              if (DECISION_LOG) {
-                OpexDecide("RAIL_EXPAND", "action=second_train line=" + line.lineId + " trains=" + line.trains);
-              }
-              return;
-            }
-          } else if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
-            local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-            if (!("c50_rail_cash_ym" in line) || line.c50_rail_cash_ym != ym) {
-              line.c50_rail_cash_ym <- ym;
-              C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
-            }
-          }
-        }
-        // Cas 2 : Ligne a voie unique -> doublement d'infrastructure et 2e train
-        else if ((!("doubleTrack" in line) || line.doubleTrack == 0) &&
-                 ("platformA" in line) && ("platformB" in line) &&
-                 line.platformA != null && line.platformB != null) {
-          /* V100 : echec recent. Inerte tant que le reglage vaut 0 : le && court-circuite
-           * avant toute lecture de _abandonedPairs, qui peut etre nul. */
-          if (RAIL_UPGRADE_FAILURE_MEMORY && ABANDON_MEMORY && this._abandonedPairs != null
-              && ("lineId" in line)
-              && (OpexRailUpgradeRejectKey(line.lineId) in this._abandonedPairs)) continue;
-          local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
-          local trackCost = line.distance * this._catalog.costTrackPerTile + 2 * line.platformLength * this._catalog.costStation + depotCost;
-          local trainCost = line.loco.price + line.wagons * wagon.price;
-          local need = trackCost + trainCost + OpexCashReserve();
-          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-          if (money >= need) {
-            if (RAIL_SEARCH_RESUMABLE) {
-              local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
-              local anchor = AIMap.GetTileIndex(1, 1);
-              if (!prep.ok) {
-                if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
-                  C50_NON_EXPANSION_LEDGER.rail.prep_failed++;
-                }
-                OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + prep.reason);
-              } else {
-                this._startRailUpgradeSearch(line, prep);
-                return;
-              }
-            } else {
-              local upgrade = OpexUpgradeRailLineToDoubleTrack(this._catalog, this._budget, line, OpexCashReserve(), HARD_ITERATION_CAP);
-              local anchor = AIMap.GetTileIndex(1, 1);
-              OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + upgrade.reason);
-              if (DECISION_LOG) {
-                OpexDecide("RAIL_EXPAND", "action=double_track line=" + line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
-              }
-              if (upgrade.ok) {
-                line.rawset("doubleTrack", 1);
-                line.rawset("depot2", upgrade.depot2);
-                line.rawset("stationA2", upgrade.stationA2);
-                line.rawset("stationB2", upgrade.stationB2);
-                line.rawset("platformA2", upgrade.platformA2);
-                line.rawset("platformB2", upgrade.platformB2);
-                line.vehicles.append(upgrade.train);
+        if (line.trains < 2 && line.vehicles.len() < 2) {
+          local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
+          if (waiting < backlogThreshold) continue;
+
+          // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
+          if (("doubleTrack" in line) && line.doubleTrack == 1 && ("depot2" in line) && line.depot2 != null) {
+            local trainCost = line.loco.price + line.wagons * wagon.price;
+            local need = trainCost + OpexCashReserve();
+            local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+            if (money >= need) {
+              local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
+              if (secondTrain.ok) {
+                line.vehicles.append(secondTrain.train);
                 line.trains = line.vehicles.len();
                 line.vehCount <- line.vehicles.len();
                 if (C50_CHRONOLOGY_PROBE) {
-                  if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.double_built++;
+                  if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.second_built++;
                   OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
                 }
+                local anchor = AIMap.GetTileIndex(1, 1);
+                OpexSign(anchor, "RD|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
+                if (DECISION_LOG) {
+                  OpexDecide("RAIL_EXPAND", "action=second_train line=" + line.lineId + " trains=" + line.trains);
+                }
                 return;
-              } else if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
-                if (upgrade.reason == "CASH") C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
-                else C50_NON_EXPANSION_LEDGER.rail.upgrade_failed++;
+              }
+            } else if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
+              local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+              if (!("c50_rail_cash_ym" in line) || line.c50_rail_cash_ym != ym) {
+                line.c50_rail_cash_ym <- ym;
+                C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
               }
             }
-          } else if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
-            local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-            if (!("c50_rail_cash_ym" in line) || line.c50_rail_cash_ym != ym) {
-              line.c50_rail_cash_ym <- ym;
-              C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
+          }
+          // Cas 2 : Ligne a voie unique -> doublement d'infrastructure et 2e train
+          else if ((!("doubleTrack" in line) || line.doubleTrack == 0) &&
+                   ("platformA" in line) && ("platformB" in line) &&
+                   line.platformA != null && line.platformB != null) {
+            /* V100 : echec recent. Inerte tant que le reglage vaut 0 : le && court-circuite
+             * avant toute lecture de _abandonedPairs, qui peut etre nul. */
+            if (RAIL_UPGRADE_FAILURE_MEMORY && ABANDON_MEMORY && this._abandonedPairs != null
+                && ("lineId" in line)
+                && (OpexRailUpgradeRejectKey(line.lineId) in this._abandonedPairs)) continue;
+            local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
+            local trackCost = line.distance * this._catalog.costTrackPerTile + 2 * line.platformLength * this._catalog.costStation + depotCost;
+            local trainCost = line.loco.price + line.wagons * wagon.price;
+            local need = trackCost + trainCost + OpexCashReserve();
+            local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+            if (money >= need) {
+              if (RAIL_SEARCH_RESUMABLE) {
+                local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
+                local anchor = AIMap.GetTileIndex(1, 1);
+                if (!prep.ok) {
+                  if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
+                    C50_NON_EXPANSION_LEDGER.rail.prep_failed++;
+                  }
+                  OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + prep.reason);
+                } else {
+                  this._startRailUpgradeSearch(line, prep);
+                  return;
+                }
+              } else {
+                local upgrade = OpexUpgradeRailLineToDoubleTrack(this._catalog, this._budget, line, OpexCashReserve(), HARD_ITERATION_CAP);
+                local anchor = AIMap.GetTileIndex(1, 1);
+                OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + upgrade.reason);
+                if (DECISION_LOG) {
+                  OpexDecide("RAIL_EXPAND", "action=double_track line=" + line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
+                }
+                if (upgrade.ok) {
+                  line.rawset("doubleTrack", 1);
+                  line.rawset("depot2", upgrade.depot2);
+                  line.rawset("stationA2", upgrade.stationA2);
+                  line.rawset("stationB2", upgrade.stationB2);
+                  line.rawset("platformA2", upgrade.platformA2);
+                  line.rawset("platformB2", upgrade.platformB2);
+                  line.vehicles.append(upgrade.train);
+                  line.trains = line.vehicles.len();
+                  line.vehCount <- line.vehicles.len();
+                  if (C50_CHRONOLOGY_PROBE) {
+                    if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.double_built++;
+                    OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+                  }
+                  return;
+                } else if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
+                  if (upgrade.reason == "CASH") C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
+                  else C50_NON_EXPANSION_LEDGER.rail.upgrade_failed++;
+                }
+              }
+            } else if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
+              local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+              if (!("c50_rail_cash_ym" in line) || line.c50_rail_cash_ym != ym) {
+                line.c50_rail_cash_ym <- ym;
+                C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
+              }
             }
           }
+        }
+        // Cas 3 : V181 trains supplementaires par clonage sur ligne deja doublee
+        else if (V181_RAIL_MAX_TRAINS > 0 && line.trains >= 2 &&
+                 ("doubleTrack" in line) && line.doubleTrack == 1) {
+          local trainCapacity = line.wagons * wagon.capacity;
+          if (waiting <= trainCapacity) continue;
+
+          // Verifier qu'aucun train de la ligne n'attend deja en gare source
+          local srcStationId = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;
+          if (!AIStation.IsValidStation(srcStationId)) continue;
+          local trainWaitingAtSource = false;
+          foreach (v in line.vehicles) {
+            if (AIVehicle.IsValidVehicle(v)) {
+              if (AIStation.GetStationID(AIVehicle.GetLocation(v)) == srcStationId) {
+                trainWaitingAtSource = true;
+                break;
+              }
+            }
+          }
+          if (trainWaitingAtSource) continue;
+
+          // Selection du depot et du train modele pour le clonage
+          local targetDepot = null;
+          local modelTrain = null;
+          local preferDepot2 = (line.vehicles.len() % 2 == 1);
+          if (preferDepot2 && ("depot2" in line) && line.depot2 != null && AIRail.IsRailDepotTile(line.depot2)) {
+            targetDepot = line.depot2;
+            modelTrain = (line.vehicles.len() > 1) ? line.vehicles[1] : line.vehicles[0];
+          } else if (("depot" in line) && line.depot != null && AIRail.IsRailDepotTile(line.depot)) {
+            targetDepot = line.depot;
+            modelTrain = line.vehicles[0];
+          } else if (("depot2" in line) && line.depot2 != null && AIRail.IsRailDepotTile(line.depot2)) {
+            targetDepot = line.depot2;
+            modelTrain = (line.vehicles.len() > 1) ? line.vehicles[1] : line.vehicles[0];
+          }
+          if (targetDepot == null || modelTrain == null || !AIVehicle.IsValidVehicle(modelTrain)) continue;
+
+          // Verification financiere et slot vehicule
+          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local need = trainCost + OpexCashReserve();
+          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          if (money < need) continue;
+          if (!OpexRailVehicleSlotAvailable()) continue;
+
+          // Clonage du train avec ordres partages
+          local extraTrain = AIVehicle.CloneVehicle(targetDepot, modelTrain, true);
+          if (!AIVehicle.IsValidVehicle(extraTrain)) continue;
+
+          if (!AIVehicle.StartStopVehicle(extraTrain)) {
+            AIVehicle.SellVehicle(extraTrain);
+            continue;
+          }
+
+          line.vehicles.append(extraTrain);
+          line.trains = line.vehicles.len();
+          line.vehCount <- line.vehicles.len();
+          local anchor = AIMap.GetTileIndex(1, 1);
+          OpexSign(anchor, "RC|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
+          if (DECISION_LOG) {
+            OpexDecide("RAIL_EXPAND", "action=clone line=" + line.lineId + " trains=" + line.trains);
+          }
+          return;
         }
       }
     }

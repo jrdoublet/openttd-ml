@@ -130,6 +130,8 @@ function OpexLoadSettings()
   V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
   if (V180_START_YEAR < 0) V180_START_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
   V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
+  local maxTrains = AIController.GetSetting("v181_rail_max_trains");
+  V181_RAIL_MAX_TRAINS = (maxTrains != null && maxTrains > 0 && maxTrains <= 8) ? maxTrains : 0;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
