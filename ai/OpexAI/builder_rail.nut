@@ -3248,6 +3248,17 @@ function OpexRailVehicleSlotAvailable()
 }
 
 /* Execute la construction reelle d'un plan precalcule ou valide. */
+function OpexV200WantDouble(candidate, cashReserve)
+{
+  if (V200_DOUBLE_CASH_K <= 0) return true;
+  local capital = ("capital" in candidate) ? candidate.capital : 0;
+  local need = capital * 2 + cashReserve + V200_DOUBLE_CASH_K * 1000;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local ok = money >= need;
+  if (DECISION_LOG) OpexDecide("V200", "double=" + (ok ? 1 : 0) + " money=" + money + " need=" + need);
+  return ok;
+}
+
 function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 {
   local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
@@ -3632,10 +3643,13 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
              segmentedBacktracks = plan.segmentedBacktracks,
              segmentedLocalChoices = plan.segmentedLocalChoices };
   }
-  if (OpexV198Active() && candidate.kind == "freight") {
+  /* V200 : comme l'estimateur d'AAAHogEx, ne doubler que si la caisse paie la ligne double
+   * (environ deux fois le devis simple) avec une marge ; sinon voie unique historique. */
+  local v200Double = OpexV200WantDouble(candidate, cashReserve);
+  if (v200Double && OpexV198Active() && candidate.kind == "freight") {
     return OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
   }
-  if (OpexV190Active() && candidate.kind == "freight") {
+  if (v200Double && OpexV190Active() && candidate.kind == "freight") {
     return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
   }
   return OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);

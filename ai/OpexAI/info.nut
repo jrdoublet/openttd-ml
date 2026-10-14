@@ -1972,6 +1972,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v200_double_cash_k",
+      description = "V200: double track only if cash >= 2x single quote + reserve + this margin (k GBP); 0 = always double (inert)",
+      min_value = 0, max_value = 2000, step_size = 25,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v199_robust_build",
       description = "V199: robust rail track laying inspired by AAAHogEx (retry, homeward level, online signals, clear area); 0 = inert default, 1 = on",
       easy_value = 0, medium_value = 0, hard_value = 0,

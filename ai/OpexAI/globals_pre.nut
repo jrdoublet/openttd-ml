@@ -44,6 +44,7 @@ V190_RAIL_DOUBLE_BUILD <- false;
 V197_GUIDED_DOUBLE <- false;
 /* V198 : double voie par gabarits de gare (boucle source + gare traversante destination). */
 V198_TEMPLATE_DOUBLE <- false;
+V200_DOUBLE_CASH_K <- 0;
 /* V199 : robustesse de pose rail a la maniere d'AAAHogEx (reprise locale, nivellement homeward, signaux en ligne, demolition). */
 V199_ROBUST_BUILD <- false;
 V199_LEVEL_BUDGET_K <- 20;

@@ -97,10 +97,10 @@ class InertDefault(unittest.TestCase):
         # When V198_TEMPLATE_DOUBLE is false, OpexV198Active() returns false
         builder = _read("builder_rail.nut")
         build_line = _function_body(builder, "OpexBuildLine")
-        self.assertIn("if (OpexV198Active() && candidate.kind == \"freight\")", build_line)
+        self.assertIn("if (v200Double && OpexV198Active() && candidate.kind == \"freight\")", build_line)
         self.assertIn("return OpexV198ExecuteRailPlan(", build_line)
         # Fallback to V190 or legacy is intact
-        self.assertIn("if (OpexV190Active() && candidate.kind == \"freight\")", build_line)
+        self.assertIn("if (v200Double && OpexV190Active() && candidate.kind == \"freight\")", build_line)
         self.assertIn("return OpexExecuteRailPlan(", build_line)
 
 
@@ -179,9 +179,9 @@ class ExecutionAndRollback(unittest.TestCase):
         self.exec_body = _function_body(self.templates, "OpexV198ExecuteRailPlan")
 
     def test_track1_outward_and_track2_guided(self):
-        self.assertIn("OpexSearchPath(plansA1, plansB1,", self.exec_body)
+        self.assertIn("OpexV198ShieldedSearch(plansA1, plansB1,", self.exec_body)
         self.assertIn("OpexV197BuildGuideTiles(tiles1, 1, forbidden)", self.exec_body)
-        self.assertIn("OpexSearchPath(plansA2, plansB2, plan.iterationBudget, deadlineTick, ignored2, null, null, guideTiles)", self.exec_body)
+        self.assertIn("OpexV198ShieldedSearch(plansA2, plansB2, plan.iterationBudget, deadlineTick, ignored2, null, null, guideTiles)", self.exec_body)
 
     def test_demolition_and_fallback_at_every_step(self):
         self.assertIn("OpexDemolishSourceTemplate", self.templates)
