@@ -55,7 +55,7 @@ function OpexV190Active()
   if (!V190_RAIL_DOUBLE_BUILD || AIDate.GetYear(AIDate.GetCurrentDate()) < V190_FROM_YEAR) return false;
   /* V200 : toute la machinerie double (plans a deux quais, seconde voie, gabarits) n'est
    * active que si la caisse depasse le seuil ; sinon la ligne suit le chemin simple d'origine. */
-  if (V200_DOUBLE_CASH_K > 0 && AICompany.GetBankBalance(AICompany.COMPANY_SELF) < V200_DOUBLE_CASH_K * 1000) return false;
+  if (V200_DOUBLE_CASH_K > 0 && AICompany.GetBankBalance(AICompany.COMPANY_SELF) - AICompany.GetLoanAmount() < V200_DOUBLE_CASH_K * 1000) return false;
   return true;
 }
 function OpexV198Active()

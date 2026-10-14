@@ -1973,7 +1973,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v200_double_cash_k",
-      description = "V200: double-track machinery only when cash >= this (k GBP) and cash >= 2x single quote + reserve; 0 = always (inert)",
+      description = "V200: double-track machinery only when cash net of loan >= this (k GBP) and cash >= 2x single quote + reserve; 0 = always (inert)",
       min_value = 0, max_value = 2000, step_size = 25,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
