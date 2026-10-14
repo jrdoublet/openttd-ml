@@ -508,6 +508,30 @@ function OpexAI::_reportLines(year)
               + " rating_b=" + ratingB + " pop_a=" + popA + " pop_b=" + popB + " prod_a=" + prodA
               + " prod_b=" + prodB + " wait_a=" + waitA + " wait_b=" + waitB + " cap=" + cap;
       }
+      if (("wagons2" in line) && line.wagons2 > 0 && ("cargo2" in line)) {
+        /* V163 : le second cargo est-il reellement charge ? Note et attente des deux cargos a la
+         * gare source, chargement et capacite instantanes sur les convois de la ligne. Le revenu
+         * annuel n'est pas ventile par cargo dans l'API : real_rev couvre les deux. */
+        local load1 = 0;
+        local load2 = 0;
+        local cap1 = 0;
+        local cap2 = 0;
+        foreach (v in vehicles) {
+          if (!AIVehicle.IsValidVehicle(v)) continue;
+          load1 += AIVehicle.GetCargoLoad(v, line.cargo);
+          load2 += AIVehicle.GetCargoLoad(v, line.cargo2);
+          cap1 += AIVehicle.GetCapacity(v, line.cargo);
+          cap2 += AIVehicle.GetCapacity(v, line.cargo2);
+        }
+        local rating2A = AIStation.HasCargoRating(stationA, line.cargo2)
+            ? AIStation.GetCargoRating(stationA, line.cargo2) : -1;
+        extra += " cargo2=" + AICargo.GetCargoLabel(line.cargo2) + " wagons2=" + line.wagons2
+               + " pred_rev2=" + (("predRevenue2" in line) ? line.predRevenue2 : 0)
+               + " rating_a=" + ratingA + " rating2_a=" + rating2A
+               + " wait_a=" + AIStation.GetCargoWaiting(stationA, line.cargo)
+               + " wait2_a=" + AIStation.GetCargoWaiting(stationA, line.cargo2)
+               + " load=" + load1 + " load2=" + load2 + " cap=" + cap1 + " cap2=" + cap2;
+      }
       OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose + extra);
 
       /* C98 : vue AIR au meme instant annuel que C70/C82, mais sans agregation.
