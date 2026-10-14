@@ -303,7 +303,7 @@ function OpexFindSourceTemplateSite(catalog, candidate, length, maxRadius = 10)
         local platformBase = candidate.src + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(platformBase)) continue;
         local cargoVal = OpexRailPlatformCargoValue(platformBase, AIMap.GetTileIndex(0, 1), length,
-                                                    candidate.cargo, candidate.coverage, true);
+                                                    candidate.cargo, catalog.railCoverage, true);
         if (cargoVal <= 0) continue;
         foreach (orient in orientations) {
           local origin = OpexSourceOriginFromPlatform(platformBase, orient, length);
@@ -330,7 +330,7 @@ function OpexFindDestTemplateSite(catalog, candidate, length, maxRadius = 10)
         local platformBase = candidate.dst + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(platformBase)) continue;
         local cargoVal = OpexRailPlatformCargoValue(platformBase, AIMap.GetTileIndex(0, 1), length,
-                                                    candidate.cargo, candidate.coverage, false);
+                                                    candidate.cargo, catalog.railCoverage, false);
         if (cargoVal < 8) continue;
         foreach (orient in orientations) {
           local origin = OpexDestOriginFromPlatform(platformBase, orient, length);
