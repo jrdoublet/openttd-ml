@@ -826,19 +826,25 @@ function OpexAI::_expandRailLines(year)
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         if (V181_RAIL_MAX_TRAINS <= 0) {
           if (!OpexV190Active() || line.kind != "freight") {
-            if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
+            if (!OpexV202Active() || line.kind != "freight" || line.trains >= 3) {
+              if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
+            }
           } else {
-            if (line.trains >= V190_RAIL_MAX_TRAINS || line.vehicles.len() >= V190_RAIL_MAX_TRAINS) continue;
+            local maxAllowed = (OpexV202Active() && V190_RAIL_MAX_TRAINS < 3) ? 3 : V190_RAIL_MAX_TRAINS;
+            if (line.trains >= maxAllowed || line.vehicles.len() >= maxAllowed) continue;
           }
         } else {
           local maxAllowed = (OpexV190Active() && line.kind == "freight") ? V190_RAIL_MAX_TRAINS : V181_RAIL_MAX_TRAINS;
+          if (OpexV202Active() && line.kind == "freight" && maxAllowed < 3) maxAllowed = 3;
           if (line.trains >= maxAllowed || line.vehicles.len() >= maxAllowed) continue;
         }
         if (("scrapping" in line) && line.scrapping) continue;
         local hasProfit = ("lastProfit" in line) && line.lastProfit > 0;
         local over6Months = (OpexV190Active() && line.kind == "freight")
             && (("buildDate" in line) ? (AIDate.GetCurrentDate() - line.buildDate > 180) : (("year" in line) && (year - line.year >= 1)));
-        if (!hasProfit && !over6Months) continue;
+        local over3Months = (OpexV202Active() && line.kind == "freight")
+            && (("buildDate" in line) ? (AIDate.GetCurrentDate() - line.buildDate >= 90) : (("year" in line) && (year - line.year >= 1)));
+        if (!hasProfit && !over6Months && !over3Months) continue;
         if (!(line.cargo in this._catalog.wagonByCargo)) continue;
 
         local wagon = this._catalog.wagonByCargo[line.cargo];
@@ -847,6 +853,11 @@ function OpexAI::_expandRailLines(year)
         local waiting = line.kind == "freight" ? waitingA : waitingA + waitingB;
 
         if (line.trains < 2 && line.vehicles.len() < 2) {
+          // V202 : Evitement PBS pour 2e train sur ligne fret a voie unique
+          if (OpexV202Active() && line.kind == "freight" && (!("doubleTrack" in line) || line.doubleTrack == 0)) {
+            if (this.OpexV202TryPassingLoop(line, year, false)) return;
+          }
+
           local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
           if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
             OpexDecide("V187_REFLEET", "line=" + line.lineId + " waiting=" + waiting + " thr=" + backlogThreshold
@@ -955,6 +966,11 @@ function OpexAI::_expandRailLines(year)
               }
             }
           }
+        }
+        // Cas V202 : 2e evitement + 3e train sur ligne fret a voie unique > v202_second_loop_dist
+        else if (OpexV202Active() && line.kind == "freight" && line.trains == 2 && line.vehicles.len() == 2 &&
+                 (!("doubleTrack" in line) || line.doubleTrack == 0)) {
+          if (this.OpexV202TryPassingLoop(line, year, true)) return;
         }
         // Cas 3 : V181 trains supplementaires par clonage sur ligne deja doublee convertie en boucle
         else if (V181_RAIL_MAX_TRAINS > 0 && line.trains >= 2 &&
@@ -1162,6 +1178,192 @@ function OpexAI::_expandRailLines(year)
   if (AIVehicle.IsStoppedInDepot(best.vehicle) ||
       AIMap.DistanceManhattan(AIVehicle.GetLocation(best.vehicle), best.line.depot)
           <= RAIL_EXPAND_APPROACH_TILES) this._continueRailExpansion();
+}
+
+/* V202 : Tente d'ajouter un evitement PBS et un train supplementaire sur une ligne fret a voie unique. */
+function OpexAI::OpexV202TryPassingLoop(line, year, isSecondLoop = false)
+{
+  if (!OpexV202Active() || line == null) return false;
+  if (!("mode" in line) || line.mode != "rail" || !("kind" in line) || line.kind != "freight") return false;
+  if (("scrapping" in line) && line.scrapping) return false;
+  if (!("wagons" in line) || !("loco" in line) || !(line.cargo in this._catalog.wagonByCargo)) return false;
+
+  local expectedTrains = isSecondLoop ? 2 : 1;
+  if (line.trains != expectedTrains || line.vehicles.len() != expectedTrains) return false;
+  if (("doubleTrack" in line) && line.doubleTrack == 1) return false;
+
+  // Ligne agee de >= 3 mois (90 jours)
+  local ageDays = ("buildDate" in line) ? (AIDate.GetCurrentDate() - line.buildDate) : ((year - line.year) * 365);
+  if (ageDays < 90) return false;
+
+  // Pas de reessai avant 1 an apres un echec
+  if (("v202_next_retry" in line) && AIDate.GetCurrentDate() < line.v202_next_retry) return false;
+
+  // Stock en gare source depasse une demi-rame OU train part plein
+  local wagon = this._catalog.wagonByCargo[line.cargo];
+  local trainCapacity = line.wagons * wagon.capacity;
+  local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
+  local stockHalf = (waitingA > (trainCapacity / 2));
+  local departFull = (line.kind == "freight");
+  if (!stockHalf && !departFull) return false;
+
+  // Trace des tuiles de la ligne
+  local tiles = (("tiles" in line) && line.tiles != null) ? line.tiles : null;
+  if (tiles == null && ("stationA" in line) && ("stationB" in line) && ("platformA" in line)) {
+    local leadA = OpexC41RailApproachLead(line.platformA, line.stationA);
+    if (leadA != null) {
+      tiles = OpexTraceTrackTiles(line.stationA, leadA, line.stationB);
+      if (tiles != null) line.tiles <- tiles;
+    }
+  }
+  if (tiles == null || tiles.len() < 18) return false;
+
+  // Verification 2e evitement : ligne > v202_second_loop_dist
+  if (isSecondLoop) {
+    local lineDist = ("distance" in line) ? line.distance : 0;
+    if (lineDist < V202_SECOND_LOOP_DIST && tiles.len() < V202_SECOND_LOOP_DIST) return false;
+    if (!("v202_loops" in line) || line.v202_loops.len() < 1) return false;
+  }
+
+  // Longueur de rame L et fenetre W = L + 6
+  local L = ("platformLength" in line) ? line.platformLength : 4;
+  if (line.vehicles.len() > 0 && AIVehicle.IsValidVehicle(line.vehicles[0])) {
+    local vLen = (AIVehicle.GetLength(line.vehicles[0]) + 15) / 16;
+    if (vLen > L) L = vLen;
+  }
+  local W = L + 6;
+  if (W + 6 > tiles.len()) return false;
+
+  // Recherche de fenetre
+  local window = null;
+  if (!isSecondLoop) {
+    local N = tiles.len();
+    local mid = N / 2;
+    local delta = (0.30 * N).tointeger();
+    local minIdx = mid - delta;
+    local maxIdx = mid + delta;
+    window = OpexV202FindPassingLoopWindow(tiles, L, minIdx, maxIdx, null);
+  } else {
+    local forbidden = line.v202_loops;
+    local loop1 = forbidden[0];
+    if (tiles.len() - loop1.endIdx > loop1.startIdx) {
+      window = OpexV202FindPassingLoopWindow(tiles, L, loop1.endIdx + 4, tiles.len() - W - 3, forbidden);
+      if (window == null) {
+        window = OpexV202FindPassingLoopWindow(tiles, L, 3, loop1.startIdx - W - 4, forbidden);
+      }
+    } else {
+      window = OpexV202FindPassingLoopWindow(tiles, L, 3, loop1.startIdx - W - 4, forbidden);
+      if (window == null) {
+        window = OpexV202FindPassingLoopWindow(tiles, L, loop1.endIdx + 4, tiles.len() - W - 3, forbidden);
+      }
+    }
+  }
+
+  if (window == null) {
+    if (DECISION_LOG) {
+      OpexDecide("V202", "step=window ok=0 reason=NO_WINDOW line=" + line.lineId);
+    }
+    line.v202_next_retry <- AIDate.GetCurrentDate() + 365;
+    return false;
+  }
+
+  if (DECISION_LOG) {
+    OpexDecide("V202", "step=window ok=1 reason=OK line=" + line.lineId + " startIdx=" + window.startIdx + " L=" + L);
+  }
+
+  // Verification financiere et slot vehicule
+  local cat = this._catalog;
+  local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(cat, line);
+  local loopCostEst = (L + 6) * this._catalog.costTrackPerTile + 6 * AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_SIGNAL) + 5000;
+  local costEst = trainCost + loopCostEst;
+  local need = costEst + OpexCashReserve();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < need) {
+    if (DECISION_LOG) {
+      OpexDecide("V202", "step=cash ok=0 reason=CASH need=" + need + " money=" + money + " line=" + line.lineId);
+    }
+    return false;
+  }
+  if (!OpexRailVehicleSlotAvailable()) return false;
+
+  // Depot et train modele
+  local targetDepot = null;
+  if (("depot" in line) && line.depot != null && AIRail.IsRailDepotTile(line.depot)) {
+    targetDepot = line.depot;
+  } else if (("depot2" in line) && line.depot2 != null && AIRail.IsRailDepotTile(line.depot2)) {
+    targetDepot = line.depot2;
+  } else {
+    local ownerSelf = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+    local offsets = [AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0), AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1)];
+    foreach (t in tiles) {
+      foreach (off in offsets) {
+        local n = t + off;
+        if (AIMap.IsValidTile(n) && AIRail.IsRailDepotTile(n) && AITile.GetOwner(n) == ownerSelf) {
+          targetDepot = n;
+          break;
+        }
+      }
+      if (targetDepot != null) break;
+    }
+  }
+
+  local modelTrain = (line.vehicles.len() > 0) ? line.vehicles[0] : null;
+  if (targetDepot == null || modelTrain == null || !AIVehicle.IsValidVehicle(modelTrain)) return false;
+
+  // Pose de l'evitement
+  local cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local buildResult = OpexV202BuildPassingLoop(line, tiles, window, this._catalog, OpexCashReserve());
+  if (!buildResult.ok) {
+    line.v202_next_retry <- AIDate.GetCurrentDate() + 365;
+    if (DECISION_LOG) {
+      OpexDecide("V202", "step=build ok=0 reason=" + buildResult.reason + " line=" + line.lineId);
+    }
+    return false;
+  }
+
+  if (DECISION_LOG) {
+    OpexDecide("V202", "step=build ok=1 reason=OK line=" + line.lineId);
+  }
+
+  // Clonage du train avec ordres partages
+  local extraTrain = AIVehicle.CloneVehicle(targetDepot, modelTrain, true);
+  if (!AIVehicle.IsValidVehicle(extraTrain)) {
+    OpexV202RollbackPassingLoop(buildResult.placedTracks, buildResult.placedSignals, buildResult.placedLateralTiles, tiles, window);
+    line.v202_next_retry <- AIDate.GetCurrentDate() + 365;
+    if (DECISION_LOG) {
+      OpexDecide("V202", "step=clone ok=0 reason=CLONE_FAIL line=" + line.lineId);
+    }
+    return false;
+  }
+
+  if (!AIVehicle.StartStopVehicle(extraTrain)) {
+    AIVehicle.SellVehicle(extraTrain);
+    OpexV202RollbackPassingLoop(buildResult.placedTracks, buildResult.placedSignals, buildResult.placedLateralTiles, tiles, window);
+    line.v202_next_retry <- AIDate.GetCurrentDate() + 365;
+    if (DECISION_LOG) {
+      OpexDecide("V202", "step=clone ok=0 reason=START_FAIL line=" + line.lineId);
+    }
+    return false;
+  }
+
+  local cashAfter = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local realCost = cashBefore - cashAfter;
+
+  line.vehicles.append(extraTrain);
+  line.trains = line.vehicles.len();
+  line.vehCount <- line.vehicles.len();
+  line.v202_loop <- true;
+  if (!("v202_loops" in line)) line.v202_loops <- [];
+  line.v202_loops.append({ startIdx = window.startIdx, endIdx = window.startIdx + W - 1, side = window.side });
+
+  if (DECISION_LOG) {
+    OpexDecide("V202", "step=clone ok=1 reason=OK cost=" + realCost + " trains=" + line.trains + " line=" + line.lineId);
+    OpexDecide("RAIL_EXPAND", "action=passing_loop line=" + line.lineId + " trains=" + line.trains + " cost=" + realCost);
+  }
+
+  local anchor = AIMap.GetTileIndex(1, 1);
+  OpexSign(anchor, "PL|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
+  return true;
 }
 
 /* Avance la transaction sans attente bloquante. Tant que la rame est loin du depot, elle garde

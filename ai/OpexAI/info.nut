@@ -2053,6 +2053,24 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v202_passing_loops",
+      description = "V202: single-track freight passing loops with PBS signals for 2-3 trains (0 = inert default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v202_second_loop_dist",
+      description = "V202: minimum line distance for second passing loop and 3rd train (default 120)",
+      min_value = 50, max_value = 500,
+      easy_value = 120, medium_value = 120, hard_value = 120,
+      custom_value = 120,
+      step_size = 10,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v90_fast_pathfinder",
       description = "V90: optimized vendorized rail pathfinder (identical routes): 1 = enabled (default), 0 = BaNaNaS RailPathFinder",
       easy_value = 1, medium_value = 1, hard_value = 1,

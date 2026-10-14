@@ -164,6 +164,10 @@ function OpexLoadSettings()
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
 
+  V202_PASSING_LOOPS = AIController.GetSetting("v202_passing_loops") != 0;
+  local v202Dist = AIController.GetSetting("v202_second_loop_dist");
+  V202_SECOND_LOOP_DIST = (v202Dist != null && v202Dist >= 50 && v202Dist <= 500) ? v202Dist : 120;
+
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
   RAIL_DEVIS = polRail;

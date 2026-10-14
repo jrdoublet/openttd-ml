@@ -4901,3 +4901,308 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
   OpexSign(anchor, "RL|" + (line.lineId % 100) + "|1");
   return true;
 }
+
+/* V202 : Recherche d'une fenetre droite de L+6 tuiles pour evitement PBS sur voie unique. */
+function OpexV202FindPassingLoopWindow(tiles, trainLength, minIdx, maxIdx, forbiddenSpans = null)
+{
+  if (tiles == null) return null;
+  local N = tiles.len();
+  local L = trainLength;
+  local W = L + 6;
+  if (W + 4 > N) return null;
+
+  if (minIdx < 2) minIdx = 2;
+  if (maxIdx > N - W - 2) maxIdx = N - W - 2;
+  if (minIdx > maxIdx) return null;
+
+  local mid = (minIdx + maxIdx) / 2;
+  local candidates = [];
+  local maxOffset = (maxIdx - minIdx + 1) / 2 + 1;
+  for (local off = 0; off <= maxOffset; off++) {
+    local idx1 = mid + off;
+    if (idx1 >= minIdx && idx1 <= maxIdx) candidates.append(idx1);
+    if (off > 0) {
+      local idx2 = mid - off;
+      if (idx2 >= minIdx && idx2 <= maxIdx) candidates.append(idx2);
+    }
+  }
+
+  local xStep = AIMap.GetTileIndex(1, 0);
+  local yStep = AIMap.GetTileIndex(0, 1);
+
+  foreach (startIdx in candidates) {
+    local overlap = false;
+    if (forbiddenSpans != null) {
+      foreach (span in forbiddenSpans) {
+        if (!("startIdx" in span) || !("endIdx" in span)) continue;
+        if (!(startIdx + W + 4 < span.startIdx || startIdx > span.endIdx + 4)) {
+          overlap = true;
+          break;
+        }
+      }
+    }
+    if (overlap) continue;
+
+    local t0 = tiles[startIdx];
+    local t1 = tiles[startIdx + 1];
+    if (AIMap.DistanceManhattan(t0, t1) != 1) continue;
+    local D = t1 - t0;
+    if (D != xStep && D != -xStep && D != yStep && D != -yStep) continue;
+
+    local straightOk = true;
+    for (local k = 0; k < W; k++) {
+      local tk = tiles[startIdx + k];
+      if (!AIMap.IsValidTile(tk) || !AIRail.IsRailTile(tk)) { straightOk = false; break; }
+      if (k > 0 && (tk - tiles[startIdx + k - 1]) != D) { straightOk = false; break; }
+      if (AIBridge.IsBridgeTile(tk) || AITunnel.IsTunnelTile(tk)) { straightOk = false; break; }
+      if (AIRail.IsRailStationTile(tk) || AIRail.IsRailDepotTile(tk)) { straightOk = false; break; }
+      if (AITile.GetSlope(tk) != AITile.SLOPE_FLAT) { straightOk = false; break; }
+      if (OpexTileTrackCount(tk) != 1) { straightOk = false; break; }
+    }
+    if (!straightOk) continue;
+
+    local sideOffsets = [];
+    if (D == xStep || D == -xStep) {
+      sideOffsets.append(yStep);
+      sideOffsets.append(-yStep);
+    } else {
+      sideOffsets.append(xStep);
+      sideOffsets.append(-xStep);
+    }
+
+    foreach (S in sideOffsets) {
+      local sideOk = true;
+      for (local k = 1; k <= L + 4; k++) {
+        local pk = tiles[startIdx + k] + S;
+        if (!AIMap.IsValidTile(pk)) { sideOk = false; break; }
+        if (AIBridge.IsBridgeTile(pk) || AITunnel.IsTunnelTile(pk)) { sideOk = false; break; }
+        if (AIRail.IsRailStationTile(pk) || AIRail.IsRailDepotTile(pk)) { sideOk = false; break; }
+        if (AIRail.IsRailTile(pk)) { sideOk = false; break; }
+        if (AITile.GetSlope(pk) != AITile.SLOPE_FLAT) { sideOk = false; break; }
+        if (!AITile.IsBuildable(pk)) { sideOk = false; break; }
+        local owner = AITile.GetOwner(pk);
+        local ownerSelf = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+        if (owner != AICompany.COMPANY_UNOWNED && owner != ownerSelf) { sideOk = false; break; }
+      }
+      if (!sideOk) continue;
+
+      // Verification sous AITestMode
+      local simOk = false;
+      {
+        local testMode = AITestMode();
+        local t_0 = tiles[startIdx];
+        local t_1 = tiles[startIdx + 1];
+        local t_2 = tiles[startIdx + 2];
+        local t_sw2 = tiles[startIdx + L + 4];
+        local t_next = tiles[startIdx + L + 5];
+        local t_prev = tiles[startIdx + L + 3];
+
+        local p_1 = t_1 + S;
+        local p_2 = t_2 + S;
+        local p_sw2 = t_sw2 + S;
+        local p_prev = t_prev + S;
+
+        local sw1 = OpexV181TryBuildSwitch(t_0, t_1, p_1, p_2, null, true);
+        if (sw1) {
+          local rOk = true;
+          for (local k = 2; k <= L + 3; k++) {
+            local pk_prev = tiles[startIdx + k - 1] + S;
+            local pk_cur = tiles[startIdx + k] + S;
+            local pk_next = tiles[startIdx + k + 1] + S;
+            if (!AIRail.BuildRail(pk_prev, pk_cur, pk_next)) { rOk = false; break; }
+          }
+          if (rOk) {
+            local sw2 = OpexV181TryBuildSwitch(p_prev, p_sw2, t_sw2, t_next, null, true);
+            if (sw2) {
+              simOk = true;
+            }
+          }
+        }
+      }
+      if (simOk) {
+        return { startIdx = startIdx, side = S, D = D, L = L, W = W };
+      }
+    }
+  }
+
+  return null;
+}
+
+/* V202 : Demolition et remise en etat propre en cas d'echec de pose d'evitement. */
+function OpexV202RollbackPassingLoop(placedTracks, placedSignals, placedLateralTiles, tiles, window)
+{
+  if (placedSignals != null) {
+    foreach (sig in placedSignals) {
+      if (("tile" in sig) && ("front" in sig)) {
+        AIRail.RemoveSignal(sig.tile, sig.front);
+      }
+    }
+  }
+  if (placedTracks != null) {
+    foreach (rec in placedTracks) {
+      if (("prev" in rec) && ("cur" in rec) && ("next" in rec)) {
+        AIRail.RemoveRail(rec.prev, rec.cur, rec.next);
+      }
+    }
+  }
+  if (placedLateralTiles != null) {
+    foreach (t in placedLateralTiles) {
+      if (AIMap.IsValidTile(t)) {
+        AITile.DemolishTile(t);
+      }
+    }
+  }
+  if (tiles != null && window != null) {
+    local startIdx = window.startIdx;
+    local L = window.L;
+    local t_0 = tiles[startIdx];
+    local t_1 = tiles[startIdx + 1];
+    local t_2 = tiles[startIdx + 2];
+    local t_prev = tiles[startIdx + L + 3];
+    local t_sw2 = tiles[startIdx + L + 4];
+    local t_next = tiles[startIdx + L + 5];
+    if (AIMap.IsValidTile(t_0) && AIMap.IsValidTile(t_1) && AIMap.IsValidTile(t_2)) {
+      if (!AIRail.AreTilesConnected(t_0, t_1, t_2)) {
+        AIRail.BuildRail(t_0, t_1, t_2);
+      }
+    }
+    if (AIMap.IsValidTile(t_prev) && AIMap.IsValidTile(t_sw2) && AIMap.IsValidTile(t_next)) {
+      if (!AIRail.AreTilesConnected(t_prev, t_sw2, t_next)) {
+        AIRail.BuildRail(t_prev, t_sw2, t_next);
+      }
+    }
+  }
+}
+
+/* V202 : Pose reelle de l'evitement (rails, 2 aiguillages, signaux PBS_ONEWAY et PBS gares). */
+function OpexV202BuildPassingLoop(line, tiles, window, catalog, cashReserve)
+{
+  if (line == null || tiles == null || window == null) return { ok = false, reason = "INVALID_ARG" };
+
+  local startIdx = window.startIdx;
+  local S = window.side;
+  local L = window.L;
+  local W = window.W;
+
+  local t_0 = tiles[startIdx];
+  local t_1 = tiles[startIdx + 1];
+  local t_2 = tiles[startIdx + 2];
+  local t_sw2 = tiles[startIdx + L + 4];
+  local t_next = tiles[startIdx + L + 5];
+  local t_prev = tiles[startIdx + L + 3];
+
+  local p_1 = t_1 + S;
+  local p_2 = t_2 + S;
+  local p_sw2 = t_sw2 + S;
+  local p_prev = t_prev + S;
+
+  local placedTracks = [];
+  local placedSignals = [];
+  local placedLateralTiles = [];
+  local buildOk = true;
+
+  // 1. Switch 1 : T(0) -> T(1) -> P(1) -> P(2)
+  if (!OpexV181TryBuildSwitch(t_0, t_1, p_1, p_2, placedTracks, false)) {
+    buildOk = false;
+  } else {
+    placedLateralTiles.append(p_1);
+  }
+
+  // 2. Rails paralleles : P(2)..P(L+3)
+  if (buildOk) {
+    for (local k = 2; k <= L + 3; k++) {
+      local pk_prev = tiles[startIdx + k - 1] + S;
+      local pk_cur = tiles[startIdx + k] + S;
+      local pk_next = tiles[startIdx + k + 1] + S;
+      if (!AIRail.BuildRail(pk_prev, pk_cur, pk_next)) {
+        buildOk = false;
+        break;
+      }
+      placedTracks.append({ prev = pk_prev, cur = pk_cur, next = pk_next });
+      placedLateralTiles.append(pk_cur);
+    }
+  }
+
+  // 3. Switch 2 : P(prev) -> P(sw2) -> T(sw2) -> T(next)
+  if (buildOk) {
+    if (!OpexV181TryBuildSwitch(p_prev, p_sw2, t_sw2, t_next, placedTracks, false)) {
+      buildOk = false;
+    } else {
+      placedLateralTiles.append(p_sw2);
+    }
+  }
+
+  // 4. Signaux sur branches de l'evitement (sens unique opposes)
+  if (buildOk) {
+    // Branche 1 (voie principale, A -> B, indices croissants)
+    // Signal d'entree sur T(2) face a T(1)
+    if (OpexV181BuildOneWaySignal(t_2, t_1) > 0) {
+      placedSignals.append({ tile = t_2, front = t_1 });
+    } else {
+      buildOk = false;
+    }
+    // Signal de sortie sur T(prev) face a la tuile precedente
+    local t_prev2 = tiles[startIdx + L + 2];
+    if (buildOk && OpexV181BuildOneWaySignal(t_prev, t_prev2) > 0) {
+      placedSignals.append({ tile = t_prev, front = t_prev2 });
+    } else {
+      buildOk = false;
+    }
+
+    // Branche 2 (voie parallele, B -> A, indices decroissants)
+    // Signal d'entree sur P(prev) face a P(sw2)
+    if (buildOk && OpexV181BuildOneWaySignal(p_prev, p_sw2) > 0) {
+      placedSignals.append({ tile = p_prev, front = p_sw2 });
+    } else {
+      buildOk = false;
+    }
+    // Signal de sortie sur P(2) face a P(3)
+    local p_3 = tiles[startIdx + 3] + S;
+    if (buildOk && OpexV181BuildOneWaySignal(p_2, p_3) > 0) {
+      placedSignals.append({ tile = p_2, front = p_3 });
+    } else {
+      buildOk = false;
+    }
+  }
+
+  // 5. Signaux PBS aux entrees de gare pour attente
+  if (buildOk) {
+    local sigA = OpexC41BuildPbsAtApproach(("platformA" in line) ? line.platformA : null, line.stationA);
+    if (sigA == 1) {
+      local leadA = OpexC41RailApproachLead(line.platformA, line.stationA);
+      placedSignals.append({ tile = leadA, front = line.stationA });
+    } else if (sigA <= 0) {
+      if (tiles.len() >= 2 && AIRail.GetSignalType(tiles[1], tiles[0]) != AIRail.SIGNALTYPE_PBS) {
+        if (AIRail.BuildSignal(tiles[1], tiles[0], AIRail.SIGNALTYPE_PBS)) {
+          placedSignals.append({ tile = tiles[1], front = tiles[0] });
+        }
+      }
+    }
+
+    local last = tiles.len() - 1;
+    local sigB = OpexC41BuildPbsAtApproach(("platformB" in line) ? line.platformB : null, line.stationB);
+    if (sigB == 1) {
+      local leadB = OpexC41RailApproachLead(line.platformB, line.stationB);
+      placedSignals.append({ tile = leadB, front = line.stationB });
+    } else if (sigB <= 0) {
+      if (tiles.len() >= 2 && AIRail.GetSignalType(tiles[last - 1], tiles[last]) != AIRail.SIGNALTYPE_PBS) {
+        if (AIRail.BuildSignal(tiles[last - 1], tiles[last], AIRail.SIGNALTYPE_PBS)) {
+          placedSignals.append({ tile = tiles[last - 1], front = tiles[last] });
+        }
+      }
+    }
+  }
+
+  if (!buildOk) {
+    OpexV202RollbackPassingLoop(placedTracks, placedSignals, placedLateralTiles, tiles, window);
+    return { ok = false, reason = "BUILD_FAIL" };
+  }
+
+  return {
+    ok = true,
+    reason = "OK",
+    placedTracks = placedTracks,
+    placedSignals = placedSignals,
+    placedLateralTiles = placedLateralTiles
+  };
+}

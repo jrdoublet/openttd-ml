@@ -63,6 +63,13 @@ function OpexV198Active()
   return V198_TEMPLATE_DOUBLE && OpexV190Active();
 }
 V190_RAIL_MAX_TRAINS <- 4;
+/* V202 : voie unique avec evitements PBS pour 2-3 trains par ligne. */
+V202_PASSING_LOOPS <- false;
+V202_SECOND_LOOP_DIST <- 120;
+function OpexV202Active()
+{
+  return V202_PASSING_LOOPS;
+}
 /* V188 : pentes tolerees pour les quais joints paralleles. */
 V188_RAIL_JOIN_SLOPES <- false;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
