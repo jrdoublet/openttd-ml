@@ -78,13 +78,22 @@ class ActiveCloningContract(unittest.TestCase):
     def test_requires_double_track(self):
         self.assertIn('("doubleTrack" in line) && line.doubleTrack == 1', self.body)
 
+    def test_loop_conversion_before_cloning(self):
+        self.assertIn('if (!("v181Loop" in line) || !line.v181Loop) {', self.body)
+        self.assertIn('local loopOk = OpexConvertDoubleTrackToLoop(line);', self.body)
+        self.assertIn('line.v181LoopFailed <- true;', self.body)
+        self.assertIn('line.v181Loop <- true;', self.body)
+
+    def test_station_id_concordance_checked(self):
+        self.assertIn('srcStationId != srcStationId2 || dstStationId != dstStationId2', self.body)
+
     def test_waiting_exceeds_train_capacity(self):
         self.assertIn("local trainCapacity = line.wagons * wagon.capacity;", self.body)
         self.assertIn("if (waiting <= trainCapacity) continue;", self.body)
 
     def test_no_train_waiting_at_source_station(self):
         self.assertIn('local srcStationId = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;', self.body)
-        self.assertIn("if (AIStation.GetStationID(AIVehicle.GetLocation(v)) == srcStationId) {", self.body)
+        self.assertIn("if (AIMap.IsValidTile(vLoc) && AIStation.GetStationID(vLoc) == srcStationId) {", self.body)
         self.assertIn("trainWaitingAtSource = true;", self.body)
         self.assertIn("if (trainWaitingAtSource) continue;", self.body)
 
@@ -97,16 +106,50 @@ class ActiveCloningContract(unittest.TestCase):
         self.assertIn('OpexDecide("RAIL_EXPAND", "action=clone line=" + line.lineId + " trains=" + line.trains);', self.body)
 
 
+class LoopConversionContract(unittest.TestCase):
+    def setUp(self):
+        self.builder = _read("builder_rail.nut")
+        self.loop_body = _function_body(self.builder, "OpexConvertDoubleTrackToLoop")
+
+    def test_trace_track_tiles_defined(self):
+        self.assertIn("function OpexTraceTrackTiles(", self.builder)
+
+    def test_test_mode_before_execution(self):
+        self.assertIn("local testMode = AITestMode();", self.loop_body)
+
+    def test_rollback_on_failure(self):
+        self.assertIn("AIRail.RemoveRail(rec.prev, rec.cur, rec.next);", self.loop_body)
+
+    def test_one_way_signals_placed(self):
+        self.assertIn("OpexV181BuildOneWaySignal(tiles1[endIdx1], tiles1[endIdx1 - 1]);", self.loop_body)
+        self.assertIn("OpexV181BuildOneWaySignal(tiles1[k], tiles1[k - 1]);", self.loop_body)
+        self.assertIn("OpexV181BuildOneWaySignal(tiles2[startIdx2], tiles2[startIdx2 + 1]);", self.loop_body)
+        self.assertIn("OpexV181BuildOneWaySignal(tiles2[k], tiles2[k + 1]);", self.loop_body)
+
+    def test_shared_orders_unified(self):
+        self.assertIn("local sharedOk = AIOrder.ShareOrders(otherTrain, firstTrain);", self.loop_body)
+        self.assertIn("AIOrder.RemoveOrder(otherTrain, 0);", self.loop_body)
+
+
 class SquirrelKeywordSafety(unittest.TestCase):
     def test_no_reserved_keywords_as_variables(self):
-        body = _function_body(_read("task_rail.nut"), "OpexAI::_expandRailLines")
-        # Aucun mot reserve Squirrel utilise comme variable (local clone, local parent, local base, etc.)
+        task_body = _function_body(_read("task_rail.nut"), "OpexAI::_expandRailLines")
+        builder_code = _read("builder_rail.nut")
+        loop_body = _function_body(builder_code, "OpexConvertDoubleTrackToLoop")
+        switch_body = _function_body(builder_code, "OpexV181TryBuildSwitch")
+        trace_body = _function_body(builder_code, "OpexTraceTrackTiles")
+
         for kw in ("clone", "parent", "base"):
-            pattern = rf"\b(local|function)\s+{kw}\b"
-            self.assertIsNone(re.search(pattern, body), f"Reserved Squirrel keyword '{kw}' used as identifier")
-            param_pattern = rf"\(\s*{kw}\s*[,)]"
-            self.assertIsNone(re.search(param_pattern, body), f"Reserved Squirrel keyword '{kw}' used as parameter")
+            for code, name in [(task_body, "task_rail::_expandRailLines"),
+                               (loop_body, "OpexConvertDoubleTrackToLoop"),
+                               (switch_body, "OpexV181TryBuildSwitch"),
+                               (trace_body, "OpexTraceTrackTiles")]:
+                pattern = rf"\b(local|function)\s+{kw}\b"
+                self.assertIsNone(re.search(pattern, code), f"Reserved Squirrel keyword '{kw}' used as identifier in {name}")
+                param_pattern = rf"\(\s*{kw}\s*[,)]"
+                self.assertIsNone(re.search(param_pattern, code), f"Reserved Squirrel keyword '{kw}' used as parameter in {name}")
 
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -927,19 +927,29 @@ function OpexAI::_expandRailLines(year)
             }
           }
         }
-        // Cas 3 : V181 trains supplementaires par clonage sur ligne deja doublee
+        // Cas 3 : V181 trains supplementaires par clonage sur ligne deja doublee convertie en boucle
         else if (V181_RAIL_MAX_TRAINS > 0 && line.trains >= 2 &&
+                 line.trains < V181_RAIL_MAX_TRAINS &&
                  ("doubleTrack" in line) && line.doubleTrack == 1) {
+          if (("v181LoopFailed" in line) && line.v181LoopFailed) continue;
+
           local trainCapacity = line.wagons * wagon.capacity;
           if (waiting <= trainCapacity) continue;
 
-          // Verifier qu'aucun train de la ligne n'attend deja en gare source
+          // Verifier la concordance des identifiants de gare entre quais joints
           local srcStationId = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;
-          if (!AIStation.IsValidStation(srcStationId)) continue;
+          local srcStationId2 = ("stationA2" in line && line.stationA2 != null) ? AIStation.GetStationID(line.stationA2) : AIStation.STATION_INVALID;
+          local dstStationId = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : AIStation.STATION_INVALID;
+          local dstStationId2 = ("stationB2" in line && line.stationB2 != null) ? AIStation.GetStationID(line.stationB2) : AIStation.STATION_INVALID;
+          if (!AIStation.IsValidStation(srcStationId) || !AIStation.IsValidStation(dstStationId)) continue;
+          if (srcStationId != srcStationId2 || dstStationId != dstStationId2) continue;
+
+          // Verifier qu'aucun train de la ligne n'attend deja en gare source
           local trainWaitingAtSource = false;
           foreach (v in line.vehicles) {
             if (AIVehicle.IsValidVehicle(v)) {
-              if (AIStation.GetStationID(AIVehicle.GetLocation(v)) == srcStationId) {
+              local vLoc = AIVehicle.GetLocation(v);
+              if (AIMap.IsValidTile(vLoc) && AIStation.GetStationID(vLoc) == srcStationId) {
                 trainWaitingAtSource = true;
                 break;
               }
@@ -947,7 +957,24 @@ function OpexAI::_expandRailLines(year)
           }
           if (trainWaitingAtSource) continue;
 
-          // Selection du depot et du train modele pour le clonage
+          // Verification financiere et slot vehicule
+          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local need = trainCost + OpexCashReserve() + 1000;
+          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          if (money < need) continue;
+          if (!OpexRailVehicleSlotAvailable()) continue;
+
+          // 1. Conversion en boucle a sens unique si pas encore faite
+          if (!("v181Loop" in line) || !line.v181Loop) {
+            local loopOk = OpexConvertDoubleTrackToLoop(line);
+            if (!loopOk) {
+              line.v181LoopFailed <- true;
+              continue;
+            }
+            line.v181Loop <- true;
+          }
+
+          // 2. Selection du depot et du train modele pour le clonage
           local targetDepot = null;
           local modelTrain = null;
           local preferDepot2 = (line.vehicles.len() % 2 == 1);
@@ -962,13 +989,6 @@ function OpexAI::_expandRailLines(year)
             modelTrain = (line.vehicles.len() > 1) ? line.vehicles[1] : line.vehicles[0];
           }
           if (targetDepot == null || modelTrain == null || !AIVehicle.IsValidVehicle(modelTrain)) continue;
-
-          // Verification financiere et slot vehicule
-          local trainCost = line.loco.price + line.wagons * wagon.price;
-          local need = trainCost + OpexCashReserve();
-          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-          if (money < need) continue;
-          if (!OpexRailVehicleSlotAvailable()) continue;
 
           // Clonage du train avec ordres partages
           local extraTrain = AIVehicle.CloneVehicle(targetDepot, modelTrain, true);

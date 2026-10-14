@@ -2821,3 +2821,381 @@ function OpexBuildSecondTrain(catalog, line, cashReserve)
   result.train = newTrains.vehicles[0];
   return result;
 }
+
+/* V181 : Trace les tuiles d'une voie ferree entre la sortie d'une gare et la gare destination. */
+function OpexTraceTrackTiles(startStationTile, leadTile, endStationTile)
+{
+  if (!AIMap.IsValidTile(startStationTile) || !AIMap.IsValidTile(leadTile) ||
+      !AIMap.IsValidTile(endStationTile) || !AIRail.IsRailTile(leadTile)) return null;
+
+  local tiles = [startStationTile, leadTile];
+  local cur = leadTile;
+  local prev = startStationTile;
+  local visited = {};
+  visited[startStationTile] <- true;
+  visited[leadTile] <- true;
+
+  local xStep = AIMap.GetTileIndex(1, 0);
+  local yStep = AIMap.GetTileIndex(0, 1);
+  local offsets = [xStep, -xStep, yStep, -yStep];
+
+  local limit = 2000;
+  local steps = 0;
+  local endStId = AIStation.GetStationID(endStationTile);
+
+  while (cur != endStationTile && steps < limit) {
+    steps++;
+    if (AIBridge.IsBridgeTile(cur) && AIMap.DistanceManhattan(prev, cur) == 1) {
+      local other = AIBridge.GetOtherBridgeEnd(cur);
+      if (other != cur && AIMap.IsValidTile(other)) {
+        prev = cur;
+        cur = other;
+        tiles.append(cur);
+        visited[cur] <- true;
+        if (cur == endStationTile) break;
+      }
+    } else if (AITunnel.IsTunnelTile(cur) && AIMap.DistanceManhattan(prev, cur) == 1) {
+      local other = AITunnel.GetOtherTunnelEnd(cur);
+      if (other != cur && AIMap.IsValidTile(other)) {
+        prev = cur;
+        cur = other;
+        tiles.append(cur);
+        visited[cur] <- true;
+        if (cur == endStationTile) break;
+      }
+    }
+
+    local found = null;
+    foreach (off in offsets) {
+      local neighbor = cur + off;
+      if (!AIMap.IsValidTile(neighbor) || !AIRail.IsRailTile(neighbor)) continue;
+      if (neighbor == prev) continue;
+      if (AIRail.IsRailDepotTile(neighbor)) continue;
+
+      if (AIRail.AreTilesConnected(prev, cur, neighbor)) {
+        if (AIRail.IsRailStationTile(neighbor)) {
+          if (neighbor != endStationTile && AIStation.GetStationID(neighbor) != endStId) {
+            continue;
+          }
+        }
+        found = neighbor;
+        break;
+      }
+    }
+
+    if (found == null) return null;
+
+    prev = cur;
+    cur = found;
+    tiles.append(cur);
+    if (cur in visited) break;
+    visited[cur] <- true;
+    if (cur == endStationTile || (AIRail.IsRailStationTile(cur) && AIStation.GetStationID(cur) == endStId)) {
+      break;
+    }
+  }
+
+  if (tiles.len() < 3) return null;
+  return tiles;
+}
+
+/* V181 : Tente de poser un segment de raccord d'aiguillage sur tCur entre tPrev et tNext. */
+function OpexV181TryBuildSwitchSegment(tPrev, tCur, tNext, recordList, isSimulation = false)
+{
+  if (!AIMap.IsValidTile(tPrev) || !AIMap.IsValidTile(tCur) || !AIMap.IsValidTile(tNext)) return false;
+  if (AIMap.DistanceManhattan(tPrev, tCur) != 1 || AIMap.DistanceManhattan(tCur, tNext) != 1) return false;
+  if (AIBridge.IsBridgeTile(tCur) || AITunnel.IsTunnelTile(tCur)) return false;
+  if (AIRail.IsRailStationTile(tCur) || AIRail.IsRailDepotTile(tCur)) return false;
+
+  if (!isSimulation) {
+    if (AIRail.GetSignalType(tCur, tPrev) != AIRail.SIGNALTYPE_NONE) {
+      AIRail.RemoveSignal(tCur, tPrev);
+    }
+    if (AIRail.GetSignalType(tCur, tNext) != AIRail.SIGNALTYPE_NONE) {
+      AIRail.RemoveSignal(tCur, tNext);
+    }
+  }
+
+  local ok = AIRail.BuildRail(tPrev, tCur, tNext);
+  if (!ok) return false;
+
+  if (!isSimulation) {
+    if (!AIRail.AreTilesConnected(tPrev, tCur, tNext)) {
+      AIRail.RemoveRail(tPrev, tCur, tNext);
+      return false;
+    }
+    if (recordList != null) {
+      recordList.append({ prev = tPrev, cur = tCur, next = tNext });
+    }
+  }
+  return true;
+}
+
+/* V181 : Tente de poser un aiguillage complet entre deux voies paralleles. */
+function OpexV181TryBuildSwitch(tFromPrev, tFrom, tTo, tToNext, recordList, isSimulation = false)
+{
+  local dist = AIMap.DistanceManhattan(tFrom, tTo);
+  if (dist == 1) {
+    local ok1 = OpexV181TryBuildSwitchSegment(tFromPrev, tFrom, tTo, recordList, isSimulation);
+    if (!ok1) return false;
+    local ok2 = OpexV181TryBuildSwitchSegment(tFrom, tTo, tToNext, recordList, isSimulation);
+    if (!ok2) {
+      if (!isSimulation && recordList != null && recordList.len() > 0) {
+        local lastPlaced = recordList.pop();
+        AIRail.RemoveRail(lastPlaced.prev, lastPlaced.cur, lastPlaced.next);
+      }
+      return false;
+    }
+    return true;
+  } else if (dist == 2) {
+    local x1 = AIMap.GetTileX(tFrom);
+    local y1 = AIMap.GetTileY(tFrom);
+    local x2 = AIMap.GetTileX(tTo);
+    local y2 = AIMap.GetTileY(tTo);
+    if (abs(x1 - x2) == 1 && abs(y1 - y2) == 1) {
+      local candidates = [
+        AIMap.GetTileIndex(x1, y2),
+        AIMap.GetTileIndex(x2, y1)
+      ];
+      foreach (mid in candidates) {
+        if (!AIMap.IsValidTile(mid)) continue;
+        if (AIBridge.IsBridgeTile(mid) || AITunnel.IsTunnelTile(mid)) continue;
+        if (AIRail.IsRailStationTile(mid) || AIRail.IsRailDepotTile(mid)) continue;
+        if (AITile.GetSlope(mid) != AITile.SLOPE_FLAT) continue;
+        local ownerSelf = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+        local canUseMid = AITile.IsBuildable(mid) || (AIRail.IsRailTile(mid) && AITile.GetOwner(mid) == ownerSelf);
+        if (!canUseMid) continue;
+
+        local subRecords = [];
+        local s1 = OpexV181TryBuildSwitchSegment(tFromPrev, tFrom, mid, subRecords, isSimulation);
+        if (!s1) continue;
+        local s2 = OpexV181TryBuildSwitchSegment(tFrom, mid, tTo, subRecords, isSimulation);
+        if (!s2) {
+          if (!isSimulation) {
+            foreach (rec in subRecords) AIRail.RemoveRail(rec.prev, rec.cur, rec.next);
+          }
+          continue;
+        }
+        local s3 = OpexV181TryBuildSwitchSegment(mid, tTo, tToNext, subRecords, isSimulation);
+        if (!s3) {
+          if (!isSimulation) {
+            foreach (rec in subRecords) AIRail.RemoveRail(rec.prev, rec.cur, rec.next);
+          }
+          continue;
+        }
+        if (!isSimulation && recordList != null) {
+          foreach (rec in subRecords) recordList.append(rec);
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* V181 : Tente de poser un signal a sens unique (PBS one-way ou block one-way). */
+function OpexV181BuildOneWaySignal(tile, front)
+{
+  if (!AIMap.IsValidTile(tile) || !AIMap.IsValidTile(front)) return -1;
+  if (AIMap.DistanceManhattan(tile, front) != 1) return -1;
+  if (AIBridge.IsBridgeTile(tile) || AITunnel.IsTunnelTile(tile)) return -1;
+  if (!AIRail.IsRailTile(tile)) return -1;
+  if (AIRail.IsRailStationTile(tile) || AIRail.IsRailDepotTile(tile)) return -1;
+  if (OpexTileTrackCount(tile) != 1) return -1;
+
+  if (AIRail.GetSignalType(tile, front) != AIRail.SIGNALTYPE_NONE) {
+    AIRail.RemoveSignal(tile, front);
+  }
+  if ("SIGNALTYPE_PBS_ONEWAY" in AIRail) {
+    if (AIRail.BuildSignal(tile, front, AIRail.SIGNALTYPE_PBS_ONEWAY)) return 1;
+  }
+  if ("SIGNALTYPE_NORMAL" in AIRail) {
+    if (AIRail.BuildSignal(tile, front, AIRail.SIGNALTYPE_NORMAL)) return 1;
+  }
+  if (AIRail.BuildSignal(tile, front, AIRail.SIGNALTYPE_PBS)) return 1;
+  return 0;
+}
+
+/* V181 : Conversion en boucle a sens unique d'une ligne ferroviaire deja doublee.
+ * Pose les aiguillages de croisement devant la gare A et la gare B,
+ * pose les signaux a sens unique le long des deux voies et aux entrees de gare,
+ * et unifie les ordres partages de tous les trains existants. */
+function OpexConvertDoubleTrackToLoop(line)
+{
+  if (line == null || !("mode" in line) || line.mode != "rail") return false;
+  if (!("doubleTrack" in line) || line.doubleTrack != 1) return false;
+  if (!("stationA" in line) || !("stationB" in line) ||
+      !("stationA2" in line) || !("stationB2" in line)) return false;
+  if (line.stationA == null || line.stationB == null ||
+      line.stationA2 == null || line.stationB2 == null) return false;
+
+  local stIdA = AIStation.GetStationID(line.stationA);
+  local stIdA2 = AIStation.GetStationID(line.stationA2);
+  local stIdB = AIStation.GetStationID(line.stationB);
+  local stIdB2 = AIStation.GetStationID(line.stationB2);
+
+  if (!AIStation.IsValidStation(stIdA) || !AIStation.IsValidStation(stIdB)) return false;
+  if (stIdA != stIdA2 || stIdB != stIdB2) return false;
+
+  local leadA1 = OpexC41RailApproachLead(("platformA" in line) ? line.platformA : null, line.stationA);
+  local leadB1 = OpexC41RailApproachLead(("platformB" in line) ? line.platformB : null, line.stationB);
+  local leadA2 = OpexC41RailApproachLead(("platformA2" in line) ? line.platformA2 : null, line.stationA2);
+  local leadB2 = OpexC41RailApproachLead(("platformB2" in line) ? line.platformB2 : null, line.stationB2);
+
+  if (leadA1 == null || leadB1 == null || leadA2 == null || leadB2 == null) return false;
+
+  local tiles1 = OpexTraceTrackTiles(line.stationA, leadA1, line.stationB);
+  local tiles2 = OpexTraceTrackTiles(line.stationA2, leadA2, line.stationB2);
+
+  if (tiles1 == null || tiles2 == null) return false;
+  if (tiles1.len() < 7 || tiles2.len() < 7) return false;
+
+  local switchOutA = null;
+  local switchInA = null;
+  local switchOutB = null;
+  local switchInB = null;
+
+  local last1 = tiles1.len() - 1;
+  local last2 = tiles2.len() - 1;
+
+  // 1. Recherche et validation des aiguillages en AITestMode
+  {
+    local testMode = AITestMode();
+
+    // Gare A : switch outbound (Quai 2 -> Voie 1 vers B)
+    for (local i2 = 1; i2 <= 4 && i2 < last2 - 2; i2++) {
+      for (local i1 = 1; i1 <= 4 && i1 < last1 - 2; i1++) {
+        if (OpexV181TryBuildSwitch(tiles2[i2 - 1], tiles2[i2], tiles1[i1], tiles1[i1 + 1], null, true)) {
+          switchOutA = { fromIdx = i2, toIdx = i1 };
+          break;
+        }
+      }
+      if (switchOutA != null) break;
+    }
+
+    // Gare A : switch inbound (Voie 2 venant de B -> Quai 1)
+    if (switchOutA != null) {
+      for (local i2 = 1; i2 <= 5 && i2 < last2 - 2; i2++) {
+        if (i2 == switchOutA.fromIdx) continue;
+        for (local i1 = 1; i1 <= 5 && i1 < last1 - 2; i1++) {
+          if (i1 == switchOutA.toIdx) continue;
+          if (OpexV181TryBuildSwitch(tiles2[i2 + 1], tiles2[i2], tiles1[i1], tiles1[i1 - 1], null, true)) {
+            switchInA = { fromIdx = i2, toIdx = i1 };
+            break;
+          }
+        }
+        if (switchInA != null) break;
+      }
+    }
+
+    // Gare B : switch outbound (Quai 1 -> Voie 2 vers A)
+    for (local d1 = 1; d1 <= 4; d1++) {
+      local i1 = last1 - d1;
+      if (i1 <= 1) continue;
+      for (local d2 = 1; d2 <= 4; d2++) {
+        local i2 = last2 - d2;
+        if (i2 <= 1) continue;
+        if (OpexV181TryBuildSwitch(tiles1[i1 + 1], tiles1[i1], tiles2[i2], tiles2[i2 - 1], null, true)) {
+          switchOutB = { fromIdx = i1, toIdx = i2 };
+          break;
+        }
+      }
+      if (switchOutB != null) break;
+    }
+
+    // Gare B : switch inbound (Voie 1 venant de A -> Quai 2)
+    if (switchOutB != null) {
+      for (local d1 = 1; d1 <= 5; d1++) {
+        local i1 = last1 - d1;
+        if (i1 <= 1 || i1 == switchOutB.fromIdx) continue;
+        for (local d2 = 1; d2 <= 5; d2++) {
+          local i2 = last2 - d2;
+          if (i2 <= 1 || i2 == switchOutB.toIdx) continue;
+          if (OpexV181TryBuildSwitch(tiles1[i1 - 1], tiles1[i1], tiles2[i2], tiles2[i2 + 1], null, true)) {
+            switchInB = { fromIdx = i1, toIdx = i2 };
+            break;
+          }
+        }
+        if (switchInB != null) break;
+      }
+    }
+  }
+
+  if (switchOutA == null || switchInA == null || switchOutB == null || switchInB == null) {
+    return false;
+  }
+
+  // 2. Pose reelle des aiguillages avec rollback en cas d'echec
+  local placedTracks = [];
+  local buildOk = true;
+
+  if (!OpexV181TryBuildSwitch(tiles2[switchOutA.fromIdx - 1], tiles2[switchOutA.fromIdx],
+                              tiles1[switchOutA.toIdx], tiles1[switchOutA.toIdx + 1], placedTracks, false)) {
+    buildOk = false;
+  }
+  if (buildOk && !OpexV181TryBuildSwitch(tiles2[switchInA.fromIdx + 1], tiles2[switchInA.fromIdx],
+                                        tiles1[switchInA.toIdx], tiles1[switchInA.toIdx - 1], placedTracks, false)) {
+    buildOk = false;
+  }
+  if (buildOk && !OpexV181TryBuildSwitch(tiles1[switchOutB.fromIdx + 1], tiles1[switchOutB.fromIdx],
+                                        tiles2[switchOutB.toIdx], tiles2[switchOutB.toIdx - 1], placedTracks, false)) {
+    buildOk = false;
+  }
+  if (buildOk && !OpexV181TryBuildSwitch(tiles1[switchInB.fromIdx - 1], tiles1[switchInB.fromIdx],
+                                        tiles2[switchInB.toIdx], tiles2[switchInB.toIdx + 1], placedTracks, false)) {
+    buildOk = false;
+  }
+
+  if (!buildOk) {
+    foreach (rec in placedTracks) {
+      AIRail.RemoveRail(rec.prev, rec.cur, rec.next);
+    }
+    return false;
+  }
+
+  // 3. Pose des signaux a sens unique le long des voies et entrees de gare
+  local startIdx1 = (switchOutA.toIdx > switchInA.toIdx ? switchOutA.toIdx : switchInA.toIdx) + 1;
+  local endIdx1 = (switchOutB.fromIdx < switchInB.fromIdx ? switchOutB.fromIdx : switchInB.fromIdx) - 1;
+
+  if (endIdx1 >= startIdx1) {
+    OpexV181BuildOneWaySignal(tiles1[endIdx1], tiles1[endIdx1 - 1]);
+    for (local k = startIdx1; k < endIdx1; k += 7) {
+      OpexV181BuildOneWaySignal(tiles1[k], tiles1[k - 1]);
+    }
+  }
+
+  local startIdx2 = (switchOutA.fromIdx > switchInA.fromIdx ? switchOutA.fromIdx : switchInA.fromIdx) + 1;
+  local endIdx2 = (switchOutB.toIdx < switchInB.toIdx ? switchOutB.toIdx : switchInB.toIdx) - 1;
+
+  if (endIdx2 >= startIdx2) {
+    OpexV181BuildOneWaySignal(tiles2[startIdx2], tiles2[startIdx2 + 1]);
+    for (local k = endIdx2; k > startIdx2; k -= 7) {
+      OpexV181BuildOneWaySignal(tiles2[k], tiles2[k + 1]);
+    }
+  }
+
+  // 4. Unification des ordres partages pour tous les trains existants
+  local firstTrain = line.vehicles[0];
+  if (AIVehicle.IsValidVehicle(firstTrain)) {
+    for (local vIdx = 1; vIdx < line.vehicles.len(); vIdx++) {
+      local otherTrain = line.vehicles[vIdx];
+      if (AIVehicle.IsValidVehicle(otherTrain)) {
+        local sharedOk = AIOrder.ShareOrders(otherTrain, firstTrain);
+        if (!sharedOk) {
+          while (AIOrder.GetOrderCount(otherTrain) > 0) {
+            AIOrder.RemoveOrder(otherTrain, 0);
+          }
+          AIOrder.ShareOrders(otherTrain, firstTrain);
+        }
+      }
+    }
+  }
+
+  line.v181Loop <- true;
+  if (DECISION_LOG) {
+    OpexDecide("RAIL_LOOP", "action=convert line=" + line.lineId + " ok=1");
+  }
+  local anchor = AIMap.GetTileIndex(1, 1);
+  OpexSign(anchor, "RL|" + (line.lineId % 100) + "|1");
+  return true;
+}
