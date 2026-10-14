@@ -682,7 +682,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.distanceLong++;
     return null;
   } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
-             && !(V194_SHORT_TO_SERVED_DST && OpexV194NearOwnRailStation(dstTile))) {
+             && !(V194_SHORT_TO_SERVED_DST && OpexV194NearOwnRailStation(dstTile))
+             && !(V195_V182_YEARS > 0 && AIDate.GetYear(AIDate.GetCurrentDate()) >= OPEX_START_YEAR + V195_V182_YEARS)) {
     /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972).
      * V194 : exempte le fret court vers une de nos gares rail (rattachement V178). */
     stats.distanceShort++;

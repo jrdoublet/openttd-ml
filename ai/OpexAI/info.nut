@@ -1907,6 +1907,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v195_v182_years",
+      description = "V195: apply v182 rail freight min distance only during the first N years (0 = always, default)",
+      min_value = 0, max_value = 10,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v194_short_to_served_dst",
       description = "V194: exempt short rail freight (under v182 min distance) whose destination is near one of our rail stations (0 = off, default)",
       min_value = 0, max_value = 1,

@@ -32,6 +32,8 @@ V192_RAIL_TIME_DENOM_PCT <- 0;
 V193_CHAIN_TOWNS <- 0;
 /* V194 : fret court vers une gare rail deja desservie (0 = inerte). */
 V194_SHORT_TO_SERVED_DST <- false;
+/* V195 : V182 limite aux N premieres annees (0 = toujours). */
+V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
 V186_RAIL_SEARCH_SLICES <- 1;
 /* V187 : second train / doublement autorises pendant une recherche A* de ligne neuve. */
