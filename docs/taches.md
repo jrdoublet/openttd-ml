@@ -1147,3 +1147,6 @@ la pose réelle et l'économie dans un contrefactuel apparié. **Aucune
 politique adoptée, aucun défaut modifié, aucune porte V102, aucun
 commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
 `results/air_bfail_geometry_6x3_20261009_r3_analysis.json`.
+
+- **14/10 — `v184_rail_search_slots=4` contre 2** (`slots4_railseul_10x3_20261014`, rail seul) : +28,9 k moyen, médiane −8,5 k, 5/5, p=0,63 — **nul**, 2 créneaux gardés.
+- **14/10 — V185 calibration fret court à 70 % contre coupe V182 100** (`v185b_railseul_10x3_20261014`) : −44,7 k, médiane −40,5 k, 3/7, p=0,23 — **négatif**, la coupe V182 reste meilleure. (Le réglage impose un pas de 5 : 72 refusé.)
