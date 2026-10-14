@@ -1201,3 +1201,7 @@ commit/push.** [Rapport et preuves](air_bfail_precheck_shadow_20261009.md),
 - Borne rail 300 contre 220 (`dist300_railseul_10x3_20261015`, depuis wt-v197-dbl, défauts V19x à 0) : +10,4 k£/an, médiane −12,0 k, 5/5, p = 0,92, IC [−72 ; +94 k] : **neutre**, piste close.
 - V201 branches fret sur tronc double (HogNet) livré par agy, branche `v201-branches-tronc` (`cf4d79c`), non testé : dépend de troncs doubles absents à 3 ans ; réservé à l'horizon 10 ans.
 - V202 lancé (agy, `wt-v202-evitements`) : voie unique + évitements PBS pour 2-3 trains par ligne (AAA 29,6 trains contre 14,2 ; 45 contre 35 k£/train/an : l'écart est surtout le nombre de trains).
+
+### V202 évitements PBS — 10×3 rail seul négatif (15/10)
+Branche `v202-evitements-pbs` (`8cde6c3`, correctif `COMPANY_UNOWNED`→`COMPANY_INVALID`). Smoke graine 42 : mécanisme OK (2 évitements, 3 trains ligne 0), surtout bloqué par la caisse.
+10×3 `v202_railseul_10x3_20261015` contre pile B : **−56,1 k£/an**, médiane −58,4 k, 4/6/0, p=0,16, IC95 [−108,9 ; −4,8] k. 15 clones seulement sur 10 graines. Pas de porte A ; défaut 0. Même mur que la double voie : à 3 ans la caisse va aux lignes neuves.
