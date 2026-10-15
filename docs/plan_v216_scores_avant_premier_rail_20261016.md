@@ -308,6 +308,8 @@ Pour le rail voyageurs, à chaque génération :
 
 ### 4.1 Plan factoriel 2×2 avec les réglages existants (PC, peut partir tout de suite)
 
+**Mise à jour PC du 15/10 : F1 et F2 terminés.** [Résultats et statistiques brutes](v216_factoriel_pc_20261015.md), [bilan et passation](v216_factoriel_pc_20261015_suite.md), [preuves compactées](../evidence/review/v216_factoriel_pc_20261015/README.md). 160/160 parties saines, 80/80 paires complètes, aucune exclusion ; même code et bundle dans les quatre cellules. Revenu voyageurs réalisé/prévu A/B/C/D : 0,182 / 0,242 / 0,808 / 1,059. Écart de contexte descriptif confirmé, sans isolation causale de l'effet de nos aéroports. Le pré-enregistrement ci-dessous est conservé comme historique ; aucune relance F1/F2 à faire.
+
 Le bras de contraste « rail seul » de la première version de ce plan était invalide : le lanceur
 applique `--aaahogex-setting` à AAA dans les deux bras. On croise donc deux facteurs, nos modes et
 ceux d'AAA :
@@ -335,6 +337,8 @@ On mesure le réalisé/prévu par mode et cargo (§1.4) et la co-localisation (�
 scripts joints au prompt PC. Le verdict du lanceur est sans objet : ce sont des diagnostics.
 
 ### 4.2 Campagnes sondées (VPS, après l'étape 1)
+
+**À résoudre avant lancement :** le test D du §5 exige le fantôme dans A/B/C/D ; les deux diagnostics ci-dessous ne couvrent que A et D. Les données F1/F2 actuelles n'ont pas le fantôme. Préciser la collecte nécessaire pour B/C ou conserver le test D explicitement incomplet, sans ajouter implicitement une campagne ni déclarer le critère satisfait. La sonde reste à coordonner selon le §10.
 
 Deux 20×3, sonde active dans tous les bras (`decision_log=1,probes=6,v216_probe=1`,
 `--script-debug --line-telemetry`), bras `ref` contre `phys` (V207 arrêts 2 + courrier) :
