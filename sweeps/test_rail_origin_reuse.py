@@ -33,6 +33,12 @@ def blocked(origin_reuse, a_served, b_served):
     return a_served or b_served
 
 
+# V179 (ca38268) : la garde fret industrie garde les paires a destination desservie
+# seulement sous V179_RAIL_GEN_DEST_SERVED ; a 0, v179Keep est faux et la garde est historique.
+IND_GUARD = "if (!v179Keep && (ss != null || sd != null))"
+V179_KEEP = "local v179Keep = V179_RAIL_GEN_DEST_SERVED && ss == null && sd != null;"
+
+
 class TestRailOriginReuse(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -320,7 +326,7 @@ class TestRailOriginReuse(unittest.TestCase):
     def test_freight_industry_fresh_pass_is_historical_and_never_reads_reuse_policy(self):
         freight = function_body(self.candidates, "function OpexFreightCandidates(")
         self.assertIn("local sd = served[di];", freight)
-        guard = freight.index("if (ss != null || sd != null)")
+        guard = freight.index(IND_GUARD)
         rejection = freight.index("stats.pairsOriginServed++;", guard)
         self.assertLess(guard, rejection)
         self.assertNotIn("RAIL_ORIGIN_REUSE", freight)
@@ -648,7 +654,7 @@ class TestRailOriginReuse(unittest.TestCase):
             'if (!("originExposurePax" in stats)) stats.originExposurePax <- OpexRailOriginExposureStats();',
             pax[pax_guard:pax_continue],
         )
-        ind_guard = freight.index("if (ss != null || sd != null)")
+        ind_guard = freight.index(IND_GUARD)
         ind_continue = freight.index("continue;", ind_guard)
         self.assertIn(
             'OpexRailOriginExposureObserve(stats.originExposureFreight, ss, sd, "freight", cargo);',
@@ -731,7 +737,7 @@ class TestRailOriginReuse(unittest.TestCase):
         pax_continue = pax.index("continue;", pax_guard)
         self.assertIn("OpexRailOriginExposureStats()", pax[pax_guard:pax_continue])
         self.assertNotIn("OpexRailOriginExposureStats()", pax[:pax_guard])
-        ind_guard = freight.index("if (ss != null || sd != null)")
+        ind_guard = freight.index(IND_GUARD)
         self.assertNotIn("OpexRailOriginExposureStats()", freight[:ind_guard])
 
     def test_origin_exposure_shadow_counts_pre_pair_funnel_without_new_api_work(self):
@@ -924,7 +930,9 @@ class TestRailOriginReuse(unittest.TestCase):
         pax = function_body(self.candidates, "function OpexPaxCandidates(")
         freight = function_body(self.candidates, "function OpexFreightCandidates(")
         self.assertEqual(pax.count("if (sa != null || sb != null)"), 1)
-        self.assertEqual(freight.count("if (ss != null || sd != null)"), 1)
+        self.assertEqual(freight.count(IND_GUARD), 1)
+        self.assertEqual(freight.count(V179_KEEP), 1)
+        self.assertLess(freight.index(V179_KEEP), freight.index(IND_GUARD))
         self.assertEqual(freight.count("if (ss != null || st != null)"), 1)
         # Trois gardes rail seulement : pax, fret industrie, fret ville. Aucun chemin route/AIR.
         self.assertEqual(self.candidates.count("OpexRailOriginPairBlocked("), 1)

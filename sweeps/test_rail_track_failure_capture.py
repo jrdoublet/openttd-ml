@@ -93,6 +93,31 @@ def without_v199(body):
     return body
 
 
+def without_v199_v163_plan(body):
+    """Project OpexExecuteRailPlan onto its pre-V199/V163 form.
+
+    V199 (af1fcd3) levels the homeward track under V199_ROBUST_BUILD and passes
+    double-track options to OpexBuildTrack; V163 (78acaa8) passes the second
+    cargo, whose helpers return OpexBuildTrains' own defaults (-1, 0) when the
+    line has no second cargo. Each exact addition is required.
+    """
+    replacements = (
+        ('    if (V199_ROBUST_BUILD) {\n'
+         '      OpexV199RebuildForHomeward(tiles, 1, V199_LEVEL_BUDGET_K);\n'
+         '    }\n', '', 1),
+        ('      local trackOpt2 = { isDouble = true, trainLength = candidate.platformLength, initialBudget = plan.iterationBudget };\n'
+         '      local tFail = OpexBuildTrack(tiles2, plan.structures2, null, trackOpt2);',
+         '      local tFail = OpexBuildTrack(tiles2, plan.structures2);', 1),
+        ('candidate.wagons, candidate.platformLength, false,\n', 'candidate.wagons, candidate.platformLength, false', 2),
+    )
+    for addition, original, count in replacements:
+        if body.count(addition) != count:
+            raise AssertionError("V199/V163 addition missing or duplicated: " + addition)
+        body = body.replace(addition, original)
+    body = re.sub(r'false\s*OpexV163Cargo2\(candidate\), OpexV163Wagons2\(candidate\)\);', 'false);', body)
+    return body
+
+
 class TestRailTrackFailureCapture(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -115,7 +140,7 @@ class TestRailTrackFailureCapture(unittest.TestCase):
 
     def test_failure_logs_and_rollback_order_are_unchanged(self):
         current = function_body(self.source, "OpexExecuteRailPlan")
-        self.assertEqual(digest(without_freight_memory(current)),
+        self.assertEqual(digest(without_v199_v163_plan(without_freight_memory(current))),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
 
     def test_freight_memory_does_not_skip_failure_diagnostics_or_rollback(self):

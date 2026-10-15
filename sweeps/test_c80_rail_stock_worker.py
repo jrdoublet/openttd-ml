@@ -93,8 +93,9 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         start = rail.index("function OpexBuildTrack(")
         end = rail.index("\nfunction OpexTestRailTrack(", start)
         body = rail[start:end]
+        # V199 (af1fcd3) : 4e parametre options = null, lu seulement par la pose robuste.
         self.assertTrue(body.startswith(
-            "function OpexBuildTrack(tiles, structures = null, failure = null)"))
+            "function OpexBuildTrack(tiles, structures = null, failure = null, options = null)"))
         self.assertIn("return failed;", body)
         self.assertIn("ok = AIRail.BuildRail(prev, cur, next);", body)
         self.assertIn("ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);", body)
@@ -104,6 +105,19 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertIn("!AIRail.AreTilesConnected(prev, cur, next)", body)
         self.assertIn('OpexRailCaptureTrackFailure(failure, tiles, i, cur, "connect", err, manhPrev, manhNext);', body)
         self.assertIn("OpexRailCaptureTrackFailure(failure, tiles, i, cur, segmentKind, err, manhPrev, manhNext);", body)
+        # V199 : demolition et reprise locale, gardees par V199_ROBUST_BUILD, ajoutent deux
+        # captures et des OpexDecide ; le contrat historique porte sur le reste du corps.
+        v199 = re.search(r"// V199 : Demolition.*?\n    if \(!ok\) \{", body, re.S)
+        self.assertIsNotNone(v199)
+        self.assertIn("if (!ok && V199_ROBUST_BUILD && AIError.GetLastError() == AIError.ERR_AREA_NOT_CLEAR) {",
+                      v199.group(0))
+        self.assertIn("if (!ok && V199_ROBUST_BUILD) {", v199.group(0))
+        self.assertEqual(v199.group(0).count('if (failure != null && !("index" in failure))'), 2)
+        body = body[:v199.start()] + "if (!ok) {" + body[v199.end():]
+        v199_log = re.search(r"\n  if \(V199_ROBUST_BUILD && signalsBuiltCount > 0 && DECISION_LOG\) \{.*?\n  \}\n",
+                             body, re.S)
+        self.assertIsNotNone(v199_log)
+        body = body[:v199_log.start()] + "\n" + body[v199_log.end():]
         self.assertIn('if (failure != null && !("index" in failure))', body)
         self.assertEqual(body.count('if (failure != null && !("index" in failure))'), 2)
         fills = body.split('if (failure != null && !("index" in failure))')
@@ -112,7 +126,9 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertNotIn("failure.dup_index", fills[0])
         self.assertNotIn("AITile.IsBuildable(cur)", fills[0])
         self.assertNotIn("OpexRailCaptureTrackFailure", fills[0])
-        helper = rail[rail.index("function OpexRailCaptureTrackFailure("):start]
+        # V199 a insere ses fonctions entre le helper et OpexBuildTrack : borner au helper seul.
+        helper_start = rail.index("function OpexRailCaptureTrackFailure(")
+        helper = rail[helper_start:rail.index("\n}\n", helper_start) + 2]
         tile_state = (
             "failure.is_buildable <- AITile.IsBuildable(cur) ? 1 : 0;",
             "failure.is_rail <- AIRail.IsRailTile(cur) ? 1 : 0;",
@@ -157,12 +173,15 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
             execute,
         )
         self.assertIn("OpexBuildTrack(tiles, plan.structures, trackFailure)", execute)
-        self.assertIn("OpexBuildTrack(tiles2, plan.structures2);", execute)
+        # V199 : la seconde voie passe ses options de pose robuste.
+        self.assertIn("OpexBuildTrack(tiles2, plan.structures2, null, trackOpt2);", execute)
         self.assertEqual(execute.count("OpexBuildTrack(tiles, plan.structures, trackFailure)"), 1)
         self.assertIn(
+            # V153 (8188ea3, defaut 1) : controle de jonction aussi en bout de pont/tunnel ;
+            # tuiles adjacentes = AreTilesConnected historique.
             "local connected = trackFailed == 0 &&\n"
-            "      AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&\n"
-            "      AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);",
+            "      OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], \"A\") &&\n"
+            "      OpexRailEndConnected(planB.station_exit, tiles[last - 1], tiles[last - 2], \"B\");",
             execute)
         track_at = execute.index('OpexDecide("RAIL_TRACK_FAIL"')
         track_log = execute[execute.rindex("if (!connected)", 0, track_at):

@@ -51,7 +51,7 @@ class TestB9AirCatchment(unittest.TestCase):
     def test_demand_shadow_is_post_decision_and_default_off(self):
         coverage = COVERAGE.read_text(encoding="utf-8")
         task = TASK_AIR.read_text(encoding="utf-8")
-        selected = task.index("local buildPlan = buildChoice.plan;")
+        selected = task.index("local buildPlan = plan;")
         shadow = task.index("OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);")
         build = task.index("OpexBuildAirRoute(this._catalog, this._budget, buildPlan")
         self.assertGreater(shadow, selected)

@@ -170,8 +170,12 @@ class C83FixesContractTests(unittest.TestCase):
                       body(self.projects, "function OpexReselectProjects("))
         self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines)",
                       body(self.projects, "function OpexBuildProjects("))
-        self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines)",
-                      body(self.projects, "function OpexIncrementalUpdateProjects("))
+        # V156 (1e3b7a1) passe deux tables optionnelles, nulles hors revalidation indexee.
+        incr = body(self.projects, "function OpexIncrementalUpdateProjects(")
+        self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines, extValidity, extTownLim)",
+                      incr)
+        self.assertIn("local extValidity = (INCR_REVALIDATE_INDEX == 1 && ctx != null) ? ctx.airSiteValidity : null;",
+                      incr)
 
     def test_no_site_outcomes_are_log_only(self):
         sites = body(self.air, "function OpexAirPlansFindSites(")

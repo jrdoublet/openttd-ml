@@ -107,6 +107,10 @@ def analyse(base=BASE):
             "windows": windows}
 
 
+# Preuve tiree de results/ (non versionne) : absente d'un clone neuf ou apres le menage
+# disque du 15/10, le test est saute, pas rouge. Il ne garde aucun contrat de code.
+@unittest.skipUnless(all((BASE / name).exists() for name in SOURCES),
+                     "resultats AC04 du 11/10 absents de results/ (non versionnes)")
 class TestAC04PriorEvidence(unittest.TestCase):
     def test_40_pairs_disjoint_and_complete(self):
         self.assertEqual(len(source_data()), 40)
