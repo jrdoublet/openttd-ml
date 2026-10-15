@@ -1847,6 +1847,16 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 
   if (result.ok) {
     local idx = this._nextLineId;
+    if (V207_RAIL_PAX_JOINED_STOPS > 0 && candidate.kind == "pax") {
+      local srcTown = ("srcTown" in candidate && candidate.srcTown >= 0)
+          ? candidate.srcTown : AITile.GetClosestTown(result.platformA.anchor);
+      local dstTown = ("dstTown" in candidate && candidate.dstTown >= 0)
+          ? candidate.dstTown : AITile.GetClosestTown(result.platformB.anchor);
+      local stA = AIStation.GetStationID(result.platformA.anchor);
+      local stB = AIStation.GetStationID(result.platformB.anchor);
+      OpexV207RailBuildJoinedStops(result.platformA, stA, srcTown, candidate.cargo, V207_RAIL_PAX_JOINED_STOPS);
+      OpexV207RailBuildJoinedStops(result.platformB, stB, dstTown, candidate.cargo, V207_RAIL_PAX_JOINED_STOPS);
+    }
     if (C56_TASK_TRACE) {
       local curDate = AIDate.GetCurrentDate();
       local selectDate = ("v89SelectedDate" in candidate) ? candidate.v89SelectedDate : -1;

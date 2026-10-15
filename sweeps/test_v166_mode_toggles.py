@@ -129,7 +129,7 @@ class Gates(unittest.TestCase):
         # aeroports : sans lui, BuildDriveThroughRoadStation echoue (0 arret en air seul, 13/10)
         refresh = _function_body(_read("catalog.nut"), "OpexCatalog::refresh")
         gate = refresh.index("if (ROAD_BUILD_ENABLED) {")
-        other = refresh.index("} else if (AIR_JOINED_STOPS && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {")
+        other = refresh.index("} else if ((AIR_JOINED_STOPS || V207_RAIL_PAX_JOINED_STOPS > 0) && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {")
         self.assertLess(gate, other)
         self.assertLess(refresh.index("this._refreshRoad();"), other)
         self.assertIn("AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);", refresh[other:other + 600])

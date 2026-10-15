@@ -195,6 +195,13 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local platformMaxWagons = OpexRailNominalMaxWagons(fixedPlatformLength);
     if (platformMaxWagons < maxWagons) maxWagons = platformMaxWagons;
   }
+  /* V207 : une rame passagers (+ courrier) plus longue que vehicle.max_train_length ne quitte
+   * jamais le depot (MoveWagon : ERR_VEHICLE_TOO_LONG, voir V206). Borne limitee aux rames pax
+   * V207 : le quai, le fret et les defauts restent inchanges. */
+  if (kind == "pax" && OpexV207Active() && catalog.maxTrainLength > 0) {
+    local trainMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
+    if (trainMaxWagons < maxWagons) maxWagons = trainMaxWagons;
+  }
   if (maxWagons < 1) return null;
   local referenceLoco = choices[maxWagons - 1];
   if (referenceLoco == null) return null;
@@ -612,7 +619,8 @@ function OpexApplyRailEconomics(candidate, economics)
  * quai ou le trace reels sont connus. null hors V163 ou sans second cargo. */
 function OpexV163CandidateSecondary(candidate)
 {
-  if (!V163_MULTI_CARGO || !("cargo2" in candidate) || !("monthly2" in candidate)) return null;
+  if (!V163_MULTI_CARGO && !(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
+  if (!("cargo2" in candidate) || !("monthly2" in candidate)) return null;
   return { cargo = candidate.cargo2, monthly = candidate.monthly2 };
 }
 

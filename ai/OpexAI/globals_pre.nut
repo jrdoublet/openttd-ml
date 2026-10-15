@@ -48,6 +48,16 @@ V200_DOUBLE_CASH_K <- 0;
 /* V199 : robustesse de pose rail a la maniere d'AAAHogEx (reprise locale, nivellement homeward, signaux en ligne, demolition). */
 V199_ROBUST_BUILD <- false;
 V199_LEVEL_BUDGET_K <- 20;
+/* V207 : part de captage des passagers urbains par le rail (0 = historique 22 %). */
+V207_RAIL_PAX_SHARE_PCT <- 0;
+/* V207 : second cargo courrier sur les rames passagers rail. */
+V207_RAIL_MAIL <- false;
+/* V207 : nombre maximal d'arrets de bus traversants joints a chaque gare rail passagers. */
+V207_RAIL_PAX_JOINED_STOPS <- 0;
+function OpexV207Active()
+{
+  return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;
+}
 /* V190 : annee a partir de laquelle la double voie est posee (annee de depart + delai). */
 V190_FROM_YEAR <- 0;
 function OpexV190Active()

@@ -4901,3 +4901,155 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
   OpexSign(anchor, "RL|" + (line.lineId % 100) + "|1");
   return true;
 }
+
+/* V207 : arrets de bus traversants joints a une gare rail passagers pour etendre son bassin de captage. */
+function OpexV207RailBuildJoinedStops(platform, stationId, townId, paxCargo, maxStops)
+{
+  if (maxStops <= 0 || platform == null) return 0;
+  if (!AIStation.IsValidStation(stationId)) {
+    if ("anchor" in platform) stationId = AIStation.GetStationID(platform.anchor);
+  }
+  if (!AIStation.IsValidStation(stationId)) return 0;
+  if (!AITown.IsValidTown(townId)) return 0;
+
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local spread = AIGameSettings.GetValue("station.station_spread");
+  if (spread < 4) spread = 12;
+
+  /* Emprise de la gare = platform.length tuiles platform.anchor + platform.step * i */
+  local pLen = ("length" in platform) ? platform.length : 1;
+  local pStep = ("step" in platform) ? platform.step : 0;
+  local pAnchor = platform.anchor;
+
+  local pMinX = AIMap.GetTileX(pAnchor);
+  local pMaxX = pMinX;
+  local pMinY = AIMap.GetTileY(pAnchor);
+  local pMaxY = pMinY;
+  for (local i = 1; i < pLen; i++) {
+    local t = pAnchor + pStep * i;
+    local tx = AIMap.GetTileX(t);
+    local ty = AIMap.GetTileY(t);
+    if (tx < pMinX) pMinX = tx;
+    if (tx > pMaxX) pMaxX = tx;
+    if (ty < pMinY) pMinY = ty;
+    if (ty > pMaxY) pMaxY = ty;
+  }
+
+  /* Boite permise par station_spread autour de l'emprise du quai */
+  local minX = pMaxX - spread + 1;
+  if (minX < 1) minX = 1;
+  local maxX = pMinX + spread - 1;
+  if (maxX >= mapX - 1) maxX = mapX - 2;
+
+  local minY = pMaxY - spread + 1;
+  if (minY < 1) minY = 1;
+  local maxY = pMinY + spread - 1;
+  if (maxY >= mapY - 1) maxY = mapY - 2;
+
+  local rayonBus = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  local railCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  local townLocation = AITown.GetLocation(townId);
+
+  local dirs = [
+    AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(0, 1),
+    AIMap.GetTileIndex(-1, 0), AIMap.GetTileIndex(0, -1)
+  ];
+
+  local candidates = [];
+  for (local x = minX; x <= maxX; x++) {
+    for (local y = minY; y <= maxY; y++) {
+      local tile = AIMap.GetTileIndex(x, y);
+      if (!AIMap.IsValidTile(tile)) continue;
+      if (AITile.GetClosestTown(tile) != townId) continue;
+      if (!AIRoad.IsRoadTile(tile)) continue;
+      if (AIRoad.IsRoadStationTile(tile) || AIRoad.IsRoadDepotTile(tile) || AITile.IsStationTile(tile)) continue;
+
+      /* Distance au rectangle du quai strictement superieure au rayon de couverture rail */
+      local dx = 0;
+      if (x < pMinX) dx = pMinX - x;
+      else if (x > pMaxX) dx = x - pMaxX;
+      local dy = 0;
+      if (y < pMinY) dy = pMinY - y;
+      else if (y > pMaxY) dy = y - pMaxY;
+      if (dx + dy <= railCoverage) continue;
+
+      local val = AITile.GetCargoProduction(tile, paxCargo, 1, 1, rayonBus);
+      if (val <= 0) continue;
+
+      candidates.append({ tile = tile, value = val, dist = AIMap.DistanceManhattan(tile, townLocation) });
+    }
+  }
+
+  if (candidates.len() == 0) {
+    if (DECISION_LOG) {
+      OpexDecide("V207_STOPS", "station=" + stationId + " town=" + townId + " built=0 tried=0");
+    }
+    return 0;
+  }
+
+  candidates.sort(function(a, b) {
+    if (a.value > b.value) return -1;
+    if (a.value < b.value) return 1;
+    if (a.dist < b.dist) return -1;
+    if (a.dist > b.dist) return 1;
+    return 0;
+  });
+
+  local builtStops = [];
+  local tried = 0;
+  foreach (cand in candidates) {
+    if (builtStops.len() >= maxStops) break;
+    tried++;
+
+    local tooClose = false;
+    foreach (prev in builtStops) {
+      if (AIMap.DistanceManhattan(cand.tile, prev) <= 2 * rayonBus) {
+        tooClose = true;
+        break;
+      }
+    }
+    if (tooClose) continue;
+
+    local front = null;
+    foreach (dir in dirs) {
+      local tryFront = cand.tile + dir;
+      if (!AIMap.IsValidTile(tryFront) || !AIRoad.IsRoadTile(tryFront)) continue;
+      if (!AIRoad.AreRoadTilesConnected(cand.tile, tryFront)) continue;
+      local testOk = false;
+      {
+        local shield = AIAccounting();
+        local test = AITestMode();
+        testOk = AIRoad.BuildDriveThroughRoadStation(
+            cand.tile, tryFront, AIRoad.ROADVEHTYPE_BUS, stationId);
+        test = null;
+        shield = null;
+      }
+      if (testOk) {
+        front = tryFront;
+        break;
+      }
+    }
+    if (front == null) continue;
+
+    local ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, front, AIRoad.ROADVEHTYPE_BUS, stationId);
+    if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+      OpexBoostTownRating(townId, 800, 40);
+      ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, front, AIRoad.ROADVEHTYPE_BUS, stationId);
+    }
+
+    if (ok) {
+      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+      builtStops.append(cand.tile);
+      if (DECISION_LOG) {
+        OpexDecide("V207_STOP", "station=" + stationId + " town=" + townId + " tile=" + cand.tile + " val=" + cand.value);
+      }
+    }
+  }
+
+  if (DECISION_LOG) {
+    OpexDecide("V207_STOPS", "station=" + stationId + " town=" + townId + " built=" + builtStops.len() + " tried=" + tried);
+  }
+
+  return builtStops.len();
+}

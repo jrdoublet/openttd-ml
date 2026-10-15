@@ -158,6 +158,11 @@ function OpexLoadSettings()
   V199_ROBUST_BUILD = AIController.GetSetting("v199_robust_build") != 0;
   local v199LevelBudget = AIController.GetSetting("v199_level_budget_k");
   V199_LEVEL_BUDGET_K = (v199LevelBudget != null && v199LevelBudget >= 0) ? v199LevelBudget : 20;
+  local v207Share = AIController.GetSetting("v207_rail_pax_share_pct");
+  V207_RAIL_PAX_SHARE_PCT = (v207Share != null && v207Share >= 0 && v207Share <= 100) ? v207Share : 0;
+  V207_RAIL_MAIL = AIController.GetSetting("v207_rail_mail") != 0;
+  local v207Stops = AIController.GetSetting("v207_rail_pax_joined_stops");
+  V207_RAIL_PAX_JOINED_STOPS = (v207Stops != null && v207Stops >= 0 && v207Stops <= 4) ? v207Stops : 0;
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");
   if (v190Delay == null || v190Delay < 0) v190Delay = 0;
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;

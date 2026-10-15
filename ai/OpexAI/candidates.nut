@@ -884,6 +884,15 @@ function OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, origin
     ratio = PAX_NEAR_RATIO,
   };
   candidate.paxNear <- true;
+  /* V163 / V207 : le second cargo n'est garde que s'il a trouve place dans la rame. */
+  if (("wagons2" in economics) && economics.wagons2 > 0) {
+    candidate.cargo2 <- economics.cargo2;
+    candidate.monthly2 <- economics.monthly2;
+    candidate.wagons2 <- economics.wagons2;
+    candidate.perTrain2 <- economics.perTrain2;
+    candidate.carried2 <- economics.carried2;
+    candidate.revenue2 <- economics.revenue2;
+  }
   return candidate;
 }
 
@@ -1661,6 +1670,16 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
+  local hasMail = V207_RAIL_MAIL && catalog.mailCargo >= 0 && (catalog.mailCargo in catalog.wagonByCargo);
+  local mailProduced = null;
+  if (hasMail) {
+    mailProduced = [];
+    for (local i = 0; i < n; i++) {
+      local mp = AITown.GetLastMonthProduction(towns[i].id, catalog.mailCargo);
+      if (mp < 0) mp = 0;
+      mailProduced.append(mp);
+    }
+  }
   if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
   local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
   local bounds = OpexCatalogBounds(catalog);
@@ -1718,10 +1737,19 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
        * facteur ci-dessus d'apres la mesure). */
       local prodA = produced[a];
       local prodB = produced[b];
-      local monthly = ((prodA + prodB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+      local part = V207_RAIL_PAX_SHARE_PCT > 0 ? V207_RAIL_PAX_SHARE_PCT : TOWN_CATCHMENT_SHARE_PCT;
+      local monthly = ((prodA + prodB) * part) / 100;
+      local secondary = null;
+      if (hasMail) {
+        local mailA = mailProduced[a];
+        local mailB = mailProduced[b];
+        local mailMonthly = ((mailA + mailB) * part) / 100;
+        secondary = { cargo = catalog.mailCargo, monthly = mailMonthly };
+      }
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                          monthly, false, stats, false, candidateProfile, cruiseCache);
+                                          monthly, false, stats, false, candidateProfile, cruiseCache,
+                                          secondary);
       if (profile != null) {
         profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
         profile.paxCandidateCalls++;
