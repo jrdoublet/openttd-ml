@@ -6,7 +6,7 @@ OpexAI 1,2 (V91_ASTAR_WEIGHT_PCT = 120). Sur les liaisons longues (>140 tuiles),
 les recherches A* s'epuisent en ABND.
 
 V172 introduit :
-- v172_rail_long_weight_pct (0..300, defaut 0 = inerte)
+- v172_rail_long_weight_pct (0..300, defaut 200 depuis le 16/10 ; 0 = inerte)
 - v172_rail_long_weight_dist (0..512, defaut 100)
 Si v172_rail_long_weight_pct > 0 et distance Manhattan >= v172_rail_long_weight_dist,
 le poids utilise vaut v172_rail_long_weight_pct au lieu de V91_ASTAR_WEIGHT_PCT.
@@ -50,12 +50,12 @@ class Declaration(unittest.TestCase):
         specs = parse_ai_setting_specs(AI / "info.nut")
         self.assertIn("v172_rail_long_weight_pct", specs)
         spec = specs["v172_rail_long_weight_pct"]
-        self.assertEqual(spec["default"], 0)
+        self.assertEqual(spec["default"], 200)
         self.assertFalse(spec["boolean"])
         self.assertEqual((spec["min_value"], spec["max_value"]), (0, 300))
         block = _read("info.nut").split('name = "v172_rail_long_weight_pct"', 1)[1].split("});", 1)[0]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 0\b")
+            self.assertRegex(block, key + r" = 200\b")
 
     def test_setting_dist(self):
         specs = parse_ai_setting_specs(AI / "info.nut")
@@ -70,12 +70,12 @@ class Declaration(unittest.TestCase):
 
     def test_campaign_freeze_defaults(self):
         defaults = parse_ai_settings(AI / "info.nut")
-        self.assertEqual(defaults["v172_rail_long_weight_pct"], 0)
+        self.assertEqual(defaults["v172_rail_long_weight_pct"], 200)
         self.assertEqual(defaults["v172_rail_long_weight_dist"], 100)
 
     def test_globals_declared(self):
         globals_pre = _read("globals_pre.nut")
-        self.assertIn("V172_RAIL_LONG_WEIGHT_PCT <- 0;", globals_pre)
+        self.assertIn("V172_RAIL_LONG_WEIGHT_PCT <- 200;", globals_pre)
         self.assertIn("V172_RAIL_LONG_WEIGHT_DIST <- 100;", globals_pre)
 
     def test_loaded_once_in_settings(self):

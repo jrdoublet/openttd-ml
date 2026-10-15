@@ -49,27 +49,27 @@ V200_DOUBLE_CASH_K <- 0;
 V199_ROBUST_BUILD <- false;
 V199_LEVEL_BUDGET_K <- 20;
 /* V207 : part de captage des passagers urbains par le rail (0 = historique 22 %). */
-V207_RAIL_PAX_SHARE_PCT <- 40;
+V207_RAIL_PAX_SHARE_PCT <- 0;
 /* V207 : second cargo courrier sur les rames passagers rail. */
-V207_RAIL_MAIL <- true;
+V207_RAIL_MAIL <- false;
 /* V207 : nombre maximal d'arrets de bus traversants joints a chaque gare rail passagers. */
-V207_RAIL_PAX_JOINED_STOPS <- 2;
+V207_RAIL_PAX_JOINED_STOPS <- 0;
 /* V207 : sites de gare passagers classes par production captee (0 = premiers sites trouves). */
 V207_RAIL_PAX_SITE_RANK_PCT <- 0;
 /* V212 : calibration du revenu et du capital predits des lignes rail passagers (100 = inerte).
  * Porte A V207 (40x3) : profit realise/predit 1,23-1,58 en pax contre 0,86 en fret, capital
- * reel/modele 0,84 en pax contre 1,28 en fret. Defaut 150/85 avec V207 depuis la porte A du
- * paquet (15/10, rail seul 40x3 : +221 k/an, p=1,3e-7). */
-V212_RAIL_PAX_REVENUE_PCT <- 150;
-V212_RAIL_PAX_CAPITAL_PCT <- 85;
+ * reel/modele 0,84 en pax contre 1,28 en fret. Qualifie en rail seul (150/85 avec V207, 15/10) mais
+ * perdant en partie complete (16/10 : -244 k/an, p=0,027, l'aerien recule de 20 %) : defaut 100. */
+V212_RAIL_PAX_REVENUE_PCT <- 100;
+V212_RAIL_PAX_CAPITAL_PCT <- 100;
 /* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
- * Defaut 300 / 1500 (qualifie le 15/10). 0 = historique (50 a chaque changement de direction,
+ * Qualifie en rail seul (300 / 1500, 15/10), non qualifie en partie complete : defaut 0. 0 = historique (50 a chaque changement de direction,
  * aucun surcout de coude serre).
  * V214_RAIL_TURN_COST > 0 : entrer dans une diagonale est gratuit, en sortir coute ce montant.
  * V214_RAIL_TIGHT_TURN_COST > 0 : coude de 90 degres pris sur une seule tuile (droite, coin,
  * droite perpendiculaire), 88 km/h en acceleration realiste ; ramene a 100 sous 40 tuiles. */
-V214_RAIL_TURN_COST <- 300;
-V214_RAIL_TIGHT_TURN_COST <- 1500;
+V214_RAIL_TURN_COST <- 0;
+V214_RAIL_TIGHT_TURN_COST <- 0;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;
@@ -96,7 +96,7 @@ V188_RAIL_JOIN_SLOPES <- false;
 V171_RAIL_KNOTS <- 0;
 /* V172 : heuristique A* rail renforcee sur longues distances (>= v172_rail_long_weight_dist).
  * 0 = inerte (poids V91_ASTAR_WEIGHT_PCT conserve, defaut) ; 100..300 = poids applique. */
-V172_RAIL_LONG_WEIGHT_PCT <- 0;
+V172_RAIL_LONG_WEIGHT_PCT <- 200;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
