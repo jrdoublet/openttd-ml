@@ -2354,19 +2354,19 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v214_rail_turn_cost",
-      description = "V214: rail A* cost of leaving a diagonal (entering one is free), as AAAHogEx (300); 0 = historical 50 on every direction change (default)",
+      description = "V214: rail A* cost of leaving a diagonal (entering one is free), as AAAHogEx (300); default 300; 0 = historical 50 on every direction change",
       min_value = 0, max_value = 2000,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 300, medium_value = 300, hard_value = 300,
+      custom_value = 300,
       step_size = 50,
       flags = 0
     });
     AddSetting({
       name = "v214_rail_tight_turn_cost",
-      description = "V214: rail A* extra cost of a 90 degree turn taken on a single tile, as AAAHogEx (1500, 100 below 40 tiles); 0 = off (default)",
+      description = "V214: rail A* extra cost of a 90 degree turn taken on a single tile, as AAAHogEx (1500, 100 below 40 tiles); default 1500; 0 = off",
       min_value = 0, max_value = 5000,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1500, medium_value = 1500, hard_value = 1500,
+      custom_value = 1500,
       step_size = 100,
       flags = 0
     });
