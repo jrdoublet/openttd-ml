@@ -122,6 +122,178 @@ class TestAnalyzeV216(unittest.TestCase):
         self.assertEqual(wins["air"], (1, 3))
         self.assertEqual(wins["rail"], (0, 1))
 
+    def test_join_rail_lines(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v216 as a
+        game = {
+            'built': [
+                {'role': 'built_freight', 'p.src': 100, 'p.dst': 200, 'p.revenueAnnual': 5000, 'key': 'rail|100|200|COAL|freight'},
+                {'role': 'built_pax', 'p.src': 300, 'p.dst': 400, 'p.revenueAnnual': 8000, 'key': 'rail|300|400|PASS|pax'},
+            ],
+            'rail_build': [
+                {'line': 11, 'src': 100, 'dst': 200, 'cargo': 'COAL', 'date': '1971-1-15'},
+                {'line': 12, 'src': 300, 'dst': 400, 'cargo': 'PASS', 'date': '1971-6-1'},
+            ]
+        }
+        joined = a.join_rail_lines(game)
+        self.assertEqual(len(joined), 2)
+        self.assertEqual(joined[11]['line'], 11)
+        self.assertEqual(joined[11]['decomp']['p.revenueAnnual'], 5000)
+        self.assertEqual(joined[12]['line'], 12)
+        self.assertEqual(joined[12]['decomp']['p.revenueAnnual'], 8000)
+
+    def test_error_attribution_b(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v216 as a
+        # Line 1: built 1971-1-11 (355 days >= 180). Line 2: built 1971-10-1 (< 180 days -> excluded).
+        game = {
+            'rail_build': [
+                {'line': 1, 'src': 10, 'dst': 20, 'cargo': 'COAL', 'trains': 1, 'date': '1971-1-11'},
+                {'line': 2, 'src': 30, 'dst': 40, 'cargo': 'PASS', 'trains': 1, 'date': '1971-10-1'},
+            ],
+            'built': [
+                {'role': 'built_freight', 'p.src': 10, 'p.dst': 20, 'c.offered': 70.0,
+                 'c.monthlyCapacity': 100.0, 'c.oneWayDays': 10.0, 'dwell_station_days': 5.0},
+                {'role': 'built_pax', 'p.src': 30, 'p.dst': 40, 'c.offered': 50.0,
+                 'c.monthlyCapacity': 50.0, 'c.oneWayDays': 10.0, 'dwell_station_days': 0.0},
+            ],
+            'line_revenue': [
+                {'line': 1, 'year': 1972, 'pred_rev': 10000, 'real_rev': 8000,
+                 'pred_prof': 8000, 'real_prof': 6000, 'pred_run': 2000, 'real_run': 2000, 'vehs': 1},
+                {'line': 2, 'year': 1972, 'pred_rev': 5000, 'real_rev': 4000,
+                 'pred_prof': 4000, 'real_prof': 3000, 'pred_run': 1000, 'real_run': 1000, 'vehs': 1},
+            ]
+        }
+        game['rail_joins'] = a.join_rail_lines(game)
+        res = a.error_attribution_b([game])
+        self.assertIn('freight', res)
+        self.assertNotIn('PASS', res)  # line 2 has < 180 days, excluded
+        f = res['freight']
+        self.assertEqual(f['n'], 1)
+        # Check dwell-corrected capacity:
+        # rt = 2 * 10 = 20, denom = 20 + 2*5 = 30 -> corr = 100 * 20/30 = 66.67
+        self.assertAlmostEqual(f['mean_corr_capacity'], 100.0 * 20.0 / 30.0, places=1)
+        # Uncorrected: offered=70 <= cap=100 -> offered binds
+        # Corrected: cap=66.67 < offered=70 -> capacity binds
+        self.assertEqual(f['uncorr_binds'], {'offered': 1})
+        self.assertEqual(f['corr_binds'], {'capacity': 1})
+
+    def test_invariance_test_d(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v216 as a
+
+        def make_game(pred, real, gain_pct, line_pct):
+            return {
+                'rail_build': [{'line': 1, 'src': 1, 'dst': 2, 'cargo': 'PASS', 'trains': 1, 'date': '1971-1-1'}],
+                'built': [{'role': 'built_pax', 'p.src': 1, 'p.dst': 2,
+                           'g.a_gain_pct': gain_pct, 'g.b_gain_pct': gain_pct,
+                           'g.a_line_pct': line_pct, 'g.b_line_pct': line_pct}],
+                'line_revenue': [{'line': 1, 'year': 1972, 'pred_rev': pred, 'real_rev': real,
+                                  'pred_prof': pred, 'real_prof': real, 'pred_run': 0, 'real_run': 0, 'vehs': 1}],
+            }
+
+        # Passing case: cells have ratios around 1.0 (in [0.7, 1.4], spread <= 1.5)
+        # cell1: pred=100, real=100, ghost_gain=100% -> ghost_pred=100 -> ratio=1.0
+        # cell2: pred=100, real=110, ghost_gain=100% -> ghost_pred=100 -> ratio=1.1
+        c1 = make_game(100, 100, 100, 100)
+        c2 = make_game(100, 110, 100, 100)
+        c1['rail_joins'] = a.join_rail_lines(c1)
+        c2['rail_joins'] = a.join_rail_lines(c2)
+        res_pass = a.invariance_test_d({'cellA': [c1], 'cellB': [c2]})
+        self.assertEqual(res_pass['verdict'], 'PASS')
+        self.assertAlmostEqual(res_pass['min_ratio'], 1.0, places=2)
+        self.assertAlmostEqual(res_pass['max_ratio'], 1.1, places=2)
+
+        # Failing case: ratio outside [0.7, 1.4]
+        c_fail = make_game(100, 50, 100, 100)  # ratio = 0.5 < 0.7
+        c_fail['rail_joins'] = a.join_rail_lines(c_fail)
+        res_fail = a.invariance_test_d({'cellA': [c_fail]})
+        self.assertEqual(res_fail['verdict'], 'FAIL')
+
+    def test_replay_selections_6(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v216 as a
+
+        # Selection where original rank 0 is rail/pax, but ghost gain degrades it below air/pax
+        game = {
+            'select': {1: {'date': '1971-4-1'}},
+            'decomp': {
+                1: [
+                    {'role': 'ranked', 'rank': 0, 'key': 'rail|1', 'affordable': 1, 'tier': 0,
+                     'select_score': 200, 'fund_profit': 100, 'p.mode': 'rail', 'p.kind': 'pax',
+                     'g.a_gain_pct': 20, 'g.b_gain_pct': 20},  # rescaled profit = 20, score = 40
+                    {'role': 'ranked', 'rank': 1, 'key': 'air|1', 'affordable': 1, 'tier': 0,
+                     'select_score': 100, 'fund_profit': 50, 'p.mode': 'air', 'p.kind': 'pax'},
+                ]
+            }
+        }
+        res = a.replay_selections_6([game])
+        self.assertEqual(res['total_selections'], 1)
+        self.assertEqual(res['changed_selections'], 1)
+        self.assertEqual(res['changed_1971_1972'], 1)
+        self.assertIn(('rail/pax', 'air/pax'), res['replacements'])
+
+        # Test admission rejection when rescaled profit <= 0
+        game_reject = {
+            'select': {1: {'date': '1971-5-1'}},
+            'decomp': {
+                1: [
+                    {'role': 'ranked', 'rank': 0, 'key': 'rail|pax', 'affordable': 1, 'tier': 0,
+                     'select_score': 100, 'fund_profit': 50, 'p.mode': 'rail', 'p.kind': 'pax',
+                     'g.a_gain_pct': 0, 'g.b_gain_pct': 0},  # profit <= 0 -> dropped!
+                ]
+            }
+        }
+        res_rej = a.replay_selections_6([game_reject])
+        self.assertEqual(res_rej['changed_selections'], 1)
+        self.assertIn(('rail/pax', 'none'), res_rej['replacements'])
+
+    def test_competitor_arrival_g(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v216 as a
+
+        game = {
+            'rail_build': [
+                {'line': 1, 'cargo': 'COAL', 'src': 1, 'dst': 2, 'date': '1971-1-10'},
+            ],
+            'built': [
+                {'role': 'built_freight', 'p.src': 1, 'p.dst': 2, 'p.cargo': 'COAL'},
+            ],
+            'ind_flow': [
+                # Industry 10: initial stations 1, rises to 2 at month 8 (<= 12 mo)
+                {'date': '1971-2-1', 'industry': 10, 'cargo': 'COAL', 'stations_around': 1},
+                {'date': '1971-8-1', 'industry': 10, 'cargo': 'COAL', 'stations_around': 2},
+                # Industry 20: initial stations 1, stays 1
+                {'date': '1971-2-1', 'industry': 20, 'cargo': 'COAL', 'stations_around': 1},
+                {'date': '1972-1-1', 'industry': 20, 'cargo': 'COAL', 'stations_around': 1},
+            ]
+        }
+        game['rail_joins'] = a.join_rail_lines(game)
+        res = a.competitor_arrival_g([game])
+        self.assertEqual(res['total_industries'], 2)
+        self.assertEqual(res['arrived_count'], 1)
+        self.assertAlmostEqual(res['share'], 0.5)
+
+    def test_parse_cli_args(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v216 as a
+
+        # Backward compatibility format
+        self.assertEqual(a.parse_cli_args(['engine_dir', 'pol1', 'pol2']),
+                         [('engine_dir', ['pol1', 'pol2'])])
+        # Multi-dir format with colon
+        self.assertEqual(a.parse_cli_args(['dirA:p1,p2', 'dirB:p3']),
+                         [('dirA', ['p1', 'p2']), ('dirB', ['p3'])])
+        # Single dir default policies
+        self.assertEqual(a.parse_cli_args(['dirA']),
+                         [('dirA', ['ref', 'probe'])])
+
 
 if __name__ == "__main__":
     unittest.main()

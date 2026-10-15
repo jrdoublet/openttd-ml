@@ -100,6 +100,8 @@ V172_RAIL_LONG_WEIGHT_PCT <- 200;
 V216_PROBE <- false;
 /* V216a : 0 inerte, 1 gain net de la compagnie, 2 part de la ligne (probe_v216.nut). */
 V216A_GHOST_DEMAND <- 0;
+/* V216f : sejour mecanique en gare dans le cycle rail, en % de l'estimation EST-16 (economy.nut). */
+V216F_DWELL_PCT <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

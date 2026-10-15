@@ -77,6 +77,17 @@ function OpexCeilDiv(a, b)
  * demande.
  *
  * Le fret est inchange au bit pres : legDays y vaut roundTripDays, exactement l'ancien calcul. */
+/* V216f : sejour mecanique en gare (EST-16 : 40 ticks par tranche de 5 unites par wagon, wagons
+ * en parallele, 74 ticks par jour). Chaque trajet charge finit par un dechargement et repart apres
+ * un chargement : deux operations par trajet voyageurs (a chaque extremite) comme par aller-retour
+ * fret (dechargement au puits, chargement mecanique a la source ; l'attente de cargaison du plein
+ * chargement reste comptee a part dans loadDays). 0 = inerte. */
+function OpexRailStationDwellDays(wagon)
+{
+  if (V216F_DWELL_PCT <= 0 || wagon == null || wagon.capacity <= 0) return 0.0;
+  return 2.0 * 40.0 * ((wagon.capacity + 4) / 5) / 74.0 * V216F_DWELL_PCT / 100.0;
+}
+
 function OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, bidirectional)
 {
   local legDays = bidirectional ? oneWayDays : roundTripDays;
@@ -248,7 +259,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
   if (oneWayDays < 1) oneWayDays = 1;
   local roundTripDays = 2 * oneWayDays;
-  local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+  local dwellDays = OpexRailStationDwellDays(wagon);
+  local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays + dwellDays, roundTripDays + dwellDays, kind == "pax");
 
   /* La locomotive de la rame deja remplie peut modifier le cycle ; une correction referme ce
    * couplage sans reintroduire les trains dans le denominateur des wagons. */
@@ -272,7 +284,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
     if (oneWayDays < 1) oneWayDays = 1;
     roundTripDays = 2 * oneWayDays;
-    tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+    tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays + dwellDays, roundTripDays + dwellDays, kind == "pax");
   }
   if (freightSetupDetail) {
     profile.freightEconomicsConsistOps += OpexOpsMeasureEnd(consistMark);
@@ -304,7 +316,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
         oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
         if (oneWayDays < 1) oneWayDays = 1;
         roundTripDays = 2 * oneWayDays;
-        tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+        tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays + dwellDays, roundTripDays + dwellDays, kind == "pax");
       }
     }
     if (wagons2 <= 0) wagon2 = null;
@@ -510,7 +522,8 @@ function OpexRailFixedConsist(catalog, cargo, distance, kind, loco, wagons)
   local oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
   if (oneWayDays < 1) oneWayDays = 1;
   local roundTripDays = 2 * oneWayDays;
-  local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+  local dwellDays = OpexRailStationDwellDays(wagon);
+  local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays + dwellDays, roundTripDays + dwellDays, kind == "pax");
   local monthlyCapacity = wagons * wagon.capacity * tripsPerMonth;
   local incomeDays = OpexCeilDiv(oneWayDays, 1);
   local incomePerUnit = AICargo.GetCargoIncome(cargo, distance, incomeDays);
