@@ -156,6 +156,7 @@ function OpexLoadSettings()
   V200_DOUBLE_CASH_K = AIController.GetSetting("v200_double_cash_k");
   if (V200_DOUBLE_CASH_K < 0) V200_DOUBLE_CASH_K = 0;
   V199_ROBUST_BUILD = AIController.GetSetting("v199_robust_build") != 0;
+  V206_TRAIN_LENGTH_CAP = AIController.GetSetting("v206_train_length_cap") != 0;
   local v199LevelBudget = AIController.GetSetting("v199_level_budget_k");
   V199_LEVEL_BUDGET_K = (v199LevelBudget != null && v199LevelBudget >= 0) ? v199LevelBudget : 20;
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");

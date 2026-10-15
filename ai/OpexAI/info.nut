@@ -2300,6 +2300,12 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "v206_train_length_cap",
+      description = "V206: rail platforms and consists bounded by vehicle.max_train_length as well as station.station_spread (a longer train cannot leave the depot: ERR_VEHICLE_TOO_LONG after the track is laid); 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

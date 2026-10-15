@@ -440,6 +440,14 @@ function OpexCatalog::_refreshRail()
    * partie, jamais un "7" suppose. Une valeur invalide signifie API/reglage indisponible : mieux
    * vaut alors rendre le rail non constructible que fabriquer une longueur silencieuse. */
   this.platformLength = AIGameSettings.GetValue("station.station_spread");
+  /* V206 : la rame doit aussi tenir dans `vehicle.max_train_length` (7 par defaut), sinon
+   * MoveWagon rend ERR_VEHICLE_TOO_LONG (525) et la ligne meurt en NOTRAIN APRES la pose de la
+   * voie. Borner le quai borne aussi la table des rames (2*p-1 wagons). */
+  if (V206_TRAIN_LENGTH_CAP) {
+    local maxTrain = AIGameSettings.GetValue("vehicle.max_train_length");
+    if (maxTrain >= 1 && maxTrain < this.platformLength) this.platformLength = maxTrain;
+    if (DECISION_LOG) OpexDecide("V206", "max_train_length=" + maxTrain + " platform=" + this.platformLength);
+  }
   this.freightTrainMultiplier = AIGameSettings.GetValue("vehicle.freight_trains");
   this.railCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
   if (this.platformLength < 1 || this.freightTrainMultiplier < 1 || this.railCoverage < 1) return;
