@@ -1056,6 +1056,90 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v185_rail_short_freight_pct",
+      description = "V185: predicted revenue of rail freight lines shorter than 100 tiles scaled to N% (realised/predicted calibration); 0 = inert (default)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v183_rail_all_freight",
+      description = "V183: rail freight generation covers every freight cargo at once instead of one cargo per pass; 0 = inert (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v182_rail_freight_min_dist",
+      description = "V182: minimum distance in tiles for rail freight candidates (generation filter); 0 = inert (default)",
+      min_value = 0, max_value = 512,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v177_rail_pax_min_dist",
+      description = "V177: minimum distance in tiles for rail passenger candidates (generation filter); 0 = inert (default)",
+      min_value = 0, max_value = 512,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v180_rail_wagon_boost_delay",
+      description = "V180: years after game start before the wagon boost applies; 0 = from start (default)",
+      min_value = 0, max_value = 5,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v181_rail_max_trains",
+      description = "V181: maximum trains per double-track rail line via cloning (0 = inert default, 2 = double track only, up to 8)",
+      min_value = 0, max_value = 8,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v180_rail_wagon_boost_pct",
+      description = "V180: rail consist sizing offers N% more cargo than the 50% rating calibration (bigger trains); 0 = inert (default)",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 25,
+      flags = 0
+    });
+    AddSetting({
+      name = "v179_rail_gen_dest_served",
+      description = "V179: rail freight generator keeps pairs whose destination industry is already served (fresh source), for V178 to attach; 0 = inert (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "v178_rail_shared_dest",
+      description = "V178: freight candidates share accepting rail station when destination is within MIN_SEPARATION of our existing station; 0 = inert (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v168_rail_max_dist",
       description = "V168: rail candidate maximum distance in tiles. 160 = default (qualified 13/10: gate A 40x3 +152.7 k/yr, gate B 20x10 pass); 0 = historical bound derived from the A* iteration cap through the knot table (94 tiles at a 10k cap); N = use N tiles and drop the knot-table iteration filter (the per-search A* cap still applies)",
       min_value = 0, max_value = 512,
@@ -1070,6 +1154,24 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v172_rail_long_weight_pct",
+      description = "V172: rail A* heuristic weight percentage for long searches (>= v172_rail_long_weight_dist tiles). 0 = inert (uses v91_astar_weight_pct, default); 100..300 = override weight percentage",
+      min_value = 0, max_value = 300,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v172_rail_long_weight_dist",
+      description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
+      min_value = 0, max_value = 512,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
+      flags = 0
     });
 
     AddSetting({
@@ -1805,6 +1907,152 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v195_v182_years",
+      description = "V195: apply v182 rail freight min distance only during the first N years (0 = always, default)",
+      min_value = 0, max_value = 10,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v194_short_to_served_dst",
+      description = "V194: exempt short rail freight (under v182 min distance) whose destination is near one of our rail stations (0 = off, default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v193_chain_towns",
+      description = "V193: V88 goods chain generation evaluates at most N most populated towns per source->factory and keeps the best chain (0 = unbounded, default)",
+      min_value = 0, max_value = 10,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v192_rail_time_denom_pct",
+      description = "V192: rail score denominator = capital x (1 + pct/100 x (distance/100)^2), proxy of build time (0 = off)",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v184_rail_search_slots",
+      description = "V184: number of concurrent primary rail A* search slots (1..4, default 1)",
+      min_value = 1, max_value = 4,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v197_guided_double",
+      description = "V197: guided double track pathfinding like AAAHogEx (outwardSide for track 1, guideTiles for track 2); 0 = inert default, 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v198_template_double",
+      description = "V198: double track using station templates (loop source + through destination); 0 = inert default, 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v200_double_cash_k",
+      description = "V200: double-track machinery only when cash net of loan >= this (k GBP) and cash >= 2x single quote + reserve; 0 = always (inert)",
+      min_value = 0, max_value = 2000, step_size = 25,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v199_robust_build",
+      description = "V199: robust rail track laying inspired by AAAHogEx (retry, homeward level, online signals, clear area); 0 = inert default, 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v199_level_budget_k",
+      description = "V199: spending cap for homeward lateral strip leveling in kGBP (default 20 = 20 kGBP)",
+      min_value = 0, max_value = 200,
+      easy_value = 20, medium_value = 20, hard_value = 20,
+      custom_value = 20,
+      step_size = 5,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v190_rail_double_build",
+      description = "V190: build freight rail lines directly as double-track loop from start (0 = inert default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v190_rail_double_delay",
+      description = "V190: years after game start before freight lines are built double (0..5, default 0)",
+      min_value = 0, max_value = 5,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v190_rail_max_trains",
+      description = "V190: maximum trains per double-track freight rail line (2..8, default 4)",
+      min_value = 2, max_value = 8,
+      easy_value = 4, medium_value = 4, hard_value = 4,
+      custom_value = 4,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "v188_rail_join_slopes",
+      description = "V188: allow sloped tiles for joined parallel rail platforms (double track) (0 = flat only)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v187_rail_refleet_during_search",
+      description = "V187: allow rail second train / double track while a new-line A* search is running (0 = historical)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "v186_rail_search_slices",
+      description = "V186: rail A* slices advanced per scheduler pass (1..16, default 1 = historical)",
+      min_value = 1, max_value = 16,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v90_fast_pathfinder",
       description = "V90: optimized vendorized rail pathfinder (identical routes): 1 = enabled (default), 0 = BaNaNaS RailPathFinder",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -2045,6 +2293,82 @@ class OpexAIInfo extends AIInfo {
       description = "V154: binary search insertion in OpexProjectInsertDefensive; 1 = on (default since 2026-10-12, V157 porte B 20x10), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "v163_multi_cargo",
+      description = "V163: a rail freight train also carries a second cargo produced by its source industry and accepted by its destination industry (e.g. GRAI + LVST farm to factory), wagons sized per cargo; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "v207_rail_pax_share_pct",
+      description = "V207: predicted share of town passenger production captured by a rail line (0 = legacy 22%, 1..100 = custom percentage); 0 = off (default)",
+      min_value = 0, max_value = 100,
+      easy_value = 40, medium_value = 40, hard_value = 40,
+      custom_value = 40,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v207_rail_mail",
+      description = "V207: passenger rail lines also carry mail as a secondary cargo, with wagons sized to mail production; 0 = off (default), 1 = on",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "v207_rail_pax_joined_stops",
+      description = "V207: maximum number of drive-through bus stops joined to each passenger rail station to extend catchment (0..4); 0 = off (default)",
+      min_value = 0, max_value = 4,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v207_rail_pax_site_rank_pct",
+      description = "V207: passenger rail station sites are sampled more widely and only those whose platform catchment produces at least this percentage of the best sampled site are kept (1..100); 0 = off (default, first sites found)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v212_rail_pax_revenue_pct",
+      description = "V212: calibration of the predicted annual revenue of passenger rail lines, in percent (100 = off; default 150, qualified 15/10)",
+      min_value = 50, max_value = 300,
+      easy_value = 150, medium_value = 150, hard_value = 150,
+      custom_value = 150,
+      step_size = 5,
+      flags = 0
+    });
+    AddSetting({
+      name = "v212_rail_pax_capital_pct",
+      description = "V212: calibration of the predicted capital of passenger rail lines before the quote, in percent (100 = off; default 85, qualified 15/10)",
+      min_value = 50, max_value = 200,
+      easy_value = 85, medium_value = 85, hard_value = 85,
+      custom_value = 85,
+      step_size = 5,
+      flags = 0
+    });
+    AddSetting({
+      name = "v214_rail_turn_cost",
+      description = "V214: rail A* cost of leaving a diagonal (entering one is free), as AAAHogEx (300); default 300; 0 = historical 50 on every direction change",
+      min_value = 0, max_value = 2000,
+      easy_value = 300, medium_value = 300, hard_value = 300,
+      custom_value = 300,
+      step_size = 50,
+      flags = 0
+    });
+    AddSetting({
+      name = "v214_rail_tight_turn_cost",
+      description = "V214: rail A* extra cost of a 90 degree turn taken on a single tile, as AAAHogEx (1500, 100 below 40 tiles); default 1500; 0 = off",
+      min_value = 0, max_value = 5000,
+      easy_value = 1500, medium_value = 1500, hard_value = 1500,
+      custom_value = 1500,
+      step_size = 100,
+      flags = 0
     });
   }
 }

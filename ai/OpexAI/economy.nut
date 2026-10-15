@@ -158,7 +158,7 @@ function OpexStationRatingForHeadway(headwayDays)
  * comme OpexRoadLineEconomics distingue deja les deux. */
 function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0,
                            routeDistance = null, profile = null, cruiseCache = null,
-                           wagonOverride = null, locoChoicesOverride = null)
+                           wagonOverride = null, locoChoicesOverride = null, secondary = null)
 {
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
   local freightDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE;
@@ -195,6 +195,13 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local platformMaxWagons = OpexRailNominalMaxWagons(fixedPlatformLength);
     if (platformMaxWagons < maxWagons) maxWagons = platformMaxWagons;
   }
+  /* V207 : une rame passagers (+ courrier) plus longue que vehicle.max_train_length ne quitte
+   * jamais le depot (MoveWagon : ERR_VEHICLE_TOO_LONG, voir V206). Borne limitee aux rames pax
+   * V207 : le quai, le fret et les defauts restent inchanges. */
+  if (kind == "pax" && OpexV207Active() && catalog.maxTrainLength > 0) {
+    local trainMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
+    if (trainMaxWagons < maxWagons) maxWagons = trainMaxWagons;
+  }
   if (maxWagons < 1) return null;
   local referenceLoco = choices[maxWagons - 1];
   if (referenceLoco == null) return null;
@@ -217,6 +224,11 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local consistMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
+  /* V180 : rame plus longue que l'offre calibree a 50 % (chargement complet, note qui monte). */
+  if (V180_RAIL_WAGON_BOOST_PCT > 0
+      && (V180_RAIL_WAGON_BOOST_DELAY == 0
+          || AIDate.GetYear(AIDate.GetCurrentDate()) >= V180_START_YEAR + V180_RAIL_WAGON_BOOST_DELAY))
+    calibrationOffered = calibrationOffered * (100 + V180_RAIL_WAGON_BOOST_PCT) / 100.0;
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
   if (wagons < 1) wagons = 1;
@@ -267,8 +279,40 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     profile.freightEconomicsConsistCalls++;
   }
 
+  /* V163 : second cargo de la MEME rame (ferme -> usine : GRAI + LVST). Ses wagons sont
+   * dimensionnes comme ceux du premier, sur sa propre production au regime calibre, puis
+   * ajoutes derriere eux dans la limite du quai ; la locomotive est reprise pour le total
+   * (table du premier cargo, poids de son wagon), ce qui garde le meme cycle pour les deux.
+   * Sans place ou sans locomotive pour le total, la ligne reste mono-cargo. */
+  local wagon2 = null;
+  local wagons2 = 0;
+  if (secondary != null && secondary.monthly > 0 && (secondary.cargo in catalog.wagonByCargo)) {
+    wagon2 = catalog.wagonByCargo[secondary.cargo];
+    wagons2 = OpexCeilDiv((secondary.monthly * STATION_RATING_PCT) / 100.0, wagon2.capacity * tripsPerMonth);
+    if (wagons2 < 1) wagons2 = 1;
+    if (wagons + wagons2 > maxWagons) wagons2 = maxWagons - wagons;
+    local loco2 = wagons2 > 0 ? choices[wagons + wagons2 - 1] : null;
+    if (loco2 == null) {
+      wagons2 = 0;
+    } else {
+      local speed2 = OpexRailEffectiveSpeed(loco2, wagon, wagons + wagons2, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache, freightEffectiveSpeedProfile);
+      if (speed2 < 1) {
+        wagons2 = 0;
+      } else {
+        loco = loco2;
+        effectiveSpeed = speed2;
+        oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
+        if (oneWayDays < 1) oneWayDays = 1;
+        roundTripDays = 2 * oneWayDays;
+        tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+      }
+    }
+    if (wagons2 <= 0) wagon2 = null;
+  }
+
   local capitalMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local perTrain = wagons * wagon.capacity;
+  local perTrain2 = wagon2 != null ? wagons2 * wagon2.capacity : 0;
   /* Le modele de cycle conserve les jours fractionnaires, mais l'API de revenu et le moteur
    * comptent des jours calendaires entiers. Arrondir vers le haut evite de crediter un trajet de
    * 4,01 jours du tarif de 4 jours ; c'est un choix discret impose par l'API, pas un rendement. */
@@ -280,10 +324,20 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * sera effectivement posee, pas `station.station_spread` lu a 12. */
   local platformLength = fixedPlatformLength > 0
       ? fixedPlatformLength
-      : OpexRailWantedPlatformLength(wagons, catalog.platformLength);
+      : OpexRailWantedPlatformLength(wagons + wagons2, catalog.platformLength);
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation
       + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
+  if (OpexV198Active() && kind == "freight") {
+    local signalCost = ("costRailSignal" in catalog) ? catalog.costRailSignal : (catalog.costTrackPerTile / 4);
+    local numSignals = (2 * travelDist / 7) + 6;
+    infraCost = 2 * travelDist * effectiveTrackCost + 3 * platformLength * catalog.costStation
+        + 12 * effectiveTrackCost + numSignals * signalCost
+        + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
+  } else if (OpexV190Active() && kind == "freight") {
+    infraCost = 2 * travelDist * effectiveTrackCost + 4 * platformLength * catalog.costStation
+        + (RAIL_DEPOT_COST ? 2 * catalog.costRailDepot : 0);
+  }
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
   if (freightSetupDetail) {
     profile.freightEconomicsCapitalOps += OpexOpsMeasureEnd(capitalMark);
@@ -299,7 +353,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
-  for (local trains = 1; trains <= MAX_RAIL_TRAINS; trains++) {
+  local startTrains = (OpexV190Active() && kind == "freight") ? 2 : 1;
+  for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;
     if (kind == "freight") {
@@ -308,6 +363,11 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
        * Tant que le train charge a quai, time_since_pickup = 0 (130 points de ramassage).
        * La gare n'est vide que pendant le trajet aller-retour moins le temps passe en chargement. */
       local loadDays = monthlyUnits > 0 ? (perTrain * 30.0) / monthlyUnits : 0;
+      /* V163 : OF_FULL_LOAD_ANY part des que l'UN des cargos remplit ses wagons. */
+      if (wagon2 != null) {
+        local loadDays2 = (perTrain2 * 30.0) / secondary.monthly;
+        if (loadDays2 < loadDays) loadDays = loadDays2;
+      }
       local absentDays = roundTripDays - loadDays;
       if (absentDays < 0) absentDays = 0;
       effectiveHeadway = absentDays / trains;
@@ -317,7 +377,20 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local monthlyCapacity = trains * perTrain * tripsPerMonth;
     local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
     local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();
+    /* V185 : le fret rail < 100 tuiles realise 0,50 du capital pour 0,69 predit (rail seul, 14/10). */
+    if (V185_RAIL_SHORT_FREIGHT_PCT > 0 && kind == "freight" && distance < 100)
+      revenueAnnual = (revenueAnnual * V185_RAIL_SHORT_FREIGHT_PCT) / 100;
     local vehicleCost = trains * (loco.price + wagons * wagon.price);
+    local carried2 = 0;
+    local revenue2 = 0;
+    if (wagon2 != null) {
+      local offered2 = secondary.monthly * stationRating / 100.0;
+      local capacity2 = trains * perTrain2 * tripsPerMonth;
+      carried2 = (offered2 < capacity2 ? offered2 : capacity2).tointeger();
+      revenue2 = (12 * carried2 * AICargo.GetCargoIncome(secondary.cargo, distance, incomeDays)).tointeger();
+      revenueAnnual += revenue2;
+      vehicleCost += trains * wagons2 * wagon2.price;
+    }
     local amortAnnual = vehicleCost / locoLife + ((infraCost * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
     local runningAnnual = trains * loco.runningCost;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
@@ -346,7 +419,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
                offered = offered, monthlyCapacity = monthlyCapacity, carried = carried,
                revenueAnnual = revenueAnnual, vehicleCost = vehicleCost, amortAnnual = amortAnnual,
                runningAnnual = runningAnnual, profitAnnual = profitAnnual, capital = capital,
-               immobilise = immobilise, roi = roi };
+               immobilise = immobilise, roi = roi, carried2 = carried2, revenue2 = revenue2 };
     }
   }
   if (profile != null) {
@@ -389,6 +462,29 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     roi = best.roi,
     profitAnnual = best.profitAnnual,
   };
+  /* V163 : champs presents des qu'un second cargo a ete demande, a 0 s'il n'a pas trouve place,
+   * pour qu'une reevaluation sur le quai reel efface un second cargo devenu impossible. */
+  if (secondary != null) {
+    result.cargo2 <- secondary.cargo;
+    result.monthly2 <- secondary.monthly;
+    result.wagons2 <- wagons2;
+    result.perTrain2 <- perTrain2;
+    result.carried2 <- best.carried2;
+    result.revenue2 <- best.revenue2;
+  }
+  /* V212 : recalage pax applique APRES le choix du nombre de trains, pour ne deplacer que le
+   * classement et le budget, jamais la rame ni la double voie. Le devis remplace ensuite le
+   * capital (OpexApplyRailActualCapital) : la garde de tresorerie reste sur le cout reel. */
+  if (kind == "pax" && (V212_RAIL_PAX_REVENUE_PCT != 100 || V212_RAIL_PAX_CAPITAL_PCT != 100)) {
+    /* Le recalage porte sur le revenu ; le profit en decoule comme dans
+     * OpexApplyRailActualCapital, pour rester coherent apres le devis. */
+    result.revenueAnnual = (result.revenueAnnual * V212_RAIL_PAX_REVENUE_PCT) / 100;
+    result.profitAnnual = result.revenueAnnual - result.runningAnnual - result.amortAnnual;
+    result.capital = (result.capital * V212_RAIL_PAX_CAPITAL_PCT) / 100;
+    local totalCapital = result.capital + result.immobilise;
+    result.roi = (result.profitAnnual > 0 && totalCapital > 0)
+        ? (result.profitAnnual * 1000) / totalCapital : 0;
+  }
   if (profile != null) {
     local postOps = OpexOpsMeasureEnd(postMark);
     profile.paxEconomicsPostOps += postOps;
@@ -518,6 +614,56 @@ function OpexApplyRailEconomics(candidate, economics)
   candidate.immobilise = economics.immobilise;
   candidate.roi = economics.roi;
   candidate.profitAnnual = economics.profitAnnual;
+  if ("wagons2" in economics) {
+    if (!("wagons2" in candidate)) {
+      candidate.cargo2 <- economics.cargo2; candidate.monthly2 <- economics.monthly2;
+      candidate.wagons2 <- 0; candidate.perTrain2 <- 0; candidate.carried2 <- 0; candidate.revenue2 <- 0;
+    }
+    candidate.wagons2 = economics.wagons2;
+    candidate.perTrain2 = economics.perTrain2;
+    candidate.carried2 = economics.carried2;
+    candidate.revenue2 = economics.revenue2;
+  } else if ("wagons2" in candidate) {
+    candidate.wagons2 = 0;
+  }
+}
+
+/* V163 : second cargo memorise sur un candidat rail, a repasser a OpexLineEconomics quand le
+ * quai ou le trace reels sont connus. null hors V163 ou sans second cargo. */
+function OpexV163CandidateSecondary(candidate)
+{
+  if (!V163_MULTI_CARGO && !(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
+  if (!("cargo2" in candidate) || !("monthly2" in candidate)) return null;
+  return { cargo = candidate.cargo2, monthly = candidate.monthly2 };
+}
+
+/* V163 : cargo produit par la source, autre que `cargo`, accepte par l'industrie destination et
+ * transportable par wagon ; le plus produit le mois dernier. null s'il n'y en a pas. */
+function OpexV163SourceOtherCargos(catalog, sourceId, cargo)
+{
+  /* Une fois par source : les autres cargos produits, transportables, avec une production.
+   * Hors ferme la liste est vide et la boucle des destinations ne paie plus rien. */
+  local out = [];
+  if (!AIIndustry.IsValidIndustry(sourceId)) return out;
+  local produced = AICargoList_IndustryProducing(sourceId);
+  for (local c = produced.Begin(); !produced.IsEnd(); c = produced.Next()) {
+    if (c == cargo || !(c in catalog.wagonByCargo)) continue;
+    local monthly = AIIndustry.GetLastMonthProduction(sourceId, c);
+    if (monthly <= 0) continue;
+    out.append({ cargo = c, monthly = monthly });
+  }
+  return out;
+}
+
+function OpexV163SecondaryCargo(others, sinkId)
+{
+  if (!AIIndustry.IsValidIndustry(sinkId)) return null;
+  local best = null;
+  foreach (o in others) {
+    if (AIIndustry.IsCargoAccepted(sinkId, o.cargo) != AIIndustry.CAS_ACCEPTED) continue;
+    if (best == null || o.monthly > best.monthly) best = o;
+  }
+  return best;
 }
 
 /* G3 : le devis AITestMode et le cout finalement debite ne doivent pas seulement proteger la

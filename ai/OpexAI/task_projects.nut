@@ -1515,18 +1515,36 @@ function OpexAI::_tryBuildProjects(year)
    * termine avant que la consommation historique ne le construise. */
   if (C121_AIR_FIRST_YEAR_RAIL_PREP) this._c121RailPrepOnPassStart();
 
-  /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le
-   * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */
-  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
-      this._railSearch.kind == "primary" && this._railSearch.phase == "build"
-      && !c77DeferCompletedRail) {
-    local spAstarBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.build") : null;
-    local railBuilt = this._consumeResumableRailAtPassStart(year, passDiscards, c49Best,
-        c49BuiltRanks, c75BuiltKeys, c69BuiltProjects);
-    if (spAstarBuild != null) OpexSpanEnd(spAstarBuild);
-    if (railBuilt && PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=rail built=1");
-    if (MONTHLY_FUNNEL) funnelAttempted++;
-    if (railBuilt) builtCount++;
+  if (V184_RAIL_SEARCH_SLOTS > 1) {
+    while (RAIL_SEARCH_RESUMABLE && !c77DeferCompletedRail) {
+      local buildSlot = this._v184FindSlotByPhase("build");
+      if (buildSlot < 0) break;
+      this._railSearch = this._v184RailSlots[buildSlot];
+      local spAstarBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.build") : null;
+      local railBuilt = this._consumeResumableRailAtPassStart(year, passDiscards, c49Best,
+          c49BuiltRanks, c75BuiltKeys, c69BuiltProjects);
+      if (spAstarBuild != null) OpexSpanEnd(spAstarBuild);
+      if (railBuilt && PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=rail built=1");
+      if (MONTHLY_FUNNEL) funnelAttempted++;
+      if (railBuilt) builtCount += 1;
+      this._v184RailSlots[buildSlot] = null;
+      this._v184SyncRailSearch();
+      if (!railBuilt) break;
+    }
+  } else {
+    /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le
+     * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */
+    if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
+        this._railSearch.kind == "primary" && this._railSearch.phase == "build"
+        && !c77DeferCompletedRail) {
+      local spAstarBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.build") : null;
+      local railBuilt = this._consumeResumableRailAtPassStart(year, passDiscards, c49Best,
+          c49BuiltRanks, c75BuiltKeys, c69BuiltProjects);
+      if (spAstarBuild != null) OpexSpanEnd(spAstarBuild);
+      if (railBuilt && PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=rail built=1");
+      if (MONTHLY_FUNNEL) funnelAttempted++;
+      if (railBuilt) builtCount++;
+    }
   }
 
   /* V88 : reprise prioritaire de l'etape 2 d'une chaine de biens en attente.
@@ -2204,6 +2222,8 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
       freightCargo = freightCargos[nextCargo];
     }
   }
+  /* V183 : tous les cargos fret dans la meme passe (null = pas de filtre de cargo). */
+  if (V183_RAIL_ALL_FREIGHT) freightCargo = null;
   if (C80_RAIL_STOCK_GATE) {
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
         fleetPlan, this._abandonedPairs, stage, prior,

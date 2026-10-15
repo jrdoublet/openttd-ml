@@ -14,9 +14,90 @@ MODE_WATER <- true;
  * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
  * d'iterations predites. */
 V168_RAIL_MAX_DIST <- 160;
+V177_RAIL_PAX_MIN_DIST <- 0;
+V182_RAIL_FREIGHT_MIN_DIST <- 0;
+V183_RAIL_ALL_FREIGHT <- false;
+V185_RAIL_SHORT_FREIGHT_PCT <- 0;
+V178_RAIL_SHARED_DEST <- false;
+V179_RAIL_GEN_DEST_SERVED <- false;
+V180_RAIL_WAGON_BOOST_PCT <- 0;
+V180_RAIL_WAGON_BOOST_DELAY <- 0;
+V180_START_YEAR <- -1;
+V181_RAIL_MAX_TRAINS <- 0;
+/* V184 : nombre de creneaux de recherche A* rail simultanes (1..4, defaut 1). */
+V184_RAIL_SEARCH_SLOTS <- 1;
+/* V192 : denominateur rail ~ temps de chantier (0 = inerte). */
+V192_RAIL_TIME_DENOM_PCT <- 0;
+/* V193 : borne de la generation des chaines V88 (0 = inerte). */
+V193_CHAIN_TOWNS <- 0;
+/* V194 : fret court vers une gare rail deja desservie (0 = inerte). */
+V194_SHORT_TO_SERVED_DST <- false;
+/* V195 : V182 limite aux N premieres annees (0 = toujours). */
+V195_V182_YEARS <- 0;
+/* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
+V186_RAIL_SEARCH_SLICES <- 1;
+/* V187 : second train / doublement autorises pendant une recherche A* de ligne neuve. */
+V187_RAIL_REFLEET_DURING_SEARCH <- false;
+/* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
+V190_RAIL_DOUBLE_BUILD <- false;
+/* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
+V197_GUIDED_DOUBLE <- false;
+/* V198 : double voie par gabarits de gare (boucle source + gare traversante destination). */
+V198_TEMPLATE_DOUBLE <- false;
+V200_DOUBLE_CASH_K <- 0;
+/* V199 : robustesse de pose rail a la maniere d'AAAHogEx (reprise locale, nivellement homeward, signaux en ligne, demolition). */
+V199_ROBUST_BUILD <- false;
+V199_LEVEL_BUDGET_K <- 20;
+/* V207 : part de captage des passagers urbains par le rail (0 = historique 22 %). */
+V207_RAIL_PAX_SHARE_PCT <- 40;
+/* V207 : second cargo courrier sur les rames passagers rail. */
+V207_RAIL_MAIL <- true;
+/* V207 : nombre maximal d'arrets de bus traversants joints a chaque gare rail passagers. */
+V207_RAIL_PAX_JOINED_STOPS <- 2;
+/* V207 : sites de gare passagers classes par production captee (0 = premiers sites trouves). */
+V207_RAIL_PAX_SITE_RANK_PCT <- 0;
+/* V212 : calibration du revenu et du capital predits des lignes rail passagers (100 = inerte).
+ * Porte A V207 (40x3) : profit realise/predit 1,23-1,58 en pax contre 0,86 en fret, capital
+ * reel/modele 0,84 en pax contre 1,28 en fret. Defaut 150/85 avec V207 depuis la porte A du
+ * paquet (15/10, rail seul 40x3 : +221 k/an, p=1,3e-7). */
+V212_RAIL_PAX_REVENUE_PCT <- 150;
+V212_RAIL_PAX_CAPITAL_PCT <- 85;
+/* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
+ * Defaut 300 / 1500 (qualifie le 15/10). 0 = historique (50 a chaque changement de direction,
+ * aucun surcout de coude serre).
+ * V214_RAIL_TURN_COST > 0 : entrer dans une diagonale est gratuit, en sortir coute ce montant.
+ * V214_RAIL_TIGHT_TURN_COST > 0 : coude de 90 degres pris sur une seule tuile (droite, coin,
+ * droite perpendiculaire), 88 km/h en acceleration realiste ; ramene a 100 sous 40 tuiles. */
+V214_RAIL_TURN_COST <- 300;
+V214_RAIL_TIGHT_TURN_COST <- 1500;
+function OpexV207Active()
+{
+  return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;
+}
+/* V190 : annee a partir de laquelle la double voie est posee (annee de depart + delai). */
+V190_FROM_YEAR <- 0;
+function OpexV190Active()
+{
+  if (!V190_RAIL_DOUBLE_BUILD || AIDate.GetYear(AIDate.GetCurrentDate()) < V190_FROM_YEAR) return false;
+  /* V200 : toute la machinerie double (plans a deux quais, seconde voie, gabarits) n'est
+   * active que si la caisse depasse le seuil ; sinon la ligne suit le chemin simple d'origine. */
+  if (V200_DOUBLE_CASH_K > 0 && AICompany.GetBankBalance(AICompany.COMPANY_SELF) - AICompany.GetLoanAmount() < V200_DOUBLE_CASH_K * 1000) return false;
+  return true;
+}
+function OpexV198Active()
+{
+  return V198_TEMPLATE_DOUBLE && OpexV190Active();
+}
+V190_RAIL_MAX_TRAINS <- 4;
+/* V188 : pentes tolerees pour les quais joints paralleles. */
+V188_RAIL_JOIN_SLOPES <- false;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;
+/* V172 : heuristique A* rail renforcee sur longues distances (>= v172_rail_long_weight_dist).
+ * 0 = inerte (poids V91_ASTAR_WEIGHT_PCT conserve, defaut) ; 100..300 = poids applique. */
+V172_RAIL_LONG_WEIGHT_PCT <- 0;
+V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;
@@ -758,6 +839,8 @@ AIR_FLEET_C121_PREGUARD <- false;
  * (V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR x voisines partageant une gare - amortissement).
  * 0 = off ; 1 = plafond actif, et un renfort reste a sa valeur modele perd l'exemption C70/C82. */
 V161_FLEET_NET_MARGINAL <- 0;
+/* V163 : second cargo d'une ligne rail de fret (meme source, meme destination). Defaut 0. */
+V163_MULTI_CARGO <- false;
 /* Mesure du 12/10 (v160_B20x10, 1973-74) : +13,4 k sur la ligne, -2,6 k par voisine. */
 V161_PRIOR_OWN <- 13000;
 V161_PRIOR_NEIGHBOUR <- 2600;

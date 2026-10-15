@@ -55,6 +55,7 @@ require("pathfinder_v90/aystar.nut");
 require("pathfinder_v90/rail.nut");
 require("pathfinder_v90/v129.nut");
 require("builder_rail.nut");
+require("rail_templates.nut");
 require("builder_air.nut");
 require("builder_water.nut");
 require("builder_road.nut");
@@ -148,6 +149,9 @@ class OpexAI extends AIController {
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
+  /* V184 : créneaux de recherche A* ferroviaire quand v184_rail_search_slots > 1. */
+  _v184RailSlots = null;
+  _v184SlotCursor = 0;
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
   _reactiveQueue = null;
   _activeWorker = null;
@@ -458,6 +462,7 @@ class OpexAI extends AIController {
 
   function Start();
   function _tooClose(candidate);
+  function _tryAttachSharedDest(candidate);
   function _tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
   function _setActiveGoodsChain(chain);
   function _tryBuildAir(year);
@@ -509,6 +514,13 @@ class OpexAI extends AIController {
   function _recordRailAttempt(candidate, result, posPacked, year);
   function _startRailUpgradeSearch(line, prep);
   function _consumeRailUpgrade();
+  function _v184InitRailSlots();
+  function _v184CanStartRailSearch(candidate);
+  function _v184FindFreeSlot();
+  function _v184ActiveSearchCount();
+  function _v184SelectNextSearchSlot();
+  function _v184SyncRailSearch();
+  function _v184FindSlotByPhase(targetPhase);
   function _findLineById(lineId);
   function _processEvents();
   function _markDirty(reason, catalogLayers = null, candidateLayers = null,
@@ -657,6 +669,7 @@ function OpexAI::Start()
 
   OpexLoadSettings();
   OpexV147ExtendQueue(this);
+  this._v184InitRailSlots();
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 

@@ -34,6 +34,16 @@ const PAX_BAND_ROUTE_ONLY = 4;
  * des NewGRF. La valeur comparee est le revenu brut d'un meme trajet de 20
  * tuiles, sans retard, afin de classer le prix du cargo et non la qualite d'une
  * liaison particuliere. Le cargoId ne sert qu'a rendre les ex-aequo stables. */
+/* V194 : une de nos gares rail est-elle a moins de MIN_SEPARATION de la tuile ? */
+function OpexV194NearOwnRailStation(tile)
+{
+  local stations = AIStationList(AIStation.STATION_TRAIN);
+  foreach (st, _ in stations) {
+    if (AIMap.DistanceManhattan(AIStation.GetLocation(st), tile) < MIN_SEPARATION) return true;
+  }
+  return false;
+}
+
 function OpexFreightCargoOrder(catalog)
 {
   local ranked = [];
@@ -645,7 +655,7 @@ function OpexC60ObserveTownRating(mode, phase, townId)
   return allowed;
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -658,12 +668,25 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceShort++;
       return null;
     }
+    /* V177 : en rail seul, les lignes pax courtes rendent 0,19 du capital contre 0,69 pour le
+     * fret long (banc railseul_origin_reuse_10x3_20261014) ; 0 = inerte. */
+    if (V177_RAIL_PAX_MIN_DIST > 0 && distance < V177_RAIL_PAX_MIN_DIST) {
+      stats.distanceShort++;
+      return null;
+    }
     if (distance > bounds.railMax) {
       stats.distanceLong++;
       return null;
     }
   } else if (distance > bounds.railMax) {
     stats.distanceLong++;
+    return null;
+  } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
+             && !(V194_SHORT_TO_SERVED_DST && OpexV194NearOwnRailStation(dstTile))
+             && !(V195_V182_YEARS > 0 && AIDate.GetYear(AIDate.GetCurrentDate()) >= OPEX_START_YEAR + V195_V182_YEARS)) {
+    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972).
+     * V194 : exempte le fret court vers une de nos gares rail (rattachement V178). */
+    stats.distanceShort++;
     return null;
   }
   /* Plafond A* avant l'economie : les paires trop longues etaient evaluees puis rejetees. */
@@ -718,7 +741,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
    * prÃ©coces de OpexLineEconomics restent visibles comme reliquat de prÃ©paration. */
   local freightEconomicsMark = (profile != null && kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
-  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache);
+  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache,
+                                      null, null, secondary);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
     profile.paxEconomicsCalls++;
@@ -778,7 +802,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local effectiveRoi = (economics.roi * freightBonus) / 100;
 
   stats.accepted++;
-  return {
+  local candidate = {
     mode = "rail",
     kind = kind,            // "pax" ou "freight"
     cargo = cargo,
@@ -823,6 +847,16 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     opcodeRatio = opcodeRatio,
     isLowRatio = isLowRatio,
   };
+  /* V163 : le second cargo n'est garde que s'il a trouve place dans la rame. */
+  if (("wagons2" in economics) && economics.wagons2 > 0) {
+    candidate.cargo2 <- economics.cargo2;
+    candidate.monthly2 <- economics.monthly2;
+    candidate.wagons2 <- economics.wagons2;
+    candidate.perTrain2 <- economics.perTrain2;
+    candidate.carried2 <- economics.carried2;
+    candidate.revenue2 <- economics.revenue2;
+  }
+  return candidate;
 }
 
 /* Famille pax_near : meme tableau qu'un candidat classe, ratio = 1 (sous MIN_RATIO),
@@ -850,6 +884,15 @@ function OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, origin
     ratio = PAX_NEAR_RATIO,
   };
   candidate.paxNear <- true;
+  /* V163 / V207 : le second cargo n'est garde que s'il a trouve place dans la rame. */
+  if (("wagons2" in economics) && economics.wagons2 > 0) {
+    candidate.cargo2 <- economics.cargo2;
+    candidate.monthly2 <- economics.monthly2;
+    candidate.wagons2 <- economics.wagons2;
+    candidate.perTrain2 <- economics.perTrain2;
+    candidate.carried2 <- economics.carried2;
+    candidate.revenue2 <- economics.revenue2;
+  }
   return candidate;
 }
 
@@ -1627,6 +1670,16 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
+  local hasMail = V207_RAIL_MAIL && catalog.mailCargo >= 0 && (catalog.mailCargo in catalog.wagonByCargo);
+  local mailProduced = null;
+  if (hasMail) {
+    mailProduced = [];
+    for (local i = 0; i < n; i++) {
+      local mp = AITown.GetLastMonthProduction(towns[i].id, catalog.mailCargo);
+      if (mp < 0) mp = 0;
+      mailProduced.append(mp);
+    }
+  }
   if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
   local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
   local bounds = OpexCatalogBounds(catalog);
@@ -1684,10 +1737,19 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
        * facteur ci-dessus d'apres la mesure). */
       local prodA = produced[a];
       local prodB = produced[b];
-      local monthly = ((prodA + prodB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+      local part = V207_RAIL_PAX_SHARE_PCT > 0 ? V207_RAIL_PAX_SHARE_PCT : TOWN_CATCHMENT_SHARE_PCT;
+      local monthly = ((prodA + prodB) * part) / 100;
+      local secondary = null;
+      if (hasMail) {
+        local mailA = mailProduced[a];
+        local mailB = mailProduced[b];
+        local mailMonthly = ((mailA + mailB) * part) / 100;
+        secondary = { cargo = catalog.mailCargo, monthly = mailMonthly };
+      }
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                          monthly, false, stats, false, candidateProfile, cruiseCache);
+                                          monthly, false, stats, false, candidateProfile, cruiseCache,
+                                          secondary);
       if (profile != null) {
         profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
         profile.paxCandidateCalls++;
@@ -1746,6 +1808,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
+      local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
@@ -1772,7 +1835,9 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (prePair != null) prePair.freightIndustryPairs++;
         stats.pairsTotal++;
         local sd = served[di];
-        if (ss != null || sd != null) {
+        /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache. */
+        local v179Keep = V179_RAIL_GEN_DEST_SERVED && ss == null && sd != null;
+        if (!v179Keep && (ss != null || sd != null)) {
           stats.pairsOriginServed++;
           if (RAIL_ORIGIN_EXPOSURE_SHADOW) {
             if (!("originExposureFreight" in stats)) stats.originExposureFreight <- OpexRailOriginExposureStats();
@@ -1782,14 +1847,18 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+        local secondary = (others2 != null && others2.len() > 0)
+            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                            industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache);
+                                            industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache,
+                                            secondary);
         if (profile != null) {
           profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
           profile.freightIndustryCandidateCalls++;
         }
         if (candidate != null) {
-          OpexRailAttachOriginReuse(candidate, ss, sd);
+          if (v179Keep) candidate.v179DestServed <- 1;
+          else OpexRailAttachOriginReuse(candidate, ss, sd);
           out.append(candidate);
         }
       }
@@ -1945,8 +2014,24 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
           local goodsMonthly = (candInput.carried * OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT).tointeger();
           if (goodsMonthly <= 0) continue;
 
-          /* Associer les villes acceptatrices de biens */
-          foreach (town in townSinks) {
+          /* Associer les villes acceptatrices de biens.
+           * V193 : au plus V193_CHAIN_TOWNS villes (les plus peuplees dans la fenetre de distance),
+           * et une seule chaine retenue par paire source -> usine. Inerte a 0. */
+          local chainTowns = townSinks;
+          local bestChain = null;
+          if (V193_CHAIN_TOWNS > 0) {
+            chainTowns = [];
+            foreach (town in townSinks) {
+              local dGoods = AIMap.DistanceManhattan(factory.tile, town.tile);
+              if (dGoods > bounds.railMax || dGoods < 40) continue;
+              local pop = AITown.GetPopulation(town.id);
+              local pos = chainTowns.len();
+              while (pos > 0 && chainTowns[pos - 1].pop < pop) pos--;
+              chainTowns.insert(pos, { tile = town.tile, id = town.id, pop = pop });
+              if (chainTowns.len() > V193_CHAIN_TOWNS) chainTowns.pop();
+            }
+          }
+          foreach (town in chainTowns) {
             if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
 
             /* Verifier l'abandon sur le troncon biens (cle G9§1 : t<townId>) */
@@ -2014,12 +2099,24 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
 
             /* Test V88 : garantir le passage du plafond TOP_K (tri par ratio). */
             if (V88_CHAIN_FORCE) chainCandidate.ratio = 1000000000;
+            if (V193_CHAIN_TOWNS > 0) {
+              if (bestChain == null || chainCandidate.profitAnnual > bestChain.profitAnnual) bestChain = chainCandidate;
+              continue;
+            }
             stats.accepted++;
             if (DECISION_LOG) {
               OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + cargoIn + " out=" + goodsCargo
                          + " town=" + town.id + " P=" + totalProfit + " C=" + totalCapital + " roi=" + chainRoi);
             }
             out.append(chainCandidate);
+          }
+          if (bestChain != null) {
+            stats.accepted++;
+            if (DECISION_LOG) {
+              OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + cargoIn + " town=" + bestChain.dstTown
+                         + " P=" + bestChain.profitAnnual + " C=" + bestChain.capital + " roi=" + bestChain.roi + " v193=1");
+            }
+            out.append(bestChain);
           }
         }
       }

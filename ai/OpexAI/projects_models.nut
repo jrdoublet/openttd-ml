@@ -264,6 +264,16 @@ function OpexC82Profit(project)
  * la cadence VM de la selection identique quand C82 est inactif. */
 OpexCalibratedProfit <- OpexC70Profit;
 
+/* V192 : a la maniere d'AAAHogEx (profit / temps de chantier), alourdit le denominateur rail
+ * par le carre de la distance, proxy des iterations A*. Inerte a 0. */
+function OpexV192RailDenom(project, denom)
+{
+  if (V192_RAIL_TIME_DENOM_PCT <= 0 || project == null || !("mode" in project)
+      || project.mode != "rail" || !("distance" in project) || project.distance <= 0) return denom;
+  local d = project.distance.tofloat() / 100.0;
+  return (denom.tofloat() * (1.0 + V192_RAIL_TIME_DENOM_PCT.tofloat() / 100.0 * d * d)).tointeger();
+}
+
 function OpexProjectScore(value, cost)
 {
   if (value <= 0 || cost <= 0) return 0.0;

@@ -239,11 +239,13 @@ class OpexCatalog {
   locoByCargoWagons = null;  // cargo -> [1 wagon..max] -> meilleur profil deja choisi
   wagonChoicesByCargo = null; // M3 probe only: cargo -> tous les wagons + choix loco associes
   platformLength = 0;        // AIGameSettings station.station_spread, lu une fois par annee
+  maxTrainLength = 0;        // V207 : vehicle.max_train_length (tuiles), lu avec station_spread
   railCoverage = 0;          // rayon exact de AIStation.STATION_TRAIN, lu avec les autres proprietes rail
   freightTrainMultiplier = 1;
   costTrackPerTile = 0;
   costStation = 0;
   costRailDepot = 0;
+  costRailSignal = 0;
 
   airport = null;      // {type, width, height, coverage, price, maintenance} ou null
   plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
@@ -439,6 +441,7 @@ function OpexCatalog::_refreshRail()
    * partie, jamais un "7" suppose. Une valeur invalide signifie API/reglage indisponible : mieux
    * vaut alors rendre le rail non constructible que fabriquer une longueur silencieuse. */
   this.platformLength = AIGameSettings.GetValue("station.station_spread");
+  this.maxTrainLength = AIGameSettings.GetValue("vehicle.max_train_length");
   this.freightTrainMultiplier = AIGameSettings.GetValue("vehicle.freight_trains");
   this.railCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
   if (this.platformLength < 1 || this.freightTrainMultiplier < 1 || this.railCoverage < 1) return;
@@ -466,6 +469,7 @@ function OpexCatalog::_refreshRail()
   /* Le depot rail etait le seul cout d'infrastructure absent du modele, alors que la route
    * et l'eau comptent le leur et que builder_rail.nut le paie reellement. */
   this.costRailDepot = AIRail.GetBuildCost(chosen, AIRail.BT_DEPOT);
+  this.costRailSignal = AIRail.GetBuildCost(chosen, AIRail.BT_SIGNAL);
 
   local engines = AIEngineList(AIVehicle.VT_RAIL);
   engines.Valuate(AIEngine.IsBuildable);
@@ -1125,7 +1129,7 @@ function OpexCatalog::refresh(budget, year)
     this._refreshRoad();
     if (spStep != null) OpexSpanEnd(spStep);
     budget.end("cat_road");
-  } else if (AIR_JOINED_STOPS && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {
+  } else if ((AIR_JOINED_STOPS || V207_RAIL_PAX_JOINED_STOPS > 0) && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {
     /* Sans catalogue route, aucun type de route courant n'est pose : les arrets joints aux
      * aeroports (et leur prevision B9) echouaient alors tous en silence. Ce sont des arrets de
      * l'aeroport, sans vehicule routier : un banc air seul (mode_road = 0) doit les garder. */
