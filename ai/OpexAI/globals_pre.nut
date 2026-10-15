@@ -97,6 +97,7 @@ V171_RAIL_KNOTS <- 0;
 /* V172 : heuristique A* rail renforcee sur longues distances (>= v172_rail_long_weight_dist).
  * 0 = inerte (poids V91_ASTAR_WEIGHT_PCT conserve, defaut) ; 100..300 = poids applique. */
 V172_RAIL_LONG_WEIGHT_PCT <- 200;
+V216_PROBE <- false;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

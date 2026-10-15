@@ -1816,6 +1816,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
     OpexC63RecordSpend("rail", railPlanned, railActual, result.ok);
   }
 
+  if (V216_PROBE && result.ok) OpexV216OnRailBuild(candidate);
   if (DECISION_LOG) {
     /* C67.6 rail : une ligne par tentative, reussie ou non, pour l'exposition du cout terrain. */
     OpexDecide("RAIL_ATTEMPT", "src=" + candidate.src + " dst=" + candidate.dst

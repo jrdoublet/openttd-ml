@@ -244,6 +244,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
       stats.selectionOpcodes, alternatives.len(), funded.len());
   OpexB6LogSelectionCausality("incremental", alternatives, funded, capitalBudget, b6BudgetDate,
                              recycledKeys);
+  if (V216_PROBE) OpexV216LogSelection("incremental", alternatives, funded, capitalBudget);
   OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capitalBudget);
 
   /* 6. Cloture des statistiques et du capital restant */

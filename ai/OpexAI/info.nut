@@ -1166,6 +1166,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v216_probe",
+      description = "V216: passive estimator probe (SCORE_DECOMP, TOWN_FLOW, generation rejects) until end of year 3. 0 = inert",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = CONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v172_rail_long_weight_dist",
       description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
       min_value = 0, max_value = 512,

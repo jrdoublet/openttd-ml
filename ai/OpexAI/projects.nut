@@ -597,6 +597,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     cost.selected = funded.len();
   }
   OpexB6LogSelectionCausality("build", alternatives, funded, capitalBudget, capitalBudgetDate);
+  if (V216_PROBE) OpexV216LogSelection("build", alternatives, funded, capitalBudget);
 
   local selectedRev = 0;
   local selectedCap = 0;

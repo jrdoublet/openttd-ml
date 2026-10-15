@@ -225,7 +225,7 @@ des sauvegardes mensuelles. Il n'y a eu aucun banc ni aucun changement de code.
 - **Les candidats rejetés à la génération** (profit ≤ 0, sous le seuil d'opcodes). Ils ne sont pas journalisés, donc on ne peut pas rejouer une correction qui relève une estimation, comme en rail seul.
 - **Les flux réalisés par ville et par compagnie.**
   - La télémétrie relie les lignes aux villes, mais en décembre seulement et sans les flux.
-  - `AICargoMonitor` donne voyageurs et courrier pris en charge par ville, et fret par industrie, pour une compagnie donnée. OpexAI ne l'utilise pas.
+  - `AICargoMonitor` donnerait la prise en charge par compagnie, mais il est réservé aux scripts de jeu : absent de l'API IA (constaté au smoke du 16/10, voir §3.3).
   - AAAHogEx-115 ne l'utilise pas non plus (vérifié par grep) : interroger ses compteurs ne perturbe pas ses décisions.
 - **Le gain net de la compagnie.** Rien ne mesure ce que perd notre aéroport quand une gare rail ouvre dans la même ville.
 - **Le réalisé par composante.** `LINE_REVENUE` ne sépare voyageurs et courrier que pour les lignes V207, et la première année est partielle.
@@ -276,17 +276,19 @@ vraies tuiles de gare, pour valider l'approximation.
 Le calcul est mis en cache par ville et par mois, et son coût est mesuré au smoke. Comme il coûte
 des opcodes, il doit être actif dans les deux bras.
 
-### 3.3 `TOWN_FLOW` : les flux réalisés par ville et par compagnie
+### 3.3 `TOWN_FLOW` : les flux réalisés par ville, industrie et gare
 
-Une fois par mois, pour chaque ville où une compagnie a une gare :
+**Correction du 16/10 (smoke)** : `AICargoMonitor` est réservé aux scripts de jeu. Il est absent
+de l'API IA 15.3 (« the index 'AICargoMonitor' does not exist »). La prise en charge **par
+compagnie** n'est donc pas lisible depuis l'IA. Une fois par mois, jusqu'à la fin de la 3e année,
+la sonde journalise :
 
-- production et total transporté de la ville (`AITown.GetLastMonthProduction`, `GetLastMonthSupplied`) ;
-- voyageurs et courrier pris en charge **par nous** et **par AAA** (`AICargoMonitor.GetTownPickupAmount`, suivi continu) ;
-- pour le fret, la prise en charge par industrie desservie (`GetIndustryPickupAmount`).
+- `V216_TOWN_FLOW`, pour chaque ville où quelqu'un transporte : production, total transporté (toutes compagnies) et pourcentage transporté, voyageurs et courrier ;
+- `V216_IND_FLOW`, pour chaque industrie desservie : production, total transporté et **nombre de gares autour, toutes compagnies** (`AIIndustry.GetAmountOfStationsAround`). Ce nombre sert de témoin de l'arrivée d'AAA (analyse G) ;
+- `V216_STATION_FLOW`, pour chacune de nos gares : ville la plus proche, types, puis note et attente par cargo.
 
-À vérifier au smoke :
-- le premier appel démarre le compteur et renvoie 0 ;
-- la compagnie adverse est acceptée (sinon l'appel renvoie −1). D'après la source 15.3, seul un identifiant hors bornes serait refusé.
+La part adverse se déduit hors ligne : total transporté moins notre part estimée par les notes.
+Pour les lignes de l'analyse H, elle se lit exactement dans les sauvegardes, avec les helpers EST.
 
 ### 3.4 Rejets à la génération
 
@@ -302,7 +304,7 @@ Pour le rail voyageurs, à chaque génération :
 - Smoke 1×1 sur 3 ans :
   - pas de « Your script made an error » ;
   - opcodes de la sonde mesurés ;
-  - compteurs AAA non nuls.
+  - lignes `V216_TOWN_FLOW`, `V216_IND_FLOW` et `V216_STATION_FLOW` présentes chaque mois.
 
 ## 4. Étape 2 — campagnes de mesure
 

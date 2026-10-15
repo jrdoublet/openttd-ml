@@ -1142,6 +1142,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   if (C69_TRACK_BUILDS) {
     kDecData = OpexC69ComputeKDec();
     kDec = kDecData.K_dec;
+    if (V216_PROBE && realSelection) V216_LAST_KDEC = kDec;
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
   }
   if (spStates != null) OpexSpanEnd(spStates);
@@ -1939,6 +1940,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
       projects.stats.selectionOpcodes, considered, funded.len());
   local spPubLog = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.log") : null;
   OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate);
+  if (V216_PROBE) OpexV216LogSelection("reselect", alternatives, funded, capitalBudget);
   if (spPubLog != null) OpexSpanEnd(spPubLog);
 
   local spPubStats = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.stats") : null;

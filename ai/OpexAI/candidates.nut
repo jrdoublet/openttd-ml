@@ -769,6 +769,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
                                       distance, economics, stats);
     }
     stats.profitNonPositive++;
+    if (V216_PROBE) OpexV216NoteReject("profit", kind, srcTile, dstTile, monthly, economics);
     if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     return null;
   }
@@ -781,6 +782,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local isLowRatio = (opcodeRatio < minRatio);
   if (isLowRatio) {
     stats.ratioTooLow++;
+    if (V216_PROBE && VIVIER_RATIO_FILTER) OpexV216NoteReject("ratio", kind, srcTile, dstTile, monthly, economics);
     if (VIVIER_RATIO_FILTER) return null;
   }
 
@@ -2401,6 +2403,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
       OpexDecide("VIVIER_REJECT", "reason=ratio_too_low n=" + stats.ratioTooLow);
     }
   }
+  if (V216_PROBE) OpexV216FlushRejects();
 
   local result = { all = all.len(), candidates = all, best = best,
                    bands = OpexBands(all), stats = stats,
