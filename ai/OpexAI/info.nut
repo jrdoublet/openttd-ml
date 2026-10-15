@@ -1158,10 +1158,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v172_rail_long_weight_pct",
-      description = "V172: rail A* heuristic weight percentage for long searches (>= v172_rail_long_weight_dist tiles). 0 = inert (uses v91_astar_weight_pct, default); 100..300 = override weight percentage",
+      description = "V172: rail A* heuristic weight percentage for long searches (>= v172_rail_long_weight_dist tiles). 0 = inert (uses v91_astar_weight_pct); 100..300 = override weight percentage; default 200 (rail-only gates A and B passed 16/10, neutral in full games)",
       min_value = 0, max_value = 300,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 200, medium_value = 200, hard_value = 200,
+      custom_value = 200,
       flags = 0
     });
 

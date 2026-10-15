@@ -125,7 +125,7 @@ function OpexLoadSettings()
   V182_RAIL_FREIGHT_MIN_DIST = (freightMin != null && freightMin > 0) ? freightMin : 0;
   V171_RAIL_KNOTS = AIController.GetSetting("v171_rail_knots") != 0 ? 1 : 0;
   local longWeightPct = AIController.GetSetting("v172_rail_long_weight_pct");
-  V172_RAIL_LONG_WEIGHT_PCT = (longWeightPct != null && longWeightPct >= 0 && longWeightPct <= 300) ? longWeightPct : 0;
+  V172_RAIL_LONG_WEIGHT_PCT = (longWeightPct != null && longWeightPct >= 0 && longWeightPct <= 300) ? longWeightPct : 200;
   local longWeightDist = AIController.GetSetting("v172_rail_long_weight_dist");
   V172_RAIL_LONG_WEIGHT_DIST = (longWeightDist != null && longWeightDist >= 0 && longWeightDist <= 512) ? longWeightDist : 100;
   V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
