@@ -2304,24 +2304,24 @@ class OpexAIInfo extends AIInfo {
       name = "v207_rail_pax_share_pct",
       description = "V207: predicted share of town passenger production captured by a rail line (0 = legacy 22%, 1..100 = custom percentage); 0 = off (default)",
       min_value = 0, max_value = 100,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 40, medium_value = 40, hard_value = 40,
+      custom_value = 40,
       step_size = 1,
       flags = 0
     });
     AddSetting({
       name = "v207_rail_mail",
       description = "V207: passenger rail lines also carry mail as a secondary cargo, with wagons sized to mail production; 0 = off (default), 1 = on",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
       name = "v207_rail_pax_joined_stops",
       description = "V207: maximum number of drive-through bus stops joined to each passenger rail station to extend catchment (0..4); 0 = off (default)",
       min_value = 0, max_value = 4,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2,
       step_size = 1,
       flags = 0
     });
@@ -2336,19 +2336,19 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v212_rail_pax_revenue_pct",
-      description = "V212: calibration of the predicted annual revenue of passenger rail lines, in percent (100 = off, default)",
+      description = "V212: calibration of the predicted annual revenue of passenger rail lines, in percent (100 = off; default 150, qualified 15/10)",
       min_value = 50, max_value = 300,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
+      easy_value = 150, medium_value = 150, hard_value = 150,
+      custom_value = 150,
       step_size = 5,
       flags = 0
     });
     AddSetting({
       name = "v212_rail_pax_capital_pct",
-      description = "V212: calibration of the predicted capital of passenger rail lines before the quote, in percent (100 = off, default)",
+      description = "V212: calibration of the predicted capital of passenger rail lines before the quote, in percent (100 = off; default 85, qualified 15/10)",
       min_value = 50, max_value = 200,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
+      easy_value = 85, medium_value = 85, hard_value = 85,
+      custom_value = 85,
       step_size = 5,
       flags = 0
     });

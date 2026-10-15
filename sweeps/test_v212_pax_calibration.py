@@ -2,8 +2,8 @@
 """Contrats statiques de V212 : recalage du revenu et du capital predits des lignes rail passagers.
 
 Verifie :
-1. Reglages v212_rail_pax_revenue_pct (50..300) et v212_rail_pax_capital_pct (50..200), defaut 100
-   (inerte), declares dans info.nut, globals_pre.nut et settings.nut.
+1. Reglages v212_rail_pax_revenue_pct (50..300, defaut 150) et v212_rail_pax_capital_pct (50..200,
+   defaut 85 ; 100 = inerte), declares dans info.nut, globals_pre.nut et settings.nut.
 2. OpexLineEconomics : recalage applique apres la boucle du nombre de trains, uniquement pour
    kind == "pax", et seulement si l'un des deux reglages differe de 100.
 3. Le profit est recalcule depuis le revenu recale (meme formule que OpexApplyRailActualCapital),
@@ -40,26 +40,26 @@ def function_body(source: str, name: str) -> str:
 
 
 class TestV212Settings(unittest.TestCase):
-    def test_declared_with_bounds_and_default_100(self):
+    def test_declared_with_bounds_and_qualified_defaults(self):
         info = read_file("info.nut")
-        for name, bounds in (("v212_rail_pax_revenue_pct", "min_value = 50, max_value = 300"),
-                             ("v212_rail_pax_capital_pct", "min_value = 50, max_value = 200")):
+        for name, bounds, default in (("v212_rail_pax_revenue_pct", "min_value = 50, max_value = 300", 150),
+                                      ("v212_rail_pax_capital_pct", "min_value = 50, max_value = 200", 85)):
             block = re.search(rf'name\s*=\s*"{name}"[^}}]+', info)
             self.assertIsNotNone(block, name)
             text = block.group(0)
             self.assertIn(bounds, text)
             for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-                self.assertRegex(text, rf"{key}\s*=\s*100")
+                self.assertRegex(text, rf"{key}\s*=\s*{default},")
 
     def test_globals_and_reading(self):
         globals_pre = read_file("globals_pre.nut")
-        self.assertIn("V212_RAIL_PAX_REVENUE_PCT <- 100;", globals_pre)
-        self.assertIn("V212_RAIL_PAX_CAPITAL_PCT <- 100;", globals_pre)
+        self.assertIn("V212_RAIL_PAX_REVENUE_PCT <- 150;", globals_pre)
+        self.assertIn("V212_RAIL_PAX_CAPITAL_PCT <- 85;", globals_pre)
         settings = read_file("settings.nut")
         self.assertIn('AIController.GetSetting("v212_rail_pax_revenue_pct")', settings)
         self.assertIn('AIController.GetSetting("v212_rail_pax_capital_pct")', settings)
-        self.assertRegex(settings, r"V212_RAIL_PAX_REVENUE_PCT = \(v212Revenue != null && v212Revenue >= 50 && v212Revenue <= 300\) \? v212Revenue : 100;")
-        self.assertRegex(settings, r"V212_RAIL_PAX_CAPITAL_PCT = \(v212Capital != null && v212Capital >= 50 && v212Capital <= 200\) \? v212Capital : 100;")
+        self.assertRegex(settings, r"V212_RAIL_PAX_REVENUE_PCT = \(v212Revenue != null && v212Revenue >= 50 && v212Revenue <= 300\) \? v212Revenue : 150;")
+        self.assertRegex(settings, r"V212_RAIL_PAX_CAPITAL_PCT = \(v212Capital != null && v212Capital >= 50 && v212Capital <= 200\) \? v212Capital : 85;")
 
 
 class TestV212Economics(unittest.TestCase):
