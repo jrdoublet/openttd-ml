@@ -54,6 +54,13 @@ V207_RAIL_PAX_SHARE_PCT <- 0;
 V207_RAIL_MAIL <- false;
 /* V207 : nombre maximal d'arrets de bus traversants joints a chaque gare rail passagers. */
 V207_RAIL_PAX_JOINED_STOPS <- 0;
+/* V207 : sites de gare passagers classes par production captee (0 = premiers sites trouves). */
+V207_RAIL_PAX_SITE_RANK_PCT <- 0;
+/* V212 : calibration du revenu et du capital predits des lignes rail passagers (100 = inerte).
+ * Porte A V207 (40x3) : profit realise/predit 1,23-1,58 en pax contre 0,86 en fret, capital
+ * reel/modele 0,84 en pax contre 1,28 en fret. */
+V212_RAIL_PAX_REVENUE_PCT <- 100;
+V212_RAIL_PAX_CAPITAL_PCT <- 100;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;

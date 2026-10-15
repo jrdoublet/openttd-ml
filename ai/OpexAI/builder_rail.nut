@@ -21,6 +21,8 @@
  * plan. Le jeu, et non une valeur supposee, reste donc l'autorite sur le maximum utilisable. */
 const STATION_SEARCH_RADIUS = 30;
 const MAX_STATION_PLANS = 12;
+/* V207 : facteur d'echantillonnage des sites passagers avant classement par production. */
+const V207_SITE_SAMPLE_FACTOR = 3;
 /* v1 reste un parallele dedie, pas l'enveloppe spread. Offset 1 est le colle d'origine ;
  * 2-4 sautent la sortie/voie qui occupe le voisin. 4 x 2 x 2 = 16 sondes, rien a cote d'A*.
  * Mesure 2026-08-30 : 658/692 SITE a nClear=0, 100 % du pax. */
@@ -260,17 +262,62 @@ function OpexV190MergeIgnoredTiles(clearanceTiles, plansA, plansB)
   return list;
 }
 
+/* V207 : production captee par l'emprise entiere du quai (union, pas le maximum par tuile).
+ * Le quai fait une tuile de large ; anchor est toujours sa tuile d'indice minimal (step > 0). */
+function OpexV207PlatformUnionValue(plan, cargo, coverage)
+{
+  local horizontal = plan.step == AIMap.GetTileIndex(1, 0);
+  local w = horizontal ? plan.length : 1;
+  local h = horizontal ? 1 : plan.length;
+  local v = AITile.GetCargoProduction(plan.anchor, cargo, w, h, coverage);
+  return v > 0 ? v : 0;
+}
+
+/* V207 : garde les sites dont la production captee atteint rankPct % du meilleur echantillon,
+ * tries par production decroissante, au plus maxPlans. L'A* multi-source choisissait sinon le
+ * quai le moins cher a relier, c'est-a-dire le bord de ville tourne vers l'autre extremite. */
+function OpexV207RankStationPlans(plans, maxPlans, cargo, coverage, rankPct, center)
+{
+  if (plans.len() == 0) return plans;
+  local firstValue = -1;
+  local best = 0;
+  foreach (plan in plans) {
+    plan.unionValue <- OpexV207PlatformUnionValue(plan, cargo, coverage);
+    if (firstValue < 0) firstValue = plan.unionValue;
+    if (plan.unionValue > best) best = plan.unionValue;
+  }
+  plans.sort(function(a, b) {
+    if (a.unionValue > b.unionValue) return -1;
+    if (a.unionValue < b.unionValue) return 1;
+    return 0;
+  });
+  local floorValue = best * rankPct / 100;
+  local kept = [];
+  foreach (plan in plans) {
+    if (kept.len() >= maxPlans) break;
+    if (plan.unionValue < floorValue) break;
+    kept.push(plan);
+  }
+  if (DECISION_LOG) {
+    OpexDecide("V207_SITE", "center=" + center + " sampled=" + plans.len() + " kept=" + kept.len()
+        + " best=" + best + " min_kept=" + kept[kept.len() - 1].unionValue + " first=" + firstValue);
+  }
+  return kept;
+}
+
 function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage,
-                          wantProduction, stats = null, requireDouble = false)
+                          wantProduction, stats = null, requireDouble = false, rankPct = 0)
 {
   local plans = [];
   local axes = [
     [AIRail.RAILTRACK_NE_SW, AIMap.GetTileIndex(1, 0)],
     [AIRail.RAILTRACK_NW_SE, AIMap.GetTileIndex(0, 1)],
   ];
-  for (local r = 0; r <= radius && plans.len() < maxPlans; r++) {
-    for (local dx = -r; dx <= r && plans.len() < maxPlans; dx++) {
-      for (local dy = -r; dy <= r && plans.len() < maxPlans; dy++) {
+  /* V207 : avec le classement, on echantillonne plus large avant de trier ; sinon limit = maxPlans. */
+  local limit = (rankPct > 0) ? maxPlans * V207_SITE_SAMPLE_FACTOR : maxPlans;
+  for (local r = 0; r <= radius && plans.len() < limit; r++) {
+    for (local dx = -r; dx <= r && plans.len() < limit; dx++) {
+      for (local dy = -r; dy <= r && plans.len() < limit; dy++) {
         if (abs(dx) != r && abs(dy) != r) continue;
         local base = center + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(base)) continue;
@@ -320,14 +367,15 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
                 }
                 plans.push(planObj);
               }
-              if (plans.len() >= maxPlans) break;
+              if (plans.len() >= limit) break;
             }
           }
-          if (plans.len() >= maxPlans) break;
+          if (plans.len() >= limit) break;
         }
       }
     }
   }
+  if (rankPct > 0) return OpexV207RankStationPlans(plans, maxPlans, cargo, coverage, rankPct, center);
   return plans;
 }
 
@@ -397,9 +445,10 @@ function OpexJoinPlatformPlans(platform, stationId, stats = null)
 function OpexRailTryPlatformLength(catalog, candidate, length, statsA, statsB)
 {
   local isDoubleFreight = (OpexV190Active() && candidate.kind == "freight");
+  local rankPct = (candidate.kind == "pax") ? V207_RAIL_PAX_SITE_RANK_PCT : 0;
   local plansA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
                                   MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true,
-                                  statsA, isDoubleFreight);
+                                  statsA, isDoubleFreight, rankPct);
   if (isDoubleFreight && plansA.len() == 0) {
     plansA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
                               MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true,
@@ -410,7 +459,7 @@ function OpexRailTryPlatformLength(catalog, candidate, length, statsA, statsB)
   }
   local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
                                   MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
-                                  candidate.kind == "pax", statsB, isDoubleFreight);
+                                  candidate.kind == "pax", statsB, isDoubleFreight, rankPct);
   if (isDoubleFreight && plansB.len() == 0) {
     plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
                               MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,

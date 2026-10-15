@@ -2325,6 +2325,33 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v207_rail_pax_site_rank_pct",
+      description = "V207: passenger rail station sites are sampled more widely and only those whose platform catchment produces at least this percentage of the best sampled site are kept (1..100); 0 = off (default, first sites found)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v212_rail_pax_revenue_pct",
+      description = "V212: calibration of the predicted annual revenue of passenger rail lines, in percent (100 = off, default)",
+      min_value = 50, max_value = 300,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
+      step_size = 5,
+      flags = 0
+    });
+    AddSetting({
+      name = "v212_rail_pax_capital_pct",
+      description = "V212: calibration of the predicted capital of passenger rail lines before the quote, in percent (100 = off, default)",
+      min_value = 50, max_value = 200,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
+      step_size = 5,
+      flags = 0
+    });
   }
 }
 
