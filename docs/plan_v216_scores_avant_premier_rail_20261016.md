@@ -179,6 +179,31 @@ en 1972.
 2. **Un facteur par mode ou par famille déplace le niveau sans changer l'ordre** (P2). Ici l'erreur dépend du contexte, pas du mode : seule une correction de structure peut la traiter.
 3. **Corriger le revenu AIR n'a jamais payé.** L'AIR est sur-prédit (0,57), mais trois corrections de son revenu ont été neutres ou négatives. On le mesure ici, sans nouvelle correction AIR tant que le rejeu ne montre pas qu'elle change des achats.
 
+### 1.8 bis Ce qu'apportent les diagnostics EST-01 à EST-16 (Codex, publiés le 16/10)
+
+Source : [`scores_estimateurs_plan_20261014.md`](scores_estimateurs_plan_20261014.md).
+
+Ces diagnostics sont l'autopsie d'une seule ligne de fret : ligne 16, charbon, 36 tuiles, un train
+et deux wagons. Ils portent sur une partie (graine 42, ancien code `36ef545`), reconstruite à partir
+des sauvegardes mensuelles. Il n'y a eu aucun banc ni aucun changement de code.
+
+| Lot | Résultat |
+|---|---|
+| EST-05 | En 1972, à flotte stable, le profit réalisé est inférieur de 25 % au prévu |
+| EST-13 | Avant tout concurrent, la gare capte 1 158 à 1 247 t sur 11 mois, pour 946 t prévues (+22 à +32 %). Sa note est de 72-74 % au lieu des 63 % prévus |
+| EST-14 | Les arrivées (900 à 1 021 t) correspondent au prévu ; le stock monte à la gare source (0 → 245 t) |
+| EST-15/16 | Le cycle du modèle (≈ 15 j) ignore le séjour en gare. Charger 2 wagons de 30 t, par tranches de 5 unités tous les 40 ticks, prend ≈ 3,2 j par gare. Le cycle réel est de 21-22 j, soit une capacité de ~84 t/mois au lieu de 120 |
+| EST-10 à 12 | En janvier 1972, AAA construit une gare sur la même mine et prend 44 à 47 % du charbon alloué : notre capture tombe à 54-64 % du prévu |
+| EST-04 | Une ligne doublée en cours d'année fausse l'entrée C70 : 57 % au lieu de 73 % rapporté au train initial |
+
+**Conséquences pour V216 :**
+
+1. **Deux erreurs se compensent.** La note prévue est trop basse, donc l'offre est sous-estimée. Le séjour en gare est oublié, donc la capacité est surestimée. Le volume tombe juste par hasard. Ces deux erreurs doivent être mesurées séparément (§3.1, §5 B) et corrigées ensemble (V216f), sinon le fret se dégrade.
+2. **La concurrence arrive après la construction.** Le partage observé suit exactement la mécanique du §1.3. Un estimateur qui ne regarde que les gares existantes ne voit pas ce risque. On mesure donc le taux d'arrivée d'AAA après notre construction (§5 G).
+3. **EST n'explique pas l'écart du rail voyageurs en partie complète.** Il ne dit rien des voyageurs, du courrier, de l'AIR ni de nos aéroports. Le constat du §1.4 reste entier.
+4. **La méthode par sauvegardes ne passe pas à l'échelle** : 16 micro-tâches pour une seule ligne. Les helpers `sweeps/station_supply.py` et `station_supply_bounds.py` servent à valider la sonde sur quelques lignes ; la mesure de masse vient de la sonde.
+5. **Une seule ligne ne donne aucune constante** : ni le séjour de 7 j, ni le partage de 45 %. C'est cohérent avec le test d'invariance (§5 D).
+
 ### 1.9 Déjà réfuté : ne pas reproposer tel quel
 
 - `c121_territory_first` : réserver la caisse du prochain aéroport (supprimé le 11/10).
@@ -226,7 +251,7 @@ présents. Il n'y a **aucun recalcul d'économie** : si un champ manque, la sond
 |---|---|
 | Identité | mode, kind, bras AIR, cargo(s), src, dst, distance, clé |
 | Demande | production A/B, part appliquée (22 % ou part C121), note prévue, offre mensuelle |
-| Offre | véhicules, capacité par cargo, allers-retours par mois, cadence |
+| Offre | véhicules, wagons et capacité unitaire par cargo, durée de trajet, **séjour en gare calculé** (tranches de chargement par wagon) et séjour utilisé par le modèle (aujourd'hui nul), allers-retours par mois, cadence, `loadDays` |
 | Volume | transporté = min(offre, capacité) |
 | Prix | revenu par unité (distance, jours de transit) |
 | Revenu | revenu annuel par cargo, facteur de réalisation C121 |
@@ -332,7 +357,12 @@ réalisé/prévu :
 
 - revenu = volume × prix ;
 - volume = min(offre, capacité) ;
-- offre = production × part × note.
+- offre = production × part × note ;
+- capacité = véhicules × capacité unitaire × 30 / (trajet + séjour en gare).
+
+L'offre et la capacité se mesurent séparément, parce que leurs erreurs se compensent (§1.8 bis).
+Le stock en attente à la gare source sert de témoin : un stock qui monte signale une ligne limitée
+par la capacité, même quand le modèle la croyait limitée par l'offre.
 
 Côté réalisé : la note vient de la télémétrie, le volume de revenu / prix et de `TOWN_FLOW`, la
 part des prises en charge par ville rapportées à la production. On sait ainsi si l'écart vient de
@@ -354,6 +384,15 @@ cellules A à D. Le fantôme est retenu si :
 
 **E. K_dec et dénominateur.** Combien de fois K_dec l'emporte sur le capital, par mode. C'est un
 recalcul hors ligne de l'ordre.
+
+**G. Arrivée tardive de la concurrence.** Avec `TOWN_FLOW` et les prises en charge par industrie
+d'AAA, on mesure la part de nos sources (villes et industries) qu'AAA vient partager dans les 12 mois
+qui suivent notre construction, par mode et par cargo, et la perte de capture associée. Si ce taux
+est stable, il peut devenir un terme de risque estimé, et non un coefficient arbitraire.
+
+**H. Validation de la sonde.** Sur 3 à 5 lignes, la capture et les arrivées mesurées par la sonde
+sont comparées aux bornes tirées des sauvegardes avec les helpers EST (`sweeps/station_supply.py`,
+`station_supply_bounds.py`).
 
 **F. AIR.** La même attribution qu'en B, pour comprendre le 0,57. C'est une mesure, pas une
 proposition (§1.8).
@@ -397,6 +436,13 @@ V216a coûte trop d'opcodes.
 **V216d — coût d'attente explicite (règle de financement).**
 - C'est proche de P1, retirée à la clôture de V165 : on ne le rouvre qu'avec l'accord de l'utilisateur.
 - Il faut aussi que le rejeu montre une perte d'au moins ~80 k£/an une fois V216a en place.
+
+**V216f — cycle rail avec séjour en gare, couplé à la note** (issu d'EST-15/16)
+- Ajouter au cycle de capacité un séjour calculé à partir des wagons : tranches de 5 unités tous les 40 ticks, aux deux gares.
+- Corriger en même temps la note prévue (63 % prévus contre 72-80 % observés sur la ligne 16), selon l'analyse B. Corriger le séjour seul baisserait la capacité sans relever l'offre, et dégraderait le fret.
+- Contrat : pas de double comptage avec `loadDays` (`economy.nut` l. 365), qui agit déjà sur la note et la capture.
+- Valeurs vérifiées par l'API NoAI (capacité des wagons, chargement progressif) ; aucune constante de 7 j.
+- Elle touche tous les modes rail, fret compris. Le critère passe donc aussi par le test d'invariance du fret, puis par le rejeu et les portes.
 
 **V216e — a priori de calibration 1970-71 : abandonnée.** C'est une redite de P2 (0 construction
 changée).
@@ -456,5 +502,6 @@ Fichiers touchés : `candidates.nut`, `economy.nut`, `projects_selection.nut` (s
 **Arrêts**
 - Le factoriel montre que le contexte n'explique pas l'écart : V216a abandonnée sans code.
 - Le fantôme échoue au test D : V216a abandonnée.
+- L'analyse B ne montre pas, sur la masse des lignes, la compensation note/séjour vue sur la ligne 16 : V216f abandonnée.
 - Le rejeu ne change aucun achat, ou les change avec une valeur négative : arrêt, constat consigné.
 - Défauts, fusions et commits restent des décisions de l'utilisateur.
