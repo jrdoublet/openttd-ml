@@ -2304,24 +2304,24 @@ class OpexAIInfo extends AIInfo {
       name = "v207_rail_pax_share_pct",
       description = "V207: predicted share of town passenger production captured by a rail line (0 = legacy 22%, 1..100 = custom percentage); 0 = off (default)",
       min_value = 0, max_value = 100,
-      easy_value = 40, medium_value = 40, hard_value = 40,
-      custom_value = 40,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       step_size = 1,
       flags = 0
     });
     AddSetting({
       name = "v207_rail_mail",
       description = "V207: passenger rail lines also carry mail as a secondary cargo, with wagons sized to mail production; 0 = off (default), 1 = on",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
       name = "v207_rail_pax_joined_stops",
       description = "V207: maximum number of drive-through bus stops joined to each passenger rail station to extend catchment (0..4); 0 = off (default)",
       min_value = 0, max_value = 4,
-      easy_value = 2, medium_value = 2, hard_value = 2,
-      custom_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       step_size = 1,
       flags = 0
     });
@@ -2336,37 +2336,37 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v212_rail_pax_revenue_pct",
-      description = "V212: calibration of the predicted annual revenue of passenger rail lines, in percent (100 = off; default 150, qualified 15/10)",
+      description = "V212: calibration of the predicted annual revenue of passenger rail lines, in percent (100 = off, default; 150 qualified in rail-only 15/10, losing in full games)",
       min_value = 50, max_value = 300,
-      easy_value = 150, medium_value = 150, hard_value = 150,
-      custom_value = 150,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
       step_size = 5,
       flags = 0
     });
     AddSetting({
       name = "v212_rail_pax_capital_pct",
-      description = "V212: calibration of the predicted capital of passenger rail lines before the quote, in percent (100 = off; default 85, qualified 15/10)",
+      description = "V212: calibration of the predicted capital of passenger rail lines before the quote, in percent (100 = off, default; 85 qualified in rail-only 15/10, losing in full games)",
       min_value = 50, max_value = 200,
-      easy_value = 85, medium_value = 85, hard_value = 85,
-      custom_value = 85,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
       step_size = 5,
       flags = 0
     });
     AddSetting({
       name = "v214_rail_turn_cost",
-      description = "V214: rail A* cost of leaving a diagonal (entering one is free), as AAAHogEx (300); default 300; 0 = historical 50 on every direction change",
+      description = "V214: rail A* cost of leaving a diagonal (entering one is free), as AAAHogEx (300, qualified in rail-only only); 0 = historical 50 on every direction change (default)",
       min_value = 0, max_value = 2000,
-      easy_value = 300, medium_value = 300, hard_value = 300,
-      custom_value = 300,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       step_size = 50,
       flags = 0
     });
     AddSetting({
       name = "v214_rail_tight_turn_cost",
-      description = "V214: rail A* extra cost of a 90 degree turn taken on a single tile, as AAAHogEx (1500, 100 below 40 tiles); default 1500; 0 = off",
+      description = "V214: rail A* extra cost of a 90 degree turn taken on a single tile, as AAAHogEx (1500, 100 below 40 tiles; qualified in rail-only only); 0 = off (default)",
       min_value = 0, max_value = 5000,
-      easy_value = 1500, medium_value = 1500, hard_value = 1500,
-      custom_value = 1500,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       step_size = 100,
       flags = 0
     });

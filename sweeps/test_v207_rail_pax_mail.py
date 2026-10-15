@@ -61,15 +61,15 @@ class TestV207Settings(unittest.TestCase):
         block_share = match_share.group(0)
         self.assertIn("min_value = 0", block_share)
         self.assertIn("max_value = 100", block_share)
-        self.assertIn("easy_value = 40", block_share)
-        self.assertIn("custom_value = 40", block_share)
+        self.assertIn("easy_value = 0", block_share)
+        self.assertIn("custom_value = 0", block_share)
 
         # 2. v207_rail_mail
         match_mail = re.search(r'name\s*=\s*"v207_rail_mail"[^}]+flags\s*=\s*AICONFIG_BOOLEAN', self.info, re.S)
         self.assertIsNotNone(match_mail, "v207_rail_mail must be AICONFIG_BOOLEAN")
         block_mail = match_mail.group(0)
-        self.assertIn("easy_value = 1", block_mail)
-        self.assertIn("custom_value = 1", block_mail)
+        self.assertIn("easy_value = 0", block_mail)
+        self.assertIn("custom_value = 0", block_mail)
 
         # 3. v207_rail_pax_joined_stops
         match_stops = re.search(r'name\s*=\s*"v207_rail_pax_joined_stops"[^}]+', self.info)
@@ -77,13 +77,13 @@ class TestV207Settings(unittest.TestCase):
         block_stops = match_stops.group(0)
         self.assertIn("min_value = 0", block_stops)
         self.assertIn("max_value = 4", block_stops)
-        self.assertIn("easy_value = 2", block_stops)
-        self.assertIn("custom_value = 2", block_stops)
+        self.assertIn("easy_value = 0", block_stops)
+        self.assertIn("custom_value = 0", block_stops)
 
     def test_globals_pre_defaults(self):
-        self.assertIn("V207_RAIL_PAX_SHARE_PCT <- 40;", self.globals_pre)
-        self.assertIn("V207_RAIL_MAIL <- true;", self.globals_pre)
-        self.assertIn("V207_RAIL_PAX_JOINED_STOPS <- 2;", self.globals_pre)
+        self.assertIn("V207_RAIL_PAX_SHARE_PCT <- 0;", self.globals_pre)
+        self.assertIn("V207_RAIL_MAIL <- false;", self.globals_pre)
+        self.assertIn("V207_RAIL_PAX_JOINED_STOPS <- 0;", self.globals_pre)
 
     def test_settings_loaded(self):
         self.assertIn('AIController.GetSetting("v207_rail_pax_share_pct")', self.settings)
