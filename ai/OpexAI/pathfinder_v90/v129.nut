@@ -308,6 +308,9 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 	_estCache = null;
 	_dirIdx = null;
 	_consumed = 1;
+	_v214Turn = 0;
+	_v214Tight = 0;
+	_v214RouteDist = -1;
 
 	function InitializePath(sources, goals, ignored_tiles = [])
 	{
@@ -335,6 +338,23 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 				x = AIMap.GetTileX(tile),
 				y = AIMap.GetTileY(tile)
 			});
+		}
+
+		/* V214 : couts de virage a la AAAHogEx, lus une fois par recherche (pas dans _Cost). */
+		this._v214Turn = V214_RAIL_TURN_COST;
+		this._v214Tight = V214_RAIL_TIGHT_TURN_COST;
+		if (this._v214Tight > 0) {
+			/* AAA ramene le coude serre a 100 sous 40 tuiles de trajet. La recherche segmentee fixe
+			 * _v214RouteDist avant l'appel : ses sources intermediaires sont plus pres du but. */
+			if (this._v214RouteDist < 0) {
+				foreach (node in sources) {
+					foreach (g in this._goalCoords) {
+						local d = AIMap.DistanceManhattan(node[0], g.tile);
+						if (this._v214RouteDist < 0 || d < this._v214RouteDist) this._v214RouteDist = d;
+					}
+				}
+			}
+			if (this._v214RouteDist >= 0 && this._v214RouteDist < 40 && this._v214Tight > 100) this._v214Tight = 100;
 		}
 
 		/* Index de direction de chaque offset (= _dir(cur, cur + offset)), calcule depuis les offsets. */
@@ -479,7 +499,23 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 					local gp = par._prev;
 					if (gp != null && AIMap.DistanceManhattan(new_tile, gp._tile) == 3 &&
 							gp._tile - par_tile != prev_tile - new_tile) {
-						step_cost += self._cost_turn;
+						if (self._v214Turn <= 0) {
+							step_cost += self._cost_turn;
+						} else if (prev_tile - par_tile != par_tile - gp._tile) {
+							/* V214 : comme AAAHogEx, l'entree dans une diagonale est gratuite ; seule la
+							 * sortie (diagonale -> droite) paie. */
+							step_cost += self._v214Turn;
+						}
+					}
+					if (self._v214Tight > 0 && gp != null) {
+						local ggp = gp._prev;
+						/* V214 : droite, coin, droite perpendiculaire sur 4 pas unitaires (AAA _IsTightTurn). */
+						if (ggp != null && AIMap.DistanceManhattan(new_tile, ggp._tile) == 4 &&
+								new_tile - prev_tile == prev_tile - par_tile &&
+								par_tile - gp._tile == gp._tile - ggp._tile &&
+								prev_tile - par_tile != par_tile - gp._tile) {
+							step_cost += self._v214Tight;
+						}
 					}
 				}
 

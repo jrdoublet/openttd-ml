@@ -1031,6 +1031,12 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       }
       if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
       if (("guideTiles" in state) && state.guideTiles != null) pathfinder._guideTiles = state.guideTiles;
+      /* V214 : le coude serre ramene a 100 sous 40 tuiles se juge sur le trajet complet, pas sur
+       * les sources intermediaires d'un segment. */
+      if (V214_RAIL_TIGHT_TURN_COST > 0 && ("_v214RouteDist" in pathfinder)) {
+        if (!("v214RouteDist" in state)) state.v214RouteDist <- OpexV214RouteDistance(state.activeSources, state.goals);
+        pathfinder._v214RouteDist = state.v214RouteDist;
+      }
       local ignored = OpexSegmentIgnoredTiles(state);
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);
       state.pathfinder = pathfinder;
@@ -1255,6 +1261,49 @@ function OpexPathTiles(path)
     if (simplified.len() == 0 || simplified[simplified.len() - 1] != tile) simplified.push(tile);
   }
   return simplified;
+}
+
+/* V214 : distance Manhattan minimale entre sources et buts d'une recherche ([tuile, voisine]). */
+function OpexV214RouteDistance(sources, goals)
+{
+  local best = -1;
+  foreach (s in sources) {
+    foreach (g in goals) {
+      local d = AIMap.DistanceManhattan(s[0], g[0]);
+      if (best < 0 || d < best) best = d;
+    }
+  }
+  return best;
+}
+
+/* V214 : geometrie d'un trace trouve, sur les pas unitaires (un pont ou un tunnel coupe la
+ * fenetre). turns = changements de 45 degres (regle historique : 50 chacun), exits = sorties de
+ * diagonale (regle AAA), tight = coudes de 90 degres pris sur une seule tuile. */
+function OpexV214PathGeometry(tiles)
+{
+  local steps = 0;
+  local turns = 0;
+  local exits = 0;
+  local tight = 0;
+  local n = tiles.len();
+  for (local i = 0; i + 1 < n; i++) {
+    if (AIMap.DistanceManhattan(tiles[i], tiles[i + 1]) == 1) steps++;
+  }
+  for (local i = 0; i + 3 < n; i++) {
+    if (AIMap.DistanceManhattan(tiles[i], tiles[i + 3]) != 3) continue;
+    local s0 = tiles[i + 1] - tiles[i];
+    local s1 = tiles[i + 2] - tiles[i + 1];
+    local s2 = tiles[i + 3] - tiles[i + 2];
+    if (s0 != s2) {
+      turns++;
+      if (s1 != s0) exits++;
+    }
+    if (i + 4 < n && AIMap.DistanceManhattan(tiles[i], tiles[i + 4]) == 4) {
+      local s3 = tiles[i + 4] - tiles[i + 3];
+      if (s0 == s1 && s2 == s3 && s1 != s2) tight++;
+    }
+  }
+  return { steps = steps, turns = turns, exits = exits, tight = tight };
 }
 
 /* Un succes segmente porte `tiles` (prefixe complet, y compris ponts/tunnels locaux)

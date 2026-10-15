@@ -62,6 +62,13 @@ V207_RAIL_PAX_SITE_RANK_PCT <- 0;
  * paquet (15/10, rail seul 40x3 : +221 k/an, p=1,3e-7). */
 V212_RAIL_PAX_REVENUE_PCT <- 150;
 V212_RAIL_PAX_CAPITAL_PCT <- 85;
+/* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
+ * 0 = historique (50 a chaque changement de direction, aucun surcout de coude serre).
+ * V214_RAIL_TURN_COST > 0 : entrer dans une diagonale est gratuit, en sortir coute ce montant.
+ * V214_RAIL_TIGHT_TURN_COST > 0 : coude de 90 degres pris sur une seule tuile (droite, coin,
+ * droite perpendiculaire), 88 km/h en acceleration realiste ; ramene a 100 sous 40 tuiles. */
+V214_RAIL_TURN_COST <- 0;
+V214_RAIL_TIGHT_TURN_COST <- 0;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;

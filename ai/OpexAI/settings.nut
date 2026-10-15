@@ -169,6 +169,10 @@ function OpexLoadSettings()
   V212_RAIL_PAX_REVENUE_PCT = (v212Revenue != null && v212Revenue >= 50 && v212Revenue <= 300) ? v212Revenue : 150;
   local v212Capital = AIController.GetSetting("v212_rail_pax_capital_pct");
   V212_RAIL_PAX_CAPITAL_PCT = (v212Capital != null && v212Capital >= 50 && v212Capital <= 200) ? v212Capital : 85;
+  local v214Turn = AIController.GetSetting("v214_rail_turn_cost");
+  V214_RAIL_TURN_COST = (v214Turn != null && v214Turn >= 0 && v214Turn <= 2000) ? v214Turn : 0;
+  local v214Tight = AIController.GetSetting("v214_rail_tight_turn_cost");
+  V214_RAIL_TIGHT_TURN_COST = (v214Tight != null && v214Tight >= 0 && v214Tight <= 5000) ? v214Tight : 0;
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");
   if (v190Delay == null || v190Delay < 0) v190Delay = 0;
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;

@@ -1594,6 +1594,16 @@ function OpexAI::_continueRailSearch()
   if (DECISION_LOG) {
     local slotStr = (V184_RAIL_SEARCH_SLOTS > 1 && ("slotIndex" in state)) ? (" slot=" + state.slotIndex) : "";
     OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget + slotStr);
+    if (slice.stop == "OK") {
+      local v214Tiles = OpexResolveSearchTiles(slice);
+      if (v214Tiles.len() >= 2) {
+        local geo = OpexV214PathGeometry(v214Tiles);
+        OpexDecide("V214_PATH", "start=" + v214Tiles[0] + " end=" + v214Tiles[v214Tiles.len() - 1]
+                   + " steps=" + geo.steps + " turns=" + geo.turns + " exits=" + geo.exits
+                   + " tight=" + geo.tight + " turn_cost=" + V214_RAIL_TURN_COST
+                   + " tight_cost=" + V214_RAIL_TIGHT_TURN_COST + slotStr);
+      }
+    }
   }
   if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, slice.stop);
 
