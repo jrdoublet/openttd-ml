@@ -274,9 +274,8 @@ function OpexV216FlushRejects()
  * note de nos gares qui les couvrent. Partage a la maniere de MoveGoodsToStation : le volume
  * deplace suit la meilleure note, reparti au prorata des notes ; la note adverse est illisible,
  * supposee egale a la notre. Approximation : la gare rail n'est pas encore placee, la zone est
- * centree sur la tuile de ville. Cache par extremite et par trimestre ; AIR limite aux 3 premiers rangs. */
-V216_GHOST_CACHE <- {};
-V216_GHOST_MONTH <- -1;
+ * centree sur la tuile de ville. AIR limite aux 3 premiers rangs. */
+V216_COVER <- { ownMonth = -1, advQuarter = -1, own = {}, adv = {}, cache = {} };
 
 function OpexV216StationRadius(tile)
 {
@@ -290,77 +289,171 @@ function OpexV216StationRadius(tile)
   return AIStation.GetCoverageRadius(AIStation.STATION_DOCK);
 }
 
-function OpexV216Coverage(center, cargo, radius)
+/* Tables de couverture (refonte du 16/10 : le balayage tuile par tuile coutait 15 a 40 k opcodes
+ * par extremite). `own[tuile] = [note voyageurs, note courrier]` maximales de nos gares qui la
+ * couvrent, reconstruite chaque mois gare par gare sur la boite englobante de ses tuiles elargie
+ * du rayon. Les gares adverses sont lues paresseusement autour de chaque centre et gardees un
+ * trimestre (`adv[centre]`). Une gare posee dans le mois n'y figure qu'au mois suivant. */
+V216_ADV_MAX_RADIUS <- 5;
+
+function OpexV216MarkRect(table, x0, y0, x1, y1, ratings)
 {
-  local now = AIDate.GetCurrentDate();
-  /* Cache trimestriel : un cache mensuel coutait 27 M opcodes en 3 ans (smoke 7 du 16/10). */
-  local ym = (AIDate.GetYear(now) * 12 + AIDate.GetMonth(now) - 1) / 3;
-  if (ym != V216_GHOST_MONTH) {
-    V216_GHOST_CACHE = {};
-    V216_GHOST_MONTH = ym;
-  }
-  local key = center + "|" + cargo + "|" + radius;
-  if (key in V216_GHOST_CACHE) return V216_GHOST_CACHE[key];
-  local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
-  local cx = AIMap.GetTileX(center);
-  local cy = AIMap.GetTileY(center);
-  local scan = radius + 6;
-  local stations = [];
-  local perStation = {};
-  for (local dx = -scan; dx <= scan; dx++) {
-    for (local dy = -scan; dy <= scan; dy++) {
-      local x = cx + dx;
-      local y = cy + dy;
-      if (x < 1 || y < 1 || x >= AIMap.GetMapSizeX() - 1 || y >= AIMap.GetMapSizeY() - 1) continue;
-      local tile = AIMap.GetTileIndex(x, y);
-      if (!AITile.IsStationTile(tile)) continue;
-      /* Rayon et note lus une fois par gare (un aeroport compte 9 a 25 tuiles). */
-      local st = AIStation.GetStationID(tile);
-      local info = null;
-      if (st in perStation) {
-        info = perStation[st];
+  if (x0 < 1) x0 = 1;
+  if (y0 < 1) y0 = 1;
+  if (x1 > AIMap.GetMapSizeX() - 2) x1 = AIMap.GetMapSizeX() - 2;
+  if (y1 > AIMap.GetMapSizeY() - 2) y1 = AIMap.GetMapSizeY() - 2;
+  for (local x = x0; x <= x1; x++) {
+    for (local y = y0; y <= y1; y++) {
+      local key = AIMap.GetTileIndex(x, y);
+      if (ratings == null) {
+        table.rawset(key, true);
+      } else if (key in table) {
+        local cur = table[key];
+        if (ratings[0] > cur[0]) cur[0] = ratings[0];
+        if (ratings[1] > cur[1]) cur[1] = ratings[1];
       } else {
-        local own = AITile.GetOwner(tile) == me;
-        local rating = 0;
-        if (own && AIStation.IsValidStation(st) && AIStation.HasCargoRating(st, cargo))
-          rating = AIStation.GetCargoRating(st, cargo);
-        info = { r = OpexV216StationRadius(tile), own = own, rating = rating };
-        perStation.rawset(st, info);
+        table.rawset(key, [ratings[0], ratings[1]]);
       }
-      stations.append({ x = x, y = y, r = info.r, own = info.own, rating = info.rating });
     }
   }
+}
+
+function OpexV216RefreshCover()
+{
+  local now = AIDate.GetCurrentDate();
+  local ym = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now) - 1;
+  local cover = V216_COVER;
+  if (cover.ownMonth == ym) return cover;
+  cover.ownMonth = ym;
+  cover.cache = {};
+  cover.own = {};
+  if (cover.advQuarter != ym / 3) {
+    cover.advQuarter = ym / 3;
+    cover.adv = {};
+  }
+  local pax = OpexV216Cargo(AICargo.CC_PASSENGERS);
+  local mail = OpexV216Cargo(AICargo.CC_MAIL);
+  foreach (st, sv in AIStationList(AIStation.STATION_ANY)) {
+    local ratings = [0, 0];
+    if (pax != null && AIStation.HasCargoRating(st, pax)) ratings[0] = AIStation.GetCargoRating(st, pax);
+    if (mail != null && AIStation.HasCargoRating(st, mail)) ratings[1] = AIStation.GetCargoRating(st, mail);
+    foreach (type in [AIStation.STATION_TRAIN, AIStation.STATION_AIRPORT, AIStation.STATION_BUS_STOP,
+                      AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK]) {
+      if (!AIStation.HasStationType(st, type)) continue;
+      local x0 = 99999, y0 = 99999, x1 = -1, y1 = -1, r = 0;
+      foreach (tile, tv in AITileList_StationType(st, type)) {
+        local x = AIMap.GetTileX(tile), y = AIMap.GetTileY(tile);
+        if (x < x0) x0 = x;
+        if (y < y0) y0 = y;
+        if (x > x1) x1 = x;
+        if (y > y1) y1 = y;
+        if (r == 0) r = OpexV216StationRadius(tile);
+      }
+      if (x1 >= 0) OpexV216MarkRect(cover.own, x0 - r, y0 - r, x1 + r, y1 + r, ratings);
+    }
+  }
+  return cover;
+}
+
+/* Tuiles couvertes par des gares adverses dans la fenetre d'un centre (rayon de captage + rayon
+ * adverse maximal), lues une fois par trimestre et par centre. */
+function OpexV216AdvAround(cover, center, radius)
+{
+  if (center in cover.adv) return cover.adv[center];
+  local table = {};
+  local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local cx = AIMap.GetTileX(center), cy = AIMap.GetTileY(center);
+  local w = radius + V216_ADV_MAX_RADIUS;
+  local tiles = AITileList();
+  local mx = AIMap.GetMapSizeX() - 2, my = AIMap.GetMapSizeY() - 2;
+  tiles.AddRectangle(AIMap.GetTileIndex(cx - w < 1 ? 1 : cx - w, cy - w < 1 ? 1 : cy - w),
+      AIMap.GetTileIndex(cx + w > mx ? mx : cx + w, cy + w > my ? my : cy + w));
+  tiles.Valuate(AITile.IsStationTile);
+  tiles.KeepValue(1);
+  foreach (tile, tv in tiles) {
+    if (AITile.GetOwner(tile) == me) continue;
+    if (!AIRail.IsRailStationTile(tile) && !AIAirport.IsAirportTile(tile)
+        && !AIRoad.IsRoadStationTile(tile) && !AIMarine.IsDockTile(tile)) continue;
+    local r = OpexV216StationRadius(tile);
+    local x = AIMap.GetTileX(tile), y = AIMap.GetTileY(tile);
+    OpexV216MarkRect(table, x - r > cx - radius ? x - r : cx - radius,
+        y - r > cy - radius ? y - r : cy - radius,
+        x + r < cx + radius ? x + r : cx + radius,
+        y + r < cy + radius ? y + r : cy + radius, null);
+  }
+  cover.adv.rawset(center, table);
+  return table;
+}
+
+function OpexV216Coverage(center, cargo, radius)
+{
+  local cover = OpexV216RefreshCover();
+  local key = center + "|" + cargo + "|" + radius;
+  if (key in cover.cache) return cover.cache[key];
+  local adv = OpexV216AdvAround(cover, center, radius);
+  local ci = AICargo.HasCargoClass(cargo, AICargo.CC_MAIL) ? 1 : 0;
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
   local res = { prod = 0, own = 0, adv = 0, ownRating = 0 };
-  for (local dx = -radius; dx <= radius; dx++) {
-    for (local dy = -radius; dy <= radius; dy++) {
-      local x = cx + dx;
-      local y = cy + dy;
+  for (local x = cx - radius; x <= cx + radius; x++) {
+    for (local y = cy - radius; y <= cy + radius; y++) {
       if (x < 1 || y < 1 || x >= AIMap.GetMapSizeX() - 1 || y >= AIMap.GetMapSizeY() - 1) continue;
       local tile = AIMap.GetTileIndex(x, y);
       if (AITile.GetCargoProduction(tile, cargo, 1, 1, 0) <= 0) continue;
       res.prod++;
-      local ownHit = false;
-      local advHit = false;
-      local bestOwn = 0;
-      foreach (s in stations) {
-        if (abs(s.x - x) > s.r || abs(s.y - y) > s.r) continue;
-        if (s.own) {
-          ownHit = true;
-          if (s.rating > bestOwn) bestOwn = s.rating;
-        } else {
-          advHit = true;
-        }
-      }
-      if (ownHit) {
+      if (tile in cover.own) {
         res.own++;
-        if (bestOwn > res.ownRating) res.ownRating = bestOwn;
-      } else if (advHit) {
+        local r = cover.own[tile][ci];
+        if (r > res.ownRating) res.ownRating = r;
+      } else if (tile in adv) {
         res.adv++;
       }
     }
   }
-  V216_GHOST_CACHE.rawset(key, res);
+  cover.cache.rawset(key, res);
   return res;
+}
+
+/* Gain net de la compagnie pour une extremite, en % de l'hypothese du modele (tuiles libres),
+ * a la note prevue rn (%). 100 sans tuile productrice lisible. Partage par V216a. */
+function OpexV216GainPct(center, cargo, radius, rn)
+{
+  if (center == null || center < 0 || rn <= 0) return 100;
+  local c = OpexV216Coverage(center, cargo, radius);
+  if (c.prod <= 0) return 100;
+  local rnf = rn.tofloat();
+  local ro = c.ownRating.tofloat();
+  local best = rnf > ro ? rnf : ro;
+  local free = (c.prod - c.own - c.adv).tofloat();
+  return (100.0 * (free * rnf + c.own * (best - ro) + c.adv * rnf * 0.5) / (c.prod * rnf)).tointeger();
+}
+
+/* V216a : la demande du modele suppose toutes les tuiles de la ville libres. On la multiplie par
+ * la moyenne des facteurs des deux extremites, a une note prevue constante de 35 % (mediane des
+ * c.stationRating rail pax du smoke du 16/10) : mode 1 = gain net de la compagnie (une tuile deja
+ * couverte par nous a une meilleure note ne rapporte rien), mode 2 = part de la ligne. */
+V216A_RN <- 35;
+
+function OpexV216aEndPct(center, cargo, radius)
+{
+  if (V216A_GHOST_DEMAND == 1) return OpexV216GainPct(center, cargo, radius, V216A_RN);
+  if (center == null || center < 0) return 100;
+  local c = OpexV216Coverage(center, cargo, radius);
+  if (c.prod <= 0) return 100;
+  local rnf = V216A_RN.tofloat();
+  local ro = c.ownRating.tofloat();
+  local best = rnf > ro ? rnf : ro;
+  local free = (c.prod - c.own - c.adv).tofloat();
+  local line = free * rnf + c.own * best * rnf / (rnf + ro) + c.adv * rnf * 0.5;
+  return (100.0 * line / (c.prod * rnf)).tointeger();
+}
+
+function OpexV216aScaleDemand(srcTile, dstTile, cargo, monthly)
+{
+  local radius = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  local pct = (OpexV216aEndPct(srcTile, cargo, radius) + OpexV216aEndPct(dstTile, cargo, radius)) / 2;
+  if (pct >= 100) return monthly;
+  return (monthly * pct) / 100;
 }
 
 /* Facteurs du fantome pour une extremite, rapportes a l'hypothese du modele (toutes les tuiles

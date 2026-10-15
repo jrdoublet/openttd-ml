@@ -1175,6 +1175,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v216a_ghost_demand",
+      description = "V216a: scale rail pax/mail demand by catchment already covered (ours or rivals). 0 = inert, 1 = company net gain, 2 = line share",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v172_rail_long_weight_dist",
       description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
       min_value = 0, max_value = 512,
