@@ -20,7 +20,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   local targeted = entityKind != null && entityId >= 0;
 
   if (mode == "rail") {
-    local generatePax = !targeted || entityKind == "town";
+    local generatePax = (!targeted || entityKind == "town") && !V217_REGEN_NO_PAX;
     local generateFreight = !targeted || entityKind == "industry";
     local freightOrder = OpexFreightCargoOrder(catalog);
     local deferRailReuseAdmission = generateFreight && freightCargo != null

@@ -1202,6 +1202,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v217_rail_refill",
+      description = "V217: from the third game year, at most once a month, regenerate the rail pool on the next freight cargo when idle cash exceeds 100000 and fewer than 2 rail candidates can start. 0 = inert (default), 1 = freight only, 2 = freight and passengers",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v172_rail_long_weight_dist",
       description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
       min_value = 0, max_value = 512,

@@ -846,6 +846,86 @@ function OpexAI::_v127IdleCashRoadRegen(ym)
   }
 }
 
+/* V217 : tresorerie oisive et vivier rail vide. Diag rail7273 du 16/10 (20 parties x 5 ans,
+ * multimodal) : le vivier rail n'est regenere qu'a la reconstruction complete (~1 par an, en
+ * janvier) et pour UN cargo fret ; il est vide 32-36 % du temps en 1972-73 alors que la caisse
+ * depasse 500 kGBP des 1973. Appele en tete de chaque tour de file (la branche « regeneration
+ * evitee » de la tache catalogue n'est presque jamais atteinte sous AIR_EFFICIENCY_RESELECT : smoke
+ * du 16/10). Au plus une fois par mois, seul le rail est regenere sur le
+ * cargo fret suivant (meme rotation que _c76RotateFreight, sans la route), quand moins de
+ * V217_POOL_MIN candidats rail du portefeuille peuvent demarrer (ni abandonnes ni trop
+ * proches). Jamais pendant les deux premieres annees : le rail y prend le capital de l'AIR
+ * (porte A V149 du 13/10). 1 = sans le rail voyageurs (90 % du cout d'une regeneration). */
+function OpexAI::_v217RailRefill()
+{
+  if (V217_RAIL_REFILL <= 0 || this._projects == null || this._catalog == null) return;
+  local date = AIDate.GetCurrentDate();
+  local year = AIDate.GetYear(date);
+  local ym = year * 12 + AIDate.GetMonth(date);
+  if (V217_LAST_MONTH == ym) return;
+  V217_LAST_MONTH = ym;
+  if (year < OPEX_START_YEAR + 2) return;
+  if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) return;
+  if (!("candidateGroups" in this._projects) || this._projects.candidateGroups == null) return;
+  local cash = OpexAvailableCapital();
+  if (cash <= V217_IDLE_CASH_MIN) {
+    if (DECISION_LOG) OpexDecide("V217_RAIL_SKIP", "month=" + ym + " reason=cash cash=" + cash);
+    return;
+  }
+  local startable = 0;
+  foreach (key, list in this._projects.candidateGroups) {
+    foreach (project in list) {
+      if (project == null || project.mode != "rail" || !("payload" in project) || project.payload == null) continue;
+      local c = project.payload;
+      if (ABANDON_MEMORY && this._abandonedPairs != null && (OpexAbandonedPairKey(c) in this._abandonedPairs)) continue;
+      local probe = (("isChain" in c) && c.isChain && ("inputCandidate" in c) && c.inputCandidate != null)
+          ? c.inputCandidate : c;
+      local close = this._tooClose(probe);
+      if (close.hard >= 0 || close.blocking >= 0) continue;
+      startable++;
+      if (startable >= V217_POOL_MIN) {
+        if (DECISION_LOG) OpexDecide("V217_RAIL_SKIP", "month=" + ym + " reason=pool cash=" + cash);
+        return;
+      }
+    }
+  }
+  local freightCargos = OpexFreightCargoOrder(this._catalog);
+  if (freightCargos.len() == 0) return;
+  local nextCargo = 0;
+  if (this._lastFreightCargo >= 0) {
+    for (local i = 0; i < freightCargos.len(); i++) {
+      if (freightCargos[i] == this._lastFreightCargo) {
+        nextCargo = (i + 1) % freightCargos.len();
+        break;
+      }
+    }
+  }
+  local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+  /* La reconstruction AIR du catalogue est presque toujours en cours (smoke du 16/10) : elle
+   * travaille sur son propre etat et ne lit que le catalogue, les lignes et les abandons. Ne pas
+   * rafraichir le catalogue ici (son curseur parcourt les villes) ; le catalogue du jour suffit,
+   * comme pour _c76RotateFreight et la regeneration V149. */
+  this._pruneAbandonedPairs(date);
+  this._projects.rawset("freightCargo", V183_RAIL_ALL_FREIGHT ? null : freightCargos[nextCargo]);
+  V217_REGEN_NO_PAX = (V217_RAIL_REFILL == 1);
+  this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
+      this._lines, this._abandonedPairs, "rail", null, null, -1);
+  V217_REGEN_NO_PAX = false;
+  if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
+    this._lastFreightCargo = this._projects.freightCargo;
+  }
+  this._ranked = this._projects.rail;
+  if (mark != null) {
+    local ops = OpexOpsMeasureEnd(mark);
+    local n = (this._projects.rail != null && ("candidates" in this._projects.rail)
+        && this._projects.rail.candidates != null) ? this._projects.rail.candidates.len() : -1;
+    local cargo = (("freightCargo" in this._projects) && this._projects.freightCargo != null)
+        ? AICargo.GetCargoLabel(this._projects.freightCargo) : "all";
+    OpexDecide("V217_RAIL_REFILL", "month=" + ym + " cash=" + cash + " startable=" + startable
+        + " cargo=" + cargo + " candidates=" + n + " ops=" + ops);
+  }
+}
+
 function OpexAI::_c77RefreshModeCatalog(mode)
 {
   if (this._catalog == null) return;
