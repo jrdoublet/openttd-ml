@@ -169,15 +169,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local doRoad = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
   local doAir = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_COMPLETE);
   local doWater = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
-  if (V220_SHIPS != 0) {
-    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    local curYear = AIDate.GetYear(AIDate.GetCurrentDate());
-    if (money < V220_SHIPS_MIN_CASH || curYear < V220_SHIPS_MIN_YEAR) {
-      doWater = false;
-    } else if (MODE_WATER) {
-      doWater = true;
-    }
-  }
   if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE) {
     doFreight = false;
     doPaxRail = false;
@@ -459,13 +450,14 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local waterPlans = [];
   local waterOps = 0;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_water", "-");
-  local hasWaterShips = (V220_SHIPS != 0)
-      ? (catalog.ships.len() > 0 || (("shipsByCargo" in catalog) && catalog.shipsByCargo != null && catalog.shipsByCargo.len() > 0))
+  local v220Active = (V220_SHIPS != 0 && catalog.year >= V220_SHIPS_MIN_YEAR && AICompany.GetBankBalance(AICompany.COMPANY_SELF) >= V220_SHIPS_MIN_CASH);
+  local hasWaterShips = v220Active
+      ? (catalog.ships.len() > 0 || (("GetShipsByCargo" in catalog) && catalog.GetShipsByCargo().len() > 0))
       : (catalog.ships.len() > 0 && catalog.paxCargo >= 0);
   if (doWater && hasWaterShips) {
     budget.begin();
     local spWater = PROBE_SPAN_TRACE ? OpexSpanBegin("build.water") : null;
-    waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null, WATER_OPCODE_COMPAT_FALSE ? null : null);
+    waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null, WATER_OPCODE_COMPAT_FALSE ? null : null, v220Active);
     if (spWater != null) OpexSpanEnd(spWater);
     waterOps = budget.end("project_water");
   } else if (!doWater && priorProjects != null) {

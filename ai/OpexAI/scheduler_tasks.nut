@@ -1106,7 +1106,7 @@ function OpexAI::_dispatchRefleet(task, year)
 {
 
   this._refleetRoadLines(year);
-  if (V220_SHIPS != 0) this._refleetWaterLines(year);
+  if (V220_SHIPS != 0 && year >= V220_SHIPS_MIN_YEAR) this._refleetWaterLines(year);
   else this._refleetCrashedWaterLines(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;

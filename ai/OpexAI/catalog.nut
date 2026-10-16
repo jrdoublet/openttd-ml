@@ -291,7 +291,7 @@ class OpexCatalog {
     this.locoByCargoWagons = {};
     this.wagonChoicesByCargo = {};
     this.ships = [];
-    this.shipsByCargo = {};
+    this.shipsByCargo = null;
     this.roadEngineByCargo = {};
     this.roadEngineChoicesByCargo = {};
     this.airPlaneChoicesByAirport = {};
@@ -308,6 +308,7 @@ class OpexCatalog {
   function _refreshRail();
   function _refreshAir();
   function _refreshWater();
+  function GetShipsByCargo();
   function _refreshRoad();
   /* C41.15 : point d'entree cible, homologue de refreshWater(). */
   function refreshRoad(budget);
@@ -778,6 +779,7 @@ function OpexCatalog::_refreshWater()
   this.maxShipPrice = 0;
   this.costDock = AIMarine.GetBuildCost(AIMarine.BT_DOCK);
   this.costWaterDepot = AIMarine.GetBuildCost(AIMarine.BT_DEPOT);
+  if (this.shipsByCargo != null) this.shipsByCargo = null;
   if (this.paxCargo < 0) return;
   /* V166 : mode EAU coupe = aucune coque au catalogue. */
   if (!MODE_WATER) return;
@@ -794,26 +796,35 @@ function OpexCatalog::_refreshWater()
     this.ships.append(ship);
     if (ship.price > this.maxShipPrice) this.maxShipPrice = ship.price;
   }
-  if (V220_SHIPS != 0) {
-    this.shipsByCargo = {};
-    for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
-      local capacity = AIEngine.GetCapacity(e);
-      local speed = AIEngine.GetMaxSpeed(e);
-      local price = AIEngine.GetPrice(e);
-      local runningCost = AIEngine.GetRunningCost(e);
-      local maxOrderDistance = AIEngine.GetMaximumOrderDistance(e);
-      local defaultCargo = AIEngine.GetCargoType(e);
-      local ship = { id = e, capacity = capacity, speed = speed, price = price,
-                     runningCost = runningCost, maxOrderDistance = maxOrderDistance };
-      if (ship.price > this.maxShipPrice) this.maxShipPrice = ship.price;
-      foreach (c in this.cargos) {
-        if (AIEngine.CanRefitCargo(e, c) || defaultCargo == c) {
-          if (!(c in this.shipsByCargo)) this.shipsByCargo.rawset(c, []);
-          this.shipsByCargo[c].append(ship);
-        }
+}
+
+/* V220 : chargement paresseux des navires par cargo uniquement a l'activation */
+function OpexCatalog::GetShipsByCargo()
+{
+  if (this.shipsByCargo != null) return this.shipsByCargo;
+  this.shipsByCargo = {};
+  if (!MODE_WATER) return this.shipsByCargo;
+  local engines = AIEngineList(AIVehicle.VT_WATER);
+  engines.Valuate(AIEngine.IsBuildable);
+  engines.KeepValue(1);
+  for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
+    local capacity = AIEngine.GetCapacity(e);
+    local speed = AIEngine.GetMaxSpeed(e);
+    local price = AIEngine.GetPrice(e);
+    local runningCost = AIEngine.GetRunningCost(e);
+    local maxOrderDistance = AIEngine.GetMaximumOrderDistance(e);
+    local defaultCargo = AIEngine.GetCargoType(e);
+    local ship = { id = e, capacity = capacity, speed = speed, price = price,
+                   runningCost = runningCost, maxOrderDistance = maxOrderDistance };
+    if (ship.price > this.maxShipPrice) this.maxShipPrice = ship.price;
+    foreach (c in this.cargos) {
+      if (AIEngine.CanRefitCargo(e, c) || defaultCargo == c) {
+        if (!(c in this.shipsByCargo)) this.shipsByCargo.rawset(c, []);
+        this.shipsByCargo[c].append(ship);
       }
     }
   }
+  return this.shipsByCargo;
 }
 
 /* Route : l'equivalent du piege CanRunOnRail/HasPowerOnRail existe bien. Un vehicule peut etre

@@ -77,9 +77,8 @@ class TestV220ShipsInvariantsAndBehavior(unittest.TestCase):
 
     def test_when_rich_gating(self):
         proj = self.sources["projects.nut"]
-        # doWater only true if cash >= V220_SHIPS_MIN_CASH and year >= V220_SHIPS_MIN_YEAR when V220_SHIPS != 0
-        self.assertIn("if (V220_SHIPS != 0) {", proj)
-        self.assertIn("if (money < V220_SHIPS_MIN_CASH || curYear < V220_SHIPS_MIN_YEAR)", proj)
+        # v220Active is gated lazily on V220_SHIPS, catalog.year >= V220_SHIPS_MIN_YEAR, and bank balance
+        self.assertIn("local v220Active = (V220_SHIPS != 0 && catalog.year >= V220_SHIPS_MIN_YEAR && AICompany.GetBankBalance(AICompany.COMPANY_SELF) >= V220_SHIPS_MIN_CASH);", proj)
 
     def test_single_line_lock_lifted_under_v220(self):
         task_water = self.sources["task_water.nut"]
@@ -90,9 +89,11 @@ class TestV220ShipsInvariantsAndBehavior(unittest.TestCase):
     def test_freight_water_and_built_in_docks(self):
         builder = self.sources["builder_water.nut"]
         # Industry dock finding
-        self.assertIn("function OpexWaterFindIndustrySite(ind, cargo, isProducer)", builder)
-        self.assertIn("AIIndustry.HasDock(ind.id)", builder)
-        self.assertIn("AIIndustry.GetDockLocation(ind.id)", builder)
+        self.assertIn("function OpexWaterFindIndustrySite(ind, cargo, isProducer", builder)
+        self.assertIn("AIIndustry.HasDock(indId)", builder)
+        self.assertIn("AIIndustry.GetDockLocation(indId)", builder)
+        self.assertIn("AITileList_IndustryProducing", builder)
+        self.assertIn("AITileList_IndustryAccepting", builder)
 
         # Freight economics
         self.assertIn("function OpexWaterFreightEconomics", builder)
@@ -107,7 +108,7 @@ class TestV220ShipsInvariantsAndBehavior(unittest.TestCase):
         main = self.sources["main.nut"]
 
         self.assertIn("function _refleetWaterLines(year);", main)
-        self.assertIn("if (V220_SHIPS != 0) this._refleetWaterLines(year);", sched)
+        self.assertIn("if (V220_SHIPS != 0 && year >= V220_SHIPS_MIN_YEAR) this._refleetWaterLines(year);", sched)
         self.assertIn("else this._refleetCrashedWaterLines(year);", sched)
 
         # In task_water.nut: checks waiting >= cap, production cap 110%
@@ -121,6 +122,7 @@ class TestV220ShipsInvariantsAndBehavior(unittest.TestCase):
         task_report = self.sources["task_report.nut"]
 
         self.assertIn('OpexDecide("WATER_PROJECT_GEN"', builder)
+        self.assertIn('OpexDecide("WATER_SCAN"', builder)
         self.assertIn('OpexDecide("PROJECT_CHOSEN"', task_water)
         self.assertIn('OpexDecide("WATER_BUILD"', task_water)
         self.assertIn('OpexDecide("WATER_REFLEET"', task_water)

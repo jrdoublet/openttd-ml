@@ -21,7 +21,8 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if (this._catalog.ships.len() == 0 && (("shipsByCargo" in this._catalog) ? this._catalog.shipsByCargo.len() == 0 : true)) {
+        local hasShips = (this._catalog.ships.len() > 0 || (("GetShipsByCargo" in this._catalog) && this._catalog.GetShipsByCargo().len() > 0));
+        if (!hasShips) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = project.src, dst = project.dst, reason = "water_unavailable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
@@ -33,7 +34,8 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
       local dstDesc = ("town" in plan.siteB) ? plan.siteB.town.id : plan.siteB.dock;
 
       if (V220_SHIPS != 0 && planKind == "freight") {
-        if (!("shipsByCargo" in this._catalog) || !(planCargo in this._catalog.shipsByCargo) || this._catalog.shipsByCargo[planCargo].len() == 0) {
+        local shipsByCargo = (("GetShipsByCargo" in this._catalog) ? this._catalog.GetShipsByCargo() : {});
+        if (!(planCargo in shipsByCargo) || shipsByCargo[planCargo].len() == 0) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = srcDesc, dst = dstDesc, reason = "water_unavailable", extra = "no_freight_ship" });
           return { outcome = "rejected", discards = passDiscards };
         }
@@ -146,7 +148,7 @@ function OpexAI::_refleetCrashedWaterLines(year)
 function OpexAI::_refleetWaterLines(year)
 {
   this._refleetCrashedWaterLines(year);
-  if (V220_SHIPS == 0) return;
+  if (V220_SHIPS == 0 || year < V220_SHIPS_MIN_YEAR || !this._waterBuilt) return;
 
   for (local i = 0; i < this._lines.len(); i++) {
     local line = this._lines[i];
