@@ -115,8 +115,8 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   } else if (mode == "water") {
     local mark = OpexOpsMeasureBegin();
     local plans = [];
-    local best = OpexWaterPlans(catalog, lines, plans, null,
-        null);
+    local v220Active = (V220_SHIPS != 0 && catalog.year >= V220_SHIPS_MIN_YEAR && AICompany.GetBankBalance(AICompany.COMPANY_SELF) >= V220_SHIPS_MIN_CASH);
+    local best = OpexWaterPlans(catalog, lines, plans, null, null, v220Active);
     local ops = OpexOpsMeasureEnd(mark);
     local perPlan = plans.len() > 0 ? ops / plans.len() : ops;
     generated.waterPlan = best;

@@ -926,6 +926,48 @@ function OpexAI::_v217RailRefill()
   }
 }
 
+/* V220 : injection eau legere mensuelle sous tresorerie riche (scheduler.nut).
+ * 0 = inerte (defaut). Conditionnee a l'annee V220_SHIPS_MIN_YEAR et tresorerie
+ * superieure ou egale a V220_SHIPS_MIN_CASH. Au plus une fois par mois. */
+function OpexAI::_v220WaterRefill()
+{
+  if (V220_SHIPS == 0 || this._projects == null || this._catalog == null) return;
+  local date = AIDate.GetCurrentDate();
+  local year = AIDate.GetYear(date);
+  if (year < V220_SHIPS_MIN_YEAR) return;
+  local ym = year * 12 + AIDate.GetMonth(date);
+  if (V220_LAST_MONTH == ym) return;
+  V220_LAST_MONTH = ym;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < V220_SHIPS_MIN_CASH) return;
+  if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) return;
+
+  /* Ne pas regenerer si le vivier contient deja un projet eau */
+  local hasWater = false;
+  if (("candidateGroups" in this._projects) && this._projects.candidateGroups != null) {
+    foreach (key, list in this._projects.candidateGroups) {
+      local arr = (typeof list == "array") ? list : [list];
+      foreach (project in arr) {
+        if (project != null && project.mode == "water") {
+          hasWater = true;
+          break;
+        }
+      }
+      if (hasWater) break;
+    }
+  }
+  if (hasWater) return;
+
+  local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+  this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
+      this._lines, this._abandonedPairs, "water", null, null, -1);
+  if (mark != null) {
+    local ops = OpexOpsMeasureEnd(mark);
+    local nWater = (this._projects != null && ("waterPlans" in this._projects) && this._projects.waterPlans != null)
+        ? this._projects.waterPlans.len() : 0;
+    OpexDecide("V220_WATER_REFILL", "month=" + ym + " plans=" + nWater + " ops=" + ops);
+  }
+}
+
 function OpexAI::_c77RefreshModeCatalog(mode)
 {
   if (this._catalog == null) return;

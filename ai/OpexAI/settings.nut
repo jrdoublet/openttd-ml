@@ -788,6 +788,7 @@ function OpexLoadSettings()
   V220_SHIPS_MIN_CASH = (v220Cash != null && v220Cash >= 0 && v220Cash <= 2000000) ? v220Cash : 300000;
   local v220Year = AIController.GetSetting("v220_ships_min_year");
   V220_SHIPS_MIN_YEAR = (v220Year != null && v220Year >= 1950 && v220Year <= 2050) ? v220Year : 1972;
+  V220_LAST_MONTH = -1;
   AIR0310_HUB_SNAPSHOT = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_hub_snapshot") != 0;
   AIR0310_SITE_VALIDITY_CACHE = C121_CATALOG_INCREMENTAL

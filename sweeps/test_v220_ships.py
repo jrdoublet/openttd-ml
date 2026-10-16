@@ -51,6 +51,7 @@ class TestV220ShipsSettings(unittest.TestCase):
         self.assertIn("V220_SHIPS <- 0;", globals_pre)
         self.assertIn("V220_SHIPS_MIN_CASH <- 300000;", globals_pre)
         self.assertIn("V220_SHIPS_MIN_YEAR <- 1972;", globals_pre)
+        self.assertIn("V220_LAST_MONTH <- -1;", globals_pre)
 
         self.assertEqual(sum(s.count('GetSetting("v220_ships")') for s in self.sources.values()), 1)
         self.assertEqual(sum(s.count('GetSetting("v220_ships_min_cash")') for s in self.sources.values()), 1)
@@ -59,6 +60,7 @@ class TestV220ShipsSettings(unittest.TestCase):
         self.assertRegex(settings, r"V220_SHIPS = \(v220Ships != null && v220Ships >= 0 && v220Ships <= 1\) \? v220Ships : 0;")
         self.assertRegex(settings, r"V220_SHIPS_MIN_CASH = \(v220Cash != null && v220Cash >= 0 && v220Cash <= 2000000\) \? v220Cash : 300000;")
         self.assertRegex(settings, r"V220_SHIPS_MIN_YEAR = \(v220Year != null && v220Year >= 1950 && v220Year <= 2050\) \? v220Year : 1972;")
+        self.assertIn("V220_LAST_MONTH = -1;", settings)
 
 
 class TestV220ShipsInvariantsAndBehavior(unittest.TestCase):
@@ -129,13 +131,37 @@ class TestV220ShipsInvariantsAndBehavior(unittest.TestCase):
         self.assertIn('OpexDecide("WATER_BUY"', task_water)
         self.assertIn('OpexDecide("WATER_LINE_REVENUE"', task_report)
 
+    def test_monthly_water_injection(self):
+        sched = self.sources["scheduler.nut"]
+        main = self.sources["main.nut"]
+        orch = self.sources["orchestrator.nut"]
+        pgen = self.sources["projects_generation.nut"]
+
+        self.assertIn("function _v220WaterRefill();", main)
+        self.assertIn("if (V220_SHIPS != 0) this._v220WaterRefill();", sched)
+        self.assertIn("function OpexAI::_v220WaterRefill()", orch)
+        self.assertIn("V220_LAST_MONTH", orch)
+        self.assertIn("OpexRegenerateModeProjects", orch)
+        self.assertIn('"water"', orch)
+        self.assertIn("v220Active", pgen)
+
+    def test_master_neutrality_at_default_zero(self):
+        builder = self.sources["builder_water.nut"]
+        # In OpexBuildWaterRoute, capacity and engineId must only be set when V220_SHIPS != 0
+        self.assertIn("if (V220_SHIPS != 0) {\n    result.capacity <- chosenCapacity;\n    result.engineId <- chosen.id;\n  }", builder)
+        # candidateShips only queries GetShipsByCargo when V220_SHIPS != 0
+        self.assertIn("local candidateShips = (V220_SHIPS != 0 && (\"GetShipsByCargo\" in catalog)", builder)
+        # Plan keys only augmented when V220_SHIPS != 0
+        self.assertIn("if (V220_SHIPS != 0) {\n        plan.cargo <- catalog.paxCargo;\n        plan.kind <- \"pax\";\n      }", builder)
+
     def test_no_squirrel_reserved_words_as_identifiers(self):
         reserved = ["clone", "base", "parent", "resume"]
         # Check all modified nut files
         files_to_check = [
             "builder_water.nut", "task_water.nut", "catalog.nut",
             "projects.nut", "projects_builders.nut", "scheduler_tasks.nut",
-            "task_report.nut", "settings.nut", "globals_pre.nut"
+            "task_report.nut", "settings.nut", "globals_pre.nut",
+            "orchestrator.nut", "scheduler.nut", "projects_generation.nut"
         ]
         var_pattern = re.compile(r'\b(local|function)\s+(clone|base|parent|resume)\b')
         for f in files_to_check:
