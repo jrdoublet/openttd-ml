@@ -87,6 +87,23 @@ class TestAnalyzeV211(unittest.TestCase):
         self.assertEqual(acc[1970]["lead_value"], [1, 0, 0])
         self.assertEqual(a.fmt_q(1970 * 4 + 3), "1970-T4")
 
+    def test_parse_scores(self):
+        import sys, tempfile
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v211 as a
+        pre = "[t] dbg: [script:4] [0] [I] OPEX "
+        lines = [pre + "1972-4-1 V211_SCORE perf=600 vehicles=57 pts_vehicles=47/100 cargo=2 pts_cargo=12/50 total=59 ops=1",
+                 pre + "1973-1-1 V211_SCORE perf=650 vehicles=60 pts_vehicles=50/100 total=50 ops=1"]
+        with tempfile.NamedTemporaryFile("w", suffix=".log", delete=False) as fh:
+            fh.write("\n".join(lines) + "\n")
+        rows = a.parse_scores(fh.name)
+        Path(fh.name).unlink()
+        self.assertEqual(rows[0][0], 1972)
+        self.assertEqual(rows[0][1]["vehicles"], (47, 100))
+        self.assertEqual(rows[1][0], 1972)  # janvier 1973 = trimestre clos de 1972
+        acc = a.score_table([rows])
+        self.assertEqual(acc[1972]["vehicles"], [47])  # le releve de janvier est ecarte
+
 
 if __name__ == "__main__":
     unittest.main()
