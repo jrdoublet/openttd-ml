@@ -937,8 +937,8 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   result.opcodes += budget.end("build_ships");
   result.ok = true; result.reason = "OK"; result.dockA = dockA; result.dockB = dockB;
   result.stationA = stationA; result.stationB = stationB; result.depot = depot; result.vehicle = ship;
-  result.capacity = chosenCapacity;
-  result.engineId = chosen.id;
+  result.capacity <- chosenCapacity;
+  result.engineId <- chosen.id;
   return OpexWaterStampCost(result, costs);
 }
 
