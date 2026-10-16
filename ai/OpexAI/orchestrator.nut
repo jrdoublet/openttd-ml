@@ -926,6 +926,78 @@ function OpexAI::_v217RailRefill()
   }
 }
 
+/* V218 : injecte les greffes biens->ville hors regeneration du vivier.
+ * Sous AIR_EFFICIENCY_RESELECT la branche « regeneration evitee » n'est presque
+ * jamais atteinte (smoke du 16/10 : derniere generation fret le 1972-8-10, lignes
+ * bois vers scierie le 1972-9-23 et 1972-10-26). Le defaut 0 ne rentre pas.
+ * Tant que le nombre de lignes est stable, un compare d'entier suffit. Un mois
+ * sans greffe alors qu'une usine est vue est reessaye au mois suivant (villes).
+ * Ne pas rafraichir le catalogue : son curseur parcourt les villes. */
+function OpexAI::_v218InjectGrafts()
+{
+  local n = (this._lines != null) ? this._lines.len() : -1;
+  if (n == V218_SEEN_LINES && V218_PENDING == 0) return;
+  if (this._lines == null || this._projects == null || this._catalog == null) return;
+  if (!("candidateGroups" in this._projects) || this._projects.candidateGroups == null) return;
+  local date = AIDate.GetCurrentDate();
+  local ym = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+  if (n == V218_SEEN_LINES && V218_PENDING == ym) return;
+  local freightN = 0;
+  foreach (seenLine in this._lines) {
+    if (seenLine != null && ("mode" in seenLine) && seenLine.mode == "rail"
+        && ("kind" in seenLine) && seenLine.kind == "freight"
+        && !(("scrapping" in seenLine) && seenLine.scrapping)) freightN++;
+  }
+  if (freightN == V218_SEEN_FREIGHT && (V218_PENDING == 0 || V218_PENDING == ym)) {
+    V218_SEEN_LINES = n;
+    return;
+  }
+  local grafts = [];
+  local stats = OpexRailCandidateStats();
+  OpexV218GoodsGraftCandidates(this._catalog, this._lines, grafts, stats,
+      this._abandonedPairs, null, null);
+  local seenT = ("v218Transformer" in stats) ? stats.v218Transformer : 0;
+  local kept = grafts.len();
+  local scratch = { modeCandidates = 0, modeAlternatives = 0 };
+  local added = 0;
+  foreach (cand in grafts) {
+    local graftFactory = ("factoryId" in cand) ? cand.factoryId : -1;
+    local pooled = false;
+    foreach (groupKey, groupList in this._projects.candidateGroups) {
+      if (groupList == null) continue;
+      local poolList = (typeof groupList == "array") ? groupList : [groupList];
+      foreach (poolProject in poolList) {
+        if (poolProject == null || !("payload" in poolProject) || poolProject.payload == null) continue;
+        local poolCand = poolProject.payload;
+        if (("isV218Graft" in poolCand) && poolCand.isV218Graft
+            && ("factoryId" in poolCand) && poolCand.factoryId == graftFactory) {
+          pooled = true;
+          break;
+        }
+      }
+      if (pooled) break;
+    }
+    if (pooled) continue;
+    local project = OpexProjectFromCandidate(cand);
+    if (project == null) continue;
+    OpexProjectRememberAll(this._projects.candidateGroups, project, scratch);
+    added++;
+  }
+  if (added > 0) {
+    OpexProjectsRecountGroups(this._projects);
+    local railStock = ("_railReadyStock" in this) ? this._railReadyStock : null;
+    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(),
+        this._abandonedPairs, this._lines, railStock);
+    this._ranked = this._projects.rail;
+  }
+  if (DECISION_LOG && (added > 0 || kept > 0)) {
+    OpexDecide("CHAIN_POOL", "added=" + added + " kept=" + kept + " transformer=" + seenT);
+  }
+  V218_SEEN_LINES = n;
+  V218_SEEN_FREIGHT = freightN;
+  V218_PENDING = (seenT > 0 && kept == 0) ? ym : 0;
+}
+
 function OpexAI::_c77RefreshModeCatalog(mode)
 {
   if (this._catalog == null) return;

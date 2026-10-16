@@ -36,6 +36,12 @@ class TestV218GoodsChain(unittest.TestCase):
             re.S,
         )
         cls.prepare_body = m2.group(1) if m2 else ""
+        m3 = re.search(
+            r"function OpexAI::_v218InjectGrafts\(\)\n\{(.*?)\n\}\n",
+            cls.sources["orchestrator.nut"],
+            re.S,
+        )
+        cls.inject_body = m3.group(1) if m3 else ""
 
     def test_setting_declared_inert(self):
         self.assertIn('name = "v218_goods_chain"', self.info)
@@ -153,11 +159,63 @@ class TestV218GoodsChain(unittest.TestCase):
         self.assertIn("if (V218_GOODS_CHAIN && candidate != null", self.task_rail)
 
     def test_no_squirrel_reserved_identifiers(self):
-        for blob in (self.graft_body, self.prepare_body):
+        for blob in (self.graft_body, self.prepare_body, self.inject_body):
             self.assertNotRegex(blob, r"\bclone\b")
             self.assertNotRegex(blob, r"\bparent\b")
             self.assertNotRegex(blob, r"\bbase\b")
             self.assertNotRegex(blob, r"\bresume\b")
+
+    def test_station_id_not_tile(self):
+        self.assertIn('OpexLineStationId(line, "B")', self.graft_body)
+        self.assertIn("joinStationId <- stationId", self.graft_body)
+        self.assertNotIn("IsValidStation(line.stationB)", self.graft_body)
+        self.assertNotIn("joinStationId <- line.stationB", self.graft_body)
+
+    def test_scan_diagnostics(self):
+        self.assertIn('OpexDecide("CHAIN_SCAN"', self.candidates)
+        self.assertIn('OpexDecide("CHAIN_SKIP"', self.candidates)
+        self.assertIn("OpexV218ChainScan(", self.graft_body)
+        self.assertIn("OpexV218NoteSkip(", self.graft_body)
+        self.assertIn('"no_town_acceptors"', self.graft_body)
+        self.assertIn('"bad_station"', self.graft_body)
+        self.assertIn('"no_platform"', self.graft_body)
+        self.assertIn("v218FreightRail", self.candidates)
+        self.assertIn("v218Transformer", self.candidates)
+
+    def test_scheduler_hook_before_task(self):
+        scheduler = self.sources["scheduler.nut"]
+        hook = "if (V218_GOODS_CHAIN) this._v218InjectGrafts();"
+        self.assertEqual(scheduler.count(hook), 1)
+        self.assertIn("function _v218InjectGrafts();", self.sources["main.nut"])
+        self.assertIn("function OpexAI::_v218InjectGrafts()", self.sources["orchestrator.nut"])
+        self.assertLess(
+            scheduler.index("if (V217_RAIL_REFILL > 0) this._v217RailRefill();"),
+            scheduler.index(hook),
+        )
+        self.assertLess(scheduler.index(hook), scheduler.index("this._runNextTask();"))
+
+    def test_inject_watermarks_and_reselect(self):
+        pre = self.sources["globals_pre.nut"]
+        self.assertIn("V218_SEEN_LINES <- -1;", pre)
+        self.assertIn("V218_SEEN_FREIGHT <- -1;", pre)
+        self.assertIn("V218_PENDING <- 0;", pre)
+        self.assertNotIn("V218_SEEN_LINES", self.sources["persist.nut"])
+        self.assertNotIn("V218_PENDING", self.sources["persist.nut"])
+        self.assertTrue(self.inject_body)
+        fast = self.inject_body.index("if (n == V218_SEEN_LINES && V218_PENDING == 0) return;")
+        call = self.inject_body.index("OpexV218GoodsGraftCandidates(")
+        self.assertLess(fast, call)
+        self.assertLess(self.inject_body.index("V218_SEEN_FREIGHT"), call)
+        self.assertIn("OpexProjectFromCandidate(", self.inject_body)
+        self.assertIn("OpexProjectRememberAll(", self.inject_body)
+        self.assertIn("OpexProjectsRecountGroups(", self.inject_body)
+        self.assertIn("OpexReselectProjects(", self.inject_body)
+        self.assertIn("this._ranked = this._projects.rail;", self.inject_body)
+        self.assertNotIn("_refreshTowns", self.inject_body)
+        self.assertNotIn("_c77RefreshModeCatalog", self.inject_body)
+        added = self.inject_body.index("if (added > 0) {")
+        reselect = self.inject_body.index("OpexReselectProjects(")
+        self.assertLess(added, reselect)
 
 
 if __name__ == "__main__":

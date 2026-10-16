@@ -2136,28 +2136,85 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
   }
 }
 
+/* Journal V218, sous decision_log seulement. OpexDecide journalise toujours. */
+function OpexV218NoteSkip(lineId, factoryId, cargo, reason)
+{
+  if (!DECISION_LOG) return;
+  OpexDecide("CHAIN_SKIP", "line=" + lineId + " factory=" + factoryId
+             + " in=" + cargo + " reason=" + reason);
+}
+
+function OpexV218ChainScan(stats, freightRail, transformer, kept, reason = null)
+{
+  if (stats != null) {
+    if (!("v218FreightRail" in stats)) {
+      stats.v218FreightRail <- freightRail;
+      stats.v218Transformer <- transformer;
+      stats.v218Kept <- kept;
+    } else {
+      stats.v218FreightRail = freightRail;
+      stats.v218Transformer = transformer;
+      stats.v218Kept = kept;
+    }
+  }
+  if (!DECISION_LOG) return;
+  local fields = "freight_rail=" + freightRail + " transformer=" + transformer + " kept=" + kept;
+  if (reason != null) fields = fields + " reason=" + reason;
+  OpexDecide("CHAIN_SCAN", fields);
+}
+
 /* V218 : greffe biens -> ville sur une ligne fret rail EXISTANTE qui livre deja une usine
  * de transformation. Une seule etape a construire ; profit et capital sont ceux de cette
- * etape (score de portefeuille coherent). Borne : au plus une greffe par usine, 3 villes
- * evaluees. Inerte hors V218_GOODS_CHAIN. */
+ * etape (score de portefeuille coherent). stationB est une tuile, pas un StationID :
+ * la jointure passe par OpexLineStationId. Borne : au plus une greffe par usine, 3 villes
+ * evaluees. Le reglage est teste par l'appelant. CHAIN_SCAN compte les lignes vues ;
+ * CHAIN_SKIP donne le motif de chaque ligne fret->transformateur ecartee. */
 function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null)
 {
-  if (catalog == null || lines == null || out == null) return;
+  if (catalog == null || lines == null || out == null) {
+    OpexV218ChainScan(stats, 0, 0, 0, "no_catalog");
+    return;
+  }
+  local freightRail = 0;
+  foreach (freightLine in lines) {
+    if (freightLine == null) continue;
+    if (!(("mode" in freightLine) && freightLine.mode == "rail")) continue;
+    if (!(("kind" in freightLine) && freightLine.kind == "freight")) continue;
+    if (("scrapping" in freightLine) && freightLine.scrapping) continue;
+    freightRail++;
+  }
+  if (!("cargos" in catalog) || catalog.cargos == null
+      || !("producers" in catalog) || catalog.producers == null
+      || !("industries" in catalog) || catalog.industries == null) {
+    OpexV218ChainScan(stats, freightRail, 0, 0, "no_catalog");
+    return;
+  }
   local goodsCargos = [];
   foreach (c in catalog.cargos) {
     if (AICargo.GetTownEffect(c) == AICargo.TE_GOODS) goodsCargos.append(c);
   }
-  if (goodsCargos.len() == 0) return;
+  if (goodsCargos.len() == 0) {
+    OpexV218ChainScan(stats, freightRail, 0, 0, "no_goods");
+    return;
+  }
 
   local bounds = OpexCatalogBounds(catalog);
   local industries = catalog.industries;
   local graftedFactories = {};
+  local countedLines = {};
+  local transformerSeen = 0;
+  local kept = 0;
 
   foreach (goodsCargo in goodsCargos) {
-    if (!(goodsCargo in catalog.townAcceptors)) continue;
-    local townSinks = catalog.townAcceptors[goodsCargo];
-    if (townSinks.len() == 0) continue;
-    if (!(goodsCargo in catalog.producers)) continue;
+    if (!(goodsCargo in catalog.producers) || catalog.producers[goodsCargo] == null) continue;
+    local townSinks = null;
+    local townEmpty = true;
+    if (("townAcceptors" in catalog) && catalog.townAcceptors != null
+        && (goodsCargo in catalog.townAcceptors) && catalog.townAcceptors[goodsCargo] != null) {
+      townSinks = catalog.townAcceptors[goodsCargo];
+      townEmpty = townSinks.len() == 0;
+    }
+    local producers = catalog.producers[goodsCargo];
 
     foreach (line in lines) {
       if (line == null) continue;
@@ -2165,12 +2222,39 @@ function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs
       if (!(("kind" in line) && line.kind == "freight")) continue;
       if (("scrapping" in line) && line.scrapping) continue;
       if (line.cargo == goodsCargo) continue;
-      if (!("dstIndustry" in line) || !AIIndustry.IsValidIndustry(line.dstIndustry)) continue;
-      if (!("platformB" in line) || line.platformB == null) continue;
-      if (!("stationB" in line) || !AIStation.IsValidStation(line.stationB)) continue;
+      if (!("dstIndustry" in line)) continue;
 
       local factoryId = line.dstIndustry;
-      if (factoryId in graftedFactories) continue;
+      local factory = null;
+      foreach (fi in producers) {
+        local ind = industries[fi];
+        if (ind != null && ("id" in ind) && ind.id == factoryId) { factory = ind; break; }
+      }
+      if (factory == null || !("isTransformer" in factory) || !factory.isTransformer) continue;
+
+      local lineId = ("lineId" in line) ? line.lineId : -1;
+      if (!(lineId in countedLines)) {
+        transformerSeen++;
+        countedLines.rawset(lineId, true);
+      }
+      if (factoryId in graftedFactories) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "already_factory");
+        continue;
+      }
+      if (!AIIndustry.IsValidIndustry(factoryId)) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "dead_industry");
+        continue;
+      }
+      if (!("platformB" in line) || line.platformB == null || !("anchor" in line.platformB)
+          || !("length" in line.platformB)) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "no_platform");
+        continue;
+      }
+      local stationId = ("stationB" in line) ? OpexLineStationId(line, "B") : -1;
+      if (stationId < 0) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "bad_station");
+        continue;
+      }
 
       if (V88_GOODS_CHAIN) {
         local chainAlready = false;
@@ -2183,24 +2267,24 @@ function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs
         }
         if (chainAlready) {
           graftedFactories.rawset(factoryId, true);
+          OpexV218NoteSkip(lineId, factoryId, line.cargo, "v88_chain");
           continue;
         }
       }
 
-      local factory = null;
-      foreach (fi in catalog.producers[goodsCargo]) {
-        local ind = industries[fi];
-        if (ind.id == factoryId) { factory = ind; break; }
-      }
-      if (factory == null || !("isTransformer" in factory) || !factory.isTransformer) continue;
-
       local acceptsInput = false;
-      if (line.cargo in catalog.acceptors) {
+      if (("acceptors" in catalog) && catalog.acceptors != null && (line.cargo in catalog.acceptors)) {
         foreach (accFi in catalog.acceptors[line.cargo]) {
-          if (industries[accFi].id == factoryId) { acceptsInput = true; break; }
+          if (industries[accFi] != null && industries[accFi].id == factoryId) {
+            acceptsInput = true;
+            break;
+          }
         }
       }
-      if (!acceptsInput) continue;
+      if (!acceptsInput) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "not_acceptor");
+        continue;
+      }
 
       local alreadyGoods = false;
       foreach (other in lines) {
@@ -2215,6 +2299,7 @@ function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs
       }
       if (alreadyGoods) {
         graftedFactories.rawset(factoryId, true);
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "already_goods");
         continue;
       }
 
@@ -2223,32 +2308,47 @@ function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs
         local carried = ("predCarried" in line) ? line.predCarried : (("monthly" in line) ? line.monthly : 0);
         goodsMonthly = (carried * OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT).tointeger();
       }
-      if (goodsMonthly <= 0) continue;
+      if (goodsMonthly <= 0) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "no_output");
+        continue;
+      }
+      if (townEmpty) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "no_town_acceptors");
+        continue;
+      }
 
       local rankedTowns = [];
-      foreach (town in townSinks) {
-        local dGoods = AIMap.DistanceManhattan(factory.tile, town.tile);
+      foreach (sink in townSinks) {
+        local dGoods = AIMap.DistanceManhattan(factory.tile, sink.tile);
         if (dGoods > bounds.railMax || dGoods < 40) continue;
-        local pop = ("pop" in town) ? town.pop : AITown.GetPopulation(town.id);
+        local pop = ("pop" in sink) ? sink.pop : AITown.GetPopulation(sink.id);
         local pos = rankedTowns.len();
         while (pos > 0 && rankedTowns[pos - 1].pop < pop) pos--;
-        rankedTowns.insert(pos, { tile = town.tile, id = town.id, pop = pop });
+        rankedTowns.insert(pos, { tile = sink.tile, id = sink.id, pop = pop });
         if (rankedTowns.len() > 3) rankedTowns.pop();
       }
-      if (rankedTowns.len() == 0) continue;
+      if (rankedTowns.len() == 0) {
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, "no_town");
+        continue;
+      }
 
       if (ORIGIN_SITABLE) {
         local sitableKey = factory.tile * 64 + goodsCargo;
-        ::OpexSitableCache[sitableKey] <- true;
+        ::OpexSitableCache.rawset(sitableKey, true);
       }
 
       local bestGraft = null;
+      local sawAbandon = false;
+      local sawEconomy = false;
       foreach (town in rankedTowns) {
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
           local goodsPairKey = "freight|" + goodsCargo + "|" + factory.id + "|t" + town.id;
-          if (goodsPairKey in abandonedPairs) continue;
+          if (goodsPairKey in abandonedPairs) {
+            sawAbandon = true;
+            continue;
+          }
         }
-
+        sawEconomy = true;
         local candGoods = OpexMakeCandidate(catalog, "freight", goodsCargo, factory.tile,
                                             town.tile, goodsMonthly, true, stats, true, profile, cruiseCache);
         if (candGoods == null) continue;
@@ -2262,7 +2362,7 @@ function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs
         candGoods.originServed = true;
         candGoods.joinEnd <- "A";
         candGoods.joinLineId <- line.lineId;
-        candGoods.joinStationId <- line.stationB;
+        candGoods.joinStationId <- stationId;
         candGoods.joinPlatform <- {
           anchor = line.platformB.anchor,
           direction = line.platformB.direction,
@@ -2271,7 +2371,11 @@ function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs
         };
         if (bestGraft == null || candGoods.profitAnnual > bestGraft.profitAnnual) bestGraft = candGoods;
       }
-      if (bestGraft == null) continue;
+      if (bestGraft == null) {
+        local why = (!sawEconomy && sawAbandon) ? "abandon" : "no_economy";
+        OpexV218NoteSkip(lineId, factoryId, line.cargo, why);
+        continue;
+      }
       graftedFactories.rawset(factoryId, true);
       if (DECISION_LOG) {
         OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + line.cargo + " out=" + goodsCargo
@@ -2279,8 +2383,10 @@ function OpexV218GoodsGraftCandidates(catalog, lines, out, stats, abandonedPairs
                    + " C=" + bestGraft.capital + " roi=" + bestGraft.roi + " v218=1 graft=1");
       }
       out.append(bestGraft);
+      kept++;
     }
   }
+  OpexV218ChainScan(stats, freightRail, transformerSeen, kept);
 }
 
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.

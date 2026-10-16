@@ -598,6 +598,7 @@ class OpexAI extends AIController {
                              reason = "event");
   function _v127IdleCashRoadRegen(ym);
   function _v217RailRefill();
+  function _v218InjectGrafts();
   function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
   function _c77RemoveSubsidy(subId);
