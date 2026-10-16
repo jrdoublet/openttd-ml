@@ -7,6 +7,8 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **16/10 — V180 +50 % sur les défauts V214/V216 : diagnostic cinq ans V102 `fail_primary`.** `v180_v214default_40x5_20261016`, même bundle IA que la porte A trois ans, **40/40 paires et 80/80 parties saines**, `profit_year` variante−référence **−30 005 £/an (−1,26 %)**, médiane +1 321, **21/19/0**, Wilcoxon p=0,868, IC95 bootstrap **[−126,2 ; +61,4] k£/an** contre seuil +95,4 k£/an, `company_value` −0,87 % (garde passée). La porte A trois ans sur les mêmes 40 graines était déjà `fail_primary` à +11,9 k£/an : les deux horizons sont exploratoires ensemble, sans qualification positive. **V180 reste à 0 par défaut, aucune porte B ; V214/V216 inchangés.** [Rapport et comparaison par graine](v180_complet_40x5_20261016.md).
+
 - **16/10 — V180 +50 % sur les nouveaux défauts V214/V216 : porte A V102 `fail_primary`.** `v180_v214default_porteA_40x3_20261016`, même bundle pour V180=0 / V180=50, AAAHogEx complet, **40/40 paires et 80/80 parties saines**. `profit_year` variante−référence **+11 895 £/an (+0,53 %)**, médiane +2 053, **20/20/0**, Wilcoxon p=0,609, IC95 bootstrap **[−58,4 ; +80,3] k£/an** contre seuil +89,7 k£/an, `company_value` +0,34 %. Critère primaire échoué ; **V180 reste 0 par défaut, aucune porte B**. [Rapport complet et pré-enregistrement](v180_porteA_nouveaux_defauts_20261016.md).
 
 ### Jeu normal avec des humains — tâches ouvertes (demande du 16/10)
