@@ -2,8 +2,8 @@
 """Contrats statiques de V214 : couts de virage du A* rail a la AAAHogEx.
 
 Verifie :
-1. Reglages v214_rail_turn_cost (0..2000) et v214_rail_tight_turn_cost (0..5000), defaut 0
-   (inerte), declares dans info.nut, globals_pre.nut et settings.nut.
+1. Reglages v214_rail_turn_cost (0..2000) et v214_rail_tight_turn_cost (0..5000),
+   defauts adoptes 300/1500, declares dans info.nut, globals_pre.nut et settings.nut.
 2. OpexRailPathFinderV129 lit les reglages une fois par recherche, avant le premier _Cost, et
    ramene le coude serre a 100 sous 40 tuiles de trajet (regle AAA).
 3. _Cost : a 0, le cout historique `_cost_turn` est inchange ; sinon seule la sortie de diagonale
@@ -49,16 +49,16 @@ def v129_class_body() -> str:
 
 
 class TestV214Settings(unittest.TestCase):
-    def test_declared_with_bounds_and_default_zero(self):
+    def test_declared_with_bounds_and_adopted_defaults(self):
         info = read_file("info.nut")
-        for name, bounds in (("v214_rail_turn_cost", "min_value = 0, max_value = 2000"),
-                             ("v214_rail_tight_turn_cost", "min_value = 0, max_value = 5000")):
+        for name, bounds, default in (("v214_rail_turn_cost", "min_value = 0, max_value = 2000", 300),
+                                      ("v214_rail_tight_turn_cost", "min_value = 0, max_value = 5000", 1500)):
             block = re.search(rf'name\s*=\s*"{name}"[^}}]+', info)
             self.assertIsNotNone(block, name)
             text = block.group(0)
             self.assertIn(bounds, text)
             for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-                self.assertRegex(text, rf"{key}\s*=\s*0,")
+                self.assertRegex(text, rf"{key}\s*=\s*{default},")
 
     def test_globals_and_reading(self):
         globals_pre = read_file("globals_pre.nut")

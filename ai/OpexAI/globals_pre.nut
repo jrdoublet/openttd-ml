@@ -63,7 +63,8 @@ V207_RAIL_PAX_SITE_RANK_PCT <- 0;
 V212_RAIL_PAX_REVENUE_PCT <- 100;
 V212_RAIL_PAX_CAPITAL_PCT <- 100;
 /* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
- * Qualifie en rail seul (300 / 1500, 15/10), non qualifie en partie complete : defaut 0. 0 = historique (50 a chaque changement de direction,
+ * Defaut 300/1500 adopte sur decision utilisateur le 16/10 apres B 20x10 positif,
+ * avec portes A 40x3 et 40x5 non qualifiees. 0 = historique (50 a chaque changement de direction,
  * aucun surcout de coude serre).
  * V214_RAIL_TURN_COST > 0 : entrer dans une diagonale est gratuit, en sortir coute ce montant.
  * V214_RAIL_TIGHT_TURN_COST > 0 : coude de 90 degres pris sur une seule tuile (droite, coin,
