@@ -737,6 +737,16 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     return null;
   }
 
+  if (V216A_GHOST_DEMAND > 0 && kind == "pax") {
+    monthly = OpexV216aScaleDemand(srcTile, dstTile, cargo, monthly);
+    if (secondary != null)
+      secondary = { cargo = secondary.cargo,
+                    monthly = OpexV216aScaleDemand(srcTile, dstTile, secondary.cargo, secondary.monthly) };
+    if (monthly <= 0) {
+      stats.noMonthly++;
+      return null;
+    }
+  }
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
   /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
    * prÃ©coces de OpexLineEconomics restent visibles comme reliquat de prÃ©paration. */

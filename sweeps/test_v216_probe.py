@@ -41,7 +41,7 @@ class TestV216Probe(unittest.TestCase):
         hooks = 0
         for name, text in self.sources.items():
             for line in text.splitlines():
-                if re.search(r"\bOpexV216\w*\(|\bV216_(?!PROBE\b)\w+\s*=", line):
+                if re.search(r"\bOpexV216(?!a)\w*\(|\bV216_(?!PROBE\b)\w+\s*=", line):
                     hooks += 1
                     self.assertRegex(line, r"if \(V216_PROBE\b", name + ": " + line.strip())
         # selection x3, K_dec, rejets x3, RAIL_BUILD, tick mensuel
@@ -62,6 +62,33 @@ class TestV216Probe(unittest.TestCase):
         hook = text.index("if (V216_PROBE && result.ok) OpexV216OnRailBuild(candidate);")
         self.assertLess(hook, text.index('OpexDecide("RAIL_BUILD"'))
         self.assertEqual(text[hook:].split("\n")[1].strip(), "if (DECISION_LOG) {")
+
+
+class TestV216aGhostDemand(unittest.TestCase):
+    """V216a : correction de la demande rail pax, inerte a 0, un seul point d'insertion."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.info = (AI / "info.nut").read_text(encoding="utf-8")
+        cls.sources = {p.name: p.read_text(encoding="utf-8") for p in AI.glob("*.nut")}
+
+    def test_setting_inert_by_default(self):
+        block = re.search(r'name = "v216a_ghost_demand",(.*?)\}\);', self.info, re.S)
+        self.assertIsNotNone(block)
+        for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
+            self.assertRegex(block.group(1), level + r" = 0\b")
+        self.assertIn("V216A_GHOST_DEMAND <- 0;", self.sources["globals_pre.nut"])
+        self.assertEqual(sum(s.count('GetSetting("v216a_ghost_demand")') for s in self.sources.values()), 1)
+
+    def test_single_guarded_insertion(self):
+        calls = [(n, i) for n, t in self.sources.items() if n != "probe_v216.nut"
+                 for i, l in enumerate(t.splitlines()) if "OpexV216aScaleDemand(" in l]
+        self.assertEqual({n for n, _ in calls}, {"candidates.nut"})
+        lines = self.sources["candidates.nut"].splitlines()
+        guard = min(i for _, i in calls) - 1
+        self.assertEqual(lines[guard].strip(), 'if (V216A_GHOST_DEMAND > 0 && kind == "pax") {')
+        self.assertLess(self.sources["candidates.nut"].index("OpexV216aScaleDemand("),
+                        self.sources["candidates.nut"].index("local economics = OpexLineEconomics(catalog, cargo, distance, monthly"))
 
 
 class TestAnalyzeV216(unittest.TestCase):
