@@ -68,4 +68,83 @@ pour vérifier l'effet sur le portefeuille multimodal avec V216a/V216f activés.
   distincte après vérification, et aucun passage V214 par défaut avant la
   qualification complète.
 
-Résultat de cette porte A : à compléter après le banc sans changer ces critères.
+## Résultat de V214 — porte A complète : `fail_primary`
+
+Smoke `v214_v216af_complet_smoke_1x1_20261016` : deux duels complets,
+quatre entreprises `complete`, zéro erreur Squirrel, zéro échec ; écart
+OpexAI variante − référence −15 423 £/an (une seule graine : diagnostic).
+
+La porte A `v214_v216af_complet_porteA_40x3_20261016` est terminée sur
+**le commit `2845ccd` (dirty=0)**, soit le code `8bcccf8e` plus le seul
+pré-enregistrement documentaire ci-dessus. Provenance : bundle
+`53743c0b7eba408451922f41203acf7d83f809002dfb1658e52f86f4db0f5c1c`,
+manifeste
+`891873098adc9894fb28c4dbf84830e58f4513d9b9277356f868920f6ba2edca`,
+image Docker `sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659`.
+Référence V214 0/0, variante 300/1500 ; V216a 1 et V216f 100 communs,
+V211 désactivé, AAAHogEx complet dans les deux politiques.
+
+| Mesure (année terminale 1972) | Variante − référence |
+|---|---:|
+| `profit_year` moyen | **+18 699,05 £/an** |
+| `profit_year` médian | +23 444 £/an |
+| Variation relative du profit moyen Opex | **+0,8415 %** |
+| Victoires / défaites / égalités | **23 / 17 / 0** |
+| Wilcoxon bilatéral exact | **p = 0,55369956** (requis < 0,05) |
+| IC95 bootstrap de la moyenne (20 000, seed 0) | **[−42 882,525 ; +80 952,95] £/an** (requis borne basse > 0) |
+| Seuil de gain 4 % | **88 888,242 £/an** (non atteint) |
+| Ratio des moyennes de `company_value` | **1,004220 (+0,421953 %)** (garde −5 % passée) |
+| Santé / couverture | **40/40 paires**, **80/80 parties**, **160/160 résumés de compagnies** |
+| `comparison_complete`, `adoption_sample_complete`, `metric_coverage_complete` | `true`, `true`, `true` |
+| `ci_pass`, `primary_pass`, `value_guard_pass` | `false`, `false`, `true` |
+| `policy_comparison.verdict` | **`fail_primary`** |
+
+Les 160 résumés sont `complete`/`run_ok`/`game_ok`, horizon atteint,
+**4 trimestres valides** pour chacun, zéro erreur Squirrel, zéro `failed_runs`,
+zéro exclusion ou paire incomplète. Le gain moyen est très inférieur au seuil
+et aucune inférence de gain positif n'est possible car l'IC95 traverse zéro.
+La garde de valeur passe. V214 **ne passe pas la porte A** sur ce nouveau
+défaut multimodal ; **aucune porte B** et aucun changement de ses défauts
+**0/0**. Les défauts V216a=1 / V216f=100 restent en place.
+
+### Profits annuels moyens par politique, tous modes disponibles
+
+| Entreprise | Référence V214 0/0 | Variante V214 300/1500 |
+|---|---:|---:|
+| OpexAI (`profit_year`) | 2 222 206,05 £/an | 2 240 905,10 £/an |
+| AAAHogEx (`profit_year`) | 1 968 909,23 £/an | 1 938 515,35 £/an |
+| OpexAI (`company_value`) | 3 968 401,60 £ | 3 985 146,40 £ |
+
+Le `d%` du tableau OpexAI contre AAAHogEx dans la sortie du banc mesure
+l'écart **entre concurrents**, pas la comparaison entre politiques OpexAI.
+Le delta primaire de V214 est bien **+18 699,05 £/an**.
+
+### Deltas terminaux par graine (OpexAI variante − référence, £/an)
+
+| Graine | Δ | Graine | Δ |
+|---:|---:|---:|---:|
+| 1 | −219 024 | 232037 | −14 365 |
+| 7 | +227 033 | 292001 | +355 025 |
+| 17 | −98 719 | 313707 | −93 852 |
+| 42 | +57 795 | 375172 | −129 994 |
+| 73 | −325 937 | 423960 | +79 984 |
+| 100 | +235 272 | 424242 | +92 002 |
+| 314 | +36 580 | 442018 | +235 233 |
+| 512 | +16 450 | 455216 | +7 613 |
+| 999 | −307 100 | 515222 | +228 669 |
+| 1024 | +235 711 | 613553 | +447 475 |
+| 1337 | +186 691 | 701256 | −39 778 |
+| 2026 | +253 239 | 706990 | +90 398 |
+| 4096 | +18 570 | 723002 | −17 877 |
+| 8191 | +144 158 | 746035 | −244 115 |
+| 12345 | +217 279 | 781335 | −123 208 |
+| 54321 | −215 202 | 802204 | −399 346 |
+| 59527 | +28 318 | 841478 | +47 397 |
+| 65537 | +72 114 | 983759 | −283 058 |
+| 123456 | −99 824 | 999533 | −221 484 |
+| 230185 | −61 621 | 8675309 | +329 460 |
+
+Artefacts locaux (ignorés par Git, dans ce worktree) :
+`results/v214_v216af_complet_porteA_40x3_20261016.json`, `.jsonl`,
+`.manifest.json`, `.out`, `_bundle/`, `_engine/`. Les données du smoke
+portent le préfixe `v214_v216af_complet_smoke_1x1_20261016`.
