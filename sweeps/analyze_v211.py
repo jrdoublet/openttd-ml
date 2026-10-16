@@ -20,6 +20,9 @@ import sys
 KV = re.compile(r'(\w+)=(\S+)')
 METRICS = ('value', 'profit', 'perf', 'bank', 'delivered')
 INFRA = ('rail', 'road', 'stations', 'airports')
+SCORE_PARTS = ('vehicles', 'stations', 'min_profit', 'min_income', 'max_income',
+               'delivered', 'cargo', 'money', 'loan_margin')
+PTS = re.compile(r'pts_(\w+)=(\d+)/(\d+)')
 
 
 def num(v):
@@ -49,6 +52,43 @@ def parse_log(path):
             else:
                 quarters[q]['rivals'].append(row)
     return {q: d for q, d in quarters.items() if d['self'] is not None and d['rivals']}
+
+
+def parse_scores(path):
+    """Return [(year, {'perf':, 'total':, part: (pts, max)})] from V211_SCORE lines."""
+    rows = []
+    with open(path, errors='replace') as fh:
+        for line in fh:
+            if ' V211_SCORE ' not in line:
+                continue
+            rest = line.split(' OPEX ', 1)[1].split(' ', 2)
+            y, m, _ = (int(x) for x in rest[0].split('-'))
+            q = y * 4 + (m - 1) // 3 - 1
+            f = {k: num(v) for k, v in KV.findall(rest[2])}
+            row = {'perf': f.get('perf'), 'total': f.get('total'), 'month': m}
+            for name, pts, mx in PTS.findall(rest[2]):
+                row[name] = (int(pts), int(mx))
+            rows.append((q // 4, row))
+    return rows
+
+
+def score_table(score_games):
+    """Per year: median points per component, median total and official perf.
+
+    January rows are skipped: the game rates the quarter before vehicle yearly profits roll over,
+    we recompute after, so vehicle components disagree by construction.
+    """
+    acc = collections.defaultdict(lambda: collections.defaultdict(list))
+    for rows in score_games:
+        for year, row in rows:
+            if row['month'] == 1:
+                continue
+            for part in SCORE_PARTS:
+                if part in row:
+                    acc[year][part].append(row[part][0])
+            acc[year]['total'].append(row['total'])
+            acc[year]['perf'].append(row['perf'])
+    return acc
 
 
 def ratio(a, b):
@@ -127,6 +167,24 @@ def main(argv):
         for name, g in games:
             out.append(f'| {name} | {fmt_q(max(g))} | {fmt_q(overtaken_from(g, "value"))} '
                        f'| {fmt_q(overtaken_from(g, "perf"))} |')
+        scores = [parse_scores(p) for p in logs]
+        scores = [r for r in scores if r]
+        if scores:
+            maxima = {}
+            for rows in scores:
+                for _, row in rows:
+                    for part in SCORE_PARTS:
+                        if part in row:
+                            maxima[part] = row[part][1]
+            sa = score_table(scores)
+            out += ['', '### Notre note par composante (points médians, hors relevés de janvier)', '',
+                    '| année | ' + ' | '.join(f'{p} /{maxima.get(p, "?")}' for p in SCORE_PARTS)
+                    + ' | total recalculé | note officielle |',
+                    '|---|' + '---|' * (len(SCORE_PARTS) + 2)]
+            for year in sorted(sa):
+                a = sa[year]
+                out.append(f'| {year} | ' + ' | '.join(f"{med(a[p]):.0f}" for p in SCORE_PARTS)
+                           + f" | {med(a['total']):.0f} | {med(a['perf']):.0f} |")
         out.append('')
     print('\n'.join(out))
 
