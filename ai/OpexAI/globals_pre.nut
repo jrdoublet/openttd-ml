@@ -887,6 +887,13 @@ V127_ROAD_POOL_MIN <- 8;
 V127_ROAD_MAX_AGE_DAYS <- 90;
 V127_LAST_MONTH <- -1;
 V127_LAST_ROAD_REGEN_DATE <- -1;
+/* V217 : recharge du vivier rail sur tresorerie oisive (orchestrator.nut). 0 = inerte (defaut),
+ * 1 = fret seul, 2 = fret et voyageurs. */
+V217_RAIL_REFILL <- 0;
+V217_IDLE_CASH_MIN <- 100000;
+V217_POOL_MIN <- 2;
+V217_LAST_MONTH <- -1;
+V217_REGEN_NO_PAX <- false;
 /* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
  * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
  * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */

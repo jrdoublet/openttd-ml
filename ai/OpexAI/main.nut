@@ -596,6 +596,7 @@ class OpexAI extends AIController {
   function _c77EnqueueEntity(modes, entityKind = null, entityId = -1, buildAfter = false,
                              reason = "event");
   function _v127IdleCashRoadRegen(ym);
+  function _v217RailRefill();
   function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
   function _c77RemoveSubsidy(subId);
