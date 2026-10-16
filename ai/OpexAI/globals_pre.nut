@@ -98,6 +98,8 @@ V171_RAIL_KNOTS <- 0;
  * 0 = inerte (poids V91_ASTAR_WEIGHT_PCT conserve, defaut) ; 100..300 = poids applique. */
 V172_RAIL_LONG_WEIGHT_PCT <- 200;
 V216_PROBE <- false;
+V211_RIVALS <- false;
+V211_LAST_QUARTER <- -1;
 /* V216a : 0 inerte, 1 gain net de la compagnie, 2 part de la ligne (probe_v216.nut). */
 V216A_GHOST_DEMAND <- 0;
 /* V216f : sejour mecanique en gare dans le cycle rail, en % de l'estimation EST-16 (economy.nut). */

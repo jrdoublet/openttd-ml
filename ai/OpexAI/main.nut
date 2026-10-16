@@ -646,6 +646,7 @@ require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");
 require("probe_v216.nut");
+require("rivals_v211.nut");
 require("rail_preastar_probe.nut");
 require("air_flux_probe.nut");
 require("scheduler.nut");

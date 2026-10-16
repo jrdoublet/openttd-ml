@@ -1175,6 +1175,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v211_rivals_log",
+      description = "V211: quarterly log of every company (value, performance, profit, bank, infrastructure) and our rank. Observation only, 0 = inert",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = CONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v216a_ghost_demand",
       description = "V216a: scale rail pax/mail demand by catchment already covered (ours or rivals). 0 = inert, 1 = company net gain, 2 = line share",
       min_value = 0, max_value = 2,
