@@ -254,6 +254,7 @@ class OpexCatalog {
   airPlaneFrontierByAirport = null; // C85: airport type -> sous-ensemble structurel non domine
 
   ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
+  shipsByCargo = null; // V220: cargo -> [{id, capacity, speed, price, runningCost, maxOrderDistance}]
   maxShipPrice = 0;
   costDock = 0;
   costWaterDepot = 0;
@@ -290,6 +291,7 @@ class OpexCatalog {
     this.locoByCargoWagons = {};
     this.wagonChoicesByCargo = {};
     this.ships = [];
+    this.shipsByCargo = {};
     this.roadEngineByCargo = {};
     this.roadEngineChoicesByCargo = {};
     this.airPlaneChoicesByAirport = {};
@@ -791,6 +793,26 @@ function OpexCatalog::_refreshWater()
                    maxOrderDistance = AIEngine.GetMaximumOrderDistance(e) };
     this.ships.append(ship);
     if (ship.price > this.maxShipPrice) this.maxShipPrice = ship.price;
+  }
+  if (V220_SHIPS != 0) {
+    this.shipsByCargo = {};
+    for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
+      local capacity = AIEngine.GetCapacity(e);
+      local speed = AIEngine.GetMaxSpeed(e);
+      local price = AIEngine.GetPrice(e);
+      local runningCost = AIEngine.GetRunningCost(e);
+      local maxOrderDistance = AIEngine.GetMaximumOrderDistance(e);
+      local defaultCargo = AIEngine.GetCargoType(e);
+      local ship = { id = e, capacity = capacity, speed = speed, price = price,
+                     runningCost = runningCost, maxOrderDistance = maxOrderDistance };
+      if (ship.price > this.maxShipPrice) this.maxShipPrice = ship.price;
+      foreach (c in this.cargos) {
+        if (AIEngine.CanRefitCargo(e, c) || defaultCargo == c) {
+          if (!(c in this.shipsByCargo)) this.shipsByCargo.rawset(c, []);
+          this.shipsByCargo[c].append(ship);
+        }
+      }
+    }
   }
 }
 

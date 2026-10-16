@@ -2415,6 +2415,33 @@ class OpexAIInfo extends AIInfo {
       step_size = 100,
       flags = 0
     });
+    AddSetting({
+      name = "v220_ships",
+      description = "V220: Water mode phase 4 (rich cash ships, multiple freight & pax lines, fleet reinforcements); 0 = inert (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v220_ships_min_cash",
+      description = "V220: Minimum bank balance required to trigger water ship projects (default 300000)",
+      min_value = 0, max_value = 2000000,
+      easy_value = 300000, medium_value = 300000, hard_value = 300000,
+      custom_value = 300000,
+      step_size = 25000,
+      flags = 0
+    });
+    AddSetting({
+      name = "v220_ships_min_year",
+      description = "V220: Minimum year required to trigger water ship projects (default 1972)",
+      min_value = 1950, max_value = 2050,
+      easy_value = 1972, medium_value = 1972, hard_value = 1972,
+      custom_value = 1972,
+      step_size = 1,
+      flags = 0
+    });
   }
 }
 

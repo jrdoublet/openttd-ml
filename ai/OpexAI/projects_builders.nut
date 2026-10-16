@@ -389,9 +389,13 @@ function OpexProjectFromWater(catalog, plan, planningOps)
     budgetCapital += economics.immobilise;
   }
   local expectedOps = PROJECT_WATER_TRANSACTION_OPS;
+  local planKind = ("kind" in plan) ? plan.kind : "pax";
+  local planCargo = ("cargo" in plan) ? plan.cargo : catalog.paxCargo;
+  local srcTile = ("town" in plan.siteA) ? plan.siteA.town.tile : plan.siteA.dock;
+  local dstTile = ("town" in plan.siteB) ? plan.siteB.town.tile : plan.siteB.dock;
   local project = {
-    mode = "water", kind = "pax", cargo = catalog.paxCargo,
-    src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
+    mode = "water", kind = planKind, cargo = planCargo,
+    src = srcTile, dst = dstTile, payload = plan,
     distance = plan.distance, capital = economics.capital,
     budgetCapital = budgetCapital, profitAnnual = economics.profitAnnual,
     revenueAnnual = economics.revenueAnnual, roi = economics.roi,

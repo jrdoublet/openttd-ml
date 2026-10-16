@@ -504,6 +504,7 @@ class OpexAI extends AIController {
   function _triggerScrapLine(line, criterion);
   function _refleetRoadLines(year);
   function _refleetCrashedWaterLines(year);
+  function _refleetWaterLines(year);
   function _resizeAirFleets(year);
   function _expandRailLines(year);
   function _continueRailExpansion();

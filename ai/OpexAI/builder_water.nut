@@ -36,6 +36,21 @@ function OpexWaterTownServed(town, lines)
   return false;
 }
 
+function OpexWaterIndustryServed(ind, lines, cargo)
+{
+  if (lines == null || ind == null) return false;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "water") continue;
+    if (("cargo" in line) && line.cargo == cargo) {
+      if (("srcIndustry" in line) && line.srcIndustry == ind.id) return true;
+      if (("dstIndustry" in line) && line.dstIndustry == ind.id) return true;
+      if (AIMap.DistanceManhattan(ind.tile, line.stationA) < 15) return true;
+      if (AIMap.DistanceManhattan(ind.tile, line.stationB) < 15) return true;
+    }
+  }
+  return false;
+}
+
 /* Une tuile navigable a une vraie arete navigable ; aucun AIWaterTile n'est utilise. */
 function OpexWaterIsNavigable(tile)
 {
@@ -181,6 +196,50 @@ function OpexWaterHistoricalSites(town, siteCatalog, probes, profile = null)
   return [];
 }
 
+/* V220 : recherche d'un quai pour une industrie (plate-forme petroliere ou industrie cotiere). */
+function OpexWaterFindIndustrySite(ind, cargo, isProducer)
+{
+  if (ind == null || !("id" in ind) || !AIIndustry.IsValidIndustry(ind.id)) return null;
+  /* 1. Plate-forme petroliere / industrie avec quai integre */
+  if (AIIndustry.HasDock(ind.id)) {
+    local dock = AIIndustry.GetDockLocation(ind.id);
+    if (AIMap.IsValidTile(dock)) {
+      local fronts = OpexWaterAdjacentTiles(dock);
+      if (fronts.len() > 0) {
+        return { industry = ind, dock = dock, waterTiles = fronts, hasBuiltInDock = true };
+      }
+    }
+  }
+  /* 2. Industrie cotiere : recherche d'un quai a portee */
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_DOCK);
+  local ix = AIMap.GetTileX(ind.tile);
+  local iy = AIMap.GetTileY(ind.tile);
+  local maxDist = coverage + 2;
+  for (local r = 0; r <= maxDist; r++) {
+    for (local dx = -r; dx <= r; dx++) {
+      for (local dy = -r; dy <= r; dy++) {
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local x = ix + dx;
+        local y = iy + dy;
+        if (!OpexWaterInMap(x, y)) continue;
+        local dock = AIMap.GetTileIndex(x, y);
+        if (!AITile.IsCoastTile(dock)) continue;
+        if (isProducer) {
+          if (AITile.GetCargoProduction(dock, cargo, 1, 1, coverage) <= 0) continue;
+        } else {
+          if (AITile.GetCargoAcceptance(dock, cargo, 1, 1, coverage) < 8) continue;
+        }
+        local waterTiles = OpexWaterAdjacentTiles(dock);
+        if (waterTiles.len() == 0) continue;
+        local ok = false;
+        { local probe = AITestMode(); ok = AIMarine.BuildDock(dock, AIStation.STATION_NEW); }
+        if (ok) return { industry = ind, dock = dock, waterTiles = waterTiles, hasBuiltInDock = false };
+      }
+    }
+  }
+  return null;
+}
+
 function OpexWaterContains(tiles, tile)
 {
   foreach (entry in tiles) if (entry == tile) return true;
@@ -200,23 +259,31 @@ function OpexWaterHasRange(catalog, orderDistance)
  * tuiles d'eau, ou -1 si les deux acces ne sont pas connectes dans le budget borne. */
 function OpexWaterFindConnection(siteA, siteB)
 {
+  local margin = (V220_SHIPS != 0) ? 64 : WATER_BFS_MARGIN;
   local ax = AIMap.GetTileX(siteA.dock);
   local ay = AIMap.GetTileY(siteA.dock);
   local bx = AIMap.GetTileX(siteB.dock);
   local by = AIMap.GetTileY(siteB.dock);
-  local minX = max(0, min(ax, bx) - WATER_BFS_MARGIN);
-  local minY = max(0, min(ay, by) - WATER_BFS_MARGIN);
-  local maxX = min(AIMap.GetMapSizeX() - 1, max(ax, bx) + WATER_BFS_MARGIN);
-  local maxY = min(AIMap.GetMapSizeY() - 1, max(ay, by) + WATER_BFS_MARGIN);
+  local minX = max(0, min(ax, bx) - margin);
+  local minY = max(0, min(ay, by) - margin);
+  local maxX = min(AIMap.GetMapSizeX() - 1, max(ax, bx) + margin);
+  local maxY = min(AIMap.GetMapSizeY() - 1, max(ay, by) + margin);
   local queue = [];
   local seen = {};
   foreach (water in siteA.waterTiles) { queue.append(water); seen.rawset(water, 0); }
   local head = 0;
   local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-  while (head < queue.len() && head < WATER_BFS_MAX_NODES) {
+  local maxNodes = (V220_SHIPS != 0) ? 15000 : WATER_BFS_MAX_NODES;
+  local targetSet = (V220_SHIPS != 0) ? {} : null;
+  if (targetSet != null) foreach (w in siteB.waterTiles) targetSet.rawset(w, true);
+  while (head < queue.len() && head < maxNodes) {
     local current = queue[head++];
     local distance = seen[current];
-    if (OpexWaterContains(siteB.waterTiles, current)) return distance;
+    if (targetSet != null) {
+      if (current in targetSet) return distance;
+    } else {
+      if (OpexWaterContains(siteB.waterTiles, current)) return distance;
+    }
     local x = AIMap.GetTileX(current);
     local y = AIMap.GetTileY(current);
     foreach (offset in offsets) {
@@ -327,11 +394,121 @@ function OpexWaterEconomics(catalog, navigableDistance, tariffDistance, orderDis
   return best;
 }
 
+/* V220 : economie fret maritime pour une paire d'industries cotières ou plate-forme. */
+function OpexWaterFreightEconomics(catalog, cargo, navigableDistance, tariffDistance, orderDistance, monthlyUnits, siteA, siteB)
+{
+  if (!("shipsByCargo" in catalog) || !(cargo in catalog.shipsByCargo) || catalog.shipsByCargo[cargo].len() == 0) return null;
+  local best = null;
+  foreach (ship in catalog.shipsByCargo[cargo]) {
+    if (ship.capacity <= 0 || ship.speed <= 0) continue;
+    if (ship.maxOrderDistance > 0 && orderDistance > ship.maxOrderDistance) continue;
+    local effectiveSpeed = ship.speed / 2;
+    if (effectiveSpeed < 1) effectiveSpeed = 1;
+    local oneWayDays = (navigableDistance * 1000) / (36 * effectiveSpeed);
+    if (oneWayDays < 1) oneWayDays = 1;
+    local roundTripDays = 2 * oneWayDays;
+    local tripsPerYear = 365.0 / roundTripDays.tofloat();
+    local annualCap = (ship.capacity * tripsPerYear).tointeger();
+    local stationRating = OpexStationRatingForHeadway(roundTripDays);
+    local offeredAnnual = 12 * ((monthlyUnits * stationRating) / 100);
+    local carriedAnnual = offeredAnnual < annualCap ? offeredAnnual : annualCap;
+    if (carriedAnnual <= 0) continue;
+    local income = AICargo.GetCargoIncome(cargo, tariffDistance, oneWayDays);
+    local revenueAnnual = carriedAnnual * income;
+    local costDockA = (("hasBuiltInDock" in siteA) && siteA.hasBuiltInDock) ? 0 : catalog.costDock;
+    local costDockB = (("hasBuiltInDock" in siteB) && siteB.hasBuiltInDock) ? 0 : catalog.costDock;
+    local infraCapital = costDockA + costDockB + catalog.costWaterDepot;
+    local capital = infraCapital + ship.price;
+    local runningAnnual = ship.runningCost;
+    local amortAnnual = ((infraCapital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS) + ship.price / 20;
+    local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+    local immobilise = (TRANSIT_COST_PERMILLE > 0)
+        ? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+    local totalCapital = capital + immobilise;
+    local roi = (profitAnnual > 0 && totalCapital > 0)
+        ? (profitAnnual * 1000) / totalCapital : 0;
+    local economics = {
+      ship = ship, oneWayDays = oneWayDays, roundTripDays = roundTripDays,
+      headwayDays = roundTripDays, stationRating = stationRating,
+      carried = carriedAnnual / 12,
+      revenueAnnual = revenueAnnual, runningAnnual = runningAnnual,
+      amortAnnual = amortAnnual, profitAnnual = profitAnnual,
+      capital = capital, immobilise = immobilise, roi = roi,
+    };
+    if (best == null || economics.roi > best.roi ||
+        (economics.roi == best.roi && economics.profitAnnual > best.profitAnnual)) {
+      best = economics;
+    }
+  }
+  return best;
+}
+
 function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, siteCatalog = null)
 {
   if (catalog.ships.len() == 0 || catalog.paxCargo < 0) {
-    if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_engine", 1);
-    return null;
+    if (V220_SHIPS == 0) {
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_engine", 1);
+      return null;
+    }
+  }
+  /* V220 : fret prioritaire quand active */
+  if (V220_SHIPS != 0) {
+    local freightRanked = [];
+    if (("shipsByCargo" in catalog) && catalog.shipsByCargo != null) {
+      foreach (cargo in catalog.cargos) {
+        if (cargo == catalog.paxCargo) continue;
+        if (!(cargo in catalog.shipsByCargo) || catalog.shipsByCargo[cargo].len() == 0) continue;
+        if (!(cargo in catalog.producers) || !(cargo in catalog.acceptors)) continue;
+        local prodList = catalog.producers[cargo];
+        local accList = catalog.acceptors[cargo];
+        for (local pi = 0; pi < prodList.len(); pi++) {
+          local prodInd = catalog.industries[prodList[pi]];
+          if (OpexWaterIndustryServed(prodInd, lines, cargo)) continue;
+          local siteA = OpexWaterFindIndustrySite(prodInd, cargo, true);
+          if (siteA == null) continue;
+          for (local ai = 0; ai < accList.len(); ai++) {
+            local accInd = catalog.industries[accList[ai]];
+            local distManhattan = AIMap.DistanceManhattan(prodInd.tile, accInd.tile);
+            if (distManhattan < 30 || distManhattan > 300) continue;
+            local siteB = OpexWaterFindIndustrySite(accInd, cargo, false);
+            if (siteB == null) continue;
+            local orderDist = AIOrder.GetOrderDistance(AIVehicle.VT_WATER, siteA.dock, siteB.dock);
+            if (orderDist < 0) continue;
+            local navDist = OpexWaterFindConnection(siteA, siteB);
+            if (navDist < 0) continue;
+            local monthlyProd = AIIndustry.GetLastMonthProduction(prodInd.id, cargo);
+            if (monthlyProd <= 0) monthlyProd = 100;
+            local tariffDist = AIMap.DistanceManhattan(siteA.dock, siteB.dock);
+            local econ = OpexWaterFreightEconomics(catalog, cargo, navDist, tariffDist, orderDist, monthlyProd, siteA, siteB);
+            if (econ == null || econ.profitAnnual <= 0) continue;
+            local plan = {
+              siteA = siteA, siteB = siteB, distance = navDist,
+              tariffDistance = tariffDist, orderDistance = orderDist,
+              economics = econ, cargo = cargo, kind = "freight",
+              srcIndustry = prodInd.id, dstIndustry = accInd.id
+            };
+            local pos = freightRanked.len();
+            while (pos > 0 && (freightRanked[pos - 1].economics.roi < econ.roi ||
+                   (freightRanked[pos - 1].economics.roi == econ.roi &&
+                    freightRanked[pos - 1].economics.profitAnnual < econ.profitAnnual))) pos--;
+            freightRanked.insert(pos, plan);
+            if (DECISION_LOG) {
+              OpexDecide("WATER_PROJECT_GEN", "kind=freight cargo=" + AICargo.GetCargoLabel(cargo)
+                  + " src=" + siteA.dock + " dst=" + siteB.dock + " dist=" + navDist
+                  + " roi=" + econ.roi + " profit=" + econ.profitAnnual + " cost=" + econ.capital);
+            }
+            if (freightRanked.len() >= WATER_PROJECT_POOL) break;
+          }
+          if (freightRanked.len() >= WATER_PROJECT_POOL) break;
+        }
+      }
+    }
+    if (freightRanked.len() > 0) {
+      foreach (plan in freightRanked) {
+        if (projects != null) projects.append(plan);
+      }
+      return freightRanked[0];
+    }
   }
   local mark = profile != null ? OpexOpsMeasureBegin() : null;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_town_sort", "-");
@@ -458,12 +635,18 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
       if (C69_BOTTLENECK_PROBE) c73WaterProduced++;
       local plan = { siteA = sites[a], siteB = sites[b], distance = navigableDistance,
                      tariffDistance = tariffDistance,
-                     orderDistance = orderDistance, economics = economics };
+                     orderDistance = orderDistance, economics = economics,
+                     cargo = catalog.paxCargo, kind = "pax" };
       local pos = ranked.len();
       while (pos > 0 && (ranked[pos - 1].economics.roi < economics.roi ||
              (ranked[pos - 1].economics.roi == economics.roi &&
               ranked[pos - 1].economics.profitAnnual < economics.profitAnnual))) pos--;
       ranked.insert(pos, plan);
+      if (DECISION_LOG && V220_SHIPS != 0) {
+        OpexDecide("WATER_PROJECT_GEN", "kind=pax cargo=" + AICargo.GetCargoLabel(catalog.paxCargo)
+            + " src=" + sites[a].dock + " dst=" + sites[b].dock + " dist=" + navigableDistance
+            + " roi=" + economics.roi + " profit=" + economics.profitAnnual + " cost=" + economics.capital);
+      }
       if (ranked.len() > WATER_PROJECT_POOL) ranked.pop();
     }
   }
@@ -508,7 +691,9 @@ function OpexWaterPlannedCapital(catalog, plan)
       && plan.economics.ship != null && ("price" in plan.economics.ship)) {
     shipPrice = plan.economics.ship.price;
   }
-  return 2 * catalog.costDock + catalog.costWaterDepot + shipPrice;
+  local costA = (plan != null && ("siteA" in plan) && ("hasBuiltInDock" in plan.siteA) && plan.siteA.hasBuiltInDock) ? 0 : catalog.costDock;
+  local costB = (plan != null && ("siteB" in plan) && ("hasBuiltInDock" in plan.siteB) && plan.siteB.hasBuiltInDock) ? 0 : catalog.costDock;
+  return costA + costB + catalog.costWaterDepot + shipPrice;
 }
 
 /* Chaque retour ferme le budget ouvert et retourne une table. */
@@ -529,30 +714,44 @@ function OpexBuildWaterRoute(catalog, budget, plan)
 
   budget.begin();
   if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
-  local okA = AIMarine.BuildDock(plan.siteA.dock, AIStation.STATION_NEW);
-  local errorA = okA ? 0 : AIError.GetLastError();
-  if (okA && AIMarine.IsDockTile(plan.siteA.dock)) dockA = plan.siteA.dock;
+  local okA = false;
+  local errorA = 0;
+  if (("hasBuiltInDock" in plan.siteA) && plan.siteA.hasBuiltInDock) {
+    dockA = plan.siteA.dock;
+  } else {
+    okA = AIMarine.BuildDock(plan.siteA.dock, AIStation.STATION_NEW);
+    errorA = okA ? 0 : AIError.GetLastError();
+    if (okA && AIMarine.IsDockTile(plan.siteA.dock)) dockA = plan.siteA.dock;
+  }
   if (dockA == null) {
     result.error = errorA; result.opcodes += budget.end("build_docks"); result.reason = "ADOCK";
     return OpexWaterStampCost(result, costs);
   }
-  local okB = AIMarine.BuildDock(plan.siteB.dock, AIStation.STATION_NEW);
-  local errorB = okB ? 0 : AIError.GetLastError();
-  if (okB && AIMarine.IsDockTile(plan.siteB.dock)) dockB = plan.siteB.dock;
+  local okB = false;
+  local errorB = 0;
+  if (("hasBuiltInDock" in plan.siteB) && plan.siteB.hasBuiltInDock) {
+    dockB = plan.siteB.dock;
+  } else {
+    okB = AIMarine.BuildDock(plan.siteB.dock, AIStation.STATION_NEW);
+    errorB = okB ? 0 : AIError.GetLastError();
+    if (okB && AIMarine.IsDockTile(plan.siteB.dock)) dockB = plan.siteB.dock;
+  }
   result.opcodes += budget.end("build_docks");
+  local dockRollbackA = (("hasBuiltInDock" in plan.siteA) && plan.siteA.hasBuiltInDock) ? null : dockA;
   if (dockB == null) {
-    result.error = errorB; OpexWaterRollback(dockA, null, null, null); result.reason = "BDOCK";
+    result.error = errorB; OpexWaterRollback(dockRollbackA, null, null, null); result.reason = "BDOCK";
     return OpexWaterStampCost(result, costs);
   }
+  local dockRollbackB = (("hasBuiltInDock" in plan.siteB) && plan.siteB.hasBuiltInDock) ? null : dockB;
   local stationA = AIStation.GetStationID(dockA);
   local stationB = AIStation.GetStationID(dockB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB) {
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "STATION"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, null, null); result.reason = "STATION"; return OpexWaterStampCost(result, costs);
   }
 
   local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_WATER, dockA, dockB);
   if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) {
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "RANGE"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, null, null); result.reason = "RANGE"; return OpexWaterStampCost(result, costs);
   }
 
   /* Les fronts et leur composant sont relus apres les constructions reelles. */
@@ -561,40 +760,39 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local accessB = OpexWaterDockAccess(dockB);
   if (accessA == null || accessB == null) {
     result.opcodes += budget.end("build_water_depot");
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
   }
   local realA = { dock = dockA, waterTiles = accessA.fronts };
   local realB = { dock = dockB, waterTiles = accessB.fronts };
   /* Verification historique de connectivite apres construction des quais. */
   if (!WATER_OPCODE_COMPAT_FALSE && OpexWaterFindConnection(realA, realB) < 0) {
     result.opcodes += budget.end("build_water_depot");
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
   }
   local depotPlan = OpexWaterFindDepot(realA, realB);
   if (depotPlan == null) {
     result.opcodes += budget.end("build_water_depot");
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
   }
   local depotOk = AIMarine.BuildWaterDepot(depotPlan.tile, depotPlan.front);
   local depotError = depotOk ? 0 : AIError.GetLastError();
   if (depotOk && AIMarine.IsWaterDepotTile(depotPlan.tile)) depot = depotPlan.tile;
   result.opcodes += budget.end("build_water_depot");
   if (depot == null) {
-    result.error = depotError; OpexWaterRollback(dockA, dockB, null, null); result.reason = "DEPOT";
+    result.error = depotError; OpexWaterRollback(dockRollbackA, dockRollbackB, null, null); result.reason = "DEPOT";
     return OpexWaterStampCost(result, costs);
   }
 
   budget.begin();
-  /* G7§4 : utiliser le navire elu par OpexWaterEconomics (meilleur ROI), pas le plus gros.
-   * L'ancien code choisissait par capacite maximale, ce qui pouvait elire un navire lent
-   * et cher dont le ROI n'avait jamais ete chiffre par le portefeuille. On valide la
-   * capacite reelle de refit dans le depot et on retombe sur le scan uniquement en echec. */
+  local planCargo = ("cargo" in plan) ? plan.cargo : catalog.paxCargo;
+  local planKind = ("kind" in plan) ? plan.kind : "pax";
+  local candidateShips = (("shipsByCargo" in catalog) && (planCargo in catalog.shipsByCargo)) ? catalog.shipsByCargo[planCargo] : catalog.ships;
   local chosen = null;
   local chosenCapacity = 0;
   if (("economics" in plan) && plan.economics != null && ("ship" in plan.economics)) {
     local elected = plan.economics.ship;
     if (elected.maxOrderDistance <= 0 || orderDistance <= elected.maxOrderDistance) {
-      local cap = AIVehicle.GetBuildWithRefitCapacity(depot, elected.id, catalog.paxCargo);
+      local cap = AIVehicle.GetBuildWithRefitCapacity(depot, elected.id, planCargo);
       if (cap > 0) {
         chosen = elected;
         chosenCapacity = cap;
@@ -602,9 +800,9 @@ function OpexBuildWaterRoute(catalog, budget, plan)
     }
   }
   if (chosen == null) {
-    foreach (candidate in catalog.ships) {
+    foreach (candidate in candidateShips) {
       if (candidate.maxOrderDistance > 0 && orderDistance > candidate.maxOrderDistance) continue;
-      local capacity = AIVehicle.GetBuildWithRefitCapacity(depot, candidate.id, catalog.paxCargo);
+      local capacity = AIVehicle.GetBuildWithRefitCapacity(depot, candidate.id, planCargo);
       if (capacity > chosenCapacity ||
           (capacity == chosenCapacity && capacity > 0 &&
            (chosen == null || candidate.speed > chosen.speed ||
@@ -616,40 +814,43 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   }
   if (chosen == null || chosenCapacity <= 0) {
     result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, null); result.reason = "REFIT"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, depot, null); result.reason = "REFIT"; return OpexWaterStampCost(result, costs);
   }
-  ship = AIVehicle.BuildVehicleWithRefit(depot, chosen.id, catalog.paxCargo);
+  ship = AIVehicle.BuildVehicleWithRefit(depot, chosen.id, planCargo);
   local shipError = AIError.GetLastError();
   if (!AIVehicle.IsValidVehicle(ship)) {
     result.error = shipError; result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, null); result.reason = "SHIP"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, depot, null); result.reason = "SHIP"; return OpexWaterStampCost(result, costs);
   }
-  if (AIVehicle.GetCapacity(ship, catalog.paxCargo) <= 0) {
-    result.opcodes += budget.end("build_ships"); OpexWaterRollback(dockA, dockB, depot, ship);
+  if (AIVehicle.GetCapacity(ship, planCargo) <= 0) {
+    result.opcodes += budget.end("build_ships"); OpexWaterRollback(dockRollbackA, dockRollbackB, depot, ship);
     result.reason = "PAX"; return OpexWaterStampCost(result, costs);
   }
   local maxOrderDistance = AIEngine.GetMaximumOrderDistance(chosen.id);
   if (maxOrderDistance > 0 && orderDistance > maxOrderDistance) {
-    result.opcodes += budget.end("build_ships"); OpexWaterRollback(dockA, dockB, depot, ship);
+    result.opcodes += budget.end("build_ships"); OpexWaterRollback(dockRollbackA, dockRollbackB, depot, ship);
     result.reason = "RANGE"; return OpexWaterStampCost(result, costs);
   }
-  local orderA = AIOrder.AppendOrder(ship, dockA, AIOrder.OF_NONE);
+  local orderFlagA = (planKind == "freight") ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local orderA = AIOrder.AppendOrder(ship, dockA, orderFlagA);
   local errorOrderA = orderA ? 0 : AIError.GetLastError();
   local orderB = AIOrder.AppendOrder(ship, dockB, AIOrder.OF_NONE);
   local errorOrderB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(ship) != 2) {
     result.error = !orderA ? errorOrderA : errorOrderB; result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, ship); result.reason = "ORDERS"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, depot, ship); result.reason = "ORDERS"; return OpexWaterStampCost(result, costs);
   }
   local started = AIVehicle.StartStopVehicle(ship);
   local startError = started ? 0 : AIError.GetLastError();
   if (!started) {
     result.error = startError; result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, ship); result.reason = "START"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockRollbackA, dockRollbackB, depot, ship); result.reason = "START"; return OpexWaterStampCost(result, costs);
   }
   result.opcodes += budget.end("build_ships");
   result.ok = true; result.reason = "OK"; result.dockA = dockA; result.dockB = dockB;
   result.stationA = stationA; result.stationB = stationB; result.depot = depot; result.vehicle = ship;
+  result.capacity = chosenCapacity;
+  result.engineId = chosen.id;
   return OpexWaterStampCost(result, costs);
 }
 

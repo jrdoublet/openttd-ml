@@ -894,6 +894,10 @@ V217_IDLE_CASH_MIN <- 100000;
 V217_POOL_MIN <- 2;
 V217_LAST_MONTH <- -1;
 V217_REGEN_NO_PAX <- false;
+/* V220 : Bateaux phase 4 (fret prioritaire, tresorerie riche, renforts). 0 = inerte (defaut). */
+V220_SHIPS <- 0;
+V220_SHIPS_MIN_CASH <- 300000;
+V220_SHIPS_MIN_YEAR <- 1972;
 /* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
  * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
  * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */

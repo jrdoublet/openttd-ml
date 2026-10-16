@@ -333,6 +333,10 @@ function OpexAI::_reportLines(year)
       line.lastLiveVehicles <- vehCount;
     }
     OpexSign(anchor, "OO|" + line.lineId + "|" + year + "|" + (profit + runCost));
+    if (DECISION_LOG && ("mode" in line) && line.mode == "water") {
+      local cargoStr = AICargo.GetCargoLabel(line.cargo);
+      OpexDecide("WATER_LINE_REVENUE", "line=" + line.lineId + " year=" + year + " profit=" + profit + " run_cost=" + runCost + " revenue=" + (profit + runCost) + " ships=" + vehCount + " cargo=" + cargoStr);
+    }
     /* Rendement de vitesse (taches S4.3). Instantane annuel des convois EN MARCHE
      * (vitesse > 0, donc pas a quai). med / cat = rendement vs catalogue ; med / pred
      * vs la traction. "RV|99|999|8|999|999|999" = 22 caracteres. Rail seulement. */
