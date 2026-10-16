@@ -13,11 +13,11 @@ class TestV216fDwell(unittest.TestCase):
         cls.economy = (AI / "economy.nut").read_text(encoding="utf-8")
         cls.sources = {p.name: p.read_text(encoding="utf-8") for p in AI.glob("*.nut")}
 
-    def test_setting_inert_by_default(self):
+    def test_setting_default_qualified(self):
         block = re.search(r'name = "v216f_dwell_pct",(.*?)\}\);', self.info, re.S)
         self.assertIsNotNone(block)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block.group(1), level + r" = 0\b")
+            self.assertRegex(block.group(1), level + r" = 100\b")
         self.assertIn("V216F_DWELL_PCT <- 0;", self.sources["globals_pre.nut"])
         self.assertEqual(sum(s.count('GetSetting("v216f_dwell_pct")') for s in self.sources.values()), 1)
 

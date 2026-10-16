@@ -72,11 +72,11 @@ class TestV216aGhostDemand(unittest.TestCase):
         cls.info = (AI / "info.nut").read_text(encoding="utf-8")
         cls.sources = {p.name: p.read_text(encoding="utf-8") for p in AI.glob("*.nut")}
 
-    def test_setting_inert_by_default(self):
+    def test_setting_default_qualified(self):
         block = re.search(r'name = "v216a_ghost_demand",(.*?)\}\);', self.info, re.S)
         self.assertIsNotNone(block)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block.group(1), level + r" = 0\b")
+            self.assertRegex(block.group(1), level + r" = 1\b")
         self.assertIn("V216A_GHOST_DEMAND <- 0;", self.sources["globals_pre.nut"])
         self.assertEqual(sum(s.count('GetSetting("v216a_ghost_demand")') for s in self.sources.values()), 1)
 

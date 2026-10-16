@@ -1176,19 +1176,19 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v216a_ghost_demand",
-      description = "V216a: scale rail pax/mail demand by catchment already covered (ours or rivals). 0 = inert, 1 = company net gain, 2 = line share",
+      description = "V216a: scale rail pax/mail demand by catchment already covered (ours or rivals). 0 = inert, 1 = company net gain (default since 16/10, V102 gates passed in full game), 2 = line share",
       min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
 
     AddSetting({
       name = "v216f_dwell_pct",
-      description = "V216f: add the mechanical station dwell (load + unload) to the rail cycle, in percent of the EST-16 estimate. 0 = inert",
+      description = "V216f: add the mechanical station dwell (load + unload) to the rail cycle, in percent of the EST-16 estimate. 0 = inert; default 100 since 16/10 (V102 gates passed in full game)",
       min_value = 0, max_value = 200,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
       flags = 0
     });
 
