@@ -54,6 +54,15 @@ class TestV211Rivals(unittest.TestCase):
     def test_quarter_index(self):
         self.assertIn("(AIDate.GetMonth(now) - 1) / 3", self.module)
 
+    def test_self_score_components(self):
+        self.assertIn('OpexDecide("V211_SCORE"', self.module)
+        for part in ("vehicles", "stations", "min_profit", "min_income", "max_income",
+                     "delivered", "cargo", "money", "loan_margin"):
+            self.assertIn('["' + part + '"', self.module)
+        # Total des points = 1000, comme la note d'OpenTTD.
+        pts = re.findall(r'\["\w+", [^,]+, \d+, (\d+)\]', self.module)
+        self.assertEqual(sum(int(p) for p in pts), 1000)
+
 
 class TestAnalyzeV211(unittest.TestCase):
     def test_parse_and_overtake(self):
