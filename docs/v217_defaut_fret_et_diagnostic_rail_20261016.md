@@ -22,3 +22,14 @@ Le seul changement fonctionnel est la valeur par défaut dans `ai/OpexAI/info.nu
 Banc 40×3 `v217_default_railonly_vs_aaa_40x3_20261016`, rail seul **des deux côtés** : OpexAI `mode_air=0,mode_road=0,mode_water=0` ; AAAHogEx `disable_veh_roadveh/tram/ship/aircraft=1`. 40 graines `SEEDS_40`, 1970–1972, post-traitement des lignes `--line-telemetry` ; cible : quantifier profit, capacité et réseau fret vs pax. Préenregistrement : `results/v217_default_rail_only_40x3_20261016_prereg.md`. Smoke 42 1×3 sain : OpexAI 421768 £/an vs AAAHogEx 1444127 £/an, uniquement des véhicules rail (20 vs 34), 16 vs 22 lignes physiques.
 
 L'ancien fork 841478 a été arrêté (préparation A/A/B conservée et témoin A/A `aa0` sain) pour libérer les 3 CPU réservés ; le 40×3 utilise un seul conteneur plafonné à 10 CPU avec 10 workers.
+
+## Résultat du 40×3 rail seul (terminé)
+
+40/40 jeux en fin 1972, 39 `complete` et seed 613553 `stagnation_suspect` des deux côtés (sensibilité 39/40 quasi identique), 0 erreur moteur, zéro victoire Opex au profit annuel.
+
+- OpexAI 309 802 £/an, AAAHogEx 1 385 558 £/an : ratio **22,36 %** ; trains 16,33 contre 27,43.
+- Capacité fret industriel (tous véhicules étant ferroviaires) **1 043 contre 5 297**, AAA ×5,08 ; part du fret dans la capacité totale 77,0 % contre 69,6 %.
+- Fret pur : 9,10 contre 14,08 lignes, ~10,25 contre ~20,85 trains, capacité médiane **90 contre 240 par train** ; profit courant médian par ligne 26,4 k£ contre 45,4 k£.
+- Les déficits persistent sans AIR/ROAD : priorité à l'analyse de la taille/composition des trains fret et du portefeuille fret, plutôt qu'à la seule concurrence de capital par l'AIR.
+
+Rapport détaillé : `results/v217_default_railonly_vs_aaa_40x3_20261016_report.md` et preuves brutes `.json`, `.jsonl`, `.manifest.json`, `_bundle/`. Aucun défaut autre que V217 n'a été modifié.
