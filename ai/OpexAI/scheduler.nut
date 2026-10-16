@@ -7,6 +7,7 @@
 function OpexAI::_runNextTaskWithSlackLedger()
 {
   if (V216_PROBE) OpexV216MonthlyTick();
+  if (V211_RIVALS) OpexV211QuarterlyTick();
   if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER
        && !C41_RAIL_SLICE_LEDGER && !C39_PASS_CLOCK_LEDGER)
       || this._c41SlackLedger == null) {

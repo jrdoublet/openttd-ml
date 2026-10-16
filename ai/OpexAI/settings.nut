@@ -129,6 +129,7 @@ function OpexLoadSettings()
   local longWeightDist = AIController.GetSetting("v172_rail_long_weight_dist");
   V172_RAIL_LONG_WEIGHT_DIST = (longWeightDist != null && longWeightDist >= 0 && longWeightDist <= 512) ? longWeightDist : 100;
   V216_PROBE = AIController.GetSetting("v216_probe") != 0;
+  V211_RIVALS = AIController.GetSetting("v211_rivals_log") != 0;
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
