@@ -1211,6 +1211,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v218_goods_chain",
+      description = "V218: phase 3 transformed cargo — graft a goods-to-town rail line onto an existing feeder that already delivers to a factory. Coherent score (same-step profit/capital), never counts a pending A* as built, never stops the projects pass. 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v172_rail_long_weight_dist",
       description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
       min_value = 0, max_value = 512,

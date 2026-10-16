@@ -465,6 +465,7 @@ class OpexAI extends AIController {
   function _tryAttachSharedDest(candidate);
   function _tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
   function _setActiveGoodsChain(chain);
+  function _v218PrepareGraft(candidate, rank);
   function _tryBuildAir(year);
   function _tryBuildProjects(year);
   function _ensureSelection();

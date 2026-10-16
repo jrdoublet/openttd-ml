@@ -184,6 +184,18 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       local candidate = project.payload;
+      /* V218 : greffe biens->ville. Si le trace n'est pas pret, on le demande au
+       * worker/stock ou on lance l'A* SANS renvoyer pending (la passe continue, l'air aussi). */
+      if (V218_GOODS_CHAIN && candidate != null
+          && ("isV218Graft" in candidate) && candidate.isV218Graft) {
+        local v218State = this._v218PrepareGraft(candidate, i);
+        if (v218State != "ready") {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                  reason = "v218_route_wait", extra = v218State });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
       /* Trace prepare pendant l'annee AIR : il n'est pas dans best. S'il y
        * reapparait quand meme, on refuse sans lancer d'A* et sans stopper la passe. */
       local c121PrepPlan = false;
@@ -219,7 +231,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
       if (C80_RAIL_STOCK_GATE) {
         local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
-        if (C80_RAIL_STOCK_WORKER && (this._railReadyStock == null
+        local v218Ready = V218_GOODS_CHAIN && ("isV218Graft" in candidate) && candidate.isV218Graft
+            && ("railPlan" in candidate) && candidate.railPlan != null;
+        if (!v218Ready && C80_RAIL_STOCK_WORKER && (this._railReadyStock == null
             || !(pairKey in this._railReadyStock)
             || this._railReadyStock[pairKey].project != project)) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
@@ -243,7 +257,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if (!c121PrepPlan && builtCount > 0 && ("railPlan" in candidate)) {
+        if (!c121PrepPlan && builtCount > 0 && ("railPlan" in candidate)
+            && !(V218_GOODS_CHAIN && ("isV218Graft" in candidate) && candidate.isV218Graft)) {
           /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
            * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
            * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure.
@@ -260,7 +275,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         local searchBlocked = (V184_RAIL_SEARCH_SLOTS > 1)
             ? !this._v184CanStartRailSearch(candidate)
             : (this._railSearch != null);
-        if (RAIL_SEARCH_RESUMABLE && searchBlocked && !c121PrepPlan) {
+        if (RAIL_SEARCH_RESUMABLE && searchBlocked && !c121PrepPlan
+            && !(V218_GOODS_CHAIN && ("isV218Graft" in candidate) && candidate.isV218Graft
+                 && ("railPlan" in candidate) && candidate.railPlan != null)) {
           if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
           if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
@@ -293,7 +310,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         }
       }
       if (V88_STEP2_RAIL_PRIO && this._activeGoodsChain != null && this._activeGoodsChain.step == 2
-          && !(("isChainStep2" in candidate) && candidate.isChainStep2)) {
+          && !(("isChainStep2" in candidate) && candidate.isChainStep2)
+          && !(("isV218Graft" in candidate) && candidate.isV218Graft)) {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "chain_step2_prio", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -633,6 +651,73 @@ function OpexAI::_setActiveGoodsChain(chain)
   V88_STEP2_RESERVE_AMOUNT = (chain != null && chain.step == 2 && ("goodsCandidate" in chain) && chain.goodsCandidate != null && ("capital" in chain.goodsCandidate)) ? chain.goodsCandidate.capital : 0;
 }
 
+/* V218 : attache un tracé prêt (stock) ou demande l'A* sans bloquer la passe.
+ * "ready" = railPlan posé, on peut construire ; tout autre code = la passe continue. */
+function OpexAI::_v218PrepareGraft(candidate, rank)
+{
+  if (candidate == null) return "none";
+  if (("railPlan" in candidate) && candidate.railPlan != null) return "ready";
+  local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
+  if (this._railReadyStock != null && (pairKey in this._railReadyStock)) {
+    local entry = this._railReadyStock[pairKey];
+    if (entry != null && ("plan" in entry) && entry.plan != null
+        && (!("ok" in entry.plan) || entry.plan.ok)) {
+      candidate.rawset("railPlan", entry.plan);
+      OpexV88Log("CHAIN_CHOSEN", "fact=" + (("factoryId" in candidate) ? candidate.factoryId : -1)
+                 + " town=" + (("dstTown" in candidate) ? candidate.dstTown : -1)
+                 + " goodsCargo=" + candidate.cargo + " v218=1 graft=1 stock_ready=1");
+      return "ready";
+    }
+  }
+  if (this._railSearch != null) {
+    OpexV88Log("CHAIN_WAIT", "step=2 reason=rail_search v218=1");
+    return "busy";
+  }
+  local alternativeRatio = MIN_RATIO;
+  local hardCap = OpexRailCandidateHardCap(candidate,
+      OpexDynamicHardCap(this._lines.len(), false));
+  local posPacked = rank * TOP_K;
+  if (this._projects != null && ("best" in this._projects) && this._projects.best != null) {
+    posPacked = rank * TOP_K + this._projects.best.len();
+  }
+  if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) {
+    local started = this._startRailStockSearch(candidate);
+    OpexV88Log("CHAIN_STEP2_SEARCH", "pending=" + (started ? 1 : 0) + " v218=1 stock=1");
+    if (started) {
+      OpexV88Log("CHAIN_CHOSEN", "fact=" + (("factoryId" in candidate) ? candidate.factoryId : -1)
+                 + " town=" + (("dstTown" in candidate) ? candidate.dstTown : -1)
+                 + " goodsCargo=" + candidate.cargo + " v218=1 graft=1 stock=1");
+      return "requested";
+    }
+    return "fail";
+  }
+  local start = this._startRailSearch(candidate, alternativeRatio, hardCap, posPacked);
+  OpexV88Log("CHAIN_STEP2_SEARCH", "pending=" + (start.pending ? 1 : 0) + " v218=1");
+  if (start.pending) {
+    OpexV88Log("CHAIN_CHOSEN", "fact=" + (("factoryId" in candidate) ? candidate.factoryId : -1)
+               + " town=" + (("dstTown" in candidate) ? candidate.dstTown : -1)
+               + " goodsCargo=" + candidate.cargo + " v218=1 graft=1");
+    return "requested";
+  }
+  if (("railPlan" in candidate) && candidate.railPlan != null) {
+    OpexV88Log("CHAIN_CHOSEN", "fact=" + (("factoryId" in candidate) ? candidate.factoryId : -1)
+               + " town=" + (("dstTown" in candidate) ? candidate.dstTown : -1)
+               + " goodsCargo=" + candidate.cargo + " v218=1 graft=1 ready=1");
+    return "ready";
+  }
+  if (start.plan != null && (!("reason" in start.plan) || start.plan.reason != "NOPA")
+      && ("plansA" in start.plan) && start.plan.plansA != null) {
+    candidate.rawset("railPlan", start.plan);
+    OpexV88Log("CHAIN_CHOSEN", "fact=" + (("factoryId" in candidate) ? candidate.factoryId : -1)
+               + " town=" + (("dstTown" in candidate) ? candidate.dstTown : -1)
+               + " goodsCargo=" + candidate.cargo + " v218=1 graft=1 ready=1");
+    return "ready";
+  }
+  this._markPairAbandoned(OpexAbandonedPairKey(candidate));
+  OpexV88Log("CHAIN_FAIL", "step=2 reason=no_path v218=1");
+  return "fail";
+}
+
 /* V88 : Construction de l'etape 2 d'une chaine de biens (troncon usine -> ville avec quai joint) */
 function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
 {
@@ -704,7 +789,12 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
     }
     local start = this._startRailSearch(goodsCand, alternativeRatio, hardCap, posPacked);
     OpexV88Log("CHAIN_STEP2_SEARCH", "pending=" + (start.pending ? 1 : 0));
-    if (start.pending) return true;
+    /* V88 : return true comptait un A* lance comme une construction (defaut 2).
+     * Sous V218, la passe doit continuer : false = rien de construit. */
+    if (start.pending) {
+      if (V218_GOODS_CHAIN) return false;
+      return true;
+    }
     goodsCand.railPlan <- start.plan;
   }
 
@@ -1955,6 +2045,12 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       built.predRevenue2 <- candidate.revenue2;
     }
     this._nextLineId++;
+    if (V218_GOODS_CHAIN && ("isV218Graft" in candidate) && candidate.isV218Graft) {
+      local townId = ("dstTown" in candidate) ? candidate.dstTown : -1;
+      local factId = ("factoryId" in candidate) ? candidate.factoryId : -1;
+      OpexV88Log("CHAIN_STEP2", "line=" + idx + " town=" + townId + " fact=" + factId + " v218=1");
+      OpexSign(anchor, "C2|" + yy + "|" + idx + "|" + townId);
+    }
     if (DECISION_LOG && OpexV190Active() && candidate.kind == "freight") {
       if (("v181Loop" in result) && result.v181Loop) {
         OpexDecide("V190", "action=build_double line=" + idx + " trains=" + result.trains + " reason=OK");
@@ -2165,8 +2261,13 @@ function OpexAI::_tryStartRailStockWorker()
     if (candidate.capital > maxCost) continue;
 
     if (candidate.kind != "pax") {
-      /* src/dst sont des tuiles (OpexMakeCandidate), pas des IndustryID. */
-      if (!AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.src)) || !AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.dst))) continue;
+      /* src/dst sont des tuiles (OpexMakeCandidate), pas des IndustryID.
+       * V218 greffe usine -> ville : dst n'est pas une industrie. */
+      local srcOk = AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.src));
+      local dstOk = AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.dst));
+      if (!dstOk && V218_GOODS_CHAIN && ("dstTown" in candidate) && candidate.dstTown >= 0
+          && AITown.IsValidTown(candidate.dstTown)) dstOk = true;
+      if (!srcOk || !dstOk) continue;
     }
 
     local paperProject = OpexProjectFromCandidate(candidate);

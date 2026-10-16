@@ -67,7 +67,10 @@ function OpexLoadRailExpansion(data)
   };
 }
 
-/* V88 : Sauvegarde d'une chaine industrielle en cours (sans floats pour NoAI) */
+/* V88 : Sauvegarde d'une chaine industrielle en cours (sans floats pour NoAI).
+ * V218 ne cree pas d'etat dedie : les greffes se reconstruisent depuis this._lines
+ * (usine deja livree) a la generation suivante ; une recherche A* en vol n'est
+ * de toute facon pas serialisable (railSearchPending). */
 function OpexSaveGoodsChain(chain)
 {
   if (chain == null || typeof chain != "table") return null;

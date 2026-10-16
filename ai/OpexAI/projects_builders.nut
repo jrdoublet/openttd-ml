@@ -138,6 +138,8 @@ function OpexProjectFromCandidate(candidate)
       project.budgetCapital = candidate.inputCandidate.capital;
     }
   }
+  /* V218 greffe : pas isChain, donc budgetCapital = capital de l'etape biens seule.
+   * fundScore utilise le meme profit et le meme capital (pas le defaut V88 etape 1). */
   return project;
 }
 

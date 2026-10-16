@@ -743,6 +743,8 @@ V88_STEP2_RAIL_PRIO <- false;
 /* V88 : reserve de tresorerie pour l'etape 2 de la chaine active. Defaut 0. */
 V88_STEP2_CASH_RESERVE <- false;
 V88_STEP2_RESERVE_AMOUNT <- 0;
+/* V218 : greffe biens->ville sur une ligne fret existante livrant une usine. Defaut 0. */
+V218_GOODS_CHAIN <- false;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
 /* C75 bis : autorise une seule nouvelle ligne finançable a franchir K_pass par passe. Defaut 0. */
