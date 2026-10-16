@@ -55,5 +55,29 @@ class TestV211Rivals(unittest.TestCase):
         self.assertIn("(AIDate.GetMonth(now) - 1) / 3", self.module)
 
 
+class TestAnalyzeV211(unittest.TestCase):
+    def test_parse_and_overtake(self):
+        import sys, tempfile
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import analyze_v211 as a
+        pre = "[t] dbg: [script:4] [0] [I] OPEX "
+        def row(date, c, me, value, perf):
+            return (pre + f"{date} V211_RIVAL company={c} self={me} name=X value={value} perf={perf} "
+                    f"income=10 expenses=-5 profit=5 delivered=3 bank=7 rail=1 road=2 stations=3 airports=4 canals=0")
+        lines = [row("1970-4-1", 0, 1, 100, 50), row("1970-4-1", 1, 0, 50, 60),
+                 row("1970-7-1", 0, 1, 100, 50), row("1970-7-1", 1, 0, 150, 40),
+                 row("1971-1-1", 0, 1, 100, 50), row("1971-1-1", 1, 0, 150, 60), "noise"]
+        with tempfile.NamedTemporaryFile("w", suffix=".log", delete=False) as fh:
+            fh.write("\n".join(lines) + "\n")
+        game = a.parse_log(fh.name)
+        Path(fh.name).unlink()
+        self.assertEqual(sorted(game), [1970 * 4, 1970 * 4 + 1, 1970 * 4 + 3])
+        self.assertEqual(a.overtaken_from(game, "value"), 1970 * 4 + 1)
+        self.assertEqual(a.overtaken_from(game, "perf"), 1970 * 4 + 3)
+        acc = a.year_table([game])
+        self.assertEqual(acc[1970]["lead_value"], [1, 0, 0])
+        self.assertEqual(a.fmt_q(1970 * 4 + 3), "1970-T4")
+
+
 if __name__ == "__main__":
     unittest.main()
