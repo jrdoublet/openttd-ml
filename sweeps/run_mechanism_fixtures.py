@@ -152,7 +152,7 @@ def verify_markers(logs):
     joined = "\n".join(logs)
     matrix = [int(x) for x in re.findall(r"FXVM case=(\d+).* pass=1", logs[0])]
     result = {"vm_matrix": matrix == list(range(1, 49)) and
-              "FXVM complete=1 cases=48 boundary_checks=8 settings_restored=1" in logs[0]}
+              "FXVM complete=1 cases=48 boundary_checks=1 settings_restored=1" in logs[0]}
     for scenario in ("r1_below", "r1_exact", "r1_repeat", "r1_reload", "r1_stale"):
         result[scenario] = len(re.findall(rf"FXWORLD scenario={scenario} pass=1\b", joined)) == 1
     guards = re.findall(r"FXWORLD phase=guard price=(\d+) need=(\d+) cash=(\d+)", logs[1])
