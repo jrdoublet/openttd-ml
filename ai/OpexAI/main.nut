@@ -142,6 +142,8 @@ class OpexAI extends AIController {
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
+  _v233GoodsObservations = null;
+  _v233GoodsWork = null;
   /* V184 : etat des slots reinitialise au demarrage et au rechargement (une recherche). */
   _v184RailSlots = null;
   _v184SlotCursor = 0;
@@ -452,6 +454,7 @@ class OpexAI extends AIController {
 
   function Start();
   function _tooClose(candidate);
+  function _v233GoodsStep();
   function _tryAttachSharedDest(candidate);
   function _tryBuildProjects(year);
   function _ensureSelection();
@@ -612,6 +615,7 @@ require("events.nut");
 require("event_handlers.nut");
 require("ledgers.nut");
 require("lines.nut");
+require("goods_v233.nut");
 require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");

@@ -674,3 +674,5 @@ V147_TASK_BASE <- -1;
  * 0 = insertion lineaire historique (defaut) ; 1 = dichotomie sur cles mises en cache. */
 SELECT_BISECT_STAMP <- 0;
 V233_PENDING_CONTINUE <- false;
+
+const V233_GOODS_MIN_MONTHLY = 64;
