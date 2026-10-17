@@ -240,7 +240,6 @@ function OpexLoadSettings()
   RAIL_GEOMETRY_PAIR_MEMORY = AIController.GetSetting("rail_geometry_pair_memory") != 0;
   RAIL_FREIGHT_TRKFAIL_MEMORY = AIController.GetSetting("rail_freight_trkfail_memory") != 0;
   RAIL_END_JUMP_CONNECT = AIController.GetSetting("rail_end_jump_connect") != 0;
-  RAIL_CACHED_PROXIMITY_GATE = AIController.GetSetting("rail_cached_proximity_gate");
   INCR_REVALIDATE_INDEX = AIController.GetSetting("incr_revalidate_index");
   RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;
   RAIL_PREASTAR_PROBE = OpexProbeSetting("probe_rail_preastar") != 0;

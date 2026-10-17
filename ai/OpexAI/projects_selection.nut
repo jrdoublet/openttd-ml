@@ -1860,23 +1860,11 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   if (spPubMerge != null) OpexSpanEnd(spPubMerge);
   local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
-  local proximityDroppedPax = 0, proximityDroppedFreight = 0;
-  if (RAIL_CACHED_PROXIMITY_GATE != 0 && lines != null) {
-    local viable = [];
-    foreach (project in alternatives) {
-      if (OpexRailCachedProximityKeep(project, lines, "reselect")) viable.append(project);
-      else if (RAIL_FAILURE_AUDIT && project.mode == "rail") {
-        if (project.kind == "pax") proximityDroppedPax++;
-        else if (project.kind == "freight") proximityDroppedFreight++;
-      }
-    }
-    alternatives = viable;
-  }
   if (spPubFilt != null) OpexSpanEnd(spPubFilt);
   local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("reselect", alternatives, funded,
-      capitalBudget, proximityDroppedPax, proximityDroppedFreight);
+      capitalBudget, 0, 0);
   if (spPubScore != null) OpexSpanEnd(spPubScore);
   considered = alternatives.len();
   projects.stats.knapsackNodes = 0;

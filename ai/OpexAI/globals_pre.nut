@@ -891,9 +891,6 @@ RAIL_FREIGHT_TRKFAIL_MEMORY <- false;
 /* V153 : raccordement terminal rail quand le dernier segment est un saut (pont/tunnel).
  * Defaut 0 pendant qualification. */
 RAIL_END_JUMP_CONNECT <- false;
-/* Projets rail du cache : 0 historique, 1 shadow des rejets de proximite
- * que _tooClose imposerait au chantier, 2 exclusion avant TOP_K. */
-RAIL_CACHED_PROXIMITY_GATE <- 0;
 /* V156 : Revalidation incrementale du vivier indexee (0 historique, 1 indexee, 2 controle). */
 INCR_REVALIDATE_INDEX <- 0;
 /* Sondes de tentatives / refus de proximite ferroviaires, OFF par defaut. */

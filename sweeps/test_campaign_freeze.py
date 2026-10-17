@@ -257,6 +257,7 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("c80_air_targeted_update", defaults)
         self.assertNotIn("v181_rail_max_trains", defaults)
         self.assertNotIn("v192_rail_time_denom_pct", defaults)
+        self.assertNotIn("rail_cached_proximity_gate", defaults)
         self.assertNotIn("c84_air_target_fleet", defaults)
         self.assertNotIn("c85_air_equipment_frontier", defaults)
         self.assertNotIn("v193_chain_towns", defaults)

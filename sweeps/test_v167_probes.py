@@ -46,7 +46,6 @@ LOG_BITS = 508            # 4 | 8 | 16 | 32 | 64 | 128 | 256
 # reglages nommes « shadow »/« diagnostic » mais qui changent des decisions : jamais groupes
 DECISION_CHANGING = (
     "air_bfail_dispose_orphan",
-    "rail_cached_proximity_gate",
     "air_site_quote_keep_legacy_margin",
 )
 
