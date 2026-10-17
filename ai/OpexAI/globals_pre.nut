@@ -504,9 +504,9 @@ C121_STATION_FLUX_STATE <- {};
  * Le traitement territorial C118 autonome a ete retire. */
 C118_AIR_COVERAGE_PROBE <- false;
 C121_AIR_ECONOMICS_SHADOW <- false;
-/* C121 : modele economique AIR unifie. Le flag decisionnel reste eteint tant
- * que le shadow PASS/MAIL n'a pas ete qualifie descriptivement. */
-C121_AIR_ECONOMICS <- false;
+/* C121 adopte definitivement : le reglage c121_air_economics est retire (17/10),
+ * l'economie AIR unifiee est toujours active. Repli des gardes en cours. */
+C121_AIR_ECONOMICS <- true;
 C121_AIR_WINNER_FUSION <- false;
 C121_AIR_GAME_ENGINE <- false;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non

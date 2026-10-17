@@ -54,7 +54,7 @@ class IntegrationProbeTests(unittest.TestCase):
         for spec in resolved.values():
             values = spec["settings"]["effective"]
             self.assertNotIn("c115_air_c100_capital_replay", values)
-            self.assertEqual(values["c121_air_economics"], 1)
+            self.assertNotIn("c121_air_economics", values)
             self.assertEqual(values["c121_catalog_incremental"], 1)
             for key in ("exp_scheduler_skip_not_due",
                         "exp_air_hub_pair_prefilter",

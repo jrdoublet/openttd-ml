@@ -37,7 +37,8 @@ class CacheSourceContracts(unittest.TestCase):
         settings = parse_ai_settings(AI / "info.nut")
         # Le profil physique C121 et son catalogue sont devenus les défauts
         # adoptés ; les leviers voisins restent désactivés indépendamment.
-        for name in ("c121_air_economics", "c121_catalog_incremental"):
+        self.assertNotIn("c121_air_economics", settings)
+        for name in ("c121_catalog_incremental",):
             self.assertEqual(settings[name], 1, name)
         # Optimisation d'opcodes adoptee le 2026-10-03 (inerte sans C121).
         self.assertEqual(settings["c121_air_game_engine"], 1)

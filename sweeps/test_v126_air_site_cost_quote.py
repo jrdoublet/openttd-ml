@@ -100,7 +100,7 @@ class TestV126Settings(unittest.TestCase):
         self.assertIn(
             "V126: add the levelling quote and modelled joined-stop cost of new airports "
             "to C121 AIR capital, and size the finance margin to the residual risk; "
-            "requires c121_air_economics; 0 = off (default)",
+            "0 = off (default)",
             block,
         )
         spec = self.specs["air_site_cost_quote"]

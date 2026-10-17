@@ -502,7 +502,6 @@ function OpexLoadSettings()
   C118_AIR_COVERAGE_PROBE = OpexProbeSetting("c118_air_coverage_probe") != 0;
   AIR_C121_PHYSICAL_PAYMENT_DAYS = AIController.GetSetting("air_c121_physical_payment_days") != 0;
   C121_AIR_ECONOMICS_SHADOW = OpexProbeSetting("c121_air_economics_shadow") != 0;
-  C121_AIR_ECONOMICS = AIController.GetSetting("c121_air_economics") != 0;
   C121_AIR_VISIBLE_COMPETITION = C121_AIR_ECONOMICS
       && AIController.GetSetting("c121_air_visible_competition") != 0;
   C121_AIR_VISIBLE_FUSED = C121_AIR_VISIBLE_COMPETITION
