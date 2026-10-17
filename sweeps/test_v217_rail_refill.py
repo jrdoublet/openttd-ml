@@ -1,6 +1,6 @@
 """V217 : contrats statiques de la recharge du vivier rail sur tresorerie oisive.
 
-Reglage entier a 1 (fret seul) par defaut, 0 reste inerte ; lu une seule fois et borne, pas avant la
+Reglage entier a 0 (inerte), lu une seule fois et borne, un seul appel garde, pas avant la
 troisieme annee de jeu, et le drapeau sans voyageurs est remis a faux juste apres la
 regeneration. Le smoke 1x1 complete ces contrats.
 """
@@ -20,7 +20,7 @@ class TestV217RailRefill(unittest.TestCase):
         m = re.search(r"function OpexAI::_v217RailRefill\(\)\n\{(.*?)\n\}\n", cls.orch, re.S)
         cls.body = m.group(1) if m else ""
 
-    def test_setting_declared_default_freight_only(self):
+    def test_setting_default_freight_only(self):
         block = re.search(r'name = "v217_rail_refill",(.*?)\}\);', self.sources["info.nut"], re.S)
         self.assertIsNotNone(block)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
