@@ -81,7 +81,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         plans = air_plans_pipeline(self.air)
         self.assertLess(
             plans.index("OpexAirSiteStillBuildable(site, airport, plane, false"),
-            plans.index("OpexAirChooseRoutePlane("),
+            plans.index("local routeChoice = C121_CATALOG_INCREMENTAL"),
         )
 
         for signature in (

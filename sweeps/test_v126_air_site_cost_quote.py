@@ -211,7 +211,7 @@ class TestV126QuoteFunction(unittest.TestCase):
 
 
 class TestV126PrepareEngineStatic(unittest.TestCase):
-    GUARD = "if (C121_AIR_ECONOMICS && (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)) {"
+    GUARD = "if (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN) {"
     END = "plan.c121EngineStatic <- state;"
 
     @classmethod
@@ -345,7 +345,7 @@ class TestV126RequiredMargin(unittest.TestCase):
     def test_v126_branch_needs_setting_c121_and_a_quoted_plan(self):
         flat = squash(self.margin)
         self.assertIn(
-            "if (AIR_SITE_COST_QUOTE && C121_AIR_ECONOMICS && plan != null "
+            "if (AIR_SITE_COST_QUOTE && plan != null "
             '&& ("c121EngineStatic" in plan) && plan.c121EngineStatic != null) {',
             flat,
         )
@@ -513,7 +513,7 @@ class TestV126ReservedWordsAndLoadChain(unittest.TestCase):
         return {
             "quote": body(economics, "function OpexAirSiteLevelQuote("),
             "prepare_block": prepare[
-                prepare.index("if (C121_AIR_ECONOMICS && (AIR_SITE_COST_QUOTE") :
+                prepare.index("if (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)") :
                 prepare.index("plan.c121EngineStatic <- state;")
             ],
             "margin": body(

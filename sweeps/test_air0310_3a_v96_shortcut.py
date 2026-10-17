@@ -103,7 +103,7 @@ class TestAir0310_3aV96Shortcut(unittest.TestCase):
         self.assertNotIn("AIR0310_V96_SHORTCUT_LEAN <-", self.settings)
         self.assertIn("C121_AIR_GAME_ENGINE <- false;", self.globals)
         self.assertIn(
-            'C121_AIR_GAME_ENGINE = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_game_engine") != 0;',
+            'C121_AIR_GAME_ENGINE = AIController.GetSetting("c121_air_game_engine") != 0;',
             self.settings,
         )
 

@@ -237,7 +237,7 @@ function OpexC121PrepareEngineStatic(catalog, plan)
    * capital garde l'expression ci-dessus (prix catalogue seul). Une extremite
    * reutilisee n'est pas devisee : champ a -2, 0 livre compte. Un devis a -1
    * (nivellement de test impossible) compte pour 0 livre et dans quote_fail. */
-  if (C121_AIR_ECONOMICS && (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)) {
+  if (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN) {
     local levelA = reuseA ? 0 : OpexAirSiteLevelQuote(plan.siteA, plan.airport);
     local levelB = reuseB ? 0 : OpexAirSiteLevelQuote(plan.siteB, plan.airport);
     local levelKnown = (levelA > 0 ? levelA : 0) + (levelB > 0 ? levelB : 0);
@@ -859,7 +859,7 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
           capital = capital, immobilise = immobilise, roi = roi,
           rawRevenueAnnual = rawRevenueAnnual, realizationFactor = realizationFactor,
           cannibalLossAnnual = cannibalLossAnnual,
-          c121RealizationApplied = C121_AIR_ECONOMICS,
+          c121RealizationApplied = true,
           fleetScanCap = fleetScanCap,
         };
       } else {
@@ -871,7 +871,7 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
         cannibalLossAnnual = cannibalLossAnnual,
         lostPaxA = lostPaxA, lostPaxB = lostPaxB,
         lostMailA = lostMailA, lostMailB = lostMailB,
-        c121RealizationApplied = C121_AIR_ECONOMICS,
+        c121RealizationApplied = true,
         runningAnnual = runningAnnual, vehicleRunningAnnual = vehicleRunningAnnual,
         infraRunningAnnual = airportMaintenanceAnnual,
         amortAnnual = amortAnnual, vehicleAmortAnnual = vehicleAmortAnnual,
@@ -920,7 +920,7 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
         cannibalLossAnnual = cannibalLossAnnual,
         lostPaxA = lostPaxA, lostPaxB = lostPaxB,
         lostMailA = lostMailA, lostMailB = lostMailB,
-        c121RealizationApplied = C121_AIR_ECONOMICS,
+        c121RealizationApplied = true,
         runningAnnual = runningAnnual, vehicleRunningAnnual = vehicleRunningAnnual,
         infraRunningAnnual = airportMaintenanceAnnual,
         amortAnnual = amortAnnual, vehicleAmortAnnual = vehicleAmortAnnual,
@@ -1422,7 +1422,7 @@ function OpexC121OneOrTwoDepth(inv, planes)
     cannibalLossAnnual = cannibalLossAnnual,
     lostPaxA = lostPaxA, lostPaxB = lostPaxB,
     lostMailA = lostMailA, lostMailB = lostMailB,
-    c121RealizationApplied = C121_AIR_ECONOMICS,
+    c121RealizationApplied = true,
     runningAnnual = runningAnnual, vehicleRunningAnnual = vehicleRunningAnnual,
     infraRunningAnnual = airportMaintenanceAnnual,
     amortAnnual = amortAnnual, vehicleAmortAnnual = vehicleAmortAnnual,
@@ -2174,7 +2174,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     C121_ENGTAB_N1 = null;
     C121_ENGTAB_N2 = null;
   }
-  if (!C121_AIR_ECONOMICS || catalog == null || plan == null
+  if (catalog == null || plan == null
       || !("airport" in plan) || plan.airport == null
       || !("distance" in plan)
       || catalog.airPlaneChoicesByAirport == null

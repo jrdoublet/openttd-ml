@@ -34,7 +34,7 @@ class TestC121CatalogIncremental(unittest.TestCase):
         # Decision utilisateur du 2026-10-02 : 1 par defaut, inerte hors C121 incremental.
         self.assertEqual(defaults["c121_catalog_air_first_year"], 1)
         settings = source("settings.nut")
-        self.assertIn('C121_CATALOG_INCREMENTAL = C121_AIR_ECONOMICS\n', settings)
+        self.assertIn('C121_CATALOG_INCREMENTAL = AIController.GetSetting', settings)
         self.assertIn('AIController.GetSetting("c121_catalog_incremental")', settings)
         self.assertIn('C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL\n', settings)
 

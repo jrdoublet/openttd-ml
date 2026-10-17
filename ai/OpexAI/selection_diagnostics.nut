@@ -22,10 +22,8 @@ function OpexSelectionLightEnd(mark, path, ops, considered, selected)
 function OpexAmortProbeBegin(budget)
 {
   AMORT_PROBE_SEQ++;
-  local supported = !C84_AIR_TARGET_FLEET && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C121_AIR_ECONOMICS && !C122_AIR_REGIME_SHADOW
-      && !V92_AIR_SERVICE_CHOICE
-      && !EXP_SCHEDULER_SKIP_NOT_DUE && !EXP_AIR_HUB_PAIR_PREFILTER;
+  /* Sonde hors perimetre C121 : C121 etant toujours actif, elle ne s'arme plus. */
+  local supported = false;
   return { id = AMORT_PROBE_SEQ, budget = budget, rows = [], originals = [],
       day = AIDate.GetCurrentDate(), tick = AIController.GetTick(), mark = OpexOpsMeasureBegin(),
       supported = supported, helperOps = 0, copyOps = 0, valid = supported };

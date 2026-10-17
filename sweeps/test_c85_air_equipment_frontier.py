@@ -60,7 +60,7 @@ class C85AirEquipmentFrontierTests(unittest.TestCase):
         refresh = function_body(CATALOG, "function OpexCatalog::_refreshAir()")
         self.assertIn("this.airPlaneChoicesByAirport = {};", refresh)
         self.assertIn("this.airPlaneFrontierByAirport = {};", refresh)
-        self.assertIn("EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION || C85_AIR_EQUIPMENT_FRONTIER", refresh)
+        self.assertIn("local keepPlaneChoices = true;", refresh)
         self.assertEqual(refresh.count("this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);"), 2)
         self.assertEqual(refresh.count("this.airPlaneFrontierByAirport.rawset(choice.type, OpexAirEquipmentStaticFrontier(probeChoices));"), 2)
 

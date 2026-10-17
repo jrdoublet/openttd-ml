@@ -502,16 +502,12 @@ function OpexLoadSettings()
   C118_AIR_COVERAGE_PROBE = OpexProbeSetting("c118_air_coverage_probe") != 0;
   AIR_C121_PHYSICAL_PAYMENT_DAYS = AIController.GetSetting("air_c121_physical_payment_days") != 0;
   C121_AIR_ECONOMICS_SHADOW = OpexProbeSetting("c121_air_economics_shadow") != 0;
-  C121_AIR_VISIBLE_COMPETITION = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_visible_competition") != 0;
+  C121_AIR_VISIBLE_COMPETITION = AIController.GetSetting("c121_air_visible_competition") != 0;
   C121_AIR_VISIBLE_FUSED = C121_AIR_VISIBLE_COMPETITION
       && AIController.GetSetting("c121_air_visible_fused") != 0;
-  C121_AIR_WINNER_FUSION = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_winner_fusion") != 0;
-  C121_AIR_GAME_ENGINE = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_game_engine") != 0;
-  C121_CATALOG_INCREMENTAL = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_catalog_incremental") != 0;
+  C121_AIR_WINNER_FUSION = AIController.GetSetting("c121_air_winner_fusion") != 0;
+  C121_AIR_GAME_ENGINE = AIController.GetSetting("c121_air_game_engine") != 0;
+  C121_CATALOG_INCREMENTAL = AIController.GetSetting("c121_catalog_incremental") != 0;
   C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("c121_catalog_air_first_year") != 0;
   /* Amorcage plat : sans etapes, chaque regeneration apres chantier prend le
@@ -525,19 +521,14 @@ function OpexLoadSettings()
   C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR
       && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;
   if (!MODE_RAIL) C121_AIR_FIRST_YEAR_RAIL_PREP = false;
-  C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_one_or_two_planes") != 0;
+  C121_AIR_ONE_OR_TWO_PLANES = AIController.GetSetting("c121_air_one_or_two_planes") != 0;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
-  C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS
-      && OpexProbeSetting("c121_air_first_live_shadow") != 0;
-  C121_AIR_FIRST_LIVE_GROWTH = C121_AIR_ECONOMICS
-      && AIController.GetSetting("c121_air_first_live_growth") != 0;
+  C121_AIR_FIRST_LIVE_SHADOW = OpexProbeSetting("c121_air_first_live_shadow") != 0;
+  C121_AIR_FIRST_LIVE_GROWTH = AIController.GetSetting("c121_air_first_live_growth") != 0;
   C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH
       ? AIController.GetSetting("c121_air_first_live_growth_phase_years") : 0;
-  C121_KPASS_SHADOW = C121_AIR_ECONOMICS
-      && OpexProbeSetting("c121_kpass_shadow") != 0;
-  C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS
-      && OpexProbeSetting("c121_kdec_cold_shadow") != 0;
+  C121_KPASS_SHADOW = OpexProbeSetting("c121_kpass_shadow") != 0;
+  C121_KDEC_COLD_SHADOW = OpexProbeSetting("c121_kdec_cold_shadow") != 0;
   C121_AIR_FIRST_LIVE_STATE = {};
   C121_AIR_FIRST_LIVE_OPS = 0;
   C121_AIR_FIRST_LIVE_SAMPLES = 0;
@@ -586,11 +577,9 @@ function OpexLoadSettings()
     C116_AIR_PROJECT_PROBE_YEAR_COUNT = 0;
     C116_AIR_PROJECT_PROBE_SEEN = {};
   }
-  if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-    C117_AIR_LAST_DATE = -1;
-    C117_AIR_LINE_STATE = {};
-    C117_AIR_VEHICLE_STATE = {};
-  }
+  C117_AIR_LAST_DATE = -1;
+  C117_AIR_LINE_STATE = {};
+  C117_AIR_VEHICLE_STATE = {};
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);

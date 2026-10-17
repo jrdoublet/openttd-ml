@@ -35,7 +35,7 @@ class TestC117AirThroughput(unittest.TestCase):
     def test_probe_is_gated_from_main_loop(self):
         src = MAIN.read_text(encoding="utf-8")
         self.assertIn(
-            "C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS",
+            "OpexC117AirThroughputStep(this._lines, this._catalog);",
             src,
         )
         self.assertIn("OpexC117AirThroughputStep(this._lines, this._catalog);", src)
@@ -51,7 +51,7 @@ class TestC117AirThroughput(unittest.TestCase):
         start = src.index("function OpexAirB9DemandShadow")
         end = src.index("function OpexAirCatchmentProbeEndpoint", start)
         block = src[start:end]
-        self.assertIn("!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE", block)
+        self.assertNotIn("!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE", block)
         self.assertIn("plan.b9ShadowMonthly <- shadowMonthly;", block)
         self.assertIn("if (AIR_CATCHMENT_PROBE) OpexAirCatchmentLog", block)
 

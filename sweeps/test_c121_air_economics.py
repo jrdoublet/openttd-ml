@@ -183,7 +183,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("OpexC121HubDelayFlushLine(line, state)", flush)
         self.assertIn("c121_adapted_oneway_days", flush)
         main_src = MAIN.read_text(encoding="utf-8")
-        self.assertIn("C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS", main_src)
+        self.assertIn("OpexC117AirThroughputStep(this._lines, this._catalog);", main_src)
 
     def test_rating_and_fleet_scan_do_not_reuse_legacy_or_aaa_proxies(self):
         rating = body(self.air, "function OpexC121PickupRatingPoints", "function OpexC121AirEconomics")
@@ -349,7 +349,7 @@ class TestC121AirEconomics(unittest.TestCase):
         economics = body(self.air, "function OpexC121AirEconomics", "function OpexC121EngineEconomics")
         self.assertIn("local decisionCapital = totalCapital;", economics)
         measured = body(self.air, "function OpexC121MeasureBuiltEconomics", "function OpexC121AttachLineShadow")
-        self.assertIn("? OpexC121EngineEconomics(catalog, plan, plan.plane, 0)", measured)
+        self.assertIn("local target = OpexC121EngineEconomics(catalog, plan, plan.plane, 0);", measured)
         econ = body(self.air, "function OpexC121AirEconomics", "function OpexC121EngineEconomics")
         self.assertIn("decisionScoreFloor", econ)
         self.assertIn("upperScoreOne < decisionScoreFloor", econ)
@@ -363,7 +363,7 @@ class TestC121AirEconomics(unittest.TestCase):
     def test_causal_plan_economics_flows_into_project_and_fund_score(self):
         project = body(self.projects, "function OpexProjectFromAir", "function OpexProjectFromWater")
         for token in (
-            "local decisionEconomics = (C121_AIR_ECONOMICS",
+            "local decisionEconomics = ((\"decisionEconomics\" in plan)",
             "capital = economics.capital",
             "decisionFinanceCapital = decisionBudgetCapital",
             "profitAnnual = decisionEconomics.profitAnnual",
@@ -375,7 +375,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("function OpexProjectFundProfit", self.projects)
         self.assertIn("OpexProjectFundProfit(project)", self.projects)
         self.assertIn("scoreDecisionFinanceCapital", self.projects)
-        self.assertIn('if (!C121_AIR_ECONOMICS)', self.air)
+        self.assertNotIn('if (!C121_AIR_ECONOMICS)', self.air)
         self.assertIn('if (project.mode == "air" && ("decisionFinanceCapital" in project)', self.projects)
 
     def test_c121_fleet_growth_uses_true_marginal_and_observed_learning(self):
@@ -450,7 +450,7 @@ class TestC121AirEconomics(unittest.TestCase):
 
     def test_causal_reconcile_does_not_overwrite_plan_with_legacy_economics(self):
         reconcile = body(self.air, "function OpexAirReconcileActualBuild", "function OpexAirReserveJoinedStops")
-        self.assertIn('C121_AIR_ECONOMICS && ("c121Demand" in plan)', reconcile)
+        self.assertNotIn('C121_AIR_ECONOMICS', reconcile)
         self.assertIn("OpexC121EngineEconomics(catalog, plan, plan.plane, actualPlanes)", reconcile)
         self.assertIn("plan.economics = economics", reconcile)
 
@@ -480,30 +480,30 @@ class TestC121AirEconomics(unittest.TestCase):
 
     def test_causal_generation_wires_three_real_arms_and_keeps_legacy_fallback(self):
         self.assertEqual(self.air.count(": OpexC121ChooseRoutePlane(catalog, plan,"), 3)
-        self.assertGreaterEqual(self.air.count(": OpexAirChooseRoutePlane(catalog, airport, plane,"), 3)
+        self.assertEqual(self.air.count(": OpexAirChooseRoutePlane(catalog, airport, plane,"), 0)
         for arm in ('arm = "newpair"', 'arm = "hubsite"', 'arm = "hubhub"'):
             self.assertIn(arm, self.air)
         self.assertGreaterEqual(self.air.count("plan.targetPlanes <- routeChoice.targetPlanes;"), 3)
         self.assertGreaterEqual(self.air.count("plan.planes = economics.planes;"), 3)
         self.assertGreaterEqual(self.air.count("plan.capital = economics.capital;"), 3)
         self.assertGreaterEqual(self.air.count("plan.economics = economics;"), 3)
-        self.assertGreaterEqual(self.task.count("C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS"), 4)
+        self.assertNotIn("C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS", self.task)
 
     def test_c121_target_fleet_relaxes_health_but_keeps_legacy_marginal_out(self):
-        self.assertIn("local c121BelowTarget = C121_AIR_ECONOMICS", self.task)
+        self.assertIn("local c121BelowTarget = (\"targetAirPlanes\" in line)", self.task)
         self.assertIn("local belowTarget = c84BelowTarget || c121BelowTarget;", self.task)
         self.assertIn("if (!belowTarget && (\"lastProfit\" in line) && line.lastProfit < 0)", self.task)
         self.assertIn("if (c121BelowTarget) {", self.task)
         # Sous cible C121, un seul renfort par passe.
         self.assertIn("maxAddedPerPass = 1;", self.task)
-        self.assertIn('C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)', self.task)
+        self.assertIn('builtLine.targetAirPlanes <- ("c121TargetPlanes" in builtLine)', self.task)
         self.assertIn('local c121Age = ("year" in line) ? year - line.year : -1;', self.task)
         self.assertIn('c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0', self.task)
         self.assertIn('(year - line.lastAirFleetYear) < 2', self.task)
         self.assertIn("if (c84BelowTarget) {", self.task)
         self.assertIn("OpexAirExistingLineMarginalEconomics", self.task)
         fleet_project = body(self.projects, "function OpexProjectFromFleet", "function OpexAirRequiredMargin")
-        self.assertIn("local c121BelowTarget = C121_AIR_ECONOMICS", fleet_project)
+        self.assertIn("local c121BelowTarget = (\"targetAirPlanes\" in line)", fleet_project)
         self.assertIn("perPlaneProfit * entry.want", fleet_project)
         self.assertNotIn("line.lastProfit / have - amortPerPlane", fleet_project)
         self.assertIn("perPlaneRevenue * entry.want", fleet_project)
@@ -537,7 +537,7 @@ class TestC121AirEconomics(unittest.TestCase):
     def test_causal_plan_economics_feed_project_and_cannot_be_rewritten_at_build(self):
         project = body(self.projects, "function OpexProjectFromAir", "function OpexProjectFromWater")
         self.assertIn("local economics = plan.economics;", project)
-        self.assertIn("local decisionEconomics = (C121_AIR_ECONOMICS", project)
+        self.assertIn("local decisionEconomics = ((\"decisionEconomics\" in plan)", project)
         self.assertIn("capital = economics.capital", project)
         self.assertIn("decisionFinanceCapital = decisionBudgetCapital", project)
         self.assertIn("profitAnnual = decisionEconomics.profitAnnual", project)
@@ -545,7 +545,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("project.fundScore <- OpexProjectScore", self.projects)
 
         reconcile = body(self.air, "function OpexAirReconcileActualBuild", "function OpexAirReserveJoinedStops")
-        self.assertIn('C121_AIR_ECONOMICS && ("c121Demand" in plan)', reconcile)
+        self.assertNotIn('C121_AIR_ECONOMICS', reconcile)
         self.assertIn("OpexC121EngineEconomics(catalog, plan, plan.plane, actualPlanes)", reconcile)
 
 
@@ -562,7 +562,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("local realizationFactor = OpexC121RealizationFactor(plan);", econ)
         self.assertIn("local rawRevenueAnnual = rawRevenuePaxAnnual + rawRevenueMailAnnual;", econ)
         self.assertIn("rawRevenueAnnual = rawRevenueAnnual", econ)
-        self.assertIn("c121RealizationApplied = C121_AIR_ECONOMICS", econ)
+        self.assertIn("c121RealizationApplied = true", econ)
         self.assertIn("line.c121Arm <-", self.air)
         self.assertIn("line.c121RawRevenueAnnual <-", self.air)
         self.assertIn("line.c121RealizationPmAtBuild <-", self.air)
@@ -621,7 +621,7 @@ class TestC121AirEconomics(unittest.TestCase):
 
     def test_causal_reuses_prepared_project_state_and_exposes_scan_cost(self):
         prepare = body(self.air, "function OpexC121PrepareDemandShadow", "function OpexAirCatchmentProbeEndpoint")
-        self.assertIn('C121_AIR_ECONOMICS && ("c121Demand" in plan)', prepare)
+        self.assertNotIn('C121_AIR_ECONOMICS', prepare)
         self.assertIn('("c121ServiceA" in plan) && ("c121ServiceB" in plan)', prepare)
         chooser = body(self.air, "function OpexC121ChooseRoutePlane", "function OpexC121ReplayEngineChoice")
         for token in (
@@ -665,7 +665,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("AIController.GetOpsTillSuspend()", measure)
         self.assertIn("c121EvalOps", measure)
         self.assertIn("OpexAirCalcDeltaOps(tick0, ops0)", measure)
-        self.assertIn("local target = C121_AIR_ECONOMICS", measure)
+        self.assertIn("local target = OpexC121EngineEconomics(catalog, plan, plan.plane, 0);", measure)
         self.assertIn("local engineId = AIVehicle.GetEngineType(result.vehicle);", measure)
         self.assertIn("local newlyObserved = !(engineId in C121_AIR_ENGINE_CAPACITY_OBS);", measure)
         self.assertIn("C121_AIR_ENGINE_CAPACITY_OBS.rawset(engineId, { pax = paxCapacity, mail = mailCapacity });", measure)
@@ -693,7 +693,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertNotIn("C121_AIR_ENGINE_CAPACITY_OBS.rawset", runner)
 
     def test_shadow_and_causal_state_are_wired_to_both_build_paths(self):
-        self.assertGreaterEqual(self.task.count("C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS"), 4)
+        self.assertNotIn("C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS", self.task)
         self.assertEqual(self.task.count("OpexC121PrepareDemandShadow(this._catalog,"), 2)
         self.assertEqual(self.task.count("OpexC121AttachLineShadow("), 2)
         demand = body(self.air, "function OpexC121PrepareDemandShadow", "function OpexAirCatchmentProbeEndpoint")
@@ -701,7 +701,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("c121DemandOps", demand)
         self.assertIn("OpexAirCalcDeltaOps(tick0, ops0)", demand)
         self.assertIn("OpexC121ExistingStationService", demand)
-        self.assertIn('C121_AIR_ECONOMICS && ("c121Demand" in plan)', demand)
+        self.assertNotIn('C121_AIR_ECONOMICS', demand)
         self.assertEqual(self.task.count("OpexC121PrepareDemandShadow(this._catalog,"), 2)
         self.assertIn("this._lines", self.task)
         self.assertIn("OpexC121MeasureBuiltEconomics(catalog, plan, result);", self.air)
@@ -726,7 +726,7 @@ class TestC121AirEconomics(unittest.TestCase):
 
     def test_line_state_is_flat_and_full_save_serializable(self):
         attach = body(self.air, "function OpexC121AttachLineShadow", "function OpexAir")
-        self.assertIn("if (C121_AIR_ECONOMICS) {", attach)
+        self.assertNotIn("if (C121_AIR_ECONOMICS)", attach)
         self.assertNotIn("line.c121Demand <- plan.c121Demand;", attach)
         self.assertNotIn("line.c121TargetEconomics <-", attach)
         self.assertNotIn("line.c121ActualEconomics <-", attach)
@@ -741,7 +741,7 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         i = info.index('name = "c121_air_first_live_shadow"')
         self.assertIn("custom_value = 0", info[i:i + 600])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_LIVE_SHADOW = C121_AIR_ECONOMICS\n      && OpexProbeSetting("c121_air_first_live_shadow") != 0;', settings)
+        self.assertIn('C121_AIR_FIRST_LIVE_SHADOW = OpexProbeSetting("c121_air_first_live_shadow") != 0;', settings)
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
         self.assertNotIn("C121_AIR_FIRST_LIVE_SHADOW", task)
 
@@ -759,7 +759,7 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         i = info.index('name = "c121_air_first_live_growth"')
         self.assertIn("custom_value = 1", info[i:i + 600])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_LIVE_GROWTH = C121_AIR_ECONOMICS\n      && AIController.GetSetting("c121_air_first_live_growth") != 0;', settings)
+        self.assertIn('C121_AIR_FIRST_LIVE_GROWTH = AIController.GetSetting("c121_air_first_live_growth") != 0;', settings)
 
     def test_first_live_growth_phase_defaults_four_years_and_falls_back_to_standard(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
@@ -824,7 +824,7 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         i = info.index('name = "c121_kpass_shadow"')
         self.assertIn("custom_value = 0", info[i:i + 700])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_KPASS_SHADOW = C121_AIR_ECONOMICS\n      && OpexProbeSetting("c121_kpass_shadow") != 0;', settings)
+        self.assertIn('C121_KPASS_SHADOW = OpexProbeSetting("c121_kpass_shadow") != 0;', settings)
         task = (ROOT / "ai" / "OpexAI" / "task_projects.nut").read_text(encoding="utf-8")
         self.assertIn("function OpexC121KPassShadow(projects, project, rank, projCap, kPass, available, reason)", task)
         self.assertIn('AILog.Info("C121_KPASS_SHADOW reason="', task)
@@ -844,7 +844,7 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
         i = info.index('name = "c121_kdec_cold_shadow"')
         self.assertIn("custom_value = 0", info[i:i + 800])
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_KDEC_COLD_SHADOW = C121_AIR_ECONOMICS\n      && OpexProbeSetting("c121_kdec_cold_shadow") != 0;', settings)
+        self.assertIn('C121_KDEC_COLD_SHADOW = OpexProbeSetting("c121_kdec_cold_shadow") != 0;', settings)
 
     def test_c121_kdec_cold_shadow_uses_samples_not_estimate_presence(self):
         projects = (ROOT / "ai" / "OpexAI" / "projects_selection.nut").read_text(encoding="utf-8")

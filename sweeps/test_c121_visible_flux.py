@@ -35,7 +35,7 @@ class VisibleFluxContracts(unittest.TestCase):
 
     def test_caches_reconstructible_and_expire(self):
         settings = (AI / "settings.nut").read_text(encoding="utf8")
-        self.assertIn("C121_AIR_VISIBLE_COMPETITION = C121_AIR_ECONOMICS", settings)
+        self.assertIn("C121_AIR_VISIBLE_COMPETITION = AIController.GetSetting", settings)
         self.assertIn("C121_VISIBLE_AIRPORT_CACHE.clear()", settings)
         self.assertIn("C121_VISIBLE_FLEET_CACHE.clear()", settings)
         persist = (AI / "persist.nut").read_text(encoding="utf8")

@@ -179,8 +179,7 @@ class AC08AirMaterialTests(unittest.TestCase):
                     self.assertFalse(choices)
 
     def test_options_frontier_only_when_enabled_and_consumers_still_present(self):
-        self.assertIn("EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION || C85_AIR_EQUIPMENT_FRONTIER", REFRESH_AIR)
-        self.assertIn("|| C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS;", REFRESH_AIR)
+        self.assertIn("local keepPlaneChoices = true;", REFRESH_AIR)
         self.assertIn("if (keepPlaneChoices && probeChoices.len() > 0)", REFRESH_AIR)
         self.assertIn("if (C85_AIR_EQUIPMENT_FRONTIER)", REFRESH_AIR)
         self.assertIn("OpexAirEquipmentStaticFrontier(probeChoices)", REFRESH_AIR)

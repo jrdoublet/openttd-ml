@@ -44,7 +44,7 @@ class TestB6PortfolioCausality(unittest.TestCase):
         self.assertIn("return calibrated;", fund)
         self.assertIn('local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet" && !OpexC121ProjectHasRealization(project);', flat)
         helper = body(self.projects, "function OpexC121ProjectHasRealization(")
-        self.assertIn("if (!C121_AIR_ECONOMICS", helper)
+        self.assertNotIn("C121_AIR_ECONOMICS", helper)
 
     def test_probe_is_decision_log_guarded(self):
         probe = body(self.projects, "function OpexB6LogSelectionCausality(")

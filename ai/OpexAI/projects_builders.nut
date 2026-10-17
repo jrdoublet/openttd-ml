@@ -165,7 +165,7 @@ function OpexProjectFromFleet(entry)
   local revenue = 0;
   local profitIsObserved = false;
   local usedTargetMarginal = false;
-  local c121BelowTarget = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+  local c121BelowTarget = ("targetAirPlanes" in line)
       && line.targetAirPlanes > have;
   local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
       && line.targetAirPlanes > have;
@@ -284,7 +284,7 @@ function OpexAirRequiredMargin(newAirports, plan = null)
   /* V126 : avec le devis actif, la marge suit le risque residuel (plancher 2000
    * plus un pourcentage du cout du site) a condition que le plan porte son devis
    * C121 ; sinon, ou au defaut, la marge historique par aeroport neuf. */
-  if (AIR_SITE_COST_QUOTE && C121_AIR_ECONOMICS && plan != null
+  if (AIR_SITE_COST_QUOTE && plan != null
       && ("c121EngineStatic" in plan) && plan.c121EngineStatic != null) {
     local st = plan.c121EngineStatic;
     if (("v126Quoted" in st) && st.v126Quoted == true) {
@@ -298,7 +298,7 @@ function OpexProjectFromAir(catalog, plan, planningOps)
 {
   if (plan == null || !("economics" in plan)) return null;
   local economics = plan.economics;
-  local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in plan)
+  local decisionEconomics = (("decisionEconomics" in plan)
       && plan.decisionEconomics != null) ? plan.decisionEconomics : economics;
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;

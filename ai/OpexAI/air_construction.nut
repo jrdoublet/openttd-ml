@@ -651,9 +651,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   result.vehicle = plane;
   result.vehicles = built;
   result.capacity <- AIVehicle.GetCapacity(plane, catalog.paxCargo);
-  if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-    OpexC121MeasureBuiltEconomics(catalog, plan, result);
-  }
+  OpexC121MeasureBuiltEconomics(catalog, plan, result);
   if (V92_AIR_SERVICE_CHOICE && ("mailCargo" in catalog) && catalog.mailCargo >= 0) {
     local builtMail = AIVehicle.GetCapacity(plane, catalog.mailCargo);
     if (builtMail >= 0 && planeChoice != null) AIR_MAIL_CAP.rawset(planeChoice.id, builtMail);

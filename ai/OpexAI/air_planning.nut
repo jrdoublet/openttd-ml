@@ -219,27 +219,22 @@ function OpexAirPlansPrepare(ctx)
     if (!("rankSites" in resumeState)) resumeState.rankSites <- [];
     if (!("c83TopTownIds" in resumeState)) resumeState.c83TopTownIds <- null;
   }
-  if (C121_AIR_ECONOMICS) {
-    if (sliced) {
-      if (!("c121PlanPerf" in resumeState)) {
-        resumeState.c121PlanPerf <- { calls = 0, demandOps = 0, demandTicks = 0,
-            staticOps = 0, staticTicks = 0, scanOps = 0, scanTicks = 0,
-            engineEvals = 0, winnerOps = 0, winnerTicks = 0, noWinner = 0,
-            endpointHits = 0, endpointMisses = 0 };
-      }
-      if (!("c121EndpointCache" in resumeState)) resumeState.c121EndpointCache <- {};
-      C121_AIR_PLAN_PERF = resumeState.c121PlanPerf;
-      C121_AIR_ENDPOINT_CACHE = resumeState.c121EndpointCache;
-    } else {
-      C121_AIR_PLAN_PERF = { calls = 0, demandOps = 0, demandTicks = 0,
+  if (sliced) {
+    if (!("c121PlanPerf" in resumeState)) {
+      resumeState.c121PlanPerf <- { calls = 0, demandOps = 0, demandTicks = 0,
           staticOps = 0, staticTicks = 0, scanOps = 0, scanTicks = 0,
           engineEvals = 0, winnerOps = 0, winnerTicks = 0, noWinner = 0,
           endpointHits = 0, endpointMisses = 0 };
-      C121_AIR_ENDPOINT_CACHE = {};
     }
+    if (!("c121EndpointCache" in resumeState)) resumeState.c121EndpointCache <- {};
+    C121_AIR_PLAN_PERF = resumeState.c121PlanPerf;
+    C121_AIR_ENDPOINT_CACHE = resumeState.c121EndpointCache;
   } else {
-    C121_AIR_PLAN_PERF = null;
-    C121_AIR_ENDPOINT_CACHE = null;
+    C121_AIR_PLAN_PERF = { calls = 0, demandOps = 0, demandTicks = 0,
+        staticOps = 0, staticTicks = 0, scanOps = 0, scanTicks = 0,
+        engineEvals = 0, winnerOps = 0, winnerTicks = 0, noWinner = 0,
+        endpointHits = 0, endpointMisses = 0 };
+    C121_AIR_ENDPOINT_CACHE = {};
   }
   local perfOpsSites = sliced ? resumeState.perfOpsSites : 0;
   local perfOpsEval = sliced ? resumeState.perfOpsEval : 0;
@@ -862,14 +857,9 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
           OpexDecide("V134_P2P", "town=" + sites[b].town.id + " hubRoutes=" + sites[b].v134HubRoutes);
         }
       }
-      local routeChoice = C121_AIR_ECONOMICS
-          ? (C121_CATALOG_INCREMENTAL
-              ? OpexC121CatalogChoice(catalog, plan, ctx.lines)
-              : OpexC121ChooseRoutePlane(catalog, plan, ctx.lines))
-          : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-              infrastructureMaintenance, maxCapital, 2, opcodePadding,
-              C80_AIR_CHOICE_MEMO ? ("n|" + sites[a].town.id + "|" + sites[b].town.id
-                  + "|" + airport.type + "|" + plane.id) : null);
+      local routeChoice = C121_CATALOG_INCREMENTAL
+          ? OpexC121CatalogChoice(catalog, plan, ctx.lines)
+          : OpexC121ChooseRoutePlane(catalog, plan, ctx.lines);
       if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
@@ -898,11 +888,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
-      if (C121_AIR_ECONOMICS) {
-        plan.targetPlanes <- routeChoice.targetPlanes;
-      } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
-        plan.targetPlanes <- routeChoice.targetPlanes;
-      }
+      plan.targetPlanes <- routeChoice.targetPlanes;
       OpexAirReserveJoinedStops(catalog, plan);
 
       if (a == 0 && b == 1) {
@@ -1534,14 +1520,9 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         c83OwnSecondSlotA = false,
         c83OwnSecondSlotB = ("c83OwnSecondSlot" in site) && site.c83OwnSecondSlot,
       };
-      local routeChoice = C121_AIR_ECONOMICS
-          ? (C121_CATALOG_INCREMENTAL
-              ? OpexC121CatalogChoice(catalog, plan, ctx.lines)
-              : OpexC121ChooseRoutePlane(catalog, plan, ctx.lines))
-          : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-              infrastructureMaintenance, maxCapital, 1, opcodePadding,
-              C80_AIR_CHOICE_MEMO ? ("h|" + hub.stationId + "|" + site.town.id
-                  + "|" + airport.type + "|" + plane.id) : null);
+      local routeChoice = C121_CATALOG_INCREMENTAL
+          ? OpexC121CatalogChoice(catalog, plan, ctx.lines)
+          : OpexC121ChooseRoutePlane(catalog, plan, ctx.lines);
       if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
@@ -1579,11 +1560,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
-      if (C121_AIR_ECONOMICS) {
-        plan.targetPlanes <- routeChoice.targetPlanes;
-      } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
-        plan.targetPlanes <- routeChoice.targetPlanes;
-      }
+      plan.targetPlanes <- routeChoice.targetPlanes;
       OpexAirReserveJoinedStops(catalog, plan);
       if (admissionEconomics.profitAnnual <= 0) {
         if (hubSiteMark != null) OpexSpanAgg("air.hub_site_pair", hubSiteMark);
@@ -1750,14 +1727,9 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
         arm = "hubhub",
       };
-      local routeChoice = C121_AIR_ECONOMICS
-          ? (C121_CATALOG_INCREMENTAL
-              ? OpexC121CatalogChoice(catalog, plan, lines)
-              : OpexC121ChooseRoutePlane(catalog, plan, lines))
-          : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-              infrastructureMaintenance, maxCapital, 0, opcodePadding,
-              C80_AIR_CHOICE_MEMO ? ("hh|" + hub1.stationId + "|" + hub2.stationId
-                  + "|" + airport.type + "|" + plane.id) : null);
+      local routeChoice = C121_CATALOG_INCREMENTAL
+          ? OpexC121CatalogChoice(catalog, plan, lines)
+          : OpexC121ChooseRoutePlane(catalog, plan, lines);
       if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
@@ -1799,11 +1771,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       plan.economics = economics;
       if (decisionEconomics != null) plan.decisionEconomics <- decisionEconomics;
       if (portfolioEconomics != null) plan.portfolioEconomics <- portfolioEconomics;
-      if (C121_AIR_ECONOMICS) {
-        plan.targetPlanes <- routeChoice.targetPlanes;
-      } else if (C84_AIR_TARGET_FLEET && ("targetPlanes" in routeChoice)) {
-        plan.targetPlanes <- routeChoice.targetPlanes;
-      }
+      plan.targetPlanes <- routeChoice.targetPlanes;
       OpexAirReserveJoinedStops(catalog, plan);
       if (hubHubMark != null && admissionEconomics.profitAnnual <= 0) OpexSpanAgg("air.hub_hub_pair", hubHubMark);
       if (admissionEconomics.profitAnnual <= 0) continue;

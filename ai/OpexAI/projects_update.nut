@@ -362,7 +362,7 @@ function OpexV141PublishedAirStillValid(payload)
   local economics = payload.economics;
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return false;
-  local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in payload)
+  local decisionEconomics = (("decisionEconomics" in payload)
       && payload.decisionEconomics != null) ? payload.decisionEconomics : economics;
   if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
       decisionEconomics.capital <= 0) return false;

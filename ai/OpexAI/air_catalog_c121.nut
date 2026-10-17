@@ -284,7 +284,7 @@ function OpexC121ReplayEngineChoice(catalog, plan, result, newlyObserved)
 /* Post-chantier : mesure exacte des deux capacites du vehicule refitte PASS. */
 function OpexC121MeasureBuiltEconomics(catalog, plan, result)
 {
-  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) || plan == null || result == null
+  if (plan == null || result == null
       || !("c121Demand" in plan) || !("vehicle" in result) || !AIVehicle.IsValidVehicle(result.vehicle)) return;
   local paxCapacity = AIVehicle.GetCapacity(result.vehicle, catalog.paxCargo);
   local mailCapacity = (("mailCargo" in catalog) && catalog.mailCargo >= 0)
@@ -312,12 +312,10 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
   /* Le shadow est descriptif : scanner toute la flotte optimale ne change aucune
    * decision et peut suspendre le script. Garder ce cout uniquement pour le futur
    * chemin causal C121 ; le shadow mesure la flotte effectivement construite. */
-  local target = C121_AIR_ECONOMICS
-      ? OpexC121EngineEconomics(catalog, plan, plan.plane, 0)
-      : null;
+  local target = OpexC121EngineEconomics(catalog, plan, plan.plane, 0);
   local actual = OpexC121AirEconomics(catalog, plan, plan.plane, paxCapacity, mailCapacity, actualN);
   local next = null;
-  if (C121_AIR_ECONOMICS && target != null && actual != null && actualN < target.planes) {
+  if (target != null && actual != null && actualN < target.planes) {
     next = OpexC121AirEconomics(
         catalog, plan, plan.plane, paxCapacity, mailCapacity, actualN + 1);
   }
@@ -339,7 +337,7 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
 
 function OpexC121AttachLineShadow(line, lineId, plan, result)
 {
-  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) || line == null || plan == null
+  if (line == null || plan == null
       || result == null || !("c121Demand" in plan)) return;
   local paxCapacity = ("c121PaxCapacity" in result) ? result.c121PaxCapacity : -1;
   local mailCapacity = ("c121MailCapacity" in result) ? result.c121MailCapacity : -1;
@@ -355,56 +353,54 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
    * des floats imbriques fait refuser le savegame par OpenTTD. Les decisions ne
    * relisent pas ces tables apres le build ; conserver uniquement les scalaires
    * necessaires au probe maintient la telemetry et un graphe de sauvegarde plat. */
-  if (C121_AIR_ECONOMICS) {
-    line.c121Arm <- ("arm" in plan) ? plan.arm : "unknown";
-    line.c121MarginalProfit <- ("c121MarginalProfit" in result) ? result.c121MarginalProfit : 0;
-    line.c121MarginalRevenue <- ("c121MarginalRevenue" in result) ? result.c121MarginalRevenue : 0;
-    /* 0 = aucune marge reelle encore observee. Le cold-start physique reste
-     * disponible dans c121Marginal*, mais la premiere observation complete le
-     * remplace ; seules les observations reelles suivantes sont moyennees. */
-    line.c121MarginalSamples <- 0;
+  line.c121Arm <- ("arm" in plan) ? plan.arm : "unknown";
+  line.c121MarginalProfit <- ("c121MarginalProfit" in result) ? result.c121MarginalProfit : 0;
+  line.c121MarginalRevenue <- ("c121MarginalRevenue" in result) ? result.c121MarginalRevenue : 0;
+  /* 0 = aucune marge reelle encore observee. Le cold-start physique reste
+   * disponible dans c121Marginal*, mais la premiere observation complete le
+   * remplace ; seules les observations reelles suivantes sont moyennees. */
+  line.c121MarginalSamples <- 0;
+  if (actual != null) {
+    line.c121RawRevenueAnnual <- ("rawRevenueAnnual" in actual) ? actual.rawRevenueAnnual : actual.revenueAnnual;
+    local realization = ("realizationFactor" in actual) ? actual.realizationFactor : 1.0;
+    line.c121RealizationPmAtBuild <- (realization * 1000.0).tointeger();
+    line.c121VehicleAmortPerPlane <- actual.planes > 0
+        ? actual.vehicleAmortAnnual / actual.planes : 0;
+  }
+  if (target != null) {
+    line.c121TargetPlanes <- target.planes;
+  }
+  /* Les scalaires ci-dessous ne pilotent aucune decision. Les garder sur
+   * chaque ligne en causal normal faisait depasser le budget d'opcodes de
+   * Save() vers 100+ lignes AIR. Les shadows peuvent encore les conserver. */
+  if (keepLineDiagnostics) {
+    if (("plane" in plan) && plan.plane != null) line.c121EngineId <- plan.plane.id;
+    line.c121PaxCapacity <- paxCapacity;
+    line.c121MailCapacity <- mailCapacity;
+    line.c121DemandOps <- demandOps;
+    line.c121DemandTicks <- demandTicks;
+    line.c121EvalOps <- evalOps;
+    line.c121EvalTicks <- evalTicks;
     if (actual != null) {
-      line.c121RawRevenueAnnual <- ("rawRevenueAnnual" in actual) ? actual.rawRevenueAnnual : actual.revenueAnnual;
-      local realization = ("realizationFactor" in actual) ? actual.realizationFactor : 1.0;
-      line.c121RealizationPmAtBuild <- (realization * 1000.0).tointeger();
-      line.c121VehicleAmortPerPlane <- actual.planes > 0
-          ? actual.vehicleAmortAnnual / actual.planes : 0;
+      line.c121ActualCarriedPax <- actual.carriedPax;
+      line.c121ActualCarriedMail <- actual.carriedMail;
+      line.c121ActualCarried <- actual.carried;
+      line.c121ActualRevenueAnnual <- actual.revenueAnnual;
+      line.c121ActualProfitAnnual <- actual.profitAnnual;
+      line.c121ActualRunningAnnual <- actual.runningAnnual;
+      line.c121ActualVehicleRunningAnnual <- actual.vehicleRunningAnnual;
+      line.c121ActualAmortAnnual <- actual.amortAnnual;
+      line.c121ActualPlanes <- actual.planes;
+      line.c121ActualOneWayDays <- actual.oneWayDays;
+      line.c121ActualHeadwayDays <- actual.headwayDays;
+      line.c121ActualStationRating <- actual.stationRating;
     }
     if (target != null) {
-      line.c121TargetPlanes <- target.planes;
-    }
-    /* Les scalaires ci-dessous ne pilotent aucune decision. Les garder sur
-     * chaque ligne en causal normal faisait depasser le budget d'opcodes de
-     * Save() vers 100+ lignes AIR. Les shadows peuvent encore les conserver. */
-    if (keepLineDiagnostics) {
-      if (("plane" in plan) && plan.plane != null) line.c121EngineId <- plan.plane.id;
-      line.c121PaxCapacity <- paxCapacity;
-      line.c121MailCapacity <- mailCapacity;
-      line.c121DemandOps <- demandOps;
-      line.c121DemandTicks <- demandTicks;
-      line.c121EvalOps <- evalOps;
-      line.c121EvalTicks <- evalTicks;
-      if (actual != null) {
-        line.c121ActualCarriedPax <- actual.carriedPax;
-        line.c121ActualCarriedMail <- actual.carriedMail;
-        line.c121ActualCarried <- actual.carried;
-        line.c121ActualRevenueAnnual <- actual.revenueAnnual;
-        line.c121ActualProfitAnnual <- actual.profitAnnual;
-        line.c121ActualRunningAnnual <- actual.runningAnnual;
-        line.c121ActualVehicleRunningAnnual <- actual.vehicleRunningAnnual;
-        line.c121ActualAmortAnnual <- actual.amortAnnual;
-        line.c121ActualPlanes <- actual.planes;
-        line.c121ActualOneWayDays <- actual.oneWayDays;
-        line.c121ActualHeadwayDays <- actual.headwayDays;
-        line.c121ActualStationRating <- actual.stationRating;
-      }
-      if (target != null) {
-        line.c121TargetCarriedPax <- target.carriedPax;
-        line.c121TargetCarriedMail <- target.carriedMail;
-        line.c121TargetCarried <- target.carried;
-        line.c121TargetRevenueAnnual <- target.revenueAnnual;
-        line.c121TargetProfitAnnual <- target.profitAnnual;
-      }
+      line.c121TargetCarriedPax <- target.carriedPax;
+      line.c121TargetCarriedMail <- target.carriedMail;
+      line.c121TargetCarried <- target.carried;
+      line.c121TargetRevenueAnnual <- target.revenueAnnual;
+      line.c121TargetProfitAnnual <- target.profitAnnual;
     }
   }
   local engineReplay = ("c121EngineReplay" in result) ? result.c121EngineReplay : null;
@@ -573,15 +569,4 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
       + " mail_dir_capacity=" + (actual != null ? actual.mailDirectionCapacity : -1)
       + " payment_distance=" + (actual != null ? actual.paymentDistance : -1)
       + " income_days=" + (actual != null ? actual.incomeDays : -1));
-  if (C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) {
-    if ("c121Demand" in line) delete line.c121Demand;
-    if ("c121TargetEconomics" in line) delete line.c121TargetEconomics;
-    if ("c121ActualEconomics" in line) delete line.c121ActualEconomics;
-    if ("c121PaxCapacity" in line) delete line.c121PaxCapacity;
-    if ("c121MailCapacity" in line) delete line.c121MailCapacity;
-    if ("c121DemandOps" in line) delete line.c121DemandOps;
-    if ("c121DemandTicks" in line) delete line.c121DemandTicks;
-    if ("c121EvalOps" in line) delete line.c121EvalOps;
-    if ("c121EvalTicks" in line) delete line.c121EvalTicks;
-  }
 }

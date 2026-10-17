@@ -783,11 +783,9 @@ function OpexAI::Start()
       if (spSave != null) OpexSpanEnd(spSave);
     } else if (this._saveProjection != null) this._saveProjection = null;
     if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
-    if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-      local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
-      OpexC117AirThroughputStep(this._lines, this._catalog);
-      if (spC117 != null) OpexSpanEnd(spC117);
-    }
+    local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
+    OpexC117AirThroughputStep(this._lines, this._catalog);
+    if (spC117 != null) OpexSpanEnd(spC117);
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
     this._runOrchestratorTick();

@@ -78,8 +78,8 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
             '      && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;',
             settings)
         self.assertIn(
-            "C121_AIR_ONE_OR_TWO_PLANES = C121_AIR_ECONOMICS\n"
-            '      && AIController.GetSetting("c121_air_one_or_two_planes") != 0;',
+            "C121_AIR_ONE_OR_TWO_PLANES = "
+            'AIController.GetSetting("c121_air_one_or_two_planes") != 0;',
             settings)
         self.assertLess(
             settings.index("if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;"),

@@ -4,11 +4,6 @@
 function OpexAirPlanBetter(plan, bestPlan)
 {
   if (bestPlan == null) return true;
-  if (!C121_AIR_ECONOMICS) {
-    if (plan.economics.roi > (bestPlan.economics.roi * 1.25).tointeger()) return true;
-    if (bestPlan.economics.roi > (plan.economics.roi * 1.25).tointeger()) return false;
-    return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
-  }
   local planEconomics = (("decisionEconomics" in plan) && plan.decisionEconomics != null)
       ? plan.decisionEconomics : plan.economics;
   local bestEconomics = (("decisionEconomics" in bestPlan) && bestPlan.decisionEconomics != null)

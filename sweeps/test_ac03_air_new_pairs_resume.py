@@ -156,7 +156,7 @@ class AC03AirNewPairsResumeTests(unittest.TestCase):
             "OpexAirPairInBand(",
             "OpexAirPairIsAbandoned(",
             "local plan = {",
-            "local routeChoice = C121_AIR_ECONOMICS",
+            "local routeChoice = C121_CATALOG_INCREMENTAL",
             "admissionEconomics.profitAnnual <= 0",
             "OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan)",
         )

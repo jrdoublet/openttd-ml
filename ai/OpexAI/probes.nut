@@ -174,7 +174,6 @@ function OpexC121FirstLiveLog(fields)
 
 function OpexC121HubDelayLog(fields)
 {
-  if (!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) return;
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
       + AIDate.GetDayOfMonth(date) + " C121_HUB_DELAY " + fields);
@@ -204,8 +203,7 @@ function OpexC121ProbePhysicalOneWay(line, engine)
 function OpexC121HubDelayObserveBatch(stationId, residualSum, residualSq, residualN,
                                       windowStart, now)
 {
-  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
-      || !AIStation.IsValidStation(stationId) || residualN <= 0) return null;
+  if (!AIStation.IsValidStation(stationId) || residualN <= 0) return null;
   local state = (stationId in C121_AIR_HUB_DELAY_STATE) ? C121_AIR_HUB_DELAY_STATE[stationId] : null;
   if (state == null) {
     state = {
@@ -250,7 +248,7 @@ function OpexC121HubDelayObserveBatch(stationId, residualSum, residualSq, residu
 
 function OpexC121HubDelayFlushLine(line, state)
 {
-  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) || line == null || state == null) return;
+  if (line == null || state == null) return;
   local totalN = state.hubResidualAN + state.hubResidualBN;
   if (totalN <= 0) return;
   local tick0 = AIController.GetTick();
@@ -637,8 +635,7 @@ function OpexC117FlushLine(line, state)
 
 function OpexC117AirThroughputStep(lines, catalog)
 {
-  if ((!C117_AIR_THROUGHPUT_PROBE && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
-      || lines == null || catalog == null) return;
+  if (lines == null || catalog == null) return;
   local now = AIDate.GetCurrentDate();
   if (C117_AIR_LAST_DATE >= 0 && now - C117_AIR_LAST_DATE < C117_AIR_SAMPLE_DAYS) return;
   C117_AIR_LAST_DATE = now;
@@ -708,8 +705,7 @@ function OpexC117AirThroughputStep(lines, catalog)
         local vehicleState = (v in C117_AIR_VEHICLE_STATE) ? C117_AIR_VEHICLE_STATE[v] : null;
         if (vehicleState == null || vehicleState.lineId != line.lineId
             || vehicleState.engine != engine) {
-          local c121PhysicalOneWay = (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS)
-              ? OpexC121ProbePhysicalOneWay(line, engine) : -1.0;
+          local c121PhysicalOneWay = OpexC121ProbePhysicalOneWay(line, engine);
           C117_AIR_VEHICLE_STATE.rawset(v, {
             lineId = line.lineId, engine = engine, order = curOrder,
             legPaxMax = vehicleRunning ? load : 0, legCap = vehicleRunning ? cap : 0,
@@ -823,7 +819,7 @@ function OpexC117AirThroughputStep(lines, catalog)
               }
               local physical = ("c121PhysicalOneWay" in vehicleState)
                   ? vehicleState.c121PhysicalOneWay : -1.0;
-              if ((C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) && physical > 0.0) {
+              if (physical > 0.0) {
                 local residual = legDays.tofloat() - physical;
                 if (vehicleState.order == 0) {
                   state.hubResidualASum += residual;
@@ -2745,14 +2741,12 @@ function OpexAI::_mainLoopProfiled()
     if (spEvents != null) OpexSpanEnd(spEvents);
     OpexLoopProfAdd("events", mark);
     if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
-    if (C117_AIR_THROUGHPUT_PROBE || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-      local before = C117_AIR_LAST_DATE;
-      mark = OpexOpsMeasureBegin();
-      local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
-      OpexC117AirThroughputStep(this._lines, this._catalog);
-      if (spC117 != null) OpexSpanEnd(spC117);
-      OpexLoopProfAdd(C117_AIR_LAST_DATE != before ? "c117_sample" : "c117_skip", mark);
-    }
+    local before = C117_AIR_LAST_DATE;
+    mark = OpexOpsMeasureBegin();
+    local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
+    OpexC117AirThroughputStep(this._lines, this._catalog);
+    if (spC117 != null) OpexSpanEnd(spC117);
+    OpexLoopProfAdd(C117_AIR_LAST_DATE != before ? "c117_sample" : "c117_skip", mark);
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     mark = OpexOpsMeasureBegin();
     local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;

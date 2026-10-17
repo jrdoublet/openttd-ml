@@ -13,7 +13,7 @@ class IntegrationTests(unittest.TestCase):
             self.assertIn(key + " = 1", block)
         self.assertTrue(parse_ai_setting_specs(ROOT / "ai/OpexAI/info.nut")["c121_air_winner_fusion"]["boolean"])
         settings = (ROOT / "ai/OpexAI/settings.nut").read_text(encoding="utf-8")
-        self.assertIn("C121_AIR_WINNER_FUSION = C121_AIR_ECONOMICS", settings)
+        self.assertIn("C121_AIR_WINNER_FUSION = AIController.GetSetting", settings)
 
     def test_measure_has_no_fixture(self):
         with tempfile.TemporaryDirectory() as folder:

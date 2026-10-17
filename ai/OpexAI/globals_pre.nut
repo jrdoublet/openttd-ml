@@ -444,7 +444,7 @@ AIR_SITE_MIN_CATCHMENT <- false;
 /* V126 : cout reel des aeroports neufs. AIR_SITE_COST_QUOTE ajoute au capital
  * AIR C121 le devis de terrassement et le cout modelise des arrets joints, et
  * dimensionne la marge de financement sur le risque residuel (pourcentage du cout
- * du site, AIR_SITE_COST_MARGIN_PCT). Sans effet hors C121_AIR_ECONOMICS. Defaut 0.
+ * du site, AIR_SITE_COST_MARGIN_PCT). Defaut 0.
  * V126_JOINED_STOP_COST : cout modelise d'UN arret joint (livres, mesure 450..2250).
  * AIR_SITE_COST_QUOTES : cache reconstructible des devis par ancre et type
  * d'aeroport, jamais sauvegarde. */

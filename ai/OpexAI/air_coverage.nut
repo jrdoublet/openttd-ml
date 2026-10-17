@@ -223,8 +223,7 @@ function OpexAirJoinedMarginalProduction(stationId, airportTile, airportType, ca
 function OpexAirB9PredictJoinedStops(site, airport, town, paxCargo)
 {
   local chosen = [];
-  if ((!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
-      || !AIR_JOINED_STOPS || AIR_JOINED_STOP_LIMIT <= 0
+  if (!AIR_JOINED_STOPS || AIR_JOINED_STOP_LIMIT <= 0
       || site == null || town == null || paxCargo < 0) return chosen;
 
   local mapX = AIMap.GetMapSizeX();
@@ -458,8 +457,7 @@ function OpexC121VisibleAirportOwners(minX, minY, maxX, maxY)
 function OpexC121StationCompetitionBuckets(town, cargo, cargoTiles, candidateStationId = -1)
 {
   local result = { buckets = [], totalWeight = 0, competingWeight = 0, competingStations = 0, rivalWeight = 0 };
-  if ((!C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
-      || town == null || !AITown.IsValidTown(town.id) || cargo < 0 || cargoTiles == null) return result;
+  if (town == null || !AITown.IsValidTown(town.id) || cargo < 0 || cargoTiles == null) return result;
   local mapX = AIMap.GetMapSizeX();
   local mapY = AIMap.GetMapSizeY();
   local minX = mapX;
@@ -645,7 +643,7 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
   local cacheStamp = null;
   local cached = null;
   local forceRefresh = false;
-  if (C121_AIR_ECONOMICS && C121_AIR_ENDPOINT_CACHE != null) {
+  if (C121_AIR_ENDPOINT_CACHE != null) {
     local anchorKey = ("anchor" in site) ? site.anchor : -1;
     local townKey = ("town" in site) && site.town != null && ("id" in site.town) ? site.town.id : -1;
     local routesKey = reused && ("routes" in site) ? site.routes : 0;
@@ -734,11 +732,8 @@ function OpexC121ExistingStationRating(site, reused, cargo)
 
 function OpexAirB9DemandShadow(catalog, plan)
 {
-  if ((!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
-      || plan == null
+  if (plan == null
       || !("siteA" in plan) || !("siteB" in plan)) return null;
-  if (!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE
-      && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS) return null;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
   local tA0 = AIController.GetTick();
@@ -753,53 +748,51 @@ function OpexAirB9DemandShadow(catalog, plan)
   local oB1 = AIController.GetOpsTillSuspend();
   local shadowMonthly = a.unionAllocated + b.unionAllocated;
   plan.b9ShadowMonthly <- shadowMonthly;
-  if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-    local mailCargo = ("mailCargo" in catalog) ? catalog.mailCargo : -1;
-    local tMa0 = tB1;
-    local oMa0 = oB1;
-    local ma = OpexAirB9DemandShadowEndpointCargo(
-        catalog, plan, plan.siteA, reuseA, mailCargo, a.stopTiles, a.coverageTiles);
-    local tMa1 = AIController.GetTick();
-    local oMa1 = AIController.GetOpsTillSuspend();
-    local tMb0 = tMa1;
-    local oMb0 = oMa1;
-    local mb = OpexAirB9DemandShadowEndpointCargo(
-        catalog, plan, plan.siteB, reuseB, mailCargo, b.stopTiles, b.coverageTiles);
-    local tMb1 = AIController.GetTick();
-    local oMb1 = AIController.GetOpsTillSuspend();
-    local currentPaxRatingA = OpexC121ExistingStationRating(plan.siteA, reuseA, catalog.paxCargo);
-    local currentPaxRatingB = OpexC121ExistingStationRating(plan.siteB, reuseB, catalog.paxCargo);
-    local currentMailRatingA = OpexC121ExistingStationRating(plan.siteA, reuseA, mailCargo);
-    local currentMailRatingB = OpexC121ExistingStationRating(plan.siteB, reuseB, mailCargo);
-    plan.c121Demand <- {
-      paxA = a.unionAllocated, paxB = b.unionAllocated,
-      mailA = ma.unionAllocated, mailB = mb.unionAllocated,
-      paxRawA = a.unionMonthly, paxRawB = b.unionMonthly,
-      mailRawA = ma.unionMonthly, mailRawB = mb.unionMonthly,
-      paxProducedA = a.produced, paxProducedB = b.produced,
-      mailProducedA = ma.produced, mailProducedB = mb.produced,
-      routeDivA = a.routeDiv, routeDivB = b.routeDiv,
-      paxTownTilesA = a.townTiles, paxTownTilesB = b.townTiles,
-      mailTownTilesA = ma.townTiles, mailTownTilesB = mb.townTiles,
-      paxUnionTilesA = a.unionTiles, paxUnionTilesB = b.unionTiles,
-      mailUnionTilesA = ma.unionTiles, mailUnionTilesB = mb.unionTiles,
-      predictedStopsA = a.predictedStops, predictedStopsB = b.predictedStops,
-      currentPaxRatingA = currentPaxRatingA, currentPaxRatingB = currentPaxRatingB,
-      currentMailRatingA = currentMailRatingA, currentMailRatingB = currentMailRatingB,
-      paxCompetitionA = a.competition, paxCompetitionB = b.competition,
-      mailCompetitionA = ma.competition, mailCompetitionB = mb.competition,
-      paxPredictTicksA = a.predictTicks, paxPredictTicksB = b.predictTicks,
-      paxCoverageTicksA = a.coverageTicks, paxCoverageTicksB = b.coverageTicks,
-      paxUnionTicksA = a.unionTicks, paxUnionTicksB = b.unionTicks,
-      mailUnionTicksA = ma.unionTicks, mailUnionTicksB = mb.unionTicks,
-      paxTicksA = tA1 - tA0, paxTicksB = tB1 - tB0,
-      mailTicksA = tMa1 - tMa0, mailTicksB = tMb1 - tMb0,
-      paxOpsA = tA1 == tA0 ? oA0 - oA1 : -1,
-      paxOpsB = tB1 == tB0 ? oB0 - oB1 : -1,
-      mailOpsA = tMa1 == tMa0 ? oMa0 - oMa1 : -1,
-      mailOpsB = tMb1 == tMb0 ? oMb0 - oMb1 : -1,
-    };
-  }
+  local mailCargo = ("mailCargo" in catalog) ? catalog.mailCargo : -1;
+  local tMa0 = tB1;
+  local oMa0 = oB1;
+  local ma = OpexAirB9DemandShadowEndpointCargo(
+      catalog, plan, plan.siteA, reuseA, mailCargo, a.stopTiles, a.coverageTiles);
+  local tMa1 = AIController.GetTick();
+  local oMa1 = AIController.GetOpsTillSuspend();
+  local tMb0 = tMa1;
+  local oMb0 = oMa1;
+  local mb = OpexAirB9DemandShadowEndpointCargo(
+      catalog, plan, plan.siteB, reuseB, mailCargo, b.stopTiles, b.coverageTiles);
+  local tMb1 = AIController.GetTick();
+  local oMb1 = AIController.GetOpsTillSuspend();
+  local currentPaxRatingA = OpexC121ExistingStationRating(plan.siteA, reuseA, catalog.paxCargo);
+  local currentPaxRatingB = OpexC121ExistingStationRating(plan.siteB, reuseB, catalog.paxCargo);
+  local currentMailRatingA = OpexC121ExistingStationRating(plan.siteA, reuseA, mailCargo);
+  local currentMailRatingB = OpexC121ExistingStationRating(plan.siteB, reuseB, mailCargo);
+  plan.c121Demand <- {
+    paxA = a.unionAllocated, paxB = b.unionAllocated,
+    mailA = ma.unionAllocated, mailB = mb.unionAllocated,
+    paxRawA = a.unionMonthly, paxRawB = b.unionMonthly,
+    mailRawA = ma.unionMonthly, mailRawB = mb.unionMonthly,
+    paxProducedA = a.produced, paxProducedB = b.produced,
+    mailProducedA = ma.produced, mailProducedB = mb.produced,
+    routeDivA = a.routeDiv, routeDivB = b.routeDiv,
+    paxTownTilesA = a.townTiles, paxTownTilesB = b.townTiles,
+    mailTownTilesA = ma.townTiles, mailTownTilesB = mb.townTiles,
+    paxUnionTilesA = a.unionTiles, paxUnionTilesB = b.unionTiles,
+    mailUnionTilesA = ma.unionTiles, mailUnionTilesB = mb.unionTiles,
+    predictedStopsA = a.predictedStops, predictedStopsB = b.predictedStops,
+    currentPaxRatingA = currentPaxRatingA, currentPaxRatingB = currentPaxRatingB,
+    currentMailRatingA = currentMailRatingA, currentMailRatingB = currentMailRatingB,
+    paxCompetitionA = a.competition, paxCompetitionB = b.competition,
+    mailCompetitionA = ma.competition, mailCompetitionB = mb.competition,
+    paxPredictTicksA = a.predictTicks, paxPredictTicksB = b.predictTicks,
+    paxCoverageTicksA = a.coverageTicks, paxCoverageTicksB = b.coverageTicks,
+    paxUnionTicksA = a.unionTicks, paxUnionTicksB = b.unionTicks,
+    mailUnionTicksA = ma.unionTicks, mailUnionTicksB = mb.unionTicks,
+    paxTicksA = tA1 - tA0, paxTicksB = tB1 - tB0,
+    mailTicksA = tMa1 - tMa0, mailTicksB = tMb1 - tMb0,
+    paxOpsA = tA1 == tA0 ? oA0 - oA1 : -1,
+    paxOpsB = tB1 == tB0 ? oB0 - oB1 : -1,
+    mailOpsA = tMa1 == tMa0 ? oMa0 - oMa1 : -1,
+    mailOpsB = tMb1 == tMb0 ? oMb0 - oMb1 : -1,
+  };
   if (AIR_CATCHMENT_PROBE) OpexAirCatchmentLog("AIR_DEMAND_SHADOW",
       "arm=" + (("arm" in plan) ? plan.arm : "unknown")
       + " town_a=" + plan.siteA.town.id + " town_b=" + plan.siteB.town.id
@@ -820,27 +813,24 @@ function OpexAirB9DemandShadow(catalog, plan)
 
 function OpexC121PrepareDemandShadow(catalog, plan, lines = null)
 {
-  if ((!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW && !C121_AIR_ECONOMICS)
-      || plan == null) return null;
+  if (plan == null) return null;
   /* En mode causal, la generation du projet a deja paye ce calcul avant le
    * choix moteur. Le build doit reutiliser exactement le meme etat, pas rescanner
    * les catchments/gares quelques ticks plus tard et casser le contrat
    * moteur -> flotte -> economie -> projet. */
-  if (C121_AIR_ECONOMICS && ("c121Demand" in plan)
+  if (("c121Demand" in plan)
       && ("c121ServiceA" in plan) && ("c121ServiceB" in plan)) {
     return ("b9ShadowMonthly" in plan) ? plan.b9ShadowMonthly : null;
   }
   local tick0 = AIController.GetTick();
   local ops0 = AIController.GetOpsTillSuspend();
   local value = OpexAirB9DemandShadow(catalog, plan);
-  if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-    plan.c121ServiceA <- OpexC121ExistingStationService(catalog, plan.siteA, lines);
-    plan.c121ServiceB <- OpexC121ExistingStationService(catalog, plan.siteB, lines);
-    local tick1 = AIController.GetTick();
-    local ops1 = AIController.GetOpsTillSuspend();
-    plan.c121DemandTicks <- tick1 - tick0;
-    plan.c121DemandOps <- OpexAirCalcDeltaOps(tick0, ops0);
-  }
+  plan.c121ServiceA <- OpexC121ExistingStationService(catalog, plan.siteA, lines);
+  plan.c121ServiceB <- OpexC121ExistingStationService(catalog, plan.siteB, lines);
+  local tick1 = AIController.GetTick();
+  local ops1 = AIController.GetOpsTillSuspend();
+  plan.c121DemandTicks <- tick1 - tick0;
+  plan.c121DemandOps <- OpexAirCalcDeltaOps(tick0, ops0);
   return value;
 }
 

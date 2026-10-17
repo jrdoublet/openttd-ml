@@ -315,7 +315,7 @@ function OpexC121AirTargetLimit(line, physicalCap)
  * otherwise its seats would be counted twice. Preserve observed marginals. */
 function OpexC121RefreshVisibleFleet(catalog, line, lines, force = false)
 {
-  if (!C121_AIR_ECONOMICS || !C121_AIR_VISIBLE_COMPETITION || catalog == null
+  if (!C121_AIR_VISIBLE_COMPETITION || catalog == null
       || line == null || !("lineId" in line) || !("vehicles" in line)
       || !("stationA" in line) || !("stationB" in line)) return;
   local now = AIDate.GetCurrentDate();
@@ -424,7 +424,7 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   /* Revalider au dernier site d'achat : un projet peut etre cache et un autre
    * chantier peut avoir consomme la cadence partagee depuis sa generation.
    * Les remplacements ci-dessus et le refleet de crash restent distincts. */
-  if (C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION) {
+  if (C121_AIR_VISIBLE_COMPETITION) {
     OpexC121RefreshVisibleFleet(catalog, line, lines);
     local liveCount = 0;
     foreach (v in line.vehicles) {

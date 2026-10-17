@@ -10,7 +10,7 @@ class TestVisibleFleetTarget(unittest.TestCase):
     def test_final_guard_is_before_purchase_and_after_replacement(self):
         text = (AI / "air_fleet.nut").read_text(encoding="utf-8")
         text = text[text.index('function OpexAirAddPlane('):]
-        self.assertIn('if (C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION)', text)
+        self.assertIn('if (C121_AIR_VISIBLE_COMPETITION)', text)
         self.assertLess(text.index('OpexAirMaybeReequip'), text.index('result.reason = "TARGET"'))
         self.assertLess(text.index('result.reason = "TARGET"'), text.index('AIVehicle.CloneVehicle'))
         self.assertIn('AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR', text)

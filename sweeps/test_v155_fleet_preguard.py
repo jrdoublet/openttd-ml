@@ -39,7 +39,7 @@ class TestV155FleetPreguard(unittest.TestCase):
 
     def test_preguard_placement_and_structure_in_task_air(self):
         # Preguard must be placed immediately before OpexC121RefreshVisibleFleet
-        preguard_sig = "if (AIR_FLEET_C121_PREGUARD && C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION"
+        preguard_sig = "if (AIR_FLEET_C121_PREGUARD && C121_AIR_VISIBLE_COMPETITION"
         refresh_sig = "OpexC121RefreshVisibleFleet(this._catalog, line, this._lines);"
 
         self.assertIn(preguard_sig, self.task_air)

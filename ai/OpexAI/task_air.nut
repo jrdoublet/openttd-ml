@@ -167,7 +167,7 @@ function OpexAirHubReuseObserve(lines, plan, result, lineId)
  * quand les deux devis sont valides. Aucun retour lu par une decision. */
 function OpexAirStaleQuoteObserve(path, rank, plan, economicsDate, money, reserve, need)
 {
-  if (!AIR_SITE_STALE_SHADOW || !AIR_SITE_COST_QUOTE || !C121_AIR_ECONOMICS
+  if (!AIR_SITE_STALE_SHADOW || !AIR_SITE_COST_QUOTE
       || plan == null || !("c121EngineStatic" in plan) || plan.c121EngineStatic == null) return;
   local st = plan.c121EngineStatic;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
@@ -383,9 +383,7 @@ function OpexAI::_tryBuildAir(year)
       }
     }
 
-    if (B9_AIR_DEMAND_SHADOW || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-      OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);
-    }
+    OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);
     local quotePlanes = ("planes" in plan) ? plan.planes : 1;
     local result = V93_AIR_DEMAND_PRODUCTION
         ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
@@ -471,26 +469,19 @@ function OpexAI::_tryBuildAir(year)
       OpexAirFinanceMarginInitLine(this._lines[this._lines.len() - 1], year,
           AICompany.GetBankBalance(AICompany.COMPANY_SELF));
     }
-    if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-      OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, plan, result);
+    OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, plan, result);
+    local builtLine = this._lines[this._lines.len() - 1];
+    builtLine.targetAirPlanes <- ("c121TargetPlanes" in builtLine)
+        ? builtLine.c121TargetPlanes
+        : (("targetPlanes" in plan) ? plan.targetPlanes : result.vehicles.len());
+    this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
+    if (C98_AIR_REALIZED_PROBE) {
+      this._lines[this._lines.len() - 1].c98Arm <- ("arm" in plan) ? plan.arm : "unknown";
     }
-    if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE
-        || C117_AIR_THROUGHPUT_PROBE) {
-      if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS) {
-        local builtLine = this._lines[this._lines.len() - 1];
-        builtLine.targetAirPlanes <- C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)
-            ? builtLine.c121TargetPlanes
-            : (("targetPlanes" in plan) ? plan.targetPlanes : result.vehicles.len());
-      }
-      this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
-      if (C98_AIR_REALIZED_PROBE) {
-        this._lines[this._lines.len() - 1].c98Arm <- ("arm" in plan) ? plan.arm : "unknown";
-      }
-      if (C117_AIR_THROUGHPUT_PROBE) {
-        this._lines[this._lines.len() - 1].c117Arm <- ("arm" in plan) ? plan.arm : "unknown";
-        this._lines[this._lines.len() - 1].c117ShadowMonthly <-
-            ("b9ShadowMonthly" in plan) ? plan.b9ShadowMonthly : -1;
-      }
+    if (C117_AIR_THROUGHPUT_PROBE) {
+      this._lines[this._lines.len() - 1].c117Arm <- ("arm" in plan) ? plan.arm : "unknown";
+      this._lines[this._lines.len() - 1].c117ShadowMonthly <-
+          ("b9ShadowMonthly" in plan) ? plan.b9ShadowMonthly : -1;
     }
     if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
       V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
@@ -765,9 +756,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
-      if (B9_AIR_DEMAND_SHADOW || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-        OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);
-      }
+      OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);
       local quotePlanes = ("planes" in buildPlan) ? buildPlan.planes : 1;
       local result = V93_AIR_DEMAND_PRODUCTION
           ? OpexBuildAirRoute(this._catalog, this._budget, buildPlan, this._lines)
@@ -898,26 +887,19 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           OpexAirFinanceMarginInitLine(this._lines[this._lines.len() - 1], year,
               AICompany.GetBankBalance(AICompany.COMPANY_SELF));
         }
-        if (C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS) {
-          OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, buildPlan, result);
+        OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, buildPlan, result);
+        local builtLine = this._lines[this._lines.len() - 1];
+        builtLine.targetAirPlanes <- ("c121TargetPlanes" in builtLine)
+            ? builtLine.c121TargetPlanes
+            : (("targetPlanes" in buildPlan) ? buildPlan.targetPlanes : result.vehicles.len());
+        this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in buildPlan) ? buildPlan.monthlyPax : 0;
+        if (C98_AIR_REALIZED_PROBE) {
+          this._lines[this._lines.len() - 1].c98Arm <- ("arm" in plan) ? plan.arm : "unknown";
         }
-        if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS || V92_AIR_SERVICE_CHOICE || C98_AIR_REALIZED_PROBE
-            || C117_AIR_THROUGHPUT_PROBE) {
-          if (C84_AIR_TARGET_FLEET || C121_AIR_ECONOMICS) {
-            local builtLine = this._lines[this._lines.len() - 1];
-            builtLine.targetAirPlanes <- C121_AIR_ECONOMICS && ("c121TargetPlanes" in builtLine)
-                ? builtLine.c121TargetPlanes
-                : (("targetPlanes" in buildPlan) ? buildPlan.targetPlanes : result.vehicles.len());
-          }
-          this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in buildPlan) ? buildPlan.monthlyPax : 0;
-          if (C98_AIR_REALIZED_PROBE) {
-            this._lines[this._lines.len() - 1].c98Arm <- ("arm" in plan) ? plan.arm : "unknown";
-          }
-          if (C117_AIR_THROUGHPUT_PROBE) {
-            this._lines[this._lines.len() - 1].c117Arm <- ("arm" in plan) ? plan.arm : "unknown";
-            this._lines[this._lines.len() - 1].c117ShadowMonthly <-
-                ("b9ShadowMonthly" in buildPlan) ? buildPlan.b9ShadowMonthly : -1;
-          }
+        if (C117_AIR_THROUGHPUT_PROBE) {
+          this._lines[this._lines.len() - 1].c117Arm <- ("arm" in plan) ? plan.arm : "unknown";
+          this._lines[this._lines.len() - 1].c117ShadowMonthly <-
+              ("b9ShadowMonthly" in buildPlan) ? buildPlan.b9ShadowMonthly : -1;
         }
         if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
           V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
@@ -1172,7 +1154,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       continue;
     }
     /* V155: pre-filter AIR lines refused by C121 observation/cadence before paying the visible fleet refresh */
-    if (AIR_FLEET_C121_PREGUARD && C121_AIR_ECONOMICS && C121_AIR_VISIBLE_COMPETITION
+    if (AIR_FLEET_C121_PREGUARD && C121_AIR_VISIBLE_COMPETITION
         && ("targetAirPlanes" in line)) {
       local isFirstLiveEligible = C121_AIR_FIRST_LIVE_GROWTH
           && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
@@ -1210,7 +1192,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
-    local c121BelowTarget = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+    local c121BelowTarget = ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
     local belowTarget = c84BelowTarget || c121BelowTarget;
     local c121FirstLiveEntry = false;

@@ -875,7 +875,7 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
   fitted.payload = reduced;
   fitted.capital = quantity * entry.planePrice;
   fitted.budgetCapital = fitted.capital + 1000;
-  local c121BelowTarget = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+  local c121BelowTarget = ("targetAirPlanes" in line)
       && line.targetAirPlanes > have;
   if (!c121BelowTarget && C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
       && line.targetAirPlanes > have) {

@@ -246,7 +246,7 @@ function OpexAirReconcileActualBuild(catalog, plan, result, lines = null)
    * chantier. OpexBuildAirRoute vient de publier la soute PASS/MAIL exacte dans
    * C121_AIR_ENGINE_CAPACITY_OBS : reutiliser donc le meme modele C121, flotte
    * figee au nombre effectivement construit. */
-  local economics = (C121_AIR_ECONOMICS && ("c121Demand" in plan))
+  local economics = ("c121Demand" in plan)
       ? OpexC121EngineEconomics(catalog, plan, plan.plane, actualPlanes)
       : OpexAirEconomics(catalog, plan.airport, plan.plane, plan.distance, monthlyPax,
           AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0,

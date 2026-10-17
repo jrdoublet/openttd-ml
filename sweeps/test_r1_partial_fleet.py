@@ -110,7 +110,7 @@ class TestPartialFleet(unittest.TestCase):
         self.assertIn("c75BuiltKeys[OpexC69AttemptKey(project)] <- true;", self.task)
 
     def test_c121_and_c69_scoring_stay_in_common_selector(self):
-        self.assertIn("local c121BelowTarget = C121_AIR_ECONOMICS", self.fit)
+        self.assertIn("local c121BelowTarget = ", self.fit)
         self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.select)
         # 9e29951 : profit et capital de classement passent par le split C121
         # (defaut 0), qui retombe sur l'expression historique hors split.

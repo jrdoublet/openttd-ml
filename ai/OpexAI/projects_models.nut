@@ -74,7 +74,7 @@ function OpexC121RealizationFactor(plan)
   if (arm != "hubsite" && arm != "hubhub") return 1.0;
   if (!(arm in C121_AIR_REALIZATION_FACTOR)) return 1.0;
   /* Moyenne directe des ratios C121 matures, uniquement pour les hubs AIR. */
-  if (AIR_P0_DIRECT_REALIZATION_ACTIVE && C121_AIR_ECONOMICS)
+  if (AIR_P0_DIRECT_REALIZATION_ACTIVE)
     return C121_AIR_P0_DIRECT_FACTOR[arm];
   /* La stratégie adaptative reste disponible dans les trois états de pression.
    * Le régime continue de piloter C122, mais ne bloque plus la correction
@@ -93,7 +93,7 @@ function OpexC121RealizationSums()
 
 function OpexC121ApplyRealizationSums(sums, year, phase)
 {
-  if (AIR_P0_DIRECT_REALIZATION && C121_AIR_ECONOMICS)
+  if (AIR_P0_DIRECT_REALIZATION)
     AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
   foreach (arm, acc in sums) {
     local n = acc[1];
@@ -104,7 +104,7 @@ function OpexC121ApplyRealizationSums(sums, year, phase)
     local oldFactor = C121_AIR_REALIZATION_FACTOR[arm];
     C121_AIR_REALIZATION_FACTOR[arm] = factor;
     local directChanged = false;
-    if (AIR_P0_DIRECT_REALIZATION && C121_AIR_ECONOMICS
+    if (AIR_P0_DIRECT_REALIZATION
         && (arm == "hubsite" || arm == "hubhub")) {
       local direct = n > 0 ? acc[0].tofloat() / (n.tofloat() * 1000.0) : 1.0;
       directChanged = C121_AIR_P0_DIRECT_FACTOR[arm] != direct;
@@ -138,7 +138,7 @@ function OpexC121RecomputeRealizationFactors(lines)
 
 function OpexC121ProjectHasRealization(project)
 {
-  if (!C121_AIR_ECONOMICS || project == null || !("mode" in project)
+  if (project == null || !("mode" in project)
       || !("payload" in project) || project.payload == null) return false;
   if (project.mode == "air") {
     return ("economics" in project.payload) && project.payload.economics != null

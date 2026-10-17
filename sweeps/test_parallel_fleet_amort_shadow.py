@@ -249,7 +249,7 @@ class SourceTests(unittest.TestCase):
         # Le helper de sonde est identique aux deux parents ; seul le builder
         # cumule les changements de politique deja demandes.
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
-                         '7aa05e673b5b0941b1f2b57756e25162a52630f23599638458dbb8a586ed7c95')
+                         'dc9f5c118ad170dcc4d36fb7f811b9d1032458990a2209f704535bbca49d02d1')
 
     def test_integrated_caller_is_diagnostic_helper_stays_explicit_opt_in(self):
         occurrences = sum(p.read_text(encoding="utf-8").count("OpexFleetAmortShadow(")

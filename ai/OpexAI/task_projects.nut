@@ -247,7 +247,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   local costs = C63_INVEST_PROBE ? AIAccounting() : null;
   local c121HaveBefore = ("vehCount" in line) ? line.vehCount
       : (("vehicles" in line) ? line.vehicles.len() : 0);
-  local c121TrackMarginal = C121_AIR_ECONOMICS && ("targetAirPlanes" in line)
+  local c121TrackMarginal = ("targetAirPlanes" in line)
       && line.targetAirPlanes > c121HaveBefore
       && ("lastProfit" in line) && ("lastRevenue" in line);
   local c121BaselineProfit = c121TrackMarginal ? line.lastProfit : 0;

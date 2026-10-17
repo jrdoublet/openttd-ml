@@ -40,7 +40,7 @@ class TestM3EquipmentRoi(unittest.TestCase):
         for token in ("capacity > this.wagonByCargo[cargo].capacity", "engine.capacity > best.capacity", "engine.capacity == best.capacity && engine.speed > best.speed", "(isBig && !bestIsBig)"):
             self.assertIn(token, src)
         self.assertEqual(src.count("if (!replaces && !keepPlaneChoices) continue;"), 2)
-        self.assertIn("local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION || C85_AIR_EQUIPMENT_FRONTIER || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS", " ".join(src.split()))
+        self.assertIn("local keepPlaneChoices = true", " ".join(src.split()))
     def test_probe_catalogs_and_rail_overrides(self):
         src = CATALOG.read_text(encoding="utf-8")
         for token in ("wagonChoicesByCargo", "roadEngineChoicesByCargo", "airPlaneChoicesByAirport"):
@@ -74,8 +74,8 @@ class TestM3EquipmentRoi(unittest.TestCase):
         self.assertIn("function OpexAirChooseRoutePlane", src)
         self.assertIn("if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport))", src)
         self.assertIn("economics.profitAnnual > bestEconomics.profitAnnual", src)
-        self.assertIn("local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION || C85_AIR_EQUIPMENT_FRONTIER || C121_AIR_ECONOMICS_SHADOW || C121_AIR_ECONOMICS", " ".join(catalog.split()))
-        self.assertEqual(planning_src.count("OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,"), 3)
+        self.assertIn("local keepPlaneChoices = true", " ".join(catalog.split()))
+        self.assertEqual(planning_src.count("OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,"), 0)
         self.assertIn('"AV|" + routePlane.speed + "|" + routePlane.capacity', planning_src)
     def test_proxy_labels_and_airport_policy(self):
         probe_src = ECONOMY.read_text(encoding="utf-8") + AIR_ENGINE_CHOICE.read_text(encoding="utf-8")

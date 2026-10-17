@@ -40,7 +40,7 @@ class GameEngineContractTests(unittest.TestCase):
             "Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard",
             globals_pre)
         settings = source("settings.nut")
-        self.assertIn("C121_AIR_GAME_ENGINE = C121_AIR_ECONOMICS", settings)
+        self.assertIn("C121_AIR_GAME_ENGINE = AIController.GetSetting", settings)
         self.assertIn('AIController.GetSetting("c121_air_game_engine") != 0;', settings)
         save = source("persist.nut").split("function OpexAI::Save()", 1)[1].split(
             "function OpexAI::Load(", 1)[0]
