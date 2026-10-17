@@ -1,0 +1,2025 @@
+file,line,value,kind,source
+ai/OpexAI/air_c83_repair.nut,69,600,inline,"if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == ""large"" && town.pop < 600) continue;"
+ai/OpexAI/air_catalog_c121.nut,83,365,inline,|| today - entry.date >= 365;
+ai/OpexAI/air_catalog_c121.nut,147,30,inline,"else if (date - entry.date >= (C121_AIR_VISIBLE_COMPETITION ? 30 : 365)) reason = ""age"";"
+ai/OpexAI/air_catalog_c121.nut,147,365,inline,"else if (date - entry.date >= (C121_AIR_VISIBLE_COMPETITION ? 30 : 365)) reason = ""age"";"
+ai/OpexAI/air_catalog_c121.nut,369,1000.0,inline,line.c121RealizationPmAtBuild <- (realization * 1000.0).tointeger();
+ai/OpexAI/air_construction.nut,40,800,inline,"OpexBoostTownRating(site.town.id, 800, 40);"
+ai/OpexAI/air_construction.nut,40,40,inline,"OpexBoostTownRating(site.town.id, 800, 40);"
+ai/OpexAI/air_construction.nut,127,4,inline,if (spread < 4) spread = 12;
+ai/OpexAI/air_construction.nut,127,12,inline,if (spread < 4) spread = 12;
+ai/OpexAI/air_construction.nut,164,3,inline,"if (AIMap.DistanceManhattan(tile, center) < 3) continue;"
+ai/OpexAI/air_construction.nut,239,800,inline,"OpexBoostTownRating(town.id, 800, 40);"
+ai/OpexAI/air_construction.nut,239,40,inline,"OpexBoostTownRating(town.id, 800, 40);"
+ai/OpexAI/air_construction.nut,372,800,inline,"OpexBoostTownRating(plan.siteA.town.id, 800, 40);"
+ai/OpexAI/air_construction.nut,372,40,inline,"OpexBoostTownRating(plan.siteA.town.id, 800, 40);"
+ai/OpexAI/air_construction.nut,438,800,inline,"OpexBoostTownRating(plan.siteB.town.id, 800, 40);"
+ai/OpexAI/air_construction.nut,438,40,inline,"OpexBoostTownRating(plan.siteB.town.id, 800, 40);"
+ai/OpexAI/air_coverage.nut,45,12,inline,return AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+ai/OpexAI/air_coverage.nut,99,414,inline,local dist = (minD * 414) / 1000 + maxD;
+ai/OpexAI/air_coverage.nut,99,1000,inline,local dist = (minD * 414) / 1000 + maxD;
+ai/OpexAI/air_coverage.nut,233,4,inline,if (spread < 4) spread = 12;
+ai/OpexAI/air_coverage.nut,233,12,inline,if (spread < 4) spread = 12;
+ai/OpexAI/air_coverage.nut,276,3,inline,"if (AIMap.DistanceManhattan(tile, center) < 3) continue;"
+ai/OpexAI/air_coverage.nut,376,100,inline,if (pct > 100) pct = 100;
+ai/OpexAI/air_coverage.nut,376,100,inline,if (pct > 100) pct = 100;
+ai/OpexAI/air_coverage.nut,377,256,inline,local low = (pct * 256 + 100) / 101;
+ai/OpexAI/air_coverage.nut,377,100,inline,local low = (pct * 256 + 100) / 101;
+ai/OpexAI/air_coverage.nut,377,101,inline,local low = (pct * 256 + 100) / 101;
+ai/OpexAI/air_coverage.nut,378,256,inline,local high = (((pct + 1) * 256 + 100) / 101) - 1;
+ai/OpexAI/air_coverage.nut,378,100,inline,local high = (((pct + 1) * 256 + 100) / 101) - 1;
+ai/OpexAI/air_coverage.nut,378,101,inline,local high = (((pct + 1) * 256 + 100) / 101) - 1;
+ai/OpexAI/air_coverage.nut,380,255,inline,if (high > 255) high = 255;
+ai/OpexAI/air_coverage.nut,380,255,inline,if (high > 255) high = 255;
+ai/OpexAI/air_coverage.nut,420,30,inline,if (now >= cached.date && now - cached.date < 30) return cached.owners;
+ai/OpexAI/air_coverage.nut,453,256,inline,if (C121_VISIBLE_AIRPORT_CACHE.len() >= 256) C121_VISIBLE_AIRPORT_CACHE.clear();
+ai/OpexAI/air_coverage.nut,549,256.0,inline,return rawMonthly.tofloat() * (rating + 1).tofloat() / 256.0;
+ai/OpexAI/air_coverage.nut,557,256.0,inline,local sourceFraction = (best + 1).tofloat() / 256.0;
+ai/OpexAI/air_coverage.nut,574,4,inline,local townRadius = 4 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
+ai/OpexAI/air_coverage.nut,574,8,inline,local townRadius = 4 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
+ai/OpexAI/air_coverage.nut,575,20,inline,if (townRadius > 20) townRadius = 20;
+ai/OpexAI/air_coverage.nut,575,20,inline,if (townRadius > 20) townRadius = 20;
+ai/OpexAI/air_coverage.nut,626,365,inline,&& stamp.date - old.date < 365;
+ai/OpexAI/air_coverage.nut,662,30,inline,&& AIDate.GetCurrentDate() >= cached.visibleDate && AIDate.GetCurrentDate() - cached.visibleDate < 30)) {
+ai/OpexAI/air_coverage.nut,897,4,inline,local townRadius = 4 + (sqrt(townPop > 0 ? townPop : 0) / 8).tointeger();
+ai/OpexAI/air_coverage.nut,897,8,inline,local townRadius = 4 + (sqrt(townPop > 0 ? townPop : 0) / 8).tointeger();
+ai/OpexAI/air_coverage.nut,898,20,inline,if (townRadius > 20) townRadius = 20;
+ai/OpexAI/air_coverage.nut,898,20,inline,if (townRadius > 20) townRadius = 20;
+ai/OpexAI/air_economics_c121.nut,10,15,inline,local mailPct = 15;
+ai/OpexAI/air_economics_c121.nut,13,100,inline,mailPct = (plane.mailCapacity * 100) / plane.capacity;
+ai/OpexAI/air_economics_c121.nut,15,100,inline,totalIncomePerUnit = paxIncome + (mailIncome * mailPct) / 100;
+ai/OpexAI/air_economics_c121.nut,17,100.0,inline,return (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+ai/OpexAI/air_economics_c121.nut,33,30,inline,local days = ((flightDistance + 30) * 664) / (speed * 24 * dayLengthFactor);
+ai/OpexAI/air_economics_c121.nut,33,664,inline,local days = ((flightDistance + 30) * 664) / (speed * 24 * dayLengthFactor);
+ai/OpexAI/air_economics_c121.nut,33,24,inline,local days = ((flightDistance + 30) * 664) / (speed * 24 * dayLengthFactor);
+ai/OpexAI/air_economics_c121.nut,67,0.036,inline,local flightDays = distance.tofloat() / (0.036 * effectiveSpeed);
+ai/OpexAI/air_economics_c121.nut,70,8.0,inline,ground = 8.0;
+ai/OpexAI/air_economics_c121.nut,75,3.0,inline,ground = ground * 2.0 / 3.0;
+ai/OpexAI/air_economics_c121.nut,79,50.0,inline,local taxiSpeed = effectiveSpeed < 50.0 ? effectiveSpeed : 50.0;
+ai/OpexAI/air_economics_c121.nut,79,50.0,inline,local taxiSpeed = effectiveSpeed < 50.0 ? effectiveSpeed : 50.0;
+ai/OpexAI/air_economics_c121.nut,80,300.0,inline,"local maneuverDays = ground * OpexDaysPerTile(taxiSpeed, tpd) + 300.0 / tpd;"
+ai/OpexAI/air_economics_c121.nut,131,365,inline,if (today - entry.date < 365) return entry.level;
+ai/OpexAI/air_economics_c121.nut,197,8.0,inline,local maneuverGroundTiles = 8.0;
+ai/OpexAI/air_economics_c121.nut,201,3.0,inline,maneuverGroundTiles = maneuverGroundTiles * 2.0 / 3.0;
+ai/OpexAI/air_economics_c121.nut,216,12,inline,"? 12 * newAirportCount * plan.airport.maintenance : 0,"
+ai/OpexAI/air_economics_c121.nut,217,100,inline,"airportAmortAnnual = (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30,"
+ai/OpexAI/air_economics_c121.nut,217,30,inline,"airportAmortAnnual = (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30,"
+ai/OpexAI/air_economics_c121.nut,336,50,inline,local taxiSpeed = 50;
+ai/OpexAI/air_economics_c121.nut,337,3,inline,local axialProgress = ((taxiSpeed * 3) / 4).tofloat();
+ai/OpexAI/air_economics_c121.nut,337,4,inline,local axialProgress = ((taxiSpeed * 3) / 4).tofloat();
+ai/OpexAI/air_economics_c121.nut,339,256.0,inline,local axialPixelsPerDay = 2.0 * axialProgress * ticksPerDay / 256.0;
+ai/OpexAI/air_economics_c121.nut,340,256.0,inline,local diagonalPixelsPerDay = 2.0 * diagonalProgress * ticksPerDay / 256.0;
+ai/OpexAI/air_economics_c121.nut,342,260.0,inline,return 260.0 / axialPixelsPerDay + 30.0 / diagonalPixelsPerDay;
+ai/OpexAI/air_economics_c121.nut,342,30.0,inline,return 260.0 / axialPixelsPerDay + 30.0 / diagonalPixelsPerDay;
+ai/OpexAI/air_economics_c121.nut,405,30,inline,local incomeDays = ((distance + 30) * 664) / (speed * 24 * dayLengthFactor);
+ai/OpexAI/air_economics_c121.nut,405,664,inline,local incomeDays = ((distance + 30) * 664) / (speed * 24 * dayLengthFactor);
+ai/OpexAI/air_economics_c121.nut,405,24,inline,local incomeDays = ((distance + 30) * 664) / (speed * 24 * dayLengthFactor);
+ai/OpexAI/air_economics_c121.nut,444,30.4,inline,local capacityMonthly = serviceCargoRate * runwayScale * 30.4;
+ai/OpexAI/air_economics_c121.nut,460,7.5,inline,if (h <= 7.5) return 130.0;
+ai/OpexAI/air_economics_c121.nut,460,130.0,inline,if (h <= 7.5) return 130.0;
+ai/OpexAI/air_economics_c121.nut,461,7.5,inline,local area = 7.5 * 130.0;
+ai/OpexAI/air_economics_c121.nut,461,130.0,inline,local area = 7.5 * 130.0;
+ai/OpexAI/air_economics_c121.nut,462,15.0,inline,if (h <= 15.0) return (area + (h - 7.5) * 95.0) / h;
+ai/OpexAI/air_economics_c121.nut,462,7.5,inline,if (h <= 15.0) return (area + (h - 7.5) * 95.0) / h;
+ai/OpexAI/air_economics_c121.nut,462,95.0,inline,if (h <= 15.0) return (area + (h - 7.5) * 95.0) / h;
+ai/OpexAI/air_economics_c121.nut,463,7.5,inline,area += 7.5 * 95.0;
+ai/OpexAI/air_economics_c121.nut,463,95.0,inline,area += 7.5 * 95.0;
+ai/OpexAI/air_economics_c121.nut,464,30.0,inline,if (h <= 30.0) return (area + (h - 15.0) * 50.0) / h;
+ai/OpexAI/air_economics_c121.nut,464,15.0,inline,if (h <= 30.0) return (area + (h - 15.0) * 50.0) / h;
+ai/OpexAI/air_economics_c121.nut,464,50.0,inline,if (h <= 30.0) return (area + (h - 15.0) * 50.0) / h;
+ai/OpexAI/air_economics_c121.nut,465,15.0,inline,area += 15.0 * 50.0;
+ai/OpexAI/air_economics_c121.nut,465,50.0,inline,area += 15.0 * 50.0;
+ai/OpexAI/air_economics_c121.nut,466,52.5,inline,if (h <= 52.5) return (area + (h - 30.0) * 25.0) / h;
+ai/OpexAI/air_economics_c121.nut,466,30.0,inline,if (h <= 52.5) return (area + (h - 30.0) * 25.0) / h;
+ai/OpexAI/air_economics_c121.nut,466,25.0,inline,if (h <= 52.5) return (area + (h - 30.0) * 25.0) / h;
+ai/OpexAI/air_economics_c121.nut,467,22.5,inline,area += 22.5 * 25.0;
+ai/OpexAI/air_economics_c121.nut,467,25.0,inline,area += 22.5 * 25.0;
+ai/OpexAI/air_economics_c121.nut,473,90,inline,local points = -90;
+ai/OpexAI/air_economics_c121.nut,474,1500,inline,if (waiting <= 1500) points += 55;
+ai/OpexAI/air_economics_c121.nut,474,55,inline,if (waiting <= 1500) points += 55;
+ai/OpexAI/air_economics_c121.nut,475,1000,inline,if (waiting <= 1000) points += 35;
+ai/OpexAI/air_economics_c121.nut,475,35,inline,if (waiting <= 1000) points += 35;
+ai/OpexAI/air_economics_c121.nut,476,600,inline,if (waiting <= 600) points += 10;
+ai/OpexAI/air_economics_c121.nut,476,10,inline,if (waiting <= 600) points += 10;
+ai/OpexAI/air_economics_c121.nut,477,300,inline,if (waiting <= 300) points += 20;
+ai/OpexAI/air_economics_c121.nut,477,20,inline,if (waiting <= 300) points += 20;
+ai/OpexAI/air_economics_c121.nut,478,100,inline,if (waiting <= 100) points += 10;
+ai/OpexAI/air_economics_c121.nut,478,10,inline,if (waiting <= 100) points += 10;
+ai/OpexAI/air_economics_c121.nut,493,10.0,inline,* OpexPlaneSpeedDivisor() * 10.0 / 128.0).tointeger();
+ai/OpexAI/air_economics_c121.nut,493,128.0,inline,* OpexPlaneSpeedDivisor() * 10.0 / 128.0).tointeger();
+ai/OpexAI/air_economics_c121.nut,494,255,inline,if (oldSpeed > 255) oldSpeed = 255;
+ai/OpexAI/air_economics_c121.nut,494,255,inline,if (oldSpeed > 255) oldSpeed = 255;
+ai/OpexAI/air_economics_c121.nut,495,85,inline,return oldSpeed > 85 ? (oldSpeed - 85) / 4 : 0;
+ai/OpexAI/air_economics_c121.nut,495,85,inline,return oldSpeed > 85 ? (oldSpeed - 85) / 4 : 0;
+ai/OpexAI/air_economics_c121.nut,495,4,inline,return oldSpeed > 85 ? (oldSpeed - 85) / 4 : 0;
+ai/OpexAI/air_economics_c121.nut,501,26,inline,return AITown.HasStatue(town.id) ? 26 : 0;
+ai/OpexAI/air_economics_c121.nut,516,33,inline,base = OpexC121SpeedRatingPoints(plane) + 33 + OpexC121StatueRatingPoints(town);
+ai/OpexAI/air_economics_c121.nut,519,175,inline,local rating = 175;
+ai/OpexAI/air_economics_c121.nut,528,8,inline,for (local iter = 0; iter < 8; iter++) {
+ai/OpexAI/air_economics_c121.nut,530,255.0,inline,? capturableMonthly * rating.tofloat() / 255.0 : 0.0;
+ai/OpexAI/air_economics_c121.nut,531,30.4,inline,local waitingUpper = offered * headwayDays / 30.4;
+ai/OpexAI/air_economics_c121.nut,539,90,inline,? OpexC121StockRatingPoints(ratingWaiting) : -90;
+ai/OpexAI/air_economics_c121.nut,542,255,inline,if (target > 255) target = 255;
+ai/OpexAI/air_economics_c121.nut,542,255,inline,if (target > 255) target = 255;
+ai/OpexAI/air_economics_c121.nut,549,30.4,inline,rating = (capacityPerVisit * 30.4 * 255.0
+ai/OpexAI/air_economics_c121.nut,549,255.0,inline,rating = (capacityPerVisit * 30.4 * 255.0
+ai/OpexAI/air_economics_c121.nut,552,255,inline,if (rating > 255) rating = 255;
+ai/OpexAI/air_economics_c121.nut,552,255,inline,if (rating > 255) rating = 255;
+ai/OpexAI/air_economics_c121.nut,562,255.0,inline,? capturableMonthly * rating.tofloat() / 255.0 : 0.0;
+ai/OpexAI/air_economics_c121.nut,563,30.4,inline,local waitingUpper = offered * headwayDays / 30.4;
+ai/OpexAI/air_economics_c121.nut,580,30.4,inline,local paxPerPlaneDirection = paxCapacity * 30.4 / roundTripDays;
+ai/OpexAI/air_economics_c121.nut,583,7.5,inline,"local frequencyPlanes = OpexCeilDiv(roundTripDays, 7.5);"
+ai/OpexAI/air_economics_c121.nut,586,30.4,inline,local mailPerPlaneDirection = mailCapacity * 30.4 / roundTripDays;
+ai/OpexAI/air_economics_c121.nut,630,12,inline,? 12 * newAirportCount * plan.airport.maintenance : 0);
+ai/OpexAI/air_economics_c121.nut,632,100,inline,: (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30;
+ai/OpexAI/air_economics_c121.nut,632,30,inline,: (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30;
+ai/OpexAI/air_economics_c121.nut,634,365,inline,? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365));
+ai/OpexAI/air_economics_c121.nut,650,33,inline,local ratingBaseA = speedRating + 33
+ai/OpexAI/air_economics_c121.nut,652,33,inline,local ratingBaseB = speedRating + 33
+ai/OpexAI/air_economics_c121.nut,677,12.0,inline,local rawMaxRevenueUpper = (12.0 * (paxRawA + paxRawB).tofloat() * paxIncome
+ai/OpexAI/air_economics_c121.nut,678,12.0,inline,+ 12.0 * (mailRawA + mailRawB).tofloat() * mailIncome).tointeger();
+ai/OpexAI/air_economics_c121.nut,691,1000.0,inline,? upperProfitOne.tofloat() * 1000.0 / upperCapitalOne.tofloat() : 0.0;
+ai/OpexAI/air_economics_c121.nut,776,30.4,inline,local departuresPerDirectionMonth = 30.4 * candidatePickupRate;
+ai/OpexAI/air_economics_c121.nut,792,30.4,inline,local existingPaxCapacityA = existingPaxRateA * 30.4;
+ai/OpexAI/air_economics_c121.nut,793,30.4,inline,local existingPaxCapacityB = existingPaxRateB * 30.4;
+ai/OpexAI/air_economics_c121.nut,803,30.4,inline,local existingMailCapacityA = existingMailRateA * 30.4;
+ai/OpexAI/air_economics_c121.nut,804,30.4,inline,local existingMailCapacityB = existingMailRateB * 30.4;
+ai/OpexAI/air_economics_c121.nut,810,12.0,inline,local rawCannibalLossAnnual = (12.0 * (lostPaxA * existingPaxIncomeA
+ai/OpexAI/air_economics_c121.nut,815,12.0,inline,local rawRevenuePaxAnnual = (12.0 * carriedPax.tofloat() * paxIncome).tointeger();
+ai/OpexAI/air_economics_c121.nut,816,12.0,inline,local rawRevenueMailAnnual = (12.0 * carriedMail.tofloat() * mailIncome).tointeger();
+ai/OpexAI/air_economics_c121.nut,832,365000,inline,local immobilise = (TRANSIT_COST_PERMILLE > 0) ? (revenueAnnual * trip.roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+ai/OpexAI/air_economics_c121.nut,834,1000,inline,local roi = totalCapital > 0 ? (profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/air_economics_c121.nut,848,1000.0,inline,? (profitAnnual.tofloat() * 1000.0) / decisionCapital.tofloat() : 0.0;
+ai/OpexAI/air_economics_c121.nut,896,50.0,inline,"stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),"
+ai/OpexAI/air_economics_c121.nut,896,255.0,inline,"stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),"
+ai/OpexAI/air_economics_c121.nut,945,50.0,inline,"stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),"
+ai/OpexAI/air_economics_c121.nut,945,255.0,inline,"stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),"
+ai/OpexAI/air_economics_c121.nut,974,1000.0,inline,? upperProfit.tofloat() * 1000.0 / nextCapital.tofloat() : 0.0;
+ai/OpexAI/air_economics_c121.nut,1123,12,inline,return AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+ai/OpexAI/air_economics_c121.nut,1168,12,inline,? 12 * newAirportCount * plan.airport.maintenance : 0);
+ai/OpexAI/air_economics_c121.nut,1170,100,inline,: (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30;
+ai/OpexAI/air_economics_c121.nut,1170,30,inline,: (newAirportCount * plan.airport.price * INFRA_AMORT_PCT / 100) / 30;
+ai/OpexAI/air_economics_c121.nut,1172,365,inline,? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365);
+ai/OpexAI/air_economics_c121.nut,1190,33,inline,local ratingBaseA = speedRating + 33
+ai/OpexAI/air_economics_c121.nut,1192,33,inline,local ratingBaseB = speedRating + 33
+ai/OpexAI/air_economics_c121.nut,1365,30.4,inline,local departuresPerDirectionMonth = 30.4 * candidatePickupRate;
+ai/OpexAI/air_economics_c121.nut,1376,30.4,inline,local existingPaxCapacityA = existingPaxRateA * 30.4;
+ai/OpexAI/air_economics_c121.nut,1377,30.4,inline,local existingPaxCapacityB = existingPaxRateB * 30.4;
+ai/OpexAI/air_economics_c121.nut,1387,30.4,inline,local existingMailCapacityA = existingMailRateA * 30.4;
+ai/OpexAI/air_economics_c121.nut,1388,30.4,inline,local existingMailCapacityB = existingMailRateB * 30.4;
+ai/OpexAI/air_economics_c121.nut,1394,12.0,inline,local rawCannibalLossAnnual = (12.0 * (lostPaxA * existingPaxIncomeA
+ai/OpexAI/air_economics_c121.nut,1399,12.0,inline,local rawRevenuePaxAnnual = (12.0 * carriedPax.tofloat() * paxIncome).tointeger();
+ai/OpexAI/air_economics_c121.nut,1400,12.0,inline,local rawRevenueMailAnnual = (12.0 * carriedMail.tofloat() * mailIncome).tointeger();
+ai/OpexAI/air_economics_c121.nut,1411,365000,inline,local immobilise = (TRANSIT_COST_PERMILLE > 0) ? (revenueAnnual * trip.roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+ai/OpexAI/air_economics_c121.nut,1413,1000,inline,local roi = totalCapital > 0 ? (profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/air_economics_c121.nut,1416,1000.0,inline,? (profitAnnual.tofloat() * 1000.0) / decisionCapital.tofloat() : 0.0;
+ai/OpexAI/air_economics_c121.nut,1447,50.0,inline,"stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),"
+ai/OpexAI/air_economics_c121.nut,1447,255.0,inline,"stationRating = ((paxRatingPointsA + paxRatingPointsB) * 50.0 / 255.0),"
+ai/OpexAI/air_economics_c121.nut,1671,30.4,inline,local departuresPerDirectionMonth = 30.4 / trip.roundTripDays;
+ai/OpexAI/air_economics_c121.nut,1682,12.0,inline,local revenueUpper = (12.0 * (paxUpperA + paxUpperB) * paxIncome
+ai/OpexAI/air_economics_c121.nut,1683,12.0,inline,+ 12.0 * (mailUpperA + mailUpperB) * mailIncome).tointeger();
+ai/OpexAI/air_economics_c121.nut,1685,365,inline,? plane.ageYears : (AIEngine.GetMaxAge(plane.id) / 365));
+ai/OpexAI/air_economics_c121.nut,1690,1000.0,inline,return capital > 0 ? profitUpper.tofloat() * 1000.0 / capital.tofloat() : 0.0;
+ai/OpexAI/air_economics_c121.nut,1693,8,definition,const C121_GAME_ENGINE_STREAK = 8;
+ai/OpexAI/air_economics_c121.nut,1694,32,definition,const C121_GAME_ENGINE_CHECK_EVERY = 32;
+ai/OpexAI/air_economics_c121.nut,1702,10,inline,"+ (month < 10 ? ""0"" + month : """" + month) + ""-"""
+ai/OpexAI/air_economics_c121.nut,1703,10,inline,"+ (day < 10 ? ""0"" + day : """" + day);"
+ai/OpexAI/air_economics_c121.nut,2242,3,inline,geMode = 3;
+ai/OpexAI/air_economics_c121.nut,2383,3,inline,geMode = 3;
+ai/OpexAI/air_economics_c121.nut,2384,3,inline,if (PROBE_C121_ENGINE_TABLE) plan.c121GeMode <- 3;
+ai/OpexAI/air_engine_choice.nut,8,1.25,inline,if (plan.economics.roi > (bestPlan.economics.roi * 1.25).tointeger()) return true;
+ai/OpexAI/air_engine_choice.nut,9,1.25,inline,if (bestPlan.economics.roi > (plan.economics.roi * 1.25).tointeger()) return false;
+ai/OpexAI/air_engine_choice.nut,18,1.25,inline,if (planEconomics.roi > (bestEconomics.roi * 1.25).tointeger()) return true;
+ai/OpexAI/air_engine_choice.nut,19,1.25,inline,if (bestEconomics.roi > (planEconomics.roi * 1.25).tointeger()) return false;
+ai/OpexAI/air_engine_choice.nut,91,3,inline,return (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
+ai/OpexAI/air_engine_choice.nut,91,4,inline,return (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
+ai/OpexAI/air_engine_choice.nut,91,6,inline,return (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
+ai/OpexAI/air_engine_choice.nut,206,1000.0,inline,bestScore = denom > 0 ? (bestCalProfit.tofloat() * 1000.0) / denom : 0.0;
+ai/OpexAI/air_engine_choice.nut,220,1000.0,inline,rawScore = denom > 0 ? (selectedEconomics.profitAnnual.tofloat() * 1000.0) / denom : 0.0;
+ai/OpexAI/air_engine_choice.nut,246,1000.0,inline,local curScore = curDenom > 0 ? (calProfit.tofloat() * 1000.0) / curDenom : 0.0;
+ai/OpexAI/air_engine_choice.nut,275,1000.0,inline,local curScore = curDenom > 0 ? (economics.profitAnnual.tofloat() * 1000.0) / curDenom : 0.0;
+ai/OpexAI/air_engine_choice.nut,336,12,inline,local month = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now);
+ai/OpexAI/air_engine_choice.nut,678,1000,inline,relativeRoiPermille = 1000)
+ai/OpexAI/air_engine_choice.nut,711,1000.0,inline,local marginalRoi = (deltaProfit * 1000.0) / deltaCapital;
+ai/OpexAI/air_engine_choice.nut,712,1000.0,inline,if (marginalRoi * 1000.0 >= runner.economics.roi * relativeRoiPermille) return current;
+ai/OpexAI/air_engine_choice.nut,725,1000,inline,relativeRoiPermille = 1000)
+ai/OpexAI/air_engine_choice.nut,757,1000.0,inline,local marginalRoi = (deltaProfit * 1000.0) / deltaCapital;
+ai/OpexAI/air_engine_choice.nut,758,1000.0,inline,if (marginalRoi * 1000.0 >= runner.economics.roi * relativeRoiPermille) return current;
+ai/OpexAI/air_engine_choice.nut,791,30000,inline,local margin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,791,12000,inline,local margin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,791,2000,inline,local margin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,820,30000,inline,local margin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,820,12000,inline,local margin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,820,2000,inline,local margin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,838,8,inline,if ((alpha16 & 8) != 0) denom *= r2;
+ai/OpexAI/air_engine_choice.nut,839,4,inline,if ((alpha16 & 4) != 0) denom *= r4;
+ai/OpexAI/air_engine_choice.nut,878,3,inline,else if (beta4 == 3) denom = r2 * r4;
+ai/OpexAI/air_engine_choice.nut,879,4,inline,else if (beta4 == 4) denom = v;
+ai/OpexAI/air_engine_choice.nut,899,1000,inline,relativeElasticityPermille = 1000)
+ai/OpexAI/air_engine_choice.nut,934,1000.0,inline,local profitGainPermille = (deltaProfit * 1000.0) / runner.economics.profitAnnual;
+ai/OpexAI/air_engine_choice.nut,935,1000.0,inline,local speedGainPermille = (deltaSpeed * 1000.0) / runner.plane.speed;
+ai/OpexAI/air_engine_choice.nut,936,1000.0,inline,if (profitGainPermille * 1000.0 >= speedGainPermille * relativeElasticityPermille) return current;
+ai/OpexAI/air_engine_choice.nut,969,1000.0,inline,local legacyScore = legacyDenom > 0 ? (legacy.economics.profitAnnual.tofloat() * 1000.0) / legacyDenom : 0.0;
+ai/OpexAI/air_engine_choice.nut,970,1000.0,inline,local runnerScore = runnerDenom > 0 ? (runner.economics.profitAnnual.tofloat() * 1000.0) / runnerDenom : 0.0;
+ai/OpexAI/air_engine_choice.nut,971,1000.0,inline,local marginalRoi = deltaCapital > 0 ? (deltaProfit.tofloat() * 1000.0) / deltaCapital : 0.0;
+ai/OpexAI/air_engine_choice.nut,1098,3,inline,for (local i = 0; i < snapshot.air.len() && i < 3; i++) {
+ai/OpexAI/air_engine_choice.nut,1121,600,inline,if (!C104_AIR_C100_COMPARE_PROBE || C104_AIR_C100_COMPARE_COUNT >= 600) return;
+ai/OpexAI/air_engine_choice.nut,1127,150,inline,"if (C104_AIR_C100_COMPARE_SEEN[""__year_count""] >= 150) return;"
+ai/OpexAI/air_engine_choice.nut,1148,7,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 7);"
+ai/OpexAI/air_engine_choice.nut,1150,8,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 8);"
+ai/OpexAI/air_engine_choice.nut,1152,9,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 9);"
+ai/OpexAI/air_engine_choice.nut,1154,10,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 10);"
+ai/OpexAI/air_engine_choice.nut,1160,3,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 3);"
+ai/OpexAI/air_engine_choice.nut,1162,4,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 4);"
+ai/OpexAI/air_engine_choice.nut,1164,250,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 250);"
+ai/OpexAI/air_engine_choice.nut,1166,500,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 500);"
+ai/OpexAI/air_engine_choice.nut,1168,750,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 750);"
+ai/OpexAI/air_engine_choice.nut,1170,1000,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1000);"
+ai/OpexAI/air_engine_choice.nut,1194,30000,inline,local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,1194,12000,inline,local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,1194,2000,inline,local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,1265,500,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 500);"
+ai/OpexAI/air_engine_choice.nut,1279,750,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 750);"
+ai/OpexAI/air_engine_choice.nut,1320,1000,inline,"infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1000);"
+ai/OpexAI/air_engine_choice.nut,1369,600,inline,if (C116_AIR_PROJECT_PROBE_COUNT >= 600 || C116_AIR_PROJECT_PROBE_YEAR_COUNT >= 150) return;
+ai/OpexAI/air_engine_choice.nut,1369,150,inline,if (C116_AIR_PROJECT_PROBE_COUNT >= 600 || C116_AIR_PROJECT_PROBE_YEAR_COUNT >= 150) return;
+ai/OpexAI/air_engine_choice.nut,1385,1000.0,inline,if (deltaCapital > 0) marginalRoi = (deltaProfit.tofloat() * 1000.0) / deltaCapital.tofloat();
+ai/OpexAI/air_engine_choice.nut,1388,30000,inline,local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,1388,12000,inline,local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,1388,2000,inline,local financeMargin = newAirportCount == 2 ? 30000 : (newAirportCount == 1 ? 12000 : 2000);
+ai/OpexAI/air_engine_choice.nut,1587,1000.0,inline,bestScore = denom > 0 ? (selectedEconomics.profitAnnual.tofloat() * 1000.0) / denom : 0.0;
+ai/OpexAI/air_engine_choice.nut,1605,1000.0,inline,c_score = denom > 0 ? (selectedEconomics.profitAnnual.tofloat() * 1000.0) / denom : 0.0;
+ai/OpexAI/air_engine_choice.nut,1634,1000.0,inline,local curScore = curDenom > 0 ? (economics.profitAnnual.tofloat() * 1000.0) / curDenom : 0.0;
+ai/OpexAI/air_engine_choice.nut,1656,1000.0,inline,local curScore = curDenom > 0 ? (economics.profitAnnual.tofloat() * 1000.0) / curDenom : 0.0;
+ai/OpexAI/air_engine_choice.nut,1738,999999999,inline,"+ "" best_profit="" + (bestProfit != null ? bestProfit.profitAnnual : -999999999)"
+ai/OpexAI/air_engine_choice.nut,1741,999999999,inline,"+ "" best_native_profit="" + (bestNativeProfit != null ? bestNativeProfit.profitAnnual : -999999999)"
+ai/OpexAI/air_engine_choice.nut,1784,999999999,inline,local selectedProfit = selectedEconomics != null ? selectedEconomics.profitAnnual : -999999999;
+ai/OpexAI/air_engine_choice.nut,1794,999999999,inline,"+ "" best_profit="" + (bestProfit != null ? bestProfit.profitAnnual : -999999999)"
+ai/OpexAI/air_engine_choice.nut,1797,999999999,inline,"+ "" best_native_profit="" + (bestNativeProfit != null ? bestNativeProfit.profitAnnual : -999999999)"
+ai/OpexAI/air_fleet.nut,324,30,inline,if (now >= state.date && now - state.date < 30
+ai/OpexAI/air_fleet.nut,375,1000.0,inline,line.c121RealizationPmAtBuild <- (before.realizationFactor * 1000.0).tointeger();
+ai/OpexAI/air_fleet.nut,392,4,inline,local physicalCap = isSmall ? 4 : AIR_MAX_PLANES_PER_ROUTE;
+ai/OpexAI/air_fleet.nut,442,1000,inline,local need = price + OpexCashReserve() + 1000;
+ai/OpexAI/air_flux_probe.nut,7,101,inline,"ratingMin = 101, ratingMax = -1, vehicles = {}, loadingSamples = 0, multimodalSamples = 0 };"
+ai/OpexAI/air_flux_probe.nut,22,30.4,inline,local bound = balance > 0 ? balance.tofloat() * 30.4 / days.tofloat() : 0.0;
+ai/OpexAI/air_flux_probe.nut,123,30,inline,if (now - state.startDate >= 30) {
+ai/OpexAI/air_planning.nut,197,12,inline,local memoMonth = AIDate.GetYear(memoDate) * 12 + AIDate.GetMonth(memoDate);
+ai/OpexAI/air_planning.nut,387,120,inline,local poolLimit = towns.len() < 120 ? towns.len() : 120;
+ai/OpexAI/air_planning.nut,387,120,inline,local poolLimit = towns.len() < 120 ? towns.len() : 120;
+ai/OpexAI/air_planning.nut,522,600,inline,"} else if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == ""large"" && towns[i].pop < 600) {"
+ai/OpexAI/air_planning.nut,551,600,inline,if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < 600) {
+ai/OpexAI/air_planning.nut,665,3,inline,"OpexSign(AIMap.GetTileIndex(1, 3), ""AS|S="" + sites.len() + ""|A="" + airport.name);"
+ai/OpexAI/air_planning.nut,844,100,inline,local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+ai/OpexAI/air_planning.nut,847,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,847,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,853,5,inline,"OpexSign(AIMap.GetTileIndex(1, 5), ""AX|PA="" + popA + ""|PB="" + popB + ""|MPX="" + monthlyPax);"
+ai/OpexAI/air_planning.nut,927,8,inline,"OpexSign(AIMap.GetTileIndex(1, 8), ""AY|"" + economics.capital + ""|"""
+ai/OpexAI/air_planning.nut,929,9,inline,"OpexSign(AIMap.GetTileIndex(1, 9), ""AV|"" + routePlane.speed + ""|"" + routePlane.capacity"
+ai/OpexAI/air_planning.nut,939,100,inline,local paxOld = ((sites[a].town.pop + sites[b].town.pop) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+ai/OpexAI/air_planning.nut,940,10,inline,if (paxOld < 10) paxOld = 10;
+ai/OpexAI/air_planning.nut,940,10,inline,if (paxOld < 10) paxOld = 10;
+ai/OpexAI/air_planning.nut,1279,600,inline,"if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == ""large"" && towns[i].pop < 600) continue;"
+ai/OpexAI/air_planning.nut,1281,2500,inline,"if (combo.kind == ""small"" && towns[i].pop >= 2500) continue;"
+ai/OpexAI/air_planning.nut,1294,600,inline,"if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < 600 && (""c78Gen"" in ctx) && ctx.c78Gen) {"
+ai/OpexAI/air_planning.nut,1458,100,inline,? (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
+ai/OpexAI/air_planning.nut,1506,20,inline,if (distance < 20) {
+ai/OpexAI/air_planning.nut,1540,100,inline,: (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1));
+ai/OpexAI/air_planning.nut,1541,100,inline,local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
+ai/OpexAI/air_planning.nut,1545,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,1545,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,1616,100,inline,local paxOld = (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
+ai/OpexAI/air_planning.nut,1617,100,inline,+ ((site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100);
+ai/OpexAI/air_planning.nut,1618,10,inline,if (paxOld < 10) paxOld = 10;
+ai/OpexAI/air_planning.nut,1618,10,inline,if (paxOld < 10) paxOld = 10;
+ai/OpexAI/air_planning.nut,1692,15,inline,totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+ai/OpexAI/air_planning.nut,1692,100,inline,totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+ai/OpexAI/air_planning.nut,1694,100.0,inline,local incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+ai/OpexAI/air_planning.nut,1723,100,inline,? (((hubs[i].town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hubs[i].routes + 1))
+ai/OpexAI/air_planning.nut,1789,20,inline,if (distance < 20) {
+ai/OpexAI/air_planning.nut,1818,100,inline,: (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1));
+ai/OpexAI/air_planning.nut,1819,100,inline,local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
+ai/OpexAI/air_planning.nut,1823,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,1823,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,1865,12.0,inline,local lossAnnual = (12.0 * (pax1 * hubAvgIncome[i] + pax2 * hubAvgIncome[j])).tointeger();
+ai/OpexAI/air_planning.nut,1870,1000,inline,economics.roi = totalCapital > 0 ? (economics.profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/air_planning.nut,1879,12.0,inline,local decisionLossAnnual = (12.0 * (decisionPax1 * hubAvgIncome[i] + decisionPax2 * hubAvgIncome[j])).tointeger();
+ai/OpexAI/air_planning.nut,1885,1000,inline,? (decisionEconomics.profitAnnual * 1000) / decisionTotalCapital : 0;
+ai/OpexAI/air_planning.nut,1933,100,inline,local paxOld = (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1))
+ai/OpexAI/air_planning.nut,1934,100,inline,+ (((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1));
+ai/OpexAI/air_planning.nut,1935,10,inline,if (paxOld < 10) paxOld = 10;
+ai/OpexAI/air_planning.nut,1935,10,inline,if (paxOld < 10) paxOld = 10;
+ai/OpexAI/air_planning.nut,2001,20,inline,if (distance < 20) continue;
+ai/OpexAI/air_planning.nut,2014,100,inline,local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
+ai/OpexAI/air_planning.nut,2015,100,inline,local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
+ai/OpexAI/air_planning.nut,2017,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,2017,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_planning.nut,2046,1973,inline,if (year < 1973 || V95_AIR_POST73_YEAR == year) return;
+ai/OpexAI/air_planning.nut,2174,100,inline,local hubMonthlyMeasured = ((route.best.hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+ai/OpexAI/air_planning.nut,2177,10,inline,if (measuredMonthly < 10) measuredMonthly = 10;
+ai/OpexAI/air_planning.nut,2177,10,inline,if (measuredMonthly < 10) measuredMonthly = 10;
+ai/OpexAI/air_planning.nut,2187,10,inline,if (hubOnlyMonthly < 10) hubOnlyMonthly = 10;
+ai/OpexAI/air_planning.nut,2187,10,inline,if (hubOnlyMonthly < 10) hubOnlyMonthly = 10;
+ai/OpexAI/air_planning.nut,2282,74,inline,local elapsedDays = elapsedTicks / 74;
+ai/OpexAI/air_planning.nut,2388,6,inline,"OpexSign(AIMap.GetTileIndex(1, 6), ""AU|"" + ctx.hubs.len() + ""|"""
+ai/OpexAI/air_planning.nut,2391,4,inline,"OpexSign(AIMap.GetTileIndex(1, 4), ""AE|S="" + ctx.sites.len() + ""|B="" + (ctx.bestPlan != null ? ctx.bestPlan.economics.profitAnnual : ""NO""));"
+ai/OpexAI/air_planning.nut,2541,400,inline,local minDist = (plane.speed >= 400) ? 32 : 30;
+ai/OpexAI/air_planning.nut,2541,32,inline,local minDist = (plane.speed >= 400) ? 32 : 30;
+ai/OpexAI/air_planning.nut,2541,30,inline,local minDist = (plane.speed >= 400) ? 32 : 30;
+ai/OpexAI/air_planning.nut,2623,10,inline,"if (n < 10) return ""0"" + n;"
+ai/OpexAI/air_recovery.nut,39,30,inline,ticket.nextDate = AIDate.GetCurrentDate() + 30;
+ai/OpexAI/air_route_economics.nut,15,12,inline,if (AIR_MEMO_MONTH != AIDate.GetYear(nowDate) * 12 + AIDate.GetMonth(nowDate)) canMemo = false;
+ai/OpexAI/air_route_economics.nut,42,10000,inline,: ((plane.id * 10000) + distance));
+ai/OpexAI/air_route_economics.nut,86,12,inline,infrastructureMaintenance ? 12 * newAirportCount * airport.maintenance : 0;
+ai/OpexAI/air_route_economics.nut,87,100,inline,local airportAmortAnnual = (newAirportCount * airport.price * INFRA_AMORT_PCT / 100) / 30;
+ai/OpexAI/air_route_economics.nut,87,30,inline,local airportAmortAnnual = (newAirportCount * airport.price * INFRA_AMORT_PCT / 100) / 30;
+ai/OpexAI/air_route_economics.nut,91,3,inline,local multiPlaneMax = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
+ai/OpexAI/air_route_economics.nut,91,4,inline,local multiPlaneMax = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
+ai/OpexAI/air_route_economics.nut,91,6,inline,local multiPlaneMax = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
+ai/OpexAI/air_route_economics.nut,113,30000,inline,extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
+ai/OpexAI/air_route_economics.nut,113,12000,inline,extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
+ai/OpexAI/air_route_economics.nut,113,2000,inline,extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
+ai/OpexAI/air_route_economics.nut,113,2000,inline,extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
+ai/OpexAI/air_route_economics.nut,122,100.0,inline,local offered = (monthlyPax * stationRating) / 100.0;
+ai/OpexAI/air_route_economics.nut,125,12,inline,local revenueAnnual = (12 * carried * incomePerUnit).tointeger();
+ai/OpexAI/air_route_economics.nut,127,20,inline,local lifeYears = 20;
+ai/OpexAI/air_route_economics.nut,132,365000,inline,? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+ai/OpexAI/air_route_economics.nut,134,1000,inline,local roi = totalCapital > 0 ? (profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/air_route_economics.nut,231,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_route_economics.nut,231,10,inline,if (monthlyPax < 10) monthlyPax = 10;
+ai/OpexAI/air_route_economics.nut,268,100,inline,economics.amortAnnual += ((capitalDelta * INFRA_AMORT_PCT / 100) / 30);
+ai/OpexAI/air_route_economics.nut,268,30,inline,economics.amortAnnual += ((capitalDelta * INFRA_AMORT_PCT / 100) / 30);
+ai/OpexAI/air_route_economics.nut,271,1000,inline,economics.roi = totalCapital > 0 ? (economics.profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/air_route_economics.nut,310,365,inline,"ageYears = AIEngine.GetMaxAge(engineId) / 365,"
+ai/OpexAI/air_sites.nut,70,999,inline,local minH = 999;
+ai/OpexAI/air_sites.nut,148,800,inline,"OpexBoostTownRating(townId, 800, 40);"
+ai/OpexAI/air_sites.nut,148,40,inline,"OpexBoostTownRating(townId, 800, 40);"
+ai/OpexAI/air_sites.nut,285,4,inline,for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
+ai/OpexAI/air_sites.nut,289,25,inline,"if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;"
+ai/OpexAI/air_sites.nut,342,3,inline,execLevels < 3) {
+ai/OpexAI/air_sites.nut,407,8,inline,"if (AITile.GetCargoAcceptance(anchor, paxCargo, airport.width, airport.height, radius) < 8) return false;"
+ai/OpexAI/air_sites.nut,462,4,inline,for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
+ai/OpexAI/air_sites.nut,467,25,inline,"if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;"
+ai/OpexAI/air_sites.nut,522,3,inline,execLevels < 3) {
+ai/OpexAI/air_sites.nut,743,4,inline,for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
+ai/OpexAI/air_sites.nut,752,25,inline,"if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;"
+ai/OpexAI/air_sites.nut,816,3,inline,execLevels < 3) {
+ai/OpexAI/air_town_demand.nut,9,12,inline,local month = AIDate.GetYear(nowDate) * 12 + AIDate.GetMonth(nowDate);
+ai/OpexAI/air_town_demand.nut,39,8,inline,if (pop >= 0 && produced > pop) produced = pop / 8;
+ai/OpexAI/air_town_demand.nut,46,4,inline,local townRadius = 4 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
+ai/OpexAI/air_town_demand.nut,46,8,inline,local townRadius = 4 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
+ai/OpexAI/air_town_demand.nut,47,20,inline,if (townRadius > 20) townRadius = 20;
+ai/OpexAI/air_town_demand.nut,47,20,inline,if (townRadius > 20) townRadius = 20;
+ai/OpexAI/air_towns.nut,25,4,inline,local perimeterCapacity = 4 * (cellsX + cellsY);
+ai/OpexAI/air_towns.nut,38,15,inline,"if (AIMap.DistanceManhattan(town.tile, line.originA) < 15) return true;"
+ai/OpexAI/air_towns.nut,39,15,inline,"if (AIMap.DistanceManhattan(town.tile, line.originB) < 15) return true;"
+ai/OpexAI/air_towns.nut,63,15,inline,if (distanceA < 15) {
+ai/OpexAI/air_towns.nut,68,15,inline,if (distanceB < 15) {
+ai/OpexAI/air_towns.nut,114,3,inline,"&& AIGameSettings.GetValue(""difficulty.town_council_tolerance"") != 3;"
+ai/OpexAI/air_towns.nut,129,600,inline,return 600;
+ai/OpexAI/air_towns.nut,195,3,inline,local capRoutes = (AIR_HUB_MAX_ROUTES > 0) ? AIR_HUB_MAX_ROUTES : 3;
+ai/OpexAI/air_towns.nut,422,730,inline,local untilDate = AIDate.GetCurrentDate() + 730;
+ai/OpexAI/air_trip.nut,19,50.0,inline,local taxiSpeed = maxSpeed < 50.0 ? maxSpeed : 50.0;
+ai/OpexAI/air_trip.nut,19,50.0,inline,local taxiSpeed = maxSpeed < 50.0 ? maxSpeed : 50.0;
+ai/OpexAI/air_trip.nut,20,8.0,inline,local groundTiles = 8.0;
+ai/OpexAI/air_trip.nut,25,3.0,inline,groundTiles = groundTiles * 2.0 / 3.0;
+ai/OpexAI/air_trip.nut,29,300.0,inline,local verticalDays = 300.0 / ticksPerDay;
+ai/OpexAI/air_trip.nut,52,4.0,inline,? speed.tofloat() : speed / 4.0;
+ai/OpexAI/air_trip.nut,54,0.036,inline,local flightDays = distance.tofloat() / (0.036 * effectiveSpeed);
+ai/OpexAI/air_trip.nut,55,3.0,inline,local airportDelayDays = 3.0;
+ai/OpexAI/air_trip.nut,70,30.4,inline,local tripsPerMonth = 30.4 / oneWayDays;
+ai/OpexAI/air_trip.nut,111,20,inline,case AIAirport.AT_SMALL: return 20;
+ai/OpexAI/air_trip.nut,112,16,inline,case AIAirport.AT_COMMUTER: return 16;
+ai/OpexAI/air_trip.nut,113,10,inline,case AIAirport.AT_LARGE: return 10;
+ai/OpexAI/air_trip.nut,114,8,inline,case AIAirport.AT_METROPOLITAN: return 8;
+ai/OpexAI/air_trip.nut,115,5,inline,case AIAirport.AT_INTERNATIONAL: return 5;
+ai/OpexAI/air_trip.nut,116,4,inline,case AIAirport.AT_INTERCON: return 4;
+ai/OpexAI/air_trip.nut,117,12,inline,default: return 12;
+ai/OpexAI/air_trip.nut,227,4,inline,local defaultCap = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;
+ai/OpexAI/air_trip.nut,227,12,inline,local defaultCap = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;
+ai/OpexAI/budget.nut,14,10000,definition,OPS_PER_TICK <- 10000;
+ai/OpexAI/budget.nut,95,1000,inline,return (this.total() * 1000) / (elapsed * OPS_PER_TICK);
+ai/OpexAI/builder_air.nut,13,12,definition,AIR_HUB_NEW_SITE_POOL <- 12;
+ai/OpexAI/builder_air.nut,14,25,definition,AIR_SITE_RADIUS <- 25;
+ai/OpexAI/builder_air.nut,15,32,definition,AIR_TOWN_MIN_DISTANCE <- 32;
+ai/OpexAI/builder_air.nut,16,1500,definition,AIR_MAX_SITE_PROBES <- 1500;
+ai/OpexAI/builder_air.nut,20,180000,definition,AIR_PLAN_SLICE_OPS <- 180000;
+ai/OpexAI/builder_air.nut,21,16,definition,AIR_MAX_PLANES_PER_ROUTE <- 16;
+ai/OpexAI/builder_rail.nut,22,30,definition,const STATION_SEARCH_RADIUS = 30;
+ai/OpexAI/builder_rail.nut,23,12,definition,const MAX_STATION_PLANS = 12;
+ai/OpexAI/builder_rail.nut,25,3,definition,const V207_SITE_SAMPLE_FACTOR = 3;
+ai/OpexAI/builder_rail.nut,29,4,definition,const JOIN_PARALLEL_MAX_SIDE = 4;
+ai/OpexAI/builder_rail.nut,30,50,definition,const PATH_CHUNK = 50;
+ai/OpexAI/builder_rail.nut,31,200000,definition,const PATHFINDER_MAX_COST = 200000;
+ai/OpexAI/builder_rail.nut,41,50,definition,const RAIL_SEARCH_SLICE = 50;
+ai/OpexAI/builder_rail.nut,48,54020,definition,const RAIL_SEARCH_SAFETY_TICKS = 54020;
+ai/OpexAI/builder_rail.nut,62,2000,definition,const SEGMENTED_SEGMENT_ITERS = 2000;
+ai/OpexAI/builder_rail.nut,63,10000,definition,const SEGMENTED_RECOVERY_ITERS = 10000;
+ai/OpexAI/builder_rail.nut,64,3,definition,const SEGMENTED_FRONTIER_WIDTH = 3;
+ai/OpexAI/builder_rail.nut,65,4,definition,const SEGMENTED_MAX_BACKTRACKS = 4;
+ai/OpexAI/builder_rail.nut,68,50000,definition,const SEGMENTED_TIME_SAFE_ITERS = 50000;
+ai/OpexAI/builder_rail.nut,69,3,definition,const SEGMENTED_BRIDGE_MIN_LEN = 3;
+ai/OpexAI/builder_rail.nut,70,20,definition,const SEGMENTED_BRIDGE_MAX_LEN = 20;
+ai/OpexAI/builder_rail.nut,82,4,definition,const ATTEMPT_MULTIPLIER = 4;
+ai/OpexAI/builder_rail.nut,83,2000,definition,const ATTEMPT_FLOOR = 2000;
+ai/OpexAI/builder_rail.nut,109,5000,inline,local cap = 5000 + linesCount * 1000;
+ai/OpexAI/builder_rail.nut,109,1000,inline,local cap = 5000 + linesCount * 1000;
+ai/OpexAI/builder_rail.nut,125,10000,inline,"function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 10000)"
+ai/OpexAI/builder_rail.nut,130,1000,inline,local budget = ATTEMPT_MULTIPLIER * (profitAnnual * 1000) / alternativeRatio;
+ai/OpexAI/builder_rail.nut,294,100,inline,local floorValue = best * rankPct / 100;
+ai/OpexAI/builder_rail.nut,341,8,inline,if (wantProduction ? (cargoValue <= 0) : (cargoValue < 8)) continue;
+ai/OpexAI/builder_rail.nut,598,100,inline,if (!V90_FAST_PATHFINDER) return 100;
+ai/OpexAI/builder_rail.nut,1132,4,inline,"local frontier = OpexFrontierAlternatives(state.pathfinder, SEGMENTED_FRONTIER_WIDTH * 4);"
+ai/OpexAI/builder_rail.nut,1137,3,inline,"if (candidateTail.len() < 3 || !OpexCanAppendSegment(state.prefix, candidateTail)) continue;"
+ai/OpexAI/builder_rail.nut,1292,3,inline,for (local i = 0; i + 3 < n; i++) {
+ai/OpexAI/builder_rail.nut,1293,3,inline,"if (AIMap.DistanceManhattan(tiles[i], tiles[i + 3]) != 3) continue;"
+ai/OpexAI/builder_rail.nut,1293,3,inline,"if (AIMap.DistanceManhattan(tiles[i], tiles[i + 3]) != 3) continue;"
+ai/OpexAI/builder_rail.nut,1296,3,inline,local s2 = tiles[i + 3] - tiles[i + 2];
+ai/OpexAI/builder_rail.nut,1301,4,inline,"if (i + 4 < n && AIMap.DistanceManhattan(tiles[i], tiles[i + 4]) == 4) {"
+ai/OpexAI/builder_rail.nut,1301,4,inline,"if (i + 4 < n && AIMap.DistanceManhattan(tiles[i], tiles[i + 4]) == 4) {"
+ai/OpexAI/builder_rail.nut,1301,4,inline,"if (i + 4 < n && AIMap.DistanceManhattan(tiles[i], tiles[i + 4]) == 4) {"
+ai/OpexAI/builder_rail.nut,1302,4,inline,local s3 = tiles[i + 4] - tiles[i + 3];
+ai/OpexAI/builder_rail.nut,1302,3,inline,local s3 = tiles[i + 4] - tiles[i + 3];
+ai/OpexAI/builder_rail.nut,1349,3,inline,"if (plan == null || !(""tiles"" in plan) || plan.tiles == null || plan.tiles.len() < 3) {"
+ai/OpexAI/builder_rail.nut,1437,3,inline,if (tiles == null || tiles.len() < 3 || planA == null || planB == null) return null;
+ai/OpexAI/builder_rail.nut,1473,3,inline,if (failure == null || tiles == null || tiles.len() < 3) return false;
+ai/OpexAI/builder_rail.nut,1548,3,inline,if (search.path == false || search.path == null) { acc.skip = 3; return acc; }
+ai/OpexAI/builder_rail.nut,1552,3,inline,if (tiles2.len() < 3) { acc.skip = 9; return acc; }
+ai/OpexAI/builder_rail.nut,1552,9,inline,if (tiles2.len() < 3) { acc.skip = 9; return acc; }
+ai/OpexAI/builder_rail.nut,1555,9,inline,if (planA2 == null || planB2 == null) { acc.skip = 9; return acc; }
+ai/OpexAI/builder_rail.nut,1556,8,inline,if (!OpexJoinPathIsDedicated(tiles2)) { acc.skip = 8; return acc; }
+ai/OpexAI/builder_rail.nut,1558,8,inline,if (tiles2[i] in forbidden) { acc.skip = 8; return acc; }
+ai/OpexAI/builder_rail.nut,1565,7,inline,acc.skip = 7;
+ai/OpexAI/builder_rail.nut,1579,5,inline,acc.skip = 5;
+ai/OpexAI/builder_rail.nut,1590,4,inline,acc.skip = 4;
+ai/OpexAI/builder_rail.nut,1597,6,inline,acc.skip = 6;
+ai/OpexAI/builder_rail.nut,1635,3,inline,if (n1 < 3) return null;
+ai/OpexAI/builder_rail.nut,1822,8,inline,for (local ring = 1; ring <= 8; ring++) {
+ai/OpexAI/builder_rail.nut,1909,3,inline,if (candidateTiles.len() < 3) continue;
+ai/OpexAI/builder_rail.nut,1933,6,inline,for (local i2 = 1; i2 <= 6 && i2 < candidateTiles.len() - 2; i2++) {
+ai/OpexAI/builder_rail.nut,1934,6,inline,for (local i1 = 1; i1 <= 6 && i1 < tiles.len() - 2; i1++) {
+ai/OpexAI/builder_rail.nut,1941,6,inline,for (local d1 = 1; d1 <= 6; d1++) {
+ai/OpexAI/builder_rail.nut,1944,6,inline,for (local d2 = 1; d2 <= 6; d2++) {
+ai/OpexAI/builder_rail.nut,1987,3,inline,acc.skip = 3;
+ai/OpexAI/builder_rail.nut,1998,3,inline,if (tiles2.len() < 3) {
+ai/OpexAI/builder_rail.nut,1999,9,inline,acc.skip = 9;
+ai/OpexAI/builder_rail.nut,2010,9,inline,acc.skip = 9;
+ai/OpexAI/builder_rail.nut,2019,8,inline,acc.skip = 8;
+ai/OpexAI/builder_rail.nut,2029,8,inline,acc.skip = 8;
+ai/OpexAI/builder_rail.nut,2120,5000,inline,local budgetCap = (initialBudget != null && initialBudget > 0) ? initialBudget : 5000;
+ai/OpexAI/builder_rail.nut,2121,20,inline,local retryBudget = (budgetCap * 20) / 100;
+ai/OpexAI/builder_rail.nut,2121,100,inline,local retryBudget = (budgetCap * 20) / 100;
+ai/OpexAI/builder_rail.nut,2122,200,inline,if (retryBudget < 200) retryBudget = 200;
+ai/OpexAI/builder_rail.nut,2122,200,inline,if (retryBudget < 200) retryBudget = 200;
+ai/OpexAI/builder_rail.nut,2123,3,inline,local deadlineTick = AIController.GetTick() + retryBudget / 3 + BUILD_TICK_MARGIN;
+ai/OpexAI/builder_rail.nut,2126,10,inline,local step10 = failIdx + 10;
+ai/OpexAI/builder_rail.nut,2130,5,inline,local step5 = failIdx + 5;
+ai/OpexAI/builder_rail.nut,2156,100,inline,"local pathfinder = OpexCreateRailPathfinder(sourcesPlans, goalsPlans, ignored, 100);"
+ai/OpexAI/builder_rail.nut,2209,20,inline,"function OpexV199RebuildForHomeward(tiles1, side = 1, budgetK = 20)"
+ai/OpexAI/builder_rail.nut,2214,1000,inline,local maxCost = budgetK * 1000;
+ai/OpexAI/builder_rail.nut,2270,4,inline,for (local cIdx = 0; cIdx < 4; cIdx++) {
+ai/OpexAI/builder_rail.nut,2313,3,inline,"local trainLen = (options != null && (""trainLength"" in options)) ? options.trainLength : 3;"
+ai/OpexAI/builder_rail.nut,2314,5000,inline,"local initialBudget = (options != null && (""initialBudget"" in options)) ? options.initialBudget : 5000;"
+ai/OpexAI/builder_rail.nut,2315,4,inline,"local signalN = max(4, trainLen + 1);"
+ai/OpexAI/builder_rail.nut,2409,3,inline,if (retriesCount < 3) {
+ai/OpexAI/builder_rail.nut,2497,100,inline,local sigCost = signalsBuiltCount * 100;
+ai/OpexAI/builder_rail.nut,2684,16,inline,local trainLengthLimit = platformLength * 16;
+ai/OpexAI/builder_rail.nut,2893,8,inline,"OpexPlacePathApproachSignal(tiles, 0, 1, 2, 8, acc, ""A"", used);"
+ai/OpexAI/builder_rail.nut,2894,8,inline,"OpexPlacePathApproachSignal(tiles, last, -1, 2, 8, acc, ""B"", used);"
+ai/OpexAI/builder_rail.nut,2906,8,inline,"OpexPlacePathApproachSignal(tiles, juncIndex, -1, 1, 8, acc, ""L"", used);"
+ai/OpexAI/builder_rail.nut,2907,8,inline,"OpexPlacePathApproachSignal(tiles, juncIndex, 1, 1, 8, acc, ""R"", used);"
+ai/OpexAI/builder_rail.nut,2916,10000,inline,"function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hardCap = 10000)"
+ai/OpexAI/builder_rail.nut,2982,3,inline,"if (tiles.len() < 3) { plan.reason = ""SHORT""; return plan; }"
+ai/OpexAI/builder_rail.nut,3044,3,inline,: AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN);
+ai/OpexAI/builder_rail.nut,3095,15,inline,local minX = (srcX < dstX ? srcX : dstX) - 15;
+ai/OpexAI/builder_rail.nut,3096,15,inline,local maxX = (srcX > dstX ? srcX : dstX) + 15;
+ai/OpexAI/builder_rail.nut,3097,15,inline,local minY = (srcY < dstY ? srcY : dstY) - 15;
+ai/OpexAI/builder_rail.nut,3098,15,inline,local maxY = (srcY > dstY ? srcY : dstY) + 15;
+ai/OpexAI/builder_rail.nut,3142,4,inline,local radius = 4 + (pop / 500);
+ai/OpexAI/builder_rail.nut,3142,500,inline,local radius = 4 + (pop / 500);
+ai/OpexAI/builder_rail.nut,3143,4,inline,if (radius < 4) radius = 4;
+ai/OpexAI/builder_rail.nut,3143,4,inline,if (radius < 4) radius = 4;
+ai/OpexAI/builder_rail.nut,3144,10,inline,if (radius > 10) radius = 10;
+ai/OpexAI/builder_rail.nut,3144,10,inline,if (radius > 10) radius = 10;
+ai/OpexAI/builder_rail.nut,3166,10000,inline,"function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap = 10000)"
+ai/OpexAI/builder_rail.nut,3172,3,inline,local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
+ai/OpexAI/builder_rail.nut,3397,3,inline,if (tiles != null && tiles.len() >= 3) {
+ai/OpexAI/builder_rail.nut,3527,3,inline,if (tiles.len() >= 3) {
+ai/OpexAI/builder_rail.nut,3559,3,inline,if (tiles.len() >= 3) {
+ai/OpexAI/builder_rail.nut,3717,10000,inline,"function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve, hardCap = 10000)"
+ai/OpexAI/builder_rail.nut,3773,3,inline,if (tiles1 == null || tiles1.len() < 3) return false;
+ai/OpexAI/builder_rail.nut,3871,3,inline,if (tiles2 != null && tiles2.len() >= 3) {
+ai/OpexAI/builder_rail.nut,3885,3,inline,if (tiles1 != null && tiles1.len() >= 3) {
+ai/OpexAI/builder_rail.nut,3940,3,inline,if (tiles != null && tiles.len() >= 3) {
+ai/OpexAI/builder_rail.nut,4066,3,inline,if (tiles.len() >= 3) {
+ai/OpexAI/builder_rail.nut,4110,4,inline,for (local k = 1; k <= 4 && k < tiles.len() - 1; k++) forbiddenDepot1[tiles[k]] <- true;
+ai/OpexAI/builder_rail.nut,4111,5,inline,for (local k = tiles.len() - 2; k >= tiles.len() - 5 && k >= 1; k--) forbiddenDepot1[tiles[k]] <- true;
+ai/OpexAI/builder_rail.nut,4183,4,inline,for (local k = 1; k <= 4 && k < tiles2.len() - 1; k++) forbiddenD[tiles2[k]] <- true;
+ai/OpexAI/builder_rail.nut,4184,5,inline,for (local k = tiles2.len() - 2; k >= tiles2.len() - 5 && k >= 1; k--) forbiddenD[tiles2[k]] <- true;
+ai/OpexAI/builder_rail.nut,4248,4,inline,result.doubleSkip = 4;
+ai/OpexAI/builder_rail.nut,4261,4,inline,result.doubleSkip = 4;
+ai/OpexAI/builder_rail.nut,4344,10000,inline,"function OpexPrepareUpgradeSearch(line, hardCap = 10000)"
+ai/OpexAI/builder_rail.nut,4415,3,inline,if (tiles2.len() < 3) {
+ai/OpexAI/builder_rail.nut,4509,10000,inline,"function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, hardCap = 10000)"
+ai/OpexAI/builder_rail.nut,4518,3,inline,local deadlineTick = AIController.GetTick() + hardCap / 3 + BUILD_TICK_MARGIN;
+ai/OpexAI/builder_rail.nut,4569,2000,inline,local limit = 2000;
+ai/OpexAI/builder_rail.nut,4625,3,inline,if (tiles.len() < 3) return null;
+ai/OpexAI/builder_rail.nut,4804,7,inline,if (tiles1.len() < 7 || tiles2.len() < 7) {
+ai/OpexAI/builder_rail.nut,4804,7,inline,if (tiles1.len() < 7 || tiles2.len() < 7) {
+ai/OpexAI/builder_rail.nut,4822,6,inline,for (local i2 = 1; i2 <= 6 && i2 < last2 - 2; i2++) {
+ai/OpexAI/builder_rail.nut,4823,6,inline,for (local i1 = 1; i1 <= 6 && i1 < last1 - 2; i1++) {
+ai/OpexAI/builder_rail.nut,4834,6,inline,for (local i2 = 1; i2 <= 6 && i2 < last2 - 2; i2++) {
+ai/OpexAI/builder_rail.nut,4836,6,inline,for (local i1 = 1; i1 <= 6 && i1 < last1 - 2; i1++) {
+ai/OpexAI/builder_rail.nut,4848,6,inline,for (local d1 = 1; d1 <= 6; d1++) {
+ai/OpexAI/builder_rail.nut,4851,6,inline,for (local d2 = 1; d2 <= 6; d2++) {
+ai/OpexAI/builder_rail.nut,4864,6,inline,for (local d1 = 1; d1 <= 6; d1++) {
+ai/OpexAI/builder_rail.nut,4867,6,inline,for (local d2 = 1; d2 <= 6; d2++) {
+ai/OpexAI/builder_rail.nut,4944,7,inline,for (local k = startIdx1; k < endIdx1; k += 7) {
+ai/OpexAI/builder_rail.nut,4953,7,inline,for (local k = endIdx2; k > startIdx2; k -= 7) {
+ai/OpexAI/builder_rail.nut,4999,100,inline,"OpexSign(anchor, ""RL|"" + (line.lineId % 100) + ""|1"");"
+ai/OpexAI/builder_rail.nut,5016,4,inline,if (spread < 4) spread = 12;
+ai/OpexAI/builder_rail.nut,5016,12,inline,if (spread < 4) spread = 12;
+ai/OpexAI/builder_rail.nut,5135,800,inline,"OpexBoostTownRating(townId, 800, 40);"
+ai/OpexAI/builder_rail.nut,5135,40,inline,"OpexBoostTownRating(townId, 800, 40);"
+ai/OpexAI/builder_road.nut,24,48,definition,ROAD_MAX_TRACE_TILES <- 48;
+ai/OpexAI/builder_road.nut,25,16,definition,ROAD_TOWN_SEARCH_RADIUS <- 16;
+ai/OpexAI/builder_road.nut,26,5,definition,ROAD_INDUSTRY_SEARCH_RADIUS <- 5;
+ai/OpexAI/builder_road.nut,27,64,definition,ROAD_MAX_SITE_PROBES <- 64;
+ai/OpexAI/builder_road.nut,28,4,definition,ROAD_MAX_SITES_PER_END <- 4;
+ai/OpexAI/builder_road.nut,29,48,definition,ROAD_MAX_TRACE_TRIALS <- 48;
+ai/OpexAI/builder_road.nut,30,1000,definition,ROAD_CAPITAL_MARGIN <- 1000;
+ai/OpexAI/builder_road.nut,31,3,definition,ROAD_DEPOT_MIN_STOP_DISTANCE <- 3;
+ai/OpexAI/builder_road.nut,32,12,definition,ROAD_PAX_VOIRIE_SAME_TOWN_MAX_DIST <- 12;
+ai/OpexAI/builder_road.nut,365,3,inline,if (variant == 3) {
+ai/OpexAI/builder_road.nut,376,4,inline,if (variant == 4) {
+ai/OpexAI/builder_road.nut,388,5,inline,if (variant == 5) {
+ai/OpexAI/builder_road.nut,520,3,inline,local ringPen = ring > 3 ? ring - 3 : 3 - ring;
+ai/OpexAI/builder_road.nut,520,3,inline,local ringPen = ring > 3 ? ring - 3 : 3 - ring;
+ai/OpexAI/builder_road.nut,520,3,inline,local ringPen = ring > 3 ? ring - 3 : 3 - ring;
+ai/OpexAI/builder_road.nut,521,4,inline,score = value * 2 - ringPen * 4;
+ai/OpexAI/builder_road.nut,585,96,inline,"local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, 96, siteA.front, siteB.front);"
+ai/OpexAI/builder_road.nut,723,6,inline,for (local shape = 2; shape < 6; shape++) {
+ai/OpexAI/builder_road.nut,724,3,inline,if (trials >= ROAD_MAX_TRACE_TRIALS * 3) break;
+ai/OpexAI/builder_water.nut,2,12,definition,WATER_TOWN_POOL <- 12;
+ai/OpexAI/builder_water.nut,3,45,definition,WATER_TOWN_MIN_DISTANCE <- 45;
+ai/OpexAI/builder_water.nut,4,720,definition,WATER_MAX_SITE_PROBES <- 720;
+ai/OpexAI/builder_water.nut,5,8,definition,WATER_MAX_WATER_TILES <- 8;
+ai/OpexAI/builder_water.nut,6,96,definition,WATER_MAX_DEPOT_PROBES <- 96;
+ai/OpexAI/builder_water.nut,7,24,definition,WATER_BFS_MARGIN <- 24;
+ai/OpexAI/builder_water.nut,8,12000,definition,WATER_BFS_MAX_NODES <- 12000;
+ai/OpexAI/builder_water.nut,9,50000,definition,WATER_CAPITAL_MARGIN <- 50000;
+ai/OpexAI/builder_water.nut,10,4,definition,WATER_PROJECT_POOL <- 4;
+ai/OpexAI/builder_water.nut,33,15,inline,"if (AIMap.DistanceManhattan(town.tile, line.originA) < 15) return true;"
+ai/OpexAI/builder_water.nut,34,15,inline,"if (AIMap.DistanceManhattan(town.tile, line.originB) < 15) return true;"
+ai/OpexAI/builder_water.nut,290,1000,inline,local oneWayDays = (navigableDistance * 1000) / (36 * effectiveSpeed);
+ai/OpexAI/builder_water.nut,290,36,inline,local oneWayDays = (navigableDistance * 1000) / (36 * effectiveSpeed);
+ai/OpexAI/builder_water.nut,296,30.0,inline,local tripsPerMonth = 30.0 / oneWayDays.tofloat();
+ai/OpexAI/builder_water.nut,299,100,inline,local offered = (monthlyPax * stationRating) / 100;
+ai/OpexAI/builder_water.nut,303,12,inline,local revenueAnnual = 12 * carried * income;
+ai/OpexAI/builder_water.nut,307,100,inline,local amortAnnual = ((infraCapital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS) + ship.price / 20;
+ai/OpexAI/builder_water.nut,307,20,inline,local amortAnnual = ((infraCapital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS) + ship.price / 20;
+ai/OpexAI/builder_water.nut,310,365000,inline,? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+ai/OpexAI/builder_water.nut,313,1000,inline,? (profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/builder_water.nut,395,10,inline,if (c56PairsExamined % 10 == 0) {
+ai/OpexAI/builder_water.nut,415,22,inline,local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
+ai/OpexAI/builder_water.nut,415,100,inline,local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
+ai/OpexAI/candidates.nut,25,20,definition,TOP_K <- 20;
+ai/OpexAI/candidates.nut,26,500,definition,MIN_RATIO <- 500;
+ai/OpexAI/candidates.nut,30,3,definition,const PAX_BAND_RAIL_ONLY = 3;
+ai/OpexAI/candidates.nut,31,4,definition,const PAX_BAND_ROUTE_ONLY = 4;
+ai/OpexAI/candidates.nut,71,20,inline,"ranked.append({ cargo = cargo, price = AICargo.GetCargoIncome(cargo, 20, 0) });"
+ai/OpexAI/candidates.nut,91,100,definition,const PAX_NEAR_MAX_DISTANCE = 100;
+ai/OpexAI/candidates.nut,92,200,definition,const PAX_NEAR_MIN_PROFIT = -200;
+ai/OpexAI/candidates.nut,108,23,definition,"KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];"
+ai/OpexAI/candidates.nut,108,33,definition,"KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];"
+ai/OpexAI/candidates.nut,108,48,definition,"KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];"
+ai/OpexAI/candidates.nut,108,63,definition,"KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];"
+ai/OpexAI/candidates.nut,108,81,definition,"KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];"
+ai/OpexAI/candidates.nut,108,105,definition,"KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];"
+ai/OpexAI/candidates.nut,108,150,definition,"KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];"
+ai/OpexAI/candidates.nut,109,371,definition,"KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];"
+ai/OpexAI/candidates.nut,109,673,definition,"KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];"
+ai/OpexAI/candidates.nut,109,2188,definition,"KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];"
+ai/OpexAI/candidates.nut,109,4066,definition,"KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];"
+ai/OpexAI/candidates.nut,109,7745,definition,"KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];"
+ai/OpexAI/candidates.nut,109,15308,definition,"KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];"
+ai/OpexAI/candidates.nut,109,53951,definition,"KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];"
+ai/OpexAI/candidates.nut,111,365,definition,"KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];"
+ai/OpexAI/candidates.nut,111,2342,definition,"KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];"
+ai/OpexAI/candidates.nut,111,2652,definition,"KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];"
+ai/OpexAI/candidates.nut,111,4123,definition,"KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];"
+ai/OpexAI/candidates.nut,111,4516,definition,"KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];"
+ai/OpexAI/candidates.nut,111,5977,definition,"KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];"
+ai/OpexAI/candidates.nut,111,7825,definition,"KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];"
+ai/OpexAI/candidates.nut,164,4.0,inline,return 4.0;
+ai/OpexAI/candidates.nut,173,74.0,inline,return 74.0;
+ai/OpexAI/candidates.nut,179,74.0,inline,local tpd = (ticksPerDay > 0) ? ticksPerDay : 74.0;
+ai/OpexAI/candidates.nut,180,4096.0,inline,return 4096.0 / (tpd * 1.6 * effectiveSpeed);
+ai/OpexAI/candidates.nut,180,1.6,inline,return 4096.0 / (tpd * 1.6 * effectiveSpeed);
+ai/OpexAI/candidates.nut,224,20,inline,"function OpexGetEpochRailProfile(catalog, cargoId, distance = 20)"
+ai/OpexAI/candidates.nut,248,150.0,inline,local taxiSpeed = 150.0;
+ai/OpexAI/candidates.nut,252,12.0,inline,local groundTiles = 12.0;
+ai/OpexAI/candidates.nut,258,74.0,inline,local tpd = (ticksPerDay > 0) ? ticksPerDay : 74.0;
+ai/OpexAI/candidates.nut,260,300.0,inline,local verticalDays = 300.0 / tpd;
+ai/OpexAI/candidates.nut,266,20,inline,if (cargo < 0 || distance < 1) return 20;
+ai/OpexAI/candidates.nut,268,20,inline,if (maxInc <= 0) return 20;
+ai/OpexAI/candidates.nut,269,30,inline,local limit = (maxInc * 30) / 100;
+ai/OpexAI/candidates.nut,269,100,inline,local limit = (maxInc * 30) / 100;
+ai/OpexAI/candidates.nut,272,250,inline,local hi = 250;
+ai/OpexAI/candidates.nut,296,100,inline,local cTile = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
+ai/OpexAI/candidates.nut,314,0.8,inline,local vBus = AIEngine.GetMaxSpeed(bestBus).tofloat() * 0.8;
+ai/OpexAI/candidates.nut,318,20,inline,local refD = 20;
+ai/OpexAI/candidates.nut,319,5.0,inline,local transitBus = ((refD.tofloat() * tauBus) * 2.0) / 5.0;
+ai/OpexAI/candidates.nut,320,5.0,inline,local transitRail = ((refD.tofloat() * tauRail) * 2.0) / 5.0;
+ai/OpexAI/candidates.nut,330,12.0,inline,local denom = ((12.0 * M * deltaPerTile * 100.0) / 40.0) - cTile;
+ai/OpexAI/candidates.nut,330,100.0,inline,local denom = ((12.0 * M * deltaPerTile * 100.0) / 40.0) - cTile;
+ai/OpexAI/candidates.nut,330,40.0,inline,local denom = ((12.0 * M * deltaPerTile * 100.0) / 40.0) - cTile;
+ai/OpexAI/candidates.nut,361,100,inline,"local horizon = OpexCargoTransitHorizon(paxCargo, 100);"
+ai/OpexAI/candidates.nut,362,2.5,inline,local calendarMax = (horizon.tofloat() * 2.5) - tFixe;
+ai/OpexAI/candidates.nut,382,20,inline,"local bestTrain = (pax >= 0) ? OpexGetEpochRailProfile(catalog, pax, 20) : null;"
+ai/OpexAI/candidates.nut,390,12,inline,local iterCap = (HARD_ITERATION_CAP * 12) / 10;
+ai/OpexAI/candidates.nut,390,10,inline,local iterCap = (HARD_ITERATION_CAP * 12) / 10;
+ai/OpexAI/candidates.nut,403,0.8,inline,local vBus = AIEngine.GetMaxSpeed(bestBus).tofloat() * 0.8;
+ai/OpexAI/candidates.nut,405,25,inline,"local horizon = OpexCargoTransitHorizon(pax, 25);"
+ai/OpexAI/candidates.nut,407,2.5,inline,if (tauBus > 0.0) busHorizon = ((horizon.tofloat() * 2.5) / tauBus).tointeger();
+ai/OpexAI/candidates.nut,469,12,inline,local railMax = OpexRailDistanceForIterations((HARD_ITERATION_CAP * 12) / 10);
+ai/OpexAI/candidates.nut,469,10,inline,local railMax = OpexRailDistanceForIterations((HARD_ITERATION_CAP * 12) / 10);
+ai/OpexAI/candidates.nut,474,74.0,inline,"ticksPerDay = 74.0, vRail = 0, vAirEff = 0.0, tFixeAir = 0.0, year = 0,"
+ai/OpexAI/candidates.nut,524,3,inline,local radius = coverage + 3;
+ai/OpexAI/candidates.nut,538,8,inline,if (wantProduction ? (value > 0) : (value >= 8)) return true;
+ai/OpexAI/candidates.nut,694,12,inline,if (V168_RAIL_MAX_DIST <= 0 && iterations > (HARD_ITERATION_CAP * 12) / 10) {
+ai/OpexAI/candidates.nut,694,10,inline,if (V168_RAIL_MAX_DIST <= 0 && iterations > (HARD_ITERATION_CAP * 12) / 10) {
+ai/OpexAI/candidates.nut,722,64,inline,local sitableKey = srcTile * 64 + cargo;
+ai/OpexAI/candidates.nut,776,1000,inline,local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
+ai/OpexAI/candidates.nut,780,200,inline,"local minRatio = (kind == ""freight"") ? 200 : MIN_RATIO;"
+ai/OpexAI/candidates.nut,789,100,inline,local turnoverBonus = 100;
+ai/OpexAI/candidates.nut,790,12,inline,if (economics.oneWayDays <= 12) turnoverBonus = 130;
+ai/OpexAI/candidates.nut,790,130,inline,if (economics.oneWayDays <= 12) turnoverBonus = 130;
+ai/OpexAI/candidates.nut,791,25,inline,else if (economics.oneWayDays <= 25) turnoverBonus = 115;
+ai/OpexAI/candidates.nut,791,115,inline,else if (economics.oneWayDays <= 25) turnoverBonus = 115;
+ai/OpexAI/candidates.nut,792,45,inline,else if (economics.oneWayDays <= 45) turnoverBonus = 100;
+ai/OpexAI/candidates.nut,792,100,inline,else if (economics.oneWayDays <= 45) turnoverBonus = 100;
+ai/OpexAI/candidates.nut,793,60,inline,else turnoverBonus = 60;
+ai/OpexAI/candidates.nut,798,100,inline,local freightBonus = 100;
+ai/OpexAI/candidates.nut,800,100,inline,local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
+ai/OpexAI/candidates.nut,800,100,inline,local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
+ai/OpexAI/candidates.nut,801,15,inline,local ratio = opcodeRatio + (adjustedRoi * 15);
+ai/OpexAI/candidates.nut,802,100,inline,local effectiveRoi = (economics.roi * freightBonus) / 100;
+ai/OpexAI/candidates.nut,1163,3,inline,if (bestDepth < 3) { bestDepth = 3; bestReason = cargoReason; }
+ai/OpexAI/candidates.nut,1163,3,inline,if (bestDepth < 3) { bestDepth = 3; bestReason = cargoReason; }
+ai/OpexAI/candidates.nut,1166,4,inline,"if (bestDepth < 4) { bestDepth = 4; bestReason = ""role_mismatch""; }"
+ai/OpexAI/candidates.nut,1166,4,inline,"if (bestDepth < 4) { bestDepth = 4; bestReason = ""role_mismatch""; }"
+ai/OpexAI/candidates.nut,1168,5,inline,"if (bestDepth < 5) { bestDepth = 5; bestReason = ""missing_line_id""; }"
+ai/OpexAI/candidates.nut,1168,5,inline,"if (bestDepth < 5) { bestDepth = 5; bestReason = ""missing_line_id""; }"
+ai/OpexAI/candidates.nut,1170,6,inline,"if (bestDepth < 6) { bestDepth = 6; bestReason = ""missing_platform""; }"
+ai/OpexAI/candidates.nut,1170,6,inline,"if (bestDepth < 6) { bestDepth = 6; bestReason = ""missing_platform""; }"
+ai/OpexAI/candidates.nut,1481,22,inline,if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+ai/OpexAI/candidates.nut,1481,100,inline,if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+ai/OpexAI/candidates.nut,1509,100,inline,local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+ai/OpexAI/candidates.nut,1651,22,definition,const TOWN_CATCHMENT_SHARE_PCT = 22;
+ai/OpexAI/candidates.nut,1667,22,inline,if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+ai/OpexAI/candidates.nut,1667,100,inline,if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+ai/OpexAI/candidates.nut,1741,100,inline,local monthly = ((prodA + prodB) * part) / 100;
+ai/OpexAI/candidates.nut,1746,100,inline,local mailMonthly = ((mailA + mailB) * part) / 100;
+ai/OpexAI/candidates.nut,2026,40,inline,if (dGoods > bounds.railMax || dGoods < 40) continue;
+ai/OpexAI/candidates.nut,2049,12,inline,if (V168_RAIL_MAX_DIST <= 0 && itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;
+ai/OpexAI/candidates.nut,2049,10,inline,if (V168_RAIL_MAX_DIST <= 0 && itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;
+ai/OpexAI/candidates.nut,2062,1000,inline,local chainRoi = (totalProfit * 1000) / totalCapital;
+ai/OpexAI/candidates.nut,2065,1000,inline,local chainOpcodeRatio = chainIterations > 0 ? (totalProfit * 1000) / chainIterations : 0;
+ai/OpexAI/candidates.nut,2092,15,inline,"ratio = chainOpcodeRatio + (chainRoi * 15),"
+ai/OpexAI/candidates.nut,2101,1000000000,inline,if (V88_CHAIN_FORCE) chainCandidate.ratio = 1000000000;
+ai/OpexAI/candidates.nut,2418,25,definition,"BAND_EDGES <- [25, 45, 70, 110, 200];"
+ai/OpexAI/candidates.nut,2418,45,definition,"BAND_EDGES <- [25, 45, 70, 110, 200];"
+ai/OpexAI/candidates.nut,2418,70,definition,"BAND_EDGES <- [25, 45, 70, 110, 200];"
+ai/OpexAI/candidates.nut,2418,110,definition,"BAND_EDGES <- [25, 45, 70, 110, 200];"
+ai/OpexAI/candidates.nut,2418,200,definition,"BAND_EDGES <- [25, 45, 70, 110, 200];"
+ai/OpexAI/candidates.nut,2424,4,inline,for (local i = 0; i < 4; i++) {
+ai/OpexAI/candidates.nut,2456,48,definition,ROAD_TOP_K <- 48;
+ai/OpexAI/candidates.nut,2465,1000,definition,const ROAD_MIN_PROFIT_ANNUAL = 1000;
+ai/OpexAI/candidates.nut,2473,8,definition,const ROAD_ACCEPTANCE_FULL_UNIT = 8;
+ai/OpexAI/candidates.nut,2484,20,definition,const ROAD_PLAN_ITERATIONS_BASE = 20;
+ai/OpexAI/candidates.nut,2524,100,inline,local freightBonus = 100;
+ai/OpexAI/candidates.nut,2526,100,inline,local effectiveRoi = (economics.roi * freightBonus) / 100;
+ai/OpexAI/candidates.nut,2560,1000,inline,"ratio = (economics.profitAnnual * 1000) / iterations,"
+ai/OpexAI/candidates.nut,2628,25,inline,"local houses = (""houses"" in town && town.houses > 0) ? town.houses : (town.pop / 25);"
+ai/OpexAI/candidates.nut,2630,100,inline,local pct = (ROAD_STOP_CATCHMENT_HOUSES * 100) / houses;
+ai/OpexAI/candidates.nut,2633,100,inline,local captured = (marginalProd * pct) / 100;
+ai/OpexAI/candidates.nut,2651,15,inline,if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 15) / 100;
+ai/OpexAI/candidates.nut,2651,100,inline,if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 15) / 100;
+ai/OpexAI/candidates.nut,2663,4,inline,local maxLinesA = 4 + (towns[a].pop / 300);
+ai/OpexAI/candidates.nut,2663,300,inline,local maxLinesA = 4 + (towns[a].pop / 300);
+ai/OpexAI/candidates.nut,2674,4,inline,local maxLinesB = 4 + (towns[b].pop / 300);
+ai/OpexAI/candidates.nut,2674,300,inline,local maxLinesB = 4 + (towns[b].pop / 300);
+ai/OpexAI/candidates.nut,2702,40,inline,local marginalA = produced[a] - (roadLinesPerTown[a] * 40);
+ai/OpexAI/candidates.nut,2703,25,inline,if (marginalA < 25) marginalA = 25;
+ai/OpexAI/candidates.nut,2703,25,inline,if (marginalA < 25) marginalA = 25;
+ai/OpexAI/candidates.nut,2704,40,inline,local marginalB = produced[b] - (roadLinesPerTown[b] * 40);
+ai/OpexAI/candidates.nut,2705,25,inline,if (marginalB < 25) marginalB = 25;
+ai/OpexAI/candidates.nut,2705,25,inline,if (marginalB < 25) marginalB = 25;
+ai/OpexAI/candidates.nut,3026,700,inline,"function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)"
+ai/OpexAI/candidates.nut,3026,35,inline,"function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)"
+ai/OpexAI/candidates.nut,3054,7,inline,local radius = 7;
+ai/OpexAI/candidates.nut,3112,70,inline,local setupDays = 70; // 30j cycle + 30j chargement/depot + 10j marge
+ai/OpexAI/candidates.nut,3114,75,inline,return 75;
+ai/OpexAI/candidates.nut,3130,1.5,inline,local multiplier = (rawMult == 0) ? 1.5 : (rawMult + 1.0);
+ai/OpexAI/candidates.nut,3145,30,inline,if (daysLeft <= 30) continue;
+ai/OpexAI/candidates.nut,3190,150,inline,if (pop < 150) continue;
+ai/OpexAI/candidates.nut,3193,15,inline,monthlyProd = isPax ? (pop * 15) / 100 : 20;
+ai/OpexAI/candidates.nut,3193,100,inline,monthlyProd = isPax ? (pop * 15) / 100 : 20;
+ai/OpexAI/candidates.nut,3193,20,inline,monthlyProd = isPax ? (pop * 15) / 100 : 20;
+ai/OpexAI/candidates.nut,3195,20,inline,if (monthlyProd <= 0) monthlyProd = 20;
+ai/OpexAI/candidates.nut,3234,4,inline,"if (OpexTownRoadLineCount(lines, srcTile) >= 4 || OpexTownRoadLineCount(lines, dstTile) >= 4) continue;"
+ai/OpexAI/candidates.nut,3234,4,inline,"if (OpexTownRoadLineCount(lines, srcTile) >= 4 || OpexTownRoadLineCount(lines, dstTile) >= 4) continue;"
+ai/OpexAI/candidates.nut,3274,100,inline,local freightBonus = 100;
+ai/OpexAI/candidates.nut,3275,1000,inline,local effectiveRoi = (subProfit > 0 && totalCapital > 0) ? (subProfit * 1000) / totalCapital : 0;
+ai/OpexAI/candidates.nut,3312,1000,inline,"ratio = iterations > 0 ? (subProfit * 1000) / iterations : 0,"
+ai/OpexAI/capital.nut,18,4,inline,local quarterlyBuffer = totalRunning / 4;
+ai/OpexAI/capital.nut,54,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""LF|"" + (year % 100) + ""|"" + cash + ""|"" + loan);"
+ai/OpexAI/capital_quote_learning.nut,131,2147483647,inline,"n = 0, quoted = 0, actual = 0, minDistance = 2147483647, maxDistance = -1,"
+ai/OpexAI/catalog.nut,68,746,inline,local powerForce = (loco.power * 746 * 18) / (speed * 5);
+ai/OpexAI/catalog.nut,68,18,inline,local powerForce = (loco.power * 746 * 18) / (speed * 5);
+ai/OpexAI/catalog.nut,68,5,inline,local powerForce = (loco.power * 746 * 18) / (speed * 5);
+ai/OpexAI/catalog.nut,69,1000,inline,local tractiveForce = loco.tractiveEffort * 1000;
+ai/OpexAI/catalog.nut,75,2048,inline,local airDrag = 2048 / loco.speed;
+ai/OpexAI/catalog.nut,77,192,inline,if (airDrag > 192) airDrag = 192;
+ai/OpexAI/catalog.nut,77,192,inline,if (airDrag > 192) airDrag = 192;
+ai/OpexAI/catalog.nut,78,15,inline,local rolling = 15 * (512 + speed) / 512;
+ai/OpexAI/catalog.nut,78,512,inline,local rolling = 15 * (512 + speed) / 512;
+ai/OpexAI/catalog.nut,78,512,inline,local rolling = 15 * (512 + speed) / 512;
+ai/OpexAI/catalog.nut,79,14,inline,local air = 14 * airDrag * (1 + (3 * parts) / 20.0) * speed * speed / 1000.0;
+ai/OpexAI/catalog.nut,79,3,inline,local air = 14 * airDrag * (1 + (3 * parts) / 20.0) * speed * speed / 1000.0;
+ai/OpexAI/catalog.nut,79,20.0,inline,local air = 14 * airDrag * (1 + (3 * parts) / 20.0) * speed * speed / 1000.0;
+ai/OpexAI/catalog.nut,79,1000.0,inline,local air = 14 * airDrag * (1 + (3 * parts) / 20.0) * speed * speed / 1000.0;
+ai/OpexAI/catalog.nut,80,10,inline,return totalWeight * (10 + rolling) + air;
+ai/OpexAI/catalog.nut,123,4,inline,local acceleration = (force - resistance) / (totalWeight * 4);
+ai/OpexAI/catalog.nut,198,148.0,inline,local speedPerDay = acceleration * 148.0 / 256.0;
+ai/OpexAI/catalog.nut,198,256.0,inline,local speedPerDay = acceleration * 148.0 / 256.0;
+ai/OpexAI/catalog.nut,200,0.036,inline,local startDistance = 0.036 * (cruise / 2.0) * startDays;
+ai/OpexAI/catalog.nut,204,0.036,inline,travelDays = 2 * startDays + (distance - 2 * startDistance) / (0.036 * cruise);
+ai/OpexAI/catalog.nut,206,0.036,inline,local peak = sqrt(distance * speedPerDay / 0.036);
+ai/OpexAI/catalog.nut,213,0.036,inline,local result = distance / (0.036 * travelDays);
+ai/OpexAI/catalog.nut,383,2048,inline,local airDrag = 2048 / loco.speed;
+ai/OpexAI/catalog.nut,385,192,inline,if (airDrag > 192) airDrag = 192;
+ai/OpexAI/catalog.nut,385,192,inline,if (airDrag > 192) airDrag = 192;
+ai/OpexAI/catalog.nut,386,14,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,386,3,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,386,20.0,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,386,1000.0,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,391,746,inline,local powerForce = (loco.power * 746 * 18) / (middle * 5);
+ai/OpexAI/catalog.nut,391,18,inline,local powerForce = (loco.power * 746 * 18) / (middle * 5);
+ai/OpexAI/catalog.nut,391,5,inline,local powerForce = (loco.power * 746 * 18) / (middle * 5);
+ai/OpexAI/catalog.nut,392,1000,inline,local tractiveForce = loco.tractiveEffort * 1000;
+ai/OpexAI/catalog.nut,394,15,inline,local rolling = 15 * (512 + middle) / 512;
+ai/OpexAI/catalog.nut,394,512,inline,local rolling = 15 * (512 + middle) / 512;
+ai/OpexAI/catalog.nut,394,512,inline,local rolling = 15 * (512 + middle) / 512;
+ai/OpexAI/catalog.nut,395,10,inline,local resistance = totalWeight * (10 + rolling) + airFactor * middle * middle;
+ai/OpexAI/catalog.nut,404,746,inline,local powerForce = (loco.power * 746 * 18) / (halfSpeed * 5);
+ai/OpexAI/catalog.nut,404,18,inline,local powerForce = (loco.power * 746 * 18) / (halfSpeed * 5);
+ai/OpexAI/catalog.nut,404,5,inline,local powerForce = (loco.power * 746 * 18) / (halfSpeed * 5);
+ai/OpexAI/catalog.nut,405,1000,inline,local tractiveForce = loco.tractiveEffort * 1000;
+ai/OpexAI/catalog.nut,407,15,inline,local rolling = 15 * (512 + halfSpeed) / 512;
+ai/OpexAI/catalog.nut,407,512,inline,local rolling = 15 * (512 + halfSpeed) / 512;
+ai/OpexAI/catalog.nut,407,512,inline,local rolling = 15 * (512 + halfSpeed) / 512;
+ai/OpexAI/catalog.nut,408,10,inline,local resistance = totalWeight * (10 + rolling) + airFactor * halfSpeed * halfSpeed;
+ai/OpexAI/catalog.nut,409,4,inline,local acceleration = force > resistance ? (force - resistance) / (totalWeight * 4) : 0;
+ai/OpexAI/catalog.nut,494,365,inline,"runningCost = AIEngine.GetRunningCost(e), ageYears = AIEngine.GetMaxAge(e) / 365,"
+ai/OpexAI/catalog.nut,522,365,inline,"ageYears = AIEngine.GetMaxAge(e) / 365,"
+ai/OpexAI/catalog.nut,578,2048,inline,local airDrag = 2048 / loco.speed;
+ai/OpexAI/catalog.nut,580,192,inline,if (airDrag > 192) airDrag = 192;
+ai/OpexAI/catalog.nut,580,192,inline,if (airDrag > 192) airDrag = 192;
+ai/OpexAI/catalog.nut,581,14,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,581,3,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,581,20.0,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,581,1000.0,inline,local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+ai/OpexAI/catalog.nut,586,746,inline,local powerForce = (loco.power * 746 * 18) / (middle * 5);
+ai/OpexAI/catalog.nut,586,18,inline,local powerForce = (loco.power * 746 * 18) / (middle * 5);
+ai/OpexAI/catalog.nut,586,5,inline,local powerForce = (loco.power * 746 * 18) / (middle * 5);
+ai/OpexAI/catalog.nut,587,1000,inline,local tractiveForce = loco.tractiveEffort * 1000;
+ai/OpexAI/catalog.nut,589,15,inline,local rolling = 15 * (512 + middle) / 512;
+ai/OpexAI/catalog.nut,589,512,inline,local rolling = 15 * (512 + middle) / 512;
+ai/OpexAI/catalog.nut,589,512,inline,local rolling = 15 * (512 + middle) / 512;
+ai/OpexAI/catalog.nut,590,10,inline,local resistance = totalWeight * (10 + rolling) + airFactor * middle * middle;
+ai/OpexAI/catalog.nut,599,746,inline,local powerForce = (loco.power * 746 * 18) / (halfSpeed * 5);
+ai/OpexAI/catalog.nut,599,18,inline,local powerForce = (loco.power * 746 * 18) / (halfSpeed * 5);
+ai/OpexAI/catalog.nut,599,5,inline,local powerForce = (loco.power * 746 * 18) / (halfSpeed * 5);
+ai/OpexAI/catalog.nut,600,1000,inline,local tractiveForce = loco.tractiveEffort * 1000;
+ai/OpexAI/catalog.nut,602,15,inline,local rolling = 15 * (512 + halfSpeed) / 512;
+ai/OpexAI/catalog.nut,602,512,inline,local rolling = 15 * (512 + halfSpeed) / 512;
+ai/OpexAI/catalog.nut,602,512,inline,local rolling = 15 * (512 + halfSpeed) / 512;
+ai/OpexAI/catalog.nut,603,10,inline,local resistance = totalWeight * (10 + rolling) + airFactor * halfSpeed * halfSpeed;
+ai/OpexAI/catalog.nut,604,4,inline,local acceleration = force > resistance ? (force - resistance) / (totalWeight * 4) : 0;
+ai/OpexAI/catalog.nut,686,365,inline,"ageYears = AIEngine.GetMaxAge(e) / 365, mailCapacity = -1,"
+ai/OpexAI/catalog.nut,737,365,inline,"ageYears = AIEngine.GetMaxAge(e) / 365, mailCapacity = -1,"
+ai/OpexAI/catalog.nut,852,365,inline,"ageYears = AIEngine.GetMaxAge(e) / 365,"
+ai/OpexAI/catalog.nut,920,4,inline,"local acceptance = AITile.GetCargoAcceptance(tile, cargo, 2, 2, this.railCoverage > 0 ? this.railCoverage : 4);"
+ai/OpexAI/catalog.nut,921,8,inline,"if (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS))) {"
+ai/OpexAI/catalog.nut,921,300,inline,"if (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS))) {"
+ai/OpexAI/catalog.nut,940,20,inline,if (previous < 0 || abs(pop - previous) >= 20
+ai/OpexAI/catalog.nut,941,100,inline,&& abs(pop - previous) * 100 >= previous * 5) {
+ai/OpexAI/catalog.nut,941,5,inline,&& abs(pop - previous) * 100 >= previous * 5) {
+ai/OpexAI/catalog.nut,957,8,inline,for (local i = 0; i < 8 && i < count; i++) {
+ai/OpexAI/catalog.nut,963,20,inline,if (abs(population - oldPopulation) >= 20
+ai/OpexAI/catalog.nut,964,100,inline,&& abs(population - oldPopulation) * 100 >= oldPopulation * 5) {
+ai/OpexAI/catalog.nut,964,5,inline,&& abs(population - oldPopulation) * 100 >= oldPopulation * 5) {
+ai/OpexAI/catalog.nut,982,10,inline,if ((abs(pax - old.pax) >= 10 && abs(pax - old.pax) * 100 >= old.pax * 20)
+ai/OpexAI/catalog.nut,982,100,inline,if ((abs(pax - old.pax) >= 10 && abs(pax - old.pax) * 100 >= old.pax * 20)
+ai/OpexAI/catalog.nut,982,20,inline,if ((abs(pax - old.pax) >= 10 && abs(pax - old.pax) * 100 >= old.pax * 20)
+ai/OpexAI/catalog.nut,983,10,inline,|| (abs(mail - old.mail) >= 10 && abs(mail - old.mail) * 100 >= old.mail * 20)) {
+ai/OpexAI/catalog.nut,983,100,inline,|| (abs(mail - old.mail) >= 10 && abs(mail - old.mail) * 100 >= old.mail * 20)) {
+ai/OpexAI/catalog.nut,983,20,inline,|| (abs(mail - old.mail) >= 10 && abs(mail - old.mail) * 100 >= old.mail * 20)) {
+ai/OpexAI/catalog.nut,991,8,definition,C121_CATALOG_TOWN_CURSOR = (C121_CATALOG_TOWN_CURSOR + 8) % count;
+ai/OpexAI/catalog.nut,1082,16,inline,if (dynamic < 16) dynamic = 16;
+ai/OpexAI/catalog.nut,1082,16,inline,if (dynamic < 16) dynamic = 16;
+ai/OpexAI/catalog.nut,1083,128,inline,if (dynamic > 128) dynamic = 128;
+ai/OpexAI/catalog.nut,1083,128,inline,if (dynamic > 128) dynamic = 128;
+ai/OpexAI/economy.nut,24,50,definition,const STATION_RATING_PCT = 50;
+ai/OpexAI/economy.nut,29,100,definition,RAIL_TERRAIN_FACTOR <- 100;
+ai/OpexAI/economy.nut,37,7,definition,const TARGET_HEADWAY_DAYS = 7;
+ai/OpexAI/economy.nut,46,30,definition,const INFRA_LIFE_YEARS = 30;
+ai/OpexAI/economy.nut,87,30.0,inline,return 30.0 / legDays;
+ai/OpexAI/economy.nut,109,7.5,inline,if (headwayDays < 7.5) return 130;
+ai/OpexAI/economy.nut,109,130,inline,if (headwayDays < 7.5) return 130;
+ai/OpexAI/economy.nut,110,15.0,inline,if (headwayDays < 15.0) return 95;
+ai/OpexAI/economy.nut,110,95,inline,if (headwayDays < 15.0) return 95;
+ai/OpexAI/economy.nut,111,30.0,inline,if (headwayDays < 30.0) return 50;
+ai/OpexAI/economy.nut,111,50,inline,if (headwayDays < 30.0) return 50;
+ai/OpexAI/economy.nut,112,52.5,inline,if (headwayDays < 52.5) return 25;
+ai/OpexAI/economy.nut,112,25,inline,if (headwayDays < 52.5) return 25;
+ai/OpexAI/economy.nut,115,6.8,inline,if (headwayDays < 6.8) return 130;
+ai/OpexAI/economy.nut,115,130,inline,if (headwayDays < 6.8) return 130;
+ai/OpexAI/economy.nut,116,13.5,inline,if (headwayDays < 13.5) return 95;
+ai/OpexAI/economy.nut,116,95,inline,if (headwayDays < 13.5) return 95;
+ai/OpexAI/economy.nut,117,27.0,inline,if (headwayDays < 27.0) return 50;
+ai/OpexAI/economy.nut,117,50,inline,if (headwayDays < 27.0) return 50;
+ai/OpexAI/economy.nut,118,47.0,inline,if (headwayDays < 47.0) return 25;
+ai/OpexAI/economy.nut,118,25,inline,if (headwayDays < 47.0) return 25;
+ai/OpexAI/economy.nut,144,255.0,inline,local otherPoints = STATION_RATING_PCT * 255.0 / 100.0 - 95.0;
+ai/OpexAI/economy.nut,144,100.0,inline,local otherPoints = STATION_RATING_PCT * 255.0 / 100.0 - 95.0;
+ai/OpexAI/economy.nut,144,95.0,inline,local otherPoints = STATION_RATING_PCT * 255.0 / 100.0 - 95.0;
+ai/OpexAI/economy.nut,145,100.0,inline,local rating = 100.0 * (otherPoints + OpexPickupRatingPoints(headwayDays)) / 255.0;
+ai/OpexAI/economy.nut,145,255.0,inline,local rating = 100.0 * (otherPoints + OpexPickupRatingPoints(headwayDays)) / 255.0;
+ai/OpexAI/economy.nut,147,100,inline,if (rating > 100) return 100;
+ai/OpexAI/economy.nut,147,100,inline,if (rating > 100) return 100;
+ai/OpexAI/economy.nut,216,0.036,inline,local referenceOneWayDays = travelDist.tofloat() / (0.036 * referenceSpeed);
+ai/OpexAI/economy.nut,226,100.0,inline,local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
+ai/OpexAI/economy.nut,231,100,inline,calibrationOffered = calibrationOffered * (100 + V180_RAIL_WAGON_BOOST_PCT) / 100.0;
+ai/OpexAI/economy.nut,231,100.0,inline,calibrationOffered = calibrationOffered * (100 + V180_RAIL_WAGON_BOOST_PCT) / 100.0;
+ai/OpexAI/economy.nut,248,0.036,inline,local oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
+ai/OpexAI/economy.nut,272,0.036,inline,oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
+ai/OpexAI/economy.nut,291,100.0,inline,"wagons2 = OpexCeilDiv((secondary.monthly * STATION_RATING_PCT) / 100.0, wagon2.capacity * tripsPerMonth);"
+ai/OpexAI/economy.nut,304,0.036,inline,oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
+ai/OpexAI/economy.nut,328,100,inline,local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
+ai/OpexAI/economy.nut,332,4,inline,"local signalCost = (""costRailSignal"" in catalog) ? catalog.costRailSignal : (catalog.costTrackPerTile / 4);"
+ai/OpexAI/economy.nut,333,7,inline,local numSignals = (2 * travelDist / 7) + 6;
+ai/OpexAI/economy.nut,333,6,inline,local numSignals = (2 * travelDist / 7) + 6;
+ai/OpexAI/economy.nut,334,3,inline,infraCost = 2 * travelDist * effectiveTrackCost + 3 * platformLength * catalog.costStation
+ai/OpexAI/economy.nut,335,12,inline,+ 12 * effectiveTrackCost + numSignals * signalCost
+ai/OpexAI/economy.nut,338,4,inline,infraCost = 2 * travelDist * effectiveTrackCost + 4 * platformLength * catalog.costStation
+ai/OpexAI/economy.nut,341,20,inline,local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
+ai/OpexAI/economy.nut,365,30.0,inline,local loadDays = monthlyUnits > 0 ? (perTrain * 30.0) / monthlyUnits : 0;
+ai/OpexAI/economy.nut,368,30.0,inline,local loadDays2 = (perTrain2 * 30.0) / secondary.monthly;
+ai/OpexAI/economy.nut,376,100.0,inline,local offered = monthlyUnits * stationRating / 100.0;
+ai/OpexAI/economy.nut,379,12,inline,"local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();"
+ai/OpexAI/economy.nut,381,100,inline,"if (V185_RAIL_SHORT_FREIGHT_PCT > 0 && kind == ""freight"" && distance < 100)"
+ai/OpexAI/economy.nut,382,100,inline,revenueAnnual = (revenueAnnual * V185_RAIL_SHORT_FREIGHT_PCT) / 100;
+ai/OpexAI/economy.nut,387,100.0,inline,local offered2 = secondary.monthly * stationRating / 100.0;
+ai/OpexAI/economy.nut,390,12,inline,"revenue2 = (12 * carried2 * AICargo.GetCargoIncome(secondary.cargo, distance, incomeDays)).tointeger();"
+ai/OpexAI/economy.nut,394,100,inline,local amortAnnual = vehicleCost / locoLife + ((infraCost * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
+ai/OpexAI/economy.nut,399,365000,inline,? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+ai/OpexAI/economy.nut,401,1000,inline,local roi = (profitAnnual > 0 && totalCapital > 0) ? (profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/economy.nut,478,100,inline,"if (kind == ""pax"" && (V212_RAIL_PAX_REVENUE_PCT != 100 || V212_RAIL_PAX_CAPITAL_PCT != 100)) {"
+ai/OpexAI/economy.nut,478,100,inline,"if (kind == ""pax"" && (V212_RAIL_PAX_REVENUE_PCT != 100 || V212_RAIL_PAX_CAPITAL_PCT != 100)) {"
+ai/OpexAI/economy.nut,481,100,inline,result.revenueAnnual = (result.revenueAnnual * V212_RAIL_PAX_REVENUE_PCT) / 100;
+ai/OpexAI/economy.nut,483,100,inline,result.capital = (result.capital * V212_RAIL_PAX_CAPITAL_PCT) / 100;
+ai/OpexAI/economy.nut,486,1000,inline,? (result.profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/economy.nut,510,0.036,inline,local oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
+ai/OpexAI/economy.nut,517,12,inline,local capacityRevenueAnnual = (12 * monthlyCapacity * incomePerUnit).tointeger();
+ai/OpexAI/economy.nut,518,20,inline,local wagonLife = wagon.ageYears > 0 ? wagon.ageYears : 20;
+ai/OpexAI/economy.nut,546,30.0,inline,local loadDays = (perTrain * 30.0) / line.monthly;
+ai/OpexAI/economy.nut,552,100.0,inline,local offered = line.monthly * stationRating / 100.0;
+ai/OpexAI/economy.nut,556,12,inline,"return (12 * carried * AICargo.GetCargoIncome(line.cargo, line.distance, incomeDays)).tointeger();"
+ai/OpexAI/economy.nut,580,20,inline,"local locoLife = ((""ageYears"" in line.loco) && line.loco.ageYears > 0) ? line.loco.ageYears : 20;"
+ai/OpexAI/economy.nut,583,100,inline,if (infraCapital > 0) infraAmort = (infraCapital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS;
+ai/OpexAI/economy.nut,689,100,inline,+ ((infrastructureDelta * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
+ai/OpexAI/economy.nut,694,1000,inline,? (candidate.profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/economy.nut,747,60,definition,const ROAD_SPEED_EFFICIENCY_PCT = 60;
+ai/OpexAI/economy.nut,748,8,definition,const MAX_ROAD_VEHICLES = 8;
+ai/OpexAI/economy.nut,750,3,definition,const ROAD_PAX_CATCHMENT_RADIUS = 3;
+ai/OpexAI/economy.nut,753,6,definition,const ROAD_BUS_STOP_MIN_DISTANCE = 6;
+ai/OpexAI/economy.nut,817,100,inline,local effectiveSpeed = (engine.speed * ROAD_SPEED_EFFICIENCY_PCT) / 100;
+ai/OpexAI/economy.nut,821,1000,inline,local transitDays = (travelDist * 1000) / (36 * effectiveSpeed);
+ai/OpexAI/economy.nut,821,36,inline,local transitDays = (travelDist * 1000) / (36 * effectiveSpeed);
+ai/OpexAI/economy.nut,832,100,inline,local offered = (monthlyUnits * STATION_RATING_PCT) / 100;
+ai/OpexAI/economy.nut,857,30.0,inline,local waitingOneEnd = (monthlyUnits.tofloat() / 2.0) * headwayDays / 30.0;
+ai/OpexAI/economy.nut,859,30.0,inline,local visitsOneEnd = vehicles.tofloat() * 30.0 / roundTripDays;
+ai/OpexAI/economy.nut,870,12,inline,"local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();"
+ai/OpexAI/economy.nut,882,12,inline,local life = engine.ageYears > 0 ? engine.ageYears : 12;
+ai/OpexAI/economy.nut,883,100,inline,local amortAnnual = vehicleCost / life + ((infraCost * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
+ai/OpexAI/economy.nut,888,365000,inline,? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+ai/OpexAI/economy.nut,890,1000,inline,local roi = (profitAnnual > 0 && totalCapital > 0) ? (profitAnnual * 1000) / totalCapital : 0;
+ai/OpexAI/economy.nut,952,999999999,inline,local selectedProfit = selectedEconomics != null ? selectedEconomics.profitAnnual : -999999999;
+ai/OpexAI/economy.nut,959,999999999,inline,"+ "" best_profit="" + (bestProfit != null ? bestProfit.profitAnnual : -999999999)"
+ai/OpexAI/economy.nut,963,999999999,inline,"+ "" best_roi_profit="" + (bestRoi != null ? bestRoi.profitAnnual : -999999999)"
+ai/OpexAI/economy.nut,1004,999999999,inline,local selectedProfit = selectedEconomics != null ? selectedEconomics.profitAnnual : -999999999;
+ai/OpexAI/economy.nut,1013,999999999,inline,"+ "" best_profit="" + (bestProfit != null ? bestProfit.profitAnnual : -999999999)"
+ai/OpexAI/economy.nut,1016,999999999,inline,"+ "" best_native_profit="" + (bestNativeProfit != null ? bestNativeProfit.profitAnnual : -999999999)"
+ai/OpexAI/event_handlers.nut,23,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""XC|"" + (year % 100)"
+ai/OpexAI/event_handlers.nut,78,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""XC|"" + (year % 100)"
+ai/OpexAI/event_handlers.nut,208,365,inline,if (age >= 365) {
+ai/OpexAI/event_handlers.nut,572,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""IO|"" + (year % 100) + ""|"" + indId + ""|"" + indType);"
+ai/OpexAI/event_handlers.nut,598,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""TF|"" + (year % 100) + ""|"" + townId + ""|"" + pop);"
+ai/OpexAI/events.nut,288,10,inline,"+ (month < 10 ? ""0"" + month : """" + month) + ""-"""
+ai/OpexAI/events.nut,289,10,inline,"+ (day < 10 ? ""0"" + day : """" + day);"
+ai/OpexAI/events.nut,306,12,definition,EVENT_BACKLOG_MONTH = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+ai/OpexAI/events.nut,321,12,inline,local ym = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+ai/OpexAI/feeder_bus.nut,40,4,inline,"{ st = AIStation.STATION_AIRPORT, rad = 4 },"
+ai/OpexAI/feeder_bus.nut,80,600,inline,"function OpexTownConnectedRoads(startTile, maxTiles = 600)"
+ai/OpexAI/feeder_bus.nut,119,4,inline,if (distAir <= 4) continue;
+ai/OpexAI/feeder_bus.nut,121,999,inline,"local distCenter = (townCenter != null) ? AIMap.DistanceManhattan(t, townCenter) : 999;"
+ai/OpexAI/feeder_bus.nut,122,15,inline,if (AITile.GetClosestTown(t) != townId && distCenter > 15) continue;
+ai/OpexAI/feeder_bus.nut,165,3,inline,"if (AIMap.DistanceManhattan(t, airportTile) > 3) continue;"
+ai/OpexAI/feeder_bus.nut,181,4,inline,local minX = ax - 4; if (minX < 1) minX = 1;
+ai/OpexAI/feeder_bus.nut,182,4,inline,local maxX = ax + w + 4; if (maxX >= mapX - 1) maxX = mapX - 2;
+ai/OpexAI/feeder_bus.nut,183,4,inline,local minY = ay - 4; if (minY < 1) minY = 1;
+ai/OpexAI/feeder_bus.nut,184,4,inline,local maxY = ay + h + 4; if (maxY >= mapY - 1) maxY = mapY - 2;
+ai/OpexAI/feeder_bus.nut,329,12,inline,if (bestSite == null || bestUncovered < 12) return null;
+ai/OpexAI/feeder_bus.nut,392,5,inline,"if (AIMap.DistanceManhattan(rTile, cTile) > 5) continue;"
+ai/OpexAI/feeder_bus.nut,420,600,inline,"townRoads = OpexTownConnectedRoads(siteTown.tile, 600);"
+ai/OpexAI/feeder_bus.nut,441,500,inline,while (qi < q.len() && qi < 500) {
+ai/OpexAI/feeder_bus.nut,516,1972,inline,if (currentYear <= 1972) return [];
+ai/OpexAI/feeder_bus.nut,571,3,inline,"uncoveredPax = AITile.GetCargoProduction(joinedStop.tile, catalog.paxCargo, 1, 1, 3)"
+ai/OpexAI/feeder_bus.nut,586,600,inline,"local townRoads = OpexTownConnectedRoads(siteTown.tile, 600);"
+ai/OpexAI/feeder_bus.nut,600,3,inline,"if (AIMap.DistanceManhattan(siteTown.tile, siteCand.tile) < 3) continue;"
+ai/OpexAI/feeder_bus.nut,616,1000,inline,local busCount = (pop >= 1000) ? 2 : 1;
+ai/OpexAI/feeder_bus.nut,617,3000,inline,if (pop >= 3000) busCount = 3;
+ai/OpexAI/feeder_bus.nut,617,3,inline,if (pop >= 3000) busCount = 3;
+ai/OpexAI/feeder_bus.nut,620,40,inline,"local busSpeed = (""speed"" in busEngine && busEngine.speed > 0) ? busEngine.speed : 40;"
+ai/OpexAI/feeder_bus.nut,621,0.036,inline,local oneWayDays = (bestPlan.routeDistance.tofloat() / (0.036 * busSpeed)).tointeger();
+ai/OpexAI/feeder_bus.nut,623,4,inline,local roundTripDays = 2 * oneWayDays + 4;
+ai/OpexAI/feeder_bus.nut,624,365,inline,local tripsPerYear = (365 / roundTripDays).tointeger();
+ai/OpexAI/feeder_bus.nut,625,30,inline,"local busCap = (""capacity"" in busEngine && busEngine.capacity > 0) ? busEngine.capacity : 30;"
+ai/OpexAI/feeder_bus.nut,629,200,inline,"local airFare = AICargo.GetCargoIncome(catalog.paxCargo, 200, 20);"
+ai/OpexAI/feeder_bus.nut,629,20,inline,"local airFare = AICargo.GetCargoIncome(catalog.paxCargo, 200, 20);"
+ai/OpexAI/feeder_bus.nut,630,45,inline,if (airFare <= 0) airFare = 45;
+ai/OpexAI/feeder_bus.nut,636,1000,inline,"local busRunCost = (""runningCost"" in busEngine) ? busEngine.runningCost : 1000;"
+ai/OpexAI/feeder_bus.nut,642,15,inline,if (stopPaxProd <= 0) stopPaxProd = 15;
+ai/OpexAI/feeder_bus.nut,643,8,inline,annualPax = stopPaxProd * 8 * 12;
+ai/OpexAI/feeder_bus.nut,643,12,inline,annualPax = stopPaxProd * 8 * 12;
+ai/OpexAI/feeder_bus.nut,645,250,inline,if (annualPax < 250) annualPax = 250;
+ai/OpexAI/feeder_bus.nut,645,250,inline,if (annualPax < 250) annualPax = 250;
+ai/OpexAI/feeder_bus.nut,648,5,inline,"local elongationFare = AICargo.GetCargoIncome(catalog.paxCargo, bestPlan.routeDistance, 5);"
+ai/OpexAI/feeder_bus.nut,652,0.25,inline,local extraPaxAir = (annualPax * 0.25).tointeger();
+ai/OpexAI/feeder_bus.nut,653,0.3,inline,local airMargin = (extraPaxAir * (airFare * 0.3)).tointeger();
+ai/OpexAI/feeder_bus.nut,659,8,inline,annualPax = uncoveredPaxProd * 8 * 12;
+ai/OpexAI/feeder_bus.nut,659,12,inline,annualPax = uncoveredPaxProd * 8 * 12;
+ai/OpexAI/feeder_bus.nut,661,200,inline,if (annualPax < 200) annualPax = 200;
+ai/OpexAI/feeder_bus.nut,661,200,inline,if (annualPax < 200) annualPax = 200;
+ai/OpexAI/feeder_bus.nut,664,0.35,inline,local airMargin = (annualPax * (airFare * 0.35)).tointeger();
+ai/OpexAI/feeder_bus.nut,669,1000,inline,local minProfitThreshold = 1000;
+ai/OpexAI/feeder_bus.nut,675,2500,inline,"local busPrice = (""price"" in busEngine) ? busEngine.price : 2500;"
+ai/OpexAI/feeder_bus.nut,676,1000,inline,local infraCost = (bestSiteAirport.existing ? 1000 : 1800) + (bestPlan.trace.len() * 50);
+ai/OpexAI/feeder_bus.nut,676,1800,inline,local infraCost = (bestSiteAirport.existing ? 1000 : 1800) + (bestPlan.trace.len() * 50);
+ai/OpexAI/feeder_bus.nut,676,50,inline,local infraCost = (bestSiteAirport.existing ? 1000 : 1800) + (bestPlan.trace.len() * 50);
+ai/OpexAI/feeder_bus.nut,677,400,inline,if (isUnjoined) infraCost += 400;
+ai/OpexAI/feeder_bus.nut,679,1000,inline,local roi = (netProfit * 1000) / capital;
+ai/OpexAI/feeder_bus.nut,703,12,inline,"carried = (annualPax / 12).tointeger(),"
+ai/OpexAI/feeder_bus.nut,704,12,inline,"monthly = (annualPax / 12).tointeger(),"
+ai/OpexAI/feeder_bus.nut,718,1000,inline,"ratio = (netProfit * 1000) / (bestPlan.routeDistance > 0 ? bestPlan.routeDistance : 1),"
+ai/OpexAI/feeder_bus.nut,728,100,inline,"turnoverBonus = 100,"
+ai/OpexAI/feeder_bus.nut,730,100,inline,"freightBonus = 100,"
+ai/OpexAI/feeder_bus.nut,732,30,inline,"chantierDays = 30,"
+ai/OpexAI/feeder_bus.nut,839,800,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,839,40,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,853,800,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,853,40,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,872,800,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,872,40,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,887,800,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,887,40,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,894,800,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,894,40,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,921,800,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,921,40,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,943,800,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,943,40,inline,"OpexBoostTownRating(candidate.townId, 800, 40);"
+ai/OpexAI/feeder_bus.nut,1090,30,inline,"capacity = (""capacity"" in candidate.engine && candidate.engine.capacity > 0) ? candidate.engine.capacity : 30,"
+ai/OpexAI/globals_post.nut,8,20,definition,TOP_K <- 20;
+ai/OpexAI/globals_post.nut,14,36,definition,ROAD_MAX_NEW_LINES_PER_YEAR <- 36;
+ai/OpexAI/globals_post.nut,15,60,definition,ROAD_MAX_ATTEMPTS_PER_YEAR <- 60;
+ai/OpexAI/globals_post.nut,24,300000,definition,LOAN_REPAY_FLOOR <- 300000;
+ai/OpexAI/globals_pre.nut,16,160,definition,V168_RAIL_MAX_DIST <- 160;
+ai/OpexAI/globals_pre.nut,50,20,definition,V199_LEVEL_BUDGET_K <- 20;
+ai/OpexAI/globals_pre.nut,63,100,definition,V212_RAIL_PAX_REVENUE_PCT <- 100;
+ai/OpexAI/globals_pre.nut,64,100,definition,V212_RAIL_PAX_CAPITAL_PCT <- 100;
+ai/OpexAI/globals_pre.nut,84,1000,inline,if (V200_DOUBLE_CASH_K > 0 && AICompany.GetBankBalance(AICompany.COMPANY_SELF) - AICompany.GetLoanAmount() < V200_DOUBLE_CASH_K * 1000) return false;
+ai/OpexAI/globals_pre.nut,91,4,definition,V190_RAIL_MAX_TRAINS <- 4;
+ai/OpexAI/globals_pre.nut,99,200,definition,V172_RAIL_LONG_WEIGHT_PCT <- 200;
+ai/OpexAI/globals_pre.nut,100,100,definition,V172_RAIL_LONG_WEIGHT_DIST <- 100;
+ai/OpexAI/globals_pre.nut,113,86,definition,ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
+ai/OpexAI/globals_pre.nut,115,10,definition,ROAD_STOP_CATCHMENT_HOUSES <- 10;
+ai/OpexAI/globals_pre.nut,117,6,definition,ROAD_PAX_STOP_DWELL_DAYS <- 6;
+ai/OpexAI/globals_pre.nut,122,104,definition,AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
+ai/OpexAI/globals_pre.nut,175,6,definition,AIR_EARLY_SLOT_TARGET_TOWNS <- 6;
+ai/OpexAI/globals_pre.nut,176,1000,definition,AIR_EARLY_SLOT_MIN_POP <- 1000;
+ai/OpexAI/globals_pre.nut,177,50,definition,AIR_EARLY_SLOT_BONUS_PCT <- 50;
+ai/OpexAI/globals_pre.nut,183,6,definition,AIR_C83_TARGET_TOWNS <- 6;
+ai/OpexAI/globals_pre.nut,369,1970,definition,OPEX_START_YEAR <- 1970;
+ai/OpexAI/globals_pre.nut,409,100,definition,V93_AIRPORT_MIN_POP <- 100;
+ai/OpexAI/globals_pre.nut,414,200,definition,V93_AIR_LINE_PAX_CAP <- 200;
+ai/OpexAI/globals_pre.nut,415,700,definition,V93_AIR_LINE_PAX_SMALL_POP <- 700;
+ai/OpexAI/globals_pre.nut,416,70,definition,V93_AIR_COMPETITOR_WEIGHT <- 70;
+ai/OpexAI/globals_pre.nut,467,300,definition,V126_JOINED_STOP_COST <- 300;
+ai/OpexAI/globals_pre.nut,470,4,definition,C96_AIR_SITE_MAX_VALID <- 4;
+ai/OpexAI/globals_pre.nut,560,650,definition,C121_AIR_PROJECT_REALIZATION_MIN_CONTESTABLE_PERMILLE <- 650;
+ai/OpexAI/globals_pre.nut,561,200,definition,C121_AIR_PROJECT_REALIZATION_MAX_OPEN_PERMILLE <- 200;
+ai/OpexAI/globals_pre.nut,562,3,definition,C121_AIR_PROJECT_REALIZATION_MIN_PRESSURED <- 3;
+ai/OpexAI/globals_pre.nut,708,91,definition,C121_AIR_HUB_DELAY_WINDOW_DAYS <- 91;
+ai/OpexAI/globals_pre.nut,746,100,definition,RAIL_FINANCE_BIAS_PCT <- 100;
+ai/OpexAI/globals_pre.nut,805,10000,definition,OPS_PER_TICK <- 10000;
+ai/OpexAI/globals_pre.nut,831,7,definition,AIR_FLEET_CADENCE_DAYS <- 7;
+ai/OpexAI/globals_pre.nut,845,13000,definition,V161_PRIOR_OWN <- 13000;
+ai/OpexAI/globals_pre.nut,846,2600,definition,V161_PRIOR_NEIGHBOUR <- 2600;
+ai/OpexAI/globals_pre.nut,877,100000,definition,V127_IDLE_CASH_MIN <- 100000;
+ai/OpexAI/globals_pre.nut,878,8,definition,V127_ROAD_POOL_MIN <- 8;
+ai/OpexAI/globals_pre.nut,879,90,definition,V127_ROAD_MAX_AGE_DAYS <- 90;
+ai/OpexAI/globals_pre.nut,921,3,definition,UNPROFITABLE_STREAK_THRESHOLD <- 3;
+ai/OpexAI/globals_pre.nut,938,10000,definition,HARD_ITERATION_CAP <- 10000;
+ai/OpexAI/globals_pre.nut,1111,120,definition,V91_ASTAR_WEIGHT_PCT <- 120;
+ai/OpexAI/globals_pre.nut,1129,35,definition,V131_REPAIR_MAX_TILES <- 35;
+ai/OpexAI/globals_pre.nut,1130,3,definition,V131_REPAIR_MAX_RUNS <- 3;
+ai/OpexAI/globals_pre.nut,1131,2500,definition,V131_REPAIR_MAX_ITERS <- 2500;
+ai/OpexAI/globals_pre.nut,1136,4,definition,V131_TOWN_CLEAR_BUFFER <- 4;
+ai/OpexAI/info.nut,5,7,inline,function GetVersion()     { return 7; }
+ai/OpexAI/info.nut,23,511,inline,"min_value = 0, max_value = 511,"
+ai/OpexAI/info.nut,74,10,inline,"min_value = 0, max_value = 10,"
+ai/OpexAI/info.nut,222,20,inline,"min_value = 0, max_value = 20,"
+ai/OpexAI/info.nut,479,200,inline,"min_value = 0, max_value = 200,"
+ai/OpexAI/info.nut,482,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,793,20,inline,"min_value = 0, max_value = 20,"
+ai/OpexAI/info.nut,794,4,inline,"easy_value = 4, medium_value = 4, hard_value = 4,"
+ai/OpexAI/info.nut,794,4,inline,"easy_value = 4, medium_value = 4, hard_value = 4,"
+ai/OpexAI/info.nut,794,4,inline,"easy_value = 4, medium_value = 4, hard_value = 4,"
+ai/OpexAI/info.nut,795,4,inline,"custom_value = 4, step_size = 1, flags = 0"
+ai/OpexAI/info.nut,1061,100,inline,"min_value = 0, max_value = 100,"
+ai/OpexAI/info.nut,1064,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,1081,512,inline,"min_value = 0, max_value = 512,"
+ai/OpexAI/info.nut,1090,512,inline,"min_value = 0, max_value = 512,"
+ai/OpexAI/info.nut,1099,5,inline,"min_value = 0, max_value = 5,"
+ai/OpexAI/info.nut,1108,8,inline,"min_value = 0, max_value = 8,"
+ai/OpexAI/info.nut,1117,400,inline,"min_value = 0, max_value = 400,"
+ai/OpexAI/info.nut,1120,25,inline,"step_size = 25,"
+ai/OpexAI/info.nut,1145,512,inline,"min_value = 0, max_value = 512,"
+ai/OpexAI/info.nut,1146,160,inline,"easy_value = 160, medium_value = 160, hard_value = 160,"
+ai/OpexAI/info.nut,1146,160,inline,"easy_value = 160, medium_value = 160, hard_value = 160,"
+ai/OpexAI/info.nut,1146,160,inline,"easy_value = 160, medium_value = 160, hard_value = 160,"
+ai/OpexAI/info.nut,1147,160,inline,"custom_value = 160,"
+ai/OpexAI/info.nut,1162,300,inline,"min_value = 0, max_value = 300,"
+ai/OpexAI/info.nut,1163,200,inline,"easy_value = 200, medium_value = 200, hard_value = 200,"
+ai/OpexAI/info.nut,1163,200,inline,"easy_value = 200, medium_value = 200, hard_value = 200,"
+ai/OpexAI/info.nut,1163,200,inline,"easy_value = 200, medium_value = 200, hard_value = 200,"
+ai/OpexAI/info.nut,1164,200,inline,"custom_value = 200,"
+ai/OpexAI/info.nut,1171,512,inline,"min_value = 0, max_value = 512,"
+ai/OpexAI/info.nut,1172,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1172,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1172,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1173,100,inline,"custom_value = 100,"
+ai/OpexAI/info.nut,1214,2000,inline,"min_value = 0, max_value = 2000,"
+ai/OpexAI/info.nut,1215,300,inline,"easy_value = 300, medium_value = 300, hard_value = 300,"
+ai/OpexAI/info.nut,1215,300,inline,"easy_value = 300, medium_value = 300, hard_value = 300,"
+ai/OpexAI/info.nut,1215,300,inline,"easy_value = 300, medium_value = 300, hard_value = 300,"
+ai/OpexAI/info.nut,1216,300,inline,"custom_value = 300,"
+ai/OpexAI/info.nut,1217,50,inline,"step_size = 50,"
+ai/OpexAI/info.nut,1224,5,inline,"min_value = 5, max_value = 100,"
+ai/OpexAI/info.nut,1224,100,inline,"min_value = 5, max_value = 100,"
+ai/OpexAI/info.nut,1225,5,inline,"easy_value = 5, medium_value = 5, hard_value = 5,"
+ai/OpexAI/info.nut,1225,5,inline,"easy_value = 5, medium_value = 5, hard_value = 5,"
+ai/OpexAI/info.nut,1225,5,inline,"easy_value = 5, medium_value = 5, hard_value = 5,"
+ai/OpexAI/info.nut,1226,5,inline,"custom_value = 5,"
+ai/OpexAI/info.nut,1227,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,1460,100,inline,"min_value = 0, max_value = 100,"
+ai/OpexAI/info.nut,1463,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,1490,5000,inline,"min_value = 0, max_value = 5000,"
+ai/OpexAI/info.nut,1491,365,inline,"easy_value = 365, medium_value = 365, hard_value = 365,"
+ai/OpexAI/info.nut,1491,365,inline,"easy_value = 365, medium_value = 365, hard_value = 365,"
+ai/OpexAI/info.nut,1491,365,inline,"easy_value = 365, medium_value = 365, hard_value = 365,"
+ai/OpexAI/info.nut,1492,365,inline,"custom_value = 365,"
+ai/OpexAI/info.nut,1493,30,inline,"step_size = 30,"
+ai/OpexAI/info.nut,1500,100,inline,"min_value = 100, max_value = 300,"
+ai/OpexAI/info.nut,1500,300,inline,"min_value = 100, max_value = 300,"
+ai/OpexAI/info.nut,1501,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1501,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1501,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1502,100,inline,"custom_value = 100,"
+ai/OpexAI/info.nut,1503,10,inline,"step_size = 10,"
+ai/OpexAI/info.nut,1510,90,inline,"min_value = 90, max_value = 200,"
+ai/OpexAI/info.nut,1510,200,inline,"min_value = 90, max_value = 200,"
+ai/OpexAI/info.nut,1511,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1511,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1511,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,1512,100,inline,"custom_value = 100,"
+ai/OpexAI/info.nut,1513,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,1528,8,inline,"min_value = 8, max_value = 128,"
+ai/OpexAI/info.nut,1528,128,inline,"min_value = 8, max_value = 128,"
+ai/OpexAI/info.nut,1529,64,inline,"easy_value = 64, medium_value = 64, hard_value = 64,"
+ai/OpexAI/info.nut,1529,64,inline,"easy_value = 64, medium_value = 64, hard_value = 64,"
+ai/OpexAI/info.nut,1529,64,inline,"easy_value = 64, medium_value = 64, hard_value = 64,"
+ai/OpexAI/info.nut,1530,64,inline,"custom_value = 64,"
+ai/OpexAI/info.nut,1531,8,inline,"step_size = 8,"
+ai/OpexAI/info.nut,1562,100,inline,"min_value = 0, max_value = 100,"
+ai/OpexAI/info.nut,1563,86,inline,"easy_value = 86, medium_value = 86, hard_value = 86,"
+ai/OpexAI/info.nut,1563,86,inline,"easy_value = 86, medium_value = 86, hard_value = 86,"
+ai/OpexAI/info.nut,1563,86,inline,"easy_value = 86, medium_value = 86, hard_value = 86,"
+ai/OpexAI/info.nut,1564,86,inline,"custom_value = 86,"
+ai/OpexAI/info.nut,1572,50,inline,"min_value = 1, max_value = 50,"
+ai/OpexAI/info.nut,1573,10,inline,"easy_value = 10, medium_value = 10, hard_value = 10,"
+ai/OpexAI/info.nut,1573,10,inline,"easy_value = 10, medium_value = 10, hard_value = 10,"
+ai/OpexAI/info.nut,1573,10,inline,"easy_value = 10, medium_value = 10, hard_value = 10,"
+ai/OpexAI/info.nut,1574,10,inline,"custom_value = 10,"
+ai/OpexAI/info.nut,1582,30,inline,"min_value = 1, max_value = 30,"
+ai/OpexAI/info.nut,1583,6,inline,"easy_value = 6, medium_value = 6, hard_value = 6,"
+ai/OpexAI/info.nut,1583,6,inline,"easy_value = 6, medium_value = 6, hard_value = 6,"
+ai/OpexAI/info.nut,1583,6,inline,"easy_value = 6, medium_value = 6, hard_value = 6,"
+ai/OpexAI/info.nut,1584,6,inline,"custom_value = 6,"
+ai/OpexAI/info.nut,1600,16,inline,"min_value = 1, max_value = 16,"
+ai/OpexAI/info.nut,1601,6,inline,"easy_value = 6, medium_value = 6, hard_value = 6,"
+ai/OpexAI/info.nut,1601,6,inline,"easy_value = 6, medium_value = 6, hard_value = 6,"
+ai/OpexAI/info.nut,1601,6,inline,"easy_value = 6, medium_value = 6, hard_value = 6,"
+ai/OpexAI/info.nut,1602,6,inline,"custom_value = 6,"
+ai/OpexAI/info.nut,1610,10000,inline,"min_value = 0, max_value = 10000,"
+ai/OpexAI/info.nut,1611,1000,inline,"easy_value = 1000, medium_value = 1000, hard_value = 1000,"
+ai/OpexAI/info.nut,1611,1000,inline,"easy_value = 1000, medium_value = 1000, hard_value = 1000,"
+ai/OpexAI/info.nut,1611,1000,inline,"easy_value = 1000, medium_value = 1000, hard_value = 1000,"
+ai/OpexAI/info.nut,1612,1000,inline,"custom_value = 1000,"
+ai/OpexAI/info.nut,1613,100,inline,"step_size = 100,"
+ai/OpexAI/info.nut,1620,200,inline,"min_value = 0, max_value = 200,"
+ai/OpexAI/info.nut,1621,50,inline,"easy_value = 50, medium_value = 50, hard_value = 50,"
+ai/OpexAI/info.nut,1621,50,inline,"easy_value = 50, medium_value = 50, hard_value = 50,"
+ai/OpexAI/info.nut,1621,50,inline,"easy_value = 50, medium_value = 50, hard_value = 50,"
+ai/OpexAI/info.nut,1622,50,inline,"custom_value = 50,"
+ai/OpexAI/info.nut,1623,10,inline,"step_size = 10,"
+ai/OpexAI/info.nut,1630,365,inline,"min_value = 0, max_value = 365,"
+ai/OpexAI/info.nut,1631,7,inline,"easy_value = 7, medium_value = 7, hard_value = 7,"
+ai/OpexAI/info.nut,1631,7,inline,"easy_value = 7, medium_value = 7, hard_value = 7,"
+ai/OpexAI/info.nut,1631,7,inline,"easy_value = 7, medium_value = 7, hard_value = 7,"
+ai/OpexAI/info.nut,1632,7,inline,"custom_value = 7,"
+ai/OpexAI/info.nut,1667,200000,inline,"min_value = 0, max_value = 200000,"
+ai/OpexAI/info.nut,1668,13000,inline,"easy_value = 13000, medium_value = 13000, hard_value = 13000,"
+ai/OpexAI/info.nut,1668,13000,inline,"easy_value = 13000, medium_value = 13000, hard_value = 13000,"
+ai/OpexAI/info.nut,1668,13000,inline,"easy_value = 13000, medium_value = 13000, hard_value = 13000,"
+ai/OpexAI/info.nut,1669,13000,inline,"custom_value = 13000,"
+ai/OpexAI/info.nut,1670,500,inline,"step_size = 500,"
+ai/OpexAI/info.nut,1677,100000,inline,"min_value = 0, max_value = 100000,"
+ai/OpexAI/info.nut,1678,2600,inline,"easy_value = 2600, medium_value = 2600, hard_value = 2600,"
+ai/OpexAI/info.nut,1678,2600,inline,"easy_value = 2600, medium_value = 2600, hard_value = 2600,"
+ai/OpexAI/info.nut,1678,2600,inline,"easy_value = 2600, medium_value = 2600, hard_value = 2600,"
+ai/OpexAI/info.nut,1679,2600,inline,"custom_value = 2600,"
+ai/OpexAI/info.nut,1680,100,inline,"step_size = 100,"
+ai/OpexAI/info.nut,1706,50,inline,"min_value = 50, max_value = 200,"
+ai/OpexAI/info.nut,1706,200,inline,"min_value = 50, max_value = 200,"
+ai/OpexAI/info.nut,1707,104,inline,"easy_value = 104, medium_value = 104, hard_value = 104,"
+ai/OpexAI/info.nut,1707,104,inline,"easy_value = 104, medium_value = 104, hard_value = 104,"
+ai/OpexAI/info.nut,1707,104,inline,"easy_value = 104, medium_value = 104, hard_value = 104,"
+ai/OpexAI/info.nut,1708,104,inline,"custom_value = 104,"
+ai/OpexAI/info.nut,1884,12,inline,"min_value = 0, max_value = 12,"
+ai/OpexAI/info.nut,1885,3,inline,"easy_value = 3, medium_value = 3, hard_value = 3,"
+ai/OpexAI/info.nut,1885,3,inline,"easy_value = 3, medium_value = 3, hard_value = 3,"
+ai/OpexAI/info.nut,1885,3,inline,"easy_value = 3, medium_value = 3, hard_value = 3,"
+ai/OpexAI/info.nut,1886,3,inline,"custom_value = 3,"
+ai/OpexAI/info.nut,1902,10,inline,"min_value = 1, max_value = 10,"
+ai/OpexAI/info.nut,1903,3,inline,"easy_value = 3, medium_value = 3, hard_value = 3,"
+ai/OpexAI/info.nut,1903,3,inline,"easy_value = 3, medium_value = 3, hard_value = 3,"
+ai/OpexAI/info.nut,1903,3,inline,"easy_value = 3, medium_value = 3, hard_value = 3,"
+ai/OpexAI/info.nut,1904,3,inline,"custom_value = 3,"
+ai/OpexAI/info.nut,1912,10,inline,"min_value = 0, max_value = 10,"
+ai/OpexAI/info.nut,1931,10,inline,"min_value = 0, max_value = 10,"
+ai/OpexAI/info.nut,1941,400,inline,"min_value = 0, max_value = 400,"
+ai/OpexAI/info.nut,1944,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,1951,4,inline,"min_value = 1, max_value = 4,"
+ai/OpexAI/info.nut,1977,2000,inline,"min_value = 0, max_value = 2000, step_size = 25,"
+ai/OpexAI/info.nut,1977,25,inline,"min_value = 0, max_value = 2000, step_size = 25,"
+ai/OpexAI/info.nut,1994,200,inline,"min_value = 0, max_value = 200,"
+ai/OpexAI/info.nut,1995,20,inline,"easy_value = 20, medium_value = 20, hard_value = 20,"
+ai/OpexAI/info.nut,1995,20,inline,"easy_value = 20, medium_value = 20, hard_value = 20,"
+ai/OpexAI/info.nut,1995,20,inline,"easy_value = 20, medium_value = 20, hard_value = 20,"
+ai/OpexAI/info.nut,1996,20,inline,"custom_value = 20,"
+ai/OpexAI/info.nut,1997,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,2012,5,inline,"min_value = 0, max_value = 5,"
+ai/OpexAI/info.nut,2022,8,inline,"min_value = 2, max_value = 8,"
+ai/OpexAI/info.nut,2023,4,inline,"easy_value = 4, medium_value = 4, hard_value = 4,"
+ai/OpexAI/info.nut,2023,4,inline,"easy_value = 4, medium_value = 4, hard_value = 4,"
+ai/OpexAI/info.nut,2023,4,inline,"easy_value = 4, medium_value = 4, hard_value = 4,"
+ai/OpexAI/info.nut,2024,4,inline,"custom_value = 4,"
+ai/OpexAI/info.nut,2048,16,inline,"min_value = 1, max_value = 16,"
+ai/OpexAI/info.nut,2074,100,inline,"min_value = 100, max_value = 300,"
+ai/OpexAI/info.nut,2074,300,inline,"min_value = 100, max_value = 300,"
+ai/OpexAI/info.nut,2075,120,inline,"easy_value = 120, medium_value = 120, hard_value = 120,"
+ai/OpexAI/info.nut,2075,120,inline,"easy_value = 120, medium_value = 120, hard_value = 120,"
+ai/OpexAI/info.nut,2075,120,inline,"easy_value = 120, medium_value = 120, hard_value = 120,"
+ai/OpexAI/info.nut,2076,120,inline,"custom_value = 120,"
+ai/OpexAI/info.nut,2077,10,inline,"step_size = 10,"
+ai/OpexAI/info.nut,2306,100,inline,"min_value = 0, max_value = 100,"
+ai/OpexAI/info.nut,2322,4,inline,"min_value = 0, max_value = 4,"
+ai/OpexAI/info.nut,2331,100,inline,"min_value = 0, max_value = 100,"
+ai/OpexAI/info.nut,2340,50,inline,"min_value = 50, max_value = 300,"
+ai/OpexAI/info.nut,2340,300,inline,"min_value = 50, max_value = 300,"
+ai/OpexAI/info.nut,2341,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,2341,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,2341,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,2342,100,inline,"custom_value = 100,"
+ai/OpexAI/info.nut,2343,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,2349,50,inline,"min_value = 50, max_value = 200,"
+ai/OpexAI/info.nut,2349,200,inline,"min_value = 50, max_value = 200,"
+ai/OpexAI/info.nut,2350,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,2350,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,2350,100,inline,"easy_value = 100, medium_value = 100, hard_value = 100,"
+ai/OpexAI/info.nut,2351,100,inline,"custom_value = 100,"
+ai/OpexAI/info.nut,2352,5,inline,"step_size = 5,"
+ai/OpexAI/info.nut,2358,2000,inline,"min_value = 0, max_value = 2000,"
+ai/OpexAI/info.nut,2361,50,inline,"step_size = 50,"
+ai/OpexAI/info.nut,2367,5000,inline,"min_value = 0, max_value = 5000,"
+ai/OpexAI/info.nut,2370,100,inline,"step_size = 100,"
+ai/OpexAI/ledgers.nut,7,12,inline,local year = this._c41MonthlyBusyMonth / 12;
+ai/OpexAI/ledgers.nut,8,12,inline,local month = this._c41MonthlyBusyMonth % 12 + 1;
+ai/OpexAI/ledgers.nut,234,10000,inline,if (this._schedIdlePreMarkLeft == null) this._schedIdlePreMarkLeft = 10000;
+ai/OpexAI/ledgers.nut,296,12,inline,local curYm = curYear * 12 + curMonth;
+ai/OpexAI/ledgers.nut,510,96,inline,local cfFinanceCap = (bestRailFinanceCap * 96) / 170;
+ai/OpexAI/ledgers.nut,510,170,inline,local cfFinanceCap = (bestRailFinanceCap * 96) / 170;
+ai/OpexAI/ledgers.nut,583,10000,inline,local markLeft = (this._schedIdlePreMarkLeft != null) ? this._schedIdlePreMarkLeft : 10000;
+ai/OpexAI/ledgers.nut,584,10000,inline,local unused = (ticks <= 0) ? (ops < markLeft ? markLeft - ops : 0) : ((markLeft + ticks * 10000) - ops);
+ai/OpexAI/ledgers.nut,1170,12,inline,local c50Ym = AIDate.GetYear(c50Date) * 12 + AIDate.GetMonth(c50Date);
+ai/OpexAI/ledgers.nut,1211,4,inline,local physCap = isSmall ? 4 : AIR_MAX_PLANES_PER_ROUTE;
+ai/OpexAI/ledgers.nut,1252,4,inline,"local thresh = ((""kind"" in line) && line.kind == ""freight"") ? (2 * wagon.capacity) : (4 * wagon.capacity);"
+ai/OpexAI/lines.nut,157,999999,inline,local bestDist = 999999;
+ai/OpexAI/lines.nut,163,20,inline,if (distA < bestDist && distA <= 20) {
+ai/OpexAI/lines.nut,171,20,inline,if (distB < bestDist && distB <= 20) {
+ai/OpexAI/lines.nut,307,1825,inline,if (cooldown > 1825) cooldown = 1825;
+ai/OpexAI/lines.nut,307,1825,inline,if (cooldown > 1825) cooldown = 1825;
+ai/OpexAI/main.nut,33,850,definition,const RAIL_EXPAND_UTIL_PERMILLE = 850;
+ai/OpexAI/main.nut,34,120,definition,const RAIL_EXPAND_TIMEOUT_DAYS = 120;
+ai/OpexAI/main.nut,38,8,definition,const RAIL_EXPAND_APPROACH_TILES = 8;
+ai/OpexAI/main.nut,40,25000,definition,const CASH_RESERVE_STATIC = 25000;
+ai/OpexAI/main.nut,41,5000,definition,const CASH_RESERVE_MIN = 5000;
+ai/OpexAI/main.nut,42,25000,definition,const CASH_RESERVE_MAX = 25000;
+ai/OpexAI/main.nut,73,10,definition,const MIN_SEPARATION = 10;
+ai/OpexAI/main.nut,82,3,definition,const ORIGIN_SEPARATION = 3;
+ai/OpexAI/main.nut,86,3000,definition,const BUILD_TICK_MARGIN = 3000;
+ai/OpexAI/main.nut,90,50000,definition,const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
+ai/OpexAI/main.nut,217,2000,inline,_v89EstimatedSliceOps = 2000;
+ai/OpexAI/main.nut,295,10000,inline,_schedIdlePreMarkLeft = 10000;
+ai/OpexAI/main.nut,444,2147483647,inline,"{ name = ""c41_water"", dueCycle = 2147483647, enabled = false },"
+ai/OpexAI/main.nut,445,2147483647,inline,"{ name = ""c41_road"", dueCycle = 2147483647, enabled = false },"
+ai/OpexAI/main.nut,447,2147483647,inline,"{ name = ""c41_rail_signals"", dueCycle = 2147483647, enabled = false },"
+ai/OpexAI/main.nut,449,2147483647,inline,"{ name = ""c41_rail_junction"", dueCycle = 2147483647, enabled = false },"
+ai/OpexAI/main.nut,729,6,inline,AICompany.SetAutoRenewMonths(-6);
+ai/OpexAI/main.nut,771,200,inline,if (C56_LOOP_TICK_COUNT % 200 == 0) {
+ai/OpexAI/opcode_exact.nut,80,12,inline,if (AIDate.GetMonth(now) == 12 && AIDate.GetDayOfMonth(now) >= 28
+ai/OpexAI/opcode_exact.nut,80,28,inline,if (AIDate.GetMonth(now) == 12 && AIDate.GetDayOfMonth(now) >= 28
+ai/OpexAI/opcode_exact.nut,104,5,inline,if (n >= 5) return;
+ai/OpexAI/opcode_exact.nut,460,3,inline,local ringPen = ring > 3 ? ring - 3 : 3 - ring;
+ai/OpexAI/opcode_exact.nut,460,3,inline,local ringPen = ring > 3 ? ring - 3 : 3 - ring;
+ai/OpexAI/opcode_exact.nut,460,3,inline,local ringPen = ring > 3 ? ring - 3 : 3 - ring;
+ai/OpexAI/opcode_exact.nut,461,4,inline,score = value * 2 - ringPen * 4;
+ai/OpexAI/opcode_exact.nut,692,6,inline,for (local shape = 2; shape < 6; shape++) {
+ai/OpexAI/opcode_exact.nut,693,3,inline,if (trials >= ROAD_MAX_TRACE_TRIALS * 3) break;
+ai/OpexAI/opcode_exact.nut,830,3,inline,"if (AIMap.DistanceManhattan(tile, center) < 3) continue;"
+ai/OpexAI/opcode_exact.nut,864,3,inline,"if (AIMap.DistanceManhattan(tile, center) < 3) continue;"
+ai/OpexAI/orchestrator.nut,70,32,inline,} else if (this._head >= 32 && this._head * 2 >= this._order.len()) {
+ai/OpexAI/orchestrator.nut,192,3,inline,"if (!(""targetSteps"" in s)) s.targetSteps <- 3;"
+ai/OpexAI/orchestrator.nut,303,180,inline,if (!prepSearch && curDate - startDate > 180) {
+ai/OpexAI/orchestrator.nut,312,1500,inline,local minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
+ai/OpexAI/orchestrator.nut,312,1500,inline,local minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
+ai/OpexAI/orchestrator.nut,317,180,inline,if (curDate - startDate > 180) {
+ai/OpexAI/orchestrator.nut,323,1500,inline,minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
+ai/OpexAI/orchestrator.nut,323,1500,inline,minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;
+ai/OpexAI/orchestrator.nut,613,10000,inline,while (guard < 10000) {
+ai/OpexAI/orchestrator.nut,730,3,inline,if (retries < 3) {
+ai/OpexAI/orchestrator.nut,750,3,inline,if (retries < 3) {
+ai/OpexAI/orchestrator.nut,1246,12,inline,local ym = year * 12 + AIDate.GetMonth(date);
+ai/OpexAI/orchestrator.nut,1277,93000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/orchestrator.nut,1277,186000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/orchestrator.nut,1306,100,inline,local yy = year % 100;
+ai/OpexAI/orchestrator.nut,1310,1000,inline,"+ ""|"" + this._budget.nested + ""|"" + (this._projects.stats.selectionOpcodes / 1000));"
+ai/OpexAI/orchestrator.nut,1408,93000,inline,"this._c76RecordRegen(""mode"", ops, (ops + 93000) / 186000, year, label);"
+ai/OpexAI/orchestrator.nut,1408,186000,inline,"this._c76RecordRegen(""mode"", ops, (ops + 93000) / 186000, year, label);"
+ai/OpexAI/orchestrator.nut,1462,93000,inline,"this._c76RecordRegen(""freight"", ops, (ops + 93000) / 186000, year, ""rotation"");"
+ai/OpexAI/orchestrator.nut,1462,186000,inline,"this._c76RecordRegen(""freight"", ops, (ops + 93000) / 186000, year, ""rotation"");"
+ai/OpexAI/pathfinder_v90/rail.nut,43,100,inline,_weight = 100;
+ai/OpexAI/pathfinder_v90/rail.nut,63,10000000,inline,this._max_cost = 10000000;
+ai/OpexAI/pathfinder_v90/rail.nut,64,100,inline,this._cost_tile = 100;
+ai/OpexAI/pathfinder_v90/rail.nut,65,70,inline,this._cost_diagonal_tile = 70;
+ai/OpexAI/pathfinder_v90/rail.nut,66,50,inline,this._cost_turn = 50;
+ai/OpexAI/pathfinder_v90/rail.nut,67,100,inline,this._cost_slope = 100;
+ai/OpexAI/pathfinder_v90/rail.nut,68,150,inline,this._cost_bridge_per_tile = 150;
+ai/OpexAI/pathfinder_v90/rail.nut,69,120,inline,this._cost_tunnel_per_tile = 120;
+ai/OpexAI/pathfinder_v90/rail.nut,70,20,inline,this._cost_coast = 20;
+ai/OpexAI/pathfinder_v90/rail.nut,71,6,inline,this._max_bridge_length = 6;
+ai/OpexAI/pathfinder_v90/rail.nut,72,6,inline,this._max_tunnel_length = 6;
+ai/OpexAI/pathfinder_v90/rail.nut,74,100,inline,local estimate_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+ai/OpexAI/pathfinder_v90/rail.nut,195,100,inline,this._weight = (weight >= 100) ? weight : 100;
+ai/OpexAI/pathfinder_v90/rail.nut,195,100,inline,this._weight = (weight >= 100) ? weight : 100;
+ai/OpexAI/pathfinder_v90/rail.nut,196,100,inline,local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+ai/OpexAI/pathfinder_v90/rail.nut,205,100,inline,local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+ai/OpexAI/pathfinder_v90/rail.nut,240,0xFF,inline,"local path = this._pathfinder.Path(null, node[1], 0xFF, this._Cost, this);"
+ai/OpexAI/pathfinder_v90/rail.nut,241,0xFF,inline,"path = this._pathfinder.Path(path, node[0], 0xFF, this._Cost, this);"
+ai/OpexAI/pathfinder_v90/rail.nut,372,3,inline,"AIMap.DistanceManhattan(new_tile, par.GetParent().GetTile()) == 3 &&"
+ai/OpexAI/pathfinder_v90/rail.nut,392,5,inline,step_cost = (step_cost * 5) / 10;
+ai/OpexAI/pathfinder_v90/rail.nut,392,10,inline,step_cost = (step_cost * 5) / 10;
+ai/OpexAI/pathfinder_v90/rail.nut,394,5,inline,step_cost = (step_cost * (5 + level)) / 10;
+ai/OpexAI/pathfinder_v90/rail.nut,394,10,inline,step_cost = (step_cost * (5 + level)) / 10;
+ai/OpexAI/pathfinder_v90/rail.nut,413,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/rail.nut,417,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/rail.nut,422,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/rail.nut,426,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/rail.nut,432,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/rail.nut,482,100,inline,return (min_cost * self._weight) / 100;
+ai/OpexAI/pathfinder_v90/rail.nut,544,3,inline,if (diff == -this._mapSizeX) return 3;
+ai/OpexAI/pathfinder_v90/rail.nut,554,4,inline,if (diff == this._mapSizeX) return 4;
+ai/OpexAI/pathfinder_v90/rail.nut,555,8,inline,if (diff == -this._mapSizeX) return 8;
+ai/OpexAI/pathfinder_v90/rail.nut,557,4,inline,"return 1 << (4 + (pre_from == null ? 0 : 4 * this._dir(pre_from, from)) + this._dir(from, to));"
+ai/OpexAI/pathfinder_v90/rail.nut,557,4,inline,"return 1 << (4 + (pre_from == null ? 0 : 4 * this._dir(pre_from, from)) + this._dir(from, to));"
+ai/OpexAI/pathfinder_v90/rail.nut,666,100,inline,this._isWeighted = (this._v90._weight > 100);
+ai/OpexAI/pathfinder_v90/rail.nut,686,100,inline,this._isWeighted = (this._v90._weight > 100);
+ai/OpexAI/pathfinder_v90/rail.nut,843,100,inline,this._checker._isWeighted = (this._checker._v90._weight > 100);
+ai/OpexAI/pathfinder_v90/v129.nut,17,8,definition,V129_RAIL_BATCH_ITERS <- 8;
+ai/OpexAI/pathfinder_v90/v129.nut,319,100,inline,local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+ai/OpexAI/pathfinder_v90/v129.nut,357,40,inline,if (this._v214RouteDist >= 0 && this._v214RouteDist < 40 && this._v214Tight > 100) this._v214Tight = 100;
+ai/OpexAI/pathfinder_v90/v129.nut,357,100,inline,if (this._v214RouteDist >= 0 && this._v214RouteDist < 40 && this._v214Tight > 100) this._v214Tight = 100;
+ai/OpexAI/pathfinder_v90/v129.nut,357,100,inline,if (this._v214RouteDist >= 0 && this._v214RouteDist < 40 && this._v214Tight > 100) this._v214Tight = 100;
+ai/OpexAI/pathfinder_v90/v129.nut,379,0xFF,inline,"local p0 = this._pathfinder.Path(null, node[1], 0xFF, 0);"
+ai/OpexAI/pathfinder_v90/v129.nut,380,0xFF,inline,"local c1 = this._Cost(p0, node[0], 0xFF, this);"
+ai/OpexAI/pathfinder_v90/v129.nut,381,0xFF,inline,"nsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1));"
+ai/OpexAI/pathfinder_v90/v129.nut,407,100,inline,this._weight = (weight >= 100) ? weight : 100;
+ai/OpexAI/pathfinder_v90/v129.nut,407,100,inline,this._weight = (weight >= 100) ? weight : 100;
+ai/OpexAI/pathfinder_v90/v129.nut,408,100,inline,local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
+ai/OpexAI/pathfinder_v90/v129.nut,451,100,inline,local est = (min_cost >= self._max_cost) ? self._max_cost : (min_cost * self._weight) / 100;
+ai/OpexAI/pathfinder_v90/v129.nut,500,3,inline,"if (gp != null && AIMap.DistanceManhattan(new_tile, gp._tile) == 3 &&"
+ai/OpexAI/pathfinder_v90/v129.nut,513,4,inline,"if (ggp != null && AIMap.DistanceManhattan(new_tile, ggp._tile) == 4 &&"
+ai/OpexAI/pathfinder_v90/v129.nut,537,5,inline,step_cost = (step_cost * 5) / 10;
+ai/OpexAI/pathfinder_v90/v129.nut,537,10,inline,step_cost = (step_cost * 5) / 10;
+ai/OpexAI/pathfinder_v90/v129.nut,539,5,inline,step_cost = (step_cost * (5 + level)) / 10;
+ai/OpexAI/pathfinder_v90/v129.nut,539,10,inline,step_cost = (step_cost * (5 + level)) / 10;
+ai/OpexAI/pathfinder_v90/v129.nut,558,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/v129.nut,562,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/v129.nut,567,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/v129.nut,571,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/v129.nut,577,400,inline,step_cost += 400;
+ai/OpexAI/pathfinder_v90/v129.nut,608,4,inline,for (local i = 0; i < 4; i++) {
+ai/OpexAI/pathfinder_v90/v129.nut,609,4,inline,"tiles.push([cur_node + offsets[i], 1 << (4 + dirIdx[i])]);"
+ai/OpexAI/pathfinder_v90/v129.nut,615,4,inline,"local shift0 = 4 + 4 * self._dir(par_tile, cur_node);"
+ai/OpexAI/pathfinder_v90/v129.nut,615,4,inline,"local shift0 = 4 + 4 * self._dir(par_tile, cur_node);"
+ai/OpexAI/pathfinder_v90/v129.nut,616,4,inline,for (local i = 0; i < 4; i++) {
+ai/OpexAI/persist.nut,16,1000,inline,"newSpeedMilli = (state.newSpeed * 1000).tointeger(),"
+ai/OpexAI/persist.nut,17,1000,inline,"newOneWayMilliDays = (state.newOneWayDays * 1000).tointeger(),"
+ai/OpexAI/persist.nut,53,1000.0,inline,"newSpeed = data.newSpeedMilli.tofloat() / 1000.0,"
+ai/OpexAI/persist.nut,54,1000.0,inline,"newOneWayDays = data.newOneWayMilliDays.tofloat() / 1000.0,"
+ai/OpexAI/persist.nut,369,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/persist.nut,419,16,inline,AIVehicle.GetLength(state.vehicle) + AIVehicle.GetLength(pending) <= line.platformLength * 16;
+ai/OpexAI/persist.nut,511,2147483647,inline,task.dueCycle = active ? this._taskCycle : 2147483647;
+ai/OpexAI/persist.nut,516,2147483647,inline,task.dueCycle = active ? this._taskCycle : 2147483647;
+ai/OpexAI/persist.nut,607,1000,inline,"if (!(key in p) || typeof p[key] != ""integer"" || p[key] < -1 || p[key] > 1000) return null;"
+ai/OpexAI/persist.nut,691,64,definition,SAVE_PROJECTION_MIN_LINES <- 64;
+ai/OpexAI/persist.nut,699,12,inline,local month = AIDate.GetYear(today) * 12 + AIDate.GetMonth(today);
+ai/OpexAI/probes.nut,39,31,inline,"if (name != null && name.len() > 31) name = name.slice(0, 31);"
+ai/OpexAI/probes.nut,39,31,inline,"if (name != null && name.len() > 31) name = name.slice(0, 31);"
+ai/OpexAI/probes.nut,356,30.4,inline,"profitPm = days > 0 ? profit.tofloat() * 30.4 / days.tofloat() : 0.0,"
+ai/OpexAI/probes.nut,373,365,inline,if (state.lastLive != 1 || ageDays < 0 || ageDays > 365
+ai/OpexAI/probes.nut,395,3,inline,while (holder.history.len() > 3) holder.history.remove(0);
+ai/OpexAI/probes.nut,398,60,inline,if (ageDays < 60) return;
+ai/OpexAI/probes.nut,400,3,inline,"local r90 = OpexC121FirstLiveAggregate(holder.history, 3);"
+ai/OpexAI/probes.nut,401,45,inline,local balanced60 = r60 != null && r60.days >= 45 && r60.trips >= 2
+ai/OpexAI/probes.nut,402,0.40,inline,&& r60.profit > 0 && (r60.load >= 0.40 || r60.waitNorm >= 0.50);
+ai/OpexAI/probes.nut,402,0.50,inline,&& r60.profit > 0 && (r60.load >= 0.40 || r60.waitNorm >= 0.50);
+ai/OpexAI/probes.nut,403,50,inline,local balanced90 = r90 != null && r90.days >= 50 && r90.trips >= 2
+ai/OpexAI/probes.nut,404,0.40,inline,&& r90.profit > 0 && (r90.load >= 0.40 || r90.waitNorm >= 0.50);
+ai/OpexAI/probes.nut,404,0.50,inline,&& r90.profit > 0 && (r90.load >= 0.40 || r90.waitNorm >= 0.50);
+ai/OpexAI/probes.nut,405,75,inline,local strict90 = ageDays >= 75 && r90 != null && r90.days >= 60 && r90.trips >= 2
+ai/OpexAI/probes.nut,405,60,inline,local strict90 = ageDays >= 75 && r90 != null && r90.days >= 60 && r90.trips >= 2
+ai/OpexAI/probes.nut,407,0.55,inline,&& (r90.load >= 0.55 || r90.waitNorm >= 0.75);
+ai/OpexAI/probes.nut,407,0.75,inline,&& (r90.load >= 0.55 || r90.waitNorm >= 0.75);
+ai/OpexAI/probes.nut,408,50,inline,local dual90 = r90 != null && r90.days >= 50 && r90.trips >= 2
+ai/OpexAI/probes.nut,409,0.30,inline,&& r90.profit > 0 && r90.load >= 0.30 && r90.waitNorm >= 0.25;
+ai/OpexAI/probes.nut,409,0.25,inline,&& r90.profit > 0 && r90.load >= 0.30 && r90.waitNorm >= 0.25;
+ai/OpexAI/probes.nut,459,12,inline,local curMonth = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now);
+ai/OpexAI/probes.nut,514,30.4,inline,local paxPm = state.pax.tofloat() * 30.4 / days.tofloat();
+ai/OpexAI/probes.nut,515,30.4,inline,local seatsPm = state.seatLegs.tofloat() * 30.4 / days.tofloat();
+ai/OpexAI/probes.nut,517,30.4,inline,local mailPm = state.mail.tofloat() * 30.4 / days.tofloat();
+ai/OpexAI/probes.nut,518,30.4,inline,local mailSeatsPm = state.mailSeatLegs.tofloat() * 30.4 / days.tofloat();
+ai/OpexAI/probes.nut,522,30.4,inline,local profitPm = state.profit.tofloat() * 30.4 / days.tofloat();
+ai/OpexAI/probes.nut,523,30.4,inline,local runPm = state.runEst * 30.4 / days.tofloat();
+ai/OpexAI/probes.nut,667,30,inline,local bucket = ageDays / 30;
+ai/OpexAI/probes.nut,736,365.25,inline,state.runEst += AIVehicle.GetRunningCost(v).tofloat() * deltaDays.tofloat() / 365.25;
+ai/OpexAI/probes.nut,1008,100,inline,local reusePct = examined > 0 ? cost.c121CacheHits * 100 / examined : 0;
+ai/OpexAI/probes.nut,1460,1970,inline,if (nowYear < 1970) return;
+ai/OpexAI/probes.nut,1592,1970,inline,if (year < 1970) return;
+ai/OpexAI/probes.nut,1644,12,inline,local ym = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+ai/OpexAI/probes.nut,1854,350,inline,"if (layer == ""catalog.water"") return 350;"
+ai/OpexAI/probes.nut,2030,3,inline,local curQuarterIdx = (curMonth - 1) / 3;
+ai/OpexAI/probes.nut,2031,4,inline,local totalCompletedQuarters = (curYear - OPEX_START_YEAR) * 4 + curQuarterIdx;
+ai/OpexAI/probes.nut,2036,4,inline,local numQ = totalCompletedQuarters < 4 ? totalCompletedQuarters : 4;
+ai/OpexAI/probes.nut,2036,4,inline,local numQ = totalCompletedQuarters < 4 ? totalCompletedQuarters : 4;
+ai/OpexAI/probes.nut,2037,3,inline,local curQuarterStartMonth = curQuarterIdx * 3 + 1;
+ai/OpexAI/probes.nut,2041,4,inline,local windowStartYear = OPEX_START_YEAR + (windowStartQuarter / 4);
+ai/OpexAI/probes.nut,2042,4,inline,local windowStartMonth = (windowStartQuarter % 4) * 3 + 1;
+ai/OpexAI/probes.nut,2042,3,inline,local windowStartMonth = (windowStartQuarter % 4) * 3 + 1;
+ai/OpexAI/probes.nut,2080,365,inline,local D = daysSinceStart < 365 ? daysSinceStart : 365;
+ai/OpexAI/probes.nut,2080,365,inline,local D = daysSinceStart < 365 ? daysSinceStart : 365;
+ai/OpexAI/probes.nut,2124,365,inline,local D = daysSinceStart < 365 ? daysSinceStart : 365;
+ai/OpexAI/probes.nut,2124,365,inline,local D = daysSinceStart < 365 ? daysSinceStart : 365;
+ai/OpexAI/probes.nut,2147,365,inline,local D = daysSinceStart < 365 ? daysSinceStart : 365;
+ai/OpexAI/probes.nut,2147,365,inline,local D = daysSinceStart < 365 ? daysSinceStart : 365;
+ai/OpexAI/probes.nut,2289,3,inline,"OpexSign(AIMap.GetTileIndex(3, 7), ""C7C|"" + (year % 100) + ""|"" + modeChar + ""|"" + kindChar"
+ai/OpexAI/probes.nut,2289,7,inline,"OpexSign(AIMap.GetTileIndex(3, 7), ""C7C|"" + (year % 100) + ""|"" + modeChar + ""|"" + kindChar"
+ai/OpexAI/probes.nut,2289,100,inline,"OpexSign(AIMap.GetTileIndex(3, 7), ""C7C|"" + (year % 100) + ""|"" + modeChar + ""|"" + kindChar"
+ai/OpexAI/probes.nut,2290,1000,inline,"+ ""|"" + (financeCapital / 1000) + ""|"" + (availableCapital / 1000)"
+ai/OpexAI/probes.nut,2290,1000,inline,"+ ""|"" + (financeCapital / 1000) + ""|"" + (availableCapital / 1000)"
+ai/OpexAI/probes.nut,2291,1000,inline,"+ ""|"" + (kPass / 1000));"
+ai/OpexAI/probes.nut,2316,3,inline,"OpexSign(AIMap.GetTileIndex(3, 8), ""C7Y|"" + (year % 100)"
+ai/OpexAI/probes.nut,2316,8,inline,"OpexSign(AIMap.GetTileIndex(3, 8), ""C7Y|"" + (year % 100)"
+ai/OpexAI/probes.nut,2316,100,inline,"OpexSign(AIMap.GetTileIndex(3, 8), ""C7Y|"" + (year % 100)"
+ai/OpexAI/probes.nut,2320,3,inline,"OpexSign(AIMap.GetTileIndex(3, 9), ""C7S|"" + (year % 100)"
+ai/OpexAI/probes.nut,2320,9,inline,"OpexSign(AIMap.GetTileIndex(3, 9), ""C7S|"" + (year % 100)"
+ai/OpexAI/probes.nut,2320,100,inline,"OpexSign(AIMap.GetTileIndex(3, 9), ""C7S|"" + (year % 100)"
+ai/OpexAI/probes.nut,2373,1970,inline,if (year < 1970) return;
+ai/OpexAI/probes.nut,2502,1970,inline,if (year < 1970) return;
+ai/OpexAI/probes.nut,2590,100.0,inline,local delta = (curr.tofloat() - prev.tofloat()) * 100.0 / prev.tofloat();
+ai/OpexAI/probes.nut,2597,100.0,inline,local frac = ((delta - whole) * 100.0 + 0.5).tointeger();
+ai/OpexAI/probes.nut,2597,0.5,inline,local frac = ((delta - whole) * 100.0 + 0.5).tointeger();
+ai/OpexAI/probes.nut,2598,100,inline,if (frac >= 100) {
+ai/OpexAI/probes.nut,2600,100,inline,frac -= 100;
+ai/OpexAI/probes.nut,2602,10,inline,"local fracStr = frac < 10 ? ""0"" + frac : """" + frac;"
+ai/OpexAI/probes.nut,2609,100.0,inline,local pct = (num.tofloat() * 100.0) / den.tofloat();
+ai/OpexAI/probes.nut,2610,100.0,inline,if (pct > 100.0) pct = 100.0;
+ai/OpexAI/probes.nut,2610,100.0,inline,if (pct > 100.0) pct = 100.0;
+ai/OpexAI/probes.nut,2613,100.0,inline,local frac = ((pct - whole) * 100.0 + 0.5).tointeger();
+ai/OpexAI/probes.nut,2613,0.5,inline,local frac = ((pct - whole) * 100.0 + 0.5).tointeger();
+ai/OpexAI/probes.nut,2614,100,inline,if (frac >= 100) {
+ai/OpexAI/probes.nut,2616,100,inline,frac -= 100;
+ai/OpexAI/probes.nut,2618,10,inline,"local fracStr = frac < 10 ? ""0"" + frac : """" + frac;"
+ai/OpexAI/probes.nut,2650,1970,inline,if (year < 1970) return;
+ai/OpexAI/probes.nut,2738,200,inline,if (C56_LOOP_TICK_COUNT % 200 == 0) {
+ai/OpexAI/probes.nut,3013,16,inline,for (local i = 0; i < 16; i++) {
+ai/OpexAI/probes.nut,3014,15,inline,local x = (srcX * (15 - i) + dstX * i) / 15;
+ai/OpexAI/probes.nut,3014,15,inline,local x = (srcX * (15 - i) + dstX * i) / 15;
+ai/OpexAI/probes.nut,3015,15,inline,local y = (srcY * (15 - i) + dstY * i) / 15;
+ai/OpexAI/probes.nut,3015,15,inline,local y = (srcY * (15 - i) + dstY * i) / 15;
+ai/OpexAI/projects.nut,19,3,definition,const OPEX_STAGE_ROUTE_ONLY = 3;
+ai/OpexAI/projects.nut,20,4,definition,const OPEX_STAGE_COMPLETE = 4;
+ai/OpexAI/projects.nut,24,64,definition,PROJECT_TOP_K <- 64;
+ai/OpexAI/projects.nut,33,3105,definition,const PROJECT_RAIL_OPS_PER_ITERATION = 3105;
+ai/OpexAI/projects.nut,34,200000,definition,const PROJECT_RAIL_TRANSACTION_OPS = 200000;
+ai/OpexAI/projects.nut,35,287000,definition,const PROJECT_ROAD_TRANSACTION_OPS = 287000;
+ai/OpexAI/projects.nut,36,100000,definition,const PROJECT_AIR_TRANSACTION_OPS = 100000;
+ai/OpexAI/projects.nut,37,100000,definition,const PROJECT_WATER_TRANSACTION_OPS = 100000;
+ai/OpexAI/projects.nut,198,20,inline,"+ "" freight_price="" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));"
+ai/OpexAI/projects_builders.nut,133,100,inline,"project.turnoverBonus <- (""turnoverBonus"" in candidate) ? candidate.turnoverBonus : 100;"
+ai/OpexAI/projects_builders.nut,189,1000.0,inline,? line.c121RealizationPmAtBuild.tofloat() / 1000.0
+ai/OpexAI/projects_builders.nut,260,1000,inline,"budgetCapital = capital + 1000, profitAnnual = profit, revenueAnnual = revenue,"
+ai/OpexAI/projects_builders.nut,264,1000,inline,"roi = capital > 0 ? (profit * 1000) / capital : 0,"
+ai/OpexAI/projects_builders.nut,266,1000,inline,"budgetScore = OpexProjectScore(revenue, capital + 1000),"
+ai/OpexAI/projects_builders.nut,331,2000,inline,return 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100;
+ai/OpexAI/projects_builders.nut,331,100,inline,return 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100;
+ai/OpexAI/projects_builders.nut,334,30000,inline,return (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+ai/OpexAI/projects_builders.nut,334,12000,inline,return (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+ai/OpexAI/projects_builders.nut,334,2000,inline,return (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+ai/OpexAI/projects_builders.nut,452,20,inline,local lifeYears = 20;
+ai/OpexAI/projects_diagnostics.nut,43,100,inline,"local actualTurnover = (actual != null && (""turnoverBonus"" in actual)) ? actual.turnoverBonus : 100;"
+ai/OpexAI/projects_diagnostics.nut,50,100,inline,"local cfTurnover = (bestProfit != null && (""turnoverBonus"" in bestProfit)) ? bestProfit.turnoverBonus : 100;"
+ai/OpexAI/projects_diagnostics.nut,268,45,inline,"if (monthly <= 0 && srcService != null && (""dstTown"" in cand) && cand.dstTown >= 0) monthly = 45;"
+ai/OpexAI/projects_diagnostics.nut,283,1000,inline,local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
+ai/OpexAI/projects_diagnostics.nut,284,200,inline,"if (VIVIER_RATIO_FILTER && opcodeRatio < 200) return { status = ""not_generated_ratio"", monthly = monthly, freshProfit = economics.profitAnnual };"
+ai/OpexAI/projects_finance.nut,17,121,inline,"else if (project.mode == ""road"") biasPct = 121;"
+ai/OpexAI/projects_finance.nut,22,100,inline,"if (project.mode == ""road"" && ROAD_FINANCE_UNBIAS_P0) biasPct = 100;"
+ai/OpexAI/projects_finance.nut,40,100,inline,return ((capital * biasPct) / 100) + nonConstructionCapital;
+ai/OpexAI/projects_models.nut,86,0.75,inline,return 0.75 + 0.25 * learned;
+ai/OpexAI/projects_models.nut,86,0.25,inline,return 0.75 + 0.25 * learned;
+ai/OpexAI/projects_models.nut,102,1000.0,inline,factor = (acc[0].tofloat() + 1000.0) / ((n + 1).tofloat() * 1000.0);
+ai/OpexAI/projects_models.nut,102,1000.0,inline,factor = (acc[0].tofloat() + 1000.0) / ((n + 1).tofloat() * 1000.0);
+ai/OpexAI/projects_models.nut,109,1000.0,inline,local direct = n > 0 ? acc[0].tofloat() / (n.tofloat() * 1000.0) : 1.0;
+ai/OpexAI/projects_models.nut,273,100.0,inline,local d = project.distance.tofloat() / 100.0;
+ai/OpexAI/projects_models.nut,274,100.0,inline,return (denom.tofloat() * (1.0 + V192_RAIL_TIME_DENOM_PCT.tofloat() / 100.0 * d * d)).tointeger();
+ai/OpexAI/projects_models.nut,280,1000.0,inline,return (value.tofloat() * 1000.0) / cost;
+ai/OpexAI/projects_rank_log.nut,10,5,inline,if (n > 5) n = 5;
+ai/OpexAI/projects_rank_log.nut,10,5,inline,if (n > 5) n = 5;
+ai/OpexAI/projects_rank_log.nut,21,100,inline,"local turnoverBonus = (""turnoverBonus"" in p) ? p.turnoverBonus : 100;"
+ai/OpexAI/projects_rank_log.nut,41,5,inline,if (n > 5) n = 5;
+ai/OpexAI/projects_rank_log.nut,41,5,inline,if (n > 5) n = 5;
+ai/OpexAI/projects_rank_log.nut,75,100,inline,"local turnoverBonus = (""turnoverBonus"" in p) ? p.turnoverBonus : 100;"
+ai/OpexAI/projects_selection.nut,115,8,inline,local n = affordable.len() < 8 ? affordable.len() : 8;
+ai/OpexAI/projects_selection.nut,115,8,inline,local n = affordable.len() < 8 ? affordable.len() : 8;
+ai/OpexAI/projects_selection.nut,254,1000,inline,? (competitor * 1000) / pressured : -1;
+ai/OpexAI/projects_selection.nut,257,1000,inline,? (open * 1000) / observedUseful : -1;
+ai/OpexAI/projects_selection.nut,634,1000,inline,+ ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+ai/OpexAI/projects_selection.nut,792,1000.0,inline,local hurdle = (project.profitAnnual.tofloat() * 1000.0) / financeCapital.tofloat();
+ai/OpexAI/projects_selection.nut,818,1000.0,inline,"? (top.profitAnnual.tofloat() * 1000.0) / topFinance.tofloat() : 0.0,"
+ai/OpexAI/projects_selection.nut,822,3,inline,for (local i = 0; i < affordable.len() && snapshot.air.len() < 3; i++) {
+ai/OpexAI/projects_selection.nut,864,1000,inline,local purchaseBudget = capitalBudget - 1000; // tampon d'OpexAirAddPlane
+ai/OpexAI/projects_selection.nut,877,1000,inline,fitted.budgetCapital = fitted.capital + 1000;
+ai/OpexAI/projects_selection.nut,896,1000,inline,fitted.roi = (fitted.profitAnnual * 1000) / fitted.capital;
+ai/OpexAI/projects_selection.nut,1120,100,inline,if (bestProfit > 0) floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
+ai/OpexAI/projects_selection.nut,1162,121,inline,local legacyNeed = ((project.capital * 121) / 100) + complement;
+ai/OpexAI/projects_selection.nut,1162,100,inline,local legacyNeed = ((project.capital * 121) / 100) + complement;
+ai/OpexAI/projects_selection.nut,1205,3,inline,else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;
+ai/OpexAI/projects_selection.nut,1205,4,inline,else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;
+ai/OpexAI/projects_selection.nut,1516,100.0,inline,local factor = (100.0 + bonusPct.tofloat()) / 100.0;
+ai/OpexAI/projects_selection.nut,1516,100.0,inline,local factor = (100.0 + bonusPct.tofloat()) / 100.0;
+ai/OpexAI/projects_selection.nut,1536,1000,inline,+ ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+ai/OpexAI/projects_selection.nut,1563,1000,inline,+ ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
+ai/OpexAI/projects_selection.nut,1593,1000,inline,+ ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+ai/OpexAI/projects_selection.nut,1600,1000,inline,+ ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
+ai/OpexAI/projects_selection.nut,1812,1000,inline,local fitQty = ((capitalBudget - 1000) / planePrice).tointeger();
+ai/OpexAI/projects_selection.nut,1814,1000,inline,if (fitQty < want) cap = (fitQty + 1) * planePrice + 1000;
+ai/OpexAI/projects_update.nut,310,8,inline,"return (key.len() >= 8 && key.slice(0, 8) == ""subsidy|"")"
+ai/OpexAI/projects_update.nut,310,8,inline,"return (key.len() >= 8 && key.slice(0, 8) == ""subsidy|"")"
+ai/OpexAI/projects_update.nut,311,6,inline,"|| (key.len() >= 6 && key.slice(0, 6) == ""fleet|"");"
+ai/OpexAI/projects_update.nut,311,6,inline,"|| (key.len() >= 6 && key.slice(0, 6) == ""fleet|"");"
+ai/OpexAI/rail_preastar_probe.nut,18,4,inline,local minFree = 4;
+ai/OpexAI/rail_preastar_probe.nut,21,4,inline,local minWater = 4;
+ai/OpexAI/rail_prep_c121.nut,12,3,definition,const C121_RAIL_PREP_MAX = 3;
+ai/OpexAI/rail_prep_c121.nut,215,12,inline,local stamp = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+ai/OpexAI/rail_templates.nut,28,3,definition,const OPEX_ORIENT_SE = 3;
+ai/OpexAI/rail_templates.nut,29,7,definition,const OPEX_TEMPLATE_SIGNAL_INTERVAL = 7;
+ai/OpexAI/rail_templates.nut,64,3,inline,"return OpexTemplateMoveTile(originTile, -x + 3, y, orientation);"
+ai/OpexAI/rail_templates.nut,142,3,inline,for (local x = 0; x < 3; x++) {
+ai/OpexAI/rail_templates.nut,143,3,inline,for (local y = 0; y <= length + 3; y++) {
+ai/OpexAI/rail_templates.nut,149,3,inline,"local extraDepot = OpexSourceAt(originTile, 3, length + 2, orientation);"
+ai/OpexAI/rail_templates.nut,174,2147483647,inline,local minX = 2147483647;
+ai/OpexAI/rail_templates.nut,175,2147483647,inline,local minY = 2147483647;
+ai/OpexAI/rail_templates.nut,228,3,inline,"[[2, 1], [2, 2], [3, 2]],"
+ai/OpexAI/rail_templates.nut,229,3,inline,"[[2, 3], [2, 2], [1, 2]],"
+ai/OpexAI/rail_templates.nut,230,3,inline,"[[2, 3], [2, 2], [3, 2]],"
+ai/OpexAI/rail_templates.nut,230,3,inline,"[[2, 3], [2, 2], [3, 2]],"
+ai/OpexAI/rail_templates.nut,295,10,inline,"function OpexFindSourceTemplateSite(catalog, candidate, length, maxRadius = 10)"
+ai/OpexAI/rail_templates.nut,322,10,inline,"function OpexFindDestTemplateSite(catalog, candidate, length, maxRadius = 10)"
+ai/OpexAI/rail_templates.nut,333,8,inline,if (cargoVal < 8) continue;
+ai/OpexAI/rail_templates.nut,403,3,inline,"local arrTile = OpexSourceAt(originTile, 2, length + 3, orientation);"
+ai/OpexAI/rail_templates.nut,573,7,inline,"function OpexBuildBlockSignals(tiles, interval = 7)"
+ai/OpexAI/rail_templates.nut,575,3,inline,if (tiles == null || tiles.len() < 3) return;
+ai/OpexAI/rail_templates.nut,687,3,inline,local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
+ai/OpexAI/rail_templates.nut,700,3,inline,if (tiles1 == null || tiles1.len() < 3) {
+ai/OpexAI/rail_templates.nut,721,3,inline,deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
+ai/OpexAI/rail_templates.nut,738,3,inline,if (tiles2 == null || tiles2.len() < 3) {
+ai/OpexAI/scheduler.nut,18,12,inline,local ym = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+ai/OpexAI/scheduler.nut,138,12,inline,local ym = year * 12 + AIDate.GetMonth(date);
+ai/OpexAI/scheduler.nut,235,12,inline,} else if (curM == 12 && curD >= 28 && this._c55PaxLastFlushedYear != curY) {
+ai/OpexAI/scheduler.nut,235,28,inline,} else if (curM == 12 && curD >= 28 && this._c55PaxLastFlushedYear != curY) {
+ai/OpexAI/scheduler.nut,426,500,inline,local nextEst = sliceOps + 500;
+ai/OpexAI/scheduler.nut,427,1500,inline,if (nextEst < 1500) nextEst = 1500;
+ai/OpexAI/scheduler.nut,427,1500,inline,if (nextEst < 1500) nextEst = 1500;
+ai/OpexAI/scheduler.nut,451,500,inline,local nextEst = sliceOps + 500;
+ai/OpexAI/scheduler.nut,452,1500,inline,if (nextEst < 1500) nextEst = 1500;
+ai/OpexAI/scheduler.nut,452,1500,inline,if (nextEst < 1500) nextEst = 1500;
+ai/OpexAI/scheduler.nut,510,1500,inline,local minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
+ai/OpexAI/scheduler.nut,510,1500,inline,local minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
+ai/OpexAI/scheduler.nut,511,2500,inline,"if (V88_STEP2_RAIL_PRIO && minThreshold > 2500 && (""candidate"" in this._railSearch) && this._railSearch.candidate != null"
+ai/OpexAI/scheduler.nut,514,2500,inline,minThreshold = 2500;
+ai/OpexAI/scheduler.nut,521,1500,inline,minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
+ai/OpexAI/scheduler.nut,521,1500,inline,minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
+ai/OpexAI/scheduler.nut,523,2500,inline,"if (V88_STEP2_RAIL_PRIO && minThreshold > 2500 && this._railSearch != null && (""candidate"" in this._railSearch) && this._railSearch.candidate != null"
+ai/OpexAI/scheduler.nut,526,2500,inline,minThreshold = 2500;
+ai/OpexAI/scheduler_tasks.nut,12,2000,inline,&& AIController.GetOpsTillSuspend() > 2000;
+ai/OpexAI/scheduler_tasks.nut,29,12,inline,? (owner._generationStageMonth - 1) / 12 : AIDate.GetYear(AIDate.GetCurrentDate());
+ai/OpexAI/scheduler_tasks.nut,43,64,inline,&& OpexAirTownPoolLimit(owner._catalog.towns) <= 64)) return false;
+ai/OpexAI/scheduler_tasks.nut,94,2147483647,inline,"owner._taskQueue.append({ name = ""air_cat_scan"", dueCycle = 2147483647, enabled = false });"
+ai/OpexAI/scheduler_tasks.nut,95,2147483647,inline,"owner._taskQueue.append({ name = ""air_cat_publish"", dueCycle = 2147483647, enabled = false });"
+ai/OpexAI/scheduler_tasks.nut,96,2147483647,inline,"owner._taskQueue.append({ name = ""air_cat_apply"", dueCycle = 2147483647, enabled = false });"
+ai/OpexAI/scheduler_tasks.nut,116,3,inline,for (local i = V147_TASK_BASE; i < V147_TASK_BASE + 3; i++) {
+ai/OpexAI/scheduler_tasks.nut,128,2147483647,inline,t.dueCycle = 2147483647;
+ai/OpexAI/scheduler_tasks.nut,139,3,inline,for (local i = V147_TASK_BASE; i < V147_TASK_BASE + 3; i++) {
+ai/OpexAI/scheduler_tasks.nut,237,93000,inline,local regenDays = (s.regenOps + 93000) / 186000;
+ai/OpexAI/scheduler_tasks.nut,237,186000,inline,local regenDays = (s.regenOps + 93000) / 186000;
+ai/OpexAI/scheduler_tasks.nut,284,150000,inline,if (C121_CATALOG_INCREMENTAL && sliceBudget > 150000) sliceBudget = 150000;
+ai/OpexAI/scheduler_tasks.nut,284,150000,inline,if (C121_CATALOG_INCREMENTAL && sliceBudget > 150000) sliceBudget = 150000;
+ai/OpexAI/scheduler_tasks.nut,338,12,inline,this._generationStageMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/scheduler_tasks.nut,339,12,definition,C121_CATALOG_FIRST_YEAR_ACTIVE = year == (this._generationStageMonth - 1) / 12;
+ai/OpexAI/scheduler_tasks.nut,376,12,inline,local ym = year * 12 + AIDate.GetMonth(date);
+ai/OpexAI/scheduler_tasks.nut,519,93000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/scheduler_tasks.nut,519,186000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/scheduler_tasks.nut,560,93000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/scheduler_tasks.nut,560,186000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/scheduler_tasks.nut,779,100,inline,local yy = year % 100;
+ai/OpexAI/scheduler_tasks.nut,789,1000,inline,"+ ""|"" + this._budget.nested + ""|"" + (this._projects.stats.selectionOpcodes / 1000));"
+ai/OpexAI/scheduler_tasks.nut,805,2147483647,inline,task.dueCycle = 2147483647;
+ai/OpexAI/scheduler_tasks.nut,837,2147483647,inline,task.dueCycle = 2147483647;
+ai/OpexAI/scheduler_tasks.nut,892,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""LB|"" + (year % 100) + ""|"""
+ai/OpexAI/scheduler_tasks.nut,920,100,inline,"OpexSign(AIMap.GetTileIndex(2, 1), ""UC|"" + (year % 100) + ""|"" + ucCash + ""|"" + ucLoan + ""|"" + ucReserve);"
+ai/OpexAI/scheduler_tasks.nut,921,100,inline,"OpexSign(AIMap.GetTileIndex(2, 2), ""UP|"" + (year % 100) + ""|"" + ucAvail + ""|"" + ucHeadNeed + ""|"" + ucHeadMode);"
+ai/OpexAI/scheduler_tasks.nut,922,3,inline,"OpexSign(AIMap.GetTileIndex(2, 3), ""UR|"" + (year % 100) + ""|"" + ucRailPhase + ""|"" + ucRailNeed);"
+ai/OpexAI/scheduler_tasks.nut,922,100,inline,"OpexSign(AIMap.GetTileIndex(2, 3), ""UR|"" + (year % 100) + ""|"" + ucRailPhase + ""|"" + ucRailNeed);"
+ai/OpexAI/scheduler_tasks.nut,925,4,inline,"OpexSign(AIMap.GetTileIndex(2, 4), ""US|"" + (year % 100) + ""|"" + this._c49ScarcityLedger.cash"
+ai/OpexAI/scheduler_tasks.nut,925,100,inline,"OpexSign(AIMap.GetTileIndex(2, 4), ""US|"" + (year % 100) + ""|"" + this._c49ScarcityLedger.cash"
+ai/OpexAI/scheduler_tasks.nut,927,5,inline,"OpexSign(AIMap.GetTileIndex(2, 5), ""UT|"" + (year % 100) + ""|"" + this._c49ScarcityLedger.stop_k_pass"
+ai/OpexAI/scheduler_tasks.nut,927,100,inline,"OpexSign(AIMap.GetTileIndex(2, 5), ""UT|"" + (year % 100) + ""|"" + this._c49ScarcityLedger.stop_k_pass"
+ai/OpexAI/scheduler_tasks.nut,932,6,inline,"OpexSign(AIMap.GetTileIndex(2, 6), ""UB|"" + (year % 100) + ""|"" + C75_YEAR_LEDGER.passes"
+ai/OpexAI/scheduler_tasks.nut,932,100,inline,"OpexSign(AIMap.GetTileIndex(2, 6), ""UB|"" + (year % 100) + ""|"" + C75_YEAR_LEDGER.passes"
+ai/OpexAI/scheduler_tasks.nut,1183,12,inline,local ym = year * 12 + AIDate.GetMonth(date);
+ai/OpexAI/selection_diagnostics.nut,65,1000,inline,+ ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0) });
+ai/OpexAI/selection_diagnostics.nut,76,10.0,inline,while (magnitude >= 10.0) { magnitude /= 10.0; exponent++; }
+ai/OpexAI/selection_diagnostics.nut,76,10.0,inline,while (magnitude >= 10.0) { magnitude /= 10.0; exponent++; }
+ai/OpexAI/selection_diagnostics.nut,77,10.0,inline,while (magnitude < 1.0) { magnitude *= 10.0; exponent--; }
+ai/OpexAI/selection_diagnostics.nut,78,100000000.0,inline,"return (value < 0.0 ? ""-"" : """") + (magnitude * 100000000.0).tointeger()"
+ai/OpexAI/selection_diagnostics.nut,79,8,inline,"+ ""e"" + (exponent - 8);"
+ai/OpexAI/selftests.nut,51,3,inline,targetSteps = 3
+ai/OpexAI/selftests.nut,56,10000,inline,local budgetOps = 10000;
+ai/OpexAI/selftests.nut,57,100,inline,local deadlineTick = AIController.GetTick() + 100;
+ai/OpexAI/selftests.nut,172,101,inline,"servedTownsList = [101, 102, 103],"
+ai/OpexAI/selftests.nut,172,102,inline,"servedTownsList = [101, 102, 103],"
+ai/OpexAI/selftests.nut,172,103,inline,"servedTownsList = [101, 102, 103],"
+ai/OpexAI/selftests.nut,173,1970,inline,"year = 1970,"
+ai/OpexAI/selftests.nut,177,101,inline,"townWorker.state.mockResults.rawset(101, false);"
+ai/OpexAI/selftests.nut,178,102,inline,"townWorker.state.mockResults.rawset(102, true);"
+ai/OpexAI/selftests.nut,179,103,inline,"townWorker.state.mockResults.rawset(103, false);"
+ai/OpexAI/selftests.nut,223,10,inline,"entityKind = ""town"", entityId = 10, buildAfter = true, reason = ""event"""
+ai/OpexAI/selftests.nut,225,7,inline,"this._enqueueReactive(""test_subsidy"", ""c77_subsidy"", { subsidyId = 7 });"
+ai/OpexAI/selftests.nut,238,10,inline,"entityId = 10,"
+ai/OpexAI/selftests.nut,282,5,inline,if (loadedQ.len() != 5) {
+ai/OpexAI/selftests.nut,301,10,inline,|| qItem2.payload == null || qItem2.payload.entityId != 10) {
+ai/OpexAI/selftests.nut,311,7,inline,|| qItem3.payload == null || qItem3.payload.subsidyId != 7) {
+ai/OpexAI/selftests.nut,355,3,inline,"if (loadedW.state.cursor != 1 || loadedW.state.modes.len() != 3 || loadedW.state.modes[0] != ""air"""
+ai/OpexAI/selftests.nut,356,10,inline,"|| loadedW.state.targeted != true || loadedW.state.entityKind != ""town"" || loadedW.state.entityId != 10"
+ai/OpexAI/selftests.nut,382,3,inline,targetSteps = 3
+ai/OpexAI/selftests.nut,429,10000,inline,"local mutStepOutcome = OpexWorkerStep(this._activeWorker, 10000, AIController.GetTick() + 100);"
+ai/OpexAI/selftests.nut,429,100,inline,"local mutStepOutcome = OpexWorkerStep(this._activeWorker, 10000, AIController.GetTick() + 100);"
+ai/OpexAI/selftests.nut,457,999,inline,local injectNullResult = this._c77InjectSubsidy(999);
+ai/OpexAI/selftests.nut,468,77,inline,"payload = { isSubsidy = true, subsidyId = 77 }"
+ai/OpexAI/selftests.nut,474,88,inline,"payload = { isSubsidy = true, subsidyId = 88 }"
+ai/OpexAI/selftests.nut,477,77,inline,"payload = { isSubsidy = true, subsidyId = 77 }"
+ai/OpexAI/selftests.nut,495,77,inline,this._purgeSubsidyFromProjects(77);
+ai/OpexAI/selftests.nut,505,77,inline,if (this._projects.best[0].payload.subsidyId == 77 || this._projects.best[1].payload.subsidyId == 77) {
+ai/OpexAI/selftests.nut,505,77,inline,if (this._projects.best[0].payload.subsidyId == 77 || this._projects.best[1].payload.subsidyId == 77) {
+ai/OpexAI/selftests.nut,513,77,inline,if (this._projects.road.best.len() != 1 || this._projects.road.best[0].payload.subsidyId == 77) {
+ai/OpexAI/selftests.nut,540,999,inline,this._purgeSubsidyFromProjects(999);
+ai/OpexAI/settings.nut,10,8,inline,"probe_scheduler = 8,"
+ai/OpexAI/settings.nut,11,8,inline,"probe_loop_ops = 8,"
+ai/OpexAI/settings.nut,12,8,inline,"probe_span_trace = 8,"
+ai/OpexAI/settings.nut,13,8,inline,"probe_event_backlog = 8,"
+ai/OpexAI/settings.nut,14,8,inline,"catalog_cost_probe = 8,"
+ai/OpexAI/settings.nut,15,8,inline,"probe_candidates_road = 8,"
+ai/OpexAI/settings.nut,16,8,inline,"probe_candidates_rail = 8,"
+ai/OpexAI/settings.nut,17,8,inline,"probe_catalogue = 8,"
+ai/OpexAI/settings.nut,18,16,inline,"air_p0_margin_probe = 16,"
+ai/OpexAI/settings.nut,19,16,inline,"probe_c121_engine_table = 16,"
+ai/OpexAI/settings.nut,20,16,inline,"probe_air_engine_depth = 16,"
+ai/OpexAI/settings.nut,21,16,inline,"probe_air_finance_margin = 16,"
+ai/OpexAI/settings.nut,22,16,inline,"probe_select_reject = 16,"
+ai/OpexAI/settings.nut,23,16,inline,"fleet_amort_shadow_probe = 16,"
+ai/OpexAI/settings.nut,24,16,inline,"v95_air_post73_probe = 16,"
+ai/OpexAI/settings.nut,25,16,inline,"air_bfail_precheck_shadow = 16,"
+ai/OpexAI/settings.nut,26,16,inline,"air_site_stale_shadow = 16,"
+ai/OpexAI/settings.nut,27,16,inline,"c97_air_c69_engine_probe = 16,"
+ai/OpexAI/settings.nut,28,16,inline,"c98_air_realized_probe = 16,"
+ai/OpexAI/settings.nut,29,16,inline,"c104_air_c100_compare_probe = 16,"
+ai/OpexAI/settings.nut,30,16,inline,"c116_air_project_probe = 16,"
+ai/OpexAI/settings.nut,31,16,inline,"c117_air_throughput_probe = 16,"
+ai/OpexAI/settings.nut,32,16,inline,"c121_station_flux_probe = 16,"
+ai/OpexAI/settings.nut,33,16,inline,"c118_air_coverage_probe = 16,"
+ai/OpexAI/settings.nut,34,16,inline,"c121_air_economics_shadow = 16,"
+ai/OpexAI/settings.nut,35,16,inline,"c121_air_first_live_shadow = 16,"
+ai/OpexAI/settings.nut,36,16,inline,"c121_kpass_shadow = 16,"
+ai/OpexAI/settings.nut,37,16,inline,"c121_kdec_cold_shadow = 16,"
+ai/OpexAI/settings.nut,38,16,inline,"c121_air_pressure_probe = 16,"
+ai/OpexAI/settings.nut,39,16,inline,"c121_air_engine_replay_shadow = 16,"
+ai/OpexAI/settings.nut,40,16,inline,"c122_air_regime_shadow = 16,"
+ai/OpexAI/settings.nut,41,16,inline,"c122_air_threat_probe = 16,"
+ai/OpexAI/settings.nut,42,16,inline,"b9_air_catchment_probe = 16,"
+ai/OpexAI/settings.nut,43,16,inline,"b9_air_demand_shadow = 16,"
+ai/OpexAI/settings.nut,44,32,inline,"probe_rail_search = 32,"
+ai/OpexAI/settings.nut,45,32,inline,"rail_freight_select_shadow = 32,"
+ai/OpexAI/settings.nut,46,32,inline,"rail_failure_audit = 32,"
+ai/OpexAI/settings.nut,47,32,inline,"probe_rail_preastar = 32,"
+ai/OpexAI/settings.nut,48,32,inline,"rail_origin_exposure_shadow = 32,"
+ai/OpexAI/settings.nut,49,32,inline,"rail_origin_exposure_detail_shadow = 32,"
+ai/OpexAI/settings.nut,50,32,inline,"rail_origin_reuse_air_priority_shadow = 32,"
+ai/OpexAI/settings.nut,51,32,inline,"probe_rail_terrain = 32,"
+ai/OpexAI/settings.nut,52,64,inline,"probe_cost = 64,"
+ai/OpexAI/settings.nut,53,64,inline,"road_finance_gate_shadow_p0 = 64,"
+ai/OpexAI/settings.nut,54,64,inline,"road_quote_components_shadow_p0 = 64,"
+ai/OpexAI/settings.nut,55,64,inline,"c67_water_exposure_probe = 64,"
+ai/OpexAI/settings.nut,56,128,inline,"probe_events = 128,"
+ai/OpexAI/settings.nut,57,128,inline,"probe_vehicle_lost = 128,"
+ai/OpexAI/settings.nut,58,128,inline,"probe_portfolio = 128,"
+ai/OpexAI/settings.nut,59,256,inline,"exp_opcode_exact_check = 256,"
+ai/OpexAI/settings.nut,60,256,inline,"v90_pathfinder_check = 256,"
+ai/OpexAI/settings.nut,61,256,inline,"v129_rail_astar_check = 256,"
+ai/OpexAI/settings.nut,62,256,inline,"v94_air_site_check = 256,"
+ai/OpexAI/settings.nut,63,256,inline,"v141_catalog_incremental_check = 256,"
+ai/OpexAI/settings.nut,81,254,inline,if ((probes & 1) != 0) probes = probes | 254;
+ai/OpexAI/settings.nut,87,508,definition,DECISION_LOG = (probes & 508) != 0
+ai/OpexAI/settings.nut,123,100,definition,V185_RAIL_SHORT_FREIGHT_PCT = (shortFreight != null && shortFreight > 0 && shortFreight <= 100) ? shortFreight : 0;
+ai/OpexAI/settings.nut,128,300,definition,V172_RAIL_LONG_WEIGHT_PCT = (longWeightPct != null && longWeightPct >= 0 && longWeightPct <= 300) ? longWeightPct : 200;
+ai/OpexAI/settings.nut,128,200,definition,V172_RAIL_LONG_WEIGHT_PCT = (longWeightPct != null && longWeightPct >= 0 && longWeightPct <= 300) ? longWeightPct : 200;
+ai/OpexAI/settings.nut,130,512,definition,V172_RAIL_LONG_WEIGHT_DIST = (longWeightDist != null && longWeightDist >= 0 && longWeightDist <= 512) ? longWeightDist : 100;
+ai/OpexAI/settings.nut,130,100,definition,V172_RAIL_LONG_WEIGHT_DIST = (longWeightDist != null && longWeightDist >= 0 && longWeightDist <= 512) ? longWeightDist : 100;
+ai/OpexAI/settings.nut,135,5,definition,V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
+ai/OpexAI/settings.nut,137,400,definition,V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
+ai/OpexAI/settings.nut,139,8,definition,V181_RAIL_MAX_TRAINS = (maxTrains != null && maxTrains > 0 && maxTrains <= 8) ? maxTrains : 0;
+ai/OpexAI/settings.nut,141,4,definition,V184_RAIL_SEARCH_SLOTS = (railSlots != null && railSlots >= 1 && railSlots <= 4) ? railSlots : 1;
+ai/OpexAI/settings.nut,143,400,definition,V192_RAIL_TIME_DENOM_PCT = (timeDenom != null && timeDenom > 0 && timeDenom <= 400) ? timeDenom : 0;
+ai/OpexAI/settings.nut,145,10,definition,V193_CHAIN_TOWNS = (chainTowns != null && chainTowns > 0 && chainTowns <= 10) ? chainTowns : 0;
+ai/OpexAI/settings.nut,148,10,definition,V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
+ai/OpexAI/settings.nut,150,16,definition,V186_RAIL_SEARCH_SLICES = (railSlices != null && railSlices >= 1 && railSlices <= 16) ? railSlices : 1;
+ai/OpexAI/settings.nut,160,20,definition,V199_LEVEL_BUDGET_K = (v199LevelBudget != null && v199LevelBudget >= 0) ? v199LevelBudget : 20;
+ai/OpexAI/settings.nut,162,100,definition,V207_RAIL_PAX_SHARE_PCT = (v207Share != null && v207Share >= 0 && v207Share <= 100) ? v207Share : 0;
+ai/OpexAI/settings.nut,165,4,definition,V207_RAIL_PAX_JOINED_STOPS = (v207Stops != null && v207Stops >= 0 && v207Stops <= 4) ? v207Stops : 0;
+ai/OpexAI/settings.nut,167,100,definition,V207_RAIL_PAX_SITE_RANK_PCT = (v207Rank != null && v207Rank >= 0 && v207Rank <= 100) ? v207Rank : 0;
+ai/OpexAI/settings.nut,169,50,definition,V212_RAIL_PAX_REVENUE_PCT = (v212Revenue != null && v212Revenue >= 50 && v212Revenue <= 300) ? v212Revenue : 100;
+ai/OpexAI/settings.nut,169,300,definition,V212_RAIL_PAX_REVENUE_PCT = (v212Revenue != null && v212Revenue >= 50 && v212Revenue <= 300) ? v212Revenue : 100;
+ai/OpexAI/settings.nut,169,100,definition,V212_RAIL_PAX_REVENUE_PCT = (v212Revenue != null && v212Revenue >= 50 && v212Revenue <= 300) ? v212Revenue : 100;
+ai/OpexAI/settings.nut,171,50,definition,V212_RAIL_PAX_CAPITAL_PCT = (v212Capital != null && v212Capital >= 50 && v212Capital <= 200) ? v212Capital : 100;
+ai/OpexAI/settings.nut,171,200,definition,V212_RAIL_PAX_CAPITAL_PCT = (v212Capital != null && v212Capital >= 50 && v212Capital <= 200) ? v212Capital : 100;
+ai/OpexAI/settings.nut,171,100,definition,V212_RAIL_PAX_CAPITAL_PCT = (v212Capital != null && v212Capital >= 50 && v212Capital <= 200) ? v212Capital : 100;
+ai/OpexAI/settings.nut,173,2000,definition,V214_RAIL_TURN_COST = (v214Turn != null && v214Turn >= 0 && v214Turn <= 2000) ? v214Turn : 0;
+ai/OpexAI/settings.nut,175,5000,definition,V214_RAIL_TIGHT_TURN_COST = (v214Tight != null && v214Tight >= 0 && v214Tight <= 5000) ? v214Tight : 0;
+ai/OpexAI/settings.nut,180,8,definition,V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
+ai/OpexAI/settings.nut,180,4,definition,V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
+ai/OpexAI/settings.nut,245,1000,definition,"LOAN_REPAY_FLOOR = AIController.GetSetting(""loan_repay_floor_k"") * 1000;"
+ai/OpexAI/settings.nut,246,1000,definition,"HARD_ITERATION_CAP = AIController.GetSetting(""pathfinder_hard_cap_k"") * 1000;"
+ai/OpexAI/settings.nut,276,1000,inline,"? AIController.GetSetting(""rail_origin_reuse_search_cap_k"") * 1000 : 0;"
+ai/OpexAI/settings.nut,295,22,definition,ROAD_PAX_CATCHMENT_SHARE_PCT = (roadPaxCatchment == 0) ? 22 : roadPaxCatchment;
+ai/OpexAI/settings.nut,796,100,definition,V91_ASTAR_WEIGHT_PCT = (astarWeight != null && astarWeight >= 100 && astarWeight <= 300) ? astarWeight : 100;
+ai/OpexAI/settings.nut,796,300,definition,V91_ASTAR_WEIGHT_PCT = (astarWeight != null && astarWeight >= 100 && astarWeight <= 300) ? astarWeight : 100;
+ai/OpexAI/settings.nut,796,100,definition,V91_ASTAR_WEIGHT_PCT = (astarWeight != null && astarWeight >= 100 && astarWeight <= 300) ? astarWeight : 100;
+ai/OpexAI/settings.nut,800,90,definition,RAIL_FINANCE_BIAS_PCT = (railBias != null && railBias >= 90 && railBias <= 200) ? railBias : 100;
+ai/OpexAI/settings.nut,800,200,definition,RAIL_FINANCE_BIAS_PCT = (railBias != null && railBias >= 90 && railBias <= 200) ? railBias : 100;
+ai/OpexAI/settings.nut,800,100,definition,RAIL_FINANCE_BIAS_PCT = (railBias != null && railBias >= 90 && railBias <= 200) ? railBias : 100;
+ai/OpexAI/task_air.nut,38,10,inline,"+ (month < 10 ? ""0"" + month : """" + month) + ""-"""
+ai/OpexAI/task_air.nut,39,10,inline,"+ (day < 10 ? ""0"" + day : """" + day);"
+ai/OpexAI/task_air.nut,79,2000,inline,: 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100)
+ai/OpexAI/task_air.nut,79,100,inline,: 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100)
+ai/OpexAI/task_air.nut,205,3,inline,"local oldA = (""v126LevelA"" in st) ? st.v126LevelA : -3;"
+ai/OpexAI/task_air.nut,206,3,inline,"local oldB = (""v126LevelB"" in st) ? st.v126LevelB : -3;"
+ai/OpexAI/task_air.nut,209,3,inline,"local missing = !(""v126Quoted"" in st) || !st.v126Quoted || oldA == -3 || oldB == -3;"
+ai/OpexAI/task_air.nut,209,3,inline,"local missing = !(""v126Quoted"" in st) || !st.v126Quoted || oldA == -3 || oldB == -3;"
+ai/OpexAI/task_air.nut,219,100,inline,newNeed += (cashShift * AIR_SITE_COST_MARGIN_PCT) / 100;
+ai/OpexAI/task_air.nut,308,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_air.nut,316,30,inline,local maxPerYear = 30;
+ai/OpexAI/task_air.nut,317,250,inline,local maxTotal = 250;
+ai/OpexAI/task_air.nut,318,12,inline,local maxBatch = 12;
+ai/OpexAI/task_air.nut,331,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_air.nut,357,2000,inline,local maxCapital = money - baseReserve - 2000;
+ai/OpexAI/task_air.nut,360,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_air.nut,380,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_air.nut,405,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_air.nut,614,15,inline,"if (AIMap.DistanceManhattan(town.tile, orig) < 15) {"
+ai/OpexAI/task_air.nut,723,30,inline,local maxPerYear = 30;
+ai/OpexAI/task_air.nut,724,250,inline,local maxTotal = 250;
+ai/OpexAI/task_air.nut,899,100,inline,"OpexSign(anchor, ""C8V|"" + (AIDate.GetYear(c118Now) % 100) + ""|"" + AIDate.GetMonth(c118Now)"
+ai/OpexAI/task_air.nut,1010,30000,inline,"OpexC50LogCashRefusal(""air_fleet"", line.lineId, 30000, 0, 0, stA, stB, 30000, money);"
+ai/OpexAI/task_air.nut,1010,30000,inline,"OpexC50LogCashRefusal(""air_fleet"", line.lineId, 30000, 0, 0, stA, stB, 30000, money);"
+ai/OpexAI/task_air.nut,1013,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_air.nut,1029,12,inline,local ym = year * 12 + month;
+ai/OpexAI/task_air.nut,1033,10,inline,"OpexSign(AIMap.GetTileIndex(2, 10 + line.lineId),"
+ai/OpexAI/task_air.nut,1034,100,inline,"""FR|"" + (year % 100) + (month < 10 ? ""0"" + month : """" + month) + ""|"" + line.lineId + ""|"" + code);"
+ai/OpexAI/task_air.nut,1034,10,inline,"""FR|"" + (year % 100) + (month < 10 ? ""0"" + month : """" + month) + ""|"" + line.lineId + ""|"" + code);"
+ai/OpexAI/task_air.nut,1108,365,inline,if (AIR_FLEET_CADENCE_DAYS >= 365) {
+ai/OpexAI/task_air.nut,1187,365,inline,if (AIR_FLEET_CADENCE_DAYS >= 365) {
+ai/OpexAI/task_air.nut,1324,4,inline,local physicalMaxPlanes = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
+ai/OpexAI/task_air.nut,1370,30000,inline,local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
+ai/OpexAI/task_air.nut,1382,2000,inline,local need = planePrice + OpexCashReserve() + 2000;
+ai/OpexAI/task_air.nut,1384,4,inline,local maxAddedPerPass = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : 4;
+ai/OpexAI/task_air.nut,1424,4,inline,maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
+ai/OpexAI/task_air.nut,1424,4,inline,maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
+ai/OpexAI/task_air.nut,1464,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_air.nut,1514,10,inline,"OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), ""FG|"" + (year % 100) + ""|"" + line.lineId + ""|"" + have + ""|K"");"
+ai/OpexAI/task_air.nut,1514,100,inline,"OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), ""FG|"" + (year % 100) + ""|"" + line.lineId + ""|"" + have + ""|K"");"
+ai/OpexAI/task_projects.nut,56,12,inline,local curMonth = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+ai/OpexAI/task_projects.nut,403,6,inline,local end = rank + 6;
+ai/OpexAI/task_projects.nut,444,64,inline,local limit = this._projects.best.len() < 64 ? this._projects.best.len() : 64;
+ai/OpexAI/task_projects.nut,444,64,inline,local limit = this._projects.best.len() < 64 ? this._projects.best.len() : 64;
+ai/OpexAI/task_projects.nut,601,11,inline,local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
+ai/OpexAI/task_projects.nut,749,11,inline,if (previous != 1 && previous != 11 && previous != 2) return;
+ai/OpexAI/task_projects.nut,750,11,inline,local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
+ai/OpexAI/task_projects.nut,771,10,inline,local state = remaining + (ownPresent ? 10 : 0);
+ai/OpexAI/task_projects.nut,779,11,inline,} else if (state == 1 || state == 11) {
+ai/OpexAI/task_projects.nut,781,11,inline,if (state == 11 && (townId in ai._c83SlotRace)) delete ai._c83SlotRace[townId];
+ai/OpexAI/task_projects.nut,804,10,inline,local state = remaining + (ownPresent ? 10 : 0);
+ai/OpexAI/task_projects.nut,884,365,inline,local rearmDays = 365;
+ai/OpexAI/task_projects.nut,953,365,inline,if (lastEnqueue >= 0 && today - lastEnqueue < 365) {
+ai/OpexAI/task_projects.nut,1016,10,inline,local state = remaining + (ownPresent ? 10 : 0);
+ai/OpexAI/task_projects.nut,1026,11,inline,} else if (C78_SLOT_INTERCEPT_PROBE && remaining == 0 && (previous == 11 || previous == 2)) {
+ai/OpexAI/task_projects.nut,1028,11,inline,if (previous == 11) {
+ai/OpexAI/task_projects.nut,1032,11,inline,local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
+ai/OpexAI/task_projects.nut,1038,11,inline,if (remaining == 0 && (previous == 1 || previous == 11 || previous == 2)) {
+ai/OpexAI/task_projects.nut,1040,11,inline,if (previous == 11) {
+ai/OpexAI/task_projects.nut,1184,8,inline,local autopsyN = this._projects.best.len() < 8 ? this._projects.best.len() : 8;
+ai/OpexAI/task_projects.nut,1184,8,inline,local autopsyN = this._projects.best.len() < 8 ? this._projects.best.len() : 8;
+ai/OpexAI/task_projects.nut,1395,12,inline,&& year == (this._generationStageMonth - 1) / 12;
+ai/OpexAI/task_projects.nut,1455,100,inline,local yy = year % 100;
+ai/OpexAI/task_projects.nut,1584,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_projects.nut,2001,3,inline,local maxLog = passDiscards.len() < 3 ? passDiscards.len() : 3;
+ai/OpexAI/task_projects.nut,2001,3,inline,local maxLog = passDiscards.len() < 3 ? passDiscards.len() : 3;
+ai/OpexAI/task_projects.nut,2061,93000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/task_projects.nut,2061,186000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/task_projects.nut,2085,93000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/task_projects.nut,2085,186000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/task_projects.nut,2102,93000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/task_projects.nut,2102,186000,inline,local c76Days = (c76Ops + 93000) / 186000;
+ai/OpexAI/task_projects.nut,2117,1000,inline,"+ ""|"" + this._budget.nested + ""|"" + (this._projects.stats.selectionOpcodes / 1000));"
+ai/OpexAI/task_projects.nut,2162,12,inline,this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_projects.nut,2163,12,definition,C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12;
+ai/OpexAI/task_projects.nut,2176,12,inline,this._generationStageMonth = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+ai/OpexAI/task_projects.nut,2186,64,inline,&& OpexAirTownPoolLimit(this._catalog.towns) > 64
+ai/OpexAI/task_rail.nut,108,3,inline,"|| AIMap.DistanceManhattan(exclude, center) != 1 || !AIRail.IsRailTile(center)) return -3;"
+ai/OpexAI/task_rail.nut,130,4,inline,"if (!AIRail.BuildRail(exclude, center, candidate)) return -4;"
+ai/OpexAI/task_rail.nut,195,12,inline,&& AIDate.GetYear(AIDate.GetCurrentDate()) == (this._generationStageMonth - 1) / 12) {
+ai/OpexAI/task_rail.nut,545,365,inline,this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+ai/OpexAI/task_rail.nut,556,180,inline,this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 180;
+ai/OpexAI/task_rail.nut,613,365,inline,this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+ai/OpexAI/task_rail.nut,782,1000,inline,local utilPermille = (line.lastRevenue * 1000) / oldEcon.capacityRevenueAnnual;
+ai/OpexAI/task_rail.nut,783,1000,inline,if (utilPermille > 1000) utilPermille = 1000;
+ai/OpexAI/task_rail.nut,783,1000,inline,if (utilPermille > 1000) utilPermille = 1000;
+ai/OpexAI/task_rail.nut,820,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""EU|"" + (year % 100) + ""|"" + nEligible + ""|"""
+ai/OpexAI/task_rail.nut,840,180,inline,"&& ((""buildDate"" in line) ? (AIDate.GetCurrentDate() - line.buildDate > 180) : ((""year"" in line) && (year - line.year >= 1)));"
+ai/OpexAI/task_rail.nut,850,4,inline,"local backlogThreshold = line.kind == ""freight"" ? (2 * wagon.capacity) : (4 * wagon.capacity);"
+ai/OpexAI/task_rail.nut,873,100,inline,"OpexSign(anchor, ""RD|"" + (year % 100) + ""|"" + line.lineId + ""|"" + line.trains);"
+ai/OpexAI/task_rail.nut,880,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_rail.nut,918,100,inline,"OpexSign(anchor, ""RU|"" + (year % 100) + ""|"" + line.lineId + ""|"" + prep.reason);"
+ai/OpexAI/task_rail.nut,926,100,inline,"OpexSign(anchor, ""RU|"" + (year % 100) + ""|"" + line.lineId + ""|"" + upgrade.reason);"
+ai/OpexAI/task_rail.nut,951,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_rail.nut,991,1000,inline,local need = trainCost + OpexCashReserve() + 1000;
+ai/OpexAI/task_rail.nut,1035,100,inline,"OpexSign(anchor, ""RC|"" + (year % 100) + ""|"" + line.lineId + ""|"" + line.trains);"
+ai/OpexAI/task_rail.nut,1072,1000,inline,local need = trainCost + OpexCashReserve() + 1000;
+ai/OpexAI/task_rail.nut,1113,100,inline,"OpexSign(anchor, ""RC|"" + (year % 100) + ""|"" + line.lineId + ""|"" + line.trains);"
+ai/OpexAI/task_rail.nut,1131,60,inline,local waitDays = (2 * best.oldEcon.oneWayDays).tointeger() + 60;
+ai/OpexAI/task_rail.nut,1132,120,inline,if (waitDays < 120) waitDays = 120;
+ai/OpexAI/task_rail.nut,1132,120,inline,if (waitDays < 120) waitDays = 120;
+ai/OpexAI/task_rail.nut,1133,730,inline,if (waitDays > 730) waitDays = 730;
+ai/OpexAI/task_rail.nut,1133,730,inline,if (waitDays > 730) waitDays = 730;
+ai/OpexAI/task_rail.nut,1154,100,inline,"OpexSign(anchor, ""EG|"" + (year % 100) + ""|"" + best.line.lineId + ""|"""
+ai/OpexAI/task_rail.nut,1156,100,inline,"OpexSign(anchor, ""ES|"" + (year % 100) + ""|"" + best.line.lineId + ""|"""
+ai/OpexAI/task_rail.nut,1175,100,inline,local year = AIDate.GetYear(AIDate.GetCurrentDate()) % 100;
+ai/OpexAI/task_rail.nut,1194,3,inline,if (state.resumeAttempts >= 3) {
+ai/OpexAI/task_rail.nut,1195,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/task_rail.nut,1211,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/task_rail.nut,1239,3,inline,if (state.dispatchAttempts >= 3) {
+ai/OpexAI/task_rail.nut,1240,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/task_rail.nut,1264,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/task_rail.nut,1290,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/task_rail.nut,1313,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/task_rail.nut,1321,16,inline,if (AIVehicle.GetLength(state.vehicle) + AIVehicle.GetLength(car) > line.platformLength * 16) {
+ai/OpexAI/task_rail.nut,1340,3,inline,line.expandRetryCycle <- this._taskCycle + 3;
+ai/OpexAI/task_rail.nut,1508,3,inline,deadlineTick = AIController.GetTick() + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
+ai/OpexAI/task_rail.nut,1623,100,inline,"local weightUsed = (""weight"" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);"
+ai/OpexAI/task_rail.nut,1634,100,inline,"local weightUsed = (""weight"" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);"
+ai/OpexAI/task_rail.nut,1639,100,inline,"local weightUsed = (""weight"" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);"
+ai/OpexAI/task_rail.nut,1658,100,inline,"local weightUsed = (""weight"" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);"
+ai/OpexAI/task_rail.nut,1731,100,inline,local yy = year % 100;
+ai/OpexAI/task_rail.nut,1759,100,inline,local yy = year % 100;
+ai/OpexAI/task_rail.nut,1790,100,inline,local yy = year % 100;
+ai/OpexAI/task_rail.nut,1839,100,inline,"+ "" weight="" + ((""searchWeight"" in candidate) ? candidate.searchWeight : (V90_FAST_PATHFINDER ? V91_ASTAR_WEIGHT_PCT : 100)));"
+ai/OpexAI/task_rail.nut,1994,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""RU|"" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)"
+ai/OpexAI/task_rail.nut,2002,100,inline,"OpexSign(AIMap.GetTileIndex(1, 1), ""RU|"" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)"
+ai/OpexAI/task_rail.nut,2056,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_rail.nut,2069,100,inline,"OpexSign(anchor, ""RU|"" + (year % 100) + ""|"" + state.line.lineId + ""|"" + upgrade.reason);"
+ai/OpexAI/task_rail.nut,2150,3,inline,local maxCost = (available * 3) / 2;
+ai/OpexAI/task_rail.nut,2151,30000,inline,if (maxCost < 30000) maxCost = 30000;
+ai/OpexAI/task_rail.nut,2151,30000,inline,if (maxCost < 30000) maxCost = 30000;
+ai/OpexAI/task_rail.nut,2219,365,inline,this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+ai/OpexAI/task_rail.nut,2241,365,inline,this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+ai/OpexAI/task_rail.nut,2253,365,inline,this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+ai/OpexAI/task_rail.nut,2331,180,inline,"local days = (""startDate"" in state) ? (curDate - state.startDate) : 180;"
+ai/OpexAI/task_rail.nut,2349,365,inline,this._railStockCooldown[pairKey] <- curDate + 365;
+ai/OpexAI/task_rail.nut,2416,365,inline,this._railStockCooldown[pairKey] <- curDate + 365;
+ai/OpexAI/task_rail.nut,2446,180,inline,if (age > 180) {
+ai/OpexAI/task_rail.nut,2461,180,inline,this._railStockCooldown[exp.key] <- curDate + 180;
+ai/OpexAI/task_rail.nut,2591,6,inline,if (nextRun.start - cur.end - 1 <= 6) {
+ai/OpexAI/task_rail.nut,2616,4,inline,local coverage = 4;
+ai/OpexAI/task_rail.nut,2623,8,inline,return value >= 8;
+ai/OpexAI/task_rail.nut,2705,16,inline,if (dist > 16) continue;
+ai/OpexAI/task_rail.nut,2708,12,inline,if (count >= 12 && best != null) break;
+ai/OpexAI/task_rail.nut,2795,3,inline,} else if (start <= 3) {
+ai/OpexAI/task_rail.nut,2830,4,inline,} else if (end >= n - 4) {
+ai/OpexAI/task_rail.nut,2837,3,inline,while (idx <= n - 3) {
+ai/OpexAI/task_rail.nut,2969,4,inline,if (run == null || found == null || found.len() < 4) return null;
+ai/OpexAI/task_rail.nut,2993,4,inline,if (found == null || found.len() < 4) return false;
+ai/OpexAI/task_rail.nut,3005,4,inline,if (n < 4) return null;
+ai/OpexAI/task_rail.nut,3018,4,inline,if (out.len() < 4) return null;
+ai/OpexAI/task_rail.nut,3025,4,inline,if (n < 4) return null;
+ai/OpexAI/task_rail.nut,3038,4,inline,if (out.len() < 4) return null;
+ai/OpexAI/task_rail.nut,3045,4,inline,if (n < 4) return null;
+ai/OpexAI/task_rail.nut,3054,3,inline,while (i <= n - 3) {
+ai/OpexAI/task_rail.nut,3063,4,inline,if (out.len() < 4) return null;
+ai/OpexAI/task_rail.nut,3187,10,inline,if (own * 10 >= tiles.len() * 4) {
+ai/OpexAI/task_rail.nut,3187,4,inline,if (own * 10 >= tiles.len() * 4) {
+ai/OpexAI/task_rail.nut,3199,4,inline,if (tiles == null || planA == null || planB == null || tiles.len() < 4) {
+ai/OpexAI/task_rail.nut,3320,600,inline,local budget = 600 + planned.blockedTiles * 40 + dist * 20;
+ai/OpexAI/task_rail.nut,3320,40,inline,local budget = 600 + planned.blockedTiles * 40 + dist * 20;
+ai/OpexAI/task_rail.nut,3320,20,inline,local budget = 600 + planned.blockedTiles * 40 + dist * 20;
+ai/OpexAI/task_rail.nut,3321,800,inline,if (budget < 800) budget = 800;
+ai/OpexAI/task_rail.nut,3321,800,inline,if (budget < 800) budget = 800;
+ai/OpexAI/task_rail.nut,3322,1800,inline,"if (firstRun.mode == ""full"" && budget < 1800) budget = 1800;"
+ai/OpexAI/task_rail.nut,3322,1800,inline,"if (firstRun.mode == ""full"" && budget < 1800) budget = 1800;"
+ai/OpexAI/task_rail.nut,3495,3,inline,if (planA == null || planB == null || tiles == null || tiles.len() < 3) {
+ai/OpexAI/task_report.nut,20,1000.0,inline,local ratioPm = (normalizedRevenue * 1000.0 / line.c121RawRevenueAnnual.tofloat()).tointeger();
+ai/OpexAI/task_report.nut,294,3,inline,if (isFreight && diagSlot < 3) {
+ai/OpexAI/task_report.nut,331,100,inline,"OpexSign(anchor, ""RX|"" + (year % 100) + ""|"" + line.lineId + ""|"" + lost + ""|"" + line.suspectedCrashes);"
+ai/OpexAI/task_report.nut,354,100,inline,"OpexSign(anchor, ""RV|"" + (year % 100) + ""|"" + line.lineId + ""|"" + moving.len() + ""|"""
+ai/OpexAI/task_report.nut,377,100,inline,"OpexSign(anchor, ""RY|"" + (year % 100) + ""|"" + line.lineId + ""|"" + kindCh + ""|"""
+ai/OpexAI/task_report.nut,550,30.4,inline,local predTripsPerMonth = predDays > 0 ? 30.4 / predDays.tofloat() : 0.0;
+ai/OpexAI/task_report.nut,639,100,inline,"OpexSign(anchor, ""FA|"" + (year % 100) + ""|"" + line.lineId + ""|"""
+ai/OpexAI/task_report.nut,699,1000,inline,local hubhubPm = phaseKnown > 0 ? phaseHubhub * 1000 / phaseKnown : 0;
+ai/OpexAI/task_report.nut,735,1970,inline,if (c73Year >= 1970) {
+ai/OpexAI/task_report.nut,746,1970,inline,if (c75BypassYear >= 1970 && C75_KPASS_BYPASS_LEDGER_YEAR == c75BypassYear) {
+ai/OpexAI/task_report.nut,919,365,inline,if (now - started < SCRAP_TIMEOUT_YEARS * 365) continue;
+ai/OpexAI/task_report.nut,922,365,inline,if (now - started >= SCRAP_TIMEOUT_YEARS * 365) {
+ai/OpexAI/task_report.nut,966,90,inline,if (lastSend < 0 || now - lastSend >= 90) {
+ai/OpexAI/task_report.nut,1034,100,inline,"OpexSign(anchor, ""TV|"" + (year % 100) + ""|"" + servedPops.len() + ""|"""
+ai/OpexAI/task_report.nut,1058,1000,inline,local pctUsed = (totalAvail > 0) ? ((totalUsed * 1000) / totalAvail) : 0;
+ai/OpexAI/task_report.nut,1059,1000,inline,local pctUnused = 1000 - pctUsed;
+ai/OpexAI/task_report.nut,1060,1000000,inline,"local btText = ""BT|"" + (totalUsed / 1000000) + ""M|"" + (totalUnused / 1000000) + ""M|"" + pctUsed + ""|"" + pctUnused;"
+ai/OpexAI/task_report.nut,1060,1000000,inline,"local btText = ""BT|"" + (totalUsed / 1000000) + ""M|"" + (totalUnused / 1000000) + ""M|"" + pctUsed + ""|"" + pctUnused;"
+ai/OpexAI/task_report.nut,1064,20,inline,"_budgetSignIds[""tot""] <- AISign.BuildSign(AIMap.GetTileIndex(20, 1), btText);"
+ai/OpexAI/task_report.nut,1069,1000,inline,local catPct = (totalUsed > 0) ? ((spent * 1000) / totalUsed) : 0;
+ai/OpexAI/task_report.nut,1070,1000,inline,local availPct = (totalAvail > 0) ? ((spent * 1000) / totalAvail) : 0;
+ai/OpexAI/task_report.nut,1071,1000,inline,"local bcText = ""BC|"" + cat + ""|"" + (spent / 1000) + ""k|"" + catPct + ""|"" + availPct;"
+ai/OpexAI/task_report.nut,1072,31,inline,"if (bcText.len() > 31) bcText = bcText.slice(0, 31);"
+ai/OpexAI/task_report.nut,1072,31,inline,"if (bcText.len() > 31) bcText = bcText.slice(0, 31);"
+ai/OpexAI/task_report.nut,1076,20,inline,"_budgetSignIds[cat] <- AISign.BuildSign(AIMap.GetTileIndex(20, catY), bcText);"
+ai/OpexAI/task_report.nut,1100,3,inline,"+ ""|"" + ranked.bands[2] + ""|"" + ranked.bands[3]);"
+ai/OpexAI/task_report.nut,1242,400,inline,if (allCandidates.len() > 400) {
+ai/OpexAI/task_report.nut,1249,400,inline,allCandidates.resize(400);
+ai/OpexAI/task_report.nut,1419,100,inline,local tol = baseP / 100;
+ai/OpexAI/task_road.nut,22,30,inline,? (candidate.chantierDays - 30) : (OpexSubsidyChantierDays(oneWay) - 30);
+ai/OpexAI/task_road.nut,22,30,inline,? (candidate.chantierDays - 30) : (OpexSubsidyChantierDays(oneWay) - 30);
+ai/OpexAI/task_road.nut,23,30,inline,if (chantier < 30) chantier = 30;
+ai/OpexAI/task_road.nut,23,30,inline,if (chantier < 30) chantier = 30;
+ai/OpexAI/task_road.nut,64,4,inline,"if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) {"
+ai/OpexAI/task_road.nut,68,4,inline,"if (OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) {"
+ai/OpexAI/task_road.nut,193,100,inline,"local freightBonus = (""freightBonus"" in candidate) ? candidate.freightBonus : 100;"
+ai/OpexAI/task_road.nut,194,1000,inline,local subRoi = (subProfit > 0 && candidate.capital > 0) ? (subProfit * 1000) / candidate.capital : 0;
+ai/OpexAI/task_road.nut,195,100,inline,if (freightBonus != 100) subRoi = (subRoi * freightBonus) / 100;
+ai/OpexAI/task_road.nut,195,100,inline,if (freightBonus != 100) subRoi = (subRoi * freightBonus) / 100;
+ai/OpexAI/task_road.nut,335,25,inline,"capacity = (""capacity"" in result) ? result.capacity : 25,"
+ai/OpexAI/task_road.nut,406,100,inline,"local ratingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoRating(stationA, line.cargo) : 100;"
+ai/OpexAI/task_road.nut,407,100,inline,"local ratingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoRating(stationB, line.cargo) : 100;"
+ai/OpexAI/task_road.nut,423,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_road.nut,430,200,inline,"if ((""lastProfit"" in line) && line.lastProfit < -200 && have >= 2) {"
+ai/OpexAI/task_road.nut,438,25,inline,"local capacity = (""capacity"" in line && line.capacity > 0) ? line.capacity : 25;"
+ai/OpexAI/task_road.nut,465,3,inline,if (extraNeeded > 3) extraNeeded = 3;
+ai/OpexAI/task_road.nut,465,3,inline,if (extraNeeded > 3) extraNeeded = 3;
+ai/OpexAI/task_road.nut,468,65,inline,else if (minRating < 65 && have < physicalCap && !isAnyWaiting && money > 35000) {
+ai/OpexAI/task_road.nut,468,35000,inline,else if (minRating < 65 && have < physicalCap && !isAnyWaiting && money > 35000) {
+ai/OpexAI/task_road.nut,472,1000,inline,"else if ((""lastProfit"" in line) && line.lastProfit > 1000 && have < physicalCap && money > 60000 && !isAnyWaiting) {"
+ai/OpexAI/task_road.nut,472,60000,inline,"else if ((""lastProfit"" in line) && line.lastProfit > 1000 && have < physicalCap && money > 60000 && !isAnyWaiting) {"
+ai/OpexAI/task_road.nut,512,12,inline,local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+ai/OpexAI/task_terrain.nut,9,5,definition,C67_SIDE <- 5;             // C67.3 §13 : S=5 retenu provisoirement.
+ai/OpexAI/task_terrain.nut,10,3000,definition,C67_SLACK_RESERVE <- 3000; // opcodes laisses au tick : une lecture de tuile ne doit pas le franchir.
+ai/OpexAI/task_terrain.nut,11,4000,definition,"C67_SLACK_MIN <- 4000;     // en dessous, le reliquat ne paie pas la tranche."
+ai/OpexAI/task_terrain.nut,12,4,definition,C67_BG_BATCH <- 4;         // blocs sondes par le fond a chaque crochet.
+ai/OpexAI/task_terrain.nut,13,8,definition,C67_BG_QUEUE <- 8;         // le fond ne remplit jamais la file au-dela.
+ai/OpexAI/task_terrain.nut,14,8,definition,C67_LINE_MARGIN <- 8;      // tuiles autour de la boite englobante d'une nouvelle ligne.
+ai/OpexAI/task_terrain.nut,122,64,definition,C67_WATER_QUEUE_MAX <- 64;
+ai/OpexAI/task_terrain.nut,137,4194304,inline,local key = lo * 4194304 + hi;
+ai/OpexAI/task_town.nut,86,25000,inline,if (money < OpexCashReserve() + 25000) return null;
+ai/OpexAI/task_town.nut,118,5,inline,if (currentCount >= 5) return false;
+ai/OpexAI/task_town.nut,122,100,inline,if (townPop < 100) return false;
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,6,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,8,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,127,8,inline,"local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];"
+ai/OpexAI/task_town.nut,134,3,inline,"if (AITile.GetClosestTown(t) == townId && AITile.GetCargoProduction(t, this._catalog.paxCargo, 1, 1, 3) > 0) {"
+ai/OpexAI/task_town.nut,141,5,inline,"dstCenter = townTile + AIMap.GetTileIndex(5, 5);"
+ai/OpexAI/task_town.nut,141,5,inline,"dstCenter = townTile + AIMap.GetTileIndex(5, 5);"
+ai/OpexAI/task_town.nut,146,4,inline,if (dist < 4) dist = 5;
+ai/OpexAI/task_town.nut,146,5,inline,if (dist < 4) dist = 5;
+ai/OpexAI/task_town.nut,162,20,inline,"capital = 2 * this._catalog.costRoadBusStop + 20 * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + engine.price,"
+ai/OpexAI/task_town.nut,243,100,inline,"OpexSign(anchor, ""TG|"" + (year % 100) + ""|"" + townId + ""|"" + currentCount + ""|"" + newCount);"
+ai/OpexAI/tension.nut,55,18.5,inline,if (tpd <= 0) tpd = 18.5;
+ai/OpexAI/tension.nut,58,12.0,inline,return (OPS_PER_TICK.tofloat() * tpd * yearDays) / 12.0;
+ai/OpexAI/tension.nut,123,12,inline,local commitments = (scan.runningAnnual / 12) + infraMonthly;
+ai/OpexAI/tension.nut,131,3.0,inline,local monthlyNet = (income.tofloat() + expenses) / 3.0;
+ai/OpexAI/tension.nut,265,12.0,inline,tau = (cap.tofloat() * 12.0) / project.profitAnnual;
+ai/OpexAI/terrain_map.nut,72,32,inline,_rectLimit = 32;
+ai/OpexAI/terrain_map.nut,74,4096,inline,"constructor(side, capacity = 4096, queueCapacity = 256, source = null) {"
+ai/OpexAI/terrain_map.nut,74,256,inline,"constructor(side, capacity = 4096, queueCapacity = 256, source = null) {"
+ai/OpexAI/terrain_map.nut,75,5,inline,"if (side != 5 && side != 10) throw ""C67: side must be 5 or 10"";"
+ai/OpexAI/terrain_map.nut,75,10,inline,"if (side != 5 && side != 10) throw ""C67: side must be 5 or 10"";"
+ai/OpexAI/terrain_map.nut,76,4096,inline,if (capacity < 1 || capacity > 4096 || queueCapacity < 1 || queueCapacity > 256)
+ai/OpexAI/terrain_map.nut,76,256,inline,if (capacity < 1 || capacity > 4096 || queueCapacity < 1 || queueCapacity > 256)
+ai/OpexAI/terrain_map.nut,256,3000,inline,"if (this._source.Remaining() < 3000) return ""idle"";"
+ai/OpexAI/terrain_valuate.nut,528,0.00001,inline,if (delta > 0.00001) {
+ai/OpexAI/water_graph.nut,27,5,inline,_side = 5;
+ai/OpexAI/water_graph.nut,34,32,inline,_rectLimit = 32;
+ai/OpexAI/water_graph.nut,40,4000,inline,_reserve = 4000;
+ai/OpexAI/water_graph.nut,42,4096,inline,"constructor(capacity = 4096, source = null) {"
+ai/OpexAI/water_graph.nut,43,4096,inline,"if (capacity < 1 || capacity > 4096) throw ""C67.5: invalid capacity"";"
+ai/OpexAI/water_graph.nut,212,1024,inline,"function Begin(ax, ay, bx, by, maxBlocks = 1024, maxNodes = 4096) {"
+ai/OpexAI/water_graph.nut,212,4096,inline,"function Begin(ax, ay, bx, by, maxBlocks = 1024, maxNodes = 4096) {"
+ai/OpexAI/water_graph.nut,238,16,inline,return label < 0 ? null : id * 16 + label;
+ai/OpexAI/water_graph.nut,305,16,inline,q.start = ida * 16 + la;
+ai/OpexAI/water_graph.nut,306,16,inline,q.target = idb * 16 + lb;
+ai/OpexAI/water_graph.nut,312,16,inline,"local id = node / 16, label = node % 16;"
+ai/OpexAI/water_graph.nut,312,16,inline,"local id = node / 16, label = node % 16;"
+ai/OpexAI/water_graph.nut,317,4,inline,"while (q.dir < 4 && q.status == ""running"") {"
+ai/OpexAI/water_graph.nut,320,3,inline,local nby = by + (d == 1 ? 1 : (d == 3 ? -1 : 0));
+ai/OpexAI/water_graph.nut,333,16,inline,"if (d == 0 && a == label) this._push(q, nid * 16 + b, node);"
+ai/OpexAI/water_graph.nut,334,16,inline,"if (d == 2 && b == label) this._push(q, nid * 16 + a, node);"
+ai/OpexAI/water_graph.nut,343,16,inline,"if (d == 1 && a == label) this._push(q, nid * 16 + b, node);"
+ai/OpexAI/water_graph.nut,344,3,inline,"if (d == 3 && b == label) this._push(q, nid * 16 + a, node);"
+ai/OpexAI/water_graph.nut,344,16,inline,"if (d == 3 && b == label) this._push(q, nid * 16 + a, node);"
+ai/OpexAI/water_graph.nut,382,16,inline,local id = node / 16;
+ai/OpexAI/water_graph.nut,418,20000,inline,"constructor(graph, allowed, ax, ay, bx, by, maxNodes = 20000, source = null) {"
