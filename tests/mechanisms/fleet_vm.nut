@@ -8,12 +8,9 @@ function FxAssert(ok, name)
 
 function FxMatrix()
 {
-  local saved = { c70 = C70_PROFIT_CALIBRATED, mode = C70_MODE_CALIBRATION,
-    factors = clone C70_MODE_FACTOR,
+  local saved = { factors = clone C70_MODE_FACTOR,
     calibrate = OpexCalibratedProfit };
   /* Le modele reste sous le prior V161 : sa provenance est "model", meme si lastProfit existe. */
-  C70_PROFIT_CALIBRATED = true;
-  C70_MODE_CALIBRATION = true;
   local cases = 0;
   foreach (calibration in ["C70"]) {
     OpexCalibratedProfit = OpexC70Profit;
@@ -49,8 +46,6 @@ function FxMatrix()
     }
   }
   FxAssert(OpexProjectScore(-1, 10) == 0.0, "negative_score");
-  C70_PROFIT_CALIBRATED = saved.c70;
-  C70_MODE_CALIBRATION = saved.mode;
   C70_MODE_FACTOR = saved.factors;
   OpexCalibratedProfit = saved.calibrate;
   AILog.Info("FXVM complete=1 cases=" + cases + " boundary_checks=1 settings_restored=1");
