@@ -19,7 +19,6 @@ OPEX_PROBE_GROUPS <- {
   probe_air_engine_depth = 16,
   probe_air_finance_margin = 16,
   probe_select_reject = 16,
-  fleet_amort_shadow_probe = 16,
   v95_air_post73_probe = 16,
   air_bfail_precheck_shadow = 16,
   air_site_stale_shadow = 16,
@@ -380,7 +379,6 @@ function OpexLoadSettings()
     OPCODE_EXACT_SITE_NAME = null;
     OPCODE_EXACT_PLAN_ONCE = null;
   }
-  FLEET_AMORT_SHADOW_PROBE = OpexProbeSetting("fleet_amort_shadow_probe");
   R19_FAULT_INJECT = AIController.GetSetting("r19_fault_inject");
   C41_SLACK_LEDGER = probeScheduler;
   C41_MONTHLY_BUSY_LEDGER = probeScheduler;

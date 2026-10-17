@@ -1078,7 +1078,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
 {
   SELECT_BISECT_STAMP++;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
-  local amortProbe = FLEET_AMORT_SHADOW_PROBE > 0 ? OpexAmortProbeBegin(capitalBudget) : null;
   local c121KDecColdRows = C121_KDEC_COLD_SHADOW ? [] : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
    * les modes. Le budget fourni a deja soustrait la reserve de tresorerie. */
@@ -1087,8 +1086,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     local fitMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local fitted = OpexProjectFitFleetToBudget(project, capitalBudget);
     if (R1_R3_TEST_ONLY) fitted = OpexR1R3FitTrace(project, fitted, capitalBudget);
-    if (amortProbe != null && fitted != null && project.mode == "fleet")
-      amortProbe.originals.append({ project = fitted, quantity = project.payload.want });
     if (fitted != null) fittedAlternatives.append(fitted);
     if (fitMark != null) OpexSpanAgg("pub.select.score.fit", fitMark);
   }
@@ -1229,9 +1226,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
       OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
     }
-    if (amortProbe != null) OpexAmortProbeCandidate(amortProbe, project, financeCapital,
-      (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-          ? kDec : scoreDecisionFinanceCapital);
     if (AIR_EFFICIENCY_DEDUPE && project.mode == "air") {
       local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
       if (pairKey in airPairBest) {
@@ -1270,7 +1264,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
     SELECT_BISECT_STAMP++;
-    if (amortProbe != null) amortProbe.rows = [];
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
     airPairBest = {};
     if (c121KDecColdRows != null) c121KDecColdRows.clear();
@@ -1313,9 +1306,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
         OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
       }
-        if (amortProbe != null) OpexAmortProbeCandidate(amortProbe, project, financeCapital,
-          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-              ? kDec : scoreDecisionFinanceCapital);
         if (AIR_EFFICIENCY_DEDUPE && project.mode == "air") {
           local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
           if (pairKey in airPairBest) {
@@ -1355,7 +1345,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         + " unlocked=" + roadFinanceExposure.newlyFundable
         + " selected=" + roadSelected);
   }
-  if (amortProbe != null) OpexAmortProbeEnd(amortProbe, affordable);
   OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
   if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);

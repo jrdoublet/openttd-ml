@@ -286,9 +286,8 @@ class TestV154Contract(unittest.TestCase):
         self.assertIn('OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, AIR_EARLY_SLOT, true);', self.selection)
 
     def test_selection_diagnostics_hooks(self):
-        self.assertIn("SELECT_BISECT_STAMP++;", self.diagnostics)
-        self.assertIn('OpexProjectInsertDefensive(originalOrder, row.before, "fundScore", state.rows.len(), AIR_EARLY_SLOT, true);', self.diagnostics)
-        self.assertIn('OpexProjectInsertDefensive(shadowOrder, row.after, "fundScore", state.rows.len(), AIR_EARLY_SLOT, true);', self.diagnostics)
+        # Sonde d'amortissement flotte retiree (V223, 17/10) : plus d'insertion diagnostique.
+        self.assertNotIn("OpexProjectInsertDefensive(", self.diagnostics)
 
 
 if __name__ == "__main__":

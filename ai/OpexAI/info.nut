@@ -191,14 +191,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "fleet_amort_shadow_probe",
-      description = "Diagnostic only: 0 off, 1 added-aircraft amortisation shadow calculation, 2 full election snapshots; never changes decisions",
-      min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = 0
-    });
 
     AddSetting({
       name = "r19_fault_inject",

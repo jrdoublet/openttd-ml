@@ -62,7 +62,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertEqual(defaults["c121_air_game_engine"], 1)
         globals_src = GLOBALS.read_text(encoding="utf-8")
         self.assertIn("C121_AIR_ECONOMICS_SHADOW <- false;", globals_src)
-        self.assertIn("C121_AIR_ECONOMICS <- true;", globals_src)
+        self.assertNotIn("C121_AIR_ECONOMICS <-", globals_src)
         self.assertIn("C121_AIR_GAME_ENGINE <- false;", globals_src)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_ADAPTIVE <- false;", globals_src)
         self.assertIn("C121_AIR_PROJECT_REALIZATION_MAX_OPEN_PERMILLE <- 200;", globals_src)

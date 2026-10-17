@@ -504,9 +504,6 @@ C121_STATION_FLUX_STATE <- {};
  * Le traitement territorial C118 autonome a ete retire. */
 C118_AIR_COVERAGE_PROBE <- false;
 C121_AIR_ECONOMICS_SHADOW <- false;
-/* C121 adopte definitivement : le reglage c121_air_economics est retire (17/10),
- * l'economie AIR unifiee est toujours active. Repli des gardes en cours. */
-C121_AIR_ECONOMICS <- true;
 C121_AIR_WINNER_FUSION <- false;
 C121_AIR_GAME_ENGINE <- false;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
@@ -605,7 +602,6 @@ OPCODE_EXACT_CAL_YEAR <- -1;
 OPCODE_EXACT_LATE_DATE <- -1;
 OPCODE_EXACT_SITE_NAME <- null;
 OPCODE_EXACT_PLAN_ONCE <- null;
-FLEET_AMORT_SHADOW_PROBE <- 0; // 0 OFF, 1 calcul seul, 2 instantanes ; jamais une politique
 /* R19 : injection de panne TEST ONLY (0 = off). Rang de la route AIR neuve
  * annulee apres demarrage de ses avions ; compteur non sauvegarde. */
 R19_FAULT_INJECT <- 0;
