@@ -59,18 +59,6 @@ function OpexLoadSettings()
 
   /* --- 2. Macro-politiques unifiees (8 groupes) --- */
 
-  // 1. policy_caches : C41 caches cruise, acceleration, town service, served index, cash release, portfolio & air site caches
-  local polCaches = AIController.GetSetting("policy_caches") != 0;
-  C41_ROAD_FREIGHT_SERVED_INDEX = polCaches;
-  C41_ROAD_FREIGHT_ACCEPTANCE_INDEX = polCaches;
-  C41_RAIL_PAX_CRUISE_CACHE = polCaches;
-  C41_RAIL_FREIGHT_CRUISE_CACHE = polCaches;
-  C41_RAIL_FREIGHT_ACCELERATION_CACHE = polCaches;
-  C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE = polCaches;
-  C41_RAIL_CASH_RELEASE = polCaches;
-  PORTFOLIO_CACHE = polCaches;
-  AIR_SITE_CACHE_ENABLED = polCaches;
-
   // V166 : interrupteurs de mode, lus avant les faisceaux policy_* qui en dependent.
   MODE_AIR = AIController.GetSetting("mode_air") != 0;
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
@@ -97,8 +85,6 @@ function OpexLoadSettings()
   V184_RAIL_SEARCH_SLOTS = (railSlots != null && railSlots >= 1 && railSlots <= 4) ? railSlots : 1;
   local v182Years = AIController.GetSetting("v195_v182_years");
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
-  local railSlices = AIController.GetSetting("v186_rail_search_slices");
-  V186_RAIL_SEARCH_SLICES = (railSlices != null && railSlices >= 1 && railSlices <= 16) ? railSlices : 1;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
   V197_GUIDED_DOUBLE = AIController.GetSetting("v197_guided_double") != 0;
   V198_TEMPLATE_DOUBLE = AIController.GetSetting("v198_template_double") != 0;
@@ -182,17 +168,13 @@ function OpexLoadSettings()
 
   /* --- 3. Calibrations physiques et options reelles --- */
 
-  RAIL_UPGRADE_FAILURE_MEMORY = AIController.GetSetting("rail_upgrade_failure_memory") != 0;
   RAIL_GEOMETRY_GUARD = AIController.GetSetting("rail_geometry_guard") != 0;
   RAIL_GEOMETRY_EXACT_IDENTITY = AIController.GetSetting("rail_geometry_exact_identity") != 0;
   RAIL_GEOMETRY_PREFILTER = AIController.GetSetting("rail_geometry_prefilter") != 0;
   RAIL_GEOMETRY_PAIR_MEMORY = AIController.GetSetting("rail_geometry_pair_memory") != 0;
-  RAIL_END_JUMP_CONNECT = AIController.GetSetting("rail_end_jump_connect") != 0;
-  INCR_REVALIDATE_INDEX = AIController.GetSetting("incr_revalidate_index");
   RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;
   RAIL_PREASTAR_PROBE = OpexProbeSetting("probe_rail_preastar") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
-  RAIL_TARGET_CARGO_PREFILTER = AIController.GetSetting("rail_target_cargo_prefilter") != 0;
   RAIL_TERRAIN_PROBE = OpexProbeSetting("probe_rail_terrain") != 0;
 
   PROJECT_TOP_K_DYNAMIC = AIController.GetSetting("project_top_k_dynamic") != 0;
@@ -231,9 +213,7 @@ function OpexLoadSettings()
     EVENT_BACKLOG_OPS_MAX = 0;
     EVENT_BACKLOG_MONTH = -1;
   }
-  EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;
-  EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT;
-  if (EXP_OPCODE_EXACT_ON) {
+  {
     OPCODE_EXACT_STATS = null;
     OPCODE_EXACT_BREAK = null;
     OPCODE_EXACT_MISMATCHES = null;
@@ -317,7 +297,6 @@ function OpexLoadSettings()
   ::OpexCalibratedProfit <- OpexC70Profit;
   C69_BOTTLENECK_PROBE = probePort;
   C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
-  C69_FLEET_EXEMPT = AIController.GetSetting("c69_fleet_exempt") != 0;
   C69_FLEET_DEMAND_BATCH = AIController.GetSetting("c69_fleet_demand_batch") != 0;
   C72_PLANE_CHOICE = AIController.GetSetting("c72_plane_choice");
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
@@ -400,8 +379,7 @@ function OpexLoadSettings()
     }
   }
   C75_MULTI_BUILD = AIController.GetSetting("c75_multi_build") != 0;
-  C75_KPASS_BYPASS = AIController.GetSetting("c75_kpass_bypass") != 0;
-  if (C75_KPASS_BYPASS) {
+  {
     OpexC75BypassResetYearLedger();
   }
   C75_TRACK_PASSES = C75_MULTI_BUILD || C69_BOTTLENECK_PROBE;
@@ -505,7 +483,6 @@ function OpexLoadSettings()
   C80_RAIL_STOCK_WORKER = C80_RAIL_STOCK_GATE && (AIController.GetSetting("c80_rail_stock_worker") != 0);
   C80_WORKER_TOWN = AIController.GetSetting("c80_worker_town") != 0;
   C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
-  C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
   C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
@@ -519,15 +496,9 @@ function OpexLoadSettings()
   V217_LAST_MONTH = -1;
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
-  V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
-  if (C80_RAIL_STOCK_WORKER) V89_RAIL_SEARCH_THROUGHPUT = false;
-  V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;
-  V129_RAIL_ASTAR_EXACT_OPT = AIController.GetSetting("v129_rail_astar_exact_opt") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;
-  SUBSIDY_RESELECT_IF_PURGED = AIController.GetSetting("subsidy_reselect_if_purged") != 0;
-  SELECT_BISECT_INSERT = AIController.GetSetting("select_bisect_insert") != 0;
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   AIR_MAX_DISTANCE = 0;

@@ -44,27 +44,18 @@ def _read(rel_path: str) -> str:
 
 class TestC89RailThroughputContract(unittest.TestCase):
     def test_setting_declared_in_info_nut(self):
-        info = _read("ai/OpexAI/info.nut")
-        self.assertIn('name = "v89_rail_search_throughput"', info)
-
-        start = info.index('name = "v89_rail_search_throughput"')
-        block = info[start:info.index("});", start)]
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("custom_value = 1", block)
-        self.assertIn("easy_value = 1", block)
-        self.assertIn("medium_value = 1", block)
-        self.assertIn("hard_value = 1", block)
+        self.assertNotIn('name = "v89_rail_search_throughput"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("v89_rail_search_throughput")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("V89_RAIL_SEARCH_THROUGHPUT <-", _read("ai/OpexAI/globals_pre.nut"))
 
     def test_global_declared_in_globals_pre_nut(self):
         globals_pre = _read("ai/OpexAI/globals_pre.nut")
-        self.assertIn("V89_RAIL_SEARCH_THROUGHPUT <- false;", globals_pre)
+        self.assertNotIn("V89_RAIL_SEARCH_THROUGHPUT <- false;", globals_pre)
 
     def test_setting_loaded_in_settings_nut(self):
-        settings = _read("ai/OpexAI/settings.nut")
-        self.assertIn(
-            'V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;',
-            settings,
-        )
+        self.assertNotIn('name = "v89_rail_search_throughput"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("v89_rail_search_throughput")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("V89_RAIL_SEARCH_THROUGHPUT <-", _read("ai/OpexAI/globals_pre.nut"))
 
     def test_main_nut_fields_and_methods(self):
         main = _read("ai/OpexAI/main.nut")
@@ -90,33 +81,33 @@ class TestC89RailThroughputContract(unittest.TestCase):
         self.assertIn("function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)", scheduler)
         adv_start = scheduler.index("function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)")
         adv_body = scheduler[adv_start:adv_start + 300]
-        self.assertIn("if (!V89_RAIL_SEARCH_THROUGHPUT) return 0;", adv_body)
+        self.assertIn("if (C80_RAIL_STOCK_WORKER) return 0;", adv_body)
         self.assertIn('if (this._railSearch == null || this._railSearch.phase != "search") return 0;', adv_body)
 
         # 2. In scheduler.nut _runNextTask, historical slice is unconditionally called first
         self.assertIn("this._advanceRailSearchSliceWithLedgers();", scheduler)
         self.assertIn(
-            "if (V89_RAIL_SEARCH_THROUGHPUT) {\n      this._advanceRailSearchThroughput();\n    }",
+            "if (!C80_RAIL_STOCK_WORKER) {\n      this._advanceRailSearchThroughput();\n    }",
             scheduler,
         )
 
         # 3. In orchestrator.nut worker step, throughput is guarded
         self.assertIn(
-            "if (V89_RAIL_SEARCH_THROUGHPUT) {\n    ai._advanceRailSearchThroughput();\n  }",
+            "if (!C80_RAIL_STOCK_WORKER) {\n    ai._advanceRailSearchThroughput();\n  }",
             orchestrator,
         )
 
         # 4. In main.nut Start loop, throughput is guarded
-        self.assertIn("if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();", main)
+        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", main)
 
         # 5. In scheduler_tasks.nut catalog, throughput calls are guarded
-        self.assertIn("if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();", tasks)
+        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", tasks)
 
         # 6. In task_projects.nut _tryBuildProjects, throughput calls are guarded
-        self.assertIn("if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();", projects)
+        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", projects)
 
         # 7. In task_town.nut _tryTownGrowth, throughput call is guarded
-        self.assertIn("if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();", town)
+        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", town)
 
     def test_deadline_per_slice_preserved(self):
         rail = _read("ai/OpexAI/task_rail.nut")
@@ -175,14 +166,8 @@ class TestC89RailThroughputContract(unittest.TestCase):
         self.assertIn("this._logC89AnnualRail(year);", tasks)
 
     def test_campaign_freeze_integration(self):
-        info_path = ROOT / "ai" / "OpexAI" / "info.nut"
-        defaults = parse_ai_settings(info_path)
-        specs = parse_ai_setting_specs(info_path)
-
-        self.assertIn("v89_rail_search_throughput", defaults)
-        self.assertEqual(defaults["v89_rail_search_throughput"], 1)
-        self.assertTrue(specs["v89_rail_search_throughput"]["boolean"])
-        self.assertIn("v89_rail_search_throughput", defaults)
+        defaults = parse_ai_settings(ROOT / "ai/OpexAI/info.nut")
+        self.assertNotIn("v89_rail_search_throughput", defaults)
 
 
 if __name__ == "__main__":

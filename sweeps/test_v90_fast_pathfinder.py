@@ -45,13 +45,29 @@ def _read(rel_path: str) -> str:
 
 
 class TestV90FastPathfinderContract(unittest.TestCase):
+    def test_settings_declared_in_info_nut(self):
+        self.assertNotIn('name = "v90_fast_pathfinder"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("v90_fast_pathfinder")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("V90_FAST_PATHFINDER <-", _read("ai/OpexAI/globals_pre.nut"))
+
+    def test_globals_declared_in_globals_pre_nut(self):
+        globals_pre = _read("ai/OpexAI/globals_pre.nut")
+        self.assertNotIn("V90_FAST_PATHFINDER <- true;", globals_pre)
+
+    def test_settings_loaded_in_settings_nut(self):
+        settings = _read("ai/OpexAI/settings.nut")
+        self.assertNotIn('V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;', settings)
+
+    def test_campaign_freeze_includes_v90_settings(self):
+        defaults = parse_ai_settings(ROOT / "ai/OpexAI/info.nut")
+        self.assertNotIn("v90_fast_pathfinder", defaults)
+
     def test_guard_zero_preserves_rail_pathfinder(self):
         builder = _read("ai/OpexAI/builder_rail.nut")
-        # Vérifie que dans OpexCreateRailPathfinder et OpexAdvanceSegmentedSearch,
-        # le repli quand V90_FAST_PATHFINDER est à 0 instancie RailPathFinder()
-        self.assertIn("pathfinder = RailPathFinder();", builder)
-        self.assertIn("if (V90_FAST_PATHFINDER)", builder)
-        self.assertIn("pathfinder = OpexRailPathFinderV90();", builder)
+        self.assertNotIn("if (V90_FAST_PATHFINDER)", builder)
+        self.assertNotIn("pathfinder = RailPathFinder();", builder)
+        self.assertEqual(builder.count("pathfinder = OpexNewRailPathfinderV129();"), 2)
+        self.assertIn("RailPathFinder()", _read("ai/OpexAI/pathfinder_v90/rail.nut"))
 
     def test_vendorized_files_exist_and_required(self):
         main = _read("ai/OpexAI/main.nut")

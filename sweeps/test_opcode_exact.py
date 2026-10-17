@@ -46,44 +46,21 @@ class OpcodeExactContractTests(unittest.TestCase):
     def test_settings_defaults(self):
         # exp_opcode_exact adopte le 2026-10-02 (20x10 neutre, regle opcodes) ;
         # le controle double chemin reste un outil de mesure, defaut 0.
-        for name, value in (("exp_opcode_exact", 1),):
-            block = setting_block(self.info, name)
-            self.assertIn(f"easy_value = {value}", block)
-            self.assertIn(f"medium_value = {value}", block)
-            self.assertIn(f"hard_value = {value}", block)
-            self.assertIn(f"custom_value = {value}", block)
-            self.assertIn("flags = AICONFIG_BOOLEAN", block)
-            self.assertEqual(self.info.count(f'name = "{name}"'), 1)
-        self.assertIn("EXP_OPCODE_EXACT <- false;", self.globals)
+        self.assertNotIn('name = "exp_opcode_exact"', read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("exp_opcode_exact")', read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("EXP_OPCODE_EXACT <-", read("ai/OpexAI/globals_pre.nut"))
+        self.assertNotIn("EXP_OPCODE_EXACT_ON <-", self.globals)
         self.assertNotIn("exp_opcode_exact_check", self.info)  # V239
-        self.assertIn("EXP_OPCODE_EXACT_ON <- false;", self.globals)
-        self.assertNotIn("C117_AIR_CAP_CACHE", self.globals)
-        self.assertNotIn("C117_AIR_CAP_CACHE", self.settings)
-        self.assertIn(
-            'EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;',
-            self.settings,
-        )
         self.assertNotIn("EXP_OPCODE_EXACT_CHECK", self.settings)
-        self.assertIn("EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT;", self.settings)
 
     def test_require_and_historical_road_order(self):
-        road_req = self.main.index('require("builder_road.nut");')
-        exact_req = self.main.index('require("opcode_exact.nut");')
-        self.assertLess(road_req, exact_req)
-        sites = body(self.road, "function OpexRoadSites(")
-        gate = sites.index("if (EXP_OPCODE_EXACT_ON) return OpexRoadSitesGated(")
-        excl = sites.index("foreach (exTile in excludeTiles)")
-        cargo = sites.index("AITile.GetCargoProduction")
-        self.assertLess(gate, excl)
-        self.assertLess(excl, cargo)
-        self.assertLess(sites.index("nCargo++"), sites.index("AITile.IsBuildable"))
-        voirie = body(self.road, "function OpexRoadPaxVoirieSites(")
-        self.assertLess(voirie.index("if (EXP_OPCODE_EXACT_ON)"), voirie.index("AIRoad.IsRoadTile"))
-        self.assertLess(voirie.index("AIRoad.IsRoadTile"), voirie.index("OpexRoadTileTooClose"))
-        self.assertLess(voirie.index("OpexRoadTileTooClose"), voirie.index("GetCargoProduction"))
-        plan = body(self.road, "function OpexRoadPlanFor(")
-        self.assertIn("if (EXP_OPCODE_EXACT_ON) return OpexRoadPlanForActive(catalog, candidate);", plan)
-        self.assertIn('return { plan = null, reason = "NOROAD" };', plan)
+        self.assertLess(self.main.index('require("builder_road.nut");'), self.main.index('require("opcode_exact.nut");'))
+        for name, target in (("OpexRoadSites", "OpexRoadSitesGated"), ("OpexRoadPaxVoirieSites", "OpexRoadPaxVoirieGated"), ("OpexRoadPlanFor", "OpexRoadPlanForActive")):
+            wrapper = body(self.road, "function " + name + "(")
+            self.assertIn("return " + target + "(", wrapper)
+            self.assertNotIn("EXP_OPCODE_EXACT_ON", wrapper)
+            self.assertNotIn("GetCargoProduction", wrapper)
+        self.assertIn("function OpexRoadHistoricClassify(", self.exact)
 
     def test_exact_filters_share_the_historical_ring(self):
         scan = body(self.exact, "function OpexRoadSitesScan(")
@@ -110,21 +87,22 @@ class OpcodeExactContractTests(unittest.TestCase):
 
     def test_other_sites_keep_historical_bodies(self):
         fleet = body(self.air, "function OpexAI::_resizeAirFleets(")
-        self.assertIn("else airLines.sort(OpexAirFleetPriorityCompare);", fleet)
+        self.assertNotIn("else airLines.sort(OpexAirFleetPriorityCompare);", fleet)
         self.assertIn("airLines = OpexAirFleetSortSelect(airLines);", fleet)
         wrapped = body(self.exact, "function OpexAirFleetSortPrecomputed(")
         self.assertIn("lineYield = OpexAirFleetYield(line)", wrapped)
         self.assertNotIn("line.yield", wrapped)
         catch = body(self.coverage, "function OpexAirStationCatchmentProduction(")
         self.assertIn("return OpexAirStationCatchmentProductionActive(stationId, cargo);", catch)
-        self.assertIn("AITile.GetCargoProduction(coverageTile, cargo, 1, 1, 0)", catch)
+        self.assertNotIn("AITile.GetCargoProduction", catch)
         summed = body(self.exact, "function OpexAirCatchmentSumExact(")
         self.assertIn("Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0)", summed)
         self.assertNotIn("KeepAboveValue", summed)
         joined = body(self.construction, "function OpexAirBuildJoinedStops(")
         self.assertIn("OpexAirJoinedCandidatesSelect", joined)
-        self.assertLess(joined.index("AIRoad.IsRoadTile"), joined.index("GetCargoProduction"))
+        self.assertNotIn("GetCargoProduction", joined)
         self.assertIn("candidates.sort(function(a, b)", joined)
+        self.assertNotIn("Historic(", self.exact.replace("OpexRoadHistoricClassify(", "").replace("OpexRoadVoirieHistoricClassify(", ""))  # V238+V239
         step = body(self.probes, "function OpexC117AirThroughputStep(")
         self.assertNotIn("OpexC117AirThroughputStepActive", step)
         self.assertNotIn("EXP_OPCODE_EXACT", step)

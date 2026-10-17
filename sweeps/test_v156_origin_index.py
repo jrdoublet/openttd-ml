@@ -130,18 +130,9 @@ class TestV156Contracts(unittest.TestCase):
         return (self.root / name).read_text(encoding="utf-8")
 
     def test_setting_and_global_defaults(self):
-        info = self.read("info.nut")
-        self.assertIn('name = "incr_revalidate_index",', info)
-        block = info.split('name = "incr_revalidate_index",', 1)[1].split("});", 1)[0]
-        self.assertIn("min_value = 0, max_value = 2,", block)
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"\b{level}_value\s*=\s*1\b")
-
-        globals_pre = self.read("globals_pre.nut")
-        self.assertIn("INCR_REVALIDATE_INDEX <- 0;", globals_pre)
-
-        settings = self.read("settings.nut")
-        self.assertIn('INCR_REVALIDATE_INDEX = AIController.GetSetting("incr_revalidate_index");', settings)
+        self.assertNotIn('name = "incr_revalidate_index"', self.read("info.nut"))
+        self.assertIn("const INCR_REVALIDATE_INDEX = 1;", self.read("globals_pre.nut"))
+        self.assertNotIn('GetSetting("incr_revalidate_index")', self.read("settings.nut"))
 
     def test_functions_exist_and_signatures(self):
         gen = self.read("projects_generation.nut")
@@ -157,12 +148,12 @@ class TestV156Contracts(unittest.TestCase):
 
     def test_projects_update_orchestration(self):
         upd = self.read("projects_update.nut")
-        self.assertIn("local ctx = (INCR_REVALIDATE_INDEX != 0) ? OpexIncrRevalidateIndexContext(lines) : null;", upd)
-        self.assertIn("if (INCR_REVALIDATE_INDEX == 1) {", upd)
+        self.assertIn("local ctx = OpexIncrRevalidateIndexContext(lines);", upd)
+        self.assertNotIn("if (INCR_REVALIDATE_INDEX == 1) {", upd)
         self.assertIn("isValid = OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx);", upd)
-        self.assertIn("} else if (INCR_REVALIDATE_INDEX == 2) {", upd)
-        self.assertIn("INCR_INDEX_MISMATCH", upd)
-        self.assertIn("INCR_INDEX_CHECK", upd)
+        self.assertNotIn("} else if (INCR_REVALIDATE_INDEX == 2) {", upd)
+        self.assertNotIn("INCR_INDEX_MISMATCH", upd)
+        self.assertNotIn("INCR_INDEX_CHECK", upd)
         self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines, extValidity, extTownLim);", upd)
 
 

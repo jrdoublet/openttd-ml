@@ -649,17 +649,6 @@ function OpexAirFleetYield(line)
                : (("predicted" in line) ? line.predicted : 0);
   return profit / fleet;
 }
-/* Comparateur de tete de file pour la croissance aerienne : meilleur rendement d'abord.
- * Fonction NOMMEE au niveau module : dans cet environnement
- * Squirrel une closure imbriquee ne capture jamais les locales englobantes. */
-function OpexAirFleetPriorityCompare(a, b)
-{
-  local ya = OpexAirFleetYield(a);
-  local yb = OpexAirFleetYield(b);
-  if (ya > yb) return -1;
-  if (ya < yb) return 1;
-  return 0;
-}
 /* C34.2 : `plan` non nul = MODE A BLANC. La fonction traverse exactement les memes treize gardes
  * de refus, mais au lieu d'acheter elle enregistre ce qu'elle achererait dans `plan`, sous la forme
  * { line, want, planePrice }. C'est volontairement une reutilisation et non une extraction : les
@@ -705,8 +694,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
   }
   if (AIR_ROI_ORDER) {
     local spSort = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-    if (EXP_OPCODE_EXACT_ON) airLines = OpexAirFleetSortSelect(airLines);
-    else airLines.sort(OpexAirFleetPriorityCompare);
+    airLines = OpexAirFleetSortSelect(airLines);
     if (spSort != null) OpexSpanAgg("fleet.sort", spSort);
   }
 

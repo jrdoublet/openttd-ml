@@ -203,8 +203,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   /* C41.30/C41.38 : caches epuises apres cette generation ; aucun moteur/cargo/terrain d'une
    * passe suivante ne peut reutiliser une valeur ancienne. Les tables pax/fret sont separees :
    * l'AB fret ne change donc pas la cadence pax. */
-  local railPaxCruiseCache = C41_RAIL_PAX_CRUISE_CACHE ? {} : null;
-  local railFreightCruiseCache = C41_RAIL_FREIGHT_CRUISE_CACHE ? {} : null;
+  local railPaxCruiseCache = {};
+  local railFreightCruiseCache = {};
   local rail;
   if (doPaxRail || doFreight) {
     local spRail = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;

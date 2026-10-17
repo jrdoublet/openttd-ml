@@ -177,7 +177,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local freightConsistDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE;
   local freightCruiseProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_CRUISE_PROFILE;
   local freightSpeedDetailProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE;
-  local freightAccelerationCache = kind == "freight" && C41_RAIL_FREIGHT_ACCELERATION_CACHE;
+  local freightAccelerationCache = kind == "freight";
   local freightEffectiveSpeedProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE;
   local travelDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
   if (wagonOverride == null && !(cargo in catalog.wagonByCargo)) return null;

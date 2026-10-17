@@ -1102,7 +1102,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 {
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
-  local townServiceCache = C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE ? {} : null;
+  local townServiceCache = {};
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local served = [];
@@ -1570,7 +1570,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local towns = catalog.towns;
-  local servedIndex = C41_ROAD_FREIGHT_SERVED_INDEX ? OpexRoadFreightServedIndex(lines) : null;
+  local servedIndex = OpexRoadFreightServedIndex(lines);
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
     servedIndustry.append(servedIndex != null
@@ -1600,8 +1600,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
     local sinks = (cargo in catalog.acceptors) ? catalog.acceptors[cargo] : [];
     /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
      * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
-    local townTargets = C41_ROAD_FREIGHT_ACCEPTANCE_INDEX
-        ? OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage) : null;
+    local townTargets = OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage);
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {

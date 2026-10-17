@@ -1523,7 +1523,6 @@ function OpexC49IsMapFailure(passDiscards, rank)
  * QUAND, pas un total. */
 function OpexC41RailCashReleaseLog(fields)
 {
-  if (!C41_RAIL_CASH_RELEASE) return;
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_CASH_RELEASE " + fields);
@@ -1942,7 +1941,6 @@ function OpexC75BypassResetYearLedger(year = -1)
 
 function OpexC75BypassEnsureYear(year)
 {
-  if (!C75_KPASS_BYPASS) return;
   if (C75_KPASS_BYPASS_LEDGER == null) {
     OpexC75BypassResetYearLedger(year);
     return;
@@ -1988,7 +1986,6 @@ function OpexC75BypassKindCode(project)
 
 function OpexC75BypassRecordEligible(year, project, financeCapital, availableCapital, kPass, builtBefore, alreadyConsumed)
 {
-  if (!C75_KPASS_BYPASS) return;
   if (C75_KPASS_BYPASS_LEDGER == null) OpexC75BypassResetYearLedger();
   local mode = (project != null && ("mode" in project)) ? project.mode : "unknown";
   local isFleet = mode == "fleet" ? 1 : 0;
@@ -2006,7 +2003,6 @@ function OpexC75BypassRecordEligible(year, project, financeCapital, availableCap
 
 function OpexC75BypassRecordConsumed(year, project, financeCapital, availableCapital, kPass, builtBefore)
 {
-  if (!C75_KPASS_BYPASS) return;
   if (C75_KPASS_BYPASS_LEDGER == null) OpexC75BypassResetYearLedger();
   local mode = (project != null && ("mode" in project)) ? project.mode : "unknown";
   local isFleet = mode == "fleet" ? 1 : 0;
@@ -2029,7 +2025,7 @@ function OpexC75BypassRecordConsumed(year, project, financeCapital, availableCap
 
 function OpexC75BypassRecordStop(stopReason)
 {
-  if (!C75_KPASS_BYPASS || C75_KPASS_BYPASS_LEDGER == null || stopReason == null) return;
+  if (C75_KPASS_BYPASS_LEDGER == null || stopReason == null) return;
   if (stopReason == "k_pass") C75_KPASS_BYPASS_LEDGER.stop_k_pass++;
   else if (stopReason == "cash") C75_KPASS_BYPASS_LEDGER.stop_cash++;
   else if (stopReason == "rail_search") C75_KPASS_BYPASS_LEDGER.stop_rail_search++;
@@ -2039,7 +2035,7 @@ function OpexC75BypassRecordStop(stopReason)
 
 function OpexC75BypassFlushYear(year)
 {
-  if (!C75_KPASS_BYPASS || C75_KPASS_BYPASS_LEDGER == null) return;
+  if (C75_KPASS_BYPASS_LEDGER == null) return;
   AILog.Info("C75_BYPASS phase=year year=" + year
       + " eligible=" + C75_KPASS_BYPASS_LEDGER.eligible
       + " consumed=" + C75_KPASS_BYPASS_LEDGER.consumed
@@ -2508,7 +2504,7 @@ function OpexAI::_mainLoopProfiled()
       if (spResume != null) OpexSpanEnd(spResume);
       OpexLoopProfAdd(continued ? "catalog_continuation" : "catalog_continuation_check", mark);
     }
-    if (V89_RAIL_SEARCH_THROUGHPUT) {
+    if (!C80_RAIL_STOCK_WORKER) {
       mark = OpexOpsMeasureBegin();
       local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
       this._advanceRailSearchThroughput();

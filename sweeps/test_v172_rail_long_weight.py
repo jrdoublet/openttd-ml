@@ -74,7 +74,7 @@ class WeightResolution(unittest.TestCase):
         self.assertIn("dist >= V172_RAIL_LONG_WEIGHT_DIST", body)
         self.assertIn("return V172_RAIL_LONG_WEIGHT_PCT;", body)
         self.assertIn("return V91_ASTAR_WEIGHT_PCT;", body)
-        self.assertIn("if (!V90_FAST_PATHFINDER) return 100;", body)
+        self.assertNotIn("V90_FAST_PATHFINDER", body)
 
     def test_default_is_inert(self):
         # A defaut (V172_RAIL_LONG_WEIGHT_PCT == 0), la condition > 0 est fausse

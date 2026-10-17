@@ -608,9 +608,7 @@ function OpexAI::_expandRailLines(year)
                    line.platformA != null && line.platformB != null) {
             /* V100 : echec recent. Inerte tant que le reglage vaut 0 : le && court-circuite
              * avant toute lecture de _abandonedPairs, qui peut etre nul. */
-            if (RAIL_UPGRADE_FAILURE_MEMORY && ABANDON_MEMORY && this._abandonedPairs != null
-                && ("lineId" in line)
-                && (OpexRailUpgradeRejectKey(line.lineId) in this._abandonedPairs)) continue;
+            if (ABANDON_MEMORY && this._abandonedPairs != null && ("lineId" in line) && (OpexRailUpgradeRejectKey(line.lineId) in this._abandonedPairs)) continue;
             local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
             local trackCost = line.distance * this._catalog.costTrackPerTile + 2 * line.platformLength * this._catalog.costStation + depotCost;
             local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(this._catalog, line);
@@ -1247,7 +1245,7 @@ function OpexAI::_continueRailSearch()
       local outcome = slice.stop;
       local result = (outcome == "OK") ? "found" : ((outcome == "ABND" || outcome == "DEAD") ? "cap" : "none");
       local pathLen = (outcome == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
-      local weightUsed = ("weight" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);
+      local weightUsed = ("weight" in state && state.weight != null) ? state.weight : (V91_ASTAR_WEIGHT_PCT);
       OpexC56TaskLog("RAIL_SEARCH_END", "primary", this._taskCycle,
                      "src=" + state.candidate.src + " dst=" + state.candidate.dst
                      + " outcome=" + outcome + " result=" + result + " iters=" + state.spent
@@ -1269,7 +1267,7 @@ function OpexAI::_continueRailSearch()
       local outcome = slice.stop;
       local result = (outcome == "OK") ? "found" : ((outcome == "ABND" || outcome == "DEAD") ? "cap" : "none");
       local pathLen = (outcome == "OK" && slice.path != null && slice.path != false) ? OpexResolveSearchTiles(slice).len() : 0;
-      local weightUsed = ("weight" in state && state.weight != null) ? state.weight : ((V90_FAST_PATHFINDER) ? V91_ASTAR_WEIGHT_PCT : 100);
+      local weightUsed = ("weight" in state && state.weight != null) ? state.weight : (V91_ASTAR_WEIGHT_PCT);
       OpexC56TaskLog("RAIL_SEARCH_END", "upgrade", this._taskCycle,
                      "outcome=" + outcome + " result=" + result + " iters=" + state.spent
                      + " len=" + pathLen + " weight=" + weightUsed
@@ -1307,7 +1305,7 @@ function OpexAI::_consumeRailSearch(year)
        * candidats rail du portefeuille ne soient plus geles (main.nut:4445, 2574). candidate.
        * railPlan n'est PAS efface : OpexBuildLine le reutilise deja sans replanification quand
        * la carte n'a pas change (main G3S2), donc rien a revalider en plus du chemin existant. */
-      if (C41_RAIL_CASH_RELEASE) {
+      {
         this._railSearch = null;
         OpexC41RailCashReleaseLog("reason=precheck src=" + candidate.src + " dst=" + candidate.dst
                                   + " need=" + need + " money=" + money);
@@ -1323,7 +1321,7 @@ function OpexAI::_consumeRailSearch(year)
     if (RAIL_PREASTAR_PROBE && ("preastarRid" in state))
       OpexRailPreAstarLog("BUILD", "rid=" + state.preastarRid + " reason=CASH ok=0 status=cash");
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, candidate.capital, AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-    if (C41_RAIL_CASH_RELEASE) {
+    {
       this._railSearch = null;
       OpexC41RailCashReleaseLog("reason=build_cash src=" + candidate.src + " dst=" + candidate.dst
                                 + " capital=" + candidate.capital);
@@ -1397,7 +1395,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                + " search_ops=" + (("searchOps" in candidate) ? candidate.searchOps : -1)
                + " startx=" + (("startx" in result) ? result.startx : -1)
                + " endx=" + (("endx" in result) ? result.endx : -1)
-               + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V90_FAST_PATHFINDER ? V91_ASTAR_WEIGHT_PCT : 100)));
+               + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT)));
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
@@ -1615,7 +1613,7 @@ function OpexAI::_consumeRailUpgrade()
         C50_NON_EXPANSION_LEDGER.rail.cash_refused++;
       }
     }
-    if (C41_RAIL_CASH_RELEASE) {
+    {
       OpexC41RailCashReleaseLog("reason=upgrade_cash line=" + state.line.lineId);
       this._railSearch = null;
     }
@@ -1647,7 +1645,7 @@ function OpexAI::_consumeRailUpgrade()
   /* V100 : memorise l'echec de recherche. _markPairAbandoned leve aussi
    * _hadAbandonsThisPass et peut declencher la purge C76. Le refus de caisse
    * est deja sorti plus haut et n'est pas memorise. */
-  if (RAIL_UPGRADE_FAILURE_MEMORY && !upgrade.ok) {
+  if (!upgrade.ok) {
     this._markPairAbandoned(OpexRailUpgradeRejectKey(state.line.lineId));
   }
   this._railSearch = null;

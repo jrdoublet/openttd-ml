@@ -804,7 +804,7 @@ function OpexAI::Start()
       if (spResume != null) OpexSpanEnd(spResume);
     }
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
-    if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+    if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
     if (spAstar != null) OpexSpanEnd(spAstar);
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;

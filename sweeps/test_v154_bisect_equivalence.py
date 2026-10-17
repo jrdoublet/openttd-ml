@@ -259,20 +259,23 @@ class TestV154Contract(unittest.TestCase):
         cls.selection = (cls.root / "ai/OpexAI/projects_selection.nut").read_text(encoding="utf-8")
 
     def test_setting_in_info_nut(self):
-        self.assertEqual(self.info.count('name = "select_bisect_insert"'), 1)
-        start = self.info.index('name = "select_bisect_insert"')
-        block = self.info[start:self.info.index("});", start)]
-        for token in ("easy_value = 1", "medium_value = 1", "hard_value = 1", "custom_value = 1"):
-            self.assertIn(token, block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
+        self.assertNotIn('name = "select_bisect_insert"', self.info)
 
     def test_globals_in_globals_pre(self):
-        self.assertIn("SELECT_BISECT_INSERT <- false;", self.globals_pre)
+        self.assertNotIn("SELECT_BISECT_INSERT <- false;", self.globals_pre)
         self.assertIn("SELECT_BISECT_STAMP <- 0;", self.globals_pre)
 
     def test_settings_nut_loading(self):
-        self.assertEqual(self.settings.count('AIController.GetSetting("select_bisect_insert")'), 1)
-        self.assertIn('SELECT_BISECT_INSERT = AIController.GetSetting("select_bisect_insert") != 0;', self.settings)
+        self.assertNotIn('GetSetting("select_bisect_insert")', self.settings)
+
+    def test_projects_selection_hooks(self):
+        # Verification de la signature et des gardes
+        self.assertIn("function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false, forceHistoric = false)", self.selection)
+        self.assertIn("local useBisect = !forceHistoric", self.selection)
+        self.assertIn("!(C122_AIR_REGIME_SHADOW && C121_AIR_PROJECT_REALIZATION_REGIME == 0)", self.selection)
+        # Verification de l'incrementation du tampon
+        self.assertIn("SELECT_BISECT_STAMP++;", self.selection)
+
 
 if __name__ == "__main__":
     unittest.main()

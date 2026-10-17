@@ -829,7 +829,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
      * ~= prix avion alors que les lignes AIR sont bornees par K_dec, ce qui
      * surclasse artificiellement les +1 avion. Conserver l'exemption pour le
      * chemin legacy, mais pas pour une flotte portant une marge C121. */
-    local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
+    local fleetExemptDecision = project.mode == "fleet"
         && !OpexC121ProjectHasRealization(project);
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
         (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
@@ -882,7 +882,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
           && project.decisionFinanceCapital > 0)
         decisionFinanceCapital = project.decisionFinanceCapital;
       local scoreDecisionFinanceCapital = decisionFinanceCapital;
-      local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
+      local fleetExemptDecision = project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
       project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
           (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
@@ -985,7 +985,7 @@ function OpexProjectSelectionScore(project, field)
 /* Insertion bornee et stable avec classe defensive C77 permanente. */
 function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false, forceHistoric = false)
 {
-  local useBisect = SELECT_BISECT_INSERT && !forceHistoric
+  local useBisect = !forceHistoric
       && !(C122_AIR_REGIME_SHADOW && C121_AIR_PROJECT_REALIZATION_REGIME == 0);
 
   local pos = 0;

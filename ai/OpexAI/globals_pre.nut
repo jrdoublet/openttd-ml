@@ -27,7 +27,7 @@ V184_RAIL_SEARCH_SLOTS <- 1;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
-V186_RAIL_SEARCH_SLICES <- 1;
+const V186_RAIL_SEARCH_SLICES = 1;
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
@@ -169,7 +169,6 @@ C83_PREEMPT_STOPPED <- false;
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
 OPEX_ECONOMY_OPCODE_COMPAT_FALSE <- false;
-PORTFOLIO_CACHE <- false;
 /* C39.0 : sonde passive du bus d'invalidation. A 1, les evenements marquent les
  * dependances qui SERAIENT rafraichies et journalisent la passe mensuelle actuelle ;
  * ils ne changent ni sa cadence, ni les candidats, ni les decisions. */
@@ -203,11 +202,9 @@ C41_ROAD_CANDIDATE_PROFILE <- false;
 /* C41.17 : sous-ventilation passive du fret producteur->accepteur. */
 C41_ROAD_FREIGHT_PROFILE <- false;
 /* C41.18 : index spatial local des origines fret route deja desservies. */
-C41_ROAD_FREIGHT_SERVED_INDEX <- false;
 /* C41.19 : profil passif interne des puits urbains du fret route. */
 C41_ROAD_FREIGHT_TOWN_PROFILE <- false;
 /* C41.20 : index experimental des puits urbains acceptant le cargo fret. */
-C41_ROAD_FREIGHT_ACCEPTANCE_INDEX <- false;
 /* C41.22 : cout et debit du pipeline rail vers le portefeuille, sans preemption. */
 C41_RAIL_PORTFOLIO_PROFILE <- false;
 /* C41.23 : ventilation passive de la generation rail pax/fret/classement. */
@@ -225,7 +222,6 @@ C41_RAIL_PAX_SPEED_DETAIL_PROFILE <- false;
 /* C41.29 : reutilisation exacte de la vitesse de croisiere pax rail. */
 C41_RAIL_PAX_CRUISE_PROFILE <- false;
 /* C41.30 : cache de croisiere pax, limite a une generation de candidats rail. */
-C41_RAIL_PAX_CRUISE_CACHE <- false;
 /* C41.31 : ventilation passive du fret rail. */
 C41_RAIL_FREIGHT_PROFILE <- false;
 /* C41.32 : coût des candidats dans les deux branches fret rail. */
@@ -236,12 +232,9 @@ C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE <- false;
 C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE <- false;
 /* C41.37/C41.38 : reutilisation exacte puis cache de croisiere fret, local a une generation. */
 C41_RAIL_FREIGHT_CRUISE_PROFILE <- false;
-C41_RAIL_FREIGHT_CRUISE_CACHE <- false;
 C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE <- false;
-C41_RAIL_FREIGHT_ACCELERATION_CACHE <- false;
 C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE <- false;
 C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE <- false;
-C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -271,7 +264,6 @@ C41_RAIL_SLICE_LEDGER <- false;
  * indefiniment, ce qui debloque _expandRailLines et les AUTRES candidats rail du portefeuille.
  * candidate.railPlan est conserve. Correctif de blocage, pas un arbitrage.
  * ADOPTE au banc officiel 20x10 (2026-09-09) : voir info.nut pour les chiffres. */
-C41_RAIL_CASH_RELEASE <- true;
 /* C41.48 : sonde passive a chaque frontiere de tranche segmentee (CONT/done=false). Rien n'est
  * coupe ; mesure si un test de domination (C41.49) aurait meme l'occasion de se declencher. */
 C41_RAIL_DOMINATION_PROBE <- false;
@@ -327,7 +319,6 @@ OPEX_START_YEAR <- 1970;
 C69_BOTTLENECK_PROBE <- false;
 /* C69 etape 2 : levier. C69_TRACK_BUILDS = sonde ou levier : tau exige les dates de chantier. */
 C69_DECISION_BOTTLENECK <- false;
-C69_FLEET_EXEMPT <- false;
 C69_FLEET_DEMAND_BATCH <- false;
 C69_TRACK_BUILDS <- false;
 C69_BUILD_DATES <- null;
@@ -448,8 +439,6 @@ OPEX_LOOP_PROF <- null;
 OPEX_LOOP_PROF_YEAR <- -1;
 OPEX_LOOP_PROF_TICK0 <- 0;
 /* Chemins opcode exacts : defaut historique. Le mode check compare et garde l'ancien resultat. */
-EXP_OPCODE_EXACT <- false;
-EXP_OPCODE_EXACT_ON <- false;
 OPCODE_EXACT_STATS <- null;
 OPCODE_EXACT_BREAK <- null;
 OPCODE_EXACT_MISMATCHES <- null;
@@ -502,7 +491,6 @@ AIR_DEMAND_PAX_CARGO <- -1;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
 /* C75 bis : autorise une seule nouvelle ligne finançable a franchir K_pass par passe. Defaut 0. */
-C75_KPASS_BYPASS <- false;
 C75_KPASS_BYPASS_LEDGER <- null;
 C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
 /* Facteur de financement rail applique dans OpexProjectFinanceCapital.
@@ -653,7 +641,6 @@ CASH_RESERVE_PROBE_MAX_BINDS <- 0;
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
 HARD_ITERATION_CAP <- 5000;
 /* V100 : memoire d'echec des doublements de voie (defaut 0). */
-RAIL_UPGRADE_FAILURE_MEMORY <- false;
 /* Garde geometrique rail : preserve l'identite [lead, station_exit], refuse avant depense les
  * raccords terminaux que le constructeur ne sait pas fermer, et ne memorise que les TRKFAIL
  * geometriques explicitement prouves persistants. Defaut 0 pendant qualification. */
@@ -666,9 +653,8 @@ RAIL_GEOMETRY_PREFILTER <- true;
 RAIL_GEOMETRY_PAIR_MEMORY <- true;
 /* V153 : raccordement terminal rail quand le dernier segment est un saut (pont/tunnel).
  * Defaut 0 pendant qualification. */
-RAIL_END_JUMP_CONNECT <- false;
 /* V156 : Revalidation incrementale du vivier indexee (0 historique, 1 indexee, 2 controle). */
-INCR_REVALIDATE_INDEX <- 0;
+const INCR_REVALIDATE_INDEX = 1;
 /* Sondes de tentatives / refus de proximite ferroviaires, OFF par defaut. */
 RAIL_FAILURE_AUDIT <- false;
 /* Sonde locale d'acces aux quais avant A*, avec issues appariees (defaut 0). */
@@ -681,7 +667,6 @@ RAIL_GEOMETRY_LIVE_REPLAN <- false;
 /* Optimisation experimentale des regenerations ciblees industrie : dans le fallback multi-cargo,
  * ignorer un cargo seulement si le catalogue prouve que l'industrie cible n'est ni source d'une
  * paire valide ni puits d'une paire valide pour CE cargo. Defaut 0 pendant qualification. */
-RAIL_TARGET_CARGO_PREFILTER <- false;
 /* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
 RAIL_TERRAIN_PROBE <- false;
 
@@ -710,7 +695,6 @@ C76_FREIGHT_ROTATION <- false;
 
 /* C80 tranche 4 : sous C76, une couche industries ou moteurs non aeriens ne regenere que les
  * modes qui en dependent (rail, route, eau) au lieu du vivier entier. 0 = desactive (defaut). */
-C80_MODE_REGEN <- false;
 
 /* C80 tranche 5 : memo de l'avion choisi par route aerienne. Rempli par la generation complete
  * (etat 1), relu par les mises a jour apres chantier (etat 2) qui ne recalculent que l'economie
@@ -749,11 +733,9 @@ AIR_HUB_MAX_ROUTES <- 3;
 /* V89 : débit de recherche A* rail opportuniste.
  * Avance des tranches supplémentaires tant qu'il reste du budget d'opcodes dans le tick,
  * sans bloquer la file de fond ni changer l'ordre des tâches. 0 = désactivé (défaut). */
-V89_RAIL_SEARCH_THROUGHPUT <- false;
 
 /* V90 : A* ferroviaire rapide vendorisé (tracé identique, −8 % d opcodes par itération mesuré).
  * 0 = RailPathFinder BaNaNaS, 1 = OpexRailPathFinderV90 (défaut, décision utilisateur du 2026-09-24). */
-V90_FAST_PATHFINDER <- true;
 
 
 /* V91 : heuristique pondérée A* rail (weighted A*).
@@ -764,7 +746,6 @@ V91_ASTAR_WEIGHT_PCT <- 120;
 
 /* V129 : A* rail à exploration strictement identique mais moins coûteux en opcodes
  * (pathfinder_v90/v129.nut). 0 = code V90 inchangé (défaut). Sans effet si V90_FAST_PATHFINDER = 0. */
-V129_RAIL_ASTAR_EXACT_OPT <- true;
 
 
 
@@ -787,12 +768,10 @@ V139_UNJOINED_STOPS <- {};
 
 /* F-EVENT-BACKLOG-01 : ne relancer la reselection dans _c77RemoveSubsidy que si
  * la purge a reellement retire des candidats de subvention. 0 = inconditionnel (historique) ; defaut 1 depuis le 11/10. */
-SUBSIDY_RESELECT_IF_PURGED <- true;
 
 V147_IN_PHASE <- false;
 V147_TASK_BASE <- -1;
 
 /* V154 : insertion par dichotomie dans OpexProjectInsertDefensive (optimisation opcodes).
  * 0 = insertion lineaire historique (defaut) ; 1 = dichotomie sur cles mises en cache. */
-SELECT_BISECT_INSERT <- false;
 SELECT_BISECT_STAMP <- 0;

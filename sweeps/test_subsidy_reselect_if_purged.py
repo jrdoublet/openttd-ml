@@ -98,41 +98,14 @@ class TestSubsidyReselectIfPurged(unittest.TestCase):
         )
 
     def test_setting_declaration_and_four_difficulties_defaults(self):
-        defaults = parse_ai_settings(AI / "info.nut")
-        specs = parse_ai_setting_specs(AI / "info.nut")
-
-        self.assertIn(SETTING, defaults)
-        self.assertEqual(defaults[SETTING], 1)  # adopte le 11/10
-
-        spec = specs[SETTING]
-        self.assertTrue(spec["boolean"])
-        self.assertEqual(spec["default"], 1)
-        self.assertEqual(spec["min_value"], 0)
-        self.assertEqual(spec["max_value"], 1)
-        self.assertEqual(spec["step_size"], 1)
-
-        self.assertEqual(self.info_src.count(f'name = "{SETTING}"'), 1)
-        start = self.info_src.index(f'name = "{SETTING}"')
-        block = self.info_src[start : self.info_src.index("});", start)]
-
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
-        self.assertIn("step_size = 1", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 1", block)
-            self.assertNotIn(f"{key} = 0", block)
+        self.assertNotIn(SETTING, parse_ai_settings(AI / "info.nut"))
+        self.assertNotIn(SETTING, parse_ai_setting_specs(AI / "info.nut"))
 
     def test_globals_declaration(self):
-        needle = f"{GLOBAL} <- true;"
-        self.assertIn(needle, self.globals_src)
-        self.assertEqual(self.globals_src.count(f"{GLOBAL} <-"), 1)
+        self.assertNotIn(f"{GLOBAL} <-", self.globals_src)
 
     def test_settings_loading(self):
-        needle = f'{GLOBAL} = AIController.GetSetting("{SETTING}") != 0;'
-        self.assertIn(needle, self.settings_src)
-        self.assertEqual(self.settings_src.count(needle), 1)
-        self.assertNotIn(f"{GLOBAL} <-", self.settings_src)
+        self.assertNotIn(f'GetSetting("{SETTING}")', self.settings_src)
 
     def test_setting_not_in_persist(self):
         self.assertNotIn(SETTING, self.persist_src)
@@ -177,7 +150,7 @@ class TestSubsidyReselectIfPurged(unittest.TestCase):
         self.assertLess(idx_sub_del, idx_purge)
 
         # Garde conditionnelle sous SUBSIDY_RESELECT_IF_PURGED
-        guard = f"if ({GLOBAL} && purged <= 0) return;"
+        guard = "if (purged <= 0) return;"
         self.assertIn(guard, self.remove_body)
 
         # Reselection vient APRES la garde

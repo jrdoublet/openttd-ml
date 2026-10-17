@@ -46,11 +46,34 @@ def _body(src: str, start_marker: str, end_marker: str) -> str:
     return src[start:src.index(end_marker, start)]
 
 
+class TestV129Settings(unittest.TestCase):
+    def test_settings_declared_default_zero(self):
+        self.assertNotIn('name = "v129_rail_astar_exact_opt"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("v129_rail_astar_exact_opt")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("V129_RAIL_ASTAR_EXACT_OPT <-", _read("ai/OpexAI/globals_pre.nut"))
+
+    def test_parsed_defaults(self):
+        defaults = parse_ai_settings(ROOT / "ai/OpexAI/info.nut")
+        self.assertNotIn("v129_rail_astar_exact_opt", defaults)
+
+    def test_globals_and_single_read(self):
+        self.assertNotIn('name = "v129_rail_astar_exact_opt"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("v129_rail_astar_exact_opt")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("V129_RAIL_ASTAR_EXACT_OPT <-", _read("ai/OpexAI/globals_pre.nut"))
+
+
 class TestV129ZeroPathUnchanged(unittest.TestCase):
+    def test_instantiation_sites_keep_v90_branch(self):
+        src = _read("ai/OpexAI/builder_rail.nut")
+        self.assertEqual(src.count("pathfinder = OpexNewRailPathfinderV129();"), 2)
+        for constructor in ("RailPathFinder", "OpexRailPathFinderV90"):
+            self.assertNotIn("pathfinder = " + constructor + "();", src)
+        self.assertIn("OpexRailPathFinderV90(weight)", _read("ai/OpexAI/pathfinder_v90/v129.nut"))
+
     def test_historical_loop_kept_and_batch_is_outside_it(self):
         src = _read("ai/OpexAI/builder_rail.nut")
         self.assertIn("state.segmentPath = state.pathfinder.FindPath(1);", src)
-        gate = "if (V129_RAIL_ASTAR_EXACT_OPT && V90_FAST_PATHFINDER) {"
+        gate = "/* V129 : FindPath(n) groupe."
         self.assertEqual(src.count(gate), 1)
         # le groupage est borne par toutes les limites de la boucle historique
         batch = _body(src, gate, "state.segmentPath = state.pathfinder.FindPath(1);")
@@ -135,8 +158,10 @@ class TestV129Implementation(unittest.TestCase):
 
     def test_frontier_uses_parallel_arrays_only_under_flag(self):
         src = _read("ai/OpexAI/builder_rail.nut")
-        self.assertIn("open._prios[candidates[0]] : open._queue[candidates[0]][1]", src)
-        self.assertIn("open._items[heapIndex] : open._queue[heapIndex][0]", src)
+        self.assertIn("local bestPriority = open._prios[candidates[0]];", src)
+        self.assertNotIn("open._queue[candidates[0]]", src)
+        self.assertIn("local node = open._items[heapIndex];", src)
+        self.assertNotIn("open._queue[heapIndex]", src)
 
 
 class TestV129SearchOps(unittest.TestCase):

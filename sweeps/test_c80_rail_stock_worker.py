@@ -281,7 +281,8 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
 
     def test_v89_throughput_interaction_documented_and_guarded(self):
         # Le worker absorbe le reliquat et V89 cède sous C80_RAIL_STOCK_WORKER
-        self.assertIn("if (C80_RAIL_STOCK_WORKER) V89_RAIL_SEARCH_THROUGHPUT = false;", self.settings)
+        self.assertNotIn("V89_RAIL_SEARCH_THROUGHPUT =", self.settings)
+        self.assertIn("if (C80_RAIL_STOCK_WORKER) return 0;", _read("ai/OpexAI/scheduler.nut"))
         # Et le worker possède sa boucle interne sur reliquat
         self.assertIn("minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;", self.orchestrator)
 

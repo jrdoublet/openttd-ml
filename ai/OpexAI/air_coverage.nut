@@ -79,7 +79,7 @@ function OpexAir0310SiteValidityOk(state, key, site, airport, plane, reuse, stat
  * forcer la recherche d'une alternative dans cette meme ville et pour ce meme type d'aeroport. */
 function OpexAirInvalidateCachedSite(site, airport)
 {
-  if (!AIR_SITE_CACHE_ENABLED || site == null) return;
+  if (site == null) return;
   local key = site.town.id + "_" + airport.type;
   if (key in AIR_SITE_CACHE && AIR_SITE_CACHE[key] == site.anchor) {
     delete AIR_SITE_CACHE[key];
@@ -156,13 +156,7 @@ function OpexC118EngineFitsPlan(plan, plane)
 function OpexAirStationCatchmentProduction(stationId, cargo)
 {
   if (!AIStation.IsValidStation(stationId) || cargo < 0) return 0;
-  if (EXP_OPCODE_EXACT_ON) return OpexAirStationCatchmentProductionActive(stationId, cargo);
-  local total = 0;
-  local coverageTiles = AITileList_StationCoverage(stationId);
-  foreach (coverageTile, value in coverageTiles) {
-    total += AITile.GetCargoProduction(coverageTile, cargo, 1, 1, 0);
-  }
-  return total;
+  return OpexAirStationCatchmentProductionActive(stationId, cargo);
 }
 
 function OpexAirJoinedMarginalProduction(stationId, airportTile, airportType, cargo)

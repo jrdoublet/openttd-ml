@@ -87,9 +87,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   local cacheScanned = 0;
   local cacheRetained = 0;
   local abandonFiltered = 0;
-  local ctx = (INCR_REVALIDATE_INDEX != 0) ? OpexIncrRevalidateIndexContext(lines) : null;
-  local checkCount = 0;
-  local mismatchCount = 0;
+  local ctx = OpexIncrRevalidateIndexContext(lines);
 
   /* 1. Filtrer les candidats existants du vivier */
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
@@ -119,23 +117,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
           continue;
         }
         local isValid = true;
-        if (INCR_REVALIDATE_INDEX == 1) {
+        {
           isValid = OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx);
-        } else if (INCR_REVALIDATE_INDEX == 2) {
-          local histValid = OpexIncrementalCandidateStillValid(p, lines, abandonedPairs);
-          local idxValid = OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx);
-          checkCount++;
-          if (histValid != idxValid) {
-            mismatchCount++;
-            local pKind = ("kind" in p) ? p.kind : "unknown";
-            local pMode = ("mode" in p) ? p.mode : "unknown";
-            local pSrc = ("src" in p) ? p.src : -1;
-            local pDst = ("dst" in p) ? p.dst : -1;
-            OpexDecide("INCR_INDEX_MISMATCH", "mode=" + pMode + " kind=" + pKind + " src=" + pSrc + " dst=" + pDst + " hist=" + (histValid ? "1" : "0") + " idx=" + (idxValid ? "1" : "0"));
-          }
-          isValid = histValid;
-        } else {
-          isValid = OpexIncrementalCandidateStillValid(p, lines, abandonedPairs);
         }
         if (!isValid) continue;
         local recycledKey = OpexProjectAttemptKey(p);
@@ -282,9 +265,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
   }
-  if (INCR_REVALIDATE_INDEX == 2) {
-    OpexDecide("INCR_INDEX_CHECK", "n=" + checkCount + " mismatches=" + mismatchCount);
-  }
+
   if (spIncr != null) OpexSpanEnd(spIncr);
   return projects;
 }

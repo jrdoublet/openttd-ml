@@ -98,34 +98,9 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
   ];
 
   local candidates = [];
-  if (EXP_OPCODE_EXACT_ON) {
+  {
     candidates = OpexAirJoinedCandidatesSelect(minX, maxX, minY, maxY, town, paxCargo, coverage,
                                                airportCoverage, ax, ay, w, h, center);
-  } else for (local x = minX; x <= maxX; x++) {
-    for (local y = minY; y <= maxY; y++) {
-      local tile = AIMap.GetTileIndex(x, y);
-      if (!AIMap.IsValidTile(tile)) continue;
-      if (AITile.GetClosestTown(tile) != town.id) continue;
-      if (!AIRoad.IsRoadTile(tile)) continue;
-      if (AIRoad.IsRoadStationTile(tile) || AIRoad.IsRoadDepotTile(tile) || AITile.IsStationTile(tile)) continue;
-      if (AIMap.DistanceManhattan(tile, center) < 3) continue;
-
-      /* C33.2 / G4 : un arret dans la couverture deja assuree par l'emprise aeroport ne
-       * rapporte aucune demande marginale. Distance minimale au rectangle de l'aeroport,
-       * pas seulement a son coin d'ancrage. */
-      local dx = 0;
-      if (x < ax) dx = ax - x;
-      else if (x >= ax + w) dx = x - (ax + w - 1);
-      local dy = 0;
-      if (y < ay) dy = ay - y;
-      else if (y >= ay + h) dy = y - (ay + h - 1);
-      if (dx + dy <= airportCoverage) continue;
-
-      local val = AITile.GetCargoProduction(tile, paxCargo, 1, 1, coverage);
-      if (val <= 0) continue;
-
-      candidates.append({ tile = tile, value = val, dist = AIMap.DistanceManhattan(tile, town.tile) });
-    }
   }
 
   if (candidates.len() == 0) return summary;

@@ -426,7 +426,7 @@ function OpexAI::_dispatchCatalog(task, year)
       CATALOG_COST_ACTIVE.refreshOps += OpexOpsMeasureEnd(catalogRefreshMark);
     } else this._catalog.refresh(this._budget, year);
   }
-  if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+  if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
   local fleetPlan = null;
   if (FLEET_PORTFOLIO) {
     /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
@@ -442,7 +442,7 @@ function OpexAI::_dispatchCatalog(task, year)
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
     local c80Modes = null;
-    if (C80_MODE_REGEN && c76LayerChanged && this._projects != null
+    if (C76_REGEN_TARGETED && c76LayerChanged && this._projects != null
         && !this._portfolioInvalidated && !budgetStale && !c76PeriodicDue && !c76ReloadDue) {
       c80Modes = this._c80ModeRegenModes();
     }
@@ -471,7 +471,7 @@ function OpexAI::_dispatchCatalog(task, year)
       local spRebuild = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
       this._rebuildProjects(fleetPlan);
       if (spRebuild != null) OpexSpanEnd(spRebuild);
-      if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+      if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
         local c76Days = (c76Ops + 93000) / 186000;
@@ -512,7 +512,7 @@ function OpexAI::_dispatchCatalog(task, year)
     local spRebuildLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
     this._rebuildProjects(fleetPlan);
     if (spRebuildLeg != null) OpexSpanEnd(spRebuildLeg);
-    if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+    if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
     if (C39_INVALIDATION_PROBE) {
       local c76Ops = OpexOpsMeasureEnd(c76Mark);
       local c76Days = (c76Ops + 93000) / 186000;
@@ -521,7 +521,7 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   this._lastCatalogMonth = ym;
   }
-  if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+  if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
   /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
    * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */
   if (C39_PROJECTS_CADENCE_PROBE) this._c39StampFinanceable();
@@ -974,7 +974,7 @@ function OpexAI::_dispatchAirFleet(task, year)
    * les opportunites mures dans le vivier incremental du portefeuille sans attendre un an. */
   task.dueCycle = this._taskCycle + 1;
   if (FLEET_PORTFOLIO) {
-    if (PORTFOLIO_CACHE && this._projects != null) {
+    if (this._projects != null) {
       local fleetPlan = [];
       this._resizeAirFleets(year, fleetPlan);
       local airCount = fleetPlan.len();

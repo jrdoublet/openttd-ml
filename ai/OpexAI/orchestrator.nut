@@ -225,7 +225,7 @@ function OpexWorkerRailSearchStep(worker, opsBudget, deadlineTick)
     return "done";
   }
   ai._advanceRailSearchSliceWithLedgers();
-  if (V89_RAIL_SEARCH_THROUGHPUT) {
+  if (!C80_RAIL_STOCK_WORKER) {
     ai._advanceRailSearchThroughput();
   }
   if (ai._railSearch == null || ai._railSearch.phase != "search") {
@@ -1395,7 +1395,7 @@ function OpexAI::_c76DoFullRegen(reason, year)
  * Les industries ne nourrissent que le fret rail et route (l'eau ne planifie que des passagers). */
 function OpexAI::_c80ModeRegenModes()
 {
-  if (!C80_MODE_REGEN || this._c76Revisions == null || this._c76AckRevisions == null) return null;
+  if (!C76_REGEN_TARGETED || this._c76Revisions == null || this._c76AckRevisions == null) return null;
   local r = this._c76Revisions;
   local a = this._c76AckRevisions;
   if (r.towns > a.towns || r.lines > a.lines || r.engines.air > a.engines.air) return null;

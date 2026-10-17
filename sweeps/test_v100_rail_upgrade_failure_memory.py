@@ -43,29 +43,14 @@ class TestRailUpgradeFailureMemoryContract(unittest.TestCase):
         )
 
     def test_setting_enabled_by_default_in_info_nut(self):
-        block = _setting_block(self.info, "rail_upgrade_failure_memory")
-        self.assertIn(
-            "remember a failed double-track A* search per line and do not retry "
-            "it until the abandon cooldown expires; 1 = on (default), 0 = off",
-            block,
-        )
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
-        self.assertIn("step_size = 1", block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 1", block)
-        self.assertEqual(self.info.count('name = "rail_upgrade_failure_memory"'), 1)
+        self.assertNotIn('name = "rail_upgrade_failure_memory"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("rail_upgrade_failure_memory")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("RAIL_UPGRADE_FAILURE_MEMORY <-", _read("ai/OpexAI/globals_pre.nut"))
 
     def test_global_declared_and_loaded_once(self):
-        self.assertIn("RAIL_UPGRADE_FAILURE_MEMORY <- false;", self.globals)
-        needle = 'AIController.GetSetting("rail_upgrade_failure_memory")'
-        self.assertEqual(self.settings.count(needle), 1)
-        self.assertIn(
-            'RAIL_UPGRADE_FAILURE_MEMORY = AIController.GetSetting("rail_upgrade_failure_memory") != 0;',
-            self.settings,
-        )
-        self.assertNotIn("RAIL_UPGRADE_FAILURE_MEMORY <-", self.settings)
+        self.assertNotIn('name = "rail_upgrade_failure_memory"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("rail_upgrade_failure_memory")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("RAIL_UPGRADE_FAILURE_MEMORY <-", _read("ai/OpexAI/globals_pre.nut"))
 
     def test_reject_key_defined_in_lines_nut(self):
         pair_key = self.lines.index("function OpexAbandonedPairKey(candidate)")
@@ -81,7 +66,7 @@ class TestRailUpgradeFailureMemoryContract(unittest.TestCase):
         call = "this._markPairAbandoned(OpexRailUpgradeRejectKey(state.line.lineId));"
         self.assertEqual(self.task_rail.count("_markPairAbandoned(OpexRailUpgradeRejectKey("), 1)
         cash_return = body.index('if (upgrade.reason == "CASH")')
-        guard = body.index("if (RAIL_UPGRADE_FAILURE_MEMORY && !upgrade.ok)")
+        guard = body.index("if (!upgrade.ok)")
         release = body.index("this._railSearch = null;", guard)
         window = body[guard:release]
         self.assertIn(call, window)
@@ -103,7 +88,7 @@ class TestRailUpgradeFailureMemoryContract(unittest.TestCase):
             '(!("doubleTrack" in line) || line.doubleTrack == 0)',
             header,
         )
-        self.assertIn("RAIL_UPGRADE_FAILURE_MEMORY", body)
+        self.assertNotIn("RAIL_UPGRADE_FAILURE_MEMORY", body)
         self.assertIn("ABANDON_MEMORY", body)
         self.assertIn("this._abandonedPairs != null", body)
         self.assertIn('("lineId" in line)', body)

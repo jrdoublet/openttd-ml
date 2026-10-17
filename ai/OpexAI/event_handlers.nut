@@ -349,7 +349,7 @@ function OpexAI::_c77RemoveSubsidy(subId)
     delete this._activeSubsidies[subId];
   }
   local purged = this._purgeSubsidyFromProjects(subId);
-  if (SUBSIDY_RESELECT_IF_PURGED && purged <= 0) return;
+  if (purged <= 0) return;
   if (this._projects != null) {
     this._projects = OpexReselectProjects(
         this._projects, OpexAvailableCapital(), this._abandonedPairs, this._lines);

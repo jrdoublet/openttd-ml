@@ -577,7 +577,6 @@ function OpexAddRailSearchOps(candidate, ops)
  * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT. */
 function OpexRailAstarWeight(dist = null)
 {
-  if (!V90_FAST_PATHFINDER) return 100;
   if (dist != null && V172_RAIL_LONG_WEIGHT_PCT > 0 && dist >= V172_RAIL_LONG_WEIGHT_DIST) {
     return V172_RAIL_LONG_WEIGHT_PCT;
   }
@@ -603,17 +602,9 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
     weight = OpexRailAstarWeight(dist);
   }
   local pathfinder;
-  if (V90_FAST_PATHFINDER) {
-    if (V129_RAIL_ASTAR_EXACT_OPT) {
-      pathfinder = OpexNewRailPathfinderV129();
-    } else {
-      pathfinder = OpexRailPathFinderV90();
-    }
-  } else {
-    pathfinder = RailPathFinder();
-  }
+  pathfinder = OpexNewRailPathfinderV129();
   pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
-  if (V90_FAST_PATHFINDER && weight != null) {
+  if (weight != null) {
     pathfinder.cost.astar_weight_pct = weight;
   }
   if (outwardSide != null) pathfinder._outwardSide = outwardSide;
@@ -778,9 +769,9 @@ function OpexFrontierAlternatives(pathfinder, maxAlternatives)
   local candidates = [0];
   while (candidates.len() > 0 && nodes.len() < maxAlternatives) {
     local bestPosition = 0;
-    local bestPriority = V129_RAIL_ASTAR_EXACT_OPT ? open._prios[candidates[0]] : open._queue[candidates[0]][1];
+    local bestPriority = open._prios[candidates[0]];
     for (local i = 1; i < candidates.len(); i++) {
-      local priority = V129_RAIL_ASTAR_EXACT_OPT ? open._prios[candidates[i]] : open._queue[candidates[i]][1];
+      local priority = open._prios[candidates[i]];
       if (priority < bestPriority) {
         bestPosition = i;
         bestPriority = priority;
@@ -793,7 +784,7 @@ function OpexFrontierAlternatives(pathfinder, maxAlternatives)
     local right = left + 1;
     if (left < open.Count()) candidates.push(left);
     if (right < open.Count()) candidates.push(right);
-    local node = V129_RAIL_ASTAR_EXACT_OPT ? open._items[heapIndex] : open._queue[heapIndex][0];
+    local node = open._items[heapIndex];
     local key = node.GetTile() + ":" + node.GetDirection();
     if (key in seen) continue;
     seen[key] <- true;
@@ -987,18 +978,10 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.currentSegmentLimit = state.nextSegmentLimit;
       state.nextSegmentLimit = SEGMENTED_SEGMENT_ITERS;
       local pathfinder;
-      if (V90_FAST_PATHFINDER) {
-        if (V129_RAIL_ASTAR_EXACT_OPT) {
-          pathfinder = OpexNewRailPathfinderV129();
-        } else {
-          pathfinder = OpexRailPathFinderV90();
-        }
-      } else {
-        pathfinder = RailPathFinder();
-      }
+      pathfinder = OpexNewRailPathfinderV129();
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
-      if (V90_FAST_PATHFINDER && ("weight" in state) && state.weight != null) {
+      if (("weight" in state) && state.weight != null) {
         pathfinder.cost.astar_weight_pct = state.weight;
       }
       if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
@@ -1016,7 +999,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.segmentUsed = 0;
     }
 
-    if (V129_RAIL_ASTAR_EXACT_OPT && V90_FAST_PATHFINDER) {
+    {
       /* V129 : FindPath(n) groupe. n est borne par TOUTES les limites de la boucle historique
        * (segment, budget, timeSafe, tranche) et le nombre d'iterations reellement consommees est
        * relu (LastConsumed) : memes totaux et meme point d'arret. Seule l'echeance au tick, relue
@@ -1357,7 +1340,7 @@ function OpexRailPlanContainsTile(plan, tile)
  * inner : tuile adjacente au trace (tiles[2] cote A, tiles[last-2] cote B) */
 function OpexRailEndConnected(outer, lead, inner, side = null)
 {
-  if (!RAIL_END_JUMP_CONNECT || AIMap.DistanceManhattan(lead, inner) <= 1) {
+  if (AIMap.DistanceManhattan(lead, inner) <= 1) {
     return AIRail.AreTilesConnected(outer, lead, inner);
   }
 

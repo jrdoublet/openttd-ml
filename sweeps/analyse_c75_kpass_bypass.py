@@ -1,4 +1,4 @@
-"""Analyse un duel C66.4 c75_kpass_bypass=0 -> 1 et sa telemetrie durable."""
+"""Analyse les duels historiques C75 bis et leur telemetrie durable."""
 from __future__ import annotations
 
 import argparse

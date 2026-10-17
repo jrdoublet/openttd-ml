@@ -343,7 +343,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("line.c121MarginalObserveYear <- year + 2", self.task_projects)
 
     def test_c121_fleet_projects_do_not_bypass_kdec(self):
-        self.assertIn('local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"', self.projects)
+        self.assertIn('local fleetExemptDecision = project.mode == "fleet"', self.projects)
         self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.projects)
         self.assertGreaterEqual(self.projects.count("&& !fleetExemptDecision)"), 2)
         self.assertGreaterEqual(self.projects.count("? kDec : scoreDecisionFinanceCapital"), 2)

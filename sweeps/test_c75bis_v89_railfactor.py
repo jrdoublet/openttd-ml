@@ -28,35 +28,31 @@ class TestLeverContracts(unittest.TestCase):
         cls.persist = _read("ai/OpexAI/persist.nut")
 
     def test_c75_bis_setting_declared(self):
-        self.assertIn('name = "c75_kpass_bypass"', self.info)
-        start = self.info.index('name = "c75_kpass_bypass"')
-        block = self.info[start:self.info.index("});", start)]
-        self.assertIn("custom_value = 1", block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
+        self.assertNotIn('name = "c75_kpass_bypass"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("c75_kpass_bypass")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("C75_KPASS_BYPASS <-", _read("ai/OpexAI/globals_pre.nut"))
 
     def test_rail_finance_bias_setting_declared(self):
         # V236 : constante RAIL_FINANCE_BIAS_PCT = 100
         self.assertNotIn('name = "rail_finance_bias_pct"', self.info)
     def test_v89_rail_search_throughput_setting_declared(self):
-        self.assertIn('name = "v89_rail_search_throughput"', self.info)
-        start = self.info.index('name = "v89_rail_search_throughput"')
-        block = self.info[start:self.info.index("});", start)]
-        self.assertIn("custom_value = 1", block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
+        self.assertNotIn('name = "v89_rail_search_throughput"', _read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("v89_rail_search_throughput")', _read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("V89_RAIL_SEARCH_THROUGHPUT <-", _read("ai/OpexAI/globals_pre.nut"))
 
     def test_globals_declared(self):
-        self.assertIn("C75_KPASS_BYPASS <- false;", self.globals)
+        self.assertNotIn("C75_KPASS_BYPASS <- false;", self.globals)
         self.assertIn("RAIL_FINANCE_BIAS_PCT <- 100;", self.globals)
-        self.assertIn("V89_RAIL_SEARCH_THROUGHPUT <- false;", self.globals)
+        self.assertNotIn("V89_RAIL_SEARCH_THROUGHPUT <- false;", self.globals)
 
     def test_settings_loaded(self):
-        self.assertIn('C75_KPASS_BYPASS = AIController.GetSetting("c75_kpass_bypass") != 0;', self.settings)
-        self.assertIn('V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;', self.settings)
+        self.assertNotIn('C75_KPASS_BYPASS = AIController.GetSetting("c75_kpass_bypass") != 0;', self.settings)
+        self.assertNotIn('V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;', self.settings)
         self.assertNotIn('"rail_finance_bias_pct"', self.settings)
         self.assertNotIn("RAIL_FINANCE_BIAS_PCT =", self.settings)
     def test_c75_bis_usage_site_and_invariants(self):
         # 1. Utilisation au site k_pass de task_projects.nut
-        self.assertIn("C75_KPASS_BYPASS", self.task_projects)
+        self.assertNotIn("if (C75_KPASS_BYPASS", self.task_projects)
         # 2. Au plus un bypass par passe
         self.assertIn("c75BypassConsumed", self.task_projects)
         self.assertIn("if (!c75BypassConsumed)", self.task_projects)

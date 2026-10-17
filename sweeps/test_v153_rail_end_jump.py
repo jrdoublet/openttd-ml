@@ -36,24 +36,16 @@ class TestV153RailEndJump(unittest.TestCase):
         cls.builder = source("builder_rail.nut")
 
     def test_setting_declared_and_default_on(self):
-        self.assertIn('name = "rail_end_jump_connect"', self.info)
-        start = self.info.index('name = "rail_end_jump_connect"')
-        block = self.info[start:self.info.index("});", start)]
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"\b{level}_value\s*=\s*1\b")
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
+        self.assertNotIn('name = "rail_end_jump_connect"', self.info)
 
     def test_global_and_setting_load(self):
-        self.assertIn("RAIL_END_JUMP_CONNECT <- false;", self.globals)
-        self.assertIn(
-            'RAIL_END_JUMP_CONNECT = AIController.GetSetting("rail_end_jump_connect") != 0;',
-            self.settings,
-        )
+        self.assertNotIn("RAIL_END_JUMP_CONNECT <-", self.globals)
+        self.assertNotIn('GetSetting("rail_end_jump_connect")', self.settings)
 
     def test_opex_rail_end_connected_contract(self):
         body = function_body(self.builder, "function OpexRailEndConnected(")
         # Default guard returns legacy AreTilesConnected
-        self.assertIn("!RAIL_END_JUMP_CONNECT || AIMap.DistanceManhattan(lead, inner) <= 1", body)
+        self.assertIn("AIMap.DistanceManhattan(lead, inner) <= 1", body)
         self.assertIn("return AIRail.AreTilesConnected(outer, lead, inner);", body)
 
         # Bridge and tunnel endpoints

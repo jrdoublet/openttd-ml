@@ -1275,7 +1275,7 @@ function OpexAI::_finalizeC75PassOutcome(year, builtCount, c75KPassData, c75Stop
     else if (c75StopReason == "list_end") this._c49ScarcityLedger.stop_list_end++;
     else this._c49ScarcityLedger.stop_other++;
   }
-  if (C75_KPASS_BYPASS && builtCount > 0) OpexC75BypassRecordStop(c75StopReason);
+  if (builtCount > 0) OpexC75BypassRecordStop(c75StopReason);
   OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
   return c75StopReason;
 }
@@ -1306,7 +1306,7 @@ function OpexAI::_tryBuildProjects(year)
   local c121AirBuilt = 0;
   local c121AirChained = 0;
   local c121DeadSkipped = 0;
-  if (C75_KPASS_BYPASS) OpexC75BypassEnsureYear(year);
+  OpexC75BypassEnsureYear(year);
   if (C75_TRACK_PASSES) {
     local now = AIDate.GetCurrentDate();
     OpexC75RecordPassDate(now);
@@ -1527,7 +1527,7 @@ function OpexAI::_tryBuildProjects(year)
             c75BypassThisProject = true;
             c121ChainAttempt = true;
           }
-        } else if (C75_KPASS_BYPASS && OpexC75KPassBypassIsNewLine(project)) {
+        } else if (OpexC75KPassBypassIsNewLine(project)) {
           availCap = OpexAvailableCapital();
           if (projCap <= availCap) {
             OpexC75BypassRecordEligible(year, project, projCap, availCap, c75KPass,
@@ -1616,7 +1616,7 @@ function OpexAI::_tryBuildProjects(year)
             c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, false,
             c75StopReason);
         if (C75_TRACK_PASSES && builtCount > 0) {
-          if (C75_KPASS_BYPASS) OpexC75BypassRecordStop("rail_search");
+          OpexC75BypassRecordStop("rail_search");
           OpexC75RecordPassOutcome(year, builtCount, c75KPassData, "rail_search");
         }
         if (spPass != null) {
@@ -1770,7 +1770,7 @@ function OpexAI::_tryBuildProjects(year)
             c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, false,
             c75StopReason);
         if (C75_TRACK_PASSES && builtCount > 0) {
-          if (C75_KPASS_BYPASS) OpexC75BypassRecordStop("rail_search");
+          OpexC75BypassRecordStop("rail_search");
           OpexC75RecordPassOutcome(year, builtCount, c75KPassData, "rail_search");
         }
         if (spPass != null) {
@@ -1802,9 +1802,9 @@ function OpexAI::_tryBuildProjects(year)
         if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       }
     }
-    if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+    if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
   }
-  if (V89_RAIL_SEARCH_THROUGHPUT) this._advanceRailSearchThroughput();
+  if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
   if (fallthroughProbeActive) {
     OpexC41ProjectsFallthroughLog("phase=exit invalidated="
         + (this._portfolioInvalidated ? 1 : 0) + " attempted=" + fallthroughAttempted
@@ -1853,7 +1853,7 @@ function OpexAI::_tryBuildProjects(year)
         local c76Days = (c76Ops + 93000) / 186000;
         this._c76RecordRegen("full", c76Ops, c76Days, year, "staged");
       }
-    } else if (PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects)) {
+    } else if (this._projects != null && ("candidateGroups" in this._projects)) {
       local budgetNow = OpexAvailableCapital();
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
       spPost = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.post_regen.incremental") : null;
@@ -1951,7 +1951,7 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
   }
   /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
    * rebuild normal reste l'unique producteur du nouveau portefeuille. */
-  local b6StaleProjects = (DECISION_LOG && PORTFOLIO_CACHE) ? this._projects : null;
+  local b6StaleProjects = (DECISION_LOG) ? this._projects : null;
   local b6StaleDate = AIDate.GetCurrentDate();
   local stage = OPEX_STAGE_COMPLETE;
   local prior = null;

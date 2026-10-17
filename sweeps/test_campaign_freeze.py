@@ -227,14 +227,17 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
+        # V238: these adopted mechanisms no longer expose user settings.
+        for retired in ('exp_opcode_exact', 'c69_fleet_exempt', 'c75_kpass_bypass', 'policy_caches', 'c80_mode_regen', 'v89_rail_search_throughput', 'v90_fast_pathfinder', 'v129_rail_astar_exact_opt', 'v186_rail_search_slices', 'rail_upgrade_failure_memory', 'rail_end_jump_connect', 'incr_revalidate_index', 'rail_target_cargo_prefilter', 'subsidy_reselect_if_purged', 'select_bisect_insert'):
+            self.assertNotIn(retired, defaults)
+            self.assertNotIn(retired, specs)
         self.assertEqual(
             len(defaults),
             INFO.read_text(encoding="utf-8").count("AddSetting("),
         )
-        for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build", "c75_kpass_bypass",
+        for name in ("c69_decision_bottleneck", "c70_mode_calibration", "c75_multi_build",
                      "town_growth_roi_gate", "c76_regen_targeted",
-                     "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder",
-                     "c121_air_project_realization_adaptive"):
+                     "town_growth_plan_memo", "c121_air_project_realization_adaptive"):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c76_freight_rotation", "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load", "rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)
@@ -273,7 +276,7 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("probe_air_finance_margin", defaults)  # V239
         self.assertEqual(defaults["probe_event_backlog"], 0)
         self.assertEqual(defaults["policy_rail"], 1)
-        self.assertEqual(defaults["policy_caches"], 1)
+        self.assertNotIn("policy_caches", defaults)
         self.assertNotIn("air_route_plane_selection", defaults)
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
@@ -402,22 +405,22 @@ class TestCampaignFreeze(unittest.TestCase):
 
     def test_policy_guard_rejects_unannounced_and_no_effect(self):
         diff = validate_policy_settings(
-            {"c80_mode_regen": 0, "road_mode": 0},
-            {"c80_mode_regen": 1, "road_mode": 0},
-            intervention_settings=("c80_mode_regen",),
+            {"c76_freight_rotation": 0, "road_mode": 0},
+            {"c76_freight_rotation": 1, "road_mode": 0},
+            intervention_settings=("c76_freight_rotation",),
         )
-        self.assertEqual(set(diff), {"c80_mode_regen"})
+        self.assertEqual(set(diff), {"c76_freight_rotation"})
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"c80_mode_regen": 0, "road_mode": 0},
-                {"c80_mode_regen": 1, "road_mode": 1},
-                intervention_settings=("c80_mode_regen",),
+                {"c76_freight_rotation": 0, "road_mode": 0},
+                {"c76_freight_rotation": 1, "road_mode": 1},
+                intervention_settings=("c76_freight_rotation",),
             )
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"c80_mode_regen": 0},
-                {"c80_mode_regen": 0},
-                intervention_settings=("c80_mode_regen",),
+                {"c76_freight_rotation": 0},
+                {"c76_freight_rotation": 0},
+                intervention_settings=("c76_freight_rotation",),
             )
 
     def test_bench_audit_detects_identical_and_shared_nondefault_arms(self):

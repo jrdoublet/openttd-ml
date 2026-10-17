@@ -40,7 +40,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
         local fallbackCargo = freightOrder[idx];
         local impossibleTargetCargo = targeted && entityKind == "industry"
             && !OpexRailTargetIndustryHasStructuralPairForCargo(catalog, entityId, fallbackCargo);
-        if (RAIL_TARGET_CARGO_PREFILTER && impossibleTargetCargo) {
+        if (impossibleTargetCargo) {
           if (DECISION_LOG) {
             OpexDecide("RAIL_TARGET_CARGO_SKIP", "industry=" + entityId
                        + " cargo=" + fallbackCargo + " reason=no_structural_pair");

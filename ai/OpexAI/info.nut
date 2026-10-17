@@ -126,13 +126,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "exp_opcode_exact",
-      description = "Exact opcode paths for road planning, air fleet sort, catchment and joined stops; 1 = on (default), 0 = historical",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
 
@@ -201,13 +194,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c69_fleet_exempt",
-      description = "C69 bis: fleet projects (planes added to an existing line) keep P/C under c69_decision_bottleneck, since they build nothing; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c70_mode_calibration",
@@ -358,13 +344,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c75_kpass_bypass",
-      description = "C75 bis: allow at most one financeable new-line project per projects pass to bypass K_pass; fleet projects never qualify; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "probe_events",
@@ -376,13 +355,6 @@ class OpexAIInfo extends AIInfo {
 
     /* --- 3. Macro-politiques adoptees unifiees (8 groupes) --- */
 
-    AddSetting({
-      name = "policy_caches",
-      description = "C41 and portfolio performance caches and spatial indexing: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "policy_rail",
@@ -584,15 +556,6 @@ class OpexAIInfo extends AIInfo {
 
     /* --- 4. Calibrations physiques et options reelles --- */
 
-    AddSetting({
-      name = "rail_upgrade_failure_memory",
-      description = "remember a failed double-track A* search per line and do not retry it until the abandon cooldown expires; 1 = on (default), 0 = off",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "rail_geometry_guard",
@@ -634,24 +597,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "rail_end_jump_connect",
-      description = "recognize collinear bridge/tunnel jump track continuity on terminal station connection; 1 = on (default since 2026-10-12, porte B 20x10), 0 = off",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "incr_revalidate_index",
-      description = "Indexed revalidation of candidate pool: 0 historical, 1 indexed (default since 2026-10-12, V157 porte B 20x10), 2 control (both, historical used, mismatch logged)",
-      min_value = 0, max_value = 2,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1, step_size = 1,
-      flags = 0
-    });
 
     AddSetting({
       name = "rail_failure_audit",
@@ -681,15 +627,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "rail_target_cargo_prefilter",
-      description = "opcode optimization: during targeted industry rail regeneration, skip fallback cargos that cannot structurally touch the target industry; 1 = on (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "probe_rail_terrain",
@@ -847,13 +784,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c80_mode_regen",
-      description = "C80 tranche 4: under c76_regen_targeted, an industry or non-air engine change regenerates only the dependent modes (rail, road, water) instead of the whole pool: 1 = enabled (default), 0 = disabled",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c80_air_choice_memo",
@@ -871,13 +801,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "v89_rail_search_throughput",
-      description = "V89: opportunistic rail A* search throughput (multiple slices per tick / inter-stage): 1 = enabled (default), 0 = disabled",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "v195_v182_years",
@@ -970,31 +893,8 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
-    AddSetting({
-      name = "v186_rail_search_slices",
-      description = "V186: rail A* slices advanced per scheduler pass (1..16, default 1 = historical)",
-      min_value = 1, max_value = 16,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = 0
-    });
 
-    AddSetting({
-      name = "v90_fast_pathfinder",
-      description = "V90: optimized vendorized rail pathfinder (identical routes): 1 = enabled (default), 0 = BaNaNaS RailPathFinder",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v129_rail_astar_exact_opt",
-      description = "V129: optimized rail A* with strictly identical exploration (parallel-array heap, cached heuristic/bridge table, batched FindPath, single-pass neighbours); needs v90_fast_pathfinder=1: 1 = enabled, 0 = V90 code unchanged; default 1 since 2026-10-07 (user adoption)",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "v131_rail_repair",
@@ -1042,23 +942,8 @@ class OpexAIInfo extends AIInfo {
     });
 
 
-    AddSetting({
-      name = "subsidy_reselect_if_purged",
-      description = "F-EVENT-BACKLOG-01: only reselect projects on subsidy expiration/award if _purgeSubsidyFromProjects actually removed candidates; 1 = conditional reselect, 0 = unconditional reselect (historical); default 1 since 2026-10-11",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     /* AC04-B et AC05 : qualifies separement et en cumul, rollback 0. */
-              AddSetting({
-      name = "select_bisect_insert",
-      description = "V154: binary search insertion in OpexProjectInsertDefensive; 1 = on (default since 2026-10-12, V157 porte B 20x10), 0 = historical",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1, flags = AICONFIG_BOOLEAN
-    });
     AddSetting({
       name = "v163_multi_cargo",
       description = "V163: a rail freight train also carries a second cargo produced by its source industry and accepted by its destination industry (e.g. GRAI + LVST farm to factory), wagons sized per cargo; 0 = off (default), 1 = on",

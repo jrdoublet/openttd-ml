@@ -37,25 +37,16 @@ class C75KPassBypassContractTests(unittest.TestCase):
         cls.build = body(cls.projects, "function OpexAI::_tryBuildProjects(")
 
     def test_setting_is_adopted_default_on(self):
-        start = self.info.index('name = "c75_kpass_bypass"')
-        setting = self.info[start:self.info.index("});", start)]
-        self.assertIn("easy_value = 1", setting)
-        self.assertIn("medium_value = 1", setting)
-        self.assertIn("hard_value = 1", setting)
-        self.assertIn("custom_value = 1", setting)
-        self.assertIn("flags = AICONFIG_BOOLEAN", setting)
-        self.assertIn("C75_KPASS_BYPASS <- false;", self.globals)
+        self.assertNotIn('name = "c75_kpass_bypass"', read("ai/OpexAI/info.nut"))
+        self.assertNotIn('GetSetting("c75_kpass_bypass")', read("ai/OpexAI/settings.nut"))
+        self.assertNotIn("C75_KPASS_BYPASS <-", read("ai/OpexAI/globals_pre.nut"))
         self.assertIn("C75_KPASS_BYPASS_LEDGER_YEAR <- -1;", self.globals)
-        self.assertEqual(
-            self.settings.count('AIController.GetSetting("c75_kpass_bypass")'),
-            1,
-        )
 
     def test_financeable_new_line_can_bypass_kpass(self):
         gate = body(self.projects, "function OpexC75KPassBypassIsNewLine(")
         for mode in ("air", "rail", "road", "water"):
             self.assertIn(f'project.mode == "{mode}"', gate)
-        self.assertIn("C75_KPASS_BYPASS && OpexC75KPassBypassIsNewLine(project)", self.build)
+        self.assertIn("OpexC75KPassBypassIsNewLine(project)", self.build)
         self.assertIn("OpexC75KPassBypassIsNewLine(project)", self.build)
         self.assertIn("projCap <= availCap", self.build)
         self.assertIn("OpexC75BypassRecordEligible(", self.build)
@@ -91,7 +82,7 @@ class C75KPassBypassContractTests(unittest.TestCase):
 
     def test_default_off_keeps_historical_kpass_stop_path(self):
         threshold = self.build[self.build.index("if (projCap >= c75KPass)"):]
-        self.assertIn("if (C75_KPASS_BYPASS &&", threshold)
+        self.assertNotIn("if (C75_KPASS_BYPASS &&", threshold)
         self.assertIn('c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";', threshold)
         self.assertIn("if (!c75BypassThisProject)", threshold)
         self.assertIn("break;", threshold)
@@ -134,7 +125,7 @@ class C75KPassBypassContractTests(unittest.TestCase):
             self.assertIn(token, yearly)
 
     def test_yearly_telemetry_does_not_require_portfolio_probe(self):
-        self.assertIn("if (C75_KPASS_BYPASS) {", self.report)
+        self.assertNotIn("if (C75_KPASS_BYPASS)", self.report)
         self.assertIn("OpexC75BypassFlushYear(c75BypassYear);", self.report)
         self.assertIn("C75_KPASS_BYPASS_LEDGER_YEAR == c75BypassYear", self.report)
         historical = body(self.probes, "function OpexC75FlushYear(")
