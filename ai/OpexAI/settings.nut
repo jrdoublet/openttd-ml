@@ -217,7 +217,6 @@ function OpexLoadSettings()
   VIVIER_RATIO_FILTER = polPort;
   COMPLEX_CARGO = polPort;
   CAPITAL_CALIBRATION = polPort;
-  CAPITAL_QUOTE_LEARNING = AIController.GetSetting("capital_quote_learning") != 0;
   ROAD_FINANCE_UNBIAS_P0 = AIController.GetSetting("road_finance_unbias_p0") != 0;
   ROAD_FINANCE_GATE_SHADOW_P0 = OpexProbeSetting("road_finance_gate_shadow_p0") != 0;
   ROAD_QUOTE_COMPONENTS_SHADOW_P0 = OpexProbeSetting("road_quote_components_shadow_p0") != 0;

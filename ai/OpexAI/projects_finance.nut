@@ -9,7 +9,6 @@ function OpexProjectFinanceCapital(project)
 {
   if (project == null || !("budgetCapital" in project)) return 0;
   local financeCapital = project.budgetCapital;
-  if (CAPITAL_QUOTE_LEARNING) return OpexCapitalQuoteFinance(project, financeCapital);
   if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;
 
   local biasPct = 0;

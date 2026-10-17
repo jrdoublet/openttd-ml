@@ -31,7 +31,6 @@ class RoadFinanceUnbiasContracts(unittest.TestCase):
 
     def test_only_road_finance_bias_switches(self):
         finance = src("projects_finance.nut")
-        self.assertIn('if (CAPITAL_QUOTE_LEARNING) return OpexCapitalQuoteFinance(', finance)
         self.assertIn('if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;', finance)
         self.assertIn('if (project.mode == "rail") biasPct = RAIL_FINANCE_BIAS_PCT;', finance)
         self.assertIn('else if (project.mode == "road") biasPct = 121;', finance)
@@ -44,7 +43,6 @@ class RoadFinanceUnbiasContracts(unittest.TestCase):
         task = src("task_road.nut")
         self.assertIn('candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN', task)
         self.assertNotIn('if (ROAD_FINANCE_UNBIAS_P0)', task)
-        self.assertNotIn("road_finance_unbias_p0", src("capital_quote_learning.nut"))
         self.assertIn('ROAD_FINANCE_POSTPLAN_P0 date=', task)
         self.assertIn('ROAD_FINANCE_BUILD_P0 date=', task)
 

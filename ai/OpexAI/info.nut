@@ -71,13 +71,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "capital_quote_learning",
-      description = "P0: learn completed build quote/actual capital by construction family; keeps cash reserves separate; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "road_finance_unbias_p0",
