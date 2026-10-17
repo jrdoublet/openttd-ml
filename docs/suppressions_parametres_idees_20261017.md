@@ -27,7 +27,8 @@ définitivement, donc ces branches n'étaient plus jamais exécutées.
 | `c109_…`, `c112_air_speed_elasticity_*` | `8601b86` | Choix du moteur par **élasticité profit/vitesse** (seuils 0,5 et 0,75), sans constante de caisse ni EngineID. | Pas adopté. L'idée « la vitesse ne paie que si le temps fixe est faible » reste valable. |
 | `c111_…`, `c113_air_c100_*_decision_shadow` | `4de6906` | Isolation causale : moteur rejoué C100, mais score et admission gardés sur un shadow C68. | Outils de diagnostic. Ils ont confirmé que l'effet passait par l'admission des routes. |
 | `c114_air_c100_full_replay` | `8601b86` | Rejouer le vieux timing partout (moteur, admission, capital, flotte). | 20×10 à +195 k£/an mais `fail_primary` (12/8). **Gagnant sur les petits réseaux, perdant sur les réseaux mûrs.** |
-| `c104_air_c100_compare_probe` | `1bb356e` (branche, **pas sur master**) | Sonde passive : mêmes routes évaluées sous les trois modèles. | Sémantiquement neutre, mais change les opcodes. Attend un 20×10 neutre. |
+| `c104_air_c100_compare_probe` | `ae41ea2` | Sonde passive : mêmes routes évaluées sous les trois modèles. | Change les opcodes ; 20×10 neutre (−0,08 %, 9/11, p = 0,87, valeur −0,75 %). |
+| `c110_air_engine_calibration_choice_only` | `3d7c8ad` | Apprendre par moteur le rapport réalisé/prédit (C82) et ne s'en servir **que** pour choisir l'avion, sans toucher au score portefeuille. | Pas adopté. Smoke identique. L'idée « corriger le modèle par le réalisé, moteur par moteur » reste dans C82. |
 
 **Idée centrale à retenir** : le vieux temps de manœuvre trop pessimiste agissait comme un
 **régulariseur de capital**. Il freinait les gros avions pendant l'expansion, quand le capital
@@ -37,8 +38,7 @@ ne la remplace. Un futur choix de moteur devrait raisonner en **rendement margin
 selon la rareté du capital**, pas en physique pure.
 
 Encore en place : `OpexC104BestAirEngine` (partagé), `forcePhysicalTiming` /
-`forceC100RankReplay` dans `air_trip.nut` et `air_route_economics.nut`, et `C110` (persistance,
-à retirer en dernier).
+`forceC100RankReplay` dans `air_trip.nut` et `air_route_economics.nut`.
 
 ## 2. Lot grok (`7f77d63`) : constantes mortes
 
@@ -51,7 +51,9 @@ Encore en place : `OpexC104BestAirEngine` (partagé), `forcePhysicalTiming` /
 Refusés par grok et conservés : `C41_RAIL_LOST_*` (Save/Load) et `WATER_OPCODE_COMPAT_FALSE`
 (calage d'opcodes).
 
-## 3. Lot agy (branche `v222-purge-air`, `0bce5ec`, **pas encore sur master**)
+## 3. Lot agy (`6e34a72`, sur master le 17/10)
+
+20×10 contre master : +119,5 k£/an (+3,41 %), 13/7, Wilcoxon p = 0,033, IC95 [−18,9 k ; +244,8 k], valeur +1,78 %.
 
 | Réglage | Idée | Pourquoi retiré |
 |---|---|---|
