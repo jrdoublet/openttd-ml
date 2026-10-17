@@ -20,14 +20,14 @@ function C121InvestLog(event, tail = "")
 
 function C121InvestSource()
 {
-  C121InvestLog("source", " econ=" + (C121_AIR_ECONOMICS ? 1 : 0)
+  C121InvestLog("source", " econ=1"
       + " catalog=" + (1)
       + " initial=0");
 }
 
 function C121InvestProject(project, rank, phase, outcome = "na", lineId = -1)
 {
-  if (!C121_AIR_ECONOMICS || project == null || !("mode" in project) || project.mode != "air"
+  if (project == null || !("mode" in project) || project.mode != "air"
       || !("payload" in project) || project.payload == null) return;
   local plan = project.payload;
   if (!("economics" in plan) || plan.economics == null) return;
@@ -52,7 +52,7 @@ function C121InvestProject(project, rank, phase, outcome = "na", lineId = -1)
 
 function C121InvestFleetSnapshot(line, year, event, reason, before = -1, after = -1, added = 0)
 {
-  if (!C121_AIR_ECONOMICS || line == null || !("mode" in line) || line.mode != "air") return;
+  if (line == null || !("mode" in line) || line.mode != "air") return;
   local lineId = ("lineId" in line) ? line.lineId : -1;
   /* Un seul instantane par ligne/annee/motif suffit pour attribuer la garde.
    * La version mensuelle perturbait nettement les trajectoires par son cout en
@@ -98,7 +98,7 @@ function C121InvestFleetSnapshot(line, year, event, reason, before = -1, after =
 
 function C121InvestAnnual(line, year, vehCount, profit, revenue, stationA, stationB, ratingA, ratingB)
 {
-  if (!C121_AIR_ECONOMICS || line == null || !("mode" in line) || line.mode != "air") return;
+  if (line == null || !("mode" in line) || line.mode != "air") return;
   local waitA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : "na";
   local waitB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : "na";
   local age = ("year" in line) ? year - line.year : -1;

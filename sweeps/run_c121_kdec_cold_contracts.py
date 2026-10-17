@@ -42,6 +42,9 @@ def main():
         for name, replacement in (("OpexC121ProjectHasRealization", "FxKLegacyHasRealization"),
                                   ("OpexC70Profit", "FxKLegacyC70Profit")):
             text = text.replace(name, replacement)
+        # Removed switches stayed true. The copied helpers must not read them.
+        text = re.sub(r"\bC121_AIR_ECONOMICS\b", "true", text)
+        text = re.sub(r"\bC70_MODE_CALIBRATION\b", "true", text)
         extracted.append(text)
     extra = ""
     project_fixture = ROOT / "tests/mechanisms/c121_project_realization_cleanup_vm.nut"
@@ -52,6 +55,8 @@ def main():
         project_helper = project_source[start:end]
         project_helper = project_helper.replace("OpexC121RealizationFactor", "FxPLegacyRealizationFactor")
         project_helper = re.sub(r"\bC121_AIR_PROJECT_REALIZATION\b", "false", project_helper)
+        project_helper = re.sub(r"\bC121_AIR_ECONOMICS\b", "true", project_helper)
+        project_helper = re.sub(r"\bC70_MODE_CALIBRATION\b", "true", project_helper)
         extra = project_helper + project_fixture.read_text(encoding="utf-8")
     (target / "c121_kdec_cold_vm.nut").write_text("\n".join(extracted) + FIXTURE.read_text(encoding="utf-8") + extra, encoding="utf-8")
     main = target / "main.nut"
@@ -85,12 +90,12 @@ def main():
     integrity = phase_integrity(phase, "1970-01-01", 1)
     match = re.search(r"C121_KDEC_VM complete=1 checks=(\d+) restored=1", log)
     project_match = re.search(r"C121_PROJECT_CLEANUP_VM complete=1 checks=(\d+) restored=1", log)
-    checks = {"noai_contracts": match is not None and int(match[1]) == 37,
+    checks = {"noai_contracts": match is not None and int(match[1]) == 35,
               "no_assertion": "C121_KDEC_VM_ASSERT" not in log,
               "phase_integrity": all(integrity.values()), "sources_unchanged": before == source_hashes(),
               "copy_unchanged": copied == tree_hashes(target)}
     if args.project_legacy_source is not None:
-        checks["project_factor_parity"] = project_match is not None and int(project_match[1]) == 322
+        checks["project_factor_parity"] = project_match is not None and int(project_match[1]) == 162
     write_new(folder / "report.json", {"pass": all(checks.values()), "checks": checks,
               "vm_assertions": int(match[1]) if match else None,
               "project_vm_assertions": int(project_match[1]) if project_match else None,

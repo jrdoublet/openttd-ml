@@ -1,5 +1,6 @@
 /* Requires original winner fixture helpers; no production function replaced
  * by the candidate. Both paths run on the same prepared route. */
+require("c121_winner_vm.nut");
 FXF_INITIAL_OPS <- 0;
 
 function FxFPair(catalog, plan, plane, fusion)

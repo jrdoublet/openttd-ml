@@ -1,5 +1,6 @@
 /* The permanent winner route delegates once to the fused N=1/N=2 kernel.
  * Explicit doubles are restored before the numeric fixture comparisons. */
+require("c121_fusion_vm.nut");
 FXI_CALLS <- 0;
 FXI_CAPTURED <- null;
 

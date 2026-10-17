@@ -1,7 +1,6 @@
-"""Shared NoAI fleet assertions and ordinary Save/Load; correctness only.
+"""Shared Save/Load driver. The caller supplies the mechanism fixture.
 
-Uses the existing save/load driver, source copier, decoders and health checks.
-The fixture restores every transient override before natural play resumes.
+The C121 visible-target default was removed with that mechanism.
 """
 from __future__ import annotations
 
@@ -17,10 +16,11 @@ from .run_c121_cache_fixtures import stage as copy_ai
 from .run_mechanism_fixtures import digest, parse_saves, phase_integrity, replace_once, tree_hashes
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURE = ROOT / "tests/mechanisms/c121_visible_target_vm.nut"
 
 
-def stage(folder, fixture=FIXTURE):
+def stage(folder, fixture=None):
+    if fixture is None:
+        raise ValueError("fixture is required")
     target = copy_ai(folder, False)
     shutil.copy2(fixture, target / fixture.name)
     main = target / "main.nut"
@@ -36,7 +36,9 @@ def stage(folder, fixture=FIXTURE):
     return target
 
 
-def main(argv=None, *, settings=None, fixture=FIXTURE, marker="C121_TARGET", stage_transform=None):
+def main(argv=None, *, settings=None, fixture=None, marker="C121_TARGET", stage_transform=None):
+    if fixture is None:
+        raise ValueError("fixture is required")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
