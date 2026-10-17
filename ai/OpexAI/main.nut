@@ -174,8 +174,15 @@ class OpexAI extends AIController {
    * lors de la dernière sélection non vide). Mémoire transitoire, réinitialisée à 0 au chargement. */
   _railStockLastFundedScore = 0.0;
   _railStockLastFundedDate = -1;
-  /* C67.6 : sonde passive d'exposition eau, jamais sauvegardee.
-   * L'ancien service de carte (c67_terrain_map) n'est plus instancie. */
+  /* C67.4 : service de carte par blocs, reconstruit, jamais sauvegarde (task_terrain.nut). */
+  _c67Terrain = null;
+  _c67BgCursor = 0;
+  _c67BgFresh = 0;
+  _c67BgIdle = false;
+  _c67LinesSeen = 0;
+  _c67Ledger = null;
+  _c67Year = -1;
+  /* C67.6 : sonde passive d'exposition eau, jamais sauvegardee. */
   _c67Water = null;
   /* 11.6 : _railSearch contient un pathfinder vivant. Il n'est pas serialise ;
    * Save/Load conserve sa presence pour forcer une reconstruction propre du portefeuille. */
@@ -568,6 +575,11 @@ class OpexAI extends AIController {
   function _c76LoadRevisions(data);
   function _c76RunSelfTest();
   function _runOrchestratorTick();
+  function _c67TerrainInit();
+  function _c67NoteNewLines();
+  function _c67FeedBackground();
+  function _c67LogYear();
+  function _c67TerrainSlackStep();
   function _c67SlackHook();
   function _c67WaterLogYear();
   function _c67WaterNextQuery(job);
