@@ -51,24 +51,17 @@ def v129_class_body() -> str:
 class TestV214Settings(unittest.TestCase):
     def test_declared_with_bounds_and_adopted_defaults(self):
         info = read_file("info.nut")
-        for name, bounds, default in (("v214_rail_turn_cost", "min_value = 0, max_value = 2000", 300),
-                                      ("v214_rail_tight_turn_cost", "min_value = 0, max_value = 5000", 1500)):
-            block = re.search(rf'name\s*=\s*"{name}"[^}}]+', info)
-            self.assertIsNotNone(block, name)
-            text = block.group(0)
-            self.assertIn(bounds, text)
-            for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-                self.assertRegex(text, rf"{key}\s*=\s*{default},")
-
+        # V236 : constantes 300 et 1500
+        for name in ("v214_rail_turn_cost", "v214_rail_tight_turn_cost"):
+            self.assertNotIn(f'name = "{name}"', info)
     def test_globals_and_reading(self):
         globals_pre = read_file("globals_pre.nut")
-        self.assertIn("V214_RAIL_TURN_COST <- 0;", globals_pre)
-        self.assertIn("V214_RAIL_TIGHT_TURN_COST <- 0;", globals_pre)
+        self.assertIn("V214_RAIL_TURN_COST <- 300;", globals_pre)
+        self.assertIn("V214_RAIL_TIGHT_TURN_COST <- 1500;", globals_pre)
         settings = read_file("settings.nut")
-        self.assertIn("V214_RAIL_TURN_COST = (v214Turn != null && v214Turn >= 0 && v214Turn <= 2000) ? v214Turn : 0;",
-                      settings)
-        self.assertIn("V214_RAIL_TIGHT_TURN_COST = (v214Tight != null && v214Tight >= 0 && v214Tight <= 5000) ? v214Tight : 0;",
-                      settings)
+        self.assertNotIn("v214_rail", settings)
+        self.assertNotIn("V214_RAIL_TURN_COST =", settings)
+        self.assertNotIn("V214_RAIL_TIGHT_TURN_COST =", settings)
 
 
 class TestV214Pathfinder(unittest.TestCase):

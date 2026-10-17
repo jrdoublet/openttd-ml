@@ -23,7 +23,7 @@
  * de la tache "predit vs reel" pour le detail ligne par ligne. */
 const STATION_RATING_PCT = 50;
 
-/* Valeur initiale identique au reglage actif (info.nut: rail_terrain_factor=100).
+/* Valeur initiale identique au reglage actif (ancien reglage rail_terrain_factor=100, retire en V236).
  * L'ancien initialiseur 170 etait aussitot ecrase par OpexLoadSettings et
  * sa reactivation isolee a echoue a la porte A du 07/10. */
 RAIL_TERRAIN_FACTOR <- 100;

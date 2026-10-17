@@ -3082,7 +3082,7 @@ def selftest():
     # 5. C66.3 : defaults effectifs, garde de comparaison et immutabilite du snapshot.
     defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
     assert defaults["debug_signs"] == 1
-    assert defaults["air_fleet_cadence_days"] == 7
+    assert "air_fleet_cadence_days" not in defaults  # V236 : constante 7
 
     diff = validate_policy_settings(
         {"c80_mode_regen": 0, "road_mode": 0},

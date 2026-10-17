@@ -8,7 +8,7 @@ class OpexAIInfo extends AIInfo {
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "15"; }
 
-  /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
+  /* Le reglage debug_signs existe pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains.
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
@@ -50,15 +50,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "pathfinder_sleep_ticks",
-      description = "Ticks slept after each 50-iteration A* chunk: 0 = no self-handicap (default), 1+ = yield more often (with humans)",
-      min_value = 0, max_value = 10,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = 0
     });
 
     /* --- 2. Sondes de diagnostic unifiees (9 groupes) --- */
@@ -554,14 +545,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_air_first_live_growth_phase_years",
-      description = "With first-live growth, use the live 1->2 early override only during this many opening game years; 4 = default, 0 = all years",
-      min_value = 0, max_value = 20,
-      easy_value = 4, medium_value = 4, hard_value = 4,
-      custom_value = 4, step_size = 1, flags = 0
-    });
-
-    AddSetting({
       name = "c121_kpass_shadow",
       description = "C121 cadence shadow: log each portfolio pass stop with blocking project and a bounded look-ahead of following project modes/finance; never changes decisions; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -820,29 +803,11 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v168_rail_max_dist",
-      description = "V168: rail candidate maximum distance in tiles. 160 = default (qualified 13/10: gate A 40x3 +152.7 k/yr, gate B 20x10 pass); 0 = historical bound derived from the A* iteration cap through the knot table (94 tiles at a 10k cap); N = use N tiles and drop the knot-table iteration filter (the per-search A* cap still applies)",
-      min_value = 0, max_value = 512,
-      easy_value = 160, medium_value = 160, hard_value = 160,
-      custom_value = 160,
-      flags = 0
-    });
-
-    AddSetting({
       name = "v171_rail_knots",
       description = "V171: recalibrated rail A* iteration knot table (V2). 0 = historical V1 table (default); 1 = V2 table fitted on rail-vs-rail p90 iterations",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v172_rail_long_weight_pct",
-      description = "V172: rail A* heuristic weight percentage for long searches (>= v172_rail_long_weight_dist tiles). 0 = inert (uses v91_astar_weight_pct); 100..300 = override weight percentage; default 200 (rail-only gates A and B passed 16/10, neutral in full games)",
-      min_value = 0, max_value = 300,
-      easy_value = 200, medium_value = 200, hard_value = 200,
-      custom_value = 200,
-      flags = 0
     });
 
     AddSetting({
@@ -891,15 +856,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v172_rail_long_weight_dist",
-      description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
-      min_value = 0, max_value = 512,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
-      flags = 0
-    });
-
-    AddSetting({
       name = "policy_air",
       description = "Aviation policy: portfolio arbitration, runway cadence cap, joined bus stops, hub reuse: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -932,26 +888,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     /* --- 4. Calibrations physiques et options reelles --- */
-
-    AddSetting({
-      name = "loan_repay_floor_k",
-      description = "Cash floor below which the loan is not repaid, in thousands: 300 = default, 1000 = historical",
-      min_value = 0, max_value = 2000,
-      easy_value = 300, medium_value = 300, hard_value = 300,
-      custom_value = 300,
-      step_size = 50,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "pathfinder_hard_cap_k",
-      description = "Hard pathfinder iteration cap, in thousands (docs/taches.md A3): 10 = default, 40 = pre-A3",
-      min_value = 5, max_value = 100,
-      easy_value = 5, medium_value = 5, hard_value = 5,
-      custom_value = 5,
-      step_size = 5,
-      flags = 0
-    });
 
     AddSetting({
       name = "rail_upgrade_failure_memory",
@@ -1084,51 +1020,11 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "abandon_cooldown_days",
-      description = "Delai de reprise en jours sur la memoire d'abandon (365 = defaut adopte, docs/taches.md C33.3)",
-      min_value = 0, max_value = 5000,
-      easy_value = 365, medium_value = 365, hard_value = 365,
-      custom_value = 365,
-      step_size = 30,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "rail_terrain_factor",
-      description = "Pourcentage applique au cout du rail par tuile (100 = brut, 170 = calibre reel, docs/taches.md C2)",
-      min_value = 100, max_value = 300,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
-      step_size = 10,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "rail_finance_bias_pct",
-      description = "Rail project finance capital bias percentage (candidate capital * bias / 100); default 100",
-      min_value = 90, max_value = 200,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
-      step_size = 5,
-      flags = 0
-    });
-
-    AddSetting({
       name = "rail_depot_cost",
       description = "Include rail depot construction cost in rail line infrastructure economics (F-RAIL-ECON-01): 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "project_top_k",
-      description = "Taille de la fenetre de selection du portefeuille (64 = defaut mesure)",
-      min_value = 8, max_value = 128,
-      easy_value = 64, medium_value = 64, hard_value = 64,
-      custom_value = 64,
-      step_size = 8,
-      flags = 0
     });
 
     AddSetting({
@@ -1169,46 +1065,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "air_early_slot_target_towns",
-      description = "Early-slot target: number of distinct large towns to secure with an Opex airport before priority stops",
-      min_value = 1, max_value = 16,
-      easy_value = 6, medium_value = 6, hard_value = 6,
-      custom_value = 6,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "air_early_slot_min_pop",
-      description = "Early-slot minimum town population for a new airport endpoint to receive the priority bonus",
-      min_value = 0, max_value = 10000,
-      easy_value = 1000, medium_value = 1000, hard_value = 1000,
-      custom_value = 1000,
-      step_size = 100,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "air_early_slot_bonus_pct",
-      description = "Early-slot selection-score bonus per newly claimed qualifying town (percent)",
-      min_value = 0, max_value = 200,
-      easy_value = 50, medium_value = 50, hard_value = 50,
-      custom_value = 50,
-      step_size = 10,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "air_fleet_cadence_days",
-      description = "Delai minimal en jours entre deux extensions de flotte aerienne sur une meme ligne (7 = hebdomadaire)",
-      min_value = 0, max_value = 365,
-      easy_value = 7, medium_value = 7, hard_value = 7,
-      custom_value = 7,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
       name = "air_fleet_cooldown_prefilter",
       description = "Filter AIR lines still under fleet-growth cooldown before ROI sorting",
       min_value = 0, max_value = 1,
@@ -1232,46 +1088,6 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "v161_prior_own",
-      description = "V161 prior: annual profit of one more plane on its own line (pounds)",
-      min_value = 0, max_value = 200000,
-      easy_value = 13000, medium_value = 13000, hard_value = 13000,
-      custom_value = 13000,
-      step_size = 500,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "v161_prior_neighbour",
-      description = "V161 prior: annual profit lost per neighbour line sharing an airport (pounds)",
-      min_value = 0, max_value = 100000,
-      easy_value = 2600, medium_value = 2600, hard_value = 2600,
-      custom_value = 2600,
-      step_size = 100,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "air_joined_stop_limit",
-      description = "Maximum bus-stop pieces directly joined to each airport station (default 2)",
-      min_value = 0, max_value = 2,
-      easy_value = 2, medium_value = 2, hard_value = 2,
-      custom_value = 2,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "air_pax_revenue_calibration_pct",
-      description = "Air passenger revenue calibration percent: 104 = measured default, 100 = uncalibrated",
-      min_value = 50, max_value = 200,
-      easy_value = 104, medium_value = 104, hard_value = 104,
-      custom_value = 104,
-      step_size = 1,
       flags = 0
     });
 
@@ -1429,31 +1245,11 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "air_hub_max_routes",
-      description = "V86: Maximum number of routes per airport hub: 0 = default caps (4 for small/commuter, 12 for others), 1..12 = cap at min(default, N)",
-      min_value = 0, max_value = 12,
-      easy_value = 3, medium_value = 3, hard_value = 3,
-      custom_value = 3,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
       name = "v89_rail_search_throughput",
       description = "V89: opportunistic rail A* search throughput (multiple slices per tick / inter-stage): 1 = enabled (default), 0 = disabled",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "unprofitable_streak_threshold",
-      description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line (default 3)",
-      min_value = 1, max_value = 10,
-      easy_value = 3, medium_value = 3, hard_value = 3,
-      custom_value = 3,
-      step_size = 1,
-      flags = 0
     });
 
     AddSetting({
@@ -1571,16 +1367,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v91_astar_weight_pct",
-      description = "V91: weighted A* heuristic percentage for rail pathfinder (100 = unweighted V90, >100 faster search with slightly longer routes; default 120)",
-      min_value = 100, max_value = 300,
-      easy_value = 120, medium_value = 120, hard_value = 120,
-      custom_value = 120,
-      step_size = 10,
-      flags = 0
     });
 
     AddSetting({
@@ -1827,42 +1613,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       step_size = 1,
-      flags = 0
-    });
-    AddSetting({
-      name = "v212_rail_pax_revenue_pct",
-      description = "V212: calibration of the predicted annual revenue of passenger rail lines, in percent (100 = off, default; 150 qualified in rail-only 15/10, losing in full games)",
-      min_value = 50, max_value = 300,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
-      step_size = 5,
-      flags = 0
-    });
-    AddSetting({
-      name = "v212_rail_pax_capital_pct",
-      description = "V212: calibration of the predicted capital of passenger rail lines before the quote, in percent (100 = off, default; 85 qualified in rail-only 15/10, losing in full games)",
-      min_value = 50, max_value = 200,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
-      step_size = 5,
-      flags = 0
-    });
-    AddSetting({
-      name = "v214_rail_turn_cost",
-      description = "V214: rail A* cost of leaving a diagonal (entering one is free), as AAAHogEx; default 300 since 16/10; 0 = historical 50 on every direction change",
-      min_value = 0, max_value = 2000,
-      easy_value = 300, medium_value = 300, hard_value = 300,
-      custom_value = 300,
-      step_size = 50,
-      flags = 0
-    });
-    AddSetting({
-      name = "v214_rail_tight_turn_cost",
-      description = "V214: rail A* extra cost of a 90 degree turn on one tile, as AAAHogEx; default 1500 since 16/10 (100 below 40 tiles); 0 = off",
-      min_value = 0, max_value = 5000,
-      easy_value = 1500, medium_value = 1500, hard_value = 1500,
-      custom_value = 1500,
-      step_size = 100,
       flags = 0
     });
   }

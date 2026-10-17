@@ -69,16 +69,17 @@ class StaticContracts(unittest.TestCase):
         self.assertIn("min_value = 0, max_value = 1", block)
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
             self.assertRegex(block, key + r" = 1\b")
-        self.assertIn("custom_value = 13000", _setting_block("v161_prior_own"))
-        self.assertIn("custom_value = 2600", _setting_block("v161_prior_neighbour"))
+        # V236 : priors en constantes
+        self.assertNotIn('name = "v161_prior_own"', _read("info.nut"))
+        self.assertNotIn('name = "v161_prior_neighbour"', _read("info.nut"))
         globals_pre = _read("globals_pre.nut")
         self.assertIn("V161_FLEET_NET_MARGINAL <- 0;", globals_pre)
         self.assertIn("V161_PRIOR_OWN <- 13000;", globals_pre)
         self.assertIn("V161_PRIOR_NEIGHBOUR <- 2600;", globals_pre)
         settings = _read("settings.nut")
-        for name, glob in (("v161_fleet_net_marginal", "V161_FLEET_NET_MARGINAL"),
-                           ("v161_prior_own", "V161_PRIOR_OWN"),
-                           ("v161_prior_neighbour", "V161_PRIOR_NEIGHBOUR")):
+        self.assertNotIn('"v161_prior_own"', settings)
+        self.assertNotIn('"v161_prior_neighbour"', settings)
+        for name, glob in (("v161_fleet_net_marginal", "V161_FLEET_NET_MARGINAL"),):
             m = re.search(r'local (\w+) = AIController\.GetSetting\("' + name + r'"\);\s*'
                           r'if \(\1 >= 0\) ' + glob + r' = \1;', settings)
             self.assertIsNotNone(m, name)

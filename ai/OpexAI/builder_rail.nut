@@ -633,17 +633,13 @@ function OpexAdvanceRailPathfinder(pathfinder, spent, iterationBudget, deadlineT
 {
   local path = false;
   local sliceSpent = 0;
-  /* 0 par defaut = aucun bridage : AAAHogEx ne dort PAS entre ses chunks (verifie dans son
-   * source, cf. info.nut::pathfinder_sleep_ticks), donc le Sleep(1) inconditionnel qui etait ici
-   * etait un handicap que nous seuls payions face a lui. Reglable pour rendre la main plus
-   * souvent dans une partie avec des humains. */
-  local sleepTicks = AIController.GetSetting("pathfinder_sleep_ticks");
+  /* Aucun Sleep entre les chunks : AAAHogEx ne dort pas non plus (V236 a retire
+   * pathfinder_sleep_ticks, toujours a 0). */
   while (path == false && spent < iterationBudget && sliceSpent < sliceIters
          && AIController.GetTick() < deadlineTick) {
     path = pathfinder.FindPath(PATH_CHUNK);
     spent += PATH_CHUNK;
     sliceSpent += PATH_CHUNK;
-    if (sleepTicks > 0) AIController.Sleep(sleepTicks);
   }
 
   /* Codes courts : un nom de panneau accepte au plus 31 caracteres et echoue SILENCIEUSEMENT
@@ -983,7 +979,6 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
 function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
 {
   local sliceSpent = 0;
-  local sleepTicks = AIController.GetSetting("pathfinder_sleep_ticks");
 
   while (state.iterations < state.iterationBudget &&
          state.iterations < state.timeSafe &&
@@ -1026,7 +1021,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.segmentUsed = 0;
     }
 
-    if (V129_RAIL_ASTAR_EXACT_OPT && V90_FAST_PATHFINDER && sleepTicks <= 0) {
+    if (V129_RAIL_ASTAR_EXACT_OPT && V90_FAST_PATHFINDER) {
       /* V129 : FindPath(n) groupe. n est borne par TOUTES les limites de la boucle historique
        * (segment, budget, timeSafe, tranche) et le nombre d'iterations reellement consommees est
        * relu (LastConsumed) : memes totaux et meme point d'arret. Seule l'echeance au tick, relue
@@ -1059,12 +1054,6 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.segmentUsed++;
       state.iterations++;
       sliceSpent++;
-      /* Sleep seulement si le reglage le demande (defaut 0 : ne pas reintroduire
-       * le Sleep(1) qui etait un handicap face a AAAHogEx). Groupe par PATH_CHUNK
-       * comme le prototype groupait Sleep(1). */
-      if (sleepTicks > 0 && (state.segmentPath != false || state.segmentUsed % PATH_CHUNK == 0)) {
-        AIController.Sleep(sleepTicks);
-      }
     }
 
     local path = state.segmentPath;

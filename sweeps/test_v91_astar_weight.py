@@ -45,39 +45,19 @@ def _read(rel_path: str) -> str:
 
 class TestV91AstarWeightContract(unittest.TestCase):
     def test_setting_declared_in_info_nut(self):
-        info = _read("ai/OpexAI/info.nut")
-        self.assertIn('name = "v91_astar_weight_pct"', info)
-        start = info.index('name = "v91_astar_weight_pct"')
-        block = info[start:info.index("});", start)]
-        self.assertIn("min_value = 100", block)
-        self.assertIn("max_value = 300", block)
-        self.assertIn("custom_value = 120", block)
-        self.assertIn("easy_value = 120", block)
-        self.assertIn("medium_value = 120", block)
-        self.assertIn("hard_value = 120", block)
-        self.assertIn("flags = 0", block)
-        self.assertTrue("step_size = 10" in block or "step_size = 25" in block)
-
+        # V236 : constante V91_ASTAR_WEIGHT_PCT = 120, plus de reglage
+        self.assertNotIn('name = "v91_astar_weight_pct"', _read("ai/OpexAI/info.nut"))
     def test_global_declared_in_globals_pre_nut(self):
         globals_pre = _read("ai/OpexAI/globals_pre.nut")
         self.assertIn("V91_ASTAR_WEIGHT_PCT <- 120;", globals_pre)
 
     def test_setting_loaded_in_settings_nut(self):
         settings = _read("ai/OpexAI/settings.nut")
-        self.assertIn('AIController.GetSetting("v91_astar_weight_pct")', settings)
-        self.assertIn("V91_ASTAR_WEIGHT_PCT =", settings)
-
+        self.assertNotIn('AIController.GetSetting("v91_astar_weight_pct")', settings)
+        self.assertNotIn("V91_ASTAR_WEIGHT_PCT =", settings)
     def test_campaign_freeze_specs_and_defaults(self):
         defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
-        specs = parse_ai_setting_specs(ROOT / "ai" / "OpexAI" / "info.nut")
-        self.assertIn("v91_astar_weight_pct", defaults)
-        self.assertEqual(defaults["v91_astar_weight_pct"], 120)
-        spec = specs["v91_astar_weight_pct"]
-        self.assertEqual(spec["min_value"], 100)
-        self.assertEqual(spec["max_value"], 300)
-        self.assertIn(spec["step_size"], (10, 25))
-        self.assertFalse(spec["boolean"])
-
+        self.assertNotIn("v91_astar_weight_pct", defaults)
     def test_weight_applied_only_in_v90_class(self):
         rail = _read("ai/OpexAI/pathfinder_v90/rail.nut")
         self.assertIn("class OpexRailPathFinderV90", rail)

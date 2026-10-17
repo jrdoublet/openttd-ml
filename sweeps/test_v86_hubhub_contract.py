@@ -21,32 +21,19 @@ class V86HubHubContractTest(unittest.TestCase):
 
     def test_settings_declared_in_info_nut(self):
         info = _read("ai/OpexAI/info.nut")
-
-        # air_hubhub_marginal removed (V222 purge: bypassed under C121)
         self.assertNotIn('name = "air_hubhub_marginal"', info)
-
-        # air_hub_max_routes
-        self.assertIn('name = "air_hub_max_routes"', info)
-        cap_block = info[info.index('name = "air_hub_max_routes"'):]
-        cap_block = cap_block[:cap_block.index("});")]
-        self.assertIn("min_value = 0", cap_block)
-        self.assertIn("max_value = 12", cap_block)
-        self.assertIn("step_size = 1", cap_block)
-        self.assertIn("flags = 0", cap_block)
-        self.assertIn("custom_value = 3", cap_block)
-
+        # V236 : air_hub_max_routes devient la constante AIR_HUB_MAX_ROUTES = 3
+        self.assertNotIn('name = "air_hub_max_routes"', info)
     def test_globals_declared_in_globals_pre_nut(self):
         globals_pre = _read("ai/OpexAI/globals_pre.nut")
         self.assertNotIn("AIR_HUBHUB_MARGINAL", globals_pre)
-        self.assertIn("AIR_HUB_MAX_ROUTES <- 0;", globals_pre)
-
+        self.assertIn("AIR_HUB_MAX_ROUTES <- 3;", globals_pre)
     def test_settings_loaded_in_settings_nut(self):
         settings = _read("ai/OpexAI/settings.nut")
         self.assertNotIn("air_hubhub_marginal", settings)
         self.assertNotIn("AIR_HUBHUB_MARGINAL", settings)
-        self.assertIn('AIController.GetSetting("air_hub_max_routes")', settings)
-        self.assertIn("AIR_HUB_MAX_ROUTES =", settings)
-
+        self.assertNotIn('AIController.GetSetting("air_hub_max_routes")', settings)
+        self.assertNotIn("AIR_HUB_MAX_ROUTES =", settings)
     def test_variante_b_route_cap_factorised_helper(self):
         trip = _read("ai/OpexAI/air_trip.nut")
         planning = _read("ai/OpexAI/air_planning.nut")

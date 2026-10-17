@@ -218,7 +218,7 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
 }
 
 /* V86 Variante B : plafond de routes autorisees par type d'aeroport.
- * Si air_hub_max_routes vaut N > 0, le plafond devient min(plafond actuel, N). */
+ * AIR_HUB_MAX_ROUTES vaut N = 3 (ancien reglage air_hub_max_routes, retire en V236), le plafond devient min(plafond actuel, N). */
 function OpexAirAirportMaxRoutes(airportType)
 {
   local defaultCap = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;

@@ -147,51 +147,6 @@ def parse_opex_variant(name):
                 raise ValueError("probes doit etre entre 0 et 511")
             if not value & 3:
                 raise ValueError("probes doit garder les panneaux (bit 2, ou bit 1 = tout)")
-        elif key == "pathfinder_sleep_ticks":
-            if not 0 <= value <= 10:
-                raise ValueError("pathfinder_sleep_ticks doit etre entre 0 et 10")
-        elif key == "loan_repay_floor_k":
-            # Bornes et pas repris de ai/OpexAI/info.nut : une valeur hors pas serait acceptee par
-            # argparse puis silencieusement arrondie par le moteur, et le nom de l'arm mentirait
-            # alors sur ce qui a tourne.
-            if not 0 <= value <= 2000:
-                raise ValueError("loan_repay_floor_k doit etre entre 0 et 2000")
-            if value % 50:
-                raise ValueError("loan_repay_floor_k doit etre un multiple de 50 (step_size)")
-        elif key == "pathfinder_hard_cap_k":
-            # Memes bornes et meme pas que ai/OpexAI/info.nut, pour la raison ci-dessus.
-            if not 5 <= value <= 100:
-                raise ValueError("pathfinder_hard_cap_k doit etre entre 5 et 100")
-            if value % 5:
-                raise ValueError("pathfinder_hard_cap_k doit etre un multiple de 5 (step_size)")
-        elif key == "project_top_k":
-            # Memes bornes que ai/OpexAI/info.nut : docs/taches.md C43/E3, sature a 70-77% des
-            # appels de selection au defaut 64 (mesure du 2026-09-08).
-            if not 8 <= value <= 128:
-                raise ValueError("project_top_k doit etre entre 8 et 128")
-            if value % 8:
-                raise ValueError("project_top_k doit etre un multiple de 8 (step_size)")
-        elif key == "air_fleet_cadence_days":
-            if not 0 <= value <= 365:
-                raise ValueError("air_fleet_cadence_days doit etre entre 0 et 365")
-        elif key == "abandon_cooldown_days":
-            if not 0 <= value <= 5000:
-                raise ValueError("abandon_cooldown_days doit etre entre 0 et 5000")
-        elif key == "unprofitable_streak_threshold":
-            if not 1 <= value <= 10:
-                raise ValueError("unprofitable_streak_threshold doit etre entre 1 et 10")
-        elif key == "air_joined_stop_limit":
-            if not 0 <= value <= 2:
-                raise ValueError("air_joined_stop_limit doit etre entre 0 et 2")
-        elif key == "air_early_slot_target_towns":
-            if not 1 <= value <= 16:
-                raise ValueError("air_early_slot_target_towns doit etre entre 1 et 16")
-        elif key == "air_early_slot_min_pop":
-            if not 0 <= value <= 10000 or value % 100:
-                raise ValueError("air_early_slot_min_pop doit etre entre 0 et 10000 par pas de 100")
-        elif key == "air_early_slot_bonus_pct":
-            if not 0 <= value <= 200 or value % 10:
-                raise ValueError("air_early_slot_bonus_pct doit etre entre 0 et 200 par pas de 10")
         else:
             spec = setting_specs.get(key)
             if spec is None:

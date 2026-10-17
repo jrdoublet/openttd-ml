@@ -46,7 +46,7 @@ _lastProjectScanMonth <- -1;
  * decision qui ne changent pas pendant une partie. */
 ABANDON_MEMORY <- true;
 /* C33.3 : Cooldown en jours avant réessai d'une paire abandonnée (defaut 365, adopte ; 0 = permanent). */
-ABANDON_COOLDOWN_DAYS <- 0;
+ABANDON_COOLDOWN_DAYS <- 365;
 /* C22 : Filtrer les paires abandonnées dès la génération des candidats (defaut 1, adopte). */
 ABANDON_GEN_FILTER <- false;
 /* Filtre d'origine sitable : repli ACTIF jusqu'a la lecture unique de origin_sitable dans

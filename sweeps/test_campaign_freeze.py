@@ -247,11 +247,10 @@ class TestCampaignFreeze(unittest.TestCase):
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
                      "c97_air_c69_engine_probe", "c98_air_realized_probe"):
             self.assertEqual(defaults[name], 0, name)
-        self.assertEqual(defaults["rail_finance_bias_pct"], 100)
-        self.assertEqual(defaults["air_hub_max_routes"], 3)
         self.assertEqual(defaults["v93_airport_no_pop_floor"], 1)
-        self.assertEqual(defaults["v91_astar_weight_pct"], 120)
-        self.assertEqual(defaults["c121_air_first_live_growth_phase_years"], 4)
+        for name in ("rail_finance_bias_pct", "air_hub_max_routes", "v91_astar_weight_pct",
+                     "c121_air_first_live_growth_phase_years", "unprofitable_streak_threshold"):
+            self.assertNotIn(name, defaults)  # V236 : constantes
         self.assertNotIn("c80_fleet_inject", defaults)
         self.assertNotIn("c80_air_targeted_update", defaults)
         self.assertNotIn("v181_rail_max_trains", defaults)
@@ -291,7 +290,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve"):
             self.assertNotIn(name, defaults)
         self.assertTrue(specs["town_growth_skip_noop"]["boolean"])
-        self.assertEqual(specs["air_early_slot_min_pop"]["step_size"], 100)
+        self.assertNotIn("air_early_slot_min_pop", specs)  # V236 : constante
 
     def test_every_real_default_is_expressible_by_bench_v2(self):
         defaults = parse_ai_settings(INFO)
@@ -308,11 +307,11 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_generic_specs_reject_invalid_boolean_and_range(self):
         with self.assertRaises(ValueError):
             parse_opex_variant("OpexAI[probe_portfolio=2]")
-        spec = parse_ai_setting_specs(INFO)["unprofitable_streak_threshold"]
+        spec = parse_ai_setting_specs(INFO)["v216f_dwell_pct"]
         self.assertIsNotNone(spec["max_value"])
         with self.assertRaises(ValueError):
             parse_opex_variant(
-                f"OpexAI[unprofitable_streak_threshold={spec['max_value'] + 1}]"
+                f"OpexAI[v216f_dwell_pct={spec['max_value'] + 1}]"
             )
 
     def test_effective_settings_merge_and_unknown_rejection(self):

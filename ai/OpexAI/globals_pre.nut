@@ -59,8 +59,8 @@ V212_RAIL_PAX_CAPITAL_PCT <- 100;
  * V214_RAIL_TURN_COST > 0 : entrer dans une diagonale est gratuit, en sortir coute ce montant.
  * V214_RAIL_TIGHT_TURN_COST > 0 : coude de 90 degres pris sur une seule tuile (droite, coin,
  * droite perpendiculaire), 88 km/h en acceleration realiste ; ramene a 100 sous 40 tuiles. */
-V214_RAIL_TURN_COST <- 0;
-V214_RAIL_TIGHT_TURN_COST <- 0;
+V214_RAIL_TURN_COST <- 300;
+V214_RAIL_TIGHT_TURN_COST <- 1500;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;
@@ -790,7 +790,7 @@ CASH_RESERVE_PROBE_MAX_BINDS <- 0;
 /* Plafond absolu du pathfinder. Initialisation de repli seulement : Start() le remplace UNE fois
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
-HARD_ITERATION_CAP <- 10000;
+HARD_ITERATION_CAP <- 5000;
 /* V100 : memoire d'echec des doublements de voie (defaut 0). */
 RAIL_UPGRADE_FAILURE_MEMORY <- false;
 /* Garde geometrique rail : preserve l'identite [lead, station_exit], refuse avant depense les
@@ -891,7 +891,7 @@ C78_GEN_LOG_YEAR <- -1;
 
 /* V86 Variante B : plafond abaisse de routes par aeroport hub.
  * 0 = plafonds actuels (4 petits/commuter, 12 grands), 1..12 = min(plafond actuel, N). */
-AIR_HUB_MAX_ROUTES <- 0;
+AIR_HUB_MAX_ROUTES <- 3;
 
 /* V89 : débit de recherche A* rail opportuniste.
  * Avance des tranches supplémentaires tant qu'il reste du budget d'opcodes dans le tick,

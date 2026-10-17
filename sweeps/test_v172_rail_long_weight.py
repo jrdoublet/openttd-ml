@@ -47,32 +47,14 @@ def _function_body(source: str, name: str) -> str:
 
 class Declaration(unittest.TestCase):
     def test_setting_pct(self):
-        specs = parse_ai_setting_specs(AI / "info.nut")
-        self.assertIn("v172_rail_long_weight_pct", specs)
-        spec = specs["v172_rail_long_weight_pct"]
-        self.assertEqual(spec["default"], 200)
-        self.assertFalse(spec["boolean"])
-        self.assertEqual((spec["min_value"], spec["max_value"]), (0, 300))
-        block = _read("info.nut").split('name = "v172_rail_long_weight_pct"', 1)[1].split("});", 1)[0]
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 200\b")
-
+        # V236 : constantes V172_RAIL_LONG_WEIGHT_PCT = 200 et _DIST = 100
+        self.assertNotIn("v172_rail_long_weight_pct", parse_ai_setting_specs(AI / "info.nut"))
     def test_setting_dist(self):
-        specs = parse_ai_setting_specs(AI / "info.nut")
-        self.assertIn("v172_rail_long_weight_dist", specs)
-        spec = specs["v172_rail_long_weight_dist"]
-        self.assertEqual(spec["default"], 100)
-        self.assertFalse(spec["boolean"])
-        self.assertEqual((spec["min_value"], spec["max_value"]), (0, 512))
-        block = _read("info.nut").split('name = "v172_rail_long_weight_dist"', 1)[1].split("});", 1)[0]
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 100\b")
-
+        self.assertNotIn("v172_rail_long_weight_dist", parse_ai_setting_specs(AI / "info.nut"))
     def test_campaign_freeze_defaults(self):
         defaults = parse_ai_settings(AI / "info.nut")
-        self.assertEqual(defaults["v172_rail_long_weight_pct"], 200)
-        self.assertEqual(defaults["v172_rail_long_weight_dist"], 100)
-
+        self.assertNotIn("v172_rail_long_weight_pct", defaults)
+        self.assertNotIn("v172_rail_long_weight_dist", defaults)
     def test_globals_declared(self):
         globals_pre = _read("globals_pre.nut")
         self.assertIn("V172_RAIL_LONG_WEIGHT_PCT <- 200;", globals_pre)
@@ -80,10 +62,9 @@ class Declaration(unittest.TestCase):
 
     def test_loaded_once_in_settings(self):
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
-        self.assertEqual(body.count('AIController.GetSetting("v172_rail_long_weight_pct")'), 1)
-        self.assertEqual(body.count('AIController.GetSetting("v172_rail_long_weight_dist")'), 1)
-        self.assertIn("V172_RAIL_LONG_WEIGHT_PCT =", body)
-        self.assertIn("V172_RAIL_LONG_WEIGHT_DIST =", body)
+        self.assertNotIn("v172_rail_long_weight", body)
+        self.assertNotIn("V172_RAIL_LONG_WEIGHT_PCT =", body)
+        self.assertNotIn("V172_RAIL_LONG_WEIGHT_DIST =", body)
 
 
 class WeightResolution(unittest.TestCase):

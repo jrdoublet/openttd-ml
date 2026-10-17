@@ -48,19 +48,13 @@ def _function_body(source: str, name: str) -> str:
 
 class Declaration(unittest.TestCase):
     def test_setting(self):
-        spec = parse_ai_setting_specs(AI / "info.nut")["v168_rail_max_dist"]
-        self.assertEqual(spec["default"], 160)
-        self.assertFalse(spec["boolean"])
-        self.assertEqual((spec["min_value"], spec["max_value"]), (0, 512))
-        block = _read("info.nut").split('name = "v168_rail_max_dist"', 1)[1].split("});", 1)[0]
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 160\b")
-
+        # V236 : constante V168_RAIL_MAX_DIST = 160
+        self.assertNotIn("v168_rail_max_dist", parse_ai_setting_specs(AI / "info.nut"))
     def test_loaded_once(self):
         self.assertIn("V168_RAIL_MAX_DIST <- 160;", _read("globals_pre.nut"))
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
-        self.assertEqual(body.count('AIController.GetSetting("v168_rail_max_dist")'), 1)
-        self.assertIn("if (V168_RAIL_MAX_DIST < 0) V168_RAIL_MAX_DIST = 0;", body)
+        self.assertNotIn('"v168_rail_max_dist"', body)
+        self.assertNotIn("V168_RAIL_MAX_DIST =", body)
 
 
 class Bounds(unittest.TestCase):

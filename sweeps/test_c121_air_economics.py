@@ -763,17 +763,16 @@ class TestC121FirstLiveGrowth(unittest.TestCase):
 
     def test_first_live_growth_phase_defaults_four_years_and_falls_back_to_standard(self):
         info = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-        i = info.index('name = "c121_air_first_live_growth_phase_years"')
-        self.assertIn("custom_value = 4", info[i:i + 700])
+        # V236 : la duree de phase est la constante 4
+        self.assertNotIn('name = "c121_air_first_live_growth_phase_years"', info)
         settings = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-        self.assertIn('C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH', settings)
+        self.assertIn('C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH ? 4 : 0;', settings)
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
         self.assertIn("C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0", task)
         self.assertIn("year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS", task)
         live_i = task.index("c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH")
         standard_i = task.index("} else if (c121BelowTarget) {", live_i)
         self.assertGreater(standard_i, live_i)
-
     def test_first_live_growth_changes_only_first_one_to_two_admission(self):
         task = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
         self.assertIn("c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH", task)

@@ -90,7 +90,7 @@ class TestV129ZeroPathUnchanged(unittest.TestCase):
     def test_historical_loop_kept_and_batch_is_outside_it(self):
         src = _read("ai/OpexAI/builder_rail.nut")
         self.assertIn("state.segmentPath = state.pathfinder.FindPath(1);", src)
-        gate = "if (V129_RAIL_ASTAR_EXACT_OPT && V90_FAST_PATHFINDER && sleepTicks <= 0) {"
+        gate = "if (V129_RAIL_ASTAR_EXACT_OPT && V90_FAST_PATHFINDER) {"
         self.assertEqual(src.count(gate), 1)
         # le groupage est borne par toutes les limites de la boucle historique
         batch = _body(src, gate, "state.segmentPath = state.pathfinder.FindPath(1);")

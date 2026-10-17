@@ -35,14 +35,8 @@ class TestLeverContracts(unittest.TestCase):
         self.assertIn("flags = AICONFIG_BOOLEAN", block)
 
     def test_rail_finance_bias_setting_declared(self):
-        self.assertIn('name = "rail_finance_bias_pct"', self.info)
-        start = self.info.index('name = "rail_finance_bias_pct"')
-        block = self.info[start:self.info.index("});", start)]
-        self.assertIn("min_value = 90", block)
-        self.assertIn("max_value = 200", block)
-        self.assertIn("custom_value = 100", block)
-        self.assertIn("step_size = 5", block)
-
+        # V236 : constante RAIL_FINANCE_BIAS_PCT = 100
+        self.assertNotIn('name = "rail_finance_bias_pct"', self.info)
     def test_v89_rail_search_throughput_setting_declared(self):
         self.assertIn('name = "v89_rail_search_throughput"', self.info)
         start = self.info.index('name = "v89_rail_search_throughput"')
@@ -58,9 +52,8 @@ class TestLeverContracts(unittest.TestCase):
     def test_settings_loaded(self):
         self.assertIn('C75_KPASS_BYPASS = AIController.GetSetting("c75_kpass_bypass") != 0;', self.settings)
         self.assertIn('V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;', self.settings)
-        self.assertIn('AIController.GetSetting("rail_finance_bias_pct")', self.settings)
-        self.assertIn("RAIL_FINANCE_BIAS_PCT = (railBias != null && railBias >= 90 && railBias <= 200) ? railBias : 100;", self.settings)
-
+        self.assertNotIn('"rail_finance_bias_pct"', self.settings)
+        self.assertNotIn("RAIL_FINANCE_BIAS_PCT =", self.settings)
     def test_c75_bis_usage_site_and_invariants(self):
         # 1. Utilisation au site k_pass de task_projects.nut
         self.assertIn("C75_KPASS_BYPASS", self.task_projects)
