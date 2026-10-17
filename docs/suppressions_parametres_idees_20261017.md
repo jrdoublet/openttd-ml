@@ -74,3 +74,12 @@ Suite (`e1d71b0`) : constante `C121_AIR_ECONOMICS` retirée, ainsi que la sonde 
 |---|---|---|
 | `v181_rail_max_trains` | Convertir une double voie en boucle à sens unique puis cloner jusqu'à N trains si l'attente source dépasse une rame. | Défaut 0, **inerte** (0 clonage, résultat identique au bit près). Plafond historique de 2 trains figé. `OpexConvertDoubleTrackToLoop` et `v181Loop` restent pour V190/V198. |
 | `v192_rail_time_denom_pct` | Dénominateur rail du fundScore = capital × (1 + pct/100 × (distance/100)²), proxy du temps de chantier AAAHogEx. | Défaut 0, **nul confirmé** (10×3 bruit). Au défaut le dénominateur restait le capital : wrapper retiré. |
+
+## 6. Lot 2B rail (V225 agy) : `v187_rail_refleet_during_search`, `v188_rail_join_slopes`
+
+| Réglage | Idée | Verdict |
+|---|---|---|
+| `v187_rail_refleet_during_search` | Laisser doublement et renfort rail tourner pendant une recherche A* reprenable (doublement bloquant si `_railSearch` est occupé). | Rail seul 10×3 avec V188 : −126,7 k£/an, 3/7. |
+| `v188_rail_join_slopes` | Accepter les pentes pour le quai joint parallèle (le `BuildRailStation` en mode test tranche, avec fondations). | Mesuré seulement avec V187. L'idée « plus de sites de quai joint » reste ouverte si le doublement redevient un levier. |
+
+Lots V225 réunis (`8b87526`), 20×10 contre master : +0,40 %, 9/11, p = 0,90, valeur +0,55 % : neutre.
