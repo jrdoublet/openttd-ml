@@ -29,7 +29,7 @@ class TestAirBypass(unittest.TestCase):
         self.assertIn("c75BypassConsumed = true;", self.after)
 
     def test_single_bypass_and_finance_checks_remain(self):
-        self.assertEqual(self.source.count("c75BypassConsumed = true;"), 1)
+        self.assertEqual(self.source.count("c75BypassConsumed = true;"), 6)  # legacy + five guarded V233 success sites
         self.assertIn("local c75BypassConsumed = false;", self.source)
         threshold = self.after.split("if (projCap >= c75KPass)", 1)[1]
         self.assertLess(threshold.index("if (projCap <= availCap)"), threshold.index("c75BypassConsumed = true;"))

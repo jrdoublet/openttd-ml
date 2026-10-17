@@ -11,7 +11,7 @@ AI = ROOT / "ai/OpexAI"
 class V233Observability(unittest.TestCase):
     def test_pending_events_are_guarded_and_do_not_record_build(self):
         text = (AI / "task_projects.nut").read_text()
-        self.assertEqual(text.count('if (DECISION_LOG) OpexDecide("V233_SEARCH"'), 2)
+        self.assertEqual(text.count('if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending'), 2)
         self.assertIn('if (DECISION_LOG) OpexDecide("V233_BUILD"', text)
 
     def test_deliveries_are_closed_quarter_company_totals(self):

@@ -1301,6 +1301,7 @@ function OpexAI::_tryBuildProjects(year)
   local c75StopReason = null;
   local c75BuiltKeys = {};
   local c75BypassConsumed = false;
+  local v233Attempts = V233_PENDING_CONTINUE ? {} : null;
   local c121FirstYearAirBatch = MODE_AIR
       && this._generationStageMonth >= 0
       && year == (this._generationStageMonth - 1) / 12;
@@ -1310,7 +1311,7 @@ function OpexAI::_tryBuildProjects(year)
   OpexC75BypassEnsureYear(year);
   {
     local now = AIDate.GetCurrentDate();
-    OpexC75RecordPassDate(now);
+    if (!V233_PENDING_CONTINUE) OpexC75RecordPassDate(now);
     c75KPassData = OpexC75ComputeKPass(now);
     if (C75_YEAR_LEDGER != null) C75_YEAR_LEDGER.passes++;
   }
@@ -1454,6 +1455,15 @@ function OpexAI::_tryBuildProjects(year)
     if (project == null) continue;
     local c121LiveOpp = null;
     if ((OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
+    /* Reject an unavailable rail slot BEFORE K_pass: it cannot consume a bypass
+     * or stop the pass ahead of a fundable AIR project. Ready grafts remain ordinary. */
+    if (V233_PENDING_CONTINUE && project.mode == "rail" && this._railSearch != null) {
+      local payload = project.payload;
+      local prepared = ("c121PrepStock" in payload) && payload.c121PrepStock
+        && ("railPlan" in payload) && payload.railPlan != null;
+      if (!prepared) continue;
+    }
+
 
     local r1r3BypassBefore = false;
     local r1r3Threshold = 0;
@@ -1497,6 +1507,7 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     local c121ChainAttempt = false;
+    local v233Bypass = null;
     if (builtCount > 0) {
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
@@ -1515,11 +1526,16 @@ function OpexAI::_tryBuildProjects(year)
             OpexC75BypassRecordEligible(year, project, projCap, availCap, c75KPass,
                                         builtCount, c75BypassConsumed);
             if (!c75BypassConsumed) {
-              c75BypassConsumed = true;
               c75BypassThisProject = true;
+              if (V233_PENDING_CONTINUE) {
+                v233Bypass = { cap = projCap, avail = availCap, threshold = c75KPass,
+                               built = builtCount };
+              } else {
+              c75BypassConsumed = true;
                 if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
                   "consume", "eligible", false, c75BypassConsumed, builtCount, c75KPass, projCap, availCap);
               OpexC75BypassRecordConsumed(year, project, projCap, availCap, c75KPass, builtCount);
+              }
             }
           }
         }
@@ -1567,6 +1583,12 @@ function OpexAI::_tryBuildProjects(year)
     local liveBuiltCount = builtCount;
     if (MONTHLY_FUNNEL) funnelAttempted++;
 
+    if (V233_PENDING_CONTINUE && (mode == "rail" || mode == "fleet")) {
+      local attemptKey = OpexProjectAttemptKey(project);
+      if (attemptKey in v233Attempts) continue;
+      v233Attempts[attemptKey] <- true;
+    }
+
     if (mode == "fleet") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
@@ -1579,6 +1601,10 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
       if (attempt.outcome == "pending") {
+        if (V233_PENDING_CONTINUE) {
+          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount);
+          continue;
+        }
         if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
         if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
           this._c49ScarcityLedger.stop_rail_search++;
@@ -1610,6 +1636,11 @@ function OpexAI::_tryBuildProjects(year)
         return  true;
       }
       if (attempt.outcome == "built") {
+        if (V233_PENDING_CONTINUE && v233Bypass != null) {
+          c75BypassConsumed = true;
+          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
+                                      v233Bypass.threshold, v233Bypass.built);
+        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1679,6 +1710,11 @@ function OpexAI::_tryBuildProjects(year)
           c121AirBuilt++;
           if (c121ChainAttempt) c121AirChained++;
         }
+        if (V233_PENDING_CONTINUE && v233Bypass != null) {
+          c75BypassConsumed = true;
+          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
+                                      v233Bypass.threshold, v233Bypass.built);
+        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
         if (airTouchedTowns == null) airTouchedTowns = {};
@@ -1708,6 +1744,11 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (attempt.outcome == "built") {
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=road built=1");
+        if (V233_PENDING_CONTINUE && v233Bypass != null) {
+          c75BypassConsumed = true;
+          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
+                                      v233Bypass.threshold, v233Bypass.built);
+        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1734,6 +1775,10 @@ function OpexAI::_tryBuildProjects(year)
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
+        if (V233_PENDING_CONTINUE) {
+          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount);
+          continue;
+        }
         if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
         if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
           this._c49ScarcityLedger.stop_rail_search++;
@@ -1765,6 +1810,11 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (attempt.outcome == "built") {
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=rail built=1");
+        if (V233_PENDING_CONTINUE && v233Bypass != null) {
+          c75BypassConsumed = true;
+          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
+                                      v233Bypass.threshold, v233Bypass.built);
+        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1781,6 +1831,11 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (attempt.outcome == "built") {
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=water built=1");
+        if (V233_PENDING_CONTINUE && v233Bypass != null) {
+          c75BypassConsumed = true;
+          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
+                                      v233Bypass.threshold, v233Bypass.built);
+        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1807,6 +1862,7 @@ function OpexAI::_tryBuildProjects(year)
       c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, true,
       c75StopReason);
   if (builtCount > 0) {
+    if (V233_PENDING_CONTINUE) OpexC75RecordPassDate(AIDate.GetCurrentDate());
     this._recordC69BuildingPass(year, c69PassProjects != null ? c69PassProjects : this._projects, c69BuiltProjects);
   }
   {

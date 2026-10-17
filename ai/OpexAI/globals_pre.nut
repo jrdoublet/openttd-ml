@@ -673,3 +673,4 @@ V147_TASK_BASE <- -1;
 /* V154 : insertion par dichotomie dans OpexProjectInsertDefensive (optimisation opcodes).
  * 0 = insertion lineaire historique (defaut) ; 1 = dichotomie sur cles mises en cache. */
 SELECT_BISECT_STAMP <- 0;
+V233_PENDING_CONTINUE <- false;

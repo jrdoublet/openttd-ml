@@ -73,7 +73,7 @@ class C75KPassBypassContractTests(unittest.TestCase):
 
     def test_at_most_one_bypass_is_consumed_per_pass(self):
         self.assertIn("local c75BypassConsumed = false;", self.build)
-        self.assertEqual(self.build.count("c75BypassConsumed = true;"), 1)
+        self.assertEqual(self.build.count("c75BypassConsumed = true;"), 6)  # legacy + five guarded V233 success sites
         self.assertIn("!c75BypassConsumed", self.build)
         self.assertLess(
             self.build.index("!c75BypassConsumed"),

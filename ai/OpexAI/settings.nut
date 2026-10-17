@@ -38,6 +38,7 @@ function OpexProbeSetting(name)
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
   /* --- 1. Systeme et persistance --- */
   local probes = AIController.GetSetting("probes");
   if (probes < 0) probes = 2;
