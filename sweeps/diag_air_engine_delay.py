@@ -249,11 +249,7 @@ def main():
     parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_air_engine_delay.json")
     args = parser.parse_args()
 
-    settings = (
-        ("air_best_equipment", 1),
-        ("air_capital_frontier", 1),
-        ("air_capital_frontier_probe", 0),
-    )
+    settings = ()
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", settings)
     experiments = [
         {

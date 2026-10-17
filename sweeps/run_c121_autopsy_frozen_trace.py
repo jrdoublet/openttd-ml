@@ -10,6 +10,9 @@ No trace work runs before that successful build.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import functools
+import openttdlab
 from datetime import date, timedelta
 import hashlib
 import json
@@ -17,10 +20,47 @@ from pathlib import Path
 import re
 import shutil
 
-from openttdlab import local_folder, run_experiments
+from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 from bench_v2 import OPENGFX_VERSION, OPENTTD_VERSION, enable_savegame_cleanup, make_cfg
-from run_c121_air_economics_shadow import cached_bananas_ai_library
+
+
+def cached_bananas_ai_library(unique_id: str, name: str):
+    """Utilise le cache OpenTTDLab complet avant de consulter BaNaNaS.
+
+    ``download_from_bananas`` interroge l'API avant de regarder son propre cache.
+    Pour un banc reproductible deja chauffe, cela rend inutilement le lancement
+    dependant d'une panne HTTP. Le format relu ici est exactement le fichier
+    ``*_dependencies`` ecrit par OpenTTDLab lui-meme ; si une piece manque on
+    retombe sur le comportement upstream normal.
+    """
+    version = getattr(openttdlab, "__version__", "")
+    cache = Path.home() / ".cache" / "OpenTTDLab" / version / "bananas"
+    dependency_files = sorted(cache.glob(f"{unique_id}-{name}-*.tar_dependencies"))
+    if not dependency_files:
+        return bananas_ai_library(unique_id, name)
+    dependency_file = dependency_files[-1]
+    rows = []
+    for line in dependency_file.read_text(encoding="utf-8").splitlines():
+        parts = line.split(",")
+        if len(parts) != 4:
+            return bananas_ai_library(unique_id, name)
+        content_id, filename, license_name, md5 = parts
+        path = cache / filename
+        if not path.is_file():
+            return bananas_ai_library(unique_id, name)
+        rows.append((content_id, filename, license_name, md5, path))
+
+    @contextlib.contextmanager
+    def copy_cached(get_http_client, get_cache_dir):
+        yield [
+            (content_id, filename, license_name, md5,
+             functools.partial(openttdlab._file_contents, str(path)))
+            for content_id, filename, license_name, md5, path in rows
+        ]
+
+    return name, copy_cached
+
 
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]

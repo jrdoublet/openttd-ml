@@ -20,8 +20,6 @@ DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
 SETTINGS = (
     ("decision_log", 1),
     ("probe_portfolio", 1),
-    ("abandon_gen_filter", 1),
-    ("abandon_cooldown_days", 365),
 )
 
 _real_check_output = openttdlab.subprocess.check_output

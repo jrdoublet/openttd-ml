@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -14,6 +15,37 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+
+def neutral_gate(report, pairs, adoption=False):
+    c = report.get("policy_comparison") or {}
+    checks = {
+        "healthy": report.get("failed_runs") == [],
+        "complete": c.get("comparison_complete") is True,
+        "coverage": c.get("metric_coverage_complete") is True,
+        "pairs": c.get("complete_pairs") == pairs == c.get("planned_pairs"),
+        "adoption_sample": not adoption or c.get("adoption_sample_complete") is True,
+    }
+    delta = c.get("aggregates", {}).get("profit_year", {}).get("policy_delta", {})
+    ci = delta.get("mean_student_t_95pct_ci")
+    p = delta.get("sign_test_p")
+    wins, losses = delta.get("wins"), delta.get("losses")
+    # The exact sign test has no trials for all ties: p=1 by definition here.
+    if wins == losses == 0 and delta.get("ties") == pairs:
+        p = 1.0
+    checks["profit_ci_not_entirely_negative"] = (
+        isinstance(ci, list) and len(ci) == 2
+        and all(isinstance(x, (int, float)) and math.isfinite(x) for x in ci)
+        and ci[1] >= 0
+    )
+    checks["no_significant_defeat"] = (
+        isinstance(p, (int, float)) and math.isfinite(p)
+        and (p >= .05 or (isinstance(wins, int) and isinstance(losses, int) and wins > losses))
+    )
+    checks["value_guard"] = c.get("value_guard_pass") is True
+    return {"pass": all(checks.values()), "checks": checks,
+            "raw_verdict": c.get("verdict"), "profit_delta": delta,
+            "value": c.get("aggregates", {}).get("company_value"), "sign_p": p}
+
 
 COPY_EXPOSURES = ("n1", "hubcap", "priority", "marginal",
                   "num_target", "num_bonus", "num_pop", "num_phase", "num_cadence")
@@ -179,10 +211,8 @@ def main():
         other = dict(entry.get("common", {}))
         if probe:
             other.update(entry.get("exposure_common", {}))
-        if probe and entry["exposure"] == "kdec":
-            other["c121_kdec_cold_shadow"] = 1
         def arm(value):
-            settings = {"c121_air_economics": 1, **other, entry["setting"]: value}
+            settings = {**other, entry["setting"]: value}
             return "OpexAI[" + ",".join(f"{k}={v}" for k, v in settings.items()) + "]"
         cid = f'{plan["id"]}_{entry["id"]}_{step}'
         container = cid.lower().replace("_", "-")
@@ -271,7 +301,6 @@ def main():
                     continue
                 run(entry, "smoke", years=1, pairs=1, seeds=[42])
                 data, summary = run(entry, "B", years=10, pairs=20)
-                from run_c121_winner_economic_validation import neutral_gate
                 summary["opcode_neutrality"] = neutral_gate(data, 20, adoption=True)
                 summary["opcode_receipt"] = str(receipt_path)
                 summary["qualification_complete"] = summary["opcode_neutrality"]["pass"]

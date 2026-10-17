@@ -946,12 +946,7 @@ def keep_c63(row):
 
 
 def run_campaign(args):
-    """Diagnostic 5x6 partage contre AAAHogEx : c63_invest_probe=1 et -d script=4."""
-    if not inventory_from_source()["c63_setting_in_info"]:
-        raise SystemExit(
-            "c63_invest_probe n'est pas un reglage : brancher la sonde defaut 0 avant "
-            "la campagne 5x6, ou lancer --selftest."
-        )
+    """Diagnostic 5x6 partage contre AAAHogEx : probe_portfolio=1 et -d script=4."""
     import openttdlab
     from openttdlab import bananas_ai_library, local_folder, run_experiments
     sys.path.insert(0, str(ROOT / "sweeps"))
@@ -1084,7 +1079,7 @@ def main():
     parser.add_argument("--inventory", action="store_true")
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 999, 1234, 5678])
     parser.add_argument("--years", type=int, default=6)
-    parser.add_argument("--arm", default="OpexAI[c63_invest_probe=1]")
+    parser.add_argument("--arm", default="OpexAI[probe_portfolio=1]")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--workers", type=int, default=2)
     args = parser.parse_args()

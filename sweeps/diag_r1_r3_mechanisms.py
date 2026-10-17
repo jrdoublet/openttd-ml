@@ -374,9 +374,9 @@ def run_smoke(directory):
     plan = protocol()
     resolved = bench_v2.resolved_arm_settings([ARM])[ARM]
     effective = resolved["settings"]["effective"]
-    required = {"c121_air_economics": 0}
+    required = {}
     removed = ("r19_fault_inject", "c84_air_target_fleet", "c85_air_equipment_frontier", "exp_scheduler_skip_not_due",
-               "exp_air_hub_pair_prefilter")
+               "exp_air_hub_pair_prefilter", "c121_air_economics")
     if any(effective.get(k) != v for k, v in required.items()):
         raise ValueError("Protected defaults changed; refuse runtime")
     if any(key in effective for key in removed):

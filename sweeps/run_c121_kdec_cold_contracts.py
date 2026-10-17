@@ -65,7 +65,7 @@ def main():
     copied = tree_hashes(target)
     reload.CACHE_DIR = Path(inspect.signature(openttdlab.run_experiments).parameters["get_cache_dir"].default())
     reload.SCRIPT_DEBUG_LEVEL = "4"
-    settings = (("c121_air_economics", 1), )
+    settings = ()
     arm = openttdlab.local_folder(str(target), "OpexAI", settings)
     cfg = reload.bench_v2.make_cfg(1970)
     write_new(folder / "plan.json", {"kind": "correctness_not_economic", "seed": 42,

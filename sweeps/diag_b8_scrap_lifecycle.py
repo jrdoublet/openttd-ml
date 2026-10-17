@@ -266,7 +266,7 @@ def main():
     arm = local_folder(
         str(ROOT / "ai" / "OpexAI"),
         "OpexAI",
-        (("decision_log", 1)),
+        (("decision_log", 1),),
     )
     cfg = make_cfg(STARTING_YEAR)
     experiments = [

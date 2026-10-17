@@ -5,8 +5,8 @@ seule reproduit exactement l'allocation dominante de ``_MinchinWeb_Lakes_`` (un 
 persistant avec une entree par tuile). Le delta RSS resident entre les deux bras isole donc le
 cout de cette structure sans dependre de la rare exposition eau de l'IA complete.
 
-Le mode ``opex`` conserve l'ancien diagnostic apparie ``water_lakes_connectivity=0/1`` et les
-jalons C56. Il est utile uniquement si le bras Lakes atteint reellement ``lakes_enter``.
+Les lecteurs hors ligne conservent les anciens résultats ``water_lakes_connectivity=0/1`` et les
+jalons C56. Ces résultats ne sont exposés que si le bras Lakes atteint ``lakes_enter``.
 
 Hors ``--selftest``, il refuse de tourner si ``/work`` n'est pas monte : les parties
 OpenTTD doivent rester dans le conteneur canonique.
@@ -32,19 +32,11 @@ ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().par
 sys.path.insert(0, str(ROOT / "sweeps"))
 
 import bench_v2
-from bench_v2 import build_arms, enable_savegame_cleanup, write_json_atomically
+from bench_v2 import enable_savegame_cleanup, write_json_atomically
 
 
 DEFAULT_SEED = 24
 DEFAULT_MAP_SIZES = (8, 9, 10, 11)  # 256, 512, 1024, 2048 carres
-REFERENCE_SETTINGS = (
-    ("probe_events", 1),
-    # Atteindre l'eau sans attendre la cascade de bootstrap. Identique dans les deux bras.
-    ("staged_bootstrap", 0),
-    ("abandon_gen_filter", 1),
-    ("abandon_cooldown_days", 365),
-    ("portfolio_fresh_budget", 0),
-)
 
 _REAL_CHECK_OUTPUT = openttdlab.subprocess.check_output
 _MEMORY_DIR: Path | None = None
@@ -259,11 +251,6 @@ def keep_trace(row):
     },)
 
 
-def _arm(lakes: int) -> str:
-    values = [*REFERENCE_SETTINGS, ("water_lakes_connectivity", lakes)]
-    return "OpexAI[" + ",".join(f"{key}={value}" for key, value in values) + "]"
-
-
 def _fixture_arms():
     folder = str(ROOT / "sweeps" / "fixtures" / "WaterMemoryProbe")
     return {
@@ -459,7 +446,7 @@ def selftest():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("fixture", "opex"), default="fixture")
+    parser.add_argument("--mode", choices=("fixture",), default="fixture")
     parser.add_argument("--years", type=int, default=1)
     parser.add_argument("--days", type=int, default=90,
                         help="fixture only: fixed game duration; ignored in opex mode")
@@ -512,31 +499,6 @@ def main():
                         "ais": (arm,), "bench_run": [arm_name, args.seed, repeat],
                     })
         libraries = ()
-    else:
-        arms = build_arms([_arm(0), _arm(1)])
-        for map_size in args.map_sizes:
-            planned = bench_v2.experiments(
-                arms, [args.seed], args.years, args.repeats, 1970, map_size=map_size
-            )
-            if args.custom_towns > 0:
-                for experiment in planned:
-                    experiment["openttd_config"] = f"""[difficulty]
-number_towns = 4
-industry_density = 4
-[economy]
-inflation = false
-town_growth_rate = 2
-[game_creation]
-starting_year = 1970
-map_x = {map_size}
-map_y = {map_size}
-custom_town_number = {args.custom_towns}
-"""
-            experiments.extend(planned)
-        libraries = (
-            bananas_ai_library("51554648", "Queue.FibonacciHeap"),
-            bananas_ai_library("5046524c", "Pathfinder.Rail"),
-        )
 
     experiment_meta = {
         index: {"arm": exp["bench_run"][0], "repeat": exp["bench_run"][2]}
@@ -606,8 +568,8 @@ custom_town_number = {args.custom_towns}
         "seed": args.seed, "years": args.years, "days": args.days,
         "map_sizes": args.map_sizes, "repeats": args.repeats,
         "custom_towns": args.custom_towns,
-        "settings_common": dict(REFERENCE_SETTINGS) if args.mode == "opex" else {},
-        "factor": "probe_allocate" if args.mode == "fixture" else "water_lakes_connectivity",
+        "settings_common": {},
+        "factor": "probe_allocate",
         "fixture": ("sweeps/fixtures/WaterMemoryProbe" if args.mode == "fixture" else None),
         "records": records,
         "summary": (summarise_fixture_memory(records) if args.mode == "fixture"
@@ -629,8 +591,6 @@ custom_town_number = {args.custom_towns}
             raise SystemExit("mesure fixture incomplete : allocation non terminee avant horizon")
         if not payload["summary"].get("all_map_sizes_match_probe"):
             raise SystemExit("mesure fixture invalide : taille API differente de la carte demandee")
-    elif any(not item["control_present"] or not item["lakes_present"] for item in payload["summary"]["scales"]):
-        raise SystemExit("mesure Opex incomplete : un bras manque")
 
 
 if __name__ == "__main__":

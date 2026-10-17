@@ -43,10 +43,6 @@ class TestB9AirCatchment(unittest.TestCase):
             SETTINGS.read_text(encoding="utf-8"),
         )
 
-    def test_runner_enables_only_dedicated_b9_probe(self):
-        runner = (ROOT / "sweeps" / "run_b9_air_catchment_5x6.py").read_text(encoding="utf-8")
-        self.assertIn('SETTINGS = (("b9_air_catchment_probe", 1),)', runner)
-        self.assertNotIn('("probe_events", 1)', runner)
 
     def test_demand_shadow_is_post_decision_and_default_off(self):
         coverage = COVERAGE.read_text(encoding="utf-8")
@@ -60,8 +56,6 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW", coverage)
         self.assertIn("!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE", coverage)
         self.assertIn("AIR_DEMAND_SHADOW", coverage)
-        runner = (ROOT / "sweeps" / "run_b9_air_catchment_5x6.py").read_text(encoding="utf-8")
-        self.assertIn('"--demand-shadow"', runner)
 
     def test_demand_shadow_uses_square_station_catchment_geometry(self):
         src = COVERAGE.read_text(encoding="utf-8")

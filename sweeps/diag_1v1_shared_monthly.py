@@ -1191,18 +1191,14 @@ attach_selection_opcode_deltas = attach_opcode_deltas
 
 
 
-def build_arms(seeds, years, shared=False, funnel=False, air_town_limit_memory=False,
-               town_station_detail=False, air_slot_profile=False, air_slot_intercept=False):
+def build_arms(seeds, years, shared=False, funnel=False,
+               town_station_detail=False, air_slot_intercept=False):
     from openttdlab import local_folder
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     if shared:
         opex_params = []
         if funnel or air_slot_intercept:
             opex_params.append(("probe_portfolio", 1))
-        if air_town_limit_memory:
-            opex_params.append(("air_town_limit_memory", 1))
-        # air_slot_profile : profil 6 villes / 1000 hab / +50 %, devenu les constantes AIR_EARLY_SLOT_*
-        # (V236) et toujours actif (V237) ; l'option ne change plus rien.
         opex_params = tuple(opex_params)
         opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params)
         return [
@@ -1244,12 +1240,8 @@ def main():
                         help="Arme monthly_funnel=1 (implique --shared et -d script=4)")
     parser.add_argument("--no-funnel", action="store_true",
                         help="En mode --shared, desactive explicitement monthly_funnel")
-    parser.add_argument("--air-town-limit-memory", action="store_true",
-                        help="Arme air_town_limit_memory=1 sur OpexAI (implique --shared)")
     parser.add_argument("--town-station-detail", action="store_true",
                         help="Conserve l'inventaire STNN par TownID pour diagnostiquer les erreurs 771")
-    parser.add_argument("--air-slot-profile", action="store_true",
-                        help="Profil early-slot (cible 6 villes, min 1000 hab, bonus 50%% par slot)")
     parser.add_argument("--air-slot-intercept", action="store_true",
                         help="Arme la sonde C78 du vivier AIR pour correlation avec les build_date adverses")
     parser.add_argument("--selftest", action="store_true",
@@ -1267,8 +1259,8 @@ def main():
     if args.funnel and args.no_funnel:
         parser.error("--funnel et --no-funnel sont incompatibles")
     shared = (
-        args.shared or args.funnel or args.air_town_limit_memory or args.town_station_detail
-        or args.air_slot_profile or args.air_slot_intercept
+        args.shared or args.funnel or args.town_station_detail
+        or args.air_slot_intercept
     )
     funnel = bool(args.funnel or (shared and not args.no_funnel))
     seeds = args.seeds if args.seeds is not None else (list(DIAG_SEEDS) if shared else [42, 100, 7])
@@ -1295,9 +1287,7 @@ def main():
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
         experiments=build_arms(seeds, args.years, shared=shared, funnel=funnel,
-                               air_town_limit_memory=args.air_town_limit_memory,
                                town_station_detail=args.town_station_detail or args.air_slot_intercept,
-                               air_slot_profile=args.air_slot_profile,
                                air_slot_intercept=args.air_slot_intercept),
         max_workers=args.workers, result_processor=keep,
         ai_libraries=(
@@ -1324,7 +1314,6 @@ def main():
         "shared_game": shared,
         "funnel": funnel,
         "funnel_explicitly_disabled": bool(args.no_funnel),
-        "air_town_limit_memory": bool(args.air_town_limit_memory),
         "town_station_detail": bool(args.town_station_detail or args.air_slot_intercept),
         "air_slot_intercept": bool(args.air_slot_intercept),
         "air_slot_intercept_analysis": slot_intercept,

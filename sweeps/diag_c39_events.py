@@ -166,21 +166,9 @@ def main():
             or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair
             or args.c41_rail_lost_connectivity_probe):
         settings.append(("probe_vehicle_lost", 1))
-    if args.c41_rail_lost_signal_repair:
-        settings.append(("c41_rail_lost_signal_repair", 1))
-    if args.c41_water_refresh or args.c41_water_precheck or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
-        settings.append(("c41_water_refresh", 1))
-    if args.c41_water_precheck or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
-        settings.append(("c41_water_precheck", 1))
     if (args.c41_slack_ledger or args.c41_staleness_ledger or args.c41_opportunity_ledger
             or args.c41_admission_ledger):
         settings.append(("probe_scheduler", 1))
-    if args.c41_road_refresh:
-        settings.append(("c41_road_refresh", 1))
-    if args.c41_road_freight_served_index:
-        settings.append(("c41_road_freight_served_index", 1))
-    if args.c41_road_freight_acceptance_index:
-        settings.append(("c41_road_freight_acceptance_index", 1))
     if (args.c41_road_candidate_profile or args.c41_road_freight_profile
             or args.c41_road_freight_town_profile or args.c41_road_feeder_profile):
         settings.append(("probe_candidates_road", 1))

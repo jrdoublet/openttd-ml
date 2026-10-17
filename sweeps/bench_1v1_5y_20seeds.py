@@ -2180,7 +2180,7 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--campaign", help="Identifiant C66.3 nouveau ; derive de --out ou horodate si omis")
     parser.add_argument("--policy-id", default="reference", help="Identifiant de la politique OpexAI testee")
-    parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[]")
+    parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[c76_freight_rotation=0]")
     parser.add_argument("--variant", help="C66.4 : ex. OpexAI[c76_freight_rotation=1]")
     parser.add_argument("--variant-policy-id", help="C66.4 : identifiant stable de la variante")
     parser.add_argument("--primary-metric", choices=list(SUCCESS_METRICS), default=PRIMARY_METRIC)
@@ -3085,15 +3085,15 @@ def selftest():
     assert "air_fleet_cadence_days" not in defaults  # V236 : constante 7
 
     diff = validate_policy_settings(
-        {"c76_freight_rotation": 0, "road_mode": 0},
-        {"c76_freight_rotation": 1, "road_mode": 0},
+        {"c76_freight_rotation": 0, "mode_road": 0},
+        {"c76_freight_rotation": 1, "mode_road": 0},
         intervention_settings=("c76_freight_rotation",),
     )
     assert set(diff) == {"c76_freight_rotation"}
     try:
         validate_policy_settings(
-            {"c76_freight_rotation": 0, "road_mode": 0},
-            {"c76_freight_rotation": 1, "road_mode": 1},
+            {"c76_freight_rotation": 0, "mode_road": 0},
+            {"c76_freight_rotation": 1, "mode_road": 1},
             intervention_settings=("c76_freight_rotation",),
         )
     except ValueError:

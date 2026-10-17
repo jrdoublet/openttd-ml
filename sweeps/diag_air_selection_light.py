@@ -30,7 +30,7 @@ UNITS = {"days": "AIDate_calendar_days", "ticks": "AIController_ticks",
          "legacy_days_tick74": "ticks_div_74_not_calendar_days"}
 ARMS = {"reference": "OpexAI", "light": "OpexAI[catalog_cost_probe=1]"}
 PROTOCOL = {
-    "status": "pre_registered_not_executed", "arms": ARMS,
+    "status": "historical_unavailable_setting_removed", "arms": ARMS,
     "harness": "sweeps.diag_cadence_duel.main",
     "harness_kwargs": {"arm_specs": ARMS, "force_debug": True,
                        "purpose": "air_selection_light_exposure_perturbation_not_adoption"},

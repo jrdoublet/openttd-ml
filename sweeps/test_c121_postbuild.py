@@ -122,8 +122,7 @@ class StagingTests(unittest.TestCase):
         self.assertFalse(probe_identity({})["pass"])
 
     def test_c121_only_two_experiments_no_strategy(self):
-        self.assertEqual(BASE_SETTINGS["c115"], ())
-        self.assertEqual(dict(BASE_SETTINGS["c121"]), {"c121_air_economics": 1})
+        self.assertEqual(BASE_SETTINGS, {"c121": ()})
 
 
 if __name__ == "__main__":

@@ -22,8 +22,8 @@ from harness import parse_fields
 from run_mechanism_fixtures import replace_once, tree_hashes
 from diag_r1_r3_mechanisms import new_directory, write_new
 
-BASE_SETTINGS = {"c115": (), "c121": (("c121_air_economics", 1), )}
-SPECS = {"c115": "OpexAI", "c121": "OpexAI[c121_air_economics=1]"}
+BASE_SETTINGS = {"c121": ()}
+SPECS = {"c121": "OpexAI"}
 LINE = re.compile(r"\[script:\d+\]\s*\[(\d+)\].*?POSTBUILD\s+(.*)$")
 
 
@@ -257,7 +257,7 @@ def main(argv=None):
     years = 1 if args.stage == "smoke" else 3
     # Le smoke doit prouver la source chargee, pas seulement la presence de la
     # sonde : chaque modele a donc un controle negatif et un controle positif.
-    names = ["c115", "c115_trace", "c121", "c121_trace"]
+    names = ["c121", "c121_trace"]
     copies, arms, resolved = {}, {}, {}
     for name in names:
         target = folder / "copies" / name / "OpexAI"

@@ -1,14 +1,9 @@
 import copy
 import unittest
-from sweeps.run_c121_winner_economic_validation import neutral_gate, intervention_arms
+from sweeps.run_c121_night_queue import neutral_gate
 
 
 class NeutralGateTests(unittest.TestCase):
-    def test_fusion_arms_only_vary_fusion(self):
-        with self.assertRaisesRegex(ValueError, "retired"):
-            intervention_arms("fusion")
-        with self.assertRaises(ValueError):
-            intervention_arms("other")
 
     def report(self):
         return {"failed_runs": [], "policy_comparison": {

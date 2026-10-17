@@ -20,7 +20,6 @@ TASK_AIR = ROOT / "ai" / "OpexAI" / "task_air.nut"
 TASK_PROJECTS = ROOT / "ai" / "OpexAI" / "task_projects.nut"
 TASK_REPORT = ROOT / "ai" / "OpexAI" / "task_report.nut"
 PROJECTS = ROOT / "ai" / "OpexAI" / "projects.nut"
-RUNNER = ROOT / "sweeps" / "run_c121_air_economics_shadow.py"
 PERSIST = ROOT / "ai" / "OpexAI" / "persist.nut"
 PROBES = ROOT / "ai" / "OpexAI" / "probes.nut"
 MAIN = ROOT / "ai" / "OpexAI" / "main.nut"
@@ -437,18 +436,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("C121_AIR_ENGINE_CAPACITY_OBS.rawset(engineId, { pax = paxCapacity, mail = mailCapacity });", measure)
         self.assertNotIn("GetBuildWithRefitCapacity", measure)
 
-    def test_shadow_runner_keeps_c121_passive(self):
-        runner = RUNNER.read_text(encoding="utf-8")
-        self.assertIn('("save_full_state", 0)', runner)
-        self.assertNotIn("c115_air_c100_capital_replay", runner)
-        self.assertIn('("c117_air_throughput_probe", 1)', runner)
-        self.assertIn('("c121_air_economics_shadow", 1)', runner)
-        self.assertIn('("c121_air_economics", 0)', runner)
-        self.assertIn('("c121_air_engine_replay_shadow", 1 if args.engine_replay else 0)', runner)
-        self.assertNotIn("engine-capacity-catalog", runner)
-        self.assertIn("C121_BUILD", runner)
-        self.assertIn("C121_HUB_DELAY", runner)
-        self.assertIn('"hub_delay_updates"', runner)
 
 class TestC121FirstLiveGrowth(unittest.TestCase):
     def test_first_live_growth_defaults_on_and_requires_c121(self):

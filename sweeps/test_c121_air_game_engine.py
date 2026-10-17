@@ -11,7 +11,6 @@ from analyse_c121_engine_table import parse_line, parse_log_text, reconstruct  #
 from campaign_freeze import parse_ai_settings  # noqa: E402
 
 AI = ROOT / "ai" / "OpexAI"
-LAUNCHER = ROOT / "sweeps" / "diag_c121_game_engine.py"
 
 
 def source(name):
@@ -63,10 +62,6 @@ class GameEngineContractTests(unittest.TestCase):
         self.assertNotIn("if (!C121_AIR_GAME_ENGINE) return;", log)
         self.assertNotIn("PROBE_C121_ENGINE_TABLE", log)
 
-    def test_launcher_paired_arms_and_extra_env(self):
-        from sweeps import diag_c121_game_engine
-        with self.assertRaisesRegex(SystemExit, "permanent"):
-            diag_c121_game_engine.main()
 
 
 class GameEngineProbeTokenTests(unittest.TestCase):

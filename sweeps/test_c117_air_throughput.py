@@ -16,7 +16,6 @@ PROBES = ROOT / "ai" / "OpexAI" / "probes.nut"
 TASK_AIR = ROOT / "ai" / "OpexAI" / "task_air.nut"
 COVERAGE = ROOT / "ai" / "OpexAI" / "air_coverage.nut"
 BUILDER_AIR = ROOT / "ai" / "OpexAI" / "builder_air.nut"
-RUNNER = ROOT / "sweeps" / "run_c117_air_throughput.py"
 
 
 class TestC117AirThroughput(unittest.TestCase):
@@ -63,12 +62,6 @@ class TestC117AirThroughput(unittest.TestCase):
         for token in forbidden:
             self.assertNotIn(token, block)
 
-    def test_runner_only_keeps_tail_and_latest_cumulative_output(self):
-        src = RUNNER.read_text(encoding="utf-8")
-        self.assertIn("final_date = date(1970, 1, 1) + timedelta(days=days)", src)
-        self.assertIn("final_date - timedelta(days=31)", src)
-        self.assertIn("latest_by_seed", src)
-        self.assertNotIn("c115_air_c100_capital_replay", src)
 
 
 if __name__ == "__main__":

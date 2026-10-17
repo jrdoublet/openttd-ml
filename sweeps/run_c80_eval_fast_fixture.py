@@ -31,7 +31,7 @@ def main():
     copied = tree_hashes(target)
     driver.CACHE_DIR = Path(inspect.signature(openttdlab.run_experiments).parameters["get_cache_dir"].default())
     driver.SCRIPT_DEBUG_LEVEL = "4"
-    settings = (("c121_air_economics", 1), )
+    settings = ()
     arm = openttdlab.local_folder(str(target), "OpexAI", settings)
     write(folder / "plan.json", {"kind": "matched_input_cost_not_economic",
         "seed": 42, "years": 2, "settings": settings, "source_hashes": before,

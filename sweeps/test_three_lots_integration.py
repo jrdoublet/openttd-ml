@@ -5,7 +5,6 @@ import re
 import unittest
 
 from sweeps import diag_air_selection_light as light
-from sweeps.diag_three_lots_integration import LIGHT_ARMS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,9 +38,6 @@ class SourceContracts(unittest.TestCase):
     def source(self, name):
         return (ROOT / "ai/OpexAI" / name).read_text(encoding="utf-8")
 
-    def test_only_diagnostic_arms(self):
-        self.assertEqual(LIGHT_ARMS["light"], "OpexAI[catalog_cost_probe=1]")
-        self.assertNotIn("fleet_amort_shadow_probe", self.source("info.nut"))
 
     def test_r1_r3_default_stays_copy_only(self):
         self.assertIn("const R1_R3_TEST_ONLY = 0;", self.source("projects_selection.nut"))
