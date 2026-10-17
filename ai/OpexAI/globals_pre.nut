@@ -894,6 +894,11 @@ V217_IDLE_CASH_MIN <- 100000;
 V217_POOL_MIN <- 2;
 V217_LAST_MONTH <- -1;
 V217_REGEN_NO_PAX <- false;
+/* V221 : profit minimal des vehicules de plus de 2 ans. 0 = inerte (defaut).
+ * Le mois n'est pas persiste : un rechargement peut rejouer le mois en cours,
+ * le ticket _vehiclesToRetire empeche un second decrement. */
+V221_MIN_PROFIT <- 0;
+V221_LAST_MONTH <- -1;
 /* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
  * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
  * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */

@@ -1211,6 +1211,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v221_min_profit",
+      description = "V221: at most once a month, retire or renew own vehicles at least 700 days old whose last-year profit is below this amount in GBP. 0 = inert (default). The performance rating gives 100 points when every vehicle older than 730 economy days earned at least 10000 last year",
+      min_value = 0, max_value = 1000000,
+      step_size = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v172_rail_long_weight_dist",
       description = "V172: Manhattan distance threshold in tiles to trigger v172_rail_long_weight_pct. Default 100",
       min_value = 0, max_value = 512,

@@ -597,6 +597,9 @@ class OpexAI extends AIController {
                              reason = "event");
   function _v127IdleCashRoadRegen(ym);
   function _v217RailRefill();
+  function _v221MinProfitCull();
+  function _v221RetireUnit(vehicle, line);
+  function _v221Renew(vehicle, line, reserve);
   function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
   function _c77RemoveSubsidy(subId);
@@ -650,6 +653,7 @@ require("probe_v216.nut");
 require("rivals_v211.nut");
 require("rail_preastar_probe.nut");
 require("air_flux_probe.nut");
+require("v221_min_profit.nut");
 require("scheduler.nut");
 require("scheduler_tasks.nut");
 require("settings.nut");

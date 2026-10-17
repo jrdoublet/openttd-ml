@@ -782,6 +782,9 @@ function OpexLoadSettings()
   local railRefill = AIController.GetSetting("v217_rail_refill");
   V217_RAIL_REFILL = (railRefill != null && railRefill >= 0 && railRefill <= 2) ? railRefill : 0;
   V217_LAST_MONTH = -1;
+  local v221MinProfit = AIController.GetSetting("v221_min_profit");
+  V221_MIN_PROFIT = (v221MinProfit != null && v221MinProfit > 0 && v221MinProfit <= 1000000) ? v221MinProfit : 0;
+  V221_LAST_MONTH = -1;
   AIR0310_HUB_SNAPSHOT = C121_CATALOG_INCREMENTAL
       && AIController.GetSetting("air0310_hub_snapshot") != 0;
   AIR0310_SITE_VALIDITY_CACHE = C121_CATALOG_INCREMENTAL
