@@ -14,9 +14,15 @@ import subprocess
 import sys
 
 try:
-    from sweeps.campaign_freeze import parse_aaahogex_settings
+    from sweeps.campaign_freeze import (
+        parse_aaahogex_settings,
+        validate_simulation_bounds,
+    )
 except ImportError:
-    from campaign_freeze import parse_aaahogex_settings
+    from campaign_freeze import (
+        parse_aaahogex_settings,
+        validate_simulation_bounds,
+    )
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -131,6 +137,20 @@ def main():
                              "sur le VPS, 3 workers avec 2 Go suffisent.")
     parser.add_argument("--out")
     parser.add_argument(
+        "--start-year",
+        "--starting-year",
+        dest="start_year",
+        type=int,
+        default=1970,
+        help="Année de départ OpenTTD (défaut 1970, bornes 1920-2050)",
+    )
+    parser.add_argument(
+        "--map-size",
+        type=int,
+        default=8,
+        help="Taille de carte OpenTTD en exposant 2^N (défaut 8 = 256, 10 = 1024, bornes 6-12)",
+    )
+    parser.add_argument(
         "--aaahogex-setting",
         action="append",
         default=[],
@@ -138,6 +158,11 @@ def main():
         help="Reglage AAAHogEx NOM=VALEUR (repetable, verifie dans info.nut)",
     )
     args = parser.parse_args()
+
+    try:
+        validate_simulation_bounds(args.start_year, args.map_size)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     if args.aaahogex_settings:
         info_path = ROOT / "ai" / "AAAHogEx-115" / "info.nut"
@@ -235,6 +260,10 @@ def main():
         benchmark += ["--required-years", str(args.required_years)]
     if args.out is not None:
         benchmark += ["--out", args.out]
+    if args.start_year is not None:
+        benchmark += ["--start-year", str(args.start_year)]
+    if args.map_size is not None:
+        benchmark += ["--map-size", str(args.map_size)]
     for setting in args.aaahogex_settings:
         benchmark += ["--aaahogex-setting", setting]
 

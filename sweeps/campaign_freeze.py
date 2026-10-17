@@ -35,6 +35,23 @@ SETTING_MIN_RE = re.compile(r"\bmin_value\s*=\s*([^,\n}]+)")
 SETTING_MAX_RE = re.compile(r"\bmax_value\s*=\s*([^,\n}]+)")
 SETTING_STEP_RE = re.compile(r"\bstep_size\s*=\s*([^,\n}]+)")
 
+MIN_START_YEAR = 1920
+MAX_START_YEAR = 2050
+MIN_MAP_SIZE = 6
+MAX_MAP_SIZE = 12
+
+
+def validate_simulation_bounds(start_year: int, map_size: int) -> None:
+    """Valide les bornes des options de simulation : année 1920-2050, map_size 6-12."""
+    if not (MIN_START_YEAR <= start_year <= MAX_START_YEAR):
+        raise ValueError(
+            f"--start-year doit être compris entre {MIN_START_YEAR} et {MAX_START_YEAR} (reçu: {start_year})"
+        )
+    if not (MIN_MAP_SIZE <= map_size <= MAX_MAP_SIZE):
+        raise ValueError(
+            f"--map-size doit être compris entre {MIN_MAP_SIZE} et {MAX_MAP_SIZE} (reçu: {map_size})"
+        )
+
 
 @dataclass(frozen=True)
 class FrozenCampaign:
@@ -408,6 +425,7 @@ def prepare_frozen_campaign(
     repeats: int,
     starting_year: int,
     config_text: str,
+    map_size: int = 8,
     opex_explicit_settings=(),
     aaahogex_explicit_settings=(),
     library_specs=(),
@@ -430,6 +448,7 @@ def prepare_frozen_campaign(
         raise ValueError(f"campaign_id invalide: {campaign_id!r}")
     if repeats < 1:
         raise ValueError("repeats doit etre >= 1")
+    validate_simulation_bounds(starting_year, map_size)
 
     manifest_path = out_path.with_suffix(".manifest.json")
     checkpoint_path = out_path.with_suffix(".jsonl")
@@ -538,8 +557,15 @@ def prepare_frozen_campaign(
                     },
                 })
 
-    if execution_options is not None and "aaahogex_settings" not in execution_options:
-        execution_options["aaahogex_settings"] = []
+    if execution_options is not None:
+        if "aaahogex_settings" not in execution_options:
+            execution_options["aaahogex_settings"] = []
+        if "start_year" not in execution_options and "starting_year" not in execution_options:
+            execution_options["start_year"] = starting_year
+        elif "start_year" not in execution_options and "starting_year" in execution_options:
+            execution_options["start_year"] = execution_options["starting_year"]
+        if "map_size" not in execution_options:
+            execution_options["map_size"] = map_size
 
     manifest = {
         "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -561,6 +587,7 @@ def prepare_frozen_campaign(
             "sha256": _sha256_bytes(config_text.encode("utf-8")),
             "parsed": _parse_config(config_text),
             "starting_year": starting_year,
+            "map_size": map_size,
             "years": years,
             "seeds": [int(seed) for seed in seeds],
             "repeats": repeats,

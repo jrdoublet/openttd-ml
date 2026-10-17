@@ -82,6 +82,7 @@ from campaign_freeze import (
     parse_ai_settings,
     prepare_frozen_campaign,
     validate_policy_settings,
+    validate_simulation_bounds,
 )
 
 STARTING_YEAR = 1970
@@ -1256,9 +1257,9 @@ def keep(row):
     return (rec0, rec1)
 
 
-def make_experiments_plan(seeds, years, repeats=1, campaign=None, policy_id="reference", policies=None, aaahogex_settings=None):
+def make_experiments_plan(seeds, years, repeats=1, campaign=None, policy_id="reference", policies=None, aaahogex_settings=None, start_year=STARTING_YEAR, map_size=8):
     from openttdlab import local_folder
-    cfg = campaign.manifest["configuration"]["raw"] if campaign is not None else make_cfg(STARTING_YEAR)
+    cfg = campaign.manifest["configuration"]["raw"] if campaign is not None else make_cfg(start_year, map_size)
     days = 365 * years
     opex_dir = campaign.opex_dir if campaign is not None else ROOT / "ai" / "OpexAI"
     aaahogex_dir = campaign.aaahogex_dir if campaign is not None else ROOT / "ai" / AAAHOGEX_DIR
@@ -2233,6 +2234,20 @@ def main():
         help="Timeout subprocess OpenTTD par partie, en secondes (0 = aucun)",
     )
     parser.add_argument(
+        "--start-year",
+        "--starting-year",
+        dest="start_year",
+        type=int,
+        default=STARTING_YEAR,
+        help="Année de départ OpenTTD (défaut 1970, bornes 1920-2050)",
+    )
+    parser.add_argument(
+        "--map-size",
+        type=int,
+        default=8,
+        help="Taille de carte OpenTTD en exposant 2^N (défaut 8 = 256, 10 = 1024, bornes 6-12)",
+    )
+    parser.add_argument(
         "--aaahogex-setting",
         action="append",
         default=[],
@@ -2240,6 +2255,10 @@ def main():
         help="Reglage AAAHogEx NOM=VALEUR (repetable, verifie dans info.nut)",
     )
     args = parser.parse_args()
+    try:
+        validate_simulation_bounds(args.start_year, args.map_size)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.seeds is None:
         try:
             args.seeds = default_seeds_for_rule(args.decision_rule, args.required_seeds)
@@ -2320,7 +2339,7 @@ def main():
 
     campaign_id = args.campaign or (args.out.stem if args.out is not None else default_campaign_id())
     out = args.out or (ROOT / "results" / f"{campaign_id}.json")
-    cfg = make_cfg(STARTING_YEAR)
+    cfg = make_cfg(args.start_year, args.map_size)
     aaahogex_explicit_settings = ()
     if args.aaahogex_settings:
         try:
@@ -2337,7 +2356,8 @@ def main():
         seeds=args.seeds,
         years=args.years,
         repeats=args.repeats,
-        starting_year=STARTING_YEAR,
+        starting_year=args.start_year,
+        map_size=args.map_size,
         config_text=cfg,
         opex_explicit_settings=tuple(reference_settings),
         aaahogex_explicit_settings=aaahogex_explicit_settings,
@@ -2366,10 +2386,14 @@ def frozen_execution_inputs(campaign):
     for key in ("seeds", "years", "repeats"):
         if getattr(args, key) != config[key]:
             raise ValueError(f"frozen execution option mismatch: {key}")
-    if (config["starting_year"] != STARTING_YEAR
+    expected_starting_year = getattr(args, "start_year", getattr(args, "starting_year", STARTING_YEAR))
+    if (config["starting_year"] != expected_starting_year
             or manifest["versions"]["openttd"] != OPENTTD_VERSION
             or manifest["versions"]["opengfx"] != OPENGFX_VERSION):
         raise ValueError("frozen runtime constants differ from manifest")
+    expected_map_size = getattr(args, "map_size", None)
+    if expected_map_size is not None and "map_size" in config and config["map_size"] != expected_map_size:
+        raise ValueError("frozen map_size mismatch")
     if args.policy_id != manifest["policy"]["id"]:
         raise ValueError("frozen reference policy mismatch")
     comparison = manifest.get("comparison")
@@ -2389,7 +2413,7 @@ def frozen_execution_inputs(campaign):
         ):
             if field in rule and getattr(args, option, None) != rule[field]:
                 raise ValueError(f"frozen decision rule mismatch: {option}")
-    elif args.variant_policy_id is not None:
+    elif getattr(args, "variant_policy_id", None) is not None:
         raise ValueError("frozen variant missing from manifest")
     policies = [
         {"id": policy["id"], "role": policy["role"],
@@ -2436,6 +2460,9 @@ def execute_frozen_campaign(campaign):
     enable_engine_failure_capture(timeout_sec=args.engine_timeout)
     enable_savegame_cleanup(getattr(args, "retain_savegames", None))
 
+    start_year = getattr(args, "start_year", getattr(args, "starting_year", STARTING_YEAR))
+    map_size = getattr(args, "map_size", 8)
+
     exps = make_experiments_plan(
         args.seeds,
         args.years,
@@ -2444,6 +2471,8 @@ def execute_frozen_campaign(campaign):
         policy_id=args.policy_id,
         policies=policies,
         aaahogex_settings=getattr(args, "aaahogex_settings", ()),
+        start_year=start_year,
+        map_size=map_size,
     )
     for experiment in exps:
         experiment["engine_log_path"] = str(engine_log_path_for(
@@ -2473,8 +2502,8 @@ def execute_frozen_campaign(campaign):
         ai_libraries=campaign.ai_libraries,
     ))
 
-    last_year = expected_last_year(STARTING_YEAR, args.years)
-    last_checkpoint = expected_last_checkpoint(STARTING_YEAR, args.years)
+    last_year = expected_last_year(start_year, args.years)
+    last_checkpoint = expected_last_checkpoint(start_year, args.years)
     by_game = defaultdict(list)
     for row in rows:
         run = row.get("run") or []
@@ -2526,7 +2555,7 @@ def execute_frozen_campaign(campaign):
         log_path = next((row.get("engine_log_path") for row in recs if row.get("engine_log_path")), None)
         assessment = assess_game(
             recs,
-            starting_year=STARTING_YEAR,
+            starting_year=start_year,
             years=args.years,
             engine_log_path=log_path,
         )
@@ -2656,7 +2685,7 @@ def execute_frozen_campaign(campaign):
             required_seeds=getattr(args, "required_seeds", None),
             required_years=getattr(args, "required_years", None),
             value_guard_max_loss_pct=args.value_guard_max_loss_pct,
-            starting_year=STARTING_YEAR,
+            starting_year=start_year,
             years=args.years,
             decision_rule=args.decision_rule,
         )
@@ -2672,6 +2701,8 @@ def execute_frozen_campaign(campaign):
         "years": args.years,
         "seeds": args.seeds,
         "repeats": args.repeats,
+        "start_year": start_year,
+        "map_size": map_size,
         "policies": [
             {
                 "id": policy["id"],
