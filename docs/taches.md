@@ -23,6 +23,10 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 - **16/10 — V180 +50 % sur les nouveaux défauts V214/V216 : porte A V102 `fail_primary`.** `v180_v214default_porteA_40x3_20261016`, même bundle pour V180=0 / V180=50, AAAHogEx complet, **40/40 paires et 80/80 parties saines**. `profit_year` variante−référence **+11 895 £/an (+0,53 %)**, médiane +2 053, **20/20/0**, Wilcoxon p=0,609, IC95 bootstrap **[−58,4 ; +80,3] k£/an** contre seuil +89,7 k£/an, `company_value` +0,34 %. Critère primaire échoué ; **V180 reste 0 par défaut, aucune porte B**. [Rapport complet et pré-enregistrement](v180_porteA_nouveaux_defauts_20261016.md).
 
+### Cartographie — reprise (demande du 17/10)
+
+- [ ] **V224 — reprendre la cartographie C67.** `c67_terrain_map` (carte par blocs `OpexTerrainMap`, remplie dans le reliquat de tick, défaut 0) a été retiré puis **réintégré le 17/10 (`cb717da`)** : brique gardée mais toujours **sans consommateur métier**. Lui trouver un client (phase 4 bateaux, V150 worker → `terrain_map`/`water_graph`, prix du terrain non pricé du rail, sites d'aéroports), sinon la reclasser. Contrat : [c67_cartographie_contrat.md](c67_cartographie_contrat.md) ; mémoire des suppressions : [suppressions_parametres_idees_20261017.md](suppressions_parametres_idees_20261017.md).
+
 ### Jeu normal avec des humains — tâches ouvertes (demande du 16/10)
 
 - [ ] **Mode `fair_play` explicite** : ajouter un paramètre réglable par l'utilisateur, conçu pour limiter les comportements gênants lorsque des humains jouent sur la même carte. Commencer par auditer et lister les comportements précis (implantation concurrentielle agressive, occupation de sites rares, constructions gênantes, interventions sur villes/terrain, panneaux, etc.) et leurs garde-fous ; ne pas neutraliser arbitrairement toute concurrence économique. Vérifier le rollback et l'absence de modification du comportement en mode compétitif. **Ne pas dépendre d'une détection fiable « humain versus IA » : C88 a documenté les limites de NoAI 15.3.** Aucun changement de défaut ni implémentation avant choix des comportements ciblés.
