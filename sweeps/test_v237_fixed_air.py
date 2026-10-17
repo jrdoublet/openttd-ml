@@ -23,8 +23,9 @@ class FixedAirContracts(unittest.TestCase):
         scheduler = (AI / "scheduler_tasks.nut").read_text(encoding="utf-8")
         self.assertIn("if (MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE)", projects)
         self.assertIn("if (!(MODE_AIR && MODE_RAIL)) return false;", prep)
-        self.assertIn("c76StartRevisions = C76_REGEN_TARGETED && c76Full", scheduler)
-        self.assertIn("if (C76_REGEN_TARGETED &&", scheduler)
+        self.assertIn("c76StartRevisions = c76Full", scheduler)
+        self.assertIn('if (("c76StartRevisions" in s)', scheduler)
+        self.assertNotIn("C76_REGEN_TARGETED", scheduler)
 
     def test_payment_and_fused_winner_have_no_legacy_fallback(self):
         economics = (AI / "air_economics_c121.nut").read_text(encoding="utf-8")

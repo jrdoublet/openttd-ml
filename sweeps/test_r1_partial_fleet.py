@@ -127,7 +127,7 @@ class TestPartialFleet(unittest.TestCase):
         self.assertIn("!fleetExemptDecision) ? kDec : scoreDecisionFinanceCapital", flat)
         self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", self.select)
         fund = function(self.projects, "OpexProjectFundProfit")
-        self.assertIn("C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual", fund)
+        self.assertIn("OpexCalibratedProfit(project)", fund)
         self.assertIn("return calibrated;", fund)
         # Corps seul : le commentaire d'en-tete de la fonction suivante
         # (OpexProjectFundProfit, 9e29951) cite fundScore.

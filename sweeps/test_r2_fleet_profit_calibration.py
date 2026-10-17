@@ -45,7 +45,7 @@ class TestFleetProfitCalibration(unittest.TestCase):
             r'if \(project != null && \("profitIsObserved" in project\) && project.profitIsObserved\)'
             r'\s*return project.profitAnnual;',
         )
-        self.assertLess(self.c70.index("project.profitIsObserved"), self.c70.index("if (!C70_MODE_CALIBRATION)"))
+        self.assertLess(self.c70.index("project.profitIsObserved"), self.c70.index("return project.profitAnnual * OpexC70Factor(project);"))
         self.assertIn("return project.profitAnnual * OpexC70Factor(project);", self.c70)
 
     def test_c82_calibration_removed(self):

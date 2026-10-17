@@ -96,7 +96,7 @@ class C78SlotInterceptProbeTests(unittest.TestCase):
         self.assertIn('phase=pass_stop', attempt)
         self.assertIn('phase=projects_exit', attempt)
         self.assertIn('reason=rail_search blocker_rank=', attempt)
-        self.assertIn('c78ExitStop = (!C75_MULTI_BUILD) ? "single" : "list_end";', attempt)
+        self.assertIn('c78ExitStop = "list_end";', attempt)
 
         air_attempt = body(self.air_task, "function OpexAI::_tryBuildAirProject(")
         self.assertIn("MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE", air_attempt)

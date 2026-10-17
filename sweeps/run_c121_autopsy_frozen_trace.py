@@ -98,7 +98,7 @@ def prepare_source(bundle: Path, destination: Path) -> dict:
     task = destination / "task_projects.nut"
     text = task.read_text(encoding="utf-8")
     needle = """      if (attempt.outcome == \"built\") {\n        if (c121FirstYearAirBatch) {"""
-    replacement = """      if (attempt.outcome == \"built\") {\n        if (C121_AUTOPSY_TEST_ONLY && !C121_AUTOPSY_DONE) {\n          local autopsyKPass = c75KPassData != null ? c75KPassData.K_pass : 0;\n          OpexC121AutopsyLog(\"PASS\", \"rank=\" + i + \" built_before=\" + liveBuiltCount\n              + \" k_pass=\" + autopsyKPass\n              + \" k_pass_active=\" + ((C75_MULTI_BUILD && liveBuiltCount > 0) ? 1 : 0));\n        }\n        if (c121FirstYearAirBatch) {"""
+    replacement = """      if (attempt.outcome == \"built\") {\n        if (C121_AUTOPSY_TEST_ONLY && !C121_AUTOPSY_DONE) {\n          local autopsyKPass = c75KPassData != null ? c75KPassData.K_pass : 0;\n          OpexC121AutopsyLog(\"PASS\", \"rank=\" + i + \" built_before=\" + liveBuiltCount\n              + \" k_pass=\" + autopsyKPass\n              + \" k_pass_active=\" + ((liveBuiltCount > 0) ? 1 : 0));\n        }\n        if (c121FirstYearAirBatch) {"""
     if text.count(needle) != 1:
         raise RuntimeError("AIR built insertion point not found exactly once")
     task.write_text(text.replace(needle, replacement, 1), encoding="utf-8")

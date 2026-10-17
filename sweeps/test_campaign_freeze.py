@@ -227,6 +227,10 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
+        for retired in ("c69_decision_bottleneck", "c70_mode_calibration", "c75_multi_build",
+                        "c76_regen_targeted", "v184_rail_search_slots"):
+            self.assertNotIn(retired, defaults)
+            self.assertNotIn(retired, specs)
         # V238: these adopted mechanisms no longer expose user settings.
         for retired in ('exp_opcode_exact', 'c69_fleet_exempt', 'c75_kpass_bypass', 'policy_caches', 'c80_mode_regen', 'v89_rail_search_throughput', 'v90_fast_pathfinder', 'v129_rail_astar_exact_opt', 'v186_rail_search_slices', 'rail_upgrade_failure_memory', 'rail_end_jump_connect', 'incr_revalidate_index', 'rail_target_cargo_prefilter', 'subsidy_reselect_if_purged', 'select_bisect_insert'):
             self.assertNotIn(retired, defaults)
@@ -235,9 +239,7 @@ class TestCampaignFreeze(unittest.TestCase):
             len(defaults),
             INFO.read_text(encoding="utf-8").count("AddSetting("),
         )
-        for name in ("c69_decision_bottleneck", "c70_mode_calibration", "c75_multi_build",
-                     "c76_regen_targeted",
-                     "c121_air_project_realization_adaptive"):
+        for name in ("c121_air_project_realization_adaptive",):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c76_freight_rotation", "c80_air_choice_memo", "c80_air_eval_fast", "rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)

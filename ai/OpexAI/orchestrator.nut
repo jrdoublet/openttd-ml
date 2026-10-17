@@ -598,7 +598,7 @@ function OpexAI::_dispatchReactiveIntention(intention)
   if (intention == null) return false;
   local sp = null;
   if (intention.key == "regen" || intention.kind == "regen") {
-    if (C76_REGEN_TARGETED) {
+    {
       sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.regen") : null;
       local date = AIDate.GetCurrentDate();
       local year = AIDate.GetYear(date);
@@ -1024,7 +1024,7 @@ function OpexAI::_runOrchestratorTick()
 
 function OpexAI::_c76BumpLayer(layer, isEvent = false)
 {
-  if (!C76_REGEN_TARGETED || this._c76Revisions == null) return;
+  if (this._c76Revisions == null) return;
   if (layer == "towns") {
     this._c76Revisions.towns++;
   } else if (layer == "industries") {
@@ -1078,7 +1078,7 @@ function OpexAI::_c76GetModeDeps(mode)
 
 function OpexAI::_c76ModeNeedsRegen(mode)
 {
-  if (!C76_REGEN_TARGETED || this._c76Revisions == null) return true;
+  if (this._c76Revisions == null) return true;
   local deps = this._c76GetModeDeps(mode);
   local consumed = (mode in this._c76ModeConsumed) ? this._c76ModeConsumed[mode] : {};
   foreach (layer in deps) {
@@ -1091,7 +1091,7 @@ function OpexAI::_c76ModeNeedsRegen(mode)
 
 function OpexAI::_c76AnyLayerChanged()
 {
-  if (!C76_REGEN_TARGETED || this._c76Revisions == null || this._c76AckRevisions == null) return false;
+  if (this._c76Revisions == null || this._c76AckRevisions == null) return false;
   if (this._c76Revisions.towns > this._c76AckRevisions.towns) return true;
   if (this._c76Revisions.industries > this._c76AckRevisions.industries) return true;
   if (this._c76Revisions.lines > this._c76AckRevisions.lines) return true;
@@ -1273,7 +1273,7 @@ function OpexAI::_c76DoFullRegen(reason, year)
  * Les industries ne nourrissent que le fret rail et route (l'eau ne planifie que des passagers). */
 function OpexAI::_c80ModeRegenModes()
 {
-  if (!C76_REGEN_TARGETED || this._c76Revisions == null || this._c76AckRevisions == null) return null;
+  if (this._c76Revisions == null || this._c76AckRevisions == null) return null;
   local r = this._c76Revisions;
   local a = this._c76AckRevisions;
   if (r.towns > a.towns || r.lines > a.lines || r.engines.air > a.engines.air) return null;

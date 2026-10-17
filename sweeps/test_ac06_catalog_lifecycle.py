@@ -233,7 +233,7 @@ class AC06LifecycleTests(unittest.TestCase):
         self.assertIn("this._c76AckRevisions.lines = this._c76Revisions.lines;", ACK)
         self.assertIn("this._c76Revisions.towns > this._c76AckRevisions.towns", CHANGED)
         self.assertIn('this._c76BumpLayer("towns", true);', read("events.nut"))
-        self.assertIn('c76StartRevisions = C76_REGEN_TARGETED && c76Full', START)
+        self.assertIn('c76StartRevisions = c76Full', START)
         self.assertIn("OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions);", APPLY)
         legacy = Model(snapshot_ack=False)
         legacy.start(ym, year=1970)

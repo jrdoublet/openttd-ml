@@ -142,7 +142,7 @@ class OpexAI extends AIController {
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
-  /* V184 : créneaux de recherche A* ferroviaire quand v184_rail_search_slots > 1. */
+  /* V184 : etat des slots reinitialise au demarrage et au rechargement (une recherche). */
   _v184RailSlots = null;
   _v184SlotCursor = 0;
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
@@ -498,12 +498,6 @@ class OpexAI extends AIController {
   function _startRailUpgradeSearch(line, prep);
   function _consumeRailUpgrade();
   function _v184InitRailSlots();
-  function _v184CanStartRailSearch(candidate);
-  function _v184FindFreeSlot();
-  function _v184ActiveSearchCount();
-  function _v184SelectNextSearchSlot();
-  function _v184SyncRailSearch();
-  function _v184FindSlotByPhase(targetPhase);
   function _findLineById(lineId);
   function _processEvents();
   function _markDirty(reason, catalogLayers = null, candidateLayers = null,
@@ -661,7 +655,7 @@ function OpexAI::Start()
     this._c50RefuseCache = {};
     this._c50LastTreasuryMonth = -1;
   }
-  if (C69_TRACK_BUILDS) {
+  {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
     C69_BUILD_PASS_COUNT = 0;
@@ -673,7 +667,7 @@ function OpexAI::Start()
     C69_PLANE_CHOICE_DIFFER_ROI = 0;
     C69_PLANE_CHOICE_DIFFER_C69 = 0;
   }
-  if (C75_TRACK_PASSES) {
+  {
     C75_PASS_DATES = [];
     OpexC75ResetYearLedger();
   }
@@ -724,7 +718,7 @@ function OpexAI::Start()
 
   local spSelf = PROBE_SPAN_TRACE ? OpexSpanBegin("start.selftest") : null;
   this._c80RunSelfTest();
-  if (C76_REGEN_TARGETED) {
+  {
     this._c76RunSelfTest();
   }
   if (spSelf != null) OpexSpanEnd(spSelf);

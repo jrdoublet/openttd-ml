@@ -21,8 +21,6 @@ V179_RAIL_GEN_DEST_SERVED <- false;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
-/* V184 : nombre de creneaux de recherche A* rail simultanes (1..4, defaut 1). */
-V184_RAIL_SEARCH_SLOTS <- 1;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
@@ -293,20 +291,14 @@ C50_CHRONOLOGY_PROBE <- false;
 /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
 C63_INVEST_PROBE <- false;
 C63_INVEST_LEDGER <- null;
-/* C70 : facteur realise/predit par mode, recalcule au rapport annuel. 1.0 hors reglage. */
-C70_MODE_CALIBRATION <- false;
+/* C70 : facteur realise/predit par mode, recalcule au rapport annuel et au rechargement. */
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
-/* C70 : score sur le profit calibre. Calcule une fois dans OpexLoadSettings pour que la
- * boucle de selection ne lise qu'une globale. */
-C70_PROFIT_CALIBRATED <- false;
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
  * de tau. 1970 n'est qu'un repli, pose avant Start(). */
 OPEX_START_YEAR <- 1970;
 C69_BOTTLENECK_PROBE <- false;
-/* C69 etape 2 : levier. C69_TRACK_BUILDS = sonde ou levier : tau exige les dates de chantier. */
-C69_DECISION_BOTTLENECK <- false;
-C69_TRACK_BUILDS <- false;
+/* C69 : le levier permanent exige le suivi des dates de chantier pour tau. */
 C69_BUILD_DATES <- null;
 C69_PENDING_FOLLOWUPS <- null;
 C69_BUILD_PASS_COUNT <- 0;
@@ -470,24 +462,18 @@ C116_AIR_PROJECT_SNAPSHOT <- null;
 /* Cargo passagers retenu pour le catchment de site. -1 tant qu'il n'est pas connu. */
 AIR_DEMAND_PAX_CARGO <- -1;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
-C75_MULTI_BUILD <- false;
 /* C75 bis : autorise une seule nouvelle ligne finançable a franchir K_pass par passe. Defaut 0. */
 C75_KPASS_BYPASS_LEDGER <- null;
 C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
 /* Facteur de financement rail applique dans OpexProjectFinanceCapital.
  * Reglage experimental, defaut historique 170. */
 RAIL_FINANCE_BIAS_PCT <- 100;
-C75_TRACK_PASSES <- false;
 C75_PASS_DATES <- null;
 C75_YEAR_LEDGER <- null;
 /* C76 : sonde passive de la regeneration du vivier sous C39_INVALIDATION_PROBE */
 C76_PREV_STATE <- null;
 C76_YEAR_LEDGER <- null;
 C76_EVENTS_SINCE_PREV <- null;
-/* C76 etape 2 / C80 tranche 3 : regeneration du vivier pilotee par les invalidations.
- * 0 = regeneration mensuelle systematique historique, 1 = regeneration ciblee (defaut depuis le
- * 2026-09-24 : economie d'opcodes et 20x10 neutre, regle d'adoption des optimisations d'opcodes). */
-C76_REGEN_TARGETED <- true;
 /* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
 C78_SLOT_INTERCEPT_PROBE <- false;
@@ -639,7 +625,7 @@ C67_WATER_EXPOSURE <- false;
 C67_SLACK_HOOK <- false;
 C67_WATER_EXPO <- null;
 
-/* C76 : sous C76_REGEN_TARGETED, un mois sans regeneration complete fait quand meme tourner le
+/* C76 : un mois sans regeneration complete fait quand meme tourner le
  * cargo fret (regeneration des seuls modes rail et route sur le cargo suivant). Sans lui, le lot
  * fret reste fige entre deux regenerations completes. 0 = desactive (defaut). */
 C76_FREIGHT_ROTATION <- false;
@@ -680,7 +666,6 @@ AIR_HUB_MAX_ROUTES <- 3;
 /* V90 : A* ferroviaire rapide vendorisé (tracé identique, −8 % d opcodes par itération mesuré).
  * 0 = RailPathFinder BaNaNaS, 1 = OpexRailPathFinderV90 (défaut, décision utilisateur du 2026-09-24). */
 
-
 /* V91 : heuristique pondérée A* rail (weighted A*).
  * Multiplicateur en pourcentage de l'estimation heuristique retournée par _Estimate.
  * 100 = non pondéré (V90 strictement inchangé), > 100 accélère la recherche au prix de tracés légèrement
@@ -689,8 +674,6 @@ V91_ASTAR_WEIGHT_PCT <- 120;
 
 /* V129 : A* rail à exploration strictement identique mais moins coûteux en opcodes
  * (pathfinder_v90/v129.nut). 0 = code V90 inchangé (défaut). Sans effet si V90_FAST_PATHFINDER = 0. */
-
-
 
 /* V131 : reparation locale d'un trace rail stocke/prepare (A* de contournement,
  * deplacement de quai, garde doublon). Defaut 0 : comportement et cout nuls. */

@@ -870,7 +870,7 @@ function OpexTopKFund(all, k)
     local project = OpexProjectFromCandidate(candidate);
     if (project == null) continue;
     local financeCapital = OpexProjectFinanceCapital(project);
-    local score = OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual,
+    local score = OpexProjectScore(OpexCalibratedProfit(project),
                                    financeCapital);
     if ("fundScore" in candidate) candidate.fundScore = score;
     else candidate.fundScore <- score;

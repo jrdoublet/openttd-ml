@@ -24,7 +24,7 @@ class HomogeneousPreselectContract(unittest.TestCase):
         block = source.split('function OpexTopKFund(', 1)[1].split('\n}', 1)[0]
         for symbol in ('OpexProjectFromCandidate(candidate)',
                        'OpexProjectFinanceCapital(project)',
-                       'OpexProjectScore(C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual'):
+                       'OpexProjectScore(OpexCalibratedProfit(project)'):
             self.assertIn(symbol, block)
         self.assertNotIn('turnoverBonus', block)
         self.assertNotIn('opcodeRatio', block)

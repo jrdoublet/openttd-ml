@@ -41,7 +41,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
                             portfolio = false, selection = false, affectedKind = null,
                             affectedId = -1, affectedMode = null, targetedRelevant = true)
 {
-  if (C76_REGEN_TARGETED) {
+  {
     if (reason == "industry_open" || reason == "industry_close") {
       this._c76BumpLayer("industries", true);
     } else if (reason == "town_founded") {
@@ -129,9 +129,9 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (targetedRelevant && candidateLayers != null) {
     local targeted = affectedId >= 0 && (affectedKind == "town" || affectedKind == "industry")
         && reason != "industry_close";
-    /* Un moteur neuf releve d'une regeneration de mode ; si C76 est arme, sa couche
+    /* Un moteur neuf releve d'une regeneration de mode ; sa couche
      * engines a deja enfile la regeneration complete et C77 ne la double pas. */
-    local shouldRoute = targeted || (reason == "engine_available" && !C76_REGEN_TARGETED);
+    local shouldRoute = targeted;
     local modes = [];
     foreach (layer in candidateLayers) {
       if (targeted && affectedKind == "town" && layer == "water") continue;

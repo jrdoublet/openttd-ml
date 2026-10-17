@@ -77,8 +77,6 @@ function OpexLoadSettings()
   V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
   if (V180_START_YEAR < 0) V180_START_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
   V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
-  local railSlots = AIController.GetSetting("v184_rail_search_slots");
-  V184_RAIL_SEARCH_SLOTS = (railSlots != null && railSlots >= 1 && railSlots <= 4) ? railSlots : 1;
   local v182Years = AIController.GetSetting("v195_v182_years");
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
@@ -268,11 +266,8 @@ function OpexLoadSettings()
   }
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
-  C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
-  C70_PROFIT_CALIBRATED = C70_MODE_CALIBRATION;
   ::OpexCalibratedProfit <- OpexC70Profit;
   C69_BOTTLENECK_PROBE = probePort;
-  C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
   C83_LOCAL_REPAIR = AIController.GetSetting("c83_local_repair") != 0;
   C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
@@ -329,8 +324,7 @@ function OpexLoadSettings()
   C117_AIR_LAST_DATE = -1;
   C117_AIR_LINE_STATE = {};
   C117_AIR_VEHICLE_STATE = {};
-  C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK;
-  if (C69_TRACK_BUILDS) {
+  {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
     C69_BUILD_PASS_COUNT = 0;
@@ -349,12 +343,10 @@ function OpexLoadSettings()
       C80_AIR_INC_COUNTS.none = 0;
     }
   }
-  C75_MULTI_BUILD = AIController.GetSetting("c75_multi_build") != 0;
   {
     OpexC75BypassResetYearLedger();
   }
-  C75_TRACK_PASSES = C75_MULTI_BUILD || C69_BOTTLENECK_PROBE;
-  if (C75_TRACK_PASSES) {
+  {
     C75_PASS_DATES = [];
     OpexC75ResetYearLedger();
   }
@@ -443,12 +435,11 @@ function OpexLoadSettings()
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
   /* R7 : zero global conserve ; le reglage defensif C121 ne retablit pas de plancher positif. */
   PORTFOLIO_FLOOR_PCT = 0;
-  C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
   C67_WATER_EXPOSURE = OpexProbeSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
   /* C77 corrige est permanent et repose sur le socle du double registre. */
-  C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
+  C76_FREIGHT_ROTATION = (AIController.GetSetting("c76_freight_rotation") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
   C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;

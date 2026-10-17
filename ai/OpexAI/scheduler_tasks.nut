@@ -61,7 +61,7 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
     c76Quarter = c76Quarter,
     c76Reason = c76Reason,
     /* AC06 v2 : snapshot apres refresh initial, avant les evenements tardifs. */
-    c76StartRevisions = C76_REGEN_TARGETED && c76Full
+    c76StartRevisions = c76Full
         ? OpexAC06CaptureRevisionNumbers(owner) : null,
   };
   OpexV147ArmPhases(owner);
@@ -225,7 +225,7 @@ function OpexC78ApplyAir(owner, task, year, s)
       owner._c76RecordRegen("full", s.regenOps, regenDays, year, reason);
     }
     if (s.c76Full) {
-      if (C76_REGEN_TARGETED && ("c76StartRevisions" in s)
+      if (("c76StartRevisions" in s)
           && s.c76StartRevisions != null) {
         OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions);
       } else {
@@ -382,7 +382,7 @@ function OpexAI::_dispatchCatalog(task, year)
   local c76PeriodicDue = false;
   local c76ReloadDue = false;
   local c76CurQuarter = 0;
-  if (C76_REGEN_TARGETED) {
+  {
     c76LayerChanged = this._c76AnyLayerChanged();
     c76CurQuarter = year;
     c76PeriodicDue = (this._c76LastRegenQuarter < 0 || c76CurQuarter > this._c76LastRegenQuarter);
@@ -390,15 +390,6 @@ function OpexAI::_dispatchCatalog(task, year)
     local cadenceFresh = this._lastCatalogMonth == ym;
     if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated
         && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
-      if (spGuard != null) OpexSpanEnd(spGuard);
-      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-      return false;
-    }
-  } else {
-    /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
-     * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
-    local cadenceFresh = this._lastCatalogMonth == ym;
-    if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated) {
       if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
@@ -437,12 +428,12 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexRefreshEpochBounds(this._catalog);
     this._recomputeEpochBounds = false;
   }
-  if (C76_REGEN_TARGETED) {
+  {
     local budgetStale = stale;
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
     local c80Modes = null;
-    if (C76_REGEN_TARGETED && c76LayerChanged && this._projects != null
+    if (c76LayerChanged && this._projects != null
         && !this._portfolioInvalidated && !budgetStale && !c76PeriodicDue && !c76ReloadDue) {
       c80Modes = this._c80ModeRegenModes();
     }
@@ -499,22 +490,6 @@ function OpexAI::_dispatchCatalog(task, year)
         CATALOG_COST_ACTIVE.considered = this._projects.stats.budgetConsidered;
         CATALOG_COST_ACTIVE.selected = this._projects.best.len();
       }
-    }
-  } else {
-    if (OpexC78StartCatalogAirRebuild(this, task, ym, fleetPlan, refreshReason)) {
-      CATALOG_COST_ACTIVE = null;
-      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-      return false;
-    }
-    local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-    local spRebuildLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
-    this._rebuildProjects(fleetPlan);
-    if (spRebuildLeg != null) OpexSpanEnd(spRebuildLeg);
-    this._advanceRailSearchThroughput();
-    if (C39_INVALIDATION_PROBE) {
-      local c76Ops = OpexOpsMeasureEnd(c76Mark);
-      local c76Days = (c76Ops + 93000) / 186000;
-      this._c76RecordRegen("full", c76Ops, c76Days, year, refreshReason);
     }
   }
   this._lastCatalogMonth = ym;

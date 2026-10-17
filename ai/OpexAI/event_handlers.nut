@@ -155,19 +155,7 @@ function OpexAI::_onIndustryClose(event)
     this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
                     "industry", probeEvt.GetIndustryID());
   }
-  /* La fermeture d'industrie n'est pas routée par la régénération ciblée C77 ;
-   * sans C76, conserver l'invalidation historique pour cet événement orphelin. */
-  if (!C76_REGEN_TARGETED) {
-    if (this._catalog != null) {
-      this._catalog._refreshIndustries();
-    }
-    this._portfolioInvalidated = true;
-    if (this._taskQueue != null) {
-      foreach (t in this._taskQueue) {
-        if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
-      }
-    }
-  }
+
   return;
 }
 /* C77 : seul producteur de candidats subventionnes. Les offres ne sont suivies que sous

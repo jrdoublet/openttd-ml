@@ -176,7 +176,7 @@ function OpexC70Profit(project)
   if (project != null && ("mode" in project) && project.mode == "fleet"
       && !("v161Calibrate" in project)
       && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
-  if (!C70_MODE_CALIBRATION) return project.profitAnnual;
+
   return project.profitAnnual * OpexC70Factor(project);
 }
 

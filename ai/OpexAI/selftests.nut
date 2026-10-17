@@ -318,86 +318,8 @@ function OpexAI::_c80RunSelfTest()
   else this._clearReactiveQueue();
   this._activeWorker = savedOrigWorker;
 
-  // 7. Test (b) Intention mutatrice (kind regen) pendant qu'un travailleur noop tient le registre.
-  /* Hors C76 seulement : sous C76, l'intention regen lance une vraie regeneration complete
-   * (catalogue, rotation du cargo fret, elagage des abandons) que la restauration ne defait pas. */
-  if (!C76_REGEN_TARGETED) {
-  /* Comportement ACTUEL documente : _dispatchReactiveIntention traite l'intention "regen"
-   * immediatement (renvoie true) sans deferer, meme lorsqu'un travailleur "noop" occupe le registre,
-   * car seul regen_candidates detient un verrou d'ecriture exclusif sur le vivier. Le travailleur
-   * actif n'est ni ecrase ni annule et conserve son etat intact. */
-  local mutNoopWorker = {
-    kind = "noop",
-    state = {
-      stepCount = 0,
-      targetSteps = 3
-    }
-  };
-  this._activeWorker = mutNoopWorker;
-  this._clearReactiveQueue();
-
-  local savedC76Revs = this._c76SaveRevisions();
-  local savedC76Force = this._c76ForceReloadRegen;
-  local savedProjectsBeforeMut = this._projects;
-  local savedLastCatalog = this._lastCatalogMonth;
-
-  local regenIntention = { key = "regen", kind = "regen", payload = null };
-  local dispatchedRegen = this._dispatchReactiveIntention(regenIntention);
-  if (!dispatchedRegen) {
-    AILog.Info("C80 selftest FAIL mutating intention regen dispatch returned false");
-    this._c76LoadRevisions(savedC76Revs);
-    this._c76ForceReloadRegen = savedC76Force;
-    this._projects = savedProjectsBeforeMut;
-    this._lastCatalogMonth = savedLastCatalog;
-    this._clearReactiveQueue();
-    this._activeWorker = savedOrigWorker;
-    return false;
-  }
-
-  if (this._activeWorker == null || this._activeWorker.kind != "noop"
-      || this._activeWorker.state.stepCount != 0) {
-    AILog.Info("C80 selftest FAIL mutating intention corrupted active worker");
-    this._c76LoadRevisions(savedC76Revs);
-    this._c76ForceReloadRegen = savedC76Force;
-    this._projects = savedProjectsBeforeMut;
-    this._lastCatalogMonth = savedLastCatalog;
-    this._clearReactiveQueue();
-    this._activeWorker = savedOrigWorker;
-    return false;
-  }
-
-  if (this._hasReactiveIntentions()) {
-    AILog.Info("C80 selftest FAIL mutating intention was deferred unexpectedly");
-    this._c76LoadRevisions(savedC76Revs);
-    this._c76ForceReloadRegen = savedC76Force;
-    this._projects = savedProjectsBeforeMut;
-    this._lastCatalogMonth = savedLastCatalog;
-    this._clearReactiveQueue();
-    this._activeWorker = savedOrigWorker;
-    return false;
-  }
-
-  local mutStepOutcome = OpexWorkerStep(this._activeWorker, 10000, AIController.GetTick() + 100);
-  if (mutStepOutcome != "running" || this._activeWorker.state.stepCount != 1) {
-    AILog.Info("C80 selftest FAIL worker step failed after mutating intention dispatch");
-    this._c76LoadRevisions(savedC76Revs);
-    this._c76ForceReloadRegen = savedC76Force;
-    this._projects = savedProjectsBeforeMut;
-    this._lastCatalogMonth = savedLastCatalog;
-    this._clearReactiveQueue();
-    this._activeWorker = savedOrigWorker;
-    return false;
-  }
-
-  // Nettoyage etape 7
-  this._c76LoadRevisions(savedC76Revs);
-  this._c76ForceReloadRegen = savedC76Force;
-  this._projects = savedProjectsBeforeMut;
-  this._lastCatalogMonth = savedLastCatalog;
-  this._clearReactiveQueue();
-  this._activeWorker = savedOrigWorker;
-
-  }
+  /* Le test mutateur regen est exclu : il lance une vraie regeneration complete
+   * que la restauration du selftest ne peut pas defaire. */
 
   // 8. Test (c) Cycle de vie d'une subvention C77 (chemins purs sans creation d'objets de jeu)
   local savedProjectsForSub = this._projects;

@@ -151,22 +151,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c69_decision_bottleneck",
-      description = "C69: rank projects by P/max(C, F*tau), F = operating cash flow, tau = days per build; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c70_mode_calibration",
-      description = "C70: scale predicted profit by a per-mode realised/predicted factor measured on own mature lines; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c83_local_repair",
       description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -246,14 +230,6 @@ class OpexAIInfo extends AIInfo {
       description = "C122.4 experimental local retry: if an exact C83 threatened AIR project reaches build but its threatened endpoint site became unbuildable, enqueue one targeted C77 regeneration for that TownID; implies the passive threat probe; no scoring/economics/engine/finance change; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c75_multi_build",
-      description = "C75: multi-build per pass in rich phase as long as capital < K_pass and capital <= available; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -528,16 +504,8 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c76_regen_targeted",
-      description = "C76 step 2 / C80 tranche 3: invalidation-driven project pool regeneration: 1 = enabled (default), 0 = monthly full regeneration",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c76_freight_rotation",
-      description = "C76: under c76_regen_targeted, a month without full pool regeneration still rotates the freight cargo by regenerating only the rail and road candidates: 1 = enabled, 0 = disabled (default)",
+      description = "C76: a month without full pool regeneration still rotates the freight cargo by regenerating only the rail and road candidates: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -581,16 +549,6 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 10,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "v184_rail_search_slots",
-      description = "V184: number of concurrent primary rail A* search slots (1..4, default 1)",
-      min_value = 1, max_value = 4,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
       step_size = 1,
       flags = 0
     });

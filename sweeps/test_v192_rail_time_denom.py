@@ -58,7 +58,7 @@ class SettingRemoved(unittest.TestCase):
         body = _function_body(_read("projects_selection.nut"), "OpexProjectSelectAffordable")
         self.assertIn("project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),", body)
         self.assertIn(
-            "(C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)",
+            "(kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)",
             body,
         )
         self.assertNotIn("OpexV192RailDenom", body)

@@ -14,7 +14,6 @@ const C121_AUTOPSY_TEST_ONLY = 0;
 C121_AUTOPSY_SELECTION_SEQ <- 0;
 C121_AUTOPSY_DONE <- false;
 
-
 function OpexR1R3Log(fields)
 {
   if (!R1_R3_TEST_ONLY) return;
@@ -637,7 +636,7 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
 function OpexProjectFundProfit(project)
 {
   local calibMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-  local calibrated = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual;
+  local calibrated = OpexCalibratedProfit(project);
   if (calibMark != null) OpexSpanAgg("pub.select.calibrate", calibMark);
   return calibrated;
 }
@@ -651,7 +650,7 @@ function OpexSelectRejectScore(project, kDec)
   if (("decisionFinanceCapital" in project) && project.decisionFinanceCapital > 0) {
     decisionFinanceCapital = project.decisionFinanceCapital;
   }
-  local denom = (C69_DECISION_BOTTLENECK && kDec > decisionFinanceCapital) ? kDec : decisionFinanceCapital;
+  local denom = (kDec > decisionFinanceCapital) ? kDec : decisionFinanceCapital;
   return OpexProjectScore(OpexProjectFundProfit(project), denom);
 }
 
@@ -756,7 +755,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   local kDec = 0;
   local kDecData = null;
   local c69Affordable = null;
-  if (C69_TRACK_BUILDS) {
+  {
     kDecData = OpexC69ComputeKDec();
     kDec = kDecData.K_dec;
     if (V216_PROBE && realSelection) V216_LAST_KDEC = kDec;
@@ -807,7 +806,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     local fleetExemptDecision = project.mode == "fleet"
         && !OpexC121ProjectHasRealization(project);
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
-        (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+        (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
     if (project.mode == "air" && ("payload" in project) && project.payload != null && ("c121CatalogKey" in project.payload) && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
       C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
@@ -860,7 +859,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       local fleetExemptDecision = project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
       project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
-          (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+          (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);
       if (fundMark != null) {
         OpexSpanAgg("pub.select.score.fund_score", fundMark);
@@ -1407,4 +1406,3 @@ function OpexProjectsRecountGroups(projects)
     projects.stats.modeAlternatives = alternatives;
   }
 }
-

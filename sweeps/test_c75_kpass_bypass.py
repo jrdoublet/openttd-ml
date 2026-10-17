@@ -139,7 +139,7 @@ class C75KPassBypassContractTests(unittest.TestCase):
         self.assertIn("C75_KPASS_BYPASS_LEDGER_YEAR = year;", ensure)
         self.assertLess(
             self.build.index("OpexC75BypassEnsureYear(year);"),
-            self.build.index("if (C75_TRACK_PASSES)"),
+            self.build.index("OpexC75RecordPassDate("),
         )
 
     def test_durable_signs_cover_consumption_year_and_stops(self):

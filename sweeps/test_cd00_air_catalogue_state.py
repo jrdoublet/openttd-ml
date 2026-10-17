@@ -228,7 +228,7 @@ class CD00SourceContracts(unittest.TestCase):
         dispatch = function(SCHED, "OpexAI::_dispatchCatalog")
         for key in ('phase = "primary"', "cursor = {}", "plans = []",
                     "partialPending = false", "lastPublishedCount = 0",
-                    "c76StartRevisions = C76_REGEN_TARGETED && c76Full"):
+                    "c76StartRevisions = c76Full"):
             self.assertIn(key, start)
         self.assertLess(proceed.index("s.partialPending)"),
                         proceed.index('if (s.phase == "apply")'))

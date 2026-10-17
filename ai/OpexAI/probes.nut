@@ -1848,7 +1848,7 @@ function OpexC69ComputeKDec()
 /* C75 : enregistre la date d'une passe de _tryBuildProjects et purge au-dela de la fenetre */
 function OpexC75RecordPassDate(now = null)
 {
-  if (!C75_TRACK_PASSES) return;
+
   if (C75_PASS_DATES == null) C75_PASS_DATES = [];
   if (now == null) now = AIDate.GetCurrentDate();
   C75_PASS_DATES.append(now);
@@ -2061,7 +2061,7 @@ function OpexC75BypassFlushYear(year)
 /* C75 : enregistre le resultat d'une passe et publie phase=c75_pass si au moins 1 chantier */
 function OpexC75RecordPassOutcome(year, builtCount, c75KPassData, stopReason)
 {
-  if (!C75_TRACK_PASSES) return;
+
   if (C75_YEAR_LEDGER != null) {
     C75_YEAR_LEDGER.builds += builtCount;
     if (builtCount > 1) C75_YEAR_LEDGER.multi_passes++;
@@ -2082,7 +2082,7 @@ function OpexC80RecordMarginalDiscard(year, rank, project)
 {
   if (!C69_BOTTLENECK_PROBE) return;
   local predProfit = (project != null && ("profitAnnual" in project)) ? project.profitAnnual : 0;
-  local calibProfit = (project != null && C70_PROFIT_CALIBRATED) ? OpexCalibratedProfit(project) : predProfit;
+  local calibProfit = (project != null) ? OpexCalibratedProfit(project) : predProfit;
   if (C80_MARGINAL_FLOOR_LEDGER != null) {
     C80_MARGINAL_FLOOR_LEDGER.discards++;
     C80_MARGINAL_FLOOR_LEDGER.discard_profit += predProfit;

@@ -86,7 +86,7 @@ function OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums)
     line.c70Real += real;
     line.c70Pred += cPred.tofloat();
   }
-  if (C70_MODE_CALIBRATION && ("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
+  if (("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
     /* tofloat : apres chargement, les cumuls sont des entiers (la sauvegarde arrondit les
      * flottants) et une division entiere fausserait le ratio. */
     c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
@@ -210,7 +210,7 @@ function OpexAI::_reportLines(year)
 {
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
-  local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
+  local c70Sums = { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] };
   local c121RealizationSums = OpexC121RealizationSums();
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
@@ -391,7 +391,7 @@ function OpexAI::_reportLines(year)
                         vehCount, line.lineId, year - 1);
     }
     /* C70 : accumulation de calibration (effet metier, cf. OpexC70C82AccumulateLine). */
-    if (C70_MODE_CALIBRATION) {
+    {
       OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums);
     }
     if (C69_BOTTLENECK_PROBE) {
@@ -556,7 +556,7 @@ function OpexAI::_reportLines(year)
         + " prof_sum=" + sumProf + " rev_sum=" + sumRev
         + " prof_lines=" + profCount + " loss_lines=" + lossCount);
   }
-  if (C70_MODE_CALIBRATION) {
+  {
     OpexC70PublishModeFactors(c70Sums, year);
   }
   if (c121RealizationSums != null) {
@@ -725,7 +725,7 @@ function OpexAI::_scrapDeadLines(year)
     this._lines.remove(toRemove[k]);
   }
   if (toRemove.len() > 0) OpexAir0310InvalidateSiteValidity();
-  if (C76_REGEN_TARGETED && toRemove.len() > 0) this._c76BumpLayer("lines", false);
+  if (toRemove.len() > 0) this._c76BumpLayer("lines", false);
 }
 /* Vente autonome des retraites unitaires C52. Contrairement a la mise au rebut
  * d'une ligne, la ligne reste exploitee : cette file ne touche ni scrapping ni

@@ -604,7 +604,7 @@ function OpexAI::Save()
       airBuilt = this._airBuilt,
       waterBuilt = this._waterBuilt,
     };
-    if (C76_REGEN_TARGETED) {
+    {
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
     if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
@@ -683,7 +683,7 @@ function OpexAI::Save()
   };
   saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
   saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
-  if (C76_REGEN_TARGETED) {
+  {
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
@@ -776,10 +776,10 @@ function OpexAI::_reconcileAfterLoad()
   OPEX_RELOAD_C121_STRATEGY = null;
   OpexAirReconcileRollbacks();
   /* C69/C75/C70 : restaurer APRES OpexLoadSettings() et les remises a zero de Start(). */
-  if (C69_TRACK_BUILDS && this._reloadC69BuildDates != null && typeof this._reloadC69BuildDates == "array") {
+  if (this._reloadC69BuildDates != null && typeof this._reloadC69BuildDates == "array") {
     C69_BUILD_DATES = this._reloadC69BuildDates;
   }
-  if (C75_TRACK_PASSES && this._reloadC75PassDates != null && typeof this._reloadC75PassDates == "array") {
+  if (this._reloadC75PassDates != null && typeof this._reloadC75PassDates == "array") {
     C75_PASS_DATES = this._reloadC75PassDates;
   }
   if (C83_PREEMPT_OPEN) {
@@ -853,7 +853,7 @@ function OpexAI::_reconcileAfterLoad()
   this._pendingLines = null;
   /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
-  if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
+  OpexC70RecomputeFactors(this._lines);
   OpexC121RecomputeRealizationFactors(this._lines);
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();
@@ -863,11 +863,7 @@ function OpexAI::_reconcileAfterLoad()
   local droppedRailSearch = this._reloadDroppedRailSearch ? 1 : 0;
   if (this._reloadDroppedRailSearch) {
     this._railSearch = null;
-    if (V184_RAIL_SEARCH_SLOTS > 1 && this._v184RailSlots != null) {
-      for (local k = 0; k < this._v184RailSlots.len(); k++) {
-        this._v184RailSlots[k] = null;
-      }
-    }
+
     this._projects = null;
     this._ranked = null;
     this._portfolioInvalidated = true;
@@ -921,7 +917,7 @@ function OpexAI::_reconcileAfterLoad()
       if (vehicle in this._vehiclesToRetire) delete this._vehiclesToRetire[vehicle];
     }
   }
-  if (C76_REGEN_TARGETED) {
+  {
     this._c76ForceReloadRegen = true;
   }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */

@@ -153,7 +153,7 @@ class TestAir0310PubSpans(unittest.TestCase):
         calib = 'local calibMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;'
         self.assertIn(calib, self.fund)
         self.assertIn(
-            'local calibrated = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : project.profitAnnual;',
+            'local calibrated = OpexCalibratedProfit(project);',
             self.fund,
         )
         self.assertLess(self.fund.index(calib), self.fund.index("OpexCalibratedProfit(project)"))

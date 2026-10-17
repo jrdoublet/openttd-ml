@@ -15,9 +15,8 @@ sont strictement positifs, sinon 0.
 
 ``value`` est ``OpexProjectFundProfit(project)`` :
 
-* ``calibrated`` = profit C70/C82 si ``C70_PROFIT_CALIBRATED``, sinon
-  ``profitAnnual``. ``OpexCalibratedProfit`` pointe vers ``OpexC70Profit``
-  tant que ``c82_engine_calibration`` reste a 0. ``OpexC70Factor`` est un
+* ``calibrated`` = profit calibre C70. ``OpexCalibratedProfit`` pointe
+  vers ``OpexC70Profit``. ``OpexC70Factor`` est un
   facteur de mode (la flotte est ramenee a l'air). Le meme facteur multiplie
   chaque nouveau projet AIR d'une passe : il ne change pas l'ordre entre ces
   projets et il est omis ici.
@@ -32,7 +31,7 @@ Sous le classement decisionnel courant (ancien ``c121_air_initial_project_econom
 ``decisionEconomics``. La marge de caisse depend du bras :
 newpair 30000, hubsite 12000, hubhub 2000. ``immobilise`` s'ajoute s'il est
 positif. Le denominateur est ``decisionFinanceCapital``, ou le ``K_dec`` de
-la selection s'il est plus grand (``C69_DECISION_BOTTLENECK``, projet non
+la selection s'il est plus grand (C69 permanent, projet non
 exempt). La selection recalcule ce ``K_dec`` une fois par
 ``OpexC69ComputeKDec()``. Le champ ``kdec`` de PLAN est le
 ``decisionKDec`` deja tamponne sur l'objet economique au moment de

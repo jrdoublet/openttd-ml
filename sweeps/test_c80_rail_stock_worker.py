@@ -314,7 +314,7 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         # 1. Calcul du fundScore papier avec exactement les fonctions de la sélection
         self.assertIn("local paperProject = OpexProjectFromCandidate(candidate);", self.task_rail)
         self.assertIn("local paperFinanceCapital = OpexProjectFinanceCapital(paperProject);", self.task_rail)
-        self.assertIn("local paperProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(paperProject) : paperProject.profitAnnual;", self.task_rail)
+        self.assertIn("local paperProfit = OpexCalibratedProfit(paperProject);", self.task_rail)
         self.assertIn("coarseScore = OpexProjectScore(paperProfit, paperFinanceCapital);", self.task_rail)
         self.assertNotIn("threshold > 0.0 && coarseFundScore < threshold", self.task_rail)
         # 3. Suppression intégrale de bestUnfundedScore et selectionReduced

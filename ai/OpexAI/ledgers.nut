@@ -324,18 +324,12 @@ function OpexAI::_schedIdlePreDispatch()
         if (gainOk && doubleOk) stale = true;
       }
       local isFresh = false;
-      if (C76_REGEN_TARGETED) {
+      {
         local c76LayerChanged = this._c76AnyLayerChanged();
         local c76PeriodicDue = (this._c76LastRegenQuarter < 0 || curYear > this._c76LastRegenQuarter);
         local c76ReloadDue = this._c76ForceReloadRegen;
         if (this._lastCatalogMonth == curYm && this._projects != null && !stale &&
             !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
-          this._schedIdlePredReason = "catalog_fresh";
-          this._schedIdlePredClass = "pred";
-          isFresh = true;
-        }
-      } else {
-        if (this._lastCatalogMonth == curYm && this._projects != null && !stale && !this._portfolioInvalidated) {
           this._schedIdlePredReason = "catalog_fresh";
           this._schedIdlePredClass = "pred";
           isFresh = true;
@@ -427,7 +421,7 @@ function OpexAI::_p5ScanCandidatePool(projects, availableCapital)
     else if (mode == "water") res.nWater++;
 
     local financeCap = OpexProjectFinanceCapital(p);
-    local profit = (C70_PROFIT_CALIBRATED) ? OpexCalibratedProfit(p) : (("profitAnnual" in p) ? p.profitAnnual : 0);
+    local profit = OpexCalibratedProfit(p);
     local score = OpexProjectScore(profit, financeCap);
 
     scored.append({
@@ -1426,7 +1420,7 @@ function OpexAI::_logC54VehicleOrders(year)
 /* C69 etape 1 : enregistrement et publication a chaque passe qui construit */
 function OpexAI::_recordC69BuildingPass(year, projects, builtProjects)
 {
-  if (!C69_TRACK_BUILDS) return;
+
   if (C69_BUILD_DATES == null) C69_BUILD_DATES = [];
   if (C69_PENDING_FOLLOWUPS == null) C69_PENDING_FOLLOWUPS = [];
 

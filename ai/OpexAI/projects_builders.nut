@@ -62,7 +62,7 @@ function OpexC80ProjectBelowMarginalFloor(lines, project)
   local projVehs = OpexProjectVehicleCount(project);
   if (projVehs <= 0) projVehs = 1;
 
-  local calibProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(project) : (("profitAnnual" in project) ? project.profitAnnual : 0);
+  local calibProfit = OpexCalibratedProfit(project);
   if (calibProfit <= 0) return true;
 
   local projProfitPerVeh = calibProfit.tofloat() / projVehs.tofloat();
@@ -349,4 +349,3 @@ function OpexProjectRememberAll(winners, project, stats)
   stats.modeAlternatives++;
   winners[key].push(project);
 }
-
