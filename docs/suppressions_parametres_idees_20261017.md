@@ -419,3 +419,151 @@ Rebasage sur V239 : les deux lots retiraient chacun des corps « historiques » 
 | V230 (cumul) | −151,1 k (−4,17 %) | 9 / 11 | 0,14 | [−322,9 k ; +17,3 k] | −2,89 % (p = 0,41) |
 
 Lecture : contre V239 l'IC exclut zéro et la valeur est significative, mais V239 avait lui-même tiré +4,19 % contre V237. Contre V237 l'écart est dans le bruit de perturbation (fiche `bruit_perturbation_opcodes`). La règle d'arrêt du lot (p < 0,05 sur le profit, valeur < −5 %, cumul < −5 %) n'est pas franchie, de justesse : **fusionné**, mais le cumul contre V230 (−4,17 %) est proche du seuil de −5 %. Le banc suivant (pointe V245) le revérifie ; s'il passe sous −5 %, bissection en commençant par V238.
+
+## 15. V235 : 12 réglages rail/AIR à 0, figés (17/10, grok puis moi)
+
+Principe : expériences rail/AIR restées à 0 (quatre avec verdict négatif ou nul, huit jamais adoptées). On fige 0 et on retire la branche active. Rédigé par grok sur `27277d9`, rebasé par moi sur V238 : conflits pris côté V238 hunk par hunk, puis retraits refaits par script (blocs `if (G)` morts, `if (!C80_RAIL_STOCK_WORKER)` déballés, `if (C80_RAIL_STOCK_GATE) {…} else {B}` remplacés par B). 109 → 97 réglages. `persist.nut` inchangé.
+
+
+**Avec verdict écrit dans `docs/taches.md` (ou le plan lot 2 qui le cite)**
+
+1. **`c80_rail_stock_gate`** — Porte : un projet rail n’entrait au sac que s’il avait un tracé prêt dans `_railReadyStock`. Rail seul 10×3 avec le worker : −374,0 k£/an, 0/10. *Retiré :* `OpexRailProjectHasReadyRoute`, `OpexFilterRailStockGate`, `OpexRailStockMergeAlternatives`, `OpexRailStockStripCandidateGroups`, branches `if (C80_RAIL_STOCK_GATE)` dans sélection/construction. *Reste :* `_railReadyStock` pour la préparation C121.
+
+2. **`c80_rail_stock_worker`** — Worker autonome N=1 qui remplissait le stock sur reliquat (exigeait le gate). Même banc −374 k. *Retiré :* `_tryStartRailStockWorker`, `_updateRailStockSelectionThreshold`, `_checkRailStockExpiry`, `OpexPromoteLiveDefensiveAirStock`, forçage `V89_RAIL_SEARCH_THROUGHPUT = false`. *Reste :* `_startRailStockSearch` / worker `rail_stock` (C121).
+
+3. **`c80_worker_rail`** — Migration de l’A* primaire/upgrade dans un worker `rail_search`. Jamais adopté ; regroupé avec le stock dans le plan de nuit (thème inerte au défaut). *Retiré :* les `if (C80_WORKER_RAIL)` qui créaient/annulaient le worker. *Reste :* enregistrement `OpexRegisterWorker("rail_search", …)` et nettoyage persist, pour un vieux save qui porterait encore ce worker.
+
+4. **`rail_expand`** — Rallonge d’un wagon sur rame saturée (A* d’approche dépôt, `_continueRailExpansion`). Rail seul 10×3 : −14,4 k, 4/4/2, nul. *Retiré :* boucle de sélection des wagons et armement de `_railExpansion`. *Reste :* `RAIL_REFLEET` (second train, double voie, clone V190) dans `_expandRailLines` ; `_continueRailExpansion` + persist pour un reload en cours.
+
+**Jamais adoptés ni réfutés par un verdict d’adoption dans `docs/taches.md`**
+
+Noms absents de `taches.md` (grep) : `v183_rail_all_freight`, `v127_idle_cash_road_regen`, `c69_fleet_demand_batch`, `exp_air_hub_pair_prefilter`, `air_full_load`, `c72_plane_choice`. `v171_rail_knots` y est décrit comme fusionné, défaut 0, « non banqué ». `air_bfail_dispose_orphan` n’y a qu’une mention du défaut 0, pas de porte A/B.
+
+5. **`v183_rail_all_freight`** — Une passe de génération rail couvrait tous les cargos fret (`freightCargo = null`) au lieu d’un cargo à la fois. *Retiré :* ternaires `V183 ? null : nextCargo` et `if (V183) freightCargo = null`. *Reste :* rotation d’un cargo par passe (`C76_FREIGHT_ROTATION` / `_lastFreightCargo`).
+
+6. **`v171_rail_knots`** — Table d’itérations A* V2 (p90 rail contre rail) à la place de V1 dans `OpexRailIterations` seulement. Porte A 40×3 lancée le 13/10, jamais passée au défaut. *Retiré :* `KNOT_ITERATIONS_V2`, aiguillage. *Reste :* `KNOT_ITERATIONS_V1` et `OpexRailDistanceForIterations` (déjà V1).
+
+7. **`v127_idle_cash_road_regen`** — Une fois par mois, si caisse > 100 k et vivier route petit/vieux, enfiler une régénération route C77. *Retiré :* `_v127IdleCashRoadRegen` et constantes `V127_*`. *Reste :* C77 / V217 (rail).
+
+8. **`c69_fleet_demand_batch`** — Plafond de 4 avions par passe levé : `maxAddedPerPass = buildNum`. *Retiré :* le ternaire. *Reste :* `min(buildNum, 4)` et le chemin C121 « un renfort à la fois ».
+
+9. **`exp_air_hub_pair_prefilter`** — Index paresseux des paires de centres déjà liées par une ligne AIR ; sautait hub-site et hub-hub avant l’économie. *Retiré :* `OpexAirHubTownPairKey`, `OpexAirHubPairPrefilterLinked`, les deux `if (EXP_AIR_HUB_PAIR_PREFILTER)`. *Reste :* `OpexAirTownCentersLinked` / `alreadyConnected` (C83, index de hubs).
+
+10. **`air_bfail_dispose_orphan`** — Si B échouait, liquider l’aéroport A neuf même sans entretien d’infra. *Retiré :* le terme `&& !(AIR_BFAIL_DISPOSE_ORPHAN && !reuseA && !reuseB)`. *Reste :* `keepOrphan = (infrastructure_maintenance == 0)` et `OpexAirRollback`.
+
+11. **`air_full_load`** — Ordres `OF_FULL_LOAD_ANY` (0 aucun / 1 les deux / 2 le premier, style AAAHogEx). *Retiré :* globale et lectures. *Reste :* `AIOrder.OF_NONE` aux deux extrémités (construction et renfort).
+
+12. **`c72_plane_choice`** — Critère de choix d’avion : 0 = profit max (C68), 1 = ROI, 2 = P/max(C, K_dec). *Retiré :* branches 1 et 2. *Reste :* max profit puis ROI en départage ; la sonde `C69_BOTTLENECK_PROBE` calcule encore ROI et P/K_dec pour le journal. `C69_TRACK_BUILDS` perd le terme `(C72 == 2)` ; au défaut `c69_decision_bottleneck=1` le tracking reste vrai.
+
+Après rebasage, `OpexPromoteLiveDefensiveAirStock` (installée seulement sous les deux réglages C80) est retirée comme orpheline. Le choix d'avion `OpexAirChooseRoutePlaneFull` était déjà parti avec V239 ; la branche `c72_plane_choice` n'y subsistait plus.
+
+## 16. V234 : villes, route, feeders (17/10, agy puis codex)
+
+Principe : 14 réglages de la tâche ville et de la route, presque tous à 0. Ils sont figés à leur défaut et leur code est retiré. agy a commencé le lot puis a épuisé son quota (« Resets in 156h »). Son travail partiel est conservé en WIP `33beac8` dans `wt-v234`. codex a repris le lot de zéro sur V235 (`bc251ba`, branche `v234b`), en se servant du diff d'agy comme guide de lecture. 97 → 83 réglages. Modules supprimés : `task_town.nut`, `feeder_bus.nut`.
+
+| Réglage | Défaut | Mécanisme retiré | Ce qui reste |
+|---|---:|---|---|
+| `town_growth` | 0 | Ligne de bus intra-ville dans une ville déjà desservie : choix de deux quartiers, plan, financement, construction (`_prepareTownGrowth`, `_tryTownGrowthCity`, `_tryTownGrowth`, `OpexCountTownStations`, `OpexGetServedTowns`). Tentative documentée dans `docs/taches.md`. | Suivi de santé des anciennes lignes `purpose=town_growth` restaurées (`OpexUpdateTownGrowthLineHealth`, `_markTownGrowthRejected`, `OpexTownGrowthRejectKey`, déplacés dans `task_report.nut`). |
+| `town_growth_plan_memo` | 1 | Mémoire des échecs de plan par nombre de maisons (non sauvegardée). | — (part avec la construction urbaine) |
+| `town_growth_skip_noop` | 0 | Enchaînement immédiat après une tentative vide. | — |
+| `town_growth_roi_gate` | 1 | Refus des constructions urbaines à profit prédit ≤ 0. | Suivi des pertes des anciennes lignes, figé à vrai. |
+| `c80_worker_town` | 0 | Worker reprenable, une ville par tranche. | Lecture tolérante d'un ancien `c80ActiveWorker.kind=town_growth`, qui renvoie `null`. |
+| `road_finance_unbias_p0` | 0 | Biais financier route 100 % au lieu de 121 %. | **121 %**. |
+| `road_finance_gate_shadow_p0` | 0 | Ombre 121/100 sur les mêmes projets. | — |
+| `road_quote_components_shadow_p0` | 0 | Devis par composantes et comptabilité par phase (`OpexRoadQuotePlanComponents`, `p0*Spend`). | `AIAccounting` et coût total réel. |
+| `road_time_scaled_cap` | 0 | Plafond voyageurs = quais × trajet / temps d'arrêt (`OpexRoadFleetVehicleCap`). | Plafond physique historique `2 × min(arrêts A, arrêts B)`. |
+| `road_loading_fix` | 0 | Exclusion des véhicules en chargement du diagnostic d'embouteillage. | Branche au défaut. |
+| `road_pax_dwell_days` | 6 | Réglage. | `const ROAD_PAX_STOP_DWELL_DAYS = 6`. |
+| `policy_vehicle_events` | 0 | Reconstitution après accident et retrait après déficits répétés. | Journaux passifs, remappage autoreplace, tickets déjà sauvegardés (`vehiclesToRetire`, `unprofitableStreaks`). |
+| `project_top_k_dynamic` | 0 | K = villes + industries, borné entre 16 et 128. Tentative documentée dans `docs/taches.md`. | `PROJECT_TOP_K` fixe. |
+| `v139_feeder_bus` | 0 | Navette centre-ville ↔ aéroport : couverture, déjointure d'arrêt, économie du transfert, candidats (`feeder_bus.nut`). Tentative documentée dans `docs/taches.md`. | Arrêts joints aux aéroports (`air_construction.nut`, indépendant). L'ancienne clé `v139UnjoinedStops` est ignorée au chargement. |
+
+Fonctions devenues orphelines et retirées : `OpexRoadPaxUniqueMonthly`, `OpexRoadCatchmentOverlapFrac`.
+
+**Compatibilité des sauvegardes** : l'entrée de la tâche ville dans le planificateur reste en place, désactivée, sans dispatcher. La supprimer décalerait le `taskCursor` sauvegardé. Le format des sauvegardes est inchangé.
+
+**Lanceurs supprimés** : `diag_b3_road_fleet_targets.py`, `diag_road_loading_fix_exposure.py`, `archive/bench_town_growth_skip_noop_10y_20seeds.py`, `archive/diag_topk_opcode_cost.py`. Nouveau contrat : `test_v234_simplification.py`.
+
+**Tests** : 1 865 passent, 3 ignorés (la base en comptait 1 877).
+
+**Erreur trouvée après coup** : le rebasage de V235 avait laissé dans `scheduler.nut` une parenthèse ouvrante orpheline : `local sliceMark = ((this._railSearch.phase == "search")`. C'est le contrat de délimiteurs de V234 qui l'a détectée. Corrigé dans V235 (`c943648`), et `delim.py` a été ajouté aux contrôles.
+
+## 17. V244 : cinq réglages adoptés figés malgré l'état sauvegardé (17/10, codex)
+
+V238 avait refusé ces cinq réglages parce qu'ils touchent `persist.nut`. V244 les fige à leur défaut **sans changer le format de sauvegarde** : aucune clé ajoutée, retirée ou renommée, et `Load()` est identique à la version précédente. 83 → 78 réglages.
+
+| Réglage | Défaut figé | Chemin conservé | Sauvegarde |
+|---|---:|---|---|
+| `c69_decision_bottleneck` | 1 | Score P/max(C, K_dec). Le suivi des dates de chantier devient permanent ; la dérivée `C69_TRACK_BUILDS` disparaît. | `c69BuildDates` toujours écrit et restauré (seule la garde `C69_TRACK_BUILDS &&` est retirée). |
+| `c70_mode_calibration` | 1 | Profit calibré par mode toujours appliqué ; `C70_PROFIT_CALIBRATED` est repliée. | `OpexC70RecomputeFactors(this._lines)` est appelé sans condition après `this._lines = liveLines` ; l'ordre est testé. |
+| `c75_multi_build` | 1 | Plusieurs chantiers par passe sous K_pass ; `C75_TRACK_PASSES` et le motif d'arrêt `single` disparaissent. | `c75PassDates` toujours écrit et restauré. |
+| `c76_regen_targeted` | 1 | Régénération par révisions de couches. La branche mensuelle historique et l'ancien traitement des fermetures d'industrie sont retirés. | `c76Revisions` écrit sans condition dans les deux formats ; `_c76SaveRevisions` et `_c76LoadRevisions` sont identiques. |
+| `v184_rail_search_slots` | 1 | Une seule recherche rail primaire. Tableaux multi-créneaux, round-robin et fonctions associées retirés. | `railSearchPending` inchangé ; `_v184InitRailSlots()` est conservé. |
+
+**Lanceurs supprimés** : `diag_c69_paired_solo_duel_5x6.py`, `diag_c69_fleet_batch_solo_5x6.py` (ils comparaient désormais deux bras identiques).
+
+**Tests et contrôles** : 1 866 tests passent, 3 ignorés. `undecl`, `orphans` et `delim` donnent les mêmes sorties que la base.
+
+**Non mesuré** : aucun aller-retour de sauvegarde réel (`save_load_roundtrip.py`) n'a été lancé. Le banc 20×10 démarre en 1970 et ne recharge jamais de partie ; il ne vérifie donc pas ce point.
+
+## 18. V246 : les cinq paquets `policy_*` figés (17/10, codex)
+
+`policy_rail`, `policy_road`, `policy_air`, `policy_abandon` et `policy_portfolio` valaient 1. Chacun allumait un paquet de globales internes, 37 au total. 35 sont retirées et leur chemin vrai est rendu permanent. 78 → 73 réglages ; les 73 autres blocs `AddSetting` sont identiques. `persist.nut` et `selftests.nut` sont identiques à l'octet près.
+
+| Paquet | Globales internes retirées (chemin conservé) |
+|---|---|
+| `policy_rail` | `RAIL_DEVIS` (devis réel AITestMode avant engagement) ; `RAIL_SEARCH_RESUMABLE` (recherche par tranches ; `OpexUpgradeRailLineToDoubleTrack`, devenue sans appelant, est supprimée) ; `RAIL_MICRO_DEADLINE` ; `RAIL_SEGMENTED_SEARCH` ; `RAIL_REFLEET` ; `DYNAMIC_PATHFINDER_CAP` ; `PAX_FULL_LOAD` (plein chargement voyageurs aux deux extrémités, fret à la source) ; `ORIGIN_SITABLE`. |
+| `policy_road` | `ROAD_REFLEET`, `ROAD_FLEET_FIX`, `PRICING_ROAD_OPS`, `ROAD_PAX_OVERLAP`, `ROAD_PAX_VOIRIE`. **Gardée** : `ROAD_BUILD_ENABLED = MODE_ROAD`. |
+| `policy_air` | `AIR_PORTFOLIO` (le constructeur AIR dédié `_tryBuildAir` est supprimé) ; `FLEET_PORTFOLIO` ; `AIR_CADENCE_CAP` ; `AIR_FLEET_LINE_PRICE` ; `AIR_ROI_ORDER` ; `AIR_ABANDON` (n'était lu que dans `_tryBuildAir`) ; `AIR_MARGIN` ; `AIR_CHEAP_SITE` ; `AIR_JOINED_STOPS` ; `AIR_HUB` ; `AIR_HUB_FIX` (résolution tuile → StationID). |
+| `policy_abandon` | `ABANDON_MEMORY` (24 sites) ; `ABANDON_GEN_FILTER` (14 sites) ; `ABANDON_MEMORY_TRANSIENT_GUARD`. |
+| `policy_portfolio` | `ECONOMY_FIX`, `CLEAN_DENSITY_SCORE` (bloc vide), `VIVIER_RATIO_FILTER`, `COMPLEX_CARGO`, `CAPITAL_CALIBRATION`, `DYNAMIC_CASH_RESERVE`, `C53_ORDER_NONSTOP`, `EVENT_CATALOG_INVALIDATE`. **Gardée** : `STAGED_BOOTSTRAP`, que l'amorçage plat remet à `false` (8 lectures). |
+
+**Tests et contrôles** : 1 872 tests passent, 3 ignorés. `undecl`, `orphans` et `delim` donnent les mêmes sorties que V244. Le contrat historique de rollback du constructeur rail restaure la seule garde `RAIL_DEVIS` dans sa projection avant de comparer le hash : le hash de référence n'a pas été changé.
+
+## 19. V247 : lanceurs et outils `sweeps/` orphelins (17/10, codex)
+
+Le lot V243 (lanceurs dont tous les bras réglaient des paramètres disparus) a été rebasé sur V246 sous le nom V247. Il ne touche que `sweeps/` : 37 fichiers supprimés, 29 modifiés, aucun `.nut`. Les lanceurs « game-engine » et « winner-integration » étaient déjà réduits à des stubs qui refusaient de s'exécuter. Les lecteurs purs (analyseurs de résultats historiques) sont conservés.
+
+**Supprimés, par famille** (le réglage mort est entre parenthèses) :
+- **C121 cadence et économie AIR** (`c121_air_economics(_shadow)`, `c121_air_engine_replay_shadow`, `c121_air_first_live_*`, `c121_kpass_shadow`, `c121_catalog_*`) : `_tmp_c121_cadence_c117.py`, `_tmp_c121_first_live_growth_5x6_20261001.py`, `_tmp_c121_first_live_shadow.py`, `_tmp_c121_kpass_shadow_2x3_20261002.py`, `diag_c121_game_engine.py`, `run_c121_air_economics_causal_{diag,diag_host,smoke,smoke_swap}.py`, `run_c121_air_economics_shadow{,_host}.py`.
+- **C121 winner fusion** (`c121_air_winner_fusion`) : `run_c121_{fusion,winner}_fixtures.py`, `run_c121_winner_{integration,economic_validation}.py`, `run_c121_visible_cost_fixture.py`, et leurs tests `test_c121_{fusion_fixtures,winner_fixtures,winner_integration}.py`.
+- **Sondes AIR passives** : `diag_c116_project_probe.py` et `run_c116_project_probe_host.py` (C116) ; `run_c117_air_throughput{,_host}.py` (C117) ; `diag_c97_air_c69_engine.py` ; `diag_c98_air_realized.py` ; `diag_v95_air_post73.py` ; `run_b9_air_catchment_{5x6,host}.py` (B9).
+- **Équipement AIR et premier créneau** (`air_best_equipment`, `air_capital_frontier*`, `air_route_plane_selection`, `air_early_slot`) : `diag_air_equipment_paired_solo_duel_5x6.py`, `diag_air_fleet_depth.py`.
+- **Historiques** : `diag_c50_chronology_probe.py` (C50) ; `diag_c52_events.py` (C52, événements accident et déficit) ; `diag_c56_freeze_scan.py` et `run_c56_freeze_scan_host.py` (C56) ; `diag_g0_abandon_factorial.py` et `run_g0_c66_4.py` (G0, abandon) ; `diag_three_lots_integration.py`.
+
+**Modifiés** : les overrides de réglages retirés sont enlevés des lanceurs encore utiles, notamment `bench_1v1_5y_20seeds.py`, dont les exemples sont migrés vers `c76_freight_rotation` et où la clé `road_mode` est corrigée en `mode_road`. Autres lanceurs adaptés : `diag_1v1_shared_monthly.py`, `diag_air_engine_delay.py`, `diag_b6_portfolio_causality.py`, `diag_b8_scrap_lifecycle.py`, `diag_c121_investment.py`, `diag_c121_postbuild.py`, `diag_c39_events.py`, `diag_c63_c58.py` et suivants. `diag_air_selection_light.py` est marqué `historical_unavailable_setting_removed`.
+
+## 20. V245 : deux sondes rail, `homogeneous_preselect` et code mort (17/10, agy, vérifié par moi)
+
+**Réglages retirés (3, tous à 0)** — 73 → 70 :
+- `probe_rail_preastar` : sonde des accès aux quais avant l'A* rail, reliée aux issues `START`/`FRONTIER`/`END`/`BUILD`. Le module `rail_preastar_probe.nut` est supprimé. L'analyseur hors ligne `analyse_rail_preastar.py` reste pour relire les anciens journaux.
+- `probe_rail_terrain` : rugosité du relief en ligne droite au démarrage d'une recherche primaire (`OpexRailTerrainProbe`), pour la corréler aux abandons par itérations.
+- `homogeneous_preselect` : tri des viviers rail et route par le score de financement (`OpexTopKFund`) au lieu du ratio historique. Jamais adopté. `OpexTopK` trie maintenant directement par ratio, sans indirection.
+
+**Fonctions orphelines retirées**, jusqu'à ce qu'il n'en reste plus de nouvelles :
+- AIR : `OpexAirSiteRefusal`, `OpexC104BestAirEngine`, `OpexC104FormatAirChoice`, `OpexC116SnapshotBest`, `OpexC116FormatSnapshotPoint`, `OpexC116BestUnlockedAirProject`, `OpexC116FormatProjectSnapshot`.
+- Candidats : `OpexTownIdFromEndpoint`.
+- Économie rail : `OpexRailSecondTrainMarginal`, `OpexRailRevenueAtTrainCount`, `OpexRailFixedConsist`.
+- `opcode_exact` : `OpexRoadSiteList{Same,Diff}`, `OpexRoadHunt{Same,Diff}`.
+- `OpexC121AutopsySelection`.
+
+**Fonctions conservées** parce qu'un test s'en sert comme borne de découpage : `OpexAirV95CompetitorSecondSlotOpen`, `OpexRoadTryJoinStop`. `OpexV131KeepStructures` est conservée parce que V131 est mis de côté.
+
+**Globales mortes retirées** : `CASH_CANDIDATE_SCAN_LIMIT`, `ROAD_MAX_ATTEMPTS_PER_YEAR`, `ROAD_MAX_NEW_LINES_PER_YEAR`.
+
+**Vérification du travail d'agy** (consigne du 17/10) : lecture du diff, puis `undecl`, `orphans2`, `delim`, et `fngone` (nouvel outil : fonctions retirées encore appelées). Tous propres, et la suite de tests passe. Au rebasage sur V247, `test_v246_fixed_policies.py` exigeait exactement 73 `AddSetting` ; le contrat demande maintenant au plus 73.
+
+## 21. Banc unique des lots V235 → V245 (18/10)
+
+Les six lots (§15 à §20) sont rebasés en chaîne linéaire sur V238 et banqués **ensemble** : un seul 20×10 sur la pointe `a73ece8` (`v245_20x10_20261017`). La bissection n'était prévue qu'en cas d'échec. 109 → **70 réglages**.
+
+| Référence | Profit/an | Victoires / défaites | p (Wilcoxon) | IC95 bootstrap | Valeur |
+|---|---:|---:|---:|---|---:|
+| V238 | +15,7 k (+0,45 %) | 12 / 8 | 0,78 | [−162,2 k ; +189,6 k] | −1,59 % (p = 0,45) |
+| V230 (cumul) | −135,4 k (−3,74 %) | 8 / 12 | 0,26 | [−338,3 k ; +63,6 k] | −4,43 % (p = 0,15) |
+
+Neutre ⇒ master avancé en avance rapide sur la chaîne. 20/20 parties complètes. OpexAI contre AAAHogEx : profit 54 % en dessous, valeur 34 % en dessous, comme les bancs précédents. Le 20×10 a duré environ 20 minutes, contre environ 1 heure pour V238 ; la cause n'a pas été mesurée.
+
+**Erreur trouvée par la fixture R1** : la première tentative est morte au démarrage, avec `the index 'C70_PROFIT_CALIBRATED' does not exist` dans `FxMatrix()`. La fixture `tests/mechanisms/fleet_vm.nut`, copiée dans l'IA par `run_mechanism_fixtures.py`, sauvegardait et forçait `C70_PROFIT_CALIBRATED` et `C70_MODE_CALIBRATION`, retirées par V244. Correctif `a73ece8`. Leçon : les contrôles statiques (`undecl`, `fngone`) doivent aussi lire `tests/mechanisms/` ; ils ne lisaient que `ai/OpexAI/`. D'autres fixtures C121 de ce dossier lisent encore des globales retirées depuis plus longtemps (`C121_AIR_ECONOMICS`, `C121_AIR_VISIBLE_*`, `C115_AIR_C100_CAPITAL_REPLAY`). La R1 ne les charge pas, mais elles sont mortes.
+
+**Bilan de la dérive** : le cumul contre V230 est passé de −3,42 % (V232) à −4,17 % (V238), puis à −3,74 % ici. Aucun lot n'est significatif seul ; la tendance reste à surveiller si la purge continue.
