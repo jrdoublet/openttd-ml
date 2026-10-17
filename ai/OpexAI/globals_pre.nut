@@ -475,9 +475,6 @@ C97_AIR_C69_ENGINE_PROBE <- false;
 /* C98 : sonde passive du biais du modele AIR par moteur/ligne. Compare la
  * prevision de construction au realise annuel sans modifier aucun choix. */
 C98_AIR_REALIZED_PROBE <- false;
-/* C110 : reutilise l'apprentissage C82 realise/predit uniquement pour le choix
- * du moteur AIR. Le classement portefeuille reste celui de C70. */
-C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY <- false;
 /* C116.3 diagnostic leger : observe sous le vrai temoin C115 le meilleur runner
  * C68, les projets debloques par son economie de capital et l'auto-deblocage de
  * la route courante. Aucun recalcul moteur supplementaire. */

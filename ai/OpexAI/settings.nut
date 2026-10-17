@@ -488,7 +488,6 @@ function OpexLoadSettings()
   AIR_SITE_STALE_SHADOW = OpexProbeSetting("air_site_stale_shadow") != 0;
   C97_AIR_C69_ENGINE_PROBE = OpexProbeSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
-  C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
   C116_AIR_PROJECT_PROBE = OpexProbeSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;
   local c117Lean = AIController.GetSetting("c117_lean_sampling");

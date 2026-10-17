@@ -188,7 +188,7 @@ function OpexC82RecomputeFactors(lines)
 /* C82 : facteur d'un moteur d'avion. 1.0 si inactif ou moteur absent de la table. */
 function OpexC82EngineFactor(engine)
 {
-  if (!C82_ENGINE_CALIBRATION && !C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) return 1.0;
+  if (!C82_ENGINE_CALIBRATION) return 1.0;
   return (engine in C82_ENGINE_FACTOR) ? C82_ENGINE_FACTOR[engine] : 1.0;
 }
 

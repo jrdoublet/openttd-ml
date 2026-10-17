@@ -516,13 +516,6 @@ class OpexAIInfo extends AIInfo {
 
 
 
-    AddSetting({
-      name = "c110_air_engine_calibration_choice_only",
-      description = "C110: learn C82 realised/predicted factors per AIR engine and use them only for route engine choice; keep C70 project scoring unchanged; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
 

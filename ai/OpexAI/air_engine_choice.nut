@@ -633,7 +633,7 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport)) {
     return { plane = selectedPlane, economics = selectedEconomics };
   }
-  if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
+  if (C82_ENGINE_CALIBRATION) {
     return OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics, distance,
         monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }

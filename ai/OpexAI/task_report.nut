@@ -100,7 +100,7 @@ function OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums, c82Sums
     c70Sums[cMode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
     c70Sums[cMode][1]++;
   }
-  if ((C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY)
+  if (C82_ENGINE_CALIBRATION
       && cMode == "air" && ("planeId" in line) && line.planeId >= 0
       && ("c70Pred" in line) && line.c70Pred > 0) {
     local e = line.planeId;
@@ -124,7 +124,7 @@ function OpexC70PublishModeFactors(c70Sums, year)
   }
 }
 
-/* C82 / C110 : publication des facteurs par moteur (etat global lu par le choix d'avion). */
+/* C82 : publication des facteurs par moteur (etat global lu par le choix d'avion). */
 function OpexC82PublishEngineFactors(c82Sums, year)
 {
   C82_ENGINE_FACTOR.clear();
@@ -234,7 +234,7 @@ function OpexAI::_reportLines(year)
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
-  local c82Sums = (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) ? {} : null;
+  local c82Sums = (C82_ENGINE_CALIBRATION) ? {} : null;
   local c121RealizationSums = C121_AIR_ECONOMICS ? OpexC121RealizationSums() : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
@@ -421,7 +421,7 @@ function OpexAI::_reportLines(year)
                         vehCount, line.lineId, year - 1);
     }
     /* C70 / C82 : accumulation de calibration (effet metier, cf. OpexC70C82AccumulateLine). */
-    if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
+    if (C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION) {
       OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums, c82Sums);
     }
     if (C69_BOTTLENECK_PROBE) {
@@ -702,7 +702,7 @@ function OpexAI::_reportLines(year)
         + " hubsite=" + phaseHubsite + " hubhub=" + phaseHubhub
         + " hubhub_pm=" + hubhubPm + " unknown=" + phaseUnknown);
   }
-  if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
+  if (C82_ENGINE_CALIBRATION) {
     OpexC82PublishEngineFactors(c82Sums, year);
   }
   if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {
