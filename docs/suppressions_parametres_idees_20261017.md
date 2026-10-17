@@ -382,3 +382,40 @@ Tests : 12 fichiers de contrats de sondes supprimés (`test_v95_air_post73_probe
 Piège trouvé en route : après le retrait des déclarations, `settings.nut` lisait encore `EXP_OPCODE_EXACT_CHECK`, `C116_AIR_PROJECT_PROBE` et `C97_AIR_C69_ENGINE_PROBE`. En Squirrel, c'est une erreur d'exécution au chargement, invisible aux tests statiques. Un contrôle « identifiant MAJUSCULE utilisé mais plus déclaré », comparé à master, les a trouvés avant le smoke.
 
 Rebasage sur V237 (fusionné entre-temps) : la résolution « intersection » automatique des conflits a produit des `local` en double, des accolades orphelines et des blocs `AddSetting` mal formés. Méthode retenue : prendre le côté master hunk par hunk, puis refaire les retraits V239 par script (blocs `if (SONDE)` morts, fonctions orphelines), reconstruire `info.nut` en retirant les blocs `AddSetting` entiers par expression régulière, et contrôler : identifiants MAJUSCULES non déclarés, fonctions orphelines, `local` retirés encore lus, accolades équilibrées et profondeur nulle à chaque `function`, suite de tests.
+
+## 14. V238 : 15 commutateurs cœur et rail adoptés, figés (17/10, codex puis moi)
+
+Principe : comme V237 pour l'AIR, ces réglages valaient **1** (ou une constante) aux quatre difficultés et pilotaient le chemin en vigueur. On fige le défaut et on retire la branche à 0. Rédigé par codex sur `b0eab14`, rebasé par moi sur V239 (`bc251ba`). 124 → 109 réglages.
+
+| Réglage | Ce qui reste (chemin au défaut) | Ce qui est retiré |
+|---|---|---|
+| `exp_opcode_exact` | Chemins exacts des sites et plans route, tri de flotte AIR précalculé, production de couverture AIR par `Valuate`, arrêts joints aux aéroports. | Corps historiques inline de `OpexRoadSites`, `OpexRoadPaxVoirieSites`, `OpexRoadPlanFor`, `OpexAirStationCatchmentProduction` ; comparateur `OpexAirFleetPriorityCompare` (orphelin après rebasage) ; globales `EXP_OPCODE_EXACT(_ON)`. |
+| `c69_fleet_exempt` | Exemption P/C des renforts de flotte sans réalisation C121 ; la garde de réalisation C121 reste. | Branche sans exemption. |
+| `c75_kpass_bypass` | Une ligne neuve finançable franchit K_pass une fois par passe (`OpexC75BypassEnsureYear`). Restrictions caisse/flotte et télémétrie conservées. | Lanceur `run_c75_kpass_bypass_host.py` ; l'analyseur historique reste. |
+| `policy_caches` | Neuf caches toujours actifs : index route desservie/acceptation, croisière rail pax/fret, accélération, service des villes, libération de caisse rail, portefeuille, sites AIR. `AIR_SITE_CACHE_ENABLED` reste une variable interne (la fixture C83 la bascule). | Huit commutateurs internes. |
+| `c80_mode_regen` | Régénération des seuls modes dépendants sous C76 (dépendance `C76_REGEN_TARGETED` conservée). | Régénération de tous les modes. |
+| `v89_rail_search_throughput` | Pompage opportuniste de l'A* rail dans le reliquat de tick. | Garde ; l'inhibition par le worker C80 partait avec V235. |
+| `v90_fast_pathfinder`, `v129_rail_astar_exact_opt` | A* `OpexNewRailPathfinderV129` (tableaux parallèles) aux deux points d'instanciation. | Instanciations BaNaNaS/V90 du constructeur, poids legacy 100. Les classes V90 restent comme base d'héritage. |
+| `v186_rail_search_slices` | Constante 1, boucle de tranches gardée. | Réglage. |
+| `rail_upgrade_failure_memory` | Mémoire des échecs de doublement de voie. | Chemin sans mémoire. |
+| `rail_end_jump_connect` | Raccordement colinéaire pont/tunnel reconnu. | Garde. |
+| `incr_revalidate_index` | Revalidation incrémentale indexée (mode 1). | Mode 0 et double calcul mode 2. |
+| `rail_target_cargo_prefilter` | Filtre structurel des cargos impossibles pour l'industrie ciblée. | Garde. |
+| `subsidy_reselect_if_purged` | Réélection seulement si la purge a retiré des candidats. | Réélection systématique. |
+| `select_bisect_insert` | Insertion binaire dans le classement quand elle est permise ; le chemin linéaire reste pour `forceHistoric` et l'ombre C122. | Garde. |
+
+**Refusés (Save/Load)** : `c69_decision_bottleneck` (dates C69 restaurées), `c70_mode_calibration` (`OpexC70RecomputeFactors` au rechargement), `c75_multi_build` (dates C75), `c76_regen_targeted` (révisions C76 sérialisées), `v184_rail_search_slots` (reconstruction des recherches après chargement). Leur retrait demande un passage par `persist.nut` et un test `save_load_roundtrip`.
+
+Lanceurs supprimés : `diag_c69_bis_solo_5x6.py`, `run_c75_kpass_bypass_host.py`. Tests : contrats adaptés (`assertNotIn` sur les réglages retirés, assertions des chemins actifs).
+
+Rebasage sur V239 : les deux lots retiraient chacun des corps « historiques » d'`opcode_exact.nut` (V239 pour le double calcul, V238 pour le chemin à 0). Les tests de contrat qui exigeaient `OpexAirCatchmentSumHistoric` / `OpexAirJoinedCandidatesHistoric` vérifient maintenant leur absence.
+
+**Banc** `v238_20x10_20261017` (20×10 duel, `bc251ba`) :
+
+| Référence | Profit/an | Victoires / défaites | p (Wilcoxon) | IC95 bootstrap | Valeur |
+|---|---:|---:|---:|---|---:|
+| V239 | −199,5 k (−5,43 %) | 7 / 13 | 0,053 | [−393,4 k ; −6,0 k] | −4,56 % (p = 0,027) |
+| V237 | −52,0 k (−1,48 %) | 8 / 12 | 0,35 | [−208,8 k ; +123,4 k] | −2,32 % (p = 0,26) |
+| V230 (cumul) | −151,1 k (−4,17 %) | 9 / 11 | 0,14 | [−322,9 k ; +17,3 k] | −2,89 % (p = 0,41) |
+
+Lecture : contre V239 l'IC exclut zéro et la valeur est significative, mais V239 avait lui-même tiré +4,19 % contre V237. Contre V237 l'écart est dans le bruit de perturbation (fiche `bruit_perturbation_opcodes`). La règle d'arrêt du lot (p < 0,05 sur le profit, valeur < −5 %, cumul < −5 %) n'est pas franchie, de justesse : **fusionné**, mais le cumul contre V230 (−4,17 %) est proche du seuil de −5 %. Le banc suivant (pointe V245) le revérifie ; s'il passe sous −5 %, bissection en commençant par V238.
