@@ -277,46 +277,6 @@ function OpexProjectFromFleet(entry)
   return project;
 }
 
-function OpexC111ProjectFromAir(catalog, plan, planningOps)
-{
-  if (plan == null || !("economics" in plan)) return null;
-  local economics = plan.economics;
-  local decisionEconomics = (("decisionEconomics" in plan) && plan.decisionEconomics != null)
-      ? plan.decisionEconomics : economics;
-  if (economics.revenueAnnual <= 0 || economics.capital <= 0 ||
-      (!C113_AIR_C100_FULL_DECISION_SHADOW && economics.profitAnnual <= 0)) return null;
-  if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
-      decisionEconomics.capital <= 0) return null;
-  local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-  local margin = OpexAirRequiredMargin(newAirports, plan);
-  local budgetCapital = economics.capital + margin;
-  if (("immobilise" in economics) && economics.immobilise > 0) {
-    budgetCapital += economics.immobilise;
-  }
-  local decisionBudgetCapital = decisionEconomics.capital + margin;
-  if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
-    decisionBudgetCapital += decisionEconomics.immobilise;
-  }
-  /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
-   * que sur les opcodes encore necessaires pour construire le projet. */
-  local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
-  local project = {
-    mode = "air", kind = "pax", cargo = catalog.paxCargo,
-    src = plan.siteA.town.tile, dst = plan.siteB.town.tile, payload = plan,
-    distance = plan.distance, capital = economics.capital,
-    budgetCapital = budgetCapital, decisionFinanceCapital = decisionBudgetCapital,
-    decisionConstructionCapital = decisionEconomics.capital,
-    profitAnnual = decisionEconomics.profitAnnual,
-    revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi,
-    expectedOpcodes = expectedOps,
-    budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
-    opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
-    planningOpcodes = planningOps,
-    economicsDate = AIDate.GetCurrentDate(),
-  };
-  return project;
-}
-
 /* Marge de caisse AIR selon le nombre d'aeroports neufs. Remplace l'ancienne
  * branche morte airMarginPadding (toujours false) dupliquee en cinq endroits. */
 function OpexAirRequiredMargin(newAirports, plan = null)
@@ -336,10 +296,6 @@ function OpexAirRequiredMargin(newAirports, plan = null)
 
 function OpexProjectFromAir(catalog, plan, planningOps)
 {
-  if (C111_AIR_C100_DECISION_SHADOW && plan != null
-      && ("decisionEconomics" in plan) && plan.decisionEconomics != null) {
-    return OpexC111ProjectFromAir(catalog, plan, planningOps);
-  }
   if (plan == null || !("economics" in plan)) return null;
   local economics = plan.economics;
   local decisionEconomics = (C121_AIR_ECONOMICS && ("decisionEconomics" in plan)

@@ -167,7 +167,7 @@ class TestV141CatalogIncremental(unittest.TestCase):
 
     def test_on_refreshes_published_air_in_place_and_converts_new_plans(self):
         self.assertIn(
-            "v141Use = V141_CATALOG_INCREMENTAL && !C111_AIR_C100_DECISION_SHADOW",
+            "v141Use = V141_CATALOG_INCREMENTAL;",
             self.publish,
         )
         self.assertIn("OpexV141PublishedAirStillValid(payload)", self.publish)

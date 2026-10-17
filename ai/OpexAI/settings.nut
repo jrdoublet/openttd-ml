@@ -491,8 +491,6 @@ function OpexLoadSettings()
   C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
   C104_AIR_C100_COMPARE_PROBE = OpexProbeSetting("c104_air_c100_compare_probe") != 0;
   C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
-  C111_AIR_C100_DECISION_SHADOW = AIController.GetSetting("c111_air_c100_decision_shadow") != 0;
-  C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;
   C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
   C116_AIR_PROJECT_PROBE = OpexProbeSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;
@@ -603,8 +601,6 @@ function OpexLoadSettings()
     C117_AIR_LINE_STATE = {};
     C117_AIR_VEHICLE_STATE = {};
   }
-  /* C113 etend C111 : reutiliser ses branches shadow/memo sans dupliquer le hot path. */
-  if (C113_AIR_C100_FULL_DECISION_SHADOW) C111_AIR_C100_DECISION_SHADOW = true;
   V88_GOODS_CHAIN = AIController.GetSetting("v88_goods_chain") != 0;
   V88_CHAIN_FORCE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_chain_force") != 0);
   V88_STEP2_PLAN_IMMEDIATE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_plan_immediate") != 0);

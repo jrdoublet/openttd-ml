@@ -375,7 +375,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("function OpexProjectFundProfit", self.projects)
         self.assertIn("OpexProjectFundProfit(project)", self.projects)
         self.assertIn("scoreDecisionFinanceCapital", self.projects)
-        self.assertIn('if (!C111_AIR_C100_DECISION_SHADOW && !C121_AIR_ECONOMICS)', self.air)
+        self.assertIn('if (!C121_AIR_ECONOMICS)', self.air)
         self.assertIn('if (project.mode == "air" && ("decisionFinanceCapital" in project)', self.projects)
 
     def test_c121_fleet_growth_uses_true_marginal_and_observed_learning(self):
@@ -387,7 +387,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("line.c121MarginalProfit", attach)
         self.assertIn("line.c121MarginalSamples <- 0", attach)
         self.assertIn("line.c121EngineId <- plan.plane.id", attach)
-        fleet = body(self.projects, "function OpexProjectFromFleet", "function OpexC111ProjectFromAir")
+        fleet = body(self.projects, "function OpexProjectFromFleet", "function OpexAirRequiredMargin")
         c121 = fleet[fleet.index("if (c121BelowTarget)"):fleet.index("else if (c84BelowTarget)")]
         self.assertIn("line.c121MarginalProfit", c121)
         self.assertIn("line.c121MarginalRevenue", c121)
@@ -502,7 +502,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('(year - line.lastAirFleetYear) < 2', self.task)
         self.assertIn("if (c84BelowTarget) {", self.task)
         self.assertIn("OpexAirExistingLineMarginalEconomics", self.task)
-        fleet_project = body(self.projects, "function OpexProjectFromFleet", "function OpexC111ProjectFromAir")
+        fleet_project = body(self.projects, "function OpexProjectFromFleet", "function OpexAirRequiredMargin")
         self.assertIn("local c121BelowTarget = C121_AIR_ECONOMICS", fleet_project)
         self.assertIn("perPlaneProfit * entry.want", fleet_project)
         self.assertNotIn("line.lastProfit / have - amortPerPlane", fleet_project)

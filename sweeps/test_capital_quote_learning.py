@@ -106,7 +106,7 @@ class CapitalQuoteContracts(unittest.TestCase):
 
     def test_air_decision_quote_components(self):
         builders = source("projects_builders.nut")
-        self.assertEqual(builders.count("decisionConstructionCapital = decisionEconomics.capital"), 2)
+        self.assertEqual(builders.count("decisionConstructionCapital = decisionEconomics.capital"), 1)
         finance = source("capital_quote_learning.nut")
         self.assertIn('decisionFinance - decisionConstruction', finance)
         selection = source("projects_selection.nut")

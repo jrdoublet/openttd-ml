@@ -248,9 +248,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
                      "c97_air_c69_engine_probe", "c98_air_realized_probe",
                      "c104_air_c100_compare_probe",
-                     "c110_air_engine_calibration_choice_only",
-                     "c111_air_c100_decision_shadow",
-                     "c113_air_c100_full_decision_shadow"):
+                     "c110_air_engine_calibration_choice_only"):
             self.assertEqual(defaults[name], 0, name)
         self.assertEqual(defaults["rail_finance_bias_pct"], 100)
         self.assertEqual(defaults["air_hub_max_routes"], 3)

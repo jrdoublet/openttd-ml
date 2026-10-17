@@ -117,7 +117,7 @@ class C116IncrementalProbeTests(unittest.TestCase):
         self.assertIn("c116_self_unlock=", AIR[probe_start:probe_end])
 
     def test_c104_probe_can_observe_real_c115_baseline(self):
-        start = AIR.index("if (C115_AIR_C100_CAPITAL_REPLAY")
+        start = AIR.index("if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0")
         end = AIR.index("return OpexC115ChooseRoutePlane", start)
         branch = AIR[start:end]
         self.assertNotIn("!C104_AIR_C100_COMPARE_PROBE", branch)

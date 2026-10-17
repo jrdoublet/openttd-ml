@@ -69,7 +69,6 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
         air = read_builder_air()
         settings = _read("ai/OpexAI/settings.nut")
 
-        self.assertIn("if (C111_AIR_C100_DECISION_SHADOW && C72_PLANE_CHOICE == 0", air)
         self.assertIn("if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0", air)
         self.assertIn("if (C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY", air)
         self.assertIn("C122_AIR_THREAT_PROBE = OpexProbeSetting(\"c122_air_threat_probe\") != 0 || C122_AIR_THREAT_RETRY;", settings)

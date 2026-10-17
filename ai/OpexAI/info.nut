@@ -531,22 +531,8 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c111_air_c100_decision_shadow",
-      description = "C111 diagnostic: replay first positive C100 engine ranking, keep C68 decision economics/score, but finance/build the actually selected engine; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
-    AddSetting({
-      name = "c113_air_c100_full_decision_shadow",
-      description = "C113 diagnostic: C111 plus C68 shadow for AIR pre-admission; selected C100-replay engine still supplies real capital/fleet/build feasibility; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
     AddSetting({

@@ -499,13 +499,11 @@ C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY <- false;
 /* C111 : isolation causale du signal C100 positif. Le moteur suit le replay C100,
  * mais le classement de marche/projet garde un shadow C68 distinct. Le cout reel
  * du moteur choisi reste utilise pour la faisabilite et la construction. */
-C111_AIR_C100_DECISION_SHADOW <- false;
 /* C112 : economie C100.1 partout, moteur choisi par elasticite relative
  * profit/vitesse avec seuil e75 = 0.75. Aucun seuil de caisse ni EngineID. */
 /* C113 : isolation C100 complete. Reutilise le shadow C68 de C111 jusque dans
  * l'admission pre-portefeuille ; l'economie du moteur choisi ne fournit plus
  * que capital/flotte/constructibilite. */
-C113_AIR_C100_FULL_DECISION_SHADOW <- false;
 /* C115 : regularisateur C100 conditionne par le goulot macroeconomique C69.
  * Le replay n'est utilise que tant que le capital du choix C68 depasse K_dec ;
  * aucun seuil de caisse, d'annee ou d'EngineID n'est introduit. */

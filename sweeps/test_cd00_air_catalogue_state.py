@@ -267,7 +267,7 @@ class CD00SourceContracts(unittest.TestCase):
         self.assertIn("OpexAir0310PublishIncremental(owner, s.plans, s.lastPublishedCount", partial)
         self.assertIn("lastPublishedCount > 0", partial)
         self.assertIn("owner._rebuildProjects(s.fleetPlan, partialAir, false);", partial)
-        self.assertIn("V141_CATALOG_INCREMENTAL && !C111_AIR_C100_DECISION_SHADOW", publish)
+        self.assertIn("v141Use = V141_CATALOG_INCREMENTAL;", publish)
         self.assertIn("projects.candidateGroups = rebuilt;", publish)
         self.assertIn("OpexReselectProjects(projects, publishCapital", publish)
         self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride);", applied)

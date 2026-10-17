@@ -155,7 +155,7 @@ class AC07PartialTests(unittest.TestCase):
         self.assertIn("if (advanceStage && STAGED_BOOTSTRAP", REBUILD)
 
     def test_current_v141_fields_and_conversion_validity(self):
-        self.assertIn("V141_CATALOG_INCREMENTAL && !C111_AIR_C100_DECISION_SHADOW", PUBLISH)
+        self.assertIn("v141Use = V141_CATALOG_INCREMENTAL;", PUBLISH)
         self.assertIn("local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount)", PUBLISH)
         self.assertIn("local planCount = scanPlans.len() + priorKept.len();", PUBLISH)
         self.assertIn("OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan);", PUBLISH)

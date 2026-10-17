@@ -894,8 +894,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
           ? routeChoice.decisionEconomics : null;
       local portfolioEconomics = (routeChoice != null && ("portfolioEconomics" in routeChoice) && routeChoice.portfolioEconomics != null)
           ? routeChoice.portfolioEconomics : null;
-      local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)
-          ? decisionEconomics : economics;
+      local admissionEconomics = economics;
       if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 2, opcodePadding, economics, "pre_admission_newpair");
@@ -1570,8 +1569,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
           ? routeChoice.decisionEconomics : null;
       local portfolioEconomics = (routeChoice != null && ("portfolioEconomics" in routeChoice) && routeChoice.portfolioEconomics != null)
           ? routeChoice.portfolioEconomics : null;
-      local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)
-          ? decisionEconomics : economics;
+      local admissionEconomics = economics;
       if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 1, opcodePadding, economics, "pre_admission_hubsite");
@@ -1885,8 +1883,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
               ? (decisionEconomics.profitAnnual * 1000) / decisionTotalCapital : 0;
         }
       }
-      local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)
-          ? decisionEconomics : economics;
+      local admissionEconomics = economics;
       if (economics == null || admissionEconomics == null || admissionEconomics.profitAnnual <= 0) {
         if (C69_BOTTLENECK_PROBE) {
           if (economics == null) OpexC73RecordRejection("air", "economics_unavailable", 1);
@@ -1922,10 +1919,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         plan.targetPlanes <- routeChoice.targetPlanes;
       }
       OpexAirReserveJoinedStops(catalog, plan);
-      /* C113 : l'admission a deja ete arbitree sur le shadow C68. Le profit
-       * legacy du moteur replay peut etre negatif sans invalider le marche de
-       * decision ; hors C113, admissionEconomics == economics et le contrat
-       * historique reste strictement identique. */
       if (hubHubMark != null && admissionEconomics.profitAnnual <= 0) OpexSpanAgg("air.hub_hub_pair", hubHubMark);
       if (admissionEconomics.profitAnnual <= 0) continue;
       if (c78Gen) {

@@ -1128,7 +1128,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
   local defensiveSlotState = OpexDefensiveSlotSelectionState(earlySlotState);
   local scoreKey = "fundScore";
-  local c111DecisionShadow = C111_AIR_C100_DECISION_SHADOW;
 
   local kDec = 0;
   local kDecData = null;

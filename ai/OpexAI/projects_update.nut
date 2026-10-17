@@ -482,7 +482,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   local reconverted = 0;
   local invalidated = 0;
   local refreshedCount = 0;
-  local v141Use = V141_CATALOG_INCREMENTAL && !C111_AIR_C100_DECISION_SHADOW;
+  local v141Use = V141_CATALOG_INCREMENTAL;
   local v141Check = v141Use && V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;
   local v141Diff = null;
   local v141Compared = 0;

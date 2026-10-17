@@ -51,7 +51,6 @@ class C115CapitalReplayTests(unittest.TestCase):
         start = AIR.index("function OpexAirChooseRoutePlane(")
         end = AIR.index("\nfunction ", start + 1)
         body = AIR[start:end]
-        self.assertIn("C111_AIR_C100_DECISION_SHADOW", body)
         self.assertIn("C115_AIR_C100_CAPITAL_REPLAY", body)
 
 

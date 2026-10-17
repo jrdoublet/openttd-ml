@@ -45,8 +45,6 @@ ALL_EXCEPT_CHECKS = 254   # 2 | 4 | 8 | 16 | 32 | 64 | 128
 LOG_BITS = 508            # 4 | 8 | 16 | 32 | 64 | 128 | 256
 # reglages nommes « shadow »/« diagnostic » mais qui changent des decisions : jamais groupes
 DECISION_CHANGING = (
-    "c111_air_c100_decision_shadow",
-    "c113_air_c100_full_decision_shadow",
     "air_bfail_dispose_orphan",
     "rail_cached_proximity_gate",
     "air_site_quote_keep_legacy_margin",

@@ -119,7 +119,7 @@ class V86HubHubContractTest(unittest.TestCase):
 
         # Non-positive profit rejected
         # Hors C113, admissionEconomics == economics.
-        self.assertIn("local admissionEconomics = (C113_AIR_C100_FULL_DECISION_SHADOW && decisionEconomics != null)", h2h_body)
+        self.assertIn("local admissionEconomics = economics;", h2h_body)
         self.assertIn("if (economics == null || admissionEconomics == null || admissionEconomics.profitAnnual <= 0)", h2h_body)
 
         # Hypothesis documented in comments
