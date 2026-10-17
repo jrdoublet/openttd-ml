@@ -61,3 +61,9 @@ Refusés par grok et conservés : `C41_RAIL_LOST_*` (Save/Load) et `WATER_OPCODE
 | `air_hubhub_marginal` | Hub→hub : déduire le revenu moyen déjà capté par le hub (revenu **marginal**, pas brut). | Court-circuité sous C121 + `ac05_skip_unused_hub_income`. L'idée de revenu marginal d'un hub partagé reste pertinente (congestion : modèle 0,99× à 1 avion, 0,53× à 3). |
 | `c121_air_defensive_floor` | Plancher de profit défensif pour l'AIR dans la sélection du portefeuille. | OFF, et `PORTFOLIO_FLOOR_PCT=0`. |
 | `OPEX_AIR_{CAP,PLAN,SITE,TOWN}_PAD` | Remplissages d'opcodes et mémorisation des sites et villes échoués, pour garder la trajectoire comparable entre bras. | Figés à `false`, sans réglage. |
+
+## 4. Réglage `c121_air_economics` (`6420610`, repli `1460fed`)
+
+C121 est le seul modèle économique AIR. Le réglage est retiré, puis la constante est repliée : chemin « ROI legacy » d'`OpexAirPlanBetter`, choix `OpexAirChooseRoutePlane` dans les trois bras, gardes `SHADOW && !C121`, sonde ABCD (`diag_c121_abcd.py`). Smoke non identique ; 20×10 contre master (référence `v222_air_20x10_20261017`) : −74 k£/an (−2,05 %), 7/13, Wilcoxon p = 0,28, IC95 [−207 k ; +63 k], valeur −1,61 % : neutre.
+
+Reste : `OpexFleetAmortShadow` (toujours nul) et la constante `C121_AIR_ECONOMICS <- true`.
