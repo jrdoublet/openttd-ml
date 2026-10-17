@@ -1114,6 +1114,7 @@ function OpexAI::_recordPortfolioProjectBuilt(project, rank, c75BuiltKeys, c69Bu
         + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
         + " available=" + OpexAvailableCapital());
   }
+  if (DECISION_LOG) OpexDecide("V233_BUILD", "mode=" + project.mode + " rank=" + rank + " key=" + OpexProjectAttemptKey(project));
   c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
   c69BuiltProjects.append(project);
 }
@@ -1578,6 +1579,7 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
       if (attempt.outcome == "pending") {
+        if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
         if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
           this._c49ScarcityLedger.stop_rail_search++;
         }
@@ -1732,6 +1734,7 @@ function OpexAI::_tryBuildProjects(year)
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
+        if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
         if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
           this._c49ScarcityLedger.stop_rail_search++;
         }
