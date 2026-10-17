@@ -206,6 +206,8 @@ class OpexAI extends AIController {
   _portfolioRefreshProbeLastRefreshOps = 0;
   _portfolioRefreshProbeLastRefreshCount = 0;
   _lastRepayMonth = -1;
+  /* V249 : mois du dernier passage statue. Memoire de cadence, pas un etat de partie. */
+  _v249StatueMonth = -1;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -532,6 +534,7 @@ class OpexAI extends AIController {
   function _dispatchExpand(task, year);
   function _dispatchRefleet(task, year);
   function _dispatchRepay(task, year);
+  function _dispatchV249Statue(task, year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
   function _c76RotateFreight(year);
@@ -628,6 +631,7 @@ require("task_report.nut");
 require("task_road.nut");
 require("task_terrain.nut");
 require("task_water.nut");
+require("task_v249.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -638,6 +642,15 @@ function OpexAI::Start()
   OpexLoadSettings();
   OpexV147ExtendQueue(this);
   this._v184InitRailSlots();
+  /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
+  if (this._taskQueue != null) {
+    this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE_CASH > 0 });
+  }
+  if (V249_STATUE_CASH > 0 && V249_BASE_MAX_LOAN <= 0) {
+    local loanSetting = AIGameSettings.GetValue("difficulty.max_loan");
+    if (loanSetting == null || loanSetting <= 0) loanSetting = AICompany.GetMaxLoanAmount();
+    V249_BASE_MAX_LOAN = loanSetting;
+  }
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 
