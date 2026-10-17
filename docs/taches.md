@@ -68,6 +68,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
     - option : p = 25 %, délai 2 ans, taux 10 %, horizon 5 ans, plafond 10 % du score ;
     - clé de sauvegarde optionnelle `v233GoodsObservations` ; stock de plans non sauvegardé ;
     - qualification : porte A 40×6 ans, puis porte B 20×10 ans.
+  - **18/10 — code codex E0-E3 livré (branche `v233`, 4 commits, rebasé sur master) et vérifié** : undecl/delim/orphelins/fonctions disparues propres, 1 881 tests OK ; smoke solo 4 bras × 2 graines × 3 ans `status=OK` (greffe sans continuation = défaut à l'identique, refus vérifié) ; roundtrips save/load : greffe construite usine 2 → ville 14 (capital 43 k£, profit prévu 26 k£/an) avant et après rechargement, fenêtre d'observation partielle restaurée (1/5/72, count 2 → 3), 0 erreur. **Porte A pré-enregistrée (18/10, avant mesure)** : `v233_pending_continue` 0 contre 1 seul (E1), `gain_short`, **40 graines canoniques × 6 ans** (horizon fixé par la conception approuvée), Wilcoxon p < 0,05, borne basse IC95 > 0, seuil relatif 4 %, garde de valeur −5 %, sans télémétrie, campagne `v233e1_porteA_40x6_20261018` lancée depuis `wt-v233`. Si A passe : B 20×10 `non_erosion`. La greffe (E3) sera ensuite qualifiée contre le témoin `pending_continue=1`.
 
     Code confié à codex le 18/10 (branche `v233`).
   - **Piste proposée pour la réécriture** (à concevoir et relire avant tout code) :
