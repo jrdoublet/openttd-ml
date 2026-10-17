@@ -264,3 +264,25 @@ Décision utilisateur du 17/10 : **supprimer V88 et repartir de zéro** (tâche 
 3. Une passe `projects` qui lance un A* s'arrête et saute tous les projets suivants, AIR compris : AAA prend alors les places d'aéroport.
 
 **Leçons pour la réécriture (V233).** Ne pas générer usine × ville × source. Valoriser l'aval comme une **option** dans le score des lignes vers transformateur. Greffer la ligne biens sur la production **mesurée**. Pas de verrou global, pas de réserve, pas d'arrêt de passe. Qualifier sur 6-10 ans en surveillant la flotte AIR.
+
+### 10.2 Lot AIR, grok : devis de site V126 et réserve de ville (`a957f9c`)
+
+| Réglage | Idée | Mesure | Ce qui reste |
+|---|---|---|---|
+| `air_site_cost_quote`, `air_site_cost_margin_pct`, `air_site_quote_keep_legacy_margin` | Ajouter au capital aéroport C121 le devis de terrassement et le coût des arrêts joints. Remplacer la marge de caisse historique (30 / 12 / 2 k£ selon 2 / 1 / 0 aéroports neufs) par 2 000 £ + `pct` × coût de site. `keep_legacy_margin` ne servait qu'à l'observateur de devis périmé. | V126 : porte A 40×3 `fail_primary`, −92,7 k£/an, 20/20 ; capital exact + marge 2 k£ ne paient pas (fiche V126). La caisse n'est pas le verrou. | Capital = prix catalogue × aéroports neufs ; marge historique. La sonde `probe_air_finance_margin` devise encore et journalise (cache 365 j, bouclier `AIAccounting`). `OpexAirStaleQuoteObserve` est retiré ; `air_site_stale_shadow` n'a plus d'observateur (à retirer en V239). |
+| `air_batch_town_reserve` | Ne financer qu'un projet AIR par ville d'aéroport **neuf** dans un lot ; les plans écartés restent dans le vivier. | 5×6 du 24/09 : −179,9 k£/an. | `OpexAirBatchPlanStillLive` (rejet `batch_plan_dead`) et `OpexAirSlotTownId`. |
+
+### 10.3 Lot AIR, agy : concurrence visible C121 et calibration par moteur C82 (`72528e9`)
+
+| Réglage | Idée | Mesure | Ce qui reste |
+|---|---|---|---|
+| `c121_air_visible_competition` | Partager la demande d'extrémité avec les aéroports concurrents **observés** par tuile (`OpexC121VisibleAirportOwners`, cache catalogue 30 j au lieu de 365). Recalcul quotidien de la cible et de la marge des lignes vivantes (`OpexC121RefreshVisibleFleet`). Renforts plafonnés à `targetAirPlanes` et à la cible physique (garde `TARGET` dans `OpexAirAddPlane`). | Porte A 40×6 du 08/10 : −0,89 %. Il corrigeait le devis mais préservait les marges observées. V161 couvre le profit net de renfort. | Allocation par notes de gare (`OpexC121StationCompetitionBuckets`), cible initiale posée à la construction, croissance `first_live`. |
+| `c121_air_visible_fused` | Une seule passe `0→cap` (`OpexC121VisibleFleetEconomics`, paramètre `marginalOut`) pour les points `have` et `have+1`. | Optimisation d'opcodes d'un parent rejeté. | — |
+| `air_fleet_c121_preguard` | Sauter le recalcul visible tant que la ligne n'a pas d'année complète ou est en refroidissement de croissance. | Idem. | Gardes d'âge, de profit et de cadence de `_resizeAirFleets`. |
+| `c82_engine_calibration` | Facteur réalisé/prédit **par moteur** (`(Σ ratios + 1) / (n + 1)`), publié au rapport annuel. Il remplaçait C70 dans `OpexCalibratedProfit` et choisissait l'avion par route sur le profit calibré (`OpexC82ChooseRoutePlane`). | Défaut 0 depuis C82 ; moteur quasi fixe par partie (V96) : rien à arbitrer. | Calibration par mode C70. **L'idée d'un apprentissage par cellule revient en V229** (mode × distance × cargo). |
+
+### 10.4 Verdict V232
+
+Les trois lots sont réunis sur `v232-rail` : 15 réglages, 226 → 211. Contrats sans nouvel échec, fixture R1 verte, smoke différent.
+- **20×10 `v232_20x10_20261017` contre V231** : profit −41,0 k£/an (−1,16 %), 9/11, p = 0,62, IC95 [−201 k ; +133 k], valeur −0,83 % : **neutre**.
+- **Cumul contre V230** : −123,8 k£/an (−3,42 %), 8/12, p = 0,23, IC95 [−275 k ; +24 k], valeur −2,54 %. Sous la garde de −5 %, mais **la dérive s'additionne lot après lot**.
