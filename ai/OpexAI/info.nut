@@ -508,13 +508,6 @@ class OpexAIInfo extends AIInfo {
     });
 
 
-    AddSetting({
-      name = "c100_air_trip_physical",
-      description = "C100: AIR trip time uses NoAI engine speed directly plus physical airport taxi/runway/vertical maneuver time; 1 = enabled, 0 = legacy (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
 

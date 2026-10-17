@@ -37,10 +37,9 @@ function OpexC100AirManeuverDays(engineId, srcType, dstType)
 function OpexAirTripModel(speed, capacity, distance, engineId = -1, airportType = -1,
                           forcePhysicalTiming = false, forceC100RankReplay = false)
 {
-  /* C99: NoAI 15.3 applique deja vehicle.plane_speed a GetMaxSpeed.
-   * C100 implique cette correction, mais ajoute surtout les manoeuvres physiques. */
-  local physicalTiming = C100_AIR_TRIP_PHYSICAL
-      || forcePhysicalTiming;
+  /* Timing physique (vitesse NoAI directe + manoeuvres) : seulement sur demande
+   * explicite des sondes. Au defaut, vitesse historique /4. */
+  local physicalTiming = forcePhysicalTiming;
   /* C114 reproduit la cellule historique complete du premier C100 : meme
    * vitesse NoAI directe, mais ancien helper OpexAirManeuverDays partout dans
    * l'economie AIR. C103/C104 gardent le meme replay local via force*. */

@@ -1307,21 +1307,21 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   }
   if (C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY
       && C72_PLANE_CHOICE == 0 && !C82_ENGINE_CALIBRATION
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
+      && !C85_AIR_EQUIPMENT_FRONTIER
       && !C111_AIR_C100_DECISION_SHADOW) {
     OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C111_AIR_C100_DECISION_SHADOW && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
+      && !C85_AIR_EQUIPMENT_FRONTIER
       && !C104_AIR_C100_COMPARE_PROBE) {
     return OpexC111ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION && !C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
+      && !C85_AIR_EQUIPMENT_FRONTIER
       && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC115ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);

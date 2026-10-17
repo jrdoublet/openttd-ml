@@ -477,7 +477,6 @@ C97_AIR_C69_ENGINE_PROBE <- false;
 /* C98 : sonde passive du biais du modele AIR par moteur/ligne. Compare la
  * prevision de construction au realise annuel sans modifier aucun choix. */
 C98_AIR_REALIZED_PROBE <- false;
-C100_AIR_TRIP_PHYSICAL <- false;
 /* C103 : replay causal du classement moteur du premier C100 positif. Le timing
  * volontairement pessimiste ne sert QUE de regularisateur de classement ;
  * l'admission et l'economie retournee au portefeuille restent legacy. */

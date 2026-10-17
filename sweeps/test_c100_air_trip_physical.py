@@ -14,12 +14,9 @@ GLOBALS = (ROOT / "ai" / "OpexAI" / "globals_pre.nut").read_text(encoding="utf-8
 
 
 class C100AirTripPhysicalTests(unittest.TestCase):
-    def test_setting_is_off_by_default(self):
-        self.assertIn("C100_AIR_TRIP_PHYSICAL <- false;", GLOBALS)
-        start = INFO.index('name = "c100_air_trip_physical"')
-        snippet = INFO[start:start + 440]
-        for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(field, snippet)
+    def test_setting_is_removed(self):
+        self.assertNotIn("C100_AIR_TRIP_PHYSICAL", GLOBALS)
+        self.assertNotIn('name = "c100_air_trip_physical"', INFO)
 
     def test_trip_model_physical_path_uses_direct_api_speed_and_maneuvers(self):
         match = re.search(
@@ -29,8 +26,7 @@ class C100AirTripPhysicalTests(unittest.TestCase):
         )
         self.assertIsNotNone(match)
         body = match.group(1)
-        self.assertIn("physicalTiming = C100_AIR_TRIP_PHYSICAL", body)
-        self.assertIn("|| forcePhysicalTiming", body)
+        self.assertIn("local physicalTiming = forcePhysicalTiming;", body)
         self.assertIn("local c100ReplayTiming = forceC100RankReplay;", body)
         self.assertIn("directSpeed = physicalTiming || c100ReplayTiming", body)
         self.assertIn("directSpeed", body)
