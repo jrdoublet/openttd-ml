@@ -222,7 +222,7 @@ def main(argv=None):
           "copied_ai_hashes": copied, "fixture_hashes": fixtures, "configuration": cfg,
           "image": os.environ.get("DIAG_DOCKER_IMAGE_ID"), "git_sha": None,
           "checkpoint_selection": "earliest save while coordinator holds selected / purchased",
-          "scope": "VM arithmetic; R1 generated want=4; single-candidate common selector; real GS balance"})
+          "scope": "VM arithmetic; R1 want=4 copied from a real generated fleet entry; single-candidate common selector; real GS balance"})
     logs, phases = [], []
     checkpoint = None
     try:

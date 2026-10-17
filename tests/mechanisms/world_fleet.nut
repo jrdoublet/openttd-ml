@@ -87,13 +87,20 @@ function FxRestoreProject(line)
 
 function FxEntry(ai, entry)
 {
-  if (FX.phase != "search" || entry.want != 4) return;
+  if (FX.phase != "search" || entry.want < 1) return;
+  /* Depuis C121 le renfort AIR est arbitre un avion a la fois : la production ne
+   * genere plus want=4. Copie de la vraie entree portee a 4 pour exercer R1 4 -> 1. */
+  local generatedWant = entry.want;
+  if (entry.want != 4) {
+    entry = clone entry;
+    entry.want = 4;
+  }
   local original = OpexProjectFromFleet(entry);
   if (original == null) return;
   FX.phase = "preparing";
   local line = entry.line;
   local before = FxIds(line);
-  FxLog("phase=producer want=" + entry.want + " line=" + line.lineId + " base=" + entry.baseVehicles);
+  FxLog("phase=producer want=" + entry.want + " generated_want=" + generatedWant + " line=" + line.lineId + " base=" + entry.baseVehicles);
   FxAssert(AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount()), "loan_max");
   local price = AIEngine.GetPrice(AIVehicle.GetEngineType(line.vehicles[0]));
   FxAssert(price == entry.planePrice, "producer_actual_price");
