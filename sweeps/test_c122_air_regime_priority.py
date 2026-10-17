@@ -127,7 +127,7 @@ class TestC122AirRegimePriority(unittest.TestCase):
             self.assertNotIn(forbidden, refresh)
 
     def test_passive_exposure_probe_never_enables_c122_priority(self):
-        probe = body(PROJECTS, "function OpexC122ProbeExposure", "/* Villes de slot")
+        probe = body(PROJECTS, "function OpexC122ProbeExposure", "/* C116.2")
         self.assertIn("!C121_AIR_PRESSURE_PROBE", probe)
         self.assertNotIn("return OpexC122AirRegimePriority", probe)
         self.assertIn('("defensiveNewTownClaims" in project)', probe)
@@ -138,9 +138,9 @@ class TestC122AirRegimePriority(unittest.TestCase):
             self.assertNotIn(forbidden, probe)
 
         select = body(PROJECTS, "function OpexProjectSelectAffordable", "/* Early-slot")
-        probe_at = select.index("OpexC122ProbeExposure(affordable);")
-        compact_at = select.index("OpexAirBatchTownReserveCompact(affordable);")
-        self.assertLess(probe_at, compact_at)
+        self.assertIn("OpexC122ProbeExposure(affordable);", select)
+        self.assertNotIn("OpexAirBatchTownReserve", select)
+        self.assertIn("if (C69_BOTTLENECK_PROBE)", select)
 
     def test_exact_shadow_compares_without_reordering(self):
         insert = body(

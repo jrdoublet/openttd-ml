@@ -82,6 +82,12 @@ def setting_block(info: str, name: str) -> str:
 
 
 class TestV126Settings(unittest.TestCase):
+    REMOVED = (
+        "air_site_cost_quote",
+        "air_site_cost_margin_pct",
+        "air_site_quote_keep_legacy_margin",
+    )
+
     @classmethod
     def setUpClass(cls):
         cls.info = read("ai/OpexAI/info.nut")
@@ -90,89 +96,46 @@ class TestV126Settings(unittest.TestCase):
         cls.persist = read("ai/OpexAI/persist.nut")
         cls.specs = parse_ai_setting_specs(INFO)
 
-    def test_quote_flag_declared_off_at_four_difficulties(self):
-        self.assertEqual(parse_ai_settings(INFO)["air_site_cost_quote"], 0)
-        block = setting_block(self.info, "air_site_cost_quote")
-        for key in FOUR_DIFFICULTIES:
-            self.assertIn(f"{key} = 0", block)
-        self.assertNotRegex(block, r"_value\s*=\s*[1-9]")
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn(
-            "V126: add the levelling quote and modelled joined-stop cost of new airports "
-            "to C121 AIR capital, and size the finance margin to the residual risk; "
-            "0 = off (default)",
-            block,
-        )
-        spec = self.specs["air_site_cost_quote"]
-        self.assertEqual(spec["default"], 0)
-        self.assertTrue(spec["boolean"])
+    def test_decision_settings_are_removed(self):
+        defaults = parse_ai_settings(INFO)
+        for name in self.REMOVED:
+            self.assertNotIn(name, defaults, name)
+            self.assertNotIn(name, self.specs, name)
+            self.assertNotIn(f'name = "{name}"', self.info)
+            self.assertNotIn(f'GetSetting("{name}")', self.settings)
+        for symbol in (
+            "AIR_SITE_COST_QUOTE",
+            "AIR_SITE_COST_MARGIN_PCT",
+            "AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN",
+        ):
+            # \b : AIR_SITE_COST_QUOTES (cache de la sonde) n'est pas le drapeau retire.
+            pattern = re.compile(r"\b%s\b" % symbol)
+            for label, text in (
+                ("globals", self.globals),
+                ("settings", self.settings),
+                ("persist", self.persist),
+            ):
+                self.assertIsNone(pattern.search(text), (symbol, label))
 
-    def test_margin_pct_declared_0_with_bounds_0_to_200(self):
-        self.assertEqual(parse_ai_settings(INFO)["air_site_cost_margin_pct"], 0)
-        block = setting_block(self.info, "air_site_cost_margin_pct")
-        for key in FOUR_DIFFICULTIES:
-            self.assertIn(f"{key} = 0", block)
-        self.assertNotIn("AICONFIG_BOOLEAN", block)
-        self.assertRegex(block, r"flags\s*=\s*0\b")
-        self.assertIn(
-            "V126 residual-risk margin, percent of the new-airport site cost "
-            "(catalogue price + levelling quote) added to a 2,000 floor; "
-            "used only when air_site_cost_quote=1",
-            block,
-        )
-        spec = self.specs["air_site_cost_margin_pct"]
-        self.assertEqual(
-            spec,
-            {"default": 0, "boolean": False, "min_value": 0, "max_value": 200, "step_size": 5},
-        )
-        # Le pas de 5 doit tomber sur le defaut calibre 0 (journal du 07/10) et sur les bornes 0 et 200.
-        self.assertEqual((spec["default"] - spec["min_value"]) % spec["step_size"], 0)
-        self.assertEqual((spec["max_value"] - spec["min_value"]) % spec["step_size"], 0)
-
-    def test_settings_loading(self):
-        loader = body(self.settings, "function OpexLoadSettings(")
-        self.assertEqual(self.settings.count('AIController.GetSetting("air_site_cost_quote")'), 1)
-        self.assertIn(
-            'AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;', loader
-        )
-        self.assertEqual(
-            self.settings.count('AIController.GetSetting("air_site_cost_margin_pct")'), 1
-        )
-        self.assertIn(
-            'local ascmp = AIController.GetSetting("air_site_cost_margin_pct");', loader
-        )
-        self.assertIn("if (ascmp >= 0) AIR_SITE_COST_MARGIN_PCT = ascmp;", loader)
-        # Les globals existent deja (globals_pre.nut) : `=` seulement, jamais `<-` ici.
-        self.assertNotIn("AIR_SITE_COST_QUOTE <-", self.settings)
-        self.assertNotIn("AIR_SITE_COST_MARGIN_PCT <-", self.settings)
-        # Une fonction Squirrel ne tient qu'un nombre borne de locales : garder une marge.
-        self.assertLess(len(re.findall(r"\blocal\s+\w+", code_only(loader))), 200)
-
-    def test_globals_defaults(self):
+    def test_probe_quote_cache_remains_unpersisted_shape(self):
         for line in (
-            "AIR_SITE_COST_QUOTE <- false;",
-            "AIR_SITE_COST_MARGIN_PCT <- 0;",
             "V126_JOINED_STOP_COST <- 300;",
             "AIR_SITE_COST_QUOTES <- {};",
         ):
             self.assertEqual(self.globals.count(line), 1, line)
+        self.assertNotIn("AIR_SITE_COST_QUOTES_DATE", self.globals)
+        loader = body(self.settings, "function OpexLoadSettings(")
+        self.assertLess(len(re.findall(r"\blocal\s+\w+", code_only(loader))), 200)
 
     def test_quote_cache_is_not_persisted(self):
         self.assertNotIn("AIR_SITE_COST_QUOTE", self.persist)
+        self.assertNotIn("AIR_SITE_COST_QUOTES", self.persist)
         owners = sorted(
             rel for rel, text in all_nut().items() if "AIR_SITE_COST_QUOTES" in code_only(text)
         )
         self.assertEqual(
             owners, ["ai/OpexAI/air_economics_c121.nut", "ai/OpexAI/globals_pre.nut"]
         )
-
-    def test_each_setting_is_declared_exactly_once(self):
-        # parse_ai_setting_specs refuse deja deux declarations discordantes ; une seule ici,
-        # pour qu'aucun doublon ne puisse masquer un defaut different.
-        for name in ("air_site_cost_quote", "air_site_cost_margin_pct"):
-            self.assertEqual(self.info.count(f'name = "{name}"'), 1, name)
-            self.assertIn(name, self.specs)
-
 
 class TestV126QuoteFunction(unittest.TestCase):
     @classmethod
@@ -211,7 +174,7 @@ class TestV126QuoteFunction(unittest.TestCase):
 
 
 class TestV126PrepareEngineStatic(unittest.TestCase):
-    GUARD = "if (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN) {"
+    GUARD = "if (PROBE_AIR_FINANCE_MARGIN) {"
     END = "plan.c121EngineStatic <- state;"
 
     @classmethod
@@ -224,8 +187,9 @@ class TestV126PrepareEngineStatic(unittest.TestCase):
         cls.block = cls.prepare[cls.guard_at : cls.end_at]
         cls.after = cls.prepare[cls.end_at :]
 
-    def test_quote_computation_is_guarded_by_setting_or_probe(self):
+    def test_quote_computation_is_guarded_by_the_probe_only(self):
         self.assertEqual(self.prepare.count(self.GUARD), 1)
+        self.assertNotIn("AIR_SITE_COST_QUOTE", self.prepare)
         self.assertLess(self.prepare.index("local state = {"), self.guard_at)
         self.assertLess(self.guard_at, self.end_at)
         for part in (self.before, self.after):
@@ -258,24 +222,16 @@ class TestV126PrepareEngineStatic(unittest.TestCase):
             flat,
         )
         self.assertIn("local siteCost = newAirportCount * plan.airport.price + levelKnown;", flat)
-        self.assertIn(
-            "local extra = AIR_SITE_COST_QUOTE ? levelKnown + stopsModel : 0;", flat
-        )
+        self.assertIn("local extra = 0;", flat)
+        self.assertNotIn("AIR_SITE_COST_QUOTE", flat)
 
-    def test_capital_addition_is_guarded_by_the_setting_alone(self):
-        self.assertIn(
-            "if (AIR_SITE_COST_QUOTE) state.airportCapital = "
-            "newAirportCount * plan.airport.price + extra;",
-            self.block,
-        )
-        # Le litteral du state garde l'expression actuelle : prix catalogue seul.
+    def test_capital_stays_the_catalogue_price(self):
+        self.assertNotIn("state.airportCapital", self.block)
         self.assertEqual(
             self.before.count("airportCapital = newAirportCount * plan.airport.price,"), 1
         )
-        # Seule affectation de airportCapital apres le litteral, et sous le drapeau.
         assignments = re.findall(r"state\.airportCapital\s*=[^=]", code_only(self.prepare))
-        self.assertEqual(len(assignments), 1)
-        self.assertEqual(code_only(self.block).count("AIR_SITE_COST_QUOTE"), 3)
+        self.assertEqual(assignments, [])
 
     def test_amortisation_and_maintenance_are_untouched(self):
         flat_before = squash(self.before)
@@ -336,22 +292,14 @@ class TestV126RequiredMargin(unittest.TestCase):
         cls.task = read("ai/OpexAI/task_air.nut")
         cls.margin = body(cls.builders, "function OpexAirRequiredMargin(newAirports, plan = null)")
 
-    def test_historic_margin_branch_is_kept_as_the_default(self):
+    def test_historic_margin_is_the_only_branch(self):
         self.assertEqual(self.margin.count(self.LEGACY), 1)
         code = code_only(self.margin)
-        self.assertEqual(len(re.findall(r"\breturn\b", code)), 2)
+        self.assertEqual(len(re.findall(r"\breturn\b", code)), 1)
         self.assertTrue(squash(self.margin).endswith(self.LEGACY + " }"))
-
-    def test_v126_branch_needs_setting_c121_and_a_quoted_plan(self):
-        flat = squash(self.margin)
-        self.assertIn(
-            "if (AIR_SITE_COST_QUOTE && plan != null "
-            '&& ("c121EngineStatic" in plan) && plan.c121EngineStatic != null) {',
-            flat,
-        )
-        self.assertIn('if (("v126Quoted" in st) && st.v126Quoted == true) {', flat)
-        self.assertIn("return 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100;", flat)
-        self.assertLess(self.margin.index("v126Quoted"), self.margin.index(self.LEGACY))
+        self.assertNotIn("AIR_SITE_COST_QUOTE", self.margin)
+        self.assertNotIn("AIR_SITE_COST_MARGIN_PCT", self.margin)
+        self.assertNotIn("v126", code)
 
     def test_active_callers_pass_their_plan(self):
         for signature in (
@@ -480,13 +428,14 @@ class TestV126ProbeData(unittest.TestCase):
         self.assertIn("local legacyMargin = OpexAirRequiredMargin(st.newAirportCount);", self.finance)
         self.assertIn('" margin_legacy=" + legacyMargin', self.finance)
         # La sonde publie le repli historique lorsque le devis a échoué,
-        # puis la formule résiduelle uniquement si le devis est exploitable.
+        # sinon le plancher 2000 (pourcentage de marge résiduelle figé à 0).
         self.assertIn('" margin_v126=" + (st.v126QuoteFail > 0', self.finance)
         self.assertRegex(
             self.finance,
-            r'st\.v126QuoteFail > 0\s*\? legacyMargin\s*:\s*2000\s*\+'
-            r'\s*\(st\.v126SiteCost \* AIR_SITE_COST_MARGIN_PCT\) / 100\)',
+            r"st\.v126QuoteFail > 0\s*\? legacyMargin\s*:\s*2000\)",
         )
+        self.assertNotIn("AIR_SITE_COST_MARGIN_PCT", self.finance)
+        self.assertNotIn("AIR_SITE_COST_QUOTE", self.finance)
         self.assertIn('airport_price=" + plan.airport.price', self.finance)
 
     def test_probe_helpers_read_only(self):
@@ -513,7 +462,7 @@ class TestV126ReservedWordsAndLoadChain(unittest.TestCase):
         return {
             "quote": body(economics, "function OpexAirSiteLevelQuote("),
             "prepare_block": prepare[
-                prepare.index("if (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)") :
+                prepare.index("if (PROBE_AIR_FINANCE_MARGIN)") :
                 prepare.index("plan.c121EngineStatic <- state;")
             ],
             "margin": body(
@@ -533,18 +482,11 @@ class TestV126ReservedWordsAndLoadChain(unittest.TestCase):
             "cost_fields": body(
                 self.sources["ai/OpexAI/task_air.nut"], "function OpexAirV126CostFields("
             ),
-            "settings_lines": "\n".join(
-                line
-                for line in settings.splitlines()
-                if "AIR_SITE_COST" in line or "ascmp" in line
-            ),
             "globals_lines": "\n".join(
                 line
                 for line in globals_pre.splitlines()
                 if "AIR_SITE_COST" in line or "V126_JOINED_STOP_COST" in line
             ),
-            "info_blocks": setting_block(info, "air_site_cost_quote")
-            + setting_block(info, "air_site_cost_margin_pct"),
         }
 
     def test_no_reserved_squirrel_identifier_in_added_code(self):
@@ -555,7 +497,7 @@ class TestV126ReservedWordsAndLoadChain(unittest.TestCase):
 
     def test_added_squirrel_has_balanced_braces_and_parentheses(self):
         for name, text in self.added_regions().items():
-            if name in ("route_lines", "settings_lines", "globals_lines", "info_blocks"):
+            if name in ("route_lines", "globals_lines"):
                 continue  # extraits de lignes : l'equilibre n'a de sens que par fonction/bloc
             code = code_only(text)
             self.assertEqual(code.count("{"), code.count("}"), name)

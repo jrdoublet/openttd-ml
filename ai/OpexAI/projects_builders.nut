@@ -257,20 +257,10 @@ function OpexProjectFromFleet(entry)
   return project;
 }
 
-/* Marge de caisse AIR selon le nombre d'aeroports neufs. Remplace l'ancienne
- * branche morte airMarginPadding (toujours false) dupliquee en cinq endroits. */
+/* Marge de caisse AIR selon le nombre d'aeroports neufs. `plan` reste dans la
+ * signature : les appelants le passent, il n'est plus lu. */
 function OpexAirRequiredMargin(newAirports, plan = null)
 {
-  /* V126 : avec le devis actif, la marge suit le risque residuel (plancher 2000
-   * plus un pourcentage du cout du site) a condition que le plan porte son devis
-   * C121 ; sinon, ou au defaut, la marge historique par aeroport neuf. */
-  if (AIR_SITE_COST_QUOTE && plan != null
-      && ("c121EngineStatic" in plan) && plan.c121EngineStatic != null) {
-    local st = plan.c121EngineStatic;
-    if (("v126Quoted" in st) && st.v126Quoted == true) {
-      return 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100;
-    }
-  }
   return (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
 }
 

@@ -613,7 +613,7 @@ class TestV126QuoteAndResidual(unittest.TestCase):
         text = "\n".join(render_v126_section(self.metrics))
         self.assertIn(V126_HEADER, text)
         self.assertIn("avec champs V126 : 4", text)
-        self.assertIn("Réglage air_site_cost_quote actif : 3/4", text)
+        self.assertIn("Champ v126=1 : 3/4", text)
         self.assertIn("devis impossibles (-1) : 1/4", text)
         self.assertIn("Précision du devis", text)
         self.assertIn("n=5", text)

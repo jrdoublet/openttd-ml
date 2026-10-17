@@ -44,7 +44,8 @@ class TestAirBypass(unittest.TestCase):
 
     def test_existing_discard_reason_and_probe_gates_are_preserved(self):
         self.assertIn('reason = "batch_plan_dead"', self.preflight)
-        self.assertIn('if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveNote("batch_plan_dead", 1);', self.preflight)
+        self.assertNotIn("AIR_BATCH_TOWN_RESERVE", self.preflight)
+        self.assertNotIn("OpexAirBatchTownReserve", self.preflight)
         for flag in ("DECISION_LOG", "MONTHLY_FUNNEL", "C78_SLOT_INTERCEPT_PROBE", "C122_AIR_THREAT_PROBE"):
             self.assertIn(flag, self.preflight)
 

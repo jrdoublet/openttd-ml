@@ -31,11 +31,10 @@ function OpexAirFinanceMarginLogTry(path, rank, srcTown, dstTown, newAirports, m
 /* Exposition only (probe_air_finance_margin). Jamais lue par un choix. */
 function OpexAirV126FinanceFields(plan)
 {
-  /* Champs V126 d'une ligne de sonde de marge, lus sur l'etat C121 du plan. Sans devis
-   * calcule (profil sans C121, plan sans etat) seul le drapeau est rendu. margin_v126
-   * reprend la formule de OpexAirRequiredMargin pour comparer les deux marges meme quand
-   * le reglage vaut 0 et que la marge historique reste appliquee. */
-  local flag = AIR_SITE_COST_QUOTE ? 1 : 0;
+  /* Champs de la sonde de marge. Le drapeau decisionnel est fige a 0.
+   * margin_v126 vaut la marge historique si le devis a echoue, sinon le
+   * plancher 2000 (pourcentage de marge residuelle fige a 0). */
+  local flag = 0;
   local st = (plan != null && ("c121EngineStatic" in plan)) ? plan.c121EngineStatic : null;
   if (st == null || !("v126Quoted" in st) || st.v126Quoted != true) {
     return " v126=" + flag + " quoted=0";
@@ -47,7 +46,7 @@ function OpexAirV126FinanceFields(plan)
       + " margin_legacy=" + legacyMargin
       + " margin_v126=" + (st.v126QuoteFail > 0
           ? legacyMargin
-          : 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100)
+          : 2000)
       + " airport_price=" + plan.airport.price;
 }
 
@@ -158,49 +157,6 @@ function OpexAirHubReuseObserve(lines, plan, result, lineId)
         + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id
         + " reuse_a=" + (reuseA ? 1 : 0) + " reuse_b=" + (reuseB ? 1 : 0));
   }
-}
-
-/* V126 stale-shadow : mesure au dernier garde cash, avant toute depense,
- * sans toucher au cache quotidien OpexAirSiteLevelQuote. Les sites peuvent
- * avoir change dans la meme journee. Une quote -1 reste "impossible", jamais
- * une economie negative. La difference de marge est reconstruite seulement
- * quand les deux devis sont valides. Aucun retour lu par une decision. */
-function OpexAirStaleQuoteObserve(path, rank, plan, economicsDate, money, reserve, need)
-{
-  if (!AIR_SITE_STALE_SHADOW || !AIR_SITE_COST_QUOTE
-      || plan == null || !("c121EngineStatic" in plan) || plan.c121EngineStatic == null) return;
-  local st = plan.c121EngineStatic;
-  local reuseA = ("reuseA" in plan) && plan.reuseA;
-  local reuseB = ("reuseB" in plan) && plan.reuseB;
-  if (reuseA && reuseB) return;
-  local oldA = ("v126LevelA" in st) ? st.v126LevelA : -3;
-  local oldB = ("v126LevelB" in st) ? st.v126LevelB : -3;
-  local freshA = reuseA ? -2 : OpexAirV95LevelCost(plan.siteA, plan.airport);
-  local freshB = reuseB ? -2 : OpexAirV95LevelCost(plan.siteB, plan.airport);
-  local missing = !("v126Quoted" in st) || !st.v126Quoted || oldA == -3 || oldB == -3;
-  local invalid = (!reuseA && (oldA < 0 || freshA < 0))
-      || (!reuseB && (oldB < 0 || freshB < 0));
-  local changed = !missing && (oldA != freshA || oldB != freshB);
-  local cashShift = 0;
-  local newNeed = need;
-  if (!missing && !invalid) {
-    cashShift = (reuseA ? 0 : freshA - oldA) + (reuseB ? 0 : freshB - oldB);
-    newNeed += cashShift;
-    if (!AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN)
-      newNeed += (cashShift * AIR_SITE_COST_MARGIN_PCT) / 100;
-  }
-  local age = economicsDate >= 0 ? AIDate.GetCurrentDate() - economicsDate : -1;
-  AILog.Info("AIR_SITE_STALE path=" + path + " rank=" + rank
-      + " date=" + AIDate.GetCurrentDate() + " age=" + age
-      + " src=" + plan.siteA.town.id + " dst=" + plan.siteB.town.id
-      + " new=" + ((!reuseA ? 1 : 0) + (!reuseB ? 1 : 0))
-      + " anchor_a=" + plan.siteA.anchor + " anchor_b=" + plan.siteB.anchor
-      + " old_a=" + oldA + " old_b=" + oldB
-      + " now_a=" + freshA + " now_b=" + freshB
-      + " missing=" + (missing ? 1 : 0) + " invalid=" + (invalid ? 1 : 0)
-      + " changed=" + (changed ? 1 : 0) + " shift=" + cashShift
-      + " need=" + need + " fresh_need=" + newNeed + " cash=" + money
-      + " flip=" + ((!missing && !invalid && ((need <= money) != (newNeed <= money))) ? 1 : 0));
 }
 
 function OpexAirFinanceMarginInitLine(line, year, money)
@@ -362,8 +318,6 @@ function OpexAI::_tryBuildAir(year)
     local requiredMargin = OpexAirRequiredMargin(newAirports, plan);
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
-    if (AIR_SITE_STALE_SHADOW) OpexAirStaleQuoteObserve(
-        "legacy", builtCount, plan, -1, money, baseReserve, need);
     if (PROBE_AIR_FINANCE_MARGIN && money < need) {
       local outcome = (money >= capital + baseReserve) ? "refused_margin" : "refused_capital";
       OpexAirFinanceMarginLogTry("legacy", builtCount, plan.siteA.town.id, plan.siteB.town.id,
@@ -642,7 +596,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
   local i = rank;
       local plan = project.payload;
       if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
-          if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveNote("batch_plan_dead", 1);
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
       }
@@ -703,10 +656,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local capital = ("capital" in buildPlan) ? buildPlan.capital
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
-      if (AIR_SITE_STALE_SHADOW) OpexAirStaleQuoteObserve(
-          "portfolio", i, buildPlan,
-          ("economicsDate" in project) ? project.economicsDate : -1,
-          money, need - capital - requiredMargin, need);
       if (spCash != null) OpexSpanEnd(spCash);
       if (PROBE_AIR_FINANCE_MARGIN && money < need) {
         local reserve = need - capital - requiredMargin;

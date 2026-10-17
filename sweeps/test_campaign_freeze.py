@@ -242,7 +242,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "rail_depot_cost",
                      "v90_pathfinder_check", "c83_fixes",
-                     "c83_preempt_open", "air_batch_town_reserve",
+                     "c83_preempt_open",
                      "v95_air_post73_probe",
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
                      "c97_air_c69_engine_probe", "c98_air_realized_probe"):
@@ -267,6 +267,10 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("c77_opportunistic_candidates", defaults)
         self.assertNotIn("c77_targeted_build", defaults)
         self.assertNotIn("c77_fixes", defaults)
+        self.assertNotIn("air_batch_town_reserve", defaults)
+        self.assertNotIn("air_site_cost_quote", defaults)
+        self.assertNotIn("air_site_cost_margin_pct", defaults)
+        self.assertNotIn("air_site_quote_keep_legacy_margin", defaults)
         self.assertEqual(defaults["probe_events"], 0)
         self.assertEqual(defaults["probe_cost"], 0)
         self.assertEqual(defaults["probe_air_engine_depth"], 0)

@@ -46,7 +46,12 @@ LOG_BITS = 508            # 4 | 8 | 16 | 32 | 64 | 128 | 256
 # reglages nommes « shadow »/« diagnostic » mais qui changent des decisions : jamais groupes
 DECISION_CHANGING = (
     "air_bfail_dispose_orphan",
+)
+REMOVED_DECISION_SETTINGS = (
     "air_site_quote_keep_legacy_margin",
+    "air_site_cost_quote",
+    "air_site_cost_margin_pct",
+    "air_batch_town_reserve",
 )
 
 
@@ -128,6 +133,9 @@ class Groups(unittest.TestCase):
         specs = parse_ai_setting_specs(AI / "info.nut")
         for name in DECISION_CHANGING:
             self.assertIn(name, specs, name)
+            self.assertNotIn(name, groups, name)
+        for name in REMOVED_DECISION_SETTINGS:
+            self.assertNotIn(name, specs, name)
             self.assertNotIn(name, groups, name)
         # les experiences qui accompagnent une verification ne sont pas groupees
         for name in ("exp_opcode_exact", "v90_fast_pathfinder", "v129_rail_astar_exact_opt",

@@ -227,12 +227,11 @@ function OpexC121PrepareEngineStatic(catalog, plan)
     existingPaxIncomeA = serviceA.paxIncome, existingPaxIncomeB = serviceB.paxIncome,
     existingMailIncomeA = serviceA.mailIncome, existingMailIncomeB = serviceB.mailIncome,
   };
-  /* V126 : cout reel des aeroports neufs. Les devis ne sont calcules que si le
-   * reglage ou la sonde de marge est actif ; sinon aucun appel n'est ajoute et le
-   * capital garde l'expression ci-dessus (prix catalogue seul). Une extremite
-   * reutilisee n'est pas devisee : champ a -2, 0 livre compte. Un devis a -1
-   * (nivellement de test impossible) compte pour 0 livre et dans quote_fail. */
-  if (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN) {
+  /* Devis de terrassement pour la sonde probe_air_finance_margin seulement.
+   * Le capital reste le prix catalogue. Extremite reutilisee : niveau 0 en
+   * calcul, champ -2. Devis -1 (nivellement de test impossible) : 0 livre
+   * et quote_fail. */
+  if (PROBE_AIR_FINANCE_MARGIN) {
     local levelA = reuseA ? 0 : OpexAirSiteLevelQuote(plan.siteA, plan.airport);
     local levelB = reuseB ? 0 : OpexAirSiteLevelQuote(plan.siteB, plan.airport);
     local levelKnown = (levelA > 0 ? levelA : 0) + (levelB > 0 ? levelB : 0);
@@ -240,7 +239,7 @@ function OpexC121PrepareEngineStatic(catalog, plan)
     local stopsModel = AIR_JOINED_STOPS
         ? newAirportCount * AIR_JOINED_STOP_LIMIT * V126_JOINED_STOP_COST : 0;
     local siteCost = newAirportCount * plan.airport.price + levelKnown;
-    local extra = AIR_SITE_COST_QUOTE ? levelKnown + stopsModel : 0;
+    local extra = 0;
     state.v126LevelA <- reuseA ? -2 : levelA;
     state.v126LevelB <- reuseB ? -2 : levelB;
     state.v126QuoteFail <- quoteFail;
@@ -248,7 +247,6 @@ function OpexC121PrepareEngineStatic(catalog, plan)
     state.v126SiteCost <- siteCost;
     state.v126Extra <- extra;
     state.v126Quoted <- true;
-    if (AIR_SITE_COST_QUOTE) state.airportCapital = newAirportCount * plan.airport.price + extra;
   }
   plan.c121EngineStatic <- state;
   return state;

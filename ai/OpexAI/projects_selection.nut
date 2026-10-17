@@ -674,99 +674,6 @@ function OpexC122ProbeExposure(affordable)
       + " promotions=0");
 }
 
-/* Villes de slot d'un projet aerien pour les extremites neuves seulement.
- * Un hub reutilise (reuse) ne reserve pas sa ville. */
-function OpexAirProjectNewSlotTowns(project)
-{
-  local towns = [];
-  if (project == null || !("mode" in project) || project.mode != "air") return towns;
-  if (!("payload" in project) || project.payload == null) return towns;
-  local plan = project.payload;
-  if (!("siteA" in plan) || plan.siteA == null || !("siteB" in plan) || plan.siteB == null) return towns;
-  local reuseA = ("reuseA" in plan) && plan.reuseA;
-  local reuseB = ("reuseB" in plan) && plan.reuseB;
-  if (!reuseA) {
-    local id = -1;
-    if (("anchor" in plan.siteA)) id = OpexAirSlotTownId(plan.siteA.anchor);
-    if (id < 0 && ("town" in plan.siteA) && plan.siteA.town != null && ("id" in plan.siteA.town)) {
-      id = plan.siteA.town.id;
-    }
-    if (id >= 0) towns.append(id);
-  }
-  if (!reuseB) {
-    local id = -1;
-    if (("anchor" in plan.siteB)) id = OpexAirSlotTownId(plan.siteB.anchor);
-    if (id < 0 && ("town" in plan.siteB) && plan.siteB.town != null && ("id" in plan.siteB.town)) {
-      id = plan.siteB.town.id;
-    }
-    if (id >= 0) {
-      local seen = false;
-      foreach (prev in towns) if (prev == id) seen = true;
-      if (!seen) towns.append(id);
-    }
-  }
-  return towns;
-}
-
-/* Sonde d'exposition : retraits de la reserve, et batch_plan_dead encore observes.
- * Les compteurs ne bougent que si une sonde deja existante est armee. */
-function OpexAirBatchTownReserveNote(kind, n)
-{
-  if (!C69_BOTTLENECK_PROBE && !C78_SLOT_INTERCEPT_PROBE) return;
-  if (kind == "batch_plan_dead") {
-    ::AIR_BATCH_TOWN_RESERVE_DEAD = AIR_BATCH_TOWN_RESERVE_DEAD + n;
-  } else {
-    ::AIR_BATCH_TOWN_RESERVE_DROPPED = AIR_BATCH_TOWN_RESERVE_DROPPED + n;
-  }
-  local fields = "phase=air_batch_town_reserve kind=" + kind + " n=" + n
-      + " dropped=" + AIR_BATCH_TOWN_RESERVE_DROPPED
-      + " batch_plan_dead=" + AIR_BATCH_TOWN_RESERVE_DEAD;
-  if (C78_SLOT_INTERCEPT_PROBE) OpexC78SlotLog(fields);
-  else OpexC69Log(fields);
-}
-
-/* Le classement est deja le meilleur d'abord. On garde le premier projet qui
- * ouvre chaque ville neuve. Les autres restent dans le vivier d'alternatives :
- * cette fonction ne touche que la liste financee passee en argument. */
-function OpexAirBatchTownReserveCompact(best)
-{
-  if (!AIR_BATCH_TOWN_RESERVE || best == null) return 0;
-  local claimed = {};
-  local kept = [];
-  local dropped = 0;
-  foreach (project in best) {
-    local towns = OpexAirProjectNewSlotTowns(project);
-    local blocked = false;
-    foreach (id in towns) {
-      if (id in claimed) blocked = true;
-    }
-    if (blocked) {
-      dropped++;
-      continue;
-    }
-    foreach (id in towns) claimed.rawset(id, true);
-    kept.append(project);
-  }
-  if (dropped <= 0) return 0;
-  best.resize(0);
-  foreach (project in kept) best.append(project);
-  OpexAirBatchTownReserveNote("dropped", dropped);
-  return dropped;
-}
-
-/* Vrai si une ville neuve de ce projet est deja prise par un projet mieux classe
- * de la meme passe. Sinon la ville est reservee pour ce projet. */
-function OpexAirBatchTownReserveHit(claimed, project)
-{
-  if (claimed == null || project == null) return false;
-  local towns = OpexAirProjectNewSlotTowns(project);
-  foreach (id in towns) {
-    if (id in claimed) return true;
-  }
-  foreach (id in towns) claimed.rawset(id, true);
-  return false;
-}
-
 /* C116.2 : memoriser les trois premiers projets AIR deja finançables/classes.
  * Le cout est borne a PROJECT_TOP_K (64 par defaut), sans generation, economie
  * ni recherche de site supplementaire. Le snapshot sert au diagnostic moteur
@@ -1283,7 +1190,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
   OpexC121KDecColdShadowEnd(c121KDecColdRows, affordable, limit, kDec);
   OpexC122ProbeExposure(affordable);
-  if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveCompact(affordable);
   if (C69_BOTTLENECK_PROBE) {
     ::C69_LAST_AFFORDABLE = c69Affordable;
     ::C69_LAST_KDEC_DATA = kDecData;

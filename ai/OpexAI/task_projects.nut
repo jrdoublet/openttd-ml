@@ -1532,8 +1532,6 @@ function OpexAI::_tryBuildProjects(year)
       logDiscardsThisPass = true;
     }
   }
-  local airReserveTowns = null;
-  if (AIR_BATCH_TOWN_RESERVE) airReserveTowns = {};
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
@@ -1595,7 +1593,6 @@ function OpexAI::_tryBuildProjects(year)
       if (R1_R3_TEST_ONLY) OpexR1R3AirTrace(this, project, i, "reject", "batch_plan_dead",
           r1r3BypassBefore, r1r3BypassBefore, builtCount, r1r3Threshold);
       if (c121FirstYearAirBatch) c121DeadSkipped++;
-      if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveNote("batch_plan_dead", 1);
       if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
           || C122_AIR_THREAT_PROBE) {
         local plan = project.payload;
@@ -1731,11 +1728,6 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     if (mode == "air") {
-      if (AIR_BATCH_TOWN_RESERVE && airReserveTowns != null
-          && OpexAirBatchTownReserveHit(airReserveTowns, project)) {
-        OpexAirBatchTownReserveNote("dropped", 1);
-        continue;
-      }
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardStart = C78_SLOT_INTERCEPT_PROBE ? passDiscards.len() : 0;
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;

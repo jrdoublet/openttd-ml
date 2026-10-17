@@ -173,11 +173,6 @@ EXP_AIR_HUB_PAIR_PREFILTER <- false;
 C83_PREEMPT_OPEN <- false;
 C83_PREEMPT_TOWN <- -1;
 C83_PREEMPT_STOPPED <- false;
-/* Lot AIR : au plus un projet finance par ville de nouvel aeroport.
- * Les compteurs ne vivent que sous les sondes deja existantes. */
-AIR_BATCH_TOWN_RESERVE <- false;
-AIR_BATCH_TOWN_RESERVE_DROPPED <- 0;
-AIR_BATCH_TOWN_RESERVE_DEAD <- 0;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
@@ -394,32 +389,21 @@ V133_AIR_LAST_SITE_ERROR <- 0;
  * contient un jusqu'a l'anneau suivant. */
 C96_AIR_SITE_CATCHMENT <- true;
 AIR_SITE_MIN_CATCHMENT <- false;
-/* V126 : cout reel des aeroports neufs. AIR_SITE_COST_QUOTE ajoute au capital
- * AIR C121 le devis de terrassement et le cout modelise des arrets joints, et
- * dimensionne la marge de financement sur le risque residuel (pourcentage du cout
- * du site, AIR_SITE_COST_MARGIN_PCT). Defaut 0.
- * V126_JOINED_STOP_COST : cout modelise d'UN arret joint (livres, mesure 450..2250).
- * AIR_SITE_COST_QUOTES : cache reconstructible des devis par ancre et type
- * d'aeroport, jamais sauvegarde. */
-AIR_SITE_COST_QUOTE <- false;
 /* AIR BFAIL : expérience causale, 0 conserve A comme historiquement ; 1
  * liquide seulement l'aéroport A neuf après échec de construction de B. */
 AIR_BFAIL_DISPOSE_ORPHAN <- false;
 /* Mesure seule : tester l'emprise B en AITestMode avant construction A,
  * mais NE PAS rejeter de chantier avec ce resultat. Inerte au defaut. */
 AIR_BFAIL_PRECHECK_SHADOW <- false;
-AIR_SITE_COST_MARGIN_PCT <- 0;
-/* Diagnostic orthogonal V126 : devis AIR dans le capital mais conserver la
- * marge historique 2k/12k/30k ; aucun effet si AIR_SITE_COST_QUOTE=0. */
-AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN <- false;
-/* V126 : observation uniquement des devis differes au dernier garde cash.
- * Aucune revalidation decisionnelle ; OFF par defaut. */
+/* Diagnostic air_site_stale_shadow : le drapeau reste charge. L'observation
+ * des devis perimes exigeait le devis decisionnel retire ; aucun effet. */
 AIR_SITE_STALE_SHADOW <- false;
-/* B9 : 450..2250 GBP/stop observes, devis prudent au maximum constate.
- * Candidate V126 OFF par defaut ; ne vaut pas garantie sur de nouveaux sites. */
+/* Devis de terrassement pour la sonde probe_air_finance_margin seulement.
+ * N'entre ni dans le capital C121 ni dans la marge de caisse.
+ * V126_JOINED_STOP_COST : cout modelise d'UN arret joint, journalise par la sonde.
+ * AIR_SITE_COST_QUOTES : cache reconstructible par ancre et type, jamais sauvegarde. */
 V126_JOINED_STOP_COST <- 300;
 AIR_SITE_COST_QUOTES <- {};
-AIR_SITE_COST_QUOTES_DATE <- -1;
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
 /* C97 : sonde passive du choix moteur AIR par argmax direct (moteur, profondeur)

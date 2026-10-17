@@ -912,7 +912,7 @@ def render_v126_section(v126: Optional[Dict[str, Any]]) -> List[str]:
         f"avec champs V126 : {quoted} | sans : {v126.get('unquoted_built', 0)}"
     )
     lines.append(
-        f"  Réglage air_site_cost_quote actif : {v126.get('flag_on_count', 0)}/{quoted} | "
+        f"  Champ v126=1 : {v126.get('flag_on_count', 0)}/{quoted} | "
         f"devis impossibles (-1) : {v126.get('quote_fail_tries', 0)}/{quoted}"
     )
     prec = v126.get("quote_precision", {})

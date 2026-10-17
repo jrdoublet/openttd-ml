@@ -417,7 +417,6 @@ function OpexLoadSettings()
   C83_LOCAL_REPAIR = AIController.GetSetting("c83_local_repair") != 0;
   EXP_AIR_HUB_PAIR_PREFILTER = AIController.GetSetting("exp_air_hub_pair_prefilter") != 0;
   C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
-  AIR_BATCH_TOWN_RESERVE = AIController.GetSetting("air_batch_town_reserve") != 0;
   V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;
   V95_AIR_POST73_PROBE = OpexProbeSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
@@ -425,12 +424,8 @@ function OpexLoadSettings()
   V133_AIR_BUILD_RETRY = AIController.GetSetting("v133_air_build_retry") != 0;
   C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
   AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
-  AIR_SITE_COST_QUOTE = AIController.GetSetting("air_site_cost_quote") != 0;
   AIR_BFAIL_DISPOSE_ORPHAN = AIController.GetSetting("air_bfail_dispose_orphan") != 0;
   AIR_BFAIL_PRECHECK_SHADOW = OpexProbeSetting("air_bfail_precheck_shadow") != 0;
-  local ascmp = AIController.GetSetting("air_site_cost_margin_pct");
-  if (ascmp >= 0) AIR_SITE_COST_MARGIN_PCT = ascmp;
-  AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN = AIController.GetSetting("air_site_quote_keep_legacy_margin") != 0;
   AIR_SITE_STALE_SHADOW = OpexProbeSetting("air_site_stale_shadow") != 0;
   C97_AIR_C69_ENGINE_PROBE = OpexProbeSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
