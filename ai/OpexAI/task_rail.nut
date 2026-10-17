@@ -472,8 +472,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
 
-      local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
-      local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
+      local alternativeRatio = MIN_RATIO;
       local hardCap = OpexRailCandidateHardCap(candidate,
           OpexDynamicHardCap(this._lines.len(), lowCash));
       local posPacked = i * TOP_K + this._projects.best.len();
@@ -1880,7 +1879,6 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                      + " iters=" + result.iterations + " delay_days=" + delaySelectDays
                      + " search_to_service_days=" + delaySearchDays);
     }
-    local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
     OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
     OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
     OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
@@ -1910,8 +1908,6 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                              + candidate.trains + "|" + result.trains + "|"
                              + result.doubleTrack);
     }
-    if (isPaxNear) OpexSign(anchor, "PY|" + idx);
-
     if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
@@ -2208,8 +2204,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     }
   }
 
-  local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
-  local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
+  local alternativeRatio = MIN_RATIO;
   local hardCap = OpexRailCandidateHardCap(candidate,
       OpexDynamicHardCap(this._lines.len(), false));
   local posPacked = 0;

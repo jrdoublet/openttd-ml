@@ -735,9 +735,10 @@ function OpexLoadSettings()
       && AIController.GetSetting("ac06_c76_snapshot_ack") != 0;
   AC04_HUB_USAGE_GATE = AIController.GetSetting("ac04_hub_usage_gate") != 0;
   V147_AIR_CATALOG_TASKS = AIController.GetSetting("v147_air_catalog_tasks") != 0;
-  C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
+  /* c67_terrain_map retire : defaut 0, aucun consommateur. Le crochet ne reste
+   * que pour la sonde eau, elle-meme inactive au defaut. */
   C67_WATER_EXPOSURE = OpexProbeSetting("c67_water_exposure_probe") != 0;
-  C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
+  C67_SLACK_HOOK = C67_WATER_EXPOSURE;
   /* C77 corrige est permanent et repose sur le socle du double registre. */
   C80_WORKER_RAIL = AIController.GetSetting("c80_worker_rail") != 0;
   C80_RAIL_STOCK_GATE = AIController.GetSetting("c80_rail_stock_gate") != 0;
@@ -750,7 +751,6 @@ function OpexLoadSettings()
   C80_AIR_HUB_INDEX = AIController.GetSetting("c80_air_hub_index") != 0;
   C80_MARGINAL_FLOOR = AIController.GetSetting("c80_marginal_floor") != 0;
   C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
-  C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
@@ -795,7 +795,6 @@ function OpexLoadSettings()
   V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;
   SUBSIDY_RESELECT_IF_PURGED = AIController.GetSetting("subsidy_reselect_if_purged") != 0;
   SELECT_BISECT_INSERT = AIController.GetSetting("select_bisect_insert") != 0;
-  PAX_NEAR = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;
   OPEX_AIR_SITE_PAD = false;
@@ -803,7 +802,6 @@ function OpexLoadSettings()
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   AIR_MAX_DISTANCE = 0;
-  C53_ORDER_NOLOAD = false;
   TRANSIT_COST_PERMILLE = 0;
   INFRA_AMORT_PCT = 0;
   PORTFOLIO_MAX_BATCH = 1;

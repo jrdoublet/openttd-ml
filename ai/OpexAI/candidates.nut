@@ -82,17 +82,6 @@ function OpexFreightCargoOrder(catalog)
 VIVIER_RATIO_FILTER <- true;
 CLEAN_DENSITY_SCORE <- true;
 
-/* Retuning pax borne (suite item 7). Les 11/11 paires pax <=100 tuiles force-construites
- * avec predit -146..-9 etaient rentables en derniere annee ; au-dela de 100 la mediane
- * reelle est 0. On admet cette famille au classement, rien d'autre : pas le fret, pas
- * le long, pas un decalage de OpexLineEconomics. ratio = 1 les place sous tout candidat
- * qui passe MIN_RATIO. _tryBuild les bride a 1 tentative/an au plafond dur.
- * PAX_NEAR_MIN_PROFIT = -200 couvre l'echantillon (-146) sans ouvrir le gouffre. */
-const PAX_NEAR_MAX_DISTANCE = 100;
-const PAX_NEAR_MIN_PROFIT = -200;
-const PAX_NEAR_MAX_ATTEMPTS_PER_YEAR = 1;
-const PAX_NEAR_RATIO = 1;
-
 /* Etage 2 : le cout, AJUSTE sur la campagne v3 (1997 lignes reelles, OpenTTD 13.4).
  *
  * La grandeur utile n'est pas "iterations d'une tentative" mais "iterations par ligne REUSSIE",
@@ -769,15 +758,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.economicsUnavailable++;
     return null;
   }
-  /* Un candidat dont le profit annuel attendu est negatif ne merite AUCUN opcode,
-   * SAUF la famille pax_near (pax, <=100 tuiles, predit > -200) : le sondage a
-   * 40 000 iterations a trouve 11/11 rentables en derniere annee, et le long non. */
+  /* Un candidat dont le profit annuel attendu est negatif ne merite aucun opcode.
+   * L'ancienne famille pax_near (PAX_NEAR fige a false) n'admet plus rien. */
   if (economics.profitAnnual <= 0) {
-    if (PAX_NEAR && kind == "pax" && distance <= PAX_NEAR_MAX_DISTANCE
-        && economics.profitAnnual > PAX_NEAR_MIN_PROFIT) {
-      return OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, originServed,
-                                      distance, economics, stats);
-    }
     stats.profitNonPositive++;
     if (V216_PROBE) OpexV216NoteReject("profit", kind, srcTile, dstTile, monthly, economics);
     if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
@@ -860,43 +843,6 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     isLowRatio = isLowRatio,
   };
   /* V163 : le second cargo n'est garde que s'il a trouve place dans la rame. */
-  if (("wagons2" in economics) && economics.wagons2 > 0) {
-    candidate.cargo2 <- economics.cargo2;
-    candidate.monthly2 <- economics.monthly2;
-    candidate.wagons2 <- economics.wagons2;
-    candidate.perTrain2 <- economics.perTrain2;
-    candidate.carried2 <- economics.carried2;
-    candidate.revenue2 <- economics.revenue2;
-  }
-  return candidate;
-}
-
-/* Famille pax_near : meme tableau qu'un candidat classe, ratio = 1 (sous MIN_RATIO),
- * slot paxNear pour que _tryBuild bride a une tentative/an au plafond dur.
- * Un helper evite de copier 30 champs dans le chemin profit>0. */
-function OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, originServed,
-                                  distance, economics, stats)
-{
-  stats.paxNearAdmitted++;
-  stats.accepted++;
-  local candidate = {
-    mode = "rail", kind = kind, cargo = cargo, originServed = originServed,
-    src = srcTile, dst = dstTile, distance = distance, monthly = monthly,
-    trains = economics.trains, wagons = economics.wagons, perTrain = economics.perTrain,
-    platformLength = economics.platformLength, loco = economics.loco,
-    effectiveSpeed = economics.effectiveSpeed, tripsPerMonth = economics.tripsPerMonth,
-    headwayDays = economics.headwayDays, stationRating = economics.stationRating,
-    offered = economics.offered, monthlyCapacity = economics.monthlyCapacity,
-    trainsForHeadway = economics.trainsForHeadway, trainsForVolume = economics.trainsForVolume,
-    carried = economics.carried, capital = economics.capital, roi = economics.roi,
-    profitAnnual = economics.profitAnnual, revenueAnnual = economics.revenueAnnual,
-    runningAnnual = economics.runningAnnual, amortAnnual = economics.amortAnnual,
-    oneWayDays = economics.oneWayDays,
-    iterations = OpexRailIterations(distance),
-    ratio = PAX_NEAR_RATIO,
-  };
-  candidate.paxNear <- true;
-  /* V163 / V207 : le second cargo n'est garde que s'il a trouve place dans la rame. */
   if (("wagons2" in economics) && economics.wagons2 > 0) {
     candidate.cargo2 <- economics.cargo2;
     candidate.monthly2 <- economics.monthly2;
@@ -1019,48 +965,14 @@ function OpexRoadFreightServedIndex(lines)
   return served;
 }
 
-/* C55 etape 2 : le fret route remplace la proximite geometrique (< ORIGIN_SEPARATION,
- * toutes lignes et tous cargos) par l'identite exacte (cargo, tuile) : c'est bien la regle
- * voulue, un raccordement par origine. Une source et un puits ne portent donc chacun qu'une
- * ligne par cargo ; aucun decompte de production restante n'est necessaire ici, et il reste
- * deliberement hors sujet : ne jamais changer deux choses a la fois.
- * PROPRIETE CLE : busy(cargo, tile) implique une origine route/rail a distance 0, donc
- * OpexOriginServed(lines, tile, true). Le chemin ON ne peut ainsi rejeter que des candidats
- * deja rejetes OFF : il en ajoute, sans jamais en retirer. L'index est construit une fois par
- * generation seulement quand le reglage est actif, jamais dans la boucle cargo x origine x puits. */
-function OpexRoadFreightBusyIndex(lines)
-{
-  local busy = {};
-  foreach (line in lines) {
-    if (!(("mode" in line) && (line.mode == "rail" || line.mode == "road"))) continue;
-    if (!("cargo" in line) || !("originA" in line) || !("originB" in line)) continue;
-    busy.rawset(line.cargo + "|" + line.originA, true);
-    busy.rawset(line.cargo + "|" + line.originB, true);
-  }
-  return busy;
-}
-
-/* Les revalidations incrementale et de construction ne visitent qu'un candidat : parcourir
- * lines ici evite de payer un index temporaire. */
-function OpexRoadFreightBusy(lines, cargo, tile)
-{
-  foreach (line in lines) {
-    if (!(("mode" in line) && (line.mode == "rail" || line.mode == "road"))) continue;
-    if (("cargo" in line) && line.cargo == cargo &&
-        ((("originA" in line) && line.originA == tile)
-         || (("originB" in line) && line.originB == tile))) return true;
-  }
-  return false;
-}
-
 /* C41.20 : les villes qui n'acceptent pas une unite pleine ne pourront jamais devenir un puits
  * fret. La liste est construite une fois par cargo et garde l'ordre croissant historique des
  * villes ; la boucle source->ville conserve donc l'ordre de tous les candidats admissibles. */
-function OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage, busy = null)
+function OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage)
 {
   local accepted = [];
   for (local t = 0; t < towns.len(); t++) {
-    if (busy != null ? (cargo + "|" + towns[t].tile in busy) : servedTown[t]) continue;
+    if (servedTown[t]) continue;
     local acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
     if (acceptance >= ROAD_ACCEPTANCE_FULL_UNIT) accepted.append(t);
   }
@@ -2156,7 +2068,6 @@ function OpexRailCandidateStats()
     distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
     profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
   };
-  if (PAX_NEAR) stats.paxNearAdmitted <- 0;
   return stats;
 }
 
@@ -2746,7 +2657,6 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   local industries = catalog.industries;
   local towns = catalog.towns;
   local servedIndex = C41_ROAD_FREIGHT_SERVED_INDEX ? OpexRoadFreightServedIndex(lines) : null;
-  local freightBusy = C55_FREIGHT_ORIGIN_RELAX ? OpexRoadFreightBusyIndex(lines) : null;
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
     servedIndustry.append(servedIndex != null
@@ -2777,11 +2687,11 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
     /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
      * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
     local townTargets = C41_ROAD_FREIGHT_ACCEPTANCE_INDEX
-        ? OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage, freightBusy) : null;
+        ? OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage) : null;
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
-      if (freightBusy == null && servedIndustry[si]) {
+      if (servedIndustry[si]) {
         /* Le code livre saute toute la source. Sous sonde, enumerer seulement les paires
          * qu'il aurait sautees permet de compter ce filtre sans changer son continue. */
         if (C55_ORIGIN_RELAX_PROBE) {
@@ -2798,12 +2708,6 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         continue;
       }
       local source = industries[si];
-      local sourceBusy = freightBusy != null && (cargo + "|" + source.tile in freightBusy);
-      /* Une source occupee voit DEJA toutes ses paires rejetees plus bas (le "|| sourceBusy" des
-       * deux boucles) : les enumerer quand meme couterait puits + villes opcodes pour rien, dans
-       * la boucle la plus chaude de la generation. Sortir ici ne change aucun candidat produit.
-       * Inerte a reglage 0 : freightBusy y vaut null, donc sourceBusy est toujours faux. */
-      if (sourceBusy) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
@@ -2816,10 +2720,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
             && source.id != targetId && industries[di].id != targetId) continue;
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
-            source.tile, industries[di].tile, sourceBusy, servedIndustry[di]);
-        if (freightBusy != null
-            ? ((servedIndustry[si] && servedIndustry[di]) || sourceBusy ||
-               (cargo + "|" + industries[di].tile in freightBusy)) : servedIndustry[di]) {
+            source.tile, industries[di].tile, false, servedIndustry[di]);
+        if (servedIndustry[di]) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }
@@ -2847,7 +2749,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       if (C55_ORIGIN_RELAX_PROBE && townTargets != null) {
         for (local ti = 0; ti < towns.len(); ti++) {
           OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
-              sourceBusy, servedTown[ti]);
+              false, servedTown[ti]);
         }
       }
       local townPool = (townTargets != null) ? townTargets : towns;
@@ -2859,14 +2761,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
-            lines, source.tile, towns[t].tile, sourceBusy, servedTown[t]);
-        if (freightBusy != null) {
-          if ((servedIndustry[si] && servedTown[t]) || sourceBusy ||
-              (cargo + "|" + towns[t].tile in freightBusy)) {
-            if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
-            continue;
-          }
-        } else if (townTargets == null && servedTown[t]) {
+            lines, source.tile, towns[t].tile, false, servedTown[t]);
+        if (townTargets == null && servedTown[t]) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }
@@ -3246,14 +3142,7 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
       if (OpexRoadPairServed(lines, srcTile, dstTile)) continue;
       if (OpexTownRoadLineCount(lines, srcTile) >= 4 || OpexTownRoadLineCount(lines, dstTile) >= 4) continue;
     } else {
-      if (C55_FREIGHT_ORIGIN_RELAX) {
-        local srcServed = OpexOriginServed(lines, srcTile, true);
-        local dstServed = OpexOriginServed(lines, dstTile, true);
-        if (srcServed && dstServed) continue;
-        if (OpexRoadFreightBusy(lines, cargo, srcTile) || OpexRoadFreightBusy(lines, cargo, dstTile)) continue;
-      } else {
-        if (OpexOriginServed(lines, srcTile, true) || OpexOriginServed(lines, dstTile, true)) continue;
-      }
+      if (OpexOriginServed(lines, srcTile, true) || OpexOriginServed(lines, dstTile, true)) continue;
     }
 
     // Evaluation economique de base

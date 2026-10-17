@@ -1,5 +1,6 @@
-/* C67.2: isolated, reconstructible terrain summaries. C67.4: loaded by OpexAI, but only
- * constructed under c67_terrain_map (task_terrain.nut). budget.nut must be loaded first.
+/* C67.2: isolated, reconstructible terrain summaries. Loaded by OpexAI for OpexTerrainIds
+ * (water_graph.nut) and by the C67 fixtures. The slack filler (former c67_terrain_map,
+ * default 0, no consumer) is no longer constructed. budget.nut must be loaded first.
  * No economic consumer and no connectivity claim. */
 
 class OpexTerrainSource {

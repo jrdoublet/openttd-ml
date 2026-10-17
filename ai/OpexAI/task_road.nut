@@ -70,29 +70,13 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if (C55_FREIGHT_ORIGIN_RELAX && candidate.kind == "freight") {
-          local srcServed = OpexOriginServed(this._lines, candidate.src, true);
-          local dstServed = OpexOriginServed(this._lines, candidate.dst, true);
-          if (srcServed && dstServed) {
-            if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
-            return { outcome = "rejected", discards = passDiscards };
-          }
-          /* Un index ne rentabiliserait pas son cout pour ce seul candidat vivant : la boucle
-           * directe sur les lignes est moins chere ici et dans la revalidation incrementale. */
-          if (OpexRoadFreightBusy(this._lines, candidate.cargo, candidate.src) ||
-              OpexRoadFreightBusy(this._lines, candidate.cargo, candidate.dst)) {
-            if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "freight_endpoint_busy", extra = "" });
-            return { outcome = "rejected", discards = passDiscards };
-          }
-        } else {
-          if (OpexOriginServed(this._lines, candidate.src, true)) {
-            if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
-            return { outcome = "rejected", discards = passDiscards };
-          }
-          if (OpexOriginServed(this._lines, candidate.dst, true)) {
-            if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
-            return { outcome = "rejected", discards = passDiscards };
-          }
+        if (OpexOriginServed(this._lines, candidate.src, true)) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (OpexOriginServed(this._lines, candidate.dst, true)) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
         }
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);

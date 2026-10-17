@@ -424,15 +424,8 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
           if (isOriginBlocked) return false;
           if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
       } else {
-        /* Fret routier */
-        if (C55_FREIGHT_ORIGIN_RELAX) {
-          local srcServed = OpexOriginServed(lines, p.src, true);
-          local dstServed = OpexOriginServed(lines, p.dst, true);
-          if (srcServed && dstServed) return false;
-          /* Une seule paire est revalidee : une boucle directe evite de construire un index. */
-          if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
-              OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
-        } else if (C55_ORIGIN_RELAX_PROBE) {
+        /* Fret routier : exclusivite d'origine historique (C55_FREIGHT_ORIGIN_RELAX fige a false). */
+        if (C55_ORIGIN_RELAX_PROBE) {
           local srcServed = OpexOriginServed(lines, p.src, true);
           local dstServed = OpexOriginServed(lines, p.dst, true);
           OpexC55OriginRelaxObserve("freight", lines, p.src, p.dst, srcServed, dstServed);
@@ -689,14 +682,8 @@ function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx)
       if (isOriginBlocked) return false;
       if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
     } else {
-      /* Fret routier */
-      if (C55_FREIGHT_ORIGIN_RELAX) {
-        local srcServed = (p.src in ctx.servedWithRoad);
-        local dstServed = (p.dst in ctx.servedWithRoad);
-        if (srcServed && dstServed) return false;
-        if (((p.cargo + "|" + p.src) in ctx.roadFreightBusy) ||
-            ((p.cargo + "|" + p.dst) in ctx.roadFreightBusy)) return false;
-      } else if (C55_ORIGIN_RELAX_PROBE) {
+      /* Fret routier : exclusivite d'origine historique (C55_FREIGHT_ORIGIN_RELAX fige a false). */
+      if (C55_ORIGIN_RELAX_PROBE) {
         local srcServed = (p.src in ctx.servedWithRoad);
         local dstServed = (p.dst in ctx.servedWithRoad);
         OpexC55OriginRelaxObserve("freight", lines, p.src, p.dst, srcServed, dstServed);

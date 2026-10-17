@@ -11,7 +11,7 @@ Verifie :
    - transmission de secondary a OpexMakeCandidate.
 3. Chaine V163 et recalculs :
    - OpexV163CandidateSecondary debloque pour le pax quand V207_RAIL_MAIL est actif.
-   - Conservation du second cargo dans OpexMakePaxNearCandidate.
+   - Conservation du second cargo dans OpexMakeCandidate (chemin vivant ; pax_near retire).
 4. Arrets joints rail V207 :
    - catalog.nut active AIRoad.SetCurrentRoadType(ROADTYPE_ROAD) si AIR_JOINED_STOPS ou V207_RAIL_PAX_JOINED_STOPS > 0.
    - OpexV207RailBuildJoinedStops defini dans builder_rail.nut avec les contraintes d'emprise, distance > rayon train, etc.
@@ -116,10 +116,11 @@ class TestV207PaxAndMailCandidates(unittest.TestCase):
         self.assertIn("V207_RAIL_MAIL", body)
         self.assertIn('candidate.kind == "pax"', body)
 
-    def test_pax_near_preserves_secondary(self):
-        body = function_body(self.candidates_src, "OpexMakePaxNearCandidate")
+    def test_make_candidate_preserves_secondary(self):
+        body = function_body(self.candidates_src, "OpexMakeCandidate")
         self.assertIn('"wagons2" in economics', body)
         self.assertIn("candidate.cargo2 <- economics.cargo2;", body)
+        self.assertNotIn("OpexMakePaxNearCandidate", self.candidates_src)
 
 
 class TestV207JoinedStops(unittest.TestCase):

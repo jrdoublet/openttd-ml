@@ -336,8 +336,6 @@ C49_SCARCITY_LEDGER <- false;
 /* C55 etape 1 : mesure seule du filtre OR route. Le ledger est nul hors sonde. */
 C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;
-/* C55 etape 2 : relache seulement le verrou d'origine du fret route. */
-C55_FREIGHT_ORIGIN_RELAX <- false;
 /* C55 : sonde de tracabilite des revalidations PAX routieres bloquees par une origine deja servie. */
 C55_PAX_TRACE_PROBE <- false;
 C55_PAX_TRACE_LEDGER <- null;
@@ -847,7 +845,6 @@ AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
 AIR_FULL_LOAD <- 0;
 C53_ORDER_NONSTOP <- false;
-C53_ORDER_NOLOAD <- false;
 COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
@@ -1020,12 +1017,9 @@ C80_WORKER_RAIL <- false;
  * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif. */
 C80_WORKER_TOWN <- false;
 
-/* C67.4 : carte par blocs dans le reliquat de tick, sans consommateur (contrat C67 §14).
- * 0 = service absent (défaut), 1 = service construit et rempli en fond. */
-C67_TERRAIN_MAP <- false;
-
 /* C67.6 : sonde passive d'exposition eau (task_terrain.nut), 0 = absente (défaut).
- * C67_SLACK_HOOK vaut vrai si au moins un service C67 utilise le reliquat de tick. */
+ * La carte par blocs (ancien c67_terrain_map, defaut 0, sans consommateur) n'arme plus
+ * ce crochet : C67_SLACK_HOOK suit seulement la sonde eau. */
 C67_WATER_EXPOSURE <- false;
 C67_SLACK_HOOK <- false;
 C67_WATER_EXPO <- null;

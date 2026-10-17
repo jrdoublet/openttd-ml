@@ -1079,11 +1079,8 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local sourceFlags = (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
-  /* C53 : C53_ORDER_NOLOAD interdit tout rechargement parasite au terminus de dechargement. */
-  local isFreight = candidate.kind == "freight";
-  local destFlags = isFreight
-      ? (C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE)
-      : AIOrder.OF_NONE;
+  /* Terminus : OF_NONE (C53_ORDER_NOLOAD fige a false, pas de OF_NO_LOAD). */
+  local destFlags = AIOrder.OF_NONE;
   destFlags = destFlags | nonstopFlag;
   local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();
@@ -1227,9 +1224,7 @@ function OpexRoadRefleet(catalog, line, have, target)
     local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
     local isFreight = (("kind" in line) && line.kind == "freight");
     local sourceFlags = (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
-    local destFlags = isFreight
-        ? (C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE)
-        : AIOrder.OF_NONE;
+    local destFlags = AIOrder.OF_NONE;
     destFlags = destFlags | nonstopFlag;
     if (!AIOrder.AppendOrder(first, line.stationA, sourceFlags) ||
         !AIOrder.AppendOrder(first, line.stationB, destFlags) ||

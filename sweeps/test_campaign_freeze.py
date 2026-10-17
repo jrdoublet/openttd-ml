@@ -245,7 +245,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c83_preempt_open", "air_batch_town_reserve",
                      "v93_air_demand_production", "v95_air_post73_probe",
                      "v88_all_inputs", "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve",
-                     "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
+                     "v94_air_site_check", "c67_water_exposure_probe",
                      "c97_air_c69_engine_probe", "c98_air_realized_probe",
                      "c104_air_c100_compare_probe",
                      "c110_air_engine_calibration_choice_only"):
