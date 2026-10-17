@@ -143,8 +143,6 @@ function OpexLoadSettings()
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
   local railSlices = AIController.GetSetting("v186_rail_search_slices");
   V186_RAIL_SEARCH_SLICES = (railSlices != null && railSlices >= 1 && railSlices <= 16) ? railSlices : 1;
-  V187_RAIL_REFLEET_DURING_SEARCH = AIController.GetSetting("v187_rail_refleet_during_search") != 0;
-  V188_RAIL_JOIN_SLOPES = AIController.GetSetting("v188_rail_join_slopes") != 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
   V197_GUIDED_DOUBLE = AIController.GetSetting("v197_guided_double") != 0;
   V198_TEMPLATE_DOUBLE = AIController.GetSetting("v198_template_double") != 0;

@@ -1900,22 +1900,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v188_rail_join_slopes",
-      description = "V188: allow sloped tiles for joined parallel rail platforms (double track) (0 = flat only)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v187_rail_refleet_during_search",
-      description = "V187: allow rail second train / double track while a new-line A* search is running (0 = historical)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v186_rail_search_slices",
       description = "V186: rail A* slices advanced per scheduler pass (1..16, default 1 = historical)",
       min_value = 1, max_value = 16,

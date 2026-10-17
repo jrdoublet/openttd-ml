@@ -33,8 +33,6 @@ V194_SHORT_TO_SERVED_DST <- false;
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
 V186_RAIL_SEARCH_SLICES <- 1;
-/* V187 : second train / doublement autorises pendant une recherche A* de ligne neuve. */
-V187_RAIL_REFLEET_DURING_SEARCH <- false;
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
@@ -87,8 +85,6 @@ function OpexV198Active()
   return V198_TEMPLATE_DOUBLE && OpexV190Active();
 }
 V190_RAIL_MAX_TRAINS <- 4;
-/* V188 : pentes tolerees pour les quais joints paralleles. */
-V188_RAIL_JOIN_SLOPES <- false;
 /* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
  * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
 V171_RAIL_KNOTS <- 0;

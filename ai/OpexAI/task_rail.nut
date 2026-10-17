@@ -745,7 +745,7 @@ function OpexAI::_expandRailLines(year)
    * JAMAIS gagner un second train ni une seconde voie. Desormais inconditionnel. */
   if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
-  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !V187_RAIL_REFLEET_DURING_SEARCH && !OpexV190Active()) return;
+  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null && !OpexV190Active()) return;
   this._budget.begin();
   local best = null;
   local nEligible = 0;
@@ -843,10 +843,6 @@ function OpexAI::_expandRailLines(year)
 
         if (line.trains < 2 && line.vehicles.len() < 2) {
           local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
-          if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
-            OpexDecide("V187_REFLEET", "line=" + line.lineId + " waiting=" + waiting + " thr=" + backlogThreshold
-                       + " profit=" + line.lastProfit + " dbl=" + ((("doubleTrack" in line) && line.doubleTrack == 1) ? 1 : 0));
-          }
           if (waiting < backlogThreshold) continue;
 
           // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
@@ -893,18 +889,9 @@ function OpexAI::_expandRailLines(year)
             local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(this._catalog, line);
             local need = trackCost + trainCost + OpexCashReserve();
             local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-            if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
-              OpexDecide("V187_UPGRADE", "line=" + line.lineId + " need=" + need + " money=" + money
-                         + " search=" + (this._railSearch != null ? 1 : 0));
-            }
             if (money >= need) {
-              /* V187 : une recherche de ligne neuve occupe _railSearch -> doublement bloquant,
-               * qui ne touche pas a l'etat reprenable. */
-              if (RAIL_SEARCH_RESUMABLE && !(V187_RAIL_REFLEET_DURING_SEARCH && this._railSearch != null)) {
+              if (RAIL_SEARCH_RESUMABLE) {
                 local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
-                if (DECISION_LOG && V187_RAIL_REFLEET_DURING_SEARCH) {
-                  OpexDecide("V187_PREP", "line=" + line.lineId + " ok=" + (prep.ok ? 1 : 0) + " reason=" + (("reason" in prep) ? prep.reason : "-"));
-                }
                 local anchor = AIMap.GetTileIndex(1, 1);
                 if (!prep.ok) {
                   if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
