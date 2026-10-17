@@ -83,3 +83,14 @@ Suite (`e1d71b0`) : constante `C121_AIR_ECONOMICS` retirée, ainsi que la sonde 
 | `v188_rail_join_slopes` | Accepter les pentes pour le quai joint parallèle (le `BuildRailStation` en mode test tranche, avec fondations). | Mesuré seulement avec V187. L'idée « plus de sites de quai joint » reste ouverte si le doublement redevient un levier. |
 
 Lots V225 réunis (`8b87526`), 20×10 contre master : +0,40 %, 9/11, p = 0,90, valeur +0,55 % : neutre.
+
+## 7. V227 : C84, C85, V193, V194
+
+| Réglage | Idée | Verdict |
+|---|---|---|
+| `c84_air_target_fleet` | Dimensionner une flotte cible par ligne AIR et scorer les renforts par le profit **marginal** have → have+n recalculé par le modèle (courbe non linéaire). | Réfuté (−69,6 k£/an). L'idée du score marginal vit dans C121 (`c121Marginal*`, `targetAirPlanes`). |
+| `c85_air_equipment_frontier` | Frontière statique avion/équipement par aéroport (dominance prix, capacité, vitesse, portée) pour élaguer le choix. | Caduc depuis le moteur de la partie (V96). |
+| `v193_chain_towns` | Génération V88 bornée : N villes les plus peuplées par paire source → usine, meilleure chaîne seule. | Rail seul 10×3 : −31,7 k£/an, valeur −7,8 %. Idée de réseau reprise en **V226** (araignée à la AAAHogEx). |
+| `v194_short_to_served_dst` | Exempter du filtre de distance courte les lignes vers une destination déjà desservie par notre rail. | Nul (−17 k). Même reprise V226. |
+
+20×10 contre master : −0,58 %, 9/11, p = 0,90, valeur +1,15 % : neutre.
