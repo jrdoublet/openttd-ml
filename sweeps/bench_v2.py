@@ -164,11 +164,6 @@ def parse_opex_variant(name):
                 raise ValueError("pathfinder_hard_cap_k doit etre entre 5 et 100")
             if value % 5:
                 raise ValueError("pathfinder_hard_cap_k doit etre un multiple de 5 (step_size)")
-        elif key == "road_pax_catchment_pct":
-            # 0 garde le calibrage historique a 22 %. Une valeur positive est une sonde route
-            # uniquement (info.nut) ; 86 = 22 * le ratio median reel/predit 3,91.
-            if not 0 <= value <= 100:
-                raise ValueError("road_pax_catchment_pct doit etre entre 0 et 100")
         elif key == "project_top_k":
             # Memes bornes que ai/OpexAI/info.nut : docs/taches.md C43/E3, sature a 70-77% des
             # appels de selection au defaut 64 (mesure du 2026-09-08).

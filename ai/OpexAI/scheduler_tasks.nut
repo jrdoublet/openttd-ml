@@ -480,7 +480,7 @@ function OpexAI::_dispatchCatalog(task, year)
     this._recomputeEpochBounds = false;
   }
   if (C76_REGEN_TARGETED) {
-    local budgetStale = stale && !AIR_EFFICIENCY_RESELECT && !C76_LEAN_INVALIDATION;
+    local budgetStale = stale && !AIR_EFFICIENCY_RESELECT;
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
     local c80Modes = null;

@@ -97,18 +97,6 @@ V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;
-/* Les bus ville-a-ville sont utiles dans la bande courte, mais peuvent prendre le bassin d'une
- * liaison aerienne plus rentable. Ce drapeau ne coupe que cette famille de nouveaux candidats :
- * le fret routier et les lignes deja construites restent actifs. Le defaut faux privilegie le
- * profit des aeroports ; le banc peut reconstituer le bras bus avec
- * road_pax_build = 1. */
-ROAD_PAX_BUILD_ENABLED <- false;
-/* Part du bassin de ville propre aux bus. 86 est le calibrage route adopte au banc.
- * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
- * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */
-ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
-/* C23/D4 : Borne physique d'un arret de bus (rayon 3 tuiles = 7x7 tuiles = moyenne 10 maisons sur grille de voirie) */
-ROAD_STOP_CATCHMENT_HOUSES <- 10;
 /* D4 : Dwell time de chargement/dechargement a la station pour les bus passagers (jours) */
 ROAD_PAX_STOP_DWELL_DAYS <- 6;
 /* D4, extension aerienne : le diagnostic 10 ans x 5 graines
@@ -178,7 +166,6 @@ C83_LOCAL_REPAIR <- false;
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
 /* Lots de cadence independants, jamais actives implicitement par C83/C121. */
-EXP_SCHEDULER_SKIP_NOT_DUE <- false;
 EXP_AIR_HUB_PAIR_PREFILTER <- false;
 /* C83 : une seule grande ville encore vide (deux slots libres), avant que le
  * maillage ne se fige. 0 = aucun effet. La cible et l'arret sont des globales
@@ -923,9 +910,6 @@ C67_WATER_EXPOSURE <- false;
 C67_SLACK_HOOK <- false;
 C67_WATER_EXPO <- null;
 
-/* C76 : sous C76_REGEN_TARGETED, evite les regenerations completes du vivier pour
- * les variations de budget seul et traite localement les lignes et subventions. 0 = desactive (defaut). */
-C76_LEAN_INVALIDATION <- false;
 
 /* C76 : sous C76_REGEN_TARGETED, un mois sans regeneration complete fait quand meme tourner le
  * cargo fret (regeneration des seuls modes rail et route sur le cargo suivant). Sans lui, le lot

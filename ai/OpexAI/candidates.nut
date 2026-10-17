@@ -1715,109 +1715,6 @@ function OpexTownBusPaxServed(lines, townId)
   return false;
 }
 
-/* C23 : ModÃ©lisation physique du bassin de captage d'un arrÃªt de bus (rayon 3 tuiles).
- *
- * Un arrÃªt de bus OpenTTD possÃ¨de un rayon de couverture de 3 tuiles, soit une empreinte
- * de 7x7 = 49 tuiles. Compte tenu du rÃ©seau viaire et des espaces publics, un arrÃªt couvre
- * physiquement au maximum ~20 maisons (ROAD_STOP_CATCHMENT_HOUSES = 20).
- * La part de captage d'une ville ayant H maisons est donc bornÃ©e par :
- *   pct = min(ROAD_PAX_CATCHMENT_SHARE_PCT, (ROAD_STOP_CATCHMENT_HOUSES * 100) / H)
- * Si H <= 0 ou non disponible, repli physique sur pop / 25.
- */
-function OpexTownBusCatchment(town, marginalProd)
-{
-  if (marginalProd <= 0) return 0;
-  local houses = ("houses" in town && town.houses > 0) ? town.houses : (town.pop / 25);
-  if (houses <= 0) houses = 1;
-  local pct = (ROAD_STOP_CATCHMENT_HOUSES * 100) / houses;
-  if (pct > ROAD_PAX_CATCHMENT_SHARE_PCT) pct = ROAD_PAX_CATCHMENT_SHARE_PCT;
-  if (pct < 1) pct = 1;
-  local captured = (marginalProd * pct) / 100;
-  return captured > 0 ? captured : 1;
-}
-
-/* Famille 1 : ville <-> ville, passagers. */
-function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, targetKind = null, targetId = -1)
-{
-  if (targetKind == "industry" && targetId >= 0) return;
-  local cargo = catalog.paxCargo;
-  if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
-  local towns = catalog.towns;
-  local n = towns.len();
-  local produced = [];
-  local roadLinesPerTown = [];
-  local busServed = [];
-  for (local i = 0; i < n; i++) {
-    local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
-    /* D4 : Calibrage physique de la production mensuelle moyenne de passagers par habitant (~15 % en OpenGFX/OpenTTD) */
-    if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 15) / 100;
-    produced.append(p);
-    roadLinesPerTown.append(OpexTownRoadLineCount(lines, towns[i].tile));
-    busServed.append(OpexTownBusPaxServed(lines, towns[i].id));
-  }
-  local roadBounds = OpexCatalogBounds(catalog);
-  local roadCell = ("roadGenMax" in roadBounds) ? roadBounds.roadGenMax : roadBounds.roadMax;
-  if (roadCell < 1) roadCell = 1;
-  local roadGrid = OpexSpatialGrid();
-  roadGrid.Build(towns, roadCell);
-  for (local a = 0; a < n; a++) {
-    if (busServed[a]) continue;
-    local maxLinesA = 4 + (towns[a].pop / 300);
-    if (roadLinesPerTown[a] >= maxLinesA) continue;
-    local neighbors = roadGrid.GetCandidatesFor(a);
-    foreach (b in neighbors) {
-      if (targetKind == "town" && targetId >= 0
-          && towns[a].id != targetId && towns[b].id != targetId) continue;
-      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
-      if (busServed[b]) {
-        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
-        continue;
-      }
-      local maxLinesB = 4 + (towns[b].pop / 300);
-      if (roadLinesPerTown[b] >= maxLinesB) {
-        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "line_cap", 1);
-        continue;
-      }
-      if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) {
-        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
-        continue;
-      }
-      if (C60_TOWN_RATING_PROBE) {
-        OpexC60ObserveTownRating("road", "candidate_gen", towns[a].id);
-        OpexC60ObserveTownRating("road", "candidate_gen", towns[b].id);
-      }
-      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
-      local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
-      if (distance < roadBounds.roadMin || distance > roadBounds.roadMax) {
-        if (distance < roadBounds.roadMin) stats.roadDistanceShort++;
-        else stats.roadDistanceLong++;
-        continue;
-      }
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
-        local tA = towns[a].id;
-        local tB = towns[b].id;
-        if (tA > tB) { local swap = tA; tA = tB; tB = swap; }
-        local pairKey = "pax|" + cargo + "|" + tA + "|" + tB;
-        if (pairKey in abandonedPairs) continue;
-      }
-      stats.pairsInBand++;
-      local marginalA = produced[a] - (roadLinesPerTown[a] * 40);
-      if (marginalA < 25) marginalA = 25;
-      local marginalB = produced[b] - (roadLinesPerTown[b] * 40);
-      if (marginalB < 25) marginalB = 25;
-      local capturedA = OpexTownBusCatchment(towns[a], marginalA);
-      local capturedB = OpexTownBusCatchment(towns[b], marginalB);
-      local monthly = ROAD_PAX_OVERLAP
-          ? OpexRoadPaxUniqueMonthly(capturedA, capturedB, distance)
-          : capturedA + capturedB;
-      if (monthly <= 0) { stats.noMonthly++; continue; }
-      local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                              towns[a].id, towns[b].id, distance, monthly, stats);
-      if (candidate != null) out.append(candidate);
-    }
-  }
-}
-
 /* Familles 2 et 3 : industrie -> industrie, et industrie -> ville.
  *
  * Le sens est ORIENTE (un producteur vers un accepteur) : contrairement au pax, rien ne revient.
@@ -2013,13 +1910,6 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
 
   budget.begin();
-  /* L'option n'exclut que les nouvelles liaisons bus pax ville-a-ville. Les camions restent
-   * dans le portefeuille. */
-  if (ROAD_PAX_BUILD_ENABLED) {
-    local mark = profile != null ? OpexOpsMeasureBegin() : null;
-    OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs, targetKind, targetId);
-    if (profile != null) profile.paxOps += OpexOpsMeasureEnd(mark);
-  }
   /* Les marques C41.17 internes ne doivent jamais etre imbriquees dans une mesure globale :
    * un suspend peut sinon faire compter le tick-frontiere deux fois. C41.16 porte deja le total
    * fret de reference ; C41.17 ne publie que ses intervalles disjoints. */

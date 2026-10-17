@@ -56,9 +56,8 @@ class IntegrationProbeTests(unittest.TestCase):
             self.assertNotIn("c115_air_c100_capital_replay", values)
             self.assertNotIn("c121_air_economics", values)
             self.assertEqual(values["c121_catalog_incremental"], 1)
-            for key in ("exp_scheduler_skip_not_due",
-                        "exp_air_hub_pair_prefilter"):
-                self.assertEqual(values[key], 0)
+            self.assertEqual(values["exp_air_hub_pair_prefilter"], 0)
+            self.assertNotIn("exp_scheduler_skip_not_due", values)
             self.assertNotIn("c84_air_target_fleet", values)
             self.assertNotIn("c85_air_equipment_frontier", values)
 

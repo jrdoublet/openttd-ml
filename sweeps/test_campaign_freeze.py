@@ -238,7 +238,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c80_marginal_floor"):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate",
-                     "c76_lean_invalidation", "c76_freight_rotation",
+                     "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "rail_depot_cost",
                      "v90_pathfinder_check", "v92_air_service_choice", "c83_fixes",
@@ -276,7 +276,9 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertEqual(defaults["air_route_plane_selection"], 1)
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
-        self.assertEqual(defaults["road_pax_catchment_pct"], 86)
+        for name in ("road_pax_build", "road_pax_catchment_pct", "road_stop_catchment_houses",
+                     "c76_lean_invalidation", "exp_scheduler_skip_not_due"):
+            self.assertNotIn(name, defaults)
         self.assertTrue(specs["town_growth_skip_noop"]["boolean"])
         self.assertEqual(specs["air_early_slot_min_pop"]["step_size"], 100)
 
@@ -305,10 +307,10 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_effective_settings_merge_and_unknown_rejection(self):
         resolved = effective_ai_settings(
             INFO,
-            (("road_pax_build", 1), ("town_growth_skip_noop", 1)),
+            (("c72_plane_choice", 1), ("town_growth_skip_noop", 1)),
         )
-        self.assertEqual(resolved["defaults"]["road_pax_build"], 0)
-        self.assertEqual(resolved["effective"]["road_pax_build"], 1)
+        self.assertEqual(resolved["defaults"]["c72_plane_choice"], 0)
+        self.assertEqual(resolved["effective"]["c72_plane_choice"], 1)
         self.assertEqual(resolved["effective"]["town_growth_skip_noop"], 1)
         with self.assertRaises(ValueError):
             effective_ai_settings(INFO, (("does_not_exist", 1),))
@@ -421,12 +423,12 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertEqual(len(identical["identical_effective_arms"]), 1)
 
         shared = comparison_setting_audit(resolved_arm_settings([
-            "OpexAI[road_pax_build=1]",
-            "OpexAI[road_pax_build=1,town_growth_skip_noop=1]",
+            "OpexAI[c72_plane_choice=1]",
+            "OpexAI[c72_plane_choice=1,town_growth_skip_noop=1]",
         ]))
         self.assertEqual(
             [item["setting"] for item in shared["shared_nondefault_explicit"]],
-            ["road_pax_build"],
+            ["c72_plane_choice"],
         )
         self.assertFalse(shared["transportable_to_shipped_defaults"])
 

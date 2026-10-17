@@ -308,13 +308,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "exp_scheduler_skip_not_due",
-      description = "Experimental P7: skip already completed report/repay tasks within one bounded scheduler scan; default off",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "exp_air_hub_pair_prefilter",
@@ -1272,13 +1265,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "road_pax_build",
-      description = "Build new town-to-town passenger bus lines: 0 = disabled by default to preserve airport demand, 1 = enabled",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "road_loading_fix",
@@ -1288,25 +1274,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "road_pax_catchment_pct",
-      description = "Town production share captured by each bus stop, percent: 86 = measured default, 0 = historical 22%",
-      min_value = 0, max_value = 100,
-      easy_value = 86, medium_value = 86, hard_value = 86,
-      custom_value = 86,
-      step_size = 1,
-      flags = 0
-    });
 
-    AddSetting({
-      name = "road_stop_catchment_houses",
-      description = "Maximum houses covered by a radius-3 bus stop (physical catchment bound, default 10)",
-      min_value = 1, max_value = 50,
-      easy_value = 10, medium_value = 10, hard_value = 10,
-      custom_value = 10,
-      step_size = 1,
-      flags = 0
-    });
 
     AddSetting({
       name = "road_pax_dwell_days",
@@ -1530,13 +1498,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c76_lean_invalidation",
-      description = "C76: lean invalidation avoids full pool regenerations for budget changes and local line/subsidy updates: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c76_freight_rotation",

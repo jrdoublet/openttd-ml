@@ -17,9 +17,8 @@ def main():
     for resolved in bench_v2.resolved_arm_settings(list(arms.values())).values():
         effective = resolved["settings"]["effective"]
         protected = {"r19_fault_inject": 0,
-                     "exp_scheduler_skip_not_due": 0,
                      "exp_air_hub_pair_prefilter": 0}
-        removed = ("c84_air_target_fleet", "c85_air_equipment_frontier")
+        removed = ("c84_air_target_fleet", "c85_air_equipment_frontier", "exp_scheduler_skip_not_due")
         if any(effective.get(key) != value for key, value in protected.items()):
             raise ValueError("Protected default drift")
         if any(key in effective for key in removed):

@@ -871,11 +871,7 @@ function OpexAI::_scrapDeadLines(year)
     this._lines.remove(toRemove[k]);
   }
   if (AIR0310_SITE_VALIDITY_CACHE && toRemove.len() > 0) OpexAir0310InvalidateSiteValidity();
-  if (C76_REGEN_TARGETED && toRemove.len() > 0) {
-    if (!C76_LEAN_INVALIDATION) {
-      this._c76BumpLayer("lines", false);
-    }
-  }
+  if (C76_REGEN_TARGETED && toRemove.len() > 0) this._c76BumpLayer("lines", false);
 }
 /* Vente autonome des retraites unitaires C52. Contrairement a la mise au rebut
  * d'une ligne, la ligne reste exploitee : cette file ne touche ni scrapping ni

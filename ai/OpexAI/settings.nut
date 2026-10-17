@@ -251,14 +251,7 @@ function OpexLoadSettings()
   if (ptk > 0) PROJECT_TOP_K = ptk;
   PROJECT_TOP_K_DYNAMIC = AIController.GetSetting("project_top_k_dynamic") != 0;
 
-  ROAD_PAX_BUILD_ENABLED = AIController.GetSetting("road_pax_build") != 0;
   ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
-
-  local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
-  ROAD_PAX_CATCHMENT_SHARE_PCT = (roadPaxCatchment == 0) ? 22 : roadPaxCatchment;
-
-  local roadStopHouses = AIController.GetSetting("road_stop_catchment_houses");
-  if (roadStopHouses > 0) ROAD_STOP_CATCHMENT_HOUSES = roadStopHouses;
 
   local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
   if (roadPaxDwell >= 0) ROAD_PAX_STOP_DWELL_DAYS = roadPaxDwell;
@@ -426,7 +419,6 @@ function OpexLoadSettings()
   C72_PLANE_CHOICE = AIController.GetSetting("c72_plane_choice");
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
   C83_LOCAL_REPAIR = AIController.GetSetting("c83_local_repair") != 0;
-  EXP_SCHEDULER_SKIP_NOT_DUE = AIController.GetSetting("exp_scheduler_skip_not_due") != 0;
   EXP_AIR_HUB_PAIR_PREFILTER = AIController.GetSetting("exp_air_hub_pair_prefilter") != 0;
   C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
   AIR_BATCH_TOWN_RESERVE = AIController.GetSetting("air_batch_town_reserve") != 0;
@@ -682,7 +674,6 @@ function OpexLoadSettings()
   C80_RAIL_STOCK_GATE = AIController.GetSetting("c80_rail_stock_gate") != 0;
   C80_RAIL_STOCK_WORKER = C80_RAIL_STOCK_GATE && (AIController.GetSetting("c80_rail_stock_worker") != 0);
   C80_WORKER_TOWN = AIController.GetSetting("c80_worker_town") != 0;
-  C76_LEAN_INVALIDATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_lean_invalidation") != 0);
   C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
   C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;

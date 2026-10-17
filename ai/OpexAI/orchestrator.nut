@@ -1392,63 +1392,6 @@ function OpexAI::_c76DoFullRegen(reason, year)
            + this._projects.stats.selectedCapital + "|B0");
 }
 
-/* C76 : purge locale des candidats devenus invalides ou abandonnes, sans regeneration complete. */
-function OpexAI::_c76PurgeInvalidCandidates(modeFilter = null)
-{
-  if (this._projects == null || !(("candidateGroups" in this._projects)) || this._projects.candidateGroups == null) {
-    return;
-  }
-  local groups = this._projects.candidateGroups;
-  local anyRemoved = false;
-  local emptyKeys = [];
-
-  foreach (key, entry in groups) {
-    local list = (typeof entry == "array") ? entry : [entry];
-    local kept = [];
-    local changed = false;
-    foreach (p in list) {
-      if (p == null) continue;
-      local invalid = false;
-      if (modeFilter != null) {
-        if (p.mode == modeFilter) {
-          if (!OpexIncrementalCandidateStillValid(p, this._lines, this._abandonedPairs)) {
-            invalid = true;
-          }
-        }
-      } else {
-        if (OpexCandidateIsAbandoned(p, this._abandonedPairs)) {
-          invalid = true;
-        }
-      }
-      if (invalid) {
-        changed = true;
-        anyRemoved = true;
-      } else {
-        kept.append(p);
-      }
-    }
-    if (changed) {
-      if (kept.len() == 0) {
-        emptyKeys.append(key);
-      } else {
-        groups[key] = kept;
-      }
-    }
-  }
-
-  foreach (k in emptyKeys) {
-    if (k in groups) delete groups[k];
-  }
-
-  if (anyRemoved) {
-    OpexProjectsRecountGroups(this._projects);
-    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(), this._abandonedPairs, this._lines);
-    if (this._projects != null && ("rail" in this._projects)) {
-      this._ranked = this._projects.rail;
-    }
-  }
-}
-
 /* C80 tranche 4 : modes a regenerer quand seules des couches locales ont change.
  * null = regeneration complete requise (villes, lignes ou moteurs aeriens ont change : l'avion,
  * la moitie du cout d'une passe, et tous les modes en dependent) ; tableau vide = rien a faire.

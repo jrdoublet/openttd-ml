@@ -28,7 +28,6 @@ ROOT = Path(__file__).resolve().parents[1]
 START = 1970
 ARMS = {
     "reference": "OpexAI",
-    "skip_not_due": "OpexAI[exp_scheduler_skip_not_due=1]",
     "hub_prefilter": "OpexAI[exp_air_hub_pair_prefilter=1]",
 }
 

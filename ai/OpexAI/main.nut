@@ -566,7 +566,6 @@ class OpexAI extends AIController {
   function _c76AnyLayerChanged();
   function _c76AcknowledgeAllLayers();
   function _c76DoFullRegen(reason, year);
-  function _c76PurgeInvalidCandidates(modeFilter = null);
   function _c80ModeRegenModes();
   function _c80DoModeRegen(modes, reason, year);
   function _c76SaveRevisions();
@@ -707,8 +706,7 @@ function OpexAI::Start()
   }
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {
-    OpexDecide("SETTINGS", "road_pax_build=" + ROAD_PAX_BUILD_ENABLED
-               + " road_pax_voirie=" + ROAD_PAX_VOIRIE
+    OpexDecide("SETTINGS", "road_pax_voirie=" + ROAD_PAX_VOIRIE
                + " road_pax_overlap=" + ROAD_PAX_OVERLAP);
   }
   OpexAirResetSiteCache();

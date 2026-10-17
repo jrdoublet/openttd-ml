@@ -133,8 +133,6 @@ def main():
                         help="active C41.28 : detail vitesse et reutilisation exacte pax rail")
     parser.add_argument("--c41-rail-pax-cruise-profile", action="store_true",
                         help="active C41.29 : reutilisation exacte de croisiere pax rail")
-    parser.add_argument("--road-pax-build", action="store_true",
-                        help="active les candidats passagers route pour un diagnostic de cout")
     parser.add_argument("--c41-vehicle-lost-probe", action="store_true",
                         help="active la sonde C41.4 d'attribution passive VehicleLost")
     parser.add_argument("--c41-rail-lost-probe", action="store_true",
@@ -191,8 +189,6 @@ def main():
             or args.c41_rail_pax_economics_profile or args.c41_rail_pax_speed_profile
             or args.c41_rail_pax_speed_detail_profile or args.c41_rail_pax_cruise_profile):
         settings.append(("probe_candidates_rail", 1))
-    if args.road_pax_build:
-        settings.append(("road_pax_build", 1))
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
     experiments = [
         {"seed": seed, "days": 365 * args.years, "openttd_config": make_cfg(1970), "ais": (ai,)}
