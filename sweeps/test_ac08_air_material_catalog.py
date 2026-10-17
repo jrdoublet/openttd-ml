@@ -107,7 +107,7 @@ class AC08AirMaterialTests(unittest.TestCase):
     def test_source_buildability_refit_airport_and_catalog_contracts(self):
         for needle in (
             "this.airport = null;", "this.plane = null;", "this.airCombos = [];",
-            "this.airPlaneChoicesByAirport = {};", "this.airPlaneFrontierByAirport = {};",
+            "this.airPlaneChoicesByAirport = {};",
             "if (this.paxCargo < 0) return;",
             "AIEngineList(AIVehicle.VT_AIR)", "engines.Valuate(AIEngine.IsBuildable);",
             "engines.KeepValue(1);", "AIEngine.CanRefitCargo(e, this.paxCargo)",
@@ -181,10 +181,11 @@ class AC08AirMaterialTests(unittest.TestCase):
     def test_options_frontier_only_when_enabled_and_consumers_still_present(self):
         self.assertIn("local keepPlaneChoices = true;", REFRESH_AIR)
         self.assertIn("if (keepPlaneChoices && probeChoices.len() > 0)", REFRESH_AIR)
-        self.assertIn("if (C85_AIR_EQUIPMENT_FRONTIER)", REFRESH_AIR)
-        self.assertIn("OpexAirEquipmentStaticFrontier(probeChoices)", REFRESH_AIR)
+        self.assertNotIn("C85_AIR_EQUIPMENT_FRONTIER", REFRESH_AIR)
+        self.assertNotIn("OpexAirEquipmentStaticFrontier", REFRESH_AIR)
+        self.assertNotIn("airPlaneFrontierByAirport", REFRESH_AIR)
         self.assertIn("catalog.airPlaneChoicesByAirport", ENGINE_CHOICE)
-        self.assertIn("catalog.airPlaneFrontierByAirport", ENGINE_CHOICE)
+        self.assertNotIn("airPlaneFrontierByAirport", ENGINE_CHOICE)
         self.assertIn("catalog.airPlaneChoicesByAirport", PLANS)
         self.assertIn("catalog.airCombos", PLANS)
         self.assertIn("this._refreshAir();", REFRESH_ALL)

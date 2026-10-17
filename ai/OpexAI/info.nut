@@ -300,22 +300,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c84_air_target_fleet",
-      description = "C84: keep current aircraft choice and 1-plane initial build, remember its profitable target fleet and use live marginal economics for demand-backed growth; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c85_air_equipment_frontier",
-      description = "C85: prefilter route aircraft to the structurally non-dominated compatible frontier before C68 economics; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c83_local_repair",
       description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
       easy_value = 0, medium_value = 0, hard_value = 0,

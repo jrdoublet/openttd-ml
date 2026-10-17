@@ -454,8 +454,6 @@ function OpexLoadSettings()
   C69_FLEET_EXEMPT = AIController.GetSetting("c69_fleet_exempt") != 0;
   C69_FLEET_DEMAND_BATCH = AIController.GetSetting("c69_fleet_demand_batch") != 0;
   C72_PLANE_CHOICE = AIController.GetSetting("c72_plane_choice");
-  C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;
-  C85_AIR_EQUIPMENT_FRONTIER = AIController.GetSetting("c85_air_equipment_frontier") != 0;
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
   C83_LOCAL_REPAIR = AIController.GetSetting("c83_local_repair") != 0;
   EXP_SCHEDULER_SKIP_NOT_DUE = AIController.GetSetting("exp_scheduler_skip_not_due") != 0;

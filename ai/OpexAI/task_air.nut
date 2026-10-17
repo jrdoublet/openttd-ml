@@ -1190,11 +1190,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       continue;
     }
-    local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
-        && line.targetAirPlanes > have;
     local c121BelowTarget = ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
-    local belowTarget = c84BelowTarget || c121BelowTarget;
     local c121FirstLiveEntry = false;
     if (c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH
         && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
@@ -1250,7 +1247,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
 
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
-    if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
+    if (!c121BelowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
       local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "L");
       if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
@@ -1294,14 +1291,14 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       continue;
     }
     local maxPlanesForAirport = physicalMaxPlanes;
-    if (!belowTarget && ("deadStreak" in line) && line.deadStreak >= 1) {
+    if (!c121BelowTarget && ("deadStreak" in line) && line.deadStreak >= 1) {
       local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "S");
       if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1);
       continue;
     }
-    if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
+    if (!c121BelowTarget && ("lastProfit" in line) && line.lastProfit < 0) {
       local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexAirFleetRefusal(line, year, "L");
       if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
@@ -1365,7 +1362,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       }
       maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
     }
-    if (belowTarget) {
+    if (c121BelowTarget) {
       local targetNeed = line.targetAirPlanes - have;
       if (targetNeed > 0 && maxAddedPerPass > targetNeed) maxAddedPerPass = targetNeed;
     }
@@ -1387,19 +1384,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
           if (v161A in routesIndex) v161Nb += routesIndex[v161A] - 1;
           if (v161B != v161A && (v161B in routesIndex)) v161Nb += routesIndex[v161B] - 1;
           fleetEntry.v161Neighbours <- v161Nb > 0 ? v161Nb : 0;
-        }
-        if (c84BelowTarget) {
-          /* R1 : seuls les cargos sont lus par le modele marginal. Cette
-           * petite vue transitoire permet de recalculer une tranche finançable. */
-          fleetEntry.c84Catalog <- { paxCargo = this._catalog.paxCargo,
-              mailCargo = ("mailCargo" in this._catalog) ? this._catalog.mailCargo : -1 };
-          local spMarg = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-          local marginal = OpexAirExistingLineMarginalEconomics(this._catalog, line, have, want);
-          if (spMarg != null) OpexSpanAgg("fleet.marginal", spMarg);
-          if (marginal != null) {
-            fleetEntry.c84MarginalProfit <- marginal.profitAnnual;
-            fleetEntry.c84MarginalRevenue <- marginal.revenueAnnual;
-          }
         }
         plan.append(fleetEntry);
         if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {

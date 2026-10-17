@@ -1,3 +1,11 @@
+"""Contrat de retrait C84 — c84_air_target_fleet (defaut 0, refute −69,6 k£/an).
+
+Au defaut, C84_AIR_TARGET_FLEET etait false : X || false = X et X && false = false.
+La croissance AIR reste la flotte historique a un avion, assouplie seulement par
+la cible C121 (targetAirPlanes). targetSizing d'OpexAirEconomics reste dans la
+signature, fige a false : les arguments positionnels suivants (serviceScan,
+timings C100) partagent cet appel.
+"""
 from pathlib import Path
 import unittest
 
@@ -31,26 +39,31 @@ def function_body(text, signature):
     raise AssertionError(f"corps non ferme: {signature}")
 
 
-class TestC84AirTargetFleet(unittest.TestCase):
+class TestC84AirTargetFleetRemoved(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.info = AI / "info.nut"
+        cls.info = source("info.nut")
         cls.globals = source("globals_pre.nut")
         cls.settings = source("settings.nut")
         cls.builder = read_builder_air()
         cls.task_air = source("task_air.nut")
         cls.projects = read_projects_source()
 
-    def test_setting_is_experimental_and_loaded_once(self):
-        defaults = parse_ai_settings(self.info)
-        self.assertEqual(defaults["c84_air_target_fleet"], 0)
-        self.assertIn("C84_AIR_TARGET_FLEET <- false;", self.globals)
-        self.assertIn(
-            'C84_AIR_TARGET_FLEET = AIController.GetSetting("c84_air_target_fleet") != 0;',
-            self.settings,
-        )
+    def test_setting_global_and_loader_are_gone(self):
+        defaults = parse_ai_settings(AI / "info.nut")
+        self.assertNotIn("c84_air_target_fleet", defaults)
+        self.assertNotIn('name = "c84_air_target_fleet"', self.info)
+        self.assertNotIn("C84_AIR_TARGET_FLEET", self.globals)
+        self.assertNotIn('GetSetting("c84_air_target_fleet")', self.settings)
+        for path in AI.glob("*.nut"):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("C84_AIR_TARGET_FLEET", text, path.name)
+            self.assertNotIn("c84_air_target_fleet", text, path.name)
+            self.assertNotIn("c84BelowTarget", text, path.name)
+            self.assertNotIn("c84MarginalProfit", text, path.name)
+            self.assertNotIn("c84Catalog", text, path.name)
 
-    def test_target_sizing_keeps_historical_one_plane_base_variant(self):
+    def test_one_plane_base_stays_and_target_helpers_are_gone(self):
         economics = function_body(self.builder, "function OpexAirEconomics(")
         self.assertIn("targetSizing = false", economics)
         self.assertIn("local multiPlaneMax =", economics)
@@ -59,110 +72,56 @@ class TestC84AirTargetFleet(unittest.TestCase):
             "((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || FLEET_PORTFOLIO) ? 1 : multiPlaneMax)",
             economics,
         )
-
-        target = function_body(self.builder, "function OpexAirTargetEconomics(")
-        self.assertIn(
-            "infrastructureMaintenance, 0, newAirportCount, opcodePadding, 0, true",
-            target,
-        )
-        economics = function_body(self.builder, "function OpexAirEconomics(")
-        self.assertNotIn("targetProfitCurve", economics)
-        self.assertNotIn("targetRevenueCurve", economics)
-        self.assertNotIn("targetProfitCurve", self.builder)
-        self.assertNotIn("targetRevenueCurve", self.builder)
-
-        self.assertNotIn("function OpexAirTargetInitialPlan(", self.builder)
-        self.assertNotIn("c84InitialTarget", self.builder)
-        self.assertNotIn("c84TargetPlan", self.builder)
-
-    def test_target_is_attached_after_current_aircraft_choice(self):
+        self.assertNotIn("function OpexAirTargetEconomics(", self.builder)
+        self.assertNotIn("function OpexAirAttachTargetFleet(", self.builder)
+        self.assertNotIn("function OpexAirExistingLineMarginalEconomics(", self.builder)
+        self.assertNotIn("opcodePadding, 0, true)", self.builder)
         choose = function_body(self.builder, "function OpexAirChooseRoutePlane(")
-        full_at = choose.index("OpexAirChooseRoutePlaneFull(")
-        attach_at = choose.index("OpexAirAttachTargetFleet(", full_at)
-        self.assertLess(full_at, attach_at)
+        self.assertNotIn("OpexAirAttachTargetFleet", choose)
+        self.assertNotIn("OpexAirTargetEconomics", choose)
 
-        attach = function_body(self.builder, "function OpexAirAttachTargetFleet(")
-        self.assertIn("OpexAirTargetEconomics(catalog, airport, choice.plane", attach)
-        full = function_body(self.builder, "function OpexAirChooseRoutePlaneFull(")
-        self.assertNotIn("OpexAirTargetEconomics(", full)
-        self.assertNotIn("targetSizing", full)
-
-    def test_growth_keeps_physical_wait_and_cash_guards(self):
+    def test_growth_health_gates_follow_c121_target_only(self):
         resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
-        below = resize.index("local c84BelowTarget =")
-        hard_dead = resize.index("line.deadStreak >= 2", below)
-        wait = resize.index('OpexAirFleetRefusal(line, year, "W")', hard_dead)
-        target_cap = resize.index("local targetNeed = line.targetAirPlanes - have;", wait)
-        purchase = resize.index("OpexAirAddPlane(line, this._catalog, this._lines)", target_cap)
-
-        self.assertLess(below, hard_dead)
-        self.assertLess(hard_dead, wait)
-        self.assertLess(wait, target_cap)
-        self.assertLess(target_cap, purchase)
+        self.assertNotIn("c84BelowTarget", resize)
+        self.assertNotIn("local belowTarget", resize)
+        self.assertNotIn("!belowTarget", resize)
+        self.assertIn(
+            'local c121BelowTarget = ("targetAirPlanes" in line)',
+            resize,
+        )
+        self.assertIn(
+            'if (!c121BelowTarget && ("lastProfit" in line) && line.lastProfit < 0)',
+            resize,
+        )
+        self.assertIn(
+            'if (!c121BelowTarget && ("deadStreak" in line) && line.deadStreak >= 1)',
+            resize,
+        )
+        self.assertIn('if (("deadStreak" in line) && line.deadStreak >= 2)', resize)
         self.assertIn("if (have >= physicalMaxPlanes)", resize)
         self.assertIn("if (money < need)", resize)
+        self.assertIn("if (c121BelowTarget) {", resize)
+        self.assertIn("local targetNeed = line.targetAirPlanes - have;", resize)
+        self.assertNotIn("OpexAirExistingLineMarginalEconomics", resize)
+        self.assertNotIn('OpexSpanAgg("fleet.marginal"', resize)
 
-    def test_target_only_relaxes_first_health_gate(self):
-        resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
-        self.assertIn("local belowTarget = c84BelowTarget || c121BelowTarget;", resize)
-        self.assertIn(
-            'if (!belowTarget && ("lastProfit" in line) && line.lastProfit < 0)',
-            resize,
-        )
-        self.assertIn(
-            'if (!belowTarget && ("deadStreak" in line) && line.deadStreak >= 1)',
-            resize,
-        )
-        self.assertIn(
-            'if (("deadStreak" in line) && line.deadStreak >= 2)',
-            resize,
-        )
-
-    def test_under_target_project_uses_live_fixed_plane_marginal_before_historical_fallback(self):
-        marginal_helper = function_body(
-            self.builder, "function OpexAirExistingLineMarginalEconomics("
-        )
-        self.assertIn("AIVehicle.GetEngineType(template)", marginal_helper)
-        self.assertIn(
-            "infrastructureMaintenance, 0, 0, 0, have);",
-            marginal_helper,
-        )
-        self.assertIn(
-            "infrastructureMaintenance, 0, 0, 0, have + want);",
-            marginal_helper,
-        )
-        self.assertNotIn("OpexAirChooseRoutePlane", marginal_helper)
-
-        resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
-        wait = resize.index('OpexAirFleetRefusal(line, year, "W")')
-        want = resize.index(
-            "local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;",
-            wait,
-        )
-        marginal = resize.index(
-            "OpexAirExistingLineMarginalEconomics(this._catalog, line, have, want)",
-            want,
-        )
-        append = resize.index("plan.append(fleetEntry);", marginal)
-        self.assertLess(wait, want)
-        self.assertLess(want, marginal)
-        self.assertLess(marginal, append)
-        self.assertEqual(self.task_air.count("airMonthlyPax <-"), 2)
-
+    def test_fleet_project_keeps_c121_or_historical_profit(self):
         project = function_body(self.projects, "function OpexProjectFromFleet(")
-        below = project.index("local c84BelowTarget =")
-        gate = project.index('if (!("c84MarginalProfit" in entry)) return null;', below)
-        delta = project.index("profit = entry.c84MarginalProfit;", gate)
-        reject = project.index("if (profit <= 0) return null;", delta)
-        fallback = project.index('if (("lastProfit" in line) && line.lastProfit > 0)', reject)
-
-        self.assertLess(below, gate)
-        self.assertLess(gate, delta)
-        self.assertLess(delta, reject)
-        self.assertLess(reject, fallback)
-        self.assertIn('if ("c84MarginalRevenue" in entry)', project)
-        self.assertNotIn("targetAirProfitCurve", project)
-        self.assertNotIn("targetAirRevenueCurve", project)
+        self.assertIn('local c121BelowTarget = ("targetAirPlanes" in line)', project)
+        self.assertIn("profit = perPlaneProfit * entry.want;", project)
+        self.assertIn('if (("lastProfit" in line) && line.lastProfit > 0)', project)
+        self.assertNotIn("c84MarginalProfit", project)
+        self.assertNotIn("c84BelowTarget", project)
+        self.assertIn("if (V161_FLEET_NET_MARGINAL > 0) {", project)
+        self.assertNotIn("!c84BelowTarget", project)
+        fit = function_body(self.projects, "function OpexProjectFitFleetToBudget(")
+        self.assertIn(
+            "fitted.profitAnnual = (project.profitAnnual / entry.want) * quantity;",
+            fit,
+        )
+        self.assertNotIn("C84_AIR_TARGET_FLEET", fit)
+        self.assertNotIn("c84Catalog", fit)
+        self.assertNotIn("OpexAirExistingLineMarginalEconomics", fit)
 
 
 if __name__ == "__main__":

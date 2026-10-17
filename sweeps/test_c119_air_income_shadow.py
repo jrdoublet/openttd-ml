@@ -58,7 +58,7 @@ class TestC119AirIncomeShadow(unittest.TestCase):
     def test_legacy_route_economics_keep_cycle_and_fleet(self):
         src = AIR_ROUTE_ECON.read_text(encoding="utf-8")
         start = src.index("function OpexAirEconomics")
-        end = src.index("function OpexAirTargetEconomics", start)
+        end = src.index("function OpexAirReconcileActualBuild", start)
         body = src[start:end]
         self.assertNotIn("c119Income", body)
         self.assertIn("OpexAirTripModel(plane.speed, plane.capacity, distance", body)

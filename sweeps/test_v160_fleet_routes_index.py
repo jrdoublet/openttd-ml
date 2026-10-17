@@ -6,8 +6,8 @@ Couvre :
    - Présence du réglage air_fleet_routes_index dans info.nut (0/1/2, défaut 0).
    - Présence de la globale AIR_FLEET_ROUTES_INDEX dans globals_pre.nut (défaut 0).
    - Chargement dans settings.nut.
-   - Présence des spans sous PROBE_SPAN_TRACE (fleet.cadence_cap, fleet.marginal, fleet.add_plane,
-     fleet.first_live, fleet.refusal, fleet.sort).
+   - Présence des spans sous PROBE_SPAN_TRACE (fleet.cadence_cap, fleet.add_plane,
+     fleet.first_live, fleet.refusal, fleet.sort). fleet.marginal suivait C84, retiré.
    - Invalidation de l'index (remise à null) lors de modifications/achats/refleet.
    - Journalisation de non-concordance sous AIR_FLEET_ROUTES_INDEX == 2.
 2. Équivalence fonctionnelle :
@@ -115,7 +115,7 @@ class TestV160FleetRoutesIndexStaticContracts(unittest.TestCase):
     def test_spans_in_task_air(self):
         # Spans must be gated on PROBE_SPAN_TRACE with zero overhead when off
         self.assertIn('OpexSpanAgg("fleet.cadence_cap", spCap)', self.task_air)
-        self.assertIn('OpexSpanAgg("fleet.marginal", spMarg)', self.task_air)
+        self.assertNotIn('OpexSpanAgg("fleet.marginal"', self.task_air)
         self.assertIn('OpexSpanAgg("fleet.add_plane", spAdd)', self.task_air)
         self.assertIn('OpexSpanAgg("fleet.first_live", spFirstLive)', self.task_air)
         self.assertIn('OpexSpanAgg("fleet.refusal", spRef)', self.task_air)

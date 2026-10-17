@@ -388,7 +388,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("line.c121MarginalSamples <- 0", attach)
         self.assertIn("line.c121EngineId <- plan.plane.id", attach)
         fleet = body(self.projects, "function OpexProjectFromFleet", "function OpexAirRequiredMargin")
-        c121 = fleet[fleet.index("if (c121BelowTarget)"):fleet.index("else if (c84BelowTarget)")]
+        c121 = fleet[fleet.index("if (c121BelowTarget)"):fleet.index("if (!usedTargetMarginal)")]
         self.assertIn("line.c121MarginalProfit", c121)
         self.assertIn("line.c121MarginalRevenue", c121)
         self.assertIn("learnedFactor", c121)
@@ -491,8 +491,10 @@ class TestC121AirEconomics(unittest.TestCase):
 
     def test_c121_target_fleet_relaxes_health_but_keeps_legacy_marginal_out(self):
         self.assertIn("local c121BelowTarget = (\"targetAirPlanes\" in line)", self.task)
-        self.assertIn("local belowTarget = c84BelowTarget || c121BelowTarget;", self.task)
-        self.assertIn("if (!belowTarget && (\"lastProfit\" in line) && line.lastProfit < 0)", self.task)
+        self.assertNotIn("C84_AIR_TARGET_FLEET", self.task)
+        self.assertNotIn("c84BelowTarget", self.task)
+        self.assertNotIn("OpexAirExistingLineMarginalEconomics", self.task)
+        self.assertIn("if (!c121BelowTarget && (\"lastProfit\" in line) && line.lastProfit < 0)", self.task)
         self.assertIn("if (c121BelowTarget) {", self.task)
         # Sous cible C121, un seul renfort par passe.
         self.assertIn("maxAddedPerPass = 1;", self.task)
@@ -500,8 +502,6 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('local c121Age = ("year" in line) ? year - line.year : -1;', self.task)
         self.assertIn('c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0', self.task)
         self.assertIn('(year - line.lastAirFleetYear) < 2', self.task)
-        self.assertIn("if (c84BelowTarget) {", self.task)
-        self.assertIn("OpexAirExistingLineMarginalEconomics", self.task)
         fleet_project = body(self.projects, "function OpexProjectFromFleet", "function OpexAirRequiredMargin")
         self.assertIn("local c121BelowTarget = (\"targetAirPlanes\" in line)", fleet_project)
         self.assertIn("perPlaneProfit * entry.want", fleet_project)

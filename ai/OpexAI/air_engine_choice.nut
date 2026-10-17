@@ -300,27 +300,6 @@ function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconom
   return { plane = bestPlane, economics = bestEconomics };
 }
 
-/* C68 : transforme le contre-factuel passif M3 en intervention minimale. Le caller a deja choisi
- * le type d'aeroport, les sites, la paire et la demande avec le chemin historique. Sous le switch,
- * on ne change donc que l'appareil et l'economie de cette route, avec exactement le meme modele
- * OpexAirEconomics que M3. Sous 0, le resultat est strictement le couple historique. */
-/* C80 tranche 5 : `memoKey` identifie la route (villes ou gares, type d'aeroport, avion du combo).
- * Etat 1 (generation complete) : choix complet, memorise. Etat 2 (mise a jour apres chantier) :
- * seule l'economie de l'avion memorise est recalculee ; sans memo valide, choix complet memorise.
- * Un appel plafonne en capital (construction, `maxCapital` > 0) ne lit ni n'ecrit le memo. */
-function OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
-                                  newAirportCount, opcodePadding, choice)
-{
-  if (choice == null || choice.plane == null || choice.economics == null) return choice;
-  local targetEconomics = OpexAirTargetEconomics(catalog, airport, choice.plane, distance, monthlyPax,
-      infrastructureMaintenance, newAirportCount, opcodePadding);
-  if (targetEconomics != null) {
-    choice.targetEconomics <- targetEconomics;
-    choice.targetPlanes <- targetEconomics.planes;
-  }
-  return choice;
-}
-
 /* Lit la soute des avions deja en vol de cette compagnie, une fois par mois.
  * AIVehicleList ne voit pas les avions des autres compagnies. */
 function OpexAirLearnMailCaps(catalog)
@@ -429,6 +408,14 @@ function OpexAirChooseRouteService(catalog, airport, selectedPlane, distance, mo
   return choice;
 }
 
+/* C68 : transforme le contre-factuel passif M3 en intervention minimale. Le caller a deja choisi
+ * le type d'aeroport, les sites, la paire et la demande avec le chemin historique. Sous le switch,
+ * on ne change donc que l'appareil et l'economie de cette route, avec exactement le meme modele
+ * OpexAirEconomics que M3. Sous 0, le resultat est strictement le couple historique. */
+/* C80 tranche 5 : `memoKey` identifie la route (villes ou gares, type d'aeroport, avion du combo).
+ * Etat 1 (generation complete) : choix complet, memorise. Etat 2 (mise a jour apres chantier) :
+ * seule l'economie de l'avion memorise est recalculee ; sans memo valide, choix complet memorise.
+ * Un appel plafonne en capital (construction, `maxCapital` > 0) ne lit ni n'ecrit le memo. */
 function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, monthlyPax,
                                  infrastructureMaintenance, maxCapital, newAirportCount,
                                  opcodePadding, memoKey = null)
@@ -439,13 +426,8 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
   }
   if (!C80_AIR_CHOICE_MEMO || memoKey == null
       || maxCapital != 0 || AIR_CHOICE_MEMO_STATE == 0) {
-    local choice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
+    return OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-    if (C84_AIR_TARGET_FLEET) {
-      return OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
-          newAirportCount, opcodePadding, choice);
-    }
-    return choice;
   }
   if (AIR_CHOICE_MEMO_STATE == 2 && (memoKey in AIR_CHOICE_MEMO)) {
     local planeId = AIR_CHOICE_MEMO[memoKey];
@@ -462,22 +444,13 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
           infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
           0, false, false, false, false);
       if (economics != null) {
-        local choice = { plane = memoPlane, economics = economics };
-        if (C84_AIR_TARGET_FLEET) {
-          return OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
-              newAirportCount, opcodePadding, choice);
-        }
-        return choice;
+        return { plane = memoPlane, economics = economics };
       }
     }
   }
   local choice = OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   if (choice.plane != null) AIR_CHOICE_MEMO.rawset(memoKey, choice.plane.id);
-  if (C84_AIR_TARGET_FLEET) {
-    return OpexAirAttachTargetFleet(catalog, airport, distance, monthlyPax, infrastructureMaintenance,
-        newAirportCount, opcodePadding, choice);
-  }
   return choice;
 }
 
@@ -667,16 +640,6 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   }
 
   local routePlaneChoices = catalog.airPlaneChoicesByAirport[airport.type];
-  /* C85 ne change que l'objectif C68 historique (profit max). Les modes C72/C82 ont des
-   * objectifs differents ; ils conservent volontairement la liste complete. Le selectedPlane
-   * reste evalue separement ci-dessus, meme s'il est domine et absent de la frontier. */
-  if (C85_AIR_EQUIPMENT_FRONTIER && C72_PLANE_CHOICE == 0 && !C82_ENGINE_CALIBRATION
-      && ("airPlaneFrontierByAirport" in catalog)
-      && airport.type in catalog.airPlaneFrontierByAirport
-      && catalog.airPlaneFrontierByAirport[airport.type].len() > 0) {
-    routePlaneChoices = catalog.airPlaneFrontierByAirport[airport.type];
-  }
-
   foreach (plane in routePlaneChoices) {
     if (plane.id == selectedPlane.id) continue;
     if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;

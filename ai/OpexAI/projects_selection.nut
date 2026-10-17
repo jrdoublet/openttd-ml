@@ -875,23 +875,8 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
   fitted.payload = reduced;
   fitted.capital = quantity * entry.planePrice;
   fitted.budgetCapital = fitted.capital + 1000;
-  local c121BelowTarget = ("targetAirPlanes" in line)
-      && line.targetAirPlanes > have;
-  if (!c121BelowTarget && C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
-      && line.targetAirPlanes > have) {
-    /* La courbe C84 n'est pas lineaire : recalculer have -> have+quantity,
-     * et non multiplier la marge du lot complet par une fraction. */
-    if (!("c84Catalog" in entry)) return null;
-    local marginal = OpexAirExistingLineMarginalEconomics(entry.c84Catalog, line, have, quantity);
-    if (marginal == null || marginal.profitAnnual <= 0) return null;
-    reduced.c84MarginalProfit <- marginal.profitAnnual;
-    reduced.c84MarginalRevenue <- marginal.revenueAnnual;
-    fitted.profitAnnual = marginal.profitAnnual;
-    fitted.revenueAnnual = marginal.revenueAnnual > 0 ? marginal.revenueAnnual : marginal.profitAnnual;
-  } else {
-    fitted.profitAnnual = (project.profitAnnual / entry.want) * quantity;
-    fitted.revenueAnnual = (project.revenueAnnual / entry.want) * quantity;
-  }
+  fitted.profitAnnual = (project.profitAnnual / entry.want) * quantity;
+  fitted.revenueAnnual = (project.revenueAnnual / entry.want) * quantity;
   if (fitted.profitAnnual <= 0) return null;
   fitted.roi = (fitted.profitAnnual * 1000) / fitted.capital;
   fitted.budgetScore = OpexProjectScore(fitted.revenueAnnual, fitted.budgetCapital);
@@ -1203,8 +1188,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     /* C121 : un renfort d'avion est un vrai projet economique concurrent d'une
      * nouvelle ligne. L'exemption historique C69 lui donnerait un denominateur
      * ~= prix avion alors que les lignes AIR sont bornees par K_dec, ce qui
-     * surclasse artificiellement les +1 avion. Conserver l'exemption pour les
-     * chemins legacy/C84, mais pas pour une flotte portant une marge C121. */
+     * surclasse artificiellement les +1 avion. Conserver l'exemption pour le
+     * chemin legacy, mais pas pour une flotte portant une marge C121. */
     local fleetExemptDecision = C69_FLEET_EXEMPT && project.mode == "fleet"
         && !OpexC121ProjectHasRealization(project);
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),

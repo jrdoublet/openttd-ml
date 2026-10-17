@@ -237,7 +237,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c121_air_project_realization_adaptive", "c121_air_first_live_growth",
                      "c80_marginal_floor"):
             self.assertEqual(defaults[name], 1, name)
-        for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c84_air_target_fleet", "c85_air_equipment_frontier", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate",
+        for name in ("c69_fleet_demand_batch", "c72_plane_choice", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate",
                      "c76_lean_invalidation", "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "rail_depot_cost",
@@ -257,6 +257,8 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("c80_air_targeted_update", defaults)
         self.assertNotIn("v181_rail_max_trains", defaults)
         self.assertNotIn("v192_rail_time_denom_pct", defaults)
+        self.assertNotIn("c84_air_target_fleet", defaults)
+        self.assertNotIn("c85_air_equipment_frontier", defaults)
         self.assertNotIn("c77_opportunistic_candidates", defaults)
         self.assertNotIn("c77_targeted_build", defaults)
         self.assertNotIn("c77_fixes", defaults)

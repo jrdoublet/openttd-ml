@@ -10,10 +10,9 @@ function FxMatrix()
 {
   local saved = { c70 = C70_PROFIT_CALIBRATED, mode = C70_MODE_CALIBRATION,
     engine = C82_ENGINE_CALIBRATION, v92 = V92_AIR_SERVICE_CHOICE,
-    c84 = C84_AIR_TARGET_FLEET, c121 = C121_AIR_ECONOMICS,
+    c121 = C121_AIR_ECONOMICS,
     factors = clone C70_MODE_FACTOR, engines = clone C82_ENGINE_FACTOR,
     calibrate = OpexCalibratedProfit };
-  C84_AIR_TARGET_FLEET = false;
   C121_AIR_ECONOMICS = false;
   C70_PROFIT_CALIBRATED = true;
   C70_MODE_CALIBRATION = true;
@@ -76,19 +75,15 @@ function FxMatrix()
   V92_AIR_SERVICE_CHOICE = true;
   FxAssert(OpexFleetAmortShadow(p, true) == null, "V92_missing_plane");
   FxAssert(OpexFleetAmortShadow(p, true, { ageYears = 1 }).lifeYears == 20, "V92_fallback");
-  C84_AIR_TARGET_FLEET = true;
-  FxAssert(OpexFleetAmortShadow(p, true, {}) == null, "C84_excluded");
-  C84_AIR_TARGET_FLEET = false;
   C121_AIR_ECONOMICS = true;
   FxAssert(OpexFleetAmortShadow(p, true, {}) == null, "C121_excluded");
   C70_PROFIT_CALIBRATED = saved.c70;
   C70_MODE_CALIBRATION = saved.mode;
   C82_ENGINE_CALIBRATION = saved.engine;
   V92_AIR_SERVICE_CHOICE = saved.v92;
-  C84_AIR_TARGET_FLEET = saved.c84;
   C121_AIR_ECONOMICS = saved.c121;
   C70_MODE_FACTOR = saved.factors;
   C82_ENGINE_FACTOR = saved.engines;
   OpexCalibratedProfit = saved.calibrate;
-  AILog.Info("FXVM complete=1 cases=" + cases + " boundary_checks=9 settings_restored=1");
+  AILog.Info("FXVM complete=1 cases=" + cases + " boundary_checks=8 settings_restored=1");
 }

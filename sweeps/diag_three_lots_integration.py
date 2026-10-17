@@ -16,13 +16,14 @@ def main():
     arms = LIGHT_ARMS
     for resolved in bench_v2.resolved_arm_settings(list(arms.values())).values():
         effective = resolved["settings"]["effective"]
-        protected = {"c84_air_target_fleet": 0,
-                     "c85_air_equipment_frontier": 0,
-                     "r19_fault_inject": 0,
+        protected = {"r19_fault_inject": 0,
                      "exp_scheduler_skip_not_due": 0,
                      "exp_air_hub_pair_prefilter": 0}
+        removed = ("c84_air_target_fleet", "c85_air_equipment_frontier")
         if any(effective.get(key) != value for key, value in protected.items()):
             raise ValueError("Protected default drift")
+        if any(key in effective for key in removed):
+            raise ValueError("Removed setting still exposed")
     sys.argv = [sys.argv[0], *rest]
     shared.main(arm_specs=arms, force_debug=True,
                 purpose=f"three_lots_{args.lot}_exposure_not_economic_qualification")

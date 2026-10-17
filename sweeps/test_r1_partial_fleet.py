@@ -79,16 +79,23 @@ class TestPartialFleet(unittest.TestCase):
         self.assertNotIn(".append(", self.fit)
         self.assertIn('project.mode != "fleet") return project;', self.fit)
 
-    def test_c84_recomputes_exact_marginal_not_proportional_profit(self):
-        c84 = self.fit.split("if (!c121BelowTarget", 1)[1].split("} else {", 1)[0]
-        self.assertIn('if (!("c84Catalog" in entry)) return null;', c84)
-        self.assertIn("OpexAirExistingLineMarginalEconomics(entry.c84Catalog, line, have, quantity)", c84)
-        self.assertIn("fitted.profitAnnual = marginal.profitAnnual;", c84)
-        self.assertNotIn("project.profitAnnual / entry.want", c84)
+    def test_partial_fit_stays_proportional_without_c84_marginal(self):
+        self.assertNotIn("C84_AIR_TARGET_FLEET", self.fit)
+        self.assertNotIn("c84Catalog", self.fit)
+        self.assertNotIn("OpexAirExistingLineMarginalEconomics", self.fit)
+        self.assertNotIn("local c121BelowTarget", self.fit)
+        self.assertIn(
+            "fitted.profitAnnual = (project.profitAnnual / entry.want) * quantity;",
+            self.fit,
+        )
+        self.assertIn(
+            "fitted.revenueAnnual = (project.revenueAnnual / entry.want) * quantity;",
+            self.fit,
+        )
         resize = function(self.air, "OpexAI::_resizeAirFleets")
         self.assertIn("baseVehicles = have", resize)
-        self.assertIn("fleetEntry.c84Catalog <- { paxCargo = this._catalog.paxCargo", resize)
-        self.assertIn('("mailCargo" in this._catalog)', resize)
+        self.assertNotIn("c84Catalog", resize)
+        self.assertNotIn("OpexAirExistingLineMarginalEconomics", resize)
 
     def test_changed_inventory_rejected_before_purchase_and_at_selection(self):
         self.assertIn('have != entry.baseVehicles) return null;', self.fit)
@@ -110,7 +117,8 @@ class TestPartialFleet(unittest.TestCase):
         self.assertIn("c75BuiltKeys[OpexC69AttemptKey(project)] <- true;", self.task)
 
     def test_c121_and_c69_scoring_stay_in_common_selector(self):
-        self.assertIn("local c121BelowTarget = ", self.fit)
+        self.assertNotIn("C84_AIR_TARGET_FLEET", self.fit)
+        self.assertNotIn("c84Catalog", self.fit)
         self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.select)
         # 9e29951 : profit et capital de classement passent par le split C121
         # (defaut 0), qui retombe sur l'expression historique hors split.

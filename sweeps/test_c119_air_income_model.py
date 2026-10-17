@@ -31,7 +31,7 @@ class TestC119AirIncomeModel(unittest.TestCase):
         self.assertIn('"GetDayLengthFactor" in AIDate', body)
 
     def test_legacy_cycle_and_fleet_economics_remain(self):
-        body = function_body(AIR, "OpexAirEconomics", "OpexAirTargetEconomics")
+        body = function_body(AIR, "OpexAirEconomics", "OpexAirReconcileActualBuild")
         self.assertIn("local incomeDays = OpexCeilDiv(oneWayDays, 1);", body)
         self.assertIn("OpexAirFarePerPax(catalog, plane, distance, incomeDays)", body)
         self.assertIn("OpexAirTripModel(plane.speed, plane.capacity, distance, plane.id, airport.type,", body)
@@ -44,10 +44,11 @@ class TestC119AirIncomeModel(unittest.TestCase):
         self.assertNotIn("C119_AIR_INCOME_MODEL", fare)
         self.assertIn("local mailPct = 15;", fare)
 
-    def test_c84_target_fleet_stays_outside_c119(self):
-        target = function_body(AIR, "OpexAirTargetEconomics", "OpexAirExistingLineMarginalEconomics")
-        self.assertNotIn("paymentDistance", target)
-        self.assertNotIn("C119", target)
+    def test_c84_target_fleet_helpers_are_removed(self):
+        self.assertNotIn("function OpexAirTargetEconomics", AIR)
+        self.assertNotIn("function OpexAirExistingLineMarginalEconomics", AIR)
+        self.assertNotIn("C84_AIR_TARGET_FLEET", AIR)
+        self.assertNotIn('name = "c84_air_target_fleet"', INFO)
 
 if __name__ == "__main__":
     unittest.main()

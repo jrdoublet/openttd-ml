@@ -91,7 +91,8 @@ class StaticContracts(unittest.TestCase):
         self.assertIn("if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);\n"
                       "          local v161A", resize)
         builder = _function_body(_read("projects_builders.nut"), "OpexProjectFromFleet")
-        self.assertIn("if (V161_FLEET_NET_MARGINAL > 0 && !c84BelowTarget) {", builder)
+        self.assertIn("if (V161_FLEET_NET_MARGINAL > 0) {", builder)
+        self.assertNotIn("c84BelowTarget", builder)
         self.assertIn("if (v161Source != null) {", builder)
         self.assertIn("project.v161Calibrate <- true;", builder)
         self.assertLess(builder.index("OpexV161PerPlaneProfit("),

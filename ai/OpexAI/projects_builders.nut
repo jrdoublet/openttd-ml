@@ -149,10 +149,8 @@ function OpexProjectFromCandidate(candidate)
  * franchies, y compris la regle de tampon C14 qui garantit qu'une pleine capacite d'avion attend
  * reellement au sol. Il ne reste ici qu'a pricer la marge.
  *
- * Profit marginal : sous C84 et tant que la ligne est sous sa cible, utiliser la DIFFERENCE
- * have -> have+want calculee a blanc par _resizeAirFleets avec OpexAirEconomics(fixedPlanes).
- * Le profit realise / avion et le repli predRevenue - predRunning restent le contrat historique
- * hors de ce chemin. */
+ * Sous la cible C121, le score est la marge par avion deja publiee sur la ligne.
+ * Sinon le profit realise / avion, puis le repli predRevenue - predRunning. */
 function OpexProjectFromFleet(entry)
 {
   if (entry == null || entry.want <= 0 || entry.planePrice <= 0) return null;
@@ -166,8 +164,6 @@ function OpexProjectFromFleet(entry)
   local profitIsObserved = false;
   local usedTargetMarginal = false;
   local c121BelowTarget = ("targetAirPlanes" in line)
-      && line.targetAirPlanes > have;
-  local c84BelowTarget = C84_AIR_TARGET_FLEET && ("targetAirPlanes" in line)
       && line.targetAirPlanes > have;
   if (c121BelowTarget) {
     /* C121 : score MARGINAL, jamais profit moyen / avion. Le premier palier
@@ -199,16 +195,6 @@ function OpexProjectFromFleet(entry)
     revenue = perPlaneRevenue * entry.want;
     if (profit <= 0 || revenue <= 0) return null;
     usedTargetMarginal = true;
-  } else if (c84BelowTarget) {
-    /* Une sauvegarde/prototype C84 plus ancien peut porter targetAirPlanes sans airMonthlyPax,
-     * donc _resizeAirFleets ne peut pas produire le marginal exact. Ne jamais retomber alors sur
-     * la prediction lineaire 1-avion qui a motive ce correctif. */
-    if (!("c84MarginalProfit" in entry)) return null;
-    profit = entry.c84MarginalProfit;
-    if (profit <= 0) return null;
-    if ("c84MarginalRevenue" in entry) revenue = entry.c84MarginalRevenue;
-    if (revenue <= 0) revenue = profit;
-    usedTargetMarginal = true;
   }
 
   if (!usedTargetMarginal) {
@@ -232,10 +218,10 @@ function OpexProjectFromFleet(entry)
 
   /* V161 : la marge C121 (ligne seule) et le profit moyen ignorent ce que l'avion retire
    * aux voisines du meme aeroport : plafonner par l'a priori net des voisines. Une valeur
-   * restee "model" perd l'exemption C70/C82 des renforts (v161Calibrate). C84 hors champ. */
+   * restee "model" perd l'exemption C70/C82 des renforts (v161Calibrate). */
   local v161Source = null;
   local v161Model = 0;
-  if (V161_FLEET_NET_MARGINAL > 0 && !c84BelowTarget) {
+  if (V161_FLEET_NET_MARGINAL > 0) {
     v161Model = profit / entry.want;
     local marginalCost = revenue - profit;
     local v161 = OpexV161PerPlaneProfit(line, entry, v161Model);
@@ -258,8 +244,8 @@ function OpexProjectFromFleet(entry)
     /* Meme tampon de 1000 que le dernier garde d'OpexAirAddPlane, une seule
      * fois par lot, en plus de la reserve deja soustraite par le portefeuille. */
     budgetCapital = capital + 1000, profitAnnual = profit, revenueAnnual = revenue,
-    /* Provenance transitoire du profit ; C84 reste modelise, C121 conserve
-     * son exemption de realisation propre dans OpexC70Profit/OpexC82Profit. */
+    /* Provenance transitoire du profit. C121 conserve son exemption de
+     * realisation propre dans OpexC70Profit/OpexC82Profit. */
     profitIsObserved = profitIsObserved,
     roi = capital > 0 ? (profit * 1000) / capital : 0,
     expectedOpcodes = expectedOps,

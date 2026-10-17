@@ -57,9 +57,10 @@ class IntegrationProbeTests(unittest.TestCase):
             self.assertNotIn("c121_air_economics", values)
             self.assertEqual(values["c121_catalog_incremental"], 1)
             for key in ("exp_scheduler_skip_not_due",
-                        "exp_air_hub_pair_prefilter",
-                        "c84_air_target_fleet", "c85_air_equipment_frontier"):
+                        "exp_air_hub_pair_prefilter"):
                 self.assertEqual(values[key], 0)
+            self.assertNotIn("c84_air_target_fleet", values)
+            self.assertNotIn("c85_air_equipment_frontier", values)
 
 
 if __name__ == "__main__":

@@ -64,7 +64,8 @@ class TestFleetProfitCalibration(unittest.TestCase):
     def test_c84_model_and_c121_specific_realization_are_preserved(self):
         marginal = self.fleet.split("if (c121BelowTarget)", 1)[1].split("if (!usedTargetMarginal)", 1)[0]
         self.assertNotIn("profitIsObserved = true;", marginal)
-        self.assertIn("profit = entry.c84MarginalProfit;", marginal)
+        self.assertNotIn("c84MarginalProfit", marginal)
+        self.assertNotIn("c84BelowTarget", marginal)
         self.assertIn("learnedFactor / builtFactor", marginal)
         self.assertIn("profit = perPlaneProfit * entry.want;", marginal)
         for calibrated in (self.c70, self.c82):

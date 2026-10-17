@@ -65,7 +65,7 @@ class FixtureContracts(unittest.TestCase):
 
     def test_matrix_requires_all_distinct_cases(self):
         log = "\n".join(f"FXVM case={i} pass=1" for i in range(1, 49))
-        end = "FXVM complete=1 cases=48 boundary_checks=9 settings_restored=1"
+        end = "FXVM complete=1 cases=48 boundary_checks=8 settings_restored=1"
         self.assertTrue(verify_markers([log + "\n" + end, "", ""])["vm_matrix"])
         self.assertFalse(verify_markers([log.replace("case=48", "case=47") + end, "", ""])["vm_matrix"])
 
