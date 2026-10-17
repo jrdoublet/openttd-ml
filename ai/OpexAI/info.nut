@@ -511,13 +511,6 @@ class OpexAIInfo extends AIInfo {
 
 
 
-    AddSetting({
-      name = "c104_air_c100_compare_probe",
-      description = "C104 passive probe: compare legacy, first positive C100 replay and C100.1 AIR engine economics on identical route contexts; no decision change",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
 

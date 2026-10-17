@@ -25,7 +25,6 @@ OPEX_PROBE_GROUPS <- {
   air_site_stale_shadow = 16,
   c97_air_c69_engine_probe = 16,
   c98_air_realized_probe = 16,
-  c104_air_c100_compare_probe = 16,
   c116_air_project_probe = 16,
   c117_air_throughput_probe = 16,
   c121_station_flux_probe = 16,
@@ -489,7 +488,6 @@ function OpexLoadSettings()
   AIR_SITE_STALE_SHADOW = OpexProbeSetting("air_site_stale_shadow") != 0;
   C97_AIR_C69_ENGINE_PROBE = OpexProbeSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
-  C104_AIR_C100_COMPARE_PROBE = OpexProbeSetting("c104_air_c100_compare_probe") != 0;
   C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
   C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
   C116_AIR_PROJECT_PROBE = OpexProbeSetting("c116_air_project_probe") != 0;

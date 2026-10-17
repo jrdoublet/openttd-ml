@@ -793,7 +793,7 @@ function OpexC116ObserveAirPortfolioOpportunity(snapshot, project, financeCapita
   local point = { mode = project.mode, gap = gap, profit = project.profitAnnual, finance = financeCapital,
       hurdle = hurdle, roi = ("roi" in project) ? project.roi : 0.0,
       distance = ("distance" in project) ? project.distance : 0 };
-  if (C104_AIR_C100_COMPARE_PROBE || C116_AIR_PROJECT_PROBE) {
+  if (C116_AIR_PROJECT_PROBE) {
     OpexC116InsertPortfolioOpportunity(snapshot.unlockableAny, point);
   }
   if (project.mode == "air") OpexC116InsertPortfolioOpportunity(snapshot.unlockable, point);
@@ -801,10 +801,10 @@ function OpexC116ObserveAirPortfolioOpportunity(snapshot, project, financeCapita
 
 function OpexC116RememberAirPortfolioOpportunity(affordable, capitalBudget, snapshot)
 {
-  if (!C104_AIR_C100_COMPARE_PROBE && !C116_AIR_PROJECT_PROBE) return;
+  if (!C116_AIR_PROJECT_PROBE) return;
   if (snapshot == null) snapshot = { date = AIDate.GetCurrentDate(), budget = capitalBudget,
       topMode = "none", top = null, air = [], unlockable = [], unlockableAny = [] };
-  if ((C104_AIR_C100_COMPARE_PROBE || C116_AIR_PROJECT_PROBE)
+  if (C116_AIR_PROJECT_PROBE
       && affordable != null && affordable.len() > 0) {
     local top = affordable[0];
     if (top != null && ("mode" in top)) {
@@ -1121,7 +1121,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
 
   local affordable = [];
-  local c116Snapshot = (C104_AIR_C100_COMPARE_PROBE || C116_AIR_PROJECT_PROBE)
+  local c116Snapshot = C116_AIR_PROJECT_PROBE
       ? { date = AIDate.GetCurrentDate(), budget = capitalBudget,
           topMode = "none", top = null, air = [], unlockable = [], unlockableAny = [] }
       : null;
