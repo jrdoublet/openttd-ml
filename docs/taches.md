@@ -59,6 +59,15 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
     - (3) Délai décision → étape 2 : 1,85 an médian. Étape 2 → première livraison : 217 j.
     - (4) Défauts jamais corrigés : score gonflé (profit des deux étapes ÷ capital de l'étape 1) ; `builtCount` incrémenté au simple lancement de l'A* ; passe `projects` arrêtée par `pending`, qui saute aussi l'AIR.
     - (5) En duel, l'AIR s'effondre (109 → 31 avions sur une graine) pendant les gels, et AAA prend les places d'aéroport.
+  - **18/10 — conception rédigée par codex et APPROUVÉE par l'utilisateur** : [v233_conception_20261018.md](v233_conception_20261018.md). Décisions validées :
+    - étapes séparées : E0 contrats et journal, E1 `v233_pending_continue` (la passe ne s'arrête plus sur `pending`) qualifiée seule, E2 observation de la production, E3 greffe biens → ville, E4 bonus d'option (désactivé jusqu'à ce que la greffe soit qualifiée), E5 réseau V226 à part ;
+    - domaine initial : rail, sorties `TE_GOODS` vers une ville ;
+    - déclencheur : au moins 64 unités par mois, trois mois consécutifs ;
+    - option : p = 25 %, délai 2 ans, taux 10 %, horizon 5 ans, plafond 10 % du score ;
+    - clé de sauvegarde optionnelle `v233GoodsObservations` ; stock de plans non sauvegardé ;
+    - qualification : porte A 40×6 ans, puis porte B 20×10 ans.
+
+    Code confié à codex le 18/10 (branche `v233`).
   - **Piste proposée pour la réécriture** (à concevoir et relire avant tout code) :
     - (a) **Bonus d'option** au score des lignes fret vers un transformateur : valeur actualisée de la ligne biens qu'elles rendront possible, sans génération supplémentaire (borne de coût nulle).
     - (b) **Greffe déclenchée par la production réelle.** Proposer la ligne biens → ville (quai joint à l'usine, idée V218) seulement quand la production mesurée de l'usine dépasse un seuil, pas sur une estimation.
