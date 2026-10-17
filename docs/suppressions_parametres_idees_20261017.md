@@ -94,3 +94,13 @@ Lots V225 réunis (`8b87526`), 20×10 contre master : +0,40 %, 9/11, p = 0,90, v
 | `v194_short_to_served_dst` | Exempter du filtre de distance courte les lignes vers une destination déjà desservie par notre rail. | Nul (−17 k). Même reprise V226. |
 
 20×10 contre master : −0,58 %, 9/11, p = 0,90, valeur +1,15 % : neutre.
+
+## 8. V230 : apprentissage des devis, proximité rail en cache, fret rail court
+
+| Réglage | Idée | Verdict |
+|---|---|---|
+| `capital_quote_learning` | Apprendre, par mode, famille et distance, le rapport devis/réel du capital (et du besoin révisé route) pour corriger la finance de décision. | Porte A 40×3 : −106,8 k£/an, 14/40, p = 0,015 (09/10). Les devis sont déjà exacts juste avant construction (A* rail en `AITestMode`, C121 en AIR) : l'apprentissage ajoutait du bruit. L'idée côté **profit** est reprise en V229 (C70 par mode × distance × cargo). |
+| `rail_cached_proximity_gate` | Revalider les candidats rail du cache contre les deux rayons de `_tooClose` avant TOP_K, pour ne plus sélectionner des projets que le chantier refuserait. | Porte A 40×5 `fail_primary`. `_tooClose` reste le seul contrôle. |
+| `v185_rail_short_freight_pct` | Facteur fixe sur le revenu prédit du fret rail < 100 tuiles (réalisé 0,50 pour 0,69 prédit). | Négatif (−44,7 k). Une correction apprise par cellule est préférable (V229). |
+
+20×10 contre V227 : +0,22 %, 10/10, p = 0,87, valeur −0,61 % : neutre.
