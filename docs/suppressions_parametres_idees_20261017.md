@@ -342,3 +342,43 @@ Principe : chaque réglage valait 1 aux quatre difficultés depuis son adoption 
 Lanceurs : les A/B devenus impossibles (moteur de partie, fusion, croissance « première vivante ») s'arrêtent explicitement ; le profil early-slot de `diag_1v1_shared_monthly.py` devient un commentaire. Contrats : `v237_contracts.py` et `test_v237_fixed_air.py` (six contrats transversaux) ajoutés.
 
 **Verdict** : smoke valide, non identique (valeur 394 808, profit 453 973) ; fixture R1 complète OK. 20×10 `v237_20x10_20261017` contre V232 : profit +24,7 k£/an (+0,71 %), 11/9, p = 0,90, IC95 [−154 k ; +195 k], valeur +2,02 % : **neutre**. Cumul contre V230 : −99,1 k£/an (−2,73 %), 7/13, p = 0,29, IC95 [−252 k ; +49 k], valeur −0,58 %. Fusionné le 17/10.
+
+## 13. V239 : 28 sondes, shadows et checkers (17/10, moi)
+
+Principe : ces réglages ne changent aucune décision. Ils journalisent, rejouent en ombre ou vérifient un double calcul. Tous valaient 0 par défaut et n'étaient plus lus par aucun banc courant. Retirer leur code supprime 3 563 lignes `.nut` nettes (29 fichiers, après rebasage sur V237) et deux modules entiers : `air_flux_probe.nut` (C121 station flux) et `selection_diagnostics.nut` (`SELECTION_LIGHT`). Le groupe de sondes 256 (« vérifications en double calcul », V167) est désormais vide ; le bit reste réservé. 152 → 124 réglages.
+
+Le smoke est valide mais **non identique** à master (graine 42, 1 an : valeur 542 509, profit 570 421, 22 véhicules, 22 gares). C'est attendu : le retrait des gardes `if (PROBE)` décale les opcodes. ⇒ 20×10 avant fusion.
+
+**Verdict 20×10** (`v239_20x10_20261017`, `92d95ed`) : contre V237 profit +147,5 k£/an (+4,19 %), 8/12, p = 0,55, IC95 [−32,7 k ; +346,3 k] ; valeur +2,34 %, p = 0,55. Cumul contre V230 : profit +1,34 %, p = 0,65 ; valeur +1,75 %. ⇒ neutre, fusionné.
+
+| Réglage | Ce qu'il mesurait | Ce qui a été retiré avec |
+|---|---|---|
+| `catalog_cost_probe` | Opcodes du rafraîchissement du catalogue et de la génération de projets (`PROJECTS_COST`, `AIR_LIGHT`, `CATALOG_COST_SLICE`, `SELECTION_LIGHT`). Avait montré le coût de 21 k opcodes du catalogue (fiche `catalogue_churn_et_cout`). | `OpexCatalogCostSliceLog`, `OpexAirLight*` (le paramètre `light` des signatures `OpexAirPlansStep*`/`HubDiscoveryPhase`), `selection_diagnostics.nut`, `OpexC121RailPrepLog` |
+| `exp_opcode_exact_check` | Double calcul historique/exact des chemins `opcode_exact` (sites route, plan route, tri flotte AIR, couverture) avec journal des écarts. | Les cinq fonctions `*Gated` d'`opcode_exact.nut` réduites à leur retour rapide ; `EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT` |
+| `v90_pathfinder_check`, `v129_rail_astar_check` | Vérification pas à pas BaNaNaS ↔ V90, puis V90 ↔ V129 (sommet du tas, coût, priorité ; `V129_CHECK`). A garanti l'identité 20/20 de V129 (fiche `v129_astar_exact_adopte`). | Branches `else if (V90_PATHFINDER_CHECK)` / `V129_RAIL_ASTAR_CHECK` de `builder_rail.nut` ; les classes `OpexRailPathfinderCheckerV90`/`V129` restent dans `pathfinder_v90/` (bibliothèque, plus instanciées) |
+| `v94_air_site_check` | Recherche de site d'aéroport historique et `AITileList` sur la même entrée, l'historique décidant (`V94_CHECK`). | Branche de comparaison d'`OpexAirFindSite` |
+| `v141_catalog_incremental_check` | Sous `probe_events`, recalcul de `OpexProjectFromAir` sur l'AIR publié avec journal `V141_CHECK identical/diff`. | `OpexV141DecisionFieldDiff`, `OpexV141LogCheck` |
+| `probe_c121_engine_table` | Table moteur hors ligne C121 (`analyse_c121_engine_table.py`) ; verdict : moteur quasi fixe par partie (fiche `table_moteurs_c121_verdict`). | `OpexEngTab*`, globales `C121_ENGTAB_*` |
+| `probe_air_engine_depth` | Ombre : score du second à N=1 et N=2 avec le noyau fusionné (`AIR_ENGINE_DEPTH`). | `AirEngineDepth*`, `AIR_ENGINE_DEPTH_*` |
+| `probe_air_finance_margin` | `AIR_FINANCE_TRY` aux contrôles de caisse AIR et premier revenu des lignes construites (V126). | `OpexAirFinanceMarginLogSelect`, `AIR_FINANCE_MARGIN_YEAR` ; les devis V126 restants sont ceux du chemin actif |
+| `r19_fault_inject` | TEST : forcer le rollback de la Nᵉ nouvelle route AIR après mise en service (reprise R19). | Bloc R19 et `shield` d'`air_construction.nut`, `R19_FAULT_ROUTE_SEQ` |
+| `rail_freight_select_shadow` | Caisse, plancher et sélection finale du fret rail. | Journal dédié |
+| `v95_air_post73_probe` | Opportunités AIR post-1973 rejetées par plancher de population ou ville servie. A conduit à V93 (plancher supprimé, qualifié). | `OpexV95*` |
+| `air_bfail_precheck_shadow` | Test de B avant de payer A pour les plans à deux aéroports neufs, comparé au réel. | Journal dédié |
+| `air_site_stale_shadow` | Re-devis des sites AIR retenus avant caisse/construction. | Journal dédié |
+| `c97_air_c69_engine_probe` | Argmax moteur × profondeur de flotte en P/max(capital, K_dec) ; ne pilote plus `C69_TRACK_BUILDS`. | Terme `|| C97_…` de `C69_TRACK_BUILDS` |
+| `c98_air_realized_probe` | Profit/revenu prédit contre réalisé par avion, note et utilisation. | Journal dédié |
+| `c116_air_project_probe` | Opportunité de déblocage de projet AIR/global/propre via le scan C115/C68. | `OpexC116*`, globales `C116_AIR_PROJECT_PROBE_*` |
+| `c117_air_throughput_probe` | Débit AIR par fenêtres de 30 j (passagers livrés, sièges, cadence, attente). Le mode C117 lean reste. | Contexte de sonde des deux chemins de construction AIR |
+| `c121_station_flux_probe` | Bilan des gares PASS (chargements, files, pertes, transferts). | Module `air_flux_probe.nut` |
+| `c118_air_coverage_probe` | Couverture réelle des villes par les bassins AIR (`C118_COVERAGE`). | Journal dédié |
+| `c121_air_economics_shadow`, `c121_air_engine_replay_shadow` | Ombre économique C121 (demande B9, volume, cycle, paiement C119) et rejeu moteur sur capacités observées. | `ReplayEngineChoice`, `keepLineDiagnostics`, champs `replay_*` du journal `C121_BUILD` |
+| `c121_air_first_live_shadow`, `c121_kpass_shadow`, `c121_kdec_cold_shadow` | Cadence C121 : preuve vivante à 60/90 j, arrêts de passe K_pass avec regard en avant, rang K_dec contrefactuel. | `OpexC121FirstLiveAirOpportunity`, `OpexC121KPassShadow`, journal `C121_KDEC_COLD_FUNDED`, `FirstLiveLog` |
+| `c121_air_pressure_probe` | Pression concurrentielle AIR sur les villes de créneau déjà inspectées. | Gardes repliées (`persist.nut` : l'état reste sauvegardé sous `C121_AIR_PROJECT_REALIZATION_ADAPTIVE` / C122, format inchangé) |
+| `b9_air_catchment_probe`, `b9_air_demand_shadow` | Bassin et demande AIR avant construction (B9/G4). | Journaux dédiés |
+
+Tests : 12 fichiers de contrats de sondes supprimés (`test_v95_air_post73_probe`, `test_c98_air_realized_probe`, `test_c97_air_c69_engine`, `test_air_rollback_net_probe`, `test_air_bfail_precheck_shadow`, `test_rail_freight_select_shadow`, `test_catalog_cost_probe`, `test_c121_station_flux_probe`, `test_c116_air_incremental_probe`, `test_air_finance_margin_probe`, `test_air0310_6_engine_depth`, `test_air_orphan_reuse_probe`) ; environ 95 méthodes de contrat qui ne lisaient que du code de sonde sont retirées, les autres sont adaptées (`assertNotIn`). Lanceurs : `,catalog_cost_probe=1` retiré des diagnostics de chronologie et de profil d'opcodes ; `r19_fault_inject` passe dans la liste des réglages retirés de `diag_three_lots_integration.py` / `diag_r1_r3_mechanisms.py`. Les autres lanceurs dédiés sont traités par V243.
+
+Piège trouvé en route : après le retrait des déclarations, `settings.nut` lisait encore `EXP_OPCODE_EXACT_CHECK`, `C116_AIR_PROJECT_PROBE` et `C97_AIR_C69_ENGINE_PROBE`. En Squirrel, c'est une erreur d'exécution au chargement, invisible aux tests statiques. Un contrôle « identifiant MAJUSCULE utilisé mais plus déclaré », comparé à master, les a trouvés avant le smoke.
+
+Rebasage sur V237 (fusionné entre-temps) : la résolution « intersection » automatique des conflits a produit des `local` en double, des accolades orphelines et des blocs `AddSetting` mal formés. Méthode retenue : prendre le côté master hunk par hunk, puis refaire les retraits V239 par script (blocs `if (SONDE)` morts, fonctions orphelines), reconstruire `info.nut` en retirant les blocs `AddSetting` entiers par expression régulière, et contrôler : identifiants MAJUSCULES non déclarés, fonctions orphelines, `local` retirés encore lus, accolades équilibrées et profondeur nulle à chaque `function`, suite de tests.
