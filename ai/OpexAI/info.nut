@@ -1203,10 +1203,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v217_rail_refill",
-      description = "V217: from the third game year, at most once a month, regenerate the rail pool on the next freight cargo when idle cash exceeds 100000 and fewer than 2 rail candidates can start. 0 = inert (default), 1 = freight only, 2 = freight and passengers",
+      description = "V217: from the third game year, at most once a month, regenerate the rail pool on the next freight cargo when idle cash exceeds 100000 and fewer than 2 rail candidates can start. 0 = inert, 1 = freight only (default since 17/10), 2 = freight and passengers (not validated at gate B)",
       min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
 
