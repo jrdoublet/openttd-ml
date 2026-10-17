@@ -166,7 +166,6 @@ function OpexAirPlansPrepare(ctx)
   local catalog = ctx.catalog;
   local lines = ctx.lines;
   local targetTownId = ctx.targetTownId;
-  if (V93_AIR_DEMAND_PRODUCTION) AIR_DEMAND_PAX_CARGO = catalog.paxCargo;
   local resumeState = ctx.resumeState;
   local t0_all = ctx.t0_all;
   local sliced = ctx.sliced;
@@ -823,10 +822,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
       local opcodePadding = 0;
       if (monthlyPax < 10) monthlyPax = 10;
-      if (V93_AIR_DEMAND_PRODUCTION) {
-        monthlyPax = OpexAirTownMonthlyPax(sites[a].town, sites[a].anchor, airport, ctx.lines)
-            + OpexAirTownMonthlyPax(sites[b].town, sites[b].anchor, airport, ctx.lines);
-      }
       if (a == 0 && b == 1) {
         OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
       }
@@ -903,13 +898,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=profit_nonpositive P=" + economics.profitAnnual + " C=" + economics.capital);
       } else {
         if (c78Gen) {
-          if (V93_AIR_DEMAND_PRODUCTION) {
-            local paxOld = ((sites[a].town.pop + sites[b].town.pop) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-            if (paxOld < 10) paxOld = 10;
-            OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital + " paxNew=" + monthlyPax + " paxOld=" + paxOld);
-          } else {
-            OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
-          }
+          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
         }
         if (C97_AIR_C69_ENGINE_PROBE) OpexC97ProbeAirEngine(catalog, plan);
         bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
@@ -1508,10 +1497,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       local monthlyPax = hubMonthly + newMonthly;
       local opcodePadding = 0;
       if (monthlyPax < 10) monthlyPax = 10;
-      if (V93_AIR_DEMAND_PRODUCTION) {
-        monthlyPax = OpexAirTownMonthlyPax(hub.town, hub.anchor, airport, ctx.lines)
-            + OpexAirTownMonthlyPax(site.town, site.anchor, airport, ctx.lines);
-      }
       local plan = {
         siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
         airport = airport, plane = plane, monthlyPax = monthlyPax, planes = 1,
@@ -1567,14 +1552,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         continue;
       }
       if (c78Gen) {
-        if (V93_AIR_DEMAND_PRODUCTION) {
-          local paxOld = (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
-              + ((site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100);
-          if (paxOld < 10) paxOld = 10;
-          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital + " paxNew=" + monthlyPax + " paxOld=" + paxOld);
-        } else {
-          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
-        }
+        OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
       }
       if (C97_AIR_C69_ENGINE_PROBE) OpexC97ProbeAirEngine(catalog, plan);
       bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
@@ -1715,11 +1693,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       local monthlyPax = monthly1 + monthly2;
       local opcodePadding = 0;
       if (monthlyPax < 10) monthlyPax = 10;
-      if (V93_AIR_DEMAND_PRODUCTION) {
-        monthly1 = OpexAirTownMonthlyPax(hub1.town, hub1.anchor, airport, lines);
-        monthly2 = OpexAirTownMonthlyPax(hub2.town, hub2.anchor, airport, lines);
-        monthlyPax = monthly1 + monthly2;
-      }
       local plan = {
         siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,
         airport = airport, plane = plane, monthlyPax = monthlyPax, planes = 1,
@@ -1776,14 +1749,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       if (hubHubMark != null && admissionEconomics.profitAnnual <= 0) OpexSpanAgg("air.hub_hub_pair", hubHubMark);
       if (admissionEconomics.profitAnnual <= 0) continue;
       if (c78Gen) {
-        if (V93_AIR_DEMAND_PRODUCTION) {
-          local paxOld = (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1))
-              + (((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1));
-          if (paxOld < 10) paxOld = 10;
-          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital + " paxNew=" + monthlyPax + " paxOld=" + paxOld);
-        } else {
-          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
-        }
+        OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
       }
       if (C97_AIR_C69_ENGINE_PROBE) OpexC97ProbeAirEngine(catalog, plan);
       bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);

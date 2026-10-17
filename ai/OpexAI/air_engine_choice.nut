@@ -15,24 +15,6 @@ function OpexAirPlanBetter(plan, bestPlan)
   return planEconomics.profitAnnual > bestEconomics.profitAnnual;
 }
 
-/* V92 : pose le service retenu et, s'il differe, la variante a un appareil bon marche.
- * Les deux portent la meme cle de paire pour qu'un seul soit construit. */
-function OpexAirV92PairBlocked(lines, plan)
-{
-  if (!V92_AIR_SERVICE_CHOICE || plan == null || !("v92PairKey" in plan)) return false;
-  if (plan.v92PairKey in V92_CLOSED_PAIRS) return true;
-  if (lines == null || !("siteA" in plan) || !("siteB" in plan)) return false;
-  local tileA = plan.siteA.town.tile;
-  local tileB = plan.siteB.town.tile;
-  foreach (line in lines) {
-    if (!("mode" in line) || line.mode != "air") continue;
-    local originA = ("originA" in line) ? line.originA : -1;
-    local originB = ("originB" in line) ? line.originB : -1;
-    if ((originA == tileA && originB == tileB) || (originA == tileB && originB == tileA)) return true;
-  }
-  return false;
-}
-
 /* C97 : capital et profit d'un point virtuel passes par EXACTEMENT le meme
  * chemin que le projet AIR reel. Cela reutilise donc la marge AIR,
  * l'immobilisation et la calibration C70/C82 du portefeuille, sans definition
@@ -149,31 +131,6 @@ function OpexC97ProbeAirEngine(catalog, plan)
 
 function OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan)
 {
-  if (V92_AIR_SERVICE_CHOICE && routeChoice != null && ("alternate" in routeChoice)
-      && routeChoice.alternate != null && routeChoice.alternate.economics != null
-      && routeChoice.alternate.economics.profitAnnual > 0) {
-    local alt = routeChoice.alternate;
-    local townA = plan.siteA.town.id;
-    local townB = plan.siteB.town.id;
-    if (townA > townB) {
-      local swap = townA;
-      townA = townB;
-      townB = swap;
-    }
-    local key = townA + "|" + townB + "|" + plan.airport.type;
-    plan.v92PairKey <- key;
-    plan.v92Role <- "service";
-    local cheap = {};
-    foreach (k, v in plan) cheap[k] <- v;
-    cheap.plane = alt.plane;
-    cheap.economics = alt.economics;
-    cheap.planes = alt.economics.planes;
-    cheap.capital = alt.economics.capital;
-    cheap.v92Role = "cheap";
-    if ("targetPlanes" in cheap) cheap.targetPlanes = alt.economics.planes;
-    if (projects != null) projects.append(cheap);
-    if (OpexAirPlanBetter(cheap, bestPlan)) bestPlan = cheap;
-  }
   if (projects != null) projects.append(plan);
   if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
   return bestPlan;
@@ -300,112 +257,9 @@ function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconom
   return { plane = bestPlane, economics = bestEconomics };
 }
 
-/* Lit la soute des avions deja en vol de cette compagnie, une fois par mois.
- * AIVehicleList ne voit pas les avions des autres compagnies. */
-function OpexAirLearnMailCaps(catalog)
-{
-  if (catalog == null || !("mailCargo" in catalog) || catalog.mailCargo < 0
-      || !("paxCargo" in catalog) || catalog.paxCargo < 0) return;
-  local now = AIDate.GetCurrentDate();
-  local month = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now);
-  if (AIR_MAIL_LEARN_MONTH == month) return;
-  AIR_MAIL_LEARN_MONTH = month;
-  local list = AIVehicleList();
-  list.Valuate(AIVehicle.GetVehicleType);
-  list.KeepValue(AIVehicle.VT_AIR);
-  for (local v = list.Begin(); !list.IsEnd(); v = list.Next()) {
-    local engine = AIVehicle.GetEngineType(v);
-    if (engine < 0 || (engine in AIR_MAIL_CAP)) continue;
-    local pax = AIVehicle.GetCapacity(v, catalog.paxCargo);
-    local mail = AIVehicle.GetCapacity(v, catalog.mailCargo);
-    if (pax > 0 && mail >= 0) AIR_MAIL_CAP.rawset(engine, mail);
-  }
-}
-
-function OpexAirApplyKnownMail(plane)
-{
-  if (plane == null || !("id" in plane)) return;
-  if (plane.id in AIR_MAIL_CAP) plane.mailCapacity = AIR_MAIL_CAP[plane.id];
-}
-
 function OpexAirPlaneInRange(plane, distance)
 {
   return plane != null && !(plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance);
-}
-
-function OpexAirServiceBetter(candidate, incumbent)
-{
-  if (candidate == null || candidate.profitAnnual <= 0) return false;
-  if (incumbent == null) return true;
-  if (candidate.profitAnnual > incumbent.profitAnnual) return true;
-  if (candidate.profitAnnual == incumbent.profitAnnual && candidate.roi > incumbent.roi) return true;
-  return false;
-}
-
-/* V92 : pour chaque moteur compatible, le nombre d'appareils au meilleur profit,
- * puis la meilleure variante a un seul appareil dont le prix ne depasse pas
- * le gros jet le moins cher (ou le moins cher tout court sur un petit aeroport). */
-function OpexAirChooseRouteService(catalog, airport, selectedPlane, distance, monthlyPax,
-                                   infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding)
-{
-  OpexAirLearnMailCaps(catalog);
-  local bestPlane = null;
-  local bestEcon = null;
-  local cheapPlane = null;
-  local cheapEcon = null;
-  if (airport == null || catalog == null || catalog.airPlaneChoicesByAirport == null
-      || !(airport.type in catalog.airPlaneChoicesByAirport)) {
-    local econ = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-        1, false, false, false, false);
-    return { plane = selectedPlane, economics = econ };
-  }
-  local choices = catalog.airPlaneChoicesByAirport[airport.type];
-  local cheapLimit = -1;
-  local anyPrice = -1;
-  foreach (plane in choices) {
-    if (!OpexAirPlaneInRange(plane, distance)) continue;
-    OpexAirApplyKnownMail(plane);
-    if (anyPrice < 0 || plane.price < anyPrice) anyPrice = plane.price;
-    if (("isBig" in plane) && plane.isBig && (cheapLimit < 0 || plane.price < cheapLimit)) {
-      cheapLimit = plane.price;
-    }
-  }
-  if (cheapLimit < 0) cheapLimit = anyPrice;
-  if (selectedPlane != null) OpexAirApplyKnownMail(selectedPlane);
-
-  foreach (plane in choices) {
-    if (!OpexAirPlaneInRange(plane, distance)) continue;
-    local scanned = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-        0, false, true, false, false);
-    if (OpexAirServiceBetter(scanned, bestEcon)) {
-      bestPlane = plane;
-      bestEcon = scanned;
-    }
-    if (cheapLimit >= 0 && plane.price <= cheapLimit) {
-      local one = (scanned != null && scanned.planes == 1) ? scanned
-          : OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-              infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-              1, false, false, false, false);
-      if (OpexAirServiceBetter(one, cheapEcon)) {
-        cheapPlane = plane;
-        cheapEcon = one;
-      }
-    }
-  }
-  if (bestPlane == null && selectedPlane != null) {
-    bestEcon = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-        1, false, false, false, false);
-    bestPlane = selectedPlane;
-  }
-  local choice = { plane = bestPlane, economics = bestEcon };
-  if (cheapPlane != null && bestPlane != null && cheapEcon != null
-      && (cheapPlane.id != bestPlane.id || cheapEcon.planes != bestEcon.planes)) {
-    choice.alternate <- { plane = cheapPlane, economics = cheapEcon };
-  }
-  return choice;
 }
 
 /* C68 : transforme le contre-factuel passif M3 en intervention minimale. Le caller a deja choisi
@@ -420,10 +274,6 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
                                  infrastructureMaintenance, maxCapital, newAirportCount,
                                  opcodePadding, memoKey = null)
 {
-  if (V92_AIR_SERVICE_CHOICE) {
-    return OpexAirChooseRouteService(catalog, airport, selectedPlane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
   if (!C80_AIR_CHOICE_MEMO || memoKey == null
       || maxCapital != 0 || AIR_CHOICE_MEMO_STATE == 0) {
     return OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,

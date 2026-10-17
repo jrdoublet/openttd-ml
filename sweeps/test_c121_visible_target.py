@@ -11,7 +11,7 @@ class TestVisibleFleetTarget(unittest.TestCase):
         text = (AI / "air_fleet.nut").read_text(encoding="utf-8")
         text = text[text.index('function OpexAirAddPlane('):]
         self.assertIn('if (C121_AIR_VISIBLE_COMPETITION)', text)
-        self.assertLess(text.index('OpexAirMaybeReequip'), text.index('result.reason = "TARGET"'))
+        self.assertNotIn('OpexAirMaybeReequip', text)
         self.assertLess(text.index('result.reason = "TARGET"'), text.index('AIVehicle.CloneVehicle'))
         self.assertIn('AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR', text)
         self.assertIn('OpexC121AirPhysicalTarget(line, catalog, lines)', text)
@@ -19,7 +19,7 @@ class TestVisibleFleetTarget(unittest.TestCase):
     def test_all_production_growth_calls_supply_shared_airports(self):
         task = (AI / "task_air.nut").read_text(encoding="utf-8")
         projects = (AI / "task_projects.nut").read_text(encoding="utf-8")
-        self.assertEqual(task.count('OpexAirAddPlane(line, this._catalog, this._lines)'), 2)
+        self.assertEqual(task.count('OpexAirAddPlane(line, this._catalog, this._lines)'), 1)
         self.assertEqual(projects.count('OpexAirAddPlane(line, this._catalog, this._lines)'), 1)
 
 

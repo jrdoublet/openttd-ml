@@ -241,9 +241,9 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "rail_depot_cost",
-                     "v90_pathfinder_check", "v92_air_service_choice", "c83_fixes",
+                     "v90_pathfinder_check", "c83_fixes",
                      "c83_preempt_open", "air_batch_town_reserve",
-                     "v93_air_demand_production", "v95_air_post73_probe",
+                     "v95_air_post73_probe",
                      "v88_all_inputs", "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve",
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
                      "c97_air_c69_engine_probe", "c98_air_realized_probe"):
@@ -260,6 +260,8 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("rail_cached_proximity_gate", defaults)
         self.assertNotIn("c84_air_target_fleet", defaults)
         self.assertNotIn("c85_air_equipment_frontier", defaults)
+        self.assertNotIn("v92_air_service_choice", defaults)
+        self.assertNotIn("v93_air_demand_production", defaults)
         self.assertNotIn("v193_chain_towns", defaults)
         self.assertNotIn("v194_short_to_served_dst", defaults)
         self.assertNotIn("v185_rail_short_freight_pct", defaults)

@@ -54,12 +54,11 @@ function FxCMatrix()
     epoch = C121_CATALOG_ENDPOINT_EPOCH, endpoints = C121_AIR_ENDPOINT_CACHE,
     geometry = AIR_C121_STATION_COVERAGE_CACHE, cost = CATALOG_COST_ACTIVE,
     perf = C121_AIR_PLAN_PERF, catchment = AIR_CATCHMENT_PROBE,
-    production = V93_AIR_DEMAND_PRODUCTION, chooser = OpexC121ChooseRoutePlane,
+    chooser = OpexC121ChooseRoutePlane,
     unionMonthly = OpexAirB9TownUnionMonthly };
   C121_CATALOG_INCREMENTAL = true;
   C121_AIR_ECONOMICS = true;
   AIR_CATCHMENT_PROBE = false;
-  V93_AIR_DEMAND_PRODUCTION = false;
   CATALOG_COST_ACTIVE = null;
   C121_AIR_PLAN_PERF = null;
   C121_CATALOG_CACHE = {};
@@ -177,7 +176,6 @@ function FxCMatrix()
   CATALOG_COST_ACTIVE = saved.cost;
   C121_AIR_PLAN_PERF = saved.perf;
   AIR_CATCHMENT_PROBE = saved.catchment;
-  V93_AIR_DEMAND_PRODUCTION = saved.production;
   OpexC121ChooseRoutePlane = saved.chooser;
   OpexAirB9TownUnionMonthly = saved.unionMonthly;
   AILog.Info("C121_CACHE_VM complete=1 checks=" + FXC_COUNT + " restored=1");

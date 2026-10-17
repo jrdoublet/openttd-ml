@@ -57,7 +57,6 @@ function FxR22FindLine(ai)
     if (line == null || !("lineId" in line) || !("mode" in line) || line.mode == "road") continue;
     if (FXR22.scenario == "maintenance" && line.mode != "rail") continue;
     if (!("vehicles" in line) || line.vehicles == null || line.vehicles.len() == 0) continue;
-    if (OpexAirLineReequipPending(line)) continue;
     foreach (v in line.vehicles) {
       if (AIVehicle.IsValidVehicle(v) && AIVehicle.IsPrimaryVehicle(v)
           && !AIVehicle.IsStoppedInDepot(v))

@@ -53,7 +53,7 @@ class TestAirBypass(unittest.TestCase):
         self.assertIn("!OpexAirBatchPlanStillLive(plan, this._lines)", executor)
         self.assertIn("!OpexAirBatchSiteStillBuildable(plan.siteA", executor)
         self.assertIn("!OpexAirBatchSiteStillBuildable(plan.siteB", executor)
-        self.assertIn("OpexAirV92PairBlocked(this._lines, plan)", executor)
+        self.assertNotIn("OpexAirV92PairBlocked", executor)
         # The early guard reuses town/second-slot/hub/duplicate checks; it is not
         # a replacement implementation of site validation or a new planner.
         live = self.air.split("function OpexAirBatchPlanStillLive(", 1)[1].split("\nfunction ", 1)[0]

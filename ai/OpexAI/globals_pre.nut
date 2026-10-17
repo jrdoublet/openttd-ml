@@ -363,25 +363,10 @@ C69_PLANE_CHOICE_DIFFER_C69 <- 0;
 C73_VIVIER_LEDGER <- null;
 /* C72 etape 2 : levier du choix d'avion (0 = profit max, 1 = ROI max, 2 = P/max(C, K_dec)) */
 C72_PLANE_CHOICE <- 0;
-/* V92 : choix d'un service (moteur x nombre) et variante bon marche de la meme route.
- * Le renforcement peut remplacer le moteur. Experimental, defaut 0. */
-V92_AIR_SERVICE_CHOICE <- false;
-/* Cache reconstructible : engineId -> capacite courrier lue sur un avion vivant. */
-AIR_MAIL_CAP <- {};
-AIR_MAIL_LEARN_MONTH <- -1;
-/* Paires dont une variante V92 a deja ete posee dans cette partie. */
-V92_CLOSED_PAIRS <- {};
 /* V93 : pas de plancher a 600 habitants pour poser un aeroport. Defaut 0.
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
 V93_AIRPORT_NO_POP_FLOOR <- true;
 V93_AIRPORT_MIN_POP <- 100;
-/* V93.1 : demande aerienne lue sur la production du mois passe. Defaut 0,
- * independant du plancher de population. Le plafond par extremite, le seuil
- * de petite ville et le poids des concurrents ne sont pas des reglages. */
-V93_AIR_DEMAND_PRODUCTION <- false;
-V93_AIR_LINE_PAX_CAP <- 200;
-V93_AIR_LINE_PAX_SMALL_POP <- 700;
-V93_AIR_COMPETITOR_WEIGHT <- 70;
 /* V95 : sonde passive des occasions AIR post-1973 ecartees avant economie
  * (petites villes et seconds slots). Defaut 0, aucun effet decisionnel. */
 V95_AIR_POST73_PROBE <- false;
@@ -633,13 +618,8 @@ C121_AIR_HUB_DELAY_UPDATE_SAMPLES <- 0;
  * rempli uniquement pour la sonde C116 a partir de la
  * liste `affordable` deja triee : aucune recherche de route supplementaire. */
 C116_AIR_PROJECT_SNAPSHOT <- null;
-/* Cargo passagers retenu par le catalogue pour ce modele. -1 tant qu'il n'est pas connu. */
+/* Cargo passagers retenu pour le catchment de site. -1 tant qu'il n'est pas connu. */
 AIR_DEMAND_PAX_CARGO <- -1;
-/* Date de jeu du dernier controle de mois : evite GetYear/GetMonth a chaque paire. */
-AIR_DEMAND_MEMO_DATE <- -1;
-/* Nombre de lignes aeriennes par ville/ancre. Invalide des que la liste change de longueur. */
-AIR_DEMAND_LINE_MEMO <- {};
-AIR_DEMAND_LINE_MEMO_LEN <- -1;
 /* V88 : chaines industrielles de biens completes (intrant vers usine + biens vers ville). Defaut 0. */
 V88_GOODS_CHAIN <- false;
 /* V88 test : force les projets chaine en tete (validation du chemin de construction). */

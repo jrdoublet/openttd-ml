@@ -418,9 +418,7 @@ function OpexLoadSettings()
   EXP_AIR_HUB_PAIR_PREFILTER = AIController.GetSetting("exp_air_hub_pair_prefilter") != 0;
   C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
   AIR_BATCH_TOWN_RESERVE = AIController.GetSetting("air_batch_town_reserve") != 0;
-  V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;
   V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;
-  V93_AIR_DEMAND_PRODUCTION = AIController.GetSetting("v93_air_demand_production") != 0;
   V95_AIR_POST73_PROBE = OpexProbeSetting("v95_air_post73_probe") != 0;
   V95_AIR_POST73_YEAR = -1;
   V134_AIR_P2P_SATURATED_HUB = AIController.GetSetting("v134_air_p2p_saturated_hub") != 0;

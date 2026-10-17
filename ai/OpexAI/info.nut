@@ -334,31 +334,12 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v92_air_service_choice",
-      description = "V92: choose an air service (engine x count) plus a cheap one-aircraft variant of the same route, and allow later re-equipment; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v93_airport_no_pop_floor",
       description = "V93: a town under 600 people can take a large airport when route economics pass, down to 100 people; 1 = on (default), 0 = off",
       min_value = 0,
       max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v93_air_demand_production",
-      description = "V93.1: air demand from last-month passenger production, competitor share and a per-line cap, at both ends; 1 = on, 0 = off (default). Independent of v93_airport_no_pop_floor",
-      min_value = 0,
-      max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });

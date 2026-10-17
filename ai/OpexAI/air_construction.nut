@@ -267,7 +267,7 @@ function OpexAirCostBreakdownMark(costs, brk, key)
 
 /* Construit une ligne aerienne complete. Le caller a deja mesure la recherche des sites et
  * verifie le budget monetaire. Rend toujours une table, jamais une exception. */
-function OpexBuildAirRoute(catalog, budget, plan, lines = null)
+function OpexBuildAirRoute(catalog, budget, plan)
 {
   local result = { ok = false, reason = "", opcodes = 0, error = 0, errorText = "", stationA = null,
                    stationB = null, vehicle = null, vehicles = [], actualCost = 0,
@@ -629,10 +629,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   result.vehicles = built;
   result.capacity <- AIVehicle.GetCapacity(plane, catalog.paxCargo);
   OpexC121MeasureBuiltEconomics(catalog, plan, result);
-  if (V92_AIR_SERVICE_CHOICE && ("mailCargo" in catalog) && catalog.mailCargo >= 0) {
-    local builtMail = AIVehicle.GetCapacity(plane, catalog.mailCargo);
-    if (builtMail >= 0 && planeChoice != null) AIR_MAIL_CAP.rawset(planeChoice.id, builtMail);
-  }
   if (EQUIPMENT_ROI_PROBE) {
     OpexM3EquipmentLog("mode=air phase=post_refit selected=" + planeChoice.id
         + " cargo=" + catalog.paxCargo
@@ -675,7 +671,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
         + " planned_capital=" + result.plannedCapital + " actual_cost=" + result.actualCost
         + " probe_ops=" + probeOps);
   }
-  if (V93_AIR_DEMAND_PRODUCTION) OpexAirReconcileActualBuild(catalog, plan, result, lines);
-  else OpexAirReconcileActualBuild(catalog, plan, result);
+  OpexAirReconcileActualBuild(catalog, plan, result);
   return result;
 }

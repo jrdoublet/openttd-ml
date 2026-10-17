@@ -146,7 +146,6 @@ function OpexC121CatalogChoice(catalog, plan, lines)
         || entry.hubLearnB != hubLearnB || entry.armLearn != armLearn) reason = "learning";
     else if (date - entry.date >= (C121_AIR_VISIBLE_COMPETITION ? 30 : 365)) reason = "age";
     else if (entry.distance != plan.distance
-        || (V93_AIR_DEMAND_PRODUCTION && entry.monthlyPax != plan.monthlyPax)
         || entry.airportPrice != plan.airport.price
         || entry.airportMaintenance != plan.airport.maintenance) reason = "input";
     else {

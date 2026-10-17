@@ -385,9 +385,7 @@ function OpexAI::_tryBuildAir(year)
 
     OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);
     local quotePlanes = ("planes" in plan) ? plan.planes : 1;
-    local result = V93_AIR_DEMAND_PRODUCTION
-        ? OpexBuildAirRoute(this._catalog, this._budget, plan, this._lines)
-        : OpexBuildAirRoute(this._catalog, this._budget, plan);
+    local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
     if (PROBE_AIR_FINANCE_MARGIN) {
       OpexAirFinanceMarginLogTry("legacy", builtCount, plan.siteA.town.id, plan.siteB.town.id,
           newAirports, requiredMargin, baseReserve, capital, need, money,
@@ -481,9 +479,6 @@ function OpexAI::_tryBuildAir(year)
       this._lines[this._lines.len() - 1].c117Arm <- ("arm" in plan) ? plan.arm : "unknown";
       this._lines[this._lines.len() - 1].c117ShadowMonthly <-
           ("b9ShadowMonthly" in plan) ? plan.b9ShadowMonthly : -1;
-    }
-    if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
-      V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
     }
     OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
                            + plan.economics.profitAnnual);
@@ -646,10 +641,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       local plan = project.payload;
-      if (OpexAirV92PairBlocked(this._lines, plan)) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "v92_pair_taken", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-      }
       if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
           if (AIR_BATCH_TOWN_RESERVE) OpexAirBatchTownReserveNote("batch_plan_dead", 1);
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
@@ -757,9 +748,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
       OpexC121PrepareDemandShadow(this._catalog, buildPlan, this._lines);
       local quotePlanes = ("planes" in buildPlan) ? buildPlan.planes : 1;
-      local result = V93_AIR_DEMAND_PRODUCTION
-          ? OpexBuildAirRoute(this._catalog, this._budget, buildPlan, this._lines)
-          : OpexBuildAirRoute(this._catalog, this._budget, buildPlan);
+      local result = OpexBuildAirRoute(this._catalog, this._budget, buildPlan);
       if (PROBE_AIR_FINANCE_MARGIN) {
         OpexAirFinanceMarginLogTry("portfolio", i, plan.siteA.town.id, plan.siteB.town.id,
             newAirports, requiredMargin, need - capital - requiredMargin, capital, need, money,
@@ -899,9 +888,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           this._lines[this._lines.len() - 1].c117ShadowMonthly <-
               ("b9ShadowMonthly" in buildPlan) ? buildPlan.b9ShadowMonthly : -1;
         }
-        if (V92_AIR_SERVICE_CHOICE && ("v92PairKey" in plan)) {
-          V92_CLOSED_PAIRS.rawset(plan.v92PairKey, true);
-        }
         OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
                                + buildPlan.economics.profitAnnual);
         OpexSign(anchor, "AH|" + this._nextLineId + "|"
@@ -1035,16 +1021,11 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (!("mode" in line) || line.mode != "air") continue;
     /* Opcode optimisation: a line still inside the growth cooldown cannot
      * contribute a fleet project and used to pay the ROI sort cost anyway.
-     * Keep the three pre-cadence priority paths in the list: scrapping must
-     * reject before refleet, V92 may need to resume a reequipment, and a crash
-     * refleet explicitly bypasses the growth cadence. */
-    /* V92 pending is not a cheap flag: discovering it scans live vehicles.
-     * Do not pay that scan once here and again in the historical guard below.
-     * V92 is OFF in the current defaults; if explicitly enabled, keep the
-     * historical path rather than changing its priority semantics. */
+     * Keep the pre-cadence priority paths in the list: scrapping must
+     * reject before refleet, and a crash refleet bypasses the growth cadence. */
     local priorityPath = (("scrapping" in line) && line.scrapping)
         || (("needsRefleet" in line) && line.needsRefleet);
-    if (AIR_FLEET_COOLDOWN_PREFILTER && !V92_AIR_SERVICE_CHOICE && !priorityPath) {
+    if (AIR_FLEET_COOLDOWN_PREFILTER && !priorityPath) {
       local cooldown = false;
       if (AIR_FLEET_CADENCE_DAYS >= 365) {
         cooldown = ("lastAirFleetYear" in line) && line.lastAirFleetYear == year;
@@ -1086,15 +1067,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "scrapping", 1);
       continue;
-    }
-    /* V92 : finir un remplacement même si la ligne n'est plus candidate à la croissance.
-     * Sinon les avions déjà envoyés au hangar y restent. */
-    if (V92_AIR_SERVICE_CHOICE && OpexAirLineReequipPending(line)) {
-      local spAdd = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      local resumed = OpexAirAddPlane(line, this._catalog, this._lines);
-      if (spAdd != null) OpexSpanAgg("fleet.add_plane", spAdd);
-      routesIndex = null;
-      if (!(("reason" in resumed) && (resumed.reason == "NOLIVE" || resumed.reason == "NOVEH"))) continue;
     }
     /* Reconstitution de crash : elle passe avant les gardes de croissance
      * (have=0, profit ancien negatif, cadence), sinon le dernier avion ne peut

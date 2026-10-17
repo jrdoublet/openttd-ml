@@ -1,6 +1,5 @@
 /* Module AIR extrait de builder_air.nut (R11) : revenus C119 et economie physique C121, choix moteur C121. */
-/* Revenu par passager transporte. Sous V92, la soute connue remplace le forfait de 15 % :
- * elle est remplie dans la meme proportion que la cabine. Sans mesure, le forfait reste. */
+/* Revenu par passager transporte. Le courrier reste un forfait de 15 % du tarif postal. */
 function OpexAirFarePerPax(catalog, plane, distance, incomeDays)
 {
   local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
@@ -8,10 +7,6 @@ function OpexAirFarePerPax(catalog, plane, distance, incomeDays)
   if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
     local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
     local mailPct = 15;
-    if (V92_AIR_SERVICE_CHOICE && plane != null && ("mailCapacity" in plane)
-        && plane.mailCapacity >= 0 && plane.capacity > 0) {
-      mailPct = (plane.mailCapacity * 100) / plane.capacity;
-    }
     totalIncomePerUnit = paxIncome + (mailIncome * mailPct) / 100;
   }
   return (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;

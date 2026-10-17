@@ -39,10 +39,8 @@ function FxTLWorld(ai)
     if (have < 1) continue;
     OpexC121RefreshVisibleFleet(ai._catalog, line, ai._lines);
     local savedTarget = line.targetAirPlanes;
-    local savedV92 = V92_AIR_SERVICE_CHOICE;
     local savedCount = ("vehCount" in line) ? line.vehCount : null;
     local countBefore = line.vehicles.len();
-    V92_AIR_SERVICE_CHOICE = false;
     line.targetAirPlanes = have;
     line.vehCount <- have;
     local result = OpexAirAddPlane(line, ai._catalog, ai._lines);
@@ -55,7 +53,6 @@ function FxTLWorld(ai)
     FxTLAssert(OpexC121AirPhysicalTarget(line, ai._catalog, ai._lines) < have, "already_above_limit");
     FxTLAssert(line.vehicles.len() == countBefore, "no_implicit_sale");
     line.targetAirPlanes = savedTarget;
-    V92_AIR_SERVICE_CHOICE = savedV92;
     if (savedCount == null) delete line.vehCount;
     else line.vehCount = savedCount;
     FXTL_DONE = true;

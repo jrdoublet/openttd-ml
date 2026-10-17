@@ -1,18 +1,56 @@
-"""Contrat V92 : choix d'un service aerien (moteur x nombre) et variante bon marche."""
+"""Contrat de retrait V92 — v92_air_service_choice (defaut 0, refute −42 %).
+
+Au defaut, V92_AIR_SERVICE_CHOICE etait false : le choix de service, la
+variante bon marche et le reequipement ne partaient jamais. Le chemin
+conserve est le memo C80 puis OpexAirChooseRoutePlaneFull, le forfait
+courrier de 15 % et une duree de vie de 20 ans. serviceScan reste un
+argument positionnel d'OpexAirEconomics, toujours false.
+"""
 from pathlib import Path
 import unittest
+
+from sweeps.campaign_freeze import parse_ai_settings
 from pathlib import Path as _AirSrcPath
 import sys as _air_src_sys
 _air_src_sys.path.insert(0, str(_AirSrcPath(__file__).resolve().parent))
 from air_source import read_builder_air
 
+
 ROOT = Path(__file__).resolve().parents[1]
-BUILDER = read_builder_air()
-GLOBALS = (ROOT / "ai" / "OpexAI" / "globals_pre.nut").read_text(encoding="utf-8")
-INFO = (ROOT / "ai" / "OpexAI" / "info.nut").read_text(encoding="utf-8")
-SETTINGS = (ROOT / "ai" / "OpexAI" / "settings.nut").read_text(encoding="utf-8")
-CATALOG = (ROOT / "ai" / "OpexAI" / "catalog.nut").read_text(encoding="utf-8")
-TASK_AIR = (ROOT / "ai" / "OpexAI" / "task_air.nut").read_text(encoding="utf-8")
+AI = ROOT / "ai" / "OpexAI"
+
+REMOVED = (
+    "v92_air_service_choice",
+    "V92_AIR_SERVICE_CHOICE",
+    "AIR_MAIL_CAP",
+    "AIR_MAIL_LEARN_MONTH",
+    "V92_CLOSED_PAIRS",
+    "OpexAirV92PairBlocked",
+    "OpexAirLearnMailCaps",
+    "OpexAirApplyKnownMail",
+    "OpexAirServiceBetter",
+    "OpexAirChooseRouteService",
+    "OpexAirLineSellValue",
+    "OpexAirLineReequipPending",
+    "OpexAirClearReequip",
+    "OpexAirAlreadySentToHangar",
+    "OpexAirSendLineToHangar",
+    "OpexAirReleaseHangarHold",
+    "OpexAirRebuildFleet",
+    "OpexAirLineAllInHangar",
+    "OpexAirReplaceFleet",
+    "OpexAirConsiderReplace",
+    "OpexAirMaybeReequip",
+    "OpexAirCatalogPlane",
+    "v92PairKey",
+    "v92PendingEngine",
+    "v92SentToHangar",
+    "v92Role",
+)
+
+
+def source(name):
+    return (AI / name).read_text(encoding="utf-8")
 
 
 def function_body(text, signature):
@@ -26,78 +64,75 @@ def function_body(text, signature):
             depth -= 1
             if depth == 0:
                 return text[start:pos + 1]
-    raise AssertionError(signature)
+    raise AssertionError(f"corps non ferme: {signature}")
 
 
 class V92AirServiceChoiceTests(unittest.TestCase):
-    def test_setting_defaults_off(self):
-        self.assertIn("V92_AIR_SERVICE_CHOICE <- false;", GLOBALS)
-        start = INFO.index('name = "v92_air_service_choice"')
-        block = INFO[start:INFO.index("});", start)]
-        for token in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(token, block)
-        self.assertIn(
-            'V92_AIR_SERVICE_CHOICE = AIController.GetSetting("v92_air_service_choice") != 0;',
-            SETTINGS,
-        )
+    @classmethod
+    def setUpClass(cls):
+        cls.info = source("info.nut")
+        cls.globals = source("globals_pre.nut")
+        cls.settings = source("settings.nut")
+        cls.builder = read_builder_air()
+        cls.task_air = source("task_air.nut")
+        cls.catalog = source("catalog.nut")
+        cls.report = source("task_report.nut")
+        cls.events = source("event_handlers.nut")
 
-    def test_service_scan_keeps_one_plane_cap_unless_requested(self):
-        economics = function_body(BUILDER, "function OpexAirEconomics(")
+    def test_setting_global_and_loader_are_gone(self):
+        defaults = parse_ai_settings(AI / "info.nut")
+        self.assertNotIn("v92_air_service_choice", defaults)
+        self.assertNotIn('name = "v92_air_service_choice"', self.info)
+        self.assertNotIn("V92_AIR_SERVICE_CHOICE", self.globals)
+        self.assertNotIn('GetSetting("v92_air_service_choice")', self.settings)
+        for path in AI.glob("*.nut"):
+            text = path.read_text(encoding="utf-8")
+            for token in REMOVED:
+                self.assertNotIn(token, text, f"{path.name}:{token}")
+
+    def test_default_economics_keep_flat_mail_and_twenty_year_life(self):
+        economics = function_body(self.builder, "function OpexAirEconomics(")
         self.assertIn("serviceScan = false", economics)
         self.assertIn("(targetSizing || serviceScan) ? multiPlaneMax", economics)
-        self.assertIn('&& !serviceScan', economics)
-        self.assertIn("plane.ageYears > 1", economics)
+        self.assertIn("&& !serviceScan", economics)
+        self.assertIn("local lifeYears = 20;", economics)
         self.assertIn("plane.price / lifeYears", economics)
-
-    def test_mail_uses_measured_hold_ratio(self):
-        fare = function_body(BUILDER, "function OpexAirFarePerPax(")
+        self.assertNotIn("plane.ageYears", economics)
+        fare = function_body(self.builder, "function OpexAirFarePerPax(")
         self.assertIn("local mailPct = 15;", fare)
-        self.assertIn("(plane.mailCapacity * 100) / plane.capacity", fare)
-        self.assertIn("V92_AIR_SERVICE_CHOICE", fare)
+        self.assertNotIn("mailCapacity", fare)
+        self.assertNotIn("(plane.mailCapacity * 100) / plane.capacity", fare)
+        self.assertIn("function OpexAirPlaneInRange(plane, distance)", self.builder)
+        self.assertIn("ageYears = AIEngine.GetMaxAge(e) / 365", self.catalog)
+        self.assertIn("mailCapacity = -1", self.catalog)
 
-    def test_choice_emits_service_and_cheap_variant(self):
-        choose = function_body(BUILDER, "function OpexAirChooseRoutePlane(")
-        self.assertLess(
-            choose.index("V92_AIR_SERVICE_CHOICE"),
-            choose.index("OpexAirChooseRoutePlaneFull("),
-        )
-        service = function_body(BUILDER, "function OpexAirChooseRouteService(")
-        self.assertIn("0, false, true, false, false)", service)
-        self.assertIn("choice.alternate <-", service)
-        self.assertIn("plane.price <= cheapLimit", service)
-        self.assertIn("infrastructureMaintenance, maxCapital, newAirportCount", service)
-        store = function_body(BUILDER, "function OpexAirStoreRoutePlan(")
-        self.assertIn('cheap.v92Role = "cheap"', store)
-        self.assertIn("v92PairKey", store)
-        self.assertIn("OpexAirV92PairBlocked", TASK_AIR)
+    def test_route_choice_stays_on_the_historical_plane(self):
+        choose = function_body(self.builder, "function OpexAirChooseRoutePlane(")
+        self.assertIn("OpexAirChooseRoutePlaneFull(", choose)
+        self.assertNotIn("OpexAirChooseRouteService", choose)
+        store = function_body(self.builder, "function OpexAirStoreRoutePlan(")
+        self.assertIn("if (projects != null) projects.append(plan);", store)
+        self.assertIn("if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;", store)
+        self.assertNotIn("v92", store)
+        self.assertNotIn("function OpexAirChooseRouteService(", self.builder)
+        self.assertNotIn("OpexAirV92PairBlocked", self.task_air)
 
-    def test_growth_can_replace_the_engine(self):
-        add = function_body(BUILDER, "function OpexAirAddPlane(")
-        self.assertIn("OpexAirMaybeReequip(line, catalog, hangar, airportTile)", add)
-        consider = function_body(BUILDER, "function OpexAirConsiderReplace(")
-        self.assertIn("have + 1", consider)
-        self.assertIn("OpexAirCadenceCap(line, catalog, null)", consider)
-        self.assertIn("OpexAirLineSellValue(line)", consider)
-        send = function_body(BUILDER, "function OpexAirSendLineToHangar(")
-        self.assertIn("OpexAirAlreadySentToHangar(line, v)", send)
-        self.assertIn("line.v92SentToHangar.append(v)", send)
-        self.assertNotIn("OpexAirVehicleGoingToHangar", BUILDER)
-        replace = function_body(BUILDER, "function OpexAirReplaceFleet(")
-        self.assertLess(replace.index("money + sell < cost + OpexCashReserve()"), replace.index("SellVehicle"))
-        self.assertLess(replace.index("AIEngine.IsBuildable(plane.id)"), replace.index("SellVehicle"))
-        self.assertEqual(replace.count("OpexAirRebuildFleet(line, hangar, oldEngine, oldCount, cargo)"), 2)
-        self.assertIn("line.vehicles = []", replace)
-        resize = function_body(TASK_AIR, "function OpexAI::_resizeAirFleets(")
-        # Le prefiltre de cooldown (opcodes) est saute sous V92 ; l'ordre se lit sur le garde historique.
-        self.assertIn("AIR_FLEET_COOLDOWN_PREFILTER && !V92_AIR_SERVICE_CHOICE", resize)
-        self.assertLess(resize.index("OpexAirLineReequipPending(line)"),
-                        resize.index('if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) {'))
-        report = (ROOT / "ai" / "OpexAI" / "task_report.nut").read_text(encoding="utf-8")
-        scrap = function_body(report, "function OpexAI::_triggerScrapLine(")
-        self.assertIn("if (!reequipPending) AIVehicle.SendVehicleToDepot(v);", scrap)
-        self.assertIn("OpexAirClearReequip(line)", scrap)
-        self.assertIn("ageYears = AIEngine.GetMaxAge(e) / 365", CATALOG)
-        self.assertIn("mailCapacity = -1", CATALOG)
+    def test_growth_cooldown_and_scrap_ignore_reequipment(self):
+        resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
+        self.assertIn("if (AIR_FLEET_COOLDOWN_PREFILTER && !priorityPath)", resize)
+        self.assertNotIn("!V92_AIR_SERVICE_CHOICE", resize)
+        self.assertNotIn("OpexAirLineReequipPending", resize)
+        add = function_body(self.builder, "function OpexAirAddPlane(")
+        self.assertNotIn("OpexAirMaybeReequip", add)
+        self.assertIn('result.reason = "TARGET"', add)
+        scrap = function_body(self.report, "function OpexAI::_triggerScrapLine(")
+        self.assertIn("AIVehicle.SendVehicleToDepot(v);", scrap)
+        self.assertNotIn("reequipPending", scrap)
+        self.assertNotIn("OpexAirClearReequip", scrap)
+        retire = function_body(self.report, "function OpexAI::_scrapRetiredVehicles(")
+        self.assertNotIn("OpexAirLineReequipPending", retire)
+        self.assertIn("if (AIVehicle.SendVehicleToDepot(vehicle))", self.events)
+        self.assertNotIn("defer_v92", self.events)
 
 
 if __name__ == "__main__":

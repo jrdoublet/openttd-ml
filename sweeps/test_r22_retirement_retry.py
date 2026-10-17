@@ -43,10 +43,10 @@ class TestRetirementRetry(unittest.TestCase):
         self.assertIn("if (AIVehicle.IsStoppedInDepot(vehicle)) AIVehicle.StartStopVehicle(vehicle);", self.retire)
         self.assertIn('"action=cancel_timeout vehicle="', self.retire)
 
-    def test_invalid_vehicles_and_reequipment_remain_guarded(self):
+    def test_invalid_vehicles_stay_guarded_without_reequipment_hold(self):
         guard = self.retire.index("AIOrder.IsGotoDepotOrder")
         self.assertLess(self.retire.index("if (!AIVehicle.IsValidVehicle(vehicle))"), guard)
-        self.assertLess(self.retire.index("if (OpexAirLineReequipPending(ownerLine)) continue;"), guard)
+        self.assertNotIn("OpexAirLineReequipPending", self.retire)
         self.assertIn("delete this._vehiclesToRetire[vehicle];", self.retire)
         self.assertIn("delete this._unprofitableStreaks[vehicle];", self.retire)
 

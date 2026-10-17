@@ -1,6 +1,6 @@
 /* Module AIR extrait de builder_air.nut (R11) : economie historique des routes et reconciliation de construction. */
 /* Economie et dimensionnement optimal de flotte selon les caracteristiques du vehicule.
- * serviceScan (V92) leve le plafond a un avion et retient le meilleur nombre d'appareils. */
+ * serviceScan reste un argument positionnel, toujours false : il leve le plafond d'appareils. */
 function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
                           infrastructureMaintenance, maxCapital, newAirportCount = 2,
                           opcodePadding = 0, fixedPlanes = 0, targetSizing = false,
@@ -71,7 +71,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
     capacityPerPlane = trip.capacityPerPlane;
     if (capacityPerPlane <= 0) return null;
     local incomeDays = OpexCeilDiv(oneWayDays, 1);
-    /* En soute, sans mesure, ~15 % du tarif postal par passager. V92 utilise la soute reelle. */
+    /* En soute, ~15 % du tarif postal par passager. */
     incomePerUnit = OpexAirFarePerPax(catalog, plane, distance, incomeDays);
   }
   if (capacityPerPlane <= 0) {
@@ -120,7 +120,6 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
     local revenueAnnual = (12 * carried * incomePerUnit).tointeger();
     local runningAnnual = planes * plane.runningCost + airportMaintenanceAnnual;
     local lifeYears = 20;
-    if (V92_AIR_SERVICE_CHOICE && ("ageYears" in plane) && plane.ageYears > 1) lifeYears = plane.ageYears;
     local amortAnnual = planes * plane.price / lifeYears + airportAmortAnnual;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
     local immobilise = (TRANSIT_COST_PERMILLE > 0)
@@ -147,7 +146,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
  * Les arrets joints n'ajoutent que leur bassin marginal hors couverture de l'aeroport et la flotte
  * est figee au nombre reellement construit. Le cout comptable final remplace le capital estime,
  * puis amortissement, profit et ROI sont derives ensemble. */
-function OpexAirReconcileActualBuild(catalog, plan, result, lines = null)
+function OpexAirReconcileActualBuild(catalog, plan, result)
 {
   if (plan == null || result == null || !("economics" in plan)) return;
   local actualPlanes = ("vehicles" in result && result.vehicles != null) ? result.vehicles.len() : 0;
@@ -156,23 +155,6 @@ function OpexAirReconcileActualBuild(catalog, plan, result, lines = null)
   local joinedMonthly = 0;
   local monthlyPax = baseMonthly + joinedMonthly;
   if (monthlyPax < 10) monthlyPax = 10;
-  if (V93_AIR_DEMAND_PRODUCTION) {
-    /* Meme unite qu'avant : passagers mensuels de la paire, somme des deux bouts,
-     * plus le bassin marginal des arrets joints. Le plancher de 10 ne s'applique pas. */
-    if (catalog != null) AIR_DEMAND_PAX_CARGO = catalog.paxCargo;
-    local airport = ("airport" in plan) ? plan.airport : null;
-    local demandA = 0;
-    local demandB = 0;
-    if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
-      local anchorA = ("anchor" in plan.siteA) ? plan.siteA.anchor : null;
-      demandA = OpexAirTownMonthlyPax(plan.siteA.town, anchorA, airport, lines);
-    }
-    if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
-      local anchorB = ("anchor" in plan.siteB) ? plan.siteB.anchor : null;
-      demandB = OpexAirTownMonthlyPax(plan.siteB.town, anchorB, airport, lines);
-    }
-    monthlyPax = demandA + demandB + joinedMonthly;
-  }
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
       + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
   /* C121 causal ne doit jamais etre reecrit par l'economie AIR legacy apres le
@@ -216,26 +198,4 @@ function OpexAirReserveJoinedStops(catalog, plan)
    * pas une reserve exacte. Avant chantier, cout ET demande joints restent a
    * zero ; apres chantier, actualCost et catchment union reel sont reconcilies. */
   plan.joinedStopReserve <- 0;
-}
-
-function OpexAirCatalogPlane(catalog, airportType, engineId)
-{
-  if (catalog != null && catalog.airPlaneChoicesByAirport != null
-      && (airportType in catalog.airPlaneChoicesByAirport)) {
-    foreach (plane in catalog.airPlaneChoicesByAirport[airportType]) {
-      if (plane.id == engineId) return plane;
-    }
-  }
-  if (!AIEngine.IsValidEngine(engineId)) return null;
-  return {
-    id = engineId,
-    capacity = AIEngine.GetCapacity(engineId),
-    speed = AIEngine.GetMaxSpeed(engineId),
-    price = AIEngine.GetPrice(engineId),
-    runningCost = AIEngine.GetRunningCost(engineId),
-    maxOrderDistance = AIEngine.GetMaximumOrderDistance(engineId),
-    ageYears = AIEngine.GetMaxAge(engineId) / 365,
-    mailCapacity = -1,
-    isBig = false,
-  };
 }
