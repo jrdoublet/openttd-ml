@@ -25,10 +25,6 @@ V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
 /* V184 : nombre de creneaux de recherche A* rail simultanes (1..4, defaut 1). */
 V184_RAIL_SEARCH_SLOTS <- 1;
-/* V193 : borne de la generation des chaines V88 (0 = inerte). */
-V193_CHAIN_TOWNS <- 0;
-/* V194 : fret court vers une gare rail deja desservie (0 = inerte). */
-V194_SHORT_TO_SERVED_DST <- false;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */

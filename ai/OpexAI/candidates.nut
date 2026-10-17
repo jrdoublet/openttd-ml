@@ -34,16 +34,6 @@ const PAX_BAND_ROUTE_ONLY = 4;
  * des NewGRF. La valeur comparee est le revenu brut d'un meme trajet de 20
  * tuiles, sans retard, afin de classer le prix du cargo et non la qualite d'une
  * liaison particuliere. Le cargoId ne sert qu'a rendre les ex-aequo stables. */
-/* V194 : une de nos gares rail est-elle a moins de MIN_SEPARATION de la tuile ? */
-function OpexV194NearOwnRailStation(tile)
-{
-  local stations = AIStationList(AIStation.STATION_TRAIN);
-  foreach (st, _ in stations) {
-    if (AIMap.DistanceManhattan(AIStation.GetLocation(st), tile) < MIN_SEPARATION) return true;
-  }
-  return false;
-}
-
 function OpexFreightCargoOrder(catalog)
 {
   local ranked = [];
@@ -671,10 +661,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.distanceLong++;
     return null;
   } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
-             && !(V194_SHORT_TO_SERVED_DST && OpexV194NearOwnRailStation(dstTile))
              && !(V195_V182_YEARS > 0 && AIDate.GetYear(AIDate.GetCurrentDate()) >= OPEX_START_YEAR + V195_V182_YEARS)) {
-    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972).
-     * V194 : exempte le fret court vers une de nos gares rail (rattachement V178). */
+    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972). */
     stats.distanceShort++;
     return null;
   }
@@ -1938,24 +1926,8 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
           local goodsMonthly = (candInput.carried * OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT).tointeger();
           if (goodsMonthly <= 0) continue;
 
-          /* Associer les villes acceptatrices de biens.
-           * V193 : au plus V193_CHAIN_TOWNS villes (les plus peuplees dans la fenetre de distance),
-           * et une seule chaine retenue par paire source -> usine. Inerte a 0. */
-          local chainTowns = townSinks;
-          local bestChain = null;
-          if (V193_CHAIN_TOWNS > 0) {
-            chainTowns = [];
-            foreach (town in townSinks) {
-              local dGoods = AIMap.DistanceManhattan(factory.tile, town.tile);
-              if (dGoods > bounds.railMax || dGoods < 40) continue;
-              local pop = AITown.GetPopulation(town.id);
-              local pos = chainTowns.len();
-              while (pos > 0 && chainTowns[pos - 1].pop < pop) pos--;
-              chainTowns.insert(pos, { tile = town.tile, id = town.id, pop = pop });
-              if (chainTowns.len() > V193_CHAIN_TOWNS) chainTowns.pop();
-            }
-          }
-          foreach (town in chainTowns) {
+          /* Associer les villes acceptatrices de biens */
+          foreach (town in townSinks) {
             if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
 
             /* Verifier l'abandon sur le troncon biens (cle G9§1 : t<townId>) */
@@ -2023,24 +1995,12 @@ function OpexGoodsChainCandidates(catalog, lines, out, stats, abandonedPairs = n
 
             /* Test V88 : garantir le passage du plafond TOP_K (tri par ratio). */
             if (V88_CHAIN_FORCE) chainCandidate.ratio = 1000000000;
-            if (V193_CHAIN_TOWNS > 0) {
-              if (bestChain == null || chainCandidate.profitAnnual > bestChain.profitAnnual) bestChain = chainCandidate;
-              continue;
-            }
             stats.accepted++;
             if (DECISION_LOG) {
               OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + cargoIn + " out=" + goodsCargo
                          + " town=" + town.id + " P=" + totalProfit + " C=" + totalCapital + " roi=" + chainRoi);
             }
             out.append(chainCandidate);
-          }
-          if (bestChain != null) {
-            stats.accepted++;
-            if (DECISION_LOG) {
-              OpexDecide("CHAIN_GEN", "factory=" + factory.id + " in=" + cargoIn + " town=" + bestChain.dstTown
-                         + " P=" + bestChain.profitAnnual + " C=" + bestChain.capital + " roi=" + bestChain.roi + " v193=1");
-            }
-            out.append(bestChain);
           }
         }
       }

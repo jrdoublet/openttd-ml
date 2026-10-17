@@ -1784,25 +1784,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v194_short_to_served_dst",
-      description = "V194: exempt short rail freight (under v182 min distance) whose destination is near one of our rail stations (0 = off, default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v193_chain_towns",
-      description = "V193: V88 goods chain generation evaluates at most N most populated towns per source->factory and keeps the best chain (0 = unbounded, default)",
-      min_value = 0, max_value = 10,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
       name = "v184_rail_search_slots",
       description = "V184: number of concurrent primary rail A* search slots (1..4, default 1)",
       min_value = 1, max_value = 4,
