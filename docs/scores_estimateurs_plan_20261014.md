@@ -883,6 +883,130 @@ commit ni publication n'avait été effectué. La demande suivante autorise le
 commit et la publication de la documentation sur `master` ; les liens vers
 `results/` désignent toujours des preuves locales, absentes du dépôt publié.
 
+<a id="est17-resultat"></a>
+### EST-17 terminé le 15/10 — correction calculable sous profil standard explicite
+
+**Complexité 2/5, faisabilité statique uniquement.** Lecture du code local
+`master@92c86206` et des sources officielles OpenTTD **15.3**. Au début du lot,
+`origin/master@9a6b0bce` contient deux commits documentaires supplémentaires,
+dont le rapprochement V216/EST ; aucun écart de code IA avec le HEAD étudié.
+Aucun pull, changement IA, banc, commit ou push dans ce lot.
+
+**Entrées accessibles avant construction :**
+
+| Donnée | Accès et limite |
+|---|---|
+| Capacité du wagon | `AIEngine.GetCapacity(engine)` ; déjà stockée dans `catalog.wagonByCargo`. Capacité du cargo principal/par défaut, pas une promesse de capacité après refit. |
+| Chargement progressif | `AIGameSettings.IsValid("order.gradual_loading")`, puis `GetValue` ; réglage booléen lisible par cette API. Inconnu ne doit pas devenir OFF. |
+| Pénalité de quai | Même accès à `order.station_length_loading_penalty`. |
+| Quai prévu | `OpexRailWantedPlatformLength`, puis `fixedPlatformLength` après choix du site. `catalog.platformLength` est la borne de partie, pas le quai construit. |
+| Vitesse de chargement | Pas de méthode dans `AIEngine` ; les **5 unités** viennent du modèle standard vérifié en EST-16, pas d'une lecture API. |
+| Longueur exacte du matériel | Pas de méthode dans `AIEngine`. `AIVehicle.GetLength` exige un véhicule construit ; le builder fait déjà cette vérification. |
+
+[API Engine](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/script/api/script_engine.hpp),
+[capacité effective renvoyée](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/script/api/script_engine.cpp#L83),
+[lecture des réglages](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/script/api/script_gamesettings.cpp#L20),
+[déclarations des réglages](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/table/settings/game_settings.ini#L86),
+[longueur du véhicule](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/script/api/script_vehicle.hpp#L553).
+
+**Périmètre retenu pour le prochain calcul à blanc :** fret homogène, un cargo,
+wagons standards non articulés sans refit, profil figé sans NewGRF, chargement
+progressif actif, rame tenant dans les deux quais. La longueur nominale déjà
+utilisée par OpexAI est `8 × (1 + wagons)` en seizièmes de tuile ; la vérification
+réelle du builder reste nécessaire. Hors de ce périmètre, le calcul sera
+**non couvert**, sans valeur de remplacement inventée. L'identification générale
+du matériel NewGRF et les callbacks de chargement restent hors de ce lot.
+
+**Formule proposée, pour une rame donnée et une charge complète :**
+
+```text
+S_gare = (40 / 74) × max_i(ceil(capacite_wagon_i / 5))
+T_service = T_trajet_aller_retour + S_source + S_destination
+capacite_30j = 30 × nombre_trains × capacite_rame / T_service
+transporte_30j = min(offre_captee_30j, capacite_30j)
+```
+
+Le maximum traduit le travail parallèle des wagons ; ce n'est pas la capacité
+totale divisée par 5. Le trajet conserve C41. La formule estime la composante
+mécanique, sans ajouter une constante d'entrée/sortie non mesurée. Pour la rame
+60 t d'EST-16 et le trajet illustratif de 15 j : **21,486 j**, **83,77 t/30 j**.
+Ce résultat reste une illustration, pas le cycle réel d'une rotation appariée.
+Pour plusieurs trains, la capacité est un plafond hors conflits de circulation
+et files en gare ; le cas à un train est celui retenu pour la première application.
+
+**Production et `loadDays` : ne pas additionner deux fois l'attente.** Le cargo
+s'accumule aussi pendant l'absence du train. Avec un train, une offre captée
+constante `r` unités/jour, sans file ni variation de note, l'approximation
+stationnaire donne `T_cycle = max(T_service, capacite_rame / r)`, et non leur
+somme. Le minimum offre/capacité ci-dessus exprime la même limite de débit.
+À 60 t offertes par 30 j, l'exemple donne 60 t transportées, avec 8,514 j
+d'attente supplémentaire idéale ; à 86 t, la capacité mécanique devient la
+limite. Ce ne sont pas des mesures d'attente réelle : stock initial, production
+par à-coups, concurrence et files peuvent changer les séjours.
+
+Dans le code courant, `loadDays = perTrain × 30 / monthlyUnits` utilise la
+production d'entrée, puis réduit `effectiveHeadway` pour la note de gare.
+Ce n'est ni une vitesse de manutention ni une mesure du stock disponible.
+**Ne pas remplacer globalement `roundTripDays` :** cela affecterait aussi
+headway, note, offre, nombre de trains et coût de transit. Pour EST-18,
+conserver la note/offre courantes comme témoin explicite et calculer une
+capacité corrigée séparée. Cette séparation permet de mesurer la propagation
+du seul terme mécanique ; elle ne qualifie pas un modèle complet de note.
+Le couplage note/séjour demandé par V216f reste à étudier avant adoption.
+
+**Livrable et validation :** sept sources officielles archivées avec SHA-256,
+inventaire des méthodes publiques, contrôle des types de réglages, hashes
+du catalogue/modèle/builder et contrôle algébrique de trois régimes d'offre.
+[Audit hors moteur](../results/est17_exante_station_service_20261015/audit.py),
+[reçu](../results/est17_exante_station_service_20261015/receipt.json),
+[sources](../results/est17_exante_station_service_20261015/sources.json).
+Reçu SHA-256 : `ffafe883903c1ee81ce6b0263264bc23fc5d9916b8ab9380ef510d7f6826c46b`.
+L'appel NoAI n'a pas été exécuté en partie ; aucun gain économique mesuré.
+Ces artefacts restent locaux dans `results/`.
+
+<a id="est18-resultat"></a>
+### EST-18 terminé — propagation à blanc sur la ligne 16 (3/5)
+
+Même campagne historique EST-03 et même rame de deux wagons de 30 t ;
+ce calcul ne qualifie pas les défauts actuels. Les panneaux de mars 1971,
+le journal de construction et les sources figées donnent : 86 t/mois
+transportées prévues, revenu annuel 25 800, exploitation 2 531,
+amortissement 1 414, soit **21 855 de profit annuel prévu**.
+
+Avec les 6,4865 jours mécaniques d'EST-17, la capacité corrigée est dans
+l'intervalle ouvert **83,7736–84,2597 t/mois**. Les panneaux tronqués
+ne permettent pas de choisir entre 83 et 84 tonnes après conversion entière.
+En gardant note, offre, tarif, coûts et rame constants :
+
+| Transporté | Revenu annuel | Profit annuel | Variation profit et score à dénominateur constant |
+|---|---:|---:|---:|
+| 83 t/mois | 24 900 | 20 955 | −900, soit −4,12 % |
+| 84 t/mois | 25 200 | 21 255 | −600, soit −2,75 % |
+
+La perte de capacité d'environ 30 % ne se transmet donc pas intégralement
+au profit : le modèle initial était limité par l'offre. Cela n'explique pas
+à lui seul l'écart historique de profit réalisé, qui inclut d'autres effets.
+
+Le dernier ajustement de rame utilise une offre de dimensionnement de
+**136 × 50 % = 68 t/mois**, distincte des 86–87 t/mois offertes au modèle
+final. À trajet figé, un wagon ne couvre pas 68 t, deux les couvrent encore :
+**ce passage conserve deux wagons**. Passer à trois pour couvrir 86 t changerait
+aussi la règle de dimensionnement. La sélection initiale locomotive/rame C41,
+le meilleur nombre de trains et le vivier ne sont pas rejoués : classement
+et achat contrefactuels restent inconnus. Capital modèle 37 936 et devis réel
+40 196 restent distincts ; aucun changement de finançabilité dans ce calcul.
+
+Validation hors moteur : hashes des sources/manifeste, panneaux et identité
+du train, événements de construction, bornes et calculs entiers contrôlés.
+[Script](../results/est18_line16_capacity_shadow_20261015/analyze.py),
+[reçu](../results/est18_line16_capacity_shadow_20261015/receipt.json), SHA-256
+`b7cf3ce3cb457644fc1958b1a4cfbfda4667393070877d0a5e1f532ae736d606`.
+Artefacts locaux, aucun changement de comportement.
+
+La demande ultérieure de terminer l'étude et récupérer V216 remplace la
+proposition d'une nouvelle sonde EST-19 : on audite la sonde déjà livrée et
+ses preuves, sans dupliquer les campagnes. [Bilan EST/V216 du 16/10](est_v216_bilan_20261016.md).
+
 ### Report documentaire initial
 
 **Report documentaire sur master le 14 octobre 2026, à la demande de l'utilisateur.**
