@@ -17,15 +17,8 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 AI_SOURCE = ROOT / "results/c121_winner_integration/20261001_measure_on42_r1/ai/OpexAI"
 IMAGE = "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659"
-COMMON = "c121_air_economics=1,catalog_cost_probe=0,"
-REFERENCE = "OpexAI[" + COMMON + "c121_air_winner_fusion=0]"
-VARIANT = "OpexAI[" + COMMON + "c121_air_winner_fusion=1]"
-
-
 def intervention_arms(intervention):
-    if intervention == "fusion":
-        return REFERENCE, VARIANT
-    raise ValueError("Unknown opcode intervention")
+    raise ValueError("V237: winner fusion is permanent; the historical OFF/ON intervention is retired")
 
 
 def write(path, value):

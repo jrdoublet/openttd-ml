@@ -53,12 +53,9 @@ def at_usage(hubs, index, caps, use_index=True):
 
 class TestAC04HubUsageGate(unittest.TestCase):
     def test_setting_complete_adopted_and_rollback_zero(self):
-        self.assertIn('AC04_HUB_USAGE_GATE <- true;', GLOBALS)
-        self.assertIn('AIController.GetSetting("ac04_hub_usage_gate") != 0;', SETTINGS)
-        entry = INFO[INFO.index('name = "ac04_hub_usage_gate"'):]
-        self.assertIn("easy_value = 1, medium_value = 1, hard_value = 1", entry[:400])
-        self.assertIn("custom_value = 1", entry[:400])
-        self.assertIn("rollback 0", entry[:400])
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('ac04_hub_usage_gate',))
 
     def test_pair_usage_and_no_discovery_mutation(self):
         validate = block(AIR, "OpexAC04ValidateHubsAtUsage")
@@ -70,9 +67,9 @@ class TestAC04HubUsageGate(unittest.TestCase):
         self.assertIn("OpexAir0310CountStationRoutes(ctx, hub.stationId)", validate)
         self.assertIn("if (hub.routes != 0) continue;", validate)
         self.assertIn("hub.ac04Blocked =", validate)
-        self.assertIn("if (AC04_HUB_USAGE_GATE && hub.ac04Blocked) continue;", site)
+        self.assertIn('if (hub.ac04Blocked) continue;', site)
         self.assertIn(
-            "if (AC04_HUB_USAGE_GATE && (hub1.ac04Blocked || hub2.ac04Blocked)) continue;",
+            'if ((hub1.ac04Blocked || hub2.ac04Blocked)) continue;',
             hub,
         )
         self.assertIn("OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)", plans)

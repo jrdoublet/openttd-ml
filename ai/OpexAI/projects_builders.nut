@@ -215,7 +215,7 @@ function OpexProjectFromFleet(entry)
    * restee "model" perd l'exemption C70 des renforts (v161Calibrate). */
   local v161Source = null;
   local v161Model = 0;
-  if (V161_FLEET_NET_MARGINAL > 0) {
+  {
     v161Model = profit / entry.want;
     local marginalCost = revenue - profit;
     local v161 = OpexV161PerPlaneProfit(line, entry, v161Model);
@@ -331,7 +331,6 @@ function OpexProjectFromWater(catalog, plan, planningOps)
   };
   return project;
 }
-
 
 /* portfolio_v2 : garde TOUTES les alternatives modales d'un couple origine/destination au lieu
  * d'en elire une avant le test de capital. Motif (docs/taches.md S0 septies, soupcon 1 confirme) :

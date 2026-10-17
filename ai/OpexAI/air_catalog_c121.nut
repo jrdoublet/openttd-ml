@@ -293,8 +293,7 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
   local newlyObserved = !(engineId in C121_AIR_ENGINE_CAPACITY_OBS);
   local priorMail = newlyObserved ? -1 : C121_AIR_ENGINE_CAPACITY_OBS[engineId].mail;
   C121_AIR_ENGINE_CAPACITY_OBS.rawset(engineId, { pax = paxCapacity, mail = mailCapacity });
-  if (C121_CATALOG_INCREMENTAL && priorMail != mailCapacity
-      && catalog != null && catalog.airPlaneChoicesByAirport != null) {
+  if (priorMail != mailCapacity && catalog != null && catalog.airPlaneChoicesByAirport != null) {
     foreach (airportType, choices in catalog.airPlaneChoicesByAirport) {
       foreach (candidatePlane in choices) {
         if (candidatePlane.id != engineId) continue;

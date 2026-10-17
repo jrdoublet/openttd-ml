@@ -104,7 +104,7 @@ class TestV94AirSiteListContract(unittest.TestCase):
         info = _read("ai/OpexAI/info.nut")
         settings = _read("ai/OpexAI/settings.nut")
         globals_pre = _read("ai/OpexAI/globals_pre.nut")
-        for setting_name in ("v94_air_site_list", "v94_air_site_check"):
+        for setting_name in ("v94_air_site_check",):
             self.assertIn(f'name = "{setting_name}"', info)
             start = info.index(f'name = "{setting_name}"')
             block = info[start:info.index("});", start)]
@@ -112,7 +112,7 @@ class TestV94AirSiteListContract(unittest.TestCase):
             expected = 1 if setting_name == "v94_air_site_list" else 0
             for field in ("custom_value", "easy_value", "medium_value", "hard_value"):
                 self.assertIn(f"{field} = {expected}", block)
-        self.assertIn(
+        self.assertNotIn(
             'V94_AIR_SITE_LIST = AIController.GetSetting("v94_air_site_list") != 0;',
             settings,
         )
@@ -120,14 +120,14 @@ class TestV94AirSiteListContract(unittest.TestCase):
             'V94_AIR_SITE_CHECK = OpexProbeSetting("v94_air_site_check") != 0;',
             settings,
         )
-        self.assertIn("V94_AIR_SITE_LIST <- true;", globals_pre)
+        self.assertNotIn("V94_AIR_SITE_LIST <- true;", globals_pre)
         self.assertIn("V94_AIR_SITE_CHECK <- false;", globals_pre)
 
         defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
         specs = parse_ai_setting_specs(ROOT / "ai" / "OpexAI" / "info.nut")
-        self.assertEqual(defaults["v94_air_site_list"], 1)
+        self.assertNotIn("v94_air_site_list", defaults)
         self.assertEqual(defaults["v94_air_site_check"], 0)
-        for setting_name in ("v94_air_site_list", "v94_air_site_check"):
+        for setting_name in ("v94_air_site_check",):
             self.assertTrue(specs[setting_name]["boolean"])
 
     def test_native_filters_and_legacy_loop_both_present(self):
@@ -162,7 +162,7 @@ class TestV94AirSiteListContract(unittest.TestCase):
 
         find_site = source.split("function OpexAirFindSite(town, airport, probes", 1)[1]
         self.assertIn("for (local r = 4; r <= AIR_SITE_RADIUS; r++)", find_site)
-        self.assertIn("if (V94_AIR_SITE_LIST && !V94_AIR_SITE_CHECK)", find_site)
+        self.assertIn('if (!V94_AIR_SITE_CHECK)', find_site)
         self.assertIn('AILog.Info("V94_CHECK "', source)
         finish = source.split("function OpexAirV94Finish", 1)[1][:900]
         self.assertIn("OpexAirFindSiteListed(town, airport, copy, requiredSlotTownId, key, false);", finish)

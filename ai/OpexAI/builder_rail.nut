@@ -984,7 +984,6 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
          state.iterations < state.timeSafe &&
          AIController.GetTick() < deadlineTick &&
          sliceSpent < sliceIters) {
-
     if (state.pathfinder == null) {
       state.segments++;
       state.currentSegmentLimit = state.nextSegmentLimit;
@@ -1522,7 +1521,7 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   }
 
   local costs = AIAccounting();
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
   for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
   local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stationIdA);
@@ -2591,7 +2590,7 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
       else AITile.DemolishTile(planB.anchor + planB.step * i);
     }
   }
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
   if (tiles == null) return;
   for (local i = 1; i < tiles.len() - 1; i++) {
     AITile.DemolishTile(tiles[i]);
@@ -3425,7 +3424,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local costs = AIAccounting();
 
   budget.begin();
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA.length; i++) {
     AITile.DemolishTile(planA.anchor + planA.step * i);
   }
@@ -3847,7 +3846,7 @@ function OpexV190RollbackDoubleTrack(tiles1, planA1, planB1, depot1, tiles2, pla
     }
   }
 
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
 
   return OpexV190VerifyPrimaryTrackIntact(tiles1, planA1, planB1, depot1);
 }
@@ -3963,7 +3962,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local costs = AIAccounting();
 
   budget.begin();
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA.length; i++) {
     AITile.DemolishTile(planA.anchor + planA.step * i);
   }
@@ -4281,8 +4280,6 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   return result;
 }
 
-
-
 /* Prepare la recherche de seconde voie d'une ligne existante, SANS lancer l'A*.
  * ok=false => pas de pathfinder a poser (raison dans .reason). */
 function OpexPrepareUpgradeSearch(line, hardCap = 10000)
@@ -4389,7 +4386,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
   }
 
   local costs = AIAccounting();
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
   for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
   local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, prep.stationIdA);
@@ -5081,7 +5078,7 @@ function OpexV207RailBuildJoinedStops(platform, stationId, townId, paxCargo, max
     }
 
     if (ok) {
-      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+      OpexAir0310InvalidateSiteValidity();
       builtStops.append(cand.tile);
       if (DECISION_LOG) {
         OpexDecide("V207_STOP", "station=" + stationId + " town=" + townId + " tile=" + cand.tile + " val=" + cand.value);

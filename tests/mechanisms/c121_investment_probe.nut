@@ -21,7 +21,7 @@ function C121InvestLog(event, tail = "")
 function C121InvestSource()
 {
   C121InvestLog("source", " econ=" + (C121_AIR_ECONOMICS ? 1 : 0)
-      + " catalog=" + (C121_CATALOG_INCREMENTAL ? 1 : 0)
+      + " catalog=" + (1)
       + " initial=0");
 }
 

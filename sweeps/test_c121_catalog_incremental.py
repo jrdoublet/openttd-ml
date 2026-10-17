@@ -28,22 +28,14 @@ def squirrel_code(text):
 
 class TestC121CatalogIncremental(unittest.TestCase):
     def test_settings_adopted_default_and_c121_gate(self):
-        defaults = parse_ai_settings(AI / "info.nut")
-        # Profil C121 corrige adopte le 07/10 : le chargement reste conditionnel.
-        self.assertEqual(defaults["c121_catalog_incremental"], 1)
-        # Decision utilisateur du 2026-10-02 : 1 par defaut, inerte hors C121 incremental.
-        self.assertEqual(defaults["c121_catalog_air_first_year"], 1)
-        settings = source("settings.nut")
-        self.assertIn('C121_CATALOG_INCREMENTAL = AIController.GetSetting', settings)
-        self.assertIn('AIController.GetSetting("c121_catalog_incremental")', settings)
-        self.assertIn('C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL\n', settings)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_catalog_incremental', 'c121_catalog_air_first_year'))
 
     def test_default_chooses_original_function_without_cache_call(self):
-        air = read_builder_air()
-        self.assertEqual(air.count("? OpexC121CatalogChoice(catalog, plan,"), 3)
-        self.assertEqual(air.count(": OpexC121ChooseRoutePlane(catalog, plan,"), 3)
-        self.assertIn("if (C121_CATALOG_INCREMENTAL)", source("catalog.nut"))
-        self.assertIn("if (C121_CATALOG_INCREMENTAL)", source("orchestrator.nut"))
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_catalog_incremental',))
 
     def test_invalidation_and_transient_cache(self):
         self.assertIn('reason == "town_founded"', source("events.nut"))
@@ -68,7 +60,7 @@ class TestC121CatalogIncremental(unittest.TestCase):
 
     def test_slices_and_first_year_gate(self):
         scheduler = source("scheduler_tasks.nut")
-        self.assertIn("C121_CATALOG_INCREMENTAL && sliceBudget > 150000", scheduler)
+        self.assertIn('sliceBudget > 150000', scheduler)
         self.assertIn("s.partialPending = true", scheduler)
         self.assertIn("s.plans.len() > s.lastPublishedCount", scheduler)
         self.assertIn("owner._portfolioInvalidated = false", scheduler)
@@ -79,9 +71,9 @@ class TestC121CatalogIncremental(unittest.TestCase):
             "while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 1)
         self.assertNotIn("AIController.GetOpsTillSuspend() > 10000", source("main.nut"))
         self.assertIn("AIController.GetTick() == continuationTick", scheduler)
-        self.assertEqual(source("main.nut").count("this._dispatchCatalog(queuedTask,"), 1)
+        self.assertEqual(source("main.nut").count("this._dispatchAirCatalogPhase(phaseTask,"), 1)
         self.assertNotIn("OpexC121CatalogTownProductionBatch(this._catalog)) this._portfolioInvalidated", scheduler)
-        self.assertIn("C121_CATALOG_AIR_FIRST_YEAR", read_projects_source())
+        self.assertNotIn("C121_CATALOG_AIR_FIRST_YEAR", read_projects_source())
         self.assertIn("doFreight = false;", read_projects_source())
 
     def test_material_town_change_and_first_year_cash_gate(self):
@@ -90,7 +82,7 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn("abs(mail - old.mail) >= 10", catalog)
         self.assertIn("abs(pax - old.pax) * 100 >= old.pax * 20", catalog)
         projects = source("task_projects.nut")
-        self.assertIn("local c121FirstYearAirBatch = C121_CATALOG_AIR_FIRST_YEAR", projects)
+        self.assertIn('local c121FirstYearAirBatch = MODE_AIR', projects)
         self.assertIn("year == (this._generationStageMonth - 1) / 12", projects)
         self.assertIn('c121FirstYearAirBatch && project.mode == "air"', projects)
         self.assertLess(projects.index("!OpexAirBatchPlanStillLive(project.payload"),

@@ -386,7 +386,7 @@ function OpexAI::_tryBuildAir(year)
     if (DECISION_LOG) {
       OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
     }
-    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+    OpexAir0310InvalidateSiteValidity();
     if (PROBE_AIR_FINANCE_MARGIN) {
       OpexAirHubReuseObserve(this._lines, plan, result, this._nextLineId);
     }
@@ -596,7 +596,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
   local i = rank;
       local plan = project.payload;
       if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
+              || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
       }
       if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
@@ -605,7 +606,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             local v133BestA = (this._projects != null) ? this._projects.best : null;
             OpexV133NoteUnbuildableEndpoint(v133BestA, i, plan.siteA, ("reuseA" in plan) && plan.reuseA);
           }
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
+              || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
@@ -614,7 +616,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             local v133BestB = (this._projects != null) ? this._projects.best : null;
             OpexV133NoteUnbuildableEndpoint(v133BestB, i, plan.siteB, ("reuseB" in plan) && plan.reuseB);
           }
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
+              || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       local townAId = ("siteA" in plan && "town" in plan.siteA && "id" in plan.siteA.town) ? plan.siteA.town.id : -1;
@@ -635,12 +638,14 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         }
       }
       if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) {
-        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "line_cap_reached", extra = "lines_year=" + airLinesThisYear + " total=" + totalAirLines });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
+            || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "line_cap_reached", extra = "lines_year=" + airLinesThisYear + " total=" + totalAirLines });
         return { outcome = "rejected", discards = passDiscards };
       }
       local abandonedKey = OpexAirPairKey(plan.siteA, plan.siteB);
       if (ABANDON_MEMORY && OpexAirPairIsAbandoned(this._abandonedPairs, plan.siteA, plan.siteB)) {
-        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
+            || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -666,12 +671,13 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
-        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
+            || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
 
       OpexSign(anchor, "IP|" + yy + "|A|" + project.budgetScore + "|" + project.opcodeScore);
-      if (AIR_EARLY_SLOT && ("earlySlotBonusPct" in project) && project.earlySlotBonusPct > 0) {
+      if (("earlySlotBonusPct" in project) && project.earlySlotBonusPct > 0) {
         local earlyTownA = ("earlySlotTownA" in project) ? project.earlySlotTownA : townAId;
         local earlyTownB = ("earlySlotTownB" in project) ? project.earlySlotTownB : townBId;
         OpexSign(anchor, "SK|" + yy + "|" + earlyTownA + "|" + earlyTownB + "|"
@@ -789,7 +795,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             "line=" + this._nextLineId + " profit=" + buildPlan.economics.profitAnnual + " cost=" + buildPlan.capital
             + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
         this._airBuilt = true;
-        if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+        OpexAir0310InvalidateSiteValidity();
         if (PROBE_AIR_FINANCE_MARGIN) {
           OpexAirHubReuseObserve(this._lines, buildPlan, result, this._nextLineId);
         }
@@ -844,7 +850,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                          + buildPlan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
         OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
                          + AICargo.GetCargoLabel(this._catalog.paxCargo));
-        if (AIR_EARLY_SLOT && ("earlySlotBonusPct" in project) && project.earlySlotBonusPct > 0) {
+        if (("earlySlotBonusPct" in project) && project.earlySlotBonusPct > 0) {
           local earlyTownA = ("earlySlotTownA" in project) ? project.earlySlotTownA : townAId;
           local earlyTownB = ("earlySlotTownB" in project) ? project.earlySlotTownB : townBId;
           OpexSign(anchor, "SB|" + yy + "|" + earlyTownA + "|" + earlyTownB + "|"
@@ -974,7 +980,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * reject before refleet, and a crash refleet bypasses the growth cadence. */
     local priorityPath = (("scrapping" in line) && line.scrapping)
         || (("needsRefleet" in line) && line.needsRefleet);
-    if (AIR_FLEET_COOLDOWN_PREFILTER && !priorityPath) {
+    if (!priorityPath) {
       local cooldown = false;
       if (AIR_FLEET_CADENCE_DAYS >= 365) {
         cooldown = ("lastAirFleetYear" in line) && line.lastAirFleetYear == year;
@@ -1003,7 +1009,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
   }
 
   local routesIndex = null;
-  local routesMismatchCount = 0;
 
   foreach (line in airLines) {
     if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordExamined("fleet", 1);
@@ -1075,10 +1080,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     local c121BelowTarget = ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
     local c121FirstLiveEntry = false;
-    if (c121BelowTarget && C121_AIR_FIRST_LIVE_GROWTH
-        && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
-            || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS)
-        && have == 1 && !("lastAirFleetYear" in line)) {
+    if (c121BelowTarget && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
+            || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS) && have == 1 && !("lastAirFleetYear" in line)) {
       /* C121 cadence live : seul 1->2 est avance, sur preuve d'exploitation
        * recente deja agregee passivement par C117. Le projet reste un +1 normal
        * et passe ensuite par exactement le meme portefeuille/financement.
@@ -1146,22 +1149,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     local physicalMaxPlanes = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
     if (AIR_CADENCE_CAP) {
       local spCap = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      if (AIR_FLEET_ROUTES_INDEX == 1) {
+      {
         if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
         physicalMaxPlanes = OpexAirCadenceCapIndexed(line, this._catalog, this._lines, routesIndex);
-      } else if (AIR_FLEET_ROUTES_INDEX == 2) {
-        if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
-        local capDirect = OpexAirCadenceCap(line, this._catalog, this._lines);
-        local capIndexed = OpexAirCadenceCapIndexed(line, this._catalog, this._lines, routesIndex);
-        if (capDirect != capIndexed) {
-          routesMismatchCount++;
-          if (DECISION_LOG) {
-            OpexDecide("FLEET_ROUTES_MISMATCH", "line=" + line.lineId + " direct=" + capDirect + " indexed=" + capIndexed);
-          }
-        }
-        physicalMaxPlanes = capDirect;
-      } else {
-        physicalMaxPlanes = OpexAirCadenceCap(line, this._catalog, this._lines);
       }
       if (spCap != null) OpexSpanAgg("fleet.cadence_cap", spCap);
     }
@@ -1256,7 +1246,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       if (want > 0) {
         local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
         if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
-        if (V161_FLEET_NET_MARGINAL > 0) {
+        {
           /* V161 : voisines AIR vivantes partageant une gare, pour l'a priori. Index
            * construit une fois par passe (aucun achat en mode a blanc). */
           if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
@@ -1322,9 +1312,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|K");
     }
   }
-  if (AIR_FLEET_ROUTES_INDEX == 2 && DECISION_LOG) {
-    OpexDecide("FLEET_ROUTES_INDEX", "year=" + year + " lines=" + airLines.len() + " mismatches=" + routesMismatchCount);
-  }
+
   if (spFleet != null) OpexSpanEnd(spFleet);
   return true;
 }

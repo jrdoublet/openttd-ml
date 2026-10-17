@@ -101,7 +101,6 @@ const DEAD_STREAK_THRESHOLD = 2;
  * largement le temps a un vehicule sain de rejoindre son depot. */
 const SCRAP_TIMEOUT_YEARS = 2;
 
-
 class OpexAI extends AIController {
   _budget = null;
   _catalog = null;
@@ -376,7 +375,9 @@ class OpexAI extends AIController {
     this._abandonCounts = {};
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
-    OpexAirResetSiteCache();
+    /* Avant Start(), vider les caches sans avancer l'epoque geometrique,
+     * comme avant le chargement des anciens interrupteurs C121. */
+    OpexAirResetSiteCache(false);
     this._activeSubsidies = {};
     this._railReadyStock = {};
     this._railStockCooldown = {};
@@ -778,7 +779,7 @@ function OpexAI::Start()
     local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
     this._runOrchestratorTick();
     if (spOrch != null) OpexSpanEnd(spOrch);
-    if (C121_CATALOG_INCREMENTAL) {
+    {
       local spResume = null;
       local catalogPending = true;
       local continuationTick = AIController.GetTick();
@@ -790,10 +791,10 @@ function OpexAI::Start()
             if (spResume == null && PROBE_SPAN_TRACE) spResume = OpexSpanBegin("loop.c121_catalog_resume");
             catalogPending = true;
             local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
-            if (V147_AIR_CATALOG_TASKS) {
+            {
               local phaseTask = OpexV147PhaseTask(this);
               if (phaseTask != null) this._dispatchAirCatalogPhase(phaseTask, AIDate.GetYear(AIDate.GetCurrentDate()));
-            } else this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            }
             if (spCat != null) OpexSpanEnd(spCat);
             break;
           }

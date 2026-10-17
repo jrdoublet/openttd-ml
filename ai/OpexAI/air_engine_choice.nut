@@ -319,7 +319,6 @@ function OpexC116FormatProjectSnapshot(deltaCapital)
   return out;
 }
 
-
 function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, monthlyPax,
                                      infrastructureMaintenance, maxCapital, newAirportCount,
                                      opcodePadding)
@@ -327,7 +326,7 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   local selectedEconomics = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
       infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
       0, false, false, false, false);
-  if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport)) {
+  if (!(airport.type in catalog.airPlaneChoicesByAirport)) {
     return { plane = selectedPlane, economics = selectedEconomics };
   }
 

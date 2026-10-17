@@ -42,21 +42,18 @@ def _body(source: str, signature: str) -> str:
 
 class TestV158SettingsAndGlobals(unittest.TestCase):
     def test_setting_declaration(self):
-        info = _read("info.nut")
-        self.assertIn('"air_publish_lazy_select"', info)
-        block = info[info.index('name = "air_publish_lazy_select"') :][:500]
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, rf"{key} = 1\b")
-        self.assertRegex(block, r"min_value = 0\b")
-        self.assertRegex(block, r"max_value = 2\b")
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air_publish_lazy_select',))
 
     def test_global_pre(self):
         globals_pre = _read("globals_pre.nut")
-        self.assertIn("AIR_PUBLISH_LAZY_SELECT <- 0;", globals_pre)
+        self.assertNotIn("AIR_PUBLISH_LAZY_SELECT <- 0;", globals_pre)
 
     def test_settings_load(self):
-        settings = _read("settings.nut")
-        self.assertIn('AIR_PUBLISH_LAZY_SELECT = AIController.GetSetting("air_publish_lazy_select");', settings)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air_publish_lazy_select',))
 
     def test_main_members(self):
         main = _read("main.nut")
@@ -71,7 +68,7 @@ class TestV158LazySelectionMechanism(unittest.TestCase):
     def test_incremental_publish_sets_stale(self):
         update = _read("projects_update.nut")
         body = _body(update, "function OpexAir0310PublishIncremental(")
-        self.assertIn("AIR_PUBLISH_LAZY_SELECT != 0", body)
+        self.assertNotIn("AIR_PUBLISH_LAZY_SELECT", body)
         self.assertIn("projects.selectionStale = true", body)
         self.assertIn("_lazyDeferredYear", body)
         self.assertIn("_lazyPubsYear", body)

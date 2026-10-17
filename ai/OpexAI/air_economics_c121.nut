@@ -12,23 +12,6 @@ function OpexAirFarePerPax(catalog, plane, distance, incomeDays)
   return (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
 }
 
-/* Temps de paiement C119 partage : repli C121 quand le paiement physique est OFF.
- * Conserve apres retrait du traitement economique C119 autonome. */
-function OpexC119AirIncomeDays(plane, flightDistance)
-{
-  if (plane == null || !("id" in plane)) return 1;
-  local speed = (("speed" in plane) && plane.speed > 0) ? plane.speed : 0;
-  if (speed <= 0) {
-    if (!AIEngine.IsValidEngine(plane.id)) return 1;
-    speed = AIEngine.GetMaxSpeed(plane.id);
-  }
-  if (speed < 1) speed = 1;
-  local dayLengthFactor = ("GetDayLengthFactor" in AIDate) ? AIDate.GetDayLengthFactor() : 1;
-  if (dayLengthFactor < 1) dayLengthFactor = 1;
-  local days = ((flightDistance + 30) * 664) / (speed * 24 * dayLengthFactor);
-  return days > 0 ? days : 1;
-}
-
 function OpexC121PhysicalPaymentDays(trip)
 {
   if (trip == null || !("physicalOneWayDays" in trip)
@@ -607,9 +590,7 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
       : AIMap.DistanceManhattan(plan.siteA.anchor, plan.siteB.anchor);
   if (paymentDistance < 1) paymentDistance = plan.distance;
   local incomeDays = engineContext != null ? engineContext.incomeDays
-      : (AIR_C121_PHYSICAL_PAYMENT_DAYS
-          ? OpexC121PhysicalPaymentDays(trip)
-          : OpexC119AirIncomeDays(plane, plan.distance));
+      : (OpexC121PhysicalPaymentDays(trip));
   local paxIncome = engineContext != null ? engineContext.paxIncome
       : AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
   local mailIncome = engineContext != null ? engineContext.mailIncome
@@ -1092,11 +1073,7 @@ function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decision
 /* Tariffs can change with monthly inflation. Keep the opening snapshot,
  * but refresh full-fleet economics if the fused scan crossed that boundary.
  * No persistent cache: these objects belong to this winner evaluation only. */
-function OpexC121WinnerTariffEpoch()
-{
-  local date = AIDate.GetCurrentDate();
-  return AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
-}
+
 
 /* AIR 03/10 3b : invariants d'UN avion, partages par N=1 et N=2.
  * Tarifs PASS/MAIL, duree, amortissement, capacites, couts d'aeroport.
@@ -1129,9 +1106,7 @@ function OpexC121OneOrTwoInvariants(catalog, plan, plane)
   local paymentDistance = engineStatic != null ? engineStatic.paymentDistance
       : AIMap.DistanceManhattan(plan.siteA.anchor, plan.siteB.anchor);
   if (paymentDistance < 1) paymentDistance = plan.distance;
-  local incomeDays = AIR_C121_PHYSICAL_PAYMENT_DAYS
-      ? OpexC121PhysicalPaymentDays(trip)
-      : OpexC119AirIncomeDays(plane, plan.distance);
+  local incomeDays = OpexC121PhysicalPaymentDays(trip);
   local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays);
   local mailIncome = useMail ? AICargo.GetCargoIncome(catalog.mailCargo, paymentDistance, incomeDays) : 0;
   if (paxIncome < 0 || (useMail && mailIncome < 0)) return null;
@@ -1516,80 +1491,25 @@ function OpexC121OneOrTwoFused(catalog, plan, plane)
  * initial et full decrivent le meme N, pour que le chantier, le classement
  * et le financement lisent la meme profondeur. Le choix du moteur reste
  * celui du scan N d'ouverture dans OpexC121ChooseRoutePlane.
- * AIR0310_ONE_TWO_FUSED (defaut 0) remplace les deux economies completes
- * par OpexC121OneOrTwoFused ; a 0 le bloc ci-dessous est inchange. */
+ * Les deux profondeurs partagent les invariants via OpexC121OneOrTwoFused. */
 function OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext)
 {
-  if (AIR0310_ONE_TWO_FUSED) {
-    return OpexC121OneOrTwoFused(catalog, plan, plane);
-  }
-  local econ1 = engineContext == null
-      ? OpexC121EngineEconomics(catalog, plan, plane, 1, false)
-      : OpexC121EngineEconomics(catalog, plan, plane, 1, false, null, null, engineContext);
-  local econ2 = engineContext == null
-      ? OpexC121EngineEconomics(catalog, plan, plane, 2, false)
-      : OpexC121EngineEconomics(catalog, plan, plane, 2, false, null, null, engineContext);
-  local chosen = econ1;
-  if (econ2 != null) {
-    if (chosen == null) {
-      chosen = econ2;
-    } else {
-      local score1 = ("decisionScore" in econ1) ? econ1.decisionScore : econ1.score;
-      local score2 = ("decisionScore" in econ2) ? econ2.decisionScore : econ2.score;
-      local profit1 = ("decisionProfitAnnual" in econ1) ? econ1.decisionProfitAnnual : econ1.profitAnnual;
-      local profit2 = ("decisionProfitAnnual" in econ2) ? econ2.decisionProfitAnnual : econ2.profitAnnual;
-      if (score2 > score1 || (score2 == score1 && profit2 > profit1)) chosen = econ2;
-    }
-  }
-  if (PROBE_C121_ENGINE_TABLE) {
-    C121_ENGTAB_N1 = econ1;
-    C121_ENGTAB_N2 = econ2;
-  }
-  return { initial = chosen, full = chosen };
+  return OpexC121OneOrTwoFused(catalog, plan, plane);
 }
 
-function OpexC121WinnerEconomics(catalog, plan, plane, fusion, engineContext = null)
+function OpexC121WinnerEconomics(catalog, plan, plane, engineContext = null)
 {
-  if (C121_AIR_ONE_OR_TWO_PLANES) {
-    return OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext);
-  }
-  if (!fusion) {
-    local openingPlanes = 1;
-    local initial = engineContext == null
-        ? OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, false)
-        : OpexC121EngineEconomics(catalog, plan, plane, openingPlanes, false, null, null, engineContext);
-    local full = engineContext == null ? OpexC121EngineEconomics(catalog, plan, plane, 0, false)
-        : OpexC121EngineEconomics(catalog, plan, plane, 0, false, null, null, engineContext);
-    return { initial = initial, full = full };
-  }
-  local epoch = OpexC121WinnerTariffEpoch();
-  local opening = { initial = null };
-  local full = engineContext == null ? OpexC121EngineEconomics(catalog, plan, plane, 0, false, null, opening)
-      : OpexC121EngineEconomics(catalog, plan, plane, 0, false, null, opening, engineContext);
-  if (opening.initial == null) {
-    return { initial = engineContext == null ? OpexC121EngineEconomics(catalog, plan, plane, 1, false)
-        : OpexC121EngineEconomics(catalog, plan, plane, 1, false, null, null, engineContext), full = full };
-  }
-  if (epoch != OpexC121WinnerTariffEpoch()) {
-    full = OpexC121EngineEconomics(catalog, plan, plane, 0, false);
-  }
-  return { initial = opening.initial, full = full };
+  return OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext);
 }
 
 function OpexC121EngineContextMatches(ctx, catalog, plan, plane, paxCapacity = null, mailCapacity = null)
 {
-  if (ctx == null || ctx.catalog != catalog || ctx.plan != plan || ctx.plane != plane
-      || ctx.date != AIDate.GetCurrentDate()
-      || !("c121EngineStatic" in plan) || !("c121Demand" in plan)
-      || ctx.engineStatic != plan.c121EngineStatic || ctx.demand != plan.c121Demand
-      || ctx.distance != plan.distance || ctx.price != plane.price
-      || ctx.speed != (("speed" in plane) ? plane.speed : null)
-      || ctx.ageYears != (("ageYears" in plane) ? plane.ageYears : null)
-      || ctx.paxCargo != catalog.paxCargo
-      || ctx.mailCargo != (("mailCargo" in catalog) ? catalog.mailCargo : -1)
-      || ctx.incomeDays != (AIR_C121_PHYSICAL_PAYMENT_DAYS
-          ? OpexC121PhysicalPaymentDays(ctx.trip)
-          : OpexC119AirIncomeDays(plane, plan.distance))) return false;
+  if (ctx == null || ctx.catalog != catalog || ctx.plan != plan || ctx.plane != plane || ctx.date != AIDate.GetCurrentDate()
+      || !("c121EngineStatic" in plan) || !("c121Demand" in plan) || ctx.engineStatic != plan.c121EngineStatic
+      || ctx.demand != plan.c121Demand || ctx.distance != plan.distance || ctx.price != plane.price
+      || ctx.speed != (("speed" in plane) ? plane.speed : null) || ctx.ageYears != (("ageYears" in plane) ? plane.ageYears : null)
+      || ctx.paxCargo != catalog.paxCargo || ctx.mailCargo != (("mailCargo" in catalog) ? catalog.mailCargo : -1)
+      || ctx.incomeDays != (OpexC121PhysicalPaymentDays(ctx.trip))) return false;
   local known = false;
   local pax = plane.capacity;
   local mail = 0;
@@ -1624,9 +1544,7 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = n
   local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
   if (trip == null || trip.roundTripDays <= 0.0) return null;
   local incomeDays = engineContext != null ? engineContext.incomeDays
-      : (AIR_C121_PHYSICAL_PAYMENT_DAYS
-          ? OpexC121PhysicalPaymentDays(trip)
-          : OpexC119AirIncomeDays(plane, plan.distance));
+      : (OpexC121PhysicalPaymentDays(trip));
   local paxIncome = engineContext != null ? engineContext.paxIncome
       : AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
   if (paxIncome < 0) return null;
@@ -1683,7 +1601,7 @@ function OpexC121GameEngineLog(event, airportType, engineId, prevId, streak, rea
   /* C121_GE event=<establish|check_ok|check_miss|reset|fallback> type=<t>
    * eng=<id> prev=<id> streak=<n> date=<AAAA-MM-JJ> ; reset porte
    * reason=engine_rev|learn_rev. */
-  if (!C121_AIR_GAME_ENGINE) return;
+
   local line = "C121_GE event=" + event
       + " type=" + airportType
       + " eng=" + engineId
@@ -1776,7 +1694,7 @@ function OpexC121GameEngineAfterScan(airportType, best, geMode)
  * seul son null declenchait le repli. Gardes identiques a
  * OpexC121InitialEngineUpperScore (capacites, tarifs, couts, duree, MAIL,
  * frontiere de mois via EngineContextMatches), sans le score jete.
- * Actif seulement si AIR0310_V96_SHORTCUT_LEAN (defaut 0, non qualifie). */
+ * Le raccourci conserve les gardes de viabilite sans calculer de score inutilise. */
 function OpexC121EngineShortcutViable(catalog, plan, plane, engineContext = null)
 {
   if (catalog == null || plan == null || plane == null || !("c121Demand" in plan)
@@ -1791,9 +1709,7 @@ function OpexC121EngineShortcutViable(catalog, plan, plane, engineContext = null
   local trip = engineContext != null ? engineContext.trip : OpexC121AirTripModel(plan, plane);
   if (trip == null || trip.roundTripDays <= 0.0) return false;
   local incomeDays = engineContext != null ? engineContext.incomeDays
-      : (AIR_C121_PHYSICAL_PAYMENT_DAYS
-          ? OpexC121PhysicalPaymentDays(trip)
-          : OpexC119AirIncomeDays(plane, plan.distance));
+      : (OpexC121PhysicalPaymentDays(trip));
   local paxIncome = engineContext != null ? engineContext.paxIncome
       : AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays);
   if (paxIncome < 0) return false;
@@ -1822,16 +1738,8 @@ function OpexC121GameEngineTryShortcut(catalog, plan, engineId)
   if (!OpexC118EngineFitsPlan(plan, plane)) return null;
   if (!OpexAirPlaneInRange(plane, plan.distance)) return null;
   local context = null;
-  if (AIR0310_V96_SHORTCUT_LEAN) {
-    if (!OpexC121EngineShortcutViable(catalog, plan, plane, context)) return null;
-    return { plane = plane, context = context };
-  }
-  local upperScore = context == null
-      ? OpexC121InitialEngineUpperScore(catalog, plan, plane)
-      : OpexC121InitialEngineUpperScore(catalog, plan, plane, context);
-  if (upperScore == null) return null;
-  if (context != null) context.upperScore = upperScore;
-  return { plane = plane, context = context, upperScore = upperScore };
+  if (!OpexC121EngineShortcutViable(catalog, plan, plane, context)) return null;
+  return { plane = plane, context = context };
 }
 
 /* Piste 6, sonde shadow. Le caller ne l'invoque que si probe_air_engine_depth
@@ -1890,7 +1798,7 @@ function OpexAirEngineDepthTownId(plan, siteName)
 /* Une ligne par decision issue d'un scan complet. loss = (score retenu -
  * score du meilleur N du challenger) / score retenu. ops ne couvre que
  * l'evaluation shadow, pas la ligne de log. Le noyau est celui du vainqueur
- * (fusion AIR0310 si elle est active, sinon les deux economies historiques). */
+ * avec le noyau fusionne AIR0310. */
 function OpexAirEngineDepthEmit(catalog, plan, routeChoice)
 {
   if (!PROBE_AIR_ENGINE_DEPTH) return;
@@ -2181,7 +2089,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
   local geEst = -1;
   local best = null;
   local geState = null;
-  if (C121_AIR_GAME_ENGINE) {
+  {
     local airportType = plan.airport.type;
     geState = OpexC121GameEngineState(airportType);
     OpexC121GameEngineSyncRevs(geState, airportType);
@@ -2317,7 +2225,7 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     perf.engineEvals += evaluated;
   }
   }
-  if (C121_AIR_GAME_ENGINE) {
+  {
     OpexC121GameEngineAfterScan(plan.airport.type, best, geMode);
     geState = OpexC121GameEngineState(plan.airport.type);
     geEst = geState.established ? geState.engine : -1;
@@ -2340,8 +2248,8 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
   local fullOps0 = AIController.GetOpsTillSuspend();
   local winnerMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local winnerEconomics = best.context == null
-      ? OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION)
-      : OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION, best.context);
+      ? OpexC121WinnerEconomics(catalog, plan, best.plane)
+      : OpexC121WinnerEconomics(catalog, plan, best.plane, best.context);
   local initialEconomics = winnerEconomics.initial;
   local fullBest = winnerEconomics.full;
   local fullTick1 = AIController.GetTick();
@@ -2352,14 +2260,14 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
     perf.winnerTicks += plan.c121WinnerFullTicks;
   }
   if (initialEconomics == null) {
-    if (C121_AIR_GAME_ENGINE && geMode == 1) {
+    if (geMode == 1) {
       OpexC121GameEngineLog("fallback", plan.airport.type, best.plane.id, best.plane.id,
           OpexC121GameEngineState(plan.airport.type).streak);
       geMode = 3;
       if (PROBE_C121_ENGINE_TABLE) plan.c121GeMode <- 3;
       if (depthOn) AIR_ENGINE_DEPTH_SCAN = 1;
       best = OpexC121ScanRoutePlaneEngines(catalog, plan);
-      if (C121_AIR_GAME_ENGINE) {
+      {
         OpexC121GameEngineAfterScan(plan.airport.type, best, geMode);
         geState = OpexC121GameEngineState(plan.airport.type);
         geEst = geState.established ? geState.engine : -1;
@@ -2373,8 +2281,8 @@ function OpexC121ChooseRoutePlane(catalog, plan, lines = null)
       local retryTick0 = AIController.GetTick();
       local retryOps0 = AIController.GetOpsTillSuspend();
       winnerEconomics = best.context == null
-          ? OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION)
-          : OpexC121WinnerEconomics(catalog, plan, best.plane, C121_AIR_WINNER_FUSION, best.context);
+          ? OpexC121WinnerEconomics(catalog, plan, best.plane)
+          : OpexC121WinnerEconomics(catalog, plan, best.plane, best.context);
       initialEconomics = winnerEconomics.initial;
       fullBest = winnerEconomics.full;
       local retryTick1 = AIController.GetTick();

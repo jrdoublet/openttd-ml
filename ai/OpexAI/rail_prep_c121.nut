@@ -1,6 +1,6 @@
 /* C121 annee « aerien seul » : preparer le rail sans le construire.
  *
- * Le reglage c121_air_first_year_rail_prep est a 0 par defaut. Chaque entree
+ * La preparation est active quand AIR et rail sont autorises. Chaque entree
  * de ce fichier est gardee par ce booleen : aucun catalogue, aucun A*, aucun
  * journal tant qu'il est faux. Le stock et la liste de candidats ne sont pas
  * sauvegardes ; Load les recalcule.
@@ -15,7 +15,7 @@ const C121_RAIL_PREP_MAX = 3;
  * caisse ou de parcours du portefeuille hors de cette garde. */
 function OpexC121RailPrepLog(ai, kind, ops, ticks)
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP || !CATALOG_COST_PROBE) return;
+  if (!(MODE_AIR && MODE_RAIL) || !CATALOG_COST_PROBE) return;
   local date = AIDate.GetCurrentDate();
   local year = AIDate.GetYear(date);
   local month = AIDate.GetMonth(date);
@@ -98,7 +98,7 @@ function OpexAI::_c121RailPrepCashBelowAir()
 
 function OpexAI::_c121RailSearchIsPrep()
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP) return false;
+  if (!(MODE_AIR && MODE_RAIL)) return false;
   if (this._railSearch == null) return false;
   return ("isC121RailPrep" in this._railSearch) && this._railSearch.isC121RailPrep;
 }
@@ -106,7 +106,7 @@ function OpexAI::_c121RailSearchIsPrep()
 /* Condition 1 : premiere annee, aucun AIR vivant finançable, aucune recherche. */
 function OpexAI::_c121RailPrepTrigger()
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP) return false;
+  if (!(MODE_AIR && MODE_RAIL)) return false;
   if (!C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
   if (this._railSearch != null) return false;
   /* Vivier AIR vide (-1) : la regeneration AIR passe d'abord, ce n'est pas un
@@ -127,7 +127,7 @@ function OpexAI::_c121RailPrepRememberStock()
  * ulterieur (apres l'annee 1) relance un A* normal au lieu de reposer le trace. */
 function OpexAI::_c121RailPrepDropStock(candidate, reason, ops, ticks)
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP || candidate == null) return;
+  if (!(MODE_AIR && MODE_RAIL) || candidate == null) return;
   if (("kind" in candidate) && ("cargo" in candidate)
       && ("src" in candidate) && ("dst" in candidate)
       && this._railReadyStock != null) {
@@ -145,7 +145,7 @@ function OpexAI::_c121RailPrepDropStock(candidate, reason, ops, ticks)
  * les tranches pour ne pas manger le tick avant la pose. */
 function OpexAI::_c121RailPrepOnPassStart()
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP) return;
+  if (!(MODE_AIR && MODE_RAIL)) return;
   if (!this._c121RailSearchIsPrep()) {
     if (this._c121RailPrepHold) this._c121RailPrepHold = false;
     return;
@@ -175,7 +175,7 @@ function OpexAI::_c121RailPrepOnPassStart()
  * que si la condition 1 est encore vraie, donc jamais a la place d'une pose. */
 function OpexAI::_c121RailPrepAfterProjectsPass()
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP) return;
+  if (!(MODE_AIR && MODE_RAIL)) return;
   if (this._c121RailSearchIsPrep() && this._railSearch.phase == "build") {
     this._handleRailStockSearchCompleted();
   }
@@ -260,7 +260,7 @@ function OpexC121RailPrepCandidateBlocked(ai, candidate, curDate)
  * _tryStartRailStockWorker (celui-ci exige les reglages C80). */
 function OpexAI::_tryStartC121RailPrepSearch()
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP) return false;
+  if (!(MODE_AIR && MODE_RAIL)) return false;
   if (!C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
   if (this._railSearch != null) return false;
   if (this._activeWorker != null && this._activeWorker.kind != "rail_stock") {

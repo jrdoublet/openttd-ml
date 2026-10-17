@@ -37,7 +37,7 @@ class TestV155FleetPreguard(unittest.TestCase):
 
     def test_first_live_exclusion_matches_historical(self):
         # The first live check condition must match historical lines 1187-1190
-        self.assertIn("C121_AIR_FIRST_LIVE_GROWTH", self.task_air)
+        self.assertNotIn("&& C121_AIR_FIRST_LIVE_GROWTH\n", self.task_air)
         self.assertIn(
             "C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0\n"
             "            || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS",

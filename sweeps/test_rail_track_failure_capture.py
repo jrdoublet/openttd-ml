@@ -126,6 +126,10 @@ class TestRailTrackFailureCapture(unittest.TestCase):
 
     def test_failure_logs_and_rollback_order_are_unchanged(self):
         current = function_body(self.source, "OpexExecuteRailPlan")
+        # V237 makes the existing site-cache invalidation unconditional.
+        call = "OpexAir0310InvalidateSiteValidity();"
+        self.assertEqual(current.count(call), 1)
+        current = current.replace(call, "if (AIR0310_SITE_VALIDITY_CACHE) " + call)
         self.assertEqual(digest(without_v199_v163_plan(without_freight_memory(current))),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
 

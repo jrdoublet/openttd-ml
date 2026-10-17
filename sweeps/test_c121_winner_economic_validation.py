@@ -5,11 +5,8 @@ from sweeps.run_c121_winner_economic_validation import neutral_gate, interventio
 
 class NeutralGateTests(unittest.TestCase):
     def test_fusion_arms_only_vary_fusion(self):
-        reference, variant = intervention_arms("fusion")
-        self.assertIn("c121_air_winner_fusion=0", reference)
-        self.assertIn("c121_air_winner_fusion=1", variant)
-        self.assertIn("catalog_cost_probe=0", reference)
-        self.assertEqual(reference.replace("winner_fusion=0", "winner_fusion=1"), variant)
+        with self.assertRaisesRegex(ValueError, "retired"):
+            intervention_arms("fusion")
         with self.assertRaises(ValueError):
             intervention_arms("other")
 

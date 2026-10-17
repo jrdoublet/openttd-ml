@@ -155,7 +155,7 @@ class AC07PartialTests(unittest.TestCase):
         self.assertIn("if (advanceStage && STAGED_BOOTSTRAP", REBUILD)
 
     def test_current_v141_fields_and_conversion_validity(self):
-        self.assertIn("v141Use = V141_CATALOG_INCREMENTAL;", PUBLISH)
+        self.assertIn('local v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;', PUBLISH)
         self.assertIn("local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount)", PUBLISH)
         self.assertIn("local planCount = scanPlans.len() + priorKept.len();", PUBLISH)
         self.assertIn("OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan);", PUBLISH)
@@ -176,12 +176,11 @@ class AC07PartialTests(unittest.TestCase):
                      "if (slotKey in pendingNew)", "OpexAir0310InsertAirBlock(row, airBlock)",
                      "projects.candidateGroups = rebuilt;", "projects.airPlans = storedPlans;",
                      "OpexProjectsRecountGroups(projects);",
-                     "OpexReselectProjects(projects, publishCapital"):
+                     "projects.selectionStale"):
             self.assertIn(expr, PUBLISH)
         positions = [PUBLISH.index(s) for s in
                      ("local spPubFilter", "local spPubPart", "local spPubInsert",
-                      "local spPubStore", "local spPubRecount", "local spPubCap",
-                      "local spPubSelect")]
+                      "local spPubStore", "local spPubRecount", "projects.selectionStale")]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("OpexAir0310ModeIsLate(project)", INSERT)
         self.assertIn('project.mode == "water" || project.mode == "fleet"', UPDATE)

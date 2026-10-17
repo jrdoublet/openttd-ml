@@ -9,9 +9,7 @@ function QnLog(kind, value) {
 }
 
 function QnEarlyBonus(project, state, target, minpop, bonus) {
-  if (!AIR_EARLY_SLOT || !("mode" in project) || project.mode != "air"
-      || !("payload" in project) || project.payload == null
-      || state.servedCount >= target) return 0;
+  if (!("mode" in project) || project.mode != "air" || !("payload" in project) || project.payload == null || state.servedCount >= target) return 0;
   local plan = project.payload;
   local claimed = {};
   local count = 0;
@@ -55,9 +53,7 @@ function QnCadence(line) {
 }
 
 function QnPhase(line, below, have, year) {
-  if (!below || !C121_AIR_FIRST_LIVE_GROWTH || have != 1
-      || ("lastAirFleetYear" in line)
-      || C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS == 4) return;
+  if (!below || have != 1 || ("lastAirFleetYear" in line) || C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS == 4) return;
   local elapsed = year - OPEX_START_YEAR;
   local active = C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
       || elapsed < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS;

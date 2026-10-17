@@ -177,7 +177,7 @@ function OpexAI::_runNextTask()
    * V89 : sous v89_rail_search_throughput=1, avance des tranches supplémentaires sur le
    * budget d'opcodes disponible du tick. */
   if (this._railSearch != null && !this._railWorkerSteppedThisTick
-      && !(C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold)) {
+      && !((MODE_AIR && MODE_RAIL) && this._c121RailPrepHold)) {
     this._advanceRailSearchSliceWithLedgers();
     /* V186 : tranches supplementaires dans le meme passage (la recherche peut finir entre deux). */
     for (local extra = 1; extra < V186_RAIL_SEARCH_SLICES && this._railSearch != null
@@ -421,7 +421,7 @@ function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)
   if (this._railSearch == null || this._railSearch.phase != "search") return 0;
   /* Hold pose seulement par la preparation C121 quand l'AIR est finançable.
    * Sans recherche en cours, la ligne precedente a deja rendu la main. */
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold) return 0;
+  if ((MODE_AIR && MODE_RAIL) && this._c121RailPrepHold) return 0;
   local spThru = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.throughput") : null;
 
   local slicesRan = 0;

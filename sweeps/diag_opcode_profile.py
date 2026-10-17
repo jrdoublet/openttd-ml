@@ -5,7 +5,7 @@ catalog_cost_probe). Bras « light » : C121 + probe_loop_ops + catalog_cost_pro
 pour mesurer la perturbation de probe_scheduler sur les agregats de boucle.
 Usage : python3 sweeps/diag_opcode_profile.py --out results/<nom>.json [options diag_cadence_duel]
 """
-C121 = "c121_air_economics=1,c121_catalog_incremental=1"
+C121 = "c121_air_economics=1,"
 import os
 ONLY_LIGHT = os.environ.get("OPPROF_ONLY_LIGHT") == "1"
 

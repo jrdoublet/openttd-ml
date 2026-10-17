@@ -232,10 +232,9 @@ class TestCampaignFreeze(unittest.TestCase):
             INFO.read_text(encoding="utf-8").count("AddSetting("),
         )
         for name in ("c69_decision_bottleneck", "c69_fleet_exempt", "c70_mode_calibration", "c75_multi_build", "c75_kpass_bypass",
-                     "c80_air_hub_index", "town_growth_roi_gate", "c76_regen_targeted",
-                     "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder", "v94_air_site_list",
-                     "c121_air_project_realization_adaptive", "c121_air_first_live_growth",
-                     "c80_marginal_floor"):
+                     "town_growth_roi_gate", "c76_regen_targeted",
+                     "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder",
+                     "c121_air_project_realization_adaptive"):
             self.assertEqual(defaults[name], 1, name)
         for name in ("c69_fleet_demand_batch", "c72_plane_choice",
                      "c76_freight_rotation",
@@ -281,7 +280,7 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertEqual(defaults["probe_event_backlog"], 0)
         self.assertEqual(defaults["policy_rail"], 1)
         self.assertEqual(defaults["policy_caches"], 1)
-        self.assertEqual(defaults["air_route_plane_selection"], 1)
+        self.assertNotIn("air_route_plane_selection", defaults)
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
         for name in ("road_pax_build", "road_pax_catchment_pct", "road_stop_catchment_houses",
@@ -291,6 +290,8 @@ class TestCampaignFreeze(unittest.TestCase):
             self.assertNotIn(name, defaults)
         self.assertTrue(specs["town_growth_skip_noop"]["boolean"])
         self.assertNotIn("air_early_slot_min_pop", specs)  # V236 : constante
+        from v237_contracts import RETIRED, assert_retired
+        assert_retired(self, RETIRED)
 
     def test_every_real_default_is_expressible_by_bench_v2(self):
         defaults = parse_ai_settings(INFO)

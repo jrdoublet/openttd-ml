@@ -182,8 +182,7 @@ def main():
         if probe and entry["exposure"] == "kdec":
             other["c121_kdec_cold_shadow"] = 1
         def arm(value):
-            settings = {"c121_air_economics": 1, "c121_catalog_incremental": 1,
-                        **other, entry["setting"]: value}
+            settings = {"c121_air_economics": 1, **other, entry["setting"]: value}
             return "OpexAI[" + ",".join(f"{k}={v}" for k, v in settings.items()) + "]"
         cid = f'{plan["id"]}_{entry["id"]}_{step}'
         container = cid.lower().replace("_", "-")

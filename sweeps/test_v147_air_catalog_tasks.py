@@ -38,17 +38,14 @@ def _body(source: str, signature: str) -> str:
 
 class StaticContract(unittest.TestCase):
     def test_setting_default_one(self):
-        info = _read("info.nut")
-        block = info[info.index('name = "v147_air_catalog_tasks"') :][:600]
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, rf"{key} = 1\b")
-        self.assertIn("V147_AIR_CATALOG_TASKS <- true;", _read("globals_pre.nut"))
-        self.assertIn('GetSetting("v147_air_catalog_tasks")', _read("settings.nut"))
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('v147_air_catalog_tasks',))
 
     def test_queue_extended_at_end_only_under_flag(self):
         sched = _read("scheduler_tasks.nut")
         body = _body(sched, "function OpexV147ExtendQueue(owner)")
-        self.assertIn("!V147_AIR_CATALOG_TASKS", body)
+        self.assertNotIn("V147_AIR_CATALOG_TASKS", body)
         self.assertIn("V147_TASK_BASE = owner._taskQueue.len();", body)
         self.assertEqual(body.count(".append("), 3)
         self.assertNotIn(".insert(", body)
@@ -76,11 +73,11 @@ class StaticContract(unittest.TestCase):
     def test_catalog_slot_yields_only_under_flag(self):
         sched = _read("scheduler_tasks.nut")
         cat = _body(sched, "function OpexAI::_dispatchCatalog(task, year)")
-        self.assertIn("if (V147_AIR_CATALOG_TASKS && !V147_IN_PHASE) {", cat)
+        self.assertIn('if (!V147_IN_PHASE) {', cat)
         requeue = _body(sched, "function OpexC78RequeueInitialCatalogSlice(owner, task)")
-        self.assertIn("if (V147_AIR_CATALOG_TASKS) return;", requeue)
+        self.assertNotIn("if (V147_AIR_CATALOG_TASKS) return;", requeue)
         start = _body(sched, "function OpexC78StartCatalogAirRebuild(")
-        self.assertIn("if (V147_AIR_CATALOG_TASKS) OpexV147ArmPhases(owner);", start)
+        self.assertIn('OpexV147ArmPhases(owner);', start)
 
     def test_phase_tasks_dispatched_before_projects_null_gate(self):
         sched = _read("scheduler.nut")
@@ -92,7 +89,7 @@ class StaticContract(unittest.TestCase):
         for name in ("main.nut", "probes.nut"):
             src = _read(name)
             self.assertIn("local phaseTask = OpexV147PhaseTask(this);", src, name)
-            self.assertIn("} else this._dispatchCatalog(queuedTask,", src, name)
+            self.assertNotIn("} else this._dispatchCatalog(queuedTask,", src, name)
 
     def test_c78_state_not_persisted(self):
         self.assertNotIn("c78AirRebuild", _read("persist.nut"))

@@ -141,15 +141,10 @@ B9_AIR_DEMAND_SHADOW <- false;
 /* M3/G12 : sonde passive du choix de materiel avant ROI. Elle n'est jamais lue par les
  * regles de selection ; elle autorise uniquement les comparatifs et logs de diagnostic. */
 EQUIPMENT_ROI_PROBE <- false;
-/* C68 : politique causale issue de M3. A sites, aeroport, demande et admission identiques,
- * choisir l'appareil compatible qui maximise le profit predit de CETTE route. Adoptee apres
- * autorite 20x10 C66.4 du 2026-09-17. */
-AIR_ROUTE_PLANE_SELECTION <- true;
 /* Nombre maximal d'arrets bus annexes partageant directement le StationID de l'aeroport. */
 AIR_JOINED_STOP_LIMIT <- 2;
-/* Early-slot experimental: prioritise profitable air projects that claim a first
+/* Early-slot: prioritise profitable air projects that claim a first
  * airport in large towns before competitors can consume both town slots. */
-AIR_EARLY_SLOT <- false;
 AIR_EARLY_SLOT_TARGET_TOWNS <- 6;
 AIR_EARLY_SLOT_MIN_POP <- 1000;
 AIR_EARLY_SLOT_BONUS_PCT <- 50;
@@ -378,12 +373,6 @@ V133_AIR_QUARANTINE <- {};
 V133_AIR_BATCH_FAILED <- {};
 V133_AIR_SKIP_LOGGED <- {};
 V133_AIR_LAST_SITE_ERROR <- 0;
-/* C96 : selection de l'ancre aeroport par qualite physique de catchment, sans
- * changer la demande ni l'economie de la route. Defaut 0. La recherche reste
- * bornee : au plus quatre sites constructibles, du premier anneau qui en
- * contient un jusqu'a l'anneau suivant. */
-C96_AIR_SITE_CATCHMENT <- true;
-AIR_SITE_MIN_CATCHMENT <- false;
 /* AIR BFAIL : expérience causale, 0 conserve A comme historiquement ; 1
  * liquide seulement l'aéroport A neuf après échec de construction de B. */
 AIR_BFAIL_DISPOSE_ORPHAN <- false;
@@ -417,9 +406,6 @@ C116_AIR_PROJECT_PROBE_YEAR_COUNT <- 0;
 C116_AIR_PROJECT_PROBE_SEEN <- {};
 /* C117 : sonde passive du debit AIR reel. */
 C117_AIR_THROUGHPUT_PROBE <- false;
-C117_LEAN_SAMPLING <- 0;
-C117_LEAN_MISMATCH_TOTAL <- 0;
-C117_LEAN_MISMATCH_MONTH <- -1;
 C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
@@ -432,8 +418,6 @@ C121_STATION_FLUX_STATE <- {};
  * Le traitement territorial C118 autonome a ete retire. */
 C118_AIR_COVERAGE_PROBE <- false;
 C121_AIR_ECONOMICS_SHADOW <- false;
-C121_AIR_WINNER_FUSION <- false;
-C121_AIR_GAME_ENGINE <- false;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
  * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
  * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */
@@ -471,8 +455,6 @@ C121_AIR_ENGINE_CAPACITY_OBS <- {};
  * moyenne recente realise/brut, lisible en O(1) pendant le scoring. */
 C121_AIR_REALIZATION_FACTOR <- { newpair = 1.0, hubsite = 1.0, hubhub = 1.0 };
 C121_AIR_REALIZATION_MIN_LINES <- 2;
-/* P0 valide : ratios C121 matures directs pour les nouveaux devis hub AIR. */
-AIR_P0_DIRECT_REALIZATION <- true;
 /* Cache transitoire reconstruit au rapport annuel et apres Load. */
 AIR_P0_DIRECT_REALIZATION_ACTIVE <- false;
 C121_AIR_P0_DIRECT_FACTOR <- { hubsite = 1.0, hubhub = 1.0 };
@@ -535,19 +517,9 @@ OPCODE_EXACT_PLAN_ONCE <- null;
 R19_FAULT_INJECT <- 0;
 R19_FAULT_ROUTE_SEQ <- 0;
 CATALOG_COST_ACTIVE <- null;
-C121_CATALOG_INCREMENTAL <- false;
-C121_CATALOG_AIR_FIRST_YEAR <- false;
-C121_FLAT_BOOTSTRAP <- false;
-/* Premiere annee AIR : preparer le rail (catalogue + A* stock) sans le construire.
- * Exige c121_catalog_air_first_year. Defaut 0 : aucun calcul hors du test. */
-C121_AIR_FIRST_YEAR_RAIL_PREP <- false;
-/* Economie C121 : n'evaluer que N=1 et N=2. N'exige pas aaa_line et ne touche
- * pas AIR_FULL_LOAD. Defaut 0. */
-C121_AIR_ONE_OR_TWO_PLANES <- false;
 /* C121 cadence : shadow live du premier renfort 1->2. Reutilise les fenetres
  * C117 deja calculees et ne participe a aucune decision. */
 C121_AIR_FIRST_LIVE_SHADOW <- false;
-C121_AIR_FIRST_LIVE_GROWTH <- false;
 C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <- 0;
 C121_AIR_FIRST_LIVE_STATE <- {};
 C121_AIR_FIRST_LIVE_OPS <- 0;
@@ -615,15 +587,6 @@ C76_EVENTS_SINCE_PREV <- null;
  * 0 = regeneration mensuelle systematique historique, 1 = regeneration ciblee (defaut depuis le
  * 2026-09-24 : economie d'opcodes et 20x10 neutre, regle d'adoption des optimisations d'opcodes). */
 C76_REGEN_TARGETED <- true;
-/* AC04-B/AC05 : corrections qualifiees isolement et en cumul.
- * AC06 v2 : accepte explicitement le 12/10 avec +32 opcodes en 1970-1971.
- * Defaut 1 ; rollback explicite par setting 0. AC04-A reste rejete. */
-AC04_EXTRA_SITE_DEDUP <- true;
-AC05_SKIP_UNUSED_HUB_INCOME <- true;
-AC06_C76_SNAPSHOT_ACK <- true;
-/* AC04-A v3 adopte : valider les hubs orphelins au point d'utilisation.
- * Rollback : ac04_hub_usage_gate=0 (boucles historiques inchangees). */
-AC04_HUB_USAGE_GATE <- true;
 /* C78 : sonde passive de la fenetre entre le premier et le second aeroport adverse d'une ville.
  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
 C78_SLOT_INTERCEPT_PROBE <- false;
@@ -686,21 +649,14 @@ ABANDON_MEMORY_TRANSIENT_GUARD <- true;
 AIR_HUB_FIX <- true;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
-/* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
-AIR_FLEET_COOLDOWN_PREFILTER <- true;
-/* V160 : comptage des lignes vivantes par aeroport (0 = direct O(N^2), 1 = index O(N), 2 = comparateur) */
-AIR_FLEET_ROUTES_INDEX <- 0;
 /* V161 : valeur d'un renfort AIR plafonnee par un a priori net des voisines
  * (V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR x voisines partageant une gare - amortissement).
- * 0 = off ; 1 = plafond actif, et un renfort reste a sa valeur modele perd l'exemption C70. */
-V161_FLEET_NET_MARGINAL <- 0;
+ * Un renfort reste a sa valeur modele perd l'exemption C70. */
 /* V163 : second cargo d'une ligne rail de fret (meme source, meme destination). Defaut 0. */
 V163_MULTI_CARGO <- false;
 /* Mesure du 12/10 (v160_B20x10, 1973-74) : +13,4 k sur la ligne, -2,6 k par voisine. */
 V161_PRIOR_OWN <- 13000;
 V161_PRIOR_NEIGHBOUR <- 2600;
-/* V158 : publication AIR avec selection paresseuse (0 = desactive/defaut, 1 = actif). */
-AIR_PUBLISH_LAZY_SELECT <- 0;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
@@ -710,17 +666,7 @@ COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
-/* AIR 03/10 3a : raccourci V96 sans la borne jetee. 0 = calcul historique. */
-AIR0310_V96_SHORTCUT_LEAN <- false;
-/* AIR 03/10 3b : N=1 et N=2 du meme avion partagent leurs invariants.
- * 0 = deux economies completes (comportement historique). */
-AIR0310_ONE_TWO_FUSED <- false;
-/* AIR 03/10 1 : publication partielle sans reconstruire tout le portefeuille.
- * 0 = rebuild complet a chaque lot (comportement historique). Le chargement
- * reel est en plus barre par C121_CATALOG_INCREMENTAL. */
-AIR0310_INCREMENTAL_PUBLISH <- false;
-/* V127 : regeneration route sur tresorerie oisive. 0 = inerte (defaut). Le chargement reel est
- * barre par C121_CATALOG_INCREMENTAL. */
+/* V127 : regeneration route sur tresorerie oisive. 0 = inerte (defaut). */
 V127_IDLE_CASH_ROAD_REGEN <- false;
 V127_IDLE_CASH_MIN <- 100000;
 V127_ROAD_POOL_MIN <- 8;
@@ -734,21 +680,9 @@ V217_IDLE_CASH_MIN <- 100000;
 V217_POOL_MIN <- 2;
 V217_LAST_MONTH <- -1;
 V217_REGEN_NO_PAX <- false;
-/* AIR 03/10 2 : snapshot ordonne des hubs et des sites entre tranches du
- * meme combo. 0 = redecouverte a chaque tranche (comportement historique).
- * Le chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
-AIR0310_HUB_SNAPSHOT <- false;
-/* AIR 03/10 V122 : validite des sites air partagee entre reelections.
- * 0 = sonde locale a chaque filtre (comportement historique). Le
- * chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
-AIR0310_SITE_VALIDITY_CACHE <- false;
 AIR0310_SITE_VALIDITY_STATE <- null;
-/* V141 : publication partielle AIR sans reconvertir les projets deja publies.
- * 0 = OpexProjectFromAir sur tout le lot (comportement historique). Le
- * chargement reel est en plus barre par C121_CATALOG_INCREMENTAL. */
-V141_CATALOG_INCREMENTAL <- false;
 /* V141 controle : sous probe_events, recalcule aussi FromAir et journalise
- * V141_CHECK. 0 = inerte. Barre par C121_CATALOG_INCREMENTAL. */
+ * V141_CHECK. 0 = inerte. */
 V141_CATALOG_INCREMENTAL_CHECK <- false;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
@@ -842,7 +776,6 @@ C67_WATER_EXPOSURE <- false;
 C67_SLACK_HOOK <- false;
 C67_WATER_EXPO <- null;
 
-
 /* C76 : sous C76_REGEN_TARGETED, un mois sans regeneration complete fait quand meme tourner le
  * cargo fret (regeneration des seuls modes rail et route sur le cargo suivant). Sans lui, le lot
  * fret reste fige entre deux regenerations completes. 0 = desactive (defaut). */
@@ -858,14 +791,7 @@ C80_MODE_REGEN <- false;
 C80_AIR_CHOICE_MEMO <- false;
 AIR_CHOICE_MEMO <- {};
 AIR_CHOICE_MEMO_STATE <- 0;
-/* C80 tranche 5 bis : index exacts des routes aeriennes par gare et des paires reliees.
- * Defaut 1 depuis le 2026-09-23 (decision utilisateur) : memes decisions, ~1/3 d'opcodes hub-hub
- * en moins, 20x10 neutre ; valeur reelle lue dans settings.nut. */
-C80_AIR_HUB_INDEX <- false;
 
-/* C80 tâche 5 : filtre de valeur des projets marginaux (chantiers secondaires sous multi-build).
- * 0 = désactivé (défaut), 1 = filtre actif selon le profit par véhicule réalisé du mode. */
-C80_MARGINAL_FLOOR <- false;
 C80_MARGINAL_FLOOR_LEDGER <- null;
 
 /* C80 étape 1 : porte d'éligibilité rail passive (le projet n'entre dans alternatives
@@ -919,8 +845,6 @@ V129_RAIL_ASTAR_EXACT_OPT <- true;
 /* V129 : vérification pas à pas V129 contre V90 (journal V129_CHECK). 0 = désactivé (défaut). */
 V129_RAIL_ASTAR_CHECK <- false;
 
-/* V94 : pré-filtre AITileList de OpexAirFindSite, défaut 1 depuis le 2026-09-25 (20×10 neutre). 0 = balayage historique. */
-V94_AIR_SITE_LIST <- true;
 /* V94 : compare le balayage historique et la liste sur la même entrée.
  * Le balayage historique décide. 0 = désactivé. */
 V94_AIR_SITE_CHECK <- false;
@@ -942,17 +866,10 @@ V139_FEEDER_BUS <- 0;
 /* V139 : table des arrêts déliés (tile -> airportStationId). */
 V139_UNJOINED_STOPS <- {};
 
-AIR_C121_PHYSICAL_PAYMENT_DAYS <- false;
-
 /* F-EVENT-BACKLOG-01 : ne relancer la reselection dans _c77RemoveSubsidy que si
  * la purge a reellement retire des candidats de subvention. 0 = inconditionnel (historique) ; defaut 1 depuis le 11/10. */
 SUBSIDY_RESELECT_IF_PURGED <- true;
 
-/* V147 (CD07/B) : phases du rebuild AIR du catalogue comme entrees autonomes de _taskQueue
- * (air_cat_scan, air_cat_publish, air_cat_apply), ajoutees EN FIN de file pour ne pas
- * deplacer les indices sauvegardes. L'etat reste task.c78AirRebuild sur l'entree catalog.
- * Defaut 1 depuis le 12/10 (qualifie) ; 0 = architecture A historique (rollback). */
-V147_AIR_CATALOG_TASKS <- true;
 V147_IN_PHASE <- false;
 V147_TASK_BASE <- -1;
 

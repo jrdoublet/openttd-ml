@@ -59,7 +59,7 @@ class AirBatchTownReserveTests(unittest.TestCase):
         self.assertIn("OpexAirSlotTownId(", self.task_projects)
         select = self.projects
         self.assertIn(
-            "OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);",
+            'OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true);',
             select,
         )
         self.assertIn("OpexC122ProbeExposure(affordable);", select)

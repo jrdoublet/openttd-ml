@@ -2180,7 +2180,7 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--campaign", help="Identifiant C66.3 nouveau ; derive de --out ou horodate si omis")
     parser.add_argument("--policy-id", default="reference", help="Identifiant de la politique OpexAI testee")
-    parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[air_early_slot=1]")
+    parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[]")
     parser.add_argument("--variant", help="C66.4 : ex. OpexAI[c80_mode_regen=1]")
     parser.add_argument("--variant-policy-id", help="C66.4 : identifiant stable de la variante")
     parser.add_argument("--primary-metric", choices=list(SUCCESS_METRICS), default=PRIMARY_METRIC)

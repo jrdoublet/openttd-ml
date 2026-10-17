@@ -23,12 +23,8 @@ class TestC119AirIncomeModel(unittest.TestCase):
         self.assertNotIn('name = "c119_air_income_model"', INFO)
 
     def test_payment_time_is_engine_and_geometry_derived(self):
-        body = function_body(AIR, "OpexC119AirIncomeDays", "OpexAirEconomics")
-        self.assertIn("AIEngine.GetMaxSpeed(plane.id)", body)
-        self.assertIn("flightDistance + 30", body)
-        self.assertIn("664", body)
-        self.assertIn("speed * 24 * dayLengthFactor", body)
-        self.assertIn('"GetDayLengthFactor" in AIDate', body)
+        self.assertNotIn("function OpexC119AirIncomeDays", AIR)
+        self.assertIn("function OpexC121PhysicalPaymentDays", AIR)
 
     def test_legacy_cycle_and_fleet_economics_remain(self):
         body = function_body(AIR, "OpexAirEconomics", "OpexAirReconcileActualBuild")
@@ -40,7 +36,7 @@ class TestC119AirIncomeModel(unittest.TestCase):
         self.assertIn("local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();", body)
 
     def test_mail_model_is_not_part_of_c119(self):
-        fare = function_body(AIR, "OpexAirFarePerPax", "OpexC119AirIncomeDays")
+        fare = function_body(AIR, "OpexAirFarePerPax", "OpexC121EndpointAirportType")
         self.assertNotIn("C119_AIR_INCOME_MODEL", fare)
         self.assertIn("local mailPct = 15;", fare)
 

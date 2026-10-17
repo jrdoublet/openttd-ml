@@ -250,7 +250,6 @@ def main():
     args = parser.parse_args()
 
     settings = (
-        ("air_route_plane_selection", 1),
         ("air_best_equipment", 1),
         ("air_capital_frontier", 1),
         ("air_capital_frontier_probe", 0),

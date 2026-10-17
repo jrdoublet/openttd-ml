@@ -15,7 +15,7 @@ function OpexLogPortfolioRank(projects)
     local legacyScore = p.budgetScore;
     local rankKey = "fundScore";
     local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
-    local rankScore = (AIR_EARLY_SLOT && (rankKey in p))
+    local rankScore = ((rankKey in p))
         ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
     local financeCapital = OpexProjectFinanceCapital(p);
     local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;
@@ -69,7 +69,7 @@ function OpexLogPortfolioRankWithTension(projects)
     local legacyScore = p.budgetScore;
     local rankKey = "fundScore";
     local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
-    local rankScore = (AIR_EARLY_SLOT && (rankKey in p))
+    local rankScore = ((rankKey in p))
         ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
     local financeCapital = OpexProjectFinanceCapital(p);
     local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;

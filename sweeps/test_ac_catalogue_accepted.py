@@ -83,17 +83,9 @@ class ACAdopted(unittest.TestCase):
         self.assertIn("function OpexAir0310PublishIncremental(", UPDATE)
 
     def test_defaults_overrideable_without_other_experiments(self):
-        for name, global_name in (("ac04_extra_site_dedup", "AC04_EXTRA_SITE_DEDUP"),
-                                  ("ac05_skip_unused_hub_income", "AC05_SKIP_UNUSED_HUB_INCOME"),
-                                  ("ac06_c76_snapshot_ack", "AC06_C76_SNAPSHOT_ACK")):
-            start = INFO.index('name = "' + name + '"')
-            spec = INFO[start:INFO.index("});", start)]
-            self.assertIn("easy_value = 1, medium_value = 1, hard_value = 1", spec)
-            self.assertIn("custom_value = 1", spec)
-            self.assertIn(global_name + " <- true;", PRE)
-            self.assertIn('AIController.GetSetting("' + name + '")', SETTINGS)
-        self.assertNotIn('name = "ac04_hub_route_fix"', INFO)
-        self.assertIn('AC06_C76_SNAPSHOT_ACK = C76_REGEN_TARGETED', SETTINGS)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('ac04_extra_site_dedup', 'ac05_skip_unused_hub_income', 'ac06_c76_snapshot_ack'))
 
     def test_ac06_v2_small_snapshot_and_late_revision_guards(self):
         capture = function(ORCH, "OpexAC06CaptureRevisionNumbers")
@@ -141,7 +133,7 @@ class ACAdopted(unittest.TestCase):
         body = function(AIR, "OpexAC04ExtraSiteAlreadyKnown")
         self.assertIn("site.anchor == candidate.anchor", body)
         discover = function(AIR, "OpexAirPlansDiscoverHubs")
-        self.assertIn("AC04_EXTRA_SITE_DEDUP && OpexAC04ExtraSiteAlreadyKnown(sites, extraSite)", discover)
+        self.assertIn('OpexAC04ExtraSiteAlreadyKnown(sites, extraSite)', discover)
         self.assertIn("if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;", discover)
         self.assertEqual(add_sites([(42,100)], [(42,100),(42,200),(43,300),(43,300)], 4, True),
                          [(42,100),(42,200),(43,300)])

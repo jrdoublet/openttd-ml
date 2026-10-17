@@ -120,7 +120,7 @@ def extra_sites_model(sites, towns, limit, find):
 class AC04AirHubSiteResume(unittest.TestCase):
     def test_checkpoint_is_next_unprocessed_pair_and_progresses_on_rejects(self):
         for needle in (
-            'local incrementalSlice = ctx.sliced && C121_CATALOG_INCREMENTAL;',
+            'local incrementalSlice = ctx.sliced;',
             'local resumeHub = incrementalSlice && ("hubSiteI" in ctx.resumeState)',
             'local resumeSite = incrementalSlice && ("hubSiteJ" in ctx.resumeState)',
             'for (local hi = resumeHub; hi < hubs.len(); hi++)',

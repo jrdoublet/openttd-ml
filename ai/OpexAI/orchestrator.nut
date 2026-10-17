@@ -266,7 +266,7 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
   /* Preparation C121, annee AIR seulement : ceder le tick si le cache de la
    * derniere passe dit qu'un AIR vivant est finançable. Le hold deja pose ne
    * rescanne pas le portefeuille. Apres l'annee, le trace en vol finit. */
-  local prepSearch = C121_AIR_FIRST_YEAR_RAIL_PREP
+  local prepSearch = (MODE_AIR && MODE_RAIL)
       && ("isC121RailPrep" in ai._railSearch) && ai._railSearch.isC121RailPrep;
   if (prepSearch && ai._railSearch.phase == "search" && C121_CATALOG_FIRST_YEAR_ACTIVE) {
     if (ai._c121RailPrepCashBelowAir()) {
@@ -982,7 +982,7 @@ function OpexAI::_c77InjectSubsidy(subId)
       || !(("candidateGroups" in this._projects)) || this._projects.candidateGroups == null) return false;
   /* Annee AIR seule : les candidats de subvention sont tous routiers. L'offre
    * reste suivie et la regeneration complete d'apres l'annee la recree. */
-  if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
+  if (MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
   local winners = {};
   local scratch = { modeCandidates = 0, modeAlternatives = 0 };
   foreach (key, entry in this._projects.candidateGroups) {
@@ -1154,7 +1154,7 @@ function OpexAI::_c76BumpLayer(layer, isEvent = false)
     this._c76Revisions.industries++;
   } else if (layer == "lines") {
     this._c76Revisions.lines++;
-    if (C121_CATALOG_INCREMENTAL) OpexC121CatalogRefreshStationLines(this._lines);
+    OpexC121CatalogRefreshStationLines(this._lines);
   } else if (layer == "engines.rail" || layer == "rail") {
     this._c76Revisions.engines.rail++;
   } else if (layer == "engines.road" || layer == "road") {

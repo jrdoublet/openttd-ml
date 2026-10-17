@@ -108,30 +108,14 @@ class TestV159C117Lean(unittest.TestCase):
     def test_default_one_all_difficulties(self):
         # défaut 1 depuis le 13/10 (porte B 20x10 passée, décision utilisateur) ;
         # le global reste à 0 : seul info.nut porte le défaut
-        block = setting_block(self.info, "c117_lean_sampling")
-        self.assertIn("min_value = 0, max_value = 2", block)
-        for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{difficulty}_value = 1", block)
-        self.assertNotIn("AICONFIG_BOOLEAN", block)
-        self.assertEqual(self.info.count('name = "c117_lean_sampling"'), 1)
-        self.assertIn("C117_LEAN_SAMPLING <- 0;", self.globals)
-        self.assertIn("C117_LEAN_MISMATCH_TOTAL <- 0;", self.globals)
-        self.assertIn("C117_LEAN_MISMATCH_MONTH <- -1;", self.globals)
-        self.assertIn("C117_AIR_THROUGHPUT_PROBE <- false;", self.globals)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c117_lean_sampling',))
 
     def test_settings_guard_unknown_name(self):
-        self.assertIn(
-            'local c117Lean = AIController.GetSetting("c117_lean_sampling");',
-            self.settings,
-        )
-        self.assertIn(
-            "C117_LEAN_SAMPLING = c117Lean >= 0 ? c117Lean : 0;",
-            self.settings,
-        )
-        self.assertNotIn(
-            'C117_LEAN_SAMPLING = AIController.GetSetting("c117_lean_sampling");',
-            self.settings,
-        )
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c117_lean_sampling',))
 
     def test_mode0_historical_observe_order(self):
         """A 0, Observe reste apres les locaux de journal et avant AIAirport."""
@@ -146,22 +130,9 @@ class TestV159C117Lean(unittest.TestCase):
         self.assertIn("/* C119 diagnostic passif", rest[observe:airport])
 
     def test_mode0_does_not_take_lean_skip(self):
-        self.assertIn(
-            "local skipUnused = (C117_LEAN_SAMPLING == 1) && !C117_AIR_THROUGHPUT_PROBE;",
-            self.step,
-        )
-        self.assertIn(
-            "local dualCompare = (C117_LEAN_SAMPLING == 2) && !C117_AIR_THROUGHPUT_PROBE;",
-            self.step,
-        )
-        self.assertNotIn("C117_LEAN_SAMPLING == 1 || C117_LEAN_SAMPLING == 2", self.step)
-        self.assertIn(
-            "local skipChain = (C117_LEAN_SAMPLING == 1 || C117_LEAN_SAMPLING == 2)",
-            self.flush,
-        )
-        self.assertIn("GetRunningCost(v)", self.step)
-        self.assertIn("AICargo.IsValidCargo(catalog.mailCargo)", self.step)
-        self.assertIn("AIVehicle.GetCapacity(v, mailCargoId)", self.step)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c117_lean_sampling',))
 
     def test_mode1_skips_probe_only_work(self):
         skip_blocks = guarded_blocks(self.step, "!skipUnused")
@@ -249,32 +220,9 @@ class TestV159C117Lean(unittest.TestCase):
             self.assertIsNotNone(re.search(pattern, step_and_flush), field)
 
     def test_mode2_dual_path_uses_historical_state(self):
-        compare = body(self.probes, "function OpexC117CompareLeanSampling(")
-        month = body(self.probes, "function OpexC117FlushLeanMonth(")
-        self.assertIn('OpexDecide("C117_LEAN_MISMATCH"', compare)
-        self.assertIn("C117_LEAN_MISMATCH_TOTAL++", compare)
-        self.assertNotIn("DECISION_LOG", compare)
-        self.assertIn("if (DECISION_LOG)", month)
-        self.assertIn('OpexDecide("C117_LEAN_MISMATCH"', month)
-        self.assertIn('" total=" + C117_LEAN_MISMATCH_TOTAL', month)
-        self.assertIn("C117_LEAN_MISMATCH_TOTAL = 0;", month)
-        self.assertIn("if (dualCompare) OpexC117FlushLeanMonth(now);", self.step)
-        self.assertIn("OpexC117NewLineState(bucket, now, dualCompare)", self.step)
-        self.assertIn("if (C117_LEAN_SAMPLING == 2) OpexC117CompareLeanSampling(line, state);", self.flush)
-        skip_i = self.flush.index("if (skipChain)")
-        skip_block = self.flush[skip_i:self.flush.index("return;", skip_i)]
-        self.assertIn("OpexC117CompareLeanSampling(line, state)", skip_block)
-        self.assertLess(
-            skip_block.index("OpexC117CompareLeanSampling"),
-            skip_block.index("OpexC121FirstLiveObserve(line, state, ageDaysLean)"),
-        )
-        self.assertNotIn("FirstLiveObserve(line, leanView", self.flush)
-        self.assertIn("if (leanView != null) leanView.profit += profitDelta;", self.step)
-        self.assertIn("leanView.trips++", self.step)
-        for field in C121_FIRST_LIVE_STATE_FIELDS:
-            self.assertIn(f'"{field}"', compare)
-        for field in C121_HUB_STATE_FIELDS:
-            self.assertIn(f'"{field}"', compare)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c117_lean_sampling',))
 
     def test_span_flush_is_free_outside_probe(self):
         self.assertIn(

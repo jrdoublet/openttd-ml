@@ -5,27 +5,26 @@ C121_CATALOG_ENDPOINT_EPOCH <- 0;
 
 function OpexC121InvalidateEndpointGeometry()
 {
-  if (!C121_CATALOG_INCREMENTAL) return;
   C121_CATALOG_ENDPOINT_EPOCH++;
   AIR_C121_STATION_COVERAGE_CACHE.clear();
 }
 
-function OpexAirResetSiteCache()
+function OpexAirResetSiteCache(invalidateGeometry = true)
 {
   AIR_SITE_CACHE.clear();
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
   AIR_C121_STATION_COVERAGE_CACHE.clear();
-  if (C121_CATALOG_INCREMENTAL) OpexC121InvalidateEndpointGeometry();
+  if (invalidateGeometry) OpexC121InvalidateEndpointGeometry();
   AIR_STATION_COVERAGE_HITS = 0;
   AIR_STATION_COVERAGE_MISSES = 0;
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  if (invalidateGeometry) OpexAir0310InvalidateSiteValidity();
 }
 
 function OpexAirResetStationCoverageTownCache()
 {
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
   AIR_C121_STATION_COVERAGE_CACHE.clear();
-  if (C121_CATALOG_INCREMENTAL) OpexC121InvalidateEndpointGeometry();
+  OpexC121InvalidateEndpointGeometry();
 }
 
 /* V122 : validite OpexAirSiteStillBuildable par cle keyA/keyB.
@@ -47,7 +46,6 @@ function OpexAir0310SiteValidityMonth()
 
 function OpexAir0310InvalidateSiteValidity()
 {
-  if (!AIR0310_SITE_VALIDITY_CACHE) return;
   AIR0310_SITE_VALIDITY_STATE = null;
 }
 
@@ -596,9 +594,8 @@ function OpexAirB9DemandShadowEndpointCargo(catalog, plan, site, reused, cargo,
     local stationKey = reused && ("stationId" in site) ? site.stationId : -1;
     cacheKey = cargo + "|" + airportType + "|" + anchorKey + "|" + townKey
         + "|" + (reused ? 1 : 0) + "|" + routesKey + "|" + stationKey;
-    if (C121_CATALOG_INCREMENTAL) cacheStamp = OpexC121EndpointCacheStamp(townKey, stationKey);
-    forceRefresh = C121_CATALOG_INCREMENTAL
-      && ("c121CatalogRefreshEndpoints" in plan) && plan.c121CatalogRefreshEndpoints;
+    cacheStamp = OpexC121EndpointCacheStamp(townKey, stationKey);
+    forceRefresh = ("c121CatalogRefreshEndpoints" in plan) && plan.c121CatalogRefreshEndpoints;
     if (cacheKey in C121_AIR_ENDPOINT_CACHE) cached = C121_AIR_ENDPOINT_CACHE[cacheKey];
     if (!forceRefresh && cached != null
       && (cacheStamp == null || OpexC121EndpointCacheFresh(cached, cacheStamp))) {

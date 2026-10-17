@@ -119,7 +119,7 @@ class V92AirServiceChoiceTests(unittest.TestCase):
 
     def test_growth_cooldown_and_scrap_ignore_reequipment(self):
         resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
-        self.assertIn("if (AIR_FLEET_COOLDOWN_PREFILTER && !priorityPath)", resize)
+        self.assertIn('if (!priorityPath)', resize)
         self.assertNotIn("!V92_AIR_SERVICE_CHOICE", resize)
         self.assertNotIn("OpexAirLineReequipPending", resize)
         add = function_body(self.builder, "function OpexAirAddPlane(")

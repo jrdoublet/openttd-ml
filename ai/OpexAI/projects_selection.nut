@@ -166,7 +166,6 @@ function OpexR1R3FitTrace(project, fitted, budget)
 function OpexEarlySlotSelectionState()
 {
   local state = { servedTowns = {}, servedCount = 0 };
-  if (!AIR_EARLY_SLOT) return state;
 
   local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
   for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
@@ -388,9 +387,7 @@ function OpexProjectRefreshEarlySlot(project, state)
   local popA = -1;
   local popB = -1;
 
-  if (AIR_EARLY_SLOT && ("mode" in project) && project.mode == "air"
-      && ("payload" in project) && project.payload != null
-      && state.servedCount < AIR_EARLY_SLOT_TARGET_TOWNS) {
+  if (("mode" in project) && project.mode == "air" && ("payload" in project) && project.payload != null && state.servedCount < AIR_EARLY_SLOT_TARGET_TOWNS) {
     local plan = project.payload;
     local reuseA = ("reuseA" in plan) && plan.reuseA;
     local reuseB = ("reuseB" in plan) && plan.reuseB;
@@ -631,8 +628,7 @@ function OpexC122ProbeExposure(affordable)
     local airRank = airCount;
     airCount++;
     local tier = OpexProjectDefensiveAirPriority(project);
-    local score = AIR_EARLY_SLOT ? OpexProjectSelectionScore(project, "fundScore")
-        : project.fundScore;
+    local score = OpexProjectSelectionScore(project, "fundScore");
     local newClaims = ("defensiveNewTownClaims" in project)
         ? project.defensiveNewTownClaims : 0;
 
@@ -875,7 +871,7 @@ function OpexC121KDecColdShadowEnd(rows, affordable, limit, kDec)
       }
       local shadowProject = clone project;
       shadowProject.fundScore = row.coldScore;
-      OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, AIR_EARLY_SLOT, true);
+      OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, true, true);
       coldRank = -1;
       for (local i = 0; i < shadowOrder.len(); i++) {
         if (shadowOrder[i] == shadowProject) { coldRank = i; break; }
@@ -1013,7 +1009,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       ? { date = AIDate.GetCurrentDate(), budget = capitalBudget,
           topMode = "none", top = null, air = [], unlockable = [], unlockableAny = [] }
       : null;
-  local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
+  local earlySlotState = OpexEarlySlotSelectionState();
   local defensiveSlotState = OpexDefensiveSlotSelectionState(earlySlotState);
   local scoreKey = "fundScore";
 
@@ -1077,7 +1073,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       continue;
     }
     slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-    if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
+    OpexProjectRefreshEarlySlot(project, earlySlotState);
     OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
     if (slotMark != null) {
       OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
@@ -1100,10 +1096,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         (C69_DECISION_BOTTLENECK && kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
     OpexC121KDecColdShadowCandidate(c121KDecColdRows, project, financeCapital, kDec);
-    if (C121_CATALOG_INCREMENTAL && project.mode == "air"
-        && ("payload" in project) && project.payload != null
-        && ("c121CatalogKey" in project.payload)
-        && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
+    if (project.mode == "air" && ("payload" in project) && project.payload != null && ("c121CatalogKey" in project.payload) && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
       C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
     if (fundMark != null) {
       OpexSpanAgg("pub.select.score.fund_score", fundMark);
@@ -1113,9 +1106,9 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     if (C69_BOTTLENECK_PROBE) {
       local denom = financeCapital > kDec ? financeCapital : kDec;
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
-      OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+      OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, true);
     }
-    OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+    OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true);
     if (insertMark != null) {
       OpexSpanAgg("pub.select.score.insert", insertMark);
       insertMark = null;
@@ -1140,7 +1133,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       }
       if (financeCapital > capitalBudget) continue;
       slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
+      OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
       if (slotMark != null) {
         OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
@@ -1166,9 +1159,9 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
-        OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+        OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, true);
       }
-      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
+      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true);
       if (insertMark != null) {
         OpexSpanAgg("pub.select.score.insert", insertMark);
         insertMark = null;
@@ -1313,7 +1306,7 @@ function OpexProjectSelectionScore(project, field)
 {
   if (project == null) return 0.0;
   local score = project[field];
-  if (!AIR_EARLY_SLOT || !("mode" in project) || project.mode != "air") return score;
+  if (!("mode" in project) || project.mode != "air") return score;
   if (!("earlySlotBonusPct" in project)) return score;
   local bonusPct = project.earlySlotBonusPct;
   if (bonusPct <= 0) return score;
@@ -1454,10 +1447,10 @@ function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
     if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
 
     if (defensiveState == null) {
-      if (AIR_EARLY_SLOT) earlyState = OpexEarlySlotSelectionState();
+      earlyState = OpexEarlySlotSelectionState();
       defensiveState = OpexDefensiveSlotSelectionState(earlyState);
     }
-    if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlyState);
+    OpexProjectRefreshEarlySlot(project, earlyState);
     OpexProjectRefreshDefensiveSlot(project, defensiveState);
     local tier = OpexProjectDefensiveAirPriority(project);
     if (tier <= 0) continue;
@@ -1537,7 +1530,6 @@ function OpexPromoteLiveDefensiveAirStock(projects, capitalBudget)
   }
   return OpexPromoteLiveDefensiveAirBase(projects, capitalBudget);
 }
-
 
 function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 {
@@ -1699,7 +1691,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   if (spPubFlat != null) OpexSpanEnd(spPubFlat);
   local spPubMerge = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.merge") : null;
   if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, projects.stats);
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
+  if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
       railReadyStock = projects.railReadyStock;
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
@@ -1751,7 +1743,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
 
   projects.best = funded;
   if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
-  else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) {
+  else if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
   }

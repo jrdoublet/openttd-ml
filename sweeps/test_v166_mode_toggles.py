@@ -103,7 +103,7 @@ class Gates(unittest.TestCase):
 
     def test_rail_projects_flags(self):
         body = _function_body(_read("projects.nut"), "OpexBuildProjects")
-        override = body.index("if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE) {")
+        override = body.index("if (MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE) {")
         gate = body.index("if (!MODE_RAIL) {")
         self.assertLess(override, gate)
         self.assertLess(gate, body.index("if (doPaxRail || doFreight) {"))
@@ -135,16 +135,11 @@ class Gates(unittest.TestCase):
         self.assertIn("AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);", refresh[other:other + 600])
 
     def test_first_year_air_only_needs_air(self):
-        body = _function_body(_read("settings.nut"), "OpexLoadSettings")
-        first_year = body.index("C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL")
-        off = body.index("if (!MODE_AIR) C121_CATALOG_AIR_FIRST_YEAR = false;")
-        prep = body.index("C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR\n")
-        no_rail = body.index("if (!MODE_RAIL) C121_AIR_FIRST_YEAR_RAIL_PREP = false;")
-        self.assertLess(first_year, off)
-        self.assertLess(off, prep)
-        self.assertLess(prep, no_rail)
-        self.assertEqual(body.count("C121_CATALOG_AIR_FIRST_YEAR ="), 2)
-        self.assertEqual(body.count("C121_AIR_FIRST_YEAR_RAIL_PREP ="), 2)
+        projects = _read("projects.nut")
+        prep = _read("rail_prep_c121.nut")
+        self.assertIn("if (MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE)", projects)
+        self.assertIn("if (!(MODE_AIR && MODE_RAIL)) return false;", prep)
+        self.assertNotIn('GetSetting("c121_catalog_air_first_year")', _read("settings.nut"))
 
 
 if __name__ == "__main__":

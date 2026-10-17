@@ -54,7 +54,8 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
         local alreadyServed = OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
         if (alreadyServed) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE
+              || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
           local abandonedKey = OpexAbandonedPairKey(candidate);
           this._markPairAbandoned(abandonedKey);
           return { outcome = "rejected", discards = passDiscards };
@@ -87,7 +88,8 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("road", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
-        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        if (DECISION_LOG || C63_INVEST_PROBE
+            || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -279,7 +281,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                        "line=" + idx + " cost=" + candidate.capital + " dist=" + candidate.distance
                        + " veh=" + result.vehicles.len() + " profit=" + candidate.profitAnnual);
       }
-      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+      OpexAir0310InvalidateSiteValidity();
       this._lines.append({
         stationA = result.stopA, stationB = result.stopB,
         originA = candidate.src, originB = candidate.dst,

@@ -37,15 +37,9 @@ class TestV125AirSiteMinCatchment(unittest.TestCase):
         cls.sites = read("ai/OpexAI/air_sites.nut")
 
     def test_default_on_at_all_difficulties(self):
-        info = read("ai/OpexAI/info.nut")
-        setting = info[info.index('name = "air_site_min_catchment"'):]
-        setting = setting[:setting.index("});")]
-        for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{difficulty}_value = 1", setting)
-        self.assertEqual(parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")["air_site_min_catchment"], 1)
-        self.assertIn("AIR_SITE_MIN_CATCHMENT <- false;", read("ai/OpexAI/globals_pre.nut"))
-        self.assertIn('AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;',
-                      read("ai/OpexAI/settings.nut"))
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air_site_min_catchment',))
 
     def test_helper_checks_acceptance_and_production(self):
         helper = body(self.sites, "function OpexAirSiteHasCatchment(")
@@ -55,7 +49,7 @@ class TestV125AirSiteMinCatchment(unittest.TestCase):
 
     def test_catchment_loop_skips_dead_site_before_counting_valid(self):
         loop = body(self.sites, "function OpexAirFindSiteCatchmentListed(")
-        guard = loop.index("AIR_SITE_MIN_CATCHMENT && !OpexAirSiteHasCatchment(anchor")
+        guard = loop.index("!OpexAirSiteHasCatchment(anchor")
         self.assertLess(guard, loop.index("valid++;"))
         self.assertLess(guard, loop.index("best = { town = town, anchor = anchor };"))
 

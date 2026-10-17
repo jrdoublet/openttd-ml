@@ -22,8 +22,8 @@ from harness import parse_fields
 from run_mechanism_fixtures import replace_once, tree_hashes
 from diag_r1_r3_mechanisms import new_directory, write_new
 
-BASE_SETTINGS = {"c115": (), "c121": (("c121_air_economics", 1), ("c121_catalog_incremental", 1))}
-SPECS = {"c115": "OpexAI", "c121": "OpexAI[c121_air_economics=1,c121_catalog_incremental=1]"}
+BASE_SETTINGS = {"c115": (), "c121": (("c121_air_economics", 1), )}
+SPECS = {"c115": "OpexAI", "c121": "OpexAI[c121_air_economics=1]"}
 LINE = re.compile(r"\[script:\d+\]\s*\[(\d+)\].*?POSTBUILD\s+(.*)$")
 
 

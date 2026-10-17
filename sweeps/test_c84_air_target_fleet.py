@@ -112,7 +112,7 @@ class TestC84AirTargetFleetRemoved(unittest.TestCase):
         self.assertIn('if (("lastProfit" in line) && line.lastProfit > 0)', project)
         self.assertNotIn("c84MarginalProfit", project)
         self.assertNotIn("c84BelowTarget", project)
-        self.assertIn("if (V161_FLEET_NET_MARGINAL > 0) {", project)
+        self.assertNotIn("if (V161_FLEET_NET_MARGINAL > 0) {", project)
         self.assertNotIn("!c84BelowTarget", project)
         fit = function_body(self.projects, "function OpexProjectFitFleetToBudget(")
         self.assertIn(

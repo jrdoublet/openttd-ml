@@ -22,30 +22,15 @@ class GameEngineContractTests(unittest.TestCase):
     def test_setting_defaults_to_on(self):
         # Adopte le 2026-10-03 par la regle de neutralite des optimisations
         # d'opcodes (20x10 neutre) ; inerte hors bras C121.
-        defaults = parse_ai_settings(AI / "info.nut")
-        self.assertEqual(defaults["c121_air_game_engine"], 1)
-        info = source("info.nut")
-        block = info.split('name = "c121_air_game_engine"', 1)[1].split("AddSetting", 1)[0]
-        for field in ("easy_value = 1", "medium_value = 1", "hard_value = 1", "custom_value = 1"):
-            self.assertIn(field, block)
-        self.assertIn("AICONFIG_BOOLEAN", block)
-        self.assertIn("1 = on (default since 2026-10-03", block)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_air_game_engine',))
 
     def test_global_and_c121_gated_load(self):
-        globals_pre = source("globals_pre.nut")
-        self.assertIn("C121_AIR_GAME_ENGINE <- false;", globals_pre)
-        self.assertIn("C121_GAME_ENGINE_STATE <- {};", globals_pre)
-        self.assertIn("apres chargement, l'etat se reconstruit tout seul", globals_pre)
-        self.assertIn(
-            "Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard",
-            globals_pre)
-        settings = source("settings.nut")
-        self.assertIn("C121_AIR_GAME_ENGINE = AIController.GetSetting", settings)
-        self.assertIn('AIController.GetSetting("c121_air_game_engine") != 0;', settings)
-        save = source("persist.nut").split("function OpexAI::Save()", 1)[1].split(
-            "function OpexAI::Load(", 1)[0]
-        self.assertNotIn("C121_GAME_ENGINE_STATE", save)
-        self.assertNotIn("C121_AIR_GAME_ENGINE", save)
+        from v237_contracts import assert_retired
+        assert_retired(self, ("c121_air_game_engine",))
+        self.assertIn("C121_GAME_ENGINE_STATE <- {};", source("globals_pre.nut"))
+        self.assertNotIn("C121_GAME_ENGINE_STATE", source("persist.nut"))
 
     def test_shortcut_guard_and_constants(self):
         econ = source("air_economics_c121.nut")
@@ -54,7 +39,7 @@ class GameEngineContractTests(unittest.TestCase):
         chooser = econ.split("function OpexC121ChooseRoutePlane(", 1)[1]
         demand = chooser.index("OpexC121PrepareDemandShadow")
         static = chooser.index("OpexC121PrepareEngineStatic")
-        guard = chooser.index("if (C121_AIR_GAME_ENGINE)")
+        guard = chooser.index("geState = OpexC121GameEngineState(airportType)")
         self.assertLess(demand, static)
         self.assertLess(static, guard)
         self.assertIn("OpexC121GameEngineTryShortcut", chooser)
@@ -75,21 +60,13 @@ class GameEngineContractTests(unittest.TestCase):
         self.assertIn('"engine_rev"', sync)
         self.assertIn('"learn_rev"', sync)
         log = econ.split("function OpexC121GameEngineLog", 1)[1].split("function ", 1)[0]
-        self.assertIn("if (!C121_AIR_GAME_ENGINE) return;", log)
+        self.assertNotIn("if (!C121_AIR_GAME_ENGINE) return;", log)
         self.assertNotIn("PROBE_C121_ENGINE_TABLE", log)
 
     def test_launcher_paired_arms_and_extra_env(self):
-        text = LAUNCHER.read_text(encoding="utf-8")
-        self.assertIn(
-            '"ref": "OpexAI[c121_air_economics=1,c121_catalog_incremental=1,c121_air_game_engine=0]"',
-            text)
-        self.assertIn(
-            '"game_engine": "OpexAI[c121_air_economics=1,c121_catalog_incremental=1,c121_air_game_engine=1]"',
-            text)
-        self.assertIn("OPEX_GE_EXTRA", text)
-        self.assertIn('purpose="diagnostic_c121_game_engine_not_adoption"', text)
-        self.assertIn("force_debug=True", text)
-        self.assertIn("diag_cadence_duel", text)
+        from sweeps import diag_c121_game_engine
+        with self.assertRaisesRegex(SystemExit, "permanent"):
+            diag_c121_game_engine.main()
 
 
 class GameEngineProbeTokenTests(unittest.TestCase):

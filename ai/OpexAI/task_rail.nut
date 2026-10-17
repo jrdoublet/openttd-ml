@@ -143,7 +143,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       /* Trace prepare pendant l'annee AIR : il n'est pas dans best. S'il y
        * reapparait quand meme, on refuse sans lancer d'A* et sans stopper la passe. */
       local c121PrepPlan = false;
-      if (C121_AIR_FIRST_YEAR_RAIL_PREP && candidate != null
+      if ((MODE_AIR && MODE_RAIL) && candidate != null
           && ("c121PrepStock" in candidate) && candidate.c121PrepStock
           && ("railPlan" in candidate) && candidate.railPlan != null) {
         local stillFirstYear = C121_CATALOG_FIRST_YEAR_ACTIVE;
@@ -205,7 +205,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
            * Un trace de preparation C121 est revalide plus bas au lieu d'etre jete. */
           /* `ok` peut manquer a un railPlan (cf. :173, projects_generation.nut:525) : en Squirrel,
            * lire une cle absente leve une exception, et ce journal ne tourne que sous sonde. */
-          if (DECISION_LOG && candidate.railPlan != null) OpexDecide("RAIL_PLAN_DROP", "src=" + candidate.src + " dst=" + candidate.dst + " kind=" + candidate.kind + " rank=" + rank + " builtCount=" + builtCount + " ok=" + ((!("ok" in candidate.railPlan) || candidate.railPlan.ok) ? 1 : 0));
+          if (DECISION_LOG
+              && candidate.railPlan != null) OpexDecide("RAIL_PLAN_DROP", "src=" + candidate.src + " dst=" + candidate.dst + " kind=" + candidate.kind + " rank=" + rank + " builtCount=" + builtCount + " ok=" + ((!("ok" in candidate.railPlan)
+              || candidate.railPlan.ok) ? 1 : 0));
           candidate.railPlan = null;
         }
         /* Une recherche est deja en cours (autre candidat, ou upgrade) : ne pas en lancer une
@@ -276,12 +278,14 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_hard", 0, 0, 0);
-        if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
+        if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE
+            || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       if (close.blocking >= 0) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_no_join", 0, 0, 0);
-        if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
+        if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE
+            || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -298,7 +302,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       if (lowCash && !willStartSearch) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "insufficient_cash", 0, 0, 0, i);
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
-        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        if (DECISION_LOG || C63_INVEST_PROBE
+            || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -1465,7 +1470,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                              + candidate.trains + "|" + result.trains + "|"
                              + result.doubleTrack);
     }
-    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+    OpexAir0310InvalidateSiteValidity();
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
       originA = candidate.src, originB = candidate.dst,
@@ -1913,7 +1918,7 @@ function OpexAI::_handleRailStockSearchCompleted()
   if (V131_RAIL_REPAIR && ("kind" in state) && state.kind == "v131_repair") {
     return;
   }
-  local prepSearch = C121_AIR_FIRST_YEAR_RAIL_PREP
+  local prepSearch = (MODE_AIR && MODE_RAIL)
       && ("isC121RailPrep" in state) && state.isC121RailPrep;
   local candidate = state.candidate;
   local plan = ("railPlan" in candidate && candidate.railPlan != null) ? candidate.railPlan : state.plan;
@@ -2841,7 +2846,7 @@ function OpexAI::_v131TryStartRepair(candidate, plan, cause)
     OpexV131RepairLog(candidate, "fallback", 0, 0, 0, 0, "reason=worker_busy");
     return "slot_busy";
   }
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold) {
+  if ((MODE_AIR && MODE_RAIL) && this._c121RailPrepHold) {
     OpexV131RepairLog(candidate, "fallback", 0, 0, 0, 0, "reason=prep_hold");
     return "slot_busy";
   }

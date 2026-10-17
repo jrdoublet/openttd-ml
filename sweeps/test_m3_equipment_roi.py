@@ -30,11 +30,11 @@ class TestM3EquipmentRoi(unittest.TestCase):
     def test_probe_default_off_and_c68_default_on(self):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["probe_events"], 0)
-        self.assertEqual(defaults["air_route_plane_selection"], 1)
+        self.assertNotIn("air_route_plane_selection", defaults)
         self.assertIn("EQUIPMENT_ROI_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
-        self.assertIn("AIR_ROUTE_PLANE_SELECTION <- true;", GLOBALS.read_text(encoding="utf-8"))
+        self.assertNotIn("AIR_ROUTE_PLANE_SELECTION <- true;", GLOBALS.read_text(encoding="utf-8"))
         self.assertIn('EQUIPMENT_ROI_PROBE = probeEvents;', SETTINGS.read_text(encoding="utf-8"))
-        self.assertIn('AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;', SETTINGS.read_text(encoding="utf-8"))
+        self.assertNotIn('AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;', SETTINGS.read_text(encoding="utf-8"))
     def test_current_selection_rules_are_preserved(self):
         src = CATALOG.read_text(encoding="utf-8")
         for token in ("capacity > this.wagonByCargo[cargo].capacity", "engine.capacity > best.capacity", "engine.capacity == best.capacity && engine.speed > best.speed", "(isBig && !bestIsBig)"):
@@ -72,7 +72,7 @@ class TestM3EquipmentRoi(unittest.TestCase):
         planning_src = AIR_PLANNING.read_text(encoding="utf-8")
         catalog = CATALOG.read_text(encoding="utf-8")
         self.assertIn("function OpexAirChooseRoutePlane", src)
-        self.assertIn("if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport))", src)
+        self.assertIn('if (!(airport.type in catalog.airPlaneChoicesByAirport))', src)
         self.assertIn("economics.profitAnnual > bestEconomics.profitAnnual", src)
         self.assertIn("local keepPlaneChoices = true", " ".join(catalog.split()))
         self.assertEqual(planning_src.count("OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,"), 0)

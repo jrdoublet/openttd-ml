@@ -12,12 +12,9 @@ def read(filename):
 
 class PhysicalPaymentDaysTests(unittest.TestCase):
     def test_setting_is_on_by_default(self):
-        setting = read("info.nut").split('name = "air_c121_physical_payment_days",')[1].split("});")[0]
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{level}_value = 1", setting)
-        self.assertIn("AIR_C121_PHYSICAL_PAYMENT_DAYS <- false;", read("globals_pre.nut"))
-        self.assertEqual(read("settings.nut").count(
-            'AIController.GetSetting("air_c121_physical_payment_days")'), 1)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air_c121_physical_payment_days',))
 
     def test_rounding_uses_physical_one_way_not_magic_offset(self):
         body = read("air_economics_c121.nut").split(
@@ -32,10 +29,10 @@ class PhysicalPaymentDaysTests(unittest.TestCase):
 
     def test_all_c121_income_paths_use_switch(self):
         econ = read("air_economics_c121.nut")
+        self.assertNotIn("AIR_C121_PHYSICAL_PAYMENT_DAYS", econ)
+        self.assertNotIn("OpexC119AirIncomeDays", econ)
         self.assertEqual(econ.count("OpexC121PhysicalPaymentDays("), 6)
-        self.assertEqual(econ.count("AIR_C121_PHYSICAL_PAYMENT_DAYS"), 5)
         self.assertIn("OpexC121PhysicalPaymentDays(ctx.trip)", econ)
-        self.assertIn("OpexC119AirIncomeDays(plane, plan.distance)", econ)
 
     def test_trip_includes_airport_manoeuvres(self):
         econ = read("air_economics_c121.nut")
@@ -46,8 +43,8 @@ class PhysicalPaymentDaysTests(unittest.TestCase):
 
     def test_off_keeps_legacy_proxy(self):
         econ = read("air_economics_c121.nut")
-        self.assertIn("((flightDistance + 30) * 664)", econ)
-        self.assertEqual(econ.count("OpexC119AirIncomeDays(plane, plan.distance)"), 5)
+        self.assertNotIn("OpexC119AirIncomeDays", econ)
+        self.assertNotIn("((flightDistance + 30) * 664)", econ)
         self.assertIn("AICargo.GetCargoIncome(catalog.paxCargo, paymentDistance, incomeDays)", econ)
 
 

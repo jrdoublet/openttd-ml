@@ -47,13 +47,8 @@ class TestC119AirIncomeShadow(unittest.TestCase):
 
     def test_c119_payment_time_is_delivery_only(self):
         src = AIR_ECON_C121.read_text(encoding="utf-8")
-        start = src.index("function OpexC119AirIncomeDays")
-        end = src.index("function OpexC121EndpointAirportType", start)
-        body = src[start:end]
-        self.assertIn("AIEngine.GetMaxSpeed(plane.id)", body)
-        self.assertIn("(flightDistance + 30) * 664", body)
-        self.assertNotIn("airportDelayDays", body)
-        self.assertNotIn("roundTripDays", body)
+        self.assertNotIn("function OpexC119AirIncomeDays", src)
+        self.assertIn("OpexC121PhysicalPaymentDays(ctx.trip)", src)
 
     def test_legacy_route_economics_keep_cycle_and_fleet(self):
         src = AIR_ROUTE_ECON.read_text(encoding="utf-8")

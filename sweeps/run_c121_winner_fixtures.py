@@ -103,7 +103,7 @@ def main(argv=None):
     if args.library_manifest:
         libraries, groups = cached_libraries(args.library_manifest, reload.CACHE_DIR, folder / "ai_libraries")
     # The fixture compares against the unfused production witness.
-    settings = (("c121_air_economics", 1), ("c121_air_winner_fusion", 0))
+    settings = (("c121_air_economics", 1), )
     arm = openttdlab.local_folder(str(target), "OpexAI", settings)
     cfg = reload.bench_v2.make_cfg(1970)
     write_new(folder / "plan.json", {

@@ -7,13 +7,9 @@ from sweeps.campaign_freeze import parse_ai_setting_specs
 
 class IntegrationTests(unittest.TestCase):
     def test_setting_default_is_on_in_all_difficulties_and_gated_by_c121(self):
-        info = (ROOT / "ai/OpexAI/info.nut").read_text(encoding="utf-8")
-        block = info.split('name = "c121_air_winner_fusion",')[1].split("});")[0]
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(key + " = 1", block)
-        self.assertTrue(parse_ai_setting_specs(ROOT / "ai/OpexAI/info.nut")["c121_air_winner_fusion"]["boolean"])
-        settings = (ROOT / "ai/OpexAI/settings.nut").read_text(encoding="utf-8")
-        self.assertIn("C121_AIR_WINNER_FUSION = AIController.GetSetting", settings)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_air_winner_fusion',))
 
     def test_measure_has_no_fixture(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -24,7 +20,7 @@ class IntegrationTests(unittest.TestCase):
 
     def test_fixture_calls_integrated_pair(self):
         text = (ROOT / "tests/mechanisms/c121_winner_integration_vm.nut").read_text(encoding="utf-8")
-        self.assertIn("OpexC121WinnerEconomics(catalog, plan, plane, fusion)", text)
+        self.assertIn("OpexC121WinnerEconomics(catalog, plan, plane)", text)
 
     def test_pinned_copy_keeps_exact_ai_and_single_receipt(self):
         with tempfile.TemporaryDirectory() as folder:

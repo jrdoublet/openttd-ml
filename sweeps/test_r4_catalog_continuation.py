@@ -57,12 +57,13 @@ class TestCatalogContinuation(unittest.TestCase):
         self.assertTrue(self.admit(tick=13, start=13, ops=9000))
 
     def test_feature_off_never_enters_continuation(self):
-        self.assertFalse(self.admit(enabled=False))
+        self.assertNotIn("C121_CATALOG_INCREMENTAL", self.predicate)
+        self.assertTrue(self.admit())
 
     def test_both_dispatch_paths_capture_tick_and_keep_task_alternation(self):
         self.assertEqual(self.main.count("local continuationTick = AIController.GetTick();"), 1)
         self.assertEqual(self.main.count("while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 1)
-        self.assertEqual(self.main.count("this._dispatchCatalog(queuedTask,"), 1)
+        self.assertEqual(self.main.count("this._dispatchAirCatalogPhase(phaseTask,"), 1)
         self.assertIn("if (catalogPending) this._runOrchestratorTick();", self.main)
         self.assertEqual(self.main.count('queuedTask.c78AirRebuild != null'), 1)
         self.assertNotIn("GetOpsTillSuspend() > 10000", self.main)

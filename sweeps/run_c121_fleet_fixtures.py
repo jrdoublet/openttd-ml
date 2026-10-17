@@ -52,8 +52,7 @@ def main(argv=None, *, settings=None, fixture=FIXTURE, marker="C121_TARGET", sta
     reload.CACHE_DIR = Path(inspect.signature(openttdlab.run_experiments).parameters["get_cache_dir"].default())
     reload.SCRIPT_DEBUG_LEVEL = "4"
     if settings is None:
-        settings = (("c121_air_economics", 1), ("c121_catalog_incremental", 1),
-                    ("decision_log", 1))
+        settings = (("c121_air_economics", 1), ("decision_log", 1))
     arm = openttdlab.local_folder(str(target), "OpexAI", settings)
     cfg = reload.bench_v2.make_cfg(1970)
     write_new(folder / "plan.json", {

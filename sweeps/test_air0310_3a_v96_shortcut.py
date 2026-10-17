@@ -44,7 +44,7 @@ NULL_GUARDS = (
     "plane.price <= 0",
     "plane.runningCost < 0",
     "OpexC121EngineContextMatches(engineContext, catalog, plan, plane)",
-    "OpexC119AirIncomeDays(plane, plan.distance)",
+    "OpexC121PhysicalPaymentDays(trip)",
     "AICargo.GetCargoIncome(catalog.paxCargo, st.paymentDistance, incomeDays)",
     "paxIncome < 0",
     "C121_AIR_ENGINE_CAPACITY_OBS",
@@ -79,65 +79,14 @@ class TestAir0310_3aV96Shortcut(unittest.TestCase):
         )
 
     def test_setting_defaults_on(self):  # adopte le 04/10 (porte B C121 + gain d'opcodes)
-        start = self.info.index('name = "air0310_v96_shortcut_lean"')
-        block = self.info[start:self.info.index("});", start)]
-        self.assertIn(
-            "1 = on (default), 0 = previous bound",
-            block,
-        )
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 1", block)
-        self.assertNotIn("easy_value = 0", block)
-        self.assertEqual(self.info.count('name = "air0310_v96_shortcut_lean"'), 1)
-        self.assertIn("AIR0310_V96_SHORTCUT_LEAN <- false;", self.globals)
-        self.assertEqual(self.globals.count("AIR0310_V96_SHORTCUT_LEAN"), 1)
-        needle = 'AIController.GetSetting("air0310_v96_shortcut_lean")'
-        self.assertEqual(self.settings.count(needle), 1)
-        self.assertIn(
-            'AIR0310_V96_SHORTCUT_LEAN = AIController.GetSetting("air0310_v96_shortcut_lean") != 0;',
-            self.settings,
-        )
-        self.assertNotIn("AIR0310_V96_SHORTCUT_LEAN <-", self.settings)
-        self.assertIn("C121_AIR_GAME_ENGINE <- false;", self.globals)
-        self.assertIn(
-            'C121_AIR_GAME_ENGINE = AIController.GetSetting("c121_air_game_engine") != 0;',
-            self.settings,
-        )
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_air_game_engine', 'air0310_v96_shortcut_lean'))
 
     def test_both_paths_present_and_default_is_the_old_bound(self):
-        body = self.shortcut
-        self.assertIn("OpexC121GameEngineFindPlane(catalog, airportType, engineId)", body)
-        self.assertIn("AIEngine.IsValidEngine(plane.id)", body)
-        self.assertIn("AIEngine.IsBuildable(plane.id)", body)
-        self.assertIn("OpexC118EngineFitsPlan(plan, plane)", body)
-        self.assertIn("OpexAirPlaneInRange(plane, plan.distance)", body)
-        self.assertIn("local context = null;", body)
-        gate = body.index("if (AIR0310_V96_SHORTCUT_LEAN) {")
-        close = body.index("\n  }\n  local upperScore = context == null", gate)
-        lean = body[gate:close]
-        legacy = body[close:]
-        self.assertIn(
-            "if (!OpexC121EngineShortcutViable(catalog, plan, plane, context)) return null;",
-            lean,
-        )
-        self.assertIn("return { plane = plane, context = context };", lean)
-        self.assertNotIn("OpexC121InitialEngineUpperScore", lean)
-        self.assertNotIn("upperScore", lean)
-        for token in BOUND_ARITHMETIC:
-            self.assertNotIn(token, lean)
-        self.assertIn(
-            "local upperScore = context == null\n"
-            "      ? OpexC121InitialEngineUpperScore(catalog, plan, plane)\n"
-            "      : OpexC121InitialEngineUpperScore(catalog, plan, plane, context);\n"
-            "  if (upperScore == null) return null;\n"
-            "  if (context != null) context.upperScore = upperScore;\n"
-            "  return { plane = plane, context = context, upperScore = upperScore };",
-            legacy,
-        )
-        self.assertNotIn("OpexC121EngineShortcutViable", legacy)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air0310_v96_shortcut_lean',))
 
     def test_viable_keeps_null_guards_without_score(self):
         body = self.viable
@@ -185,7 +134,7 @@ class TestAir0310_3aV96Shortcut(unittest.TestCase):
         self.assertIn('OpexC121GameEngineLog("fallback"', chooser[fallback:fallback + 400])
         late = chooser.index("if (initialEconomics == null)")
         retry = chooser[late:]
-        self.assertIn("C121_AIR_GAME_ENGINE && geMode == 1", retry)
+        self.assertIn('geMode == 1', retry)
         self.assertIn("best = OpexC121ScanRoutePlaneEngines(catalog, plan);", retry)
 
 

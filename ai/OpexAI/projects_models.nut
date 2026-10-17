@@ -88,8 +88,7 @@ function OpexC121RealizationSums()
 
 function OpexC121ApplyRealizationSums(sums, year, phase)
 {
-  if (AIR_P0_DIRECT_REALIZATION)
-    AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
+  AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
   foreach (arm, acc in sums) {
     local n = acc[1];
     local factor = 1.0;
@@ -99,14 +98,13 @@ function OpexC121ApplyRealizationSums(sums, year, phase)
     local oldFactor = C121_AIR_REALIZATION_FACTOR[arm];
     C121_AIR_REALIZATION_FACTOR[arm] = factor;
     local directChanged = false;
-    if (AIR_P0_DIRECT_REALIZATION
-        && (arm == "hubsite" || arm == "hubhub")) {
+    if ((arm == "hubsite" || arm == "hubhub")) {
       local direct = n > 0 ? acc[0].tofloat() / (n.tofloat() * 1000.0) : 1.0;
       directChanged = C121_AIR_P0_DIRECT_FACTOR[arm] != direct;
       C121_AIR_P0_DIRECT_FACTOR[arm] = direct;
       if (direct != 1.0) AIR_P0_DIRECT_REALIZATION_ACTIVE = true;
     }
-    if (C121_CATALOG_INCREMENTAL && (oldFactor != factor || directChanged))
+    if ((oldFactor != factor || directChanged))
       C121_CATALOG_ARM_LEARN_REV.rawset(arm,
         (arm in C121_CATALOG_ARM_LEARN_REV ? C121_CATALOG_ARM_LEARN_REV[arm] : 0) + 1);
     AILog.Info("C121_REALIZATION phase=" + phase + " year=" + year

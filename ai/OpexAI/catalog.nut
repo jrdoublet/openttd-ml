@@ -869,7 +869,7 @@ function OpexCatalog::_refreshTowns()
     if (townMark != null) OpexSpanAgg("catalog.town", townMark);
   }
   /* Hors de la boucle : au defaut, un seul test par rafraichissement (identite des opcodes). */
-  if (C121_CATALOG_INCREMENTAL) OpexC121CatalogSeedTownPopulations(this.towns);
+  OpexC121CatalogSeedTownPopulations(this.towns);
 }
 
 /* Revision par ville : 5 % et au moins 20 habitants, pour eviter les oscillations
@@ -893,8 +893,7 @@ function OpexC121CatalogSeedTownPopulations(towns)
  * NoAI ; chaque ville revient au plus apres ceil(N/8) tours utiles. */
 function OpexC121CatalogTownProductionBatch(catalog)
 {
-  if (!C121_CATALOG_INCREMENTAL || catalog == null || catalog.towns == null
-      || catalog.towns.len() == 0 || catalog.paxCargo < 0) return false;
+  if (catalog == null || catalog.towns == null || catalog.towns.len() == 0 || catalog.paxCargo < 0) return false;
   local count = catalog.towns.len();
   local changed = false;
   for (local i = 0; i < 8 && i < count; i++) {
@@ -1035,7 +1034,7 @@ function OpexCatalog::refresh(budget, year)
   local airRefreshMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
   spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.air") : null;
   this._refreshAir();
-  if (C121_CATALOG_INCREMENTAL) {
+  {
     foreach (airportType, choices in this.airPlaneChoicesByAirport) {
       local prices = "";
       foreach (plane in choices) prices += plane.id + ":" + plane.price + ":" + plane.runningCost + ";";

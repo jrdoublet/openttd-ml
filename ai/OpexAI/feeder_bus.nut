@@ -1114,7 +1114,7 @@ function OpexAI::_tryBuildFeederProject(year, project, rank, passDiscards, ancho
     OpexSign(anchor, "OJ|" + this._nextLineId + "|" + candidate.runningAnnual);
     OpexSign(anchor, "OT|" + this._nextLineId + "|" + candidate.oneWayDays + "|" + candidate.distance);
   }
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
 
   AILog.Info("V139_FEEDER airport=" + candidate.airportStationId + " town=" + candidate.townId
              + " cost=" + result.actualCost + " buses=" + result.vehicles.len()

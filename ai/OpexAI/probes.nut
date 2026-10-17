@@ -216,7 +216,7 @@ function OpexC121HubDelayObserveBatch(stationId, residualSum, residualSq, residu
       state.variance = variance;
       state.lastWindowN = n;
       state.lastUpdate = now;
-      if (C121_CATALOG_INCREMENTAL) C121_CATALOG_HUB_LEARN_REV.rawset(stationId,
+      C121_CATALOG_HUB_LEARN_REV.rawset(stationId,
           (stationId in C121_CATALOG_HUB_LEARN_REV
               ? C121_CATALOG_HUB_LEARN_REV[stationId] : 0) + 1);
       published = {
@@ -270,19 +270,7 @@ function OpexC121HubDelayFlushLine(line, state)
   }
 }
 
-function OpexC117NewC121View(startDate)
-{
-  return {
-    startDate = startDate, lastDate = startDate,
-    pax = 0, seatLegs = 0, trips = 0, tripsA = 0, tripsB = 0, profit = 0,
-    waitASum = 0, waitAN = 0, waitBSum = 0, waitBN = 0,
-    lastLive = 0, lastCap = 0, samples = 0,
-    hubResidualASum = 0.0, hubResidualASq = 0.0, hubResidualAN = 0,
-    hubResidualBSum = 0.0, hubResidualBSq = 0.0, hubResidualBN = 0
-  };
-}
-
-function OpexC117NewLineState(bucket, startDate, withLean = false)
+function OpexC117NewLineState(bucket, startDate)
 {
   local state = {
     bucket = bucket, startDate = startDate, lastDate = startDate,
@@ -300,7 +288,6 @@ function OpexC117NewLineState(bucket, startDate, withLean = false)
     lastLive = 0, lastCap = 0, lastEngine = -1, engineChanges = 0,
     mixedEngineSamples = 0, invalidOrderSamples = 0, unobservedTransitions = 0
   };
-  if (withLean) state.leanView <- OpexC117NewC121View(startDate);
   return state;
 }
 
@@ -353,9 +340,7 @@ function OpexC121FirstLiveAggregate(history, count)
  * aucune mutation de ligne : uniquement trois petits snapshots par LineID. */
 function OpexC121FirstLiveObserve(line, state, ageDays)
 {
-  if ((!C121_AIR_FIRST_LIVE_SHADOW && !C121_AIR_FIRST_LIVE_GROWTH)
-      || line == null || state == null
-      || !("lineId" in line)) return;
+  if (line == null || state == null || !("lineId" in line)) return;
   local tick0 = AIController.GetTick();
   local ops0 = AIController.GetOpsTillSuspend();
   local key = line.lineId;
@@ -443,55 +428,13 @@ function OpexC121FirstLiveBalanced90(line)
   return ("balanced90" in holder) && holder.balanced90;
 }
 
-function OpexC117FlushLeanMonth(now)
-{
-  local curMonth = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now);
-  if (C117_LEAN_MISMATCH_MONTH < 0) {
-    C117_LEAN_MISMATCH_MONTH = curMonth;
-    return;
-  }
-  if (curMonth == C117_LEAN_MISMATCH_MONTH) return;
-  if (DECISION_LOG) {
-    OpexDecide("C117_LEAN_MISMATCH", "month=" + C117_LEAN_MISMATCH_MONTH
-        + " total=" + C117_LEAN_MISMATCH_TOTAL);
-  }
-  C117_LEAN_MISMATCH_TOTAL = 0;
-  C117_LEAN_MISMATCH_MONTH = curMonth;
-}
-
-function OpexC117CompareLeanSampling(line, state)
-{
-  local lineId = (line != null && ("lineId" in line)) ? line.lineId : -1;
-  local lean = (state != null && ("leanView" in state)) ? state.leanView : null;
-  if (state == null || lean == null) {
-    C117_LEAN_MISMATCH_TOTAL++;
-    OpexDecide("C117_LEAN_MISMATCH", "line=" + lineId + " field=missing_view");
-    return;
-  }
-  local names = ["lastLive", "lastDate", "startDate", "trips", "tripsA", "tripsB",
-      "profit", "pax", "seatLegs", "waitASum", "waitAN", "waitBSum", "waitBN",
-      "lastCap", "samples",
-      "hubResidualASum", "hubResidualASq", "hubResidualAN",
-      "hubResidualBSum", "hubResidualBSq", "hubResidualBN"];
-  foreach (name in names) {
-    if (!(name in lean) || state[name] != lean[name]) {
-      C117_LEAN_MISMATCH_TOTAL++;
-      OpexDecide("C117_LEAN_MISMATCH", "line=" + lineId + " field=" + name
-          + " hist=" + state[name]
-          + " lean=" + ((name in lean) ? lean[name] : "absent"));
-    }
-  }
-}
-
 function OpexC117FlushLine(line, state)
 {
   if (state == null || state.samples <= 0) return;
   local flushMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   OpexC121HubDelayFlushLine(line, state);
-  local skipChain = (C117_LEAN_SAMPLING == 1 || C117_LEAN_SAMPLING == 2)
-      && !C117_AIR_THROUGHPUT_PROBE;
+  local skipChain = !C117_AIR_THROUGHPUT_PROBE;
   if (skipChain) {
-    if (C117_LEAN_SAMPLING == 2) OpexC117CompareLeanSampling(line, state);
     local ageDaysLean = ("buildDate" in line) ? (state.lastDate - line.buildDate) : -1;
     OpexC121FirstLiveObserve(line, state, ageDaysLean);
     if (flushMark != null) OpexSpanAgg("loop.c117.flush", flushMark);
@@ -631,11 +574,8 @@ function OpexC117AirThroughputStep(lines, catalog)
   if (C117_AIR_LAST_DATE >= 0 && now - C117_AIR_LAST_DATE < C117_AIR_SAMPLE_DAYS) return;
   C117_AIR_LAST_DATE = now;
   local nowYear = AIDate.GetYear(now);
-  /* Mode 1 : omettre les champs hors lecteurs C121. Mode 2 : chemin historique
-   * plus vue lean comparee ; FirstLiveObserve lit l'etat historique. */
-  local skipUnused = (C117_LEAN_SAMPLING == 1) && !C117_AIR_THROUGHPUT_PROBE;
-  local dualCompare = (C117_LEAN_SAMPLING == 2) && !C117_AIR_THROUGHPUT_PROBE;
-  if (dualCompare) OpexC117FlushLeanMonth(now);
+  /* Sans sonde, omettre les champs sans lecteur C121. */
+  local skipUnused = !C117_AIR_THROUGHPUT_PROBE;
 
   local mailActive = false;
   local mailCargoId = -1;
@@ -656,15 +596,14 @@ function OpexC117AirThroughputStep(lines, catalog)
     local lineKey = line.lineId;
     local state = (lineKey in C117_AIR_LINE_STATE) ? C117_AIR_LINE_STATE[lineKey] : null;
     if (state == null) {
-      state = OpexC117NewLineState(bucket, now, dualCompare);
+      state = OpexC117NewLineState(bucket, now);
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     } else if (state.bucket != bucket) {
       local bridgeStart = state.lastDate;
       OpexC117FlushLine(line, state);
-      state = OpexC117NewLineState(bucket, bridgeStart, dualCompare);
+      state = OpexC117NewLineState(bucket, bridgeStart);
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     }
-    local leanView = (dualCompare && ("leanView" in state)) ? state.leanView : null;
 
     local live = 0;
     local totalCap = 0;
@@ -718,7 +657,7 @@ function OpexC117AirThroughputStep(lines, catalog)
             profitDelta = (AIVehicle.GetProfitLastYear(v) - vehicleState.profitThisYear) + thisProfit;
           }
           state.profit += profitDelta;
-          if (leanView != null) leanView.profit += profitDelta;
+
           if (!skipUnused) {
             state.runEst += AIVehicle.GetRunningCost(v).tofloat() * deltaDays.tofloat() / 365.25;
           }
@@ -792,13 +731,7 @@ function OpexC117AirThroughputStep(lines, catalog)
               state.mailSeatLegsB += vehicleState.legMailCap;
             }
           }
-          if (leanView != null) {
-            leanView.pax += vehicleState.legPaxMax;
-            leanView.seatLegs += vehicleState.legCap;
-            leanView.trips++;
-            if (vehicleState.order == 0) leanView.tripsA++;
-            else if (vehicleState.order == 1) leanView.tripsB++;
-          }
+
           if (vehicleState.seenTransition) {
             local legDays = now - vehicleState.legStartDate;
             if (legDays > 0) {
@@ -816,20 +749,12 @@ function OpexC117AirThroughputStep(lines, catalog)
                   state.hubResidualASum += residual;
                   state.hubResidualASq += residual * residual;
                   state.hubResidualAN++;
-                  if (leanView != null) {
-                    leanView.hubResidualASum += residual;
-                    leanView.hubResidualASq += residual * residual;
-                    leanView.hubResidualAN++;
-                  }
+
                 } else if (vehicleState.order == 1) {
                   state.hubResidualBSum += residual;
                   state.hubResidualBSq += residual * residual;
                   state.hubResidualBN++;
-                  if (leanView != null) {
-                    leanView.hubResidualBSum += residual;
-                    leanView.hubResidualBSq += residual * residual;
-                    leanView.hubResidualBN++;
-                  }
+
                 }
               }
             }
@@ -861,12 +786,6 @@ function OpexC117AirThroughputStep(lines, catalog)
     state.lastLive = live;
     state.lastCap = totalCap;
     state.lastDate = now;
-    if (leanView != null) {
-      leanView.samples++;
-      leanView.lastLive = live;
-      leanView.lastCap = totalCap;
-      leanView.lastDate = now;
-    }
 
     local stationA = OpexAirLineStationId(line, 0);
     local stationB = OpexAirLineStationId(line, 1);
@@ -875,7 +794,7 @@ function OpexC117AirThroughputStep(lines, catalog)
       if (waitA >= 0) {
         state.waitASum += waitA;
         state.waitAN++;
-        if (leanView != null) { leanView.waitASum += waitA; leanView.waitAN++; }
+
       }
       if (!skipUnused) {
         local ratingA = AIStation.GetCargoRating(stationA, line.cargo);
@@ -887,7 +806,7 @@ function OpexC117AirThroughputStep(lines, catalog)
       if (waitB >= 0) {
         state.waitBSum += waitB;
         state.waitBN++;
-        if (leanView != null) { leanView.waitBSum += waitB; leanView.waitBN++; }
+
       }
       if (!skipUnused) {
         local ratingB = AIStation.GetCargoRating(stationB, line.cargo);
@@ -989,7 +908,7 @@ function OpexCatalogCostLog(cost)
 }
 function OpexCatalogCostSliceLog(cost, scan, sliceOps)
 {
-  if (!C121_CATALOG_INCREMENTAL || !CATALOG_COST_PROBE) return;
+  if (!CATALOG_COST_PROBE) return;
   local date = AIDate.GetCurrentDate();
   local examined = cost.c121CacheHits + cost.c121Recomputed;
   local reusePct = examined > 0 ? cost.c121CacheHits * 100 / examined : 0;
@@ -2373,7 +2292,6 @@ function OpexC75FlushYear(year)
   OpexC75ResetYearLedger();
 }
 
-
 /* C72 : cache journalier de K_dec pour la sonde passive du choix d'avion */
 function OpexC69CachedKDec()
 {
@@ -2744,7 +2662,7 @@ function OpexAI::_mainLoopProfiled()
     this._runOrchestratorTick();
     if (spOrch != null) OpexSpanEnd(spOrch);
     OpexLoopProfAdd("orchestrator", mark);
-    if (C121_CATALOG_INCREMENTAL) {
+    {
       mark = OpexOpsMeasureBegin();
       local continued = false;
       local spResume = null;
@@ -2759,10 +2677,10 @@ function OpexAI::_mainLoopProfiled()
             catalogPending = true;
             continued = true;
             local spCat = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
-            if (V147_AIR_CATALOG_TASKS) {
+            {
               local phaseTask = OpexV147PhaseTask(this);
               if (phaseTask != null) this._dispatchAirCatalogPhase(phaseTask, AIDate.GetYear(AIDate.GetCurrentDate()));
-            } else this._dispatchCatalog(queuedTask, AIDate.GetYear(AIDate.GetCurrentDate()));
+            }
             if (spCat != null) OpexSpanEnd(spCat);
             break;
           }

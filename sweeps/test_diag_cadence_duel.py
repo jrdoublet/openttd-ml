@@ -99,7 +99,7 @@ class SettingsIntegrationTests(unittest.TestCase):
             self.assertEqual((base[changed[0]], other[changed[0]]), (0, 1))
             # Profil physique C121 adopté : tous les bras le gardent à 1.
             self.assertNotIn("c121_air_economics", other)
-            self.assertEqual(other["c121_catalog_incremental"], 1)
+            self.assertNotIn("c121_catalog_incremental", other)
 
 
 if __name__ == "__main__":

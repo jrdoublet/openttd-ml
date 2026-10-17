@@ -37,7 +37,7 @@ from diag_c63_c58 import parse_c63_invest, summarise_empty_probes
 
 STARTING_YEAR = 1970
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
-SHARED = "air_early_slot=1,decision_log=1,probe_portfolio=1"
+SHARED = "decision_log=1,probe_portfolio=1"
 CURRENT = f"OpexAI[{SHARED},abandon_gen_filter=1,abandon_cooldown_days=365]"
 NO_FILTER = f"OpexAI[{SHARED},abandon_gen_filter=0,abandon_cooldown_days=365]"
 PERMANENT = f"OpexAI[{SHARED},abandon_gen_filter=1,abandon_cooldown_days=0]"
@@ -45,19 +45,19 @@ NEITHER = f"OpexAI[{SHARED},abandon_gen_filter=0,abandon_cooldown_days=0]"
 ARMS = (CURRENT, NO_FILTER, PERMANENT, NEITHER)
 ARM_PARAMS = {
     CURRENT: (
-        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
+        ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 1), ("abandon_cooldown_days", 365),
     ),
     NO_FILTER: (
-        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
+        ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 0), ("abandon_cooldown_days", 365),
     ),
     PERMANENT: (
-        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
+        ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 1), ("abandon_cooldown_days", 0),
     ),
     NEITHER: (
-        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
+        ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 0), ("abandon_cooldown_days", 0),
     ),
 }
@@ -365,7 +365,6 @@ def main():
             NEITHER: {"abandon_gen_filter": 0, "abandon_cooldown_days": 0},
         },
         "shared_settings": {
-            "air_early_slot": 1,
             "decision_log": 1,
             "probe_portfolio": 1,
         },

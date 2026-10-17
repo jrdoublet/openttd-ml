@@ -228,7 +228,7 @@ class CD00SourceContracts(unittest.TestCase):
         dispatch = function(SCHED, "OpexAI::_dispatchCatalog")
         for key in ('phase = "primary"', "cursor = {}", "plans = []",
                     "partialPending = false", "lastPublishedCount = 0",
-                    "c76StartRevisions = AC06_C76_SNAPSHOT_ACK && c76Full"):
+                    "c76StartRevisions = C76_REGEN_TARGETED && c76Full"):
             self.assertIn(key, start)
         self.assertLess(proceed.index("s.partialPending)"),
                         proceed.index('if (s.phase == "apply")'))
@@ -253,7 +253,7 @@ class CD00SourceContracts(unittest.TestCase):
         self.assertLess(dispatch.index("OpexC78ContinueCatalogAirRebuild(this, task, year)"),
                         dispatch.index("local stale = false;"))
         self.assertIn('name = "catalog", dueCycle = 0, enabled = true', MAIN)
-        self.assertIn("owner._taskCursor = 0;", SCHED)
+        self.assertIn("owner._taskCursor = i;", SCHED)
 
     def test_v141_ack_and_save_load_boundaries(self):
         proceed = function(SCHED, "OpexC78ContinueCatalogAirRebuild")
@@ -267,9 +267,9 @@ class CD00SourceContracts(unittest.TestCase):
         self.assertIn("OpexAir0310PublishIncremental(owner, s.plans, s.lastPublishedCount", partial)
         self.assertIn("lastPublishedCount > 0", partial)
         self.assertIn("owner._rebuildProjects(s.fleetPlan, partialAir, false);", partial)
-        self.assertIn("v141Use = V141_CATALOG_INCREMENTAL;", publish)
+        self.assertIn('local v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;', publish)
         self.assertIn("projects.candidateGroups = rebuilt;", publish)
-        self.assertIn("OpexReselectProjects(projects, publishCapital", publish)
+        self.assertNotIn("OpexReselectProjects(projects, publishCapital", publish)
         self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride);", applied)
         self.assertIn("OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions)", applied)
         self.assertIn("owner._c76AcknowledgeAllLayers();", applied)  # toggle OFF

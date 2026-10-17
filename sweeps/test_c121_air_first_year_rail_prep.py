@@ -49,72 +49,31 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         # par defaut sur la branche C121 (derogation, sans banc de qualification).
         # Ils restent inertes hors bras C121 (c121_air_economics et
         # c121_catalog_incremental a 0 par defaut).
-        defaults = parse_ai_settings(AI / "info.nut")
-        for name in ("c121_air_first_year_rail_prep", "c121_air_one_or_two_planes"):
-            self.assertEqual(defaults[name], 1, name)
-        # V110, 2026-10-03 : c121_flat_bootstrap passe a 1 sur QUALIFICATION, pas
-        # sur derogation. Porte A (gain_short, 40 graines x 3 ans, seuils fixes
-        # avant lancement) : +135 997 £/an, 25/15/0, p_wilcoxon = 0,01154, IC95
-        # bootstrap [+39 461 ; +231 092], valeur +19,13 % -> pass. Porte B
-        # (non_erosion, 20 graines x 10 ans) : IC95 [-19 052 ; +307 787], borne
-        # haute > 0 -> pass. Il reste inerte hors bras C121.
-        self.assertEqual(defaults["c121_flat_bootstrap"], 1)
-        info = source("info.nut")
-        for name in ("c121_air_first_year_rail_prep", "c121_air_one_or_two_planes",
-                     "c121_flat_bootstrap"):
-            i = info.index('name = "%s"' % name)
-            window = info[i:i + 500]
-            for key in ("easy_value = 1", "medium_value = 1", "hard_value = 1",
-                        "custom_value = 1", "flags = AICONFIG_BOOLEAN"):
-                self.assertIn(key, window, name)
-        settings = source("settings.nut")
-        self.assertIn(
-            'C121_FLAT_BOOTSTRAP = C121_CATALOG_INCREMENTAL\n'
-            '      && AIController.GetSetting("c121_flat_bootstrap") != 0;\n'
-            "  if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;",
-            settings)
-        self.assertIn(
-            "C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR\n"
-            '      && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;',
-            settings)
-        self.assertIn(
-            "C121_AIR_ONE_OR_TWO_PLANES = "
-            'AIController.GetSetting("c121_air_one_or_two_planes") != 0;',
-            settings)
-        self.assertLess(
-            settings.index("if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;"),
-            settings.index("C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR"))
-        self.assertLess(
-            settings.index('GetSetting("c121_air_one_or_two_planes")'),
-            settings.index("C121_CATALOG_FIRST_YEAR_ACTIVE = false;"))
-        globals_pre = source("globals_pre.nut")
-        self.assertIn("C121_AIR_FIRST_YEAR_RAIL_PREP <- false;", globals_pre)
-        self.assertIn("C121_AIR_ONE_OR_TWO_PLANES <- false;", globals_pre)
-        self.assertNotIn("C121_AIR_FIRST_YEAR_RAIL_PREP = false;", globals_pre)
-        self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES = false;", globals_pre)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_catalog_incremental', 'c121_catalog_air_first_year', 'c121_flat_bootstrap', 'c121_air_first_year_rail_prep', 'c121_air_one_or_two_planes'))
 
     def test_one_or_two_replaces_only_the_winner_depth(self):
         econ = source("air_economics_c121.nut")
         winner = econ.split("function OpexC121WinnerEconomics(", 1)[1].split(
             "\nfunction ", 1)[0]
         self.assertIn(
-            "if (C121_AIR_ONE_OR_TWO_PLANES) {\n"
-            "    return OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext);\n"
-            "  }",
+            'return OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext);',
             winner)
-        self.assertLess(winner.index("OpexC121OneOrTwoWinner"),
-                        winner.index("if (!fusion)"))
+        self.assertNotIn("if (!fusion)", winner)
         pair = econ.split("function OpexC121OneOrTwoWinner(", 1)[1].split(
             "function OpexC121WinnerEconomics(", 1)[0]
-        self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, 1, false)", pair)
-        self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, 2, false)", pair)
-        self.assertIn("return { initial = chosen, full = chosen };", pair)
-        self.assertNotIn("fixedPlanes = 0", pair)
+        self.assertIn("return OpexC121OneOrTwoFused(catalog, plan, plane);", pair)
+        fused = econ.split("function OpexC121OneOrTwoFused(", 1)[1].split(
+            "function OpexC121OneOrTwoWinner(", 1)[0]
+        self.assertIn("OpexC121OneOrTwoDepth(inv, 1)", fused)
+        self.assertIn("OpexC121OneOrTwoDepth(inv, 2)", fused)
+        self.assertIn("return { initial = chosen, full = chosen };", fused)
         chooser = econ.split("function OpexC121ChooseRoutePlane(", 1)[1].split(
             "\nfunction ", 1)[0]
         self.assertIn("local openingPlanes = 1;", chooser)
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", chooser)
-        self.assertEqual(econ.count("local openingPlanes = 1;"), 4)
+        self.assertEqual(econ.count("local openingPlanes = 1;"), 3)
         air_econ = econ.split("function OpexC121AirEconomics(", 1)[1].split(
             "\nfunction ", 1)[0]
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", air_econ)
@@ -126,8 +85,7 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
     def test_opposite_departure_does_not_force_full_load(self):
         air = source("air_construction.nut")
         self.assertIn(
-            "local hangarB = (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2)\n"
-            "      ? AIAirport.GetHangarOfAirport(airportB) : null;",
+            'local hangarB = (wanted == 2)\n      ? AIAirport.GetHangarOfAirport(airportB) : null;',
             air)
         self.assertIn("if (fromB && AIVehicle.IsValidVehicle(extra)) AIOrder.SkipToOrder(extra, 1);", air)
         self.assertIn("AIAirport.IsHangarTile(hangarB)", air)
@@ -137,7 +95,7 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
 
     def test_year1_rail_catalog_stays_out_of_best(self):
         projects = source("projects.nut")
-        gate = projects.split("if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE)", 1)[1]
+        gate = projects.split("if (MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE)", 1)[1]
         gate = gate.split("local paxBand", 1)[0]
         self.assertIn("doFreight = false;", gate)
         self.assertIn("doPaxRail = false;", gate)
@@ -158,11 +116,11 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
             "function OpexRailPrepMergeAlternatives(", 1)[1].split(
             "function OpexRailStockMergeAlternatives(", 1)[0]
         self.assertNotIn("OpexFilterRailStockGate", merge)
-        self.assertIn("!C121_AIR_FIRST_YEAR_RAIL_PREP || C121_CATALOG_FIRST_YEAR_ACTIVE", merge)
+        self.assertIn('!(MODE_AIR && MODE_RAIL) || C121_CATALOG_FIRST_YEAR_ACTIVE', merge)
         for name in ("projects.nut", "projects_update.nut", "projects_selection.nut"):
             text = source(name)
             self.assertIn(
-                "if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE)",
+                'if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE)',
                 text)
             self.assertIn("OpexRailPrepMergeAlternatives(", text)
 
@@ -184,13 +142,13 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         self.assertIn('OpexC121RailPrepLog(this, "stock_dropped", 0, 0);', rail)
         self.assertIn("&& !c121PrepPlan", rail)
         scheduler = source("scheduler.nut")
-        self.assertIn("C121_AIR_FIRST_YEAR_RAIL_PREP && this._c121RailPrepHold", scheduler)
+        self.assertIn('(MODE_AIR && MODE_RAIL) && this._c121RailPrepHold', scheduler)
         self.assertNotIn("_tryStartC121RailPrepSearch", source("orchestrator.nut"))
 
     def test_journal_is_behind_the_probe_guard(self):
         prep = source("rail_prep_c121.nut")
         log = prep.split("function OpexC121RailPrepLog(", 1)[1].split("\nfunction ", 1)[0]
-        guard = log.index("if (!C121_AIR_FIRST_YEAR_RAIL_PREP || !CATALOG_COST_PROBE) return;")
+        guard = log.index("if (!(MODE_AIR && MODE_RAIL) || !CATALOG_COST_PROBE) return;")
         self.assertLess(guard, log.index("AIDate.GetCurrentDate()"))
         self.assertLess(guard, log.index("OpexAvailableCapital()"))
         self.assertIn(

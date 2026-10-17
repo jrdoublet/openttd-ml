@@ -9,11 +9,9 @@ function FxAssert(ok, name)
 function FxMatrix()
 {
   local saved = { c70 = C70_PROFIT_CALIBRATED, mode = C70_MODE_CALIBRATION,
-    v161 = V161_FLEET_NET_MARGINAL,
     factors = clone C70_MODE_FACTOR,
     calibrate = OpexCalibratedProfit };
-  /* V161 (defaut 1 depuis le 13/10) plafonne par les voisines reelles : hors champ de cette matrice. */
-  V161_FLEET_NET_MARGINAL = 0;
+  /* Le modele reste sous le prior V161 : sa provenance est "model", meme si lastProfit existe. */
   C70_PROFIT_CALIBRATED = true;
   C70_MODE_CALIBRATION = true;
   local cases = 0;
@@ -30,7 +28,7 @@ function FxMatrix()
               predRunning = 2000, predTrains = 1 };
             local entry = { line = line, want = quantity, planePrice = 30007, baseVehicles = 1 };
             local p = OpexProjectFromFleet(entry);
-            FxAssert(p != null && p.profitIsObserved == observed, "provenance");
+            FxAssert(p != null && !p.profitIsObserved, "provenance");
             local before = p.profitAnnual;
             local expected = observed ? before : OpexCalibratedProfit(p);
             FxAssert(p.profitAnnual == before && entry.want == quantity && p.payload == entry,
@@ -39,7 +37,7 @@ function FxMatrix()
               local fitted = OpexProjectFitFleetToBudget(p, 31007);
               FxAssert(fitted != null && fitted.payload.want == 1 && entry.want == 4, "R1_4_to_1");
               FxAssert(OpexProjectFitFleetToBudget(p, 31006) == null, "R1_below");
-              FxAssert(fitted.profitIsObserved == observed, "R2_after_R1");
+              FxAssert(!fitted.profitIsObserved, "R2_after_R1");
             }
             cases++;
             AILog.Info("FXVM case=" + cases + " calibration=" + calibration + " factor=" + factor
@@ -53,7 +51,6 @@ function FxMatrix()
   FxAssert(OpexProjectScore(-1, 10) == 0.0, "negative_score");
   C70_PROFIT_CALIBRATED = saved.c70;
   C70_MODE_CALIBRATION = saved.mode;
-  V161_FLEET_NET_MARGINAL = saved.v161;
   C70_MODE_FACTOR = saved.factors;
   OpexCalibratedProfit = saved.calibrate;
   AILog.Info("FXVM complete=1 cases=" + cases + " boundary_checks=1 settings_restored=1");

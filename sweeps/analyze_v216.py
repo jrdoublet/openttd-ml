@@ -1,6 +1,6 @@
 """V216 etape 3 : analyses des journaux de la sonde `v216_probe` (lecture seule).
 
-Usage : python sweeps/analyze_v216.py <engine_dir>[:<policy>[,<policy>]] ...
+Usage : python sweeps/analyze_v216.py <engine_dir>[:<policy>[<policy>]] ...
    ou : python sweeps/analyze_v216.py <engine_dir> [<policy_id> ...] (compatibilite)
 
 Lit <engine_dir>/<policy>_seed*_r0.log (journaux moteur, --script-debug) et ecrit en Markdown :
@@ -648,7 +648,7 @@ def parse_cli_args(argv):
 
     Supports:
     - <engine_dir> [policy ...] (backward compatibility)
-    - <engine_dir>[:<policy>[,<policy>]] ...
+    - <engine_dir>[:<policy>[<policy>]] ...
     """
     if not argv:
         return []
@@ -669,7 +669,7 @@ def parse_cli_args(argv):
 def main(argv):
     specs = parse_cli_args(argv)
     if not specs:
-        print("Usage: python sweeps/analyze_v216.py <engine_dir>[:<policy>[,<policy>]] ...")
+        print("Usage: python sweeps/analyze_v216.py <engine_dir>[:<policy>[<policy>]] ...")
         return
 
     out = ['# V216 — analyses de la sonde', '']

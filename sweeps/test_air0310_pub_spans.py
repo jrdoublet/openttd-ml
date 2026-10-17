@@ -70,8 +70,6 @@ PUBLISH_SPANS = (
     ("pub.insert", "spPubInsert"),
     ("pub.store", "spPubStore"),
     ("pub.recount", "spPubRecount"),
-    ("pub.capital", "spPubCap"),
-    ("pub.select", "spPubSelect"),
 )
 
 # Une fois par reelection : meme forme, un niveau sous la selection.
@@ -114,28 +112,10 @@ class TestAir0310PubSpans(unittest.TestCase):
         ))
 
     def test_publish_order_keeps_capital_before_reselect(self):
-        capital = self.publish.index('OpexSpanBegin("pub.capital")')
-        read = self.publish.index("local publishCapital = OpexAvailableCapital();")
-        capital_end = self.publish.index("if (spPubCap != null) OpexSpanEnd(spPubCap);")
-        select = self.publish.index('OpexSpanBegin("pub.select")')
-        call = self.publish.index(
-            "OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, owner._lines,"
-        )
-        select_end = self.publish.index("if (spPubSelect != null) OpexSpanEnd(spPubSelect);")
-        self.assertLess(capital, read)
-        self.assertLess(read, capital_end)
-        self.assertLess(capital_end, select)
-        self.assertLess(select, call)
-        self.assertLess(call, select_end)
-        self.assertIn("OpexProjectsRecountGroups(projects);", self.publish)
-        self.assertLess(
-            self.publish.index('OpexSpanBegin("pub.recount")'),
-            self.publish.index("OpexProjectsRecountGroups(projects);"),
-        )
-        self.assertLess(
-            self.publish.index("OpexProjectsRecountGroups(projects);"),
-            self.publish.index("if (spPubRecount != null) OpexSpanEnd(spPubRecount);"),
-        )
+        self.assertNotIn('OpexAvailableCapital()', self.publish)
+        self.assertNotIn('OpexReselectProjects(', self.publish)
+        self.assertLess(self.publish.index('OpexProjectsRecountGroups(projects);'), self.publish.index('projects.selectionStale'))
+        self.assertIn('OpexReselectProjects(', self.selection)
 
     def test_reselect_steps_are_probe_gated_spans(self):
         previous = -1

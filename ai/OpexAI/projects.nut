@@ -132,7 +132,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local doRoad = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
   local doAir = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_COMPLETE);
   local doWater = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
-  if (C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE) {
+  if (MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE) {
     doFreight = false;
     doPaxRail = false;
     doRoad = false;
@@ -505,7 +505,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
      * subvention suivies, sinon elle effacerait ceux que l'offre avait injectes. L'appelant ne
      * transmet activeSubsidies que sous C77. */
     if (activeSubsidies != null && activeSubsidies.len() > 0
-        && !(C121_CATALOG_AIR_FIRST_YEAR && C121_CATALOG_FIRST_YEAR_ACTIVE)) {
+        && !(MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE)) {
       foreach (candidate in OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs)) {
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
           abandonFiltered++;
@@ -534,7 +534,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
     if (C80_RAIL_STOCK_WORKER) winners = OpexRailStockStripCandidateGroups(winners);
   }
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
+  if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
@@ -601,7 +601,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     freightCargo = freightCargo,
   };
   if (C80_RAIL_STOCK_GATE) ret.railReadyStock <- railReadyStock;
-  else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) ret.railReadyStock <- railReadyStock;
+  else if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) ret.railReadyStock <- railReadyStock;
   if (C69_BOTTLENECK_PROBE) {
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;

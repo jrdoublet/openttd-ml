@@ -98,9 +98,6 @@ function OpexLoadSettings()
   PORTFOLIO_CACHE = polCaches;
   AIR_SITE_CACHE_ENABLED = polCaches;
 
-  // C68: air route plane selection
-  AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;
-
   // V166 : interrupteurs de mode, lus avant les faisceaux policy_* qui en dependent.
   MODE_AIR = AIController.GetSetting("mode_air") != 0;
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
@@ -232,14 +229,7 @@ function OpexLoadSettings()
   local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
   if (roadPaxDwell >= 0) ROAD_PAX_STOP_DWELL_DAYS = roadPaxDwell;
 
-  AIR_EARLY_SLOT = AIController.GetSetting("air_early_slot") != 0;
-  AIR_FLEET_COOLDOWN_PREFILTER = AIController.GetSetting("air_fleet_cooldown_prefilter") != 0;
-  local afri = AIController.GetSetting("air_fleet_routes_index");
-  if (afri >= 0) AIR_FLEET_ROUTES_INDEX = afri;
-  local v161 = AIController.GetSetting("v161_fleet_net_marginal");
-  if (v161 >= 0) V161_FLEET_NET_MARGINAL = v161;
   V163_MULTI_CARGO = AIController.GetSetting("v163_multi_cargo") == 1;
-  AIR_PUBLISH_LAZY_SELECT = AIController.GetSetting("air_publish_lazy_select");
 
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
@@ -373,8 +363,6 @@ function OpexLoadSettings()
   V95_AIR_POST73_YEAR = -1;
   V134_AIR_P2P_SATURATED_HUB = AIController.GetSetting("v134_air_p2p_saturated_hub") != 0;
   V133_AIR_BUILD_RETRY = AIController.GetSetting("v133_air_build_retry") != 0;
-  C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;
-  AIR_SITE_MIN_CATCHMENT = AIController.GetSetting("air_site_min_catchment") != 0;
   AIR_BFAIL_DISPOSE_ORPHAN = AIController.GetSetting("air_bfail_dispose_orphan") != 0;
   AIR_BFAIL_PRECHECK_SHADOW = OpexProbeSetting("air_bfail_precheck_shadow") != 0;
   AIR_SITE_STALE_SHADOW = OpexProbeSetting("air_site_stale_shadow") != 0;
@@ -382,44 +370,24 @@ function OpexLoadSettings()
   C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
   C116_AIR_PROJECT_PROBE = OpexProbeSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;
-  local c117Lean = AIController.GetSetting("c117_lean_sampling");
-  C117_LEAN_SAMPLING = c117Lean >= 0 ? c117Lean : 0;
-  C117_LEAN_MISMATCH_TOTAL = 0;
-  C117_LEAN_MISMATCH_MONTH = -1;
   C121_STATION_FLUX_PROBE = OpexProbeSetting("c121_station_flux_probe") != 0;
   C121_STATION_FLUX_LAST_DATE = -1;
   C121_STATION_FLUX_STATE = {};
   C118_AIR_COVERAGE_PROBE = OpexProbeSetting("c118_air_coverage_probe") != 0;
-  AIR_C121_PHYSICAL_PAYMENT_DAYS = AIController.GetSetting("air_c121_physical_payment_days") != 0;
   C121_AIR_ECONOMICS_SHADOW = OpexProbeSetting("c121_air_economics_shadow") != 0;
-  C121_AIR_WINNER_FUSION = AIController.GetSetting("c121_air_winner_fusion") != 0;
-  C121_AIR_GAME_ENGINE = AIController.GetSetting("c121_air_game_engine") != 0;
-  C121_CATALOG_INCREMENTAL = AIController.GetSetting("c121_catalog_incremental") != 0;
-  C121_CATALOG_AIR_FIRST_YEAR = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("c121_catalog_air_first_year") != 0;
   /* Amorcage plat : sans etapes, chaque regeneration apres chantier prend le
    * chemin incremental C121 au lieu d'un OpexBuildProjects complet synchrone. */
-  C121_FLAT_BOOTSTRAP = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("c121_flat_bootstrap") != 0;
-  if (C121_FLAT_BOOTSTRAP) STAGED_BOOTSTRAP = false;
-  /* V166 : sans avion, l'annee 1 "AIR seul" ne genererait rien ; sans rail, sa
-   * preparation rail est sans objet. */
-  if (!MODE_AIR) C121_CATALOG_AIR_FIRST_YEAR = false;
-  C121_AIR_FIRST_YEAR_RAIL_PREP = C121_CATALOG_AIR_FIRST_YEAR
-      && AIController.GetSetting("c121_air_first_year_rail_prep") != 0;
-  if (!MODE_RAIL) C121_AIR_FIRST_YEAR_RAIL_PREP = false;
-  C121_AIR_ONE_OR_TWO_PLANES = AIController.GetSetting("c121_air_one_or_two_planes") != 0;
+  STAGED_BOOTSTRAP = false;
   C121_CATALOG_FIRST_YEAR_ACTIVE = false;
   C121_AIR_FIRST_LIVE_SHADOW = OpexProbeSetting("c121_air_first_live_shadow") != 0;
-  C121_AIR_FIRST_LIVE_GROWTH = AIController.GetSetting("c121_air_first_live_growth") != 0;
-  C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = C121_AIR_FIRST_LIVE_GROWTH ? 4 : 0;
+  C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS = 4;
   C121_KPASS_SHADOW = OpexProbeSetting("c121_kpass_shadow") != 0;
   C121_KDEC_COLD_SHADOW = OpexProbeSetting("c121_kdec_cold_shadow") != 0;
   C121_AIR_FIRST_LIVE_STATE = {};
   C121_AIR_FIRST_LIVE_OPS = 0;
   C121_AIR_FIRST_LIVE_SAMPLES = 0;
   C121_AIR_FIRST_LIVE_PRIORITY_STATE = {};
-  if (C121_CATALOG_INCREMENTAL) {
+  {
     C121_CATALOG_CACHE.clear();
     C121_AIR_ENDPOINT_CACHE = null;
     OpexC121InvalidateEndpointGeometry();
@@ -438,7 +406,6 @@ function OpexLoadSettings()
     C121_CATALOG_TOWN_PRIORITY.clear();
   }
   C121_AIR_PROJECT_REALIZATION_ADAPTIVE = AIController.GetSetting("c121_air_project_realization_adaptive") != 0;
-  AIR_P0_DIRECT_REALIZATION = AIController.GetSetting("air_p0_direct_realization") != 0;
   AIR_P0_DIRECT_REALIZATION_ACTIVE = false;
   C121_AIR_P0_DIRECT_FACTOR.hubsite = 1.0;
   C121_AIR_P0_DIRECT_FACTOR.hubhub = 1.0;
@@ -587,12 +554,6 @@ function OpexLoadSettings()
   PORTFOLIO_FLOOR_PCT = 0;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
-  AC04_EXTRA_SITE_DEDUP = AIController.GetSetting("ac04_extra_site_dedup") != 0;
-  AC05_SKIP_UNUSED_HUB_INCOME = AIController.GetSetting("ac05_skip_unused_hub_income") != 0;
-  AC06_C76_SNAPSHOT_ACK = C76_REGEN_TARGETED
-      && AIController.GetSetting("ac06_c76_snapshot_ack") != 0;
-  AC04_HUB_USAGE_GATE = AIController.GetSetting("ac04_hub_usage_gate") != 0;
-  V147_AIR_CATALOG_TASKS = AIController.GetSetting("v147_air_catalog_tasks") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
   C67_WATER_EXPOSURE = OpexProbeSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
@@ -604,32 +565,18 @@ function OpexLoadSettings()
   C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
   C80_MODE_REGEN = C76_REGEN_TARGETED && (AIController.GetSetting("c80_mode_regen") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
-  C80_AIR_HUB_INDEX = AIController.GetSetting("c80_air_hub_index") != 0;
-  C80_MARGINAL_FLOOR = AIController.GetSetting("c80_marginal_floor") != 0;
   C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
-  AIR0310_V96_SHORTCUT_LEAN = AIController.GetSetting("air0310_v96_shortcut_lean") != 0;
-  AIR0310_ONE_TWO_FUSED = AIController.GetSetting("air0310_one_two_fused") != 0;
-  AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("air0310_incremental_publish") != 0;
-  V127_IDLE_CASH_ROAD_REGEN = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("v127_idle_cash_road_regen") != 0;
+  V127_IDLE_CASH_ROAD_REGEN = AIController.GetSetting("v127_idle_cash_road_regen") != 0;
   V127_LAST_MONTH = -1;
   V127_LAST_ROAD_REGEN_DATE = -1;
   local railRefill = AIController.GetSetting("v217_rail_refill");
   V217_RAIL_REFILL = (railRefill != null && railRefill >= 0 && railRefill <= 2) ? railRefill : 0;
   V217_LAST_MONTH = -1;
-  AIR0310_HUB_SNAPSHOT = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("air0310_hub_snapshot") != 0;
-  AIR0310_SITE_VALIDITY_CACHE = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("air0310_site_validity_cache") != 0;
   AIR0310_SITE_VALIDITY_STATE = null;
-  V141_CATALOG_INCREMENTAL = C121_CATALOG_INCREMENTAL
-      && AIController.GetSetting("v141_catalog_incremental") != 0;
-  V141_CATALOG_INCREMENTAL_CHECK = C121_CATALOG_INCREMENTAL
-      && OpexProbeSetting("v141_catalog_incremental_check") != 0;
+  V141_CATALOG_INCREMENTAL_CHECK = OpexProbeSetting("v141_catalog_incremental_check") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
   if (C80_RAIL_STOCK_WORKER) V89_RAIL_SEARCH_THROUGHPUT = false;
@@ -637,7 +584,6 @@ function OpexLoadSettings()
   V90_PATHFINDER_CHECK = OpexProbeSetting("v90_pathfinder_check") != 0;
   V129_RAIL_ASTAR_EXACT_OPT = AIController.GetSetting("v129_rail_astar_exact_opt") != 0;
   V129_RAIL_ASTAR_CHECK = OpexProbeSetting("v129_rail_astar_check") != 0;
-  V94_AIR_SITE_LIST = AIController.GetSetting("v94_air_site_list") != 0;
   V94_AIR_SITE_CHECK = OpexProbeSetting("v94_air_site_check") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;

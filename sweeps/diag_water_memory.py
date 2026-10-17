@@ -41,7 +41,6 @@ REFERENCE_SETTINGS = (
     ("probe_events", 1),
     # Atteindre l'eau sans attendre la cascade de bootstrap. Identique dans les deux bras.
     ("staged_bootstrap", 0),
-    ("air_early_slot", 1),
     ("abandon_gen_filter", 1),
     ("abandon_cooldown_days", 365),
     ("portfolio_fresh_budget", 0),

@@ -80,7 +80,7 @@ function OpexAirContinueRollback(ticket, lines = null)
     airports.append(tile);
   }
   ticket.airports = airports;
-  if (AIR0310_SITE_VALIDITY_CACHE && airports.len() != airportCount)
+  if (airports.len() != airportCount)
     OpexAir0310InvalidateSiteValidity();
   return airports.len() == 0;
 }

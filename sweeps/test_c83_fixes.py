@@ -163,7 +163,7 @@ class C83FixesContractTests(unittest.TestCase):
             self.assertIn("if (C83_FIXES && OpexAirTownCentersLinked(", block)
             self.assertIn('OpexC73RecordRejection("air", "batch_plan_dead", 1)', block)
 
-        filt = body(self.projects, "function OpexFilterAirAlternativesStillValid(")
+        filt = body(self.projects, "function OpexAir0310FilterAirAlternativesStillValid(")
         self.assertIn("C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)", filt)
         self.assertIn("lines = null", filt)
         self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines)",

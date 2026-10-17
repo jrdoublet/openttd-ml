@@ -554,7 +554,7 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
       if ("tested" in probes) probes.tested++;
       if (!ok) continue;
 
-      if (AIR_SITE_MIN_CATCHMENT && !OpexAirSiteHasCatchment(anchor, airport, paxCargo)) {
+      if (!OpexAirSiteHasCatchment(anchor, airport, paxCargo)) {
         if ("deadCatchment" in probes) probes.deadCatchment++;
         continue;
       }
@@ -656,12 +656,10 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
     local ay = AIMap.GetTileY(cachedAnchor);
     if (ax + offX < mapX && ay + offY < mapY) {
       local c4 = cachedAnchor + AIMap.GetTileIndex(offX, offY);
-      if (!AITile.IsWaterTile(cachedAnchor) && !AITile.IsCoastTile(cachedAnchor) &&
-          !AITile.IsWaterTile(c4) && !AITile.IsCoastTile(c4) &&
-          AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id &&
-          (!AIR_CHEAP_SITE || OpexAirFootprintCheapOk(cachedAnchor, airport)) &&
-          (!AIR_SITE_MIN_CATCHMENT
-           || OpexAirSiteHasCatchment(cachedAnchor, airport, OpexAirDemandPaxCargo()))) {
+      if (!AITile.IsWaterTile(cachedAnchor) && !AITile.IsCoastTile(cachedAnchor) && !AITile.IsWaterTile(c4)
+          && !AITile.IsCoastTile(c4) && AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id && (!AIR_CHEAP_SITE
+          || OpexAirFootprintCheapOk(cachedAnchor, airport))
+          && (OpexAirSiteHasCatchment(cachedAnchor, airport, OpexAirDemandPaxCargo()))) {
         local ok = false;
         if (AIR_CHEAP_SITE) {
           {
@@ -714,14 +712,14 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
     delete AIR_SITE_CACHE[key];
   }
 
-  /* V94 : defaut 1, la liste decide ; a 0, le balayage ci-dessous (origine). Le check
-   * execute ce balayage comme decision, puis la liste sur une copie. */
+  /* C96 reste prioritaire. Le chemin historique V94 et son comparateur sont
+   * conserves ensemble ; au defaut ils etaient deja court-circuites par C96. */
   local v94Copy = null;
   if (V94_AIR_SITE_CHECK) v94Copy = OpexAirCopySiteProbes(probes);
-  if (C96_AIR_SITE_CATCHMENT) {
+  {
     return OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownId, key, useSiteCache).site;
   }
-  if (V94_AIR_SITE_LIST && !V94_AIR_SITE_CHECK) {
+  if (!V94_AIR_SITE_CHECK) {
     return OpexAirFindSiteListed(town, airport, probes, requiredSlotTownId, key, useSiteCache).site;
   }
 

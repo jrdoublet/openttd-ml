@@ -240,7 +240,7 @@ class AC05HubHubTests(unittest.TestCase):
             'if (AIR_MAX_DISTANCE > 0',
             'if (plane.maxOrderDistance > 0',
             'if (OpexAirPairIsAbandoned(',
-            'local routeChoice = C121_CATALOG_INCREMENTAL',
+            'local routeChoice = OpexC121CatalogChoice',
             'if (economics == null || admissionEconomics == null',
             'OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan)',
         )

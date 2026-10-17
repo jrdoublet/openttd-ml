@@ -211,7 +211,7 @@ class CD03CD05HubStageTests(unittest.TestCase):
     def test_cd03_snapshot_is_scoped_and_span_excludes_reuse(self):
         self.assertIn("local lightMark = null;", DISCOVERY)
         self.assertIn("local reuseHubs = false;", DISCOVERY)
-        self.assertIn("if (AIR0310_HUB_SNAPSHOT && ctx.sliced)", DISCOVERY)
+        self.assertIn('if (ctx.sliced)', DISCOVERY)
         self.assertLess(DISCOVERY.index("OpexAir0310HubSnapshotPrepare("),
                         DISCOVERY.index("if (!reuseHubs) {"))
         if_block = DISCOVERY[DISCOVERY.index("if (!reuseHubs) {"):]
@@ -247,7 +247,7 @@ class CD03CD05HubStageTests(unittest.TestCase):
         self.assertLess(HUB_SITE.index("if (!OpexAirPlansHubToSite(ctx"),
                         HUB_SITE.index("ctx.resumeState.hubPhase <- 1;"))
         self.assertIn("if (!OpexAirPlansHubToSite(ctx, combo, airport, plane)) return false;", HUB_SITE)
-        self.assertIn("if (ctx.sliced && C121_CATALOG_INCREMENTAL)", HUB_SITE)
+        self.assertIn('if (ctx.sliced)', HUB_SITE)
         self.assertIn('OpexAirLightEnd(light, false, "hub_site_yield")', DRIVER)
         self.assertNotIn("Sleep(", HUB_SITE)
         for sliced in (False, True):

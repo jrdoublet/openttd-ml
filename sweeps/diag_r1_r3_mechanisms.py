@@ -376,7 +376,6 @@ def run_smoke(directory):
     effective = resolved["settings"]["effective"]
     required = {"exp_air_hub_pair_prefilter": 0,
                 "c121_air_economics": 0,
-                "c121_catalog_incremental": 0, "c121_catalog_air_first_year": 0,
                 "r19_fault_inject": 0}
     removed = ("c84_air_target_fleet", "c85_air_equipment_frontier", "exp_scheduler_skip_not_due")
     if any(effective.get(k) != v for k, v in required.items()):

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """C96 : diagnostic court du meilleur placement AIR parmi quelques sites valides.
 
-Capture ``C96_SITE`` via ``-d script=4``. Le diagnostic active uniquement
-``c96_air_site_catchment=1`` ; il ne modifie ni la demande V93 ni C68.
+Capture ``C96_SITE`` via ``-d script=4`` avec le placement catchment permanent.
 """
 
 from __future__ import annotations
@@ -130,13 +129,13 @@ def main():
 
     enable_savegame_cleanup()
     opex = local_folder(
-        str(ROOT / "ai" / "OpexAI"), "OpexAI", (("c96_air_site_catchment", 1),)
+        str(ROOT / "ai" / "OpexAI"), "OpexAI", ()
     )
     cfg = make_cfg(1970)
     experiments = [
         {
             "bench_context": "solo",
-            "bench_arm": "OpexAI[c96_air_site_catchment=1]",
+            "bench_arm": "OpexAI",
             "seed": seed,
             "days": 365 * args.years,
             "openttd_config": cfg,
@@ -159,7 +158,7 @@ def main():
         "purpose": "C96 mechanism-only site selection diagnostic; not adoption evidence",
         "years": args.years,
         "seeds": args.seeds,
-        "settings": {"c96_air_site_catchment": 1},
+        "settings": {},
         "rows": rows,
         "summary": summarize(rows),
     }

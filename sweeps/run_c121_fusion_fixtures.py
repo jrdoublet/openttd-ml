@@ -122,7 +122,7 @@ def main(argv=None):
     driver.SCRIPT_DEBUG_LEVEL = "4"
     libraries, groups = cached_libraries(args.library_manifest, driver.CACHE_DIR, folder / "ai_libraries")
     # Keep the historical witness explicit after fusion becomes the default.
-    settings = (("c121_air_economics", 1), ("c121_air_winner_fusion", 0))
+    settings = (("c121_air_economics", 1), )
     arm = openttdlab.local_folder(str(target), "OpexAI", settings)
     cfg = driver.bench_v2.make_cfg(1970)
     fixture_hashes = {p.name: digest(p) for p in (FIXTURE, ROOT / "tests/mechanisms/c121_winner_vm.nut")}

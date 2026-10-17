@@ -50,7 +50,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
       this._c76BumpLayer("engines." + affectedMode, true);
     }
   }
-  if (C121_CATALOG_INCREMENTAL) {
+  {
     if (reason == "town_founded" && affectedId >= 0)
       C121_CATALOG_TOWN_REV.rawset(affectedId,
           (affectedId in C121_CATALOG_TOWN_REV ? C121_CATALOG_TOWN_REV[affectedId] : 0) + 1);
@@ -361,7 +361,7 @@ function OpexAI::_processEvents()
       this._onTownFounded(event);
     } else if (eventType == AIEvent.ET_ENGINE_AVAILABLE) {
       this._onEngineAvailable(event);
-    } else if (eventType == AIEvent.ET_ENGINE_PREVIEW && C121_CATALOG_INCREMENTAL) {
+    } else if (eventType == AIEvent.ET_ENGINE_PREVIEW) {
       /* Le prochain refresh compare les listes de moteurs par type d'aeroport. */
     } else if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) {
       this._onStationFirstVehicle(event);

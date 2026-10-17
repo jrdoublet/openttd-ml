@@ -102,7 +102,7 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
   }
   /* Enregistrer AVANT toute commande susceptible de suspendre / sauvegarder. */
   OPEX_AIR_ROLLBACKS.append(ticket);
-  if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+  OpexAir0310InvalidateSiteValidity();
   if (OpexAirContinueRollback(ticket)) {
     OPEX_AIR_ROLLBACKS.pop();
     AILog.Info("AIR_ROLLBACK_DONE pair=" + pairKey + " immediate=1");
@@ -240,7 +240,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
     }
 
     if (ok) {
-      if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+      OpexAir0310InvalidateSiteValidity();
       builtStops.append(cand.tile);
       summary.count++;
       summary.monthlyPax += cand.value;
@@ -333,7 +333,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_a") : null;
-    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+    OpexAir0310InvalidateSiteValidity();
     local levelA = OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "levelA");
     if (spBuild != null) OpexSpanEnd(spBuild);
@@ -382,7 +382,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     if (spBuild != null) OpexSpanEnd(spBuild);
   } else {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.level_b") : null;
-    if (AIR0310_SITE_VALIDITY_CACHE) OpexAir0310InvalidateSiteValidity();
+    OpexAir0310InvalidateSiteValidity();
     /* Autopsie geometrique passive : les deux photos encadrent seulement le
      * nivellement de B, avant la pose. Aucun releve au defaut OFF ; aucune
      * lecture du shadow par les choix ou la validation du chantier. */
@@ -527,7 +527,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.plane") : null;
   local wanted = ("planes" in plan) ? plan.planes : 1;
   /* Depart oppose pour le second avion du choix un/deux avions. */
-  local hangarB = (C121_AIR_ONE_OR_TWO_PLANES && wanted == 2)
+  local hangarB = (wanted == 2)
       ? AIAirport.GetHangarOfAirport(airportB) : null;
   for (local i = 1; i < wanted; i++) {
     local fromB = (i % 2 == 1) && hangarB != null && AIMap.IsValidTile(hangarB)

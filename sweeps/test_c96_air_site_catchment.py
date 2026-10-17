@@ -44,17 +44,9 @@ class TestC96AirSiteCatchment(unittest.TestCase):
         cls.air = read_builder_air()
 
     def test_setting_is_declared_loaded_and_default_on(self):
-        defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
-        specs = parse_ai_setting_specs(ROOT / "ai" / "OpexAI" / "info.nut")
-        self.assertEqual(defaults["c96_air_site_catchment"], 1)
-        self.assertTrue(specs["c96_air_site_catchment"]["boolean"])
-        self.assertIn("C96_AIR_SITE_CATCHMENT <- true;", self.globals)
-        self.assertIn("C96_AIR_SITE_MAX_VALID <- 4;", self.globals)
-        self.assertIn("C96_AIR_SITE_EXTRA_RINGS <- 1;", self.globals)
-        self.assertIn(
-            'C96_AIR_SITE_CATCHMENT = AIController.GetSetting("c96_air_site_catchment") != 0;',
-            self.settings,
-        )
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c96_air_site_catchment',))
 
     def test_score_is_physical_and_not_a_demand_model(self):
         score = body(self.air, "function OpexAirC96SiteCatchmentScore(")
@@ -97,9 +89,9 @@ class TestC96AirSiteCatchment(unittest.TestCase):
 
     def test_c96_changes_only_site_selection_entry_point(self):
         find = body(self.air, "function OpexAirFindSite(town, airport, probes")
-        self.assertIn("if (C96_AIR_SITE_CATCHMENT)", find)
+        self.assertNotIn("if (C96_AIR_SITE_CATCHMENT)", find)
         self.assertIn("OpexAirFindSiteCatchmentListed", find)
-        self.assertIn("if (V94_AIR_SITE_LIST && !V94_AIR_SITE_CHECK)", find)
+        self.assertIn('if (!V94_AIR_SITE_CHECK)', find)
         search = body(self.air, "function OpexAirFindSiteCatchmentListed(")
         for forbidden in (
             "OpexAirEconomics",
@@ -112,7 +104,7 @@ class TestC96AirSiteCatchment(unittest.TestCase):
     def test_existing_v94_contract_remains_present(self):
         self.assertIn("function OpexAirFindSiteListed", self.air)
         self.assertIn("function OpexAirV94Finish", self.air)
-        self.assertIn("V94_AIR_SITE_LIST <- true;", self.globals)
+        self.assertNotIn("V94_AIR_SITE_LIST <- true;", self.globals)
 
 
 if __name__ == "__main__":

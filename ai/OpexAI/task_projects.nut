@@ -1206,7 +1206,7 @@ function OpexAI::_consumeResumableRailAtPassStart(year, passDiscards, c49Best, c
 {
   /* Un A* de preparation depose son trace dans le stock. Le consommer ici
    * construirait le rail, y compris pendant l'annee reservee a l'AIR. */
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP && this._railSearch != null
+  if ((MODE_AIR && MODE_RAIL) && this._railSearch != null
       && ("isC121RailPrep" in this._railSearch) && this._railSearch.isC121RailPrep) {
     if (this._railSearch.phase == "build") this._handleRailStockSearchCompleted();
     return false;
@@ -1361,7 +1361,7 @@ function OpexAI::_tryBuildProjects(year)
   local c75StopReason = null;
   local c75BuiltKeys = {};
   local c75BypassConsumed = false;
-  local c121FirstYearAirBatch = C121_CATALOG_AIR_FIRST_YEAR
+  local c121FirstYearAirBatch = MODE_AIR
       && this._generationStageMonth >= 0
       && year == (this._generationStageMonth - 1) / 12;
   local c121AirBuilt = 0;
@@ -1484,7 +1484,7 @@ function OpexAI::_tryBuildProjects(year)
 
   /* La preparation rail cede la passe si l'AIR est finançable, et depose un A*
    * termine avant que la consommation historique ne le construise. */
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP) this._c121RailPrepOnPassStart();
+  if ((MODE_AIR && MODE_RAIL)) this._c121RailPrepOnPassStart();
 
   if (V184_RAIL_SEARCH_SLOTS > 1) {
     while (RAIL_SEARCH_RESUMABLE && !c77DeferCompletedRail) {
@@ -1662,7 +1662,7 @@ function OpexAI::_tryBuildProjects(year)
               + " finance=" + projCap + " available=" + availCap);
         }
       }
-      if (C80_MARGINAL_FLOOR) {
+      {
         if (OpexC80ProjectBelowMarginalFloor(this._lines, project)) {
           c80DiscardsThisPass++;
           if (C69_BOTTLENECK_PROBE) {
@@ -1717,7 +1717,7 @@ function OpexAI::_tryBuildProjects(year)
           OpexSpanEnd(spPass);
         }
         /* Parentheses : le diagnostic post-build ancre l'unique retour rail. */
-        return (true);
+        return  true;
       }
       if (attempt.outcome == "built") {
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
@@ -1975,14 +1975,13 @@ function OpexAI::_tryBuildProjects(year)
         if (C80_RAIL_STOCK_WORKER)
           this._projects.candidateGroups = OpexRailStockStripCandidateGroups(this._projects.candidateGroups);
         this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns, this._railReadyStock);
-      } else if (C121_AIR_FIRST_YEAR_RAIL_PREP) {
+      } else if ((MODE_AIR && MODE_RAIL)) {
         this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns, this._railReadyStock);
       } else {
         this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns);
       }
       if (spPost != null) OpexSpanEnd(spPost);
-      if (PROBE_SPAN_TRACE && C121_CATALOG_INCREMENTAL
-          && airTouchedTowns != null && airTouchedTowns.len() > 0) {
+      if (PROBE_SPAN_TRACE && airTouchedTowns != null && airTouchedTowns.len() > 0) {
         OpexSpanEvent("c121_deferred_regen", "towns=" + airTouchedTowns.len());
       }
       if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
@@ -1994,8 +1993,7 @@ function OpexAI::_tryBuildProjects(year)
       /* C76 : la mise a jour incrementale vient d'integrer la ligne construite ; acquitter la
        * couche `lines` evite qu'elle declenche a elle seule une regeneration complete au tour
        * suivant (mesure : 109 regenerations "layers" sur 133). Les autres couches restent dues. */
-      if (C76_REGEN_TARGETED && this._c76AckRevisions != null && this._c76Revisions != null
-          && !(C121_CATALOG_INCREMENTAL && airTouchedTowns != null && airTouchedTowns.len() > 0)) {
+      if (C76_REGEN_TARGETED && this._c76AckRevisions != null && this._c76Revisions != null && !(airTouchedTowns != null && airTouchedTowns.len() > 0)) {
         this._c76AckRevisions.lines = this._c76Revisions.lines;
       }
     } else {
@@ -2037,7 +2035,7 @@ function OpexAI::_tryBuildProjects(year)
       OpexSpanEvent("projects_stop", "reason=" + stopTok);
       OpexSpanEnd(spPass);
     }
-    if (C121_AIR_FIRST_YEAR_RAIL_PREP) {
+    if ((MODE_AIR && MODE_RAIL)) {
       local spPrep = PROBE_SPAN_TRACE ? OpexSpanBegin("railprep.after_pass") : null;
       this._c121RailPrepAfterProjectsPass();
       if (spPrep != null) OpexSpanEnd(spPrep);
@@ -2053,7 +2051,7 @@ function OpexAI::_tryBuildProjects(year)
     OpexSpanEvent("projects_stop", "reason=" + stopTokIdle);
     OpexSpanEnd(spPass);
   }
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP) {
+  if ((MODE_AIR && MODE_RAIL)) {
     local spPrep = PROBE_SPAN_TRACE ? OpexSpanBegin("railprep.after_pass") : null;
     this._c121RailPrepAfterProjectsPass();
     if (spPrep != null) OpexSpanEnd(spPrep);
@@ -2062,7 +2060,7 @@ function OpexAI::_tryBuildProjects(year)
 }
 function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = true)
 {
-  if (C121_CATALOG_AIR_FIRST_YEAR) {
+  if (MODE_AIR) {
     local yearNow = AIDate.GetYear(AIDate.GetCurrentDate());
     if (this._generationStageMonth < 0)
       this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
@@ -2139,7 +2137,7 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
       this._projects.railStockAI <- this;
       this._updateRailStockSelectionThreshold();
     }
-  } else if (C121_AIR_FIRST_YEAR_RAIL_PREP) {
+  } else if ((MODE_AIR && MODE_RAIL)) {
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
         fleetPlan, this._abandonedPairs, stage, prior,
         freightCargo, freightCargos, this._activeSubsidies,

@@ -17,13 +17,9 @@ def src(filename):
 
 class TestDirectRealizationDefault(unittest.TestCase):
     def test_switch_on_by_default_but_can_be_disabled(self):
-        info = src("info.nut")
-        setting = info.split('name = "air_p0_direct_realization",', 1)[1].split('});', 1)[0]
-        for difficulty in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{difficulty} = 1", setting)
-        self.assertIn("AIR_P0_DIRECT_REALIZATION <- true;", src("globals_pre.nut"))
-        self.assertEqual(src("settings.nut").count(
-            'AIController.GetSetting("air_p0_direct_realization")'), 1)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air_p0_direct_realization',))
 
     def test_hub_only_direct_ratio_and_cold_start(self):
         models = src("projects_models.nut")

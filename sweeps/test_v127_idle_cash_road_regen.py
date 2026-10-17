@@ -22,9 +22,8 @@ class V127Contracts(unittest.TestCase):
 
     def test_loading_gated_by_c121(self):
         s = rd("settings.nut")
-        self.assertRegex(
-            s, r"V127_IDLE_CASH_ROAD_REGEN = C121_CATALOG_INCREMENTAL\s*&&\s*"
-               r'AIController\.GetSetting\("v127_idle_cash_road_regen"\) != 0')
+        self.assertIn('V127_IDLE_CASH_ROAD_REGEN = AIController.GetSetting("v127_idle_cash_road_regen") != 0;', s)
+        self.assertNotIn('C121_CATALOG_INCREMENTAL', s)
 
     def test_globals_default(self):
         g = rd("globals_pre.nut")

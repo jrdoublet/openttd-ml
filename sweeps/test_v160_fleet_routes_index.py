@@ -95,22 +95,9 @@ class TestV160FleetRoutesIndexStaticContracts(unittest.TestCase):
         self.air_trip = _read("ai/OpexAI/air_trip.nut")
 
     def test_setting_declaration_and_defaults(self):
-        self.assertIn("AIR_FLEET_ROUTES_INDEX <- 0;", self.globals)
-        self.assertIn('name = "air_fleet_routes_index"', self.info)
-
-        # Check info.nut values (must all be 0)
-        idx = self.info.index('name = "air_fleet_routes_index"')
-        block = self.info[idx : idx + 350]
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 2", block)
-        self.assertIn("easy_value = 1", block)
-        self.assertIn("medium_value = 1", block)
-        self.assertIn("hard_value = 1", block)
-        self.assertIn("custom_value = 1", block)
-
-        # Check settings.nut loading
-        self.assertIn('local afri = AIController.GetSetting("air_fleet_routes_index");', self.settings)
-        self.assertIn("if (afri >= 0) AIR_FLEET_ROUTES_INDEX = afri;", self.settings)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air_fleet_routes_index',))
 
     def test_spans_in_task_air(self):
         # Spans must be gated on PROBE_SPAN_TRACE with zero overhead when off
@@ -138,10 +125,9 @@ class TestV160FleetRoutesIndexStaticContracts(unittest.TestCase):
         self.assertGreaterEqual(resize_body.count("routesIndex = null;"), 3)
 
     def test_comparison_mode_and_mismatch_logging(self):
-        self.assertIn("if (AIR_FLEET_ROUTES_INDEX == 1)", self.task_air)
-        self.assertIn("else if (AIR_FLEET_ROUTES_INDEX == 2)", self.task_air)
-        self.assertIn('OpexDecide("FLEET_ROUTES_MISMATCH"', self.task_air)
-        self.assertIn('OpexDecide("FLEET_ROUTES_INDEX"', self.task_air)
+        self.assertNotIn("FLEET_ROUTES_MISMATCH", self.task_air)
+        self.assertNotIn("routesMismatchCount", self.task_air)
+        self.assertIn("OpexAirCadenceCapIndexed(line, this._catalog, this._lines, routesIndex)", self.task_air)
 
 
 class TestV160FleetRoutesEquivalence(unittest.TestCase):

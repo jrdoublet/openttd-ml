@@ -118,34 +118,12 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
         cls.scan = cls.cont[scan_start:]
 
     def test_setting_defaults_to_one_and_is_not_persisted(self):  # adopte le 04/10 (porte A 40x3)
-        self.assertEqual(self.info.count(f'name = "{SETTING}"'), 1)
-        block = _setting_block(self.info, SETTING)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
-        self.assertIn("step_size = 1", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 1", block)
-            self.assertNotIn(f"{key} = 0", block)
-        spec = parse_ai_setting_specs(ROOT / "ai/OpexAI/info.nut")[SETTING]
-        self.assertTrue(spec["boolean"])
-        self.assertEqual(spec["default"], 1)
-        self.assertEqual(self.globals.count(f"{GLOBAL} <- false;"), 1)
-        self.assertEqual(self.globals.count(f"{GLOBAL} <-"), 1)
-        self.assertEqual(
-            self.settings.count(f'AIController.GetSetting("{SETTING}")'), 1
-        )
-        self.assertIn(
-            f"{GLOBAL} = C121_CATALOG_INCREMENTAL\n"
-            f'      && AIController.GetSetting("{SETTING}") != 0;',
-            self.settings,
-        )
-        self.assertNotIn(f"{GLOBAL} <-", self.settings)
-        self.assertNotIn(SETTING, self.persist)
-        self.assertNotIn(GLOBAL, self.persist)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_catalog_incremental',))
 
     def test_partial_publish_keeps_full_rebuild_fallback(self):
-        self.assertIn(f"if ({GLOBAL} && owner._projects != null", self.partial)
+        self.assertIn(f"if (owner._projects != null", self.partial)
         self.assertIn('("lastPublishedCount" in s) && s.lastPublishedCount > 0', self.partial)
         self.assertIn("OpexAir0310PublishIncremental(", self.partial)
         self.assertIn(
@@ -190,13 +168,9 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
         self.assertIn("airOps / planCount", self.publish)
         self.assertNotIn("airOps / newPlans.len()", self.publish)
         self.assertGreaterEqual(self.publish.count("OpexProjectFromAir("), 2)
-        self.assertLess(
-            self.publish.index("local publishCapital = OpexAvailableCapital();"),
-            self.publish.index(
-                "OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, "
-                "owner._lines,\n      owner._railReadyStock);"
-            ),
-        )
+        self.assertNotIn("OpexAvailableCapital()", self.publish)
+        self.assertNotIn("OpexReselectProjects(", self.publish)
+        self.assertIn("projects.selectionStale", self.publish)
         self.assertIn("OpexFilterAirAlternativesStillValid(", self.reselect)
         self.assertIn(
             "OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K)",

@@ -113,7 +113,7 @@ class C77AirDefensiveSlotTests(unittest.TestCase):
         self.assertIn("if (project.profitAnnual < floorProfit", select)
         self.assertNotIn("c121DefensiveFloorExempt", select)
         self.assertNotIn("C77_OPPORTUNISTIC_CANDIDATES", select)
-        self.assertIn('OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);', select)
+        self.assertIn('OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true);', select)
         self.assertNotIn('OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);', select)
 
         insert = body(self.projects, "function OpexProjectInsertDefensive(")

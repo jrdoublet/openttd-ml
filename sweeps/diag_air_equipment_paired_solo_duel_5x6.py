@@ -40,13 +40,11 @@ DEFAULT_SEEDS = (42, 100, 999, 1234, 5678)
 AAAHOGEX_DIR = "AAAHogEx-115"
 
 BASELINE_SETTINGS = (
-    ("air_route_plane_selection", 1),
     ("air_best_equipment", 0),
     ("air_capital_frontier", 0),
     ("air_capital_frontier_probe", 0),
 )
 EQUIPMENT1_SETTINGS = (
-    ("air_route_plane_selection", 1),
     ("air_best_equipment", 1),
     ("air_capital_frontier", 0),
     ("air_capital_frontier_probe", 0),

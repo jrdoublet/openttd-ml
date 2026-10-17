@@ -46,7 +46,7 @@ function FxCUnion(town, tile, airport, cargo, stops, station, geometry)
 
 function FxCMatrix()
 {
-  local saved = { incremental = C121_CATALOG_INCREMENTAL, economics = C121_AIR_ECONOMICS,
+  local saved = { economics = C121_AIR_ECONOMICS,
     cache = C121_CATALOG_CACHE, townRev = C121_CATALOG_TOWN_REV,
     stationRev = C121_CATALOG_STATION_REV, stationLines = C121_CATALOG_STATION_LINES,
     airportRev = C121_CATALOG_AIRPORT_REV, airportLearn = C121_CATALOG_AIRPORT_LEARN_REV,
@@ -56,7 +56,6 @@ function FxCMatrix()
     perf = C121_AIR_PLAN_PERF, catchment = AIR_CATCHMENT_PROBE,
     chooser = OpexC121ChooseRoutePlane,
     unionMonthly = OpexAirB9TownUnionMonthly };
-  C121_CATALOG_INCREMENTAL = true;
   C121_AIR_ECONOMICS = true;
   AIR_CATCHMENT_PROBE = false;
   CATALOG_COST_ACTIVE = null;
@@ -160,7 +159,6 @@ function FxCMatrix()
   result.catalogStamp.date++;
   FxCAssert(!OpexC121EndpointCacheFresh(result, stamp), "endpoint_future_date");
   FxCAssert(!OpexC121EndpointCacheFresh({}, stamp), "endpoint_unversioned");
-  C121_CATALOG_INCREMENTAL = saved.incremental;
   C121_AIR_ECONOMICS = saved.economics;
   C121_CATALOG_CACHE = saved.cache;
   C121_CATALOG_TOWN_REV = saved.townRev;
@@ -207,7 +205,7 @@ function FxCLiveChoice(catalog, plan, lines)
 FXC_BOUNDARY <- false;
 function FxCSaveBoundary(owner)
 {
-  if (!C121_CATALOG_INCREMENTAL || owner._taskQueue == null) return;
+  if (owner._taskQueue == null) return;
   foreach (task in owner._taskQueue) {
     if (!("c78AirRebuild" in task) || task.c78AirRebuild == null) continue;
     local scan = task.c78AirRebuild;
@@ -228,5 +226,5 @@ function FxCStart(owner)
         "reload_discards_derived_caches");
     AILog.Info("C121_CACHE_RELOAD empty=1");
   }
-  if (C121_CATALOG_INCREMENTAL) OpexC121CatalogChoice = FxCLiveChoice;
+  OpexC121CatalogChoice = FxCLiveChoice;
 }

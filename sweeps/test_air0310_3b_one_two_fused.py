@@ -95,60 +95,14 @@ class TestAir0310_3bOneTwoFused(unittest.TestCase):
         )
 
     def test_setting_defaults_on(self):  # adopte le 04/10 (porte B C121 + gain d'opcodes)
-        start = self.info.index('name = "air0310_one_two_fused"')
-        block = self.info[start:self.info.index("});", start)]
-        self.assertIn("1 = on (default), 0 = two full economics calls", block)
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("step_size = 1", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 1", block)
-        self.assertNotIn("easy_value = 0", block)
-        self.assertEqual(self.info.count('name = "air0310_one_two_fused"'), 1)
-        self.assertIn("AIR0310_ONE_TWO_FUSED <- false;", self.globals)
-        self.assertEqual(self.globals.count("AIR0310_ONE_TWO_FUSED"), 1)
-        needle = 'AIController.GetSetting("air0310_one_two_fused")'
-        self.assertEqual(self.settings.count(needle), 1)
-        self.assertIn(
-            'AIR0310_ONE_TWO_FUSED = AIController.GetSetting("air0310_one_two_fused") != 0;',
-            self.settings,
-        )
-        self.assertNotIn("AIR0310_ONE_TWO_FUSED <-", self.settings)
-        self.assertNotIn("air0310_one_two_fused", self.persist)
-        self.assertNotIn("AIR0310_ONE_TWO_FUSED", self.persist)
-        # Le reglage 3a reste a cote, inchange dans son chargement.
-        self.assertEqual(self.info.count('name = "air0310_v96_shortcut_lean"'), 1)
-        self.assertIn(
-            'AIR0310_V96_SHORTCUT_LEAN = AIController.GetSetting("air0310_v96_shortcut_lean") != 0;',
-            self.settings,
-        )
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air0310_v96_shortcut_lean', 'air0310_one_two_fused'))
 
     def test_default_path_is_the_two_historical_calls(self):
-        body = self.winner
-        gate = body.index("if (AIR0310_ONE_TWO_FUSED) {")
-        fused_call = body.index("return OpexC121OneOrTwoFused(catalog, plan, plane);", gate)
-        legacy = body[body.index("  local econ1", fused_call):]
-        self.assertLess(gate, fused_call)
-        self.assertNotIn("engineContext", body[gate:fused_call])
-        self.assertNotIn("OpexC121EngineEconomics", body[gate:fused_call])
-        self.assertTrue(legacy.startswith(LEGACY_BODY))
-        self.assertEqual(legacy[len(LEGACY_BODY):].strip(), "}")
-        self.assertNotIn("fixedPlanes = 0", body)
-        self.assertEqual(body.count("OpexC121EngineEconomics(catalog, plan, plane, 1, false)\n"), 1)
-        self.assertEqual(
-            body.count("OpexC121EngineEconomics(catalog, plan, plane, 1, false, null, null, engineContext)"),
-            1,
-        )
-        self.assertEqual(body.count("OpexC121EngineEconomics(catalog, plan, plane, 2, false)\n"), 1)
-        self.assertEqual(
-            body.count("OpexC121EngineEconomics(catalog, plan, plane, 2, false, null, null, engineContext)"),
-            1,
-        )
-        self.assertLess(
-            self.econ.index("function OpexC121OneOrTwoFused("),
-            self.econ.index("function OpexC121OneOrTwoWinner("),
-        )
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air0310_one_two_fused',))
 
     def test_fused_shares_invariants_and_keeps_guards(self):
         fused = self.fused
@@ -191,7 +145,7 @@ class TestAir0310_3bOneTwoFused(unittest.TestCase):
             invariants,
         )
         self.assertIn("OpexC121AirTripModel(plan, plane)", invariants)
-        self.assertIn("OpexC119AirIncomeDays(plane, plan.distance)", invariants)
+        self.assertIn("OpexC121PhysicalPaymentDays(trip)", invariants)
         self.assertIn("plane.price / lifeYears", invariants)
         self.assertIn("OpexC121AirFleetScanCap(", invariants)
         self.assertIn("local observedMail = false;", invariants)

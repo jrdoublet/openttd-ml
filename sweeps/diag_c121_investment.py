@@ -25,8 +25,8 @@ from run_mechanism_fixtures import replace_once, tree_hashes
 from diag_r1_r3_mechanisms import new_directory, write_new
 from diag_c121_postbuild import run_isolated_arms
 
-SETTINGS = (("c121_air_economics", 1), ("c121_catalog_incremental", 1))
-SPEC = "OpexAI[c121_air_economics=1,c121_catalog_incremental=1]"
+SETTINGS = (("c121_air_economics", 1), )
+SPEC = "OpexAI[c121_air_economics=1]"
 LINE = re.compile(r"\[script:\d+\]\s*\[(\d+)\].*?C121_INVEST\s+(.*)$")
 
 

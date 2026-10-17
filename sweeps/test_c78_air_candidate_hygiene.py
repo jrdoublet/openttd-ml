@@ -81,7 +81,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         plans = air_plans_pipeline(self.air)
         self.assertLess(
             plans.index("OpexAirSiteStillBuildable(site, airport, plane, false"),
-            plans.index("local routeChoice = C121_CATALOG_INCREMENTAL"),
+            plans.index("local routeChoice = OpexC121CatalogChoice"),
         )
 
         for signature in (
@@ -138,11 +138,8 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
 
     def test_catalog_air_slicing_is_large_pool_only(self):
         start = body(self.scheduler_tasks, "function OpexC78StartCatalogAirRebuild(")
-        self.assertIn("OpexAirTownPoolLimit(owner._catalog.towns) <= 64", start)
-        self.assertLess(
-            start.index("OpexAirTownPoolLimit(owner._catalog.towns) <= 64"),
-            start.index("task.c78AirRebuild <-"),
-        )
+        self.assertNotIn("OpexAirTownPoolLimit(owner._catalog.towns) <= 64", start)
+        self.assertIn('owner._catalog.towns == null', start)
         cont = body(self.scheduler_tasks, "function OpexC78ContinueCatalogAirRebuild(")
         self.assertIn("AIR_PLAN_SLICE_OPS", cont)
         self.assertIn("AIR_PLAN_SLICE_OPS <- 180000;", self.air)
@@ -153,9 +150,9 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertIn("sliceBudget, AIController.GetTick() + BUILD_TICK_MARGIN", cont)
 
         requeue = body(self.scheduler_tasks, "function OpexC78RequeueInitialCatalogSlice(")
-        self.assertIn("if (owner._projects != null) return;", requeue)
-        self.assertIn("task.dueCycle = owner._taskCycle;", requeue)
-        self.assertIn("owner._taskCursor = 0;", requeue)
+        self.assertNotIn("owner._taskCursor = 0", requeue)
+        self.assertNotIn("task.dueCycle = owner._taskCycle;", requeue)
+        self.assertNotIn("owner._taskCursor = 0;", requeue)
         self.assertGreaterEqual(cont.count("OpexC78RequeueInitialCatalogSlice(owner, task);"), 3)
 
     def test_catalog_refresh_reason_survives_c78_resume_scope(self):

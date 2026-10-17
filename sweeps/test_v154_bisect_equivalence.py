@@ -283,7 +283,7 @@ class TestV154Contract(unittest.TestCase):
         # Verification de l'incrementation du tampon
         self.assertIn("SELECT_BISECT_STAMP++;", self.selection)
         # Verification que l'appel diagnostic passe forceHistoric = true
-        self.assertIn('OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, AIR_EARLY_SLOT, true);', self.selection)
+        self.assertIn('OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, true, true);', self.selection)
 
     def test_selection_diagnostics_hooks(self):
         # Sonde d'amortissement flotte retiree (V223, 17/10) : plus d'insertion diagnostique.

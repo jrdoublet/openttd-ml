@@ -33,7 +33,7 @@ from diag_c50_chronology_probe import (
 )
 
 
-ARM = "OpexAI[air_early_slot=1,c50_chronology_probe=1]"
+ARM = "OpexAI[c50_chronology_probe=1]"
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
 
 

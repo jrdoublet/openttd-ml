@@ -63,36 +63,28 @@ def neighbours_from_index(index, station_a, station_b):
 
 class StaticContracts(unittest.TestCase):
     def test_settings_declared_with_default_on(self):
-        # défaut 1 depuis le 13/10 (décision utilisateur après la porte A 40x3, +2,7 %) ;
-        # le global reste à 0 : seul info.nut porte le défaut
-        block = _setting_block("v161_fleet_net_marginal")
-        self.assertIn("min_value = 0, max_value = 1", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 1\b")
+        from v237_contracts import assert_retired
+        assert_retired(self, ("v161_fleet_net_marginal",))
         # V236 : priors en constantes
         self.assertNotIn('name = "v161_prior_own"', _read("info.nut"))
         self.assertNotIn('name = "v161_prior_neighbour"', _read("info.nut"))
         globals_pre = _read("globals_pre.nut")
-        self.assertIn("V161_FLEET_NET_MARGINAL <- 0;", globals_pre)
+        self.assertNotIn("V161_FLEET_NET_MARGINAL <- 0;", globals_pre)
         self.assertIn("V161_PRIOR_OWN <- 13000;", globals_pre)
         self.assertIn("V161_PRIOR_NEIGHBOUR <- 2600;", globals_pre)
         settings = _read("settings.nut")
         self.assertNotIn('"v161_prior_own"', settings)
         self.assertNotIn('"v161_prior_neighbour"', settings)
-        for name, glob in (("v161_fleet_net_marginal", "V161_FLEET_NET_MARGINAL"),):
-            m = re.search(r'local (\w+) = AIController\.GetSetting\("' + name + r'"\);\s*'
-                          r'if \(\1 >= 0\) ' + glob + r' = \1;', settings)
-            self.assertIsNotNone(m, name)
 
     def test_every_hook_is_gated(self):
         resize = _function_body(_read("task_air.nut"), "OpexAI::_resizeAirFleets")
-        self.assertIn("if (V161_FLEET_NET_MARGINAL > 0) {\n", resize)
+        self.assertNotIn("if (V161_FLEET_NET_MARGINAL > 0) {\n", resize)
         self.assertIn("fleetEntry.v161Neighbours <- v161Nb > 0 ? v161Nb : 0;", resize)
         # le compte reutilise l'index V160, construit une fois par passe
         self.assertIn("if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);\n"
                       "          local v161A", resize)
         builder = _function_body(_read("projects_builders.nut"), "OpexProjectFromFleet")
-        self.assertIn("if (V161_FLEET_NET_MARGINAL > 0) {", builder)
+        self.assertNotIn("if (V161_FLEET_NET_MARGINAL > 0) {", builder)
         self.assertNotIn("c84BelowTarget", builder)
         self.assertIn("if (v161Source != null) {", builder)
         self.assertIn("project.v161Calibrate <- true;", builder)

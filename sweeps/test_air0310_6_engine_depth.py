@@ -137,7 +137,7 @@ class TestAir0310_6EngineDepth(unittest.TestCase):
         self.assertIn(TERNARY, self.scan)
         self.assertIn(HISTORICAL_PICK, self.scan)
         self.assertEqual(self.econ.count(HISTORICAL_PICK), 2)
-        self.assertEqual(self.econ.count(TERNARY), 4)
+        self.assertEqual(self.econ.count(TERNARY), 3)
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", chooser)
 
         needle = "if (best != null && candidate.upperScore < best.economics.decisionScore) break;"

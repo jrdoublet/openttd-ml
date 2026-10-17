@@ -333,14 +333,14 @@ class ProbeContractTests(unittest.TestCase):
         self.assertIn(needle, chooser)
         self.assertTrue(chooser.split(needle, 1)[1].lstrip().startswith("if (PROBE_C121_ENGINE_TABLE)"))
         self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", chooser)
-        pair = econ.split("function OpexC121OneOrTwoWinner(", 1)[1].split(
-            "function OpexC121WinnerEconomics(", 1)[0]
+        pair = econ.split("function OpexC121OneOrTwoFused(", 1)[1].split(
+            "function OpexC121OneOrTwoWinner(", 1)[0]
         self.assertIn("return { initial = chosen, full = chosen };", pair)
         self.assertLess(pair.index("if (PROBE_C121_ENGINE_TABLE)"),
                         pair.index("return { initial = chosen, full = chosen };"))
         self.assertNotIn("fixedPlanes = 0", pair)
-        self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, 1, false)", pair)
-        self.assertIn("OpexC121EngineEconomics(catalog, plan, plane, 2, false)", pair)
+        self.assertIn("OpexC121OneOrTwoDepth(inv, 1)", pair)
+        self.assertIn("OpexC121OneOrTwoDepth(inv, 2)", pair)
 
 
 if __name__ == "__main__":

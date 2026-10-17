@@ -85,7 +85,7 @@ def _brace_balance(text):
 
 
 def _gated_calls(body):
-    return body.count(f"if ({GLOBAL}) {INVALIDATE}();")
+    return body.count(f"{INVALIDATE}();")
 
 
 def site_key(reuse, airport_type, plane_type, anchor):
@@ -153,69 +153,14 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
         cls.still = _brace_body(cls.sites, "function OpexAirSiteStillBuildable(")
 
     def test_setting_defaults_to_one_and_is_not_persisted(self):  # adopte le 05/10 (optimisation d'opcodes)
-        self.assertEqual(self.info.count(f'name = "{SETTING}"'), 1)
-        block = _setting_block(self.info, SETTING)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
-        self.assertIn("step_size = 1", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 1", block)
-            self.assertNotIn(f"{key} = 0", block)
-        self.assertIn("1 = on (default), 0 = probe every unique site on every filter", block)
-        spec = parse_ai_setting_specs(ROOT / "ai/OpexAI/info.nut")[SETTING]
-        self.assertTrue(spec["boolean"])
-        self.assertEqual(spec["default"], 1)
-        self.assertEqual(self.globals.count(f"{GLOBAL} <- false;"), 1)
-        self.assertEqual(self.globals.count(f"{GLOBAL} <-"), 1)
-        self.assertEqual(
-            self.settings.count(f'AIController.GetSetting("{SETTING}")'), 1)
-        load = (
-            f"{GLOBAL} = C121_CATALOG_INCREMENTAL\n"
-            f'      && AIController.GetSetting("{SETTING}") != 0;'
-        )
-        self.assertIn(load, self.settings)
-        self.assertIn("AIR0310_SITE_VALIDITY_STATE = null;", self.settings)
-        publish = (
-            "AIR0310_INCREMENTAL_PUBLISH = C121_CATALOG_INCREMENTAL\n"
-            '      && AIController.GetSetting("air0310_incremental_publish") != 0;'
-        )
-        self.assertLess(self.settings.index(publish), self.settings.index(load))
-        self.assertNotIn(SETTING, self.persist)
-        self.assertNotIn(GLOBAL, self.persist)
-        self.assertNotIn("AIR0310_SITE_VALIDITY_STATE", self.persist)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_catalog_incremental', 'air0310_incremental_publish'))
 
     def test_flag_zero_keeps_the_historical_filter_body(self):
-        self.assertEqual(_brace_balance(self.generation), 0)
-        self.assertEqual(_brace_balance(self.coverage), 0)
-        for body in (self.hist, self.cached, self.month, self.invalidate,
-                     self.begin, self.ok):
-            names = _explicit_locals(body)
-            self.assertEqual(len(names), len(set(names)), names)
-        gate = (
-            "if (AIR0310_SITE_VALIDITY_CACHE)\n"
-            "    return OpexAir0310FilterAirAlternativesStillValid("
-            "alternatives, abandonedPairs, lines);"
-        )
-        self.assertIn(gate, self.hist)
-        after = self.hist.split(gate, 1)[1].lstrip()
-        self.assertTrue(after.startswith("local live = [];"))
-        self.assertNotIn("AIR0310", after)
-        self.assertNotIn("OpexAir0310", after)
-        # V156 permits callers to share these maps; null keeps the local fallback.
-        self.assertIn("local siteValidity = externalSiteValidity != null ? externalSiteValidity : {};", after)
-        self.assertIn("local stationLimitedTowns = externalStationLimitedTowns != null ? externalStationLimitedTowns : {};", after)
-        self.assertEqual(self.generation.count("local siteValidity = externalSiteValidity != null ? externalSiteValidity : {};"), 1)
-        self.assertIn(KEY, self.hist)
-        self.assertIn(KEY, self.cached)
-        key_b = KEY.replace("reuseA", "reuseB").replace("siteA", "siteB")
-        self.assertIn(key_b, self.hist)
-        self.assertIn(key_b, self.cached)
-        self.assertNotIn("local siteValidity", self.cached)
-        self.assertIn("OpexAir0310SiteValidityBegin(stationLimitedTowns)", self.cached)
-        self.assertEqual(self.cached.count("OpexAir0310SiteValidityOk("), 2)
-        self.assertNotIn(GLOBAL, self.planning)
-        self.assertIn("local siteValidity = {}", self.planning)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('air0310_site_validity_cache',))
 
     def test_cache_keeps_town_limit_on_misses_only(self):
         self.assertIn("AIDate.GetYear(date) * 12 + AIDate.GetMonth(date)", self.month)
@@ -332,13 +277,13 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
         self.assertEqual(_gated_calls(self.reset), 1)
         self.assertLess(
             self.reset.index("AIR_STATION_COVERAGE_MISSES = 0;"),
-            self.reset.index(f"if ({GLOBAL}) {INVALIDATE}();"))
+            self.reset.index(f"if (invalidateGeometry) {INVALIDATE}();"))
         self.assertEqual(_gated_calls(self.build), 2)
         self.assertLess(
-            self.build.index(f"if ({GLOBAL}) {INVALIDATE}();"),
+            self.build.index(f"{INVALIDATE}();"),
             self.build.index("local levelA = OpexAirLevelFootprint("))
         level_b = self.build.index("local levelB = OpexAirLevelFootprint(")
-        self.assertLess(self.build.rindex(f"if ({GLOBAL}) {INVALIDATE}();"), level_b)
+        self.assertLess(self.build.rindex(f"{INVALIDATE}();"), level_b)
         joined = _brace_body(self.construction, "function OpexAirBuildJoinedStops(")
         self.assertEqual(_gated_calls(joined), 1)
         self.assertLess(joined.index("local test = AITestMode();"), joined.index(INVALIDATE))
@@ -396,7 +341,7 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
             parts = text.split("this._lines.append(")
             self.assertEqual(len(parts) - 1, count, rel)
             for part in parts[:-1]:
-                gated = f"if ({GLOBAL}) {INVALIDATE}();"
+                gated = f"{INVALIDATE}();"
                 # Dans task_air, la sonde financière peut observer un hub entre
                 # l'invalidation et l'ajout, sans modifier la station construite.
                 # Aucun autre travail ni garde de décision ne doit s'intercaler.
@@ -410,7 +355,7 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
                 )
         report = _read("ai/OpexAI/task_report.nut")
         self.assertLess(report.index("this._lines.remove(toRemove[k]);"),
-                        report.index(f"if ({GLOBAL} && toRemove.len() > 0) {INVALIDATE}();"))
+                        report.index(f"if (toRemove.len() > 0) {INVALIDATE}();"))
 
     def test_stale_site_fails_in_the_existing_build_path(self):
         self.assertLess(

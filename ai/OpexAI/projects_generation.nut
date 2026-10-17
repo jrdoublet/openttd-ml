@@ -445,10 +445,8 @@ function OpexIncrRevalidateIndexContext(lines)
     airSiteValidity = {},
     stationLimitedTowns = {},
   };
-  if (AIR0310_SITE_VALIDITY_CACHE) {
+  {
     ctx.airValidityState <- OpexAir0310SiteValidityBegin(ctx.stationLimitedTowns);
-  } else {
-    ctx.airValidityState <- null;
   }
   if (lines == null || lines.len() == 0) return ctx;
 
@@ -683,47 +681,7 @@ function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx)
  * site/type/reuse suffit pour toute la selection. */
 function OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs = null, lines = null, externalSiteValidity = null, externalStationLimitedTowns = null)
 {
-  if (AIR0310_SITE_VALIDITY_CACHE)
-    return OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
-  local live = [];
-  local siteValidity = externalSiteValidity != null ? externalSiteValidity : {};
-  local stationLimitedTowns = externalStationLimitedTowns != null ? externalStationLimitedTowns : {};
-  foreach (project in alternatives) {
-    if (project != null && ("mode" in project) && project.mode == "air") {
-      if (!("payload" in project) || project.payload == null
-          || OpexCandidateIsAbandoned(project, abandonedPairs)) {
-        continue;
-      }
-      local plan = project.payload;
-      if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
-        continue;
-      }
-      if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
-        continue;
-      }
-
-      local reuseA = ("reuseA" in plan) && plan.reuseA;
-      local reuseB = ("reuseB" in plan) && plan.reuseB;
-      local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
-      local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
-      if (!(keyA in siteValidity)) {
-        siteValidity.rawset(keyA, OpexAirSiteStillBuildable(
-            plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns));
-      }
-      if (!siteValidity[keyA]) {
-        continue;
-      }
-      if (!(keyB in siteValidity)) {
-        siteValidity.rawset(keyB, OpexAirSiteStillBuildable(
-            plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns));
-      }
-      if (!siteValidity[keyB]) {
-        continue;
-      }
-    }
-    live.append(project);
-  }
-  return live;
+  return OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
 }
 
 /* V122 : meme filtre, avec le cache global de validite. Le chemin a 0
@@ -811,7 +769,7 @@ function OpexFilterRailStockGate(alternatives, railReadyStock)
  * (contrairement a OpexFilterRailStockGate). Inerte pendant l'annee AIR. */
 function OpexRailPrepMergeAlternatives(alternatives, railReadyStock)
 {
-  if (!C121_AIR_FIRST_YEAR_RAIL_PREP || C121_CATALOG_FIRST_YEAR_ACTIVE) return alternatives;
+  if (!(MODE_AIR && MODE_RAIL) || C121_CATALOG_FIRST_YEAR_ACTIVE) return alternatives;
   if (railReadyStock == null || alternatives == null) return alternatives;
   if (railReadyStock.len() == 0) return alternatives;
   local seen = {};

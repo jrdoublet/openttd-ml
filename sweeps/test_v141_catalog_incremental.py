@@ -115,7 +115,6 @@ class TestV141CatalogIncremental(unittest.TestCase):
 
     def test_settings_defaults_and_are_not_persisted(self):
         for name, global_name, default in (
-            (SETTING, GLOBAL, 1),
             (CHECK_SETTING, CHECK_GLOBAL, 0),
         ):
             self.assertEqual(self.info.count(f'name = "{name}"'), 1)
@@ -139,35 +138,24 @@ class TestV141CatalogIncremental(unittest.TestCase):
                 self.settings.count(f'Setting("{name}")'), 1
             )
             self.assertIn(
-                f"{global_name} = C121_CATALOG_INCREMENTAL\n"
-                f'      && {reader}("{name}") != 0;',
+                f'{global_name} = {reader}("{name}") != 0;',
                 self.settings,
             )
             self.assertNotIn(f"{global_name} <-", self.settings)
             self.assertNotIn(name, self.persist)
             self.assertNotIn(global_name, self.persist)
+        from v237_contracts import assert_retired
+        assert_retired(self, (SETTING,))
 
     def test_zero_keeps_fromair_reconvert_on_published_air(self):
-        gate = "if (v141Use)"
-        self.assertIn(gate, self.publish)
+        self.assertNotIn("v141Use", self.publish)
+        self.assertNotIn("local refreshed = OpexProjectFromAir", self.publish)
         self.assertIn("OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan)", self.publish)
-        self.assertLess(
-            self.publish.index(gate),
-            self.publish.index("OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan)"),
-        )
-        fromair_reconvert = "local refreshed = OpexProjectFromAir(catalog, payload, airOpsPerPlan);"
-        self.assertIn(fromair_reconvert, self.publish)
-        self.assertGreater(
-            self.publish.index(fromair_reconvert),
-            self.publish.index(gate),
-        )
-        self.assertIn("reconverted++", self.publish)
-        self.assertIn("scanPlans.slice(publishedCount)", self.publish)
-        self.assertIn("OpexReselectProjects(projects, publishCapital", self.publish)
+        self.assertIn("v141Oracle = OpexProjectFromAir", self.publish)
 
     def test_on_refreshes_published_air_in_place_and_converts_new_plans(self):
         self.assertIn(
-            "v141Use = V141_CATALOG_INCREMENTAL;",
+            'local v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;',
             self.publish,
         )
         self.assertIn("OpexV141PublishedAirStillValid(payload)", self.publish)
@@ -186,7 +174,7 @@ class TestV141CatalogIncremental(unittest.TestCase):
 
     def test_check_mode_requires_probe_events_and_logs_v141_check(self):
         self.assertIn(
-            "v141Check = v141Use && V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE",
+            "v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE",
             self.publish,
         )
         self.assertIn("if (v141Check)", self.publish)
@@ -214,11 +202,9 @@ class TestV141CatalogIncremental(unittest.TestCase):
         self.assertNotIn("line.stationB", self.update)
 
     def test_campaign_freeze_sees_defaults(self):
-        specs = parse_ai_setting_specs(ROOT / "ai/OpexAI/info.nut")
-        self.assertEqual(specs[SETTING]["default"], 1)
-        self.assertEqual(specs[CHECK_SETTING]["default"], 0)
-        self.assertTrue(specs[SETTING]["boolean"])
-        self.assertTrue(specs[CHECK_SETTING]["boolean"])
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('v141_catalog_incremental',))
 
 
 if __name__ == "__main__":

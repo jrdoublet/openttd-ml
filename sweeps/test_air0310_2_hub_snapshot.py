@@ -177,32 +177,9 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         )]
 
     def test_setting_defaults_to_one_and_is_not_persisted(self):  # adopte le 04/10 (optimisation d'opcodes)
-        self.assertEqual(self.info.count(f'name = "{SETTING}"'), 1)
-        block = _setting_block(self.info, SETTING)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
-        self.assertIn("step_size = 1", block)
-        self.assertIn("1 = on (default), 0 = rediscover every slice", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 1", block)
-            self.assertNotIn(f"{key} = 0", block)
-        spec = parse_ai_setting_specs(ROOT / "ai/OpexAI/info.nut")[SETTING]
-        self.assertTrue(spec["boolean"])
-        self.assertEqual(spec["default"], 1)
-        self.assertEqual(self.globals.count(f"{GLOBAL} <- false;"), 1)
-        self.assertEqual(self.globals.count(f"{GLOBAL} <-"), 1)
-        self.assertEqual(
-            self.settings.count(f'AIController.GetSetting("{SETTING}")'), 1
-        )
-        self.assertIn(
-            f"{GLOBAL} = C121_CATALOG_INCREMENTAL\n"
-            f'      && AIController.GetSetting("{SETTING}") != 0;',
-            self.settings,
-        )
-        self.assertNotIn(f"{GLOBAL} <-", self.settings)
-        self.assertNotIn(SETTING, self.persist)
-        self.assertNotIn(GLOBAL, self.persist)
+        # V237: the adopted path is permanent; the public rollback is gone.
+        from v237_contracts import assert_retired
+        assert_retired(self, ('c121_catalog_incremental',))
 
     def test_span_wraps_only_a_real_discovery(self):
         call = "OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);"
@@ -216,7 +193,7 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         self.assertIn("local reuseHubs = false;", self.discovery_phase)
         self.assertLess(
             self.discovery_phase.index("local reuseHubs = false;"),
-            self.discovery_phase.index("if (AIR0310_HUB_SNAPSHOT && ctx.sliced)"),
+            self.discovery_phase.index("if (ctx.sliced)"),
         )
         self.assertLess(
             self.discovery_phase.index("OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);"),
@@ -236,7 +213,7 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
             self.reuse_block.index("if (spDisc != null) OpexSpanEnd(spDisc);"),
             self.reuse_block.index("OpexAir0310HubSnapshotStore(ctx, comboIndex);"),
         )
-        self.assertIn("if (AIR0310_HUB_SNAPSHOT) ctx.air0310HubOrphan <- [];", self.reuse_block)
+        self.assertIn('ctx.air0310HubOrphan <- [];', self.reuse_block)
         self.assertLess(
             self.reuse_block.index("ctx.air0310HubOrphan <- [];"),
             self.reuse_block.index(call),
@@ -307,7 +284,7 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
             ("hubsite", self.hub_site, 'OpexAir0310SkipRestoredPair(ctx, airport, "hubsite", hub, null, site, plane)'),
             ("hubhub", self.hub_hub, 'OpexAir0310SkipRestoredPair(ctx, airport, "hubhub", hub1, hub2, null, plane)'),
         ):
-            self.assertIn(f"if (AIR0310_HUB_SNAPSHOT && (ctx.air0310HubRestored || ctx.air0310HubSkip != null)", body)
+            self.assertIn(f"if ((ctx.air0310HubRestored || ctx.air0310HubSkip != null)", body)
             self.assertIn(needle, body)
             self.assertLess(body.index(needle), body.index("if (EXP_AIR_HUB_PAIR_PREFILTER"))
         self.assertLess(
@@ -333,8 +310,8 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         self.assertIn('plan.arm + "|" + airportType + "|" + OpexAirPairKey(plan.siteA, plan.siteB)', self.remember)
         self.assertNotIn("plan.plane", self.remember)
         self.assertIn("if (!ctx.air0310HubRestored) return false;", self.skip)
-        self.assertIn("if (AIR0310_HUB_SNAPSHOT) OpexAir0310NoteHubOrigin(ctx, 0);", self.discover)
-        self.assertIn("if (AIR0310_HUB_SNAPSHOT) OpexAir0310NoteHubOrigin(ctx, 1);", self.discover)
+        self.assertIn('OpexAir0310NoteHubOrigin(ctx, 0);', self.discover)
+        self.assertIn('OpexAir0310NoteHubOrigin(ctx, 1);', self.discover)
         self.assertLess(
             self.discover.index("OpexAir0310NoteHubOrigin(ctx, 0);"),
             self.discover.index("OpexAir0310NoteHubOrigin(ctx, 1);"),

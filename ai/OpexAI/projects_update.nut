@@ -107,11 +107,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         /* Sans chantier aerien dans la passe, les plans air sont gardes
          * (le bonus early slot est recalcule a la selection, OpexProjectRefreshEarlySlot) ; apres un
          * chantier aerien, comportement historique : tout jeter puis tout replanifier. */
-        if (airBuilt && AIR_EARLY_SLOT && p.mode == "air") {
+        if (airBuilt && p.mode == "air") {
           /* C121 catalogue incremental : ne jeter que les plans qui touchent une ville du
            * chantier ; les autres restent (bonus early slot recalcule a la selection) et le
            * catalogue decoupe ajoutera les nouvelles paires par tranches. */
-          if (!C121_CATALOG_INCREMENTAL || OpexC121PlanTouchesTowns(p, airTouchedTowns)) continue;
+          if (OpexC121PlanTouchesTowns(p, airTouchedTowns)) continue;
         }
 
         if (OpexCandidateIsAbandoned(p, abandonedPairs)) {
@@ -181,7 +181,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
-    if (airBuilt && C121_CATALOG_INCREMENTAL) {
+    if (airBuilt) {
       /* Replanification AIR differee au catalogue decoupe (couche C76 lines non acquittee
        * par l'appelant) : plus de OpexAirPlans synchrone de 4 a 18 M opcodes ici. */
       if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental("deferred");
@@ -213,7 +213,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (project in list) alternatives.push(project);
   }
   if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
-  if (C121_AIR_FIRST_YEAR_RAIL_PREP && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
+  if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
       railReadyStock = projects.railReadyStock;
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
@@ -281,7 +281,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
   if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
-  else if (C121_AIR_FIRST_YEAR_RAIL_PREP && railReadyStock != null) {
+  else if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
   }
@@ -472,8 +472,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   local reconverted = 0;
   local invalidated = 0;
   local refreshedCount = 0;
-  local v141Use = V141_CATALOG_INCREMENTAL;
-  local v141Check = v141Use && V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;
+  local v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;
   local v141Diff = null;
   local v141Compared = 0;
   local v141Oracle = null;
@@ -524,7 +523,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
         kept.append(project);
         continue;
       }
-      if (v141Use) {
+      {
         if (!OpexV141PublishedAirStillValid(payload)) {
           if (v141Check) {
             v141Oracle = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
@@ -555,19 +554,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
         }
         continue;
       }
-      local refreshed = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
-      if (refreshed == null) {
-        invalidated++;
-        continue;
-      }
-      reconverted++;
-      freshKey = OpexProjectKeyFor(refreshed);
-      if (freshKey == slotKey) {
-        kept.append(refreshed);
-      } else {
-        if (!(freshKey in movedAir)) movedAir.rawset(freshKey, []);
-        movedAir[freshKey].append(refreshed);
-      }
+
     }
     othersByKey.rawset(slotKey, others);
     if (kept.len() > 0) keptAir.rawset(slotKey, kept);
@@ -657,19 +644,10 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   if (spPubRecount != null) OpexSpanEnd(spPubRecount);
   /* V158 : selection paresseuse. Si active, on pose selectionStale et differe la reelection. */
   if ("_lazyPubsYear" in owner) owner._lazyPubsYear++;
-  if (AIR_PUBLISH_LAZY_SELECT != 0) {
+  {
     if ("selectionStale" in projects) projects.selectionStale = true;
     else projects.selectionStale <- true;
     if ("_lazyDeferredYear" in owner) owner._lazyDeferredYear++;
-  } else {
-    /* La caisse est lue ici, juste avant la reelection, pas pendant FromAir. */
-    local spPubCap = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.capital") : null;
-    local publishCapital = OpexAvailableCapital();
-    if (spPubCap != null) OpexSpanEnd(spPubCap);
-    local spPubSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select") : null;
-    OpexReselectProjects(projects, publishCapital, owner._abandonedPairs, owner._lines,
-      owner._railReadyStock);
-    if (spPubSelect != null) OpexSpanEnd(spPubSelect);
   }
   return { added = added, reconverted = reconverted, invalidated = invalidated,
       refreshed = refreshedCount };

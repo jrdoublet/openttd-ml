@@ -75,7 +75,7 @@ def raw_map_chunks(data):
 
 def original_house_populations(source):
     body = source.split("extern const HouseSpec _original_house_specs[] = {", 1)[1].split("};", 1)[0]
-    entries = re.findall(r"\bMS\(\s*[^,]+,\s*[^,]+,\s*(\d+),", body)
+    entries = re.findall(r"\bMS\(\s*[^]+,\s*[^]+,\s*(\d+),", body)
     if len(entries) != 110:
         raise ValueError("original house table identity/count unsupported")
     return list(map(int, entries))

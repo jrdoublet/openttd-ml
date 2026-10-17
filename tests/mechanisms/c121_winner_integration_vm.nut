@@ -1,47 +1,28 @@
-/* Boundary routing uses explicit doubles, restored before real comparisons. */
-FXI_CALLS <- [];
-FXI_EPOCHS <- [];
+/* The permanent winner route delegates once to the fused N=1/N=2 kernel.
+ * Explicit doubles are restored before the numeric fixture comparisons. */
+FXI_CALLS <- 0;
 FXI_CAPTURED <- null;
-FXI_MISSING <- false;
 
-function FxIEpoch()
+function FxIStub(catalog, plan, plane)
 {
-  local result = FXI_EPOCHS[0];
-  FXI_EPOCHS.remove(0);
-  return result;
-}
-
-function FxIStub(catalog, plan, plane, fixed = 0, compact = false, floor = null, opening = null)
-{
-  FXI_CALLS.append(fixed);
-  if (opening != null && !FXI_MISSING) {
-    FXI_CAPTURED = { token = "opening" };
-    opening.initial = FXI_CAPTURED;
-  }
-  return { token = FXI_CALLS.len() };
+  FXI_CALLS++;
+  FXI_CAPTURED = { initial = plan, full = plane };
+  return FXI_CAPTURED;
 }
 
 function FxIBoundaries()
 {
-  local savedEngine = OpexC121EngineEconomics;
-  local savedEpoch = OpexC121WinnerTariffEpoch;
-  OpexC121EngineEconomics = FxIStub;
-  OpexC121WinnerTariffEpoch = FxIEpoch;
-  FXI_CALLS = []; FXI_EPOCHS = [12, 12];
-  local pair = OpexC121WinnerEconomics(null, null, null, true);
-  FxWAssert(FxWEqual(FXI_CALLS, [0]) && pair.initial == FXI_CAPTURED && pair.full.token == 1, "stable_epoch");
-  FXI_CALLS = []; FXI_EPOCHS = [12, 13];
-  pair = OpexC121WinnerEconomics(null, null, null, true);
-  FxWAssert(FxWEqual(FXI_CALLS, [0, 0]) && pair.initial == FXI_CAPTURED && pair.full.token == 2, "new_epoch_refresh");
-  FXI_CALLS = []; FXI_EPOCHS = [];
-  pair = OpexC121WinnerEconomics(null, null, null, false);
-  FxWAssert(FxWEqual(FXI_CALLS, [1, 0]), "off_witness");
-  FXI_CALLS = []; FXI_MISSING = true; FXI_EPOCHS = [12];
-  pair = OpexC121WinnerEconomics(null, null, null, true);
-  FxWAssert(FxWEqual(FXI_CALLS, [0, 1]) && pair.initial.token == 2, "missing_opening");
-  FXI_MISSING = false;
-  OpexC121EngineEconomics = savedEngine;
-  OpexC121WinnerTariffEpoch = savedEpoch;
+  local savedFused = OpexC121OneOrTwoFused;
+  OpexC121OneOrTwoFused = FxIStub;
+  FXI_CALLS = 0;
+  local expectedInitial = { token = "initial" };
+  local expectedFull = { token = "full" };
+  local pair = OpexC121WinnerEconomics(null, expectedInitial, expectedFull);
+  FxWAssert(FXI_CALLS == 1, "single_fused_call");
+  FxWAssert(pair == FXI_CAPTURED, "same_result");
+  FxWAssert(pair.initial == expectedInitial, "initial_forwarded");
+  FxWAssert(pair.full == expectedFull, "full_forwarded");
+  OpexC121OneOrTwoFused = savedFused;
   AILog.Info("C121_INTEGRATION_BOUNDARY checks=4 restored=1 pass=1");
 }
 
@@ -49,7 +30,7 @@ function FxIPair(catalog, plan, plane, fusion)
 {
   local active = FXW_ACTIVE;
   FXW_ACTIVE = false;
-  local pair = OpexC121WinnerEconomics(catalog, plan, plane, fusion);
+  local pair = OpexC121WinnerEconomics(catalog, plan, plane);
   FXW_ACTIVE = active;
   return pair;
 }
