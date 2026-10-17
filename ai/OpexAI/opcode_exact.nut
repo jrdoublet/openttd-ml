@@ -8,104 +8,6 @@
 
 OPCODE_EXACT_SITE_NAME <- null;
 
-function OpexOpcodeExactEnsureYear(year) {
-  if (OPCODE_EXACT_STATS == null) OPCODE_EXACT_STATS = {};
-  if (!(year in OPCODE_EXACT_STATS)) OPCODE_EXACT_STATS.rawset(year, {});
-  return OPCODE_EXACT_STATS[year];
-}
-
-function OpexOpcodeExactBreakEnsure(year) {
-  if (OPCODE_EXACT_BREAK == null) OPCODE_EXACT_BREAK = {};
-  if (year in OPCODE_EXACT_BREAK) return OPCODE_EXACT_BREAK[year];
-  local rec = {
-    plans = 0, tiles = 0, townSkip = 0, exclWalk = 0, exclHit = 0, exclSteps = 0,
-    cargoFail = 0, buildFail = 0, probes = 0, exclLen = 0, nearLen = 0,
-    traces = 0, traceHits = 0, traceBuildable = 0, depots = 0, traceOps = 0,
-    sitesCalls = 0, voirieTiles = 0
-  };
-  OPCODE_EXACT_BREAK.rawset(year, rec);
-  return rec;
-}
-
-function OpexOpcodeExactBreakAdd(key, amount) {
-  if (!EXP_OPCODE_EXACT_CHECK || amount == 0) return;
-  local year = AIDate.GetYear(AIDate.GetCurrentDate());
-  local rec = OpexOpcodeExactBreakEnsure(year);
-  rec[key] = rec[key] + amount;
-}
-
-function OpexOpcodeExactPublishYear(year) {
-  if (year < 0) return;
-  if (OPCODE_EXACT_STATS != null && (year in OPCODE_EXACT_STATS)) {
-    local bySite = OPCODE_EXACT_STATS[year];
-    foreach (site, rec in bySite) {
-      AILog.Info("OPCODE_EXACT y=" + year + " site=" + site
-          + " calls=" + rec.calls + " mismatch=" + rec.mismatch
-          + " ops_old=" + rec.opsOld + " ops_new=" + rec.opsNew);
-    }
-  }
-  if (OPCODE_EXACT_BREAK != null && (year in OPCODE_EXACT_BREAK)) {
-    local b = OPCODE_EXACT_BREAK[year];
-    AILog.Info("OPCODE_EXACT_BREAK y=" + year
-        + " plans=" + b.plans + " tiles=" + b.tiles
-        + " town_skip=" + b.townSkip + " excl_walk=" + b.exclWalk
-        + " excl_hit=" + b.exclHit + " excl_steps=" + b.exclSteps
-        + " cargo_fail=" + b.cargoFail
-        + " build_fail=" + b.buildFail + " probes=" + b.probes
-        + " excl_len=" + b.exclLen + " near_len=" + b.nearLen
-        + " traces=" + b.traces + " trace_hits=" + b.traceHits
-        + " trace_buildable=" + b.traceBuildable + " depots=" + b.depots
-        + " trace_ops=" + b.traceOps
-        + " sites_calls=" + b.sitesCalls + " voirie_tiles=" + b.voirieTiles);
-  }
-}
-
-/* Une ligne par annee close au changement d'annee. En decembre tardif, un
- * instantane du cumul (la derniere ligne de l'annee est la plus complete :
- * le passage au 1er janvier republie l'annee entiere). */
-function OpexOpcodeExactObserveCalendar() {
-  if (!EXP_OPCODE_EXACT_CHECK) return;
-  local now = AIDate.GetCurrentDate();
-  local year = AIDate.GetYear(now);
-  if (OPCODE_EXACT_CAL_YEAR < 0) {
-    OPCODE_EXACT_CAL_YEAR = year;
-    return;
-  }
-  if (year != OPCODE_EXACT_CAL_YEAR) {
-    local prev = OPCODE_EXACT_CAL_YEAR;
-    OPCODE_EXACT_CAL_YEAR = year;
-    OpexOpcodeExactPublishYear(prev);
-    return;
-  }
-  if (AIDate.GetMonth(now) == 12 && AIDate.GetDayOfMonth(now) >= 28
-      && OPCODE_EXACT_LATE_DATE != now) {
-    OPCODE_EXACT_LATE_DATE = now;
-    OpexOpcodeExactPublishYear(year);
-  }
-}
-
-function OpexOpcodeExactAdd(site, opsOld, opsNew, same, detail) {
-  if (!EXP_OPCODE_EXACT_CHECK) return;
-  OpexOpcodeExactObserveCalendar();
-  local year = AIDate.GetYear(AIDate.GetCurrentDate());
-  local bySite = OpexOpcodeExactEnsureYear(year);
-  local rec = (site in bySite) ? bySite[site] : null;
-  if (rec == null) {
-    rec = { calls = 0, mismatch = 0, opsOld = 0, opsNew = 0 };
-    bySite.rawset(site, rec);
-  }
-  rec.calls++;
-  rec.opsOld += opsOld;
-  rec.opsNew += opsNew;
-  if (same) return;
-  rec.mismatch++;
-  if (OPCODE_EXACT_MISMATCHES == null) OPCODE_EXACT_MISMATCHES = {};
-  local n = (site in OPCODE_EXACT_MISMATCHES) ? OPCODE_EXACT_MISMATCHES[site] : 0;
-  if (n >= 5) return;
-  OPCODE_EXACT_MISMATCHES.rawset(site, n + 1);
-  AILog.Info("OPCODE_EXACT_MISMATCH site=" + site + " " + detail);
-}
-
 function OpexOpcodeExactSite(fallback) {
   if (OPCODE_EXACT_SITE_NAME != null) return OPCODE_EXACT_SITE_NAME;
   return fallback;
@@ -173,29 +75,6 @@ function OpexRoadHuntDiff(a, b) {
   if (a.nCmd != b.nCmd) return "nCmd=" + a.nCmd + "/" + b.nCmd;
   if (a.probes != b.probes) return "probes=" + a.probes + "/" + b.probes;
   return OpexRoadSiteListDiff(a.sites, b.sites);
-}
-
-function OpexRoadNoteBreak(stats) {
-  if (!EXP_OPCODE_EXACT_CHECK || stats == null) return;
-  OpexOpcodeExactBreakAdd("tiles", stats.tiles);
-  OpexOpcodeExactBreakAdd("townSkip", stats.townSkip);
-  OpexOpcodeExactBreakAdd("exclWalk", stats.exclWalk);
-  OpexOpcodeExactBreakAdd("exclHit", stats.exclHit);
-  OpexOpcodeExactBreakAdd("exclSteps", stats.exclSteps);
-  OpexOpcodeExactBreakAdd("cargoFail", stats.cargoFail);
-  OpexOpcodeExactBreakAdd("buildFail", stats.buildFail);
-  OpexOpcodeExactBreakAdd("probes", stats.probes);
-  OpexOpcodeExactBreakAdd("exclLen", stats.exclLen);
-  OpexOpcodeExactBreakAdd("nearLen", stats.nearLen);
-  OpexOpcodeExactBreakAdd("sitesCalls", 1);
-}
-
-function OpexOpcodeExactPlanOnce(site, text) {
-  if (!EXP_OPCODE_EXACT_CHECK) return;
-  if (OPCODE_EXACT_PLAN_ONCE == null) OPCODE_EXACT_PLAN_ONCE = {};
-  if (site in OPCODE_EXACT_PLAN_ONCE) return;
-  OPCODE_EXACT_PLAN_ONCE.rawset(site, 1);
-  AILog.Info("OPCODE_EXACT_PLAN " + text);
 }
 
 function OpexRoadHuntCore(hunt) {
@@ -395,25 +274,9 @@ function OpexRoadSitesExact(center, townId, cargo, vehType, coverage, wantProduc
 
 function OpexRoadSitesGated(center, townId, cargo, vehType, coverage, wantProduction, radius,
                             otherCenter, requireCargo, excludeTiles) {
-  if (!EXP_OPCODE_EXACT_CHECK) {
-    return OpexRoadHuntCore(OpexRoadSitesExact(center, townId, cargo, vehType, coverage,
+  return OpexRoadHuntCore(OpexRoadSitesExact(center, townId, cargo, vehType, coverage,
                                                wantProduction, radius, otherCenter, requireCargo,
                                                excludeTiles));
-  }
-  local site = OpexOpcodeExactSite("road_sites");
-  local hunt = OpexRoadSitesScan(center, townId, cargo, vehType, coverage, wantProduction, radius,
-                                 otherCenter, requireCargo, excludeTiles, true);
-  local same = hunt.mismatch == 0;
-  OpexOpcodeExactAdd(site, hunt.opsOld, hunt.opsNew, same, same ? "" : hunt.detail);
-  OpexRoadNoteBreak(hunt);
-  OpexOpcodeExactPlanOnce(site, "site=" + site
-      + " tiles=" + hunt.tiles + " town_skip=" + hunt.townSkip
-      + " excl_walk=" + hunt.exclWalk + " excl_steps=" + hunt.exclSteps
-      + " excl_hit=" + hunt.exclHit + " cargo_fail=" + hunt.cargoFail
-      + " build_fail=" + hunt.buildFail + " probes=" + hunt.probes
-      + " excl_len=" + hunt.exclLen + " near_len=" + hunt.nearLen
-      + " ops_old=" + hunt.opsOld + " ops_new=" + hunt.opsNew);
-  return OpexRoadHuntCore(hunt);
 }
 
 function OpexRoadVoirieHistoricClassify(tile, townId, excludeTiles, cargo, coverage, requireCargo, minPair) {
@@ -548,10 +411,8 @@ function OpexRoadPaxVoirieScan(center, townId, cargo, vehType, coverage, otherCe
         probes = fronts.probes;
         if (fronts.stop) {
           if (paired) {
-            OpexOpcodeExactBreakAdd("voirieTiles", nTiles);
             local site = OpexOpcodeExactSite("road_voirie");
             local same = mismatch == 0;
-            OpexOpcodeExactAdd(site, opsO, opsN, same, same ? "" : detail);
           }
           return out;
         }
@@ -559,10 +420,8 @@ function OpexRoadPaxVoirieScan(center, townId, cargo, vehType, coverage, otherCe
     }
   }
   if (paired) {
-    OpexOpcodeExactBreakAdd("voirieTiles", nTiles);
     local site = OpexOpcodeExactSite("road_voirie");
     local same = mismatch == 0;
-    OpexOpcodeExactAdd(site, opsO, opsN, same, same ? "" : detail);
   }
   return out;
 }
@@ -575,32 +434,14 @@ function OpexRoadPaxVoirieExact(center, townId, cargo, vehType, coverage, otherC
 
 function OpexRoadPaxVoirieGated(center, townId, cargo, vehType, coverage, otherCenter,
                                 requireCargo, excludeTiles) {
-  if (!EXP_OPCODE_EXACT_CHECK) {
-    return OpexRoadPaxVoirieExact(center, townId, cargo, vehType, coverage, otherCenter,
+  return OpexRoadPaxVoirieExact(center, townId, cargo, vehType, coverage, otherCenter,
                                   requireCargo, excludeTiles);
-  }
-  return OpexRoadPaxVoirieScan(center, townId, cargo, vehType, coverage, otherCenter,
-                               requireCargo, excludeTiles, true);
 }
 
-
-function OpexRoadTraceFlush(traceMark, nTraces, nTraceHits, nTraceBuildable, nDepots) {
-  if (traceMark == null) return;
-  local ops = OpexOpsMeasureEnd(traceMark);
-  OpexOpcodeExactBreakAdd("traceOps", ops);
-  OpexOpcodeExactBreakAdd("traces", nTraces);
-  OpexOpcodeExactBreakAdd("traceHits", nTraceHits);
-  OpexOpcodeExactBreakAdd("traceBuildable", nTraceBuildable);
-  OpexOpcodeExactBreakAdd("depots", nDepots);
-  OpexOpcodeExactPlanOnce("road_trace", "site=road_trace traces=" + nTraces
-      + " hits=" + nTraceHits + " buildable=" + nTraceBuildable
-      + " depots=" + nDepots + " ops=" + ops);
-}
 
 function OpexRoadPlanForActive(catalog, candidate) {
   if (catalog.roadType < 0) return { plan = null, reason = "NOROAD" };
   AIRoad.SetCurrentRoadType(catalog.roadType);
-  if (EXP_OPCODE_EXACT_CHECK) OpexOpcodeExactBreakAdd("plans", 1);
   if (ROAD_PAX_VOIRIE && candidate.kind == "pax") {
     local sameTown = candidate.srcTown >= 0 && candidate.srcTown == candidate.dstTown;
     if (!sameTown) {
@@ -649,11 +490,6 @@ function OpexRoadPlanForActive(catalog, candidate) {
   local nHit = 0;
   local nUnb = 0;
   local noDepot = 0;
-  local nTraces = 0;
-  local nTraceHits = 0;
-  local nTraceBuildable = 0;
-  local nDepots = 0;
-  local traceMark = EXP_OPCODE_EXACT_CHECK ? OpexOpsMeasureBegin() : null;
 
   foreach (siteA in sitesA) {
     foreach (siteB in sitesB) {
@@ -663,20 +499,15 @@ function OpexRoadPlanForActive(catalog, candidate) {
         if (trials >= ROAD_MAX_TRACE_TRIALS) break;
         trials++;
         local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
-        if (traceMark != null) nTraces++;
         if (trace.len() == 0) { nEmpty++; continue; }
         if (trace.len() > ROAD_MAX_TRACE_TILES) { nLong++; continue; }
         if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) {
-          if (traceMark != null) nTraceHits++;
           nHit++;
           continue;
         }
-        if (traceMark != null) nTraceBuildable++;
         if (!OpexRoadTraceBuildable(trace)) { nUnb++; continue; }
-        if (traceMark != null) nDepots++;
         local depot = OpexRoadFindDepot(trace, siteA, siteB);
         if (depot == null) { noDepot++; continue; }
-        OpexRoadTraceFlush(traceMark, nTraces, nTraceHits, nTraceBuildable, nDepots);
         return { plan = { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
                           stationType = stop.stationType, vehType = stop.vehType,
                           routeDistance = trace.len(), shape = shape, trials = trials },
@@ -693,20 +524,15 @@ function OpexRoadPlanForActive(catalog, candidate) {
         if (trials >= ROAD_MAX_TRACE_TRIALS * 3) break;
         trials++;
         local trace = OpexRoadTraceMulti(siteA.front, siteB.front, shape);
-        if (traceMark != null) nTraces++;
         if (trace.len() == 0) { nEmpty++; continue; }
         if (trace.len() > ROAD_MAX_TRACE_TILES) { nLong++; continue; }
         if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) {
-          if (traceMark != null) nTraceHits++;
           nHit++;
           continue;
         }
-        if (traceMark != null) nTraceBuildable++;
         if (!OpexRoadTraceBuildable(trace)) { nUnb++; continue; }
-        if (traceMark != null) nDepots++;
         local depot = OpexRoadFindDepot(trace, siteA, siteB);
         if (depot == null) { noDepot++; continue; }
-        OpexRoadTraceFlush(traceMark, nTraces, nTraceHits, nTraceBuildable, nDepots);
         return { plan = { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
                           stationType = stop.stationType, vehType = stop.vehType,
                           routeDistance = trace.len(), shape = shape, trials = trials },
@@ -715,7 +541,6 @@ function OpexRoadPlanForActive(catalog, candidate) {
     }
   }
 
-  OpexRoadTraceFlush(traceMark, nTraces, nTraceHits, nTraceBuildable, nDepots);
   return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX",
            trace = { trials = trials, nEmpty = nEmpty, nLong = nLong, nHit = nHit,
                      nUnb = nUnb, nNoDepot = noDepot } };
@@ -738,54 +563,9 @@ function OpexAirFleetSortPrecomputed(airLines) {
   return out;
 }
 
-function OpexAirFleetOrderDiff(oldLines, newLines) {
-  local n = oldLines.len();
-  if (n != newLines.len()) return "len=" + n + "/" + newLines.len();
-  for (local i = 0; i < n; i++) {
-    local idA = ("lineId" in oldLines[i]) ? oldLines[i].lineId : -1;
-    local idB = ("lineId" in newLines[i]) ? newLines[i].lineId : -1;
-    if (idA != idB) return "i=" + i + " line=" + idA + "/" + idB;
-  }
-  return "order";
-}
-
-function OpexAirFleetLinesSame(oldLines, newLines) {
-  if (oldLines.len() != newLines.len()) return false;
-  for (local i = 0; i < oldLines.len(); i++) {
-    local idA = ("lineId" in oldLines[i]) ? oldLines[i].lineId : -1;
-    local idB = ("lineId" in newLines[i]) ? newLines[i].lineId : -1;
-    if (idA != idB) return false;
-  }
-  return true;
-}
-
 /* Tri de la copie locale. Ne touche pas this._lines. */
 function OpexAirFleetSortSelect(airLines) {
-  if (!EXP_OPCODE_EXACT_CHECK) return OpexAirFleetSortPrecomputed(airLines);
-  local oldLines = [];
-  local seed = [];
-  foreach (line in airLines) {
-    oldLines.append(line);
-    seed.append(line);
-  }
-  local markO = OpexOpsMeasureBegin();
-  oldLines.sort(OpexAirFleetPriorityCompare);
-  local opsO = OpexOpsMeasureEnd(markO);
-  local markN = OpexOpsMeasureBegin();
-  local newLines = OpexAirFleetSortPrecomputed(seed);
-  local opsN = OpexOpsMeasureEnd(markN);
-  local same = OpexAirFleetLinesSame(oldLines, newLines);
-  OpexOpcodeExactAdd("air_fleet", opsO, opsN, same, same ? "" : OpexAirFleetOrderDiff(oldLines, newLines));
-  return oldLines;
-}
-
-function OpexAirCatchmentSumHistoric(stationId, cargo) {
-  local total = 0;
-  local coverageTiles = AITileList_StationCoverage(stationId);
-  foreach (coverageTile, value in coverageTiles) {
-    total += AITile.GetCargoProduction(coverageTile, cargo, 1, 1, 0);
-  }
-  return total;
+  return OpexAirFleetSortPrecomputed(airLines);
 }
 
 function OpexAirCatchmentSumExact(stationId, cargo) {
@@ -797,16 +577,7 @@ function OpexAirCatchmentSumExact(stationId, cargo) {
 }
 
 function OpexAirStationCatchmentProductionActive(stationId, cargo) {
-  if (!EXP_OPCODE_EXACT_CHECK) return OpexAirCatchmentSumExact(stationId, cargo);
-  local markN = OpexOpsMeasureBegin();
-  local neu = OpexAirCatchmentSumExact(stationId, cargo);
-  local opsN = OpexOpsMeasureEnd(markN);
-  local markO = OpexOpsMeasureBegin();
-  local old = OpexAirCatchmentSumHistoric(stationId, cargo);
-  local opsO = OpexOpsMeasureEnd(markO);
-  local same = old == neu;
-  OpexOpcodeExactAdd("air_catchment", opsO, opsN, same, same ? "" : ("sum=" + old + "/" + neu));
-  return old;
+  return OpexAirCatchmentSumExact(stationId, cargo);
 }
 
 function OpexAirJoinedLoopOrder(a, b) {
@@ -815,32 +586,6 @@ function OpexAirJoinedLoopOrder(a, b) {
   if (a.y < b.y) return -1;
   if (a.y > b.y) return 1;
   return 0;
-}
-
-function OpexAirJoinedCandidatesHistoric(minX, maxX, minY, maxY, town, paxCargo, coverage,
-                                         airportCoverage, ax, ay, w, h, center) {
-  local candidates = [];
-  for (local x = minX; x <= maxX; x++) {
-    for (local y = minY; y <= maxY; y++) {
-      local tile = AIMap.GetTileIndex(x, y);
-      if (!AIMap.IsValidTile(tile)) continue;
-      if (AITile.GetClosestTown(tile) != town.id) continue;
-      if (!AIRoad.IsRoadTile(tile)) continue;
-      if (AIRoad.IsRoadStationTile(tile) || AIRoad.IsRoadDepotTile(tile) || AITile.IsStationTile(tile)) continue;
-      if (AIMap.DistanceManhattan(tile, center) < 3) continue;
-      local dx = 0;
-      if (x < ax) dx = ax - x;
-      else if (x >= ax + w) dx = x - (ax + w - 1);
-      local dy = 0;
-      if (y < ay) dy = ay - y;
-      else if (y >= ay + h) dy = y - (ay + h - 1);
-      if (dx + dy <= airportCoverage) continue;
-      local val = AITile.GetCargoProduction(tile, paxCargo, 1, 1, coverage);
-      if (val <= 0) continue;
-      candidates.append({ tile = tile, value = val, dist = AIMap.DistanceManhattan(tile, town.tile) });
-    }
-  }
-  return candidates;
 }
 
 function OpexAirJoinedCandidatesExact(minX, maxX, minY, maxY, town, paxCargo, coverage,
@@ -883,40 +628,9 @@ function OpexAirJoinedCandidatesExact(minX, maxX, minY, maxY, town, paxCargo, co
   return candidates;
 }
 
-function OpexAirJoinedListSame(a, b) {
-  if (a.len() != b.len()) return false;
-  for (local i = 0; i < a.len(); i++) {
-    if (a[i].tile != b[i].tile || a[i].value != b[i].value || a[i].dist != b[i].dist) return false;
-  }
-  return true;
-}
-
-function OpexAirJoinedListDiff(a, b) {
-  if (a.len() != b.len()) return "len=" + a.len() + "/" + b.len();
-  for (local i = 0; i < a.len(); i++) {
-    if (a[i].tile != b[i].tile) return "i=" + i + " tile=" + a[i].tile + "/" + b[i].tile;
-    if (a[i].value != b[i].value) return "i=" + i + " value=" + a[i].value + "/" + b[i].value;
-    if (a[i].dist != b[i].dist) return "i=" + i + " dist=" + a[i].dist + "/" + b[i].dist;
-  }
-  return "joined";
-}
-
 function OpexAirJoinedCandidatesSelect(minX, maxX, minY, maxY, town, paxCargo, coverage,
                                        airportCoverage, ax, ay, w, h, center) {
-  if (!EXP_OPCODE_EXACT_CHECK) {
-    return OpexAirJoinedCandidatesExact(minX, maxX, minY, maxY, town, paxCargo, coverage,
+  return OpexAirJoinedCandidatesExact(minX, maxX, minY, maxY, town, paxCargo, coverage,
                                         airportCoverage, ax, ay, w, h, center);
-  }
-  local markN = OpexOpsMeasureBegin();
-  local neu = OpexAirJoinedCandidatesExact(minX, maxX, minY, maxY, town, paxCargo, coverage,
-                                           airportCoverage, ax, ay, w, h, center);
-  local opsN = OpexOpsMeasureEnd(markN);
-  local markO = OpexOpsMeasureBegin();
-  local old = OpexAirJoinedCandidatesHistoric(minX, maxX, minY, maxY, town, paxCargo, coverage,
-                                              airportCoverage, ax, ay, w, h, center);
-  local opsO = OpexOpsMeasureEnd(markO);
-  local same = OpexAirJoinedListSame(old, neu);
-  OpexOpcodeExactAdd("air_joined", opsO, opsN, same, same ? "" : OpexAirJoinedListDiff(old, neu));
-  return old;
 }
 

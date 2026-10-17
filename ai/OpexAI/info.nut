@@ -19,7 +19,7 @@ class OpexAIInfo extends AIInfo {
      * Defaut 2 = panneaux seuls, le comportement historique. */
     AddSetting({
       name = "probes",
-      description = "Diagnostics bitmask: 0 none, 1 everything except 256 (signs, log, groups 8-128), 2 signs (default), 4 decision log, 8 opcodes/scheduler, 16 air, 32 rail, 64 road/water/costs, 128 events/portfolio, 256 double-computation checks; any probe group also enables the log; never changes decisions",
+      description = "Diagnostics bitmask: 0 none, 1 everything except 256 (signs, log, groups 8-128), 2 signs (default), 4 decision log, 8 opcodes/scheduler, 16 air, 32 rail, 64 road/water/costs, 128 events/portfolio (256 reserved, checks removed in V239); any probe group also enables the log; never changes decisions",
       min_value = 0, max_value = 511,
       easy_value = 2, medium_value = 2, hard_value = 2,
       custom_value = 2,
@@ -111,30 +111,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "probe_c121_engine_table",
-      description = "Log already-computed C121 engine scans and plan context for an offline engine table; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_air_engine_depth",
-      description = "Shadow only: on C121 full engine scans, score the N=1 runner-up at N=1 and N=2 with the fused kernel and log AIR_ENGINE_DEPTH; the V96 shortcut is unchanged; decisions unchanged; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_air_finance_margin",
-      description = "Exposure only: log AIR_FINANCE_TRY at air cash checks and AIR_FINANCE_FIRST_REVENUE/AIR_FINANCE_PENDING on built air lines; decisions unchanged; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "probe_event_backlog",
       description = "Monthly probe of _processEvents burst sizes and opcode consumption; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -158,30 +134,8 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "exp_opcode_exact_check",
-      description = "Run historical and exact opcode paths, log mismatches and opcode sums, keep the historical result; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "catalog_cost_probe",
-      description = "Log catalog refresh and project generation costs; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "r19_fault_inject",
-      description = "TEST ONLY: force a rollback of the Nth new AIR route after its planes started (R19 recovery); 0 = off (default)",
-      min_value = 0, max_value = 20,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = 0
-    });
 
     AddSetting({
       name = "probe_candidates_road",
@@ -226,14 +180,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "probe_portfolio",
       description = "Enable portfolio, tension, scarcity and treasury chronological probes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "rail_freight_select_shadow",
-      description = "Diagnostic only: log freight rail cash, floor and final selection counts; 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -325,14 +271,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v95_air_post73_probe",
-      description = "V95: passive annual diagnostic of post-1973 AIR opportunities rejected by population floor or served-town filters; 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v134_air_p2p_saturated_hub",
       description = "V134: allow a second airport in point-to-point (newpair) to a free town when existing airport reached air_hub_max_routes and town opens a 2nd slot; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -356,98 +294,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "air_bfail_precheck_shadow",
-      description = "BFAIL passive probe: test B before spending on A for two-new-airport plans, log the verdict against the real build without rejecting; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "air_site_stale_shadow",
-      description = "Diagnostic only: re-quote selected new AIR sites before cash/build, log outdated quotes and financing exposure; no decision changes; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c97_air_c69_engine_probe",
-      description = "C97 passive probe: direct argmax over compatible AIR engine x fleet depth using calibrated P/max(portfolio capital, K_dec); no decision change",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c98_air_realized_probe",
-      description = "C98 passive probe: compare predicted versus realised AIR profit/revenue per aircraft, ratings and utilisation by engine/line; no decision change",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c116_air_project_probe",
-      description = "C116 passive lightweight probe: reuse C115/C68 engine scan to measure AIR/global/self project unlock opportunity; no decision change; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c117_air_throughput_probe",
-      description = "C117 passive AIR throughput probe: completed-leg passengers, offered seats, cadence, waiting/rating and realised vehicle economics in 30-day line-age windows; no decision change",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c121_station_flux_probe",
-      description = "Passive PASS station balance: loading increases, queue changes, unknown losses and transfer risks; no fleet decisions; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c118_air_coverage_probe",
-      description = "C118 passive probe: log actual AIR catchment town coverage without changing decisions; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c121_air_economics_shadow",
-      description = "C121 passive AIR economics shadow: B9 cargo-specific PASS/MAIL demand, directional carried volume, physical cycle and C119 payment; no decision change; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c121_air_first_live_shadow",
-      description = "C121 cadence shadow: log passive 60/90-day live evidence for AIR lines still at one plane; never changes reinforcement decisions; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c121_kpass_shadow",
-      description = "C121 cadence shadow: log each portfolio pass stop with blocking project and a bounded look-ahead of following project modes/finance; never changes decisions; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c121_kdec_cold_shadow",
-      description = "C121 cadence shadow: for fleet projects with zero real marginal samples, log current K_dec rank versus the counterfactual C69 fleet exemption; never changes decisions; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c121_air_project_realization_adaptive",
@@ -457,21 +314,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c121_air_pressure_probe",
-      description = "C121 passive AIR competition-pressure probe over already-inspected slot towns; no map scan and no decision change; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c121_air_engine_replay_shadow",
-      description = "C121 passive engine/fleet economics replay using only observed exact PASS/MAIL capacities; no decision change; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c122_air_regime_shadow",
@@ -526,22 +369,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "probe_events",
       description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "b9_air_catchment_probe",
-      description = "B9/G4 passive AIR catchment/placement probe only; no decision change; 1 = enabled, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "b9_air_demand_shadow",
-      description = "B9/G4 passive pre-build AIR demand shadow; logs only, no decision change; 1 = enabled, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -1162,26 +989,10 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v90_pathfinder_check",
-      description = "V90: test-mode parallel step-by-step verification between BaNaNaS and V90 pathfinder: 1 = enabled (only if v90_fast_pathfinder=1), 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v129_rail_astar_exact_opt",
       description = "V129: optimized rail A* with strictly identical exploration (parallel-array heap, cached heuristic/bridge table, batched FindPath, single-pass neighbours); needs v90_fast_pathfinder=1: 1 = enabled, 0 = V90 code unchanged; default 1 since 2026-10-07 (user adoption)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v129_rail_astar_check",
-      description = "V129: test-mode lockstep check of V129 against V90 (heap top, cost, priority per step; logs V129_CHECK), only if v129_rail_astar_exact_opt=1: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1201,13 +1012,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "v94_air_site_check",
-      description = "V94: run legacy and AITileList airport site scans on the same input; legacy decides; log V94_CHECK: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "homogeneous_preselect",
@@ -1237,15 +1041,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "v141_catalog_incremental_check",
-      description = "V141 control: under probe_events, also run OpexProjectFromAir on published air and log V141_CHECK identical/diff; 1 = on, 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "subsidy_reselect_if_purged",

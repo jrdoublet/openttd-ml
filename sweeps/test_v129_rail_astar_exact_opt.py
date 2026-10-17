@@ -46,47 +46,7 @@ def _body(src: str, start_marker: str, end_marker: str) -> str:
     return src[start:src.index(end_marker, start)]
 
 
-class TestV129Settings(unittest.TestCase):
-    def test_settings_declared_default_zero(self):
-        info = _read("ai/OpexAI/info.nut")
-        for name, want in (("v129_rail_astar_exact_opt", 1), ("v129_rail_astar_check", 0)):
-            start = info.index(f'name = "{name}"')
-            block = info[start:info.index("});", start)]
-            self.assertIn("flags = AICONFIG_BOOLEAN", block)
-            for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-                self.assertIn(f"{key} = {want}", block)
-
-    def test_parsed_defaults(self):
-        info_path = ROOT / "ai/OpexAI/info.nut"
-        defaults = parse_ai_settings(info_path)
-        specs = parse_ai_setting_specs(info_path)
-        for name, want in (("v129_rail_astar_exact_opt", 1), ("v129_rail_astar_check", 0)):
-            self.assertEqual(defaults[name], want)
-            self.assertTrue(specs[name]["boolean"])
-
-    def test_globals_and_single_read(self):
-        glob = _read("ai/OpexAI/globals_pre.nut")
-        self.assertIn("V129_RAIL_ASTAR_EXACT_OPT <- true;", glob)
-        self.assertIn("V129_RAIL_ASTAR_CHECK <- false;", glob)
-        settings = _read("ai/OpexAI/settings.nut")
-        for name, glob_name in (("v129_rail_astar_exact_opt", "V129_RAIL_ASTAR_EXACT_OPT"),
-                                ("v129_rail_astar_check", "V129_RAIL_ASTAR_CHECK")):
-            # V167 : la verification passe par OpexProbeSetting (groupe 256 du reglage probes)
-            reader = "OpexProbeSetting" if name.endswith("_check") else "AIController.GetSetting"
-            self.assertIn(f'{glob_name} = {reader}("{name}") != 0;', settings)
-            total = sum(_read(str(p.relative_to(ROOT))).count(f'Setting("{name}")')
-                        for p in (ROOT / "ai/OpexAI").rglob("*.nut"))
-            self.assertEqual(total, 1)
-
-
 class TestV129ZeroPathUnchanged(unittest.TestCase):
-    def test_instantiation_sites_keep_v90_branch(self):
-        src = _read("ai/OpexAI/builder_rail.nut")
-        self.assertEqual(src.count("pathfinder = OpexNewRailPathfinderV129();"), 2)
-        self.assertEqual(src.count("pathfinder = OpexRailPathfinderCheckerV90();"), 2)
-        self.assertEqual(src.count("pathfinder = OpexRailPathFinderV90();"), 2)
-        self.assertEqual(src.count("pathfinder = RailPathFinder();"), 2)
-
     def test_historical_loop_kept_and_batch_is_outside_it(self):
         src = _read("ai/OpexAI/builder_rail.nut")
         self.assertIn("state.segmentPath = state.pathfinder.FindPath(1);", src)
@@ -172,12 +132,6 @@ class TestV129Implementation(unittest.TestCase):
 
     def test_goal_set_shortcut(self):
         self.assertIn("if (cur_tile in goalSet) {", self.v129)
-
-    def test_checker_logs_and_compares_priority(self):
-        self.assertIn('OpexC56TaskLog("V129_CHECK", "step_diff"', self.v129)
-        self.assertIn('OpexC56TaskLog("V129_CHECK", "finish"', self.v129)
-        self.assertIn("o129.PeekPriority()", self.v129)
-        self.assertIn("if (V129_RAIL_ASTAR_CHECK) return OpexRailPathfinderCheckerV129();", self.v129)
 
     def test_frontier_uses_parallel_arrays_only_under_flag(self):
         src = _read("ai/OpexAI/builder_rail.nut")

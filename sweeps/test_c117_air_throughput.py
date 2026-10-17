@@ -23,15 +23,6 @@ class TestC117AirThroughput(unittest.TestCase):
     def test_builder_air_requires_coverage(self):
         self.assertIn('require("air_coverage.nut");', BUILDER_AIR.read_text(encoding="utf-8"))
 
-    def test_default_off_and_loaded_once(self):
-        defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["c117_air_throughput_probe"], 0)
-        self.assertIn("C117_AIR_THROUGHPUT_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
-        self.assertIn(
-            'C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;',
-            SETTINGS.read_text(encoding="utf-8"),
-        )
-
     def test_probe_is_gated_from_main_loop(self):
         src = MAIN.read_text(encoding="utf-8")
         self.assertIn(
@@ -39,12 +30,6 @@ class TestC117AirThroughput(unittest.TestCase):
             src,
         )
         self.assertIn("OpexC117AirThroughputStep(this._lines, this._catalog);", src)
-
-    def test_both_air_build_paths_store_probe_context(self):
-        src = TASK_AIR.read_text(encoding="utf-8")
-        self.assertGreaterEqual(src.count("c117Arm <-"), 2)
-        self.assertGreaterEqual(src.count("c117ShadowMonthly <-"), 2)
-        self.assertGreaterEqual(src.count("C117_AIR_THROUGHPUT_PROBE"), 2)
 
     def test_shadow_is_reused_without_enabling_postbuild_catchment_probe(self):
         src = COVERAGE.read_text(encoding="utf-8")

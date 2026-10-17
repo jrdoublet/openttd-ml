@@ -23,24 +23,6 @@ def body(text: str, start: str, end: str) -> str:
 
 
 class TestC118SharedCoverage(unittest.TestCase):
-    def test_policy_removed_and_probe_defaults_off(self):
-        self.assertNotIn("C118_AIR_TERRITORIAL_EXPANSION", GLOBALS + AIR + PROJECTS + TASK)
-        self.assertNotIn('name = "c118_air_territorial_expansion"', INFO)
-        self.assertIn("C118_AIR_COVERAGE_PROBE <- false;", GLOBALS)
-        start = INFO.index('name = "c118_air_coverage_probe"')
-        snippet = INFO[start:start + 600]
-        for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(field, snippet)
-
-    def test_coverage_uses_real_catchment_without_townlist(self):
-        station = body(AIR, "function OpexC118StationCoverageTowns", "function OpexC118EngineFitsPlan")
-        coverage = station
-        self.assertIn("AITileList_StationCoverage", station)
-        self.assertIn("AITile.GetClosestTown", coverage)
-        self.assertIn("AITile.GetCargoProduction", coverage)
-        self.assertNotIn("AITownList", coverage)
-        self.assertNotIn("AITownList()", coverage)
-
     def test_station_coverage_cache_follows_generation_lifetime(self):
         reset = body(AIR, "function OpexAirResetSiteCache", "function OpexAirResetStationCoverageTownCache")
         prepare = body(AIR, "function OpexAirPlansPrepare", "function OpexAirPlansFindSites")
@@ -48,17 +30,6 @@ class TestC118SharedCoverage(unittest.TestCase):
         self.assertIn("AIR_C121_STATION_COVERAGE_CACHE.clear()", reset)
         self.assertIn("OpexAirResetStationCoverageTownCache()", prepare)
         self.assertIn("stationCoverageTownCacheInit", prepare)
-
-    def test_durable_sign_probe_is_parsed_by_harness(self):
-        for prefix in ("C8D|", "C8R|", "C8E|", "C8C|", "C8F|", "C8T|", "C8V|"):
-            self.assertIn(prefix, BENCH)
-        self.assertIn("C118_COVERAGE", TASK)
-        self.assertIn("C8V|", TASK)
-        self.assertIn("def c118_sign_metrics(chunks):", BENCH)
-        self.assertIn("structural.update(c118_sign_metrics(chunks))", BENCH)
-        for field in ("c118_coverage_events", "c118_decisions", "c118_decision_count"):
-            self.assertIn(field, BENCH)
-
 
 if __name__ == "__main__":
     unittest.main()

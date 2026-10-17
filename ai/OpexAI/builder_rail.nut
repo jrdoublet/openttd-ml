@@ -606,8 +606,6 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   if (V90_FAST_PATHFINDER) {
     if (V129_RAIL_ASTAR_EXACT_OPT) {
       pathfinder = OpexNewRailPathfinderV129();
-    } else if (V90_PATHFINDER_CHECK) {
-      pathfinder = OpexRailPathfinderCheckerV90();
     } else {
       pathfinder = OpexRailPathFinderV90();
     }
@@ -992,8 +990,6 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       if (V90_FAST_PATHFINDER) {
         if (V129_RAIL_ASTAR_EXACT_OPT) {
           pathfinder = OpexNewRailPathfinderV129();
-        } else if (V90_PATHFINDER_CHECK) {
-          pathfinder = OpexRailPathfinderCheckerV90();
         } else {
           pathfinder = OpexRailPathFinderV90();
         }

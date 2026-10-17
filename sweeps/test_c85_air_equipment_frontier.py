@@ -56,18 +56,5 @@ class C85AirEquipmentFrontierRemoved(unittest.TestCase):
         )
         self.assertNotIn("OpexAirEquipmentStaticFrontier", refresh)
 
-    def test_chooser_uses_the_full_list(self):
-        chooser = function_body(BUILDER, "function OpexAirChooseRoutePlaneFull(")
-        self.assertIn(
-            "local routePlaneChoices = catalog.airPlaneChoicesByAirport[airport.type];",
-            chooser,
-        )
-        self.assertNotIn("C85_AIR_EQUIPMENT_FRONTIER", chooser)
-        self.assertNotIn("airPlaneFrontierByAirport", chooser)
-        self.assertIn("foreach (plane in routePlaneChoices)", chooser)
-        self.assertIn("if (plane.id == selectedPlane.id) continue;", chooser)
-        self.assertNotIn("function OpexC82ChooseRoutePlane(", BUILDER)
-        self.assertNotIn("OpexC82ChooseRoutePlane", chooser)
-
 if __name__ == "__main__":
     unittest.main()

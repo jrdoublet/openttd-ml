@@ -45,38 +45,6 @@ def _read(rel_path: str) -> str:
 
 
 class TestV90FastPathfinderContract(unittest.TestCase):
-    def test_settings_declared_in_info_nut(self):
-        info = _read("ai/OpexAI/info.nut")
-        for setting_name, value in (("v90_fast_pathfinder", 1), ("v90_pathfinder_check", 0)):
-            self.assertIn(f'name = "{setting_name}"', info)
-            start = info.index(f'name = "{setting_name}"')
-            block = info[start:info.index("});", start)]
-            self.assertIn("flags = AICONFIG_BOOLEAN", block)
-            self.assertIn(f"custom_value = {value}", block)
-            self.assertIn(f"easy_value = {value}", block)
-            self.assertIn(f"medium_value = {value}", block)
-            self.assertIn(f"hard_value = {value}", block)
-
-    def test_globals_declared_in_globals_pre_nut(self):
-        globals_pre = _read("ai/OpexAI/globals_pre.nut")
-        self.assertIn("V90_FAST_PATHFINDER <- true;", globals_pre)
-        self.assertIn("V90_PATHFINDER_CHECK <- false;", globals_pre)
-
-    def test_settings_loaded_in_settings_nut(self):
-        settings = _read("ai/OpexAI/settings.nut")
-        self.assertIn('V90_FAST_PATHFINDER = AIController.GetSetting("v90_fast_pathfinder") != 0;', settings)
-        self.assertIn('V90_PATHFINDER_CHECK = OpexProbeSetting("v90_pathfinder_check") != 0;', settings)
-
-    def test_campaign_freeze_includes_v90_settings(self):
-        defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
-        specs = parse_ai_setting_specs(ROOT / "ai" / "OpexAI" / "info.nut")
-        self.assertIn("v90_fast_pathfinder", defaults)
-        self.assertEqual(defaults["v90_fast_pathfinder"], 1)
-        self.assertTrue(specs["v90_fast_pathfinder"]["boolean"])
-        self.assertIn("v90_pathfinder_check", defaults)
-        self.assertEqual(defaults["v90_pathfinder_check"], 0)
-        self.assertTrue(specs["v90_pathfinder_check"]["boolean"])
-
     def test_guard_zero_preserves_rail_pathfinder(self):
         builder = _read("ai/OpexAI/builder_rail.nut")
         # Vérifie que dans OpexCreateRailPathfinder et OpexAdvanceSegmentedSearch,

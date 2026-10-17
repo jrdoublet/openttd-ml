@@ -36,12 +36,6 @@ class TestAirBypass(unittest.TestCase):
         self.assertIn("if (!c75BypassConsumed)", threshold)
         self.assertIn('c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";', threshold)
 
-    def test_c121_first_year_policy_and_counter_remain_scoped(self):
-        self.assertIn("if (c121FirstYearAirBatch) c121DeadSkipped++;", self.preflight)
-        self.assertIn('if (c121FirstYearAirBatch && project.mode == "air")', self.after)
-        self.assertIn("c121ChainAttempt = true;", self.after)
-        self.assertIn('" dead_skipped=" + c121DeadSkipped', self.after)
-
     def test_existing_discard_reason_and_probe_gates_are_preserved(self):
         self.assertIn('reason = "batch_plan_dead"', self.preflight)
         self.assertNotIn("AIR_BATCH_TOWN_RESERVE", self.preflight)

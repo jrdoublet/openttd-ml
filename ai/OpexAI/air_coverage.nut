@@ -141,36 +141,6 @@ function OpexAirAirportCatchmentProduction(airportTile, airportType, cargo)
   return AITile.GetCargoProduction(airportTile, cargo, w, h, radius);
 }
 
-/* C118 : couverture territoriale reelle, mais bornee au catchment deja choisi.
- * Une ville compte seulement si au moins une tuile productrice de passagers qui
- * lui appartient tombe dans le catchment. On ne parcourt jamais TownList. */
-function OpexC118RememberTown(ids, seen, townId)
-{
-  if (townId < 0 || !AITown.IsValidTown(townId) || (townId in seen)) return;
-  seen.rawset(townId, true);
-  ids.append(townId);
-}
-
-function OpexC118StationCoverageTowns(stationId, cargo)
-{
-  local ids = [];
-  if (stationId < 0 || !AIStation.IsValidStation(stationId) || cargo < 0) return ids;
-  local key = stationId + "|" + cargo;
-  if (key in AIR_STATION_COVERAGE_TOWN_CACHE) {
-    AIR_STATION_COVERAGE_HITS++;
-    return AIR_STATION_COVERAGE_TOWN_CACHE[key];
-  }
-  AIR_STATION_COVERAGE_MISSES++;
-  local seen = {};
-  local coverageTiles = AITileList_StationCoverage(stationId);
-  coverageTiles.Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0);
-  coverageTiles.KeepAboveValue(0);
-  coverageTiles.Valuate(AITile.GetClosestTown);
-  foreach (tile, townId in coverageTiles) OpexC118RememberTown(ids, seen, townId);
-  AIR_STATION_COVERAGE_TOWN_CACHE.rawset(key, ids);
-  return ids;
-}
-
 function OpexC118EngineFitsPlan(plan, plane)
 {
   if (plan == null || plane == null) return false;
@@ -179,17 +149,6 @@ function OpexC118EngineFitsPlan(plan, plane)
   if (("reuseB" in plan) && plan.reuseB && AIAirport.IsAirportTile(plan.siteB.anchor)
       && !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteB.anchor), plane.planeType)) return false;
   return true;
-}
-
-function OpexC118OwnCoveredTownSet(cargo)
-{
-  local covered = {};
-  if (!C118_AIR_COVERAGE_PROBE || cargo < 0) return covered;
-  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
-  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
-    foreach (townId in OpexC118StationCoverageTowns(st, cargo)) covered.rawset(townId, true);
-  }
-  return covered;
 }
 
 /* Production de l'union reelle d'une station, pieces jointes comprises.

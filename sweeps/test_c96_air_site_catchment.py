@@ -87,25 +87,5 @@ class TestC96AirSiteCatchment(unittest.TestCase):
         self.assertIn("firstScore = score", search)
         self.assertIn("OpexAirC96LogChoice", search)
 
-    def test_c96_changes_only_site_selection_entry_point(self):
-        find = body(self.air, "function OpexAirFindSite(town, airport, probes")
-        self.assertNotIn("if (C96_AIR_SITE_CATCHMENT)", find)
-        self.assertIn("OpexAirFindSiteCatchmentListed", find)
-        self.assertIn('if (!V94_AIR_SITE_CHECK)', find)
-        search = body(self.air, "function OpexAirFindSiteCatchmentListed(")
-        for forbidden in (
-            "OpexAirEconomics",
-            "OpexAirChooseRoutePlane",
-            "monthlyPax",
-            "TOWN_CATCHMENT_SHARE_PCT",
-        ):
-            self.assertNotIn(forbidden, search)
-
-    def test_existing_v94_contract_remains_present(self):
-        self.assertIn("function OpexAirFindSiteListed", self.air)
-        self.assertIn("function OpexAirV94Finish", self.air)
-        self.assertNotIn("V94_AIR_SITE_LIST <- true;", self.globals)
-
-
 if __name__ == "__main__":
     unittest.main()

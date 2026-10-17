@@ -255,35 +255,6 @@ class CD00SourceContracts(unittest.TestCase):
         self.assertIn('name = "catalog", dueCycle = 0, enabled = true', MAIN)
         self.assertIn("owner._taskCursor = i;", SCHED)
 
-    def test_v141_ack_and_save_load_boundaries(self):
-        proceed = function(SCHED, "OpexC78ContinueCatalogAirRebuild")
-        partial = function(SCHED, "OpexC78PublishPartialAir")
-        applied = function(SCHED, "OpexC78ApplyAir")
-        publish = function(UPDATE, "OpexAir0310PublishIncremental")
-        snapshot = function(ORCH, "OpexAC06CaptureRevisionNumbers")
-        ack = function(ORCH, "OpexAC06AcknowledgeSnapshot")
-        self.assertIn("OpexC78PublishPartialAir(owner, s)", proceed)
-        self.assertIn("OpexC78ApplyAir(owner, task, year, s)", proceed)
-        self.assertIn("OpexAir0310PublishIncremental(owner, s.plans, s.lastPublishedCount", partial)
-        self.assertIn("lastPublishedCount > 0", partial)
-        self.assertIn("owner._rebuildProjects(s.fleetPlan, partialAir, false);", partial)
-        self.assertIn('local v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;', publish)
-        self.assertIn("projects.candidateGroups = rebuilt;", publish)
-        self.assertNotIn("OpexReselectProjects(projects, publishCapital", publish)
-        self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride);", applied)
-        self.assertIn("OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions)", applied)
-        self.assertIn("owner._c76AcknowledgeAllLayers();", applied)  # toggle OFF
-        for layer in ("towns", "industries", "lines"):
-            self.assertIn("current." + layer, snapshot)
-        for mode in ("rail", "road", "air", "water"):
-            self.assertIn("current.engines." + mode, snapshot)
-        self.assertIn("covered > previous ? covered : previous", ack)
-        self.assertNotIn("c78AirRebuild", function(PERSIST, "OpexAI::Save"))
-        self.assertNotIn("c78AirRebuild", function(PERSIST, "OpexAI::Load"))
-        self.assertIn("this._c76ForceReloadRegen = true;", PERSIST)
-        self.assertIn("if (this._loadedFromSave) this._reconcileAfterLoad();", MAIN)
-
-
 class CD00FrozenTraces(unittest.TestCase):
     # Reference visit order for 2 combos, seven internal boundaries, and a
     # plan emitted during the first truncated slice.

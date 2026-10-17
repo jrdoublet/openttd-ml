@@ -163,36 +163,6 @@ class TestAir0310_1IncrementalPublish(unittest.TestCase):
         self.assertIn('publishMode = "full"', self.partial)
         self.assertIn('publishMode = "incr"', self.partial)
 
-    def test_incremental_path_replays_selection_and_refreshes_air_state(self):
-        self.assertIn("scanPlans.slice(publishedCount)", self.publish)
-        self.assertIn("airOps / planCount", self.publish)
-        self.assertNotIn("airOps / newPlans.len()", self.publish)
-        self.assertGreaterEqual(self.publish.count("OpexProjectFromAir("), 2)
-        self.assertNotIn("OpexAvailableCapital()", self.publish)
-        self.assertNotIn("OpexReselectProjects(", self.publish)
-        self.assertIn("projects.selectionStale", self.publish)
-        self.assertIn("OpexFilterAirAlternativesStillValid(", self.reselect)
-        self.assertIn(
-            "OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K)",
-            self.reselect,
-        )
-        self.assertIn("PORTFOLIO_FLOOR_PCT", self.affordable)
-        self.assertIn("OpexC69ComputeKDec()", self.affordable)
-        self.assertIn("OpexProjectRefreshDefensiveSlot(", self.affordable)
-        self.assertIn("planningOpcodes", self.noted)
-        self.assertIn("economicsDate", self.noted)
-        self.assertIn("catalog.paxCargo", self.noted)
-        self.assertIn("budgetScore", self.noted)
-        self.assertIn("opcodeScore", self.noted)
-        self.assertIn("PROJECT_AIR_TRANSACTION_OPS", self.noted)
-        self.assertIn("La caisse n'est pas lue ici", self.noted)
-        from_air = _function_body(self.builders, "function OpexProjectFromAir(")
-        self.assertIn("planningOpcodes = planningOps", from_air)
-        self.assertIn("economicsDate = AIDate.GetCurrentDate()", from_air)
-        self.assertIn("cargo = catalog.paxCargo", from_air)
-        self.assertIn("expectedOpcodes = expectedOps", from_air)
-        self.assertNotIn("OpexAvailableCapital()", from_air)
-
     def test_insertion_order_preserves_rebuild_tie_break(self):
         helper = _function_body(self.update, "function OpexAir0310InsertAirBlock(")
         late_mode = _function_body(self.update, "function OpexAir0310ModeIsLate(")

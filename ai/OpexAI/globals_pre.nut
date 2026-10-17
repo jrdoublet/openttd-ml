@@ -135,9 +135,6 @@ AIR_JOINED_STOPS <- false;
 /* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile
  * supplementaire n'est inspectee dans le comportement livre. */
 AIR_CATCHMENT_PROBE <- false;
-/* B9/G4 shadow : estime la demande capturable du plan finalement retenu, juste
- * apres la decision et avant chantier. Defaut 0 ; aucune lecture par le score. */
-B9_AIR_DEMAND_SHADOW <- false;
 /* M3/G12 : sonde passive du choix de materiel avant ROI. Elle n'est jamais lue par les
  * regles de selection ; elle autorise uniquement les comparatifs et logs de diagnostic. */
 EQUIPMENT_ROI_PROBE <- false;
@@ -352,9 +349,6 @@ C72_PLANE_CHOICE <- 0;
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
 V93_AIRPORT_NO_POP_FLOOR <- true;
 V93_AIRPORT_MIN_POP <- 100;
-/* V95 : sonde passive des occasions AIR post-1973 ecartees avant economie
- * (petites villes et seconds slots). Defaut 0, aucun effet decisionnel. */
-V95_AIR_POST73_PROBE <- false;
 V95_AIR_POST73_YEAR <- -1;
 /* V134 : second aeroport point-a-point (newpair) vers une ville libre pour une
  * ville dont l'aeroport existant a atteint AIR_HUB_MAX_ROUTES et qui ouvre un
@@ -376,12 +370,6 @@ V133_AIR_LAST_SITE_ERROR <- 0;
 /* AIR BFAIL : expérience causale, 0 conserve A comme historiquement ; 1
  * liquide seulement l'aéroport A neuf après échec de construction de B. */
 AIR_BFAIL_DISPOSE_ORPHAN <- false;
-/* Mesure seule : tester l'emprise B en AITestMode avant construction A,
- * mais NE PAS rejeter de chantier avec ce resultat. Inerte au defaut. */
-AIR_BFAIL_PRECHECK_SHADOW <- false;
-/* Diagnostic air_site_stale_shadow : le drapeau reste charge. L'observation
- * des devis perimes exigeait le devis decisionnel retire ; aucun effet. */
-AIR_SITE_STALE_SHADOW <- false;
 /* Devis de terrassement pour la sonde probe_air_finance_margin seulement.
  * N'entre ni dans le capital C121 ni dans la marge de caisse.
  * V126_JOINED_STOP_COST : cout modelise d'UN arret joint, journalise par la sonde.
@@ -390,34 +378,12 @@ V126_JOINED_STOP_COST <- 300;
 AIR_SITE_COST_QUOTES <- {};
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
-/* C97 : sonde passive du choix moteur AIR par argmax direct (moteur, profondeur)
- * sur P_calibre/max(capital portefeuille, K_dec). Aucun effet decisionnel. */
-C97_AIR_C69_ENGINE_PROBE <- false;
-/* C98 : sonde passive du biais du modele AIR par moteur/ligne. Compare la
- * prevision de construction au realise annuel sans modifier aucun choix. */
-C98_AIR_REALIZED_PROBE <- false;
-/* C116.3 diagnostic leger : observe sous le vrai temoin C115 le meilleur runner
- * C68, les projets debloques par son economie de capital et l'auto-deblocage de
- * la route courante. Aucun recalcul moteur supplementaire. */
-C116_AIR_PROJECT_PROBE <- false;
-C116_AIR_PROJECT_PROBE_COUNT <- 0;
-C116_AIR_PROJECT_PROBE_YEAR <- -1;
-C116_AIR_PROJECT_PROBE_YEAR_COUNT <- 0;
-C116_AIR_PROJECT_PROBE_SEEN <- {};
-/* C117 : sonde passive du debit AIR reel. */
-C117_AIR_THROUGHPUT_PROBE <- false;
 C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
 C117_AIR_VEHICLE_STATE <- {};
-/* PASS balance: transient telemetry, never read by fleet decisions. */
-C121_STATION_FLUX_PROBE <- false;
 C121_STATION_FLUX_LAST_DATE <- -1;
 C121_STATION_FLUX_STATE <- {};
-/* Sonde passive : mesure la couverture AIR sans modifier les decisions.
- * Le traitement territorial C118 autonome a ete retire. */
-C118_AIR_COVERAGE_PROBE <- false;
-C121_AIR_ECONOMICS_SHADOW <- false;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
  * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
  * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */
@@ -432,7 +398,6 @@ C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED <- 0;
  * le regime reste stable pour eviter qu'une politique modifie son propre
  * signal de classification. */
 C121_AIR_PROJECT_REALIZATION_REGIME <- -1;
-C121_AIR_PRESSURE_PROBE <- false;
 C121_AIR_PRESSURE_SNAPSHOT <- null;
 C121_AIR_PRESSURE_ACCUM <- null;
 C121_AIR_PRESSURE_PREV <- null;
@@ -445,10 +410,6 @@ C122_AIR_THREAT_WATCH <- {};
 C122_AIR_THREAT_SEQ <- 0;
 C122_AIR_THREAT_RETRY <- false;
 C122_AIR_THREAT_RETRY_COUNT <- 0;
-/* Replay moteur C121 strictement passif. La table de capacites ne contient que
- * des couples PASS/MAIL effectivement observes sur un avion construit : on ne
- * fabrique pas la soute MAIL secondaire des moteurs alternatifs. */
-C121_AIR_ENGINE_REPLAY_SHADOW <- false;
 C121_AIR_ENGINE_CAPACITY_OBS <- {};
 /* C121 : calibration recente du revenu des NOUVELLES lignes, par bras. Le
  * cold-start reste 1.0. Le rapport annuel remplace ensuite cette valeur par une
@@ -462,25 +423,10 @@ C121_AIR_P0_DIRECT_FACTOR <- { hubsite = 1.0, hubhub = 1.0 };
  * La table est recreee a chaque planification (ou conservee dans resumeState
  * pour une passe slicee) et ne participe a aucune decision. */
 C121_AIR_PLAN_PERF <- null;
-/* Telemetrie transitoire du passage catalogue ; jamais utilisee par les decisions. */
-CATALOG_COST_PROBE <- false;
 /* Sonde probe_loop_ops : agregats annuels d'opcodes de la boucle principale (diagnostic). */
 PROBE_LOOP_OPS <- false;
 /* Sonde probe_span_trace : intervalles dates des micro-taches. Defaut 0, aucun effet. */
 PROBE_SPAN_TRACE <- false;
-/* Sonde passive de la table de moteurs C121. Defaut 0 : aucun log, aucune ecriture. */
-PROBE_C121_ENGINE_TABLE <- false;
-C121_ENGTAB_PASS <- 0;
-C121_ENGTAB_NEXT <- 0;
-C121_ENGTAB_N1 <- null;
-C121_ENGTAB_N2 <- null;
-/* Piste 6 : sonde shadow. Defaut 0. Jamais lue par un choix, jamais sauvee. */
-PROBE_AIR_ENGINE_DEPTH <- false;
-AIR_ENGINE_DEPTH_SCAN <- 0;
-AIR_ENGINE_DEPTH_CHALLENGER <- null;
-/* Exposition only: air finance margin / first-revenue delay. Defaut 0. */
-PROBE_AIR_FINANCE_MARGIN <- false;
-AIR_FINANCE_MARGIN_YEAR <- -1;
 /* F-EVENT-BACKLOG-01 : sonde passive de la file d'evenements. Defaut 0. */
 PROBE_EVENT_BACKLOG <- false;
 /* Sonde de rejet de selection portefeuille AIR (cash, floor, dedupe, topk). Defaut 0. */
@@ -503,7 +449,6 @@ OPEX_LOOP_PROF_YEAR <- -1;
 OPEX_LOOP_PROF_TICK0 <- 0;
 /* Chemins opcode exacts : defaut historique. Le mode check compare et garde l'ancien resultat. */
 EXP_OPCODE_EXACT <- false;
-EXP_OPCODE_EXACT_CHECK <- false;
 EXP_OPCODE_EXACT_ON <- false;
 OPCODE_EXACT_STATS <- null;
 OPCODE_EXACT_BREAK <- null;
@@ -512,25 +457,12 @@ OPCODE_EXACT_CAL_YEAR <- -1;
 OPCODE_EXACT_LATE_DATE <- -1;
 OPCODE_EXACT_SITE_NAME <- null;
 OPCODE_EXACT_PLAN_ONCE <- null;
-/* R19 : injection de panne TEST ONLY (0 = off). Rang de la route AIR neuve
- * annulee apres demarrage de ses avions ; compteur non sauvegarde. */
-R19_FAULT_INJECT <- 0;
-R19_FAULT_ROUTE_SEQ <- 0;
 CATALOG_COST_ACTIVE <- null;
-/* C121 cadence : shadow live du premier renfort 1->2. Reutilise les fenetres
- * C117 deja calculees et ne participe a aucune decision. */
-C121_AIR_FIRST_LIVE_SHADOW <- false;
 C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <- 0;
 C121_AIR_FIRST_LIVE_STATE <- {};
 C121_AIR_FIRST_LIVE_OPS <- 0;
 C121_AIR_FIRST_LIVE_SAMPLES <- 0;
 C121_AIR_FIRST_LIVE_PRIORITY_STATE <- {};
-/* C121 cadence : shadow pass-stop/K_pass. Journalise le projet bloquant et
- * les projets suivants sans modifier l'arbitrage ni la poursuite de passe. */
-C121_KPASS_SHADOW <- false;
-/* C121 cadence : shadow du cold-start K_dec. Mesure le classement contrefactuel
- * si un renfort fleet sans observation reelle conservait l'exemption C69. */
-C121_KDEC_COLD_SHADOW <- false;
 C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
 /* Derive du monde, volontairement absent de Save(). */
 C121_CATALOG_CACHE <- {};
@@ -595,8 +527,6 @@ C78_SLOT_PASS_COUNTER <- 0;
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */
 MONTHLY_FUNNEL <- false;
-/* Diagnostic freight ranking; isolated and off by default. No saved state. */
-RAIL_FREIGHT_SELECT_SHADOW <- false;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
 /* B3 : test du plafond routier remis à l'échelle par le temps passé à quai. Défaut 0 tant que
@@ -681,9 +611,6 @@ V217_POOL_MIN <- 2;
 V217_LAST_MONTH <- -1;
 V217_REGEN_NO_PAX <- false;
 AIR0310_SITE_VALIDITY_STATE <- null;
-/* V141 controle : sous probe_events, recalcule aussi FromAir et journalise
- * V141_CHECK. 0 = inerte. */
-V141_CATALOG_INCREMENTAL_CHECK <- false;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
@@ -828,9 +755,6 @@ V89_RAIL_SEARCH_THROUGHPUT <- false;
  * 0 = RailPathFinder BaNaNaS, 1 = OpexRailPathFinderV90 (défaut, décision utilisateur du 2026-09-24). */
 V90_FAST_PATHFINDER <- true;
 
-/* V90 : vérification de conformité pas à pas en mode test.
- * Effectif seulement si v90_fast_pathfinder=1. 0 = désactivé (défaut). */
-V90_PATHFINDER_CHECK <- false;
 
 /* V91 : heuristique pondérée A* rail (weighted A*).
  * Multiplicateur en pourcentage de l'estimation heuristique retournée par _Estimate.
@@ -842,12 +766,7 @@ V91_ASTAR_WEIGHT_PCT <- 120;
  * (pathfinder_v90/v129.nut). 0 = code V90 inchangé (défaut). Sans effet si V90_FAST_PATHFINDER = 0. */
 V129_RAIL_ASTAR_EXACT_OPT <- true;
 
-/* V129 : vérification pas à pas V129 contre V90 (journal V129_CHECK). 0 = désactivé (défaut). */
-V129_RAIL_ASTAR_CHECK <- false;
 
-/* V94 : compare le balayage historique et la liste sur la même entrée.
- * Le balayage historique décide. 0 = désactivé. */
-V94_AIR_SITE_CHECK <- false;
 
 /* V131 : reparation locale d'un trace rail stocke/prepare (A* de contournement,
  * deplacement de quai, garde doublon). Defaut 0 : comportement et cout nuls. */

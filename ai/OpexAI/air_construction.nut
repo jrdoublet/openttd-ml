@@ -41,46 +41,6 @@ function OpexAirSiteRefusal(site, airportType)
   return OpexAirProbeSite(site, airportType);
 }
 
-/* Valide les DEUX extremites avant toute depense reelle. Pour un nouvel aeroport,
- * on ne peut pas appeler OpexAirProbeSite tant que le terrain n'est pas plat :
- * BuildAirport retournerait ERR_FLAT_LAND_REQUIRED meme si LevelTiles reussirait.
- * Cette phase teste donc d'abord la possibilite de nivellement en AITestMode, puis
- * sonde directement les emprises deja plates. Les refus municipaux restent
- * rattrapables au moment de la construction reelle. */
-function OpexAirPreflightEndpoint(site, airport, planeChoice, reuse)
-{
-  if (site == null || airport == null || planeChoice == null || !AIMap.IsValidTile(site.anchor)) {
-    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
-             errorText = "invalid airport preflight" };
-  }
-  if (OpexAirRecoveryOwnsAirport(site.anchor)) {
-    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
-             errorText = "airport recovery in progress" };
-  }
-  if (reuse) {
-    local okReuse = AIAirport.IsAirportTile(site.anchor)
-        && OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(site.anchor), planeChoice.planeType);
-    return { ok = okReuse, error = okReuse ? 0 : AIError.ERR_PRECONDITION_FAILED,
-             errorText = okReuse ? "" : "invalid airport hub" };
-  }
-  if (!("town" in site) || site.town == null || !("id" in site.town)
-      || AIAirport.GetNearestTown(site.anchor, airport.type) != site.town.id
-      || (AIR_CHEAP_SITE && !OpexAirFootprintCheapOk(site.anchor, airport))) {
-    return { ok = false, error = AIError.ERR_PRECONDITION_FAILED,
-             errorText = "airport site preflight failed" };
-  }
-  local err = OpexAirProbeSite(site, airport.type);
-  if (err == 0) return { ok = true, error = 0, errorText = "" };
-  if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
-    return { ok = true, error = err, errorText = "airport preflight deferred authority" };
-  }
-  if (err == AIError.ERR_FLAT_LAND_REQUIRED
-      && OpexAirCanLevelFootprint(site.anchor, airport, site.town.id)) {
-    return { ok = true, error = err, errorText = "airport preflight deferred level" };
-  }
-  return { ok = false, error = err, errorText = "airport preflight error " + err };
-}
-
 function OpexAirRollback(airportA, airportB, planes, pairKey = "")
 {
   local airports = [];
@@ -89,25 +49,12 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
   local ticket = { version = 1, vehicles = clone planes, airports = airports,
       pairKey = pairKey, nextDate = 0 };
   local traceId = "";
-  if (PROBE_AIR_FINANCE_MARGIN) {
-    OPEX_AIR_ROLLBACK_TRACE_SEQ++;
-    traceId = AIDate.GetCurrentDate() + "_" + OPEX_AIR_ROLLBACK_TRACE_SEQ;
-    ticket.v126TraceId <- traceId;
-    ticket.v126RecoveryNet <- 0;
-    AILog.Info("AIR_RECOVERY_CREATE id=" + traceId
-        + " date=" + AIDate.GetCurrentDate()
-        + " airport_a=" + (airportA != null ? airportA : -1)
-        + " airport_b=" + (airportB != null ? airportB : -1)
-        + " vehicles=" + planes.len() + " pair=" + pairKey);
-  }
   /* Enregistrer AVANT toute commande susceptible de suspendre / sauvegarder. */
   OPEX_AIR_ROLLBACKS.append(ticket);
   OpexAir0310InvalidateSiteValidity();
   if (OpexAirContinueRollback(ticket)) {
     OPEX_AIR_ROLLBACKS.pop();
     AILog.Info("AIR_ROLLBACK_DONE pair=" + pairKey + " immediate=1");
-    if (PROBE_AIR_FINANCE_MARGIN) AILog.Info("AIR_RECOVERY_COMPLETE id=" + traceId
-        + " deferred_net=0 immediate=1");
   }
   else AILog.Warning("AIR_ROLLBACK_PENDING pair=" + pairKey
       + " vehicles=" + ticket.vehicles.len() + " airports=" + ticket.airports.len());
@@ -216,15 +163,10 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
       if (!AIRoad.AreRoadTilesConnected(cand.tile, tryFront)) continue;
       local testOk = false;
       {
-        /* Comme OpexAirProbeSite, isoler le cout SIMULE du AITestMode quand la
-         * sonde de marge est active. Au defaut, pas de compteur : la
-         * comptabilite historique reste inchangee. */
-        local shield = PROBE_AIR_FINANCE_MARGIN ? AIAccounting() : null;
         local test = AITestMode();
         testOk = AIRoad.BuildDriveThroughRoadStation(
             cand.tile, tryFront, AIRoad.ROADVEHTYPE_BUS, stationId);
         test = null;
-        shield = null;
       }
       if (testOk) {
         front = tryFront;
@@ -297,16 +239,6 @@ function OpexBuildAirRoute(catalog, budget, plan)
 
   /* Shadow uniquement sur newpair. Le shadow ne peut jamais
    * retourner PREB ni invalider le cache : la route est TOUJOURS construite. */
-  if (AIR_BFAIL_PRECHECK_SHADOW && !reuseA && !reuseB) {
-    local preB = OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, false);
-    result.preBShadow <- {
-      ok = preB.ok, error = preB.error,
-      anchor = plan.siteB.anchor,
-      verdict = !preB.ok ? "reject" :
-          preB.error == AIError.ERR_FLAT_LAND_REQUIRED ? "defer_level" :
-          preB.error == AIError.ERR_LOCAL_AUTHORITY_REFUSES ? "defer_authority" : "accept"
-    };
-  }
 
   /* air_cost_probe : le cout REEL de la ligne aerienne, nivellement, aeroports, avions et
    * demolitions de repli compris. Symetrique du `costs` de builder_rail.nut. Le seul
@@ -316,10 +248,6 @@ function OpexBuildAirRoute(catalog, budget, plan)
   /* Sonde probe_air_finance_margin : ventilation du cout reel par etape, lue sur le
    * compteur `costs` ci-dessus (aucun autre compteur n'est cree ici). Nul au defaut. */
   local brk = null;
-  if (PROBE_AIR_FINANCE_MARGIN) {
-    brk = { levelA = 0, airportA = 0, levelB = 0, airportB = 0, planes = 0, stops = 0 };
-    result.costBreakdown <- brk;
-  }
 
   budget.begin();
 
@@ -387,13 +315,6 @@ function OpexBuildAirRoute(catalog, budget, plan)
      * nivellement de B, avant la pose. Aucun releve au defaut OFF ; aucune
      * lecture du shadow par les choix ou la validation du chantier. */
     local levelBShadow = null;
-    if (AIR_BFAIL_PRECHECK_SHADOW && PROBE_AIR_FINANCE_MARGIN && !reuseA && !reuseB) {
-      levelBShadow = { before = OpexAirBLevelTerrainSnapshot(plan.siteB.anchor, airport),
-                       cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF),
-                       width = airport.width, height = airport.height,
-                       end = OpexAirFootprintEnd(plan.siteB.anchor, airport),
-                       slopesEnabled = AIGameSettings.GetValue("construction.build_on_slopes") };
-    }
     local levelB = OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id,
                                         levelBShadow);
     if (levelBShadow != null) {
@@ -426,8 +347,6 @@ function OpexBuildAirRoute(catalog, budget, plan)
     /* Diagnostic du maillon reel : distinguer echec de LevelTiles/verification
      * physique et refus de BuildAirport APRES nivellement reussi. Aucun effet
      * hors sonde ni sur l'issue du chantier. */
-    if (AIR_BFAIL_PRECHECK_SHADOW && !reuseA && !reuseB)
-      result.preBRealStage <- !levelB.ok ? "level" : (!okB ? "airport" : "built");
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "airportB");
     if (spBuild != null) OpexSpanEnd(spBuild);
   }
@@ -451,20 +370,6 @@ function OpexBuildAirRoute(catalog, budget, plan)
     /* L'aeroport A neuf et conserve est un actif, pas une perte liquidee.
      * La provenance sera jointe hors moteur au premier service du meme
      * (anchor, station). Aucun etat de Save/Load ni calcul hors sonde. */
-    if (PROBE_AIR_FINANCE_MARGIN && result.orphanRetained) {
-      local orphanStation = AIStation.GetStationID(airportA);
-      AILog.Info("AIR_ORPHAN_RETAIN date=" + AIDate.GetCurrentDate()
-          + " anchor=" + airportA
-          + " station=" + (AIStation.IsValidStation(orphanStation) ? orphanStation : -1)
-          + " town=" + plan.siteA.town.id
-          + " pair=" + OpexAirPairKey(plan.siteA, plan.siteB)
-          + " reason=" + result.reason
-          + " cost_a=" + (brk.levelA + brk.airportA)
-          + " cost_b=" + (brk.levelB + brk.airportB)
-          + " total=" + result.actualCost
-          + " reuse_a=" + (reuseA ? 1 : 0)
-          + " reuse_b=" + (reuseB ? 1 : 0));
-    }
     return result;
   }
 
@@ -564,23 +469,6 @@ function OpexBuildAirRoute(catalog, budget, plan)
       result.opcodes += budget.end("build_aircraft");
         result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
           OpexAirPairKey(plan.siteA, plan.siteB));
-      result.actualCost = costs != null ? costs.GetCosts() : 0;
-      if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
-      result.reason = "START";
-      return result;
-    }
-  }
-  if (R19_FAULT_INJECT > 0) {
-    R19_FAULT_ROUTE_SEQ++;
-    if (R19_FAULT_ROUTE_SEQ == R19_FAULT_INJECT) {
-      AILog.Warning("R19_FAULT_INJECT route=" + R19_FAULT_ROUTE_SEQ
-          + " planes=" + built.len() + " pair=" + OpexAirPairKey(plan.siteA, plan.siteB));
-      if (spBuild != null) OpexSpanEnd(spBuild);
-      result.error = -1;
-      result.errorText = "R19_FAULT_INJECT";
-      result.opcodes += budget.end("build_aircraft");
-      result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
-        OpexAirPairKey(plan.siteA, plan.siteB));
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
       result.reason = "START";

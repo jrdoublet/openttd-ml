@@ -44,44 +44,6 @@ def add_sites(initial, extra, cap, dedup):
 
 
 class ACAdopted(unittest.TestCase):
-    def test_independent_air_phase_contracts_and_v141_publication(self):
-        """Each resumable AIR phase owns its cursor; no scheduler redesign."""
-        phases = ("OpexAirPlansPrepare", "OpexAirPlansFindSites",
-                  "OpexAirPlansNewPairs", "OpexAirPlansDiscoverHubs",
-                  "OpexAirPlansHubToSite", "OpexAirPlansHubToHub",
-                  "OpexAirPlansFinalize")
-        driver = function(AIR, "OpexAirPlans")
-        substeps = "".join(function(AIR, name) for name in (
-            "OpexAirPlansStepPrepare", "OpexAirPlansStepFindSites",
-            "OpexAirPlansStepNewPairs"))
-        discovery = function(AIR, "OpexAirPlansHubDiscoveryPhase")
-        hubsite = function(AIR, "OpexAirPlansHubToSitePhase")
-        for name in phases:
-            self.assertIn("function " + name + "(", AIR)
-            self.assertIn(name + "(", substeps + discovery + hubsite + driver)
-        for name in ("OpexAirPlansStepPrepare", "OpexAirPlansStepFindSites",
-                     "OpexAirPlansStepNewPairs"):
-            self.assertEqual(driver.count(name + "("), 1)
-        self.assertIn("OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)", driver)
-        self.assertIn("OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)", discovery)
-        self.assertIn("OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)", driver)
-        self.assertIn("OpexAirPlansHubToSite(ctx, combo, airport, plane)", hubsite)
-        self.assertIn("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)", driver)
-        for checkpoint in ("scanIndex", "rankIndex", "hubSiteI", "hubSiteJ",
-                           "hubHubI", "hubHubJ", "hubPhase"):
-            self.assertIn(checkpoint, AIR)
-        for yield_reason in ("sites_yield", "pairs_yield", "hub_site_yield", "hub_hub_yield"):
-            self.assertIn(yield_reason, driver)
-        c78 = function(SCHED, "OpexC78ContinueCatalogAirRebuild")
-        publish = function(SCHED, "OpexC78PublishPartialAir")
-        apply = function(SCHED, "OpexC78ApplyAir")
-        self.assertIn("OpexC78PublishPartialAir(owner, s)", c78)
-        self.assertIn("OpexAir0310PublishIncremental", publish)
-        self.assertIn("s.partialPending", c78)
-        self.assertIn("OpexC78ApplyAir(owner, task, year, s)", c78)
-        self.assertIn("owner._rebuildProjects(s.fleetPlan, airOverride)", apply)
-        self.assertIn("function OpexAir0310PublishIncremental(", UPDATE)
-
     def test_defaults_overrideable_without_other_experiments(self):
         # V237: the adopted path is permanent; the public rollback is gone.
         from v237_contracts import assert_retired

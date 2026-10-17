@@ -154,21 +154,6 @@ class AC07PartialTests(unittest.TestCase):
         self.assertIn("advanceStage = false;", REBUILD)
         self.assertIn("if (advanceStage && STAGED_BOOTSTRAP", REBUILD)
 
-    def test_current_v141_fields_and_conversion_validity(self):
-        self.assertIn('local v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;', PUBLISH)
-        self.assertIn("local newPlans = (publishedCount < scanPlans.len()) ? scanPlans.slice(publishedCount)", PUBLISH)
-        self.assertIn("local planCount = scanPlans.len() + priorKept.len();", PUBLISH)
-        self.assertIn("OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan);", PUBLISH)
-        self.assertIn("OpexProjectFromAir(catalog, plan, airOpsPerPlan);", PUBLISH)
-        self.assertIn("OpexV141PublishedAirStillValid(payload)", PUBLISH)
-        self.assertIn("OpexV141LogCheck", PUBLISH)
-        self.assertIn("project.planningOpcodes = planningOps;", REFRESH)
-        self.assertIn("project.economicsDate = AIDate.GetCurrentDate();", REFRESH)
-        self.assertIn("project.cargo = catalog.paxCargo;", REFRESH)
-        self.assertIn("local expectedOps = PROJECT_AIR_TRANSACTION_OPS;", FROM_AIR)
-        self.assertIn("OpexAir0310PriorDropped(payload, priorRaw, priorKept)", PUBLISH)
-        self.assertIn("OpexStagedAirPlanStillValid(catalog, priorPlan,", PUBLISH)
-
     def test_partition_then_recount_and_reselect(self):
         for expr in ("foreach (slotKey, entry in projects.candidateGroups)",
                      "foreach (addedKey in newKeyOrder)", "foreach (movedKey, movedList in movedAir)",

@@ -205,7 +205,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   /* 5. Selection du portefeuille sur le capital restant */
   local funded = null;
-  local selectionLight = CATALOG_COST_PROBE ? OpexSelectionLightBegin() : null;
   local opsMark = OpexOpsMeasureBegin();
   local alternatives = [];
   foreach (key, list in newWinners) {
@@ -230,8 +229,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   stats.knapsackNodes = 0;
   stats.knapsackExact = false;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
-  if (selectionLight != null) OpexSelectionLightEnd(selectionLight, "incremental",
-      stats.selectionOpcodes, alternatives.len(), funded.len());
   OpexB6LogSelectionCausality("incremental", alternatives, funded, capitalBudget, b6BudgetDate,
                              recycledKeys);
   if (V216_PROBE) OpexV216LogSelection("incremental", alternatives, funded, capitalBudget);
@@ -367,48 +364,6 @@ function OpexV141RefreshPublishedAir(project, catalog, planningOps)
   project.cargo = catalog.paxCargo;
 }
 
-function OpexV141ValuesDiffer(leftVal, rightVal)
-{
-  if (leftVal == rightVal) return false;
-  if (typeof leftVal == "array" && typeof rightVal == "array") {
-    if (leftVal.len() != rightVal.len()) return true;
-    for (local i = 0; i < leftVal.len(); i++) {
-      if (leftVal[i] != rightVal[i]) return true;
-    }
-    return false;
-  }
-  return true;
-}
-
-function OpexV141DecisionFieldDiff(kept, rebuilt)
-{
-  if (kept == null && rebuilt == null) return null;
-  if (kept == null || rebuilt == null) return "null";
-  local fields = ["mode", "kind", "cargo", "src", "dst", "distance", "capital",
-      "budgetCapital", "decisionFinanceCapital", "decisionConstructionCapital",
-      "profitAnnual", "revenueAnnual", "roi", "expectedOpcodes", "budgetScore",
-      "opcodeScore", "planningOpcodes", "economicsDate"];
-  local hasLeft = false;
-  local hasRight = false;
-  foreach (field in fields) {
-    hasLeft = field in kept;
-    hasRight = field in rebuilt;
-    if (hasLeft != hasRight) return field;
-    if (hasLeft && OpexV141ValuesDiffer(kept[field], rebuilt[field])) return field;
-  }
-  return null;
-}
-
-function OpexV141LogCheck(verdict, field, compared, added)
-{
-  if (!C56_TASK_TRACE) return;
-  local fieldTok = field != null ? field : "-";
-  OpexDecide("V141_CHECK", "verdict=" + verdict
-      + " field=" + fieldTok
-      + " compared=" + compared
-      + " added=" + added);
-}
-
 /* Publication partielle AIR 03/10 1. Ne reconvertit que les plans neufs et
  * reecrit les projets air deja materialises la ou OpexProjectFromAir depend
  * de l'etat courant :
@@ -472,11 +427,6 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   local reconverted = 0;
   local invalidated = 0;
   local refreshedCount = 0;
-  local v141Check = V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE;
-  local v141Diff = null;
-  local v141Compared = 0;
-  local v141Oracle = null;
-  local v141Field = null;
   local freshKey = null;
   local pendingNew = {};
   local newKeyOrder = [];
@@ -525,25 +475,10 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
       }
       {
         if (!OpexV141PublishedAirStillValid(payload)) {
-          if (v141Check) {
-            v141Oracle = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
-            v141Compared = v141Compared + 1;
-            if (v141Oracle != null && v141Diff == null) v141Diff = "valid";
-          }
           invalidated++;
           continue;
         }
         OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan);
-        if (v141Check) {
-          v141Oracle = OpexProjectFromAir(catalog, payload, airOpsPerPlan);
-          v141Compared = v141Compared + 1;
-          if (v141Oracle == null) {
-            if (v141Diff == null) v141Diff = "invalidated";
-          } else {
-            v141Field = OpexV141DecisionFieldDiff(project, v141Oracle);
-            if (v141Field != null && v141Diff == null) v141Diff = v141Field;
-          }
-        }
         refreshedCount++;
         freshKey = OpexProjectKeyFor(project);
         if (freshKey == slotKey) {
@@ -558,10 +493,6 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     }
     othersByKey.rawset(slotKey, others);
     if (kept.len() > 0) keptAir.rawset(slotKey, kept);
-  }
-  if (v141Check) {
-    OpexV141LogCheck(v141Diff == null ? "identical" : "diff", v141Diff,
-        v141Compared, added);
   }
   if (spPubFilter != null) OpexSpanEnd(spPubFilter);
 

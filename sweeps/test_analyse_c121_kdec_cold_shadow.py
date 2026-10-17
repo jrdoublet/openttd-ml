@@ -144,30 +144,5 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(self.campaign(years=2)["exposure_gate"], "short_sample")
 
 
-class ProbeContracts(unittest.TestCase):
-    def test_both_captures_follow_current_score(self):
-        root = Path(__file__).resolve().parents[1]
-        text = (root / "ai/OpexAI/projects_selection.nut").read_text(encoding="utf-8")
-        selection = text[text.index("function OpexProjectSelectAffordable"):text.index("function OpexProjectSelectionScore")]
-        captures = selection.split("OpexC121KDecColdShadowCandidate")
-        self.assertEqual(len(captures), 3)
-        for prior in captures[:2]:
-            self.assertIn("project.fundScore <- OpexProjectScore", prior)
-            between = prior[prior.rindex("project.fundScore <- OpexProjectScore"):]
-            self.assertNotIn("foreach", between)
-
-    def test_date_and_funding_do_not_use_task_state(self):
-        root = Path(__file__).resolve().parents[1]
-        text = (root / "ai/OpexAI/projects_selection.nut").read_text(encoding="utf-8")
-        # Le shadow comporte ces deux fonctions. Les logs SELECT_REJECT voisins
-        # emploient OpexDecide et ne sont pas soumis à ce contrat passif.
-        probe = text[text.index("function OpexC121KDecColdShadowCandidate"):
-                     text.index("function OpexSelectRejectScore(")]
-        self.assertIn("function OpexC121KDecColdShadowEnd(", probe)
-        self.assertNotIn("OpexDecide(", probe)
-        self.assertIn('line.mode != "air"', probe)
-        self.assertIn('" day=" + AIDate.GetDayOfMonth(date)', probe)
-
-
 if __name__ == "__main__":
     unittest.main()

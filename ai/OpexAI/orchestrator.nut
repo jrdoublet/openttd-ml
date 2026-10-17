@@ -284,7 +284,6 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
       if (yieldNow) {
         ai._c121RailPrepHold = true;
         ai._c121RailPrepYieldLogged = true;
-        OpexC121RailPrepLog(ai, "yield_to_air", yieldOps, yieldTicks);
         return "running";
       }
     }

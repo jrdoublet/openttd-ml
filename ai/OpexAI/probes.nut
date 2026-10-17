@@ -146,23 +146,6 @@ function OpexAirCatchmentLog(kind, fields)
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
 }
 
-/* C117 : debit AIR reel reconstruit passivement depuis les deux ordres A<->B. */
-function OpexC117Log(fields)
-{
-  if (!C117_AIR_THROUGHPUT_PROBE) return;
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-      + AIDate.GetDayOfMonth(date) + " C117_AIR_THROUGHPUT " + fields);
-}
-
-function OpexC121FirstLiveLog(fields)
-{
-  if (!C121_AIR_FIRST_LIVE_SHADOW) return;
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-      + AIDate.GetDayOfMonth(date) + " C121_FIRST_LIVE " + fields);
-}
-
 function OpexC121HubDelayLog(fields)
 {
   local date = AIDate.GetCurrentDate();
@@ -390,33 +373,6 @@ function OpexC121FirstLiveObserve(line, state, ageDays)
   C121_AIR_FIRST_LIVE_OPS += shadowOps;
   C121_AIR_FIRST_LIVE_SAMPLES++;
 
-  OpexC121FirstLiveLog("line=" + line.lineId
-      + " arm=" + (("c117Arm" in line) ? line.c117Arm : "unknown")
-      + " age_days=" + ageDays + " target_n=" + targetN
-      + " cold_marginal_profit=" + (("c121MarginalProfit" in line) ? line.c121MarginalProfit : -1)
-      + " marginal_samples=" + (("c121MarginalSamples" in line) ? line.c121MarginalSamples : -1)
-      + " last_profit=" + (("lastProfit" in line) ? line.lastProfit : -1)
-      + " r60_days=" + (r60 != null ? r60.days : 0)
-      + " r60_trips=" + (r60 != null ? r60.trips : 0)
-      + " r60_profit_pm=" + (r60 != null ? r60.profitPm : 0.0)
-      + " r60_load=" + (r60 != null ? r60.load : -1.0)
-      + " r60_wait_norm=" + (r60 != null ? r60.waitNorm : -1.0)
-      + " r90_days=" + (r90 != null ? r90.days : 0)
-      + " r90_trips=" + (r90 != null ? r90.trips : 0)
-      + " r90_trips_a=" + (r90 != null ? r90.tripsA : 0)
-      + " r90_trips_b=" + (r90 != null ? r90.tripsB : 0)
-      + " r90_profit_pm=" + (r90 != null ? r90.profitPm : 0.0)
-      + " r90_load=" + (r90 != null ? r90.load : -1.0)
-      + " r90_wait_norm=" + (r90 != null ? r90.waitNorm : -1.0)
-      + " rule_bal60=" + (balanced60 ? 1 : 0)
-      + " rule_bal90=" + (balanced90 ? 1 : 0)
-      + " rule_strict90=" + (strict90 ? 1 : 0)
-      + " rule_dual90=" + (dual90 ? 1 : 0)
-      + " shadow_ops=" + shadowOps
-      + " shadow_ops_total=" + C121_AIR_FIRST_LIVE_OPS
-      + " shadow_samples=" + C121_AIR_FIRST_LIVE_SAMPLES
-      + " shadow_ops_mean=" + (C121_AIR_FIRST_LIVE_SAMPLES > 0
-          ? C121_AIR_FIRST_LIVE_OPS.tofloat() / C121_AIR_FIRST_LIVE_SAMPLES.tofloat() : 0.0));
 }
 
 function OpexC121FirstLiveBalanced90(line)
@@ -433,7 +389,7 @@ function OpexC117FlushLine(line, state)
   if (state == null || state.samples <= 0) return;
   local flushMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   OpexC121HubDelayFlushLine(line, state);
-  local skipChain = !C117_AIR_THROUGHPUT_PROBE;
+  local skipChain = true;
   if (skipChain) {
     local ageDaysLean = ("buildDate" in line) ? (state.lastDate - line.buildDate) : -1;
     OpexC121FirstLiveObserve(line, state, ageDaysLean);
@@ -492,78 +448,6 @@ function OpexC117FlushLine(line, state)
   local c121AdaptedOneWay = c121PhysicalOneWay > 0.0
       ? c121PhysicalOneWay + (c121DelayA + c121DelayB) / 2.0 : -1.0;
 
-  OpexC117Log("line=" + line.lineId
-      + " arm=" + (("c117Arm" in line) ? line.c117Arm : "unknown")
-      + " age_bucket=" + state.bucket + " age_days=" + ageDays
-      + " period_days=" + days + " sample_days=" + C117_AIR_SAMPLE_DAYS
-      + " build_date=" + (("buildDate" in line) ? line.buildDate : -1)
-      + " distance=" + (("distance" in line) ? line.distance : -1)
-      + " payment_distance=" + paymentDistance
-      + " airport_type_a=" + airportTypeA + " airport_type_b=" + airportTypeB
-      + " airport_span_a=" + airportSpanA + " airport_span_b=" + airportSpanB
-      + " build_engine=" + (("planeId" in line) ? line.planeId : -1)
-      + " engine=" + state.lastEngine + " engine_changes=" + state.engineChanges
-      + " mixed_engine_samples=" + state.mixedEngineSamples
-      + " base_monthly=" + (("airMonthlyPax" in line) ? line.airMonthlyPax : -1)
-      + " shadow_monthly=" + (("c117ShadowMonthly" in line) ? line.c117ShadowMonthly : -1)
-      + " pred_carried=" + (("predCarried" in line) ? line.predCarried : -1)
-      + " pred_revenue_y=" + (("predRevenue" in line) ? line.predRevenue : -1)
-      + " pred_profit_y=" + (("predicted" in line) ? line.predicted : -1)
-      + " pred_running_y=" + (("predRunning" in line) ? line.predRunning : -1)
-      + " pred_vehicle_running_y=" + (("predVehicleRunning" in line) ? line.predVehicleRunning : -1)
-      + " pred_amort_y=" + (("predAmort" in line) ? line.predAmort : -1)
-      + " pred_n=" + (("predTrains" in line) ? line.predTrains : -1)
-      + " pred_oneway_days=" + (("predOneWayDays" in line) ? line.predOneWayDays : -1)
-      + " build_capacity=" + (("planeCapacity" in line) ? line.planeCapacity : -1)
-      + " c121_pax_cap=" + (("c121PaxCapacity" in line) ? line.c121PaxCapacity : -1)
-      + " c121_mail_cap=" + (("c121MailCapacity" in line) ? line.c121MailCapacity : -1)
-      + " c121_actual_pax_pm=" + (("c121ActualCarriedPax" in line) ? line.c121ActualCarriedPax : -1)
-      + " c121_actual_mail_pm=" + (("c121ActualCarriedMail" in line) ? line.c121ActualCarriedMail : -1)
-      + " c121_actual_total_pm=" + (("c121ActualCarried" in line) ? line.c121ActualCarried : -1)
-      + " c121_actual_revenue_y=" + (("c121ActualRevenueAnnual" in line) ? line.c121ActualRevenueAnnual : -1)
-      + " c121_actual_profit_y=" + (("c121ActualProfitAnnual" in line) ? line.c121ActualProfitAnnual : -1)
-      + " c121_actual_running_y=" + (("c121ActualRunningAnnual" in line) ? line.c121ActualRunningAnnual : -1)
-      + " c121_actual_vehicle_running_y=" + (("c121ActualVehicleRunningAnnual" in line) ? line.c121ActualVehicleRunningAnnual : -1)
-      + " c121_actual_amort_y=" + (("c121ActualAmortAnnual" in line) ? line.c121ActualAmortAnnual : -1)
-      + " c121_actual_n=" + (("c121ActualPlanes" in line) ? line.c121ActualPlanes : -1)
-      + " c121_actual_oneway_days=" + (("c121ActualOneWayDays" in line) ? line.c121ActualOneWayDays : -1)
-      + " c121_actual_headway_days=" + (("c121ActualHeadwayDays" in line) ? line.c121ActualHeadwayDays : -1)
-      + " c121_actual_rating=" + (("c121ActualStationRating" in line) ? line.c121ActualStationRating : -1)
-      + " c121_target_pax_pm=" + (("c121TargetCarriedPax" in line) ? line.c121TargetCarriedPax : -1)
-      + " c121_target_mail_pm=" + (("c121TargetCarriedMail" in line) ? line.c121TargetCarriedMail : -1)
-      + " c121_target_total_pm=" + (("c121TargetCarried" in line) ? line.c121TargetCarried : -1)
-      + " c121_target_revenue_y=" + (("c121TargetRevenueAnnual" in line) ? line.c121TargetRevenueAnnual : -1)
-      + " c121_target_profit_y=" + (("c121TargetProfitAnnual" in line) ? line.c121TargetProfitAnnual : -1)
-      + " c121_target_n=" + (("c121TargetPlanes" in line) ? line.c121TargetPlanes : -1)
-      + " capital=" + capital
-      + " pax=" + state.pax + " pax_pm=" + paxPm
-      + " seat_legs=" + state.seatLegs + " seats_pm=" + seatsPm
-      + " load_factor=" + loadFactor
-      + " mail=" + state.mail + " mail_pm=" + mailPm
-      + " mail_seat_legs=" + state.mailSeatLegs + " mail_seats_pm=" + mailSeatsPm
-      + " mail_load_factor=" + mailLoadFactor
-      + " trips=" + state.trips + " trips_a=" + state.tripsA + " trips_b=" + state.tripsB
-      + " pax_a=" + state.paxA + " seats_a=" + state.seatLegsA
-      + " mail_a=" + state.mailA + " mail_seats_a=" + state.mailSeatLegsA
-      + " pax_b=" + state.paxB + " seats_b=" + state.seatLegsB
-      + " mail_b=" + state.mailB + " mail_seats_b=" + state.mailSeatLegsB
-      + " headway_days=" + headway
-      + " leg_days_n=" + state.legDaysN + " leg_days_sum=" + state.legDays
-      + " leg_days_min=" + state.legDaysMin + " leg_days_max=" + state.legDaysMax
-      + " c121_physical_oneway_days=" + c121PhysicalOneWay
-      + " c121_hub_delay_a=" + c121DelayA + " c121_hub_delay_b=" + c121DelayB
-      + " c121_hub_delay_n_a=" + (c121HubA != null ? c121HubA.lastWindowN : 0)
-      + " c121_hub_delay_n_b=" + (c121HubB != null ? c121HubB.lastWindowN : 0)
-      + " c121_adapted_oneway_days=" + c121AdaptedOneWay
-      + " profit=" + state.profit + " profit_pm=" + profitPm
-      + " run_est=" + state.runEst + " run_pm=" + runPm
-      + " revenue_est_pm=" + revenuePm + " profit_capital_pm=" + profitCapitalPm
-      + " samples=" + state.samples + " live_avg=" + liveAvg + " cap_avg=" + capAvg
-      + " live_last=" + state.lastLive + " cap_last=" + state.lastCap
-      + " wait_a=" + waitA + " wait_b=" + waitB
-      + " rating_a=" + ratingA + " rating_b=" + ratingB
-      + " invalid_order_samples=" + state.invalidOrderSamples
-      + " unobserved_transitions=" + state.unobservedTransitions);
   if (flushMark != null) OpexSpanAgg("loop.c117.flush", flushMark);
 }
 
@@ -575,7 +459,7 @@ function OpexC117AirThroughputStep(lines, catalog)
   C117_AIR_LAST_DATE = now;
   local nowYear = AIDate.GetYear(now);
   /* Sans sonde, omettre les champs sans lecteur C121. */
-  local skipUnused = !C117_AIR_THROUGHPUT_PROBE;
+  local skipUnused = true;
 
   local mailActive = false;
   local mailCargoId = -1;
@@ -824,39 +708,6 @@ function OpexC39Log(kind, fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
 }
-/* Une seule ligne par regeneration catalogue terminee. Le record reste sur la tache
- * pendant C78.4 ; Save/Load abandonne deja ce curseur et recommence la passe. */
-function OpexCatalogCostNew(reason)
-{
-  return { reason = reason, path = "full", refreshOps = 0, engineRefreshOps = 0, engineChoices = 0,
-    catalogTowns = 0, catalogIndustries = 0,
-    modeRegenOps = 0, reselectOps = 0,
-    railOps = 0, roadOps = 0,
-    airOps = 0, waterOps = 0, assemblyOps = 0, selectionOps = 0,
-    railCandidates = 0, roadCandidates = 0, waterPlans = 0,
-    airPlans = 0, modeAlternatives = 0, considered = 0, selected = 0,
-    airScans = 0, airTowns = 0, airCombos = 0, airPairs = 0,
-    airHubSitePairs = 0, airHubHubPairs = 0,
-    airSiteProbes = 0, airSites = 0, airSiteOps = 0, airEvalOps = 0,
-    c121Calls = 0, c121DemandOps = 0, c121StaticOps = 0,
-    c121ScanOps = 0, c121EngineEvals = 0, c121WinnerOps = 0,
-    c121CacheHits = 0, c121Recomputed = 0, c121DirtyEngine = 0,
-    c121DirtyTown = 0, c121DirtyStation = 0, c121DirtyLearning = 0,
-    c121DirtyAge = 0, c121DirtyInput = 0, c121New = 0,
-    c121Slices = 0, c121LastSliceOps = 0,
-    c121MaxSliceOps = 0 };
-}
-
-function OpexProjectsCostLog(pcost, builtCount, stopReason)
-{
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-      + AIDate.GetDayOfMonth(date) + " PROJECTS_COST build_ops=" + pcost.buildOps
-      + " fleet_ops=" + pcost.fleetOps + " regen_ops=" + pcost.regenOps
-      + " regen=" + pcost.regenKind + " built=" + builtCount
-      + " stop=" + (stopReason != null ? stopReason : "none"));
-}
-
 function OpexCatalogCostLog(cost)
 {
   local date = AIDate.GetCurrentDate();
@@ -905,27 +756,6 @@ function OpexCatalogCostLog(cost)
     + " c121_slices=" + cost.c121Slices
     + " c121_last_slice_ops=" + cost.c121LastSliceOps
     + " c121_max_slice_ops=" + cost.c121MaxSliceOps);
-}
-function OpexCatalogCostSliceLog(cost, scan, sliceOps)
-{
-  if (!CATALOG_COST_PROBE) return;
-  local date = AIDate.GetCurrentDate();
-  local examined = cost.c121CacheHits + cost.c121Recomputed;
-  local reusePct = examined > 0 ? cost.c121CacheHits * 100 / examined : 0;
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-    + AIDate.GetDayOfMonth(date) + " CATALOG_COST_SLICE"
-    + " cache=" + C121_CATALOG_CACHE.len()
-    + " hits=" + cost.c121CacheHits + " recalculated=" + cost.c121Recomputed
-    + " reuse_pct=" + reusePct
-    + " dirty_engine=" + cost.c121DirtyEngine + " dirty_town=" + cost.c121DirtyTown
-    + " dirty_station=" + cost.c121DirtyStation + " dirty_learning=" + cost.c121DirtyLearning
-    + " dirty_age=" + cost.c121DirtyAge
-    + " dirty_input=" + cost.c121DirtyInput + " new=" + cost.c121New
-    + " same_tick_slices=" + scan.tickSlices
-    + " chained_slices=" + (scan.tickSlices - 1) + " slice_ops=" + sliceOps
-    + " partial=" + (scan.published ? 1 : 0)
-    + " partial_pending=" + (scan.partialPending ? 1 : 0)
-    + " published_plans=" + scan.lastPublishedCount + " evaluated_plans=" + scan.plans.len());
 }
 /* C41.11 reste lisible sans activer le bus C39 : il mesure le scheduler historique lui-meme. */
 function OpexC41SchedulerLog(kind, fields)
@@ -2303,21 +2133,6 @@ function OpexC69CachedKDec()
   return C69_CACHED_KDEC_VALUE;
 }
 
-/* C72 : nom de l'appareil avec espaces remplaces par des tirets bas pour le parseur de logs */
-function OpexPlaneName(engineId)
-{
-  if (!AIEngine.IsValidEngine(engineId)) return "unknown";
-  local rawName = AIEngine.GetName(engineId);
-  if (rawName == null || rawName.len() == 0) return "unknown";
-  local res = "";
-  for (local i = 0; i < rawName.len(); i++) {
-    local c = rawName.slice(i, i + 1);
-    if (c == " ") res += "_";
-    else res += c;
-  }
-  return res.len() > 0 ? res : "unknown";
-}
-
 /* C73 : sonde passive vivier et passes du portefeuille (C69 etape 1) */
 function OpexC73NewModeStats()
 {
@@ -2649,7 +2464,6 @@ function OpexAI::_mainLoopProfiled()
     this._processEvents();
     if (spEvents != null) OpexSpanEnd(spEvents);
     OpexLoopProfAdd("events", mark);
-    if (C121_STATION_FLUX_PROBE) OpexC121StationFluxStep(this._catalog);
     local before = C117_AIR_LAST_DATE;
     mark = OpexOpsMeasureBegin();
     local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;

@@ -106,13 +106,5 @@ class GameEngineProbeTokenTests(unittest.TestCase):
         self.assertEqual(rows[1]["ge_est"], 223)
         self.assertEqual(rows[1]["engines_rows"], [])
 
-    def test_emit_plan_adds_ge_tokens(self):
-        planning = source("air_planning.nut")
-        emit = planning.split("function OpexC121EngTabEmitPlan(", 1)[1].split(
-            "function OpexC121EngTabAfterChoice(", 1)[0]
-        self.assertIn('+ " ge=" + ge', emit)
-        self.assertIn('+ " ge_est=" + geEst', emit)
-
-
 if __name__ == "__main__":
     unittest.main()

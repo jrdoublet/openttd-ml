@@ -46,7 +46,7 @@ class OpcodeExactContractTests(unittest.TestCase):
     def test_settings_defaults(self):
         # exp_opcode_exact adopte le 2026-10-02 (20x10 neutre, regle opcodes) ;
         # le controle double chemin reste un outil de mesure, defaut 0.
-        for name, value in (("exp_opcode_exact", 1), ("exp_opcode_exact_check", 0)):
+        for name, value in (("exp_opcode_exact", 1),):
             block = setting_block(self.info, name)
             self.assertIn(f"easy_value = {value}", block)
             self.assertIn(f"medium_value = {value}", block)
@@ -55,7 +55,7 @@ class OpcodeExactContractTests(unittest.TestCase):
             self.assertIn("flags = AICONFIG_BOOLEAN", block)
             self.assertEqual(self.info.count(f'name = "{name}"'), 1)
         self.assertIn("EXP_OPCODE_EXACT <- false;", self.globals)
-        self.assertIn("EXP_OPCODE_EXACT_CHECK <- false;", self.globals)
+        self.assertNotIn("exp_opcode_exact_check", self.info)  # V239
         self.assertIn("EXP_OPCODE_EXACT_ON <- false;", self.globals)
         self.assertNotIn("C117_AIR_CAP_CACHE", self.globals)
         self.assertNotIn("C117_AIR_CAP_CACHE", self.settings)
@@ -63,14 +63,8 @@ class OpcodeExactContractTests(unittest.TestCase):
             'EXP_OPCODE_EXACT = AIController.GetSetting("exp_opcode_exact") != 0;',
             self.settings,
         )
-        self.assertIn(
-            'EXP_OPCODE_EXACT_CHECK = OpexProbeSetting("exp_opcode_exact_check") != 0;',
-            self.settings,
-        )
-        self.assertIn(
-            "EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT || EXP_OPCODE_EXACT_CHECK;",
-            self.settings,
-        )
+        self.assertNotIn("EXP_OPCODE_EXACT_CHECK", self.settings)
+        self.assertIn("EXP_OPCODE_EXACT_ON = EXP_OPCODE_EXACT;", self.settings)
 
     def test_require_and_historical_road_order(self):
         road_req = self.main.index('require("builder_road.nut");')

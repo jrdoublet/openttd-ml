@@ -423,8 +423,6 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           && ("src" in candidate) && ("dst" in candidate)) {
         local prepKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
         if (prepKey in this._railReadyStock) delete this._railReadyStock[prepKey];
-        if (recorded) OpexC121RailPrepLog(this, "stock_used", 0, 0);
-        else OpexC121RailPrepLog(this, "stock_dropped", 0, 0);
         this._c121RailPrepRememberStock();
       }
       if (C80_RAIL_STOCK_GATE) {
@@ -1981,7 +1979,6 @@ function OpexAI::_handleRailStockSearchCompleted()
   if (readyProject == null && "railPlan" in candidate) candidate.railPlan = null;
   this._railSearch = null;
   if (prepSearch) {
-    OpexC121RailPrepLog(this, readyProject != null ? "astar_done" : "astar_fail", opcodes, ticks);
     this._c121RailPrepHold = false;
     this._c121RailPrepYieldLogged = false;
     this._c121RailPrepRememberStock();

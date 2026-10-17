@@ -236,16 +236,10 @@ class TestCampaignFreeze(unittest.TestCase):
                      "town_growth_plan_memo", "c80_mode_regen", "v89_rail_search_throughput", "v90_fast_pathfinder",
                      "c121_air_project_realization_adaptive"):
             self.assertEqual(defaults[name], 1, name)
-        for name in ("c69_fleet_demand_batch", "c72_plane_choice",
-                     "c76_freight_rotation",
-                     "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
-                     "rail_depot_cost",
-                     "v90_pathfinder_check", "c83_fixes",
-                     "c83_preempt_open",
-                     "v95_air_post73_probe",
-                     "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
-                     "c97_air_c69_engine_probe", "c98_air_realized_probe"):
+        for name in ("c69_fleet_demand_batch", "c72_plane_choice", "c76_freight_rotation", "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load", "rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)
+        for name in ("v90_pathfinder_check", "v95_air_post73_probe", "v94_air_site_check", "c97_air_c69_engine_probe", "c98_air_realized_probe"):
+            self.assertNotIn(name, defaults)  # V239 : sondes retirees
         self.assertEqual(defaults["v93_airport_no_pop_floor"], 1)
         for name in ("rail_finance_bias_pct", "air_hub_max_routes", "v91_astar_weight_pct",
                      "c121_air_first_live_growth_phase_years", "unprofitable_streak_threshold"):
@@ -275,8 +269,8 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("air_site_quote_keep_legacy_margin", defaults)
         self.assertEqual(defaults["probe_events"], 0)
         self.assertEqual(defaults["probe_cost"], 0)
-        self.assertEqual(defaults["probe_air_engine_depth"], 0)
-        self.assertEqual(defaults["probe_air_finance_margin"], 0)
+        self.assertNotIn("probe_air_engine_depth", defaults)  # V239
+        self.assertNotIn("probe_air_finance_margin", defaults)  # V239
         self.assertEqual(defaults["probe_event_backlog"], 0)
         self.assertEqual(defaults["policy_rail"], 1)
         self.assertEqual(defaults["policy_caches"], 1)

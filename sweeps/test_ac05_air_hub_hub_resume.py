@@ -227,37 +227,6 @@ class AC05HubHubTests(unittest.TestCase):
         self.assertIn(((1, 4), "already_connected"), actual.rejected)
         self.assertNotIn((1, 4), actual.admitted)
 
-    def test_filter_order_marginal_and_phase_contract(self):
-        needles = (
-            'if (V133_AIR_BUILD_RETRY)',
-            'OpexAir0310SkipRestoredPair(ctx, airport, "hubhub"',
-            'CATALOG_COST_ACTIVE.airHubHubPairs++',
-            'if (targetTownId >= 0',
-            'if (EXP_AIR_HUB_PAIR_PREFILTER',
-            'if (alreadyConnected)',
-            'if (distance < 20)',
-            'if (!OpexAirPairInBand(',
-            'if (AIR_MAX_DISTANCE > 0',
-            'if (plane.maxOrderDistance > 0',
-            'if (OpexAirPairIsAbandoned(',
-            'local routeChoice = OpexC121CatalogChoice',
-            'if (economics == null || admissionEconomics == null',
-            'OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan)',
-        )
-        locations = [HUB_HUB.index(part) for part in needles]
-        self.assertEqual(locations, sorted(locations))
-        self.assertNotIn('AIR_HUBHUB_MARGINAL', HUB_HUB)
-        self.assertNotIn('hubAvgIncome', HUB_HUB)
-        self.assertIn('OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)', PIPELINE)
-        self.assertIn('OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane)',
-                      body('function OpexAirPlansHubDiscoveryPhase('))
-        self.assertIn('OpexAirPlansHubToHub(ctx, combo, airport, plane)', PIPELINE)
-        self.assertIn('ctx.resumeState.hubPhase <- 1;',
-                      body('function OpexAirPlansHubToSitePhase('))
-        self.assertLess(PIPELINE.index('OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)'),
-                        PIPELINE.index('OpexAirPlansHubToHub(ctx, combo, airport, plane)'))
-        self.assertIn('if (!ctx.air0310HubRestored) return false;', SKIP)
-
     def test_repeated_marginal_precalc_is_overhead_not_pair_replay(self):
         hubs = list(range(7))
         reference = run(hubs, setup=100)

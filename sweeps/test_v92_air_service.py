@@ -106,17 +106,6 @@ class V92AirServiceChoiceTests(unittest.TestCase):
         self.assertIn("ageYears = AIEngine.GetMaxAge(e) / 365", self.catalog)
         self.assertIn("mailCapacity = -1", self.catalog)
 
-    def test_route_choice_stays_on_the_historical_plane(self):
-        choose = function_body(self.builder, "function OpexAirChooseRoutePlane(")
-        self.assertIn("OpexAirChooseRoutePlaneFull(", choose)
-        self.assertNotIn("OpexAirChooseRouteService", choose)
-        store = function_body(self.builder, "function OpexAirStoreRoutePlan(")
-        self.assertIn("if (projects != null) projects.append(plan);", store)
-        self.assertIn("if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;", store)
-        self.assertNotIn("v92", store)
-        self.assertNotIn("function OpexAirChooseRouteService(", self.builder)
-        self.assertNotIn("OpexAirV92PairBlocked", self.task_air)
-
     def test_growth_cooldown_and_scrap_ignore_reequipment(self):
         resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
         self.assertIn('if (!priorityPath)', resize)

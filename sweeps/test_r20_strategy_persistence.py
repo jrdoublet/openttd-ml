@@ -27,13 +27,6 @@ class TestStrategyPersistence(unittest.TestCase):
         self.assertLess(save.index("OpexSaveC121Strategy(saveObj)"), save.index("return saveObj;"))
         self.assertIn("version = 1,", self.save)
 
-    def test_each_observer_or_policy_can_enable_state_without_economics_gate(self):
-        enabled = body(self.source, "OpexC121StrategyStateEnabled")
-        self.assertIn("return C121_AIR_PRESSURE_PROBE || C121_AIR_PROJECT_REALIZATION_ADAPTIVE", enabled)
-        self.assertIn("|| C122_AIR_REGIME_SHADOW;", enabled)
-        self.assertNotIn("C121_AIR_ECONOMICS", enabled)
-        self.assertNotIn("C122_AIR_THREAT", enabled)
-
     def test_observation_tables_are_copied_without_floats_or_world_scan(self):
         self.assertIn("towns = clone C121_AIR_PRESSURE_ACCUM.towns,", self.save)
         self.assertIn("clone C121_AIR_PRESSURE_PREV", self.save)

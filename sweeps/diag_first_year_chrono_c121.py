@@ -14,7 +14,7 @@ C121 = "c121_air_economics=1"
 def main():
     from sweeps import diag_cadence_duel as shared
     extra = os.environ.get("OPEX_CHRONO_EXTRA", "").strip(",")
-    probes = "probe_scheduler=1,catalog_cost_probe=1" + ("," + extra if extra else "")
+    probes = "probe_scheduler=1" + ("," + extra if extra else "")
     arms = {
         "reference": f"OpexAI[{C121},{probes}]",
         "light": f"OpexAI[{C121}]",

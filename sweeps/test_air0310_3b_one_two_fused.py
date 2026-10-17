@@ -156,31 +156,6 @@ class TestAir0310_3bOneTwoFused(unittest.TestCase):
         self.assertIn("if (!(\"c121ServiceA\" in plan)) serviceA = emptyService;", invariants)
         self.assertNotIn("if (serviceA == null) serviceA = emptyService;", invariants)
 
-    def test_both_depths_and_date_boundary(self):
-        fused = self.fused
-        date = fused.index("local dateBefore = AIDate.GetCurrentDate();")
-        first = fused.index("OpexC121OneOrTwoDepth(inv, 1)", date)
-        refresh = fused.index("if (AIDate.GetCurrentDate() != dateBefore)", first)
-        second_prep = fused.index("inv = OpexC121OneOrTwoInvariants(catalog, plan, plane);", refresh)
-        second = fused.index("OpexC121OneOrTwoDepth(inv, 2)", second_prep)
-        self.assertLess(date, first)
-        self.assertLess(first, refresh)
-        self.assertLess(refresh, second_prep)
-        self.assertLess(second_prep, second)
-        self.assertEqual(fused.count("OpexC121OneOrTwoInvariants(catalog, plan, plane)"), 2)
-        self.assertEqual(fused.count("OpexC121OneOrTwoDepth("), 2)
-        self.assertIn(TIE_BREAK, fused)
-        self.assertIn("C121_ENGTAB_N1 = econ1;", fused)
-        self.assertIn("C121_ENGTAB_N2 = econ2;", fused)
-        self.assertIn("return { initial = chosen, full = chosen };", fused)
-        # N=1 reste choisi si le score puis le profit sont egaux : pas de >=.
-        self.assertNotIn("score2 >= score1", fused)
-        self.assertNotIn("profit2 >= profit1", fused)
-        self.assertLess(
-            fused.index("if (PROBE_C121_ENGINE_TABLE)"),
-            fused.index("return { initial = chosen, full = chosen };"),
-        )
-
     def test_depth_materializes_only_the_useful_snapshots(self):
         depth = self.depth
         self.assertIn("if (candidatePickupRate <= 0.0) return null;", depth)

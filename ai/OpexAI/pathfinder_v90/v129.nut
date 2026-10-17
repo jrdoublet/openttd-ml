@@ -815,6 +815,5 @@ class OpexRailPathfinderCheckerV129.Cost
 /* Choix de la variante a l'instanciation (jamais dans la boucle chaude). */
 function OpexNewRailPathfinderV129()
 {
-	if (V129_RAIL_ASTAR_CHECK) return OpexRailPathfinderCheckerV129();
 	return OpexRailPathFinderV129();
 }

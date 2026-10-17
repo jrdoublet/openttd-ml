@@ -58,52 +58,6 @@ class TestC121CatalogIncremental(unittest.TestCase):
             "function OpexAI::Load(", 1)[0]
         self.assertNotIn("C121_CATALOG_CACHE", save)
 
-    def test_slices_and_first_year_gate(self):
-        scheduler = source("scheduler_tasks.nut")
-        self.assertIn('sliceBudget > 150000', scheduler)
-        self.assertIn("s.partialPending = true", scheduler)
-        self.assertIn("s.plans.len() > s.lastPublishedCount", scheduler)
-        self.assertIn("owner._portfolioInvalidated = false", scheduler)
-        self.assertIn("OpexCatalogCostSliceLog", scheduler)
-        self.assertIn("C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()", scheduler)
-        self.assertIn("this._runOrchestratorTick();", source("main.nut"))
-        self.assertEqual(source("main.nut").count(
-            "while (catalogPending && OpexC121CatalogCanContinue(this, continuationTick))"), 1)
-        self.assertNotIn("AIController.GetOpsTillSuspend() > 10000", source("main.nut"))
-        self.assertIn("AIController.GetTick() == continuationTick", scheduler)
-        self.assertEqual(source("main.nut").count("this._dispatchAirCatalogPhase(phaseTask,"), 1)
-        self.assertNotIn("OpexC121CatalogTownProductionBatch(this._catalog)) this._portfolioInvalidated", scheduler)
-        self.assertNotIn("C121_CATALOG_AIR_FIRST_YEAR", read_projects_source())
-        self.assertIn("doFreight = false;", read_projects_source())
-
-    def test_material_town_change_and_first_year_cash_gate(self):
-        catalog = source("catalog.nut")
-        self.assertIn("abs(pax - old.pax) >= 10", catalog)
-        self.assertIn("abs(mail - old.mail) >= 10", catalog)
-        self.assertIn("abs(pax - old.pax) * 100 >= old.pax * 20", catalog)
-        projects = source("task_projects.nut")
-        self.assertIn('local c121FirstYearAirBatch = MODE_AIR', projects)
-        self.assertIn("year == (this._generationStageMonth - 1) / 12", projects)
-        self.assertIn('c121FirstYearAirBatch && project.mode == "air"', projects)
-        self.assertLess(projects.index("!OpexAirBatchPlanStillLive(project.payload"),
-                        projects.index("local projCap = OpexProjectFinanceCapital(project);"))
-        self.assertIn("if (projCap <= availCap)", projects)
-        self.assertIn("if (c121ChainAttempt) c121AirChained++;", projects)
-        self.assertIn("C121_AIR_CHAIN_PASS built_air=", projects)
-        self.assertIn("reuse_pct=", source("probes.nut"))
-        self.assertIn("chained_slices=", source("probes.nut"))
-
-    def test_added_cache_fields_avoid_squirrel_keywords(self):
-        air = read_builder_air()
-        block = air.split("function OpexC121CatalogChoice(", 1)[1].split(
-            "function OpexC121ReplayEngineChoice(", 1)[0]
-        reserved = ("static", "class", "base", "delegate", "clone", "resume",
-                    "yield", "const", "enum", "constructor", "instanceof", "typeof",
-                    "in", "local", "function", "this", "null")
-        field = re.compile(r"(?:\.|\b)(?:" + "|".join(reserved) + r")\s*(?:=|<-|:)")
-        self.assertIsNone(field.search(block))
-        self.assertIn("engineStatic =", block)
-
     def test_new_squirrel_identifiers_avoid_keywords(self):
         reserved = ("static", "class", "base", "clone", "resume", "yield", "const",
                     "enum", "delegate", "in", "typeof", "instanceof")

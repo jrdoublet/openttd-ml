@@ -42,27 +42,5 @@ class FixedAirContracts(unittest.TestCase):
         self.assertIn("if (invalidateGeometry) OpexC121InvalidateEndpointGeometry();", coverage)
         self.assertIn("if (invalidateGeometry) OpexAir0310InvalidateSiteValidity();", coverage)
 
-    def test_checkers_and_persisted_strategy_switch_remain(self):
-        info = (AI / "info.nut").read_text(encoding="utf-8")
-        update = (AI / "projects_update.nut").read_text(encoding="utf-8")
-        sites = (AI / "air_sites.nut").read_text(encoding="utf-8")
-        for name in ("v94_air_site_check", "v141_catalog_incremental_check", "c121_air_project_realization_adaptive"):
-            self.assertIn(f'name = "{name}"', info)
-        self.assertIn("if (V94_AIR_SITE_CHECK)", sites)
-        self.assertIn("v141Oracle = OpexProjectFromAir", update)
-        self.assertIn("V141_CATALOG_INCREMENTAL_CHECK && C56_TASK_TRACE", update)
-        self.assertNotIn("local refreshed = OpexProjectFromAir", update)
-
-    def test_sampler_and_fleet_keep_adopted_paths(self):
-        probes = (AI / "probes.nut").read_text(encoding="utf-8")
-        task = (AI / "task_air.nut").read_text(encoding="utf-8")
-        self.assertIn("local skipUnused = !C117_AIR_THROUGHPUT_PROBE;", probes)
-        self.assertIn("OpexC121FirstLiveObserve(line, state, ageDaysLean)", probes)
-        self.assertNotIn("leanView", probes)
-        self.assertNotIn("FLEET_ROUTES_MISMATCH", task)
-        self.assertIn("OpexAirCadenceCapIndexed(line, this._catalog, this._lines, routesIndex)", task)
-        self.assertIn("fleetEntry.v161Neighbours", task)
-
-
 if __name__ == "__main__":
     unittest.main()

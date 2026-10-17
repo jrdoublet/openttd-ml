@@ -121,26 +121,6 @@ class StagingTests(unittest.TestCase):
         self.assertFalse(probe_identity(logs)["pass"])
         self.assertFalse(probe_identity({})["pass"])
 
-    def test_only_instrumentation_in_copy_and_preserved_calls(self):
-        with tempfile.TemporaryDirectory() as d:
-            target = Path(d) / "OpexAI"
-            shutil.copytree(ROOT / "ai/OpexAI", target)
-            before = {p.name: p.read_bytes() for p in target.glob("*.nut")}
-            instrument(target)
-            changed = sorted(name for name, value in before.items() if (target / name).read_bytes() != value)
-            self.assertEqual(changed, ["main.nut", "scheduler_tasks.nut", "task_projects.nut"])
-            after = (target / "task_projects.nut").read_text(encoding="utf-8")
-            original = before["task_projects.nut"].decode("utf-8")
-            for token in ("this._rebuildProjects(fleetPlan)", "OpexIncrementalUpdateProjects(",
-                          "OpexAirBatchPlanStillLive(", "OpexAvailableCapital(", "return true;", "return false;"):
-                self.assertEqual(after.count(token), original.count(token), token)
-            self.assertEqual(after.count("PBOutcome(project, i, attempt.outcome);"), 5)
-            self.assertIn("PBKPassStop(this, project, i, projCap, c75KPass, availCap);", after)
-            self.assertIn('PBEnd("watcher_regen")', after)
-            self.assertIn('PBEnd("rail_pending")', after)
-            self.assertEqual(before["info.nut"], (target / "info.nut").read_bytes())
-            self.assertEqual(before["settings.nut"], (target / "settings.nut").read_bytes())
-
     def test_c121_only_two_experiments_no_strategy(self):
         self.assertEqual(BASE_SETTINGS["c115"], ())
         self.assertEqual(dict(BASE_SETTINGS["c121"]), {"c121_air_economics": 1})

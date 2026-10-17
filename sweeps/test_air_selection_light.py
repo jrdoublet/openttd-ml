@@ -198,56 +198,5 @@ class ReaderTests(unittest.TestCase):
         self.assertIn("--probe", plan["forbidden_cli"])
 
 
-class SourceContracts(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.source = (light.ROOT / "ai/OpexAI/air_planning.nut").read_text(encoding="utf-8")
-        cls.wrapper = cls.source[cls.source.index("function OpexAirPlans(catalog,"):]
-        cls.substeps = cls.source[
-            cls.source.index("function OpexAirPlansStepPrepare("):
-            cls.source.index("function OpexAirPlans(catalog,")
-        ]
-
-    def test_gate_declared_and_loaded_existing_default_off(self):
-        root = light.ROOT / "ai/OpexAI"
-        self.assertIn("CATALOG_COST_PROBE <- false;", (root / "globals_pre.nut").read_text())
-        self.assertIn('CATALOG_COST_PROBE = OpexProbeSetting("catalog_cost_probe") != 0;',
-                      (root / "settings.nut").read_text())
-        self.assertIn("CATALOG_COST_PROBE ? OpexAirLightBegin", self.wrapper)
-        self.assertIn("OPEX_AIR_LIGHT_SEQ <- 0;", self.source)
-
-    def test_no_candidate_or_physical_work_in_probe_helpers(self):
-        block = self.source[self.source.index("OPEX_AIR_LIGHT_SEQ <-"):self.source.index("function OpexAirPlansPrepare")]
-        for forbidden in ("OpexDecide(", "OpexAirEconomics(", "OpexAirFindSite(", "Sleep(",
-                          "DECISION_LOG", "C121_AIR_ECONOMICS", "GetSetting("):
-            self.assertNotIn(forbidden, block)
-        self.assertEqual(block.count("OpexAirLightLog(light.identity"), 1)
-        self.assertEqual(block.count("OpexAirLightLog(fields);"), 1)
-
-    def test_business_helpers_called_once_and_in_order(self):
-        funcs = ("Prepare", "FindSites", "NewPairs", "DiscoverHubs", "HubToSite", "HubToHub", "Finalize")
-        entry_flow = self.substeps + self.wrapper
-        indices = []
-        for name in funcs:
-            call = "OpexAirPlans" + name + "(ctx"
-            self.assertEqual(entry_flow.count(call), 1)
-            indices.append(entry_flow.index(call))
-        self.assertEqual(indices, sorted(indices))
-        for name in ("Prepare", "FindSites", "NewPairs"):
-            self.assertEqual(self.wrapper.count("OpexAirPlansStep" + name + "(ctx"), 1)
-        self.assertEqual(set(re.findall(r'OpexAirLightPhaseEnd\(light, "([a-z_]+)"', entry_flow)), set(light.PHASES))
-
-    def test_all_early_returns_close_measure(self):
-        self.assertEqual(self.wrapper.count("return ctx.bestPlan;"), 5)
-        for reason in ("prepare_return", "sites_yield", "pairs_yield", "hub_site_yield", "hub_hub_yield", "done"):
-            self.assertRegex(self.wrapper, r'OpexAirLightEnd\(light, [^;]+"' + reason + r'"\);')
-
-    def test_existing_selection_measure_not_reimplemented(self):
-        source = (light.ROOT / "ai/OpexAI/projects.nut").read_text(encoding="utf-8")
-        self.assertIn("stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);", source)
-        self.assertIn("cost.selectionOps += stats.selectionOpcodes;", source)
-        self.assertNotIn("selectionOpcodes", self.wrapper)
-
-
 if __name__ == "__main__":
     unittest.main()

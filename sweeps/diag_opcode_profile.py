@@ -13,8 +13,8 @@ ONLY_LIGHT = os.environ.get("OPPROF_ONLY_LIGHT") == "1"
 def main():
     from sweeps import diag_cadence_duel as shared
     arms = {
-        "reference": f"OpexAI[{C121},probe_loop_ops=1,probe_scheduler=1,catalog_cost_probe=1]",
-        "light": f"OpexAI[{C121},probe_loop_ops=1,catalog_cost_probe=1]",
+        "reference": f"OpexAI[{C121},probe_loop_ops=1,probe_scheduler=1]",
+        "light": f"OpexAI[{C121},probe_loop_ops=1]",
     }
     if ONLY_LIGHT:
         # Sous-profil : un seul bras leger, nomme reference pour le collecteur partage.

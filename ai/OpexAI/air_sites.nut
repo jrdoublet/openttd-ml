@@ -187,23 +187,6 @@ function OpexAirRememberTownStationLimit(probes, town, error)
   return true;
 }
 
-/* Copie les compteurs de sondes. stationLimitedTowns est une table partagee avec
- * l'appelant : la copie est independante pour qu'un second scan ne la mute pas. */
-function OpexAirCopySiteProbes(probes)
-{
-  local copy = {};
-  foreach (k, v in probes) {
-    if (typeof v == "table") {
-      local inner = {};
-      foreach (ik, iv in v) inner.rawset(ik, iv);
-      copy.rawset(k, inner);
-    } else {
-      copy.rawset(k, v);
-    }
-  }
-  return copy;
-}
-
 /* Un seul anneau r. Carre [villeÃƒâ€šÃ‚Â±r] moins [villeÃƒâ€šÃ‚Â±(r-1)], meme clamp carte/emprise
  * que le rejet ax+offX >= mapX. Equivalent a DistanceMax(ancre, ville) == r,
  * sans valuer l'interieur.
@@ -589,44 +572,6 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
   return { site = null, used = used, execLevels = execLevels, allowance = allowance };
 }
 
-function OpexAirV94Report(town, legacy, listed, probes, copy)
-{
-  local ancL = legacy.site == null ? -1 : legacy.site.anchor;
-  local ancN = listed.site == null ? -1 : listed.site.anchor;
-  local cheapL = ("cheapSkip" in probes) ? probes.cheapSkip : -1;
-  local cheapN = ("cheapSkip" in copy) ? copy.cheapSkip : -1;
-  local testedL = ("tested" in probes) ? probes.tested : -1;
-  local testedN = ("tested" in copy) ? copy.tested : -1;
-  local limL = 0;
-  local limN = 0;
-  if (("stationLimitedTowns" in probes) && (town.id in probes.stationLimitedTowns)) limL = 1;
-  if (("stationLimitedTowns" in copy) && (town.id in copy.stationLimitedTowns)) limN = 1;
-  local same = ancL == ancN && legacy.used == listed.used && legacy.execLevels == listed.execLevels
-      && legacy.allowance == listed.allowance
-      && probes.left == copy.left && probes.townsLeft == copy.townsLeft
-      && cheapL == cheapN && testedL == testedN && limL == limN;
-  AILog.Info("V94_CHECK " + (same ? "OK" : "DIFF")
-      + " town=" + town.id
-      + " anchor=" + ancL + "/" + ancN
-      + " used=" + legacy.used + "/" + listed.used
-      + " left=" + probes.left + "/" + copy.left
-      + " tested=" + testedL + "/" + testedN
-      + " cheap=" + cheapL + "/" + cheapN
-      + " exec=" + legacy.execLevels + "/" + listed.execLevels
-      + " allow=" + legacy.allowance + "/" + listed.allowance
-      + " lim=" + limL + "/" + limN);
-}
-
-/* Le scan historique a deja decide. Le second passage ne touche pas le cache
- * et travaille sur la copie des sondes prise avant ce scan. */
-function OpexAirV94Finish(town, airport, requiredSlotTownId, probes, copy, key, site, used, execLevels, allowance)
-{
-  local legacy = { site = site, used = used, execLevels = execLevels, allowance = allowance };
-  local listed = OpexAirFindSiteListed(town, airport, copy, requiredSlotTownId, key, false);
-  OpexAirV94Report(town, legacy, listed, probes, copy);
-  return site;
-}
-
 /* Trouve la premiere ancre constructible, par couronnes autour de la ville. L'ancre est bien le
  * coin haut-gauche attendu par BuildAirport. La couverture est testee contre le rectangle entier,
  * pas seulement contre son coin. */
@@ -712,15 +657,10 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
     delete AIR_SITE_CACHE[key];
   }
 
-  /* C96 reste prioritaire. Le chemin historique V94 et son comparateur sont
-   * conserves ensemble ; au defaut ils etaient deja court-circuites par C96. */
-  local v94Copy = null;
-  if (V94_AIR_SITE_CHECK) v94Copy = OpexAirCopySiteProbes(probes);
+  /* C96 reste prioritaire. Le chemin historique V94 est conserve (V237) ; au
+   * defaut il etait deja court-circuite par C96. Son comparateur est retire (V239). */
   {
     return OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownId, key, useSiteCache).site;
-  }
-  if (!V94_AIR_SITE_CHECK) {
-    return OpexAirFindSiteListed(town, airport, probes, requiredSlotTownId, key, useSiteCache).site;
   }
 
   /* Le budget global reste borne, mais il est partage entre les villes encore
@@ -785,12 +725,10 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
         if (used >= allowance) {
           OpexAirC78NoteNoSite(probes, "no_site_budget");
           if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-          if (V94_AIR_SITE_CHECK) return OpexAirV94Finish(town, airport, requiredSlotTownId, probes, v94Copy, key, null, used, execLevels, allowance);
           return null;
         }
         if (probes.left <= 0) {
           OpexAirC78NoteNoSite(probes, "no_site_budget");
-          if (V94_AIR_SITE_CHECK) return OpexAirV94Finish(town, airport, requiredSlotTownId, probes, v94Copy, key, null, used, execLevels, allowance);
           return null;
         }
 
@@ -804,7 +742,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
             local err = AIError.GetLastError();
             if (OpexAirRememberTownStationLimit(probes, town, err)) {
               if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-              if (V94_AIR_SITE_CHECK) return OpexAirV94Finish(town, airport, requiredSlotTownId, probes, v94Copy, key, null, used, execLevels, allowance);
               return null;
             } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
                 OpexAirFootprintIsFlat(anchor, airport)) {
@@ -826,7 +763,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
             local err = AIError.GetLastError();
             if (OpexAirRememberTownStationLimit(probes, town, err)) {
               if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-              if (V94_AIR_SITE_CHECK) return OpexAirV94Finish(town, airport, requiredSlotTownId, probes, v94Copy, key, null, used, execLevels, allowance);
               return null;
             } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
               ok = true;
@@ -837,7 +773,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
                 local retryErr = AIError.GetLastError();
                 if (OpexAirRememberTownStationLimit(probes, town, retryErr)) {
                   if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-                  if (V94_AIR_SITE_CHECK) return OpexAirV94Finish(town, airport, requiredSlotTownId, probes, v94Copy, key, null, used, execLevels, allowance);
                   return null;
                 }
                 if (retryErr == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
@@ -851,7 +786,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
         if (ok) {
           if (useSiteCache) AIR_SITE_CACHE[key] <- anchor;
           local found = { town = town, anchor = anchor };
-          if (V94_AIR_SITE_CHECK) return OpexAirV94Finish(town, airport, requiredSlotTownId, probes, v94Copy, key, found, used, execLevels, allowance);
           return found;
         }
       }
@@ -860,7 +794,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
   if (useSiteCache && (used >= allowance || probes.left > 0)) {
     AIR_SITE_CACHE[key] <- null;
   }
-  if (V94_AIR_SITE_CHECK) return OpexAirV94Finish(town, airport, requiredSlotTownId, probes, v94Copy, key, null, used, execLevels, allowance);
   return null;
 }
 

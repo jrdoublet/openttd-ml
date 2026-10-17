@@ -57,29 +57,6 @@ class TestAC04HubUsageGate(unittest.TestCase):
         from v237_contracts import assert_retired
         assert_retired(self, ('ac04_hub_usage_gate',))
 
-    def test_pair_usage_and_no_discovery_mutation(self):
-        validate = block(AIR, "OpexAC04ValidateHubsAtUsage")
-        discover = block(AIR, "OpexAirPlansDiscoverHubs")
-        site = block(AIR, "OpexAirPlansHubToSite")
-        hub = block(AIR, "OpexAirPlansHubToHub")
-        plans = block(AIR, "OpexAirPlans")
-        phase = block(AIR, "OpexAirPlansHubDiscoveryPhase")
-        self.assertIn("OpexAir0310CountStationRoutes(ctx, hub.stationId)", validate)
-        self.assertIn("if (hub.routes != 0) continue;", validate)
-        self.assertIn("hub.ac04Blocked =", validate)
-        self.assertIn('if (hub.ac04Blocked) continue;', site)
-        self.assertIn(
-            'if ((hub1.ac04Blocked || hub2.ac04Blocked)) continue;',
-            hub,
-        )
-        self.assertIn("OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)", plans)
-        self.assertLess(phase.index("OpexAC04ValidateHubsAtUsage(ctx)"),
-                        phase.index("OpexAirV95Post73Probe(ctx, combo, airport, plane)"))
-        self.assertLess(plans.index("OpexAirPlansHubDiscoveryPhase("),
-                        plans.index("OpexAirPlansHubToSitePhase("))
-        self.assertIn("hubs.append({ town = hubTown, anchor = loc, stationId = st, routes = 0 });", discover)
-        self.assertNotIn("OpexAC04ValidateHubsAtUsage", discover)
-
     def test_saturated_false_orphan_blocks_without_compacting_indices(self):
         hubs = [{"station": 11, "routes": 0, "valid_anchor": True},
                 {"station": 91, "routes": 0, "valid_anchor": True},

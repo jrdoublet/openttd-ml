@@ -11,35 +11,6 @@
  */
 const C121_RAIL_PREP_MAX = 3;
 
-/* Journal date seulement sous catalog_cost_probe. Aucun appel de date, de
- * caisse ou de parcours du portefeuille hors de cette garde. */
-function OpexC121RailPrepLog(ai, kind, ops, ticks)
-{
-  if (!(MODE_AIR && MODE_RAIL) || !CATALOG_COST_PROBE) return;
-  local date = AIDate.GetCurrentDate();
-  local year = AIDate.GetYear(date);
-  local month = AIDate.GetMonth(date);
-  local day = AIDate.GetDayOfMonth(date);
-  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local avail = OpexAvailableCapital();
-  local airCap = -1;
-  local stock = 0;
-  if (ai != null) {
-    airCap = ai._c121RailPrepMinAirCap;
-    if (ai._railReadyStock != null) stock = ai._railReadyStock.len();
-  }
-  if (ops == null) ops = 0;
-  if (ticks == null) ticks = 0;
-  AILog.Info("OPEX " + year + "-" + month + "-" + day
-      + " RAIL_PREP k=" + kind
-      + " cash=" + cash
-      + " avail=" + avail
-      + " air_cap=" + airCap
-      + " stock=" + stock
-      + " ops=" + ops
-      + " ticks=" + ticks);
-}
-
 /* Moindre capital finançable des plans AIR encore vivants, dans tout le vivier
  * (pas seulement best, qui est deja filtre par la caisse). -1 si aucun. */
 function OpexAI::_c121CheapestLivingAirCap()
@@ -136,7 +107,6 @@ function OpexAI::_c121RailPrepDropStock(candidate, reason, ops, ticks)
   }
   if ("railPlan" in candidate) candidate.railPlan = null;
   if ("c121PrepStock" in candidate) candidate.c121PrepStock = false;
-  OpexC121RailPrepLog(this, "stock_dropped", ops, ticks);
   this._c121RailPrepRememberStock();
 }
 
@@ -161,7 +131,6 @@ function OpexAI::_c121RailPrepOnPassStart()
     this._c121RailPrepHold = true;
     if (!this._c121RailPrepYieldLogged) {
       this._c121RailPrepYieldLogged = true;
-      OpexC121RailPrepLog(this, "yield_to_air", 0, 0);
     }
     return;
   }
@@ -195,14 +164,12 @@ function OpexAI::_c121RailPrepAfterProjectsPass()
       this._c121RailPrepHold = true;
       if (!this._c121RailPrepYieldLogged) {
         this._c121RailPrepYieldLogged = true;
-        OpexC121RailPrepLog(this, "yield_to_air", ops, ticks);
       }
     }
     return;
   }
   if (this._railSearch != null) return;
   if (this._c121RailPrepMinAirCap < 0) return;
-  OpexC121RailPrepLog(this, "trigger", ops, ticks);
   this._c121RailPrepMaybeCatalog();
   this._tryStartC121RailPrepSearch();
 }
@@ -229,7 +196,6 @@ function OpexAI::_c121RailPrepMaybeCatalog()
   this._c121RailPrepMonth = stamp;
   local ops = OpexOpsMeasureEnd(mark);
   local ticks = AIController.GetTick() - mark.tick;
-  OpexC121RailPrepLog(this, "catalog" + " n=" + ranked.len(), ops, ticks);
 }
 
 /* Vrai si ce candidat ne doit pas recevoir d'A* de preparation. */
@@ -264,14 +230,12 @@ function OpexAI::_tryStartC121RailPrepSearch()
   if (!C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
   if (this._railSearch != null) return false;
   if (this._activeWorker != null && this._activeWorker.kind != "rail_stock") {
-    OpexC121RailPrepLog(this, "astar_none worker=" + this._activeWorker.kind, 0, 0);
     return false;
   }
   if (this._c121RailPrepAirFundableCheap()) return false;
   if (this._railReadyStock != null && this._railReadyStock.len() >= C121_RAIL_PREP_MAX) return false;
   local ranked = this._c121RailPrepCandidates;
   if (ranked == null || ranked.len() == 0) {
-    OpexC121RailPrepLog(this, "astar_none ranked=0", 0, 0);
     return false;
   }
   local curDate = AIDate.GetCurrentDate();
@@ -289,12 +253,9 @@ function OpexAI::_tryStartC121RailPrepSearch()
       started = true;
       break;
     }
-    OpexC121RailPrepLog(this, "astar_fail", OpexOpsMeasureEnd(mark), AIController.GetTick() - mark.tick);
     mark = OpexOpsMeasureBegin();
   }
   local ops = OpexOpsMeasureEnd(mark);
   local ticks = AIController.GetTick() - mark.tick;
-  if (started) OpexC121RailPrepLog(this, "astar_start", ops, ticks);
-  else OpexC121RailPrepLog(this, "astar_none blocked=" + limit, ops, ticks);
   return started;
 }

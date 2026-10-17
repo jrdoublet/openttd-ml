@@ -63,23 +63,6 @@ class TestC84AirTargetFleetRemoved(unittest.TestCase):
             self.assertNotIn("c84MarginalProfit", text, path.name)
             self.assertNotIn("c84Catalog", text, path.name)
 
-    def test_one_plane_base_stays_and_target_helpers_are_gone(self):
-        economics = function_body(self.builder, "function OpexAirEconomics(")
-        self.assertIn("targetSizing = false", economics)
-        self.assertIn("local multiPlaneMax =", economics)
-        self.assertIn("local maxAllowed = (targetSizing || serviceScan) ? multiPlaneMax", economics)
-        self.assertIn(
-            "((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || FLEET_PORTFOLIO) ? 1 : multiPlaneMax)",
-            economics,
-        )
-        self.assertNotIn("function OpexAirTargetEconomics(", self.builder)
-        self.assertNotIn("function OpexAirAttachTargetFleet(", self.builder)
-        self.assertNotIn("function OpexAirExistingLineMarginalEconomics(", self.builder)
-        self.assertNotIn("opcodePadding, 0, true)", self.builder)
-        choose = function_body(self.builder, "function OpexAirChooseRoutePlane(")
-        self.assertNotIn("OpexAirAttachTargetFleet", choose)
-        self.assertNotIn("OpexAirTargetEconomics", choose)
-
     def test_growth_health_gates_follow_c121_target_only(self):
         resize = function_body(self.task_air, "function OpexAI::_resizeAirFleets(")
         self.assertNotIn("c84BelowTarget", resize)

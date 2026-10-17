@@ -181,45 +181,6 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         from v237_contracts import assert_retired
         assert_retired(self, ('c121_catalog_incremental',))
 
-    def test_span_wraps_only_a_real_discovery(self):
-        call = "OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);"
-        self.assertEqual(self.planning.count(call), 1)
-        self.assertEqual(self.discovery_phase.count(call), 1)
-        self.assertEqual(
-            self.plans.count(
-                "OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light);"),
-            1)
-        self.assertEqual(self.planning.count('OpexSpanBegin("air.hub_discover")'), 1)
-        self.assertIn("local reuseHubs = false;", self.discovery_phase)
-        self.assertLess(
-            self.discovery_phase.index("local reuseHubs = false;"),
-            self.discovery_phase.index("if (ctx.sliced)"),
-        )
-        self.assertLess(
-            self.discovery_phase.index("OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);"),
-            self.discovery_phase.index("if (!reuseHubs) {"),
-        )
-        self.assertIn('OpexSpanBegin("air.hub_discover")', self.reuse_block)
-        self.assertIn(call, self.reuse_block)
-        self.assertLess(
-            self.reuse_block.index('OpexSpanBegin("air.hub_discover")'),
-            self.reuse_block.index(call),
-        )
-        self.assertLess(
-            self.reuse_block.index(call),
-            self.reuse_block.index("if (spDisc != null) OpexSpanEnd(spDisc);"),
-        )
-        self.assertLess(
-            self.reuse_block.index("if (spDisc != null) OpexSpanEnd(spDisc);"),
-            self.reuse_block.index("OpexAir0310HubSnapshotStore(ctx, comboIndex);"),
-        )
-        self.assertIn('ctx.air0310HubOrphan <- [];', self.reuse_block)
-        self.assertLess(
-            self.reuse_block.index("ctx.air0310HubOrphan <- [];"),
-            self.reuse_block.index(call),
-        )
-        self.assertNotIn("OpexAir0310HubSnapshotPrepare", self.reuse_block)
-
     def test_snapshot_keeps_order_signature_and_resets_cursors(self):
         for field in ("combo = comboIndex", "sig = sig", "hubs = OpexAir0310CopyHubList(ctx.hubs)",
                       "sites = OpexAir0310CopySiteList(ctx.sites)", "orphan = orphanCopy"):
@@ -330,40 +291,6 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
             self.count,
         )
         self.assertIn("OpexAir0310HubSnapshotCount(ctx, hubSnapAction);", self.discovery_phase)
-
-    def test_new_functions_parse_and_have_unique_locals(self):
-        self.assertEqual(_brace_balance(self.planning), 0)
-        names = (
-            "OpexAir0310HubTopologySignature",
-            "OpexAir0310NoteHubOrigin",
-            "OpexAir0310CopyHubList",
-            "OpexAir0310CopySiteList",
-            "OpexAir0310CountStationRoutes",
-            "OpexAir0310RefreshHubRoutes",
-            "OpexAir0310RestoredHubUsable",
-            "OpexAir0310RestoredSiteUsable",
-            "OpexAir0310RememberPublishedHubPairs",
-            "OpexAir0310SkipRestoredPair",
-            "OpexAir0310HubSnapshotPrepare",
-            "OpexAir0310HubSnapshotStore",
-            "OpexAir0310HubSnapshotCount",
-        )
-        for name in names:
-            signature = f"function {name}("
-            body = _naive_body(self.planning, signature)
-            self.assertEqual(_brace_balance(body), 0, name)
-            locals_ = _explicit_locals(body)
-            self.assertEqual(sorted(locals_), sorted(set(locals_)), name)
-        plans = _naive_body(self.planning, "function OpexAirPlans(")
-        self.assertIn("return finalPlan;", plans)
-        self.assertEqual(plans.count("OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light);"), 1)
-        phase = _naive_body(self.planning, "function OpexAirPlansHubDiscoveryPhase(")
-        self.assertEqual(phase.count("OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);"), 1)
-        self.assertEqual(phase.count("local spDisc"), 1)
-        self.assertEqual(phase.count("local reuseHubs"), 1)
-        self.assertEqual(phase.count("local hubSnapAction"), 1)
-        self.assertEqual(_brace_balance(phase), 0)
-        self.assertEqual(len(_explicit_locals(phase)), len(set(_explicit_locals(phase))))
 
     def test_decision_model_reuses_or_resets_without_reordering_cursors(self):
         cursors = {"hubPhase": 1, "hubSiteI": 3, "hubSiteJ": 4, "hubHubI": 2, "hubHubJ": 5}

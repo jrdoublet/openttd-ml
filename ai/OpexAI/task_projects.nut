@@ -320,68 +320,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
                   + " v161_model=" + project.v161ModelPerPlane : ""));
   }
   AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added + " replaced=" + replaced);
-  if (C121_KDEC_COLD_SHADOW && added > 0 && ("c121MarginalSamples" in line)) {
-    local date = AIDate.GetCurrentDate();
-    AILog.Info("C121_KDEC_COLD_FUNDED line=" + line.lineId + " added=" + added
-        + " samples=" + line.c121MarginalSamples + " year=" + AIDate.GetYear(date)
-        + " month=" + AIDate.GetMonth(date) + " day=" + AIDate.GetDayOfMonth(date));
-  }
   return { outcome = "built", discards = passDiscards };
-}
-
-/* C121 cadence : mesure l'opportunity cost d'un premier renfort live.
- * La sonde garde la premiere nouvelle ligne AIR encore classee APRES la flotte. La garde
- * causale, elle, ne consomme ce signal que lorsque cette ligne est IMMEDIATEMENT suivante
- * et qu'aucun chantier n'a encore ete construit dans la passe : on protege ainsi une
- * substitution réellement atteignable, pas un AIR distant qui pourrait etre bloque par
- * un projet intermediaire ou K_pass. */
-function OpexC121FirstLiveAirOpportunity(projects, project, rank, lines)
-{
-  if (projects == null || !("best" in projects) || project == null
-      || !("payload" in project) || project.payload == null
-      || !("c121FirstLive" in project.payload) || !project.payload.c121FirstLive) return null;
-  local available = OpexAvailableCapital();
-  local fleetCap = OpexProjectFinanceCapital(project);
-  for (local j = rank + 1; j < projects.best.len(); j++) {
-    local next = projects.best[j];
-    if (next == null || !("mode" in next) || next.mode != "air") continue;
-    if (!("payload" in next) || next.payload == null
-        || !OpexAirBatchPlanStillLive(next.payload, lines)) continue;
-    local airCap = OpexProjectFinanceCapital(next);
-    if (airCap <= 0) continue;
-    return {
-      nextRank = j, available = available, fleetCap = fleetCap, airCap = airCap,
-      airFundableNow = airCap <= available,
-      displaced = airCap <= available && fleetCap + airCap > available,
-    };
-  }
-  return { nextRank = -1, available = available, fleetCap = fleetCap, airCap = 0,
-           airFundableNow = false, displaced = false };
-}
-
-/* C121 cadence : shadow borné du premier arrêt de passe C75/K_pass.
- * Le journal montre ce qui bloque maintenant et ce que la boucle aurait vu ensuite
- * si elle n'avait pas break. Aucun tri, aucune mutation, aucun changement de décision. */
-function OpexC121KPassShadow(projects, project, rank, projCap, kPass, available, reason)
-{
-  if (!C121_KPASS_SHADOW || projects == null || !("best" in projects)
-      || project == null) return;
-  local lineId = -1;
-  if (project.mode == "fleet" && ("payload" in project) && project.payload != null
-      && ("line" in project.payload) && project.payload.line != null
-      && ("lineId" in project.payload.line)) lineId = project.payload.line.lineId;
-  local tail = "";
-  local end = rank + 6;
-  if (end > projects.best.len()) end = projects.best.len();
-  for (local j = rank + 1; j < end; j++) {
-    local next = projects.best[j];
-    if (next == null) continue;
-    local cap = OpexProjectFinanceCapital(next);
-    tail += " p" + j + "=" + next.mode + ":" + cap + ":" + (cap <= available ? 1 : 0);
-  }
-  AILog.Info("C121_KPASS_SHADOW reason=" + reason + " next_mode=" + project.mode
-      + " rank=" + rank + " line=" + lineId + " finance=" + projCap
-      + " k_pass=" + kPass + " available=" + available + tail);
 }
 
 /* C39.5 : conserve, par cle stable, le premier jour de la fenetre courante ou un projet du
@@ -392,7 +331,7 @@ function OpexC121KPassShadow(projects, project, rank, projCap, kPass, available,
  * concurrence caisse) :
  *   - since    : date du premier jour finançable (comportement d'origine, inchange) ;
  *   - topSince : date du premier jour ou ce projet etait le MEILLEUR projet finançable, i.e. le
- *                premier de this._projects.best (indice le plus bas) dont capital <= available ;
+ *                premier du classement best du portefeuille (indice le plus bas) dont capital <= available ;
  *                -1 tant qu'il ne l'a jamais ete. Meme definition que bestRank de C41.48
  *                (C41_RAIL_DOMINATION_PROBE) : rester comparable entre les deux sondes ;
  *   - turns / topTurns : nombre de dispatches de la tache `projects` observes depuis since /
@@ -1367,10 +1306,6 @@ function OpexAI::_tryBuildProjects(year)
   local c121AirBuilt = 0;
   local c121AirChained = 0;
   local c121DeadSkipped = 0;
-  /* Sonde PROJECTS_COST (catalog_cost_probe) : repartition des opcodes d'une passe. */
-  local pcost = CATALOG_COST_PROBE
-      ? { mark = OpexOpsMeasureBegin(), buildOps = 0, fleetOps = 0, regenOps = 0, regenKind = "none" }
-      : null;
   if (C75_KPASS_BYPASS) OpexC75BypassEnsureYear(year);
   if (C75_TRACK_PASSES) {
     local now = AIDate.GetCurrentDate();
@@ -1536,29 +1471,6 @@ function OpexAI::_tryBuildProjects(year)
     local project = this._projects.best[i];
     if (project == null) continue;
     local c121LiveOpp = null;
-    if (C121_AIR_FIRST_LIVE_SHADOW
-        && project.mode == "fleet"
-        && ("payload" in project) && project.payload != null
-        && ("c121FirstLive" in project.payload) && project.payload.c121FirstLive) {
-      c121LiveOpp = OpexC121FirstLiveAirOpportunity(this._projects, project, i, this._lines);
-      if (c121LiveOpp != null) {
-        local liveLine = project.payload.line;
-        local liveLineId = (liveLine != null && ("lineId" in liveLine)) ? liveLine.lineId : -1;
-        local liveSig = c121LiveOpp.nextRank + ":" + (c121LiveOpp.airFundableNow ? 1 : 0)
-            + ":" + (c121LiveOpp.displaced ? 1 : 0);
-        if (!(liveLineId in C121_AIR_FIRST_LIVE_PRIORITY_STATE)
-            || C121_AIR_FIRST_LIVE_PRIORITY_STATE[liveLineId] != liveSig) {
-          C121_AIR_FIRST_LIVE_PRIORITY_STATE.rawset(liveLineId, liveSig);
-          AILog.Info("C121_FIRST_LIVE_PRIORITY line=" + liveLineId + " rank=" + i
-              + " fleet_cap=" + c121LiveOpp.fleetCap + " available=" + c121LiveOpp.available
-              + " next_air_rank=" + c121LiveOpp.nextRank + " air_cap=" + c121LiveOpp.airCap
-              + " air_fundable=" + (c121LiveOpp.airFundableNow ? 1 : 0)
-              + " displaced=" + (c121LiveOpp.displaced ? 1 : 0)
-              + " immediate=" + (c121LiveOpp.nextRank == i + 1 ? 1 : 0)
-              + " built_before=" + builtCount);
-        }
-      }
-    }
     if (C75_MULTI_BUILD && (OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
 
     local r1r3BypassBefore = false;
@@ -1640,11 +1552,6 @@ function OpexAI::_tryBuildProjects(year)
                 + " reason=" + c75StopReason + " next_rank=" + i + " next_mode=" + project.mode
                 + " finance=" + projCap + " threshold=" + c75KPass
                 + (availCap >= 0 ? " available=" + availCap : ""));
-          }
-          if (C121_KPASS_SHADOW) {
-            local c121StopAvailable = availCap >= 0 ? availCap : OpexAvailableCapital();
-            OpexC121KPassShadow(this._projects, project, i, projCap, c75KPass,
-                               c121StopAvailable, c75StopReason);
           }
           break;
         }
@@ -1915,16 +1822,6 @@ function OpexAI::_tryBuildProjects(year)
   this._finalizeProjectsPassDiagnostics(builtCount, c49Best, c49BuiltRanks,
       c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, true,
       c75StopReason);
-  if (c121FirstYearAirBatch && CATALOG_COST_PROBE) {
-    local c121Date = AIDate.GetCurrentDate();
-    AILog.Info("OPEX " + AIDate.GetYear(c121Date) + "-"
-        + AIDate.GetMonth(c121Date) + "-" + AIDate.GetDayOfMonth(c121Date)
-        + " C121_AIR_CHAIN_PASS built_air=" + c121AirBuilt
-        + " chained_air=" + c121AirChained
-        + " dead_skipped=" + c121DeadSkipped
-        + " total_built=" + builtCount
-        + " stop=" + (c75StopReason != null ? c75StopReason : "none"));
-  }
   if (C69_TRACK_BUILDS && builtCount > 0) {
     this._recordC69BuildingPass(year, c69PassProjects != null ? c69PassProjects : this._projects, c69BuiltProjects);
   }
@@ -1938,23 +1835,12 @@ function OpexAI::_tryBuildProjects(year)
    * directement par _markPairAbandoned, couvrant tous les chemins (air, route, rail
    * bloquant et reprenable via _consumeRailSearch). */
   local hadAbandons = this._hadAbandonsThisPass;
-  if (pcost != null) {
-    pcost.buildOps = OpexOpsMeasureEnd(pcost.mark);
-    pcost.mark = OpexOpsMeasureBegin();
-  }
   if (builtCount > 0 || hadAbandons) {
     local fleetPlan = null;
     if (FLEET_PORTFOLIO) {
       /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
-    }
-    if (pcost != null) {
-      pcost.fleetOps = OpexOpsMeasureEnd(pcost.mark);
-      pcost.mark = OpexOpsMeasureBegin();
-      pcost.regenKind = (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) ? "staged_full"
-          : ((PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects))
-              ? "incremental" : "full");
     }
     local spPost = null;
     if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
@@ -2007,7 +1893,6 @@ function OpexAI::_tryBuildProjects(year)
         this._c76RecordRegen("full", c76Ops, c76Days, year, "post_build");
       }
     }
-    if (pcost != null) pcost.regenOps = OpexOpsMeasureEnd(pcost.mark);
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
     /* Champ knapsackExact legacy : aucun solveur knapsack/B&B n'existe encore. projects.nut
@@ -2029,7 +1914,6 @@ function OpexAI::_tryBuildProjects(year)
     if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
       this._tryStartRailStockWorker();
     }
-    if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
     if (spPass != null) {
       local stopTok = c75StopReason != null ? c75StopReason : (builtCount > 0 ? "built" : "list_end");
       OpexSpanEvent("projects_stop", "reason=" + stopTok);
@@ -2042,7 +1926,6 @@ function OpexAI::_tryBuildProjects(year)
     }
     return true;
   }
-  if (pcost != null) OpexProjectsCostLog(pcost, builtCount, c75StopReason);
   if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
     this._tryStartRailStockWorker();
   }

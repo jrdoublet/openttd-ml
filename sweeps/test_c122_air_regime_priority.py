@@ -113,52 +113,6 @@ class TestC122AirRegimePriority(unittest.TestCase):
         self.assertIn("if (priorRegimeTier > projectRegimeTier && !economicKeepsPrior) {", insert)
         self.assertIn("else if (priorRegimeTier < projectRegimeTier && economicKeepsPrior)", insert)
 
-    def test_new_town_annotation_reuses_defensive_state_without_new_scan(self):
-        refresh = body(PROJECTS, "function OpexProjectRefreshDefensiveSlot", "function OpexProjectDefensiveAirPriority")
-        self.assertIn("local newTownClaims = 0;", refresh)
-        self.assertIn("C121_AIR_PRESSURE_PROBE || C122_AIR_REGIME_SHADOW", refresh)
-        self.assertIn("|| C122_AIR_REGIME_SHADOW", refresh)
-        self.assertIn("local newTowns = observeNewTowns ? {} : null;", refresh)
-        self.assertIn("!(townA in state.servedTowns)", refresh)
-        self.assertIn("!(townB in state.servedTowns)", refresh)
-        self.assertIn("if (observeNewTowns) {", refresh)
-        self.assertIn('OpexProjectSetEarlySlotField(project, "defensiveNewTownClaims", newTownClaims);', refresh)
-        for forbidden in ("AIStationList", "AITownList", "AITileList", "OpexAirFindSite", "AIEngineList"):
-            self.assertNotIn(forbidden, refresh)
-
-    def test_passive_exposure_probe_never_enables_c122_priority(self):
-        probe = body(PROJECTS, "function OpexC122ProbeExposure", "/* C116.2")
-        self.assertIn("!C121_AIR_PRESSURE_PROBE", probe)
-        self.assertNotIn("return OpexC122AirRegimePriority", probe)
-        self.assertIn('("defensiveNewTownClaims" in project)', probe)
-        self.assertIn("potentialInversions", probe)
-        self.assertIn("same_tier_blockers", probe)
-        self.assertIn('AILog.Info("C122_EXPOSURE', probe)
-        for forbidden in ("AITownList", "AIStationList", "AITileList", "OpexAirFindSite", "AIEngineList"):
-            self.assertNotIn(forbidden, probe)
-
-        select = body(PROJECTS, "function OpexProjectSelectAffordable", "/* Early-slot")
-        self.assertIn("OpexC122ProbeExposure(affordable);", select)
-        self.assertNotIn("OpexAirBatchTownReserve", select)
-        self.assertIn("if (C69_BOTTLENECK_PROBE)", select)
-
-    def test_exact_shadow_compares_without_reordering(self):
-        insert = body(
-            PROJECTS,
-            "function OpexProjectInsertDefensive",
-            "function OpexPromoteLiveDefensiveAir",
-        )
-        self.assertIn("if (C122_AIR_REGIME_SHADOW", insert)
-        self.assertIn('OpexC122TraceShadow("prior"', insert)
-        self.assertIn('OpexC122TraceShadow("project"', insert)
-        shadow_branch = insert[insert.index("if (C122_AIR_REGIME_SHADOW"):]
-        shadow_branch = shadow_branch[:shadow_branch.index("    if (priorScore > projectScore)")]
-        self.assertNotIn("pos--;", shadow_branch)
-        self.assertNotIn("break;", shadow_branch)
-        shadow = body(PROJECTS, "function OpexC122TraceShadow", "/* C122.3 diagnostic")
-        self.assertIn('AILog.Info("C122_SHADOW', shadow)
-        self.assertIn('!C122_AIR_REGIME_SHADOW || field != "fundScore"', shadow)
-
     def test_c122_4_threat_probe_is_local_passive_and_tracks_real_slot_closure(self):
         match = body(
             TASK_PROJECTS,

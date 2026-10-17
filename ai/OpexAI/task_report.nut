@@ -20,14 +20,6 @@ function OpexC121ObserveLineRealization(line, year, vehCount, currentRevenue, c1
     local ratioPm = (normalizedRevenue * 1000.0 / line.c121RawRevenueAnnual.tofloat()).tointeger();
     line.c121RealizationPm <- ratioPm;
     line.c121RealizationYear <- year;
-    if (C121_AIR_ENGINE_REPLAY_SHADOW && ("c121EngineId" in line)) {
-      AILog.Info("C121_ENGINE_REALIZATION line=" + line.lineId
-          + " year=" + year + " engine=" + line.c121EngineId
-          + " arm=" + line.c121Arm + " n0=" + c121N0 + " n=" + vehCount
-          + " raw_revenue=" + line.c121RawRevenueAnnual
-          + " observed_revenue=" + normalizedRevenue.tointeger()
-          + " ratio_pm=" + ratioPm);
-    }
     c121RealizationSums[line.c121Arm][0] += ratioPm;
     c121RealizationSums[line.c121Arm][1]++;
   }
@@ -504,93 +496,6 @@ function OpexAI::_reportLines(year)
        * rotations par ligne : moving/load sont donc des indices d'utilisation, pas une
        * mesure de cadence annuelle. Le bloc reste sous DECISION_LOG afin que le chemin
        * default (decision_log=0, c98=0) n'execute aucun opcode supplementaire par ligne. */
-      if (C98_AIR_REALIZED_PROBE && lMode == "air") {
-        local predN = ("predTrains" in line) ? line.predTrains : 0;
-        local predDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
-        local predCarried = ("predCarried" in line) ? line.predCarried : 0;
-        local predAmort = ("predAmort" in line) ? line.predAmort : 0;
-        local predHeadway = (predN > 0 && predDays > 0) ? (2.0 * predDays.tofloat()) / predN.tofloat() : 0.0;
-        local predRating = predHeadway > 0 ? OpexStationRatingForHeadway(predHeadway) : -1;
-        local predTripsPerMonth = predDays > 0 ? 30.4 / predDays.tofloat() : 0.0;
-
-        local paxLoad = 0;
-        local paxCap = 0;
-        local mailLoad = 0;
-        local mailCap = 0;
-        local moving = 0;
-        local depot = 0;
-        local speedSum = 0;
-        local speedN = 0;
-        local currentEngine = ("planeId" in line) ? line.planeId : -1;
-        foreach (v in vehicles) {
-          if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
-          currentEngine = AIVehicle.GetEngineType(v);
-          local pCap = AIVehicle.GetCapacity(v, line.cargo);
-          if (pCap > 0) {
-            paxCap += pCap;
-            paxLoad += AIVehicle.GetCargoLoad(v, line.cargo);
-          }
-          if (("mailCargo" in this._catalog) && this._catalog.mailCargo >= 0
-              && AICargo.IsValidCargo(this._catalog.mailCargo)) {
-            local mCap = AIVehicle.GetCapacity(v, this._catalog.mailCargo);
-            if (mCap > 0) {
-              mailCap += mCap;
-              mailLoad += AIVehicle.GetCargoLoad(v, this._catalog.mailCargo);
-            }
-          }
-          if (AIVehicle.IsStoppedInDepot(v)) depot++;
-          local curSpeed = AIVehicle.GetCurrentSpeed(v);
-          if (curSpeed > 0) {
-            moving++;
-            speedSum += curSpeed;
-            speedN++;
-          }
-        }
-        local enginePrice = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetPrice(currentEngine) : -1;
-        local engineSpeed = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetMaxSpeed(currentEngine) : -1;
-        local engineCapacity = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetCapacity(currentEngine) : -1;
-        local engineRunning = AIEngine.IsValidEngine(currentEngine) ? AIEngine.GetRunningCost(currentEngine) : -1;
-        local planeSpeedDiv = OpexPlaneSpeedDivisor();
-        local stationIdA = OpexAirLineStationId(line, 0);
-        local stationIdB = OpexAirLineStationId(line, 1);
-        local liveRoutesA = OpexAirLiveRoutesAtAirport(line.stationA, this._lines);
-        local liveRoutesB = OpexAirLiveRoutesAtAirport(line.stationB, this._lines);
-        local paxWaitingA = AIStation.IsValidStation(stationIdA) ? AIStation.GetCargoWaiting(stationIdA, line.cargo) : -1;
-        local paxWaitingB = AIStation.IsValidStation(stationIdB) ? AIStation.GetCargoWaiting(stationIdB, line.cargo) : -1;
-        local mailWaitingA = -1;
-        local mailWaitingB = -1;
-        if (("mailCargo" in this._catalog) && this._catalog.mailCargo >= 0
-            && AICargo.IsValidCargo(this._catalog.mailCargo)) {
-          if (AIStation.IsValidStation(stationIdA)) mailWaitingA = AIStation.GetCargoWaiting(stationIdA, this._catalog.mailCargo);
-          if (AIStation.IsValidStation(stationIdB)) mailWaitingB = AIStation.GetCargoWaiting(stationIdB, this._catalog.mailCargo);
-        }
-        AILog.Info("C98_AIR_REALIZED year=" + year + " profit_year=" + (year - 1)
-            + " line=" + line.lineId + " age=" + lAge
-            + " arm=" + (("c98Arm" in line) ? line.c98Arm : "unknown")
-            + " engine=" + currentEngine + " engine_name=" + OpexPlaneName(currentEngine)
-            + " distance=" + (("distance" in line) ? line.distance : -1)
-            + " monthly_pax=" + (("airMonthlyPax" in line) ? line.airMonthlyPax : -1)
-            + " pred_capacity=" + (("planeCapacity" in line) ? line.planeCapacity : -1)
-            + " pred_n=" + predN + " real_n=" + vehCount
-            + " pred_p=" + predProfit + " real_p=" + profit
-            + " pred_r=" + predRevenue + " real_r=" + realRevenue
-            + " pred_run=" + predRunning + " real_run=" + runCost
-            + " pred_amort=" + predAmort + " pred_carried=" + predCarried
-            + " pred_days=" + predDays + " pred_headway=" + predHeadway
-            + " pred_trips_pm=" + predTripsPerMonth + " pred_rating=" + predRating
-            + " rating_a=" + ratingA + " rating_b=" + ratingB
-            + " station_a=" + stationIdA + " station_b=" + stationIdB
-            + " live_routes_a=" + liveRoutesA + " live_routes_b=" + liveRoutesB
-            + " pax_wait_a=" + paxWaitingA + " pax_wait_b=" + paxWaitingB
-            + " mail_wait_a=" + mailWaitingA + " mail_wait_b=" + mailWaitingB
-            + " pax_load=" + paxLoad + " pax_cap=" + paxCap
-            + " mail_load=" + mailLoad + " mail_cap=" + mailCap
-            + " moving=" + moving + " depot=" + depot
-            + " speed_sum=" + speedSum + " speed_n=" + speedN
-            + " engine_speed=" + engineSpeed + " engine_capacity=" + engineCapacity
-            + " engine_price=" + enginePrice + " engine_running=" + engineRunning
-            + " plane_speed_div=" + planeSpeedDiv);
-      }
     }
     if (vehicleType == AIVehicle.VT_RAIL || vehicleType == AIVehicle.VT_AIR) {
       /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans
@@ -642,29 +547,6 @@ function OpexAI::_reportLines(year)
   }
   if (c121RealizationSums != null) {
     OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual");
-  }
-  if (C121_AIR_PRESSURE_PROBE) {
-    local phaseNewpair = 0;
-    local phaseHubsite = 0;
-    local phaseHubhub = 0;
-    local phaseUnknown = 0;
-    foreach (l in this._lines) {
-      if (l == null || !("mode" in l) || l.mode != "air") continue;
-      if (!("c121Arm" in l)) {
-        phaseUnknown++;
-        continue;
-      }
-      if (l.c121Arm == "newpair") phaseNewpair++;
-      else if (l.c121Arm == "hubsite") phaseHubsite++;
-      else if (l.c121Arm == "hubhub") phaseHubhub++;
-      else phaseUnknown++;
-    }
-    local phaseKnown = phaseNewpair + phaseHubsite + phaseHubhub;
-    local hubhubPm = phaseKnown > 0 ? phaseHubhub * 1000 / phaseKnown : 0;
-    AILog.Info("C121_PHASE year=" + year
-        + " known=" + phaseKnown + " newpair=" + phaseNewpair
-        + " hubsite=" + phaseHubsite + " hubhub=" + phaseHubhub
-        + " hubhub_pm=" + hubhubPm + " unknown=" + phaseUnknown);
   }
   if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {
     foreach (item in C69_PENDING_FOLLOWUPS) {

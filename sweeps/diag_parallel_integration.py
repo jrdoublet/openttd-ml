@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from diag_cadence_duel import main as run_diagnostic
 
 PROBES = ("decision_log", "probe_portfolio", "probe_scheduler",
-          "probe_candidates_rail", "catalog_cost_probe", "probe_events",
+          "probe_candidates_rail", "probe_events",
           "probe_catalogue")  # OpexC39Log gates the C41 profile emissions.
 ARMS = {
     "reference": "OpexAI",

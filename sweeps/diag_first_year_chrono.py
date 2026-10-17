@@ -10,7 +10,7 @@ Usage : python3 sweeps/diag_first_year_chrono.py --years 1 --out results/<nom>.j
 def main():
     from sweeps import diag_cadence_duel as shared
     arms = {
-        "reference": "OpexAI[probe_scheduler=1,catalog_cost_probe=1]",
+        "reference": "OpexAI[probe_scheduler=1]",
         "light": "OpexAI",
     }
     shared.main(arm_specs=arms, force_debug=True, purpose="diagnostic_first_year_chronology_not_adoption")

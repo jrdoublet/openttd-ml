@@ -2,9 +2,6 @@
  * pour Save, y compris le format court. Aucun reglage experimental ne desarme
  * la recuperation d'avions deja achetes. Un refus ne vaut jamais vente/retrait. */
 OPEX_AIR_ROLLBACKS <- [];
-/* Identifiant de telemetry transitoire. Les tickets en cours conservent leur
- * trace dans Save/Load ; les tickets anciens sans champ restent valides. */
-OPEX_AIR_ROLLBACK_TRACE_SEQ <- 0;
 
 function OpexAirRecoveryOwnsAirport(anchor)
 {
@@ -93,27 +90,9 @@ function OpexAirProcessRollbacks(lines)
   local ticket = OPEX_AIR_ROLLBACKS[0];
   local finished = false;
   if (AIDate.GetCurrentDate() >= ticket.nextDate) {
-    /* Cette liquidation est distincte du AIAccounting du chantier initial.
-     * GetCosts() peut etre negatif (vente), ne pas le tronquer a zero. */
-    local account = PROBE_AIR_FINANCE_MARGIN ? AIAccounting() : null;
     finished = OpexAirContinueRollback(ticket, lines);
-    if (account != null) {
-      local delta = account.GetCosts();
-      local traceId = ("v126TraceId" in ticket) ? ticket.v126TraceId : "legacy";
-      if (!("v126RecoveryNet" in ticket)) ticket.v126RecoveryNet <- 0;
-      ticket.v126RecoveryNet += delta;
-      AILog.Info("AIR_RECOVERY_STEP id=" + traceId
-          + " date=" + AIDate.GetCurrentDate() + " delta=" + delta
-          + " deferred_net=" + ticket.v126RecoveryNet
-          + " vehicles_left=" + ticket.vehicles.len()
-          + " airports_left=" + ticket.airports.len()
-          + " done=" + (finished ? 1 : 0));
-    }
   }
   if (finished) {
-    if (PROBE_AIR_FINANCE_MARGIN) AILog.Info("AIR_RECOVERY_COMPLETE id="
-        + (("v126TraceId" in ticket) ? ticket.v126TraceId : "legacy")
-        + " deferred_net=" + (("v126RecoveryNet" in ticket) ? ticket.v126RecoveryNet : 0));
     AILog.Info("AIR_ROLLBACK_DONE pair=" + ticket.pairKey);
     OPEX_AIR_ROLLBACKS.remove(0);
     return;

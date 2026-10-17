@@ -40,7 +40,7 @@ from bench_v2 import parse_opex_variant  # noqa: E402
 from campaign_freeze import parse_ai_setting_specs  # noqa: E402
 from run_c66_reference import inject_probes, probes_need_script_debug  # noqa: E402
 
-GROUP_BITS = {8, 16, 32, 64, 128, 256}
+GROUP_BITS = {8, 16, 32, 64, 128}  # 256 vide depuis V239
 ALL_EXCEPT_CHECKS = 254   # 2 | 4 | 8 | 16 | 32 | 64 | 128
 LOG_BITS = 508            # 4 | 8 | 16 | 32 | 64 | 128 | 256
 # reglages nommes « shadow »/« diagnostic » mais qui changent des decisions : jamais groupes
@@ -107,7 +107,7 @@ class Declaration(unittest.TestCase):
 class Groups(unittest.TestCase):
     def test_table_shape(self):
         groups = _groups()
-        self.assertGreaterEqual(len(groups), 40)
+        self.assertGreaterEqual(len(groups), 20)
         self.assertLessEqual(set(groups.values()), GROUP_BITS)
         self.assertEqual(set(groups.values()), GROUP_BITS, "chaque groupe a au moins une sonde")
 
@@ -182,11 +182,11 @@ class Loading(unittest.TestCase):
     def test_semantics(self):
         self.assertEqual(_effective(2), (True, False, set()))            # defaut historique
         self.assertEqual(_effective(0), (False, False, set()))           # tout coupe
-        self.assertEqual(_effective(1), (True, True, GROUP_BITS - {256}))  # tout sauf verifications
+        self.assertEqual(_effective(1), (True, True, GROUP_BITS))  # tout sauf verifications
         self.assertEqual(_effective(2, debug_signs=0), (False, False, set()))  # veto humain
         self.assertEqual(_effective(6), (True, True, set()))             # panneaux + journal
         self.assertEqual(_effective(18), (True, True, {16}))             # AIR implique le journal
-        self.assertEqual(_effective(258), (True, True, {256}))
+        self.assertEqual(_effective(258), (True, True, set()))  # 256 vide depuis V239
         self.assertEqual(_effective(2, decision_log=1), (True, True, set()))  # ancien reglage lu
 
 

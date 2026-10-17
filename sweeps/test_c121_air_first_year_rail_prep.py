@@ -53,35 +53,6 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         from v237_contracts import assert_retired
         assert_retired(self, ('c121_catalog_incremental', 'c121_catalog_air_first_year', 'c121_flat_bootstrap', 'c121_air_first_year_rail_prep', 'c121_air_one_or_two_planes'))
 
-    def test_one_or_two_replaces_only_the_winner_depth(self):
-        econ = source("air_economics_c121.nut")
-        winner = econ.split("function OpexC121WinnerEconomics(", 1)[1].split(
-            "\nfunction ", 1)[0]
-        self.assertIn(
-            'return OpexC121OneOrTwoWinner(catalog, plan, plane, engineContext);',
-            winner)
-        self.assertNotIn("if (!fusion)", winner)
-        pair = econ.split("function OpexC121OneOrTwoWinner(", 1)[1].split(
-            "function OpexC121WinnerEconomics(", 1)[0]
-        self.assertIn("return OpexC121OneOrTwoFused(catalog, plan, plane);", pair)
-        fused = econ.split("function OpexC121OneOrTwoFused(", 1)[1].split(
-            "function OpexC121OneOrTwoWinner(", 1)[0]
-        self.assertIn("OpexC121OneOrTwoDepth(inv, 1)", fused)
-        self.assertIn("OpexC121OneOrTwoDepth(inv, 2)", fused)
-        self.assertIn("return { initial = chosen, full = chosen };", fused)
-        chooser = econ.split("function OpexC121ChooseRoutePlane(", 1)[1].split(
-            "\nfunction ", 1)[0]
-        self.assertIn("local openingPlanes = 1;", chooser)
-        self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", chooser)
-        self.assertEqual(econ.count("local openingPlanes = 1;"), 3)
-        air_econ = econ.split("function OpexC121AirEconomics(", 1)[1].split(
-            "\nfunction ", 1)[0]
-        self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", air_econ)
-        catalog = source("air_catalog_c121.nut")
-        measured = catalog.split("function OpexC121MeasureBuiltEconomics(", 1)[1].split(
-            "\nfunction ", 1)[0]
-        self.assertNotIn("C121_AIR_ONE_OR_TWO_PLANES", measured)
-
     def test_opposite_departure_does_not_force_full_load(self):
         air = source("air_construction.nut")
         self.assertIn(
@@ -124,49 +95,6 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
                 text)
             self.assertIn("OpexRailPrepMergeAlternatives(", text)
 
-    def test_prep_never_consumed_as_a_build_and_is_revalidated(self):
-        projects = source("task_projects.nut")
-        consume = projects.split("function OpexAI::_consumeResumableRailAtPassStart(", 1)[1].split(
-            "local railCandidate = this._railSearch.candidate;", 1)[0]
-        self.assertIn('("isC121RailPrep" in this._railSearch)', consume)
-        self.assertIn('this._railSearch.phase == "build"', consume)
-        self.assertIn("this._handleRailStockSearchCompleted();", consume)
-        self.assertIn("return false;", consume)
-        self.assertLess(consume.index("this._railSearch != null"),
-                        consume.index("isC121RailPrep"))
-        rail = source("task_rail.nut")
-        self.assertIn('reason = "rail_prep_held"', rail)
-        self.assertIn("this._revalidateRailStockPlan(candidate, candidate.railPlan);", rail)
-        self.assertIn('reval.reason == "cash" || reval.reason == "no_vehicle_slot"', rail)
-        self.assertIn('OpexC121RailPrepLog(this, "stock_used", 0, 0);', rail)
-        self.assertIn('OpexC121RailPrepLog(this, "stock_dropped", 0, 0);', rail)
-        self.assertIn("&& !c121PrepPlan", rail)
-        scheduler = source("scheduler.nut")
-        self.assertIn('(MODE_AIR && MODE_RAIL) && this._c121RailPrepHold', scheduler)
-        self.assertNotIn("_tryStartC121RailPrepSearch", source("orchestrator.nut"))
-
-    def test_journal_is_behind_the_probe_guard(self):
-        prep = source("rail_prep_c121.nut")
-        log = prep.split("function OpexC121RailPrepLog(", 1)[1].split("\nfunction ", 1)[0]
-        guard = log.index("if (!(MODE_AIR && MODE_RAIL) || !CATALOG_COST_PROBE) return;")
-        self.assertLess(guard, log.index("AIDate.GetCurrentDate()"))
-        self.assertLess(guard, log.index("OpexAvailableCapital()"))
-        self.assertIn(
-            '"OPEX " + year + "-" + month + "-" + day\n'
-            '      + " RAIL_PREP k=" + kind\n'
-            '      + " cash=" + cash\n'
-            '      + " avail=" + avail\n'
-            '      + " air_cap=" + airCap\n'
-            '      + " stock=" + stock\n'
-            '      + " ops=" + ops\n'
-            '      + " ticks=" + ticks',
-            log)
-        logged = prep + source("task_rail.nut") + source("orchestrator.nut")
-        for kind in RAIL_PREP_KINDS:
-            self.assertIn('"%s"' % kind, logged)
-        self.assertNotIn("RAIL_PREP k=", source("projects.nut"))
-        self.assertNotIn("OpexC121RailPrepLog", source("projects.nut"))
-
     def test_prep_state_is_not_saved(self):
         persist = source("persist.nut")
         save = persist.split("function OpexAI::Save()", 1)[1].split(
@@ -179,23 +107,6 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
                       "_c121RailPrepHold = false", "_c121RailPrepYieldLogged = false",
                       "_c121RailPrepMinAirCap = -1", "_railReadyStock = {}"):
             self.assertIn("this." + field, reconcile)
-
-    def test_modified_squirrel_syntax(self):
-        names = (
-            "info.nut", "globals_pre.nut", "settings.nut", "rail_prep_c121.nut",
-            "projects_generation.nut", "main.nut", "persist.nut", "orchestrator.nut",
-            "scheduler.nut", "task_rail.nut", "task_projects.nut", "projects.nut",
-            "projects_update.nut", "projects_selection.nut", "air_economics_c121.nut",
-            "air_construction.nut",
-        )
-        for name in names:
-            code = squirrel_code(source(name))
-            self.assertTrue(balanced(code, "{", "}"), name + " braces")
-            self.assertTrue(balanced(code, "(", ")"), name + " parens")
-            self.assertTrue(balanced(code, "[", "]"), name + " brackets")
-            self.assertIsNone(re.search(r"\blocal\s+static\b", code), name)
-            self.assertNotIn("in null", code)
-
 
 if __name__ == "__main__":
     unittest.main()

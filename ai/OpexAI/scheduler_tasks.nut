@@ -289,7 +289,6 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
     if (s.lastSliceTick == mark.tick) s.tickSlices++;
     else s.tickSlices = 1;
     s.lastSliceTick = mark.tick;
-    OpexCatalogCostSliceLog(CATALOG_COST_ACTIVE, s, sliceOps);
   }
   s.airOps += sliceOps;
   s.regenOps += sliceOps;
@@ -347,7 +346,6 @@ function OpexAI::_dispatchCatalog(task, year)
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
-    if (CATALOG_COST_PROBE && ("catalogCost" in task)) CATALOG_COST_ACTIVE = task.catalogCost;
     local spSlice = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.slice") : null;
     local sliceDone = OpexC78ContinueCatalogAirRebuild(this, task, year);
     if (spSlice != null) OpexSpanEnd(spSlice);
@@ -409,10 +407,6 @@ function OpexAI::_dispatchCatalog(task, year)
   if (spGuard != null) OpexSpanEnd(spGuard);
   refreshReason = this._portfolioInvalidated ? "event"
       : (stale ? "capital" : (c76ReloadDue ? "reload" : (c76LayerChanged ? "layers" : "event")));
-  if (CATALOG_COST_PROBE) {
-    task.catalogCost <- OpexCatalogCostNew(refreshReason);
-    CATALOG_COST_ACTIVE = task.catalogCost;
-  }
   if (DECISION_LOG) {
     OpexDecide("PORTFOLIO_REFRESH", "reason=" + refreshReason + " budget="
                + OpexAvailableCapital());

@@ -161,7 +161,6 @@ function OpexC121CatalogChoice(catalog, plan, lines)
         plan.c121ChosenMailKnown <- entry.mailKnown;
       }
       if (cacheMark != null) OpexSpanAgg("air.c121.cache", cacheMark);
-      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabEmitHit(plan);
       return entry.choice;
     }
   }
@@ -216,70 +215,6 @@ function OpexC121CatalogChoice(catalog, plan, lines)
   return choice;
 }
 
-/* Shadow de stabilite du classement, execute seulement lorsqu'un nouveau moteur
- * vient d'apprendre son couple PASS/MAIL. Le classement PASS-only et le
- * classement PASS+MAIL portent exactement sur le meme sous-ensemble de moteurs
- * observes ; la couverture partielle est exposee explicitement. */
-function OpexC121ReplayEngineChoice(catalog, plan, result, newlyObserved)
-{
-  if (!C121_AIR_ENGINE_REPLAY_SHADOW || catalog == null || plan == null || result == null
-      || !newlyObserved || !("plane" in plan) || plan.plane == null
-      || !("airport" in plan) || plan.airport == null) return null;
-  if (catalog.airPlaneChoicesByAirport == null
-      || !(plan.airport.type in catalog.airPlaneChoicesByAirport)) return null;
-
-  local tick0 = AIController.GetTick();
-  local ops0 = AIController.GetOpsTillSuspend();
-  local total = 0;
-  local known = 0;
-  local evaluated = 0;
-  local bestPass = null;
-  local bestMail = null;
-  local chosenPass = null;
-  local chosenMail = null;
-  foreach (plane in catalog.airPlaneChoicesByAirport[plan.airport.type]) {
-    /* Le catalogue peut conserver une entree historique apres expiration. */
-    if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
-    if (!OpexC118EngineFitsPlan(plan, plane)) continue;
-    if (!OpexAirPlaneInRange(plane, plan.distance)) continue;
-    total++;
-    if (!(plane.id in C121_AIR_ENGINE_CAPACITY_OBS)) continue;
-    local caps = C121_AIR_ENGINE_CAPACITY_OBS[plane.id];
-    if (caps == null || caps.pax <= 0 || caps.mail < 0) continue;
-    known++;
-    local passEconomics = OpexC121AirEconomics(catalog, plan, plane, caps.pax, 0, 0);
-    local mailEconomics = OpexC121EngineEconomics(catalog, plan, plane, 0);
-    if (passEconomics == null || mailEconomics == null
-        || !("decisionScore" in passEconomics) || !("decisionScore" in mailEconomics)) continue;
-    evaluated++;
-    local passItem = { plane = plane, economics = passEconomics };
-    local mailItem = { plane = plane, economics = mailEconomics };
-    if (plane.id == plan.plane.id) {
-      chosenPass = passItem;
-      chosenMail = mailItem;
-    }
-    if (bestPass == null
-        || passEconomics.decisionScore > bestPass.economics.decisionScore
-        || (passEconomics.decisionScore == bestPass.economics.decisionScore
-            && passEconomics.decisionProfitAnnual > bestPass.economics.decisionProfitAnnual)) {
-      bestPass = passItem;
-    }
-    if (bestMail == null
-        || mailEconomics.decisionScore > bestMail.economics.decisionScore
-        || (mailEconomics.decisionScore == bestMail.economics.decisionScore
-            && mailEconomics.decisionProfitAnnual > bestMail.economics.decisionProfitAnnual)) {
-      bestMail = mailItem;
-    }
-  }
-  local tick1 = AIController.GetTick();
-  return {
-    total = total, known = known, evaluated = evaluated, complete = known == total,
-    bestPass = bestPass, bestMail = bestMail, chosenPass = chosenPass, chosenMail = chosenMail,
-    changed = bestPass != null && bestMail != null && bestPass.plane.id != bestMail.plane.id,
-    ticks = tick1 - tick0, ops = OpexAirCalcDeltaOps(tick0, ops0)
-  };
-}
-
 /* Post-chantier : mesure exacte des deux capacites du vehicule refitte PASS. */
 function OpexC121MeasureBuiltEconomics(catalog, plan, result)
 {
@@ -317,7 +252,6 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
     next = OpexC121AirEconomics(
         catalog, plan, plan.plane, paxCapacity, mailCapacity, actualN + 1);
   }
-  local engineReplay = OpexC121ReplayEngineChoice(catalog, plan, result, newlyObserved);
   local tick1 = AIController.GetTick();
   local ops1 = AIController.GetOpsTillSuspend();
   result.c121PaxCapacity <- paxCapacity;
@@ -328,7 +262,6 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
       ? next.profitAnnual - actual.profitAnnual : 0;
   result.c121MarginalRevenue <- (next != null && actual != null)
       ? next.revenueAnnual - actual.revenueAnnual : 0;
-  result.c121EngineReplay <- engineReplay;
   result.c121EvalTicks <- tick1 - tick0;
   result.c121EvalOps <- OpexAirCalcDeltaOps(tick0, ops0);
 }
@@ -345,7 +278,6 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
   local evalTicks = ("c121EvalTicks" in result) ? result.c121EvalTicks : -1;
   local target = ("c121TargetEconomics" in result) ? result.c121TargetEconomics : null;
   local actual = ("c121ActualEconomics" in result) ? result.c121ActualEconomics : null;
-  local keepLineDiagnostics = C121_AIR_ECONOMICS_SHADOW || C121_AIR_ENGINE_REPLAY_SHADOW;
   /* C121 ne garde jamais ses tables riches dans line. SAVE_FULL_STATE projette
    * seulement les floats top-level : une table c121Demand/economics contenant
    * des floats imbriques fait refuser le savegame par OpenTTD. Les decisions ne
@@ -368,44 +300,6 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
   if (target != null) {
     line.c121TargetPlanes <- target.planes;
   }
-  /* Les scalaires ci-dessous ne pilotent aucune decision. Les garder sur
-   * chaque ligne en causal normal faisait depasser le budget d'opcodes de
-   * Save() vers 100+ lignes AIR. Les shadows peuvent encore les conserver. */
-  if (keepLineDiagnostics) {
-    if (("plane" in plan) && plan.plane != null) line.c121EngineId <- plan.plane.id;
-    line.c121PaxCapacity <- paxCapacity;
-    line.c121MailCapacity <- mailCapacity;
-    line.c121DemandOps <- demandOps;
-    line.c121DemandTicks <- demandTicks;
-    line.c121EvalOps <- evalOps;
-    line.c121EvalTicks <- evalTicks;
-    if (actual != null) {
-      line.c121ActualCarriedPax <- actual.carriedPax;
-      line.c121ActualCarriedMail <- actual.carriedMail;
-      line.c121ActualCarried <- actual.carried;
-      line.c121ActualRevenueAnnual <- actual.revenueAnnual;
-      line.c121ActualProfitAnnual <- actual.profitAnnual;
-      line.c121ActualRunningAnnual <- actual.runningAnnual;
-      line.c121ActualVehicleRunningAnnual <- actual.vehicleRunningAnnual;
-      line.c121ActualAmortAnnual <- actual.amortAnnual;
-      line.c121ActualPlanes <- actual.planes;
-      line.c121ActualOneWayDays <- actual.oneWayDays;
-      line.c121ActualHeadwayDays <- actual.headwayDays;
-      line.c121ActualStationRating <- actual.stationRating;
-    }
-    if (target != null) {
-      line.c121TargetCarriedPax <- target.carriedPax;
-      line.c121TargetCarriedMail <- target.carriedMail;
-      line.c121TargetCarried <- target.carried;
-      line.c121TargetRevenueAnnual <- target.revenueAnnual;
-      line.c121TargetProfitAnnual <- target.profitAnnual;
-    }
-  }
-  local engineReplay = ("c121EngineReplay" in result) ? result.c121EngineReplay : null;
-  local replayPass = engineReplay != null ? engineReplay.bestPass : null;
-  local replayMail = engineReplay != null ? engineReplay.bestMail : null;
-  local replayChosenPass = engineReplay != null ? engineReplay.chosenPass : null;
-  local replayChosenMail = engineReplay != null ? engineReplay.chosenMail : null;
   AILog.Info("C121_BUILD line=" + lineId
       + " arm=" + (("arm" in plan) ? plan.arm : "unknown") + " engine=" + plan.plane.id
       + " station_id_a=" + AIStation.GetStationID(result.stationA)
@@ -454,36 +348,6 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
       + " causal_winner_full_ticks=" + (("c121WinnerFullTicks" in plan) ? plan.c121WinnerFullTicks : -1)
       + " causal_choice_mail_known=" + (("c121ChosenMailKnown" in plan) && plan.c121ChosenMailKnown ? 1 : 0)
       + " postbuild_mail_known=" + (target != null && ("engineMailKnown" in target) && target.engineMailKnown ? 1 : 0)
-      + " replay_engine_total=" + (engineReplay != null ? engineReplay.total : -1)
-      + " replay_engine_known=" + (engineReplay != null ? engineReplay.known : -1)
-      + " replay_engine_evaluated=" + (engineReplay != null ? engineReplay.evaluated : -1)
-      + " replay_engine_complete=" + (engineReplay != null && engineReplay.complete ? 1 : 0)
-      + " replay_shadow_ticks=" + (engineReplay != null ? engineReplay.ticks : -1)
-      + " replay_shadow_ops=" + (engineReplay != null ? engineReplay.ops : -1)
-      + " replay_pass_engine=" + (replayPass != null ? replayPass.plane.id : -1)
-      + " replay_pass_n=" + (replayPass != null ? replayPass.economics.decisionPlanes : -1)
-      + " replay_pass_revenue=" + (replayPass != null ? replayPass.economics.decisionRevenueAnnual : -1)
-      + " replay_pass_profit=" + (replayPass != null ? replayPass.economics.decisionProfitAnnual : -1)
-      + " replay_pass_score=" + (replayPass != null ? replayPass.economics.decisionScore : -1)
-      + " replay_mail_engine=" + (replayMail != null ? replayMail.plane.id : -1)
-      + " replay_mail_n=" + (replayMail != null ? replayMail.economics.decisionPlanes : -1)
-      + " replay_mail_revenue=" + (replayMail != null ? replayMail.economics.decisionRevenueAnnual : -1)
-      + " replay_mail_profit=" + (replayMail != null ? replayMail.economics.decisionProfitAnnual : -1)
-      + " replay_mail_score=" + (replayMail != null ? replayMail.economics.decisionScore : -1)
-      + " replay_mail_changed=" + (engineReplay != null ? (engineReplay.changed ? 1 : 0) : -1)
-      + " replay_chosen_pass_score=" + (replayChosenPass != null ? replayChosenPass.economics.decisionScore : -1)
-      + " replay_chosen_mail_score=" + (replayChosenMail != null ? replayChosenMail.economics.decisionScore : -1)
-      /* Alias historiques du meilleur score complet, conserves pour les outils
-       * d'analyse existants ; la nouvelle source de verite est replay_mail_*. */
-      + " replay_score_engine=" + (replayMail != null ? replayMail.plane.id : -1)
-      + " replay_score_n=" + (replayMail != null ? replayMail.economics.decisionPlanes : -1)
-      + " replay_score_revenue=" + (replayMail != null ? replayMail.economics.decisionRevenueAnnual : -1)
-      + " replay_score_profit=" + (replayMail != null ? replayMail.economics.decisionProfitAnnual : -1)
-      + " replay_score_value=" + (replayMail != null ? replayMail.economics.decisionScore : -1)
-      + " replay_chosen_n=" + (replayChosenMail != null ? replayChosenMail.economics.decisionPlanes : -1)
-      + " replay_chosen_revenue=" + (replayChosenMail != null ? replayChosenMail.economics.decisionRevenueAnnual : -1)
-      + " replay_chosen_profit=" + (replayChosenMail != null ? replayChosenMail.economics.decisionProfitAnnual : -1)
-      + " replay_chosen_score=" + (replayChosenMail != null ? replayChosenMail.economics.decisionScore : -1)
       + " legacy_n=" + (("planes" in plan) ? plan.planes : -1)
       + " target_n=" + (target != null ? target.planes : -1)
       + " target_pax=" + (target != null ? target.carriedPax : -1)

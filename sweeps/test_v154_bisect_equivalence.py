@@ -257,7 +257,6 @@ class TestV154Contract(unittest.TestCase):
         cls.globals_pre = (cls.root / "ai/OpexAI/globals_pre.nut").read_text(encoding="utf-8")
         cls.settings = (cls.root / "ai/OpexAI/settings.nut").read_text(encoding="utf-8")
         cls.selection = (cls.root / "ai/OpexAI/projects_selection.nut").read_text(encoding="utf-8")
-        cls.diagnostics = (cls.root / "ai/OpexAI/selection_diagnostics.nut").read_text(encoding="utf-8")
 
     def test_setting_in_info_nut(self):
         self.assertEqual(self.info.count('name = "select_bisect_insert"'), 1)
@@ -274,21 +273,6 @@ class TestV154Contract(unittest.TestCase):
     def test_settings_nut_loading(self):
         self.assertEqual(self.settings.count('AIController.GetSetting("select_bisect_insert")'), 1)
         self.assertIn('SELECT_BISECT_INSERT = AIController.GetSetting("select_bisect_insert") != 0;', self.settings)
-
-    def test_projects_selection_hooks(self):
-        # Verification de la signature et des gardes
-        self.assertIn("function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false, forceHistoric = false)", self.selection)
-        self.assertIn("local useBisect = SELECT_BISECT_INSERT && !forceHistoric", self.selection)
-        self.assertIn("!(C122_AIR_REGIME_SHADOW && C121_AIR_PROJECT_REALIZATION_REGIME == 0)", self.selection)
-        # Verification de l'incrementation du tampon
-        self.assertIn("SELECT_BISECT_STAMP++;", self.selection)
-        # Verification que l'appel diagnostic passe forceHistoric = true
-        self.assertIn('OpexProjectInsertDefensive(shadowOrder, shadowProject, "fundScore", limit, true, true);', self.selection)
-
-    def test_selection_diagnostics_hooks(self):
-        # Sonde d'amortissement flotte retiree (V223, 17/10) : plus d'insertion diagnostique.
-        self.assertNotIn("OpexProjectInsertDefensive(", self.diagnostics)
-
 
 if __name__ == "__main__":
     unittest.main()

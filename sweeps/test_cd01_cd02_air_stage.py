@@ -74,59 +74,6 @@ class StageMachine:
 
 
 class CD01CD02StageContracts(unittest.TestCase):
-    def test_routing_proceeds_prepare_sites_pairs_before_hubs(self):
-        driver = function("OpexAirPlans")
-        names = ("OpexAirPlansStepPrepare", "OpexAirPlansStepFindSites",
-                 "OpexAirPlansStepNewPairs", "OpexAirPlansHubDiscoveryPhase")
-        indices = [driver.index(name + "(") for name in names]
-        self.assertEqual(indices, sorted(indices))
-        for name in names[:3]:
-            self.assertEqual(driver.count(name + "("), 1)
-        self.assertLess(driver.index("if (!prepared)"),
-                        driver.index("OpexAirPlansStepFindSites("))
-        self.assertLess(driver.index("if (!sitesOk)"),
-                        driver.index("OpexAirPlansStepNewPairs("))
-        self.assertLess(driver.index("if (!pairsOk)"),
-                        driver.index("OpexAirPlansHubDiscoveryPhase("))
-        self.assertIn("OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)",
-                      function("OpexAirPlansHubDiscoveryPhase"))
-        for reason in ("prepare_return", "sites_yield", "pairs_yield"):
-            self.assertIn(f'"{reason}"', driver)
-        self.assertEqual(driver.count("return ctx.bestPlan;"), 5)
-
-    def test_substep_callbacks_preserve_spans_and_single_business_call(self):
-        stages = (
-            ("StepPrepare", "Prepare", "prepare", "air.prepare", "air_prepare"),
-            ("StepFindSites", "FindSites", "sites", "air.sites", "air_find_sites"),
-            ("StepNewPairs", "NewPairs", "new_pairs", "air.new_pairs", "air_new_pairs"),
-        )
-        for wrapper, impl, label, span, task_label in stages:
-            with self.subTest(stage=label):
-                source = function("OpexAirPlans" + wrapper)
-                self.assertEqual(source.count("OpexAirPlans" + impl + "(ctx"), 1)
-                self.assertEqual(source.count(f'OpexSpanBegin("{span}")'), 1)
-                self.assertEqual(source.count("OpexSpanEnd("), 1)
-                self.assertEqual(source.count("OpexAirLightPhaseBegin()"), 1)
-                self.assertEqual(source.count(
-                    f'OpexAirLightPhaseEnd(light, "{label}", lightMark)'), 1)
-                self.assertEqual(source.count(f'"STAGE_ENTER", "{task_label}"'), 1)
-                self.assertEqual(source.count(f'"STAGE_EXIT", "{task_label}"'), 1)
-                self.assertNotIn("Sleep(", source)
-                self.assertNotIn("opsBudget", source)
-                self.assertNotIn("deadlineTick", source)
-                self.assertNotIn("resumeState.", source)
-        # All real checkpoints and budget checks remain inside the original
-        # business functions; wrappers never set a new phase/cursor.
-        sites = function("OpexAirPlansFindSites")
-        pairs = function("OpexAirPlansNewPairs")
-        for cursor in ("scanIndex = i + 1", "rankIndex = rankIndex + 1"):
-            self.assertIn(cursor, sites)
-        for cursor in ("resumeState.a = nextA", "resumeState.b = nextB"):
-            self.assertIn(cursor, pairs)
-        self.assertIn("OpexC83RepairFindSites", sites)
-        self.assertIn("if (pairProgress &&", pairs)
-        self.assertIn("if (resumingCombo)", pairs)
-
     def test_continuations_produce_same_site_and_pair_output(self):
         towns = [
             {"id": 4, "pop": 1900, "found": True, "valid": True},

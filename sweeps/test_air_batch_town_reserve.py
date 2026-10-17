@@ -54,21 +54,5 @@ class AirBatchTownReserveTests(unittest.TestCase):
             self.assertNotIn(name, self.task_projects)
             self.assertNotIn(name, self.task_air)
 
-    def test_slot_town_and_dead_plan_discard_remain(self):
-        self.assertEqual(self.towns.count("function OpexAirSlotTownId("), 1)
-        self.assertIn("OpexAirSlotTownId(", self.task_projects)
-        select = self.projects
-        self.assertIn(
-            'OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true);',
-            select,
-        )
-        self.assertIn("OpexC122ProbeExposure(affordable);", select)
-        self.assertNotIn("OpexAirBatchTownReserve", select)
-        self.assertIn('reason = "batch_plan_dead"', self.task_projects)
-        self.assertIn("!OpexAirBatchPlanStillLive(project.payload, this._lines)", self.task_projects)
-        self.assertIn('reason = "batch_plan_dead"', self.task_air)
-        self.assertIn("!OpexAirBatchPlanStillLive(plan, this._lines)", self.task_air)
-
-
 if __name__ == "__main__":
     unittest.main()

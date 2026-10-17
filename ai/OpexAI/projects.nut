@@ -521,7 +521,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     cost.assemblyOps += OpexOpsMeasureEnd(costMark);
     cost.modeAlternatives = stats.modeCandidates;
   }
-  local selectionLight = CATALOG_COST_PROBE ? OpexSelectionLightBegin() : null;
   local opsMark = OpexOpsMeasureBegin();
   /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
    * tranchera, pas une election modale prealable au ratio. */
@@ -546,8 +545,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   stats.knapsackNodes = 0;
   stats.knapsackExact = false;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
-  if (selectionLight != null) OpexSelectionLightEnd(selectionLight, "full",
-      stats.selectionOpcodes, alternatives.len(), funded.len());
   if (cost != null) {
     cost.selectionOps += stats.selectionOpcodes;
     cost.considered = alternatives.len();

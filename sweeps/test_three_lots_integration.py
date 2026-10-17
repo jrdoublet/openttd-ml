@@ -43,19 +43,6 @@ class SourceContracts(unittest.TestCase):
         self.assertEqual(LIGHT_ARMS["light"], "OpexAI[catalog_cost_probe=1]")
         self.assertNotIn("fleet_amort_shadow_probe", self.source("info.nut"))
 
-    def test_diagnostics_never_write_decision_fields(self):
-        s = self.source("selection_diagnostics.nut")
-        self.assertNotRegex(s, r"(?:project|affordable|row\.live)\.\w+\s*(?:=(?!=)|<-)")
-        self.assertNotIn("AIController.GetSetting", s)
-        self.assertNotIn("AIVehicle.", s)
-
-    def test_three_selection_paths_reuse_existing_ops(self):
-        for name in ("projects.nut", "projects_update.nut", "projects_selection.nut"):
-            s = self.source(name)
-            self.assertEqual(s.count("OpexSelectionLightBegin()"), 1)
-            self.assertEqual(s.count("OpexSelectionLightEnd(selectionLight"), 1)
-            self.assertEqual(s.count("OpexOpsMeasureEnd(opsMark)"), 1)
-
     def test_r1_r3_default_stays_copy_only(self):
         self.assertIn("const R1_R3_TEST_ONLY = 0;", self.source("projects_selection.nut"))
 

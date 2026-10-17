@@ -178,28 +178,6 @@ class AC08AirMaterialTests(unittest.TestCase):
                 else:
                     self.assertFalse(choices)
 
-    def test_options_frontier_only_when_enabled_and_consumers_still_present(self):
-        self.assertIn("local keepPlaneChoices = true;", REFRESH_AIR)
-        self.assertIn("if (keepPlaneChoices && probeChoices.len() > 0)", REFRESH_AIR)
-        self.assertNotIn("C85_AIR_EQUIPMENT_FRONTIER", REFRESH_AIR)
-        self.assertNotIn("OpexAirEquipmentStaticFrontier", REFRESH_AIR)
-        self.assertNotIn("airPlaneFrontierByAirport", REFRESH_AIR)
-        self.assertIn("catalog.airPlaneChoicesByAirport", ENGINE_CHOICE)
-        self.assertNotIn("airPlaneFrontierByAirport", ENGINE_CHOICE)
-        self.assertIn("catalog.airPlaneChoicesByAirport", PLANS)
-        self.assertIn("catalog.airCombos", PLANS)
-        self.assertIn("this._refreshAir();", REFRESH_ALL)
-        self.assertIn("this._catalog._refreshAir();", REFRESH_MODE)
-        self.assertIn("this._catalog.refresh(this._budget, year);", SCHED)
-        engines = [Engine(9, True, True, "SMALL", 10, 90)]
-        _, off, off_f = model_catalog(engines, set(SMALL), keep=False)
-        _, on, on_f = model_catalog(engines, set(SMALL), keep=True, frontier=False)
-        _, _, yes_f = model_catalog(engines, set(SMALL), keep=True, frontier=True)
-        self.assertEqual(off, {})
-        self.assertEqual(off_f, on_f)
-        self.assertEqual(list(on), list(SMALL))
-        self.assertEqual(list(yes_f), list(SMALL))
-
     def test_legacy_cost_source_exists_but_is_not_current_air_refresh_measure(self):
         import json
         data = json.loads((ROOT / "results/catalogue_churn.json").read_text(encoding="utf-8"))

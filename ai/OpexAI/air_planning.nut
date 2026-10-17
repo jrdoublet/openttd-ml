@@ -87,78 +87,6 @@ function OpexAirCalcDeltaOps(t0, l0)
     : l0 + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - left);
 }
 
-/* Mesure legere, uniquement sous le gate existant catalog_cost_probe.
- * Identites transitoires a la VM : le lecteur ajoute source/compagnie/session.
- * Aucun etat metier, aucune persistance, aucun log dans les boucles de candidats.
- * Deux lignes par invocation active, sept agregats de phases disjointes au plus.
- * Le cout englobant inclut ENTER et l'agregation, mais pas l'emission EXIT. */
-OPEX_AIR_LIGHT_SEQ <- 0;
-
-function OpexAirLightLog(fields)
-{
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-      + AIDate.GetDayOfMonth(date) + " AIR_LIGHT v=1 " + fields);
-}
-
-function OpexAirLightBegin(resumeState, target, band)
-{
-  /* Reconsommer un resultat termine n'est pas une nouvelle generation. */
-  if (resumeState != null && ("done" in resumeState) && resumeState.done) return null;
-  OPEX_AIR_LIGHT_SEQ++;
-  local state = null;
-  if (resumeState != null && ("airLight" in resumeState)) state = resumeState.airLight;
-  if (state == null) {
-    state = { gen = OPEX_AIR_LIGHT_SEQ, slice = 0,
-        origin = (resumeState == null || !("startTick" in resumeState)) ? 1 : 0 };
-    if (resumeState != null) resumeState.airLight <- state;
-  }
-  state.slice++;
-  local mark = OpexOpsMeasureBegin();
-  local light = { mark = mark, day = AIDate.GetCurrentDate(), phases = {},
-      identity = "inv=" + OPEX_AIR_LIGHT_SEQ + " gen=" + state.gen
-          + " slice=" + state.slice + " origin=" + state.origin
-          + " sliced=" + (resumeState != null ? 1 : 0)
-          + " target=" + target + " band=" + band };
-  OpexAirLightLog(light.identity + " edge=enter day=" + light.day + " tick=" + mark.tick);
-  return light;
-}
-
-function OpexAirLightPhaseBegin()
-{
-  local mark = OpexOpsMeasureBegin();
-  mark.day <- AIDate.GetCurrentDate();
-  return mark;
-}
-
-function OpexAirLightPhaseEnd(light, phase, mark)
-{
-  local ops = OpexOpsMeasureEnd(mark);
-  local ticks = AIController.GetTick() - mark.tick;
-  local days = AIDate.GetCurrentDate() - mark.day;
-  if (!(phase in light.phases)) light.phases[phase] <- { ops = 0, ticks = 0, days = 0, calls = 0 };
-  local part = light.phases[phase];
-  part.ops += ops;
-  part.ticks += ticks;
-  part.days += days;
-  part.calls++;
-}
-
-function OpexAirLightEnd(light, complete, reason)
-{
-  local ops = OpexOpsMeasureEnd(light.mark);
-  local tick = AIController.GetTick();
-  local day = AIDate.GetCurrentDate();
-  local fields = light.identity + " edge=exit complete=" + (complete ? 1 : 0)
-      + " reason=" + reason + " day=" + day + " tick=" + tick + " ops=" + ops;
-  foreach (phase in ["prepare", "sites", "new_pairs", "hub_discover", "hub_site", "hub_hub", "finalize"]) {
-    if (!(phase in light.phases)) continue;
-    local part = light.phases[phase];
-    fields += " " + phase + "_ops=" + part.ops + " " + phase + "_ticks=" + part.ticks
-        + " " + phase + "_days=" + part.days + " " + phase + "_calls=" + part.calls;
-  }
-  OpexAirLightLog(fields);
-}
 
 /* 1. Preparation : combos, villes, OpexAirTownPoolLimit, indices et reprise. */
 function OpexAirPlansPrepare(ctx)
@@ -389,7 +317,6 @@ function OpexAirPlansPrepare(ctx)
       resumeState.c78Gen <- c78Gen;
     }
   }
-  if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabBeginPass(sliced, resumeState, catalog, targetTownId);
   local stationLimitedTowns = sliced ? resumeState.stationLimitedTowns : {};
   local bestPlan = sliced ? resumeState.bestPlan : null;
   /* GetMonthlyMaintenanceCost expose le tarif potentiel, pas une depense toujours active.
@@ -853,7 +780,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         }
       }
       local routeChoice = OpexC121CatalogChoice(catalog, plan, ctx.lines);
-      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
@@ -898,7 +824,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         if (c78Gen) {
           OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
         }
-        if (C97_AIR_C69_ENGINE_PROBE) OpexC97ProbeAirEngine(catalog, plan);
         bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
       }
       if (pairMark != null) OpexSpanAgg("air.pair", pairMark);
@@ -1503,7 +1428,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         c83OwnSecondSlotB = ("c83OwnSecondSlot" in site) && site.c83OwnSecondSlot,
       };
       local routeChoice = OpexC121CatalogChoice(catalog, plan, ctx.lines);
-      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
@@ -1549,7 +1473,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       if (c78Gen) {
         OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
       }
-      if (C97_AIR_C69_ENGINE_PROBE) OpexC97ProbeAirEngine(catalog, plan);
       bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
       if (hubSiteMark != null) OpexSpanAgg("air.hub_site_pair", hubSiteMark);
     }
@@ -1695,7 +1618,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         arm = "hubhub",
       };
       local routeChoice = OpexC121CatalogChoice(catalog, plan, lines);
-      if (PROBE_C121_ENGINE_TABLE) OpexC121EngTabAfterChoice(plan, routeChoice);
       local routePlane = routeChoice != null ? routeChoice.plane : null;
       local economics = routeChoice != null ? routeChoice.economics : null;
       local decisionEconomics = (routeChoice != null && ("decisionEconomics" in routeChoice) && routeChoice.decisionEconomics != null)
@@ -1743,7 +1665,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       if (c78Gen) {
         OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=admitted P=" + economics.profitAnnual + " C=" + economics.capital);
       }
-      if (C97_AIR_C69_ENGINE_PROBE) OpexC97ProbeAirEngine(catalog, plan);
       bestPlan = OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan);
       if (hubHubMark != null) OpexSpanAgg("air.hub_hub_pair", hubHubMark);
     }
@@ -1754,272 +1675,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
     ctx.resumeState.hubHubJ <- 0;
   }
   return true;
-}
-
-/* V95 : diagnostic annuel, strictement passif, des occasions que le scan courant
- * n'atteint pas parce que la ville est deja servie ou sous le plancher de 600.
- * La sonde ne remplit ni AIR_SITE_CACHE, ni ctx.sites, ni le portefeuille. */
-function OpexAirV95Log(fields)
-{
-  if (!V95_AIR_POST73_PROBE) return;
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("V95_AIR_POST73 year=" + AIDate.GetYear(date)
-      + " month=" + AIDate.GetMonth(date) + " " + fields);
-}
-
-/* Cout de terrassement estime seul. AITestMode ne modifie pas le terrain, donc
- * on ne peut pas enchainer dessus un BuildAirport fiable ; le cout de site publie
- * separement airport.price + ce terrassement, sans pretendre inclure les arbres. */
-function OpexAirV95LevelCost(site, airport)
-{
-  if (site == null || airport == null) return -1;
-  if (OpexAirFootprintIsFlat(site.anchor, airport)) return 0;
-  local accounting = AIAccounting();
-  local ok = false;
-  {
-    local test = AITestMode();
-    ok = AITile.LevelTiles(site.anchor, OpexAirFootprintEnd(site.anchor, airport));
-  }
-  if (!ok) return -1;
-  local cost = accounting.GetCosts();
-  if (cost < 0) cost = -cost;
-  return cost;
-}
-
-/* Meilleur raccordement du site ignore vers un hub Opex existant, avec les memes
- * filtres et le meme proxy de demande que le bras hub->site courant. On ne memoise
- * pas le choix d'avion : c'est une lecture ponctuelle du C68 courant. */
-function OpexAirV95BestHubRoute(ctx, site, airport, plane)
-{
-  local result = { best = null, reject = "no_hub" };
-  if (ctx.hubs == null || ctx.hubs.len() == 0) return result;
-  result.reject = "distance_or_band";
-  foreach (hub in ctx.hubs) {
-    /* La revalidation de chantier refuse toujours une paire de centres deja
-     * reliee, meme quand c83_fixes=0. Le shadow doit appliquer le meme contrat,
-     * sinon il surestime les extensions V95 qui mourraient avant tentative. */
-    if (OpexAirTownCentersLinked(hub.town.tile, site.town.tile, ctx.lines)) {
-      result.reject = "already_linked";
-      continue;
-    }
-    local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
-    if (distance < 20) continue;
-    local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
-    if (!OpexAirPairInBand(ctx.catalog, distance, flightDistance, ctx.paxBand)) continue;
-    if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
-    if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
-    if (ctx.abandoned != null && OpexAirPairIsAbandoned(ctx.abandoned, hub, site)) {
-      result.reject = "abandoned";
-      continue;
-    }
-
-    local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
-    local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
-    local monthlyPax = hubMonthly + newMonthly;
-    if (monthlyPax < 10) monthlyPax = 10;
-    local choice = OpexAirChooseRoutePlane(ctx.catalog, airport, plane, flightDistance, monthlyPax,
-        ctx.infrastructureMaintenance, 0, 1, 0, null);
-    local econ = choice != null ? choice.economics : null;
-    if (econ == null) {
-      result.reject = "economics_unavailable";
-      continue;
-    }
-    if (econ.profitAnnual <= 0) {
-      result.reject = "profit_nonpositive";
-      continue;
-    }
-    if (result.best == null || econ.profitAnnual > result.best.economics.profitAnnual
-        || (econ.profitAnnual == result.best.economics.profitAnnual
-            && econ.roi > result.best.economics.roi)) {
-      result.best = {
-        hub = hub, choice = choice, economics = econ,
-        distance = flightDistance, monthlyPax = monthlyPax
-      };
-      result.reject = "candidate";
-    }
-  }
-  return result;
-}
-
-function OpexAirV95Post73Probe(ctx, combo, airport, plane)
-{
-  if (!V95_AIR_POST73_PROBE || ctx.targetTownId >= 0) return;
-  local year = AIDate.GetYear(AIDate.GetCurrentDate());
-  if (year < 1973 || V95_AIR_POST73_YEAR == year) return;
-  if (!(("kind" in combo) && combo.kind == "large")) return;
-  V95_AIR_POST73_YEAR = year;
-
-  local ownCounts = OpexAirOwnSlotTownCounts();
-  local available = OpexAvailableCapital();
-  local smallCount = 0;
-  local secondCount = 0;
-  local siteCount = 0;
-  local profitableCount = 0;
-  local affordableCount = 0;
-  local scanLimit = ctx.limit < ctx.towns.len() ? ctx.limit : ctx.towns.len();
-
-  for (local i = 0; i < scanLimit; i++) {
-    local town = ctx.towns[i];
-    local served = OpexAirTownServed(town, ctx.lines);
-    local c83OwnSecond = served && (town.id in ctx.c83TopTownIds)
-        && OpexAirC83SecondSlotOpen(town);
-    local isSmall = town.pop < OpexAirLargeAirportMinPop();
-    local isSecond = served && !c83OwnSecond;
-    if (!isSmall && !isSecond) continue;
-
-    local currentReject = "";
-    if (town.id in ctx.stationLimitedTowns) {
-      currentReject = "station_limit";
-    } else if (isSecond) {
-      currentReject = "origin_served";
-    } else if (!V93_AIRPORT_NO_POP_FLOOR && isSmall) {
-      currentReject = "pop_floor";
-    } else {
-      continue;
-    }
-
-    if (isSmall) smallCount++;
-    if (isSecond) secondCount++;
-    local family = isSmall ? (isSecond ? "small_second" : "small") : "second";
-
-    local requiredSlotTown = isSecond ? town.id : -1;
-    local preSlots = OpexAirC83SlotSignalEnabled() ? AITown.GetAllowedNoise(town.id) : -1;
-    local preOwn = (town.id in ownCounts) ? ownCounts[town.id] : 0;
-    if (requiredSlotTown >= 0 && preSlots == 0) {
-      OpexAirV95Log("phase=town family=" + family + " town=" + town.id + " pop=" + town.pop
-          + " current_reject=" + currentReject
-          + " shadow_reject=slot_closed served=" + (served ? 1 : 0)
-          + " slot_town=" + town.id + " slots_remaining=0 own_airports=" + preOwn
-          + " competitor_airports=" + (2 - preOwn));
-      continue;
-    }
-
-    local probes = {
-      left = AIR_MAX_SITE_PROBES, townsLeft = 1, tested = 0, cheapSkip = 0,
-      stationLimitedTowns = {}
-    };
-    local key = "v95|" + year + "|" + town.id + "|" + airport.type;
-    local found = OpexAirFindSiteListed(town, airport, probes, requiredSlotTown, key, false);
-    local site = found.site;
-    if (site == null) {
-      local reason = probes.left <= 0 ? "site_budget" : "site_terrain";
-      if (town.id in probes.stationLimitedTowns) reason = "site_slot";
-      OpexAirV95Log("phase=town family=" + family + " town=" + town.id + " pop=" + town.pop
-          + " current_reject=" + currentReject + " shadow_reject=" + reason
-          + " served=" + (served ? 1 : 0) + " slots_remaining=" + preSlots
-          + " own_airports=" + preOwn + " probes=" + found.used);
-      continue;
-    }
-    siteCount++;
-
-    local slotTown = OpexAirSlotTownId(site.anchor);
-    local slotsRemaining = (slotTown >= 0 && OpexAirC83SlotSignalEnabled())
-        ? AITown.GetAllowedNoise(slotTown) : -1;
-    local ownAirports = (slotTown in ownCounts) ? ownCounts[slotTown] : 0;
-    local occupied = slotsRemaining >= 0 ? 2 - slotsRemaining : -1;
-    local competitors = occupied >= 0 ? occupied - ownAirports : -1;
-    if (competitors < 0 && occupied >= 0) competitors = 0;
-
-    local paxProd = AITown.GetLastMonthProduction(town.id, ctx.catalog.paxCargo);
-    if (paxProd < 0) paxProd = 0;
-    local mailProd = -1;
-    if (("mailCargo" in ctx.catalog) && ctx.catalog.mailCargo >= 0) {
-      mailProd = AITown.GetLastMonthProduction(town.id, ctx.catalog.mailCargo);
-      if (mailProd < 0) mailProd = 0;
-    }
-    local paxTiles = OpexAirAirportCatchmentProduction(site.anchor, airport.type, ctx.catalog.paxCargo);
-    local mailTiles = -1;
-    if (("mailCargo" in ctx.catalog) && ctx.catalog.mailCargo >= 0) {
-      mailTiles = OpexAirAirportCatchmentProduction(site.anchor, airport.type, ctx.catalog.mailCargo);
-    }
-    local houses = AITown.GetHouseCount(town.id);
-    if (houses < 1) houses = 1;
-    local paxSiteEst = (paxTiles * paxProd) / houses;
-    local mailSiteEst = mailProd >= 0 && mailTiles >= 0 ? (mailTiles * mailProd) / houses : -1;
-    local levelCost = OpexAirV95LevelCost(site, airport);
-    local siteCost = airport.price + (levelCost > 0 ? levelCost : 0);
-
-    local route = OpexAirV95BestHubRoute(ctx, site, airport, plane);
-    local shadowReject = route.reject;
-    local planeId = -1;
-    local profit = -1;
-    local capital = -1;
-    local roi = -1;
-    local hubTown = -1;
-    local monthlyProxy = -1;
-    local measuredMonthly = -1;
-    local measuredPlaneId = -1;
-    local measuredProfit = -1;
-    local measuredCapital = -1;
-    local measuredRoi = -1;
-    local hubOnlyMonthly = -1;
-    local hubOnlyPlaneId = -1;
-    local hubOnlyProfit = -1;
-    if (route.best != null) {
-      profitableCount++;
-      planeId = route.best.choice.plane != null ? route.best.choice.plane.id : -1;
-      profit = route.best.economics.profitAnnual;
-      capital = route.best.economics.capital;
-      roi = route.best.economics.roi;
-      hubTown = route.best.hub.town.id;
-      monthlyProxy = route.best.monthlyPax;
-      if (capital > available) {
-        shadowReject = "cash";
-      } else {
-        shadowReject = "candidate";
-        affordableCount++;
-      }
-
-      /* Contre-factuel diagnostic minimal : meme site, meme hub et meme C68,
-       * mais la demande du nouveau site est remplacee par la production de
-       * bassin estimee ci-dessus. Le hub existant garde son proxy courant. */
-      local hubMonthlyMeasured = ((route.best.hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
-          / (route.best.hub.routes + 1);
-      measuredMonthly = hubMonthlyMeasured + paxSiteEst;
-      if (measuredMonthly < 10) measuredMonthly = 10;
-      local measuredChoice = OpexAirChooseRoutePlane(ctx.catalog, airport, plane,
-          route.best.distance, measuredMonthly, ctx.infrastructureMaintenance, 0, 1, 0, null);
-      if (measuredChoice != null && measuredChoice.economics != null) {
-        measuredPlaneId = measuredChoice.plane != null ? measuredChoice.plane.id : -1;
-        measuredProfit = measuredChoice.economics.profitAnnual;
-        measuredCapital = measuredChoice.economics.capital;
-        measuredRoi = measuredChoice.economics.roi;
-      }
-      hubOnlyMonthly = hubMonthlyMeasured;
-      if (hubOnlyMonthly < 10) hubOnlyMonthly = 10;
-      local hubOnlyChoice = OpexAirChooseRoutePlane(ctx.catalog, airport, plane,
-          route.best.distance, hubOnlyMonthly, ctx.infrastructureMaintenance, 0, 1, 0, null);
-      if (hubOnlyChoice != null && hubOnlyChoice.economics != null) {
-        hubOnlyPlaneId = hubOnlyChoice.plane != null ? hubOnlyChoice.plane.id : -1;
-        hubOnlyProfit = hubOnlyChoice.economics.profitAnnual;
-      }
-    }
-
-    OpexAirV95Log("phase=town family=" + family + " town=" + town.id + " pop=" + town.pop
-        + " current_reject=" + currentReject + " shadow_reject=" + shadowReject
-        + " served=" + (served ? 1 : 0)
-        + " anchor=" + site.anchor + " slot_town=" + slotTown
-        + " slots_remaining=" + slotsRemaining + " own_airports=" + ownAirports
-        + " competitor_airports=" + competitors
-        + " pax_prod=" + paxProd + " mail_prod=" + mailProd
-        + " pax_tiles=" + paxTiles + " mail_tiles=" + mailTiles
-        + " pax_site_est=" + paxSiteEst + " mail_site_est=" + mailSiteEst
-        + " airport_price=" + airport.price + " level_cost=" + levelCost
-        + " site_cost_est=" + siteCost
-        + " hub_town=" + hubTown + " plane=" + planeId
-        + " monthly_proxy=" + monthlyProxy + " profit=" + profit
-        + " capital=" + capital + " roi=" + roi + " available=" + available
-        + " measured_monthly=" + measuredMonthly + " measured_plane=" + measuredPlaneId
-        + " measured_profit=" + measuredProfit + " measured_capital=" + measuredCapital
-        + " measured_roi=" + measuredRoi
-        + " hub_only_monthly=" + hubOnlyMonthly + " hub_only_plane=" + hubOnlyPlaneId
-        + " hub_only_profit=" + hubOnlyProfit
-        + " probes=" + found.used);
-  }
-  OpexAirV95Log("phase=summary towns=" + scanLimit + " small=" + smallCount
-      + " second=" + secondCount + " sites=" + siteCount
-      + " profitable=" + profitableCount + " affordable=" + affordableCount
-      + " hubs=" + ctx.hubs.len() + " available=" + available);
 }
 
 /* 7. Finalisation : enregistrement des perf, sondes et nettoyage de la reprise. */
@@ -2137,14 +1792,12 @@ function OpexAirV93NextSmallCombo(combos, comboIndex)
  * meme contexte d'invocation. Un echec de Prepare signifie deja termine
  * (done/no combo), jamais un yield de tranche. Les sondes restent entourees
  * exactement comme dans le driver initial. */
-function OpexAirPlansStepPrepare(ctx, light)
+function OpexAirPlansStepPrepare(ctx)
 {
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_prepare", "-");
-  local lightMark = light != null ? OpexAirLightPhaseBegin() : null;
   local spPrepare = PROBE_SPAN_TRACE ? OpexSpanBegin("air.prepare") : null;
   local prepared = OpexAirPlansPrepare(ctx);
   if (spPrepare != null) OpexSpanEnd(spPrepare);
-  if (light != null) OpexAirLightPhaseEnd(light, "prepare", lightMark);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_prepare", "-",
       "combos=" + (ctx.combos != null ? ctx.combos.len() : 0) + " towns=" + (ctx.towns != null ? ctx.towns.len() : 0)
       + " target=" + ctx.targetTownId);
@@ -2154,14 +1807,12 @@ function OpexAirPlansStepPrepare(ctx, light)
 /* CD01 : la tranche Sites possede le meme seul point de suspension que
  * FindSites (scanIndex/rankIndex et C83). L'appelant conserve son bestPlan
  * quand la sous-etape renvoie false. */
-function OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo, light)
+function OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo)
 {
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_find_sites", "-");
-  local lightMark = light != null ? OpexAirLightPhaseBegin() : null;
   local spSites = PROBE_SPAN_TRACE ? OpexSpanBegin("air.sites") : null;
   local sitesOk = OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo);
   if (spSites != null) OpexSpanEnd(spSites);
-  if (light != null) OpexAirLightPhaseEnd(light, "sites", lightMark);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_find_sites", "-",
       "combo=" + comboIndex + " sites=" + ctx.sites.len() + " probes=" + ctx.perfProbesCount);
   return sitesOk;
@@ -2169,14 +1820,12 @@ function OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resum
 
 /* CD02 : NewPairs reutilise le meme contexte et les meme curseurs a/b.
  * Aucun point de yield ni reevaluation supplementaire d'une paire. */
-function OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo, light)
+function OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo)
 {
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_new_pairs", "-");
-  local lightMark = light != null ? OpexAirLightPhaseBegin() : null;
   local spPairs = PROBE_SPAN_TRACE ? OpexSpanBegin("air.new_pairs") : null;
   local pairsOk = OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo);
   if (spPairs != null) OpexSpanEnd(spPairs);
-  if (light != null) OpexAirLightPhaseEnd(light, "new_pairs", lightMark);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_new_pairs", "-",
       "combo=" + comboIndex + " plans=" + (ctx.projects != null ? ctx.projects.len() : -1));
   return pairsOk;
@@ -2238,9 +1887,8 @@ function OpexAirPlansCompleteCombo(ctx, comboIndex, combo)
 
 /* CD03 : visite et reprise du snapshot hub dans une unique phase interne.
  * Le span de decouverte reste conditionne a !reuseHubs ; aucun nouveau yield. */
-function OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)
+function OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane)
 {
-  local lightMark = null;
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hubs", "-");
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_discover", "-");
     local reuseHubs = false;
@@ -2251,17 +1899,14 @@ function OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, l
     }
     if (!reuseHubs) {
       ctx.air0310HubOrphan <- [];
-      if (light != null) lightMark = OpexAirLightPhaseBegin();
       local spDisc = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_discover") : null;
       OpexAirPlansDiscoverHubs(ctx, combo, airport, plane);
       if (spDisc != null) OpexSpanEnd(spDisc);
-      if (light != null) OpexAirLightPhaseEnd(light, "hub_discover", lightMark);
       if (ctx.sliced) OpexAir0310HubSnapshotStore(ctx, comboIndex);
     }
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_discover", "-",
         "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len());
     OpexAC04ValidateHubsAtUsage(ctx);
-  OpexAirV95Post73Probe(ctx, combo, airport, plane);
 }
 
 /* CD04: la sous-etape hub->site maintient le checkpoint hubPhase et
@@ -2287,8 +1932,6 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   local t0_all = AIController.GetTick();
   local l0_all = AIController.GetOpsTillSuspend();
   local _calcDeltaOps = OpexAirCalcDeltaOps;
-  local light = CATALOG_COST_PROBE ? OpexAirLightBegin(resumeState, targetTownId, paxBand) : null;
-  local lightMark = null;
   local ctx = {
     catalog = catalog,
     lines = lines,
@@ -2328,9 +1971,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   };
 
   local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;
-  local prepared = OpexAirPlansStepPrepare(ctx, light);
+  local prepared = OpexAirPlansStepPrepare(ctx);
   if (!prepared) {
-    if (light != null) OpexAirLightEnd(light, !ctx.sliced || ctx.resumeState.done, "prepare_return");
     if (spPlans != null) OpexSpanEnd(spPlans);
     return ctx.bestPlan;
   }
@@ -2342,51 +1984,40 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local minDist = (plane.speed >= 400) ? 32 : 30;
     local resumingCombo = ctx.sliced && ctx.resumeState.combo == comboIndex && ctx.resumeState.sites != null;
 
-    local sitesOk = OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo, light);
+    local sitesOk = OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo);
     if (!sitesOk) {
-      if (light != null) OpexAirLightEnd(light, false, "sites_yield");
       if (spPlans != null) OpexSpanEnd(spPlans);
       return ctx.bestPlan;
     }
 
     local pairsOk = OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane,
-        minDist, resumingCombo, light);
+        minDist, resumingCombo);
     if (!pairsOk) {
-      if (light != null) OpexAirLightEnd(light, false, "pairs_yield");
       if (spPlans != null) OpexSpanEnd(spPlans);
       return ctx.bestPlan;
     }
 
-    OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light);
+    OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane);
 
     local c56PlansBefore = (ctx.projects != null) ? ctx.projects.len() : 0;
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_site", "-");
     local tHubEval0 = AIController.GetTick();
     local lHubEval0 = AIController.GetOpsTillSuspend();
-    if (light != null) lightMark = OpexAirLightPhaseBegin();
     local spHubSite = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_site") : null;
     if (!OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)) {
-      if (light != null) {
-        OpexAirLightPhaseEnd(light, "hub_site", lightMark);
-        OpexAirLightEnd(light, false, "hub_site_yield");
-      }
       if (spHubSite != null) OpexSpanEnd(spHubSite);
       if (spPlans != null) OpexSpanEnd(spPlans);
       return ctx.bestPlan;
     }
     if (spHubSite != null) OpexSpanEnd(spHubSite);
-    if (light != null) OpexAirLightPhaseEnd(light, "hub_site", lightMark);
     local c56PlansMid = (ctx.projects != null) ? ctx.projects.len() : 0;
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_to_site", "-",
         "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len() + " admitted=" + (c56PlansMid - c56PlansBefore));
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_hub", "-");
-    if (light != null) lightMark = OpexAirLightPhaseBegin();
     local spHubHub = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_hub") : null;
     local hubsOk = OpexAirPlansHubToHub(ctx, combo, airport, plane);
     if (spHubHub != null) OpexSpanEnd(spHubHub);
-    if (light != null) OpexAirLightPhaseEnd(light, "hub_hub", lightMark);
     if (!hubsOk) {
-      if (light != null) OpexAirLightEnd(light, false, "hub_hub_yield");
       if (spPlans != null) OpexSpanEnd(spPlans);
       return ctx.bestPlan;
     }
@@ -2401,255 +2032,11 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   }
 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_finalize", "-");
-  if (light != null) lightMark = OpexAirLightPhaseBegin();
   local spFinal = PROBE_SPAN_TRACE ? OpexSpanBegin("air.finalize") : null;
   local finalPlan = OpexAirPlansFinalize(ctx);
   if (spFinal != null) OpexSpanEnd(spFinal);
-  if (light != null) OpexAirLightPhaseEnd(light, "finalize", lightMark);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_finalize", "-");
-  if (light != null) OpexAirLightEnd(light, true, "done");
   if (spPlans != null) OpexSpanEnd(spPlans);
   return finalPlan;
 }
 
-/* Sonde passive probe_c121_engine_table. Chaque emetteur retourne avant tout
- * travail quand le reglage est a 0. Aucun appel economique : on journalise
- * des valeurs deja calculees. Une reprise de tranche relit c121EngTabPass
- * dans resumeState et n'ouvre pas une nouvelle passe.
- * PLAN porte ge=0 scan normal, 1 raccourci avion-de-la-partie (aucune ligne
- * ENG : seul E est retenu, sans decisionOnly), 2 controle, 3 repli, et
- * ge_est=moteur etabli ou -1. Absents : 0 / -1. */
-function OpexC121EngTabPad2(n)
-{
-  if (n < 10) return "0" + n;
-  return "" + n;
-}
-
-function OpexC121EngTabDate()
-{
-  local date = AIDate.GetCurrentDate();
-  return AIDate.GetYear(date) + "-"
-      + OpexC121EngTabPad2(AIDate.GetMonth(date)) + "-"
-      + OpexC121EngTabPad2(AIDate.GetDayOfMonth(date));
-}
-
-function OpexC121EngTabKey(plan)
-{
-  local townA = -1;
-  local townB = -1;
-  if (plan != null && ("siteA" in plan) && plan.siteA != null
-      && ("town" in plan.siteA) && plan.siteA.town != null) townA = plan.siteA.town.id;
-  if (plan != null && ("siteB" in plan) && plan.siteB != null
-      && ("town" in plan.siteB) && plan.siteB.town != null) townB = plan.siteB.town.id;
-  local ap = -1;
-  if (plan != null && ("airport" in plan) && plan.airport != null
-      && ("type" in plan.airport)) ap = plan.airport.type;
-  local arm = (plan != null && ("arm" in plan) && plan.arm != null) ? plan.arm : "na";
-  return townA + "-" + townB + "-" + ap + "-" + arm;
-}
-
-function OpexC121EngTabEngineSignature(catalog)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return "none";
-  if (catalog == null || !("airPlaneChoicesByAirport" in catalog)
-      || catalog.airPlaneChoicesByAirport == null) return "none";
-  local types = [];
-  local byType = {};
-  foreach (airportType, choices in catalog.airPlaneChoicesByAirport) {
-    local ids = [];
-    if (choices != null) {
-      foreach (plane in choices) {
-        if (plane == null || !("id" in plane)) continue;
-        if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
-        ids.append(plane.id);
-      }
-    }
-    ids.sort();
-    local idText = "";
-    foreach (engineId in ids) {
-      if (idText != "") idText += ",";
-      idText += engineId;
-    }
-    types.append(airportType);
-    byType.rawset(airportType, idText);
-  }
-  if (types.len() == 0) return "none";
-  types.sort();
-  local text = "";
-  foreach (sortedType in types) {
-    if (text != "") text += ";";
-    text += sortedType + ":" + byType[sortedType];
-  }
-  return text;
-}
-
-function OpexC121EngTabBeginPass(sliced, resumeState, catalog, targetTownId)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return;
-  /* Une tranche reprise restaure l'identifiant de SA passe sans toucher au
-   * compteur : un etat reprenable ancien peut etre repris entre deux passes
-   * neuves, et ne doit pas faire reculer la numerotation. */
-  if (sliced && resumeState != null && ("c121EngTabPass" in resumeState)) {
-    C121_ENGTAB_PASS = resumeState.c121EngTabPass;
-    return;
-  }
-  C121_ENGTAB_NEXT = C121_ENGTAB_NEXT + 1;
-  C121_ENGTAB_PASS = C121_ENGTAB_NEXT;
-  if (sliced && resumeState != null) resumeState.c121EngTabPass <- C121_ENGTAB_PASS;
-  OpexC121EngTabEmitPass(catalog, sliced, targetTownId);
-}
-
-function OpexC121EngTabEmitPass(catalog, sliced, targetTownId)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return;
-  AILog.Info("C121_ENGTAB_PASS pass=" + C121_ENGTAB_PASS
-      + " date=" + OpexC121EngTabDate()
-      + " sliced=" + (sliced ? 1 : 0)
-      + " target=" + targetTownId
-      + " engines=" + OpexC121EngTabEngineSignature(catalog));
-}
-
-function OpexC121EngTabEmitEng(plan, engineId, upperScore, evaluated, economics)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return;
-  local score = -1;
-  local profit = -1;
-  local capital = -1;
-  if (evaluated && economics != null) {
-    if ("decisionScore" in economics) score = economics.decisionScore;
-    else if ("score" in economics) score = economics.score;
-    if ("decisionProfitAnnual" in economics) profit = economics.decisionProfitAnnual;
-    else if ("profitAnnual" in economics) profit = economics.profitAnnual;
-    if ("capital" in economics) capital = economics.capital;
-  }
-  AILog.Info("C121_ENGTAB_ENG pass=" + C121_ENGTAB_PASS
-      + " key=" + OpexC121EngTabKey(plan)
-      + " eng=" + engineId
-      + " upper=" + upperScore
-      + " eval=" + evaluated
-      + " score=" + score
-      + " P=" + profit
-      + " C=" + capital);
-}
-
-function OpexC121EngTabEmitPruned(plan, candidates, seen)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return;
-  if (candidates == null) return;
-  for (local i = seen; i < candidates.len(); i = i + 1) {
-    local candidate = candidates[i];
-    OpexC121EngTabEmitEng(plan, candidate.plane.id, candidate.upperScore, 0, null);
-  }
-}
-
-function OpexC121EngTabEmitHit(plan)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return;
-  AILog.Info("C121_ENGTAB_HIT pass=" + C121_ENGTAB_PASS
-      + " key=" + OpexC121EngTabKey(plan));
-}
-
-function OpexC121EngTabNum(obj, name)
-{
-  if (obj == null || !(name in obj) || obj[name] == null) return -1;
-  return obj[name];
-}
-
-function OpexC121EngTabScoreOf(obj, preferDecision)
-{
-  if (obj == null) return -1;
-  if (preferDecision && ("decisionScore" in obj) && obj.decisionScore != null) return obj.decisionScore;
-  if ("score" in obj && obj.score != null) return obj.score;
-  return -1;
-}
-
-function OpexC121EngTabDemand(plan, name)
-{
-  if (plan == null || !("c121Demand" in plan) || plan.c121Demand == null) return -1;
-  if (!(name in plan.c121Demand) || plan.c121Demand[name] == null) return -1;
-  return plan.c121Demand[name];
-}
-
-function OpexC121EngTabEmitPlan(plan, routeChoice)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return;
-  local opening = (routeChoice != null && ("economics" in routeChoice)) ? routeChoice.economics : null;
-  local decision = (routeChoice != null && ("decisionEconomics" in routeChoice)
-      && routeChoice.decisionEconomics != null) ? routeChoice.decisionEconomics : null;
-  local portfolio = (routeChoice != null && ("portfolioEconomics" in routeChoice)
-      && routeChoice.portfolioEconomics != null) ? routeChoice.portfolioEconomics : null;
-  local rankObj = decision != null ? decision : opening;
-  local eng = -1;
-  if (routeChoice != null && ("plane" in routeChoice) && routeChoice.plane != null
-      && ("id" in routeChoice.plane)) eng = routeChoice.plane.id;
-  local planes = -1;
-  if (routeChoice != null && ("targetPlanes" in routeChoice) && routeChoice.targetPlanes != null)
-    planes = routeChoice.targetPlanes;
-  else if (opening != null && ("planes" in opening) && opening.planes != null)
-    planes = opening.planes;
-  local dist = (plan != null && ("distance" in plan) && plan.distance != null) ? plan.distance : -1;
-  local ap = -1;
-  if (plan != null && ("airport" in plan) && plan.airport != null && ("type" in plan.airport))
-    ap = plan.airport.type;
-  local arm = (plan != null && ("arm" in plan) && plan.arm != null) ? plan.arm : "na";
-  local n1P = -1;
-  local n1C = -1;
-  local n2P = -1;
-  local n2C = -1;
-  if (C121_ENGTAB_N1 != null) {
-    n1P = OpexC121EngTabNum(C121_ENGTAB_N1, "profitAnnual");
-    n1C = OpexC121EngTabNum(C121_ENGTAB_N1, "capital");
-  }
-  if (C121_ENGTAB_N2 != null) {
-    n2P = OpexC121EngTabNum(C121_ENGTAB_N2, "profitAnnual");
-    n2C = OpexC121EngTabNum(C121_ENGTAB_N2, "capital");
-  }
-  local splitFlag = 0;
-  local ge = 0;
-  local geEst = -1;
-  if (plan != null && ("c121GeMode" in plan) && plan.c121GeMode != null) ge = plan.c121GeMode;
-  if (plan != null && ("c121GeEst" in plan) && plan.c121GeEst != null) geEst = plan.c121GeEst;
-  AILog.Info("C121_ENGTAB_PLAN pass=" + C121_ENGTAB_PASS
-      + " date=" + OpexC121EngTabDate()
-      + " key=" + OpexC121EngTabKey(plan)
-      + " arm=" + arm
-      + " ap=" + ap
-      + " dist=" + dist
-      + " paxRawA=" + OpexC121EngTabDemand(plan, "paxRawA")
-      + " paxRawB=" + OpexC121EngTabDemand(plan, "paxRawB")
-      + " paxA=" + OpexC121EngTabDemand(plan, "paxA")
-      + " paxB=" + OpexC121EngTabDemand(plan, "paxB")
-      + " mailRawA=" + OpexC121EngTabDemand(plan, "mailRawA")
-      + " mailRawB=" + OpexC121EngTabDemand(plan, "mailRawB")
-      + " eng=" + eng
-      + " score=" + OpexC121EngTabScoreOf(opening, false)
-      + " P=" + OpexC121EngTabNum(opening, "profitAnnual")
-      + " C=" + OpexC121EngTabNum(opening, "capital")
-      + " dScore=" + OpexC121EngTabScoreOf(decision, true)
-      + " dP=" + OpexC121EngTabNum(decision, "profitAnnual")
-      + " dC=" + OpexC121EngTabNum(decision, "capital")
-      + " pfScore=" + OpexC121EngTabScoreOf(portfolio, true)
-      + " pfP=" + OpexC121EngTabNum(portfolio, "profitAnnual")
-      + " pfC=" + OpexC121EngTabNum(portfolio, "capital")
-      + " n=" + planes
-      + " P_n1=" + n1P
-      + " C_n1=" + n1C
-      + " P_n2=" + n2P
-      + " C_n2=" + n2C
-      + " imm=" + OpexC121EngTabNum(rankObj, "immobilise")
-      + " kdec=" + OpexC121EngTabNum(rankObj, "decisionKDec")
-      + " init=0"
-      + " split=" + splitFlag
-      + " ge=" + ge
-      + " ge_est=" + geEst);
-}
-
-function OpexC121EngTabAfterChoice(plan, routeChoice)
-{
-  if (!PROBE_C121_ENGINE_TABLE) return;
-  if (plan == null || !("c121EngTabReal" in plan)) return;
-  OpexC121EngTabEmitPlan(plan, routeChoice);
-  if ("c121EngTabReal" in plan) delete plan.c121EngTabReal;
-  C121_ENGTAB_N1 = null;
-  C121_ENGTAB_N2 = null;
-}

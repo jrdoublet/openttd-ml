@@ -67,16 +67,6 @@ class TestM3EquipmentRoi(unittest.TestCase):
         self.assertIn("function OpexM3ProbeAirPreAdmission", src)
         for phase in ("pre_admission_newpair", "pre_admission_hubsite", "pre_admission_hubhub"):
             self.assertIn(phase, planning_src)
-    def test_air_route_plane_selection_reuses_m3_choices_and_economics(self):
-        src = AIR_ENGINE_CHOICE.read_text(encoding="utf-8")
-        planning_src = AIR_PLANNING.read_text(encoding="utf-8")
-        catalog = CATALOG.read_text(encoding="utf-8")
-        self.assertIn("function OpexAirChooseRoutePlane", src)
-        self.assertIn('if (!(airport.type in catalog.airPlaneChoicesByAirport))', src)
-        self.assertIn("economics.profitAnnual > bestEconomics.profitAnnual", src)
-        self.assertIn("local keepPlaneChoices = true", " ".join(catalog.split()))
-        self.assertEqual(planning_src.count("OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,"), 0)
-        self.assertIn('"AV|" + routePlane.speed + "|" + routePlane.capacity', planning_src)
     def test_proxy_labels_and_airport_policy(self):
         probe_src = ECONOMY.read_text(encoding="utf-8") + AIR_ENGINE_CHOICE.read_text(encoding="utf-8")
         self.assertIn("refit_proxy_choices=", probe_src)
