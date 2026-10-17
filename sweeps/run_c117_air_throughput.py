@@ -100,7 +100,6 @@ def main():
 
     enable_savegame_cleanup()
     settings = (
-        ("c115_air_c100_capital_replay", 1),
         ("c117_air_throughput_probe", 1),
         ("b9_air_demand_shadow", 1),
     )

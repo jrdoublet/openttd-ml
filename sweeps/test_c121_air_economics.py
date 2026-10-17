@@ -56,7 +56,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertEqual(defaults["c121_air_economics"], 1)
         self.assertEqual(defaults["c121_air_project_realization_adaptive"], 1)
         self.assertEqual(defaults["c121_air_pressure_probe"], 0)
-        self.assertEqual(defaults["c121_air_defensive_floor"], 0)
+        self.assertNotIn("c121_air_defensive_floor", defaults)
         self.assertEqual(defaults["c121_air_engine_replay_shadow"], 0)
         # Optimisation d'opcodes adoptee le 2026-10-03, inerte hors C121.
         self.assertEqual(defaults["c121_air_game_engine"], 1)
@@ -77,7 +77,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('AIController.GetSetting("c121_air_economics")', settings)
         self.assertIn('AIController.GetSetting("c121_air_project_realization_adaptive")', settings)
         self.assertIn('OpexProbeSetting("c121_air_pressure_probe")', settings)
-        self.assertIn('AIController.GetSetting("c121_air_defensive_floor")', settings)
+        self.assertNotIn("c121_air_defensive_floor", settings)
         self.assertIn('OpexProbeSetting("c121_air_engine_replay_shadow")', settings)
         self.assertIn('AIController.GetSetting("c121_air_game_engine")', settings)
 
@@ -358,7 +358,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertEqual(self.air.count(": OpexC121ChooseRoutePlane(catalog, plan, ctx.lines)"), 2)
         self.assertEqual(self.air.count(": OpexC121ChooseRoutePlane(catalog, plan, lines)"), 1)
         self.assertGreaterEqual(self.air.count("plan.targetPlanes <- routeChoice.targetPlanes;"), 3)
-        self.assertIn("AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS", self.air)
+        self.assertNotIn("AIR_HUBHUB_MARGINAL", self.air)
 
     def test_causal_plan_economics_flows_into_project_and_fund_score(self):
         project = body(self.projects, "function OpexProjectFromAir", "function OpexProjectFromWater")
@@ -647,10 +647,10 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('local engineStatic = ("c121EngineStatic" in plan)', econ)
         self.assertIn("local speedRating = OpexC121SpeedRatingPoints(plane);", econ)
 
-    def test_c115_remains_available_as_historical_baseline(self):
-        self.assertIn("function OpexC115ChooseRoutePlane", self.air)
+    def test_c115_removed_from_historical_chooser(self):
+        self.assertNotIn("function OpexC115ChooseRoutePlane", self.air)
         full = body(self.air, "function OpexAirChooseRoutePlaneFull", "function OpexAirPlans")
-        self.assertIn("C115_AIR_C100_CAPITAL_REPLAY", full)
+        self.assertNotIn("C115_AIR_C100_CAPITAL_REPLAY", full)
 
     def test_fleet_depth_keeps_local_roi_for_engine_scan_and_portfolio_floor_is_gated(self):
         econ = body(self.air, "function OpexC121AirEconomics", "function OpexC121MeasureBuiltEconomics")
@@ -707,14 +707,14 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("OpexC121MeasureBuiltEconomics(catalog, plan, result);", self.air)
         start = self.air.index("function OpexAirChooseRoutePlaneFull")
         chooser = self.air[start:start + 18000]
-        # C121 utilise un chooser dedie ; le chooser legacy garde C115 baseline.
+        # C121 utilise un chooser dedie ; C115 est retire sous C121 par defaut.
         self.assertNotIn("C121_AIR_ECONOMICS", chooser)
-        self.assertIn("C115_AIR_C100_CAPITAL_REPLAY", chooser)
+        self.assertNotIn("C115_AIR_C100_CAPITAL_REPLAY", chooser)
 
-    def test_shadow_runner_keeps_c115_and_c121_passive(self):
+    def test_shadow_runner_keeps_c121_passive(self):
         runner = RUNNER.read_text(encoding="utf-8")
         self.assertIn('("save_full_state", 0)', runner)
-        self.assertIn('("c115_air_c100_capital_replay", 1)', runner)
+        self.assertNotIn("c115_air_c100_capital_replay", runner)
         self.assertIn('("c117_air_throughput_probe", 1)', runner)
         self.assertIn('("c121_air_economics_shadow", 1)', runner)
         self.assertIn('("c121_air_economics", 0)', runner)

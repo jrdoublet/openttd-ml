@@ -87,7 +87,6 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local multiPlaneMax = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
   local maxAllowed = (targetSizing || serviceScan) ? multiPlaneMax
       : ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || FLEET_PORTFOLIO) ? 1 : multiPlaneMax);
-  if (!targetSizing && !serviceScan && !OPEX_ECONOMY_OPCODE_COMPAT_FALSE && !FLEET_PORTFOLIO && OPEX_AIR_PLAN_PAD && opcodePadding > 0) maxAllowed = opcodePadding;
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -221,8 +220,7 @@ function OpexAirReconcileActualBuild(catalog, plan, result, lines = null)
   local actualPlanes = ("vehicles" in result && result.vehicles != null) ? result.vehicles.len() : 0;
   if (actualPlanes <= 0) return;
   local baseMonthly = ("monthlyPax" in plan) ? plan.monthlyPax : 0;
-  local joinedMonthly = OPEX_AIR_PLAN_PAD && ("joinedMonthlyPax" in result)
-      ? result.joinedMonthlyPax : 0;
+  local joinedMonthly = 0;
   local monthlyPax = baseMonthly + joinedMonthly;
   if (monthlyPax < 10) monthlyPax = 10;
   if (V93_AIR_DEMAND_PRODUCTION) {

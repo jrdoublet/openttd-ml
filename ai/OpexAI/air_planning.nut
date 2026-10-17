@@ -1,16 +1,4 @@
 /* Module AIR extrait de builder_air.nut (R11) : planification des liaisons (OpexAirPlans et etapes). */
-/* An anchor only describes the north-west corner. Its buildability depends on
- * the airport footprint, so the airport type is part of the durable-site key. */
-function OpexAirSitePaddingKey(site, airportType)
-{
-  return "air_site|" + airportType + "|" + site.anchor;
-}
-
-function OpexAirTownPaddingKey(site)
-{
-  return "air_town_limit|" + site.town.tile;
-}
-
 /* C78.2 : une paire AIR est non orientee. Generation et chantier ecrivent
  * exactement la meme cle, meme si un hub inverse l'ordre des extremites. */
 function OpexAirPairKey(siteA, siteB)
@@ -828,11 +816,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       }
 
       if (abandoned != null) {
-        if (OpexAirPairIsAbandoned(abandoned, sites[a], sites[b])
-            || (OPEX_AIR_TOWN_PAD && ((OpexAirTownPaddingKey(sites[a]) in abandoned)
-                || (OpexAirTownPaddingKey(sites[b]) in abandoned)))
-            || (OPEX_AIR_SITE_PAD && ((OpexAirSitePaddingKey(sites[a], airport.type) in abandoned)
-                || (OpexAirSitePaddingKey(sites[b], airport.type) in abandoned)))) {
+        if (OpexAirPairIsAbandoned(abandoned, sites[a], sites[b])) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "abandoned", 1);
           if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=abandoned P=-1 C=-1");
           continue;
@@ -843,7 +827,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       local popB = sites[b].town.pop;
       local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
       local opcodePadding = 0;
-      if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
       if (monthlyPax < 10) monthlyPax = 10;
       if (V93_AIR_DEMAND_PRODUCTION) {
         monthlyPax = OpexAirTownMonthlyPax(sites[a].town, sites[a].anchor, airport, ctx.lines)
@@ -1526,9 +1509,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         continue;
       }
       if (abandoned != null) {
-        if (OpexAirPairIsAbandoned(abandoned, hub, site)
-            || (OPEX_AIR_TOWN_PAD && (OpexAirTownPaddingKey(site) in abandoned))
-            || (OPEX_AIR_SITE_PAD && (OpexAirSitePaddingKey(site, airport.type) in abandoned))) {
+        if (OpexAirPairIsAbandoned(abandoned, hub, site)) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "abandoned", 1);
           if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=abandoned P=-1 C=-1");
           continue;
@@ -1540,7 +1521,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
       local monthlyPax = hubMonthly + newMonthly;
       local opcodePadding = 0;
-      if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
       if (monthlyPax < 10) monthlyPax = 10;
       if (V93_AIR_DEMAND_PRODUCTION) {
         monthlyPax = OpexAirTownMonthlyPax(hub.town, hub.anchor, airport, ctx.lines)
@@ -1650,66 +1630,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
   local bestPlan = ctx.bestPlan;
   local targetTownId = ctx.targetTownId;
 
-  local hubAvgIncome = [];
-  /* AC05 adopte : C121 ignore la correction marginale V86 ; ne pas
-   * recomputer une valeur jamais lue, mais conserver la branche V86 legacy. */
-  if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS)) {
-    for (local h = 0; h < hubs.len(); h++) hubAvgIncome.append(0.0);
-    if (lines != null && hubs.len() > 0) {
-      local hubIndexByStation = {};
-      for (local h = 0; h < hubs.len(); h++) {
-        hubIndexByStation.rawset(hubs[h].stationId, h);
-      }
-      local hubLinesCount = [];
-      local hubLinesIncomeSum = [];
-      for (local h = 0; h < hubs.len(); h++) {
-        hubLinesCount.append(0);
-        hubLinesIncomeSum.append(0.0);
-      }
-      foreach (line in lines) {
-        if (!("mode" in line) || line.mode != "air") continue;
-        if (("deadStreak" in line) && line.deadStreak >= 2) continue;
-        local stA = AIR_HUB_FIX ? OpexAirLineStationId(line, 0)
-            : (AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA));
-        local stB = AIR_HUB_FIX ? OpexAirLineStationId(line, 1)
-            : (AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB));
-        if (!AIStation.IsValidStation(stA) || !AIStation.IsValidStation(stB)) continue;
-
-        local dist = ("distance" in line && line.distance > 0)
-            ? line.distance
-            : (AIMap.IsValidTile(line.stationA) && AIMap.IsValidTile(line.stationB)
-                ? OpexFlightDistance(line.stationA, line.stationB) : 0);
-        if (dist <= 0) continue;
-        local days = ("predOneWayDays" in line && line.predOneWayDays > 0) ? line.predOneWayDays : 0;
-        local incomeDays = OpexCeilDiv(days, 1);
-        if (incomeDays < 1) incomeDays = 1;
-        local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, dist, incomeDays);
-        local totalIncomePerUnit = paxIncome;
-        if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
-          local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, dist, incomeDays);
-          totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
-        }
-        local incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
-
-        if (stA in hubIndexByStation) {
-          local h = hubIndexByStation[stA];
-          hubLinesCount[h]++;
-          hubLinesIncomeSum[h] += incomePerUnit;
-        }
-        if (stB in hubIndexByStation && stB != stA) {
-          local h = hubIndexByStation[stB];
-          hubLinesCount[h]++;
-          hubLinesIncomeSum[h] += incomePerUnit;
-        }
-      }
-      for (local h = 0; h < hubs.len(); h++) {
-        if (hubLinesCount[h] > 0) {
-          hubAvgIncome[h] = hubLinesIncomeSum[h] / hubLinesCount[h];
-        }
-      }
-    }
-  }
-
   local incrementalSlice = ctx.sliced && C121_CATALOG_INCREMENTAL;
   local resumeI = incrementalSlice && ("hubHubI" in ctx.resumeState)
       ? ctx.resumeState.hubHubI : 0;
@@ -1817,7 +1737,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
       local monthlyPax = monthly1 + monthly2;
       local opcodePadding = 0;
-      if (OPEX_AIR_PLAN_PAD) opcodePadding = opcodePadding;
       if (monthlyPax < 10) monthlyPax = 10;
       if (V93_AIR_DEMAND_PRODUCTION) {
         monthly1 = OpexAirTownMonthlyPax(hub1.town, hub1.anchor, airport, lines);
@@ -1849,39 +1768,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       if (EQUIPMENT_ROI_PROBE && routePlane != null && economics != null) {
         OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
             infrastructureMaintenance, maxCapital, 0, opcodePadding, economics, "pre_admission_hubhub");
-      }
-      if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS
-          && economics != null && economics.profitAnnual > 0) {
-        /* V86 Variante A : retrancher la perte de revenu annuel des lignes aeriennes existantes.
-         * Hypothese : CargoDist etant desactive (DT_MANUAL), les passagers montent dans le premier avion
-         * quelle que soit sa destination. La nouvelle ligne hub->hub cannibalise les passagers des lignes
-         * existantes des deux hubs. Aucun gain de note de gare (station rating) n'est modelise. */
-        local pax1 = (monthlyPax > 0) ? (economics.carried.tofloat() * monthly1) / monthlyPax : 0.0;
-        if (pax1 > monthly1) pax1 = monthly1.tofloat();
-        local pax2 = (monthlyPax > 0) ? (economics.carried.tofloat() * monthly2) / monthlyPax : 0.0;
-        if (pax2 > monthly2) pax2 = monthly2.tofloat();
-        local lossAnnual = (12.0 * (pax1 * hubAvgIncome[i] + pax2 * hubAvgIncome[j])).tointeger();
-        if (lossAnnual > 0) {
-          economics = clone economics;
-          economics.profitAnnual -= lossAnnual;
-          local totalCapital = economics.capital + economics.immobilise;
-          economics.roi = totalCapital > 0 ? (economics.profitAnnual * 1000) / totalCapital : 0;
-        }
-      }
-      if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS
-          && decisionEconomics != null && decisionEconomics.profitAnnual > 0) {
-        local decisionPax1 = (monthlyPax > 0) ? (decisionEconomics.carried.tofloat() * monthly1) / monthlyPax : 0.0;
-        if (decisionPax1 > monthly1) decisionPax1 = monthly1.tofloat();
-        local decisionPax2 = (monthlyPax > 0) ? (decisionEconomics.carried.tofloat() * monthly2) / monthlyPax : 0.0;
-        if (decisionPax2 > monthly2) decisionPax2 = monthly2.tofloat();
-        local decisionLossAnnual = (12.0 * (decisionPax1 * hubAvgIncome[i] + decisionPax2 * hubAvgIncome[j])).tointeger();
-        if (decisionLossAnnual > 0) {
-          decisionEconomics = clone decisionEconomics;
-          decisionEconomics.profitAnnual -= decisionLossAnnual;
-          local decisionTotalCapital = decisionEconomics.capital + decisionEconomics.immobilise;
-          decisionEconomics.roi = decisionTotalCapital > 0
-              ? (decisionEconomics.profitAnnual * 1000) / decisionTotalCapital : 0;
-        }
       }
       local admissionEconomics = economics;
       if (economics == null || admissionEconomics == null || admissionEconomics.profitAnnual <= 0) {
@@ -1996,10 +1882,7 @@ function OpexAirV95BestHubRoute(ctx, site, airport, plane)
     if (!OpexAirPairInBand(ctx.catalog, distance, flightDistance, ctx.paxBand)) continue;
     if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
     if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
-    if (ctx.abandoned != null
-        && (OpexAirPairIsAbandoned(ctx.abandoned, hub, site)
-            || (OPEX_AIR_TOWN_PAD && (OpexAirTownPaddingKey(site) in ctx.abandoned))
-            || (OPEX_AIR_SITE_PAD && (OpexAirSitePaddingKey(site, airport.type) in ctx.abandoned)))) {
+    if (ctx.abandoned != null && OpexAirPairIsAbandoned(ctx.abandoned, hub, site)) {
       result.reject = "abandoned";
       continue;
     }

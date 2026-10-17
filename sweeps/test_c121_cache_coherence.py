@@ -44,7 +44,7 @@ class CacheSourceContracts(unittest.TestCase):
         # Decision utilisateur du 2026-10-02 : aerien seul la premiere annee a 1
         # (inerte sans c121_catalog_incremental).
         self.assertEqual(settings["c121_catalog_air_first_year"], 1)
-        self.assertEqual(settings["c115_air_c100_capital_replay"], 1)
+        self.assertNotIn("c115_air_c100_capital_replay", settings)
         persist = (AI / "persist.nut").read_text(encoding="utf-8")
         for field in ("C121_CATALOG_ENDPOINT_EPOCH", "catalogStamp", "c121CatalogRefreshEndpoints"):
             self.assertNotIn(field, persist)

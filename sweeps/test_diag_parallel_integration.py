@@ -53,7 +53,7 @@ class IntegrationProbeTests(unittest.TestCase):
         resolved = bench_v2.resolved_arm_settings(list(integration.ARMS.values()))
         for spec in resolved.values():
             values = spec["settings"]["effective"]
-            self.assertEqual(values["c115_air_c100_capital_replay"], 1)
+            self.assertNotIn("c115_air_c100_capital_replay", values)
             self.assertEqual(values["c121_air_economics"], 1)
             self.assertEqual(values["c121_catalog_incremental"], 1)
             for key in ("exp_scheduler_skip_not_due",

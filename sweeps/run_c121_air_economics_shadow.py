@@ -177,7 +177,6 @@ def main():
     enable_savegame_cleanup()
     settings = (
         ("save_full_state", 0),
-        ("c115_air_c100_capital_replay", 1),
         ("c117_air_throughput_probe", 1),
         ("c121_air_economics_shadow", 1),
         ("c121_air_economics", 0),
@@ -190,7 +189,7 @@ def main():
         experiments = [
             {
                 "bench_context": "solo",
-                "bench_arm": "OpexAI[C115=1,C117=1,C121-shadow=1,engine-replay="
+                "bench_arm": "OpexAI[C117=1,C121-shadow=1,engine-replay="
                              + ("1" if args.engine_replay else "0") + "]",
                 "seed": seed,
                 "days": 365 * args.years,

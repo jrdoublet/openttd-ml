@@ -478,10 +478,6 @@ C98_AIR_REALIZED_PROBE <- false;
 /* C110 : reutilise l'apprentissage C82 realise/predit uniquement pour le choix
  * du moteur AIR. Le classement portefeuille reste celui de C70. */
 C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY <- false;
-/* C115 : regularisateur C100 conditionne par le goulot macroeconomique C69.
- * Le replay n'est utilise que tant que le capital du choix C68 depasse K_dec ;
- * aucun seuil de caisse, d'annee ou d'EngineID n'est introduit. */
-C115_AIR_C100_CAPITAL_REPLAY <- false;
 /* C116.3 diagnostic leger : observe sous le vrai temoin C115 le meilleur runner
  * C68, les projets debloques par son economie de capital et l'auto-deblocage de
  * la route courante. Aucun recalcul moteur supplementaire. */
@@ -534,7 +530,6 @@ C121_AIR_PRESSURE_PROBE <- false;
 C121_AIR_PRESSURE_SNAPSHOT <- null;
 C121_AIR_PRESSURE_ACCUM <- null;
 C121_AIR_PRESSURE_PREV <- null;
-C121_AIR_DEFENSIVE_FLOOR <- false;
 C122_AIR_REGIME_SHADOW <- false;
 /* C122.4 : sonde locale de menace territoriale. Elle ne cree aucune politique :
  * elle relie seulement une transition C83 remaining=1 a un projet AIR deja
@@ -788,9 +783,6 @@ ABANDON_MEMORY_TRANSIENT_GUARD <- true;
  * `/(routes+1)` toujours divisee par 1. 1 = resolution correcte tuile -> StationID ;
  * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
 AIR_HUB_FIX <- true;
-/* Preserve NoAI suspend cadence after pruning false-only AIR branches. */
-OPEX_AIR_CAP_PAD <- false;
-OPEX_AIR_PLAN_PAD <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* Opcode experiment: reject growth-cooldown AIR lines before ROI sorting. */
@@ -1052,10 +1044,6 @@ C80_AIR_INC_COUNTS <- { full = 0, targeted = 0, none = 0 };
 
 /* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
 C78_GEN_LOG_YEAR <- -1;
-
-/* V86 Variante A : prise en compte de la cannibalisation hub->hub en retranchant
- * la perte de revenu des lignes existantes des deux hubs. 0 = desactive (defaut). */
-AIR_HUBHUB_MARGINAL <- false;
 
 /* V86 Variante B : plafond abaisse de routes par aeroport hub.
  * 0 = plafonds actuels (4 petits/commuter, 12 grands), 1..12 = min(plafond actuel, N). */

@@ -18,7 +18,7 @@ def main():
     arms = LIGHT_ARMS if args.lot == "light" else SHADOW_ARMS
     for resolved in bench_v2.resolved_arm_settings(list(arms.values())).values():
         effective = resolved["settings"]["effective"]
-        protected = {"c115_air_c100_capital_replay": 1, "c84_air_target_fleet": 0,
+        protected = {"c84_air_target_fleet": 0,
                      "c85_air_equipment_frontier": 0, "c121_air_economics": 0,
                      "r19_fault_inject": 0,
                      "exp_scheduler_skip_not_due": 0,

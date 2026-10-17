@@ -228,13 +228,10 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("joinedRawMonthlyPaxA = 0", construction_src)
         self.assertIn("result.joinedRawMonthlyPaxA = joinedA.monthlyPax;", construction_src)
         self.assertIn("result.joinedMonthlyPaxA = OpexAirJoinedMarginalProduction(", construction_src)
-        self.assertIn(
-            'local joinedMonthly = OPEX_AIR_PLAN_PAD && ("joinedMonthlyPax" in result)',
-            route_econ_src,
-        )
+        self.assertIn("local joinedMonthly = 0;", route_econ_src)
         ai = BUILDER.parent
-        self.assertIn("OPEX_AIR_PLAN_PAD <- false;", (ai / "globals_pre.nut").read_text(encoding="utf-8"))
-        self.assertIn("OPEX_AIR_PLAN_PAD = false;", (ai / "settings.nut").read_text(encoding="utf-8"))
+        self.assertNotIn("OPEX_AIR_PLAN_PAD", (ai / "globals_pre.nut").read_text(encoding="utf-8"))
+        self.assertNotIn("OPEX_AIR_PLAN_PAD", (ai / "settings.nut").read_text(encoding="utf-8"))
         reserve = route_econ_src[route_econ_src.index("function OpexAirReserveJoinedStops"):]
         self.assertIn("plan.joinedStopReserve <- 0;", reserve)
         self.assertNotIn("economics.capital +=", reserve)

@@ -682,7 +682,7 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
     local routeDivB = reuseB && ("routes" in plan.siteB) ? plan.siteB.routes + 1 : 1;
     OpexAirCatchmentLog("AIR_CATCHMENT_BUILD",
         "arm=" + (("arm" in plan) ? plan.arm : "unknown")
-        + " base_source=" + (OPEX_AIR_PLAN_PAD ? "demand_plan" : "town_population_proxy")
+        + " base_source=town_population_proxy"
         + " base_monthly=" + plan.monthlyPax
         + " route_div_a=" + routeDivA + " route_div_b=" + routeDivB
         + " reserve_stop_cost=" + (("joinedStopReserve" in plan) ? plan.joinedStopReserve : 0)

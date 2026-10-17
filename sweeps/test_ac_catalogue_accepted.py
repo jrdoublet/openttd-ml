@@ -151,18 +151,10 @@ class ACAdopted(unittest.TestCase):
             values = add_sites([(n, n * 100)], [(x % 4,x % 5) for x in range(n)], cap, True)
             self.assertEqual(len(values), len(set(v[1] for v in values)))
 
-    def test_ac05_marginal_v86_unchanged_when_read(self):
+    def test_ac05_marginal_v86_removed_under_c121(self):
         body = function(AIR, "OpexAirPlansHubToHub")
-        self.assertIn("AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS)", body)
-        self.assertIn("AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS", body)
-        self.assertIn("hubAvgIncome[i]", body)
-        self.assertIn("hubAvgIncome[j]", body)
-        for marginal, c121, flag in itertools.product((False, True), repeat=3):
-            computed = marginal and not (flag and c121)
-            read = marginal and not c121
-            self.assertFalse(read and not computed)
-            if not flag:
-                self.assertEqual(computed, marginal)
+        self.assertNotIn("AIR_HUBHUB_MARGINAL", body)
+        self.assertNotIn("hubAvgIncome", body)
 
 
 if __name__ == "__main__":

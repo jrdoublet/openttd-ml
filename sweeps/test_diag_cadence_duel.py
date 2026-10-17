@@ -88,7 +88,7 @@ class CoverageTests(unittest.TestCase):
 class SettingsIntegrationTests(unittest.TestCase):
     def test_each_variant_changes_exactly_one_off_default_setting(self):
         base = diag.bench_v2.resolve_opex_arm_settings(diag.ARMS["reference"])["effective"]
-        self.assertEqual(base["c115_air_c100_capital_replay"], 1)
+        self.assertNotIn("c115_air_c100_capital_replay", base)
         for name, spec in diag.ARMS.items():
             if name == "reference":
                 continue

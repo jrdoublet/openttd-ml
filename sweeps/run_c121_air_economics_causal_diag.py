@@ -33,7 +33,6 @@ def main():
     enable_savegame_cleanup()
     settings = (
         ("save_full_state", 0),
-        ("c115_air_c100_capital_replay", 1),
         ("c117_air_throughput_probe", args.throughput_probe),
         ("c121_air_economics_shadow", 0),
         ("c121_air_economics", args.causal),
@@ -46,7 +45,7 @@ def main():
         cfg = make_cfg(1970)
         experiments = [{
             "bench_context": "duel" if args.duel else "solo",
-            "bench_arm": f"OpexAI[C115=1,C121-causal={args.causal}]",
+            "bench_arm": f"OpexAI[C121-causal={args.causal}]",
             "seed": seed,
             "days": 365 * args.years,
             "openttd_config": cfg,

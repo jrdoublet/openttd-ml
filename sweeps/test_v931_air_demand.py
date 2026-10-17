@@ -104,10 +104,7 @@ class V931AirDemandTests(unittest.TestCase):
         floor = reconcile.index("if (monthlyPax < 10) monthlyPax = 10;")
         flag = reconcile.index("if (V93_AIR_DEMAND_PRODUCTION)")
         self.assertLess(floor, flag)
-        self.assertIn(
-            'local joinedMonthly = OPEX_AIR_PLAN_PAD && ("joinedMonthlyPax" in result)',
-            reconcile,
-        )
+        self.assertIn("local joinedMonthly = 0;", reconcile)
         self.assertIn("monthlyPax = demandA + demandB + joinedMonthly;", reconcile)
 
         build = function_body(BUILDER, "function OpexBuildAirRoute(")

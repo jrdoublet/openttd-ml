@@ -4,7 +4,7 @@
 import sys
 
 import run_c66_reference as launcher
-BASE = "OpexAI[c115_air_c100_capital_replay=1,c121_air_economics=1,c121_catalog_incremental=1,c121_catalog_air_first_year=0,c121_air_project_realization_adaptive=0,c121_air_pressure_probe=0,c121_air_defensive_floor=0,c121_air_economics_shadow=0,c121_air_engine_replay_shadow=0,c122_air_regime_shadow=0,c122_air_threat_probe=0,b9_air_demand_shadow=0]"
+BASE = "OpexAI[c121_air_economics=1,c121_catalog_incremental=1,c121_catalog_air_first_year=0,c121_air_project_realization_adaptive=0,c121_air_pressure_probe=0,c121_air_economics_shadow=0,c121_air_engine_replay_shadow=0,c122_air_regime_shadow=0,c122_air_threat_probe=0,b9_air_demand_shadow=0]"
 
 REFERENCE = BASE[:-1] + ",c121_air_first_live_shadow=1,c121_air_first_live_growth=0]"
 VARIANT = BASE[:-1] + ",c121_air_first_live_shadow=1,c121_air_first_live_growth=1]"

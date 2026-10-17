@@ -489,7 +489,6 @@ function OpexLoadSettings()
   C97_AIR_C69_ENGINE_PROBE = OpexProbeSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
   C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
-  C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
   C116_AIR_PROJECT_PROBE = OpexProbeSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;
   local c117Lean = AIController.GetSetting("c117_lean_sampling");
@@ -572,11 +571,6 @@ function OpexLoadSettings()
   C121_AIR_PRESSURE_SNAPSHOT = null;
   C121_AIR_PRESSURE_ACCUM = null;
   C121_AIR_PRESSURE_PREV = null;
-  /* R7 : parametre protege, branche conservee. PORTFOLIO_FLOOR_PCT reste force a 0
-   * plus bas : 50% / 75% de ce plancher valent toujours 0, sans neutraliser le
-   * filtre des profits negatifs hors exemptions existantes. Les calculs executes
-   * peuvent changer la cadence d'opcodes ; ne pas supprimer la branche. */
-  C121_AIR_DEFENSIVE_FLOOR = AIController.GetSetting("c121_air_defensive_floor") != 0;
   C121_AIR_ENGINE_REPLAY_SHADOW = OpexProbeSetting("c121_air_engine_replay_shadow") != 0;
   C122_AIR_REGIME_SHADOW = OpexProbeSetting("c122_air_regime_shadow") != 0;
   C122_AIR_THREAT_RETRY = AIController.GetSetting("c122_air_threat_retry") != 0;
@@ -608,7 +602,7 @@ function OpexLoadSettings()
   V88_STEP2_CASH_RESERVE = V88_GOODS_CHAIN && (AIController.GetSetting("v88_step2_cash_reserve") != 0);
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load");
   C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2)
-      || C97_AIR_C69_ENGINE_PROBE || C115_AIR_C100_CAPITAL_REPLAY;
+      || C97_AIR_C69_ENGINE_PROBE;
   if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
@@ -772,7 +766,6 @@ function OpexLoadSettings()
   V141_CATALOG_INCREMENTAL_CHECK = C121_CATALOG_INCREMENTAL
       && OpexProbeSetting("v141_catalog_incremental_check") != 0;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
-  AIR_HUBHUB_MARGINAL = AIController.GetSetting("air_hubhub_marginal") != 0;
   local hubMaxRoutes = AIController.GetSetting("air_hub_max_routes");
   AIR_HUB_MAX_ROUTES = hubMaxRoutes >= 0 ? hubMaxRoutes : 0;
   V89_RAIL_SEARCH_THROUGHPUT = AIController.GetSetting("v89_rail_search_throughput") != 0;
@@ -792,10 +785,6 @@ function OpexLoadSettings()
   V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;
   SUBSIDY_RESELECT_IF_PURGED = AIController.GetSetting("subsidy_reselect_if_purged") != 0;
   SELECT_BISECT_INSERT = AIController.GetSetting("select_bisect_insert") != 0;
-  OPEX_AIR_CAP_PAD = false;
-  OPEX_AIR_PLAN_PAD = false;
-  OPEX_AIR_SITE_PAD = false;
-  OPEX_AIR_TOWN_PAD = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   AIR_MAX_DISTANCE = 0;

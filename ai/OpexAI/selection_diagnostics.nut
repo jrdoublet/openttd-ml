@@ -24,7 +24,7 @@ function OpexAmortProbeBegin(budget)
   AMORT_PROBE_SEQ++;
   local supported = !C84_AIR_TARGET_FLEET && !C85_AIR_EQUIPMENT_FRONTIER
       && !C121_AIR_ECONOMICS && !C122_AIR_REGIME_SHADOW
-      && !V92_AIR_SERVICE_CHOICE && C115_AIR_C100_CAPITAL_REPLAY
+      && !V92_AIR_SERVICE_CHOICE
       && !EXP_SCHEDULER_SKIP_NOT_DUE && !EXP_AIR_HUB_PAIR_PREFILTER;
   return { id = AMORT_PROBE_SEQ, budget = budget, rows = [], originals = [],
       day = AIDate.GetCurrentDate(), tick = AIController.GetTick(), mark = OpexOpsMeasureBegin(),

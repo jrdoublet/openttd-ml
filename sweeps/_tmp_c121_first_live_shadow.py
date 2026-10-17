@@ -87,7 +87,6 @@ def main():
     enable_savegame_cleanup()
     settings = (
         ("save_full_state", 0),
-        ("c115_air_c100_capital_replay", 1),
         ("c121_air_economics", 1),
         ("c121_catalog_incremental", 1),
         ("c121_catalog_air_first_year", 0),

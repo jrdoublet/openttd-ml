@@ -83,7 +83,7 @@ class TestC117AirThroughput(unittest.TestCase):
         self.assertIn("final_date = date(1970, 1, 1) + timedelta(days=days)", src)
         self.assertIn("final_date - timedelta(days=31)", src)
         self.assertIn("latest_by_seed", src)
-        self.assertIn('("c115_air_c100_capital_replay", 1)', src)
+        self.assertNotIn("c115_air_c100_capital_replay", src)
 
 
 if __name__ == "__main__":

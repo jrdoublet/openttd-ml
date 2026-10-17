@@ -30,11 +30,10 @@ def _r7_admitted(profit: int, tier: int, defensive: bool, floor_profit: int = 0)
 
 
 class ReviewR7SemanticsTest(unittest.TestCase):
-    def test_live_source_still_forces_zero_floor_and_keeps_tier_formula(self):
+    def test_live_source_still_forces_zero_floor_and_removes_defensive_floor_dead_branch(self):
         self.assertIn("PORTFOLIO_FLOOR_PCT = 0;", SETTINGS)
-        self.assertIn("if (c121DefensiveTier >= 2) c121DefensiveFloor = floorProfit / 2;", PROJECTS)
-        self.assertIn("else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;", PROJECTS)
-        self.assertIn("if (project.profitAnnual < c121DefensiveFloor", PROJECTS)
+        self.assertNotIn("C121_AIR_DEFENSIVE_FLOOR", PROJECTS)
+        self.assertIn("if (project.profitAnnual < floorProfit", PROJECTS)
 
     def test_zero_floor_makes_positive_tiers_identical_but_still_rejects_negative(self):
         cases = [(2, 900), (1, 700), (0, 500), (0, -1)]
@@ -54,8 +53,8 @@ class ReviewR7SemanticsTest(unittest.TestCase):
 
 
 class ReviewR10CompositionTest(unittest.TestCase):
-    def test_live_source_keeps_the_c115_gate(self):
-        self.assertIn("if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0", AIR)
+    def test_live_source_drops_the_c115_gate(self):
+        self.assertNotIn("C115_AIR_C100_CAPITAL_REPLAY", AIR)
 
 if __name__ == "__main__":
     unittest.main()

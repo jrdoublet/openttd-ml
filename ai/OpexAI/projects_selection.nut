@@ -1183,48 +1183,21 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       }
       continue;
     }
-    local c121DefensivePrepared = C121_AIR_ECONOMICS && C121_AIR_DEFENSIVE_FLOOR
-        && project.mode == "air";
-    local c121DefensiveTier = 0;
-    local c121DefensiveFloor = floorProfit;
-    if (c121DefensivePrepared) {
-      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
-      if (slotMark != null) {
-        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
-        slotMark = null;
-      }
-      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      c121DefensiveTier = OpexProjectDefensiveAirPriority(project);
-      /* C121 anti-monopole : ne plus supprimer completement le garde-fou de
-       * profit. Une course au second slot concurrent (tier 2) accepte la moitie
-       * du plancher normal ; consolider notre propre slot (tier 1) en exige les
-       * trois quarts. Les projets ordinaires gardent le floor integral. */
-      if (c121DefensiveTier >= 2) c121DefensiveFloor = floorProfit / 2;
-      else if (c121DefensiveTier == 1) c121DefensiveFloor = floorProfit * 3 / 4;
-    }
-    if (project.profitAnnual < c121DefensiveFloor
+    if (project.profitAnnual < floorProfit
         && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) {
       if (PROBE_SELECT_REJECT && project.mode == "air") {
         OpexSelectRejectLog(project, "floor", affordable, scoreKey, kDec);
       }
-      if (fundMark != null) {
-        OpexSpanAgg("pub.select.score.fund_score", fundMark);
-        fundMark = null;
-      }
       continue;
     }
-    if (!c121DefensivePrepared) {
-      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
-      if (slotMark != null) {
-        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
-        slotMark = null;
-      }
-      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
+    OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
+    if (slotMark != null) {
+      OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
+      slotMark = null;
     }
+    fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local decisionFinanceCapital = financeCapital;
     if (project.mode == "air" && ("decisionFinanceCapital" in project)
         && project.decisionFinanceCapital > 0)

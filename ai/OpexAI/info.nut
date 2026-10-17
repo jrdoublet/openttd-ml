@@ -529,14 +529,6 @@ class OpexAIInfo extends AIInfo {
 
 
     AddSetting({
-      name = "c115_air_c100_capital_replay",
-      description = "C115: use first-C100 replay AIR economics only while the normal C68 route capital exceeds endogenous C69 K_dec; otherwise keep C68; 1 = enabled (temporary default), 0 = disabled",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c116_air_project_probe",
       description = "C116 passive lightweight probe: reuse C115/C68 engine scan to measure AIR/global/self project unlock opportunity; no decision change; 1 = enabled, 0 = default",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -720,14 +712,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c121_air_pressure_probe",
       description = "C121 passive AIR competition-pressure probe over already-inspected slot towns; no map scan and no decision change; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_air_defensive_floor",
-      description = "C121 protected experimental setting: defensive AIR floor uses 50% competitor-slot / 75% own-slot, currently neutralized by the global zero floor; branch still runs with C121 enabled and may affect opcode cadence; 0 = off (default), 1 = on",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -1805,14 +1789,6 @@ class OpexAIInfo extends AIInfo {
       description = "C80 air eval fast: exact memoization and deferred checks in air planning (same decisions, fewer opcodes): 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air_hubhub_marginal",
-      description = "V86: Deduct cannibalised revenue from existing hub lines for legacy hub-to-hub economics; deduction bypassed under C121: 1 = enabled (default), 0 = disabled",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

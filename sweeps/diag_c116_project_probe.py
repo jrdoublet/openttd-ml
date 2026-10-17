@@ -273,7 +273,7 @@ def main():
         "purpose": "C116.3 lightweight passive shadow-price diagnostic on the real C115 trajectory",
         "years": args.years,
         "seeds": args.seeds,
-        "settings": {"c116_air_project_probe": 1, "c115_air_c100_capital_replay": 1},
+        "settings": {"c116_air_project_probe": 1},
         "rows": rows,
         "summary": summary,
     }

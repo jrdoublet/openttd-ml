@@ -528,7 +528,6 @@ class OpexAI extends AIController {
                       affectedMode = null, targetedRelevant = true);
   function _logStalenessRefresh(reason);
   function _markPairAbandoned(key);
-  function _padAirFailedSites(plan, result);
   function _pruneAbandonedPairs(now);
   function _purgeSubsidyFromProjects(subId);
   function _onVehicleCrashed(event);

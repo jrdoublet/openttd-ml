@@ -374,7 +374,7 @@ def run_smoke(directory):
     plan = protocol()
     resolved = bench_v2.resolved_arm_settings([ARM])[ARM]
     effective = resolved["settings"]["effective"]
-    required = {"c115_air_c100_capital_replay": 1, "c84_air_target_fleet": 0,
+    required = {"c84_air_target_fleet": 0,
                 "c85_air_equipment_frontier": 0,
                 "exp_scheduler_skip_not_due": 0, "exp_air_hub_pair_prefilter": 0,
                 "c121_air_economics": 0,

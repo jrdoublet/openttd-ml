@@ -246,11 +246,8 @@ class AC05HubHubTests(unittest.TestCase):
         )
         locations = [HUB_HUB.index(part) for part in needles]
         self.assertEqual(locations, sorted(locations))
-        self.assertLess(HUB_HUB.index('if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS))'),
-                        HUB_HUB.index('for (local i = resumeI; i < hubs.len(); i++)'))
-        self.assertIn('AICargo.GetCargoIncome(catalog.paxCargo, dist, incomeDays)', HUB_HUB)
-        self.assertIn('(mailIncome * 15) / 100', HUB_HUB)
-        self.assertIn('if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS', HUB_HUB)
+        self.assertNotIn('AIR_HUBHUB_MARGINAL', HUB_HUB)
+        self.assertNotIn('hubAvgIncome', HUB_HUB)
         self.assertIn('OpexAirPlansHubDiscoveryPhase(ctx, comboIndex, combo, airport, plane, light)', PIPELINE)
         self.assertIn('OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane)',
                       body('function OpexAirPlansHubDiscoveryPhase('))
@@ -272,17 +269,11 @@ class AC05HubHubTests(unittest.TestCase):
         # Ce surcout est conditionnel au réglage marginal, pas une mesure VM.
 
     def test_marginal_precalc_is_unused_under_c121(self):
-        # Le réglage marginal est actif à défaut 1 et les admissions ne lisent
-        # ces moyennes que sous !C121_AIR_ECONOMICS. AC05 adopte :
-        # le pre-calcul ne tourne plus quand C121 ignore la marge V86.
+        # V222 purge : air_hubhub_marginal et hubAvgIncome sont retirés sous C121.
         info = (ROOT / "ai/OpexAI/info.nut").read_text(encoding="utf-8")
-        block = info[info.index('name = "air_hubhub_marginal"'):]
-        self.assertIn("easy_value = 1, medium_value = 1, hard_value = 1,", block[:450])
-        self.assertEqual(HUB_HUB.count("hubAvgIncome["), 5)
-        for occurrence in ("hubAvgIncome[i]", "hubAvgIncome[j]"):
-            self.assertIn(occurrence, HUB_HUB)
-        self.assertEqual(HUB_HUB.count("if (AIR_HUBHUB_MARGINAL && !C121_AIR_ECONOMICS"), 2)
-        self.assertIn("if (AIR_HUBHUB_MARGINAL && !(AC05_SKIP_UNUSED_HUB_INCOME && C121_AIR_ECONOMICS)) {", HUB_HUB)
+        self.assertNotIn('name = "air_hubhub_marginal"', info)
+        self.assertNotIn("hubAvgIncome", HUB_HUB)
+        self.assertNotIn("AIR_HUBHUB_MARGINAL", HUB_HUB)
 
     def test_cost_parser_does_not_divide_phase_by_pairs(self):
         with tempfile.TemporaryDirectory() as tmp:

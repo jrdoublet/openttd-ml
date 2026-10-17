@@ -35,17 +35,16 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
             for symbol in inert:
                 self.assertNotIn(symbol, text, f"unexpected R6 consumer {symbol} in {path.name}")
 
-    def test_r7_defensive_floor_remains_protected_and_neutralized(self):
+    def test_r7_defensive_floor_removed_and_zero_floor_kept(self):
         settings = _read("ai/OpexAI/settings.nut")
         projects = _read("ai/OpexAI/projects.nut")
         info = _read("ai/OpexAI/info.nut")
 
-        self.assertIn('name = "c121_air_defensive_floor"', info)
-        self.assertIn('global zero floor', info)
-        self.assertIn('C121_AIR_DEFENSIVE_FLOOR = AIController.GetSetting("c121_air_defensive_floor") != 0;', settings)
+        self.assertNotIn('name = "c121_air_defensive_floor"', info)
+        self.assertNotIn("C121_AIR_DEFENSIVE_FLOOR", settings)
         self.assertIn('PORTFOLIO_FLOOR_PCT = 0;', settings)
         self.assertIn('if (PORTFOLIO_FLOOR_PCT > 0)', projects)
-        self.assertRegex(projects, r"c121DefensivePrepared\s*=\s*C121_AIR_ECONOMICS\s*&&\s*C121_AIR_DEFENSIVE_FLOOR")
+        self.assertNotIn("C121_AIR_DEFENSIVE_FLOOR", projects)
 
     def test_r8_removed_dead_helpers_are_not_defined_anymore(self):
         rail = _read("ai/OpexAI/builder_rail.nut")
@@ -69,7 +68,7 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
         air = read_builder_air()
         settings = _read("ai/OpexAI/settings.nut")
 
-        self.assertIn("if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0", air)
+        self.assertNotIn("C115_AIR_C100_CAPITAL_REPLAY", air)
         self.assertIn("C122_AIR_THREAT_PROBE = OpexProbeSetting(\"c122_air_threat_probe\") != 0 || C122_AIR_THREAT_RETRY;", settings)
 
     def test_r9_opcode_compat_slots_remain(self):
