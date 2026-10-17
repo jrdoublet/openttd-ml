@@ -64,10 +64,10 @@ class FixtureContracts(unittest.TestCase):
         self.assertFalse(any(verify_markers(["", "", ""]).values()))
 
     def test_matrix_requires_all_distinct_cases(self):
-        log = "\n".join(f"FXVM case={i} pass=1" for i in range(1, 49))
-        end = "FXVM complete=1 cases=48 boundary_checks=1 settings_restored=1"
+        log = "\n".join(f"FXVM case={i} pass=1" for i in range(1, 25))
+        end = "FXVM complete=1 cases=24 boundary_checks=1 settings_restored=1"
         self.assertTrue(verify_markers([log + "\n" + end, "", ""])["vm_matrix"])
-        self.assertFalse(verify_markers([log.replace("case=48", "case=47") + end, "", ""])["vm_matrix"])
+        self.assertFalse(verify_markers([log.replace("case=24", "case=23") + end, "", ""])["vm_matrix"])
 
     def test_real_guard_not_inferred_from_fit(self):
         logs = ["", "FXWORLD phase=guard price=30000 need=36000 cash=35999", ""]

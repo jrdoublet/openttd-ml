@@ -37,11 +37,11 @@ if __name__ == "__main__":
     args, rest = parser.parse_known_args()
     if args.reload:
         from .run_c121_fleet_fixtures import main
-        main(rest, settings=(("c121_air_visible_competition", 1), ("decision_log", 1)),
+        main(rest, settings=(("decision_log", 1),),
              fixture=ROOT / "tests/mechanisms/c121_visible_fused_reload_vm.nut",
              marker="C121_VISIBLE", stage_transform=transform)
     else:
         from .run_c121_visible_newsite_fixture import main
-        main(rest, settings=(("c121_air_visible_competition", 1), ("decision_log", 1)),
+        main(rest, settings=(("decision_log", 1),),
              fixture=ROOT / "tests/mechanisms/c121_visible_fused_cost_vm.nut",
              marker="C121_VISIBLE_FUSED", stage_transform=transform)

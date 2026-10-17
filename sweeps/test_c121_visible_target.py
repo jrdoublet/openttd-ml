@@ -9,12 +9,14 @@ AI = ROOT / "ai/OpexAI"
 class TestVisibleFleetTarget(unittest.TestCase):
     def test_final_guard_is_before_purchase_and_after_replacement(self):
         text = (AI / "air_fleet.nut").read_text(encoding="utf-8")
+        self.assertNotIn("function OpexC121AirTargetLimit(", text)
+        self.assertNotIn("function OpexC121AirPhysicalTarget(", text)
         text = text[text.index('function OpexAirAddPlane('):]
-        self.assertIn('if (C121_AIR_VISIBLE_COMPETITION)', text)
+        self.assertNotIn('C121_AIR_VISIBLE_COMPETITION', text)
         self.assertNotIn('OpexAirMaybeReequip', text)
-        self.assertLess(text.index('result.reason = "TARGET"'), text.index('AIVehicle.CloneVehicle'))
+        self.assertNotIn('result.reason = "TARGET"', text)
         self.assertIn('AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR', text)
-        self.assertIn('OpexC121AirPhysicalTarget(line, catalog, lines)', text)
+        self.assertNotIn('OpexC121AirPhysicalTarget(line, catalog, lines)', text)
 
     def test_all_production_growth_calls_supply_shared_airports(self):
         task = (AI / "task_air.nut").read_text(encoding="utf-8")

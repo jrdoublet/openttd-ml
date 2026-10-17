@@ -1,101 +1,7 @@
-/* Module AIR extrait de builder_air.nut (R11) : flottes, cible visible et ajout d'avions. */
+/* Module AIR extrait de builder_air.nut (R11) : flottes et ajout d'avions. */
 /* Ajoute un seul avion a une liaison deja mesuree. Le clonage partage les ordres et ne refait ni
  * recherche de sites ni construction d'infrastructure : c'est le chemin marginal au meilleur
  * profit/opcode. Toute decision de l'appeler reste dans main.nut, apres une annee de donnees. */
-/* Pour la concurrence visible, la borne du scan economique n'est pas une
- * capacite d'aeroport. La cible memorisee reste un plafond. Aucun
- * nouveau champ persistant et aucune vente implicite d'une flotte deja livree. */
-function OpexC121AirTargetLimit(line, physicalCap)
-{
-  if (line == null || !("targetAirPlanes" in line) || line.targetAirPlanes <= 0
-      || physicalCap <= 0) return 0;
-  return line.targetAirPlanes < physicalCap ? line.targetAirPlanes : physicalCap;
-}
-
-/* Reconstructible monthly quote for EXISTING routes, including pre-candidate
- * saves. Exclude this route from hub service before adding its N aircraft;
- * otherwise its seats would be counted twice. Preserve observed marginals. */
-function OpexC121RefreshVisibleFleet(catalog, line, lines, force = false)
-{
-  if (!C121_AIR_VISIBLE_COMPETITION || catalog == null
-      || line == null || !("lineId" in line) || !("vehicles" in line)
-      || !("stationA" in line) || !("stationB" in line)) return;
-  local now = AIDate.GetCurrentDate();
-  if (!force && line.lineId in C121_VISIBLE_FLEET_CACHE) {
-    local state = C121_VISIBLE_FLEET_CACHE[line.lineId];
-    if (now >= state.date && now - state.date < 30
-        && state.vehicles == line.vehicles.len() && state.epoch == C121_CATALOG_ENDPOINT_EPOCH) return;
-  }
-  local template = null;
-  local have = 0;
-  foreach (v in line.vehicles) if (AIVehicle.IsValidVehicle(v)
-      && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) { have++; if (template == null) template = v; }
-  if (template == null || !AIAirport.IsAirportTile(line.stationA)
-      || !AIAirport.IsAirportTile(line.stationB)) return;
-  local sidA = AIStation.GetStationID(line.stationA);
-  local sidB = AIStation.GetStationID(line.stationB);
-  if (!AIStation.IsValidStation(sidA) || !AIStation.IsValidStation(sidB)) return;
-  local type = AIAirport.GetAirportType(line.stationA);
-  local engine = AIVehicle.GetEngineType(template);
-  local pax = AIVehicle.GetCapacity(template, catalog.paxCargo);
-  local mail = catalog.mailCargo >= 0 ? AIVehicle.GetCapacity(template, catalog.mailCargo) : 0;
-  if (pax <= 0 || mail < 0) return;
-  local plane = { id = engine, capacity = pax, speed = AIEngine.GetMaxSpeed(engine),
-    price = AIEngine.GetPrice(engine), runningCost = AIEngine.GetRunningCost(engine) };
-  local quote = { siteA = { anchor = line.stationA, stationId = sidA,
-      town = { id = AIStation.GetNearestTown(sidA) } },
-    siteB = { anchor = line.stationB, stationId = sidB,
-      town = { id = AIStation.GetNearestTown(sidB) } },
-    reuseA = true, reuseB = true, airport = { type = type,
-      price = AIAirport.GetPrice(type), maintenance = AIAirport.GetMonthlyMaintenanceCost(type) },
-    arm = ("c121Arm" in line) ? line.c121Arm : "newpair",
-    distance = OpexFlightDistance(line.stationA, line.stationB), plane = plane };
-  local others = [];
-  if (lines != null) foreach (other in lines) if (other != line) others.append(other);
-  OpexC121PrepareDemandShadow(catalog, quote, others);
-  OpexC121PrepareEngineStatic(catalog, quote);
-  local target = null;
-  local before = null;
-  local after = null;
-  if (C121_AIR_VISIBLE_FUSED) {
-    local fused = OpexC121VisibleFleetEconomics(catalog, quote, plane, pax, mail, have);
-    target = fused.target;
-    before = fused.before;
-    after = fused.after;
-  } else {
-    target = OpexC121AirEconomics(catalog, quote, plane, pax, mail, 0);
-    before = OpexC121AirEconomics(catalog, quote, plane, pax, mail, have);
-    after = OpexC121AirEconomics(catalog, quote, plane, pax, mail, have+1);
-  }
-  if (target == null || before == null || after == null) return;
-  line.targetAirPlanes <- target.planes;
-  if ("c121TargetPlanes" in line) line.c121TargetPlanes = target.planes;
-  local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
-  if (samples <= 0) {
-    line.c121MarginalProfit <- after.profitAnnual - before.profitAnnual;
-    line.c121MarginalRevenue <- after.revenueAnnual - before.revenueAnnual;
-    line.c121RealizationPmAtBuild <- (before.realizationFactor * 1000.0).tointeger();
-  }
-  C121_VISIBLE_FLEET_CACHE.rawset(line.lineId, { date = now,
-      vehicles = line.vehicles.len(), epoch = C121_CATALOG_ENDPOINT_EPOCH });
-  if (DECISION_LOG) AILog.Info("C121_VISIBLE_FLEET line=" + line.lineId + " have=" + have
-      + " target=" + target.planes + " observed_samples=" + samples
-      + " pax_raw_a=" + quote.c121Demand.paxRawA + " pax_raw_b=" + quote.c121Demand.paxRawB
-      + " rival_weight_a=" + quote.c121Demand.paxCompetitionA.rivalWeight
-      + " rival_weight_b=" + quote.c121Demand.paxCompetitionB.rivalWeight);
-}
-
-function OpexC121AirPhysicalTarget(line, catalog, lines)
-{
-  local isSmall = (AIAirport.IsAirportTile(line.stationA)
-      && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL)
-      || (AIAirport.IsAirportTile(line.stationB)
-          && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL);
-  local physicalCap = isSmall ? 4 : AIR_MAX_PLANES_PER_ROUTE;
-  if (AIR_CADENCE_CAP) physicalCap = OpexAirCadenceCap(line, catalog != null ? catalog : {}, lines);
-  return OpexC121AirTargetLimit(line, physicalCap);
-}
-
 function OpexAirAddPlane(line, catalog = null, lines = null)
 {
   local result = { added = 0, reason = "" };
@@ -119,21 +25,6 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
     }
   }
   if (template == null) { result.reason = "NOLIVE"; return result; }
-  /* Revalider au dernier site d'achat : un projet peut etre cache et un autre
-   * chantier peut avoir consomme la cadence partagee depuis sa generation. */
-  if (C121_AIR_VISIBLE_COMPETITION) {
-    OpexC121RefreshVisibleFleet(catalog, line, lines);
-    local liveCount = 0;
-    foreach (v in line.vehicles) {
-      if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) liveCount++;
-    }
-    local limit = OpexC121AirPhysicalTarget(line, catalog, lines);
-    if (liveCount >= limit) {
-      if (DECISION_LOG) OpexDecide("C121_TARGET_LIMIT", "phase=buy line=" + line.lineId
-          + " have=" + liveCount + " limit=" + limit);
-      result.reason = "TARGET"; return result;
-    }
-  }
   local price = AIEngine.GetPrice(AIVehicle.GetEngineType(template));
   if (price <= 0) { result.reason = "PRICE"; return result; }
   local need = price + OpexCashReserve() + 1000;

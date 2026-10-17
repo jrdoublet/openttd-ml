@@ -37,12 +37,10 @@ def main():
     legacy = args.legacy_source.read_text(encoding="utf-8")
     extracted = []
     for start, end in (("function OpexC121ProjectHasRealization", "/* C70 : facteur"),
-                       ("function OpexC70Profit", "/* C82 : facteur du moteur"),
-                       ("function OpexC82Profit", "/* Profit calibre des scores")):
+                       ("function OpexC70Profit", "/* C82 : facteur du moteur")):
         text = legacy[legacy.index(start):legacy.index(end, legacy.index(start))]
         for name, replacement in (("OpexC121ProjectHasRealization", "FxKLegacyHasRealization"),
-                                  ("OpexC70Profit", "FxKLegacyC70Profit"),
-                                  ("OpexC82Profit", "FxKLegacyC82Profit")):
+                                  ("OpexC70Profit", "FxKLegacyC70Profit")):
             text = text.replace(name, replacement)
         extracted.append(text)
     extra = ""
@@ -87,7 +85,7 @@ def main():
     integrity = phase_integrity(phase, "1970-01-01", 1)
     match = re.search(r"C121_KDEC_VM complete=1 checks=(\d+) restored=1", log)
     project_match = re.search(r"C121_PROJECT_CLEANUP_VM complete=1 checks=(\d+) restored=1", log)
-    checks = {"noai_contracts": match is not None and int(match[1]) == 53,
+    checks = {"noai_contracts": match is not None and int(match[1]) == 37,
               "no_assertion": "C121_KDEC_VM_ASSERT" not in log,
               "phase_integrity": all(integrity.values()), "sources_unchanged": before == source_hashes(),
               "copy_unchanged": copied == tree_hashes(target)}

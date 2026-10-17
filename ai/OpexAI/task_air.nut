@@ -1072,43 +1072,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
       continue;
     }
-    /* V155: pre-filter AIR lines refused by C121 observation/cadence before paying the visible fleet refresh */
-    if (AIR_FLEET_C121_PREGUARD && C121_AIR_VISIBLE_COMPETITION
-        && ("targetAirPlanes" in line)) {
-      local isFirstLiveEligible = C121_AIR_FIRST_LIVE_GROWTH
-          && (C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0
-              || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS)
-          && have == 1 && !("lastAirFleetYear" in line);
-      if (!isFirstLiveEligible) {
-        local c121Age = ("year" in line) ? year - line.year : -1;
-        if (c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0) {
-          if (DECISION_LOG) {
-            local reasonStr = (c121Age < 2) ? "age" : "profit";
-            OpexDecide("AIR_FLEET_PREGUARD", "line=" + line.lineId + " reason=" + reasonStr);
-          }
-          OpexAirFleetRefusal(line, year, "O");
-          if (plan != null && C69_BOTTLENECK_PROBE)
-            OpexC73RecordRejection("fleet", "c121_no_full_year_observation", 1);
-          continue;
-        }
-        if (("lastAirFleetYear" in line) && (year - line.lastAirFleetYear) < 2) {
-          if (DECISION_LOG) {
-            OpexDecide("AIR_FLEET_PREGUARD", "line=" + line.lineId + " reason=cadence");
-          }
-          OpexAirFleetRefusal(line, year, "O");
-          if (plan != null && C69_BOTTLENECK_PROBE)
-            OpexC73RecordRejection("fleet", "c121_wait_full_year_after_growth", 1);
-          continue;
-        }
-      }
-    }
-    OpexC121RefreshVisibleFleet(this._catalog, line, this._lines);
-    if (C121_AIR_VISIBLE_COMPETITION && ("targetAirPlanes" in line) && have >= line.targetAirPlanes) {
-      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      OpexAirFleetRefusal(line, year, "T");
-      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
-      continue;
-    }
     local c121BelowTarget = ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
     local c121FirstLiveEntry = false;

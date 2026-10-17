@@ -58,9 +58,10 @@ class TestC121CatalogIncremental(unittest.TestCase):
         self.assertIn("C121_CATALOG_AIRPORT_REV.rawset(airportType", source("catalog.nut"))
         self.assertNotIn("C121_CATALOG_LINES_REV", read_builder_air())
         self.assertNotIn("C121_CATALOG_LEARN_REV", read_builder_air())
-        # Expiration historique 365 j ; candidat visible OFF par defaut, 30 j ON.
-        self.assertEqual(parse_ai_settings(AI / "info.nut")["c121_air_visible_competition"], 0)
-        self.assertIn("date - entry.date >= (C121_AIR_VISIBLE_COMPETITION ? 30 : 365)", read_builder_air())
+        # Expiration historique 365 j ; candidat visible retire (Lot V232).
+        self.assertNotIn("c121_air_visible_competition", parse_ai_settings(AI / "info.nut"))
+        self.assertIn('date - entry.date >= 365', read_builder_air())
+        self.assertNotIn("C121_AIR_VISIBLE_COMPETITION", read_builder_air())
         save = source("persist.nut").split("function OpexAI::Save()", 1)[1].split(
             "function OpexAI::Load(", 1)[0]
         self.assertNotIn("C121_CATALOG_CACHE", save)

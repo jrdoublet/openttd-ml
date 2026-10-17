@@ -21,49 +21,26 @@ class TestV155FleetPreguard(unittest.TestCase):
 
     def test_setting_declaration_and_defaults(self):
         defaults = parse_ai_settings(self.info)
-        self.assertIn("air_fleet_c121_preguard", defaults)
-        self.assertEqual(defaults["air_fleet_c121_preguard"], 0)
-
-        # Check raw setting block in info.nut
+        self.assertNotIn("air_fleet_c121_preguard", defaults)
         info_text = self.info.read_text(encoding="utf-8")
-        self.assertIn('"air_fleet_c121_preguard"', info_text)
-        self.assertIn("easy_value = 0, medium_value = 0, hard_value = 0", info_text)
-        self.assertIn("custom_value = 0", info_text)
+        self.assertNotIn('"air_fleet_c121_preguard"', info_text)
 
     def test_globals_and_settings_loading(self):
-        self.assertIn("AIR_FLEET_C121_PREGUARD <- false;", self.globals)
-        self.assertIn(
-            'AIR_FLEET_C121_PREGUARD = AIController.GetSetting("air_fleet_c121_preguard") != 0;',
-            self.settings,
-        )
+        self.assertNotIn("AIR_FLEET_C121_PREGUARD", self.globals)
+        self.assertNotIn("air_fleet_c121_preguard", self.settings)
+        self.assertNotIn("AIR_FLEET_C121_PREGUARD", self.settings)
 
     def test_preguard_placement_and_structure_in_task_air(self):
-        # Preguard must be placed immediately before OpexC121RefreshVisibleFleet
-        preguard_sig = "if (AIR_FLEET_C121_PREGUARD && C121_AIR_VISIBLE_COMPETITION"
-        refresh_sig = "OpexC121RefreshVisibleFleet(this._catalog, line, this._lines);"
-
-        self.assertIn(preguard_sig, self.task_air)
-        self.assertIn(refresh_sig, self.task_air)
-
-        preguard_idx = self.task_air.index(preguard_sig)
-        refresh_idx = self.task_air.index(refresh_sig)
-        self.assertLess(preguard_idx, refresh_idx)
-
-        # Between preguard and refresh, there should be no other function calls
-        between = self.task_air[preguard_idx:refresh_idx]
-        self.assertIn('"targetAirPlanes" in line', between)
-        self.assertIn("isFirstLiveEligible", between)
-        self.assertIn("c121_no_full_year_observation", between)
-        self.assertIn("c121_wait_full_year_after_growth", between)
-        self.assertIn('OpexDecide("AIR_FLEET_PREGUARD"', between)
-        self.assertIn('OpexAirFleetRefusal(line, year, "O")', between)
+        self.assertNotIn("AIR_FLEET_C121_PREGUARD", self.task_air)
+        self.assertNotIn("AIR_FLEET_PREGUARD", self.task_air)
+        self.assertNotIn("OpexC121RefreshVisibleFleet", self.task_air)
 
     def test_first_live_exclusion_matches_historical(self):
         # The first live check condition must match historical lines 1187-1190
         self.assertIn("C121_AIR_FIRST_LIVE_GROWTH", self.task_air)
         self.assertIn(
             "C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <= 0\n"
-            "              || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS",
+            "            || year - OPEX_START_YEAR < C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS",
             self.task_air,
         )
         self.assertIn('have == 1 && !("lastAirFleetYear" in line)', self.task_air)

@@ -79,7 +79,7 @@ class V931AirDemandTests(unittest.TestCase):
             self.settings,
         )
         self.assertIn("AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;", self.globals)
-        self.assertIn("C82_ENGINE_CALIBRATION <- false;", self.globals)
+        self.assertNotIn("C82_ENGINE_CALIBRATION", self.globals)
         self.assertNotIn("v93_air_line_pax", self.info)
         for path in AI.glob("*.nut"):
             text = path.read_text(encoding="utf-8")

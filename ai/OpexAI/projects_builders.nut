@@ -212,7 +212,7 @@ function OpexProjectFromFleet(entry)
 
   /* V161 : la marge C121 (ligne seule) et le profit moyen ignorent ce que l'avion retire
    * aux voisines du meme aeroport : plafonner par l'a priori net des voisines. Une valeur
-   * restee "model" perd l'exemption C70/C82 des renforts (v161Calibrate). */
+   * restee "model" perd l'exemption C70 des renforts (v161Calibrate). */
   local v161Source = null;
   local v161Model = 0;
   if (V161_FLEET_NET_MARGINAL > 0) {
@@ -239,7 +239,7 @@ function OpexProjectFromFleet(entry)
      * fois par lot, en plus de la reserve deja soustraite par le portefeuille. */
     budgetCapital = capital + 1000, profitAnnual = profit, revenueAnnual = revenue,
     /* Provenance transitoire du profit. C121 conserve son exemption de
-     * realisation propre dans OpexC70Profit/OpexC82Profit. */
+     * realisation propre dans OpexC70Profit. */
     profitIsObserved = profitIsObserved,
     roi = capital > 0 ? (profit * 1000) / capital : 0,
     expectedOpcodes = expectedOps,

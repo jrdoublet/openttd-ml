@@ -887,10 +887,9 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._lines = liveLines;
   this._pendingLines = null;
-  /* C70/C82 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
+  /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
   if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
-  if (C82_ENGINE_CALIBRATION) OpexC82RecomputeFactors(this._lines);
   OpexC121RecomputeRealizationFactors(this._lines);
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();

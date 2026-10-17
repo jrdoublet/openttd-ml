@@ -136,127 +136,6 @@ function OpexAirStoreRoutePlan(projects, plan, routeChoice, bestPlan)
   return bestPlan;
 }
 
-/* C82 : arbitrage d'appareil par route evalue sur les profits et ROI calibres par moteur.
- * L'objet economics renvoye reste brut (non modifie). */
-function OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics, distance, monthlyPax,
-                                 infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding)
-{
-  local bestPlane = selectedPlane;
-  local bestEconomics = selectedEconomics;
-  local bestK = (selectedPlane != null) ? OpexC82EngineFactor(selectedPlane.id) : 1.0;
-  local bestCalProfit = (selectedEconomics != null) ? (selectedEconomics.profitAnnual * bestK) : 0.0;
-  local bestCalRoi = (selectedEconomics != null) ? (selectedEconomics.roi * bestK) : 0.0;
-  local bestScore = 0.0;
-
-  local kDec = 0;
-  if (C69_BOTTLENECK_PROBE || C72_PLANE_CHOICE == 2) {
-    kDec = OpexC69CachedKDec();
-  }
-
-  if (C72_PLANE_CHOICE == 2 && selectedEconomics != null) {
-    local denom = selectedEconomics.capital > kDec ? selectedEconomics.capital : kDec;
-    bestScore = denom > 0 ? (bestCalProfit.tofloat() * 1000.0) / denom : 0.0;
-  }
-
-  local rawPlane = null;
-  local rawEconomics = null;
-  local rawScore = 0.0;
-  local evalCount = 0;
-
-  if (C69_BOTTLENECK_PROBE) {
-    if (selectedEconomics != null) {
-      evalCount = 1;
-      rawPlane = selectedPlane;
-      rawEconomics = selectedEconomics;
-      local denom = selectedEconomics.capital > kDec ? selectedEconomics.capital : kDec;
-      rawScore = denom > 0 ? (selectedEconomics.profitAnnual.tofloat() * 1000.0) / denom : 0.0;
-    }
-  }
-
-  foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
-    if (plane.id == selectedPlane.id) continue;
-    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
-    local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-        0, false, false, false, false);
-    if (economics == null) continue;
-
-    local k = OpexC82EngineFactor(plane.id);
-    local calProfit = economics.profitAnnual * k;
-    local calRoi = economics.roi * k;
-
-    if (C72_PLANE_CHOICE == 1) {
-      if (bestEconomics == null || calRoi > bestCalRoi ||
-          (calRoi == bestCalRoi && calProfit > bestCalProfit)) {
-        bestPlane = plane;
-        bestEconomics = economics;
-        bestCalProfit = calProfit;
-        bestCalRoi = calRoi;
-      }
-    } else if (C72_PLANE_CHOICE == 2) {
-      local curDenom = economics.capital > kDec ? economics.capital : kDec;
-      local curScore = curDenom > 0 ? (calProfit.tofloat() * 1000.0) / curDenom : 0.0;
-      if (bestEconomics == null || curScore > bestScore ||
-          (curScore == bestScore && calProfit > bestCalProfit)) {
-        bestPlane = plane;
-        bestEconomics = economics;
-        bestScore = curScore;
-        bestCalProfit = calProfit;
-        bestCalRoi = calRoi;
-      }
-    } else {
-      if (bestEconomics == null || calProfit > bestCalProfit ||
-          (calProfit == bestCalProfit && calRoi > bestCalRoi)) {
-        bestPlane = plane;
-        bestEconomics = economics;
-        bestCalProfit = calProfit;
-        bestCalRoi = calRoi;
-      }
-    }
-
-    if (C69_BOTTLENECK_PROBE) {
-      evalCount++;
-      if (C72_PLANE_CHOICE == 1) {
-        if (rawEconomics == null || economics.roi > rawEconomics.roi ||
-            (economics.roi == rawEconomics.roi && economics.profitAnnual > rawEconomics.profitAnnual)) {
-          rawPlane = plane;
-          rawEconomics = economics;
-        }
-      } else if (C72_PLANE_CHOICE == 2) {
-        local curDenom = economics.capital > kDec ? economics.capital : kDec;
-        local curScore = curDenom > 0 ? (economics.profitAnnual.tofloat() * 1000.0) / curDenom : 0.0;
-        if (rawEconomics == null || curScore > rawScore ||
-            (curScore == rawScore && economics.profitAnnual > rawEconomics.profitAnnual)) {
-          rawPlane = plane;
-          rawEconomics = economics;
-          rawScore = curScore;
-        }
-      } else {
-        if (rawEconomics == null || economics.profitAnnual > rawEconomics.profitAnnual ||
-            (economics.profitAnnual == rawEconomics.profitAnnual && economics.roi > rawEconomics.roi)) {
-          rawPlane = plane;
-          rawEconomics = economics;
-        }
-      }
-    }
-  }
-
-  if (C69_BOTTLENECK_PROBE && evalCount >= 2) {
-    C82_CHOICE_CALLS++;
-    local idBrut = (rawPlane != null) ? rawPlane.id : -1;
-    local idCalibre = (bestPlane != null) ? bestPlane.id : -1;
-    if (idCalibre != idBrut) {
-      C82_CHOICE_DIFFER++;
-      local kBrut = (idBrut >= 0) ? OpexC82EngineFactor(idBrut) : 1.0;
-      local kCalibre = (idCalibre >= 0) ? OpexC82EngineFactor(idCalibre) : 1.0;
-      OpexC69Log("phase=c82_choice raw=" + idBrut + " cal=" + idCalibre
-          + " k_raw=" + kBrut + " k_cal=" + kCalibre + " c72=" + C72_PLANE_CHOICE);
-    }
-  }
-
-  return { plane = bestPlane, economics = bestEconomics };
-}
-
 function OpexAirPlaneInRange(plane, distance)
 {
   return plane != null && !(plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance);
@@ -450,10 +329,6 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
       0, false, false, false, false);
   if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport)) {
     return { plane = selectedPlane, economics = selectedEconomics };
-  }
-  if (C82_ENGINE_CALIBRATION) {
-    return OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics, distance,
-        monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
 
   local bestPlane = selectedPlane;

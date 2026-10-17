@@ -271,7 +271,6 @@ function OpexLoadSettings()
   AIR_FLEET_COOLDOWN_PREFILTER = AIController.GetSetting("air_fleet_cooldown_prefilter") != 0;
   local afri = AIController.GetSetting("air_fleet_routes_index");
   if (afri >= 0) AIR_FLEET_ROUTES_INDEX = afri;
-  AIR_FLEET_C121_PREGUARD = AIController.GetSetting("air_fleet_c121_preguard") != 0;
   local v161 = AIController.GetSetting("v161_fleet_net_marginal");
   if (v161 >= 0) V161_FLEET_NET_MARGINAL = v161;
   local v161Own = AIController.GetSetting("v161_prior_own");
@@ -405,9 +404,8 @@ function OpexLoadSettings()
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
-  C82_ENGINE_CALIBRATION = AIController.GetSetting("c82_engine_calibration") != 0;
-  C70_PROFIT_CALIBRATED = C70_MODE_CALIBRATION || C82_ENGINE_CALIBRATION;
-  ::OpexCalibratedProfit <- C82_ENGINE_CALIBRATION ? OpexC82Profit : OpexC70Profit;
+  C70_PROFIT_CALIBRATED = C70_MODE_CALIBRATION;
+  ::OpexCalibratedProfit <- OpexC70Profit;
   C69_BOTTLENECK_PROBE = probePort;
   C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
   C69_FLEET_EXEMPT = AIController.GetSetting("c69_fleet_exempt") != 0;
@@ -436,16 +434,11 @@ function OpexLoadSettings()
   C117_LEAN_MISMATCH_TOTAL = 0;
   C117_LEAN_MISMATCH_MONTH = -1;
   C121_STATION_FLUX_PROBE = OpexProbeSetting("c121_station_flux_probe") != 0;
-  C121_VISIBLE_AIRPORT_CACHE.clear();
-  C121_VISIBLE_FLEET_CACHE.clear();
   C121_STATION_FLUX_LAST_DATE = -1;
   C121_STATION_FLUX_STATE = {};
   C118_AIR_COVERAGE_PROBE = OpexProbeSetting("c118_air_coverage_probe") != 0;
   AIR_C121_PHYSICAL_PAYMENT_DAYS = AIController.GetSetting("air_c121_physical_payment_days") != 0;
   C121_AIR_ECONOMICS_SHADOW = OpexProbeSetting("c121_air_economics_shadow") != 0;
-  C121_AIR_VISIBLE_COMPETITION = AIController.GetSetting("c121_air_visible_competition") != 0;
-  C121_AIR_VISIBLE_FUSED = C121_AIR_VISIBLE_COMPETITION
-      && AIController.GetSetting("c121_air_visible_fused") != 0;
   C121_AIR_WINNER_FUSION = AIController.GetSetting("c121_air_winner_fusion") != 0;
   C121_AIR_GAME_ENGINE = AIController.GetSetting("c121_air_game_engine") != 0;
   C121_CATALOG_INCREMENTAL = AIController.GetSetting("c121_catalog_incremental") != 0;

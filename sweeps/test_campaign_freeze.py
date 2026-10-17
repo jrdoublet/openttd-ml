@@ -240,7 +240,7 @@ class TestCampaignFreeze(unittest.TestCase):
         for name in ("c69_fleet_demand_batch", "c72_plane_choice",
                      "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
-                     "c82_engine_calibration", "rail_depot_cost",
+                     "rail_depot_cost",
                      "v90_pathfinder_check", "c83_fixes",
                      "c83_preempt_open",
                      "v95_air_post73_probe",
@@ -257,6 +257,10 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("v181_rail_max_trains", defaults)
         self.assertNotIn("v192_rail_time_denom_pct", defaults)
         self.assertNotIn("rail_cached_proximity_gate", defaults)
+        self.assertNotIn("c82_engine_calibration", defaults)
+        self.assertNotIn("c121_air_visible_competition", defaults)
+        self.assertNotIn("c121_air_visible_fused", defaults)
+        self.assertNotIn("air_fleet_c121_preguard", defaults)
         self.assertNotIn("c84_air_target_fleet", defaults)
         self.assertNotIn("c85_air_equipment_frontier", defaults)
         self.assertNotIn("v92_air_service_choice", defaults)

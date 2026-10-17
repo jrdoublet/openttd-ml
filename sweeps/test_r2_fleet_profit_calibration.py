@@ -16,7 +16,6 @@ class TestFleetProfitCalibration(unittest.TestCase):
         cls.source = read_projects_source()
         cls.fleet = function(cls.source, "OpexProjectFromFleet")
         cls.c70 = function(cls.source, "OpexC70Profit")
-        cls.c82 = function(cls.source, "OpexC82Profit")
 
     def test_only_positive_legacy_observation_sets_marker(self):
         self.assertIn("local profitIsObserved = false;", self.fleet)
@@ -37,10 +36,8 @@ class TestFleetProfitCalibration(unittest.TestCase):
     def test_provenance_travels_with_profit_not_live_line_state(self):
         self.assertIn("profitIsObserved = profitIsObserved,", self.fleet)
         self.assertIn("profitAnnual = profit, revenueAnnual = revenue,", self.fleet)
-        for calibrated in (self.c70, self.c82):
-            with self.subTest(calibrated=calibrated[:35]):
-                self.assertNotIn("lastProfit", calibrated)
-                self.assertIn('("profitIsObserved" in project) && project.profitIsObserved', calibrated)
+        self.assertNotIn("lastProfit", self.c70)
+        self.assertIn('("profitIsObserved" in project) && project.profitIsObserved', self.c70)
 
     def test_c70_observed_profit_returns_before_model_factor(self):
         self.assertRegex(
@@ -51,15 +48,15 @@ class TestFleetProfitCalibration(unittest.TestCase):
         self.assertLess(self.c70.index("project.profitIsObserved"), self.c70.index("if (!C70_MODE_CALIBRATION)"))
         self.assertIn("return project.profitAnnual * OpexC70Factor(project);", self.c70)
 
-    def test_c82_observed_profit_returns_before_engine_lookup(self):
-        self.assertRegex(
-            self.c82,
-            r'if \(project != null && \("profitIsObserved" in project\) && project.profitIsObserved\)'
-            r'\s*return project.profitAnnual;',
-        )
-        self.assertLess(self.c82.index("project.profitIsObserved"), self.c82.index("OpexC82ProjectEngine(project)"))
-        self.assertIn("project.profitAnnual * OpexC82EngineFactor(e)", self.c82)
-        self.assertIn("return OpexC70Profit(project);", self.c82)
+    def test_c82_calibration_removed(self):
+        for token in (
+            "OpexC82Profit",
+            "OpexC82EngineFactor",
+            "OpexC82ProjectEngine",
+            "OpexC82RecomputeFactors",
+            "C82_ENGINE_CALIBRATION",
+        ):
+            self.assertNotIn(token, self.source)
 
     def test_c84_model_and_c121_specific_realization_are_preserved(self):
         marginal = self.fleet.split("if (c121BelowTarget)", 1)[1].split("if (!usedTargetMarginal)", 1)[0]
@@ -68,9 +65,8 @@ class TestFleetProfitCalibration(unittest.TestCase):
         self.assertNotIn("c84BelowTarget", marginal)
         self.assertIn("learnedFactor / builtFactor", marginal)
         self.assertIn("profit = perPlaneProfit * entry.want;", marginal)
-        for calibrated in (self.c70, self.c82):
-            self.assertIn('project.mode == "fleet"', calibrated)
-            self.assertIn("&& OpexC121ProjectHasRealization(project)) return project.profitAnnual;", calibrated)
+        self.assertIn('project.mode == "fleet"', self.c70)
+        self.assertIn("&& OpexC121ProjectHasRealization(project)) return project.profitAnnual;", self.c70)
 
 
 if __name__ == "__main__":

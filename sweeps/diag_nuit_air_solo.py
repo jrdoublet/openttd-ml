@@ -81,9 +81,8 @@ ARM_SPECS = {
     "base": (),
     "fl1": (("air_full_load", 1),),
     "fl2": (("air_full_load", 2),),
-    "c82": (("c82_engine_calibration", 1),),
 }
-DEFAULT_ARMS = ("base", "fl1", "fl2", "c82")
+DEFAULT_ARMS = ("base", "fl1", "fl2")
 
 VEHICLE_VARIANT_BY_MODE = {
     "rail": "train",

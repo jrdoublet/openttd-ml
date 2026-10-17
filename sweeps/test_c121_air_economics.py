@@ -554,7 +554,7 @@ class TestC121AirEconomics(unittest.TestCase):
         settings = SETTINGS.read_text(encoding="utf-8")
         persist = PERSIST.read_text(encoding="utf-8")
         econ = body(self.air, "function OpexC121AirEconomics", "function OpexC121EngineEconomics")
-        c70 = body(self.projects, "function OpexC70Profit", "/* C82")
+        c70 = body(self.projects, "function OpexC70Profit", "/* Profit calibre des scores")
         own = body(self.projects, "function OpexC121ProjectHasRealization", "function OpexC70Profit")
 
         self.assertIn("C121_AIR_REALIZATION_FACTOR <- { newpair = 1.0, hubsite = 1.0, hubhub = 1.0 }", globals_src)

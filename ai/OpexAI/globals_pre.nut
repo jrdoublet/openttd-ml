@@ -325,14 +325,9 @@ C63_INVEST_LEDGER <- null;
 /* C70 : facteur realise/predit par mode, recalcule au rapport annuel. 1.0 hors reglage. */
 C70_MODE_CALIBRATION <- false;
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
-/* C82 : facteur realise/predit par moteur d'avion, recalcule au rapport annuel. 1.0 hors reglage ou si absent. */
-C82_ENGINE_CALIBRATION <- false;
-/* C70 ou C82 : score sur le profit calibre. Calcule une fois dans OpexLoadSettings pour que la
- * boucle de selection ne lise qu'une globale, comme avant C82 (meme cadence VM). */
+/* C70 : score sur le profit calibre. Calcule une fois dans OpexLoadSettings pour que la
+ * boucle de selection ne lise qu'une globale. */
 C70_PROFIT_CALIBRATED <- false;
-C82_ENGINE_FACTOR <- {};
-C82_CHOICE_CALLS <- 0;
-C82_CHOICE_DIFFER <- 0;
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
  * de tau. 1970 n'est qu'un repli, pose avant Start(). */
@@ -431,10 +426,6 @@ C117_AIR_LINE_STATE <- {};
 C117_AIR_VEHICLE_STATE <- {};
 /* PASS balance: transient telemetry, never read by fleet decisions. */
 C121_STATION_FLUX_PROBE <- false;
-C121_AIR_VISIBLE_COMPETITION <- false;
-C121_AIR_VISIBLE_FUSED <- false;
-C121_VISIBLE_AIRPORT_CACHE <- {};
-C121_VISIBLE_FLEET_CACHE <- {};
 C121_STATION_FLUX_LAST_DATE <- -1;
 C121_STATION_FLUX_STATE <- {};
 /* Sonde passive : mesure la couverture AIR sans modifier les decisions.
@@ -699,11 +690,9 @@ AIR_FLEET_CADENCE_DAYS <- 7;
 AIR_FLEET_COOLDOWN_PREFILTER <- true;
 /* V160 : comptage des lignes vivantes par aeroport (0 = direct O(N^2), 1 = index O(N), 2 = comparateur) */
 AIR_FLEET_ROUTES_INDEX <- 0;
-/* V155: filter AIR lines refused by C121 observation/cadence before visible fleet refresh */
-AIR_FLEET_C121_PREGUARD <- false;
 /* V161 : valeur d'un renfort AIR plafonnee par un a priori net des voisines
  * (V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR x voisines partageant une gare - amortissement).
- * 0 = off ; 1 = plafond actif, et un renfort reste a sa valeur modele perd l'exemption C70/C82. */
+ * 0 = off ; 1 = plafond actif, et un renfort reste a sa valeur modele perd l'exemption C70. */
 V161_FLEET_NET_MARGINAL <- 0;
 /* V163 : second cargo d'une ligne rail de fret (meme source, meme destination). Defaut 0. */
 V163_MULTI_CARGO <- false;

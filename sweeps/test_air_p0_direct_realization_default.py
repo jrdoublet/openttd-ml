@@ -38,12 +38,12 @@ class TestDirectRealizationDefault(unittest.TestCase):
 
     def test_no_double_calibration_while_cold_keeps_legacy(self):
         models = src("projects_models.nut")
-        for name in ("OpexC70Profit", "OpexC82Profit"):
-            block = models.split(f"function {name}(project)", 1)[1].split("\n}", 1)[0]
-            self.assertIn("AIR_P0_DIRECT_REALIZATION_ACTIVE", block)
-            self.assertIn("OpexC121ProjectHasRealization(project)", block)
-            self.assertIn("project.payload.economics.realizationFactor != 1.0", block)
-            self.assertIn("return project.profitAnnual;", block)
+        self.assertNotIn("function OpexC82Profit(", models)
+        block = models.split("function OpexC70Profit(project)", 1)[1].split("\n}", 1)[0]
+        self.assertIn("AIR_P0_DIRECT_REALIZATION_ACTIVE", block)
+        self.assertIn("OpexC121ProjectHasRealization(project)", block)
+        self.assertIn("project.payload.economics.realizationFactor != 1.0", block)
+        self.assertIn("return project.profitAnnual;", block)
         self.assertIn("if (!C70_MODE_CALIBRATION) return project.profitAnnual;", models)
 
     def test_annual_and_reload_derive_non_persistent_cache(self):

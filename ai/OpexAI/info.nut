@@ -464,20 +464,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c121_air_visible_competition",
-      description = "Experimental PASS capture from visible rival airport tiles, equal-rating prior; common new/hub/live fleet demand; 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c121_air_visible_fused",
-      description = "Experimental live visible fleet quote: capture N/N+1 during target scan; requires visible competition; 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "air_c121_physical_payment_days",
       description = "AIR C121: compute cargo payment age from physical one-way flight and airport manoeuvre time; 1 = on (default), 0 = C119 distance+30 proxy",
       easy_value = 1, medium_value = 1, hard_value = 1,
@@ -655,16 +641,6 @@ class OpexAIInfo extends AIInfo {
       name = "air_full_load",
       description = "C81: air full-load orders; 0 = none (default), 1 = full load at both airports, 2 = full load at the first airport only (AAAHogEx default)",
       min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "c82_engine_calibration",
-      description = "C82: scale predicted air profit by a per-aircraft-engine realised/predicted factor from own mature air lines, instead of the C70 air factor (project ranking and aircraft choice per route); 0 = off (default), 1 = on",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       step_size = 1,
@@ -1276,15 +1252,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 2600, medium_value = 2600, hard_value = 2600,
       custom_value = 2600,
       step_size = 100,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "air_fleet_c121_preguard",
-      description = "Filter AIR lines refused by C121 observation/cadence before visible fleet refresh",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       flags = 0
     });
 

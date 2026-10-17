@@ -102,13 +102,13 @@ class StaticContracts(unittest.TestCase):
 
     def test_calibration_exemption_lifted_only_for_v161_projects(self):
         models = _read("projects_models.nut")
-        for fn in ("OpexC70Profit", "OpexC82Profit"):
-            body = _function_body(models, fn)
-            self.assertIn('project.mode == "fleet"\n      && !("v161Calibrate" in project)\n'
-                          "      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;",
-                          body, fn)
-            # la valeur plafonnee par l'a priori (mesure) reste brute
-            self.assertLess(body.index("profitIsObserved"), body.index("v161Calibrate"))
+        self.assertNotIn("function OpexC82Profit", models)
+        body = _function_body(models, "OpexC70Profit")
+        self.assertIn('project.mode == "fleet"\n      && !("v161Calibrate" in project)\n'
+                      "      && OpexC121ProjectHasRealization(project)) return project.profitAnnual;",
+                      body)
+        # la valeur plafonnee par l'a priori (mesure) reste brute
+        self.assertLess(body.index("profitIsObserved"), body.index("v161Calibrate"))
         builder = _function_body(_read("projects_builders.nut"), "OpexProjectFromFleet")
         self.assertIn('profitIsObserved = v161Source != "model";', builder)
 

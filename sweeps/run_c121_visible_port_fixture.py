@@ -53,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("--off", action="store_true")
     parser.add_argument("--reload", action="store_true")
     args, rest = parser.parse_known_args()
-    settings = (("c121_air_visible_competition", 1), ("c121_air_visible_fused", 0 if args.off else 1), ("decision_log", 1))
+    settings = (("decision_log", 1),)
     if args.reload:
         from .run_c121_fleet_fixtures import main
         main(rest, settings=settings, fixture=ROOT / "tests/mechanisms/c121_visible_port_reload_vm.nut",

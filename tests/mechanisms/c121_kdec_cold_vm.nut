@@ -28,8 +28,7 @@ function FxKStart()
             profitAnnual = 100, profitIsObserved = false };
         FxKAssert(OpexC121ProjectHasRealization(project) == FxKLegacyHasRealization(project), "decision gate");
         FxKAssert(OpexC70Profit(project) == FxKLegacyC70Profit(project), "C70 numerator");
-        FxKAssert(OpexC82Profit(project) == FxKLegacyC82Profit(project), "C82 numerator");
-        checks += 3;
+        checks += 2;
       }
     }
   }

@@ -36,7 +36,7 @@ def main(argv=None, *, fixture=None, settings=None, marker="C121_NEWSITE", stage
     from . import bench_v2
     from .diag_cadence_duel import collect, enable_script_debug
     from .game_health import assess_game, enable_engine_failure_capture
-    settings = settings or (("c121_air_visible_competition", 1), ("decision_log", 1))
+    settings = settings or (("decision_log", 1),)
     copied = {"opex": tree_hashes(target), "opponent": tree_hashes(opponent)}
     cfg = bench_v2.make_cfg(1970)
     kind = ("matched_live_fleet_redundancy_not_economic" if stage_transform is not None

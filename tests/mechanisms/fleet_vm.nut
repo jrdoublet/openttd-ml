@@ -9,20 +9,18 @@ function FxAssert(ok, name)
 function FxMatrix()
 {
   local saved = { c70 = C70_PROFIT_CALIBRATED, mode = C70_MODE_CALIBRATION,
-    engine = C82_ENGINE_CALIBRATION, v161 = V161_FLEET_NET_MARGINAL,
-    factors = clone C70_MODE_FACTOR, engines = clone C82_ENGINE_FACTOR,
+    v161 = V161_FLEET_NET_MARGINAL,
+    factors = clone C70_MODE_FACTOR,
     calibrate = OpexCalibratedProfit };
   /* V161 (defaut 1 depuis le 13/10) plafonne par les voisines reelles : hors champ de cette matrice. */
   V161_FLEET_NET_MARGINAL = 0;
   C70_PROFIT_CALIBRATED = true;
   C70_MODE_CALIBRATION = true;
-  C82_ENGINE_CALIBRATION = true;
   local cases = 0;
-  foreach (calibration in ["C70", "C82"]) {
-    OpexCalibratedProfit = calibration == "C70" ? OpexC70Profit : OpexC82Profit;
+  foreach (calibration in ["C70"]) {
+    OpexCalibratedProfit = OpexC70Profit;
     foreach (factor in [0.5, 1.0, 1.5]) {
       C70_MODE_FACTOR.air = factor;
-      C82_ENGINE_FACTOR.rawset(7, factor); // synthetic engine ID, never used in an API
       foreach (observed in [false, true]) {
         foreach (quantity in [1, 4]) {
           foreach (life in [20, 13]) {
@@ -55,10 +53,8 @@ function FxMatrix()
   FxAssert(OpexProjectScore(-1, 10) == 0.0, "negative_score");
   C70_PROFIT_CALIBRATED = saved.c70;
   C70_MODE_CALIBRATION = saved.mode;
-  C82_ENGINE_CALIBRATION = saved.engine;
   V161_FLEET_NET_MARGINAL = saved.v161;
   C70_MODE_FACTOR = saved.factors;
-  C82_ENGINE_FACTOR = saved.engines;
   OpexCalibratedProfit = saved.calibrate;
   AILog.Info("FXVM complete=1 cases=" + cases + " boundary_checks=1 settings_restored=1");
 }
