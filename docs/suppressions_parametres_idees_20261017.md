@@ -286,3 +286,32 @@ Décision utilisateur du 17/10 : **supprimer V88 et repartir de zéro** (tâche 
 Les trois lots sont réunis sur `v232-rail` : 15 réglages, 226 → 211. Contrats sans nouvel échec, fixture R1 verte, smoke différent.
 - **20×10 `v232_20x10_20261017` contre V231** : profit −41,0 k£/an (−1,16 %), 9/11, p = 0,62, IC95 [−201 k ; +133 k], valeur −0,83 % : **neutre**.
 - **Cumul contre V230** : −123,8 k£/an (−3,42 %), 8/12, p = 0,23, IC95 [−275 k ; +24 k], valeur −2,54 %. Sous la garde de −5 %, mais **la dérive s'additionne lot après lot**.
+
+## 11. V236 : 26 réglages numériques figés en constantes (17/10, moi)
+
+Principe : aucun de ces réglages n'était un mécanisme à part entière ; ce sont des calibrations dont la valeur n'a pas bougé depuis leur qualification. La globale garde son nom et prend la valeur par défaut d'`info.nut` ; la lecture dans `settings.nut` et l'`AddSetting` disparaissent. **Smoke strictement identique à master** (graine 42, 1 an : valeur 421 646, profit 484 420, 19 véhicules, 20 gares) ⇒ fusion directe, sans 20×10. 211 → 185 réglages.
+
+| Réglage | Constante | Valeur | Origine / remarque |
+|---|---|---:|---|
+| `pathfinder_sleep_ticks` | — (Sleep retiré) | 0 | Bridage pour parties avec humains ; à 0 depuis le principe « armes égales ». Le `Sleep` de `OpexAdvanceRailPathfinder` et de `OpexAdvanceSegmentedSearch` est supprimé, la garde `sleepTicks <= 0` du groupage V129 aussi. Pour une partie avec humains, il faudrait le réintroduire. |
+| `rail_terrain_factor` | `RAIL_TERRAIN_FACTOR` (`economy.nut`) | 100 | Multiplicateur de coût de terrain du devis rail (voir `opexai_prix_rail_terrain`). |
+| `rail_finance_bias_pct` | `RAIL_FINANCE_BIAS_PCT` | 100 | Biais du score rail C75bis ; 100 = neutre. |
+| `v212_rail_pax_revenue_pct`, `v212_rail_pax_capital_pct` | `V212_RAIL_PAX_*_PCT` | 100 / 100 | Recalage pax rail V212, remis à 100 le 16/10 (perdant en partie complète). La branche `!= 100` d'`OpexLineEconomics` est maintenant morte : à retirer avec un futur lot (contrat `test_v212_pax_calibration` encore sur la garde). |
+| `v214_rail_turn_cost`, `v214_rail_tight_turn_cost` | `V214_RAIL_*` | 300 / 1500 | Coût des virages AAA dans l'A*. ⚠️ globales passées de 0 à 300/1500 : c'était la valeur effective via `info.nut`. |
+| `loan_repay_floor_k` | `LOAN_REPAY_FLOOR` (`globals_post.nut`) | 300 000 £ | Plancher de caisse avant remboursement. |
+| `pathfinder_hard_cap_k` | `HARD_ITERATION_CAP` | 5 000 | ⚠️ globale passée de 10 000 à 5 000 (valeur effective). |
+| `abandon_cooldown_days` | `ABANDON_COOLDOWN_DAYS` (`globals_post.nut`) | 365 | ⚠️ globale passée de 0 à 365. Mémoire d'abandon (G0). |
+| `project_top_k` | `PROJECT_TOP_K` (`projects.nut`) | 64 | Fenêtre de sélection ; la variante dynamique part au lot V234 (tâche V241). |
+| `air_early_slot_target_towns`, `_min_pop`, `_bonus_pct` | `AIR_EARLY_SLOT_*` | 6 / 1 000 / 50 | Paramètres du créneau aérien précoce (l'interrupteur `air_early_slot` part au lot V237). |
+| `air_fleet_cadence_days` | `AIR_FLEET_CADENCE_DAYS` | 7 | Cadence de la tâche flotte AIR. |
+| `v161_prior_own`, `v161_prior_neighbour` | `V161_PRIOR_*` | 13 000 / 2 600 | A priori du profit marginal par avion (V161). |
+| `air_joined_stop_limit` | `AIR_JOINED_STOP_LIMIT` | 2 | Arrêts routiers joints à un aéroport. |
+| `air_pax_revenue_calibration_pct` | `AIR_PAX_REVENUE_CALIBRATION_PCT` | 104 | Calibration du revenu pax AIR. |
+| `air_hub_max_routes` | `AIR_HUB_MAX_ROUTES` | 3 | ⚠️ globale passée de 0 à 3. Plafond de routes par hub (C121, `36fa8c7`). |
+| `unprofitable_streak_threshold` | `UNPROFITABLE_STREAK_THRESHOLD` | 3 | Années déficitaires avant vente. |
+| `v91_astar_weight_pct` | `V91_ASTAR_WEIGHT_PCT` | 120 | A* pondéré V91. |
+| `v172_rail_long_weight_pct`, `_dist` | `V172_RAIL_LONG_WEIGHT_*` | 200 / 100 | Pondération des longues lignes rail. |
+| `v168_rail_max_dist` | `V168_RAIL_MAX_DIST` | 160 | Borne de distance rail (qualifiée le 13/10). |
+| `c121_air_first_live_growth_phase_years` | `C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS` | 4 si `c121_air_first_live_growth`, 0 sinon | Durée de phase de la croissance « première vivante ». |
+
+Lanceurs : `bench_v2.py` perd ses validations dédiées (un de ces noms passé en `OpexAI[...]` est désormais refusé comme « réglage OpexAI inconnu ») ; l'auto-test de `bench_1v1_5y_20seeds.py` vérifie l'absence d'`air_fleet_cadence_days`. Les scripts de diagnostic historiques (`diag_g0_abandon_factorial.py`, `run_g0_c66_4.py`, `run_m3_*`, `run_m4_conformity.py`, `diag_water_memory.py`, `diag_1v1_shared_monthly.py`) citent encore `abandon_cooldown_days` ou `air_early_slot_*` : ils ne sont plus rejouables tels quels. Contrats : 20 tests adaptés (`assertNotIn` + valeur de la globale) ; aucun nouvel échec.
