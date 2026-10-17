@@ -453,7 +453,6 @@ class OpexAI extends AIController {
   function Start();
   function _tooClose(candidate);
   function _tryAttachSharedDest(candidate);
-  function _tryBuildAir(year);
   function _tryBuildProjects(year);
   function _ensureSelection();
   function _logAirLazySelect(year);
@@ -676,8 +675,8 @@ function OpexAI::Start()
   }
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {
-    OpexDecide("SETTINGS", "road_pax_voirie=" + ROAD_PAX_VOIRIE
-               + " road_pax_overlap=" + ROAD_PAX_OVERLAP);
+    OpexDecide("SETTINGS", "road_pax_voirie=" + true
+               + " road_pax_overlap=" + true);
   }
   OpexAirResetSiteCache();
 

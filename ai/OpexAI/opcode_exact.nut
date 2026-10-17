@@ -442,7 +442,7 @@ function OpexRoadPaxVoirieGated(center, townId, cargo, vehType, coverage, otherC
 function OpexRoadPlanForActive(catalog, candidate) {
   if (catalog.roadType < 0) return { plan = null, reason = "NOROAD" };
   AIRoad.SetCurrentRoadType(catalog.roadType);
-  if (ROAD_PAX_VOIRIE && candidate.kind == "pax") {
+  if (candidate.kind == "pax") {
     local sameTown = candidate.srcTown >= 0 && candidate.srcTown == candidate.dstTown;
     if (!sameTown) {
       local voirie = OpexRoadPlanPaxVoirie(candidate);

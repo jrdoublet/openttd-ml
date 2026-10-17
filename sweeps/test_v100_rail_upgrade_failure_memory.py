@@ -89,7 +89,7 @@ class TestRailUpgradeFailureMemoryContract(unittest.TestCase):
             header,
         )
         self.assertNotIn("RAIL_UPGRADE_FAILURE_MEMORY", body)
-        self.assertIn("ABANDON_MEMORY", body)
+        self.assertNotIn("ABANDON_MEMORY", body)
         self.assertIn("this._abandonedPairs != null", body)
         self.assertIn('("lineId" in line)', body)
         self.assertIn(

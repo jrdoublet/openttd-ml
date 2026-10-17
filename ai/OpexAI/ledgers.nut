@@ -294,15 +294,12 @@ function OpexAI::_schedIdlePreDispatch()
       this._schedIdlePredClass = "pred";
     }
   } else if (taskName == "air") {
-    if (AIR_PORTFOLIO) {
+    {
       this._schedIdlePredReason = "air_disabled";
       this._schedIdlePredClass = "pred";
     }
   } else if (taskName == "expand") {
-    if (!RAIL_REFLEET) {
-      this._schedIdlePredReason = "expand_disabled";
-      this._schedIdlePredClass = "pred";
-    }
+    /* Le refleet rail est permanent ; aucune prediction de desactivation. */
   } else if (taskName == "catalog") {
     if (("c78AirRebuild" in task) && task.c78AirRebuild != null) {
       local s = task.c78AirRebuild;
@@ -684,15 +681,9 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
     }
   } else if (taskName == "air_fleet") {
     local curVehs = AIVehicleList().Count();
-    if (FLEET_PORTFOLIO) {
+    {
       if (this._projects != this._schedIdlePreProjects || curVehs != this._schedIdlePreVehCount) {
         didWork = true; reason = "air_fleet_injected"; skipClass = "work";
-      } else {
-        didWork = false; reason = "air_fleet_no_work"; skipClass = "after";
-      }
-    } else {
-      if (ran || curVehs != this._schedIdlePreVehCount) {
-        didWork = true; reason = "air_fleet_work"; skipClass = "work";
       } else {
         didWork = false; reason = "air_fleet_no_work"; skipClass = "after";
       }
@@ -1159,7 +1150,7 @@ function OpexAI::_logC50AnnualReport(year)
       local isSmall = (AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
                       (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL);
       local physCap = isSmall ? 4 : AIR_MAX_PLANES_PER_ROUTE;
-      if (AIR_CADENCE_CAP) physCap = OpexAirCadenceCap(line, this._catalog, this._lines);
+      physCap = OpexAirCadenceCap(line, this._catalog, this._lines);
       airCapPhys += physCap;
       if (have >= physCap) airLinesAtCap++;
     }

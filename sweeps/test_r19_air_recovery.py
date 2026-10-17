@@ -35,7 +35,8 @@ class TestAirRecovery(unittest.TestCase):
         self.assertIn('require("air_recovery.nut");', self.builder)
 
     def test_first_and_later_start_failures_keep_entire_built_inventory(self):
-        start = self.route.split("foreach (aircraft in built)", 1)[1].split("if (AIR_JOINED_STOPS)", 1)[0]
+        self.assertNotIn("AIR_JOINED_STOPS", self.route)
+        start = self.route.split("foreach (aircraft in built)", 1)[1].split('spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.joined")', 1)[0]
         self.assertIn("if (!AIVehicle.StartStopVehicle(aircraft))", start)
         self.assertLess(start.index("result.error = AIError.GetLastError();"), start.index("OpexAirRollback("))
         self.assertRegex(start, r"OpexAirRollback\(reuseA \? null : airportA, reuseB \? null : airportB, built,\s*"
@@ -87,7 +88,8 @@ class TestAirRecovery(unittest.TestCase):
         self.assertLess(site.index("OpexAirRecoveryOwnsAirport"), site.index("if (reuse)"))
         lines = (ROOT / "ai/OpexAI/lines.nut").read_text(encoding="utf-8")
         abandon = function(lines, "OpexBuildFailureIsAbandonable")
-        self.assertLess(abandon.index('result.reason == "RECOVERY"'), abandon.index("ABANDON_MEMORY_TRANSIENT_GUARD"))
+        self.assertNotIn("ABANDON_MEMORY_TRANSIENT_GUARD", abandon)
+        self.assertLess(abandon.index('result.reason == "RECOVERY"'), abandon.index('result.reason == "CASH"'))
 
     def test_recovery_is_saved_even_in_short_format_without_feature_gates(self):
         save = function(self.persist, "OpexAI::Save")

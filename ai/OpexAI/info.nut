@@ -241,24 +241,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* --- 3. Macro-politiques adoptees unifiees (8 groupes) --- */
-
-    AddSetting({
-      name = "policy_rail",
-      description = "Rail construction and operations: resumable A*, quotes, refleet, orders: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "policy_road",
-      description = "Road transport policy: drive-through stops on existing streets, overlap filtering: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
+    /* --- 3. Interrupteurs de mode et options rail --- */
     AddSetting({
       name = "mode_air",
       description = "V166: Air mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
@@ -390,31 +373,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1,
       flags = 0
     });
-
-    AddSetting({
-      name = "policy_air",
-      description = "Aviation policy: portfolio arbitration, runway cadence cap, joined bus stops, hub reuse: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "policy_abandon",
-      description = "Construction failure memory and candidate filtering (C22/C33): 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "policy_portfolio",
-      description = "Portfolio and financial invariants: clean density score, staged bootstrap, dynamic cash reserve: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* --- 4. Calibrations physiques et options reelles --- */
 
     AddSetting({

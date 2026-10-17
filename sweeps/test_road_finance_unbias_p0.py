@@ -21,7 +21,8 @@ class RoadFinanceUnbiasContracts(unittest.TestCase):
 
     def test_only_road_finance_bias_switches(self):
         finance = src("projects_finance.nut")
-        self.assertIn('if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;', finance)
+        self.assertNotIn("CAPITAL_CALIBRATION", finance)
+        self.assertIn('if (!("mode" in project)) return financeCapital;', finance)
         self.assertIn('if (project.mode == "rail") biasPct = RAIL_FINANCE_BIAS_PCT;', finance)
         self.assertIn('else if (project.mode == "road") biasPct = 121;', finance)
         self.assertNotIn('ROAD_FINANCE_UNBIAS_P0', finance)

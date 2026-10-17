@@ -67,7 +67,7 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
 function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo)
 {
   local summary = { count = 0, monthlyPax = 0 };
-  if (!AIR_JOINED_STOPS || !AIStation.IsValidStation(stationId)) return summary;
+  if (!AIStation.IsValidStation(stationId)) return summary;
   local mapX = AIMap.GetMapSizeX();
   local mapY = AIMap.GetMapSizeY();
   local spread = AIGameSettings.GetValue("station.station_spread");
@@ -452,7 +452,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   result.opcodes += budget.end("build_aircraft");
   if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
 
-  if (AIR_JOINED_STOPS) {
+  {
     spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.joined") : null;
     local beforeStops = costs != null ? costs.GetCosts() : 0;
     if (!reuseA) {

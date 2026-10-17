@@ -99,7 +99,6 @@ const ROAD_PAX_STOP_DWELL_DAYS = 6;
  * que le revenu passager aerien, avant le calcul du profit et des scores. */
 AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
 /* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
-CLEAN_DENSITY_SCORE <- true;
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
  * change jamais en cours de partie). Defaut vrai : voir info.nut::debug_signs -- toute
@@ -118,7 +117,6 @@ AIR_COST_PROBE <- false;
  * retrouve le 2026-09-08). Panneau RP| par tentative, reussie ou non (RC| deja pris). */
 ROAD_COST_PROBE <- false;
 /* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
-AIR_JOINED_STOPS <- false;
 /* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile
  * supplementaire n'est inspectee dans le comportement livre. */
 AIR_CATCHMENT_PROBE <- false;
@@ -497,12 +495,9 @@ PORTFOLIO_LOG <- false;
  * adopte au banc officiel 20x10 apparie -- les vingt graines identiques au bit pres. */
 SAVE_FULL_STATE <- true;
 /* C34.1 : construction aerienne arbitree par le portefeuille seul (1) au lieu de la tache dediee. */
-AIR_PORTFOLIO <- true;
 /* C34.2 : croissance de flotte aerienne arbitree par le portefeuille (1) au lieu de la tache dediee. */
-FLEET_PORTFOLIO <- true;
 /* C32 : bonus forfaitaires de classement du fret. 0 = supprimes. */
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
-RAIL_DEVIS <- true;
 /* F-RAIL-ECON-01 : prise en compte du cout du depot dans le capital d'infrastructure rail. */
 RAIL_DEPOT_COST <- false;
 OPS_PER_TICK <- 10000;
@@ -511,22 +506,18 @@ _currentTaskName <- null;
 _currentTaskLogged <- false;
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
-DYNAMIC_CASH_RESERVE <- true;
 /* P1 : repli empirique du filtre de financabilite. Le facteur rail 1,7
  * reste applique au capital de construction estime ; les autres modes restent a 1,0. */
-CAPITAL_CALIBRATION <- true;
 /* P4 : n'exclut de la memoire d'abandon que les refus transitoires de caisse
  * (CASH / ERR_NOT_ENOUGH_CASH) survenus apres le garde du portefeuille. Reglage
  * ajoute le 2026-09-08 uniquement pour isoler P4 au banc factoriel P1xP3xP4 sans
  * dupliquer d'arbre Git ; 0 reproduit le comportement historique pre-P4. */
-ABANDON_MEMORY_TRANSIENT_GUARD <- true;
 /* docs/taches.md S3 undecies (2026-09-03) : les lignes aeriennes rangent des TUILES d'aeroport
  * dans stationA/stationB, mais le code de hub de builder_air.nut les lisait comme des StationID.
  * Consequence mesuree graine 42 : la garde `alreadyConnected` toujours fausse -> NEUF liaisons sur
  * la meme paire de villes en 3 ans, plafond maxRoutes inoperant, et decote de saturation
  * `/(routes+1)` toujours divisee par 1. 1 = resolution correcte tuile -> StationID ;
  * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
-AIR_HUB_FIX <- true;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* V161 : valeur d'un renfort AIR plafonnee par un a priori net des voisines
@@ -539,12 +530,7 @@ V161_PRIOR_OWN <- 13000;
 V161_PRIOR_NEIGHBOUR <- 2600;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
-PAX_FULL_LOAD <- true;
-C53_ORDER_NONSTOP <- false;
-COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
-AIR_HUB <- true;
-RAIL_REFLEET <- true;
 /* V217 : recharge du vivier rail sur tresorerie oisive (orchestrator.nut). 0 = inerte (defaut),
  * 1 = fret seul, 2 = fret et voyageurs. */
 V217_RAIL_REFILL <- 0;
@@ -554,11 +540,8 @@ V217_LAST_MONTH <- -1;
 V217_REGEN_NO_PAX <- false;
 AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
-ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
-AIR_FLEET_LINE_PRICE <- true;
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
-AIR_CADENCE_CAP <- true;
 /* C52 : compatibilite ; le remappage ET_VEHICLE_AUTOREPLACED est inconditionnel. */
 EVENT_VEHICLE_AUTOREPLACED <- true;
 /* C52 : sonde annuelle des remappages; le ledger reste nul hors sonde. */
@@ -573,7 +556,6 @@ C52_UNPROFITABLE_LOG <- false;
 C52_STATION_FIRST_VEHICLE_LOG <- false;
 /* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
  * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
-EVENT_CATALOG_INVALIDATE <- true;
 /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? OpexCashReserve() est appelee tres souvent (a
  * chaque decision de construction), donc journaliser chaque appel serait bruyant -- compteurs
  * cumulatifs, publies une fois par an en delta par la tache "report". */

@@ -331,7 +331,7 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
                         water_back.index(INVALIDATE))
 
         for rel, count in (
-            ("ai/OpexAI/task_air.nut", 2),
+            ("ai/OpexAI/task_air.nut", 1),  # V246 : portefeuille seul
             ("ai/OpexAI/task_road.nut", 1),
             ("ai/OpexAI/task_water.nut", 1),
             ("ai/OpexAI/task_rail.nut", 1),

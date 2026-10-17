@@ -182,7 +182,8 @@ class TestRailGeometryGuard(unittest.TestCase):
         self.assertIn('(replanGeometry ? "REPLAN_GEOM" : quoteFailure.reason)', execute)
 
         record = function_body(self.task, "function OpexAI::_recordRailAttempt(")
-        memory = record[record.index("if (ABANDON_MEMORY &&"):]
+        self.assertNotIn("ABANDON_MEMORY", record)
+        memory = record[record.index('if ((result.reason == "ABND"'):]
         self.assertNotIn('result.reason == "REPLAN_GEOM"', memory)
         # V232 : les deux gardes REPLAN_GEOM etaient dans la chaine V88, retiree
         self.assertEqual(self.task.count('!= "REPLAN_GEOM"'), 0)
@@ -218,7 +219,8 @@ class TestRailGeometryGuard(unittest.TestCase):
 
     def test_cash_and_other_transient_failures_are_not_newly_banned(self):
         record = function_body(self.task, "function OpexAI::_recordRailAttempt(")
-        memory = record[record.index("if (ABANDON_MEMORY &&"):]
+        self.assertNotIn("ABANDON_MEMORY", record)
+        memory = record[record.index('if ((result.reason == "ABND"'):]
         self.assertNotIn('result.reason == "CASH"', memory)
         self.assertNotIn("ERR_NOT_ENOUGH_CASH", memory)
         consume = function_body(self.task, "function OpexAI::_consumeRailSearch(year)")

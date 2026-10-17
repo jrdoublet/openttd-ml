@@ -255,7 +255,8 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
 
         rail = (ROOT / "ai/OpexAI/builder_rail.nut").read_text(encoding="utf-8")
         execute = rail[rail.index("function OpexExecuteRailPlan("):rail.index("\nfunction OpexBuildLine(")]
-        cross = execute[execute.index("local tiles = plan.tiles;"):execute.index("if (RAIL_DEVIS)")]
+        self.assertNotIn("RAIL_DEVIS", execute)
+        cross = execute[execute.index("local tiles = plan.tiles;"):execute.index("local quoteFailure = {};")]
         self.assertIn("if (DECISION_LOG)", cross)
         self.assertLess(cross.index("local crossStart = -1;"), cross.index("result.startx <-"))
         self.assertLess(cross.index("local crossEnd = -1;"), cross.index("result.endx <-"))

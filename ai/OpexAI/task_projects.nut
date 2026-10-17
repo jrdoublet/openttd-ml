@@ -1402,8 +1402,7 @@ function OpexAI::_tryBuildProjects(year)
       c77DefensiveHead = head;
     }
   }
-  local c77DeferCompletedRail = c77DefensiveHead != null
-      && RAIL_SEARCH_RESUMABLE && this._railSearch != null
+  local c77DeferCompletedRail = c77DefensiveHead != null && this._railSearch != null
       && this._railSearch.kind == "primary" && this._railSearch.phase == "build"
       && !("c77DefensiveDeferred" in this._railSearch);
   if (c77DeferCompletedRail) {
@@ -1423,7 +1422,7 @@ function OpexAI::_tryBuildProjects(year)
   {
     /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le
      * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */
-    if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
+    if (this._railSearch != null &&
         this._railSearch.kind == "primary" && this._railSearch.phase == "build"
         && !c77DeferCompletedRail) {
       local spAstarBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("astar.build") : null;
@@ -1819,7 +1818,7 @@ function OpexAI::_tryBuildProjects(year)
   local hadAbandons = this._hadAbandonsThisPass;
   if (builtCount > 0 || hadAbandons) {
     local fleetPlan = null;
-    if (FLEET_PORTFOLIO) {
+    {
       /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);

@@ -35,7 +35,6 @@ ROAD_PAX_VOIRIE_SAME_TOWN_MAX_DIST <- 12;
  * n'echantillonne que des IsRoadTile et on relie par BFS sur la voirie, sans scier les maisons.
  * MIN_PAIR = C29.4 / HogEx : sous 6 tuiles le depot (filet de 3) est impossible et
  * CmdBuildRoadStop rend TOO_CLOSE / BSTOP. */
-ROAD_PAX_VOIRIE <- true;
 ROAD_PAX_VOIRIE_MIN_PAIR <- ROAD_BUS_STOP_MIN_DISTANCE;
 
 function OpexRoadInMap(x, y)
@@ -796,7 +795,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * chargement de retour qui n'existe pas. La source, elle, garde le plein chargement : le cargo y
    * s'accumule de toute facon, et un camion qui part avec une unite paie son trajet pour rien.
    * qui attend d'etre plein detruit precisement ce que la ligne a de bon. */
-  local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
+  local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
   local sourceFlags = (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
@@ -935,7 +934,7 @@ function OpexRoadRefleet(catalog, line, have, target)
     local first = AIVehicle.BuildVehicleWithRefit(line.depot, engine.id, line.cargo);
     if (!AIVehicle.IsValidVehicle(first)) { result.reason = "VEH"; return result; }
     built.append(first);
-    local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
+    local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
     local isFreight = (("kind" in line) && line.kind == "freight");
     local sourceFlags = (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
     local destFlags = AIOrder.OF_NONE;

@@ -174,7 +174,7 @@ function OpexAirJoinedMarginalProduction(stationId, airportTile, airportType, ca
 function OpexAirB9PredictJoinedStops(site, airport, town, paxCargo)
 {
   local chosen = [];
-  if (!AIR_JOINED_STOPS || AIR_JOINED_STOP_LIMIT <= 0
+  if (AIR_JOINED_STOP_LIMIT <= 0
       || site == null || town == null || paxCargo < 0) return chosen;
 
   local mapX = AIMap.GetMapSizeX();

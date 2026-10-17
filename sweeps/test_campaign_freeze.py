@@ -289,7 +289,8 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("probe_air_engine_depth", defaults)  # V239
         self.assertNotIn("probe_air_finance_margin", defaults)  # V239
         self.assertEqual(defaults["probe_event_backlog"], 0)
-        self.assertEqual(defaults["policy_rail"], 1)
+        for name in ("policy_rail", "policy_road", "policy_air", "policy_abandon", "policy_portfolio"):
+            self.assertNotIn(name, defaults)
         self.assertNotIn("policy_caches", defaults)
         self.assertNotIn("air_route_plane_selection", defaults)
         self.assertEqual(set(defaults), set(specs))

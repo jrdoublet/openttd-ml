@@ -281,7 +281,7 @@ function OpexB6RepriceFreightTop(catalog, lines, project)
   if (project.mode == "rail") {
     local iterations = OpexRailIterations(cand.distance);
     local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
-    if (VIVIER_RATIO_FILTER && opcodeRatio < 200) return { status = "not_generated_ratio", monthly = monthly, freshProfit = economics.profitAnnual };
+    if (opcodeRatio < 200) return { status = "not_generated_ratio", monthly = monthly, freshProfit = economics.profitAnnual };
   }
   local freshRoi = economics.roi;
   local margin = project.mode == "road" ? ROAD_CAPITAL_MARGIN : 0;

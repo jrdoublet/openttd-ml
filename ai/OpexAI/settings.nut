@@ -55,9 +55,9 @@ function OpexLoadSettings()
   ::OpexTopK <- AIController.GetSetting("homogeneous_preselect") != 0
       ? OpexTopKFund : OpexTopKLegacy;
 
-  /* --- 2. Macro-politiques unifiees (8 groupes) --- */
+  /* --- 2. Interrupteurs de mode et options rail --- */
 
-  // V166 : interrupteurs de mode, lus avant les faisceaux policy_* qui en dependent.
+  // V166 : interrupteurs de mode conserves pour les bancs monomodes.
   MODE_AIR = AIController.GetSetting("mode_air") != 0;
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
   MODE_ROAD = AIController.GetSetting("mode_road") != 0;
@@ -100,57 +100,10 @@ function OpexLoadSettings()
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
 
-  // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
-  local polRail = AIController.GetSetting("policy_rail") != 0;
-  RAIL_DEVIS = polRail;
-  RAIL_SEARCH_RESUMABLE = polRail;
-  RAIL_MICRO_DEADLINE = polRail;
-  RAIL_SEGMENTED_SEARCH = polRail;
-  RAIL_REFLEET = polRail;
-  DYNAMIC_PATHFINDER_CAP = polRail;
-  PAX_FULL_LOAD = polRail;
-  ORIGIN_SITABLE = polRail;
-
-  // 4. policy_road : road mode, street drive-through stops, refleet, fleet fix, overlap filtering
-  local polRoad = AIController.GetSetting("policy_road") != 0;
-  ROAD_BUILD_ENABLED = polRoad && MODE_ROAD;
-  ROAD_REFLEET = polRoad;
-  ROAD_FLEET_FIX = polRoad;
-  PRICING_ROAD_OPS = polRoad;
-  ROAD_PAX_OVERLAP = polRoad;
-  ROAD_PAX_VOIRIE = polRoad;
-
-  // 5. policy_air : air portfolio, fleet portfolio, cadence cap, line price, yield order, cheap site C36.3, joined stops, hubs
-  local polAir = AIController.GetSetting("policy_air") != 0;
-  AIR_PORTFOLIO = polAir;
-  FLEET_PORTFOLIO = polAir;
-  AIR_CADENCE_CAP = polAir;
-  AIR_FLEET_LINE_PRICE = polAir;
-  AIR_ROI_ORDER = polAir;
-  AIR_ABANDON = polAir;
-  AIR_MARGIN = polAir;
-  AIR_CHEAP_SITE = polAir;
-  AIR_JOINED_STOPS = polAir;
-  AIR_HUB = polAir;
-  AIR_HUB_FIX = polAir;
-
-  // 6. policy_abandon : abandon memory, generation filter, transient cash guard (C22, C33)
-  local polAbandon = AIController.GetSetting("policy_abandon") != 0;
-  ABANDON_MEMORY = polAbandon;
-  ABANDON_GEN_FILTER = polAbandon;
-  ABANDON_MEMORY_TRANSIENT_GUARD = polAbandon;
-
-  // 7. policy_portfolio : economy fix, clean density score, staged bootstrap, vivier filter, complex cargo, dynamic reserve
-  local polPort = AIController.GetSetting("policy_portfolio") != 0;
-  ECONOMY_FIX = polPort;
-  CLEAN_DENSITY_SCORE = polPort;
-  STAGED_BOOTSTRAP = polPort;
-  VIVIER_RATIO_FILTER = polPort;
-  COMPLEX_CARGO = polPort;
-  CAPITAL_CALIBRATION = polPort;
-  DYNAMIC_CASH_RESERVE = polPort;
-  C53_ORDER_NONSTOP = polPort;
-  EVENT_CATALOG_INVALIDATE = polPort;
+  // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
+  ROAD_BUILD_ENABLED = MODE_ROAD;
+  // Repli interne avant l'amorcage plat, qui le desactive plus bas.
+  STAGED_BOOTSTRAP = true;
 
   /* --- 3. Calibrations physiques et options reelles --- */
 

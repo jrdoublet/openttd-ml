@@ -37,9 +37,7 @@ AIR_STATION_COVERAGE_MISSES <- 0;
  * AITileList_StationCoverage. Les ratings ne sont volontairement pas caches. */
 AIR_C121_STATION_COVERAGE_CACHE <- {};
 /* C36.3 : Filtre d'emprise sans AITestMode avant la sonde (defaut 1, banc 20x10). */
-AIR_CHEAP_SITE <- true;
 /* C33.2 : Arrets de bus joints au chantier aeroport */
-AIR_JOINED_STOPS <- false;
 
 require("air_coverage.nut");
 

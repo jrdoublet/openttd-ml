@@ -62,7 +62,7 @@ class Settings(unittest.TestCase):
 
     def test_modes_read_before_policies(self):
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
-        first_policy = body.index('GetSetting("policy_rail")')
+        first_policy = body.index("ROAD_BUILD_ENABLED = MODE_ROAD;")
         for mode in MODES:
             self.assertLess(body.index('GetSetting("mode_' + mode + '")'), first_policy)
 
@@ -75,8 +75,10 @@ class Gates(unittest.TestCase):
         for reset in ("this.airport = null;", "this.airCombos = [];", "this.airPlaneChoicesByAirport = {};"):
             self.assertLess(body.index(reset), guard)
         # l'ordonnanceur AIR et la reconstruction C78 se taisent sur ce catalogue vide
-        air = _function_body(_read("task_air.nut"), "OpexAI::_tryBuildAir")
-        self.assertIn("(combos == null || combos.len() == 0) && this._catalog.airport == null", air)
+        self.assertNotIn("function OpexAI::_tryBuildAir(", _read("task_air.nut"))
+        air = _function_body(_read("scheduler_tasks.nut"), "OpexAI::_dispatchAir")
+        self.assertIn("task.enabled = false;", air)
+        self.assertIn("return false;", air)
         c78 = _function_body(_read("scheduler_tasks.nut"), "OpexC78StartCatalogAirRebuild")
         self.assertIn("if (!doAir || !hasAir) return false;", c78)
 
@@ -114,7 +116,7 @@ class Gates(unittest.TestCase):
 
     def test_road_gate(self):
         settings = _read("settings.nut")
-        self.assertIn("ROAD_BUILD_ENABLED = polRoad && MODE_ROAD;", settings)
+        self.assertIn("ROAD_BUILD_ENABLED = MODE_ROAD;", settings)
         self.assertEqual(settings.count("ROAD_BUILD_ENABLED ="), 1)
         # le catalogue route (dont depend le rabattement) n'est rafraichi que sous ROAD_BUILD_ENABLED
         refresh = _function_body(_read("catalog.nut"), "OpexCatalog::refresh")
@@ -129,7 +131,8 @@ class Gates(unittest.TestCase):
         # aeroports : sans lui, BuildDriveThroughRoadStation echoue (0 arret en air seul, 13/10)
         refresh = _function_body(_read("catalog.nut"), "OpexCatalog::refresh")
         gate = refresh.index("if (ROAD_BUILD_ENABLED) {")
-        other = refresh.index("} else if ((AIR_JOINED_STOPS || V207_RAIL_PAX_JOINED_STOPS > 0) && AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {")
+        self.assertNotIn("AIR_JOINED_STOPS", refresh)
+        other = refresh.index("} else if (AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {")
         self.assertLess(gate, other)
         self.assertLess(refresh.index("this._refreshRoad();"), other)
         self.assertIn("AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);", refresh[other:other + 600])

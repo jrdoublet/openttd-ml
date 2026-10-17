@@ -96,7 +96,6 @@ const ATTEMPT_FLOOR = 2000;
  * candidat suivant. Pour le dernier, l'appelant fournit MIN_RATIO, le plus petit rapport encore
  * acceptable au prochain classement annuel. Le cas <=0 reste seulement un garde-fou defensif.
  */
-DYNAMIC_PATHFINDER_CAP <- true;
 
 /* Plafond dur d'iterations A* dynamique :
  * 1. Faible au debut (15k) pour filtrer rapidement les lignes faciles sans bruler de temps.
@@ -104,7 +103,7 @@ DYNAMIC_PATHFINDER_CAP <- true;
  * 3. Augmente avec la maturite du reseau (15k + 7.5k * nLines, jusqu'a 60k) quand les couloirs faciles sont epuises. */
 function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
 {
-  if (!DYNAMIC_PATHFINDER_CAP) return HARD_ITERATION_CAP;
+
   if (isPreplanOrLowCash) return HARD_ITERATION_CAP;
   local cap = 5000 + linesCount * 1000;
   if (cap > HARD_ITERATION_CAP) cap = HARD_ITERATION_CAP;
@@ -1164,7 +1163,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
 function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
 {
   local res;
-  if (RAIL_SEGMENTED_SEARCH) {
+  {
     local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles, weight, outwardSide, guideTiles);
     if (state == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
@@ -1172,17 +1171,6 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTi
     }
     /* sliceIters = iterationBudget : une seule avancee jusqu'au chemin / ABND / DEAD / NOPA. */
     res = OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
-  } else {
-    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles, weight, outwardSide, guideTiles);
-    if (pathfinder == null) {
-      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
-      return { path = null, iterations = 0, stop = "NOPA" };
-    }
-    /* sliceIters = iterationBudget : une seule "tranche" aussi longue que le budget, donc le
-     * while interne ne s'arrete plus que sur chemin / ABND / DEAD, comme avant A4. */
-    local result = OpexAdvanceRailPathfinder(pathfinder, 0, iterationBudget, deadlineTick,
-                                             iterationBudget);
-    res = { path = result.path, iterations = result.iterations, stop = result.stop };
   }
   if (DECISION_LOG) {
     OpexDecide("RAIL_SEARCH", "type=blocking outcome=" + res.stop + " iters=" + res.iterations + " budget=" + iterationBudget);
@@ -2620,11 +2608,11 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
              failed = true, failure = "LENGTH", error = 0, diag = diag };
   }
   /* Ordres de chargement : pour le fret (sens unique), seule la source attend le plein chargement.
-   * Pour les passagers, PAX_FULL_LOAD=1 force le plein chargement aux deux bouts (patron trAIns).
+   * Pour les passagers, plein chargement aux deux bouts (patron trAIns).
    * Le puits fret reste a OF_NONE : C53_ORDER_NOLOAD est fige a false. */
-  local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
-  local flagsA = ((kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
-  local flagsB = ((kind == "freight") ? AIOrder.OF_NONE : ((kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY)) | nonstopFlag;
+  local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
+  local flagsA = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;
+  local flagsB = ((kind == "freight") ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
   for (local i = 0; i < wanted; i++) {
     local train = AIVehicle.BuildVehicle(depotTile, loco.id);
     if (!AIVehicle.IsValidVehicle(train)) {
@@ -2969,9 +2957,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
      * des qu'elle est entrelacee. OpexTryDoubleTrack sort de toute facon avant l'A* pour une
      * ligne neuve (gares pas encore posees, docs/taches.md S0) : le changement de deadline
      * n'a donc d'effet que si ce chemin redevient vivant. */
-    local dualDeadline = (RAIL_SEARCH_RESUMABLE
-        ? AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS
-        : AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN);
+    local dualDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS;
     local dual = null;
     if (OpexV190Active() && candidate.kind == "freight") {
       dual = OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, remain, dualDeadline, plan.structures);
@@ -3331,7 +3317,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     result.startx <- crossStart;
     result.endx <- crossEnd;
   }
-  if (RAIL_DEVIS) {
+  {
     local quoteFailure = {};
     local realCapital = OpexQuoteRailCapital(catalog, candidate, plan, quoteFailure);
     if (realCapital == null && RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_LIVE_REPLAN
@@ -3870,7 +3856,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     result.startx <- crossStart;
     result.endx <- crossEnd;
   }
-  if (RAIL_DEVIS) {
+  {
     local quoteFailure = {};
     local realCapital = OpexQuoteRailCapital(catalog, candidate, plan, quoteFailure);
     if (realCapital == null && RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_LIVE_REPLAN
@@ -4418,27 +4404,6 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
   result.train = newTrains.vehicles[0];
   result.cost = costs.GetCosts();
   return result;
-}
-
-/* Doublement securise d'une ligne ferroviaire existante :
- * Pose un second quai a la gare A, un second quai a la gare B,
- * trace une seconde voie dediee avec son propre depot, pose les signaux PBS,
- * et lance le deuxieme convoi. Zero collision, voies independantes.
- * Mode bloquant (rail_search_resumable=0). Le mode reprenable orchestre
- * Prepare / tranches / Execute depuis OpexAI::_continueRailSearch. */
-function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, hardCap = 10000)
-{
-  local result = { ok = false, reason = "", cost = 0, train = null, depot2 = null,
-                   stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };
-  local prep = OpexPrepareUpgradeSearch(line, hardCap);
-  if (!prep.ok) {
-    result.reason = prep.reason;
-    return result;
-  }
-  local deadlineTick = AIController.GetTick() + hardCap / 3 + BUILD_TICK_MARGIN;
-  local searchWeight = OpexRailAstarWeight(line.distance);
-  local search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored, searchWeight);
-  return OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, search, prep);
 }
 
 /* Construit un 2e train sur une ligne deja doublee avec depot2 valide. */

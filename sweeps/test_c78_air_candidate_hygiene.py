@@ -105,8 +105,7 @@ class C78AirCandidateHygieneTests(unittest.TestCase):
         self.assertIn("OpexAirPairIsAbandoned(abandoned, hub, site)", plans)
         self.assertIn("OpexAirPairIsAbandoned(abandoned, hub1, hub2)", plans)
 
-        direct = body(self.task_air, "function OpexAI::_tryBuildAir(")
-        self.assertIn("this._markPairAbandoned(OpexAirPairKey(plan.siteA, plan.siteB));", direct)
+        self.assertNotIn("function OpexAI::_tryBuildAir(", self.task_air)
         portfolio = body(self.task_air, "function OpexAI::_tryBuildAirProject(")
         self.assertIn("local abandonedKey = OpexAirPairKey(plan.siteA, plan.siteB);", portfolio)
         self.assertIn("OpexAirPairIsAbandoned(this._abandonedPairs, plan.siteA, plan.siteB)", portfolio)

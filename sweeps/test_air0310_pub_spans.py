@@ -168,7 +168,8 @@ class TestAir0310PubSpans(unittest.TestCase):
         self.assertNotIn("OpexSpanBegin(", self.fund)
         cash_mark = "local cashMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;"
         self.assertIn(cash_mark, self.cash)
-        self.assertEqual(self.cash.count('OpexSpanAgg("pub.cash", cashMark)'), 2)
+        self.assertEqual(self.cash.count('OpexSpanAgg("pub.cash", cashMark)'), 1)
+        self.assertNotIn("DYNAMIC_CASH_RESERVE", self.cash)
         self.assertLess(self.cash.index(cash_mark), self.cash.index("AIVehicleList()"))
         self.assertIn("if (cashMark != null) OpexSpanAgg(\"pub.cash\", cashMark);", self.cash)
         self.assertNotIn("OpexSpanBegin(", self.cash)

@@ -155,7 +155,6 @@ _assign("capital.nut", (
 ))
 _assign("task_air.nut", (
     "OpexAI::_markAirFailedSites",
-    "OpexAI::_tryBuildAir",
     "OpexAirBatchSiteStillBuildable",
     "OpexAirBatchHubHasCapacity",
     "OpexAirBatchPlanStillLive",

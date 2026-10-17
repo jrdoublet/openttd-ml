@@ -273,27 +273,11 @@ function OpexAirFindSiteListed(town, airport, probes, requiredSlotTownId, key, u
       local c4 = anchor + AIMap.GetTileIndex(offX, offY);
       if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
 
-      if (AIR_CHEAP_SITE) {
+      {
         if (!OpexAirFootprintCheapOk(anchor, airport)) {
           if ("cheapSkip" in probes) probes.cheapSkip++;
           continue;
         }
-      } else {
-        local minH = AITile.GetMinHeight(anchor);
-        local maxH = AITile.GetMaxHeight(anchor);
-        local tooSteep = false;
-        for (local tx = 0; tx <= offX; tx++) {
-          for (local ty = 0; ty <= offY; ty++) {
-            local t = anchor + AIMap.GetTileIndex(tx, ty);
-            local tMin = AITile.GetMinHeight(t);
-            local tMax = AITile.GetMaxHeight(t);
-            if (tMin < minH) minH = tMin;
-            if (tMax > maxH) maxH = tMax;
-            if (maxH - minH >= 2) { tooSteep = true; break; }
-          }
-          if (tooSteep) break;
-        }
-        if (tooSteep) continue;
       }
 
       if (used >= allowance) {
@@ -307,7 +291,7 @@ function OpexAirFindSiteListed(town, airport, probes, requiredSlotTownId, key, u
       }
 
       local ok = false;
-      if (AIR_CHEAP_SITE) {
+      {
         {
           local probe = AITestMode();
           ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
@@ -326,29 +310,6 @@ function OpexAirFindSiteListed(town, airport, probes, requiredSlotTownId, key, u
             execLevels++;
             if (OpexAirCanLevelFootprint(anchor, airport, town.id)) {
               ok = true;
-            }
-          }
-        }
-      } else {
-        local probe = AITestMode();
-        ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-        if (!ok) {
-          local err = AIError.GetLastError();
-          if (OpexAirRememberTownStationLimit(probes, town, err)) {
-            if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-            return { site = null, used = used, execLevels = execLevels, allowance = allowance };
-          } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
-            ok = true;
-          } else {
-            AITile.LevelTiles(anchor, OpexAirFootprintEnd(anchor, airport));
-            ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-            if (!ok) {
-              local retryErr = AIError.GetLastError();
-              if (OpexAirRememberTownStationLimit(probes, town, retryErr)) {
-                if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-                return { site = null, used = used, execLevels = execLevels, allowance = allowance };
-              }
-              if (retryErr == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
             }
           }
         }
@@ -451,27 +412,11 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
       local c4 = anchor + AIMap.GetTileIndex(offX, offY);
       if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
 
-      if (AIR_CHEAP_SITE) {
+      {
         if (!OpexAirFootprintCheapOk(anchor, airport)) {
           if ("cheapSkip" in probes) probes.cheapSkip++;
           continue;
         }
-      } else {
-        local minH = AITile.GetMinHeight(anchor);
-        local maxH = AITile.GetMaxHeight(anchor);
-        local tooSteep = false;
-        for (local tx = 0; tx <= offX; tx++) {
-          for (local ty = 0; ty <= offY; ty++) {
-            local t = anchor + AIMap.GetTileIndex(tx, ty);
-            local tMin = AITile.GetMinHeight(t);
-            local tMax = AITile.GetMaxHeight(t);
-            if (tMin < minH) minH = tMin;
-            if (tMax > maxH) maxH = tMax;
-            if (maxH - minH >= 2) { tooSteep = true; break; }
-          }
-          if (tooSteep) break;
-        }
-        if (tooSteep) continue;
       }
 
       if (used >= allowance || probes.left <= 0) {
@@ -487,7 +432,7 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
       }
 
       local ok = false;
-      if (AIR_CHEAP_SITE) {
+      {
         {
           local probe = AITestMode();
           ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
@@ -505,29 +450,6 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
                      execLevels < 3) {
             execLevels++;
             if (OpexAirCanLevelFootprint(anchor, airport, town.id)) ok = true;
-          }
-        }
-      } else {
-        local probe = AITestMode();
-        ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-        if (!ok) {
-          local err = AIError.GetLastError();
-          if (OpexAirRememberTownStationLimit(probes, town, err)) {
-            if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-            return { site = null, used = used, execLevels = execLevels, allowance = allowance };
-          } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
-            ok = true;
-          } else {
-            AITile.LevelTiles(anchor, OpexAirFootprintEnd(anchor, airport));
-            ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-            if (!ok) {
-              local retryErr = AIError.GetLastError();
-              if (OpexAirRememberTownStationLimit(probes, town, retryErr)) {
-                if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-                return { site = null, used = used, execLevels = execLevels, allowance = allowance };
-              }
-              if (retryErr == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
-            }
           }
         }
       }
@@ -602,11 +524,10 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
     if (ax + offX < mapX && ay + offY < mapY) {
       local c4 = cachedAnchor + AIMap.GetTileIndex(offX, offY);
       if (!AITile.IsWaterTile(cachedAnchor) && !AITile.IsCoastTile(cachedAnchor) && !AITile.IsWaterTile(c4)
-          && !AITile.IsCoastTile(c4) && AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id && (!AIR_CHEAP_SITE
-          || OpexAirFootprintCheapOk(cachedAnchor, airport))
+          && !AITile.IsCoastTile(c4) && AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id && (OpexAirFootprintCheapOk(cachedAnchor, airport))
           && (OpexAirSiteHasCatchment(cachedAnchor, airport, OpexAirDemandPaxCargo()))) {
         local ok = false;
-        if (AIR_CHEAP_SITE) {
+        {
           {
             local probe = AITestMode();
             ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
@@ -624,29 +545,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
                        OpexAirCanLevelFootprint(cachedAnchor, airport, town.id)) {
               /* G7Ãƒâ€šÃ‚Â§2 : test-mode seulement ; le terrassement reel est fait par le constructeur. */
               ok = true;
-            }
-          }
-        } else {
-          local probe = AITestMode();
-          ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
-          if (!ok) {
-            local err = AIError.GetLastError();
-            if (OpexAirRememberTownStationLimit(probes, town, err)) {
-              AIR_SITE_CACHE[key] <- null;
-              return null;
-            } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
-              ok = true;
-            } else {
-              AITile.LevelTiles(cachedAnchor, OpexAirFootprintEnd(cachedAnchor, airport));
-              ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
-              if (!ok) {
-                local retryErr = AIError.GetLastError();
-                if (OpexAirRememberTownStationLimit(probes, town, retryErr)) {
-                  AIR_SITE_CACHE[key] <- null;
-                  return null;
-                }
-                if (retryErr == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
-              }
             }
           }
         }
@@ -694,32 +592,13 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
         if (requiredSlotTownId >= 0 && AITile.GetClosestTown(anchor) != requiredSlotTownId) continue;
         if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
 
-        if (AIR_CHEAP_SITE) {
+        {
           /* Eau/riviere/cote sur toute l'emprise, C4, et IsBuildableRectangle : sans AITestMode.
            * La sonde ci-dessous ne tourne plus que sur un hit cheap. */
           if (!OpexAirFootprintCheapOk(anchor, airport)) {
             if ("cheapSkip" in probes) probes.cheapSkip++;
             continue;
           }
-        } else {
-          /* Filtre de platitude prÃƒÆ’Ã‚Â©alable (docs/taches.md Ãƒâ€šÃ‚Â§0 tervicies point 5 & C4, faÃƒÆ’Ã‚Â§on AAAHogEx) :
-           * Si l'ÃƒÆ’Ã‚Â©cart d'altitude au sein de l'emprise dÃƒÆ’Ã‚Â©passe 1 niveau, le terrassement ÃƒÆ’Ã‚Â©choue
-           * massivement ou coÃƒÆ’Ã‚Â»te trop cher. Rejet ÃƒÆ’Ã‚Â©liminatoire avant d'entrer en AITestMode. */
-          local minH = AITile.GetMinHeight(anchor);
-          local maxH = AITile.GetMaxHeight(anchor);
-          local tooSteep = false;
-          for (local tx = 0; tx <= offX; tx++) {
-            for (local ty = 0; ty <= offY; ty++) {
-              local t = anchor + AIMap.GetTileIndex(tx, ty);
-              local tMin = AITile.GetMinHeight(t);
-              local tMax = AITile.GetMaxHeight(t);
-              if (tMin < minH) minH = tMin;
-              if (tMax > maxH) maxH = tMax;
-              if (maxH - minH >= 2) { tooSteep = true; break; }
-            }
-            if (tooSteep) break;
-          }
-          if (tooSteep) continue;
         }
 
         if (used >= allowance) {
@@ -733,7 +612,7 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
         }
 
         local ok = false;
-        if (AIR_CHEAP_SITE) {
+        {
           {
             local probe = AITestMode();
             ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
@@ -753,29 +632,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
               /* G7Ãƒâ€šÃ‚Â§2 : test-mode seulement ; le terrassement reel est fait par le constructeur. */
               if (OpexAirCanLevelFootprint(anchor, airport, town.id)) {
                 ok = true;
-              }
-            }
-          }
-        } else {
-          local probe = AITestMode();
-          ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-          if (!ok) {
-            local err = AIError.GetLastError();
-            if (OpexAirRememberTownStationLimit(probes, town, err)) {
-              if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-              return null;
-            } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
-              ok = true;
-            } else {
-              AITile.LevelTiles(anchor, OpexAirFootprintEnd(anchor, airport));
-              ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-              if (!ok) {
-                local retryErr = AIError.GetLastError();
-                if (OpexAirRememberTownStationLimit(probes, town, retryErr)) {
-                  if (useSiteCache) AIR_SITE_CACHE[key] <- null;
-                  return null;
-                }
-                if (retryErr == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
               }
             }
           }
@@ -819,7 +675,7 @@ function OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTo
    * (20x10 du 2026-09-24 : -2,1 creneaux, -13 % de vehicules, fail_primary). */
   if (C83_FIXES && ("c83SlotTown" in site) && site.c83SlotTown >= 0
       && OpexAirSlotTownId(site.anchor) != site.c83SlotTown) return false;
-  if (AIR_CHEAP_SITE && !OpexAirFootprintCheapOk(site.anchor, airport)) return false;
+  if (!OpexAirFootprintCheapOk(site.anchor, airport)) return false;
 
   local ok = false;
   local error = 0;

@@ -1,200 +1,3 @@
-/* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
-function OpexAI::_tryBuildAir(year)
-{
-  /* La garde testait `airCombos == null && airport == null`. Deux defauts (docs/taches.md
-   * S0 sexies) : `_refreshAir` pose TOUJOURS une liste, meme vide (catalog.nut met `[]` avant sa
-   * sortie anticipee), donc la garde ne pouvait jamais se declencher sur « aucun avion
-   * disponible » et la fonction partait dans sa boucle sur des cartes sans combo ; et le seul etat
-   * qu'elle laissait passer -- `airCombos == null` avec `airport != null` -- faisait dereferencer
-   * `airCombos.len()` plus bas, ce qui TUE l'IA. On teste desormais la vacuite reelle, et le
-   * deref est protege a son propre site. */
-  local combos = this._catalog.airCombos;
-  if ((combos == null || combos.len() == 0) && this._catalog.airport == null) {
-    if (DECISION_LOG) {
-      local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-      if (_lastAirRefuseMonth != ym) {
-        _lastAirRefuseMonth = ym;
-        OpexDecide("AIR_REFUSE", "reason=no_aircraft_and_airport");
-      }
-    }
-    return;
-  }
-  local maxPerYear = 30;
-  local maxTotal = 250;
-  local maxBatch = 12;
-  local builtCount = 0;
-  while (builtCount < maxBatch) {
-    local airLinesThisYear = 0;
-    local totalAirLines = 0;
-    foreach (line in this._lines) {
-      if (("mode" in line) && line.mode == "air") {
-        totalAirLines++;
-        if (line.year == year) airLinesThisYear++;
-      }
-    }
-    if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) {
-      if (DECISION_LOG) {
-        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-        if (_lastAirRefuseMonth != ym) {
-          _lastAirRefuseMonth = ym;
-          OpexDecide("AIR_REFUSE", "reason=line_cap_reached lines_year=" + airLinesThisYear + " max_year=" + maxPerYear + " total=" + totalAirLines + " max_total=" + maxTotal);
-        }
-      }
-      break;
-    }
-
-    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    local baseReserve = OpexCashReserve();
-    /* ⚠️ NE PAS « CORRIGER » CE 2 000 EN LE PORTANT A LA MARGE MAXIMALE. Essaye et MESURE le
-     * 2026-09-02 (results/bench_lotE_air_marge_3y.json) : -11,5 % de valeur (t = -2,66), -9,8 % de
-     * note officielle (t = -3,25), -11,2 % de gares.
-     *
-     * Le defaut apparent est reel : le test d'acceptation plus bas exige `requiredMargin` (jusqu'a
-     * 30 000 pour deux aeroports neufs), donc un plan tombant dans cette bande est trouve puis
-     * rejete, et le `break` gache le cycle. Mais `maxCapital` n'est PAS qu'un filtre : c'est le
-     * budget avec lequel OpexAirPlans CHOISIT le plan a proposer. Le reduire de 30 000 partout
-     * appauvrit la selection dans tous les cas ou l'ancienne marge suffisait -- notamment le
-     * hub-a-hub, dont la marge reelle n'est que 2 000. On echange une boucle bloquee rare contre
-     * une degradation systematique.
-     *
-     * La bonne correction passerait par le plan, pas par le budget : soit passer la marge exigee a
-     * OpexAirPlans pour qu'il l'applique par plan, soit ne pas `break` sur rejet et reessayer avec
-     * un budget rabote. Voir docs/taches.md. */
-    local maxCapital = money - baseReserve - 2000;
-    if (maxCapital <= 0) {
-      if (DECISION_LOG) {
-        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-        if (_lastAirRefuseMonth != ym) {
-          _lastAirRefuseMonth = ym;
-          OpexDecide("AIR_REFUSE", "reason=insufficient_capital cash=" + money + " reserve=" + baseReserve);
-        }
-      }
-      break;
-    }
-
-    this._budget.begin();
-    local plan = OpexAirPlans(this._catalog, this._lines, maxCapital, null,
-                              (AIR_ABANDON && ABANDON_MEMORY) ? this._abandonedPairs : null);
-    local planOps = this._budget.end("build_air_plans");
-    if (plan == null) {
-      local nCombos = (this._catalog.airCombos == null) ? -1 : this._catalog.airCombos.len();
-      if (builtCount == 0) {
-        /* airCombos peut etre null : ne jamais dereferencer pour un panneau de diagnostic. */
-        OpexSign(AIMap.GetTileIndex(1, 1), "AD|NULL|C=" + nCombos);
-      }
-      if (DECISION_LOG) {
-        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-        if (_lastAirRefuseMonth != ym) {
-          _lastAirRefuseMonth = ym;
-          OpexDecide("AIR_REFUSE", "reason=no_candidate combos=" + nCombos);
-        }
-      }
-      break;
-    }
-
-    local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-    if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected");
-    local requiredMargin = OpexAirRequiredMargin(newAirports, plan);
-    local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
-    local need = capital + baseReserve + requiredMargin;
-    if (money < need) {
-      if (money < need) {
-        if (DECISION_LOG) {
-          local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-          if (_lastAirRefuseMonth != ym) {
-            _lastAirRefuseMonth = ym;
-            OpexDecide("AIR_REFUSE", "reason=insufficient_cash cash=" + money + " need=" + need + " capital=" + capital + " margin=" + requiredMargin);
-          }
-        }
-        break;
-      }
-    }
-
-    OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);
-    local quotePlanes = ("planes" in plan) ? plan.planes : 1;
-    local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
-    if (PROBE_SPAN_TRACE) {
-      local evtTowns = plan.siteA.town.id + "," + plan.siteB.town.id;
-      local evtPlanes = result.ok ? result.vehicles.len() : 0;
-      local evtCap = ("capital" in plan) ? plan.capital : 0;
-      if (result.ok) OpexSpanEvent("line_built", "mode=air towns=" + evtTowns + " capital=" + evtCap + " planes=" + evtPlanes);
-      else OpexSpanEvent("build_fail", "mode=air towns=" + evtTowns + " capital=" + evtCap + " planes=" + evtPlanes + " reason=" + result.reason);
-    }
-    if (C63_INVEST_PROBE) OpexC63RecordSpendResult("air", result, plan.capital);
-    local anchor = AIMap.GetTileIndex(1, 1);
-    OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
-    if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
-    if (AIR_COST_PROBE) {
-      OpexSign(anchor, "AC|" + this._nextLineId + "|" + result.plannedCapital + "|"
-                             + result.actualCost + "|"
-                             + (("planes" in plan) ? plan.planes : 1) + "|"
-                             + (result.ok ? result.vehicles.len() : 0));
-    }
-    if (!result.ok) {
-      if (DECISION_LOG) {
-        OpexDecide("AIR_REFUSE", "reason=build_failed detail=" + result.reason + " error=" + result.error + " error_text=" + result.errorText + " dist=" + plan.distance + " cost=" + result.actualCost);
-      }
-      /* air_abandon : sans cette memorisation, le cycle suivant re-scanne tous les sites pour
-       * reproposer EXACTEMENT le meme bestPlan et echouer de la meme facon. Le chemin
-       * portefeuille memorise deja ses echecs (voir plus bas) ; ce chemin-ci ne le faisait pas. */
-      if (AIR_ABANDON && ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) {
-        this._markPairAbandoned(OpexAirPairKey(plan.siteA, plan.siteB));
-      }
-      break;
-    }
-
-    this._airBuilt = true;
-    if (C56_TASK_TRACE) OpexC56TaskLog("AIR_BUILT", ("arm" in plan) ? plan.arm : "unknown", "-",
-        "line=" + this._nextLineId + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital
-        + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
-    if (DECISION_LOG) {
-      OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
-    }
-    OpexAir0310InvalidateSiteValidity();
-    this._lines.append({
-      stationA = result.stationA, stationB = result.stationB,
-      originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
-      cargo = this._catalog.paxCargo,
-      predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
-      predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
-      predVehicleRunning = plan.planes * plan.plane.runningCost,
-      predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
-      predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
-      planeCapacity = plan.plane.capacity,
-      planeId = plan.plane.id,
-      sharedAirportA = ("reuseA" in plan) && plan.reuseA,
-      hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
-      joinedStopsA = result.joinedStopsA, joinedStopsB = result.joinedStopsB,
-      joinedMonthlyPax = result.joinedMonthlyPax, joinedStopCost = result.joinedStopCost,
-      actualCapital = plan.capital,
-      iterations = 0, trains = result.vehicles.len(), trains0 = result.vehicles.len(), distance = plan.distance, year = year,
-      buildDate = AIDate.GetCurrentDate(),
-      mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
-      refleetEngine = AIVehicle.GetEngineType(result.vehicle),
-      vehCount = result.vehicles.len(),
-      deadStreak = 0, scrapping = false, scrapVehicles = [],
-      lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
-      isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
-      lineId = this._nextLineId,
-    });
-    OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, plan, result);
-    local builtLine = this._lines[this._lines.len() - 1];
-    builtLine.targetAirPlanes <- ("c121TargetPlanes" in builtLine)
-        ? builtLine.c121TargetPlanes
-        : (("targetPlanes" in plan) ? plan.targetPlanes : result.vehicles.len());
-    this._lines[this._lines.len() - 1].airMonthlyPax <- ("monthlyPax" in plan) ? plan.monthlyPax : 0;
-    OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
-                           + plan.economics.profitAnnual);
-    OpexSign(anchor, "AH|" + this._nextLineId + "|"
-                     + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
-                     + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
-    OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
-                     + AICargo.GetCargoLabel(this._catalog.paxCargo));
-    this._nextLineId++;
-    this._c76BumpLayer("lines", false);
-    builtCount++;
-  }
-}
 /* Revalidation air : un plan garde ses sites depuis la generation, mais le monde peut changer
  * avant son classement puis son chantier. Rejouer les preconditions utiles de
  * OpexAirFindSite sans relancer le balayage des villes. */
@@ -392,7 +195,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         return { outcome = "rejected", discards = passDiscards };
       }
       local abandonedKey = OpexAirPairKey(plan.siteA, plan.siteB);
-      if (ABANDON_MEMORY && OpexAirPairIsAbandoned(this._abandonedPairs, plan.siteA, plan.siteB)) {
+      if (OpexAirPairIsAbandoned(this._abandonedPairs, plan.siteA, plan.siteB)) {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
             || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
@@ -492,7 +295,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error + " error_text=" + result.errorText);
         }
-        if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) {
+        if (OpexBuildFailureIsAbandonable(result)) {
           this._markPairAbandoned(abandonedKey);
         }
         local ret = { outcome = "rejected", discards = passDiscards };
@@ -692,7 +495,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     airLines.append(line);
   }
-  if (AIR_ROI_ORDER) {
+  {
     local spSort = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     airLines = OpexAirFleetSortSelect(airLines);
     if (spSort != null) OpexSpanAgg("fleet.sort", spSort);
@@ -837,7 +640,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       isSmallAirport = true;
     }
     local physicalMaxPlanes = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
-    if (AIR_CADENCE_CAP) {
+    {
       local spCap = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       {
         if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
@@ -869,7 +672,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
 
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
-    if ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
+    if (("vehicles" in line)) {
       foreach (v in line.vehicles) {
         if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
         local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));

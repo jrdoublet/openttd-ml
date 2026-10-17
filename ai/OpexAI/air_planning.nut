@@ -181,14 +181,12 @@ function OpexAirPlansPrepare(ctx)
    * qu'ils remplacent : nombre de routes par gare (decouverte des hubs) et paires deja reliees
    * (hub a hub), au lieu d'un parcours de toutes les lignes par hub et par paire de hubs. */
   local hubIndex = null;
-  if (AIR_HUB && lines != null) {
+  if (lines != null) {
     hubIndex = { routes = {}, pairs = {} };
     foreach (other in lines) {
       if (!("mode" in other) || other.mode != "air") continue;
-      local oA = AIR_HUB_FIX ? OpexAirLineStationId(other, 0)
-          : (AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA));
-      local oB = AIR_HUB_FIX ? OpexAirLineStationId(other, 1)
-          : (AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB));
+      local oA = OpexAirLineStationId(other, 0);
+      local oB = OpexAirLineStationId(other, 1);
       hubIndex.routes.rawset(oA, ((oA in hubIndex.routes) ? hubIndex.routes[oA] : 0) + 1);
       if (oB != oA) hubIndex.routes.rawset(oB, ((oB in hubIndex.routes) ? hubIndex.routes[oB] : 0) + 1);
       if (AIStation.IsValidStation(oA) && AIStation.IsValidStation(oB)) {
@@ -884,10 +882,8 @@ function OpexAir0310CountStationRoutes(ctx, stationId)
   if (lines == null) return 0;
   foreach (other in lines) {
     if (!("mode" in other) || other.mode != "air") continue;
-    local otherA = AIR_HUB_FIX ? OpexAirLineStationId(other, 0)
-        : (AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA));
-    local otherB = AIR_HUB_FIX ? OpexAirLineStationId(other, 1)
-        : (AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB));
+    local otherA = OpexAirLineStationId(other, 0);
+    local otherB = OpexAirLineStationId(other, 1);
     if (otherA == stationId || otherB == stationId) routeCount++;
   }
   return routeCount;
@@ -1085,7 +1081,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
   local hubIndex = ctx.hubIndex;
   local _calcDeltaOps = OpexAirCalcDeltaOps;
 
-  if (AIR_HUB && lines != null) {
+  if (lines != null) {
     if (!ctx.c83RepairCombo && sites.len() < AIR_HUB_NEW_SITE_POOL) {
       local hubProbes = {
         left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0, cheapSkip = 0,
@@ -1154,29 +1150,18 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
     foreach (line in lines) {
       if (!("mode" in line) || line.mode != "air") continue;
       if (("deadStreak" in line) && line.deadStreak >= 2) continue;
-      /* air_hub_fix : l'ancre d'un hub est la TUILE D'AEROPORT (line.stationA/B), pas le
-       * centre-ville (line.originA/B). Sous 0, on rejoue litteralement le comportement casse. */
-      local ends = null;
-      if (AIR_HUB_FIX) {
-        ends = [
-          { anchor = line.stationA, origin = line.originA, stationId = line.stationA },
-          { anchor = line.stationB, origin = line.originB, stationId = line.stationB },
-        ];
-      } else {
-        ends = [
-          { anchor = line.originA, origin = line.originA, stationId = line.stationA },
-          { anchor = line.originB, origin = line.originB, stationId = line.stationB },
-        ];
-      }
+      /* L'ancre d'un hub est la tuile d'aeroport (line.stationA/B). */
+      local ends = [
+        { anchor = line.stationA, origin = line.originA, stationId = line.stationA },
+        { anchor = line.stationB, origin = line.originB, stationId = line.stationB },
+      ];
       foreach (end in ends) {
         if (!AIMap.IsValidTile(end.anchor) || !AIAirport.IsAirportTile(end.anchor)) continue;
         local existingType = AIAirport.GetAirportType(end.anchor);
         if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
         /* Resolution non ambigue : `end.stationId` est une tuile, et `IsValidStation(tuile)`
          * peut etre vrai par pure collision d'indices. On resout toujours depuis l'ancre. */
-        local station = AIR_HUB_FIX
-            ? AIStation.GetStationID(end.anchor)
-            : (AIStation.IsValidStation(end.stationId) ? end.stationId : AIStation.GetStationID(end.anchor));
+        local station = AIStation.GetStationID(end.anchor);
         if (!AIStation.IsValidStation(station) || (station in seenStations)) continue;
 
         local routeCount = 0;
@@ -1185,10 +1170,8 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
         } else {
           foreach (other in lines) {
             if (!("mode" in other) || other.mode != "air") continue;
-            local otherA = AIR_HUB_FIX ? OpexAirLineStationId(other, 0)
-                : (AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA));
-            local otherB = AIR_HUB_FIX ? OpexAirLineStationId(other, 1)
-                : (AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB));
+            local otherA = OpexAirLineStationId(other, 0);
+            local otherB = OpexAirLineStationId(other, 1);
             if (otherA == station || otherB == station) routeCount++;
           }
         }
@@ -1496,10 +1479,8 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         if (!("mode" in line) || line.mode != "air") continue;
         /* air_hub_fix : c'est CETTE comparaison qui etait morte -- un StationID (st1/st2, issus
          * de la decouverte de hub) contre une tuile d'aeroport (line.stationA/B). */
-        local oA = AIR_HUB_FIX ? OpexAirLineStationId(line, 0)
-            : (AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA));
-        local oB = AIR_HUB_FIX ? OpexAirLineStationId(line, 1)
-            : (AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB));
+        local oA = OpexAirLineStationId(line, 0);
+        local oB = OpexAirLineStationId(line, 1);
         if (!AIStation.IsValidStation(oA) || !AIStation.IsValidStation(oB)) continue;
         if ((oA == st1 && oB == st2) || (oA == st2 && oB == st1)) {
           alreadyConnected = true; break;
@@ -1773,7 +1754,7 @@ function OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane, minDis
  * -1 signifie break ; aucun point de yield ni nouvelle transaction. */
 function OpexAirPlansCompleteCombo(ctx, comboIndex, combo)
 {
-    if (AIR_HUB && ctx.hubs.len() > 0) {
+    if (ctx.hubs.len() > 0) {
       OpexSign(AIMap.GetTileIndex(1, 6), "AU|" + ctx.hubs.len() + "|"
                + (ctx.bestPlan != null && ctx.bestPlan.reuseA ? 1 : 0));
     }

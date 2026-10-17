@@ -27,16 +27,13 @@ LOAN_REPAY_FLOOR <- 300000;
  * juin-dec 1971). 1 decoupe l'A* en tranches de RAIL_SEARCH_SLICE, rend la main a
  * _runNextTask, et reprend le meme pathfinder au tour suivant. Change l'entrelacement donc
  * les decisions : le banc tranchera. */
-RAIL_SEARCH_RESUMABLE <- false;
 /* C20 : Echeance de securite locale par micro-etape (tranche) au lieu d'une echeance globale en ticks. */
-RAIL_MICRO_DEADLINE <- false;
 /* Pathfinding segmente (docs/taches.md A5). Repli VRAI depuis le 2026-09-03 : c'est le
  * defaut du reglage, et le repli doit valoir le defaut pour qu'une partie sans reglage lu
  * se comporte comme une partie normale. 1 porte TrainLineAI::_segmentedPath. Sonde
  * 2026-09-03 : 4/10 tentatives rail en ABND ; A3 plafonne a 10k donc l'enjeu est de
  * convertir les abandons, pas d'accelerer les succes. Le banc dit reseau +13 % pour une
  * valeur neutre (docs/taches.md A5). */
-RAIL_SEGMENTED_SEARCH <- true;
 /* Journalisation structuree des decisions (decision_log) : repli FAUX. */
 DECISION_LOG <- false;
 _lastAirRefuseMonth <- -1;
@@ -44,20 +41,16 @@ _lastProjectScanMonth <- -1;
 /* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
  * decision qui ne changent pas pendant une partie. */
-ABANDON_MEMORY <- true;
 /* C33.3 : Cooldown en jours avant réessai d'une paire abandonnée (defaut 365, adopte ; 0 = permanent). */
 ABANDON_COOLDOWN_DAYS <- 365;
 /* C22 : Filtrer les paires abandonnées dès la génération des candidats (defaut 1, adopte). */
-ABANDON_GEN_FILTER <- false;
 /* Filtre d'origine sitable : repli ACTIF jusqu'a la lecture unique de origin_sitable dans
  * Start(). Defaut passe a 1 le 2026-09-09 (decision utilisateur) ; 1 ecarte du TOP_K les
  * sources sans tuile de terre voyant le cargo dans leur bassin. Le classement a 0 reste celui
  * d'avant le filtre, conserve pour l'A/B. */
-ORIGIN_SITABLE <- true;
 /* Reconstitution de flotte routiere : repli ACTIF jusqu'a la lecture unique de road_refleet
  * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
  * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */
-ROAD_REFLEET <- true;
 /* Taille du batch du portefeuille. Repli 1 jusqu'a la lecture unique de
  * portfolio_max_batch dans Start() : 1 garde le break apres le premier succes, donc le chemin
  * livre reste strictement le meme. */
@@ -96,7 +89,6 @@ PORTFOLIO_FLOOR_PCT <- 0;
  * NEUTRE, donc adopte pour la JUSTESSE, pas pour la performance -- ne revendiquer aucun gain. Le
  * defaut vise est reel mais son cout est nul : le gachis
  * d'un cycle d'opcodes ne se paie pas. Repli VRAI jusqu'a la lecture unique dans Start(). */
-AIR_MARGIN <- true;
 /* _tryBuildAir memorise ses echecs de construction dans _abandonedPairs et OpexAirPlans les
  * ecarte pendant le scan. Sous 0, chemin historique -- l'echec n'est pas retenu, et comme
  * OpexAirPlans ne renvoie qu'un seul bestPlan, le cycle suivant re-scanne tous les sites pour
@@ -110,7 +102,6 @@ AIR_MARGIN <- true;
  * deterministe un changement neutre rebat les trajectoires et donne ~10/20. Le plancher de
  * detection a ~15 % vaut pour la comparaison de MOYENNES, pas pour le test des signes.
  * Repli VRAI jusqu'a la lecture unique dans Start(). */
-AIR_ABANDON <- true;
 /* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
  * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
  * Sous 1, deux defauts du rendement unitaire tombent --
@@ -123,14 +114,12 @@ AIR_ABANDON <- true;
  *   2. le nombre de convois est choisi au profit par livre de capital -- le meme objectif que celui
  *      qui l'arbitrera au portefeuille -- au lieu du profit absolu, qui livrait systematiquement la
  *      variante la plus gourmande en capital. */
-ECONOMY_FIX <- true;
 /* Correctifs de PRICING (revue de economy.nut, docs/taches.md S0 octies et S0 septies) : repli
  * FAUX jusqu'a la lecture unique de pricing_fix dans Start(). Defaut 0 : chemin historique
  * inchange. Sous les switches restants, deux incoherences de modele tombent, toutes dans l'arbitrage MULTIMODAL --
  * c'est-a-dire la ou le portefeuille compare rail et route sur des nombres qui n'etaient pas
  * calcules de la meme facon :
  * L'estimation d'opcodes d'un projet routier utilise le tarif du pathfinder routier. */
-PRICING_ROAD_OPS <- true;
 /* air_roi_order (2026-09-03) : ordre de service de la croissance de flotte aerienne.
  * _resizeAirFleets parcourait _lines dans l'ordre de CONSTRUCTION -- ce n'etait pas une decision
  * de conception, juste l'ordre du tableau. Consequence mesuree (5 graines x 3 ans,
@@ -139,4 +128,3 @@ PRICING_ROAD_OPS <- true;
  * +1 avion par an au mieux ailleurs. Aucun effet compose n'apparait nulle part.
  * 1 (defaut) sert d'abord la ligne au meilleur profit PAR APPAREIL, donc celle qui rembourse
  * l'avion suivant le plus vite ; 0 rend l'ordre historique pour que le banc puisse trancher. */
-AIR_ROI_ORDER <- true;

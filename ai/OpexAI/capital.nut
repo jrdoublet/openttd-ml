@@ -2,12 +2,7 @@
 function OpexCashReserve()
 {
   local cashMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-  if (!DYNAMIC_CASH_RESERVE) {
-    if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
-      if (cashMark != null) OpexSpanAgg("pub.cash", cashMark);
-      return CASH_RESERVE_STATIC;
-    }
-  }
+
   local totalRunning = 0;
   local vehicles = AIVehicleList();
   vehicles.Valuate(AIVehicle.GetRunningCost);

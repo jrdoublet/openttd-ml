@@ -96,9 +96,7 @@ function OpexProjectFromCandidate(candidate)
      * les commandes transactionnelles restantes : ce terme double-comptait donc une planification
      * deja payee, en la facturant au tarif d'un autre mode (docs/taches.md S0 septies).
      * Consequence : opcodeScore route sous-estime, donc la route defavorisee au second tri. */
-    expectedOps = PRICING_ROAD_OPS
-        ? PROJECT_ROAD_TRANSACTION_OPS
-        : candidate.iterations * PROJECT_RAIL_OPS_PER_ITERATION + PROJECT_ROAD_TRANSACTION_OPS;
+    expectedOps = PROJECT_ROAD_TRANSACTION_OPS;
   } else {
     return null;
   }
@@ -107,9 +105,6 @@ function OpexProjectFromCandidate(candidate)
     budgetCapital += candidate.immobilise;
   }
   local scoreRevenue = candidate.revenueAnnual;
-  /* Garde de cadence : l'ancien bonus fret (freightBonus > 100) n'existe plus depuis FLAT_BONUS,
-   * mais ce test reste lu a chaque projet (re-tarification C76 comprise). */
-  if (!CLEAN_DENSITY_SCORE) {}
   local project = {
     mode = mode, kind = candidate.kind, cargo = candidate.cargo,
     src = candidate.src, dst = candidate.dst, payload = candidate,

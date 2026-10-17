@@ -131,7 +131,8 @@ class TestV207JoinedStops(unittest.TestCase):
 
     def test_catalog_road_type_fallback(self):
         body = function_body(self.catalog_src, "OpexCatalog::refresh")
-        self.assertIn("(AIR_JOINED_STOPS || V207_RAIL_PAX_JOINED_STOPS > 0)", body)
+        self.assertNotIn("AIR_JOINED_STOPS", body)
+        self.assertIn("else if (AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD))", body)
         self.assertIn("AIRoad.SetCurrentRoadType(AIRoad.ROADTYPE_ROAD);", body)
 
     def test_builder_rail_joined_stops_function(self):

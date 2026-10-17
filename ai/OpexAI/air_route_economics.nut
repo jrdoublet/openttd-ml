@@ -86,7 +86,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
   local multiPlaneMax = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
   local maxAllowed = (targetSizing || serviceScan) ? multiPlaneMax
-      : ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || FLEET_PORTFOLIO) ? 1 : multiPlaneMax);
+      : 1;
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -104,7 +104,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
    * Sous 0 ou maxCapital == 0 (chemin portefeuille), ce bloc ne change rien. Adopte le
    * 2026-09-02 (defaut 1) : mesure NEUTRE, adopte pour la justesse -- voir main.nut. */
   local extraMargin = 0;
-  if (AIR_MARGIN && maxCapital > 0) {
+  if (maxCapital > 0) {
     extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
   }
 
@@ -192,7 +192,7 @@ function OpexAirReconcileActualBuild(catalog, plan, result)
  * nuls a l'election et sont remplaces par leurs valeurs mesurees apres chantier. */
 function OpexAirReserveJoinedStops(catalog, plan)
 {
-  if (!AIR_JOINED_STOPS || plan == null || !("economics" in plan)) return;
+  if (plan == null || !("economics" in plan)) return;
   /* B9/08.6 : extension optionnelle apres le coeur aeroport+avion. Le 5x6
    * mesure 450..2250 GBP par arret selon le site/autorite : BT_BUS_STOP n'est
    * pas une reserve exacte. Avant chantier, cout ET demande joints restent a

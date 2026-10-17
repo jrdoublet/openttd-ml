@@ -204,10 +204,8 @@ function OpexAirV134SaturatedHubState(town, lines, hubIndex = null)
     } else if (lines != null) {
       foreach (line in lines) {
         if (!("mode" in line) || line.mode != "air") continue;
-        local stA = AIR_HUB_FIX ? OpexAirLineStationId(line, 0)
-            : (AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA));
-        local stB = AIR_HUB_FIX ? OpexAirLineStationId(line, 1)
-            : (AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB));
+        local stA = OpexAirLineStationId(line, 0);
+        local stB = OpexAirLineStationId(line, 1);
         if (stA == st || stB == st) routes++;
       }
     }

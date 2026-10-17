@@ -32,7 +32,6 @@ const PROJECT_RAIL_TRANSACTION_OPS = 200000;
 const PROJECT_ROAD_TRANSACTION_OPS = 287000;
 const PROJECT_AIR_TRANSACTION_OPS = 100000;
 const PROJECT_WATER_TRANSACTION_OPS = 100000;
-CLEAN_DENSITY_SCORE <- true;
 
 /* R14 : etapes du portefeuille, chargees dans l'ordre historique de definition. */
 require("projects_rank_log.nut");
@@ -454,7 +453,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
     local railProjectsBefore = stats.modeCandidates;
     foreach (candidate in rail.candidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+      if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
         abandonFiltered++;
         continue;
       }
@@ -465,7 +464,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
     }
     foreach (candidate in road.candidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+      if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
         abandonFiltered++;
         continue;
       }
@@ -495,7 +494,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     if (activeSubsidies != null && activeSubsidies.len() > 0
         && !(MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE)) {
       foreach (candidate in OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs)) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
           abandonFiltered++;
           continue;
         }

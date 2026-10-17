@@ -9,7 +9,7 @@ function OpexProjectFinanceCapital(project)
 {
   if (project == null || !("budgetCapital" in project)) return 0;
   local financeCapital = project.budgetCapital;
-  if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;
+  if (!("mode" in project)) return financeCapital;
 
   local biasPct = 0;
   if (project.mode == "rail") biasPct = RAIL_FINANCE_BIAS_PCT;

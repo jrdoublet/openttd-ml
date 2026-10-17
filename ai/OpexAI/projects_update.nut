@@ -24,7 +24,7 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
   }
 
   /* 2. Injecter les opportunites de flotte fraiches */
-  if (FLEET_PORTFOLIO && fleetPlan != null) {
+  if (fleetPlan != null) {
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry);
       if (p != null) {
@@ -94,7 +94,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         cacheScanned++;
         if (p == null) continue;
         /* La flotte est regeneree fraiche ci-dessous. */
-        if (p.mode == "fleet" && FLEET_PORTFOLIO && fleetPlan != null) continue;
+        if (p.mode == "fleet" && fleetPlan != null) continue;
         /* Early-slot est une priorite transitoire. Apres chaque chantier, le
          * nombre de villes deja securisees peut changer ; un ancien plan air ne
          * doit donc jamais conserver un bonus devenu perime. Les plans air sont
@@ -130,7 +130,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   }
 
   /* 2. Injection des projets de croissance de flotte (refleet) frais */
-  if (fleetPlan != null && FLEET_PORTFOLIO) {
+  if (fleetPlan != null) {
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry);
       if (p != null) {
@@ -144,7 +144,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
 
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
-  if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
+  if (((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     if (airBuilt) {
       /* Replanification AIR differee au catalogue decoupe (couche C76 lines non acquittee
        * par l'appelant) : plus de OpexAirPlans synchrone de 4 a 18 M opcodes ici. */

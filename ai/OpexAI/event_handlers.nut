@@ -392,7 +392,7 @@ function OpexAI::_onIndustryOpen(event)
     this._markDirty("industry_open", ["industries"], ["rail", "road"], true, true,
                     "industry", probeEvt.GetIndustryID());
   }
-  if (EVENT_CATALOG_INVALIDATE) {
+  {
     local indEvt = AIEventIndustryOpen.Convert(event);
     if (indEvt != null) {
       local indId = indEvt.GetIndustryID();
@@ -418,7 +418,7 @@ function OpexAI::_onTownFounded(event)
     this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
                     true, true, "town", probeEvt.GetTownID());
   }
-  if (EVENT_CATALOG_INVALIDATE) {
+  {
     local townEvt = AIEventTownFounded.Convert(event);
     if (townEvt != null) {
       local townId = townEvt.GetTownID();

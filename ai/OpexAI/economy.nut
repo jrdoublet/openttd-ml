@@ -116,18 +116,14 @@ function OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, bidirectional)
  * accorde 130 (docs/taches.md S0 octies, trouvaille 3). */
 function OpexPickupRatingPoints(headwayDays)
 {
-  if (ECONOMY_FIX) {
+  {
     if (headwayDays < 7.5) return 130;
     if (headwayDays < 15.0) return 95;
     if (headwayDays < 30.0) return 50;
     if (headwayDays < 52.5) return 25;
     return 0;
   }
-  if (headwayDays < 6.8) return 130;
-  if (headwayDays < 13.5) return 95;
-  if (headwayDays < 27.0) return 50;
-  if (headwayDays < 47.0) return 25;
-  return 0;
+
 }
 
 function OpexStationRatingForHeadway(headwayDays)
@@ -418,10 +414,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local better = false;
     if (best == null) {
       better = true;
-    } else if (ECONOMY_FIX) {
-      better = (roi != best.roi) ? (roi > best.roi) : (profitAnnual > best.profitAnnual);
     } else {
-      better = profitAnnual > best.profitAnnual;
+      better = (roi != best.roi) ? (roi > best.roi) : (profitAnnual > best.profitAnnual);
     }
     if (better) {
       best = { trains = trains, headwayDays = headwayDays, stationRating = stationRating,
@@ -758,7 +752,6 @@ const ROAD_SPEED_EFFICIENCY_PCT = 60;
 /* Seuil global entre deux arrets bus. Cette constante est aussi verifiee au dernier moment par
  * le constructeur : un candidat mis en cache ne peut donc pas contourner la regle. */
 const ROAD_BUS_STOP_MIN_DISTANCE = 6;
-ROAD_PAX_OVERLAP <- true;
 
 function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
 {
@@ -810,7 +803,7 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
   local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
-  if (kind == "pax" && ROAD_PAX_OVERLAP && vehicles > 0 && roundTripDays > 0) {
+  if (kind == "pax" && vehicles > 0 && roundTripDays > 0) {
     /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,
      * plafonne a la capacite. Deux bus ne doublent pas la demande, ils se partagent le quai. */
     local headwayDays = roundTripDays.tofloat() / vehicles;

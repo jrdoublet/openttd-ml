@@ -419,7 +419,7 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   this._advanceRailSearchThroughput();
   local fleetPlan = null;
-  if (FLEET_PORTFOLIO) {
+  {
     /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
     fleetPlan = [];
     this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
@@ -937,8 +937,9 @@ function OpexAI::_dispatchAir(task, year)
    * et chaque passage coute ~21 jours de temps de jeu. Sur la graine 1, 11 passages ont mange
    * 63 % de l'annee 1. Eteindre cette tache supprime la moitie du goulot, et l'executeur du
    * portefeuille sait deja batir mode == "air" (main.nut:1839). */
-  if (AIR_PORTFOLIO) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
-  this._tryBuildAir(year); if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return true;
+  task.enabled = false;
+  if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+  return false;
 }
 function OpexAI::_dispatchAirFleet(task, year)
 {
@@ -946,7 +947,7 @@ function OpexAI::_dispatchAirFleet(task, year)
    * La tache dediee ne depense plus a l'aveugle, mais inspecte la flotte et injecte
    * les opportunites mures dans le vivier incremental du portefeuille sans attendre un an. */
   task.dueCycle = this._taskCycle + 1;
-  if (FLEET_PORTFOLIO) {
+  {
     if (this._projects != null) {
       local fleetPlan = [];
       this._resizeAirFleets(year, fleetPlan);
@@ -962,12 +963,7 @@ function OpexAI::_dispatchAirFleet(task, year)
     if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return false;
   }
-  if (C56_TASK_TRACE) {
-    local resized = this._resizeAirFleets(year);
-    OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-    return resized;
-  }
-  return this._resizeAirFleets(year);
+
 }
 function OpexAI::_dispatchProjects(task, year)
 {
@@ -1010,7 +1006,7 @@ function OpexAI::_dispatchExpand(task, year)
 {
 
   /* G6§1 : le bloc RAIL_REFLEET (second train, double voie) vit dans _expandRailLines. */
-  if (!RAIL_REFLEET) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+
   this._expandRailLines(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;

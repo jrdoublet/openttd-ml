@@ -53,7 +53,7 @@ function OpexFreightCargoOrder(catalog)
     }
     if (!active) continue;
     local hasSink = (cargo in catalog.acceptors)
-        || (COMPLEX_CARGO && cargo in catalog.townAcceptors);
+        || (cargo in catalog.townAcceptors);
     if (!hasSink) continue;
     local hasRail = catalog.wagonByCargo != null && (cargo in catalog.wagonByCargo);
     local hasRoad = catalog.roadEngineByCargo != null && (cargo in catalog.roadEngineByCargo);
@@ -69,8 +69,6 @@ function OpexFreightCargoOrder(catalog)
   foreach (entry in ranked) cargos.append(entry.cargo);
   return cargos;
 }
-VIVIER_RATIO_FILTER <- true;
-CLEAN_DENSITY_SCORE <- true;
 
 /* Etage 2 : le cout, AJUSTE sur la campagne v3 (1997 lignes reelles, OpenTTD 13.4).
  *
@@ -693,7 +691,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * ~5 sur 256x256 et croit avec la taille de carte, donc le gain est le plus grand la ou il
    * sert le plus (C46, cartes 1024x1024). */
   local sitable = true;
-  if (ORIGIN_SITABLE) {
+  {
     local sitableKey = srcTile * 64 + cargo;
     if (sitableKey in ::OpexSitableCache) {
       sitable = ::OpexSitableCache[sitableKey];
@@ -761,8 +759,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local isLowRatio = (opcodeRatio < minRatio);
   if (isLowRatio) {
     stats.ratioTooLow++;
-    if (V216_PROBE && VIVIER_RATIO_FILTER) OpexV216NoteReject("ratio", kind, srcTile, dstTile, monthly, economics);
-    if (VIVIER_RATIO_FILTER) return null;
+    if (V216_PROBE) OpexV216NoteReject("ratio", kind, srcTile, dstTile, monthly, economics);
+    return null;
   }
 
   /* Score composite : priorise le fort ROI et le retour sur investissement rapide (cash turnover).
@@ -1046,7 +1044,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[b].id);
       }
       if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+      if (abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
         if (tA > tB) { local swap = tA; tA = tB; tB = swap; }
@@ -1113,7 +1111,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   foreach (cargo, sources in catalog.producers) {
     if (freightCargo != null && cargo != freightCargo) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
-    local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
+    local hasTownSinks = (cargo in catalog.townAcceptors);
     if (!hasIndustrySinks && !hasTownSinks) continue;
     local sinks = hasIndustrySinks ? catalog.acceptors[cargo] : [];
 
@@ -1129,7 +1127,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (targetKind == "town") continue;
         if (targetKind == "industry" && targetId >= 0
             && source.id != targetId && industries[di].id != targetId) continue;
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        if (abandonedPairs != null) {
           local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
           if (pairKey in abandonedPairs) continue;
         }
@@ -1168,7 +1166,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
           if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
           local townGuardMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
-          if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+          if (abandonedPairs != null) {
             /* G9Â§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
              * pour une ville), en coherence avec OpexAbandonedPairKey. */
             local pairKey = "freight|" + cargo + "|" + source.id + "|t" + town.id;
@@ -1311,7 +1309,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     if (stats.distanceLong > 0) OpexC73RecordRejection("rail", "distance_long", stats.distanceLong);
     if (stats.economicsUnavailable > 0) OpexC73RecordRejection("rail", "economics_unavailable", stats.economicsUnavailable);
     if (stats.profitNonPositive > 0) OpexC73RecordRejection("rail", "profit_nonpositive", stats.profitNonPositive);
-    if (stats.ratioTooLow > 0 && VIVIER_RATIO_FILTER) OpexC73RecordRejection("rail", "ratio_floor", stats.ratioTooLow);
+    if (stats.ratioTooLow > 0) OpexC73RecordRejection("rail", "ratio_floor", stats.ratioTooLow);
     OpexC73RecordProduced("rail", all.len(), best.len());
   }
 
@@ -1638,7 +1636,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         }
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
         if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        if (abandonedPairs != null) {
           local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
           if (pairKey in abandonedPairs) continue;
         }
@@ -1679,7 +1677,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         }
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
         if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        if (abandonedPairs != null) {
           /* G9Â§1 : "t" + towns[t].id, en coherence avec OpexAbandonedPairKey. */
           local pairKey = "freight|" + cargo + "|" + source.id + "|t" + towns[t].id;
           if (pairKey in abandonedPairs) continue;
@@ -2022,7 +2020,7 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
     if (distance < roadBounds.roadMin || distance > maxDist) continue;
 
     // Garde 6 : Liaison deja desservie par le reseau ou abandonnee
-    if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+    if (abandonedPairs != null) {
       local aKey = "subsidy|" + subId;
       if (aKey in abandonedPairs) continue;
     }

@@ -77,7 +77,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+      if ((abandonedKey in this._abandonedPairs)) {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -106,7 +106,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
         }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         return { outcome = "rejected", discards = passDiscards };
@@ -125,7 +125,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=unprofitable_after_siting");
         }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -184,7 +184,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
-        if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
+        if (OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -293,7 +293,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
  * (succes) ou RF|year|id|0|REASON (echec). */
 function OpexAI::_refleetRoadLines(year)
 {
-  if (!ROAD_REFLEET) return;
+
   local anchor = AIMap.GetTileIndex(1, 1);
   for (local i = 0; i < this._lines.len(); i++) {
     local line = this._lines[i];
@@ -306,7 +306,7 @@ function OpexAI::_refleetRoadLines(year)
     local have = 0;
     if ("vehCount" in line) {
       have = line.vehCount;
-    } else if ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || ROAD_FLEET_FIX) && ("trains" in line)) {
+    } else if (("trains" in line)) {
       have = line.trains;
     }
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);

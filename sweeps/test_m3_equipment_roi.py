@@ -62,7 +62,7 @@ class TestM3EquipmentRoi(unittest.TestCase):
         self.assertIn("phase=post_refit", AIR_CONSTRUCTION.read_text(encoding="utf-8"))
         task = TASK_AIR.read_text(encoding="utf-8")
         planning_src = AIR_PLANNING.read_text(encoding="utf-8")
-        self.assertIn('OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected")', task)
+        self.assertNotIn('OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected")', task)
         self.assertIn('OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected")', task)
         self.assertIn("function OpexM3ProbeAirPreAdmission", src)
         for phase in ("pre_admission_newpair", "pre_admission_hubsite", "pre_admission_hubhub"):

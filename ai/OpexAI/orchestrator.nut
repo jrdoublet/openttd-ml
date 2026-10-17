@@ -398,7 +398,7 @@ function OpexRailTargetIndustryHasStructuralPair(catalog, industryId)
           if (di != targetIndex) return true;
         }
       }
-      if (COMPLEX_CARGO && cargo in catalog.townAcceptors
+      if (cargo in catalog.townAcceptors
           && catalog.townAcceptors[cargo] != null && catalog.townAcceptors[cargo].len() > 0) {
         return true;
       }
@@ -439,7 +439,7 @@ function OpexRailTargetIndustryHasStructuralPairForCargo(catalog, industryId, ca
         if (di != targetIndex) return true;
       }
     }
-    if (COMPLEX_CARGO && cargo in catalog.townAcceptors
+    if (cargo in catalog.townAcceptors
         && catalog.townAcceptors[cargo] != null && catalog.townAcceptors[cargo].len() > 0) {
       return true;
     }
@@ -775,7 +775,7 @@ function OpexAI::_v217RailRefill()
     foreach (project in list) {
       if (project == null || project.mode != "rail" || !("payload" in project) || project.payload == null) continue;
       local c = project.payload;
-      if (ABANDON_MEMORY && this._abandonedPairs != null && (OpexAbandonedPairKey(c) in this._abandonedPairs)) continue;
+      if (this._abandonedPairs != null && (OpexAbandonedPairKey(c) in this._abandonedPairs)) continue;
       local close = this._tooClose(c);
       if (close.hard >= 0 || close.blocking >= 0) continue;
       startable++;
@@ -1215,7 +1215,7 @@ function OpexAI::_c76DoFullRegen(reason, year)
   }
 
   local fleetPlan = null;
-  if (FLEET_PORTFOLIO) {
+  {
     fleetPlan = [];
     this._resizeAirFleets(AIDate.GetYear(date), fleetPlan);
   }

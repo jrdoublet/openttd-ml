@@ -75,7 +75,7 @@ class TestC89RailThroughputContract(unittest.TestCase):
 
         # In _continueRailSearch, each slice gets a fresh deadlineTick
         self.assertIn("local deadlineTick = state.safetyDeadline;", rail)
-        self.assertIn("if (RAIL_MICRO_DEADLINE) {", rail)
+        self.assertNotIn("if (RAIL_MICRO_DEADLINE)", rail)
         self.assertIn("deadlineTick = AIController.GetTick() + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;", rail)
 
         # _advanceRailSearchThroughput does not impose a global deadline, it calls _advanceRailSearchSliceWithLedgers

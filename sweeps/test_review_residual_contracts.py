@@ -156,10 +156,9 @@ class ReviewResidualContractsTest(unittest.TestCase):
         first_choice = src.index('OpexDecide("PROJECT_CHOSEN"', first_flush)
         self.assertIn("passDiscards = [];", src[first_flush:first_choice])
 
-        second_flush = src.index('OpexDecide("PROJECT_DISCARD"', first_choice)
-        second_choice = src.index('OpexDecide("PROJECT_CHOSEN"', second_flush)
-        self.assertIn("passDiscards = [];", src[second_flush:second_choice])
-        self.assertIn("if (RAIL_REFLEET) {", src)
+        self.assertEqual(src.count('OpexDecide("PROJECT_CHOSEN"'), 1)
+        self.assertNotIn("if (RAIL_REFLEET)", src)
+        self.assertIn("if (this._railExpansion != null) return;", src)
         self.assertNotIn("RAIL_EXPAND || RAIL_REFLEET", src)
 
     def test_life_scrap_checks_sell_vehicle_success(self):

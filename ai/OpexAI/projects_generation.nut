@@ -67,7 +67,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
     }
     generated.rail = rail;
     foreach (candidate in rail.candidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null
+      if (abandonedPairs != null
           && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
       local p = OpexProjectFromCandidate(candidate);
       if (p != null) generated.projects.append(p);
@@ -79,7 +79,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
         : OpexProjectEmptyRoad();
     generated.road = road;
     foreach (candidate in road.candidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null
+      if (abandonedPairs != null
           && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
       local p = OpexProjectFromCandidate(candidate);
       if (p != null) generated.projects.append(p);
@@ -254,7 +254,7 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
     if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
       if (OpexAirPairIsAbandoned(abandonedPairs, plan.siteA, plan.siteB)) return true;
     }
-  } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
+  } else if ((mode == "road" || mode == "rail")) {
     if (("payload" in p) && p.payload != null) {
       local aKey = OpexAbandonedPairKey(p.payload);
       if (aKey in abandonedPairs) return true;

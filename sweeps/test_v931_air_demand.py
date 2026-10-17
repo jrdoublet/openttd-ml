@@ -113,7 +113,7 @@ class V931AirDemandTests(unittest.TestCase):
         self.assertIn("function OpexBuildAirRoute(catalog, budget, plan)", build)
         self.assertIn("OpexAirReconcileActualBuild(catalog, plan, result);", build)
         self.assertNotIn("OpexAirReconcileActualBuild(catalog, plan, result, lines)", build)
-        self.assertEqual(self.task_air.count("OpexBuildAirRoute(this._catalog, this._budget, plan)"), 1)
+        self.assertNotIn("OpexBuildAirRoute(this._catalog, this._budget, plan)", self.task_air)
         self.assertEqual(self.task_air.count("OpexBuildAirRoute(this._catalog, this._budget, buildPlan)"), 1)
         self.assertNotIn("V93_AIR_DEMAND_PRODUCTION", self.task_air)
 

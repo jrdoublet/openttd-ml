@@ -130,6 +130,12 @@ class TestRailTrackFailureCapture(unittest.TestCase):
         call = "OpexAir0310InvalidateSiteValidity();"
         self.assertEqual(current.count(call), 1)
         current = current.replace(call, "if (AIR0310_SITE_VALIDITY_CACHE) " + call)
+        # V246 freezes the existing quote block ON; restore only that guard
+        # for comparison with the original builder, keeping its entire body.
+        self.assertNotIn("RAIL_DEVIS", current)
+        quote = "  {\n    local quoteFailure = {};"
+        self.assertEqual(current.count(quote), 1)
+        current = current.replace(quote, "  if (RAIL_DEVIS) {\n    local quoteFailure = {};")
         self.assertEqual(digest(without_v199_v163_plan(without_freight_memory(current))),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
 
