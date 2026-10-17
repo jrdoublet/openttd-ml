@@ -315,3 +315,30 @@ Principe : aucun de ces réglages n'était un mécanisme à part entière ; ce s
 | `c121_air_first_live_growth_phase_years` | `C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS` | 4 si `c121_air_first_live_growth`, 0 sinon | Durée de phase de la croissance « première vivante ». |
 
 Lanceurs : `bench_v2.py` perd ses validations dédiées (un de ces noms passé en `OpexAI[...]` est désormais refusé comme « réglage OpexAI inconnu ») ; l'auto-test de `bench_1v1_5y_20seeds.py` vérifie l'absence d'`air_fleet_cadence_days`. Les scripts de diagnostic historiques (`diag_g0_abandon_factorial.py`, `run_g0_c66_4.py`, `run_m3_*`, `run_m4_conformity.py`, `diag_water_memory.py`, `diag_1v1_shared_monthly.py`) citent encore `abandon_cooldown_days` ou `air_early_slot_*` : ils ne sont plus rejouables tels quels. Contrats : 20 tests adaptés (`assertNotIn` + valeur de la globale) ; aucun nouvel échec.
+
+## 12. V237 : 33 commutateurs AIR/catalogue adoptés figés (17/10, codex)
+
+Principe : chaque réglage valait 1 aux quatre difficultés depuis son adoption ; le chemin ON devient le seul chemin et la branche OFF disparaît. Les modes entiers C117 (lean), V160, V161 et V158 sont figés à 1. Codex (commit d'origine `7a0183a`, rebasé sur V236 en `9e93a4b`), 133 fichiers dont 37 modules IA, 90 fichiers `sweeps/` et 6 fixtures `tests/mechanisms/`. 185 → 152 réglages (la base de codex était à 211 ; le rebase a réappliqué les retraits V236).
+
+**Refus Save/Load** : `c121_air_project_realization_adaptive` reste, car `persist.nut::OpexC121StrategyStateEnabled` conditionne la sauvegarde de la stratégie avec lui. `persist.nut` est inchangé.
+
+| Réglage(s) | Mécanisme conservé | Branche OFF retirée |
+|---|---|---|
+| `air_site_min_catchment`, `c96_air_site_catchment`, `v94_air_site_list` | Filtre production/acceptation voyageurs, recherche bornée du meilleur bassin (C96), scan `AITileList` (V94). | Chemin de site historique (déjà court-circuité par C96). |
+| `c117_lean_sampling` | Échantillonnage lean hors sonde. | Mode 2 (double comptage) et `OpexC117NewC121View`, `OpexC117FlushLeanMonth`, `OpexC117CompareLeanSampling`. |
+| `air_c121_physical_payment_days` | Durée physique aller + manœuvres pour le paiement. | Proxy distance + 30 j `OpexC119AirIncomeDays` et ses cinq replis. |
+| `c121_air_game_engine`, `air0310_v96_shortcut_lean` | Moteur établi par type d'aéroport (V96), gardes de viabilité, scan de secours. | Rollback et score supérieur inutilisé du raccourci. |
+| `c121_air_winner_fusion`, `c121_air_one_or_two_planes`, `air0310_one_two_fused` | Gagnant N=1/N=2 avec invariants communs, départ opposé du second avion. | Les deux évaluations complètes séparées, l'ancienne économie de profondeur libre, l'argument `fusion`, `OpexC121WinnerTariffEpoch`. |
+| `c121_catalog_incremental`, `c121_catalog_air_first_year`, `c121_flat_bootstrap`, `c121_air_first_year_rail_prep` | Catalogue découpé, bootstrap plat (qualifié le 03/10), année AIR sous `MODE_AIR`, préparation rail sous `MODE_AIR && MODE_RAIL` (3 routes max, sans construire). | Catalogue monolithique, amorçage par étapes. |
+| `c121_air_first_live_growth` | Admission anticipée 1→2 avions sur preuve vivante équilibrée. | — (la durée de phase est figée par V236). |
+| `air_p0_direct_realization` | Ratios C121 matures directs. | Désactivation. |
+| `air_route_plane_selection` | Choix d'avion compatible par route (repli si aucun catalogue compatible). | Avion unique historique. |
+| `air_early_slot` | Priorité aux premiers créneaux des grandes villes. | — |
+| `air_fleet_cooldown_prefilter`, `air_fleet_routes_index`, `v161_fleet_net_marginal` | Préfiltre de cadence, index partagé par passe, plafond net des voisines (V161). | Modes directs/comparateurs V160. |
+| `c80_air_hub_index`, `c80_marginal_floor` | Index exact routes/paires, plancher marginal. | Scans sans index. |
+| `air0310_incremental_publish`, `air0310_hub_snapshot`, `air0310_site_validity_cache`, `v141_catalog_incremental`, `v147_air_catalog_tasks`, `air_publish_lazy_select` | Publication incrémentale (qualifiée le 04/10), snapshots ordonnés, cache de validité, rafraîchissement en place, trois tâches AIR de file, sélection paresseuse. | Filtre local historique, reconversion systématique, sélection immédiate, dispatch monolithique. |
+| `ac04_extra_site_dedup`, `ac05_skip_unused_hub_income`, `ac06_c76_snapshot_ack`, `ac04_hub_usage_gate` | Dédoublonnage physique, acquittement des seules révisions couvertes, validation des hubs au point d'usage. | Interface résiduelle d'AC05 (plus de consommateur). |
+
+Lanceurs : les A/B devenus impossibles (moteur de partie, fusion, croissance « première vivante ») s'arrêtent explicitement ; le profil early-slot de `diag_1v1_shared_monthly.py` devient un commentaire. Contrats : `v237_contracts.py` et `test_v237_fixed_air.py` (six contrats transversaux) ajoutés.
+
+**Verdict** : smoke valide, non identique (valeur 394 808, profit 453 973) ; fixture R1 complète OK. 20×10 `v237_20x10_20261017` contre V232 : profit +24,7 k£/an (+0,71 %), 11/9, p = 0,90, IC95 [−154 k ; +195 k], valeur +2,02 % : **neutre**. Cumul contre V230 : −99,1 k£/an (−2,73 %), 7/13, p = 0,29, IC95 [−252 k ; +49 k], valeur −0,58 %. Fusionné le 17/10.
