@@ -138,12 +138,6 @@ CLEAN_DENSITY_SCORE <- true;
 DEBUG_SIGNS <- true;
 /* V167 : masque du reglage `probes` apres expansion du bit 1 (voir settings.nut). */
 OPEX_PROBE_MASK <- 2;
-/* P0 AIR : journal des achats effectivement realises et de leur provenance de score.
- * OFF par defaut, diagnostic seulement, aucune lecture par le classement. */
-AIR_P0_MARGIN_PROBE <- false;
-/* P0 : corriger uniquement la profondeur 2->3 du marginal C121 froid (1->2
- * est memorise au build). Experience economique isolee OFF par defaut. */
-AIR_P0_SECOND_STEP_MARGINAL <- false;
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

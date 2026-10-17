@@ -45,22 +45,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "air_p0_margin_probe",
-      description = "Passive P0 AIR purchase and portfolio alternative logs, no decision changes; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air_p0_second_step_marginal",
-      description = "P0 test: use actual C121 model P(3)-P(2) for cold fleet 2->3 instead of reusing P(2)-P(1); 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "save_full_state",
       description = "Persist the full decision state in savegames: 1 = save built lines and scheduler state (default), 0 = minimal payload",
       easy_value = 1, medium_value = 1, hard_value = 1,

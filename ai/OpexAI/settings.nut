@@ -15,7 +15,6 @@ OPEX_PROBE_GROUPS <- {
   probe_candidates_road = 8,
   probe_candidates_rail = 8,
   probe_catalogue = 8,
-  air_p0_margin_probe = 16,
   probe_c121_engine_table = 16,
   probe_air_engine_depth = 16,
   probe_air_finance_margin = 16,
@@ -82,8 +81,6 @@ function OpexLoadSettings()
   OPEX_PROBE_MASK = probes;
   DEBUG_SIGNS = (probes & 2) != 0
       && AIController.GetSetting("debug_signs") != 0;
-  AIR_P0_MARGIN_PROBE = OpexProbeSetting("air_p0_margin_probe") != 0;
-  AIR_P0_SECOND_STEP_MARGINAL = AIController.GetSetting("air_p0_second_step_marginal") != 0;
   DECISION_LOG = (probes & 508) != 0
       || AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
