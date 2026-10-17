@@ -9,9 +9,11 @@ function FxAssert(ok, name)
 function FxMatrix()
 {
   local saved = { c70 = C70_PROFIT_CALIBRATED, mode = C70_MODE_CALIBRATION,
-    engine = C82_ENGINE_CALIBRATION, v92 = V92_AIR_SERVICE_CHOICE,
+    engine = C82_ENGINE_CALIBRATION, v92 = V92_AIR_SERVICE_CHOICE, v161 = V161_FLEET_NET_MARGINAL,
     factors = clone C70_MODE_FACTOR, engines = clone C82_ENGINE_FACTOR,
     calibrate = OpexCalibratedProfit };
+  /* V161 (defaut 1 depuis le 13/10) plafonne par les voisines reelles : hors champ de cette matrice. */
+  V161_FLEET_NET_MARGINAL = 0;
   C70_PROFIT_CALIBRATED = true;
   C70_MODE_CALIBRATION = true;
   C82_ENGINE_CALIBRATION = true;
@@ -56,6 +58,7 @@ function FxMatrix()
   C70_MODE_CALIBRATION = saved.mode;
   C82_ENGINE_CALIBRATION = saved.engine;
   V92_AIR_SERVICE_CHOICE = saved.v92;
+  V161_FLEET_NET_MARGINAL = saved.v161;
   C70_MODE_FACTOR = saved.factors;
   C82_ENGINE_FACTOR = saved.engines;
   OpexCalibratedProfit = saved.calibrate;
