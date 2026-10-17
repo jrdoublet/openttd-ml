@@ -17,7 +17,6 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   if (canMemo) {
     econKey = plane.id + "|" + airport.type + "|" + distance + "|" + monthlyPax + "|" + newAirportCount + "|" + maxCapital + "|" + (infrastructureMaintenance ? 1 : 0)
         + "|pt=" + ((C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-            || C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
             || forcePhysicalTiming) ? 1 : 0)
         + "|rr=" + (forceC100RankReplay ? 1 : 0);
     if (econKey in AIR_ECONOMICS_MEMO) {
@@ -33,7 +32,6 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
 
   if (canMemo) {
     local physicalTiming = C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-        || C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
         || forcePhysicalTiming;
     local tripKey = forceC100RankReplay
         ? ("r|" + plane.id + "|" + airport.type + "|" + distance)

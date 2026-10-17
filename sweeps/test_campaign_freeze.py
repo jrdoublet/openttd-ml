@@ -249,8 +249,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c97_air_c69_engine_probe", "c98_air_realized_probe",
                      "c100_air_trip_physical", "c101_air_physical_engine_choice",
                      "c103_air_c100_rank_replay", "c104_air_c100_compare_probe",
-                     "c105_air_replay_choice_physical_economics", "c106_air_marginal_physical_engine_choice",
-                     "c108_air_onestep_physical_economics",
+                     "c105_air_replay_choice_physical_economics",
                      "c110_air_engine_calibration_choice_only",
                      "c111_air_c100_decision_shadow",
                      "c113_air_c100_full_decision_shadow"):

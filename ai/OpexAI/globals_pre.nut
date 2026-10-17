@@ -493,10 +493,8 @@ C104_AIR_C100_COMPARE_COUNT <- 0;
 C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS <- false;
 /* C106 : choix moteur par rendement marginal relatif sous l'economie C100.1,
  * mais economie legacy retournee au portefeuille. Aucun seuil de caisse. */
-C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE <- false;
 /* C108 : economie/timing C100.1 partout, moteur choisi par le rendement
  * marginal relatif en une seule marche (C107 passif). Aucun seuil de caisse. */
-C108_AIR_ONESTEP_PHYSICAL_ECONOMICS <- false;
 /* C109 : economie C100.1 partout et choix moteur par elasticite relative du
  * profit au gain de vitesse. Seuil e50 = 0.5, sans cash ni EngineID. */
 /* C110 : reutilise l'apprentissage C82 realise/predit uniquement pour le choix

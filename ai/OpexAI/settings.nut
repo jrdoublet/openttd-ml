@@ -494,8 +494,6 @@ function OpexLoadSettings()
   C103_AIR_C100_RANK_REPLAY = AIController.GetSetting("c103_air_c100_rank_replay") != 0;
   C104_AIR_C100_COMPARE_PROBE = OpexProbeSetting("c104_air_c100_compare_probe") != 0;
   C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS = AIController.GetSetting("c105_air_replay_choice_physical_economics") != 0;
-  C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c106_air_marginal_physical_engine_choice") != 0;
-  C108_AIR_ONESTEP_PHYSICAL_ECONOMICS = AIController.GetSetting("c108_air_onestep_physical_economics") != 0;
   C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
   C111_AIR_C100_DECISION_SHADOW = AIController.GetSetting("c111_air_c100_decision_shadow") != 0;
   C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;

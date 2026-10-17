@@ -548,21 +548,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c106_air_marginal_physical_engine_choice",
-      description = "C106: choose AIR engine by relative marginal return under C100.1 timing, while keeping legacy route economics for portfolio scoring; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c108_air_onestep_physical_economics",
-      description = "C108: C100.1 physical AIR economics everywhere, with one-step relative marginal-return engine choice; no cash or EngineID threshold; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
     AddSetting({

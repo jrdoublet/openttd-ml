@@ -759,29 +759,6 @@ function OpexC107OneStepMarginalPhysicalChoice(catalog, airport, distance, month
   return runner;
 }
 
-/* C106 actif : le rendement marginal ne sert qu'au choix du moteur. Comme C103,
- * le portefeuille recoit ensuite l'economie legacy du moteur retenu afin de ne
- * pas confondre choix d'equipement et requalification globale du modele AIR. */
-function OpexC106ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-                                  distance, monthlyPax, infrastructureMaintenance,
-                                  maxCapital, newAirportCount, opcodePadding)
-{
-  local choice = OpexC106MarginalPhysicalChoice(catalog, airport, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  if (choice == null || !("plane" in choice) || choice.plane == null) {
-    return { plane = selectedPlane, economics = selectedEconomics };
-  }
-  local legacy = null;
-  if (selectedPlane != null && selectedEconomics != null && choice.plane.id == selectedPlane.id) {
-    legacy = selectedEconomics;
-  } else {
-    legacy = OpexAirEconomics(catalog, airport, choice.plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
-  if (legacy == null) return { plane = selectedPlane, economics = selectedEconomics };
-  return { plane = choice.plane, economics = legacy };
-}
-
 /* C106 candidat principal : score C69 sur l'economie C100.1. */
 function OpexC106PhysicalC69Choice(catalog, airport, distance, monthlyPax,
                                    infrastructureMaintenance, maxCapital,
@@ -1283,20 +1260,6 @@ function OpexC111ChooseRoutePlane(catalog, airport, selectedPlane, selectedEcono
       decisionEconomics = decision.economics };
 }
 
-/* C108 : economie C100.1 partout + choix moteur marginal relatif en une seule
- * marche. Le chooser passif C107 evite la sur-descente recursive de C106. */
-function OpexC108ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-                                  distance, monthlyPax, infrastructureMaintenance,
-                                  maxCapital, newAirportCount, opcodePadding)
-{
-  local choice = OpexC107OneStepMarginalPhysicalChoice(catalog, airport, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1000);
-  if (choice == null || !("plane" in choice) || !("economics" in choice) || choice.economics == null) {
-    return { plane = selectedPlane, economics = selectedEconomics };
-  }
-  return { plane = choice.plane, economics = choice.economics };
-}
-
 /* C116.3 passif : reproduit l'argmax C68 et conserve les evaluations pour
  * trouver le meilleur runner moins capitalistique sans second scan moteur. */
 function OpexC116LegacyDecisionRunner(catalog, airport, distance, monthlyPax,
@@ -1439,8 +1402,6 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
       && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
-      && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
       && !C111_AIR_C100_DECISION_SHADOW) {
     OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
@@ -1449,38 +1410,15 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
       && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
       && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
-      && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
       && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC105ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-        distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
-  if (C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && C72_PLANE_CHOICE == 0
-      && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C111_AIR_C100_DECISION_SHADOW) {
-    return OpexC106ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-        distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
-  if (C108_AIR_ONESTEP_PHYSICAL_ECONOMICS && C72_PLANE_CHOICE == 0
-      && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
-      && !C111_AIR_C100_DECISION_SHADOW) {
-    return OpexC108ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C111_AIR_C100_DECISION_SHADOW && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION
       && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS) {
+      && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS) {
     return OpexC111ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
@@ -1489,7 +1427,6 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
       && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
       && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC115ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
@@ -1501,8 +1438,6 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   if (C103_AIR_C100_RANK_REPLAY && C72_PLANE_CHOICE == 0
       && !C100_AIR_TRIP_PHYSICAL
       && !C85_AIR_EQUIPMENT_FRONTIER && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
-      && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
       && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC103ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
@@ -1510,8 +1445,6 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   if (C101_AIR_PHYSICAL_ENGINE_CHOICE && C72_PLANE_CHOICE == 0
       && !C100_AIR_TRIP_PHYSICAL
       && !C85_AIR_EQUIPMENT_FRONTIER && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
-      && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
       && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC101ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
