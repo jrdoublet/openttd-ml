@@ -490,147 +490,6 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
   return choice;
 }
 
-/* C101 : corrige uniquement le CHOIX DU MOTEUR. Chaque appareil doit d'abord
- * rester viable sous l'economie historique ; le classement entre appareils se
- * fait ensuite avec le timing physique C100.1. L'economie retournee au plan est
- * toujours l'economie historique du moteur gagnant : admission, capital, score
- * projet et expansion restent donc sur le modele du defaut. */
-function OpexC101ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-                                  distance, monthlyPax, infrastructureMaintenance,
-                                  maxCapital, newAirportCount, opcodePadding)
-{
-  local viable = [];
-  local rawPlane = selectedEconomics != null ? selectedPlane : null;
-  local rawLegacy = selectedEconomics;
-
-  if (selectedPlane != null && selectedEconomics != null) {
-    viable.append({ plane = selectedPlane, legacy = selectedEconomics });
-  }
-
-  local choices = catalog.airPlaneChoicesByAirport[airport.type];
-  foreach (plane in choices) {
-    if (selectedPlane != null && plane.id == selectedPlane.id) continue;
-    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
-
-    /* La viabilite/admission reste volontairement celle du defaut. */
-    local legacy = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-    if (legacy == null) continue;
-    viable.append({ plane = plane, legacy = legacy });
-    if (rawLegacy == null || legacy.profitAnnual > rawLegacy.profitAnnual ||
-        (legacy.profitAnnual == rawLegacy.profitAnnual && legacy.roi > rawLegacy.roi)) {
-      rawPlane = plane;
-      rawLegacy = legacy;
-    }
-  }
-
-  if (rawPlane == null || rawLegacy == null) {
-    return { plane = selectedPlane, economics = selectedEconomics };
-  }
-
-  local bestPlane = rawPlane;
-  local bestLegacy = rawLegacy;
-  local bestPhysical = null;
-  foreach (item in viable) {
-    /* Le gagnant C68 maximise deja le profit legacy. Un candidat qui exige
-     * davantage de capital ne peut donc pas justifier sa substitution sans
-     * ralentir l'expansion : C101 reste strictement capital-neutre. */
-    if (item.legacy.capital > rawLegacy.capital) continue;
-    local physical = OpexAirEconomics(catalog, airport, item.plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-        0, false, false, true);
-    if (physical == null) continue;
-    if (bestPhysical == null || physical.profitAnnual > bestPhysical.profitAnnual ||
-        (physical.profitAnnual == bestPhysical.profitAnnual && physical.roi > bestPhysical.roi)) {
-      bestPlane = item.plane;
-      bestLegacy = item.legacy;
-      bestPhysical = physical;
-    }
-  }
-
-  if (bestPhysical == null) return { plane = rawPlane, economics = rawLegacy };
-  if (C69_BOTTLENECK_PROBE && rawPlane != null && rawLegacy != null
-      && rawPlane.id != bestPlane.id) {
-    OpexC69Log("phase=c101_choice policy=capital_neutral dist=" + distance
-        + " raw_id=" + rawPlane.id + " raw_name=" + OpexPlaneName(rawPlane.id)
-        + " raw_price=" + rawPlane.price + " raw_P=" + rawLegacy.profitAnnual
-        + " raw_C=" + rawLegacy.capital + " raw_roi=" + rawLegacy.roi
-        + " pick_id=" + bestPlane.id + " pick_name=" + OpexPlaneName(bestPlane.id)
-        + " pick_price=" + bestPlane.price + " pick_legacy_P=" + bestLegacy.profitAnnual
-        + " pick_legacy_C=" + bestLegacy.capital + " pick_legacy_roi=" + bestLegacy.roi
-        + " pick_physical_P=" + bestPhysical.profitAnnual + " pick_physical_C=" + bestPhysical.capital
-        + " pick_physical_roi=" + bestPhysical.roi);
-  }
-  return { plane = bestPlane, economics = bestLegacy };
-}
-
-/* C103 : isolation causale du signal du premier C100 positif.
- *
- * On rejoue uniquement son CLASSEMENT moteur : vitesse NoAI directe et ancien
- * helper de manoeuvre pessimiste. Ce score n'est jamais retourne au portefeuille.
- * Chaque candidat doit rester calculable sous l'economie legacy, et le gagnant
- * retourne son objet legacy : admission, capital et score projet restent donc
- * strictement ceux du defaut. Contrairement a C101, aucun filtre capital-neutre
- * n'est ajoute, afin de reproduire fidelement l'argmax du premier C100. */
-function OpexC103ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-                                  distance, monthlyPax, infrastructureMaintenance,
-                                  maxCapital, newAirportCount, opcodePadding)
-{
-  local bestPlane = null;
-  local bestLegacy = null;
-  local bestReplay = null;
-  local rawPlane = selectedEconomics != null ? selectedPlane : null;
-  local rawLegacy = selectedEconomics;
-
-  local choices = catalog.airPlaneChoicesByAirport[airport.type];
-  foreach (plane in choices) {
-    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
-
-    local legacy = null;
-    if (selectedPlane != null && plane.id == selectedPlane.id) {
-      legacy = selectedEconomics;
-    } else {
-      legacy = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-    }
-    if (legacy == null) continue;
-
-    if (rawLegacy == null || legacy.profitAnnual > rawLegacy.profitAnnual ||
-        (legacy.profitAnnual == rawLegacy.profitAnnual && legacy.roi > rawLegacy.roi)) {
-      rawPlane = plane;
-      rawLegacy = legacy;
-    }
-
-    local replay = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-        0, false, false, false, true);
-    if (replay == null) continue;
-    if (bestReplay == null || replay.profitAnnual > bestReplay.profitAnnual ||
-        (replay.profitAnnual == bestReplay.profitAnnual && replay.roi > bestReplay.roi)) {
-      bestPlane = plane;
-      bestLegacy = legacy;
-      bestReplay = replay;
-    }
-  }
-
-  if (bestPlane == null || bestLegacy == null || bestReplay == null) {
-    return { plane = rawPlane, economics = rawLegacy };
-  }
-  if (C69_BOTTLENECK_PROBE && rawPlane != null && rawLegacy != null
-      && rawPlane.id != bestPlane.id) {
-    OpexC69Log("phase=c103_choice policy=c100_rank_replay dist=" + distance
-        + " raw_id=" + rawPlane.id + " raw_name=" + OpexPlaneName(rawPlane.id)
-        + " raw_price=" + rawPlane.price + " raw_P=" + rawLegacy.profitAnnual
-        + " raw_C=" + rawLegacy.capital + " raw_roi=" + rawLegacy.roi
-        + " pick_id=" + bestPlane.id + " pick_name=" + OpexPlaneName(bestPlane.id)
-        + " pick_price=" + bestPlane.price + " pick_legacy_P=" + bestLegacy.profitAnnual
-        + " pick_legacy_C=" + bestLegacy.capital + " pick_legacy_roi=" + bestLegacy.roi
-        + " pick_replay_P=" + bestReplay.profitAnnual + " pick_replay_C=" + bestReplay.capital
-        + " pick_replay_roi=" + bestReplay.roi);
-  }
-  return { plane = bestPlane, economics = bestLegacy };
-}
-
 /* C104 : argmax profit/ROI sous un timing force, sans jamais retourner ce choix
  * au chemin decisionnel. mode=0 legacy, 1 replay du premier C100, 2 C100.1. */
 function OpexC104BestAirEngine(catalog, airport, distance, monthlyPax,
@@ -1214,24 +1073,73 @@ function OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
       + OpexC116FormatProjectSnapshot(c116.deltaCapital));
 }
 
-/* C105 : cellule manquante du factoriel C100/C103.
- * Le timing global est C100.1 via C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS,
- * mais le moteur est classe avec le replay du premier C100. L'economie rendue
- * au portefeuille est ensuite recalculee en C100.1 pour CE moteur. */
-function OpexC105ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
+
+/* Classement moteur du premier C100 positif (ex-C103, garde pour C111).
+ *
+ * On rejoue uniquement son CLASSEMENT moteur : vitesse NoAI directe et ancien
+ * helper de manoeuvre pessimiste. Ce score n'est jamais retourne au portefeuille.
+ * Chaque candidat doit rester calculable sous l'economie legacy, et le gagnant
+ * retourne son objet legacy : admission, capital et score projet restent donc
+ * strictement ceux du defaut. Contrairement a C101, aucun filtre capital-neutre
+ * n'est ajoute, afin de reproduire fidelement l'argmax du premier C100. */
+function OpexC103ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
                                   distance, monthlyPax, infrastructureMaintenance,
                                   maxCapital, newAirportCount, opcodePadding)
 {
-  local replay = OpexC104BestAirEngine(catalog, airport, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 1);
-  if (replay == null) return { plane = selectedPlane, economics = selectedEconomics };
-  local physical = OpexAirEconomics(catalog, airport, replay.plane, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
-      0, false, false, true, false);
-  if (physical == null) return { plane = selectedPlane, economics = selectedEconomics };
-  return { plane = replay.plane, economics = physical };
-}
+  local bestPlane = null;
+  local bestLegacy = null;
+  local bestReplay = null;
+  local rawPlane = selectedEconomics != null ? selectedPlane : null;
+  local rawLegacy = selectedEconomics;
 
+  local choices = catalog.airPlaneChoicesByAirport[airport.type];
+  foreach (plane in choices) {
+    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+
+    local legacy = null;
+    if (selectedPlane != null && plane.id == selectedPlane.id) {
+      legacy = selectedEconomics;
+    } else {
+      legacy = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+          infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
+    }
+    if (legacy == null) continue;
+
+    if (rawLegacy == null || legacy.profitAnnual > rawLegacy.profitAnnual ||
+        (legacy.profitAnnual == rawLegacy.profitAnnual && legacy.roi > rawLegacy.roi)) {
+      rawPlane = plane;
+      rawLegacy = legacy;
+    }
+
+    local replay = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding,
+        0, false, false, false, true);
+    if (replay == null) continue;
+    if (bestReplay == null || replay.profitAnnual > bestReplay.profitAnnual ||
+        (replay.profitAnnual == bestReplay.profitAnnual && replay.roi > bestReplay.roi)) {
+      bestPlane = plane;
+      bestLegacy = legacy;
+      bestReplay = replay;
+    }
+  }
+
+  if (bestPlane == null || bestLegacy == null || bestReplay == null) {
+    return { plane = rawPlane, economics = rawLegacy };
+  }
+  if (C69_BOTTLENECK_PROBE && rawPlane != null && rawLegacy != null
+      && rawPlane.id != bestPlane.id) {
+    OpexC69Log("phase=c103_choice policy=c100_rank_replay dist=" + distance
+        + " raw_id=" + rawPlane.id + " raw_name=" + OpexPlaneName(rawPlane.id)
+        + " raw_price=" + rawPlane.price + " raw_P=" + rawLegacy.profitAnnual
+        + " raw_C=" + rawLegacy.capital + " raw_roi=" + rawLegacy.roi
+        + " pick_id=" + bestPlane.id + " pick_name=" + OpexPlaneName(bestPlane.id)
+        + " pick_price=" + bestPlane.price + " pick_legacy_P=" + bestLegacy.profitAnnual
+        + " pick_legacy_C=" + bestLegacy.capital + " pick_legacy_roi=" + bestLegacy.roi
+        + " pick_replay_P=" + bestReplay.profitAnnual + " pick_replay_C=" + bestReplay.capital
+        + " pick_replay_roi=" + bestReplay.roi);
+  }
+  return { plane = bestPlane, economics = bestLegacy };
+}
 
 /* C111 : cellule d'isolation manquante apres C103/C109.
  * - equipement : meme replay moteur que le premier C100 positif (C103), avec
@@ -1400,33 +1308,20 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   if (C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY
       && C72_PLANE_CHOICE == 0 && !C82_ENGINE_CALIBRATION
       && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C111_AIR_C100_DECISION_SHADOW) {
     OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
-  if (C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS && C72_PLANE_CHOICE == 0
-      && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C111_AIR_C100_DECISION_SHADOW) {
-    return OpexC105ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-        distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
   if (C111_AIR_C100_DECISION_SHADOW && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION
       && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS) {
+      && !C104_AIR_C100_COMPARE_PROBE) {
     return OpexC111ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION && !C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY
       && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC115ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
@@ -1434,20 +1329,6 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY) {
     return OpexC82ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics, distance,
         monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
-  if (C103_AIR_C100_RANK_REPLAY && C72_PLANE_CHOICE == 0
-      && !C100_AIR_TRIP_PHYSICAL
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C111_AIR_C100_DECISION_SHADOW) {
-    return OpexC103ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-        distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
-  if (C101_AIR_PHYSICAL_ENGINE_CHOICE && C72_PLANE_CHOICE == 0
-      && !C100_AIR_TRIP_PHYSICAL
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C111_AIR_C100_DECISION_SHADOW) {
-    return OpexC101ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-        distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
 
   local bestPlane = selectedPlane;

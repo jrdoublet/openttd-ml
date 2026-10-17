@@ -49,7 +49,7 @@ class C115CapitalReplayTests(unittest.TestCase):
 
     def test_choice_memo_cannot_drop_conditional_replay_economics(self):
         start = AIR.index("function OpexAirChooseRoutePlane(")
-        end = AIR.index("function OpexC101ChooseRoutePlane", start)
+        end = AIR.index("\nfunction ", start + 1)
         body = AIR[start:end]
         self.assertIn("C111_AIR_C100_DECISION_SHADOW", body)
         self.assertIn("C115_AIR_C100_CAPITAL_REPLAY", body)

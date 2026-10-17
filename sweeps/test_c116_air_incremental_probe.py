@@ -63,7 +63,7 @@ class C116IncrementalProbeTests(unittest.TestCase):
 
     def test_c104_logs_c116_candidates(self):
         start = AIR.index("function OpexC104ProbeAirEngineCompare(")
-        end = AIR.index("function OpexC105ChooseRoutePlane", start)
+        end = AIR.index("\nfunction ", start + 1)
         body = AIR[start:end]
         for name in ("c116_gate", "c116_score", "c116_marg", "c116_opp"):
             self.assertIn(f'OpexC104FormatAirChoice("{name}"', body)
@@ -112,7 +112,7 @@ class C116IncrementalProbeTests(unittest.TestCase):
         self.assertIn('"_P="', fmt)
         self.assertIn('"_C="', fmt)
         probe_start = fmt_end
-        probe_end = AIR.index("function OpexC105ChooseRoutePlane", probe_start)
+        probe_end = AIR.index("\nfunction ", probe_start + 1)
         self.assertIn("OpexC116FormatProjectSnapshot(c116.deltaCapital)", AIR[probe_start:probe_end])
         self.assertIn("c116_self_unlock=", AIR[probe_start:probe_end])
 

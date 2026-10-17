@@ -29,7 +29,7 @@ class C100AirTripPhysicalTests(unittest.TestCase):
         )
         self.assertIsNotNone(match)
         body = match.group(1)
-        self.assertIn("physicalTiming = C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS", body)
+        self.assertIn("physicalTiming = C100_AIR_TRIP_PHYSICAL", body)
         self.assertIn("|| forcePhysicalTiming", body)
         self.assertIn("local c100ReplayTiming = forceC100RankReplay;", body)
         self.assertIn("directSpeed = physicalTiming || c100ReplayTiming", body)

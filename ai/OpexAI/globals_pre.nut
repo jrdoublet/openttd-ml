@@ -478,11 +478,9 @@ C97_AIR_C69_ENGINE_PROBE <- false;
  * prevision de construction au realise annuel sans modifier aucun choix. */
 C98_AIR_REALIZED_PROBE <- false;
 C100_AIR_TRIP_PHYSICAL <- false;
-C101_AIR_PHYSICAL_ENGINE_CHOICE <- false;
 /* C103 : replay causal du classement moteur du premier C100 positif. Le timing
  * volontairement pessimiste ne sert QUE de regularisateur de classement ;
  * l'admission et l'economie retournee au portefeuille restent legacy. */
-C103_AIR_C100_RANK_REPLAY <- false;
 /* C104 : sonde passive, meme contexte de route evalue sous legacy, premier C100
  * positif (replay) et C100.1 physique. Aucun effet decisionnel. */
 C104_AIR_C100_COMPARE_PROBE <- false;
@@ -490,7 +488,6 @@ C104_AIR_C100_COMPARE_SEEN <- {};
 C104_AIR_C100_COMPARE_COUNT <- 0;
 /* C105 : timing C100.1 partout, mais classement moteur rejoue comme le premier
  * C100 positif. L'economie retournee au portefeuille reste C100.1. */
-C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS <- false;
 /* C106 : choix moteur par rendement marginal relatif sous l'economie C100.1,
  * mais economie legacy retournee au portefeuille. Aucun seuil de caisse. */
 /* C108 : economie/timing C100.1 partout, moteur choisi par le rendement

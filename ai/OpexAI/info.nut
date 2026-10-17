@@ -516,21 +516,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c101_air_physical_engine_choice",
-      description = "C101: among AIR engines using no more legacy capital than the C68 winner, rank by C100.1 physical profit, then return legacy route economics for admission/project scoring; 1 = enabled, 0 = legacy (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c103_air_c100_rank_replay",
-      description = "C103: replay the first positive C100 engine ranking only, while returning legacy route economics for admission/project scoring; 1 = enabled, 0 = legacy (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c104_air_c100_compare_probe",
@@ -540,13 +526,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c105_air_replay_choice_physical_economics",
-      description = "C105: C100.1 physical AIR economics everywhere, but rank route engines with the first positive C100 replay objective; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
 
