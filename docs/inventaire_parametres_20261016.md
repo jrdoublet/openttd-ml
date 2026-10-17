@@ -147,7 +147,6 @@ déclarée dans `info.nut`, abrégée si très longue (en anglais, pour fidélit
 | `v182_rail_freight_min_dist` | 0 | V182: minimum distance in tiles for rail freight candidates (generation filter); 0 = inert (défaut) | Option, OFF au défaut |
 | `v177_rail_pax_min_dist` | 0 | V177: minimum distance in tiles for rail passenger candidates (generation filter); 0 = inert (défaut) | Option, OFF au défaut |
 | `v180_rail_wagon_boost_delay` | 0 | V180: years after game start before the wagon boost applies; 0 = from start (défaut) | Option OFF (requiert `v180_rail_wagon_boost_pct>0`) |
-| `v181_rail_max_trains` | 0 | V181: maximum trains per double-track rail line via cloning (0 = inert défaut, 2 = double track only, up to 8) | Option, OFF au défaut |
 | `v180_rail_wagon_boost_pct` | 0 | V180: rail consist sizing offers N% more cargo than the 50% rating calibration (bigger trains); 0 = inert (défaut) | Option, OFF au défaut |
 | `v179_rail_gen_dest_served` | 0 | V179: rail freight generator keeps pairs whose destination industry is already served (fresh source), for V178 to attach; 0 = inert (défaut) | Option, OFF au défaut |
 | `v178_rail_shared_dest` | 0 | V178: freight candidates share accepting rail station when destination is within MIN_SEPARATION of our existing station; 0 = inert (défaut) | Option, OFF au défaut |
@@ -238,7 +237,6 @@ déclarée dans `info.nut`, abrégée si très longue (en anglais, pour fidélit
 | `v195_v182_years` | 0 | V195: apply v182 rail freight min distance only during the first N years (0 = always, défaut) | Oui : valeur de référence ou neutre (modifiable) |
 | `v194_short_to_served_dst` | 0 | V194: exempt short rail freight (under v182 min distance) whose destination is near one of our rail stations (0 = off, défaut) | Option, OFF au défaut |
 | `v193_chain_towns` | 0 | V193: V88 goods chain generation evaluates at most N most populated towns per source->factory and keeps the best chain (0 = unbounded, défaut) | Option OFF (requiert `v88_goods_chain=1`) |
-| `v192_rail_time_denom_pct` | 0 | V192: rail score denominator = capital x (1 + pct/100 x (distance/100)^2), proxy of build time (0 = off) | Option, OFF au défaut |
 | `v184_rail_search_slots` | 1 | V184: number of concurrent primary rail A* search slots (1..4, défaut 1) | Oui, défaut actif |
 | `v197_guided_double` | 0 | V197: guided double track pathfinding like AAAHogEx (outwardSide for track 1, guideTiles for track 2); 0 = inert défaut, 1 = on | Option OFF (requiert `v190_rail_double_build=1`) |
 | `v198_template_double` | 0 | V198: double track using station templates (loop source + through destination); 0 = inert défaut, 1 = on | Option OFF (requiert `v190_rail_double_build=1`) |

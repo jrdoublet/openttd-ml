@@ -67,3 +67,10 @@ Refusés par grok et conservés : `C41_RAIL_LOST_*` (Save/Load) et `WATER_OPCODE
 C121 est le seul modèle économique AIR. Le réglage est retiré, puis la constante est repliée : chemin « ROI legacy » d'`OpexAirPlanBetter`, choix `OpexAirChooseRoutePlane` dans les trois bras, gardes `SHADOW && !C121`, sonde ABCD (`diag_c121_abcd.py`). Smoke non identique ; 20×10 contre master (référence `v222_air_20x10_20261017`) : −74 k£/an (−2,05 %), 7/13, Wilcoxon p = 0,28, IC95 [−207 k ; +63 k], valeur −1,61 % : neutre.
 
 Suite (`e1d71b0`) : constante `C121_AIR_ECONOMICS` retirée, ainsi que la sonde `fleet_amort_shadow_probe` (`OpexFleetAmortShadow`, `OpexAmortProbe*`, adaptateur et tests Python). Idée : recalculer le profit d'un renfort de flotte AIR **net de l'amortissement des seuls avions ajoutés** (prix × n / durée de vie), pour voir si le classement du portefeuille changeait. Hors périmètre C84/C121, elle ne s'armait plus depuis l'adoption de C121. 20×10 contre le repli : +74 k£/an (+2,09 %), 9/11, p = 0,73, IC95 [−49 k ; +213 k], valeur +1,22 % : neutre. Si l'idée revient, l'implanter dans l'économie C121 (`OpexC121EngineEconomics`), pas en reconstruisant l'ancien chemin.
+
+## 5. Lot 2B rail (V225 grok) : `v181_rail_max_trains`, `v192_rail_time_denom_pct`
+
+| Réglage | Idée | Verdict |
+|---|---|---|
+| `v181_rail_max_trains` | Convertir une double voie en boucle à sens unique puis cloner jusqu'à N trains si l'attente source dépasse une rame. | Défaut 0, **inerte** (0 clonage, résultat identique au bit près). Plafond historique de 2 trains figé. `OpexConvertDoubleTrackToLoop` et `v181Loop` restent pour V190/V198. |
+| `v192_rail_time_denom_pct` | Dénominateur rail du fundScore = capital × (1 + pct/100 × (distance/100)²), proxy du temps de chantier AAAHogEx. | Défaut 0, **nul confirmé** (10×3 bruit). Au défaut le dénominateur restait le capital : wrapper retiré. |

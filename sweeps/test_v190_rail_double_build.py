@@ -110,7 +110,9 @@ class InertDefault(unittest.TestCase):
     def test_expand_inert_at_default(self):
         expand_body = _function_body(_read("task_rail.nut"), "OpexAI::_expandRailLines")
         self.assertTrue("!V190_RAIL_DOUBLE_BUILD" in expand_body or "!OpexV190Active()" in expand_body)
-        self.assertIn("if (V181_RAIL_MAX_TRAINS <= 0)", expand_body)
+        self.assertNotIn("V181_RAIL_MAX_TRAINS", expand_body)
+        self.assertIn('if (!OpexV190Active() || line.kind != "freight") {', expand_body)
+        self.assertIn("if (line.trains >= 2 || line.vehicles.len() >= 2) continue;", expand_body)
 
 
 class PresenceDesEtapes(unittest.TestCase):

@@ -255,6 +255,8 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertEqual(defaults["c121_air_first_live_growth_phase_years"], 4)
         self.assertNotIn("c80_fleet_inject", defaults)
         self.assertNotIn("c80_air_targeted_update", defaults)
+        self.assertNotIn("v181_rail_max_trains", defaults)
+        self.assertNotIn("v192_rail_time_denom_pct", defaults)
         self.assertNotIn("c77_opportunistic_candidates", defaults)
         self.assertNotIn("c77_targeted_build", defaults)
         self.assertNotIn("c77_fixes", defaults)

@@ -134,12 +134,8 @@ function OpexLoadSettings()
   V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
   if (V180_START_YEAR < 0) V180_START_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
   V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
-  local maxTrains = AIController.GetSetting("v181_rail_max_trains");
-  V181_RAIL_MAX_TRAINS = (maxTrains != null && maxTrains > 0 && maxTrains <= 8) ? maxTrains : 0;
   local railSlots = AIController.GetSetting("v184_rail_search_slots");
   V184_RAIL_SEARCH_SLOTS = (railSlots != null && railSlots >= 1 && railSlots <= 4) ? railSlots : 1;
-  local timeDenom = AIController.GetSetting("v192_rail_time_denom_pct");
-  V192_RAIL_TIME_DENOM_PCT = (timeDenom != null && timeDenom > 0 && timeDenom <= 400) ? timeDenom : 0;
   local chainTowns = AIController.GetSetting("v193_chain_towns");
   V193_CHAIN_TOWNS = (chainTowns != null && chainTowns > 0 && chainTowns <= 10) ? chainTowns : 0;
   V194_SHORT_TO_SERVED_DST = AIController.GetSetting("v194_short_to_served_dst") != 0;

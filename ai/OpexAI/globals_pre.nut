@@ -23,11 +23,8 @@ V179_RAIL_GEN_DEST_SERVED <- false;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
-V181_RAIL_MAX_TRAINS <- 0;
 /* V184 : nombre de creneaux de recherche A* rail simultanes (1..4, defaut 1). */
 V184_RAIL_SEARCH_SLOTS <- 1;
-/* V192 : denominateur rail ~ temps de chantier (0 = inerte). */
-V192_RAIL_TIME_DENOM_PCT <- 0;
 /* V193 : borne de la generation des chaines V88 (0 = inerte). */
 V193_CHAIN_TOWNS <- 0;
 /* V194 : fret court vers une gare rail deja desservie (0 = inerte). */
